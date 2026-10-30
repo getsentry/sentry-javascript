@@ -1,9 +1,10 @@
 import { expect } from '@playwright/test';
 
-export async function createConversation(baseURL: string): Promise<number> {
+/** Create a conversation. `sessionId` is the id the SDK reports as `gen_ai.conversation.id`. */
+export async function createConversation(baseURL: string): Promise<{ id: number; sessionId: string }> {
   const res = await fetch(`${baseURL}/conversations`, { method: 'POST' });
   expect(res.status).toBe(200);
-  return ((await res.json()) as { id: number }).id;
+  return (await res.json()) as { id: number; sessionId: string };
 }
 
 /**

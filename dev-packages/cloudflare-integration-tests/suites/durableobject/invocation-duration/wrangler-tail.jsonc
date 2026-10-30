@@ -1,0 +1,6 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "durableobject-invocation-duration-tail",
+  "main": "tail.ts",
+  "compatibility_date": "2025-06-17",
+}

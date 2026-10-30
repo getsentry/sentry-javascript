@@ -6,6 +6,46 @@ import { describe, expect, it } from 'vitest';
 import { htmlTreeAsString } from '../src/htmlTreeAsString';
 
 describe('htmlTreeAsString', () => {
+  it('masks attributes on the target and its ancestors', () => {
+    const parent = document.createElement('div');
+    parent.title = 'Account PIN';
+    const target = document.createElement('button');
+    target.setAttribute('aria-label', 'Pay Alice');
+    target.setAttribute('type', 'button');
+    parent.appendChild(target);
+
+    const result = htmlTreeAsString(target, {
+      maskAttributeFn: (key, value) => (['title', 'aria-label'].includes(key) ? '[masked]' : value),
+    });
+
+    expect(result).toBe('div[title="[masked]"] > button[aria-label="[masked]"][type="button"]');
+  });
+
+  it('masks custom key attributes', () => {
+    const target = document.createElement('button');
+    target.setAttribute('data-account', 'alice@example.com');
+
+    const result = htmlTreeAsString(target, {
+      keyAttrs: ['data-account'],
+      maskAttributeFn: (_key, _value, el) => (el === target ? '[masked]' : '[unexpected element]'),
+    });
+
+    expect(result).toBe('button[data-account="[masked]"]');
+  });
+
+  it('returns unknown when attribute masking throws', () => {
+    const target = document.createElement('button');
+    target.title = 'Account PIN';
+
+    const result = htmlTreeAsString(target, {
+      maskAttributeFn: () => {
+        throw new Error('Invalid masking selector');
+      },
+    });
+
+    expect(result).toBe('<unknown>');
+  });
+
   it('returns a query-selector-like string for a single element', () => {
     const el = document.createElement('button');
     el.id = 'submit';

@@ -9,6 +9,7 @@ import {
   lastEventId,
   linkedErrorsIntegration,
   makeSession,
+  resolvedSyncPromise,
   Scope,
   setCurrentClient,
   SyncPromise,
@@ -552,20 +553,21 @@ describe('Client', () => {
       expect(eventId).toEqual(lastEventId());
     });
 
-    test('sets lastEventId when an error is sampled out', () => {
+    test('does not set lastEventId when an error is sampled out without a session', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 });
       const client = new TestClient(options);
 
-      const eventId = client.captureException(new Error('sampled-out exception'));
+      client.captureException(new Error('sampled-out exception'));
 
-      expect(eventId).toEqual(lastEventId());
+      expect(lastEventId()).toBeUndefined();
       expect(TestClient.instance!.event).toBeUndefined();
     });
 
-    test('(known limitation) replaces lastEventId with a sampled-out error ID', () => {
+    test('(known limitation) replaces lastEventId with a sampled-out error ID when a session exists', () => {
       // After a successfully sent error, a subsequent sampled-out error replaces lastEventId() even though that new ID has no corresponding event in Sentry.
-      // The `setLastEventId` call in `_prepareEvent` now executes before the `sampleRate` check
+      // With a session, the `setLastEventId` call in `_prepareEvent` executes before the `sampleRate` check
       const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      getCurrentScope().setSession(makeSession());
 
       client.captureException(new Error('sent exception'), { event_id: 'sent-event-id' });
       client.getOptions().sampleRate = 0;
@@ -660,6 +662,44 @@ describe('Client', () => {
           message: 'test message',
           timestamp: 2020,
         }),
+      );
+    });
+
+    test.each([
+      ['left at its default', {}, expect.objectContaining({ hasDefaultSyntheticStacktrace: true })],
+      [
+        'explicitly enabled',
+        { attachStacktrace: true },
+        expect.not.objectContaining({ hasDefaultSyntheticStacktrace: true }),
+      ],
+    ])('marks message stack traces only when attachStacktrace is %s', (_, attachStacktraceOptions, metadataMatcher) => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN, ...attachStacktraceOptions }));
+      vi.spyOn(client, 'eventFromMessage').mockReturnValue(
+        resolvedSyncPromise({ message: 'test message', exception: { values: [{ value: 'test message' }] } }),
+      );
+      const processor = vi.fn((event: Event) => event);
+      client.addEventProcessor(processor);
+
+      client.captureMessage('test message');
+
+      expect(processor).toHaveBeenCalledWith(
+        expect.objectContaining({ sdkProcessingMetadata: metadataMatcher }),
+        expect.anything(),
+      );
+    });
+
+    test('does not mark message events without a stack trace', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const processor = vi.fn((event: Event) => event);
+      client.addEventProcessor(processor);
+
+      client.captureMessage('test message');
+
+      expect(processor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sdkProcessingMetadata: expect.not.objectContaining({ hasDefaultSyntheticStacktrace: true }),
+        }),
+        expect.anything(),
       );
     });
 
@@ -4529,6 +4569,41 @@ describe('Client', () => {
         { reason: 'queue_overflow', category: 'replay', quantity: 1 },
         { reason: 'queue_overflow', category: 'transaction', quantity: 1 },
       ]);
+    });
+
+    it('drops sampled-out errors without a session before they take a buffer slot', async () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        sampleRate: 0,
+        transportOptions: { bufferSize: 1 },
+      });
+      const client = new TestClient(options);
+
+      client.addIntegration(new AsyncTestIntegration());
+
+      client.captureException(new Error('first'));
+      client.captureException(new Error('second'));
+      client.captureException(new Error('third'));
+
+      expect(client._clearOutcomes()).toEqual([{ reason: 'sample_rate', category: 'error', quantity: 3 }]);
+    });
+
+    it('keeps processing sampled-out errors that can update the session', async () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        sampleRate: 0,
+        transportOptions: { bufferSize: 1 },
+      });
+      const client = new TestClient(options);
+      setCurrentClient(client);
+      getCurrentScope().setSession(makeSession());
+
+      client.addIntegration(new AsyncTestIntegration());
+
+      client.captureException(new Error('first'));
+      client.captureException(new Error('second'));
+
+      expect(client._clearOutcomes()).toEqual([{ reason: 'queue_overflow', category: 'error', quantity: 1 }]);
     });
 
     it('should skip the promise buffer with sync integrations', async () => {

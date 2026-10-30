@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { HAPI_EXT_TYPE, HAPI_TYPE, SERVER_EXT_TYPE } from '@sentry/conventions/attributes';
 import { waitForStreamedSpan, getSpanOp, collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
 test('Sends successful span', async ({ baseURL }) => {
@@ -97,10 +98,12 @@ test('Sends successful span', async ({ baseURL }) => {
       end_timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       attributes: expect.objectContaining({
-        'hapi.type': { value: 'server.ext', type: 'string' },
+        [HAPI_TYPE]: { value: 'server.ext', type: 'string' },
+        [HAPI_EXT_TYPE]: { value: 'onPreResponse', type: 'string' },
         'sentry.op': { value: 'middleware', type: 'string' },
         'sentry.origin': { value: 'auto.http.hapi', type: 'string' },
-        'server.ext.type': { value: 'onPreResponse', type: 'string' },
+        // oxlint-disable-next-line typescript/no-deprecated
+        [SERVER_EXT_TYPE]: { value: 'onPreResponse', type: 'string' },
       }),
     }),
   ]);

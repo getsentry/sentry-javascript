@@ -84,6 +84,42 @@ describe('FunctionToString', () => {
     expect(inspectedFunction.toString()).toBe(expected);
   });
 
+  it('does not recurse when Function.prototype.apply performs a function toString check', () => {
+    function inspectedFunction(): void {}
+
+    const fts = functionToStringIntegration();
+    getClient()?.addIntegration(fts);
+    const expected = inspectedFunction.toString();
+
+    const applySpy = vi.spyOn(Function.prototype, 'apply').mockImplementation(function (
+      this: Function,
+      thisArg: unknown,
+      args?: unknown[],
+    ) {
+      this.toString();
+      return Reflect.apply(this, thisArg, args ?? []);
+    });
+    let result: unknown;
+    try {
+      result = inspectedFunction.toString();
+    } catch (error) {
+      result = error;
+    }
+    applySpy.mockRestore();
+
+    expect(result).toBe(expected);
+  });
+
+  it('does not overflow the stack when called with many arguments', () => {
+    function inspectedFunction(): void {}
+
+    const fts = functionToStringIntegration();
+    getClient()?.addIntegration(fts);
+    const expected = inspectedFunction.toString();
+
+    expect(Reflect.apply(Function.prototype.toString, inspectedFunction, new Array(100_000))).toBe(expected);
+  });
+
   it('falls back to native toString and does not throw when the carrier read throws', () => {
     const foo = {
       bar(wat: boolean): boolean {

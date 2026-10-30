@@ -44,7 +44,7 @@
   "ct3aMetadata": {
     "initVersion": "7.47.1"
   },
-  "volta": {
-    "extends": "../../package.json"
+  "sentryTest": {
+    "runner": "namespace-profile-sentry-javascript"
   }
 }

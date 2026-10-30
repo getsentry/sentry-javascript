@@ -109,7 +109,7 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
         [SENTRY_OP]: PAGELOAD,
         [SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
         [SENTRY_SEGMENT_NAME_SOURCE]: route ? 'route' : 'url',
-        ...(route && { [URL_TEMPLATE]: route }),
+        [URL_TEMPLATE]: route,
         ...(params && { ...params }),
       },
     },

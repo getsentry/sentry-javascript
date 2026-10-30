@@ -39,12 +39,7 @@ describe('createSentryTunnelRoute', () => {
     const result = await route.handlers.POST({ request });
 
     expect(handleTunnelRequestSpy).toHaveBeenCalledTimes(1);
-    const [options] = handleTunnelRequestSpy.mock.calls[0]!;
-    expect(options).toEqual({
-      request,
-      allowedDsns,
-    });
-    expect(options.allowedDsns).toBe(allowedDsns);
+    expect(handleTunnelRequestSpy).toHaveBeenCalledWith(request, { allowedDsns });
     expect(result).toBe(response);
   });
 
@@ -71,9 +66,7 @@ describe('createSentryTunnelRoute', () => {
     const result = await route.handlers.POST({ request });
 
     expect(handleTunnelRequestSpy).toHaveBeenCalledTimes(1);
-    const [options] = handleTunnelRequestSpy.mock.calls[0]!;
-    expect(options).toEqual({
-      request,
+    expect(handleTunnelRequestSpy).toHaveBeenCalledWith(request, {
       allowedDsns: ['http://public@localhost:3031/1337'],
     });
     expect(result).toBe(response);

@@ -1,3 +1,4 @@
+import { THREAD_ID, THREAD_NAME } from '@sentry/conventions/attributes';
 /* eslint-disable max-lines */
 import type { Client, ContinuousThreadCpuProfile, DebugImage, ProfileChunk, Span } from '@sentry/core';
 import {
@@ -147,17 +148,22 @@ function convertToContinuousProfile(input: {
     stacks[i] = list;
   }
 
+  const emptyStackId = input.stacks.length;
   const samples: ContinuousThreadCpuProfile['samples'] = [];
   for (let i = 0; i < input.samples.length; i++) {
     const sample = input.samples[i];
     if (!sample) {
       continue;
     }
+    const stackId = sample.stackId ?? emptyStackId;
+    if (stackId === emptyStackId) {
+      stacks[emptyStackId] ??= [];
+    }
     // Sample timestamps are relative to `performance.timeOrigin`, so we convert them like performance entries.
     // The cast is safe: the JS Self-Profiling API only exists if the Performance API does.
     const timestampSeconds = _INTERNAL_performanceTimeToSeconds(sample.timestamp) as number;
     samples[i] = {
-      stack_id: sample.stackId ?? 0,
+      stack_id: stackId,
       thread_id: PROFILER_THREAD_ID_STRING,
       timestamp: timestampSeconds,
     };
@@ -301,6 +307,6 @@ export function shouldProfileSession(options: BrowserOptions): boolean {
 }
 
 export function setThreadAttributes(span: Span): void {
-  span.setAttribute('thread.id', PROFILER_THREAD_ID_STRING);
-  span.setAttribute('thread.name', PROFILER_THREAD_NAME);
+  span.setAttribute(THREAD_ID, PROFILER_THREAD_ID_STRING);
+  span.setAttribute(THREAD_NAME, PROFILER_THREAD_NAME);
 }

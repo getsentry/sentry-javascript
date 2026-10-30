@@ -101,8 +101,13 @@ export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { safeCallback } from './utils/safeCallback';
 export { parameterize, fmt } from './utils/parameterize';
-export type { HandleTunnelRequestOptions } from './utils/tunnel';
-export { handleTunnelRequest } from './utils/tunnel';
+export type { HandleTunnelRequestOptions } from './utils/tunnelForward';
+export { handleTunnelRequest } from './utils/tunnelForward';
+export {
+  applyTunnelDefaults as _INTERNAL_applyTunnelDefaults,
+  getTunnelPath,
+  normalizeTunnelBasePath as _INTERNAL_normalizeTunnelBasePath,
+} from './utils/tunnel';
 export { addAutoIpAddressToSession } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,
@@ -119,6 +124,7 @@ export {
   getActiveSpan,
   addChildSpanToSpan,
   spanTimeInputToSeconds,
+  otelTimeInputToSeconds,
   updateSpanName,
   INTERNAL_setSegmentNameSourceIfSegment,
 } from './utils/spanUtils';
@@ -415,7 +421,14 @@ export type {
   HttpHeadersCollection,
   ResolvedDataCollection,
 } from './types/datacollection';
-export type { ClientOptions, CoreOptions as Options } from './types/options';
+export type {
+  BrowserTunnelOptions,
+  ClientOptions,
+  CoreOptions as Options,
+  ServerTunnelOptions,
+  TunnelInit,
+  TunnelOptions,
+} from './types/options';
 export type { Package } from './types/package';
 export type { PolymorphicEvent, PolymorphicRequest } from './types/polymorphics';
 export type {

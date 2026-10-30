@@ -9,6 +9,6 @@
     "@babel/preset-react": "7.23.3",
     "@rollup/plugin-babel": "6.0.4",
     "@rollup/plugin-node-resolve": "15.2.3",
-    "@sentry/bundler-plugins": "11.8.0"
+    "@sentry/bundler-plugins": "11.10.0"
   }
 }

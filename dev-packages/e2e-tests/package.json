@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/e2e-tests",
-  "version": "11.8.0",
+  "version": "11.10.0",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -12,17 +12,14 @@
     "test:validate": "node validate-packed-tarball-setup.mjs",
     "clean": "rimraf tmp node_modules packed && pnpm run clean:test-applications && pnpm run clean:pnpm",
     "ci:build-matrix": "node ./lib/getTestMatrix.mjs",
-    "ci:build-matrix-optional": "node ./lib/getTestMatrix.mjs --optional=true",
+    "ci:build-matrix-optional": "node ./lib/getTestMatrix.mjs --variant=optional",
+    "ci:build-matrix-canary": "node ./lib/getTestMatrix.mjs --variant=canary",
     "ci:copy-to-temp": "node ./ciCopyToTemp.mjs",
     "ci:pnpm-overrides": "node ./ciPnpmOverrides.mjs",
     "clean:test-applications": "rimraf --glob test-applications/**/{node_modules,dist,build,.next,.nuxt,.sveltekit,.react-router,.astro,.output,pnpm-lock.yaml,.last-run.json,test-results,.angular}",
     "clean:pnpm": "pnpm store prune"
   },
   "devDependencies": {
-    "eslint-plugin-regexp": "^3.1.0",
     "rimraf": "^6.1.3"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

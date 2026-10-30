@@ -69,6 +69,8 @@ strictPeerDependencies: false
 # The packages depend on each other by exact version, not with `workspace:`.
 # This links them from the workspace instead of installing them from npm.
 linkWorkspacePackages: true
+# Lockfiles written by Dependabot or `pnpm add` would otherwise fail `pnpm dedupe --check` in CI.
+autoDedupe: true
 
 overrides:
   nx>minimatch: 10.2.5
@@ -99,6 +101,7 @@ packageExtensions:
 # `false` only for scripts that just print a message.
 allowBuilds:
   '@apollo/protobufjs': true
+  '@google/genai': false
   '@nestjs/core': false
   '@parcel/watcher': true
   '@prisma/client': true
@@ -108,11 +111,18 @@ allowBuilds:
   core-js-pure: false
   esbuild: true
   mongodb-memory-server-global: true
+  msgpackr-extract: true
   nice-napi: true
   nx: true
   prisma: true
+  protobufjs: false
   sharp: true
   vue-demi: true
   workerd: true
 minimumReleaseAgeExclude:
   - '@opentelemetry/api@1.10.0'
+  - '@sentry/conventions@0.30.0'
+  - '@sentry/rrdom@2.45.0'
+  - '@sentry/rrweb-snapshot@2.45.0'
+  - '@sentry/rrweb-types@2.45.0'
+  - '@sentry/rrweb@2.45.0'

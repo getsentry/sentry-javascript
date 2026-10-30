@@ -1,11 +1,14 @@
 // @ts-check
 /* eslint-disable no-console */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { cp } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = resolve(__dirname, '../../..');
+
+/** @typedef {{ name: string; version: string; onFail?: string }} RuntimeEntry */
 
 /**
  * @param {string} originalPath
@@ -16,15 +19,16 @@ export async function copyToTemp(originalPath, tmpDirPath) {
   // copy files to tmp dir
   await cp(originalPath, tmpDirPath, { recursive: true });
 
-  fixPackageJson(tmpDirPath);
+  fixPackageJson(originalPath, tmpDirPath);
 }
 
 /**
+ * @param {string} originalPath
  * @param {string} cwd
  */
-function fixPackageJson(cwd) {
+function fixPackageJson(originalPath, cwd) {
   const packageJsonPath = join(cwd, 'package.json');
-  /** @type {{ dependencies?: Record<string, string>; devDependencies?: Record<string, string>; volta?: Record<string, unknown> }} */
+  /** @type {{ dependencies?: Record<string, string>; devDependencies?: Record<string, string>; devEngines?: { runtime?: RuntimeEntry | RuntimeEntry[] } & Record<string, unknown>; packageManager?: string }} */
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 
   // 1. Fix file dependencies
@@ -35,23 +39,44 @@ function fixPackageJson(cwd) {
     fixFileLinkDependencies(packageJson.devDependencies);
   }
 
-  // 2. Fix volta extends
-  if (!packageJson.volta) {
-    throw new Error("No volta config found, please add one to the test app's package.json!");
+  // 2. Pin node and pnpm. The tmp dir has no parent package.json to inherit them from.
+  const { nodeRuntime, packageManager } = resolveToolPins(originalPath);
+  if (!nodeRuntime || !packageManager) {
+    throw new Error(`Could not resolve the node and pnpm versions for ${originalPath}.`);
   }
-
-  if (typeof packageJson.volta.extends === 'string') {
-    const extendsPath = packageJson.volta.extends;
-    // We add a virtual dir to ensure that the relative depth is consistent
-    // dirPath is relative to ./../test-applications/xxx
-    const newPath = resolve(__dirname, 'virtual-dir/', extendsPath);
-    packageJson.volta.extends = newPath;
-    console.log(`Fixed volta.extends to ${newPath}`);
-  } else {
-    console.log('No volta.extends found');
+  const ownRuntimes = [packageJson.devEngines?.runtime].flat().filter(runtime => runtime !== undefined);
+  if (!ownRuntimes.some(runtime => runtime.name === 'node')) {
+    const runtime = ownRuntimes.length ? [...ownRuntimes, nodeRuntime] : nodeRuntime;
+    packageJson.devEngines = { ...packageJson.devEngines, runtime };
   }
+  packageJson.packageManager = packageManager;
+  console.log(`Pinned node ${nodeRuntime.version} and ${packageManager}`);
 
   writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+}
+
+/**
+ * The nearest `devEngines.runtime` node entry and `packageManager` between the app and the repo root.
+ * @param {string} appPath
+ * @returns {{ nodeRuntime?: RuntimeEntry; packageManager?: string }}
+ */
+function resolveToolPins(appPath) {
+  /** @type {RuntimeEntry | undefined} */
+  let nodeRuntime;
+  /** @type {string | undefined} */
+  let packageManager;
+
+  for (let dir = resolve(appPath); ; dir = dirname(dir)) {
+    const packageJsonPath = join(dir, 'package.json');
+    if (existsSync(packageJsonPath)) {
+      const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+      nodeRuntime ??= [packageJson.devEngines?.runtime].flat().find(runtime => runtime?.name === 'node');
+      packageManager ??= packageJson.packageManager;
+    }
+    if (dir === REPO_ROOT || dir === dirname(dir)) {
+      return { nodeRuntime, packageManager };
+    }
+  }
 }
 
 /**

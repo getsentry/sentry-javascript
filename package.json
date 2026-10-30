@@ -49,13 +49,16 @@
     "yalc:publish": "nx run-many -t yalc:publish"
   },
   "packageManager": "pnpm@12.11.2",
-  "//_volta_comment": [
-    "Volta cannot start pnpm 11 or newer (volta-cli/volta#2114). It starts this pnpm 10 version, which switches to the `packageManager` version.",
-    "Volta reads the pnpm version only when `VOLTA_FEATURE_PNPM=1` is set, see CONTRIBUTING.md."
+  "//_devEngines_comment": [
+    "pnpm's global `node` shim runs the nearest `devEngines.runtime` version, see CONTRIBUTING.md. Packages and E2E apps override it with their own entry.",
+    "`onFail: warn` keeps Node.js out of the lockfile, so `pnpm run` uses the Node.js of `setup-node` in the CI Node.js version matrix."
   ],
-  "volta": {
-    "node": "24.22.1",
-    "pnpm": "10.34.6"
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.22.1",
+      "onFail": "warn"
+    }
   },
   "//_workspaces_comment": [
     "pnpm reads the workspace packages from pnpm-workspace.yaml. Deno and the repo scripts read this list.",
@@ -136,7 +139,7 @@
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^5.0.5",
-    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-terser": "^1.0.2",
     "@sentry-internal/node-integration-tests": "workspace:*",
     "@sentry/eslint-plugin-sdk": "workspace:*",
     "@sentry/sveltekit": "workspace:*",
@@ -147,7 +150,7 @@
     "@types/node": "^20.19.0",
     "@vitest/coverage-v8": "^4.1.11",
     "deepmerge": "^4.2.2",
-    "es-check": "^7.2.1",
+    "es-check": "^9.8.1",
     "esbuild": "^0.28.1",
     "jsdom": "^21.1.2",
     "madge": "8.0.0",
@@ -163,10 +166,10 @@
     "rollup-plugin-license": "^3.7.1",
     "size-limit": "~12.1.0",
     "tslib": "^2.4.1",
-    "tsx": "^4.23.0",
+    "tsx": "^4.23.15",
     "typescript": "~7.0.2",
     "vitest": "^4.1.11",
-    "webpack": "^5.104.1",
+    "webpack": "^5.112.2",
     "yalc": "^1.0.0-pre.53"
   },
   "version": "0.0.0",

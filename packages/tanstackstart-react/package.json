@@ -1,6 +1,6 @@
 {
   "name": "@sentry/tanstackstart-react",
-  "version": "11.8.0",
+  "version": "11.10.0",
   "description": "Official Sentry SDK for TanStack Start React",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/tanstackstart-react",
@@ -51,18 +51,18 @@
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.10.0",
-    "@sentry/browser-utils": "11.8.0",
-    "@sentry/conventions": "^0.27.0",
-    "@sentry/core": "11.8.0",
-    "@sentry/node": "11.8.0",
-    "@sentry/react": "11.8.0",
-    "@sentry/server-runtime-injection": "11.8.0",
-    "@sentry/server-utils": "11.8.0",
-    "@sentry/bundler-plugins": "11.8.0"
+    "@opentelemetry/api": "^1.9.1",
+    "@sentry/browser-utils": "11.10.0",
+    "@sentry/conventions": "^0.30.0",
+    "@sentry/core": "11.10.0",
+    "@sentry/node": "11.10.0",
+    "@sentry/react": "11.10.0",
+    "@sentry/server-runtime-injection": "11.10.0",
+    "@sentry/server-utils": "11.10.0",
+    "@sentry/bundler-plugins": "11.10.0"
   },
   "devDependencies": {
-    "@sentry-internal/rollup-utils": "11.8.0",
+    "@sentry-internal/rollup-utils": "11.10.0",
     "@types/node": "^20.19.0",
     "vite": "^8.3.1"
   },
@@ -85,9 +85,6 @@
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sideEffects": false,
   "nx": {
