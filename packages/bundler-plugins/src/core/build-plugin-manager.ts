@@ -4,6 +4,7 @@ import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { escape as escapeGlob } from 'glob';
 import { SentryCliAdapter } from './cli';
 import type { NormalizedOptions } from './options-mapping';
 import { normalizeUserOptions, validateOptions } from './options-mapping';
@@ -708,7 +709,7 @@ export function createSentryBuildPluginManager(
                 logger.debug(
                   'No `sourcemaps.assets` option provided, falling back to uploading detected build artifacts.',
                 );
-                globAssets = buildArtifactPaths;
+                globAssets = buildArtifactPaths.map(asset => escapeGlob(asset.split(path.sep).join('/')));
               }
 
               const globResult = await startSpan({ name: 'glob', scope: sentryScope }, async () =>
