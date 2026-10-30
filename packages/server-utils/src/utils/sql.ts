@@ -112,11 +112,13 @@ const CTE_MAIN_STATEMENT_RE = /\(|\)|\b(SELECT|INSERT|UPDATE|DELETE|MERGE|VALUES
  * @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/db/#db-operation-name
  */
 export function getSqlOperationName(query: string | undefined): string | undefined {
-  const keyword = query && LEADING_KEYWORD_RE.exec(query)?.[1];
-  if (!keyword) {
+  const match = query ? LEADING_KEYWORD_RE.exec(query) : null;
+  const keyword = match?.[1];
+  if (!query || !match || !keyword) {
     return undefined;
   }
-  return keyword.toUpperCase() === 'WITH' ? getCteMainOperationName(query) : keyword;
+  // Scanned from after `WITH`, so parentheses wrapping the whole query don't shift the depth.
+  return keyword.toUpperCase() === 'WITH' ? getCteMainOperationName(query.slice(match[0].length)) : keyword;
 }
 
 /**

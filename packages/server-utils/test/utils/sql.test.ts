@@ -315,6 +315,8 @@ describe('getSqlOperationName', () => {
     ['WITH a AS (SELECT ?), b (x, y) AS (SELECT * FROM a) UPDATE t SET x = (SELECT x FROM b)', 'UPDATE'],
     ['WITH x AS (VALUES (?)) TABLE x', 'TABLE'],
     ['WITH x AS (SELECT ?)', undefined],
+    ['(WITH x AS (SELECT ?) SELECT * FROM x)', 'SELECT'],
+    ['( (with x AS (SELECT ?) delete FROM t WHERE id IN (SELECT * FROM x)) )', 'delete'],
   ])('takes the main statement of a WITH query: %j => %j', (input, expected) => {
     expect(getSqlOperationName(input)).toBe(expected);
   });
