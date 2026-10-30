@@ -1,4 +1,5 @@
 import { DB_OPERATION_NAME, DB_QUERY_SUMMARY, DB_QUERY_TEXT } from '@sentry/conventions/attributes';
+import { getClient, hasSpanStreamingEnabled } from '@sentry/core';
 
 const MAX_SUMMARY_LENGTH = 255;
 
@@ -424,24 +425,38 @@ export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDiale
   );
 }
 
+export interface SqlQueryAttributes {
+  [DB_QUERY_TEXT]: string | undefined;
+  [DB_QUERY_SUMMARY]: string | undefined;
+  [DB_OPERATION_NAME]: string | undefined;
+}
+
 /**
  * Sanitizes a collected SQL statement into the query attributes the SQL integrations attach to
  * their spans: `db.query.text`, `db.query.summary` and `db.operation.name`. All are `undefined`
  * when there is no statement, so an empty query omits the attributes instead of reporting the
  * sanitizer's fallback text.
  */
-export function getSqlQueryAttributes(
-  sqlQuery: string | undefined,
-  dialect?: SqlDialect,
-): {
-  [DB_QUERY_TEXT]: string | undefined;
-  [DB_QUERY_SUMMARY]: string | undefined;
-  [DB_OPERATION_NAME]: string | undefined;
-} {
+export function getSqlQueryAttributes(sqlQuery: string | undefined, dialect?: SqlDialect): SqlQueryAttributes {
   const queryText = (sqlQuery && sanitizeSqlQuery(sqlQuery, dialect)) || undefined;
   return {
     [DB_QUERY_TEXT]: queryText,
     [DB_QUERY_SUMMARY]: getSqlQuerySummary(queryText),
     [DB_OPERATION_NAME]: getSqlOperationName(queryText),
   };
+}
+
+/**
+ * Names a SQL span from its query attributes. Streamed span names have to be low cardinality, so
+ * they use `db.query.summary`; otherwise the sanitized statement is used. Each falls back to the
+ * integration's own name when the query yields none.
+ */
+export function getSqlSpanName(
+  queryAttributes: SqlQueryAttributes,
+  fallback: { streamed: string; static: string },
+): string {
+  const client = getClient();
+  return client && hasSpanStreamingEnabled(client)
+    ? queryAttributes[DB_QUERY_SUMMARY] || fallback.streamed
+    : (queryAttributes[DB_QUERY_TEXT] ?? fallback.static);
 }

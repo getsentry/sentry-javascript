@@ -5,18 +5,16 @@ import {
   captureException,
   DB_SPAN_NAME_FALLBACK,
   debug,
-  getClient,
-  hasSpanStreamingEnabled,
   type Span,
   SPAN_STATUS_ERROR,
   startSpan,
   type StartSpanOptions,
 } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
-import { getSqlQueryAttributes, sanitizeSqlQuery, type SqlDialect } from '@sentry/server-utils';
+import { getSqlQueryAttributes, getSqlSpanName, sanitizeSqlQuery, type SqlDialect } from '@sentry/server-utils';
 import type { Database, PreparedStatement } from 'db0';
 import { type DatabaseConnectionConfig, type DatabaseSpanData, getDatabaseSpanData } from './database-span-data';
-import { DB_NAMESPACE, DB_QUERY_SUMMARY, DB_QUERY_TEXT, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
+import { DB_NAMESPACE, DB_QUERY_TEXT, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
 
 type MaybeInstrumentedDatabase = Database & {
   __sentry_instrumented__?: boolean;
@@ -263,11 +261,10 @@ function createStartSpanOptions(
 ): StartSpanOptions {
   const queryAttributes = getSqlQueryAttributes(query, dialect);
 
-  const client = getClient();
-  const name =
-    client && hasSpanStreamingEnabled(client)
-      ? queryAttributes[DB_QUERY_SUMMARY] || (data[DB_NAMESPACE] as string | undefined) || DB_SPAN_NAME_FALLBACK
-      : (queryAttributes[DB_QUERY_TEXT] ?? DB_SPAN_NAME_FALLBACK);
+  const name = getSqlSpanName(queryAttributes, {
+    streamed: (data[DB_NAMESPACE] as string | undefined) || DB_SPAN_NAME_FALLBACK,
+    static: DB_SPAN_NAME_FALLBACK,
+  });
 
   return {
     name,
