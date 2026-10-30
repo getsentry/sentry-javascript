@@ -60,14 +60,17 @@ describe('graphile-worker crontab monitoring', () => {
     events.emit('job:complete', { job, error });
   }
 
-  it('sends check-ins using the item identifier as slug', () => {
+  it('sends check-ins with the crontab in UTC, using the item identifier as slug', () => {
     const events = new EventEmitter();
     monitorGraphileCronJobs(events, [cronItem('hourly-report', 'report', { minutes: [0], dows: [1, 2, 3, 4, 5] })], {});
 
     runJob(events, cronJob('report', '2026-10-16T09:00:00.000Z'));
 
     expect(captureCheckIn.mock.calls).toEqual([
-      [{ monitorSlug: 'hourly-report', status: 'in_progress' }],
+      [
+        { monitorSlug: 'hourly-report', status: 'in_progress' },
+        { schedule: { type: 'crontab', value: '0 * * * 1-5' }, timezone: 'UTC' },
+      ],
       [{ monitorSlug: 'hourly-report', status: 'ok', checkInId: 'check-in-id', duration: expect.any(Number) }],
     ]);
   });
@@ -80,6 +83,41 @@ describe('graphile-worker crontab monitoring', () => {
     runJob(events, cronJob('report', '2026-10-16T09:00:00.000Z'), error);
 
     expect(captureCheckIn.mock.calls[1]?.[0]).toMatchObject({ monitorSlug: 'report', status: 'error' });
+    expect(captureException).toHaveBeenCalledWith(error, {
+      mechanism: { handled: false, type: 'auto.function.graphile_worker.cron' },
+    });
+  });
+
+  it.each([
+    [{ minutes: [0, 15, 30, 45], hours: [0, 6, 12, 18] }, '*/15 */6 * * *'],
+    [
+      { minutes: [0], hours: [0], dates: ALL(1, 31).filter(d => d % 2 === 1), dows: [1] },
+      '0 0 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31 * 1',
+    ],
+    [{ minutes: [5], hours: [4], dates: [1, 15], months: [1, 4, 7, 10] }, '5 4 1,15 */3 *'],
+    [{ minutes: [0], hours: [0], months: [3, 6, 9, 12] }, '0 0 * 3,6,9,12 *'],
+    [{ minutes: [0], hours: [9, 10, 11, 12] }, '0 9-12 * * *'],
+  ])('rebuilds the crontab from %j', (ranges, crontab) => {
+    const events = new EventEmitter();
+    const item = cronItem('job', 'job', ranges);
+    monitorGraphileCronJobs(events, [{ ...item, match: Object.assign(() => true, item.match) }], {});
+
+    runJob(events, cronJob('job', '2026-10-16T09:00:00.000Z'));
+
+    expect(captureCheckIn.mock.calls[0]?.[1]).toEqual({
+      schedule: { type: 'crontab', value: crontab },
+      timezone: 'UTC',
+    });
+  });
+
+  it('sends no check-ins for items with a custom matcher but captures their errors', () => {
+    const events = new EventEmitter();
+    monitorGraphileCronJobs(events, [{ identifier: 'custom', task: 'job', payload: {}, match: () => true }], {});
+    const error = new Error('boom');
+
+    runJob(events, cronJob('job', '2026-10-16T09:00:00.000Z'), error);
+
+    expect(captureCheckIn).not.toHaveBeenCalled();
     expect(captureException).toHaveBeenCalledWith(error, {
       mechanism: { handled: false, type: 'auto.function.graphile_worker.cron' },
     });
