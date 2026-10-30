@@ -6,6 +6,10 @@ name: 'Dependabot: Push deduped lockfile'
 # receives is untrusted: anyone with write access can push to a Dependabot branch, and the run that
 # produced the artifact used the PR's version of `dependabot-dedupe.yml`. So it looks the PR up
 # through the API, accepts only a single regular `pnpm-lock.yaml` file and commits nothing else.
+#
+# The app token is limited to `contents: write` on this repository, not to `dependabot/**` branches, so
+# nothing from the PR may run before it is minted. Pushing as the app also changes `github.actor` on the
+# PR's next CI run, so jobs that keep secrets away from Dependabot must check the PR author, not the actor.
 
 on:
   workflow_run:
