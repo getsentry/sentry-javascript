@@ -1,3 +1,5 @@
+import { DB_OPERATION_NAME, DB_QUERY_SUMMARY, DB_QUERY_TEXT } from '@sentry/conventions/attributes';
+
 const MAX_SUMMARY_LENGTH = 255;
 
 // A single identifier: quoted (`"..."`, `'...'`, or MySQL backticks) or bare. The quoted forms have
@@ -423,15 +425,23 @@ export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDiale
 }
 
 /**
- * Sanitizes a collected SQL statement and derives the matching `db.query.summary` and
- * `db.operation.name`, the attributes the SQL integrations attach to their spans. All come back
- * `undefined` when there is no statement, so an empty query omits the attributes instead of
- * reporting the sanitizer's fallback text.
+ * Sanitizes a collected SQL statement into the query attributes the SQL integrations attach to
+ * their spans: `db.query.text`, `db.query.summary` and `db.operation.name`. All are `undefined`
+ * when there is no statement, so an empty query omits the attributes instead of reporting the
+ * sanitizer's fallback text.
  */
-export function sanitizeSqlQueryWithSummary(
+export function getSqlQueryAttributes(
   sqlQuery: string | undefined,
   dialect?: SqlDialect,
-): { queryText: string | undefined; querySummary: string | undefined; operationName: string | undefined } {
-  const queryText = sqlQuery ? sanitizeSqlQuery(sqlQuery, dialect) : undefined;
-  return { queryText, querySummary: getSqlQuerySummary(queryText), operationName: getSqlOperationName(queryText) };
+): {
+  [DB_QUERY_TEXT]: string | undefined;
+  [DB_QUERY_SUMMARY]: string | undefined;
+  [DB_OPERATION_NAME]: string | undefined;
+} {
+  const queryText = (sqlQuery && sanitizeSqlQuery(sqlQuery, dialect)) || undefined;
+  return {
+    [DB_QUERY_TEXT]: queryText,
+    [DB_QUERY_SUMMARY]: getSqlQuerySummary(queryText),
+    [DB_OPERATION_NAME]: getSqlOperationName(queryText),
+  };
 }

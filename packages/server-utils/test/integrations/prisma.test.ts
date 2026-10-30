@@ -97,6 +97,50 @@ describe('instrumentPrisma', () => {
 
       expect(spanToJSON(span).attributes['db.query.summary']).toBe('SELECT `User`');
     });
+
+    it('overrides a summary reported by Prisma with the one derived from the statement', () => {
+      initTestClient();
+      instrumentPrisma();
+
+      const span = runDbQuerySpan({
+        'db.system.name': 'postgresql',
+        'db.query.text': 'SELECT * FROM "public"."User" WHERE "bio" = $1',
+        'db.query.summary': 'prisma summary',
+      });
+
+      expect(spanToJSON(span).attributes['db.query.summary']).toBe('SELECT "public"."User"');
+    });
+  });
+
+  describe('db.query.text', () => {
+    it('backfills the sanitized statement when Prisma only reports db.statement', () => {
+      initTestClient();
+      instrumentPrisma();
+
+      const span = runDbQuerySpan({
+        'db.system': 'postgresql',
+        'db.statement': 'SELECT * FROM "public"."User" WHERE "bio" = \'secret\' LIMIT 10',
+      });
+
+      expect(spanToJSON(span).attributes).toMatchObject({
+        'db.statement': 'SELECT * FROM "public"."User" WHERE "bio" = \'secret\' LIMIT 10',
+        'db.query.text': 'SELECT * FROM "public"."User" WHERE "bio" = ? LIMIT ?',
+        'db.query.summary': 'SELECT "public"."User"',
+        'db.operation.name': 'SELECT',
+      });
+    });
+
+    it("keeps Prisma's own db.query.text", () => {
+      initTestClient();
+      instrumentPrisma();
+
+      const span = runDbQuerySpan({
+        'db.system.name': 'postgresql',
+        'db.query.text': 'SELECT * FROM "public"."User" WHERE 1=1 OFFSET $1',
+      });
+
+      expect(spanToJSON(span).attributes['db.query.text']).toBe('SELECT * FROM "public"."User" WHERE 1=1 OFFSET $1');
+    });
   });
 
   it('accepts the instrumentationConfig option', () => {

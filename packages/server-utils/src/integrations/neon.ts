@@ -12,7 +12,7 @@ import {
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration, getActiveSpan, startInactiveSpan } from '@sentry/core';
-import { sanitizeSqlQueryWithSummary } from '../utils/sql';
+import { getSqlQueryAttributes } from '../utils/sql';
 import { CHANNELS } from '../orchestrion/channels';
 import { neonModuleNames } from '../orchestrion/config/neon';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
@@ -99,10 +99,11 @@ function httpQuerySpanOptions(args: unknown[]): Parameters<typeof startInactiveS
   const statements = (Array.isArray(queryData) ? queryData : [queryData])
     .map(getQueryText)
     .filter((text): text is string => !!text)
-    .map(text => sanitizeSqlQueryWithSummary(text));
-  const queryText = joinDefined(statements.map(s => s.queryText));
-  const querySummary = joinDefined(statements.map(s => s.querySummary));
-  const operationName = batchSize === undefined ? statements[0]?.operationName : getBatchOperationName(statements);
+    .map(text => getSqlQueryAttributes(text));
+  const queryText = joinDefined(statements.map(s => s[DB_QUERY_TEXT]));
+  const querySummary = joinDefined(statements.map(s => s[DB_QUERY_SUMMARY]));
+  const operationName =
+    batchSize === undefined ? statements[0]?.[DB_OPERATION_NAME] : getBatchOperationName(statements);
   const name = querySummary || DB_SYSTEM_POSTGRESQL;
 
   return {
@@ -122,8 +123,8 @@ function httpQuerySpanOptions(args: unknown[]): Parameters<typeof startInactiveS
 }
 
 // OTel names a batch `BATCH <op>` when every statement shares one operation, plain `BATCH` otherwise.
-function getBatchOperationName(statements: { operationName: string | undefined }[]): string {
-  const operations = new Set(statements.map(s => s.operationName?.toUpperCase()));
+function getBatchOperationName(statements: ReturnType<typeof getSqlQueryAttributes>[]): string {
+  const operations = new Set(statements.map(s => s[DB_OPERATION_NAME]?.toUpperCase()));
   const [operation] = operations;
   return operations.size === 1 && operation ? `BATCH ${operation}` : 'BATCH';
 }

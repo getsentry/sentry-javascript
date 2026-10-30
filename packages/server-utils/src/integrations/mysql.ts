@@ -1,7 +1,6 @@
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import {
   DB_NAMESPACE,
-  DB_OPERATION_NAME,
   DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
@@ -24,7 +23,7 @@ import {
   hasSpanStreamingEnabled,
   startInactiveSpan,
 } from '@sentry/core';
-import { sanitizeSqlQueryWithSummary } from '../utils/sql';
+import { getSqlQueryAttributes } from '../utils/sql';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -82,13 +81,13 @@ function instrumentMysql(): void {
       // handler with the caller's context lost. `deferSpanEnd` replays this scope onto the emitter.
       data._sentryCallerScope = getCurrentScope();
 
-      const { queryText, querySummary, operationName } = sanitizeSqlQueryWithSummary(sql, 'mysql');
+      const queryAttributes = getSqlQueryAttributes(sql, 'mysql');
 
       const client = getClient();
       const name =
         client && hasSpanStreamingEnabled(client)
-          ? querySummary || database || DB_SYSTEM_NAME_VALUE_MYSQL
-          : (queryText ?? 'mysql.query');
+          ? queryAttributes[DB_QUERY_SUMMARY] || database || DB_SYSTEM_NAME_VALUE_MYSQL
+          : (queryAttributes[DB_QUERY_TEXT] ?? 'mysql.query');
 
       return startInactiveSpan({
         name,
@@ -101,9 +100,7 @@ function instrumentMysql(): void {
           [DB_CONNECTION_STRING]: getJDBCString(host, portIsNumber ? portNumber : undefined, database),
           [DB_NAMESPACE]: database,
           [DB_USER]: user,
-          [DB_QUERY_TEXT]: queryText,
-          [DB_QUERY_SUMMARY]: querySummary,
-          [DB_OPERATION_NAME]: operationName,
+          ...queryAttributes,
           [SERVER_ADDRESS]: host,
           [SERVER_PORT]: portIsNumber ? portNumber : undefined,
         },

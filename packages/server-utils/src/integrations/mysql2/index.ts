@@ -8,7 +8,7 @@ import {
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
-import { sanitizeSqlQueryWithSummary } from '../../utils/sql';
+import { getSqlQueryAttributes } from '../../utils/sql';
 import { subscribeMysql2DiagnosticChannels } from './mysql2-dc-subscriber';
 import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import type { ChannelName } from '../../orchestrion/channels';
@@ -18,7 +18,6 @@ import { mysql2ModuleNames } from '../../orchestrion/config/mysql2';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import {
   DB_NAMESPACE,
-  DB_OPERATION_NAME,
   DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
@@ -78,13 +77,15 @@ function subscribeQueryChannel(channelName: ChannelName): void {
   bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<Mysql2QueryChannelContext>(channelName), data => {
     const statement = getQueryText(data.arguments);
     const connectionAttributes = getConnectionAttributes(data.self?.config);
-    const { queryText, querySummary, operationName } = sanitizeSqlQueryWithSummary(statement, 'mysql');
+    const queryAttributes = getSqlQueryAttributes(statement, 'mysql');
 
     const client = getClient();
     const name =
       client && hasSpanStreamingEnabled(client)
-        ? querySummary || (connectionAttributes[DB_NAMESPACE] as string | undefined) || DB_SYSTEM_VALUE_MYSQL
-        : (queryText ?? 'mysql2.query');
+        ? queryAttributes[DB_QUERY_SUMMARY] ||
+          (connectionAttributes[DB_NAMESPACE] as string | undefined) ||
+          DB_SYSTEM_VALUE_MYSQL
+        : (queryAttributes[DB_QUERY_TEXT] ?? 'mysql2.query');
 
     return startInactiveSpan({
       name,
@@ -94,9 +95,7 @@ function subscribeQueryChannel(channelName: ChannelName): void {
         [SENTRY_ORIGIN]: ORIGIN,
         [SENTRY_OP]: DB,
         [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MYSQL,
-        [DB_QUERY_TEXT]: queryText || undefined,
-        [DB_QUERY_SUMMARY]: querySummary,
-        [DB_OPERATION_NAME]: operationName,
+        ...queryAttributes,
         ...connectionAttributes,
       },
     });
