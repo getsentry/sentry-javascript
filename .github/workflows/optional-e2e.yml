@@ -5,9 +5,6 @@ run-name: Optional E2E tests for ${{ inputs.commit }} (${{ inputs.correlation_id
 # does not count failed checks of a dispatched run in the PR status, so these failures do not mark
 # the PR as failed.
 on:
-  # Only here so that GitHub registers this workflow before it is on the default branch, which a
-  # dispatch needs. The job is skipped for this event. Remove this trigger after the merge.
-  pull_request:
   workflow_dispatch:
     inputs:
       commit:
@@ -40,7 +37,6 @@ env:
 jobs:
   job_optional_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test (optional)
-    if: github.event_name == 'workflow_dispatch'
     # Same cache volume as the E2E jobs in build.yml. The event is always `workflow_dispatch`, so the PR number
     # decides if the run gets the PR volume.
     runs-on:
@@ -63,8 +59,7 @@ jobs:
       E2E_OPENROUTER_API_KEY: ${{ secrets.E2E_OPENROUTER_API_KEY }}
       # Only this app talks to OpenAI directly (OpenRouter has no Decisions route), so only it gets the key.
       E2E_OPENAI_DECISIONS_API_KEY:
-        ${{ matrix.test-application == 'node-openai-decisions-send-to-sentry' && secrets.E2E_OPENAI_DECISIONS_API_KEY ||
-        '' }}
+        ${{ matrix.test-application == 'node-openai-decisions' && secrets.E2E_OPENAI_DECISIONS_API_KEY || '' }}
       # Used by test apps that deploy a real Cloudflare Worker, e.g. cloudflare-workers-send-to-sentry
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -76,8 +71,7 @@ jobs:
       pnpm_config_verify_deps_before_run: 'false'
     strategy:
       fail-fast: false
-      # The fallback only keeps the expression valid for the skipped `pull_request` run.
-      matrix: ${{ fromJson(inputs.matrix || '{"include":[{}]}') }}
+      matrix: ${{ fromJson(inputs.matrix) }}
 
     steps:
       - name: Check out commit ${{ env.HEAD_COMMIT }}
@@ -122,7 +116,7 @@ jobs:
     name: Report in PR comment
     needs: [job_optional_e2e_tests]
     # Not for a cancelled run: a new push cancels the old run, and the new run reports.
-    if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.pr_number != '' }}
+    if: ${{ !cancelled() && inputs.pr_number != '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:

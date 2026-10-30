@@ -26,7 +26,10 @@ import {
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
+import {
+  flushIfServerless,
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+} from '@sentry/core/server';
 import {
   captureException,
   continueTrace,
@@ -81,17 +84,15 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler =
   const handlerOptions = { ...options };
 
   return async (ctx, next) => {
-    // If no Sentry client exists, just bail
-    // Apart from the case when no Sentry.init() is called at all, this also happens
-    // if a prerendered page is hit first before a ssr page is called
-    // For regular prerendered pages, this is fine as we do not want to instrument them at runtime anyhow
-    // BUT for server-islands requests on a static page, this can be problematic...
-    // TODO: Today, this leads to inconsistent behavior: If a prerendered page is hit first (before _any_ ssr page is called),
-    // Sentry.init() has not been called yet (as this is only injected in SSR pages), so server-island requests are not instrumented
-    // If any SSR route is hit before, the client will already be set up and everything will work as expected :O
-    // To reproduce this: Run the astro-5 "tracing.serverIslands.test" only
+    // The middleware the integration adds runs the server init first, so this only bails without a server init, or when
+    // this middleware was added by hand and the request comes before any SSR page, which still runs the init.
     if (!getClient()) {
       return next();
+    }
+
+    const tunnelResponse = handleServedTunnelRequest(ctx.request);
+    if (tunnelResponse) {
+      return tunnelResponse;
     }
 
     const isDynamicPageRequest = checkIsDynamicPageRequest(ctx);

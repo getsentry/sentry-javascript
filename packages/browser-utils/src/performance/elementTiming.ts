@@ -1,3 +1,13 @@
+import {
+  SENTRY_ORIGIN,
+  UI_ELEMENT_HEIGHT,
+  UI_ELEMENT_ID,
+  UI_ELEMENT_IDENTIFIER,
+  UI_ELEMENT_PAINT_TYPE,
+  UI_ELEMENT_TYPE,
+  UI_ELEMENT_URL,
+  UI_ELEMENT_WIDTH,
+} from '@sentry/conventions/attributes';
 import type { IntegrationFn } from '@sentry/core';
 import { browserPerformanceTimeOrigin, defineIntegration, filterCollectedUrl, metrics } from '@sentry/core';
 import { addPerformanceInstrumentationHandler } from '../instrumentation/performanceObserver';
@@ -41,32 +51,32 @@ const _elementTimingIntegration = (() => {
           const loadTime = elementEntry.loadTime;
 
           const metricAttributes: Record<string, string | number> = {
-            'sentry.origin': 'auto.ui.browser.element_timing',
-            'ui.element.identifier': identifier,
+            [SENTRY_ORIGIN]: 'auto.ui.browser.element_timing',
+            [UI_ELEMENT_IDENTIFIER]: identifier,
           };
 
           if (paintType) {
-            metricAttributes['ui.element.paint_type'] = paintType;
+            metricAttributes[UI_ELEMENT_PAINT_TYPE] = paintType;
           }
 
           if (elementEntry.id) {
-            metricAttributes['ui.element.id'] = elementEntry.id;
+            metricAttributes[UI_ELEMENT_ID] = elementEntry.id;
           }
 
           if (elementEntry.element) {
-            metricAttributes['ui.element.type'] = elementEntry.element.tagName.toLowerCase();
+            metricAttributes[UI_ELEMENT_TYPE] = elementEntry.element.tagName.toLowerCase();
           }
 
           if (elementEntry.url) {
-            metricAttributes['ui.element.url'] = filterCollectedUrl(elementEntry.url);
+            metricAttributes[UI_ELEMENT_URL] = filterCollectedUrl(elementEntry.url);
           }
 
           if (elementEntry.naturalWidth) {
-            metricAttributes['ui.element.width'] = elementEntry.naturalWidth;
+            metricAttributes[UI_ELEMENT_WIDTH] = elementEntry.naturalWidth;
           }
 
           if (elementEntry.naturalHeight) {
-            metricAttributes['ui.element.height'] = elementEntry.naturalHeight;
+            metricAttributes[UI_ELEMENT_HEIGHT] = elementEntry.naturalHeight;
           }
 
           if (renderTime > 0) {

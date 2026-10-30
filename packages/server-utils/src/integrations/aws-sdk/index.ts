@@ -16,7 +16,7 @@ import { awsSdkModuleNames } from '../../orchestrion/config/aws-sdk';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import type { TracingChannelLifeCycleOptions } from '../../tracing-channel';
 import { bindTracingChannelToSpan, safeChannelCallback } from '../../tracing-channel';
-import { AWS_SDK_ORIGIN } from './constants';
+import { AWS_SDK_ORIGIN_INTEGRATION_NAME } from './constants';
 import { ServicesExtensions } from './services';
 import type { NormalizedRequest, NormalizedResponse, RequestMetadata } from './types';
 import { extractAttributesFromNormalizedRequest, normalizeV3Request, removeSuffixFromStringIfExists } from './utils';
@@ -74,6 +74,13 @@ const _awsIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
+function getSpanOrigin(op: string): string {
+  const opCategory = op.split('.')[0];
+  // AI integrations use `ai` as their origin category, although their ops are `gen_ai.*`.
+  const category = opCategory === 'gen_ai' ? 'ai' : opCategory;
+  return `auto.${category}.${AWS_SDK_ORIGIN_INTEGRATION_NAME}`;
+}
+
 function instrumentAwsSdk(servicesExtensions: ServicesExtensions): void {
   const getSpan = (data: AwsSendChannelContext): Span | undefined =>
     safeChannelCallback(() => {
@@ -103,14 +110,15 @@ function instrumentAwsSdk(servicesExtensions: ServicesExtensions): void {
       const normalizedRequest = normalizeV3Request(serviceName, commandName, command.input, undefined);
       const requestMetadata = servicesExtensions.requestPreSpanHook(normalizedRequest);
 
+      // `rpc` matches what the exporter infers from `rpc.service` for the OTel aws-sdk spans;
+      // service extensions override it where inference yields a different op (DynamoDB: `db`).
+      const op = requestMetadata.spanOp || RPC;
       const span = startInactiveSpan({
         name: requestMetadata.spanName ?? `${normalizedRequest.serviceName}.${normalizedRequest.commandName}`,
-        // `rpc` matches what the exporter infers from `rpc.service` for the OTel aws-sdk spans;
-        // service extensions override it where inference yields a different op (DynamoDB: `db`).
-        op: requestMetadata.spanOp || RPC,
+        op,
         attributes: {
           [SENTRY_KIND]: 'client',
-          [SENTRY_ORIGIN]: AWS_SDK_ORIGIN,
+          [SENTRY_ORIGIN]: getSpanOrigin(op),
           ...extractAttributesFromNormalizedRequest(normalizedRequest),
           ...requestMetadata.spanAttributes,
         },

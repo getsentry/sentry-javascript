@@ -1,3 +1,14 @@
+import {
+  ANGULAR_VERSION,
+  CULTURE_LOCALE,
+  CULTURE_TIMEZONE,
+  HTTP_RESPONSE_BODY_SIZE,
+  HTTP_RESPONSE_STATUS_CODE,
+  REACT_VERSION,
+  SENTRY_PROFILER_ID,
+  SENTRY_PROFILE_ID,
+  STATE_TYPE,
+} from '@sentry/conventions/attributes';
 import type { Contexts } from '../../types/context';
 
 /**
@@ -13,19 +24,19 @@ export function scopeContextsToSpanAttributes(contexts: Contexts): Record<string
 
   if (response) {
     if (response.status_code != null) {
-      attrs['http.response.status_code'] = response.status_code;
+      attrs[HTTP_RESPONSE_STATUS_CODE] = response.status_code;
     }
     if (response.body_size != null) {
-      attrs['http.response.body.size'] = response.body_size;
+      attrs[HTTP_RESPONSE_BODY_SIZE] = response.body_size;
     }
   }
 
   if (profile) {
     if (profile.profile_id) {
-      attrs['sentry.profile_id'] = profile.profile_id;
+      attrs[SENTRY_PROFILE_ID] = profile.profile_id;
     }
     if (profile.profiler_id) {
-      attrs['sentry.profiler_id'] = profile.profiler_id;
+      attrs[SENTRY_PROFILER_ID] = profile.profiler_id;
     }
   }
 
@@ -40,15 +51,15 @@ export function scopeContextsToSpanAttributes(contexts: Contexts): Record<string
 
   if (culture) {
     if (culture.locale) {
-      attrs['culture.locale'] = culture.locale;
+      attrs[CULTURE_LOCALE] = culture.locale;
     }
     if (culture.timezone) {
-      attrs['culture.timezone'] = culture.timezone;
+      attrs[CULTURE_TIMEZONE] = culture.timezone;
     }
   }
 
   if (state?.state && typeof state.state.type === 'string') {
-    attrs['state.type'] = state.state.type;
+    attrs[STATE_TYPE] = state.state.type;
   }
 
   // Framework version contexts
@@ -56,7 +67,7 @@ export function scopeContextsToSpanAttributes(contexts: Contexts): Record<string
   if (angular) {
     const version = angular['version'];
     if (typeof version === 'string' || typeof version === 'number') {
-      attrs['angular.version'] = version;
+      attrs[ANGULAR_VERSION] = version;
     }
   }
 
@@ -64,7 +75,7 @@ export function scopeContextsToSpanAttributes(contexts: Contexts): Record<string
   if (react) {
     const version = react['version'];
     if (typeof version === 'string' || typeof version === 'number') {
-      attrs['react.version'] = version;
+      attrs[REACT_VERSION] = version;
     }
   }
 

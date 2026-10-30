@@ -21,6 +21,7 @@ import {
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   processSessionIntegration,
+  systemErrorIntegration,
 } from '@sentry/node';
 import { bunServerIntegration } from './integrations/bunserver';
 import { fetchIntegration } from './integrations/fetch';
@@ -52,6 +53,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     linkedErrorsIntegration(),
     dedupeIntegration(),
     requestDataIntegration(),
+    systemErrorIntegration(),
     conversationIdIntegration(),
     // Native Wrappers
     consoleIntegration(),

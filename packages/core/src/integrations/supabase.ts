@@ -295,6 +295,7 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
       return startSpanManual(
         {
           name,
+          onlyIfParent: true,
           attributes: {
             [SENTRY_ORIGIN]: 'auto.db.supabase',
             [SENTRY_OP]: DB,
@@ -479,6 +480,7 @@ function instrumentPostgRESTFilterBuilder(
         return startSpanManual(
           {
             name,
+            onlyIfParent: true,
             attributes,
           },
           span => {

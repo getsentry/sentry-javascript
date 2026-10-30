@@ -70,5 +70,5 @@ Deno.test('firebase instrumentation: orchestrion @firebase/firestore:add-doc cha
   assertEquals(fsSpan.attributes['db.namespace']?.value, '[DEFAULT]');
   assertEquals(fsSpan.attributes['db.system.name']?.value, 'firebase.firestore');
   assertEquals(fsSpan.attributes['firebase.firestore.options.projectId']?.value, 'demo-project');
-  assertEquals(fsSpan.attributes['sentry.origin']?.value, 'auto.firebase.firestore');
+  assertEquals(fsSpan.attributes['sentry.origin']?.value, 'auto.db.firebase.firestore');
 });

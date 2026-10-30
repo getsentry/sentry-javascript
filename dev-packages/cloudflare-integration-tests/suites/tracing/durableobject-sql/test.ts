@@ -23,7 +23,7 @@ it('instruments SQL exec operations on Durable Object storage', async ({ signal 
       expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/exec' });
 
       const sqlSpans = spans.filter(
-        span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.cloudflare.durable_object.sql',
+        span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.cloudflare.durable_object_sql',
       );
 
       expect(sqlSpans).toHaveLength(3);
@@ -33,7 +33,7 @@ it('instruments SQL exec operations on Durable Object storage', async ({ signal 
             name: 'CREATE TABLE users',
             attributes: expect.objectContaining({
               [SENTRY_OP]: { type: 'string', value: 'db.query' },
-              [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.cloudflare.durable_object.sql' },
+              [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.cloudflare.durable_object_sql' },
               'db.system.name': { type: 'string', value: 'cloudflare-durable-object-sql' },
               'db.operation.name': { type: 'string', value: 'exec' },
               'db.query.text': {

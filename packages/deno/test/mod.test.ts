@@ -4,7 +4,15 @@ import { createStackParser, forEachEnvelopeItem } from '@sentry/core';
 import { nodeStackLineParser } from '@sentry/core/server';
 import { assertEquals } from 'https://deno.land/std@0.202.0/assert/assert_equals.ts';
 import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.ts';
-import { DenoClient, getCurrentScope, getDefaultIntegrations, logger, metrics, Scope } from '../build/esm/index.js';
+import {
+  DenoClient,
+  getCurrentScope,
+  getDefaultIntegrations,
+  logger,
+  metrics,
+  Scope,
+  startSpan,
+} from '../build/esm/index.js';
 import { getNormalizedEvent } from './normalize.ts';
 import { makeTestTransport } from './transport.ts';
 
@@ -70,7 +78,7 @@ function expectCaptureExceptionEvent(event: Event | undefined): void {
         filename: 'app:///test/mod.test.ts',
         function: '?',
         in_app: true,
-        lineno: 46,
+        lineno: 54,
       },
       {
         colno: 12,
@@ -78,7 +86,7 @@ function expectCaptureExceptionEvent(event: Event | undefined): void {
         filename: 'app:///test/mod.test.ts',
         function: 'something',
         in_app: true,
-        lineno: 43,
+        lineno: 51,
       },
     ],
   );
@@ -232,7 +240,36 @@ Deno.test('preserves existing log attributes when adding server.address', () => 
   assertEquals(log.attributes?.['server.address'], 'test-server');
 });
 
-Deno.test('close() removes log and metric exit listeners', async () => {
+Deno.test('sends buffered streamed spans before the process exits', async () => {
+  const itemTypes: string[] = [];
+  const client = new DenoClient({
+    dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
+    integrations: [],
+    stackParser: createStackParser(nodeStackLineParser()),
+    tracesSampleRate: 1,
+    traceLifecycle: 'stream',
+    transport: makeTestTransport(envelope => {
+      forEachEnvelopeItem(envelope, (_, type) => {
+        itemTypes.push(type);
+      });
+    }),
+  });
+  client.init();
+  getCurrentScope().setClient(client);
+
+  startSpan({ name: 'cron-job' }, () => {});
+  await delay(0);
+  assertEquals(itemTypes, []);
+
+  process.emit('beforeExit', 0);
+  await delay(0);
+
+  assertEquals(itemTypes, ['span']);
+
+  await client.close();
+});
+
+Deno.test('close() removes the exit flush listener', async () => {
   const originalListeners = process.listeners('beforeExit');
   const removeEventListenerCalls: Array<string> = [];
   const originalRemoveEventListener = globalThis.removeEventListener;
@@ -254,11 +291,11 @@ Deno.test('close() removes log and metric exit listeners', async () => {
 
     await client.close();
 
-    assertEquals(addedListeners.length, 2);
+    assertEquals(addedListeners.length, 1);
     assertEquals(process.listeners('beforeExit'), originalListeners);
     assertEquals(
       removeEventListenerCalls.filter(event => event === 'unload'),
-      ['unload', 'unload'],
+      ['unload'],
     );
   } finally {
     globalThis.removeEventListener = originalRemoveEventListener;

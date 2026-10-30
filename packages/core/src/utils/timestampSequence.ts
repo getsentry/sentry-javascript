@@ -1,4 +1,4 @@
-const SEQUENCE_ATTR_KEY = 'sentry.timestamp.sequence';
+import { SENTRY_TIMESTAMP_SEQUENCE } from '@sentry/conventions/attributes';
 
 let _sequenceNumber = 0;
 let _previousTimestampMs: number | undefined;
@@ -27,7 +27,7 @@ export function getSequenceAttribute(timestampInSeconds: number): {
   _previousTimestampMs = nowMs;
 
   return {
-    key: SEQUENCE_ATTR_KEY,
+    key: SENTRY_TIMESTAMP_SEQUENCE,
     value: { value, type: 'integer' },
   };
 }

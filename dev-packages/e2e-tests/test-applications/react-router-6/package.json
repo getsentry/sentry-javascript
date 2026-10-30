@@ -48,10 +48,13 @@
     "serve": "14.0.1",
     "npm-run-all2": "^6.2.0"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
-    "runner": "namespace-profile-sentry-javascript"
+    "runner": "namespace-profile-sentry-javascript",
+    "canaryVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "react-router-6 (canary)"
+      }
+    ]
   }
 }

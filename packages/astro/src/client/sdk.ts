@@ -2,6 +2,7 @@ import type { BrowserOptions } from '@sentry/browser';
 import { getDefaultIntegrations as getBrowserDefaultIntegrations, init as initBrowserSdk } from '@sentry/browser';
 import type { Client, Integration } from '@sentry/core';
 import { applySdkMetadata } from '@sentry/core';
+import { applyAstroTunnelOptions } from '../tunnel';
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { createAstroRouteProvider } from './routeProvider';
 
@@ -23,6 +24,7 @@ export function init(options: BrowserOptions): Client | undefined {
   };
 
   applySdkMetadata(opts, 'astro', ['astro', 'browser']);
+  applyAstroTunnelOptions(opts);
 
   return initBrowserSdk(opts);
 }

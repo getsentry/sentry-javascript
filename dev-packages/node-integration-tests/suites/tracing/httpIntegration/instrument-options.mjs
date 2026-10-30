@@ -18,6 +18,12 @@ Sentry.init({
           'onSpanCreated.resMethod': res.req.method,
         });
       },
+      onSpanEnd: (span, req, res) => {
+        span.setAttributes({
+          'onSpanEnd.reqUrl': req.url,
+          'onSpanEnd.resStatusCode': res.statusCode,
+        });
+      },
     }),
   ],
 });

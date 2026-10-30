@@ -36,6 +36,9 @@ const PI_DURABLE_DEPENDENCIES = {
   },
 };
 
+// The provider session id that pi-durable stores with each conversation, a UUIDv7.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
 const CONTENT_ATTRIBUTES = [
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OUTPUT_MESSAGES,
@@ -84,9 +87,7 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
               expect(agent.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.pi_durable');
               expect(agent.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('invoke_agent');
               const conversationId = agent.attributes[GEN_AI_CONVERSATION_ID]?.value;
-              // The root conversation's id is `1` in every pi-durable storage, so it is prefixed
-              // with a per-Harness id.
-              expect(conversationId).toMatch(/^[0-9a-f]{32}:1$/);
+              expect(conversationId).toMatch(UUID);
 
               const chats = spans
                 .filter(span => span.name === 'chat faux-model')
@@ -399,7 +400,7 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
           .start()
           .completed();
 
-        expect(runConversationId).toMatch(/^[0-9a-f]{32}:1$/);
+        expect(runConversationId).toMatch(UUID);
         expect(compactionConversationId).toBe(runConversationId);
       });
     },
@@ -427,13 +428,14 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
               expect(delegate.parent_span_id).toBe(parent.span_id);
 
               // The subagent's run is a child of the delegating call, in the same trace, on its own
-              // conversation of the same Harness.
+              // conversation.
               const child = spans.find(span => span.name === 'invoke_agent' && !span.is_segment)!;
               expect(child.parent_span_id).toBe(delegate.span_id);
               const parentConversation = String(parent.attributes[GEN_AI_CONVERSATION_ID]?.value);
               const childConversation = String(child.attributes[GEN_AI_CONVERSATION_ID]?.value);
+              expect(parentConversation).toMatch(UUID);
+              expect(childConversation).toMatch(UUID);
               expect(childConversation).not.toBe(parentConversation);
-              expect(childConversation.split(':')[0]).toBe(parentConversation.split(':')[0]);
 
               const childChat = spans.find(span => span.parent_span_id === child.span_id)!;
               expect(childChat.name).toBe('chat faux-model');
@@ -646,7 +648,7 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
               );
               // The run's own conversation id, not the one the request set on its scope.
               const conversationId = agent.attributes[GEN_AI_CONVERSATION_ID]?.value;
-              expect(conversationId).toMatch(/^[0-9a-f]{32}:\d+$/);
+              expect(conversationId).toMatch(UUID);
               for (const span of spans) {
                 expect(span.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe(conversationId);
                 expect(span.attributes['request']).toBeUndefined();
@@ -667,7 +669,7 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
                 'request B',
               );
               const conversationId = agent.attributes[GEN_AI_CONVERSATION_ID]?.value;
-              expect(conversationId).toMatch(/^[0-9a-f]{32}:\d+$/);
+              expect(conversationId).toMatch(UUID);
               for (const span of spans) {
                 expect(span.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe(conversationId);
                 expect(span.attributes['request']).toBeUndefined();

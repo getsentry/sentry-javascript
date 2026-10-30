@@ -32,8 +32,5 @@
         "label": "node-anthropic-send-to-sentry (latest)"
       }
     ]
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

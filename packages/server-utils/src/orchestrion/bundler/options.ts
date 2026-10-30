@@ -36,6 +36,13 @@ export type PluginOptions = {
    * routing every channel through it is harmless.
    */
   dcModule?: string;
+  /**
+   * When `true`, the Vite plugin also runs the transform in the dependency optimizer of server environments in
+   * `vite dev`. Needed for `@cloudflare/vite-plugin`, which pre-bundles the dependencies of a Worker there.
+   *
+   * @default false
+   */
+  transformOptimizedDeps?: boolean;
 };
 
 /**

@@ -1,3 +1,4 @@
+import { CLOUD_PROVIDER } from '@sentry/conventions/attributes';
 import type { CfProperties, IncomingRequestCfProperties } from '@cloudflare/workers-types';
 import type { Scope } from '@sentry/core';
 import { winterCGRequestToRequestData } from '@sentry/core';
@@ -7,7 +8,7 @@ import { winterCGRequestToRequestData } from '@sentry/core';
  */
 export function addCloudResourceContext(scope: Scope): void {
   scope.setContext('cloud_resource', {
-    'cloud.provider': 'cloudflare',
+    [CLOUD_PROVIDER]: 'cloudflare',
   });
 }
 

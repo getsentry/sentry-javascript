@@ -9,7 +9,8 @@
     "dev:bun": "bun src/entry.bun.ts",
     "dev:deno": "deno run --allow-net --allow-env --allow-read src/entry.deno.ts",
     "build": "wrangler deploy --dry-run",
-    "test:build": "pnpm install && pnpm build",
+    "test:build": "pnpm install && pnpm typecheck && pnpm build",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "test:assert": "TEST_ENV=production playwright test"
   },
   "dependencies": {
@@ -28,9 +29,6 @@
     "tsx": "4.21.0",
     "typescript": "^5.5.2",
     "wrangler": "^4.61.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sentryTest": {
     "variants": [

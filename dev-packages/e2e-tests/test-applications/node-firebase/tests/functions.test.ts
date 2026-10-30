@@ -31,7 +31,7 @@ test('should create one segment for an HTTP function', async () => {
       'faas.trigger': { value: 'http.request', type: 'string' },
       'gcp.function.context.type': { value: 'firebase.function.http.request', type: 'string' },
       'sentry.kind': { value: 'server', type: 'string' },
-      'sentry.origin': { value: 'auto.firebase.functions', type: 'string' },
+      'sentry.origin': { value: 'auto.function.firebase', type: 'string' },
       'sentry.sample_rate': { value: expect.any(Number), type: 'integer' },
       'sentry.segment.name.source': { value: 'component', type: 'string' },
     }),
@@ -60,7 +60,7 @@ test('should send failed span when the function fails', async () => {
     expect.objectContaining({
       type: 'Error',
       value: 'There is an error!',
-      mechanism: { type: 'auto.firebase.functions', handled: false },
+      mechanism: { type: 'auto.function.firebase', handled: false },
     }),
   ]);
 });
@@ -96,7 +96,7 @@ test('should create a document and trigger onDocumentCreated and another with au
         'gcp.function.context.type': { value: `firebase.function.${trigger}`, type: 'string' },
         'sentry.kind': { value: 'server', type: 'string' },
         'sentry.op': { value: 'function.gcp', type: 'string' },
-        'sentry.origin': { value: 'auto.firebase.functions', type: 'string' },
+        'sentry.origin': { value: 'auto.function.firebase', type: 'string' },
         'sentry.sample_rate': { value: expect.any(Number), type: 'integer' },
         'sentry.segment.name.source': { value: 'component', type: 'string' },
       }),

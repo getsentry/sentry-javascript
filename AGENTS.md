@@ -4,10 +4,9 @@ Monorepo with 40+ packages in `@sentry/*`, managed with pnpm workspaces and Nx.
 
 ## Setup
 
-- [Volta](https://volta.sh/) for Node.js/pnpm version management
-- Requires `VOLTA_FEATURE_PNPM=1`
+- pnpm manages Node.js and pnpm versions (see `CONTRIBUTING.md`): Node.js in `devEngines.runtime`, pnpm in `packageManager`
 - After cloning: `pnpm install && pnpm run build`
-- Never change Volta, pnpm, or package manager versions unless explicitly asked
+- Never change Node.js, pnpm, or package manager versions unless explicitly asked
 
 ### Code Intelligence
 
@@ -60,10 +59,9 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 
 ## Pull Requests
 
-- **Do NOT add a "Test plan" / "Testing" checklist to PR bodies.** CI runs the full test suite on every PR — a hand-rolled checklist duplicates that signal and rots fast. Write the summary content directly and add a _Root cause_ section only if relevant.
-- **Omit the "Summary" heading** in PR bodies — lead with the summary text itself, no `## Summary` header.
-- Include `Fixes #<issue-number>` somewhere in the PR body so the merge auto-closes the linked issue.
+- Use `.github/PULL_REQUEST_TEMPLATE.md` for the body (`gh pr create --body` skips it). Ideally 1-2 sentences per field, no AI walkthrough.
 - Always open PRs as draft.
+- Never apply the `Accept Bundlesize Increase` label.
 - **Keep PR descriptions condensed** — usually a few sentences. Explain the _reasoning_: why the change is needed, and any non-obvious decisions or tradeoffs made along the way. Do **not** walk through the implementation or describe what changed file-by-file — the diff already shows that. Only go longer when the decisions genuinely warrant it.
 
 ## Architecture
@@ -78,6 +76,12 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 
 - `Sentry.init()` follows one rule for repeated calls: the first call wins. See
   `docs/repeated-init.md` before you add or change an `init()`.
+
+- Span origins must follow the [trace origin spec](https://develop.sentry.dev/sdk/telemetry/traces/trace-origin/):
+  `<type>.<category>.<integration_name>.<integration_part>`, at most four parts, no skipped
+  parts, only `[a-zA-Z0-9_]` within a part. `category` is the span op category
+  (`auto.queue.kafkajs.producer`, not `auto.kafkajs.producer`). Don't encode tooling like
+  `otel` or `orchestrion` in the origin.
 
 ## Linting & Formatting
 

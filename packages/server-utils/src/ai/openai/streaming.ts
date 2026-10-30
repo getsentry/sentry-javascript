@@ -34,10 +34,14 @@ interface StreamingState {
   cacheReadInputTokens: number | undefined;
   cacheCreationInputTokens: number | undefined;
   /**
-   * Accumulated tool calls from Chat Completion streaming, indexed by tool call index.
+   * Accumulated tool calls from Chat Completion streaming, keyed by string in the order they were opened.
    * @see https://platform.openai.com/docs/guides/function-calling?api-mode=chat#streaming
    */
-  chatCompletionToolCalls: Record<number, ChatCompletionToolCall>;
+  chatCompletionToolCalls: Map<string, ChatCompletionToolCall>;
+  /** Key of the latest tool call, which unindexed argument fragments continue. */
+  lastChatCompletionToolCallKey?: string;
+  /** Key of the call currently open for a reported `index`, when a new `id` reused that index. */
+  chatCompletionToolCallKeyByIndex?: Map<number, string>;
   /**
    * Accumulated function calls from Responses API streaming.
    * @see https://platform.openai.com/docs/guides/function-calling?api-mode=responses#streaming
@@ -56,26 +60,66 @@ interface StreamingState {
  */
 function processChatCompletionToolCalls(toolCalls: ChatCompletionToolCall[], state: StreamingState): void {
   for (const toolCall of toolCalls) {
-    const index = toolCall.index;
-    if (index === undefined || !toolCall.function) continue;
+    if (!toolCall.function) continue;
+    const index = getToolCallKey(toolCall, state);
 
     // Initialize tool call if this is the first chunk for this index
-    if (!(index in state.chatCompletionToolCalls)) {
-      state.chatCompletionToolCalls[index] = {
+    const existingToolCall = state.chatCompletionToolCalls.get(index);
+    if (!existingToolCall) {
+      state.chatCompletionToolCalls.set(index, {
         ...toolCall,
         function: {
           name: toolCall.function.name,
           arguments: toolCall.function.arguments || '',
         },
-      };
+      });
     } else {
       // Accumulate function arguments from subsequent chunks
-      const existingToolCall = state.chatCompletionToolCalls[index];
-      if (toolCall.function.arguments && existingToolCall?.function) {
+      if (toolCall.function.arguments && existingToolCall.function) {
         existingToolCall.function.arguments += toolCall.function.arguments;
       }
     }
+    state.lastChatCompletionToolCallKey = index;
   }
+}
+
+/**
+ * OpenAI-compatible providers such as Gemini's OpenAI endpoint send tool calls without an `index`
+ * (or with `null`), or reuse the same `index` for every call. A call without a usable `index` is
+ * matched by a known `id`; a new `id` or a function name opens a new call, and anything else
+ * continues the latest call. A different non-empty `id` on an `index` that is already taken also
+ * opens a new call.
+ */
+function getToolCallKey(toolCall: ChatCompletionToolCall, state: StreamingState): string {
+  const calls = state.chatCompletionToolCalls;
+  const findById = (id: string): string | undefined => {
+    for (const [key, call] of calls) {
+      if (call.id === id) return key;
+    }
+    return undefined;
+  };
+
+  if (typeof toolCall.index === 'number') {
+    const keyByIndex = (state.chatCompletionToolCallKeyByIndex ??= new Map());
+    const key = keyByIndex.get(toolCall.index) ?? `index-${toolCall.index}`;
+    const existingId = calls.get(key)?.id;
+    if (existingId && toolCall.id && existingId !== toolCall.id) {
+      const next = findById(toolCall.id) ?? `index-${toolCall.index}-${calls.size}`;
+      keyByIndex.set(toolCall.index, next);
+      return next;
+    }
+    return key;
+  }
+  if (toolCall.id) {
+    const known = findById(toolCall.id);
+    if (known !== undefined) {
+      return known;
+    }
+  }
+  if (toolCall.id || toolCall.function?.name || state.lastChatCompletionToolCallKey === undefined) {
+    return `no-index-${calls.size}`;
+  }
+  return state.lastChatCompletionToolCallKey;
 }
 
 /**
@@ -225,7 +269,7 @@ export async function* instrumentStream<T>(
     totalTokens: undefined,
     cacheReadInputTokens: undefined,
     cacheCreationInputTokens: undefined,
-    chatCompletionToolCalls: {},
+    chatCompletionToolCalls: new Map(),
     responsesApiToolCalls: [],
   };
 
@@ -239,7 +283,7 @@ export async function* instrumentStream<T>(
       yield event;
     }
   } finally {
-    const allToolCalls = [...Object.values(state.chatCompletionToolCalls), ...state.responsesApiToolCalls];
+    const allToolCalls = [...state.chatCompletionToolCalls.values(), ...state.responsesApiToolCalls];
     endStreamSpan(span, { ...state, toolCalls: allToolCalls }, recordOutputs);
   }
 }

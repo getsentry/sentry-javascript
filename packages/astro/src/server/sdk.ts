@@ -1,3 +1,4 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import { applySdkMetadata } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
@@ -20,7 +21,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // we want to drop them
     // this is the case with http.server spans of prerendered pages
     // we do not care about those, as they are effectively static
-    { op: HTTP_SERVER, attributes: { 'sentry.origin': 'auto.http.http_server' } },
+    { op: HTTP_SERVER, attributes: { [SENTRY_ORIGIN]: 'auto.http.http_server' } },
   ];
 
   return initNodeSdk(opts);

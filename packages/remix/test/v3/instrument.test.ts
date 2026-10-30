@@ -13,6 +13,15 @@ vi.mock('@sentry/core', async importOriginal => ({
   consoleSandbox: (callback: () => unknown) => callback(),
 }));
 
+const TUNNEL_URL = 'http://localhost/fdv680';
+const tunnelResponse = new Response(null, { status: 200 });
+
+// Answers only `TUNNEL_URL`, like a server with the managed tunnel at that path.
+vi.mock('@sentry/core/server', () => ({
+  _INTERNAL_handleServedTunnelRequest: (request: Request) =>
+    request.url === TUNNEL_URL ? Promise.resolve(tunnelResponse) : undefined,
+}));
+
 const { instrumentRemixV3 } = await import('../../src/v3/server/instrument');
 
 const startChannel = channel(`tracing:${remixV3Channels.REMIX_V3_CREATE_ROUTER}:start`);
@@ -133,5 +142,35 @@ describe('the createRequestListener error hook', () => {
     publishCreateRequestListener(args);
 
     expect(args[1]).toEqual(expect.objectContaining({ onError: expect.any(Function) }));
+  });
+});
+
+describe('the createRequestListener tunnel', () => {
+  beforeAll(() => {
+    instrumentRemixV3();
+  });
+
+  it("answers a managed tunnel request without calling the app's handler", async () => {
+    const appHandler = vi.fn(() => new Response('app'));
+    const args: unknown[] = [appHandler];
+
+    publishCreateRequestListener(args);
+
+    expect(await (args[0] as (request: Request) => unknown)(new Request(TUNNEL_URL, { method: 'POST' }))).toBe(
+      tunnelResponse,
+    );
+    expect(appHandler).not.toHaveBeenCalled();
+  });
+
+  it("hands every other request to the app's handler", () => {
+    const appResponse = new Response('app');
+    const appHandler = vi.fn(() => appResponse);
+    const args: unknown[] = [appHandler];
+    const request = new Request('http://localhost/page');
+
+    publishCreateRequestListener(args);
+
+    expect((args[0] as (request: Request, client: unknown) => unknown)(request, 'client')).toBe(appResponse);
+    expect(appHandler).toHaveBeenCalledWith(request, 'client');
   });
 });

@@ -17,8 +17,5 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "graphql": "16.9.0",
     "rolldown": "1.2.14"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

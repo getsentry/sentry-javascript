@@ -30,9 +30,11 @@ export interface BuildTimeOptionsBase {
   /**
    * The slug of the Sentry project associated with the app.
    *
+   * Multiple projects can be passed to upload the build's source maps to each of them.
+   *
    * This value can also be specified via the `SENTRY_PROJECT` environment variable.
    */
-  project?: string;
+  project?: string | string[];
 
   /**
    * The authentication token to use for all communication with Sentry.
@@ -247,6 +249,15 @@ interface SourceMapsOptions {
    * The globbing patterns must follow the implementation of the `glob` package: https://www.npmjs.com/package/glob#glob-primer
    */
   filesToDeleteAfterUpload?: string | Array<string>;
+
+  /**
+   * Whether source maps are removed from the build output after they are uploaded to Sentry.
+   *
+   * When unset, the plugin removes only the source maps it turned on itself, that is, when the bundler's source map
+   * setting was not set. `true` also removes source maps you enabled yourself. `false` never removes them; the plugin
+   * still turns on hidden source maps when the setting is not set, so they can be uploaded.
+   */
+  deleteSourcemapsAfterUpload?: boolean;
 
   /**
    * Hook to rewrite the `sources` field inside the source map before being uploaded to Sentry. Does not modify the actual source map.

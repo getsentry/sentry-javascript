@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForError } from '@sentry-internal/test-utils';
+import { isViteServer, NITRO_ONLY } from './isViteServer';
+
+test.skip(isViteServer, NITRO_ONLY);
 
 async function collectDbSpans() {
   const spans = await collectStreamedSpansUntilSegment(

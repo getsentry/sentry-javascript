@@ -1,5 +1,5 @@
 import type { AsyncContextStrategy } from '@sentry/core';
-import { GLOBAL_OBJ, setAsyncContextStrategy } from '@sentry/core';
+import { debug, GLOBAL_OBJ, setAsyncContextStrategy } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { invokeOrchestrionInstrumentation } from '../../src/orchestrion/instrumentation';
 
@@ -189,5 +189,44 @@ describe('invokeOrchestrionInstrumentation', () => {
     // Not treated as injected, so it waits for the runtime event instead.
     expect(callback).not.toHaveBeenCalled();
     expect(client.listenerCount()).toBe(1);
+  });
+
+  describe('on Cloudflare', () => {
+    beforeEach(() => {
+      vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    });
+
+    it('warns once when the vite plugin did not run', () => {
+      const warn = vi.spyOn(debug, 'warn').mockImplementation(() => undefined);
+
+      invokeOrchestrionInstrumentation(makeClient() as never, ['openai'], vi.fn(), []);
+      invokeOrchestrionInstrumentation(makeClient() as never, ['openai'], vi.fn(), []);
+
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('`@sentry/cloudflare/vite` plugin did not run'));
+    });
+
+    it('does not warn when the vite plugin ran, even before any module loaded', () => {
+      GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { bundler: new Set() };
+      const warn = vi.spyOn(debug, 'warn').mockImplementation(() => undefined);
+
+      invokeOrchestrionInstrumentation(makeClient() as never, ['pg'], vi.fn(), []);
+
+      expect(warn).not.toHaveBeenCalled();
+    });
+  });
+
+  it('does not warn about the Cloudflare plugin on other runtimes', () => {
+    const warn = vi.spyOn(debug, 'warn').mockImplementation(() => undefined);
+
+    invokeOrchestrionInstrumentation(makeClient() as never, ['redis'], vi.fn(), []);
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });

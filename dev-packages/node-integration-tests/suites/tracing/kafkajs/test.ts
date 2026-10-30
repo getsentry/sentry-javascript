@@ -2,8 +2,8 @@ import type { TransactionEvent } from '@sentry/core';
 import { afterAll, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
-const producerOrigin = 'auto.kafkajs.producer';
-const consumerOrigin = 'auto.kafkajs.consumer';
+const producerOrigin = 'auto.queue.kafkajs.producer';
+const consumerOrigin = 'auto.queue.kafkajs.consumer';
 
 describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
   afterAll(() => {

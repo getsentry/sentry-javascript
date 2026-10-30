@@ -43,8 +43,8 @@ import {
   MESSAGING_SYSTEM_VALUE_KAFKA,
 } from './semconv';
 
-const PRODUCER_ORIGIN = 'auto.kafkajs.producer';
-const CONSUMER_ORIGIN = 'auto.kafkajs.consumer';
+const PRODUCER_ORIGIN = 'auto.queue.kafkajs.producer';
+const CONSUMER_ORIGIN = 'auto.queue.kafkajs.consumer';
 
 // `@opentelemetry/api` `TraceFlags`, inlined to avoid an OTel dep: SAMPLED = 0x1, NONE = 0x0.
 const TRACE_FLAG_SAMPLED = 1;

@@ -40,11 +40,9 @@ describe('Remix 3 exports', () => {
   describe('the Remix 3 peer range', () => {
     const range = packageJson.peerDependencies.remix;
 
-    // Asserted by behaviour, so the range can change after Remix 3 reaches GA without failing here.
-    it('accepts release candidates', () => {
-      // `3.x` does not match `3.0.0-rc.1`: semver ranges exclude prereleases unless they name one.
-      expect(semver.satisfies('3.0.0-rc.1', range)).toBe(true);
-      expect(semver.satisfies('3.0.0-rc.2', range)).toBe(true);
+    it('rejects release candidates', () => {
+      expect(semver.satisfies('3.0.0-rc.1', range)).toBe(false);
+      expect(semver.satisfies('3.0.0-rc.5', range)).toBe(false);
     });
 
     it('accepts stable 3.x', () => {

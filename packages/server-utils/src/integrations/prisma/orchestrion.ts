@@ -52,11 +52,7 @@ export function instrumentPrismaV8(options: PrismaV8InstrumentationOptions): voi
     bindTracingChannelToSpan<PrismaTerminalChannelContext>(
       diagnosticsChannel.tracingChannel<PrismaTerminalChannelContext>(channelName),
       data => startOperationSpan(method, data),
-      {
-        // A stray query outside a request must not become a segment of its own.
-        requiresParentSpan: true,
-        ...(isLazy ? { deferSpanEnd: deferSpanEndUntilConsumed } : {}),
-      },
+      isLazy ? { deferSpanEnd: deferSpanEndUntilConsumed } : undefined,
     );
   }
 }
@@ -72,6 +68,7 @@ function startOperationSpan(method: string, data: PrismaTerminalChannelContext):
 
   const span = startInactiveSpan({
     name: OPERATION_SPAN_NAME,
+    onlyIfParent: true,
     parentSpan,
     attributes: {
       [SENTRY_ORIGIN]: PRISMA_ORIGIN,

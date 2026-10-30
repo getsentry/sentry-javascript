@@ -866,6 +866,46 @@ Deno.test('Deno.serve should handle streaming responses', async () => {
   assertEquals(transactionEvents[0]?.contexts?.trace?.op, 'http.server');
 });
 
+Deno.test('Deno.serve should capture an error from a streamed response source', async () => {
+  resetGlobals();
+  const errorEvents: ErrorEvent[] = [];
+  const transactionEvents: TransactionEvent[] = [];
+
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    traceLifecycle: 'static',
+    beforeSend: (event: ErrorEvent) => {
+      errorEvents.push(event);
+      return null;
+    },
+    beforeSendTransaction: (event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const server = await serveForTest(() => {
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('chunk1\n'));
+        setTimeout(() => controller.error(new Error('stream interrupted')), 10);
+      },
+    });
+    return new Response(stream, { headers: { 'content-type': 'text/event-stream' } });
+  });
+
+  const response = await fetch(`${server.url}/stream`);
+  await response.text().catch(() => undefined);
+  await server.close();
+  await client.flush();
+
+  assertEquals(errorEvents.length, 1);
+  assertEquals(errorEvents[0]?.exception?.values?.[0]?.value, 'stream interrupted');
+  assertEquals(errorEvents[0]?.exception?.values?.[0]?.mechanism?.type, 'auto.http.deno');
+  assertEquals(transactionEvents[0]?.contexts?.trace?.status, 'internal_error');
+});
+
 Deno.test('Deno.serve should work when manually capturing exceptions within handler', async () => {
   resetGlobals();
   const errorEvents: ErrorEvent[] = [];

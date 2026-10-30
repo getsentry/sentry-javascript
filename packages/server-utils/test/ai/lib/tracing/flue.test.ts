@@ -1,16 +1,22 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { Event, Span } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_skipAiProviderWrapping,
+  getIsolationScope,
   getMainCarrier,
+  Scope,
+  setAsyncContextStrategy,
   setCurrentClient,
   spanToStaticSpanJSON,
   startInactiveSpan,
   startSpan,
+  withActiveSpan,
+  withIsolationScope,
 } from '@sentry/core';
 import { ANTHROPIC_AI_INTEGRATION_NAME } from '../../../../src/ai/anthropic-ai/constants';
+import { setAsyncLocalStorageAsyncContextStrategy } from '../../../../src/async-context';
 import { createFlueInstrumentation } from '../../../../src/ai/flue';
 import { MAX_TRACKED_FLUE_SPANS } from '../../../../src/ai/flue/constants';
 import { GOOGLE_GENAI_INTEGRATION_NAME } from '../../../../src/ai/google-genai/constants';
@@ -220,6 +226,114 @@ describe('createFlueInstrumentation', () => {
       });
 
       expect(agentTraceId()).toBe(requestTraceId);
+    });
+  });
+
+  // On Node, Flue runs every submission from one claim loop that keeps the async context of the
+  // call that started it, so the run has to be put back where it was admitted.
+  describe('admission context', () => {
+    const SUBMISSION_OP = { type: 'agent', operationId: 'sub_1' };
+
+    function admit(): void {
+      instrumentation.observe({ type: 'submission_queued', submissionId: 'sub_1' }, {});
+    }
+
+    /** Run the submission the way the claim loop does: wrapper first, then the spanned operation. */
+    function runSubmission(): Promise<unknown> {
+      return instrumentation.interceptor(SUBMISSION_OP, AGENT_CTX, () =>
+        instrumentation.interceptor(AGENT_OP, AGENT_CTX, async () => undefined),
+      );
+    }
+
+    it('parents the agent span to the span that admitted the submission, not the one the loop carries', async () => {
+      const admitting = startInactiveSpan({ name: 'POST /agents/hello/b' });
+      withActiveSpan(admitting, admit);
+
+      await startSpan({ name: 'POST /agents/hello/a' }, () => runSubmission());
+
+      const agent = findSpan('invoke_agent Hello');
+      expect(agent?.trace_id).toBe(spanToStaticSpanJSON(admitting).trace_id);
+      expect(agent?.parent_span_id).toBe(admitting.spanContext().spanId);
+    });
+
+    it('restores the isolation scope the submission was admitted in', async () => {
+      // The default stack strategy ignores the scope it is handed.
+      setAsyncLocalStorageAsyncContextStrategy();
+      onTestFinished(() => setAsyncContextStrategy(undefined));
+
+      const admittingScope = new Scope();
+      withIsolationScope(admittingScope, admit);
+
+      let runScope: Scope | undefined;
+      await instrumentation.interceptor(SUBMISSION_OP, AGENT_CTX, async () => {
+        runScope = getIsolationScope();
+      });
+
+      expect(runScope).toBe(admittingScope);
+    });
+
+    it('starts a new trace when nothing was active at admission', async () => {
+      admit();
+
+      let loopTraceId: string | undefined;
+      await startSpan({ name: 'POST /agents/hello/a' }, span => {
+        loopTraceId = spanToStaticSpanJSON(span).trace_id;
+        return runSubmission();
+      });
+
+      const agent = findSpan('invoke_agent Hello');
+      expect(agent?.trace_id).toMatch(/^[0-9a-f]{32}$/);
+      expect(agent?.trace_id).not.toBe(loopTraceId);
+    });
+
+    // Each Cloudflare turn runs from its own Durable Object alarm, which already starts a fresh trace.
+    it('leaves the context alone on Cloudflare Workers', async () => {
+      vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+      onTestFinished(() => {
+        vi.unstubAllGlobals();
+      });
+      withActiveSpan(startInactiveSpan({ name: 'POST /agents/hello/b' }), admit);
+
+      let alarmSpanId: string | undefined;
+      await startSpan({ name: 'alarm' }, span => {
+        alarmSpanId = span.spanContext().spanId;
+        return runSubmission();
+      });
+
+      expect(findSpan('invoke_agent Hello')?.parent_span_id).toBe(alarmSpanId);
+    });
+
+    // A submission admitted by another process, replayed by idempotency key, or already settled has
+    // no record here, but the loop still carries the context of whichever request started it.
+    it('drops the loop context when nothing was recorded for the submission', async () => {
+      withActiveSpan(startInactiveSpan({ name: 'POST /agents/hello/b' }), admit);
+      instrumentation.observe({ type: 'submission_settled', submissionId: 'sub_1' }, {});
+
+      let loopTraceId: string | undefined;
+      await startSpan({ name: 'POST /agents/hello/a' }, span => {
+        loopTraceId = span.spanContext().traceId;
+        return runSubmission();
+      });
+
+      const agent = findSpan('invoke_agent Hello');
+      expect(agent?.parent_span_id).toBeUndefined();
+      expect(agent?.trace_id).toMatch(/^[0-9a-f]{32}$/);
+      expect(agent?.trace_id).not.toBe(loopTraceId);
+    });
+
+    it('continues the replayed traceparent when nothing was recorded for the submission', async () => {
+      const traceId = 'cccccccccccccccccccccccccccccccc';
+      await startSpan({ name: 'POST /agents/hello/a' }, () =>
+        instrumentation.interceptor(SUBMISSION_OP, AGENT_CTX, () =>
+          instrumentation.interceptor(
+            AGENT_OP,
+            { ...AGENT_CTX, traceCarrier: { traceparent: `00-${traceId}-dddddddddddddddd-01` } },
+            async () => undefined,
+          ),
+        ),
+      );
+
+      expect(findSpan('invoke_agent Hello')?.trace_id).toBe(traceId);
     });
   });
 

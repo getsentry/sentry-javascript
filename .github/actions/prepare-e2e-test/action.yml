@@ -22,10 +22,12 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    # Uses the repo's root node pin for the steps before the app is copied (installing pnpm, `test:prepare`,
+    # `test:validate`, `ci:copy-to-temp`). The app's own node version is set up after the copy below.
     - name: Set up Node
       uses: actions/setup-node@v7
       with:
-        node-version-file: 'dev-packages/e2e-tests/test-applications/${{ inputs.test-application }}/package.json'
+        node-version-file: 'package.json'
     - name: Set up Bun
       if:
         inputs.test-application == 'node-exports-test-app' || contains(inputs.test-application, 'bun') || inputs.runtime
@@ -101,6 +103,14 @@ runs:
         pnpm run ci:copy-to-temp ./test-applications/${{ inputs.test-application }} ${{ runner.temp }}/test-application
       shell: bash
       working-directory: dev-packages/e2e-tests
+
+    # Reads the node version that `ci:copy-to-temp` wrote into the copied app's `devEngines.runtime`: the app's own pin
+    # if it has one, otherwise the one inherited from the repo root. setup-node can't look up parent directories, so the
+    # temp copy has to carry the resolved version.
+    - name: Set up Node for the E2E app
+      uses: actions/setup-node@v7
+      with:
+        node-version-file: '${{ runner.temp }}/test-application/package.json'
 
     - name: Add pnpm overrides
       run:

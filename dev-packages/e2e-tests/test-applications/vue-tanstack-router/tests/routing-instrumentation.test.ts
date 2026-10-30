@@ -67,7 +67,7 @@ test('sends a pageload span for the root route with web vital attributes and a s
 
   expect(lcpSpan.attributes).toMatchObject({
     'sentry.op': { type: 'string', value: 'ui.webvital.lcp' },
-    'sentry.origin': { type: 'string', value: 'auto.http.browser.lcp' },
+    'sentry.origin': { type: 'string', value: 'auto.ui.browser.lcp' },
     'sentry.pageload.span_id': { type: 'string', value: pageloadSpan.span_id },
     'browser.web_vital.lcp.value': webVitalNumber,
   });

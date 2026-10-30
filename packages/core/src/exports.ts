@@ -10,6 +10,7 @@ import type { Primitive } from './types/misc';
 import type { Session, SessionContext } from './types/session';
 import type { SeverityLevel } from './types/severity';
 import type { User } from './types/user';
+import { filterKeyValueData } from './utils/data-collection/filterKeyValueData';
 import { debug } from './utils/debug-logger';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
@@ -252,12 +253,15 @@ export function startSession(context?: SessionContext): Session {
 
   const { user } = getCombinedScopeData(isolationScope, getCurrentScope());
 
-  // Will fetch userAgent if called from browser sdk
-  const { userAgent } = GLOBAL_OBJ.navigator || {};
+  let userAgent = GLOBAL_OBJ.navigator?.userAgent;
+  if (userAgent) {
+    const headerCollection = getClient()?.getDataCollectionOptions().httpHeaders.request ?? true;
+    userAgent = filterKeyValueData({ 'User-Agent': userAgent }, headerCollection)['User-Agent'];
+  }
 
   const session = makeSession({
     user,
-    ...(userAgent && { userAgent }),
+    userAgent,
     ...context,
   });
 

@@ -64,7 +64,7 @@ function createSpanOptions(bindingName: string, r2Op: R2OperationKey, key?: stri
     attributes: {
       [CLOUDFLARE_R2_OPERATION]: operation,
       [CLOUDFLARE_R2_BUCKET]: bindingName,
-      ...(requestKey !== undefined && { [CLOUDFLARE_R2_REQUEST_KEY]: requestKey }),
+      [CLOUDFLARE_R2_REQUEST_KEY]: requestKey,
       ...(isR2ListOptions(key) && key.prefix !== undefined && { [CLOUDFLARE_R2_REQUEST_PREFIX]: key.prefix }),
       ...(isR2ListOptions(key) && key.delimiter !== undefined && { [CLOUDFLARE_R2_REQUEST_DELIMITER]: key.delimiter }),
       [SENTRY_OP]: op,

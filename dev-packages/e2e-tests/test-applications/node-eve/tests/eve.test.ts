@@ -53,7 +53,7 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
   const generateContent = traceSpans.find(span => getSpanOp(span) === 'gen_ai.generate_content');
   const executeTool = traceSpans.find(span => getSpanOp(span) === 'gen_ai.execute_tool');
 
-  expect(invokeAgent?.attributes?.['sentry.origin']?.value).toBe('auto.vercelai.channel');
+  expect(invokeAgent?.attributes?.['sentry.origin']?.value).toBe('auto.ai.vercelai');
   expect(invokeAgent?.attributes?.['gen_ai.operation.name']?.value).toBe('invoke_agent');
   expect(invokeAgent?.attributes?.['gen_ai.request.model']?.value).toBe('openai/gpt-4o-mini');
   expect(invokeAgent?.attributes?.['gen_ai.provider.name']?.value).toBe('openrouter');
@@ -134,7 +134,7 @@ test('captures errors thrown inside an eve tool', async ({ baseURL }) => {
           type: 'Error',
           value: expect.stringContaining('Intentional eve tool failure'),
           mechanism: {
-            type: 'auto.vercelai.channel',
+            type: 'auto.ai.vercelai',
             handled: false,
           },
         },
@@ -165,7 +165,7 @@ test('captures a gen_ai.decide span for a Jev call inside an eve tool', async ({
 
   expect(decide?.name).toBe('decide typesafe-ai/jev');
   expect(decide?.status).toBe('ok');
-  expect(decide?.attributes?.[SENTRY_ORIGIN]?.value).toBe('auto.vercelai.channel');
+  expect(decide?.attributes?.[SENTRY_ORIGIN]?.value).toBe('auto.ai.vercelai');
   expect(decide?.attributes?.[GEN_AI_OPERATION_NAME]?.value).toBe('decide');
   expect(decide?.attributes?.[GEN_AI_REQUEST_MODEL]?.value).toBe('typesafe-ai/jev');
   expect(decide?.attributes?.[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(275);

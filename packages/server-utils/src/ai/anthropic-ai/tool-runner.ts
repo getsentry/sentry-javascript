@@ -26,12 +26,17 @@ type AnyFunction = (...args: unknown[]) => unknown;
 type RunnableTool = { name: string; description?: unknown };
 type RunContext = { toolUse?: { id?: unknown }; toolUseBlock?: { id?: unknown }; signal?: AbortSignal } | undefined;
 type ToolRunner = { params?: { tools?: unknown } };
+type SessionToolRunner = { tools?: unknown };
 
-/** Wrap `beta.messages.toolRunner()` so the runners it returns trace their tool calls. */
-export function instrumentToolRunnerMethod(messages: object, options: AnthropicAiOptions): void {
-  wrapInPlace(messages, 'toolRunner', (toolRunner, thisArg, args) => {
+/** Wrap the `toolRunner()` method of `owner` so the runners it returns trace their tool calls. */
+export function instrumentToolRunnerFactory(
+  owner: object,
+  instrumentRunner: (runner: unknown, options: AnthropicAiOptions) => void,
+  options: AnthropicAiOptions,
+): void {
+  wrapInPlace(owner, 'toolRunner', (toolRunner, thisArg, args) => {
     const runner = toolRunner.apply(thisArg, args);
-    instrumentToolRunner(runner, options);
+    instrumentRunner(runner, options);
     return runner;
   });
 }
@@ -54,6 +59,16 @@ export function instrumentToolRunner(runner: unknown, options: AnthropicAiOption
     instrumentTools((runner as ToolRunner).params?.tools, options);
     return result;
   });
+}
+
+/** Give each tool call of a Managed Agents session runner a `gen_ai.execute_tool` span. */
+export function instrumentSessionToolRunner(runner: unknown, options: AnthropicAiOptions): void {
+  if (!runner || typeof runner !== 'object') {
+    return;
+  }
+
+  // The session runner has no `addTools()`: it only runs the tools it was created with.
+  instrumentTools((runner as SessionToolRunner).tools, options);
 }
 
 function instrumentTools(tools: unknown, options: AnthropicAiOptions): void {

@@ -24,6 +24,7 @@ import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 import { normalizeStringifyValue } from './normalizeStringifyValue';
 import { checkAndWarnIfIsEmbeddedBrowserExtension } from './utils/detectBrowserExtension';
+import { resolveBrowserTunnelOption } from './utils/managedTunnel';
 
 /** Get the default integrations for the browser SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
@@ -117,6 +118,7 @@ export function init(options: BrowserOptions = {}): Client | undefined {
 
   const clientOptions: BrowserClientOptions = {
     ...options,
+    ...resolveBrowserTunnelOption(options),
     enabled: shouldDisableBecauseIsBrowserExtenstion ? false : options.enabled,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations,

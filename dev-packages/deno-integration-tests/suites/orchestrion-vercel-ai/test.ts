@@ -66,5 +66,5 @@ Deno.test('vercel-ai instrumentation: orchestrion:ai:generateText channel produc
   assertEquals(aiSpan.attributes['gen_ai.request.model']?.value, 'gpt-4o');
   assertEquals(aiSpan.attributes['vercel.ai.operationId']?.value, 'ai.generateText');
   assertEquals(aiSpan.attributes['gen_ai.usage.total_tokens']?.value, 15);
-  assertEquals(aiSpan.attributes['sentry.origin']?.value, 'auto.vercelai.channel');
+  assertEquals(aiSpan.attributes['sentry.origin']?.value, 'auto.ai.vercelai');
 });

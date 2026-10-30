@@ -31,6 +31,12 @@ export const anthropicAiConfig = [
     module: { name: '@anthropic-ai/sdk', versionRange: '>=0.63.0 <1', filePath },
     functionQuery: { className: 'Messages', methodName: 'toolRunner', kind: 'Sync' as const },
   })),
+  // The constructor, not `sessions.events.toolRunner()`, so runners built directly (e.g. by `EnvironmentWorker`) are covered.
+  ...['lib/tools/SessionToolRunner.js', 'lib/tools/SessionToolRunner.mjs'].map(filePath => ({
+    channelName: 'session-tool-runner',
+    module: { name: '@anthropic-ai/sdk', versionRange: '>=0.97.0 <1', filePath },
+    functionQuery: { className: 'SessionToolRunner' },
+  })),
 ] satisfies InstrumentationConfig[];
 
 export const anthropicAiModuleNames = getModuleNames(anthropicAiConfig);
@@ -39,4 +45,5 @@ export const anthropicAiChannels = {
   ANTHROPIC_CHAT: 'orchestrion:@anthropic-ai/sdk:chat',
   ANTHROPIC_MESSAGES_STREAM: 'orchestrion:@anthropic-ai/sdk:messages-stream',
   ANTHROPIC_TOOL_RUNNER: 'orchestrion:@anthropic-ai/sdk:tool-runner',
+  ANTHROPIC_SESSION_TOOL_RUNNER: 'orchestrion:@anthropic-ai/sdk:session-tool-runner',
 } as const;

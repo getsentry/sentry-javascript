@@ -59,6 +59,15 @@ const config = {
   outDir: new URL('file://path/to/project/out'),
 } as AstroConfig;
 
+// The server init the integration serves to SSR pages and the middleware as one module.
+function getServerInit(updateConfigMock: typeof updateConfig): string | undefined {
+  const plugin = updateConfigMock.mock.calls
+    .flatMap(([viteConfig]) => viteConfig.vite?.plugins ?? [])
+    .find(plugin => plugin?.name === 'sentry-astro-server-init');
+
+  return plugin?.load(plugin.resolveId('virtual:@sentry/astro/server-init'));
+}
+
 const baseConfigHookObject = {
   logger: { warn: vi.fn(), info: vi.fn(), error: vi.fn() },
   addMiddleware: vi.fn(),
@@ -85,8 +94,8 @@ describe('sentryAstro integration', () => {
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
 
-    // one call for the sourcemaps vite plugin, one for the orchestrion plugin
-    expect(updateConfig).toHaveBeenCalledTimes(2);
+    // one call each for the sourcemaps vite plugin, the orchestrion plugin and the server init
+    expect(updateConfig).toHaveBeenCalledTimes(3);
     expect(updateConfig).toHaveBeenCalledWith({
       vite: {
         build: {
@@ -338,8 +347,8 @@ describe('sentryAstro integration', () => {
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
 
-    // only the orchestrion plugin is wired, no sourcemaps plugin
-    expect(updateConfig).toHaveBeenCalledTimes(1);
+    // only the orchestrion plugin and the server init are wired, no sourcemaps plugin
+    expect(updateConfig).toHaveBeenCalledTimes(2);
     expect(updateConfig).toHaveBeenCalledWith({
       vite: {
         plugins: [{ name: 'sentry-orchestrion-vite' }],
@@ -355,8 +364,8 @@ describe('sentryAstro integration', () => {
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
 
-    // one call for the sourcemaps vite plugin, one for the orchestrion plugin
-    expect(updateConfig).toHaveBeenCalledTimes(2);
+    // one call each for the sourcemaps vite plugin, the orchestrion plugin and the server init
+    expect(updateConfig).toHaveBeenCalledTimes(3);
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -373,8 +382,8 @@ describe('sentryAstro integration', () => {
       command: 'dev',
     });
 
-    // the sourcemaps plugin is skipped in dev, but the orchestrion plugin is still wired
-    expect(updateConfig).toHaveBeenCalledTimes(1);
+    // the sourcemaps plugin is skipped in dev, but the orchestrion plugin and the server init are still wired
+    expect(updateConfig).toHaveBeenCalledTimes(2);
     expect(updateConfig).toHaveBeenCalledWith({
       vite: {
         plugins: [{ name: 'sentry-orchestrion-vite' }],
@@ -522,7 +531,7 @@ describe('sentryAstro integration', () => {
         config: cloudflareConfig,
       });
 
-      expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('my-server-init-path.js'));
+      expect(getServerInit(updateConfig)).toContain('my-server-init-path.js');
     });
   });
 
@@ -576,7 +585,7 @@ describe('sentryAstro integration', () => {
 
     expect(injectScript).toHaveBeenCalledTimes(2);
     expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('Sentry.init'));
-    expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('Sentry.init'));
+    expect(getServerInit(updateConfig)).toContain('Sentry.init');
   });
 
   it('passes build-time release options to the Sentry vite plugin and init snippets', async () => {
@@ -605,7 +614,7 @@ describe('sentryAstro integration', () => {
       'page',
       expect.stringContaining('dsn: import.meta.env.PUBLIC_SENTRY_DSN'),
     );
-    expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('release: "1.0.0"'));
+    expect(getServerInit(updateConfig)).toContain('release: "1.0.0"');
   });
 
   it("doesn't inject client init script if `enabled.client` is `false`", async () => {
@@ -616,7 +625,7 @@ describe('sentryAstro integration', () => {
     await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config });
 
     expect(injectScript).toHaveBeenCalledTimes(1);
-    expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('Sentry.init'));
+    expect(getServerInit(updateConfig)).toContain('Sentry.init');
   });
 
   it("doesn't inject server init script if `enabled.server` is `false`", async () => {
@@ -655,10 +664,7 @@ describe('sentryAstro integration', () => {
 
     expect(injectScript).toHaveBeenCalledTimes(2);
     expect(injectScript).toHaveBeenCalledWith('page', expect.stringMatching(/^import ".*\/my-client-init-path.js"/));
-    expect(injectScript).toHaveBeenCalledWith(
-      'page-ssr',
-      expect.stringMatching(/^import ".*\/my-server-init-path.js"/),
-    );
+    expect(getServerInit(updateConfig)).toMatch(/^import ".*\/my-server-init-path.js"/);
   });
 
   it.each(['server', 'hybrid'])('adds middleware by default if in %s mode', async mode => {
@@ -680,8 +686,34 @@ describe('sentryAstro integration', () => {
     expect(addMiddleware).toHaveBeenCalledTimes(1);
     expect(addMiddleware).toHaveBeenCalledWith({
       order: 'pre',
-      entrypoint: '@sentry/astro/middleware',
+      entrypoint: 'virtual:@sentry/astro/middleware',
     });
+  });
+
+  it('runs the server init once, from SSR pages and the middleware alike, so requests that render no page find a client', async () => {
+    const integration = sentryAstro({});
+    const updateConfig = vi.fn();
+    const injectScript = vi.fn();
+
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({
+      // @ts-expect-error - we only need to pass what we actually use
+      config: { output: 'server' },
+      addMiddleware: vi.fn(),
+      updateConfig,
+      injectScript,
+    });
+
+    const plugin = updateConfig.mock.calls
+      .flatMap(([viteConfig]) => viteConfig.vite?.plugins ?? [])
+      .find(plugin => plugin?.name === 'sentry-astro-server-init');
+    const serverInitImport = 'import "virtual:@sentry/astro/server-init";\n';
+
+    expect(injectScript).toHaveBeenCalledWith('page-ssr', serverInitImport);
+    expect(plugin.load(plugin.resolveId('virtual:@sentry/astro/middleware'))).toBe(
+      `${serverInitImport}export { onRequest } from "@sentry/astro/middleware";\n`,
+    );
+    expect(getServerInit(updateConfig)).toContain('Sentry.init');
   });
 
   it.each([{ output: 'static' }, { output: undefined }])(

@@ -31,6 +31,28 @@ export function markWrapped(fn: AnyFn): void {
   (fn as AnyFn & Record<symbol, unknown>)[SENTRY_WRAPPED] = true;
 }
 
+// `@nestjs/schedule`'s metadata key for the `@Cron()` options.
+const SCHEDULE_CRON_OPTIONS = 'SCHEDULE_CRON_OPTIONS';
+
+const NEST_SCHEDULE_VERSIONS = new WeakMap<object, string>();
+
+/** Remembers the `@nestjs/schedule` version whose `@Cron()` stored the options on `method`. */
+export function setNestScheduleVersion(method: unknown, version: string | undefined): void {
+  const R = Reflect as ReflectWithMetadata;
+  if (typeof method !== 'function' || !version || typeof R.getMetadata !== 'function') {
+    return;
+  }
+  const cronOptions = R.getMetadata(SCHEDULE_CRON_OPTIONS, method);
+  if (cronOptions && typeof cronOptions === 'object') {
+    NEST_SCHEDULE_VERSIONS.set(cronOptions, version);
+  }
+}
+
+/** The `@nestjs/schedule` version that stored these `@Cron()` options, if the SDK saw the decorator run. */
+export function getNestScheduleVersion(cronOptions: object): string | undefined {
+  return NEST_SCHEDULE_VERSIONS.get(cronOptions);
+}
+
 /**
  * The subset of `reflect-metadata`'s `Reflect` augmentation that NestJS
  * relies on. Methods are optional because `reflect-metadata` may not be

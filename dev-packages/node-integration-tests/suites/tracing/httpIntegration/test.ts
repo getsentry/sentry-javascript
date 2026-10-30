@@ -1,9 +1,62 @@
 import { HTTP_CLIENT, HTTP_SERVER } from '@sentry/conventions/op';
 import { createTestServer } from '@sentry-internal/test-utils';
-import { HTTP_RESPONSE_STATUS_CODE, SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  HTTP_REQUEST_METHOD,
+  HTTP_RESPONSE_STATUS_CODE,
+  HTTP_RESPONSE_STATUS_TEXT,
+  HTTP_ROUTE,
+  NETWORK_LOCAL_ADDRESS,
+  NETWORK_LOCAL_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_PROTOCOL_NAME,
+  NETWORK_PROTOCOL_VERSION,
+  NETWORK_TRANSPORT,
+  SENTRY_ENVIRONMENT,
+  SENTRY_IS_LOCALHOST,
+  SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_RELEASE,
+  SENTRY_SDK_INTEGRATIONS,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_TRACE_LIFECYCLE,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+  URL_FULL,
+  URL_PATH,
+  URL_SCHEME,
+  USER_AGENT_ORIGINAL,
+  USER_IP_ADDRESS,
+} from '@sentry/conventions/attributes';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, createRunner } from '../../../utils/runner';
-import { supports } from '../../../utils';
+import { EXPECTED_SDK_NAME, supports } from '../../../utils';
+
+const LOOPBACK_ADDRESS = /^(::1|127\.0\.0\.1|::ffff:127\.0\.0\.1)$/;
+
+// Attributes from the context of the host (app, device, OS, culture, runtime, cloud). Which of them
+// the SDK sends depends on the platform, so tests only check that they are well formed.
+const HOST_CONTEXT_ATTRIBUTE = /^(app|device|os|culture|process\.runtime|cloud)\./;
+
+function splitHostContextAttributes(attributes: Record<string, unknown>): {
+  hostContext: Record<string, unknown>;
+  rest: Record<string, unknown>;
+} {
+  const hostContext: Record<string, unknown> = {};
+  const rest: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(attributes)) {
+    (HOST_CONTEXT_ATTRIBUTE.test(key) ? hostContext : rest)[key] = value;
+  }
+  return { hostContext, rest };
+}
 
 function getCommonHttpRequestHeaders(): Record<string, unknown> {
   return {
@@ -22,30 +75,76 @@ describe('httpIntegration', () => {
     cleanupChildProcesses();
   });
 
-  describe('onSpanCreated option', () => {
+  describe('onSpanCreated and onSpanEnd options', () => {
     createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument-options.mjs', (createRunner, test) => {
-      test('allows to configure onSpanCreated', async () => {
+      test('allows to configure onSpanCreated and onSpanEnd', async () => {
         const runner = createRunner()
           .expect({
-            span: {
-              items: expect.arrayContaining([
+            span: container => {
+              const segmentSpan = container.items.find(span => span.is_segment);
+              expect(segmentSpan).toEqual(
                 expect.objectContaining({
-                  is_segment: true,
                   span_id: expect.stringMatching(/[a-f\d]{16}/),
                   trace_id: expect.stringMatching(/[a-f\d]{32}/),
                   status: 'ok',
-                  attributes: expect.objectContaining({
-                    [URL_FULL]: { type: 'string', value: expect.stringMatching(/\/test$/) },
-                    [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
-                    [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
-                    onSpanCreated: { type: 'string', value: 'yes' },
-                    'onSpanCreated.reqUrl': { type: 'string', value: expect.stringMatching(/\/test$/) },
-                    'onSpanCreated.reqMethod': { type: 'string', value: 'GET' },
-                    'onSpanCreated.resUrl': { type: 'string', value: expect.stringMatching(/\/test$/) },
-                    'onSpanCreated.resMethod': { type: 'string', value: 'GET' },
-                  }),
                 }),
-              ]),
+              );
+
+              // Every other attribute is listed, so the test fails when the span gets a new one.
+              const { hostContext, rest } = splitHostContextAttributes(segmentSpan!.attributes);
+              expect(rest).toEqual({
+                onSpanCreated: { type: 'string', value: 'yes' },
+                'onSpanCreated.reqUrl': { type: 'string', value: '/test' },
+                'onSpanCreated.reqMethod': { type: 'string', value: 'GET' },
+                'onSpanCreated.resUrl': { type: 'string', value: '/test' },
+                'onSpanCreated.resMethod': { type: 'string', value: 'GET' },
+                'onSpanEnd.reqUrl': { type: 'string', value: '/test' },
+                'onSpanEnd.resStatusCode': { type: 'integer', value: 200 },
+                [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                [SENTRY_ORIGIN]: { type: 'string', value: 'auto.http.http_server' },
+                [SENTRY_KIND]: { type: 'string', value: 'server' },
+                [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpan!.span_id },
+                [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'GET /test' },
+                [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'route' },
+                [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
+                [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
+                [SENTRY_IS_LOCALHOST]: { type: 'boolean', value: true },
+                [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
+                [SENTRY_RELEASE]: { type: 'string', value: '1.0' },
+                [SENTRY_SDK_NAME]: { type: 'string', value: EXPECTED_SDK_NAME },
+                [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+                [SENTRY_SDK_INTEGRATIONS]: { type: 'array', value: expect.arrayContaining(['Http']) },
+                [HTTP_REQUEST_METHOD]: { type: 'string', value: 'GET' },
+                [HTTP_ROUTE]: { type: 'string', value: '/test' },
+                [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                [HTTP_RESPONSE_STATUS_TEXT]: { type: 'string', value: 'OK' },
+                [URL_FULL]: { type: 'string', value: expect.stringMatching(/^http:\/\/localhost:\d+\/test$/) },
+                [URL_PATH]: { type: 'string', value: '/test' },
+                [URL_SCHEME]: { type: 'string', value: 'http' },
+                [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+                [SERVER_PORT]: { type: 'integer', value: expect.any(Number) },
+                [CLIENT_ADDRESS]: { type: 'string', value: expect.stringMatching(LOOPBACK_ADDRESS) },
+                [CLIENT_PORT]: { type: 'integer', value: expect.any(Number) },
+                [USER_IP_ADDRESS]: { type: 'string', value: expect.stringMatching(LOOPBACK_ADDRESS) },
+                [NETWORK_LOCAL_ADDRESS]: { type: 'string', value: expect.stringMatching(LOOPBACK_ADDRESS) },
+                [NETWORK_LOCAL_PORT]: { type: 'integer', value: expect.any(Number) },
+                [NETWORK_PEER_ADDRESS]: { type: 'string', value: expect.stringMatching(LOOPBACK_ADDRESS) },
+                [NETWORK_PEER_PORT]: { type: 'integer', value: expect.any(Number) },
+                [NETWORK_PROTOCOL_NAME]: { type: 'string', value: 'http' },
+                [NETWORK_PROTOCOL_VERSION]: { type: 'string', value: '1.1' },
+                [NETWORK_TRANSPORT]: { type: 'string', value: 'tcp' },
+                [USER_AGENT_ORIGINAL]: { type: 'string', value: 'node' },
+                'http.request.header.accept': { type: 'array', value: ['*/*'] },
+                'http.request.header.accept-encoding': { type: 'array', value: ['gzip, deflate'] },
+                'http.request.header.accept-language': { type: 'array', value: ['*'] },
+                'http.request.header.connection': { type: 'array', value: ['keep-alive'] },
+                'http.request.header.host': { type: 'array', value: [expect.stringMatching(/^localhost:\d+$/)] },
+                'http.request.header.sec-fetch-mode': { type: 'array', value: ['cors'] },
+                'http.request.header.user-agent': { type: 'array', value: ['node'] },
+              });
+              for (const attribute of Object.values(hostContext)) {
+                expect(attribute).toEqual({ type: expect.any(String), value: expect.anything() });
+              }
             },
           })
           .start();
@@ -57,7 +156,7 @@ describe('httpIntegration', () => {
 
   describe('user callbacks that throw', () => {
     createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument-throwing-callbacks.mjs', (createRunner, test) => {
-      test('still handles requests and sends the span when `onSpanCreated` and `ignoreIncomingRequests` throw', async () => {
+      test('still handles requests and sends the span when `onSpanCreated`, `onSpanEnd` and `ignoreIncomingRequests` throw', async () => {
         const runner = createRunner()
           .expect({
             span: {

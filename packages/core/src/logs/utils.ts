@@ -1,3 +1,4 @@
+import { SENTRY_MESSAGE_TEMPLATE } from '@sentry/conventions/attributes';
 import { isPrimitive } from '../utils/is';
 import { normalize } from '../utils/normalize';
 import { GLOBAL_OBJ } from '../utils/worldwide';
@@ -60,7 +61,7 @@ export function createConsoleTemplateAttributes(firstArg: unknown, followingArgs
 
   // Create template with placeholders for each argument
   const template = new Array(followingArgs.length).fill('{}').join(' ');
-  attributes['sentry.message.template'] = `${firstArg} ${template}`;
+  attributes[SENTRY_MESSAGE_TEMPLATE] = `${firstArg} ${template}`;
 
   // Add each argument as a parameter
   followingArgs.forEach((arg, index) => {

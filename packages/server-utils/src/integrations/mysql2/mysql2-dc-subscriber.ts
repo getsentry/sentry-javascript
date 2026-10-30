@@ -92,56 +92,50 @@ export function subscribeMysql2DiagnosticChannels(tracingChannel: MySQL2TracingC
 }
 
 function setupQueryChannel(tracingChannel: MySQL2TracingChannelFactory, channelName: string): void {
-  bindTracingChannelToSpan(
-    tracingChannel<MySQL2QueryData>(channelName),
-    data => {
-      // mysql2 does not sanitize its channel payload, so the statement may carry
-      // raw user values (on the `query` channel they are inlined). Strip every
-      // literal before it leaves the process; `values` is never attached.
-      const { queryText, querySummary } = sanitizeSqlQueryWithSummary(data.query, 'mysql');
-      const operation = queryText?.match(SQL_OPERATION_RE)?.[1]?.toUpperCase();
+  bindTracingChannelToSpan(tracingChannel<MySQL2QueryData>(channelName), data => {
+    // mysql2 does not sanitize its channel payload, so the statement may carry
+    // raw user values (on the `query` channel they are inlined). Strip every
+    // literal before it leaves the process; `values` is never attached.
+    const { queryText, querySummary } = sanitizeSqlQueryWithSummary(data.query, 'mysql');
+    const operation = queryText?.match(SQL_OPERATION_RE)?.[1]?.toUpperCase();
 
-      const client = getClient();
-      const name =
-        client && hasSpanStreamingEnabled(client)
-          ? querySummary || data.database || DB_SYSTEM_NAME_VALUE_MYSQL
-          : queryText || 'mysql2.query';
+    const client = getClient();
+    const name =
+      client && hasSpanStreamingEnabled(client)
+        ? querySummary || data.database || DB_SYSTEM_NAME_VALUE_MYSQL
+        : queryText || 'mysql2.query';
 
-      return startInactiveSpan({
-        name,
-        attributes: {
-          [SENTRY_ORIGIN]: ORIGIN,
-          [SENTRY_OP]: DB,
-          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
-          [DB_QUERY_TEXT]: queryText,
-          [DB_QUERY_SUMMARY]: querySummary,
-          [DB_OPERATION_NAME]: operation,
-          [DB_NAMESPACE]: data.database || undefined,
-          [SERVER_ADDRESS]: data.serverAddress,
-          [SERVER_PORT]: data.serverPort,
-        },
-      });
-    },
-    { requiresParentSpan: true },
-  );
+    return startInactiveSpan({
+      name,
+      onlyIfParent: true,
+      attributes: {
+        [SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_OP]: DB,
+        [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
+        [DB_QUERY_TEXT]: queryText,
+        [DB_QUERY_SUMMARY]: querySummary,
+        [DB_OPERATION_NAME]: operation,
+        [DB_NAMESPACE]: data.database || undefined,
+        [SERVER_ADDRESS]: data.serverAddress,
+        [SERVER_PORT]: data.serverPort,
+      },
+    });
+  });
 }
 
 function setupConnectChannel(tracingChannel: MySQL2TracingChannelFactory, channelName: string, spanName: string): void {
-  bindTracingChannelToSpan(
-    tracingChannel<MySQL2ConnectData>(channelName),
-    data => {
-      return startInactiveSpan({
-        name: spanName,
-        attributes: {
-          [SENTRY_ORIGIN]: ORIGIN,
-          [SENTRY_OP]: DB,
-          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
-          [DB_NAMESPACE]: data.database || undefined,
-          [SERVER_ADDRESS]: data.serverAddress,
-          [SERVER_PORT]: data.serverPort,
-        },
-      });
-    },
-    { requiresParentSpan: true },
-  );
+  bindTracingChannelToSpan(tracingChannel<MySQL2ConnectData>(channelName), data => {
+    return startInactiveSpan({
+      name: spanName,
+      onlyIfParent: true,
+      attributes: {
+        [SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_OP]: DB,
+        [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
+        [DB_NAMESPACE]: data.database || undefined,
+        [SERVER_ADDRESS]: data.serverAddress,
+        [SERVER_PORT]: data.serverPort,
+      },
+    });
+  });
 }

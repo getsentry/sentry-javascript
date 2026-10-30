@@ -57,5 +57,5 @@ Deno.test('kafkajs instrumentation: orchestrion:kafkajs:send_batch channel produ
   assertEquals(kafkaSpan.name, 'send my-topic');
   assertEquals(kafkaSpan.attributes['messaging.system']?.value, 'kafka');
   assertEquals(kafkaSpan.attributes['messaging.destination.name']?.value, 'my-topic');
-  assertEquals(kafkaSpan.attributes['sentry.origin']?.value, 'auto.kafkajs.producer');
+  assertEquals(kafkaSpan.attributes['sentry.origin']?.value, 'auto.queue.kafkajs.producer');
 });

@@ -67,6 +67,8 @@ import {
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
   SENTRY_ORIGIN,
+  HTTP_REQUEST_BODY_SIZE,
+  HTTP_RESPONSE_STATUS_TEXT,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import { filterCollectedUrl, filterCollectedUrlQuery } from '../../utils/data-collection/filterCollectedUrl';
@@ -357,7 +359,7 @@ function buildServerSpanWrap(
             [USER_AGENT_ORIGINAL]: userAgent,
             [URL_SCHEME]: scheme,
             [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
-            'http.request.body.size': getContentLengthFromHeaders(request.headers),
+            [HTTP_REQUEST_BODY_SIZE]: getContentLengthFromHeaders(request.headers),
             ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, dataCollectionOptions),
           },
         },
@@ -379,7 +381,7 @@ function buildServerSpanWrap(
             isEnded = true;
             // set attributes that come from the response
             span.setAttributes({
-              'http.response.status_text': response.statusMessage?.toUpperCase(),
+              [HTTP_RESPONSE_STATUS_TEXT]: response.statusMessage?.toUpperCase(),
               [HTTP_RESPONSE_STATUS_CODE]: response.statusCode,
               ...httpHeadersToSpanAttributes(headersToDict(response.headers), dataCollectionOptions, 'response'),
             });

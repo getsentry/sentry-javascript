@@ -58,7 +58,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     token: authToken,
     org,
     url: sentryUrl,
-    project,
+    project: Array.isArray(project) ? undefined : project,
     headers,
   };
 
@@ -68,7 +68,10 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
   if (release?.name) {
     try {
       // The release API requires a project, and the one given to the SDK does not reach this call.
-      await sentry.release.create({ orgVersion: release.name, project });
+      await sentry.release.create({
+        orgVersion: release.name,
+        project: Array.isArray(project) ? project.join(',') : project,
+      });
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('[Sentry] Could not create release', error);
@@ -92,10 +95,16 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     if (!uploadDisabled) {
       // upload sourcemaps
       try {
-        await sentry.sourcemap.upload({
-          directory: reactRouterConfig.buildDirectory,
-          release: release?.name || 'undefined',
-        });
+        const uploadClients = Array.isArray(project)
+          ? project.map(project => createSentrySDK({ ...sentryOptions, project }))
+          : [sentry];
+
+        for (const client of uploadClients) {
+          await client.sourcemap.upload({
+            directory: reactRouterConfig.buildDirectory,
+            release: release?.name || 'undefined',
+          });
+        }
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('[Sentry] Could not upload sourcemaps', error);

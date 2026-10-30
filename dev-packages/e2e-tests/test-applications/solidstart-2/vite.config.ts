@@ -2,20 +2,49 @@ import { sentrySolidStart } from '@sentry/solidstart/vite';
 import { solidStart } from '@solidjs/start/config';
 import { nitro } from 'nitro/vite';
 import { defineConfig } from 'vite';
+import * as fs from 'node:fs';
+
+// Rolldown emits no map for chunks without mappable source (e.g. Vite's preload helper), so their debug
+// IDs can't be uploaded. Recorded here because the SDK deletes all maps after the upload.
+function recordChunksWithoutSourceMap() {
+  return {
+    name: 'record-chunks-without-source-map',
+    apply: 'build' as const,
+    enforce: 'post' as const,
+    writeBundle(_options: unknown, bundle: Record<string, { type: string; fileName: string; code?: string }>) {
+      for (const output of Object.values(bundle)) {
+        if (output.type !== 'chunk' || !output.code || bundle[`${output.fileName}.map`]) {
+          continue;
+        }
+        for (const match of output.code.matchAll(/sentry-dbid-([\da-f-]{36})/gi)) {
+          fs.appendFileSync('.tmp_debug_ids_without_source_map', `${match[1]!.toLowerCase()}\n`);
+        }
+      }
+    },
+  };
+}
 
 export default defineConfig({
+  // The base-path variant serves the app, and so the tunnel, under `/app`.
+  ...(process.env.E2E_TEST_BASE_PATH && { base: `${process.env.E2E_TEST_BASE_PATH}/` }),
+  define: {
+    __E2E_TEST_TUNNEL__: JSON.stringify(!!process.env.E2E_TEST_TUNNEL),
+  },
   plugins: [
     solidStart({
       appRoot: './src',
       middleware: './src/middleware.ts',
     }),
     sentrySolidStart({
-      org: process.env.E2E_TEST_SENTRY_ORG_SLUG,
-      project: process.env.E2E_TEST_SENTRY_PROJECT,
-      authToken: process.env.E2E_TEST_AUTH_TOKEN,
+      sentryUrl: 'http://localhost:3032',
+      authToken: 'fake-auth-token',
+      org: 'test-org',
+      project: 'test-project',
+      release: { name: 'test-release' },
       debug: true,
     }),
     // `serverDir` defaults to `false`, which skips plugin scanning entirely.
     nitro({ serverDir: './server' }),
+    recordChunksWithoutSourceMap(),
   ],
 });

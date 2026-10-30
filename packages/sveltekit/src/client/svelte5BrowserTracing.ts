@@ -12,7 +12,15 @@ import {
   startInactiveSpan,
   WINDOW,
 } from '@sentry/svelte';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  URL_TEMPLATE,
+  SENTRY_ORIGIN,
+  SENTRY_SVELTEKIT_NAVIGATION_FROM,
+  SENTRY_SVELTEKIT_NAVIGATION_TO,
+  SENTRY_SVELTEKIT_NAVIGATION_TYPE,
+} from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD, ROUTER } from '@sentry/conventions/op';
 import type { Navigation } from '@sveltejs/kit';
 import { getCurrentNavigation, onNavigationChange, onPageRouteChange } from './navigationState.svelte';
@@ -92,9 +100,12 @@ function _instrumentNavigations(client: Client): void {
     routingSpan?.end();
 
     const navigationInfo = {
-      'sentry.sveltekit.navigation.type': navigation.type,
-      'sentry.sveltekit.navigation.from': parameterizedRouteOrigin || undefined,
-      'sentry.sveltekit.navigation.to': parameterizedRouteDestination || undefined,
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      [SENTRY_SVELTEKIT_NAVIGATION_TYPE]: navigation.type,
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      [SENTRY_SVELTEKIT_NAVIGATION_FROM]: parameterizedRouteOrigin || undefined,
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      [SENTRY_SVELTEKIT_NAVIGATION_TO]: parameterizedRouteDestination || undefined,
     };
 
     startBrowserTracingNavigationSpan(

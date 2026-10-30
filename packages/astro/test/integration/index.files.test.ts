@@ -30,9 +30,11 @@ describe('sentryAstro integration', () => {
 
     expect(injectScript).toHaveBeenCalledTimes(2);
     expect(injectScript).toHaveBeenCalledWith('page', expect.stringMatching(/^import ".*\/sentry.client.config.js"/));
-    expect(injectScript).toHaveBeenCalledWith(
-      'page-ssr',
-      expect.stringMatching(/^import ".*\/sentry.server.config.js"/),
+    const serverInitPlugin = updateConfig.mock.calls
+      .flatMap(([viteConfig]) => viteConfig.vite?.plugins ?? [])
+      .find(plugin => plugin?.name === 'sentry-astro-server-init');
+    expect(serverInitPlugin.load(serverInitPlugin.resolveId('virtual:@sentry/astro/server-init'))).toMatch(
+      /^import ".*\/sentry.server.config.js"/,
     );
   });
 });

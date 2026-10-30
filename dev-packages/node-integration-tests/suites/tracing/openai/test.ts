@@ -13,6 +13,7 @@ import {
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TEXT,
+  GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
@@ -41,7 +42,7 @@ describe('OpenAI integration', () => {
 
       const allSpans = await spansPromise;
       const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
-      expect(spans).toHaveLength(8);
+      expect(spans).toHaveLength(9);
       const chatCompletionSpan = spans.find(
         span =>
           span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
@@ -172,6 +173,12 @@ describe('OpenAI integration', () => {
         type: 'string',
         value: 'error-model',
       });
+
+      const geminiStreamSpan = spans.find(
+        span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-gemini-456',
+      );
+      expect(geminiStreamSpan).toBeDefined();
+      expect(geminiStreamSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeUndefined();
 
       const streamingChatCompletionSpan = spans.find(
         span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
@@ -444,7 +451,7 @@ describe('OpenAI integration', () => {
 
       const allSpans = await spansPromise;
       const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
-      expect(spans).toHaveLength(8);
+      expect(spans).toHaveLength(9);
       const chatCompletionSpan = spans.find(
         span =>
           span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
@@ -598,6 +605,18 @@ describe('OpenAI integration', () => {
       expect(nonStreamingErrorSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
         type: 'string',
         value: '[{"role":"user","content":"This will fail"}]',
+      });
+
+      const geminiStreamSpan = spans.find(
+        span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-gemini-456',
+      );
+      expect(geminiStreamSpan).toBeDefined();
+      expect(geminiStreamSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toEqual({
+        type: 'string',
+        value: JSON.stringify([
+          { id: 'call_paris', type: 'function', function: { name: 'get_weather', arguments: '{"city":"Paris"}' } },
+          { id: 'call_london', type: 'function', function: { name: 'get_weather', arguments: '{"city":"London"}' } },
+        ]),
       });
 
       const streamingChatCompletionSpan = spans.find(
@@ -902,7 +921,7 @@ describe('OpenAI integration', () => {
 
       const allSpans = await spansPromise;
       const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
-      expect(spans).toHaveLength(8);
+      expect(spans).toHaveLength(9);
       const chatCompletionSpan = spans.find(
         span =>
           span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
@@ -916,6 +935,18 @@ describe('OpenAI integration', () => {
       expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toMatchObject({
         type: 'string',
         value: expect.any(String),
+      });
+
+      const geminiStreamSpan = spans.find(
+        span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-gemini-456',
+      );
+      expect(geminiStreamSpan).toBeDefined();
+      expect(geminiStreamSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toEqual({
+        type: 'string',
+        value: JSON.stringify([
+          { id: 'call_paris', type: 'function', function: { name: 'get_weather', arguments: '{"city":"Paris"}' } },
+          { id: 'call_london', type: 'function', function: { name: 'get_weather', arguments: '{"city":"London"}' } },
+        ]),
       });
 
       const streamingChatCompletionSpan = spans.find(

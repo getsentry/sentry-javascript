@@ -40,7 +40,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     cleanupChildProcesses();
   });
 
-  const expectedOrigin = 'auto.vercelai.channel';
+  const expectedOrigin = 'auto.ai.vercelai';
 
   // We only run this in ESM and CJS to verify full support
   // Other suites we only run in ESM to simplify the test setup
@@ -56,7 +56,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               const segment = container.items.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
               const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.vercelai.channel',
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
               );
               expect(spans).toHaveLength(7);
               const firstInvokeAgentSpan = spans.find(
@@ -309,7 +309,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               const segment = container.items.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
               const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.vercelai.channel',
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
               );
               expect(spans).toHaveLength(7);
               const firstInvokeAgentSpan = spans.find(
@@ -539,7 +539,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
           .completed();
 
         const segment = receivedSpans.find(span => span.is_segment && span.name === 'main');
-        const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.vercelai.channel');
+        const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai');
         expect(spans).toHaveLength(3);
         const invokeAgentSpan = spans.find(span => span.name === 'invoke_agent')!;
         expect(invokeAgentSpan!.attributes[SENTRY_ORIGIN]).toEqual({ type: 'string', value: expectedOrigin });
@@ -611,7 +611,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               const segment = container.items.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
               const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.vercelai.channel',
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
               );
               expect(spans).toHaveLength(7);
               const invokeAgentSpans = spans.filter(
@@ -651,7 +651,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               const segment = container.items.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
               const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.vercelai.channel',
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
               );
               expect(spans).toHaveLength(4);
               const invokeAgentSpan = spans.find(span => span.name === 'invoke_agent weather_agent')!;
@@ -707,7 +707,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               const segment = container.items.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
               const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.vercelai.channel',
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
               );
               const invokeAgents = spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent');
               const generateContents = spans.filter(
@@ -756,7 +756,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               const segment = container.items.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
               const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.vercelai.channel',
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
               );
               const invokeAgents = spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent');
               const generateContents = spans.filter(
@@ -802,7 +802,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               const segment = container.items.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
               const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.vercelai.channel',
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
               );
               const invokeAgent = spans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent')!;
               expect(invokeAgent.attributes['vercel.ai.operationId']?.value).toBe('ai.streamText');
@@ -857,7 +857,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               const segment = container.items.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
               const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.vercelai.channel',
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
               );
               const invokeAgent = spans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent')!;
               expect(invokeAgent.status).toBe('ok');
@@ -921,7 +921,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               const segment = container.items.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
               const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.vercelai.channel',
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
               );
               const invokeAgent = spans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent')!;
               expect(invokeAgent.status).toBe('ok');
@@ -965,7 +965,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               const segment = container.items.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
               const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.vercelai.channel',
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
               );
               // The model throws, so the operation rejects. The spans must still be *finished* (and
               // therefore present in the transaction) with an error status — not left open.
@@ -1001,7 +1001,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               const segment = container.items.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
               const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.vercelai.channel',
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
               );
               const generateContent = spans.find(
                 span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
@@ -1108,7 +1108,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               const segment = container.items.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
               const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.vercelai.channel',
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
               );
               const generateContent = spans.find(
                 span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
@@ -1151,7 +1151,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               const segment = container.items.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
               const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.vercelai.channel',
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
               );
 
               const embedSpan = spans.find(
@@ -1203,7 +1203,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               const segment = container.items.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
               const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.vercelai.channel',
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
               );
 
               const invokeAgentSpan = spans.find(span => span.name === 'invoke_agent');
@@ -1293,7 +1293,7 @@ describe('Vercel AI integration experimental_decide', () => {
               const decideSpan = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_DECIDE)!;
               expect(decideSpan.name).toBe('decide typesafe-ai/jev');
               expect(decideSpan.status).toBe('ok');
-              expect(decideSpan.attributes[SENTRY_ORIGIN]?.value).toBe('auto.vercelai.channel');
+              expect(decideSpan.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.vercelai');
               expect(decideSpan.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('decide');
               expect(decideSpan.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('gateway');
               expect(decideSpan.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('typesafe-ai/jev');

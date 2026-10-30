@@ -27,8 +27,5 @@
     "typescript": "^5.7.2",
     "vite": "^7.3.2",
     "vite-plugin-solid": "^2.11.2"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

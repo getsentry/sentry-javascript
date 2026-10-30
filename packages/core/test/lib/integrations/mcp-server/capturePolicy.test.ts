@@ -148,7 +148,7 @@ describe('MCP Server Capture Policy', () => {
         'mcp.logging.logger': 'weather-service',
         'mcp.logging.data_type': 'string',
         'sentry.op': `mcp.notification.${options.direction}`,
-        'sentry.origin': 'auto.mcp.notification',
+        'sentry.origin': 'auto.function.mcp_server.notification',
         'sentry.segment.name.source': 'route',
       },
     };

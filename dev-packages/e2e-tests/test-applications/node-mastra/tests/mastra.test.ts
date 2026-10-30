@@ -67,7 +67,7 @@ test('captures Mastra agent spans (invoke_agent, chat, execute_tool) with inputs
   ).toEqual([]);
   expect(
     traceSpans
-      .filter(span => String(attrValue(span, 'sentry.origin') ?? '').startsWith('auto.vercelai'))
+      .filter(span => String(attrValue(span, 'sentry.origin') ?? '').startsWith('auto.ai.vercelai'))
       .map(describeSpan),
   ).toEqual([]);
 

@@ -1,9 +1,30 @@
 import { defineConfig } from 'vite';
+import * as fs from 'node:fs';
 import tsConfigPaths from 'vite-tsconfig-paths';
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 import viteReact from '@vitejs/plugin-react-swc';
 import { nitro } from 'nitro/vite';
 import { sentryTanstackStart } from '@sentry/tanstackstart-react/vite';
+
+// Rolldown emits no map for chunks without mappable source (e.g. Vite's preload helper), so their debug
+// IDs can't be uploaded. Recorded here because the SDK deletes all maps after the upload.
+function recordChunksWithoutSourceMap() {
+  return {
+    name: 'record-chunks-without-source-map',
+    apply: 'build' as const,
+    enforce: 'post' as const,
+    writeBundle(_options: unknown, bundle: Record<string, { type: string; fileName: string; code?: string }>) {
+      for (const output of Object.values(bundle)) {
+        if (output.type !== 'chunk' || !output.code || bundle[`${output.fileName}.map`]) {
+          continue;
+        }
+        for (const match of output.code.matchAll(/sentry-dbid-([\da-f-]{36})/gi)) {
+          fs.appendFileSync('.tmp_debug_ids_without_source_map', `${match[1]!.toLowerCase()}\n`);
+        }
+      }
+    },
+  };
+}
 
 const tunnelRouteMode = process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off';
 const useManagedTunnelRoute = tunnelRouteMode !== 'off';
@@ -26,8 +47,6 @@ function resolveTunnelRouteOption() {
       return true;
     case 'static':
       return '/monitor';
-    case 'object':
-      return { path: '/object-monitor', allowedDsns: [appDsn] };
     default:
       return undefined;
   }
@@ -45,16 +64,22 @@ export default defineConfig({
   },
   plugins: [
     tsConfigPaths(),
-    tanstackStart(),
+    // Start routes the whole app under the base path, so the tunnel has to be served under it too.
+    tanstackStart(
+      process.env.E2E_TEST_BASE_PATH ? { router: { basepath: process.env.E2E_TEST_BASE_PATH } } : undefined,
+    ),
     nitro(),
     // react's vite plugin must come after start's vite plugin
     viteReact(),
     sentryTanstackStart({
-      org: process.env.E2E_TEST_SENTRY_ORG_SLUG,
-      project: process.env.E2E_TEST_SENTRY_PROJECT,
-      authToken: process.env.E2E_TEST_AUTH_TOKEN,
+      sentryUrl: 'http://localhost:3032',
+      authToken: 'fake-auth-token',
+      org: 'test-org',
+      project: 'test-project',
+      release: { name: 'test-release' },
       debug: true,
       tunnelRoute,
     }),
+    recordChunksWithoutSourceMap(),
   ],
 });

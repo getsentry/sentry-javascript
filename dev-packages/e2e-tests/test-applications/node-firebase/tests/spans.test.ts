@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
 // The orchestrion spans are Sentry-native, so they carry no span-kind attribute (`sentry.kind`).
-const origin = 'auto.firebase.firestore';
+const origin = 'auto.db.firebase.firestore';
 
 function firestoreSpan(operation: string): unknown {
   return expect.objectContaining({

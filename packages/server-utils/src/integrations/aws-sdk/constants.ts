@@ -4,8 +4,8 @@
  * directly). These are either Sentry-specific (the span origin) or attribute *values* (not keys).
  */
 
-/** The span origin every aws-sdk channel span carries. */
-export const AWS_SDK_ORIGIN = 'auto.aws.aws_sdk';
+/** The integration name part of every aws-sdk channel span origin (`auto.<category>.aws_sdk`). */
+export const AWS_SDK_ORIGIN_INTEGRATION_NAME = 'aws_sdk';
 
 /** DynamoDB `db.system.name` value (an attribute value, not a key, so not covered by conventions). */
 export const DB_SYSTEM_VALUE_DYNAMODB = 'dynamodb';

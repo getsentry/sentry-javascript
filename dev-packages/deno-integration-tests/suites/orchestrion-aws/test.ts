@@ -88,5 +88,5 @@ Deno.test('aws-sdk instrumentation: orchestrion @smithy/smithy-client:send chann
   assertEquals(awsSpan.attributes['rpc.service']?.value, 'CloudWatch');
   assertEquals(awsSpan.attributes['rpc.method']?.value, 'DescribeAlarms');
   assertEquals(awsSpan.attributes['cloud.region']?.value, 'us-east-1');
-  assertEquals(awsSpan.attributes['sentry.origin']?.value, 'auto.aws.aws_sdk');
+  assertEquals(awsSpan.attributes['sentry.origin']?.value, 'auto.rpc.aws_sdk');
 });

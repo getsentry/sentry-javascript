@@ -396,7 +396,7 @@ function wrapDefaultExport(node: ExportDefaultNode, ctx: TransformContext, state
   // MagicString positions are always relative to the original source. Only the `export default`
   // keywords are replaced, so parentheses around the expression stay.
   const source = state.ms.original;
-  const keywordsEnd = node.start + source.slice(node.start, decl.start).lastIndexOf('default') + 'default'.length;
+  const keywordsEnd = exportDefaultKeywordsEnd(source, node.start);
   const declaredName =
     decl.type === 'ClassDeclaration' || decl.type === 'FunctionDeclaration'
       ? (decl as ClassDeclarationNode).id?.name
@@ -423,6 +423,26 @@ function wrapDefaultExport(node: ExportDefaultNode, ctx: TransformContext, state
   state.ms.append(`\n__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(${state.optionsFn}, ${wrapped});`);
   state.needsImport = true;
   state.autoWrapped.add(DEFAULT_EXPORT);
+}
+
+/**
+ * Offset just past the `default` keyword of the `export default` statement at `start`. Comments can
+ * sit between `export`, `default` and the expression, and may themselves contain the word `default`.
+ */
+function exportDefaultKeywordsEnd(source: string, start: number): number {
+  let index = start + 'export'.length;
+  while (index < source.length && !source.startsWith('default', index)) {
+    if (source.startsWith('//', index)) {
+      const lineEnd = source.indexOf('\n', index);
+      index = lineEnd === -1 ? source.length : lineEnd;
+    } else if (source.startsWith('/*', index)) {
+      const commentEnd = source.indexOf('*/', index + 2);
+      index = commentEnd === -1 ? source.length : commentEnd + 2;
+    } else {
+      index++;
+    }
+  }
+  return index + 'default'.length;
 }
 
 function isAnonymousFunctionOrClass(node: BaseNode): boolean {
@@ -604,6 +624,11 @@ function wrapDefaultSpecifier(localName: string, state: TransformState): string 
 /**
  * `export { default } from './handler'`. The handler may already be wrapped in its own module,
  * which this transform cannot see, so the emitted guard returns such a handler as-is.
+ *
+ * The original re-export is a live binding to the handler module's export, but the wrapper is not
+ * set until this module's body runs. A circular import that reads the default export before then
+ * gets `undefined` instead of the handler. The binding is a `var` so that the read does not throw,
+ * as a `const` would, and stop the Worker from starting. See `wrapDefaultSpecifier`.
  */
 function wrapDefaultReexport(
   localName: string,
@@ -616,7 +641,7 @@ function wrapDefaultReexport(
     localName === DEFAULT_IMPORT
       ? `import ${target} from ${sourceLiteral};`
       : `import { ${localName} as ${target} } from ${sourceLiteral};`,
-    `const __SENTRY_DEFAULT_EXPORT__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, ${state.optionsFn}, ${target});`,
+    `var __SENTRY_DEFAULT_EXPORT__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, ${state.optionsFn}, ${target});`,
   );
   state.needsImport = true;
   state.autoWrapped.add(DEFAULT_EXPORT);

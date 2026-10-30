@@ -3,14 +3,17 @@
   "version": "0.0.0",
   "scripts": {
     "clean": "pnpx rimraf node_modules pnpm-lock.yaml .vinxi .output",
-    "build": "vinxi build",
+    "build": "node start-mock-sentry-server.mjs & vinxi build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; if [ $BUILD_EXIT -ne 0 ]; then cat .tmp_build_stdout; cat .tmp_build_stderr >&2; fi; exit $BUILD_EXIT",
     "dev": "vinxi dev",
     "preview": "HOST=localhost PORT=3030 vinxi start",
     "start:import": "HOST=localhost PORT=3030 node --import ./.output/server/instrument.server.mjs .output/server/index.mjs",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test:prod && pnpm test:dev",
-    "test:dev": "TEST_ENV=development playwright test db"
+    "test:assert": "node assert-build.ts && pnpm test:prod && pnpm test:dev",
+    "test:dev": "TEST_ENV=development playwright test db",
+    "test:build:tunnel-basepath": "pnpm install && E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app pnpm build",
+    "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app E2E_TEST_DSN=http://public@localhost:3031/1337 TEST_ENV=production playwright test tunnel",
+    "test:assert:tunnel-basepath-dev": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app E2E_TEST_DSN=http://public@localhost:3031/1337 TEST_ENV=development playwright test tunnel"
   },
   "type": "module",
   "dependencies": {
@@ -30,11 +33,22 @@
     "jsdom": "^24.0.0",
     "solid-js": "1.9.5",
     "typescript": "^5.4.5",
-    "vinxi": "^0.4.0",
-    "vite": "^5.4.11",
+    "vinxi": "^0.5.11",
+    "vite": "^6.4.4",
     "vite-plugin-solid": "^2.11.6"
   },
-  "volta": {
-    "extends": "../../package.json"
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build:tunnel-basepath",
+        "assert-command": "pnpm test:assert:tunnel-basepath",
+        "label": "solidstart (tunnel-basepath)"
+      },
+      {
+        "build-command": "pnpm install",
+        "assert-command": "pnpm test:assert:tunnel-basepath-dev",
+        "label": "solidstart (tunnel-basepath-dev)"
+      }
+    ]
   }
 }

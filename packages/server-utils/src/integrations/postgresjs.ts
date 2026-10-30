@@ -26,6 +26,8 @@ import {
   SENTRY_ORIGIN,
   SERVER_ADDRESS,
   SERVER_PORT,
+  DB_RESPONSE_STATUS_CODE,
+  ERROR_TYPE,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 
@@ -309,8 +311,8 @@ function _wrapSingleQueryHandle(
                 message: rejectArgs?.[0]?.message || 'unknown_error',
               });
 
-              span.setAttribute('db.response.status_code', rejectArgs?.[0]?.code || 'unknown');
-              span.setAttribute('error.type', rejectArgs?.[0]?.name || 'unknown');
+              span.setAttribute(DB_RESPONSE_STATUS_CODE, rejectArgs?.[0]?.code || 'unknown');
+              span.setAttribute(ERROR_TYPE, rejectArgs?.[0]?.name || 'unknown');
 
               span.end();
             } catch (e) {

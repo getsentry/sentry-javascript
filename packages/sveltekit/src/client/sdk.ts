@@ -2,6 +2,7 @@ import type { Client, Integration } from '@sentry/core';
 import { applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/svelte';
 import { getDefaultIntegrations as getDefaultSvelteIntegrations, init as initSvelteSdk, WINDOW } from '@sentry/svelte';
+import { applyTunnelBasePath } from '../common/tunnel';
 import { browserTracingIntegration as svelteKitBrowserTracingIntegration } from './browserTracingIntegration';
 
 type WindowWithSentryFetchProxy = typeof WINDOW & {
@@ -23,6 +24,7 @@ export function init(options: BrowserOptions): Client | undefined {
   };
 
   applySdkMetadata(opts, 'sveltekit', ['sveltekit', 'svelte']);
+  applyTunnelBasePath(opts);
 
   // 1. Switch window.fetch to our fetch proxy we injected earlier
   const actualFetch = switchToFetchProxy();

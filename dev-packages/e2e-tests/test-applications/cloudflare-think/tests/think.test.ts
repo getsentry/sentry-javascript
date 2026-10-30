@@ -36,7 +36,7 @@ test('captures the invoke_agent / generate_content / execute_tool hierarchy for 
   const generateContent = spans.find(span => getSpanOp(span) === 'gen_ai.generate_content');
   const executeTool = spans.find(span => getSpanOp(span) === 'gen_ai.execute_tool');
 
-  expect(attr(invokeAgent, 'sentry.origin')).toBe('auto.vercelai.channel');
+  expect(attr(invokeAgent, 'sentry.origin')).toBe('auto.ai.vercelai');
   expect(attr(invokeAgent, 'gen_ai.operation.name')).toBe('invoke_agent');
   // Think passes `this.constructor.name` to the AI SDK as the `functionId`, so this only holds while
   // the build-time wrapper leaves the user's class name alone (#24700).

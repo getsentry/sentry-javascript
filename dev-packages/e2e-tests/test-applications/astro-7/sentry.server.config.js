@@ -5,5 +5,6 @@ Sentry.init({
   environment: 'qa',
   tracesSampleRate: 1.0,
   tunnel: 'http://localhost:3031/', // proxy server
+  integrations: import.meta.env.PUBLIC_E2E_TEST_TUNNEL ? [Sentry.serveTunnelIntegration()] : [],
   debug: true,
 });

@@ -352,6 +352,16 @@ interface BaseCloudflareOptions {
   enableDedupe?: boolean;
 
   /**
+   * @ignore Used internally by SDKs that build `defaultIntegrations` from the Cloudflare defaults.
+   * @hidden Used internally by SDKs that build `defaultIntegrations` from the Cloudflare defaults.
+   *
+   * Marks the `defaultIntegrations` list as an extension of the SDK defaults, so the SDK also adds
+   * the integrations of instrumented modules that load after `init()`.
+   * @default false
+   */
+  _extendsDefaultIntegrations?: boolean;
+
+  /**
    * The Cloudflare SDK is not OpenTelemetry native. By default (`false`) it does not set up a tracer
    * provider; spans are emitted via the SDK's own instrumentation and scopes are isolated with
    * AsyncLocalStorage.
@@ -530,6 +540,12 @@ interface BaseCloudflareOptions {
  */
 export interface CloudflareOptions extends Options<CloudflareTransportOptions>, BaseCloudflareOptions {
   ctx?: ExecutionContextCompat;
+
+  /**
+   * A URL to send this server's own envelopes to instead of the Sentry ingest URL. To serve the managed tunnel for the
+   * browser, use `serveTunnelIntegration`.
+   */
+  tunnel?: string;
 }
 
 /**
