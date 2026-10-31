@@ -571,10 +571,12 @@ jobs:
     runs-on:
       namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
       'pull_request' && '-pr' || '' }}
+    # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
+    continue-on-error: ${{ matrix.node == '^27.0.0-0' }}
     strategy:
       fail-fast: false
       matrix:
-        node: [20.19, 22, 24, 26]
+        node: [20.19, 22, 24, 26, '^27.0.0-0']
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v7
@@ -591,6 +593,11 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+      # The native modules have no prebuilt binaries for the Node 27 alpha, so compile them like an install on a
+      # user's machine does.
+      - name: Compile native modules
+        if: matrix.node == '^27.0.0-0'
+        run: pnpm rebuild @sentry/node-cpu-profiler @sentry/node-native-stacktrace
 
       - name: Run affected tests
         run: pnpm run test:pr:node --base=${{ github.event.pull_request.base.sha }}
@@ -772,10 +779,12 @@ jobs:
       namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
       'pull_request' && '-pr' || '' }}
     timeout-minutes: 20
+    # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
+    continue-on-error: ${{ matrix.node == '^27.0.0-0' }}
     strategy:
       fail-fast: false
       matrix:
-        node: [20.19, 22, 24, 26]
+        node: [20.19, 22, 24, 26, '^27.0.0-0']
         shard: [1, 2, 3]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -801,6 +810,11 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+      # The native modules have no prebuilt binaries for the Node 27 alpha, so compile them like an install on a
+      # user's machine does.
+      - name: Compile native modules
+        if: matrix.node == '^27.0.0-0'
+        run: pnpm rebuild @sentry/node-cpu-profiler @sentry/node-native-stacktrace
 
       - name: Run integration tests
         working-directory: dev-packages/node-integration-tests
@@ -873,10 +887,12 @@ jobs:
       namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
       'pull_request' && '-pr' || '' }}
     timeout-minutes: 15
+    # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
+    continue-on-error: ${{ matrix.node == '^27.0.0-0' }}
     strategy:
       fail-fast: false
       matrix:
-        node: [20.19, 22, 24, 26]
+        node: [20.19, 22, 24, 26, '^27.0.0-0']
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
