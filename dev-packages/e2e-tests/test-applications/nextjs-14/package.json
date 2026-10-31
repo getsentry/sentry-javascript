@@ -23,22 +23,21 @@
     "typescript": "~5.0.0"
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sentryTest": {
     "optionalVariants": [
       {
-        "build-command": "pnpm test:build-canary",
-        "label": "nextjs-14 (canary)"
-      },
-      {
         "build-command": "pnpm test:build-latest",
         "label": "nextjs-14 (latest)"
+      }
+    ],
+    "canaryVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "nextjs-14 (canary)"
       }
     ]
   }

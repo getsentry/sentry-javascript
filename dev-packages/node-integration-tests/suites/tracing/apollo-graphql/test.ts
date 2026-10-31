@@ -33,7 +33,7 @@ describe('GraphQL/Apollo Tests', () => {
                 expect(executeSpan?.attributes['graphql.operation.type']).toEqual({ value: 'query', type: 'string' });
                 expect(executeSpan?.attributes['graphql.document']).toEqual({ value: '{hello}', type: 'string' });
                 expect(executeSpan?.attributes['sentry.origin']).toEqual({
-                  value: 'auto.graphql.diagnostic_channel',
+                  value: 'auto.graphql.graphql',
                   type: 'string',
                 });
               },
@@ -88,7 +88,7 @@ describe('GraphQL/Apollo Tests', () => {
                   type: 'string',
                 });
                 expect(mutationSpan?.attributes['sentry.origin']).toEqual({
-                  value: 'auto.graphql.diagnostic_channel',
+                  value: 'auto.graphql.graphql',
                   type: 'string',
                 });
               },
@@ -134,7 +134,7 @@ describe('GraphQL/Apollo Tests', () => {
                   type: 'string',
                 });
                 expect(executeSpan?.attributes['sentry.origin']).toEqual({
-                  value: 'auto.graphql.diagnostic_channel',
+                  value: 'auto.graphql.graphql',
                   type: 'string',
                 });
               },
@@ -193,7 +193,7 @@ describe('GraphQL/Apollo Tests', () => {
                   type: 'string',
                 });
                 expect(mutationSpan?.attributes['sentry.origin']).toEqual({
-                  value: 'auto.graphql.diagnostic_channel',
+                  value: 'auto.graphql.graphql',
                   type: 'string',
                 });
               },

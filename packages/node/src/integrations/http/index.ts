@@ -8,6 +8,12 @@ import {
   hasSpanStreamingEnabled,
   stripDataUrlContent,
 } from '@sentry/core';
+import type {
+  AssertTrue,
+  CheckServerRequestOptions,
+  HttpIncomingMessage,
+  HttpServerResponse,
+} from '@sentry/core/server';
 import { getRequestUrlFromClientRequest } from '@sentry/core/server';
 import type { NodeClient } from '../../sdk/client';
 import type { HttpServerIntegrationOptions } from './httpServerIntegration';
@@ -82,6 +88,13 @@ interface HttpOptions extends HttpServerIntegrationOptions, HttpServerSpansInteg
    */
   outgoingRequestApplyCustomAttributes?: OutgoingHttpRequestInstrumentationOptions['outgoingRequestApplyCustomAttributes'];
 }
+
+// Checks these options against the shared `ServerRequestOptions`. A new
+// shared field fails to compile here, until this integration supports
+// it or lists it as unsupported.
+type _ServerRequestOptionsCheck = AssertTrue<
+  CheckServerRequestOptions<HttpOptions, HttpIncomingMessage, HttpServerResponse>
+>;
 
 /**
  * The http integration instruments Node's internal http and https modules.

@@ -8,6 +8,7 @@ import {
   SENTRY_KIND,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  DB_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Span } from '@sentry/core';
@@ -20,11 +21,10 @@ import {
   startInactiveSpan,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
+import { getSqlQueryAttributes } from '../utils/sql';
 import {
   _buildConnectionContext,
   _getConnectionAttributes,
-  _getOperationName,
   _reconstructQuery,
   type PostgresConnectionContext,
 } from './postgresjs';
@@ -41,10 +41,6 @@ const INTEGRATION_NAME = 'PostgresJs' as const;
 const ORIGIN = 'auto.db.postgresjs';
 
 const DB_SYSTEM_NAME_POSTGRES = 'postgres';
-
-// Not part of `@sentry/conventions`, so we keep it inline (matches older OTel
-// `PostgresJsInstrumentation`).
-const DB_RESPONSE_STATUS_CODE = 'db.response.status_code';
 
 const NOOP = (): void => {};
 
@@ -168,7 +164,7 @@ function attachConnectionAttributesFromChannel(message: PostgresJsQueryContext):
  * there. Wrapping happens at handle-start because `reject` can fire
  * synchronously during dispatch and `cursor()` reassigns both before executing.
  */
-function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, sanitizedSqlQuery: string): void {
+function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, operationName: string | undefined): void {
   const query = data.self;
   if (!query) {
     return;
@@ -187,7 +183,7 @@ function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, sanitized
       try {
         const command = (resolveArgs[0] as { command?: string } | undefined)?.command;
         // Re-set the operation name with the server-reported command, which is more reliable than the query text.
-        span.setAttribute(DB_OPERATION_NAME, _getOperationName(sanitizedSqlQuery, command));
+        span.setAttribute(DB_OPERATION_NAME, command || operationName);
         span.end();
       } catch (e) {
         DEBUG_BUILD && debug.error('[instrumentation:postgresjs] error ending span in resolve:', e);
@@ -270,16 +266,13 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
 
       // Opt out of re-entrant `handle()` calls (then/catch/finally re-invoke
       // it, guarded by `executed`) and queries already wrapped by the portable
-      // `instrumentPostgresJsSql`. The parent-span requirement is applied via
-      // `requiresParentSpan` below.
+      // `instrumentPostgresJsSql`.
       if (query.executed === true || (query as Record<symbol, unknown>)[QUERY_FROM_INSTRUMENTED_SQL]) {
         return undefined;
       }
 
-      const fullQuery = _reconstructQuery(query.strings);
-      const sanitizedSqlQuery = sanitizeSqlQuery(fullQuery);
-
-      const querySummary = getSqlQuerySummary(sanitizedSqlQuery);
+      const queryAttributes = getSqlQueryAttributes(_reconstructQuery(query.strings));
+      const sanitizedSqlQuery = queryAttributes[DB_QUERY_TEXT] ?? '';
 
       const client = getClient();
 
@@ -289,20 +282,19 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
 
       const name =
         client && hasSpanStreamingEnabled(client)
-          ? querySummary || context?.ATTR_DB_NAMESPACE || DB_SYSTEM_NAME_POSTGRES
+          ? queryAttributes[DB_QUERY_SUMMARY] || context?.ATTR_DB_NAMESPACE || DB_SYSTEM_NAME_POSTGRES
           : sanitizedSqlQuery || 'postgresjs.query';
 
       // `sentry.kind: client` matches the mysql/pg channel subscribers.
       const span = startInactiveSpan({
         name,
+        onlyIfParent: requireParentSpan !== false,
         attributes: {
           [SENTRY_OP]: DB,
           [SENTRY_KIND]: 'client',
           [SENTRY_ORIGIN]: ORIGIN,
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_POSTGRES,
-          [DB_QUERY_TEXT]: sanitizedSqlQuery,
-          [DB_QUERY_SUMMARY]: querySummary,
-          [DB_OPERATION_NAME]: _getOperationName(sanitizedSqlQuery),
+          ...queryAttributes,
         },
       });
 
@@ -322,12 +314,11 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
         }
       }
 
-      wrapQuerySettlement(data, span, sanitizedSqlQuery);
+      wrapQuerySettlement(data, span, queryAttributes[DB_OPERATION_NAME]);
 
       return span;
     },
     {
-      requiresParentSpan: requireParentSpan !== false,
       deferSpanEnd({ data }) {
         // `handle` is async: its promise settles on dispatch (asyncEnd), long
         // before the query does. The resolve/reject wrappers own the ending.

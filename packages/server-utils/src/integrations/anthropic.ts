@@ -12,7 +12,9 @@ import {
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
 import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../ai/anthropic-ai';
+import { ANTHROPIC_AI_ORIGIN } from '../ai/anthropic-ai/constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from '../ai/anthropic-ai/streaming';
+import { instrumentSessionToolRunner, instrumentToolRunner } from '../ai/anthropic-ai/tool-runner';
 import type { AnthropicAiOptions, AnthropicAiResponse } from '../ai/anthropic-ai/types';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
@@ -23,8 +25,6 @@ import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation
 // Same name as the OTel integration by design, so the OTel 'Anthropic_AI'
 // integration is deduplicated out of the default set.
 const INTEGRATION_NAME = 'Anthropic_AI' as const;
-
-const ORIGIN = 'auto.ai.anthropic';
 
 // `stream` determines how the span is ended
 const INSTRUMENTED_CHANNELS = [
@@ -74,6 +74,17 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
       },
     );
   }
+
+  diagnosticsChannel
+    .tracingChannel<OrchestrionChannelContext>(CHANNELS.ANTHROPIC_TOOL_RUNNER)
+    .end.subscribe(message => {
+      instrumentToolRunner((message as OrchestrionChannelContext).result, options);
+    });
+  diagnosticsChannel
+    .tracingChannel<OrchestrionChannelContext>(CHANNELS.ANTHROPIC_SESSION_TOOL_RUNNER)
+    .end.subscribe(message => {
+      instrumentSessionToolRunner((message as OrchestrionChannelContext).self, options);
+    });
 }
 
 /**
@@ -110,7 +121,7 @@ function createGenAiSpan(
 
   const attributes = extractRequestAttributes(args, operation, recordInputs);
   const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
-  attributes[SENTRY_ORIGIN] = ORIGIN;
+  attributes[SENTRY_ORIGIN] = ANTHROPIC_AI_ORIGIN;
   const client = getClient();
 
   const span = startInactiveSpan({

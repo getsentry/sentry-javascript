@@ -18,6 +18,7 @@ export {
 export {
   resolveRouteNameAndSource,
   getNormalizedName,
+  getRootRoutes,
   locationIsInsideDescendantRoute,
   prefixWithSlash,
   rebuildRoutePathFromAllRoutes,

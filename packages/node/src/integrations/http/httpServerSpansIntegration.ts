@@ -25,6 +25,8 @@ import {
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
   SENTRY_ORIGIN,
+  HTTP_REQUEST_BODY_SIZE,
+  HTTP_RESPONSE_STATUS_TEXT,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Event, Integration, IntegrationFn, Span, SpanAttributes, SpanStatus } from '@sentry/core';
@@ -36,6 +38,7 @@ import {
 } from '@sentry/core/server';
 import {
   debug,
+  safeCallback,
   getSpanStatusFromHttpCode,
   httpHeadersToSpanAttributes,
   getContentLengthFromHeaders,
@@ -104,6 +107,12 @@ export interface HttpServerSpansIntegrationOptions {
    * This is triggered after the span is created, but before it is recorded.
    */
   onSpanCreated?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
+
+  /**
+   * A hook that can be used to mutate the span one last time when the response is finished.
+   * This is triggered after the response status is set on the span, before the span ends.
+   */
+  onSpanEnd?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
 }
 
 const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions = {}) => {
@@ -112,7 +121,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
   // oxlint-disable-next-line typescript/no-deprecated
   const ignoreStatusCodes = options.ignoreStatusCodes ?? DEFAULT_IGNORE_STATUS_CODES;
 
-  const { onSpanCreated } = options;
+  const { onSpanCreated, onSpanEnd } = options;
 
   return {
     name: INTEGRATION_NAME,
@@ -181,12 +190,16 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               [NETWORK_PROTOCOL_NAME]: 'http',
               [NETWORK_PROTOCOL_VERSION]: httpVersion,
               [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
-              'http.request.body.size': getContentLengthFromHeaders(request.headers),
+              [HTTP_REQUEST_BODY_SIZE]: getContentLengthFromHeaders(request.headers),
               ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, client.getDataCollectionOptions()),
             },
           });
 
-          onSpanCreated?.(span, request, response);
+          safeCallback(
+            DEBUG_BUILD ? 'The `onSpanCreated` callback threw an error:' : '',
+            () => onSpanCreated?.(span, request, response),
+            () => undefined,
+          );
 
           return withActiveSpan(span, () => {
             bindScopeToEmitter(request);
@@ -209,6 +222,15 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               );
               span.setAttributes(newAttributes);
               span.setStatus(status);
+              if (onSpanEnd) {
+                // A hook that throws must not skip `span.end()` or crash the process from the
+                // response's event listener.
+                safeCallback(
+                  DEBUG_BUILD ? 'The `onSpanEnd` callback threw an error:' : '',
+                  () => onSpanEnd(span, request, response),
+                  () => undefined,
+                );
+              }
               span.end();
             }
 
@@ -317,7 +339,13 @@ function shouldIgnoreSpansForIncomingRequest(
     return true;
   }
 
-  if (ignoreIncomingRequests?.(urlPath, request)) {
+  if (
+    safeCallback(
+      DEBUG_BUILD ? 'The `ignoreIncomingRequests` callback threw an error, not ignoring the request:' : '',
+      () => !!ignoreIncomingRequests?.(urlPath, request),
+      () => false,
+    )
+  ) {
     return true;
   }
 
@@ -336,7 +364,7 @@ function getIncomingRequestAttributesOnResponse(
 
   const newAttributes: SpanAttributes = {
     [HTTP_RESPONSE_STATUS_CODE]: statusCode,
-    'http.response.status_text': statusMessage?.toUpperCase(),
+    [HTTP_RESPONSE_STATUS_TEXT]: statusMessage?.toUpperCase(),
   };
 
   // `client.address` is the originating client, so a forwarding header wins over the socket, which

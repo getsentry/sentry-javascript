@@ -113,6 +113,13 @@ export class AppService {
     throw new Error('Test error from cron sync job');
   }
 
+  // Disabled so it only runs through the `test-derived-cron` endpoint, without waiting for the schedule.
+  @Cron('0 30 9 * * 1-5', { name: 'test-derived-cron', timeZone: 'Europe/Vienna', disabled: true })
+  @SentryCron('test-derived-cron-slug', { checkinMargin: 2 })
+  async testDerivedCron() {
+    console.log('Test derived cron!');
+  }
+
   async killTestCron(job: string) {
     this.schedulerRegistry.deleteCronJob(job);
   }

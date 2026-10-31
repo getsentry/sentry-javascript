@@ -22,7 +22,7 @@ export const httpContextIntegration = defineIntegration(() => {
         return;
       }
 
-      const { url, headers: collectedHeaders } = getHttpRequestData();
+      const { url, headers: collectedHeaders } = getHttpRequestData(client);
 
       // We only filter the headers we collected ourselves, so headers the user set are left alone. Going by key
       // means we also catch these headers when `browserTracingIntegration` already put them on the event.
@@ -47,7 +47,7 @@ export const httpContextIntegration = defineIntegration(() => {
         return;
       }
 
-      const reqData = getHttpRequestData();
+      const reqData = getHttpRequestData(client);
 
       // `httpHeadersToSpanAttributes` would also work here, but its cookie and array handling never runs for these
       // two headers and costs every browser bundle ~400B gzip.

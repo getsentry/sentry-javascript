@@ -7,6 +7,27 @@ import { isVinext } from './isVinext';
 
 test.skip(isVinext, 'Checks the build output of Next.js');
 
+test('excludes dependency metadata while preserving application metadata', () => {
+  test.skip(isDevMode || process.env.NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES !== '1');
+
+  const staticDir = path.join(process.cwd(), '.next', 'static');
+  const chunks = fs
+    .readdirSync(staticDir, { recursive: true })
+    .filter(file => String(file).endsWith('.js'))
+    .map(file => fs.readFileSync(path.join(staticDir, String(file)), 'utf8'));
+  const dependencyChunks = chunks.filter(chunk => chunk.includes('application-key-dependency-error'));
+  const applicationChunks = chunks.filter(chunk => chunk.includes('first-party-error'));
+
+  expect(dependencyChunks.length).toBeGreaterThan(0);
+  expect(applicationChunks.length).toBeGreaterThan(0);
+  for (const chunk of dependencyChunks) {
+    expect(chunk).not.toContain('_sentryBundlerPluginAppKey:nextjs-16-e2e');
+  }
+  for (const chunk of applicationChunks) {
+    expect(chunk).toContain('_sentryBundlerPluginAppKey:nextjs-16-e2e');
+  }
+});
+
 test('emits no absolute-path imports into the server output', () => {
   const leaks = findAbsolutePathImports({ outputDir: path.join(process.cwd(), '.next', 'server') });
 

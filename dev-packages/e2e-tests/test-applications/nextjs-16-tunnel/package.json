@@ -15,6 +15,8 @@
     "test:dev-webpack": "TEST_ENV=development-webpack _SENTRY_TUNNEL_DESTINATION_OVERRIDE=http://localhost:3031/ playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:build-webpack": "pnpm install && pnpm build-webpack",
+    "test:build-handler": "pnpm install && cp -R tunnel-handler/node/sentry-tunnel app/ && pnpm build",
+    "test:build-handler-webpack": "pnpm install && cp -R tunnel-handler/edge/sentry-tunnel app/ && pnpm build-webpack",
     "test:build-canary": "pnpm install && pnpm add next@canary && pnpm build",
     "test:build-latest": "pnpm install && pnpm add next@latest && pnpm build",
     "test:build-latest-webpack": "pnpm install && pnpm add next@latest && pnpm build-webpack",
@@ -37,8 +39,9 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
+    "@sentry/conventions": "0.30.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -47,10 +50,8 @@
     "typescript": "^5",
     "wrangler": "^4.61.0"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
+    "runner": "namespace-profile-sentry-javascript",
     "variants": [
       {
         "build-command": "pnpm test:build-webpack",
@@ -61,6 +62,16 @@
         "build-command": "pnpm test:build",
         "label": "nextjs-16-tunnel (turbopack)",
         "assert-command": "pnpm test:assert"
+      },
+      {
+        "build-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=handler pnpm test:build-handler",
+        "label": "nextjs-16-tunnel (handler, turbopack)",
+        "assert-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=handler pnpm test:assert"
+      },
+      {
+        "build-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=handler pnpm test:build-handler-webpack",
+        "label": "nextjs-16-tunnel (handler, webpack, edge)",
+        "assert-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=handler pnpm test:assert-webpack"
       }
     ],
     "optionalVariants": [

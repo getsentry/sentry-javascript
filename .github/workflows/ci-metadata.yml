@@ -23,7 +23,7 @@ on:
         description: 'Whether any non-markdown files changed'
         value: ${{ jobs.get_metadata.outputs.changed_any_code }}
       changed_deps:
-        description: 'Whether any package.json or yarn.lock changed'
+        description: 'Whether any package.json, pnpm-lock.yaml or pnpm-workspace.yaml changed'
         value: ${{ jobs.get_metadata.outputs.changed_deps }}
       is_gitflow_sync:
         description: 'Whether this is a gitflow sync (master merge)'
@@ -38,7 +38,7 @@ on:
 jobs:
   get_metadata:
     name: Get Metadata
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-sentry-javascript-small
     permissions:
       pull-requests: read
     steps:
@@ -74,7 +74,8 @@ jobs:
               - '!**/*.md'
             deps:
               - '**/package.json'
-              - 'yarn.lock'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
 
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'

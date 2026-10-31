@@ -6,6 +6,7 @@ import {
   isD1Database,
   isDurableObjectNamespace,
   isJSRPC,
+  isKVNamespace,
   isQueue,
   isR2Bucket,
 } from '../../utils/isBinding';
@@ -14,6 +15,7 @@ import { appendRpcMeta } from '../../utils/rpcMeta';
 import { createBindingPropagationResolver, createRpcPropagationResolver } from '../../utils/rpcPropagation';
 import { instrumentDurableObjectNamespace, STUB_NON_RPC_METHODS } from '../instrumentDurableObjectNamespace';
 import { instrumentFetcher } from './instrumentFetcher';
+import { instrumentKV } from './instrumentKV';
 import { instrumentQueueProducer } from './instrumentQueueProducer';
 import { instrumentR2Bucket } from './instrumentR2';
 
@@ -32,6 +34,7 @@ const instrumentedQueueBindings = new WeakMap<object, Map<string, unknown>>();
  * - DurableObjectNamespace (via `idFromName` duck-typing)
  * - Service bindings / JSRPC proxies
  * - Queue producers (via `send` + `sendBatch` duck-typing)
+ * - Workers KV namespaces (via `get` + `put` + `list` + `getWithMetadata` duck-typing)
  * - R2 Buckets (via `head` + `put` + `createMultipartUpload` duck-typing)
  * - Workers AI (via `run` + `gateway` + `toMarkdown` duck-typing)
  *
@@ -78,6 +81,13 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
 
       if (isD1Database(item)) {
         const instrumented = instrumentD1(item);
+        instrumentedBindings.set(item, instrumented);
+        return instrumented;
+      }
+
+      if (isKVNamespace(item)) {
+        const bindingName = typeof prop === 'string' ? prop : String(prop);
+        const instrumented = instrumentKV(item, bindingName);
         instrumentedBindings.set(item, instrumented);
         return instrumented;
       }

@@ -4,10 +4,13 @@ import { type Unstable_Config, unstable_readConfig } from 'wrangler';
 
 /**
  * The slice of the wrangler configuration the auto-instrument plugin cares
- * about. `main` is an absolute path (wrangler resolves it against the config
- * file's directory).
+ * about.
  */
 export interface WranglerConfig {
+  /**
+   * An absolute path when `main` names a JS or TS file, otherwise the
+   * original value (a package export or virtual module) for Vite to resolve.
+   */
   main?: string;
   durableObjects: Array<{ name: string; className: string }>;
   workflows: Array<{ name: string; className: string }>;
@@ -24,6 +27,9 @@ export interface WranglerConfig {
    */
   sameWorkerBindings: SameWorkerBinding[];
 }
+
+// Same rule as `@cloudflare/vite-plugin`: only these extensions mark `main` as a file path.
+const ENTRY_FILE_REGEX = /\.(?:m?[jt]s|[jt]sx)$/;
 
 /** Stands in for a class name where a binding targets the module's default export. */
 export const DEFAULT_EXPORT = Symbol('defaultExport');
@@ -42,10 +48,10 @@ export interface SameWorkerBinding {
  *
  * We only locate the file (probing `wrangler.json`, `.jsonc`, `.toml` inside
  * `root` with wrangler's own precedence, since it discovers from `cwd` rather
- * than an arbitrary root); wrangler then parses it, flattens the active
- * environment (honoring `CLOUDFLARE_ENV`), and resolves `main` to an absolute
- * path. Durable Object and Workflow bindings are the active environment's,
- * matching what the deployed Worker actually binds.
+ * than an arbitrary root); wrangler then parses it and flattens the active
+ * environment (honoring `CLOUDFLARE_ENV`). Durable Object and Workflow
+ * bindings are the active environment's, matching what the deployed Worker
+ * actually binds.
  *
  * Returns `undefined` when no config file is found or it can't be read/parsed
  * (the caller warns and disables auto-instrumentation rather than failing the
@@ -54,7 +60,7 @@ export interface SameWorkerBinding {
 export function resolveWranglerConfig(
   root: string,
   explicitPath?: string,
-): { config: WranglerConfig; configDir: string } | undefined {
+): { config: WranglerConfig; configPath: string; configDir: string } | undefined {
   const configPath = explicitPath
     ? resolve(root, explicitPath)
     : ['wrangler.json', 'wrangler.jsonc', 'wrangler.toml'].map(name => resolve(root, name)).find(existsSync);
@@ -67,20 +73,24 @@ export function resolveWranglerConfig(
   try {
     // `hideWarnings` keeps wrangler's config diagnostics (e.g. missing DO
     // migrations) out of the Vite build output.
-    raw = unstable_readConfig({ config: configPath }, { hideWarnings: true });
+    raw = unstable_readConfig({ config: configPath }, { hideWarnings: true, preserveOriginalMain: true });
   } catch {
     return undefined;
   }
 
+  const resolvedConfigPath = raw.configPath ?? configPath;
+  const configDir = dirname(resolvedConfigPath);
+
   return {
     config: {
-      main: raw.main,
+      main: raw.main && ENTRY_FILE_REGEX.test(raw.main) ? resolve(configDir, raw.main) : raw.main,
       durableObjects: collectClassBindings(raw.durable_objects?.bindings),
       workflows: collectClassBindings(raw.workflows),
       workerEntrypoints: collectSelfBoundEntrypoints(raw),
       sameWorkerBindings: collectSameWorkerBindings(raw),
     },
-    configDir: dirname(raw.configPath ?? configPath),
+    configPath: resolvedConfigPath,
+    configDir,
   };
 }
 

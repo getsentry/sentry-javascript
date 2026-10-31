@@ -90,14 +90,13 @@ export class LocalLambdaStack extends Stack {
         fs.rmSync(nodeModulesPath, { recursive: true, force: true });
       }
 
-      const packageJson = {
-        dependencies,
-        pnpm: {
-          overrides: dependencies,
-        },
-      };
-
-      fs.writeFileSync(path.join(lambdaPath, 'package.json'), JSON.stringify(packageJson, null, 2));
+      fs.writeFileSync(path.join(lambdaPath, 'package.json'), JSON.stringify({ dependencies }, null, 2));
+      // JSON is valid YAML. pnpm reads overrides only from pnpm-workspace.yaml, and this file also keeps
+      // pnpm from treating the app's own pnpm-workspace.yaml as the workspace root.
+      fs.writeFileSync(
+        path.join(lambdaPath, 'pnpm-workspace.yaml'),
+        JSON.stringify({ minimumReleaseAge: 0, overrides: dependencies }, null, 2),
+      );
       execFileSync(
         'pnpm',
         ['install', '--offline', '--prod', '--ignore-scripts', '--no-frozen-lockfile', '--config.node-linker=hoisted'],
@@ -159,14 +158,31 @@ export class LocalLambdaStack extends Stack {
 
 export async function getHostIp() {
   if (process.env.GITHUB_ACTIONS) {
-    const host = await dns.lookup(os.hostname());
-    return host.address;
+    return getExternalHostIp();
   }
 
   if (platform === 'darwin' || platform === 'win32') {
     return 'host.docker.internal';
   }
 
+  return getExternalHostIp();
+}
+
+/**
+ * The Lambda container reaches the event proxy on the host through an address of the host's network interface.
+ * Some runners (e.g. Namespace) map the hostname to a loopback address, which inside the container is the container
+ * itself, so fall back to the first external IPv4 address that is not a Docker bridge.
+ */
+async function getExternalHostIp(): Promise<string> {
   const host = await dns.lookup(os.hostname());
-  return host.address;
+  if (!host.address.startsWith('127.') && host.address !== '::1') {
+    return host.address;
+  }
+
+  const external = Object.entries(os.networkInterfaces())
+    .filter(([name]) => !name.startsWith('docker') && !name.startsWith('br-') && !name.startsWith('veth'))
+    .flatMap(([, addresses]) => addresses ?? [])
+    .find(address => address.family === 'IPv4' && !address.internal);
+
+  return external?.address ?? host.address;
 }

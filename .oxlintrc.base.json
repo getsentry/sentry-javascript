@@ -59,7 +59,18 @@
     "no-eval": "off",
     "no-import-assign": "off",
     "typescript/no-duplicate-type-constituents": "off",
-    "typescript/no-deprecated": "error"
+    // @types/node 20 still marks `channel.subscribe()` and `channel.unsubscribe()` as deprecated,
+    // but Node revoked this deprecation (DEP0163) in v22.20.0 and v24.8.0.
+    // `handleTunnelRequest` has only one deprecated overload, but the rule flags every re-export of it.
+    "typescript/no-deprecated": [
+      "error",
+      {
+        "allow": [
+          { "from": "package", "package": "diagnostics_channel", "name": ["subscribe", "unsubscribe"] },
+          "handleTunnelRequest"
+        ]
+      }
+    ]
   },
   "overrides": [
     {

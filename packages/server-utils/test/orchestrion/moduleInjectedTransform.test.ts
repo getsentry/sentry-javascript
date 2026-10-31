@@ -43,8 +43,10 @@ describe('channel integration definitions', () => {
     const defined = new Set(CHANNEL_INTEGRATION_DEFINITIONS.flatMap(d => d.modules as readonly string[]));
 
     // `@nestjs/*` and `@remix-run/*` are covered by listeners in their own SDK packages.
+    // Each cron monitor is billed, so bundler-only SDKs must not install crons integrations for every app.
+    const optIn = new Set(['node-cron', 'node-schedule']);
     const uncovered = [...configured].filter(
-      name => !defined.has(name) && !name.startsWith('@nestjs/') && !name.startsWith('@remix-run/'),
+      name => !defined.has(name) && !optIn.has(name) && !name.startsWith('@nestjs/') && !name.startsWith('@remix-run/'),
     );
     expect(uncovered).toEqual([]);
   });

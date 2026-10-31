@@ -49,6 +49,9 @@ Keep reviews high-signal. Prefer actionable, high-confidence findings over specu
 - When calling any `startSpan` API (`startInactiveSpan`, `startSpanManual`, etc), always ensure that the following span attributes are set:
   - `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN` (`'sentry.origin'`) with a proper span origin
     - a proper origin must only contain [a-z], [A-Z], [0-9], `_` and `.` characters.
+    - a proper origin has at most four parts, `<type>.<category>.<integration_name>.<integration_part>`, and must not skip a part. `type` is `auto` or `manual`.
+    - `category` must be a span op category (e.g. `http`, `db`, `queue`, `function`, `ai`, `ui`, `rpc`), matching the span's op. Flag origins that put a library or vendor in the category slot (e.g. `auto.kafkajs.producer` instead of `auto.queue.kafkajs.producer`).
+    - the origin identifies the integration, not the tooling behind it. Flag leftover implementation markers like `otel` or `orchestrion` used as a part.
     - flag any non-conforming origin values as invalid and link to the trace origin specification (https://develop.sentry.dev/sdk/telemetry/traces/trace-origin/)
   - `SEMANTIC_ATTRIBUTE_SENTRY_OP` (`'sentry.op'`) with a proper span op
     - Span ops should be lower case only, and use snake_case. The `.` character is used to delimit op parts.
@@ -78,6 +81,7 @@ Keep reviews high-signal. Prefer actionable, high-confidence findings over specu
   - What to do instead: Use an existing reference to the scope or client. For example, this is possible in most `Integration` hooks.
 - Flag hard-coded attribute names and span ops (e.g. `'sentry.origin'`, `'sentry.op'`, `'http.request.method'`, `'db.system.name'`) when `@sentry/conventions` exports a constant for them. Use the constant from `@sentry/conventions/attributes` (e.g. `SENTRY_ORIGIN`, `SENTRY_OP`) or `@sentry/conventions/op` instead. Do not flag values that have no constant in `@sentry/conventions`.
 - Flag unnecessary `span.setAttribute(s)` calls: If data is already available at span start, it must be set via the `attributes` option of `startSpan`, `startSpanManual`, `startInactiveSpan` or `startIdleSpan` calls. This ensures that as much context as possible is available when `tracesSampler` or `ignoreSpans` SDK options are applied. If a `span.setAttribute(s)` call happens at a later time than right after span start and the attribute value can only be computed at that time, do not flag it.
+- Flag a new option on an integration for incoming HTTP requests that is not in `ServerRequestOptions` (`packages/core/src/integrations/http/server-request-options.ts`), when it applies to more than one runtime. These integrations are Node `httpIntegration`, Deno `denoHttpIntegration` and `denoServeIntegration`, Bun `bunHttpServerIntegration` and `bunServerIntegration`, and Cloudflare `httpServerIntegration`. Add the option to `ServerRequestOptions`, then support it in each runtime or list it as unsupported in that runtime's `CheckServerRequestOptions` check. Also flag a runtime option that matches a shared option in purpose but has a different name or meaning.
 
 ### Code quality
 
@@ -101,12 +105,14 @@ Keep reviews high-signal. Prefer actionable, high-confidence findings over specu
   - Timeouts or sleeps in tests. Instead suggest concrete events or other signals to wait on.
 - Flag usage of `getFirstEnvelope*`, `getMultipleEnvelope*` or related test helpers in E2E tests. These are NOT reliable anymore. Instead suggest helpers like `waitForTransaction`, `waitForError`, `waitForSpans`, etc.
 - Flag any new or modified `docker-compose.yml` under `dev-packages/node-integration-tests/suites/` where a service does not define a `healthcheck:`. The runner uses `docker compose up --wait` and relies on healthchecks to know when services are actually ready; without one the test will race the service's startup.
+- Flag new Cloudflare tests that wrap the worker by hand with `withSentry`, `instrumentDurableObjectWithSentry`, `instrumentAgentWithSentry` or `instrumentWorkflowWithSentry`. This covers new suites under `dev-packages/cloudflare-integration-tests/suites/`, new E2E apps under `dev-packages/e2e-tests/test-applications/` that run on Cloudflare, and new Cloudflare variants of existing E2E apps (an entry in `sentryTest.variants` of the app's `package.json`, for example `hono-4 (cloudflare)`). App names do not always start with `cloudflare-`. Recommend the Sentry Cloudflare Vite plugin instead: `plugins: [cloudflare(), sentryCloudflareVitePlugin()]` in `vite.config.*` (`sentryCloudflareVitePlugin` from `@sentry/cloudflare/vite`), and the SDK options in an `instrument.server.ts` next to the worker entry that default-exports `defineCloudflareOptions(...)`. Do not flag tests whose purpose is to test one of these wrappers, or apps that do not build with Vite (for example Next.js on OpenNext).
 
 ## Platform-safe code
 
 - When any `setTimeout` or `setInterval` timers are started in a code path that can end up in server runtime packages (e.g. `@sentry/core` or `@sentry/node`), flag if neither `timeout.unref()` nor `safeUnref()` are called.
   Not unref'ing a timer can keep CLI-like applications or node scripts from exiting immediately, due to the process waiting on timers started by the SDK.
 - Flag Node-only imports (`fs`, `path`, `child_process`, `os`, `net`, `http`, `https`, `node:*`, etc.) in code paths that ship to non-Node runtimes (`@sentry/browser`, `@sentry/cloudflare`, `@sentry/deno`, `@sentry/bun`, or shared code in `@sentry/core` / `@sentry/browser-utils` reachable from those entry points). When the dependency is unavoidable, isolate it behind a runtime check, dynamic `import()`, or a Node-only entry point — never at the top level of a cross-runtime module.
+- Flag a new package, or a new `exports` entry in a `package.json` under `packages/`, that can load on a server runtime (Node, Bun, Deno, Cloudflare Workers, Vercel Edge) when its package has no entry in `CASES` or `BUILD_TIME_CASES` in `dev-packages/bundler-tests/tests/runtime-entries.test.ts`. That test checks that server runtime entries do not reach build-time tooling (bundler plugins, Vite, Babel, WASM). For packages it already covers, the test fails on its own when an export is not classified, so do not flag those. Recommend adding the package to `devDependencies` in `dev-packages/bundler-tests/package.json`, and each export to `CASES` (runtime), `BUILD_TIME_CASES` (build-time), or `CLIENT_ENTRIES` (browser). Do not flag browser-only packages.
 
 ## What NOT to Flag
 

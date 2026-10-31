@@ -1,4 +1,4 @@
-import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
+import type { CheckIn, ClientOptions, MonitorConfig, Options, Scope, TracePropagationTargets } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_flushLogsBuffer,
@@ -6,6 +6,7 @@ import {
   applySdkMetadata,
   debug,
   spanIsSampled,
+  spanStreamingIntegration,
 } from '@sentry/core';
 import type { ServerRuntimeClientOptions } from '@sentry/core/server';
 import { ServerRuntimeClient } from '@sentry/core/server';
@@ -14,6 +15,10 @@ import type { ExecutionContextCompat } from './executionContext';
 import type { makeFlushLock } from './flush';
 import type { CloudflareTransportOptions } from './transport';
 import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
+
+declare const __SENTRY_TRACING__: boolean;
+
+const SPAN_STREAMING_INTEGRATION_NAME = 'SpanStreaming';
 
 /**
  * The Sentry Cloudflare SDK Client.
@@ -58,6 +63,17 @@ export class CloudflareClient extends ServerRuntimeClient {
       // TODO: Add server name
       _flushInterval: 0,
     };
+
+    // workerd can't unref timers, so the default 500ms segment-end flush timer holds every
+    // Durable Object invocation open (and billed) until it fires, sampled or not. The boundary
+    // flush and the eager drain already deliver streamed spans here.
+    if (
+      (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) &&
+      clientOptions.traceLifecycle !== 'static' &&
+      !clientOptions.integrations.some(i => i.name === SPAN_STREAMING_INTEGRATION_NAME)
+    ) {
+      clientOptions.integrations.push(spanStreamingIntegration({ flushOnSegmentEnd: false }));
+    }
 
     super(clientOptions);
     this._flushLock = flushLock;
@@ -161,6 +177,20 @@ export class CloudflareClient extends ServerRuntimeClient {
     } finally {
       this._inBoundaryFlush = false;
     }
+  }
+
+  /**
+   * Sends the check-in at once instead of holding it for the flush at the end of the invocation.
+   * An `in_progress` check-in of a run that is longer than the check-in margin would otherwise
+   * reach Sentry too late, and Sentry would mark the run as missed.
+   */
+  public override captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig, scope?: Scope): string {
+    const checkInId = super.captureCheckIn(checkIn, monitorConfig, scope);
+    const transport = this.getTransport();
+    if (transport) {
+      this._registerWithInvocationWaitUntil(transport.flush(2000));
+    }
+    return checkInId;
   }
 
   /**
@@ -320,6 +350,16 @@ interface BaseCloudflareOptions {
    * @default true
    */
   enableDedupe?: boolean;
+
+  /**
+   * @ignore Used internally by SDKs that build `defaultIntegrations` from the Cloudflare defaults.
+   * @hidden Used internally by SDKs that build `defaultIntegrations` from the Cloudflare defaults.
+   *
+   * Marks the `defaultIntegrations` list as an extension of the SDK defaults, so the SDK also adds
+   * the integrations of instrumented modules that load after `init()`.
+   * @default false
+   */
+  _extendsDefaultIntegrations?: boolean;
 
   /**
    * The Cloudflare SDK is not OpenTelemetry native. By default (`false`) it does not set up a tracer
@@ -490,6 +530,35 @@ interface BaseCloudflareOptions {
    * @default true
    */
   cacheClient?: boolean;
+
+  /**
+   * A function that receives the response of a `fetch` handler and the request it answers, and
+   * returns whether the response body is still being produced after the handler returns.
+   *
+   * For `true`, the SDK keeps the `http.server` span open until the body has been sent, so spans
+   * created while the body streams stay inside the request. It does this by passing the body through
+   * a `TransformStream`. For `false`, the SDK ends the span when the handler returns and sends the
+   * response unchanged. For `undefined` or any other value, the SDK decides: Server-Sent Events,
+   * NDJSON and `application/stream+json` responses, and `text/plain` and `text/x-component`
+   * responses without a `Content-Length` header count as streamed. HTML does not, so return `true`
+   * for pages that are rendered with streamed SSR.
+   *
+   * The function must be synchronous and must not read the response body. Use the status, the
+   * headers and the request URL.
+   *
+   * @example
+   * ```ts
+   * // src/instrument.server.ts
+   * import { defineCloudflareOptions } from '@sentry/cloudflare';
+   *
+   * export default defineCloudflareOptions(env => ({
+   *   dsn: env.SENTRY_DSN,
+   *   isStreamingResponse: response =>
+   *     response.headers.get('content-type')?.startsWith('text/html') ? true : undefined,
+   * }));
+   * ```
+   */
+  isStreamingResponse?: (response: Response, request: Request) => boolean | undefined;
 }
 
 /**
@@ -499,6 +568,12 @@ interface BaseCloudflareOptions {
  */
 export interface CloudflareOptions extends Options<CloudflareTransportOptions>, BaseCloudflareOptions {
   ctx?: ExecutionContextCompat;
+
+  /**
+   * A URL to send this server's own envelopes to instead of the Sentry ingest URL. To serve the managed tunnel for the
+   * browser, use `serveTunnelIntegration`.
+   */
+  tunnel?: string;
 }
 
 /**

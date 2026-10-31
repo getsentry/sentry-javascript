@@ -77,6 +77,6 @@ test('Should trace outgoing fetch requests inside middleware', async ({ request 
     'server.address': { value: 'localhost', type: 'string' },
     'server.port': { value: 3030, type: 'integer' },
     'sentry.op': { value: 'http.client', type: 'string' },
-    'sentry.origin': { value: 'auto.http.wintercg_fetch', type: 'string' },
+    'sentry.origin': { value: 'auto.http.fetch', type: 'string' },
   });
 });

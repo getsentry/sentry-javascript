@@ -41,6 +41,14 @@ describe('resolveWranglerConfig', () => {
     expect(result!.config.durableObjects).toEqual([{ name: 'MY_DO', className: 'MyDurableObject' }]);
   });
 
+  it('keeps a package specifier `main` unchanged', () => {
+    const dir = writeTempDir({
+      'wrangler.jsonc': JSON.stringify({ main: '@astrojs/cloudflare/entrypoints/server' }),
+    });
+
+    expect(resolveWranglerConfig(dir)!.config.main).toBe('@astrojs/cloudflare/entrypoints/server');
+  });
+
   it('parses wrangler.json', () => {
     const dir = writeTempDir({
       'wrangler.json': JSON.stringify({

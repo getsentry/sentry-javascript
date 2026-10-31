@@ -74,7 +74,7 @@ function getAsyncLocalStorage(): OriginalAsyncLocalStorage | undefined {
   if ('getBuiltinModule' in process && typeof process.getBuiltinModule === 'function') {
     const { AsyncLocalStorage } = process.getBuiltinModule('async_hooks') ?? {};
 
-    return AsyncLocalStorage as OriginalAsyncLocalStorage;
+    return AsyncLocalStorage;
   }
 
   return undefined;

@@ -279,23 +279,32 @@ describe('bump-version', () => {
         esbuild: '0.28.0',
         '@sentry/bundler-plugins': '10.0.0',
       },
-      pnpm: {
-        overrides: {
-          '@sentry/bundler-plugins': 'file:../../../../packages/bundler-plugins/sentry-bundler-plugins-10.0.0.tgz',
-          '@sentry/core': 'file:../../../../packages/core/sentry-core-10.0.0.tgz',
-        },
-      },
     });
+    fs.writeFileSync(
+      path.join(fixturesDir, 'esbuild', 'pnpm-workspace.yaml'),
+      [
+        'overrides:',
+        "  '@sentry/bundler-plugins': 'file:../../../../packages/bundler-plugins/sentry-bundler-plugins-10.0.0.tgz'",
+        "  '@sentry/core': 'file:../../../../packages/core/sentry-core-10.0.0-beta.1.tgz'",
+        "  'sentry': 'file:../sentry-stub'",
+        '',
+      ].join('\n'),
+    );
 
     bumpVersions(rootDir, '10.1.0');
 
     const fixture = readPackageJson(path.join(fixturesDir, 'esbuild'));
     expect(fixture.dependencies['@sentry/bundler-plugins']).toBe('10.1.0');
     expect(fixture.dependencies['esbuild']).toBe('0.28.0');
-    expect(fixture.pnpm.overrides['@sentry/bundler-plugins']).toBe(
-      'file:../../../../packages/bundler-plugins/sentry-bundler-plugins-10.1.0.tgz',
+    expect(fs.readFileSync(path.join(fixturesDir, 'esbuild', 'pnpm-workspace.yaml'), 'utf-8')).toBe(
+      [
+        'overrides:',
+        "  '@sentry/bundler-plugins': 'file:../../../../packages/bundler-plugins/sentry-bundler-plugins-10.1.0.tgz'",
+        "  '@sentry/core': 'file:../../../../packages/core/sentry-core-10.1.0.tgz'",
+        "  'sentry': 'file:../sentry-stub'",
+        '',
+      ].join('\n'),
     );
-    expect(fixture.pnpm.overrides['@sentry/core']).toBe('file:../../../../packages/core/sentry-core-10.1.0.tgz');
   });
 
   it('throws when a workspace package.json is unreadable and does not partially update', () => {

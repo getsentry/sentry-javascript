@@ -50,6 +50,7 @@ export {
   setAttribute,
   setAttributes,
   setUser,
+  setConversationId,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   withScope,
@@ -92,9 +93,11 @@ export {
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
+  updateSpanName,
   consoleLoggingIntegration,
   createConsolaReporter,
   featureFlagsIntegration,
+  growthbookIntegration,
   logger,
   metrics,
   withStaticSpan,
@@ -102,7 +105,16 @@ export {
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export {
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
+  serveTunnelIntegration,
+  trpcMiddleware,
+  wrapMcpServerWithSentry,
+} from '@sentry/core/server';
+export type { TunnelRequestLike } from '@sentry/core/server';
+export { getTunnelPath, handleTunnelRequest } from '@sentry/core';
+export type { HandleTunnelRequestOptions, ServerTunnelOptions } from '@sentry/core';
 export {
   openTelemetryIntegration,
   getOtlpTracesEndpoint,
@@ -114,6 +126,7 @@ export {
   createLangChainCallbackHandler,
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
+  instrumentCreateReactAgent,
 } from '@sentry/server-utils/no-diagnostic-channels';
 
 export { VercelEdgeClient } from './client';
@@ -121,3 +134,7 @@ export { getDefaultIntegrations, init } from './sdk';
 
 export { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 export type { FetchIntegrationOptions } from '@sentry/core';
+
+// vercelAIIntegration and prismaIntegration require diagnostics channels, unavailable on Vercel Edge.
+// Cloudflare's httpServerIntegration is consumed by its request wrapper, which Vercel Edge does not use.
+// The fetch-based spotlightIntegration lives in the Cloudflare package, not a shared entry point.

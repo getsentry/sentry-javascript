@@ -1,6 +1,6 @@
 {
   "name": "@sentry/react",
-  "version": "11.7.0",
+  "version": "11.10.0",
   "description": "Official Sentry SDK for React.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/react",
@@ -57,9 +57,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "11.7.0",
-    "@sentry/core": "11.7.0",
-    "@sentry/conventions": "^0.27.0"
+    "@sentry/browser": "11.10.0",
+    "@sentry/core": "11.10.0",
+    "@sentry/conventions": "^0.30.0"
   },
   "peerDependencies": {
     "react": "17.x || 18.x || 19.x",
@@ -71,6 +71,7 @@
     }
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.10.0",
     "@testing-library/react": "^15.0.5",
     "@testing-library/react-hooks": "^7.0.2",
     "@types/history-4": "npm:@types/history@4.7.8",
@@ -83,7 +84,7 @@
     "history-5": "npm:history@4.9.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router": "^7.18.3",
+    "react-router": "^7.18.4",
     "react-router-3": "npm:react-router@3.2.0",
     "react-router-4": "npm:react-router@4.1.0",
     "react-router-5": "npm:react-router@5.3.4",
@@ -92,11 +93,11 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:dev": "yarn build",
+    "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "yarn build:watch",
+    "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts && madge --circular src/react-router.ts",
@@ -108,9 +109,6 @@
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sideEffects": false
 }

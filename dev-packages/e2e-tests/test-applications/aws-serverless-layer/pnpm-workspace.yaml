@@ -1,0 +1,4 @@
+minimumReleaseAge: 0
+# Use the Lambda layer build, not the packed npm tarball. The test runner keeps an app's own overrides.
+overrides:
+  '@sentry/aws-serverless': 'link:../../../../packages/aws-serverless/build/aws/dist-serverless/'

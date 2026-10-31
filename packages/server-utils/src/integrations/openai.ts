@@ -30,6 +30,7 @@ const ORIGIN = 'auto.ai.openai';
 const INSTRUMENTED_CHANNELS = [
   { channel: CHANNELS.OPENAI_CHAT, operation: 'chat' },
   { channel: CHANNELS.OPENAI_EMBEDDINGS, operation: 'embeddings' },
+  { channel: CHANNELS.OPENAI_DECIDE, operation: 'decide' },
 ] as const;
 
 const _openAIIntegration = ((options: OpenAiOptions = {}) => {
@@ -48,7 +49,7 @@ function instrumentOpenai(options: OpenAiOptions): void {
       data => createGenAiSpan(data, operation, options),
       {
         beforeSpanEnd: (span, data) => {
-          addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs);
+          addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs, operation);
         },
         deferSpanEnd: ({ span, data, end }) =>
           wrapApiPromiseResponse(
@@ -134,6 +135,6 @@ function wrapStreamResult(span: Span, data: OrchestrionChannelContext, options: 
 /**
  * Diagnostics-channel-based OpenAI integration. Subscribes to the `orchestrion:openai:*`
  * diagnostics_channels injected into `openai`'s `create` methods (chat completions, responses, embeddings,
- * conversations), so it requires the Sentry runtime hook or bundler plugin.
+ * conversations, decisions), so it requires the Sentry runtime hook or bundler plugin.
  */
 export const openAIIntegration = defineIntegration(_openAIIntegration);

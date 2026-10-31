@@ -4,13 +4,11 @@ import {
   hasSpanStreamingEnabled,
   isObjectLike,
   NAVIGATION_SPAN_NAME_FALLBACK,
-  PAGELOAD_SPAN_NAME_FALLBACK,
   filterCollectedUrl,
   timestampInSeconds,
 } from '@sentry/core';
 import {
   startBrowserTracingNavigationSpan,
-  startBrowserTracingPageLoadSpan,
   WINDOW,
   getAbsoluteUrl,
   resolveCurrentRoute,
@@ -24,8 +22,9 @@ import {
   URL_PATH,
   URL_TEMPLATE,
   SENTRY_ORIGIN,
+  NAVIGATION_TYPE,
 } from '@sentry/conventions/attributes';
-import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
+import { NAVIGATION } from '@sentry/conventions/op';
 
 function setNavigationSpanUrlAttributes(span: Span, urlPath: string, urlOrPath: string): void {
   span.setAttributes({
@@ -95,23 +94,6 @@ let navigationRoutingMode: 'router-patch' | 'transition-start-hook' = 'router-pa
 
 const currentRouterPatchingNavigationSpanRef: NavigationSpanRef = { current: undefined };
 
-/** Instruments the Next.js app router for pageloads. */
-export function appRouterInstrumentPageLoad(client: Client): void {
-  const pathname = stripTrailingSlash(WINDOW.location.pathname);
-  const parameterizedPathname = resolveCurrentRoute(client);
-  startBrowserTracingPageLoadSpan(client, {
-    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
-    name: parameterizedPathname ?? (hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : pathname),
-    // pageload should always start at timeOrigin (and needs to be in s, not ms)
-    attributes: {
-      [SENTRY_OP]: PAGELOAD,
-      [SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
-      [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
-      ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
-    },
-  });
-}
-
 interface NavigationSpanRef {
   current: Span | undefined;
 }
@@ -167,7 +149,8 @@ export function appRouterInstrumentNavigation(client: Client): void {
     if (currentNavigationSpan) {
       currentNavigationSpan.updateName(spanName);
       currentNavigationSpan.setAttributes({
-        'navigation.type': `router.${navigationType}`,
+        // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+        [NAVIGATION_TYPE]: `router.${navigationType}`,
         [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
         ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
       });
@@ -182,8 +165,9 @@ export function appRouterInstrumentNavigation(client: Client): void {
             [SENTRY_OP]: NAVIGATION,
             [SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
             [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
-            'navigation.type': `router.${navigationType}`,
-            ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
+            // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+            [NAVIGATION_TYPE]: `router.${navigationType}`,
+            [URL_TEMPLATE]: parameterizedPathname,
           },
         },
         { url: getAbsoluteUrl(normalizedHref) },
@@ -219,8 +203,9 @@ export function appRouterInstrumentNavigation(client: Client): void {
           attributes: {
             [SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
             [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
-            'navigation.type': traversal?.navigationType ?? 'browser.popstate',
-            ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
+            // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+            [NAVIGATION_TYPE]: traversal?.navigationType ?? 'browser.popstate',
+            [URL_TEMPLATE]: parameterizedPathname,
           },
         },
         // The full location rather than just the pathname, so the span's `url.full` keeps the
@@ -316,8 +301,9 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
                 [SENTRY_OP]: NAVIGATION,
                 [SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
                 [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
-                'navigation.type': `router.${routerFunctionName}`,
-                ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
+                // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+                [NAVIGATION_TYPE]: `router.${routerFunctionName}`,
+                [URL_TEMPLATE]: parameterizedPathname,
               },
             },
             { url: getAbsoluteUrl(normalizedHref) },

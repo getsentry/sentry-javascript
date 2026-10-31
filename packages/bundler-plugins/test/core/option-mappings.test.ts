@@ -179,6 +179,36 @@ describe('normalizeUserOptions()', () => {
       expect(normalizedOptions.release.deploy).toEqual(manualDeployConfig);
     });
 
+    test('should associate commits from Vercel env vars on production builds', () => {
+      process.env['VERCEL'] = '1';
+      process.env['VERCEL_TARGET_ENV'] = 'production';
+      process.env['VERCEL_GIT_COMMIT_SHA'] = 'abc123';
+      process.env['VERCEL_GIT_PREVIOUS_SHA'] = 'def456';
+      process.env['VERCEL_GIT_REPO_OWNER'] = 'my-owner';
+      process.env['VERCEL_GIT_REPO_SLUG'] = 'my-repo';
+
+      const normalizedOptions = normalizeUserOptions({ release: { name: 'my-release' } });
+
+      expect(normalizedOptions.release.setCommits).toEqual(
+        expect.objectContaining({ commit: 'abc123', previousCommit: 'def456', repo: 'my-owner/my-repo' }),
+      );
+    });
+
+    test('should fall back to automatic commit association when VERCEL_GIT_COMMIT_SHA is its own name', () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      process.env['VERCEL'] = '1';
+      process.env['VERCEL_TARGET_ENV'] = 'production';
+      process.env['VERCEL_GIT_COMMIT_SHA'] = 'VERCEL_GIT_COMMIT_SHA';
+      process.env['VERCEL_GIT_REPO_OWNER'] = 'my-owner';
+      process.env['VERCEL_GIT_REPO_SLUG'] = 'my-repo';
+
+      const normalizedOptions = normalizeUserOptions({ release: { name: 'my-release' } });
+
+      expect(normalizedOptions.release.setCommits).toEqual(expect.objectContaining({ auto: true }));
+      expect(normalizedOptions.release.setCommits).not.toHaveProperty('commit');
+      vi.restoreAllMocks();
+    });
+
     test('should not create deploy config when Vercel env vars are missing', () => {
       const userOptions: Options = {
         org: 'my-org',
@@ -319,6 +349,25 @@ describe('validateOptions', () => {
 
     expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(true);
     expect(mockedLogger.error).not.toHaveBeenCalled();
+  });
+
+  it('warns when `deleteSourcemapsAfterUpload` is set together with `sourcemaps.disable`', () => {
+    const options = normalizeUserOptions({
+      sourcemaps: { disable: 'disable-upload', deleteSourcemapsAfterUpload: true },
+    });
+
+    expect(validateOptions(options, mockedLogger)).toBe(true);
+    expect(mockedLogger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('deleteSourcemapsAfterUpload'),
+      expect.any(String),
+    );
+  });
+
+  it('does not warn when `deleteSourcemapsAfterUpload` is set and uploads are enabled', () => {
+    const options = normalizeUserOptions({ sourcemaps: { deleteSourcemapsAfterUpload: true } });
+
+    expect(validateOptions(options, mockedLogger)).toBe(true);
+    expect(mockedLogger.warn).not.toHaveBeenCalled();
   });
 
   it('should return `true` for options without special cases', () => {

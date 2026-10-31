@@ -43,4 +43,3 @@ next-env.d.ts
 .vscode
 
 test-results
-event-dumps

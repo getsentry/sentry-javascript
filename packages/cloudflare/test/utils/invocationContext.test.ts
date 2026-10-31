@@ -48,13 +48,16 @@ describe('invocation state', () => {
     expect(getInvocationState()).toBeUndefined();
   });
 
-  it('is not inherited by scope clones', () => {
-    const scope = getDefaultIsolationScope().clone();
-    setInvocationState(scope, { ctx: undefined });
+  it('is shared with isolation scopes forked inside the invocation', () => {
+    const ctx = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
 
-    withIsolationScope(scope.clone(), () => {
-      expect(getInvocationState()).toBeUndefined();
-    });
+    withInvocationIsolationScope(() => {
+      const state = getInvocationState();
+
+      withIsolationScope(() => {
+        expect(getInvocationState()).toBe(state);
+      });
+    }, ctx);
   });
 
   it('is attached at the invocation entry point and kept when reentrant', () => {

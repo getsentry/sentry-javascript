@@ -1,6 +1,6 @@
 {
   "name": "@sentry/rollup-plugin",
-  "version": "11.7.0",
+  "version": "11.10.0",
   "description": "Official Sentry Rollup plugin",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/develop/packages/rollup-plugin",
@@ -35,11 +35,11 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:dev": "yarn build",
+    "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "yarn build:watch",
+    "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "clean": "rimraf build coverage sentry-rollup-plugin-*.tgz",
@@ -49,7 +49,10 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "@sentry/bundler-plugins": "11.7.0"
+    "@sentry/bundler-plugins": "11.10.0"
+  },
+  "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.10.0"
   },
   "peerDependencies": {
     "rollup": ">=3.2.0"
@@ -58,8 +61,5 @@
     "rollup": {
       "optional": true
     }
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

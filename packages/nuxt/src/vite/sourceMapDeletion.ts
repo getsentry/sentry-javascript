@@ -2,6 +2,46 @@ import { createSentryBuildPluginManager, globFiles, type Options } from '@sentry
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+/** Nitro's output directories, which depend on the Nitro preset, e.g. `dist` for the public files on Netlify. */
+type NitroOutputDirs = { publicDir: string; serverDir: string };
+
+/** The sides whose source maps only exist because Sentry enabled them, and where Nitro writes them once it is set up. */
+export type DeletionFallback = { client: boolean; server: boolean; outputDirs?: NitroOutputDirs };
+
+/**
+ * Globs for the source maps in Nitro's output directories of the sides whose source maps only exist because Sentry
+ * enabled them. Empty until Nitro is set up.
+ */
+export function getFallbackFilesToDelete(fallback: DeletionFallback | undefined): string[] {
+  if (!fallback?.outputDirs) {
+    return [];
+  }
+
+  const { client, server, outputDirs } = fallback;
+  const { publicDir, serverDir } = outputDirs;
+  return [
+    ...(client ? getPublicSourceMapGlobs(publicDir, server ? undefined : serverDir) : []),
+    ...(server ? [`${toGlobPath(serverDir)}/**/*.map`] : []),
+  ];
+}
+
+/** Some presets write the server into the public dir, e.g. Cloudflare Pages into `dist/_worker.js`. */
+function getPublicSourceMapGlobs(publicDir: string, keptServerDir: string | undefined): string[] {
+  const publicGlob = toGlobPath(publicDir);
+
+  if (keptServerDir === undefined || !isInDirectory(keptServerDir, publicDir)) {
+    return [`${publicGlob}/**/*.map`];
+  }
+
+  const [serverDirName] = path.relative(publicDir, keptServerDir).split(path.sep);
+  return [`${publicGlob}/*.map`, `${publicGlob}/!(${serverDirName})/**/*.map`];
+}
+
+/** `filesToDeleteAfterUpload` is matched from the working directory and needs forward slashes, also on Windows. */
+function toGlobPath(directory: string): string {
+  return path.relative(process.cwd(), directory).split(path.sep).join('/') || '.';
+}
+
 export function withoutSourceMapDeletion(options: Options): Options {
   return {
     ...options,

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nextjs",
-  "version": "11.7.0",
+  "version": "11.10.0",
   "description": "Official Sentry SDK for Next.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs",
@@ -55,6 +55,11 @@
       "types": "./build/types/config/index.d.ts",
       "default": "./build/cjs/config/index.js"
     },
+    "./tunnel": {
+      "types": "./build/types/tunnel/index.d.ts",
+      "import": "./build/esm/tunnel/index.js",
+      "require": "./build/cjs/tunnel/index.js"
+    },
     "./async-storage-shim": {
       "import": {
         "default": "./build/esm/config/templates/requestAsyncStorageShim.js"
@@ -79,22 +84,24 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
     "@rollup/plugin-commonjs": "28.0.1",
-    "@sentry/browser-utils": "11.7.0",
-    "@sentry/bundler-plugins": "11.7.0",
-    "@sentry/cloudflare": "11.7.0",
-    "@sentry/conventions": "^0.27.0",
-    "@sentry/core": "11.7.0",
-    "@sentry/node": "11.7.0",
-    "@sentry/opentelemetry": "11.7.0",
-    "@sentry/react": "11.7.0",
-    "@sentry/server-runtime-injection": "11.7.0",
-    "@sentry/server-utils": "11.7.0",
-    "@sentry/vercel-edge": "11.7.0",
+    "@sentry/browser-utils": "11.10.0",
+    "@sentry/bundler-plugins": "11.10.0",
+    "@sentry/cloudflare": "11.10.0",
+    "@sentry/conventions": "^0.30.0",
+    "@sentry/core": "11.10.0",
+    "@sentry/node": "11.10.0",
+    "@sentry/opentelemetry": "11.10.0",
+    "@sentry/react": "11.10.0",
+    "@sentry/server-runtime-injection": "11.10.0",
+    "@sentry/server-utils": "11.10.0",
+    "@sentry/vercel-edge": "11.10.0",
     "rollup": "^4.60.3",
     "stacktrace-parser": "^0.1.11"
   },
   "devDependencies": {
-    "next": "15.5.27",
+    "@sentry-internal/rollup-utils": "11.10.0",
+    "cjs-module-lexer": "^2.2.0",
+    "next": "15.5.28",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
@@ -103,11 +110,11 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:dev": "yarn build",
+    "build:dev": "pnpm run build",
     "build:transpile": "tsx --tsconfig tsconfig.tsnode.json scripts/buildRollup.ts",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "yarn build:watch",
+    "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "nodemon --ext ts --watch src scripts/buildRollup.ts",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/edge/index.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
@@ -116,16 +123,13 @@
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
-    "test": "yarn test:unit",
+    "test": "pnpm run test:unit",
     "test:all": "run-s test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",
     "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",
     "vercel:project": "source vercel/make-project-use-current-branch.sh",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "nx": {
     "targets": {

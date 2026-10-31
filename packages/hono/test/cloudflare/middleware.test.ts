@@ -1,3 +1,11 @@
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_TRANSPORT,
+  NETWORK_TYPE,
+} from '@sentry/conventions/attributes';
 import * as SentryCloudflare from '@sentry/cloudflare';
 import * as SentryCore from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
@@ -5,6 +13,7 @@ import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { sentry, type HonoCloudflareOptions } from '../../src/cloudflare/middleware';
 import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../../src/shared/lowQualityTransactionPatterns';
+import { requestConnInfoAttributes } from '../shared/requestConnInfoAttributes';
 
 vi.mock('@sentry/cloudflare', { spy: true });
 vi.mock('@sentry/core', async () => {
@@ -195,5 +204,21 @@ describe('Hono Cloudflare Middleware', () => {
         expect(applySdkMetadataMock).toHaveBeenCalledWith(returnedOptions, 'hono', ['hono', 'cloudflare']);
       });
     });
+  });
+});
+
+describe('Hono Cloudflare Middleware — connection info', () => {
+  it('reads the `cf-connecting-ip` header', async () => {
+    const middleware = sentry(new Hono(), { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+    const headers = { 'cf-connecting-ip': '203.0.113.5' };
+
+    const attributes = await requestConnInfoAttributes(middleware, { headers });
+
+    expect(attributes[CLIENT_ADDRESS]).toBe('203.0.113.5');
+    expect(attributes[NETWORK_PEER_ADDRESS]).toBe('203.0.113.5');
+    expect(attributes).not.toHaveProperty(CLIENT_PORT);
+    expect(attributes).not.toHaveProperty(NETWORK_PEER_PORT);
+    expect(attributes).not.toHaveProperty(NETWORK_TYPE);
+    expect(attributes).not.toHaveProperty(NETWORK_TRANSPORT);
   });
 });

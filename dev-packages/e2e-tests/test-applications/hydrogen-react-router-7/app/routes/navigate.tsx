@@ -1,5 +1,5 @@
 import { useLoaderData } from 'react-router';
-import type { LoaderFunction } from '@shopify/remix-oxygen';
+import type { LoaderFunction } from 'react-router';
 
 export const loader: LoaderFunction = async ({ params: { id } }) => {
   if (id === '-1') {

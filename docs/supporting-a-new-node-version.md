@@ -91,7 +91,7 @@ Reference: [#20710](https://github.com/getsentry/sentry-javascript/pull/20710)
 2. Bump the native module dependencies to the versions released in Steps 1 and 2:
    - [ ] `@sentry-internal/node-cpu-profiler` in `packages/profiling-node`
    - [ ] `@sentry-internal/node-native-stacktrace` in `packages/node-native/package.json`
-   - [ ] Run `yarn install` to update `yarn.lock`
+   - [ ] Run `pnpm install` to update `pnpm-lock.yaml`
 
 3. Allow the new major in the profiling integration, in `packages/profiling-node/src/integration.ts`:
    - [ ] Add the version number to the `if (![16, 18, 20, 22, 24, 26].includes(NODE_MAJOR))` guard

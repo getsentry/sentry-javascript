@@ -32,6 +32,18 @@ class CustomAggregateError extends FakeAggregateError {
   }
 }
 
+class FakeSuppressedError extends Error {
+  public error: unknown;
+  public suppressed: unknown;
+
+  constructor(error: unknown, suppressed: unknown, message = 'An error was suppressed during disposal.') {
+    super(message);
+    this.name = 'SuppressedError';
+    this.error = error;
+    this.suppressed = suppressed;
+  }
+}
+
 describe('applyAggregateErrorsToEvent()', () => {
   test('should not do anything if event does not contain an exception', () => {
     const event: Event = { exception: undefined };
@@ -261,6 +273,50 @@ describe('applyAggregateErrorsToEvent()', () => {
     });
   });
 
+  test('limits AggregateError children', () => {
+    const error = new FakeAggregateError(
+      Array.from({ length: 20 }, (_, i) => new Error(`child-${i}`)),
+      'group',
+    );
+    const event: Event = { exception: { values: [exceptionFromError(stackParser, error)] } };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 5, event, { originalException: error });
+
+    expect(event.exception?.values?.map(exception => exception.value)).toEqual([
+      'child-4',
+      'child-3',
+      'child-2',
+      'child-1',
+      'child-0',
+      'group',
+    ]);
+  });
+
+  test('limits SuppressedError siblings after traversing a nested error', () => {
+    const inner = new FakeSuppressedError(new Error('dispose failed'), new Error('original'), 'inner');
+    const error = new FakeSuppressedError(inner, new Error('outer suppressed'), 'outer');
+    const event: Event = { exception: { values: [exceptionFromError(stackParser, error)] } };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 2, event, { originalException: error });
+
+    expect(event.exception?.values?.map(exception => exception.value)).toEqual(['dispose failed', 'inner', 'outer']);
+  });
+
+  test('shares the limit across causes, SuppressedErrors, and AggregateErrors', () => {
+    const cause = new FakeSuppressedError(new Error('dispose failed'), new Error('original'), 'cause');
+    const error = new CustomAggregateError([new Error('child')], 'group', cause);
+    const event: Event = { exception: { values: [exceptionFromError(stackParser, error)] } };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 3, event, { originalException: error });
+
+    expect(event.exception?.values?.map(exception => exception.value)).toEqual([
+      'original',
+      'dispose failed',
+      'cause',
+      'group',
+    ]);
+  });
+
   test('should keep the original mechanism type for the root exception', () => {
     const fakeAggregateError = new FakeAggregateError(
       [new Error('Nested Error 1'), new Error('Nested Error 2')],
@@ -481,5 +537,77 @@ describe('applyAggregateErrorsToEvent()', () => {
         ],
       },
     });
+  });
+
+  test('adds both the `error` and the `suppressed` error of a SuppressedError', () => {
+    const suppressedError = new FakeSuppressedError(new Error('Error from dispose'), new Error('Original error'));
+    const event: Event = { exception: { values: [exceptionFromError(stackParser, suppressedError)] } };
+    const eventHint: EventHint = { originalException: suppressedError };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 100, event, eventHint);
+
+    expect(event).toStrictEqual({
+      exception: {
+        values: [
+          {
+            mechanism: { exception_id: 2, handled: true, parent_id: 0, source: 'suppressed', type: 'chained' },
+            type: 'Error',
+            value: 'Original error',
+          },
+          {
+            mechanism: { exception_id: 1, handled: true, parent_id: 0, source: 'error', type: 'chained' },
+            type: 'Error',
+            value: 'Error from dispose',
+          },
+          {
+            mechanism: { exception_id: 0, handled: true, type: 'instrument' },
+            type: 'SuppressedError',
+            value: 'An error was suppressed during disposal.',
+          },
+        ],
+      },
+    });
+  });
+
+  test('walks nested SuppressedErrors (several disposers throwing)', () => {
+    const inner = new FakeSuppressedError(new Error('dispose 2 failed'), new Error('Original error'));
+    const outer = new FakeSuppressedError(new Error('dispose 1 failed'), inner);
+    const event: Event = { exception: { values: [exceptionFromError(stackParser, outer)] } };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 100, event, { originalException: outer });
+
+    expect(event.exception?.values?.map(e => e.value)).toEqual([
+      'Original error',
+      'dispose 2 failed',
+      'An error was suppressed during disposal.',
+      'dispose 1 failed',
+      'An error was suppressed during disposal.',
+    ]);
+  });
+
+  test('skips `error` / `suppressed` values that are not Errors', () => {
+    const suppressedError = new FakeSuppressedError('just a string', new Error('Original error'));
+    const event: Event = { exception: { values: [exceptionFromError(stackParser, suppressedError)] } };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 100, event, {
+      originalException: suppressedError,
+    });
+
+    expect(event.exception?.values?.map(e => e.value)).toEqual([
+      'Original error',
+      'An error was suppressed during disposal.',
+    ]);
+  });
+
+  test('does not treat an error that only has an `error` property as a SuppressedError', () => {
+    const notSuppressed: ExtendedError = new Error('Something else');
+    notSuppressed.error = new Error('unrelated');
+    const event: Event = { exception: { values: [exceptionFromError(stackParser, notSuppressed)] } };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 100, event, {
+      originalException: notSuppressed,
+    });
+
+    expect(event.exception?.values).toHaveLength(1);
   });
 });

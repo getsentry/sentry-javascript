@@ -4,15 +4,8 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@sentry/bundler-plugins": "11.7.0",
+    "@sentry/bundler-plugins": "11.10.0",
     "react": "19.2.4",
     "rolldown": "1.0.0"
-  },
-  "pnpm": {
-    "overrides": {
-      "@sentry/bundler-plugins": "file:../../../../packages/bundler-plugins/sentry-bundler-plugins-11.7.0.tgz",
-      "@sentry/core": "file:../../../../packages/core/sentry-core-11.7.0.tgz",
-      "sentry": "file:../sentry-stub"
-    }
   }
 }

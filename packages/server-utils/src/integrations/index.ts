@@ -31,6 +31,7 @@ import { neonIntegration } from './neon';
 import { firebaseIntegration } from './firebase';
 import { expressIntegration } from './express';
 import { fastifyIntegration } from './fastify';
+import { nitroIntegration } from './nitro';
 import { hapiIntegration } from './hapi';
 import { honoIntegration } from './hono';
 import { koaIntegration } from './koa';
@@ -77,7 +78,18 @@ export function getTracingIntegrations(): Integration[] {
   ];
 }
 
-/** These are integrations that cover error capture, in addition to tracing. */
+/**
+ * These are default integrations that are registered regardless of whether tracing is enabled -
+ * either because they cover error capture in addition to tracing, or because they handle trace
+ * propagation (which must work in tracing-without-performance mode too).
+ */
 export function getErrorIntegrations(): Integration[] {
-  return [expressIntegration(), fastifyIntegration(), hapiIntegration(), honoIntegration(), koaIntegration()];
+  return [
+    expressIntegration(),
+    fastifyIntegration(),
+    hapiIntegration(),
+    honoIntegration(),
+    koaIntegration(),
+    nitroIntegration(),
+  ];
 }

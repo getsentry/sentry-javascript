@@ -3,10 +3,8 @@ import {
   HTTP_METHOD,
   HTTP_REQUEST_METHOD,
   HTTP_ROUTE,
-  HTTP_TARGET,
   SENTRY_OP,
   SENTRY_ORIGIN,
-  URL_QUERY,
 } from '@sentry/conventions/attributes';
 import { MIDDLEWARE } from '@sentry/conventions/op';
 import type { Client, Options, Span } from '@sentry/core';
@@ -57,26 +55,6 @@ export const NEXTJS_SERVER_IGNORE_SPANS: NonNullable<Options['ignoreSpans']> = [
  * Registers the hooks that name, enrich and filter the spans and events of the Next.js server on `client`.
  */
 export function addNextjsServerSpanHooks(client: Client): void {
-  client.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
-    // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
-    // middleware) and this causes spans for Sentry ingest requests to be created. These are not exempt from our tracing
-    // because we didn't get the chance to do `suppressTracing`, since this happens outside of userland.
-    // We need to drop these spans.
-    if (
-      // eslint-disable-next-line typescript/no-deprecated
-      (typeof spanAttributes[HTTP_TARGET] === 'string' &&
-        // eslint-disable-next-line typescript/no-deprecated
-        spanAttributes[HTTP_TARGET].includes('sentry_key') &&
-        // eslint-disable-next-line typescript/no-deprecated
-        spanAttributes[HTTP_TARGET].includes('sentry_client')) ||
-      (typeof spanAttributes[URL_QUERY] === 'string' &&
-        spanAttributes[URL_QUERY].includes('sentry_key') &&
-        spanAttributes[URL_QUERY].includes('sentry_client'))
-    ) {
-      samplingDecision.decision = false;
-    }
-  });
-
   client.on('spanStart', span => handleOnSpanStart(span, client));
 
   // Normalize name/op/source/status on the request root span at span end, before it is serialized into

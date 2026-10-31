@@ -1,0 +1,128 @@
+packages:
+  - 'packages/angular'
+  - 'packages/astro'
+  - 'packages/aws-serverless'
+  - 'packages/browser'
+  - 'packages/browser-utils'
+  - 'packages/bundler-plugins'
+  - 'packages/bun'
+  - 'packages/core'
+  - 'packages/cloudflare'
+  - 'packages/deno'
+  - 'packages/effect'
+  - 'packages/ember'
+  - 'packages/elysia'
+  - 'packages/esbuild-plugin'
+  - 'packages/eslint-config-sdk'
+  - 'packages/eslint-plugin-sdk'
+  - 'packages/feedback'
+  - 'packages/gatsby'
+  - 'packages/google-cloud-serverless'
+  - 'packages/hono'
+  - 'packages/integration-shims'
+  - 'packages/nestjs'
+  - 'packages/nextjs'
+  - 'packages/nitro'
+  - 'packages/node'
+  - 'packages/node-native'
+  - 'packages/nuxt'
+  - 'packages/opentelemetry'
+  - 'packages/profiling-node'
+  - 'packages/react'
+  - 'packages/react-router'
+  - 'packages/remix'
+  - 'packages/replay-internal'
+  - 'packages/replay-canvas'
+  - 'packages/replay-worker'
+  - 'packages/rollup-plugin'
+  - 'packages/server-runtime-injection'
+  - 'packages/server-utils'
+  - 'packages/solid'
+  - 'packages/solidstart'
+  - 'packages/svelte'
+  - 'packages/sveltekit'
+  - 'packages/tanstackstart-react'
+  - 'packages/typescript'
+  - 'packages/vercel-edge'
+  - 'packages/vite-plugin'
+  - 'packages/vue'
+  - 'packages/wasm'
+  - 'packages/webpack-plugin'
+  - 'dev-packages/browser-integration-tests'
+  - 'dev-packages/bundler-plugin-integration-tests'
+  - 'dev-packages/e2e-tests'
+  - 'dev-packages/node-integration-tests'
+  - 'dev-packages/bun-integration-tests'
+  - 'dev-packages/deno-integration-tests'
+  - 'dev-packages/cloudflare-integration-tests'
+  - 'dev-packages/test-utils'
+  - 'dev-packages/size-limit-gh-action'
+  - 'dev-packages/clear-cache-gh-action'
+  - 'dev-packages/external-contributor-gh-action'
+  - 'dev-packages/optional-e2e-gh-action'
+  - 'dev-packages/rollup-utils'
+  - 'dev-packages/bundler-tests'
+
+# Yarn 1 did not install peer dependencies, and some packages break with the versions that pnpm would add.
+autoInstallPeers: false
+strictPeerDependencies: false
+# The packages depend on each other by exact version, not with `workspace:`.
+# This links them from the workspace instead of installing them from npm.
+linkWorkspacePackages: true
+# Lockfiles written by Dependabot or `pnpm add` would otherwise fail `pnpm dedupe --check` in CI.
+autoDedupe: true
+
+overrides:
+  nx>minimatch: 10.2.5
+  postcss-url>minimatch: 3.1.5
+  '@angular-devkit/build-angular>minimatch': 5.1.9
+  nitropack>rollup-plugin-visualizer: ^6.0.3
+
+# Dependencies that import packages without declaring them. pnpm links these peers to the versions of the importer.
+packageExtensions:
+  # Its type declarations import the bundler types: https://github.com/apm-js-collab/code-transformer-bundler-plugins/issues/49
+  '@apm-js-collab/code-transformer-bundler-plugins':
+    peerDependencies:
+      esbuild: '*'
+      rollup: '*'
+      vite: '*'
+      webpack: '*'
+    peerDependenciesMeta:
+      esbuild:
+        optional: true
+      rollup:
+        optional: true
+      vite:
+        optional: true
+      webpack:
+        optional: true
+
+# Dependencies whose install scripts run. pnpm 11+ fails the install on build scripts that are not listed.
+# `false` only for scripts that just print a message.
+allowBuilds:
+  '@apollo/protobufjs': true
+  '@google/genai': false
+  '@nestjs/core': false
+  '@parcel/watcher': true
+  '@prisma/client': true
+  '@prisma/engines': true
+  '@sentry/node-cpu-profiler': true
+  '@sentry/node-native-stacktrace': true
+  core-js-pure: false
+  esbuild: true
+  mongodb-memory-server-global: true
+  msgpackr-extract: true
+  nice-napi: true
+  nx: true
+  prisma: true
+  protobufjs: false
+  sharp: true
+  vue-demi: true
+  workerd: true
+minimumReleaseAgeExclude:
+  - '@opentelemetry/api@1.10.0'
+  - '@sentry/conventions@0.30.0'
+  - '@sentry/rrdom@2.45.0'
+  - '@sentry/rrweb-snapshot@2.45.0'
+  - '@sentry/rrweb-types@2.45.0'
+  - '@sentry/rrweb@2.45.0'

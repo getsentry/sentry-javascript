@@ -3,7 +3,9 @@ import { assertArrayIncludes } from 'https://deno.land/std@0.212.0/assert/assert
 import {
   getCurrentScope,
   getDefaultIntegrations,
+  getDefaultIntegrationsWithoutPerformance,
   init as initSdk,
+  initWithoutDefaultIntegrations,
   spanStreamingIntegration,
 } from '../build/esm/index.js';
 import type { DenoOptions } from '../build/esm/index.js';
@@ -81,4 +83,40 @@ Deno.test("init doesn't write the computed default integrations back onto the op
   const second = init(options);
   const names = second.getOptions().integrations.map(i => i.name);
   assertArrayIncludes(names, ['Graphql']);
+});
+
+Deno.test('initWithoutDefaultIntegrations sets up only the integrations the user passes', () => {
+  getCurrentScope().setClient(undefined);
+  const client = initWithoutDefaultIntegrations({
+    tracesSampleRate: 1,
+    traceLifecycle: 'static',
+    integrations: [spanStreamingIntegration()],
+  });
+  const names = client.getOptions().integrations.map(i => i.name);
+  assertEquals(names, ['SpanStreaming']);
+});
+
+Deno.test('initWithoutDefaultIntegrations keeps defaultIntegrations the user passes', () => {
+  getCurrentScope().setClient(undefined);
+  const client = initWithoutDefaultIntegrations({
+    traceLifecycle: 'static',
+    defaultIntegrations: getDefaultIntegrationsWithoutPerformance(),
+  });
+  const names = client.getOptions().integrations.map(i => i.name);
+  assertArrayIncludes(names, ['Breadcrumbs', 'DenoServe', 'Express']);
+});
+
+Deno.test('getDefaultIntegrationsWithoutPerformance leaves out the tracing set', () => {
+  const names = getDefaultIntegrationsWithoutPerformance().map(i => i.name);
+  assertArrayIncludes(names, ['Breadcrumbs', 'DenoServe', 'Express', 'Fastify']);
+  assert(!names.includes('Graphql'));
+  assert(!names.includes('Postgres'));
+  assert(!names.includes('OpenAI'));
+});
+
+Deno.test('getDefaultIntegrations is getDefaultIntegrationsWithoutPerformance plus the tracing set', () => {
+  const base = getDefaultIntegrationsWithoutPerformance().map(i => i.name);
+  const full = getDefaultIntegrations({ tracesSampleRate: 1 }).map(i => i.name);
+  assertEquals(full.slice(0, base.length), base);
+  assertArrayIncludes(full.slice(base.length), ['Graphql', 'Postgres', 'OpenAI']);
 });

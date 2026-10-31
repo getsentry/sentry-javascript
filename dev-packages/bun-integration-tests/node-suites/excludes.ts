@@ -7,6 +7,7 @@
 // `node:sqlite`, which `flue` needs, and the Vercel keep-alive, which needs `http.server.response.finish`.
 const NODE_ONLY = [
   'suites/anr/test.ts',
+  'suites/aws-lambda-web/**',
   'suites/aws-serverless/**',
   'suites/breadcrumbs/**',
   'suites/child-process/test.ts',
@@ -25,6 +26,7 @@ const NO_HTTP_SERVER_SPANS = [
   'suites/tracing/httpIntegration/test.ts',
   'suites/tracing/httpServerSpans-unrouted/test.ts',
   'suites/tracing/ignoreSpans/**',
+  'suites/tracing/managed-tunnel/test.ts',
   'suites/tracing/meta-tags-twp-errors/test.ts',
   'suites/tracing/meta-tags/test.ts',
   'suites/tracing/requestData/test.ts',
@@ -54,6 +56,7 @@ const NO_FETCH_INSTRUMENTATION = [
   'suites/tracing/requests/fetch-no-tracing-no-spans/test.ts',
   'suites/tracing/requests/fetch-no-tracing/test.ts',
   'suites/tracing/requests/fetch-sampled-no-active-span/test.ts',
+  'suites/tracing/requests/fetch-sentry-requests/test.ts',
   'suites/tracing/requests/fetch-unsampled/test.ts',
   'suites/tracing/requests/traceparent/test.ts',
 ];
@@ -62,6 +65,8 @@ const NO_FETCH_INSTRUMENTATION = [
 // instrumentation creates no spans. Apps must be built with `@sentry/bun/plugin`.
 // See https://github.com/getsentry/sentry-javascript/issues/23882
 export const NO_AUTO_INSTRUMENTATION = [
+  'suites/cron/node-cron/integration/test.ts',
+  'suites/cron/node-schedule-integration/test.ts',
   'suites/express/**',
   'suites/fs-instrumentation/test.ts',
   'suites/hono/test.ts',
@@ -90,6 +95,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/mastra/test.ts',
   'suites/tracing/mcp-handler-exact-once/test.ts',
   'suites/tracing/mcp-server/**',
+  'suites/tracing/mistral-v2/test.ts',
   'suites/tracing/mistral/test.ts',
   'suites/tracing/mongodb-v4/test.ts',
   'suites/tracing/mongodb-v5/test.ts',
@@ -122,6 +128,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/redis/test.ts',
   'suites/tracing/tedious/test.ts',
   'suites/tracing/together-ai/test.ts',
+  'suites/tracing/together-ai/v1/test.ts',
   'suites/tracing/typesafe/test.ts',
   'suites/tracing/vercelai/**',
 ];
@@ -132,9 +139,6 @@ const NOT_TRIAGED = [
   'suites/modules/test.ts',
   'suites/proxy/test.ts',
 ];
-
-// The suite expects the events of `nodeSystemErrorIntegration`, which `@sentry/bun` does not include.
-const NO_SYSTEM_ERROR_INTEGRATION = ['suites/system-error/test.ts'];
 
 // The scenario configures `nativeNodeFetchIntegration`, which `@sentry/bun` does not export.
 const NO_NATIVE_NODE_FETCH_INTEGRATION = [
@@ -161,8 +165,8 @@ const FETCH_INTEGRATION_DIFFERS = [
 // `@sentry/bun` creates `http.server` spans with `bunHttpServerIntegration`, not `httpIntegration`,
 // so the incoming-request options that the scenario passes to `httpIntegration` (for example
 // `sessionFlushingDelayMS`, `onSpanCreated`, `ignoreIncomingRequests`, `ignoreStaticAssets`) have
-// no effect. Its spans also differ: the origin is `auto.http.server`, not `auto.http.http_server`,
-// response headers become attributes, and there is no `http.response.status_text`. And a server
+// no effect. Its spans also differ: response headers become attributes, and there is no
+// `http.response.status_text`. And a server
 // that sets `emit` back to the `emit` it had before its first request gets no spans after that.
 const HTTP_SERVER_OPTIONS_IGNORED = [
   'suites/sessions/exited-session-aggregate/test.ts',
@@ -195,7 +199,6 @@ export const SENTRY_NODE_EXCLUDE = [...NO_HTTP_SERVER_SPANS, ...NO_FETCH_INSTRUM
 export const SENTRY_BUN_EXCLUDE = [
   ...HTTP_SERVER_OPTIONS_IGNORED,
   ...NO_EXPRESS_INSTRUMENTATION,
-  ...NO_SYSTEM_ERROR_INTEGRATION,
   ...NO_NATIVE_NODE_FETCH_INTEGRATION,
   ...FETCH_INTEGRATION_DIFFERS,
 ];
@@ -211,6 +214,10 @@ const BUN_BUILD_EAGER_SUBSCRIPTION = ['suites/tracing/orchestrion-lazy-registrat
 // adds only `httpIntegration`. On Bun that does not isolate requests, because Bun does not publish
 // `http.server.request.start`.
 const BUN_BUILD_NO_HTTP_SERVER_INTEGRATION = ['suites/express/multiple-init/test.ts'];
+
+// `@mistralai/mistralai` v3 statically imports its optional peer `@livekit/rtc-node`, so Bun cannot
+// bundle the scenarios. `mistral-v2` still covers Mistral here.
+const BUN_BUILD_UNBUNDLEABLE_DEPENDENCY = ['suites/tracing/mistral/test.ts'];
 
 // Some or all tests fail with the bundled scenarios. The cause is not investigated yet. In
 // `express/tracing` only the request data tests fail: they set `httpIntegration` options, and with
@@ -249,5 +256,6 @@ export const BUN_BUILD_EXCLUDE = [
   '**/node_modules/**',
   ...BUN_BUILD_EAGER_SUBSCRIPTION,
   ...BUN_BUILD_NO_HTTP_SERVER_INTEGRATION,
+  ...BUN_BUILD_UNBUNDLEABLE_DEPENDENCY,
   ...BUN_BUILD_NOT_TRIAGED,
 ];

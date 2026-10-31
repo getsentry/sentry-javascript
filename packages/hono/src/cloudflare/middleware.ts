@@ -1,6 +1,5 @@
 import { withSentry, type CloudflareOptions } from '@sentry/cloudflare';
 import { applySdkMetadata, debug } from '@sentry/core';
-import { getConnInfo } from 'hono/cloudflare-workers';
 import {
   applyHonoPatches,
   createHonoRequestMiddleware,
@@ -46,7 +45,7 @@ export function sentry<E extends Env>(
   applyHonoPatches(app);
 
   return createHonoRequestMiddleware({
-    getConnInfo,
+    runtime: 'cloudflare',
     // Cloudflare accepts middleware options as a function of `env`, so `shouldHandleError` is only
     // known per request.
     resolveShouldHandleError: context =>

@@ -12,14 +12,6 @@ on:
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
-  CACHED_BUILD_PATHS: |
-    ${{ github.workspace }}/packages/*/*.tgz
-    ${{ github.workspace }}/node_modules
-    ${{ github.workspace }}/packages/*/node_modules
-    ${{ github.workspace }}/dev-packages/*/node_modules
-    ${{ github.workspace }}/dev-packages/*/build
-    ${{ github.workspace }}/packages/*/build
-
 permissions:
   contents: read
   issues: write
@@ -27,34 +19,63 @@ permissions:
 jobs:
   job_e2e_prepare:
     name: Prepare E2E Canary tests
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-sentry-javascript-large
     timeout-minutes: 30
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
       - name: Check out current commit
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
-      - name: Check canary cache
-        uses: actions/cache@v6.1.0
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: canary-${{ env.HEAD_COMMIT }}
       - name: Install dependencies
-        run: yarn install
+        run: pnpm install
       - name: Build packages
-        run: yarn build
+        run: pnpm run build
 
       - name: Build tarballs
-        run: yarn build:tarball
+        run: pnpm run build:tarball
+
+      # Same artifacts as in build.yml, so the test jobs can use the shared prepare-e2e-test action
+      - name: Upload tarball artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-tarball-output
+          path: packages/*/*.tgz
+          if-no-files-found: error
+          retention-days: 4
+          compression-level: 6
+          overwrite: true
+
+      - name: Upload test-utils tarball artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-test-utils-tarball-output
+          path: dev-packages/test-utils/*.tgz
+          if-no-files-found: error
+          retention-days: 4
+          compression-level: 6
+          overwrite: true
+
+      - name: Determine canary test applications
+        id: matrix
+        run: pnpm --silent run ci:build-matrix-canary >> $GITHUB_OUTPUT
+        working-directory: dev-packages/e2e-tests
 
   job_e2e_tests:
-    name: E2E ${{ matrix.label }} Test
+    name: E2E ${{ matrix.label || matrix.test-application }} Test
     needs: [job_e2e_prepare]
-    runs-on: ubuntu-24.04
+    if: needs.job_e2e_prepare.outputs.matrix != '{"include":[]}'
+    # Canary builds install prerelease dependencies, so they get their own cache volume.
+    runs-on:
+      ${{ matrix.runner || 'namespace-profile-sentry-javascript-small'
+      }};overrides.cache-tag=sentry-javascript-e2e-canary
     timeout-minutes: 20
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -65,95 +86,30 @@ jobs:
       REACT_APP_E2E_TEST_DSN: 'https://username@domain/123'
       E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
+      # The `runtime` of a runtime variant, see dev-packages/e2e-tests/README.md
+      RUNTIME: ${{ matrix.runtime }}
+      # Without the root node_modules, `pnpm run` would first install the whole workspace.
+      pnpm_config_verify_deps_before_run: 'false'
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - test-application: 'angular-22'
-            build-command: 'test:build-canary'
-            label: 'angular-22 (next)'
-          - test-application: 'create-react-app'
-            build-command: 'test:build-canary'
-            label: 'create-react-app (canary)'
-          - test-application: 'nextjs-app-dir'
-            build-command: 'test:build-15'
-            label: 'nextjs-app-dir (next@15)'
-          - test-application: 'nextjs-14'
-            build-command: 'test:build-canary'
-            label: 'nextjs-14 (canary)'
-          - test-application: 'nextjs-14'
-            build-command: 'test:build-latest'
-            label: 'nextjs-14 (latest)'
-          - test-application: 'nextjs-15'
-            build-command: 'test:build-latest'
-            label: 'nextjs-15 (latest)'
-          - test-application: 'nextjs-16'
-            build-command: 'test:build-canary'
-            label: 'nextjs-16 (canary)'
-          - test-application: 'nextjs-16'
-            build-command: 'test:build-canary-webpack'
-            label: 'nextjs-16 (canary-webpack)'
-          - test-application: 'react-create-hash-router'
-            build-command: 'test:build-canary'
-            label: 'react-create-hash-router (canary)'
-          - test-application: 'react-router-6'
-            build-command: 'test:build-canary'
-            label: 'react-router-6 (canary)'
-          - test-application: 'nuxt-3'
-            build-command: 'test:build-canary'
-            label: 'nuxt-3 (canary)'
-          - test-application: 'nuxt-4'
-            build-command: 'test:build-canary'
-            label: 'nuxt-4 (canary)'
-          - test-application: 'tanstackstart-react'
-            build-command: 'test:build-latest'
-            label: 'tanstackstart-react (latest)'
-          - test-application: 'nestjs-12'
-            build-command: 'test:build-latest'
-            label: 'nestjs-12 (latest)'
+      matrix: ${{ fromJson(needs.job_e2e_prepare.outputs.matrix) }}
 
     steps:
       - name: Check out current commit
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Install pnpm
-        uses: ./.github/actions/install-pnpm
+      - name: Prepare E2E test application
+        uses: ./.github/actions/prepare-e2e-test
         with:
-          package-json: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
-      - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
-
-      - name: Restore canary cache
-        uses: actions/cache/restore@v6.1.0
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: canary-${{ env.HEAD_COMMIT }}
-
-      - name: Prepare e2e tests
-        run: yarn test:prepare
-        working-directory: dev-packages/e2e-tests
-
-      - name: Validate test setup
-        run: yarn test:validate
-        working-directory: dev-packages/e2e-tests
-
-      - name: Copy to temp
-        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
-        working-directory: dev-packages/e2e-tests
-
-      - name: Add pnpm overrides
-        run:
-          yarn ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
-          }}/dev-packages/e2e-tests/packed
-        working-directory: dev-packages/e2e-tests
+          test-application: ${{ matrix.test-application }}
+          runtime: ${{ matrix.runtime }}
+          deno-version: ${{ matrix.deno-version }}
 
       - name: Build E2E app
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 7
-        run: yarn ${{ matrix.build-command }}
+        run: ${{ matrix.build-command || 'pnpm test:build' }}
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -164,7 +120,7 @@ jobs:
       - name: Run E2E test
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 15
-        run: yarn test:assert
+        run: ${{ matrix.assert-command || 'pnpm test:assert' }}
 
       - name: Create Issue
         if: failure() && github.event_name == 'schedule'
@@ -172,7 +128,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          TITLE: ${{ matrix.label }} Test Failed
+          TITLE: ${{ matrix.label || matrix.test-application }} Test Failed
         with:
           filename: .github/CANARY_FAILURE_TEMPLATE.md
           update_existing: true

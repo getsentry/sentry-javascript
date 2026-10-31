@@ -35,7 +35,13 @@ export interface BaseBunOptions extends ServerRuntimeOptions {
  * Configuration options for the Sentry Bun SDK
  * @see @sentry/core Options for more information.
  */
-export interface BunOptions extends Options<BaseTransportOptions>, BaseBunOptions {}
+export interface BunOptions extends Options<BaseTransportOptions>, BaseBunOptions {
+  /**
+   * A URL to send this server's own envelopes to instead of the Sentry ingest URL. To serve the managed tunnel for the
+   * browser, use `serveTunnelIntegration`.
+   */
+  tunnel?: string;
+}
 
 /**
  * Configuration options for the Sentry Bun SDK Client class

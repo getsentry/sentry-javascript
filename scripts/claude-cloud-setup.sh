@@ -9,23 +9,26 @@
 # cheap: a frozen-lockfile install is a no-op when node_modules is warm, and Nx
 # only rebuilds packages whose inputs actually changed.
 #
-# Node/Yarn versions come from `package.json` (managed by Volta locally); in the
-# cloud we rely on whatever runtime the sandbox provides and pass --ignore-engines
-# to match CI (.github/actions/install-dependencies).
+# Node/pnpm versions come from `package.json` (managed by pnpm locally); in the
+# cloud we rely on whatever Node runtime the sandbox provides, and install the
+# `packageManager` pnpm version when the sandbox has none.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-# Required by the repo's package-manager setup (some workspaces use pnpm via Volta).
-export VOLTA_FEATURE_PNPM=1
-
 echo "node: $(node --version 2>/dev/null || echo 'not found')"
-echo "yarn: $(yarn --version 2>/dev/null || echo 'not found')"
 
-echo "Installing dependencies (yarn install --frozen-lockfile)..."
-yarn install --ignore-engines --frozen-lockfile
+if ! command -v pnpm >/dev/null 2>&1; then
+  PNPM_VERSION="$(node -p "require('./package.json').packageManager.split('@')[1]")"
+  echo "Installing pnpm ${PNPM_VERSION}..."
+  npm install --global "pnpm@${PNPM_VERSION}"
+fi
+echo "pnpm: $(pnpm --version)"
 
-echo "Building packages (yarn build:dev)..."
-yarn build:dev
+echo "Installing dependencies (pnpm install --frozen-lockfile)..."
+pnpm install --frozen-lockfile
+
+echo "Building packages (pnpm run build:dev)..."
+pnpm run build:dev
 
 echo "Cloud setup complete."

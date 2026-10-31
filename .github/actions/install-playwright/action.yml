@@ -1,72 +1,53 @@
 name: 'Install Playwright dependencies'
-description: 'Installs Playwright dependencies and caches them.'
+description: 'Installs Playwright browsers and system dependencies, keeping both on the Namespace cache volume.'
 inputs:
   browsers:
     description: 'What browsers to install.'
     default: 'chromium webkit firefox'
   cwd:
-    description: 'The working directory to run Playwright in.'
-    default: '.'
-  installed-version:
     description:
-      'A Playwright version that an earlier run of this action already installed. Skips the install if it matches.'
-    default: ''
-
-outputs:
-  version:
-    description: 'The resolved Playwright version, empty if Playwright is not installed or the install was skipped.'
-    value: ${{ steps.playwright-version.outputs.version }}
+      'The directory whose package.json declares the `@playwright/test` version to install. Nothing is installed if it
+      does not depend on `@playwright/test`.'
+    required: true
 
 runs:
   using: 'composite'
   steps:
-    # Resolve the app's @playwright/test version. Some apps (e.g. the node bundler apps) assert via a
-    # plain node script and don't depend on Playwright — emit an empty version instead of failing, so
-    # the steps below skip the (wasted) browser install rather than erroring on the missing package.
+    # Read from package.json rather than node_modules, so this can run before dependencies are installed.
     - name: Get Playwright version
       id: playwright-version
       run: |
-        version=$(node -e "let v = ''; try { v = require('@playwright/test/package.json').version; } catch {} process.stdout.write(String(v));")
-        if [ "$version" = "$INSTALLED_VERSION" ]; then version=''; fi
+        version=$(node -e "
+          const { dependencies, devDependencies } = require('./package.json');
+          const range = devDependencies?.['@playwright/test'] ?? dependencies?.['@playwright/test'] ?? '';
+          process.stdout.write(range.replace(/^[~^=]/, ''));
+        ")
         echo "version=$version" >> "$GITHUB_OUTPUT"
       shell: bash
-      env:
-        INSTALLED_VERSION: ${{ inputs.installed-version }}
       working-directory: ${{ inputs.cwd }}
 
-    - name: Restore cached playwright binaries
-      uses: actions/cache/restore@v6.1.0
-      id: playwright-cache
+    - name: Mount Playwright cache
+      uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
       if: steps.playwright-version.outputs.version != ''
       with:
-        path: |
-          ~/.cache/ms-playwright
-        # Bump the iteration when bumping runner images to use a new cache
-        key: playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}
+        cache: |
+          playwright
+          apt
 
-    # We always install all browsers, if uncached
-    - name: Install Playwright dependencies (uncached)
-      run: npx playwright install chromium webkit firefox --with-deps
-      if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit != 'true'
+    # `--with-deps` names packages that the runner image already has (glib, mesa, nss, ...), and `apt-get install` would
+    # upgrade them to the latest Ubuntu update. That is half of the download on a cold cache, and the image versions work.
+    - name: Keep installed apt packages
+      if: steps.playwright-version.outputs.version != ''
+      run: echo 'APT::Get::Upgrade "false";' | sudo tee /etc/apt/apt.conf.d/99-no-upgrade > /dev/null
       shell: bash
-      working-directory: ${{ inputs.cwd }}
 
-    - name: Install Playwright system dependencies only (cached)
+    # Downloads only the browsers and apt packages that are not on the cache volume yet. `npx` runs outside the repo,
+    # so it can't pick up a `playwright` that a parallel `pnpm install` is still linking.
+    - name: Install Playwright
+      if: steps.playwright-version.outputs.version != ''
       env:
         PLAYWRIGHT_BROWSERS: ${{ inputs.browsers || 'chromium webkit firefox' }}
-      run: npx playwright install-deps "$PLAYWRIGHT_BROWSERS"
-      if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit == 'true'
+        PLAYWRIGHT_VERSION: ${{ steps.playwright-version.outputs.version }}
+      run: npx -y "playwright@$PLAYWRIGHT_VERSION" install --with-deps $PLAYWRIGHT_BROWSERS
       shell: bash
-      working-directory: ${{ inputs.cwd }}
-
-    # Only store cache on develop branch
-    - name: Store cached playwright binaries
-      uses: actions/cache/save@v6.1.0
-      if:
-        steps.playwright-version.outputs.version != '' && github.event_name == 'push' && github.ref ==
-        'refs/heads/develop'
-      with:
-        path: |
-          ~/.cache/ms-playwright
-        # Bump the iteration when bumping runner images to use a new cache
-        key: playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}
+      working-directory: ${{ runner.temp }}

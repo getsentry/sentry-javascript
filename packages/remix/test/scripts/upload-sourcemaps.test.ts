@@ -38,7 +38,6 @@ await vi.hoisted(async () =>
   }),
 );
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { createRelease } = require('../../scripts/createRelease');
 
 beforeEach(() => {
@@ -147,4 +146,5 @@ describe('createRelease', () => {
 
 // To avoid `--isolatedModules` flag as we're not importing
 // anything for these tests.
+// oxlint-disable-next-line typescript/no-useless-empty-export
 export {};

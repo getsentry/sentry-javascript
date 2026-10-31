@@ -1,5 +1,14 @@
 import type { MessageSendRequest, Queue, QueueSendBatchOptions, QueueSendOptions } from '@cloudflare/workers-types';
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  MESSAGING_BATCH_MESSAGE_COUNT,
+  MESSAGING_DESTINATION_NAME,
+  MESSAGING_MESSAGE_BODY_SIZE,
+  MESSAGING_OPERATION_NAME,
+  MESSAGING_OPERATION_TYPE,
+  MESSAGING_SYSTEM,
+} from '@sentry/conventions/attributes';
 import { QUEUE_PUBLISH } from '@sentry/conventions/op';
 import { getTraceData, startSpan, type Span } from '@sentry/core';
 import { addQueueTraceContext } from '../../utils/queueTraceMeta';
@@ -20,12 +29,12 @@ function startPublishSpan<T>(
     {
       name: `send ${bindingName}`,
       attributes: {
-        'messaging.system': 'cloudflare',
-        'messaging.destination.name': bindingName,
-        'messaging.operation.type': 'send',
-        'messaging.operation.name': 'send',
-        ...(messageCount !== undefined && { 'messaging.batch.message_count': messageCount }),
-        'messaging.message.body.size': bodySize,
+        [MESSAGING_SYSTEM]: 'cloudflare',
+        [MESSAGING_DESTINATION_NAME]: bindingName,
+        [MESSAGING_OPERATION_TYPE]: 'send',
+        [MESSAGING_OPERATION_NAME]: 'send',
+        [MESSAGING_BATCH_MESSAGE_COUNT]: messageCount,
+        [MESSAGING_MESSAGE_BODY_SIZE]: bodySize,
         [SENTRY_OP]: QUEUE_PUBLISH,
         [SENTRY_ORIGIN]: ORIGIN,
       },

@@ -1,30 +1,15 @@
 import type { CfProperties, IncomingRequestCfProperties } from '@cloudflare/workers-types';
-import {
-  NETWORK_PROTOCOL_NAME,
-  NETWORK_PROTOCOL_VERSION,
-  SENTRY_OP,
-  SENTRY_SEGMENT_NAME_SOURCE,
-} from '@sentry/conventions/attributes';
-import { HTTP_SERVER } from '@sentry/conventions/op';
-import {
-  captureException,
-  continueTrace,
-  getHttpSpanDetailsFromUrlObject,
-  hasSpanStreamingEnabled,
-  httpHeadersToSpanAttributes,
-  HTTP_SPAN_NAME_FALLBACK,
-  parseStringToURLObject,
-  setHttpStatus,
-  startSpanManual,
-  winterCGHeadersToDict,
-} from '@sentry/core';
-import { classifyResponseStreaming } from '@sentry/core/server';
-import { captureIncomingRequestBody } from './integrations/httpServer';
+import { NETWORK_PROTOCOL_NAME, NETWORK_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
+import type { SpanAttributes } from '@sentry/core';
+import { getIsolationScope, safeCallback } from '@sentry/core';
+import { wrapServerRequestHandler } from '@sentry/server-utils/request-handler';
+import { DEBUG_BUILD } from './debug-build';
+import { getHttpServerRequestOptions } from './integrations/httpServer';
 import { flushDeferredChannelEvents } from './orchestrion-deferred-channels';
 import type { CloudflareClient, CloudflareOptions } from './client';
 import type { ExecutionContextCompat } from './executionContext';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
-import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
+import { addCloudResourceContext, addCultureContext } from './scope-utils';
 import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
 import { withInvocationIsolationScope } from './utils/invocationScope';
 
@@ -56,7 +41,7 @@ type InitSdk = (options: CloudflareOptions) => CloudflareClient | undefined;
  * Same as {@link wrapRequestHandler}, but with the SDK initialization injected.
  *
  * Wrappers that are only reachable from the main entry point — where `nodejs_compat` is a
- * requirement anyway — pass `init` from `sdk.ts` to get the full default integrations.
+ * requirement anyway — pass `init` from `sdk.ts` so `enableOpenTelemetrySetup` is honored.
  *
  * @internal
  */
@@ -78,7 +63,6 @@ export function wrapRequestHandlerWithInit(
       : context
         ? getOriginalWaitUntil(context).bind(context)
         : undefined;
-    const errorMechanismType = getRequestErrorMechanismType(context);
 
     const client = initSdk({ ...options, ctx: context });
     isolationScope.setClient(client);
@@ -88,43 +72,8 @@ export function wrapRequestHandlerWithInit(
     // request, where workerd allows publish, and init() above has registered subscribers.
     flushDeferredChannelEvents();
 
-    const urlObject = parseStringToURLObject(request.url);
-    const [rawName, attributes] = getHttpSpanDetailsFromUrlObject(
-      urlObject,
-      'server',
-      'auto.http.cloudflare',
-      request,
-      undefined,
-      client,
-    );
-    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
-    // A `route` source means the name already is (e.g. the `/` path), so it is kept as-is.
-    const name =
-      attributes[SENTRY_SEGMENT_NAME_SOURCE] === 'route' || !client || !hasSpanStreamingEnabled(client)
-        ? rawName
-        : request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK;
-
-    const contentLength = request.headers.get('content-length');
-    if (contentLength) {
-      attributes['http.request.body.size'] = parseInt(contentLength, 10);
-    }
-
-    const userAgentHeader = request.headers.get('user-agent');
-    if (userAgentHeader) {
-      attributes['user_agent.original'] = userAgentHeader;
-    }
-
-    if (client) {
-      Object.assign(
-        attributes,
-        httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), client.getDataCollectionOptions()),
-      );
-    }
-
-    attributes[SENTRY_OP] = HTTP_SERVER;
-
     addCloudResourceContext(isolationScope);
-    addRequest(isolationScope, request);
+    const attributes: SpanAttributes = {};
     if (request.cf) {
       addCultureContext(isolationScope, request.cf);
 
@@ -135,105 +84,50 @@ export function wrapRequestHandlerWithInit(
       }
     }
 
-    // Do not capture spans for OPTIONS and HEAD requests
-    if (request.method === 'OPTIONS' || request.method === 'HEAD') {
+    if (!client) {
       try {
         return await handler();
-      } catch (e) {
-        if (captureErrors) {
-          captureException(e, { mechanism: { handled: false, type: errorMechanismType } });
-        }
-        throw e;
       } finally {
         waitUntil?.(flushAndDispose(client));
       }
     }
 
-    if (client) {
-      await captureIncomingRequestBody(client, request);
-    }
-
-    return continueTrace(
-      { sentryTrace: request.headers.get('sentry-trace') || '', baggage: request.headers.get('baggage') },
-      () => {
-        // Note: This span will not have a duration unless I/O happens in the handler. This is
-        // because of how the cloudflare workers runtime works.
-        // See: https://developers.cloudflare.com/workers/runtime-apis/performance/
-
-        // Use startSpanManual to control when span ends (needed for streaming responses)
-        return startSpanManual({ name, attributes }, async span => {
-          let res: Response;
-
-          try {
-            res = await handler();
-            setHttpStatus(span, res.status);
-
-            // After the handler runs, the span name might have been updated by nested instrumentation
-            // (e.g., Remix parameterizing routes). The span should already have the correct name
-            // from that instrumentation, so we don't need to do anything here.
-          } catch (e) {
-            span.end();
-            if (captureErrors) {
-              captureException(e, { mechanism: { handled: false, type: errorMechanismType } });
-            }
-            waitUntil?.(flushAndDispose(client));
-            throw e;
-          }
-
-          // Classify response to detect actual streaming
-          const classification = classifyResponseStreaming(res);
-
-          if (classification.isStreaming && res.body) {
-            try {
-              let ended = false;
-
-              const endSpanOnce = (): void => {
-                if (ended) return;
-
-                ended = true;
-                span.end();
-                waitUntil?.(flushAndDispose(client));
-              };
-
-              const transform = new TransformStream({
-                flush() {
-                  // Source stream completed normally.
-                  endSpanOnce();
-                },
-                cancel() {
-                  // Client disconnected (or downstream cancelled). The `cancel`
-                  // is being called while the response is still considered
-                  // active, so this is a safe place to end the span.
-                  endSpanOnce();
-                },
-              });
-
-              return new Response(res.body.pipeThrough(transform), {
-                status: res.status,
-                statusText: res.statusText,
-                headers: res.headers,
-              });
-            } catch {
-              span.end();
-              waitUntil?.(flushAndDispose(client));
-              return res;
-            }
-          }
-
-          // Non-streaming response - end span immediately and return original
-          span.end();
-
+    // Note: The span will not have a duration unless I/O happens in the handler. This is
+    // because of how the cloudflare workers runtime works.
+    // See: https://developers.cloudflare.com/workers/runtime-apis/performance/
+    return wrapServerRequestHandler(
+      {
+        request,
+        client,
+        // Without `AsyncLocalStorage`, `withInvocationIsolationScope` does not fork, and the scope it
+        // passes in is not the current one. The request data has to go on the current scope, where
+        // events captured in the handler read it.
+        isolationScope: getIsolationScope(),
+        options: getHttpServerRequestOptions(client),
+        origin: 'auto.http.cloudflare',
+        mechanism: captureErrors ? { handled: false, type: getRequestErrorMechanismType(context) } : undefined,
+        attributes,
+        isStreamingResponse: response => {
+          const classification = safeCallback(
+            DEBUG_BUILD ? 'Error in `isStreamingResponse`, using the default classification:' : '',
+            () => options.isStreamingResponse?.(response, request),
+            () => undefined,
+          );
+          // An async callback returns a promise, which would otherwise count as `true`.
+          return typeof classification === 'boolean' ? classification : undefined;
+        },
+        onDone: response => {
           // Don't dispose for protocol upgrades (101 Switching Protocols) - the connection stays alive.
           // This includes WebSocket upgrades where webSocketMessage/webSocketClose handlers
           // will still be called and may need the client to capture errors.
-          if (res.status === 101) {
-            waitUntil?.(client?.flush(2000));
+          if (response?.status === 101) {
+            waitUntil?.(client.flush(2000));
           } else {
             waitUntil?.(flushAndDispose(client));
           }
-          return res;
-        });
+        },
       },
+      () => handler(),
     );
   }, wrapperOptions.context);
 }

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
+import { waitForHydration } from './waitForHydration';
 
 test.describe('server-side errors', async () => {
   test('captures api fetch error (fetched on click)', async ({ page }) => {
@@ -8,6 +9,7 @@ test.describe('server-side errors', async () => {
     });
 
     await page.goto(`/fetch-server-error`);
+    await waitForHydration(page);
     await page.getByText('Fetch Server API Error', { exact: true }).click();
 
     const error = await errorPromise;
@@ -42,6 +44,7 @@ test.describe('server-side errors', async () => {
     });
 
     await page.goto(`/test-param/1234`);
+    await waitForHydration(page);
     await page.getByRole('button', { name: 'Fetch Server API Error', exact: true }).click();
 
     const error = await errorPromise;

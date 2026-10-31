@@ -16,10 +16,11 @@ sentryTest(
     const url = await getLocalTestUrl({ testDir: __dirname });
 
     const pageloadRequestPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === PAGELOAD);
-    await page.goto(`${url}?jwt=sensitive-jwt-value&page=1`);
+    await page.goto(`${url}?jwt=sensitive-jwt-value&page=1`, { referer: `${url}?jwt=sensitive-jwt-value&page=2` });
     const eventData = envelopeRequestParser<Event>(await pageloadRequestPromise);
 
     expect(eventData.request?.url).toBe(`${url}?jwt=[Filtered]&page=1`);
+    expect(eventData.request?.headers?.Referer).toBe(`${url}?jwt=[Filtered]&page=2`);
     expect(eventData.spans?.find(({ op }) => op === BROWSER_REQUEST)?.description).toBe(`${url}?jwt=[Filtered]&page=1`);
     expect(eventData.spans?.find(({ op }) => op === RESOURCE_IMG)?.description).toBe(
       'https://sentry-test-site.example/path/to/image.svg?token=[Filtered]&size=2',

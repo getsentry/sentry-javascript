@@ -351,6 +351,34 @@ describe('createTransport', () => {
         expect(requestExecutor).not.toHaveBeenCalled();
         expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'log_item', 3);
       });
+
+      it('back-off using X-Sentry-Rate-Limits with trace_metric category', async () => {
+        const { retryAfterSeconds, beforeLimit, withinLimit } = setRateLimitTimes();
+        const [transport, , requestExecutor, recordDroppedEventCallback] = createTestTransport({
+          headers: {
+            'x-sentry-rate-limits': `${retryAfterSeconds}:trace_metric:scope`,
+            'retry-after': null,
+          },
+        });
+
+        const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
+
+        await transport.send(ERROR_ENVELOPE);
+        requestExecutor.mockClear();
+
+        dateNowSpy.mockImplementation(() => withinLimit);
+
+        await transport.send(
+          createEnvelope<Envelope>({ sent_at: '123' }, [
+            [
+              { type: 'trace_metric', item_count: 2, content_type: 'application/vnd.sentry.items.trace-metric+json' },
+              { items: [] },
+            ],
+          ] as Envelope[1]),
+        );
+        expect(requestExecutor).not.toHaveBeenCalled();
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'trace_metric', 2);
+      });
     });
 
     describe('Client Reports', () => {
@@ -479,7 +507,7 @@ describe('createTransport', () => {
         expect(mockRecordDroppedEventCallback).toHaveBeenCalledTimes(3);
         expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'span', 5);
         expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'log_item', 3);
-        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'metric', 2);
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'trace_metric', 2);
       });
 
       it('does not record outcomes for client reports when receiving 413', async () => {

@@ -16,6 +16,6 @@ app.use(
 
 addRoutes(app);
 
-const port = Number(Deno.env.get('PORT') || 38787);
+const port = Number(Deno.env.get('PORT') || 8787);
 
 Deno.serve({ port }, app.fetch);

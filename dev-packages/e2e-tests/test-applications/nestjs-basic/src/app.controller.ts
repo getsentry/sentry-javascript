@@ -86,6 +86,12 @@ export class AppController {
     return { result: await this.appService.testSpanDecoratorSync() };
   }
 
+  @Get('test-derived-cron')
+  async testDerivedCron() {
+    await this.appService.testDerivedCron();
+    return {};
+  }
+
   @Get('kill-test-cron/:job')
   async killTestCron(@Param('job') job: string) {
     this.appService.killTestCron(job);

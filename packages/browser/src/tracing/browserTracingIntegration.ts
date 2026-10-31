@@ -367,7 +367,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     const urlObject = parseStringToURLObject(url || getLocationHref());
 
     const attributes = {
-      ...(urlObject?.pathname && { [URL_PATH]: urlObject.pathname }),
+      [URL_PATH]: urlObject?.pathname,
       ...(urlObject && !isURLObjectRelative(urlObject) && { [URL_FULL]: filterCollectedUrl(urlObject.href) }),
       ...finalStartSpanOptions.attributes,
     };
@@ -574,7 +574,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
         // We store the normalized request data on the scope, so we get the request data at time of span creation
         // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
-        const requestData = getHttpRequestData();
+        const requestData = getHttpRequestData(client);
         scope.setSDKProcessingMetadata({
           normalizedRequest: { ...requestData, url: filterCollectedUrl(requestData.url, client) },
         });
@@ -815,7 +815,7 @@ export function startBrowserTracingNavigationSpan(
   if (url && !isRedirect) {
     scope.setSDKProcessingMetadata({
       normalizedRequest: {
-        ...getHttpRequestData(),
+        ...getHttpRequestData(client),
         url: filterCollectedUrl(url, client),
       },
     });

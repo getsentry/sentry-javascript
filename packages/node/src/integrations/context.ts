@@ -1,5 +1,28 @@
 /* eslint-disable max-lines */
 
+import {
+  APP_START_TIME,
+  CLOUD_ACCOUNT_ID,
+  CLOUD_AVAILABILITY_ZONE,
+  CLOUD_PLATFORM,
+  CLOUD_PROVIDER,
+  CLOUD_REGION,
+  CULTURE_LOCALE,
+  CULTURE_TIMEZONE,
+  DEVICE_ARCHS,
+  DEVICE_BOOT_TIME,
+  DEVICE_CPU_DESCRIPTION,
+  DEVICE_FREE_MEMORY,
+  DEVICE_MEMORY_SIZE,
+  DEVICE_PROCESSOR_COUNT,
+  DEVICE_PROCESSOR_FREQUENCY,
+  OS_BUILD,
+  OS_KERNEL_VERSION,
+  OS_NAME,
+  OS_VERSION,
+  PROCESS_RUNTIME_ENGINE_NAME,
+  PROCESS_RUNTIME_ENGINE_VERSION,
+} from '@sentry/conventions/attributes';
 import { execFile } from 'node:child_process';
 import { readdir, readFile } from 'node:fs';
 import * as os from 'node:os';
@@ -19,12 +42,6 @@ import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core';
 
 export const readFileAsync = promisify(readFile);
 export const readDirAsync = promisify(readdir);
-
-// Process enhanced with methods from Node 18, 20, 22 as @types/node
-// is on `14.18.0` to match minimum version requirements of the SDK
-interface ProcessWithCurrentValues extends NodeJS.Process {
-  availableMemory?(): number;
-}
 
 const INTEGRATION_NAME = 'Context' as const;
 
@@ -60,8 +77,8 @@ const _nodeContextIntegration = ((options: ContextOptions = {}) => {
 
   // Map static context data to span attributes
   const cachedSpanAttributes: Record<string, unknown> = {
-    'process.runtime.engine.name': 'v8',
-    'process.runtime.engine.version': process.versions.v8,
+    [PROCESS_RUNTIME_ENGINE_NAME]: 'v8',
+    [PROCESS_RUNTIME_ENGINE_VERSION]: process.versions.v8,
     ...contextsToSpanAttributes({
       app: appContext,
       device: deviceContext,
@@ -141,8 +158,8 @@ function _updateContext(contexts: Contexts): Contexts {
     contexts.app.app_memory = process.memoryUsage().rss;
   }
 
-  if (contexts.app?.free_memory && typeof (process as ProcessWithCurrentValues).availableMemory === 'function') {
-    const freeMemory = (process as ProcessWithCurrentValues).availableMemory?.();
+  if (contexts.app?.free_memory && typeof process.availableMemory === 'function') {
+    const freeMemory = process.availableMemory();
     if (freeMemory != null) {
       contexts.app.free_memory = freeMemory;
     }
@@ -162,52 +179,53 @@ export function contextsToSpanAttributes(contexts: Contexts): Record<string, unk
 
   if (app) {
     if (app.app_start_time) {
-      attrs['app.start_time'] = app.app_start_time;
+      attrs[APP_START_TIME] = app.app_start_time;
     }
   }
 
   if (device) {
     if (device.arch) {
-      attrs['device.archs'] = [device.arch];
+      attrs[DEVICE_ARCHS] = [device.arch];
     }
     if (device.boot_time) {
-      attrs['device.boot_time'] = device.boot_time;
+      attrs[DEVICE_BOOT_TIME] = device.boot_time;
     }
     if (device.memory_size != null) {
-      attrs['device.memory_size'] = device.memory_size;
+      attrs[DEVICE_MEMORY_SIZE] = device.memory_size;
     }
     if (device.processor_count != null) {
-      attrs['device.processor_count'] = device.processor_count;
+      attrs[DEVICE_PROCESSOR_COUNT] = device.processor_count;
     }
     if (device.cpu_description) {
-      attrs['device.cpu_description'] = device.cpu_description;
+      attrs[DEVICE_CPU_DESCRIPTION] = device.cpu_description;
     }
     if (device.processor_frequency != null) {
-      attrs['device.processor_frequency'] = device.processor_frequency;
+      attrs[DEVICE_PROCESSOR_FREQUENCY] = device.processor_frequency;
     }
   }
 
   if (osCtx) {
     if (osCtx.name) {
-      attrs['os.name'] = osCtx.name;
+      attrs[OS_NAME] = osCtx.name;
     }
     if (osCtx.version) {
-      attrs['os.version'] = osCtx.version;
+      attrs[OS_VERSION] = osCtx.version;
     }
     if (osCtx.kernel_version) {
-      attrs['os.kernel_version'] = osCtx.kernel_version;
+      attrs[OS_KERNEL_VERSION] = osCtx.kernel_version;
     }
     if (osCtx.build) {
-      attrs['os.build'] = osCtx.build;
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      attrs[OS_BUILD] = osCtx.build;
     }
   }
 
   if (culture) {
     if (culture.locale) {
-      attrs['culture.locale'] = culture.locale;
+      attrs[CULTURE_LOCALE] = culture.locale;
     }
     if (culture.timezone) {
-      attrs['culture.timezone'] = culture.timezone;
+      attrs[CULTURE_TIMEZONE] = culture.timezone;
     }
   }
 
@@ -231,8 +249,8 @@ export function getDynamicSpanAttributes(
 
   if (appContext) {
     attrs['app.memory'] = process.memoryUsage().rss;
-    if (typeof (process as ProcessWithCurrentValues).availableMemory === 'function') {
-      const freeMemory = (process as ProcessWithCurrentValues).availableMemory?.();
+    if (typeof process.availableMemory === 'function') {
+      const freeMemory = process.availableMemory();
       if (freeMemory != null) {
         attrs['app.free_memory'] = freeMemory;
       }
@@ -241,7 +259,7 @@ export function getDynamicSpanAttributes(
 
   // Only include if memory tracking was initially enabled (indicated by free_memory being set)
   if (deviceContext?.free_memory != null) {
-    attrs['device.free_memory'] = os.freemem();
+    attrs[DEVICE_FREE_MEMORY] = os.freemem();
   }
 
   return attrs;
@@ -314,8 +332,8 @@ export function getAppContext(): AppContext {
   // https://nodejs.org/api/process.html#processavailablememory
   const appContext: AppContext = { app_start_time, app_memory };
 
-  if (typeof (process as ProcessWithCurrentValues).availableMemory === 'function') {
-    const freeMemory = (process as ProcessWithCurrentValues).availableMemory?.();
+  if (typeof process.availableMemory === 'function') {
+    const freeMemory = process.availableMemory();
     if (freeMemory != null) {
       appContext.free_memory = freeMemory;
     }
@@ -525,62 +543,63 @@ function getCloudResourceContext(): CloudResourceContext | undefined {
   if (process.env.VERCEL) {
     // https://vercel.com/docs/concepts/projects/environment-variables/system-environment-variables#system-environment-variables
     return {
-      'cloud.provider': 'vercel',
-      'cloud.region': process.env.VERCEL_REGION,
+      [CLOUD_PROVIDER]: 'vercel',
+      [CLOUD_REGION]: process.env.VERCEL_REGION,
     };
   } else if (process.env.AWS_REGION) {
     // https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html
+    const executionEnv = process.env.AWS_EXECUTION_ENV;
     return {
-      'cloud.provider': 'aws',
-      'cloud.region': process.env.AWS_REGION,
-      'cloud.platform': process.env.AWS_EXECUTION_ENV,
+      [CLOUD_PROVIDER]: 'aws',
+      [CLOUD_REGION]: process.env.AWS_REGION,
+      [CLOUD_PLATFORM]: executionEnv?.startsWith('AWS_Lambda') ? 'aws_lambda' : executionEnv,
     };
   } else if (process.env.GCP_PROJECT) {
     // https://cloud.google.com/composer/docs/how-to/managing/environment-variables#reserved_variables
     return {
-      'cloud.provider': 'gcp',
+      [CLOUD_PROVIDER]: 'gcp',
     };
   } else if (process.env.ALIYUN_REGION_ID) {
     // TODO: find where I found these environment variables - at least gc.github.com returns something
     return {
-      'cloud.provider': 'alibaba_cloud',
-      'cloud.region': process.env.ALIYUN_REGION_ID,
+      [CLOUD_PROVIDER]: 'alibaba_cloud',
+      [CLOUD_REGION]: process.env.ALIYUN_REGION_ID,
     };
   } else if (process.env.WEBSITE_SITE_NAME && process.env.REGION_NAME) {
     // https://learn.microsoft.com/en-us/azure/app-service/reference-app-settings?tabs=kudu%2Cdotnet#app-environment
     return {
-      'cloud.provider': 'azure',
-      'cloud.region': process.env.REGION_NAME,
+      [CLOUD_PROVIDER]: 'azure',
+      [CLOUD_REGION]: process.env.REGION_NAME,
     };
   } else if (process.env.IBM_CLOUD_REGION) {
     // TODO: find where I found these environment variables - at least gc.github.com returns something
     return {
-      'cloud.provider': 'ibm_cloud',
-      'cloud.region': process.env.IBM_CLOUD_REGION,
+      [CLOUD_PROVIDER]: 'ibm_cloud',
+      [CLOUD_REGION]: process.env.IBM_CLOUD_REGION,
     };
   } else if (process.env.TENCENTCLOUD_REGION) {
     // https://www.tencentcloud.com/document/product/583/32748
     return {
-      'cloud.provider': 'tencent_cloud',
-      'cloud.region': process.env.TENCENTCLOUD_REGION,
-      'cloud.account.id': process.env.TENCENTCLOUD_APPID,
-      'cloud.availability_zone': process.env.TENCENTCLOUD_ZONE,
+      [CLOUD_PROVIDER]: 'tencent_cloud',
+      [CLOUD_REGION]: process.env.TENCENTCLOUD_REGION,
+      [CLOUD_ACCOUNT_ID]: process.env.TENCENTCLOUD_APPID,
+      [CLOUD_AVAILABILITY_ZONE]: process.env.TENCENTCLOUD_ZONE,
     };
   } else if (process.env.NETLIFY) {
     // https://docs.netlify.com/configure-builds/environment-variables/#read-only-variables
     return {
-      'cloud.provider': 'netlify',
+      [CLOUD_PROVIDER]: 'netlify',
     };
   } else if (process.env.FLY_REGION) {
     // https://fly.io/docs/reference/runtime-environment/
     return {
-      'cloud.provider': 'fly.io',
-      'cloud.region': process.env.FLY_REGION,
+      [CLOUD_PROVIDER]: 'fly.io',
+      [CLOUD_REGION]: process.env.FLY_REGION,
     };
   } else if (process.env.DYNO) {
     // https://devcenter.heroku.com/articles/dynos#local-environment-variables
     return {
-      'cloud.provider': 'heroku',
+      [CLOUD_PROVIDER]: 'heroku',
     };
   } else {
     return undefined;

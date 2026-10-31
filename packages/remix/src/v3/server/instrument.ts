@@ -1,6 +1,7 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { createMultiMatcher } from 'remix/route-pattern/match';
 import { consoleSandbox } from '@sentry/core';
+import { _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest } from '@sentry/core/server';
 import type { OrchestrionChannelContext } from '@sentry/server-utils';
 import { remixV3Channels } from '@sentry/server-utils/orchestrion/config';
 
@@ -58,9 +59,9 @@ function subscribeToCreateRouter(): void {
 }
 
 /**
- * Report errors from any fetch handler, router or not. The middleware only sees failures inside a
- * router; this is the only hook that covers a plain handler. No abort guard is needed, because the
- * listener drops aborted requests before calling `onError`.
+ * Report errors from any fetch handler, router or not, and answer managed tunnel requests before it runs.
+ * The middleware only sees failures inside a router; this is the only hook that covers a plain handler.
+ * No abort guard is needed, because the listener drops aborted requests before calling `onError`.
  */
 function subscribeToCreateRequestListener(): void {
   diagnosticsChannel
@@ -71,6 +72,7 @@ function subscribeToCreateRequestListener(): void {
       start(data) {
         try {
           injectOnError(ensureOptions(data.arguments, 1));
+          wrapFetchHandler(data.arguments);
         } catch {
           // Ignored on purpose.
         }
@@ -80,6 +82,21 @@ function subscribeToCreateRequestListener(): void {
       asyncEnd: NOOP,
       error: NOOP,
     });
+}
+
+/**
+ * Answers managed tunnel requests before the app's fetch handler, so code the app runs in front of its router never
+ * sees them. The router middleware still answers them for apps served some other way.
+ */
+function wrapFetchHandler(args: unknown[]): void {
+  const handler = args[0];
+  if (typeof handler !== 'function') {
+    return;
+  }
+
+  args[0] = function sentryFetchHandler(this: unknown, request: Request, ...rest: unknown[]): unknown {
+    return handleServedTunnelRequest(request) ?? handler.call(this, request, ...rest);
+  };
 }
 
 function injectOnError(raw: Record<string, unknown> | undefined): void {

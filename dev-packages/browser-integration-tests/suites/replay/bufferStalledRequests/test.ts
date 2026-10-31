@@ -2,9 +2,11 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../utils/helpers';
 import {
+  getReplayEvent,
   getReplaySnapshot,
   isReplayEvent,
   shouldSkipReplayTest,
+  waitForReplayRequest,
   waitForReplayRunning,
 } from '../../../utils/replayHelpers';
 
@@ -155,16 +157,22 @@ sentryTest('buffer mode remains after interrupting replay flush', async ({ getLo
   expect(firstSession.session?.dirty).toBe(true);
   expect(firstSession.recordingMode).toBe('buffer'); // But still in buffer mode
 
+  // The resumed session flushes shortly after reload, which bumps `segmentId` again, so a snapshot
+  // can't reliably observe `segmentId: 1`. Assert on the first segment sent after reload instead.
+  const resumedReplayRequestPromise = waitForReplayRequest(page);
   await page.reload();
   await waitForReplayRunning(page);
   const secondSession = await getReplaySnapshot(page);
   expect(secondSession.session?.sampled).toBe('buffer');
   expect(secondSession.session?.dirty).toBe(true);
   expect(secondSession.session?.id).toBe(firstSessionId);
-  expect(secondSession.session?.segmentId).toBe(1);
   // Because a flush attempt was made and not allowed to complete, segmentId increased from 0,
   // so we resume in session mode
   expect(secondSession.recordingMode).toBe('session');
+
+  const resumedReplayEvent = getReplayEvent(await resumedReplayRequestPromise);
+  expect(resumedReplayEvent.replay_id).toBe(firstSessionId);
+  expect(resumedReplayEvent.segment_id).toBe(1);
 });
 
 sentryTest(

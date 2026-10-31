@@ -10,27 +10,18 @@
     "test:build": "pnpm test:pull-sam-image && pnpm install && npx rimraf node_modules/@sentry/aws-serverless/nodejs",
     "test:assert": "pnpm test"
   },
-  "//": "We just need the @sentry/aws-serverless layer zip file, not the NPM package",
   "devDependencies": {
     "@aws-sdk/client-lambda": "^3.863.0",
-    "@playwright/test": "~1.63.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@sentry/aws-serverless": "link:../../../../packages/aws-serverless/build/aws/dist-serverless/",
     "aws-cdk-lib": "^2.210.0",
     "constructs": "^10.4.2",
     "glob": "^11.0.3",
     "rimraf": "^5.0.10"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
-  "//": "We need to override this here again to ensure this is not overwritten by the test runner",
-  "pnpm": {
-    "overrides": {
-      "@sentry/aws-serverless": "link:../../../../packages/aws-serverless/build/aws/dist-serverless/"
-    }
-  },
   "sentryTest": {
+    "runner": "namespace-profile-sentry-javascript",
     "variants": [
       {
         "build-command": "NODE_VERSION=22 pnpm test:build",

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/bun",
-  "version": "11.7.0",
+  "version": "11.10.0",
   "description": "Official Sentry SDK for bun",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/bun",
@@ -43,21 +43,23 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "11.7.0",
-    "@sentry/conventions": "^0.27.0",
-    "@sentry/node": "11.7.0",
-    "@sentry/server-utils": "11.7.0"
+    "@sentry/bundler-plugins": "11.10.0",
+    "@sentry/core": "11.10.0",
+    "@sentry/conventions": "^0.30.0",
+    "@sentry/node": "11.10.0",
+    "@sentry/server-utils": "11.10.0"
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.10.0",
     "bun-types": "^1.2.9"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:dev": "yarn build",
+    "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "yarn build:watch",
+    "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
@@ -71,9 +73,6 @@
     "test:bun": "bun test",
     "test:watch": "bun test --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sideEffects": false
 }

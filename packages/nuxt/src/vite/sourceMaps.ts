@@ -5,7 +5,13 @@ import { warnOnRemovedBuildOptions } from '@sentry/core';
 import type { NitroConfig } from 'nitropack';
 import type { Plugin } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
-import { deletePublicSourceMaps, deleteSourceMapsAfterBuild, withoutSourceMapDeletion } from './sourceMapDeletion';
+import {
+  deletePublicSourceMaps,
+  deleteSourceMapsAfterBuild,
+  type DeletionFallback,
+  getFallbackFilesToDelete,
+  withoutSourceMapDeletion,
+} from './sourceMapDeletion';
 import { validateSourceMapsOptionsPlugin } from './sentryVitePlugin';
 
 /**
@@ -33,7 +39,7 @@ export function setupSourceMaps(
   const sourceMapsEnabled = moduleOptions.sourcemaps?.disable !== true;
 
   // In case we overwrite the source map settings, we default to deleting the files
-  const shouldDeleteFilesFallback = { client: true, server: true };
+  const shouldDeleteFilesFallback: DeletionFallback = { client: true, server: true };
 
   nuxt.hook('modules:done', () => {
     if (sourceMapsEnabled && !nuxt.options.dev && !nuxt.options?._prepare) {
@@ -99,6 +105,9 @@ export function setupSourceMaps(
 
       validateNitroSourceMapSettings(nuxt, nitroConfig, moduleOptions);
 
+      // `rollupConfig.output.sourcemap` overrides `sourcemap.server`, so the server source maps are the user's.
+      shouldDeleteFilesFallback.server &&= nitroConfig.rollupConfig.output?.sourcemap === undefined;
+
       if (isDebug) {
         // eslint-disable-next-line no-console
         console.log('[Sentry] Adding Sentry Rollup plugin to the server runtime.');
@@ -115,6 +124,7 @@ export function setupSourceMaps(
   nuxt.hook('nitro:init', nitro => {
     if (sourceMapsEnabled && !nitro.options.dev && !nuxt.options?._prepare) {
       const publicDir = nitro.options.output.publicDir;
+      shouldDeleteFilesFallback.outputDirs = { publicDir, serverDir: nitro.options.output.serverDir };
       const rollupConfig = (nitro.options.rollupConfig ??= { output: {} });
 
       rollupConfig.plugins = [
@@ -151,7 +161,7 @@ function normalizePath(path: string): string {
  */
 export function getPluginOptions(
   moduleOptions: SentryNuxtModuleOptions,
-  shouldDeleteFilesFallback?: { client: boolean; server: boolean },
+  shouldDeleteFilesFallback?: DeletionFallback,
 ): SentryVitePluginOptions | SentryRollupPluginOptions {
   const sourcemapsOptions = moduleOptions.sourcemaps || {};
   const filesToDeleteAfterUpload = resolveFilesToDeleteAfterUpload(moduleOptions, shouldDeleteFilesFallback);
@@ -200,19 +210,15 @@ export function getPluginOptions(
  * (client/server) whose `sourcemap` setting resolved to `undefined`, where Sentry stepped in and
  * enabled `'hidden'`. Given Nuxt's default of `{ server: true, client: false }`, this isn't the
  * default case: it only kicks in when a side is left `undefined` (whole config or a single sub-key).
+ * Sentry deletes them in Nitro's output directories, which are only known once Nitro is set up.
  * @see https://nuxt.com/docs/4.x/api/nuxt-config#sourcemap
  */
 function resolveFilesToDeleteAfterUpload(
   moduleOptions: SentryNuxtModuleOptions,
-  shouldDeleteFilesFallback?: { client: boolean; server: boolean },
+  shouldDeleteFilesFallback?: DeletionFallback,
 ): string | Array<string> | undefined {
-  const shouldDeleteFilesAfterUpload = shouldDeleteFilesFallback?.client || shouldDeleteFilesFallback?.server;
-  const fallbackFilesToDelete = [
-    ...(shouldDeleteFilesFallback?.client ? ['.*/**/public/**/*.map'] : []),
-    ...(shouldDeleteFilesFallback?.server
-      ? ['.*/**/server/**/*.map', '.*/**/output/**/*.map', '.*/**/function/**/*.map']
-      : []),
-  ];
+  const fallbackFilesToDelete = getFallbackFilesToDelete(shouldDeleteFilesFallback);
+  const shouldDeleteFilesAfterUpload = fallbackFilesToDelete.length > 0;
 
   const filesToDeleteAfterUpload = moduleOptions.sourcemaps?.filesToDeleteAfterUpload;
 
@@ -324,7 +330,7 @@ export function changeNuxtSourceMapSettings(
 }
 
 /** Logs warnings about potentially conflicting source map settings.
- *  Configures `sourcemapExcludeSources` in Nitro to make source maps usable in Sentry.
+ *  Configures `sourcemapExcludeSources` and `sourcemapMinify` in Nitro to make source maps usable in Sentry.
  *
  * only exported for testing
  */
@@ -364,10 +370,13 @@ export function validateNitroSourceMapSettings(
   }
 
   nitroConfig.rollupConfig.output.sourcemapExcludeSources = false;
+  // Nitro's source map minification runs after the bundler wrote the maps: it clears `mappings` of maps with
+  // `node_modules` sources, and Nitro 3 also deletes `sourcesContent`, which overrides `sourcemapExcludeSources`.
+  nitroConfig.experimental = { ...nitroConfig.experimental, sourcemapMinify: false };
   if (isDebug) {
     // eslint-disable-next-line no-console
     console.log(
-      '[Sentry] Set `sourcemapExcludeSources: false` in the Nuxt config (`nitro.rollupConfig.output`). Source maps will now include the actual code to be able to un-minify code snippets in Sentry.',
+      '[Sentry] Set `sourcemapExcludeSources: false` (`nitro.rollupConfig.output`) and `sourcemapMinify: false` (`nitro.experimental`) in the Nuxt config. Source maps will now include the actual code to be able to un-minify code snippets in Sentry.',
     );
   }
 }

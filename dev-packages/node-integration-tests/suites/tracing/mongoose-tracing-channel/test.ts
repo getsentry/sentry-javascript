@@ -48,7 +48,7 @@ describe('Mongoose tracing channel Test', () => {
         [DB_OPERATION_NAME]: { type: 'string', value: operation },
         [DB_SYSTEM_NAME]: { type: 'string', value: 'mongodb' },
         [SENTRY_OP]: { type: 'string', value: DB },
-        [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.mongoose.diagnostic_channel' },
+        [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.mongoose.native_channel' },
         [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
         [SERVER_ADDRESS]: { type: 'string', value: expect.any(String) },
         [SERVER_PORT]: { type: 'integer', value: expect.any(Number) },
@@ -98,7 +98,7 @@ describe('Mongoose tracing channel Test', () => {
               expect(spans.find(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose')).toBeUndefined();
               // ...while the diagnostics-channel path is active.
               expect(
-                spans.find(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose.diagnostic_channel'),
+                spans.find(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose.native_channel'),
               ).toBeDefined();
             },
           })
@@ -131,7 +131,7 @@ describe('Mongoose tracing channel Test', () => {
               const mongooseSave = spans.find(
                 span =>
                   span.name === 'save blogposts' &&
-                  span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose.diagnostic_channel',
+                  span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose.native_channel',
               );
               expect(mongooseSave).toBeDefined();
               // the underlying mongodb driver span must parent to the mongoose channel span,
@@ -157,7 +157,7 @@ describe('Mongoose tracing channel Test', () => {
               const cursorFind = spans.find(
                 span =>
                   span.name === 'find blogposts' &&
-                  span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose.diagnostic_channel',
+                  span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose.native_channel',
               );
               expect(cursorFind).toBeDefined();
               expect(cursorFind?.attributes[DB_QUERY_TEXT]).toBeUndefined();
@@ -184,7 +184,7 @@ describe('Mongoose tracing channel Test', () => {
               const aggregateSpan = container.items.find(
                 item =>
                   item.name === 'aggregate blogposts' &&
-                  item.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose.diagnostic_channel',
+                  item.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose.native_channel',
               );
               expect(aggregateSpan).toBeDefined();
               expect(aggregateSpan?.status).toBe('error');

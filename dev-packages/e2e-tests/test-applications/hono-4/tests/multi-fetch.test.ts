@@ -365,9 +365,7 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
     });
 
     test('error from failed internal fetch is correlated with the storefront trace', async ({ baseURL }) => {
-      // Use a param unique to this test: the `no error status` test above fetches `/ghost` too, and its
-      // identical `Failed to fetch product: ghost` error would otherwise be dropped by the Dedupe
-      // integration, so this test's `waitForError` would never fire.
+      // Not `ghost`: Dedupe would drop this error as a repeat of the error in the test above.
       const errorPromise = waitForError(APP_NAME, event => {
         return event.exception?.values?.[0]?.value === 'Failed to fetch product: phantom';
       });

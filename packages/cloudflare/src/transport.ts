@@ -66,12 +66,16 @@ export class IsolatedPromiseBuffer {
 
     const drainController = new AbortController();
     this.drainSignal = drainController.signal;
-    let tasks: PromiseLike<TransportMakeRequestResponse>[];
-    try {
-      tasks = oldTaskProducers.map(taskProducer => taskProducer());
-    } finally {
-      this.drainSignal = undefined;
-    }
+    const tasks = oldTaskProducers.map(taskProducer => {
+      // A request that throws synchronously, such as a custom `fetch`, must not stop the other requests
+      // or throw into the caller.
+      try {
+        return taskProducer();
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    });
+    this.drainSignal = undefined;
 
     return new Promise(resolve => {
       const timer = setTimeout(() => {

@@ -81,7 +81,9 @@ describe('instrumentUndici', () => {
   });
 
   it.each([true, false])('falls back to `HTTP` for an unknown method (span streaming: %s)', streaming => {
-    getClient.mockReturnValue(streaming ? { getOptions: () => ({ traceLifecycle: 'stream' }) } : undefined);
+    getClient.mockReturnValue(
+      streaming ? { getOptions: () => ({ traceLifecycle: 'stream' }), getDsn: () => undefined } : undefined,
+    );
 
     const request = {
       method: 'FROBNICATE',
@@ -96,7 +98,7 @@ describe('instrumentUndici', () => {
   });
 
   it('drops the URL path but keeps the domain with span streaming enabled', () => {
-    getClient.mockReturnValue({ getOptions: () => ({ traceLifecycle: 'stream' }) });
+    getClient.mockReturnValue({ getOptions: () => ({ traceLifecycle: 'stream' }), getDsn: () => undefined });
 
     const request = {
       method: 'QUERY',

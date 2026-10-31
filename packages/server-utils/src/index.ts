@@ -38,6 +38,10 @@ export { anthropicAIIntegration } from './integrations/anthropic';
 export { awsIntegration } from './integrations/aws-sdk';
 export { dataloaderIntegration } from './integrations/dataloader';
 export { genericPoolIntegration } from './integrations/generic-pool';
+export { nodeCronIntegration } from './integrations/node-cron';
+export type { NodeCronIntegrationOptions } from './integrations/node-cron';
+export { nodeScheduleIntegration } from './integrations/node-schedule';
+export type { NodeScheduleIntegrationOptions } from './integrations/node-schedule';
 export { googleGenAIIntegration } from './integrations/google-genai';
 export { graphqlIntegration } from './integrations/graphql';
 export { hapiIntegration } from './integrations/hapi';
@@ -77,5 +81,7 @@ export type { ExpressIntegrationOptions } from './integrations/express/types';
 export { expressErrorHandler, setupExpressErrorHandler } from './integrations/express/error-handler';
 /* oxlint-enable typescript/no-deprecated */
 export { firebaseIntegration } from './integrations/firebase';
+export { nitroIntegration } from './integrations/nitro';
+export type { NitroIntegrationOptions } from './integrations/nitro';
 
 export { getTracingIntegrations, getErrorIntegrations } from './integrations';
