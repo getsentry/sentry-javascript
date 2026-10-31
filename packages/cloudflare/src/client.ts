@@ -411,6 +411,37 @@ interface BaseCloudflareOptions {
   rpcTracePropagationBindings?: TracePropagationTargets;
 
   /**
+   * The Queue producer bindings on `env` that outgoing messages propagate trace context to.
+   *
+   * Cloudflare Queues has no message headers, so the SDK adds the producer's `sentry-trace` to
+   * plain-object message bodies under `__sentry_queue_trace__`. Arrays, binary data and other
+   * non-plain values are sent unchanged. A Sentry-instrumented consumer removes that field before
+   * your queue handler runs and links its `queue.process` span to every producer in the batch.
+   * Anywhere else the field arrives as part of the message body, so list only the queues whose
+   * consumer you know runs Sentry.
+   *
+   * The field adds about 80 bytes to each message. Cloudflare rejects messages over 128 KB, so a
+   * message close to that limit can fail to send once propagation is enabled.
+   *
+   * Strings match a binding name exactly, regular expressions match by pattern. Both match
+   * case-insensitively.
+   *
+   * @default []
+   * @example
+   * ```ts
+   * // Propagate to `env.BILLING_QUEUE` and every `env.JOBS_*` binding
+   * export default Sentry.withSentry(
+   *   env => ({
+   *     dsn: env.SENTRY_DSN,
+   *     queueTracePropagationBindings: ['BILLING_QUEUE', /^JOBS_/],
+   *   }),
+   *   handler,
+   * );
+   * ```
+   */
+  queueTracePropagationBindings?: TracePropagationTargets;
+
+  /**
    * Table names that should stay instrumented even though they match a reserved prefix used by
    * Durable Object frameworks for their internal SQLite tables: `cf_` (`agents`, `partyserver`, ...)
    * and `pi_` (pi-durable in the `PiHarness` of `agents`).

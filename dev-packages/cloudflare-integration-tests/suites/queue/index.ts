@@ -10,6 +10,7 @@ export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1,
+    queueTracePropagationBindings: ['MY_QUEUE'],
   }),
   {
     async fetch(request, env) {
@@ -41,6 +42,11 @@ export default Sentry.withSentry(
       return new Response('not found', { status: 404 });
     },
     async queue(batch: MessageBatch<{ trigger?: 'error'; payload?: string }>) {
+      Sentry.getActiveSpan()?.setAttribute(
+        'test.queue.message_bodies',
+        JSON.stringify(batch.messages.map(message => message.body)),
+      );
+
       for (const message of batch.messages) {
         if (message.body.trigger === 'error') {
           throw new Error('Boom from queue handler');
