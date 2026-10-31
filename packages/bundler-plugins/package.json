@@ -117,7 +117,7 @@
   "dependencies": {
     "@sentry/core": "11.10.0",
     "dotenv": "^17.4.2",
-    "glob": "^13.0.6",
+    "glob": "^14.0.3",
     "magic-string": "~0.30.8 || ^1.0.0",
     "oxc-parser": "^0.152.0",
     "sentry": "^0.45.0",
