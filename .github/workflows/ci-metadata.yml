@@ -11,7 +11,7 @@ on:
         description: 'Short SHA + commit message for display'
         value: ${{ jobs.get_metadata.outputs.commit_label }}
       is_base_branch:
-        description: 'Whether the ref is develop, v9, or v8'
+        description: 'Whether the ref is develop, v10, v9, or v8'
         value: ${{ jobs.get_metadata.outputs.is_base_branch }}
       is_release:
         description: 'Whether the ref is a release branch'
@@ -81,7 +81,8 @@ jobs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
       # Note: These next three have to be checked as strings ('true'/'false')!
       is_base_branch:
-        ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/v9' || github.ref == 'refs/heads/v8'}}
+        ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/v10' || github.ref == 'refs/heads/v9' ||
+        github.ref == 'refs/heads/v8'}}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       changed_ci: ${{ steps.changed.outputs.workflow == 'true' }}
       changed_any_code: ${{ steps.changed.outputs.any_code == 'true' }}
