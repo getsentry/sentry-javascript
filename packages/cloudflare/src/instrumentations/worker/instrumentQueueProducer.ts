@@ -105,7 +105,7 @@ export function instrumentQueueProducer<T extends Queue>(
           // the span so the carrier points to queue.publish rather than its parent.
           return startPublishSpan({ bindingName, bodySize: undefined }, span => {
             const tracedMessage = addQueueTraceContext(message, getTraceData()['sentry-trace']);
-            span.setAttribute('messaging.message.body.size', getBodySize(tracedMessage));
+            span.setAttribute(MESSAGING_MESSAGE_BODY_SIZE, getBodySize(tracedMessage));
             return Reflect.apply(original, target, [tracedMessage, options]);
           });
         };
@@ -135,7 +135,7 @@ export function instrumentQueueProducer<T extends Queue>(
               body: addQueueTraceContext(message.body, sentryTrace),
             }));
 
-            span.setAttribute('messaging.message.body.size', getBatchBodySize(tracedMessages));
+            span.setAttribute(MESSAGING_MESSAGE_BODY_SIZE, getBatchBodySize(tracedMessages));
             return Reflect.apply(original, target, [tracedMessages, options]);
           });
         };

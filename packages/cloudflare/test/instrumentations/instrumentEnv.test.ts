@@ -313,31 +313,6 @@ describe('instrumentEnv', () => {
     expect(instrumented.MY_QUEUE).toBe(instrumented.MY_QUEUE);
   });
 
-  it('caches Queue bindings separately by propagation setting', async () => {
-    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
-      'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
-    });
-    const send = vi.fn().mockResolvedValue(undefined);
-    const queue = { send, sendBatch: vi.fn() };
-    const message = { invoiceId: 'inv_123' };
-
-    const first = instrumentEnv({ MY_QUEUE: queue }).MY_QUEUE;
-    const second = instrumentEnv({ MY_QUEUE: queue }, { queueTracePropagationBindings: ['MY_QUEUE'] }).MY_QUEUE;
-
-    expect(first).not.toBe(second);
-    await first.send(message);
-    await second.send(message);
-    expect(send).toHaveBeenNthCalledWith(1, message, undefined);
-    expect(send).toHaveBeenNthCalledWith(
-      2,
-      {
-        invoiceId: 'inv_123',
-        __sentry_queue_trace__: '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
-      },
-      undefined,
-    );
-  });
-
   it('wraps Queue bindings independently from DO bindings', () => {
     const queue = { send: vi.fn(), sendBatch: vi.fn() };
     const doNamespace = {

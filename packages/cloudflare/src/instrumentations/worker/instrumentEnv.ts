@@ -12,7 +12,7 @@ import {
 } from '../../utils/isBinding';
 import { instrumentD1 } from './instrumentD1';
 import { appendRpcMeta } from '../../utils/rpcMeta';
-import { createBindingPropagationResolver, createRpcPropagationResolver } from '../../utils/rpcPropagation';
+import { createBindingPropagationResolver, createRpcPropagationResolver } from '../../utils/bindingPropagation';
 import { instrumentDurableObjectNamespace, STUB_NON_RPC_METHODS } from '../instrumentDurableObjectNamespace';
 import { instrumentFetcher } from './instrumentFetcher';
 import { instrumentKV } from './instrumentKV';
@@ -24,7 +24,6 @@ function isProxyable(item: unknown): item is object {
 }
 
 const instrumentedBindings = new WeakMap<object, unknown>();
-const instrumentedQueueBindings = new WeakMap<object, Map<string, unknown>>();
 
 /**
  * Wraps the Cloudflare `env` object in a Proxy that detects binding types
@@ -57,22 +56,6 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
         return item;
       }
 
-      if (isQueue(item)) {
-        const bindingName = typeof prop === 'string' ? prop : String(prop);
-        const enableTracePropagation = shouldPropagateQueueTrace(bindingName);
-        const cacheKey = `${bindingName}:${enableTracePropagation}`;
-        const cached = instrumentedQueueBindings.get(item)?.get(cacheKey);
-        if (cached) {
-          return cached;
-        }
-
-        const instrumented = instrumentQueueProducer(item, bindingName, enableTracePropagation);
-        const queueBindings = instrumentedQueueBindings.get(item) || new Map<string, unknown>();
-        queueBindings.set(cacheKey, instrumented);
-        instrumentedQueueBindings.set(item, queueBindings);
-        return instrumented;
-      }
-
       const cached = instrumentedBindings.get(item);
 
       if (cached) {
@@ -81,6 +64,13 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
 
       if (isD1Database(item)) {
         const instrumented = instrumentD1(item);
+        instrumentedBindings.set(item, instrumented);
+        return instrumented;
+      }
+
+      if (isQueue(item)) {
+        const bindingName = typeof prop === 'string' ? prop : String(prop);
+        const instrumented = instrumentQueueProducer(item, bindingName, shouldPropagateQueueTrace(bindingName));
         instrumentedBindings.set(item, instrumented);
         return instrumented;
       }

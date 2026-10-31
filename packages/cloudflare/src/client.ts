@@ -420,6 +420,9 @@ interface BaseCloudflareOptions {
    * Anywhere else the field arrives as part of the message body, so list only the queues whose
    * consumer you know runs Sentry.
    *
+   * The field adds about 80 bytes to each message. Cloudflare rejects messages over 128 KB, so a
+   * message close to that limit can fail to send once propagation is enabled.
+   *
    * Strings match a binding name exactly, regular expressions match by pattern. Both match
    * case-insensitively.
    *

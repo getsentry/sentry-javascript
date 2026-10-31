@@ -22,8 +22,10 @@ export function addQueueTraceContext(body: unknown, sentryTrace: string | undefi
     return body;
   }
 
-  // Span links only need `sentry-trace`, so baggage would only cost message size. Copy instead of
-  // mutating, because callers may reuse a payload after enqueueing it.
+  // Cloudflare rejects messages over 128 KB (https://developers.cloudflare.com/queues/platform/limits/),
+  // and the field adds about 80 bytes, so a payload right under the limit can start failing to send.
+  // Span links only need `sentry-trace`, so baggage would only cost more of that budget. Copy instead
+  // of mutating, because callers may reuse a payload after enqueueing it.
   return { ...body, [SENTRY_QUEUE_TRACE_KEY]: sentryTrace };
 }
 

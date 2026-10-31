@@ -78,7 +78,12 @@ it('emits a queue.publish span on env.MY_QUEUE.send and a queue.process segment 
 
   expect(processSpan?.trace_id).not.toBe(publishSpan?.trace_id);
   expect(processSpan?.links).toEqual([
-    expect.objectContaining({ trace_id: publishSpan?.trace_id, span_id: publishSpan?.span_id, sampled: true }),
+    {
+      trace_id: publishSpan?.trace_id,
+      span_id: publishSpan?.span_id,
+      sampled: true,
+      attributes: { 'sentry.link.type': { type: 'string', value: 'message_origin' } },
+    },
   ]);
 });
 
@@ -121,7 +126,12 @@ it('emits a queue.publish span with batch attributes on env.MY_QUEUE.sendBatch',
 
   // All three messages come from one publish span, so the consumer links it once.
   expect(processSpan?.links).toEqual([
-    expect.objectContaining({ trace_id: publishSpan?.trace_id, span_id: publishSpan?.span_id, sampled: true }),
+    {
+      trace_id: publishSpan?.trace_id,
+      span_id: publishSpan?.span_id,
+      sampled: true,
+      attributes: { 'sentry.link.type': { type: 'string', value: 'message_origin' } },
+    },
   ]);
 });
 

@@ -3,6 +3,7 @@ import type { AnyExportedHandler } from '../../types';
 import { TraceFlags } from '@opentelemetry/api';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
 import {
+  SENTRY_LINK_TYPE,
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_OP,
   SENTRY_ORIGIN,
@@ -50,7 +51,9 @@ function extractQueueTraceLinks(batch: MessageBatch): SpanLink[] {
         traceId: producerContext.traceId,
         spanId: producerContext.spanId,
         traceFlags: producerContext.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,
-        isRemote: true,
+      },
+      attributes: {
+        [SENTRY_LINK_TYPE]: 'message_origin',
       },
     });
   }

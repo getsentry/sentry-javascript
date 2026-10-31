@@ -357,11 +357,13 @@ describe('instrumentQueue', () => {
           trace_id: '1234567890abcdef1234567890abcdef',
           span_id: '1234567890abcdef',
           sampled: true,
+          attributes: { 'sentry.link.type': 'message_origin' },
         },
         {
           trace_id: 'abcdefabcdefabcdefabcdefabcdefab',
           span_id: 'fedcbafedcbafedc',
           sampled: false,
+          attributes: { 'sentry.link.type': 'message_origin' },
         },
       ]);
     });
@@ -391,6 +393,7 @@ describe('instrumentQueue', () => {
           trace_id: '1234567890abcdef1234567890abcdef',
           span_id: '1234567890abcdef',
           sampled: true,
+          attributes: { 'sentry.link.type': 'message_origin' },
         },
       ]);
     });
