@@ -139,6 +139,7 @@ jobs:
 
       - name: Determine which test applications should be run
         id: matrix
+        # Workflow changes run the full matrix, which also provides comparable CI timing measurements.
         run:
           pnpm --silent run ci:build-matrix --shards=2 --base=${{ (github.event_name == 'pull_request' &&
           needs.job_get_metadata.outputs.changed_ci != 'true' && github.event.pull_request.base.sha) || '' }} >>

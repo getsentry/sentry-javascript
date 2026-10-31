@@ -9,7 +9,8 @@
     "test:dev": "TEST_ENV=development playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:test-build": "pnpm ts-node --script-mode assert-build.ts",
-    "test:build-15": "pnpm install && pnpm add next@15 && pnpm add react@latest && pnpm add react-dom@latest && pnpm build",
+    "test:install-15": "pnpm install && pnpm add next@15 && pnpm add react@latest && pnpm add react-dom@latest",
+    "test:build-15": "pnpm test:install-15 && pnpm build",
     "test:assert": "pnpm test:test-build && pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
@@ -32,9 +33,25 @@
     "runner": "namespace-profile-sentry-javascript",
     "variants": [
       {
+        "build-command": "pnpm install",
+        "label": "nextjs-app-dir (development)",
+        "assert-command": "pnpm test:dev"
+      },
+      {
         "build-command": "pnpm test:build-15",
-        "label": "nextjs-app-dir (next@15)"
+        "label": "nextjs-app-dir (next@15, production)",
+        "assert-command": "pnpm test:test-build && pnpm test:prod"
+      },
+      {
+        "build-command": "pnpm test:install-15",
+        "label": "nextjs-app-dir (next@15, development)",
+        "assert-command": "pnpm test:dev"
       }
-    ]
+    ],
+    "baseVariant": {
+      "build-command": "pnpm test:build",
+      "label": "nextjs-app-dir (production)",
+      "assert-command": "pnpm test:test-build && pnpm test:prod"
+    }
   }
 }
