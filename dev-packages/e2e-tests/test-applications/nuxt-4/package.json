@@ -68,6 +68,9 @@
         "build-command": "pnpm test:build-canary",
         "label": "nuxt-4 (canary)"
       }
-    ]
+    ],
+    "baseVariant": {
+      "runner": "namespace-profile-sentry-javascript-large"
+    }
   }
 }

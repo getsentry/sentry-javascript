@@ -85,7 +85,8 @@
       {
         "build-command": "pnpm test:build-webpack",
         "label": "nextjs-16 (webpack, development)",
-        "assert-command": "pnpm test:dev-webpack"
+        "assert-command": "pnpm test:dev-webpack",
+        "runner": "namespace-profile-sentry-javascript-large"
       },
       {
         "build-command": "pnpm test:build-latest-webpack",
