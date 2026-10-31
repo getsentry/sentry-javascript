@@ -28,7 +28,7 @@
   "scripts": {
     "build": "rollup --config",
     "build:dev": "pnpm run build",
-    "build:tarball": "pnpm pack --skip-manifest-obfuscation",
+    "build:tarball": "pnpm pack",
     "build:watch": "rollup --config --watch",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf dist declarations *.tgz .turbo",
