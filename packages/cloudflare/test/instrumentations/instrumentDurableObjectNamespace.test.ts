@@ -13,9 +13,6 @@ const { getTraceDataMock } = vi.hoisted(() => ({
 vi.mock('../../../core/build/esm/utils/traceData.js', () => ({
   getTraceData: getTraceDataMock,
 }));
-vi.mock('../../../core/build/cjs/utils/traceData.js', () => ({
-  getTraceData: getTraceDataMock,
-}));
 
 describe('instrumentDurableObjectNamespace', () => {
   beforeEach(() => {

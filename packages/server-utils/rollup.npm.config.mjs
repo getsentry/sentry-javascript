@@ -1,7 +1,7 @@
 import { builtinModules } from 'node:module';
 import commonjs from '@rollup/plugin-commonjs';
 import license from 'rollup-plugin-license';
-import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
+import { makeBaseNPMConfig, makeCjsVariantsFlat, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
 // The orchestrion build-time bundler-plugin chain (`@apm-js-collab/code-transformer-bundler-plugins`
 // → `@apm-js-collab/code-transformer` → meriyah/esquery/astring/…) is bundled into this package's
@@ -90,45 +90,47 @@ const thirdPartyLicensePlugin = license({
 });
 
 export default [
-  ...makeNPMConfigVariants(
-    makeBaseNPMConfig({
-      // `src/orchestrion/config/index.ts` and the `src/orchestrion/bundler/*.ts`
-      // plugins are loaded via dedicated subpath exports (`.../orchestrion/config`,
-      // `.../orchestrion/vite`, etc.) — none are reachable from `src/index.ts`, so
-      // we list them as separate entrypoints to guarantee they end up in build/esm
-      // and build/cjs.
-      entrypoints: [
-        'src/index.ts',
-        'src/index.no-diagnostic-channels.ts',
-        'src/index.request-handler.ts',
-        'src/orchestrion/config/index.ts',
-        'src/orchestrion/bundler/vite.ts',
-        'src/orchestrion/bundler/rollup.ts',
-        'src/orchestrion/bundler/webpack.ts',
-        'src/orchestrion/bundler/webpack-loader.ts',
-        'src/orchestrion/bundler/load-hook.ts',
-        'src/orchestrion/bundler/esbuild.ts',
-        'src/orchestrion/bundler/bun.ts',
-      ],
-      packageSpecificConfig: {
-        plugins: [debugNodeAlias, commonJSPlugin, importMetaUrlNodeShim, thirdPartyLicensePlugin],
-        output: {
-          // set exports to 'named' or 'auto' so that rollup doesn't warn
-          exports: 'named',
-          // set preserveModules to true because we don't want to bundle everything into one file.
-          preserveModules: true,
-          entryFileNames: sanitizedFileNames,
-          // The repo default `interop: 'esModule'` dereferences `.default` on default imports of
-          // externals. The commonjs-converted vendored dependencies import Node builtins that way
-          // (e.g. `require('path')` → default import of `path`), and builtins have no `.default` in
-          // CJS — so builtins need `'default'` interop (the module itself is the default export).
-          interop: id => (id && (id.startsWith('node:') || builtinModules.includes(id)) ? 'default' : 'esModule'),
-          // The vendored dependencies import builtins unprefixed (`import … from 'tty'`), which
-          // Deno rejects outright and vite-node (Node 26) misresolves as a relative path. Emit them
-          // `node:`-prefixed.
-          paths: Object.fromEntries(builtinModules.map(m => [m, `node:${m}`])),
+  ...makeCjsVariantsFlat(
+    makeNPMConfigVariants(
+      makeBaseNPMConfig({
+        // `src/orchestrion/config/index.ts` and the `src/orchestrion/bundler/*.ts`
+        // plugins are loaded via dedicated subpath exports (`.../orchestrion/config`,
+        // `.../orchestrion/vite`, etc.) — none are reachable from `src/index.ts`, so
+        // we list them as separate entrypoints to guarantee they end up in build/esm
+        // and build/cjs.
+        entrypoints: {
+          index: 'src/index.ts',
+          'index.no-diagnostic-channels': 'src/index.no-diagnostic-channels.ts',
+          'index.request-handler': 'src/index.request-handler.ts',
+          'orchestrion/config/index': 'src/orchestrion/config/index.ts',
+          'orchestrion/bundler/vite': 'src/orchestrion/bundler/vite.ts',
+          'orchestrion/bundler/rollup': 'src/orchestrion/bundler/rollup.ts',
+          'orchestrion/bundler/webpack': 'src/orchestrion/bundler/webpack.ts',
+          'orchestrion/bundler/webpack-loader': 'src/orchestrion/bundler/webpack-loader.ts',
+          'orchestrion/bundler/load-hook': 'src/orchestrion/bundler/load-hook.ts',
+          'orchestrion/bundler/esbuild': 'src/orchestrion/bundler/esbuild.ts',
+          'orchestrion/bundler/bun': 'src/orchestrion/bundler/bun.ts',
         },
-      },
-    }),
+        packageSpecificConfig: {
+          plugins: [debugNodeAlias, commonJSPlugin, importMetaUrlNodeShim, thirdPartyLicensePlugin],
+          output: {
+            // set exports to 'named' or 'auto' so that rollup doesn't warn
+            exports: 'named',
+            // set preserveModules to true because we don't want to bundle everything into one file.
+            preserveModules: true,
+            entryFileNames: sanitizedFileNames,
+            // The repo default `interop: 'esModule'` dereferences `.default` on default imports of
+            // externals. The commonjs-converted vendored dependencies import Node builtins that way
+            // (e.g. `require('path')` → default import of `path`), and builtins have no `.default` in
+            // CJS — so builtins need `'default'` interop (the module itself is the default export).
+            interop: id => (id && (id.startsWith('node:') || builtinModules.includes(id)) ? 'default' : 'esModule'),
+            // The vendored dependencies import builtins unprefixed (`import … from 'tty'`), which
+            // Deno rejects outright and vite-node (Node 26) misresolves as a relative path. Emit them
+            // `node:`-prefixed.
+            paths: Object.fromEntries(builtinModules.map(m => [m, `node:${m}`])),
+          },
+        },
+      }),
+    ),
   ),
 ];
