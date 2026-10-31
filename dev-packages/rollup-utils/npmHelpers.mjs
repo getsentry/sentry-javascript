@@ -206,6 +206,18 @@ export function makeBaseNPMConfig(options = {}) {
   });
 }
 
+/**
+ * Output options for a flat build: one file per entry, plus chunks for the code that entries share.
+ * Node resolves, reads and evaluates each file on its own, so this starts much faster than
+ * `preserveModules` on Node. Name the entries with an object `input` to keep their paths. Chunk
+ * names have no hash, so file tracers and relative imports see the same paths in each build.
+ */
+export const FLAT_OUTPUT = {
+  preserveModules: false,
+  entryFileNames: '[name].js',
+  chunkFileNames: 'chunks/[name].js',
+};
+
 export function makeNPMConfigVariants(baseConfig, options = {}) {
   const { emitEsm = true, emitCjs = true, splitDevProd = false } = options;
 

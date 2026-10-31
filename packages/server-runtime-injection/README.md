@@ -18,11 +18,10 @@ Runtime instrumentation for Sentry’s JavaScript server SDKs.
 > This package is an internal library published for use by Sentry-owned JavaScript SDK packages. It is not part of the
 > public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on it directly.
 
-> **Important:** this package must be kept **external** (not bundled) when bundling a server. Its
-> runtime hook loads a transformer that self-references its own on-disk `node_modules` location;
-> bundling it strips the transformer and breaks that self-reference. When you bundle your server,
-> either keep `@sentry/server-runtime-injection` external, or rely on the build-time instrumentation
-> from the Sentry bundler plugins instead.
+> **Bundling:** this package can be bundled into a server. On Node versions without stable
+> `Module.registerHooks` (before 24.13 and 25.1), a bundled copy loads its ESM loader hook from the
+> installed package, so keep `@sentry/server-runtime-injection` installed in that case. You can
+> also rely on the build-time instrumentation from the Sentry bundler plugins instead.
 
 ## Documentation
 

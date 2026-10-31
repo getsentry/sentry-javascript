@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import replace from '@rollup/plugin-replace';
-import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
+import { FLAT_OUTPUT, makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
 const packageJson = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'package.json'), 'utf-8'));
 
@@ -33,9 +33,13 @@ const settings = {
   },
 };
 
+// Only the CJS build is flat, for Node startup. Browser bundlers and React Native use the ESM build,
+// where preserved modules keep tree-shaking and the size limits as they are.
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
     ...settings,
     entrypoints: ['src/index.ts', 'src/server.ts', 'src/browser.ts'],
   }),
+).map(config =>
+  config.output.format === 'cjs' ? { ...config, output: { ...config.output, ...FLAT_OUTPUT } } : config,
 );

@@ -27,8 +27,8 @@ describe.each(['cjs', 'esm'])('the %s build', variant => {
     expect(traced).toContain(`${buildDir}/esm/hook.js`);
     // The hook is ESM. Without this marker the loader thread parses it as CommonJS and fails.
     expect(traced).toContain(`${buildDir}/esm/package.json`);
-    // The hook re-exports the vendored chain, so its presence alone would not prove the tracer
-    // followed the hook's own imports rather than copying it as an opaque asset.
-    expect(traced).toContain(`${buildDir}/esm/vendored/@apm-js-collab/tracing-hooks/hook.js`);
+    // The hook re-exports the vendored chain from a shared chunk, so its presence alone would not
+    // prove the tracer followed the hook's own imports rather than copying it as an opaque asset.
+    expect(traced).toContain(`${buildDir}/esm/chunks/hook.js`);
   });
 });

@@ -7,11 +7,12 @@ import type { Plugin } from 'esbuild';
 import { afterAll, describe, expect, test } from 'vitest';
 
 // `@sentry/node` installs its diagnostics-channel instrumentation through a runtime module hook
-// that ships in `@sentry/server-runtime-injection` and only works from `node_modules`. Bundling that package
-// strips its vendored code transformer, so the SDK warns that auto-instrumentation is off.
+// that ships in `@sentry/server-runtime-injection`. Its vendored code transformer is in the same
+// file as the hook, so esbuild keeps it when it bundles the package, and the hook still
+// instruments dependencies that load through Node's loader.
 //
-// Using the Sentry bundler plugin is the supported alternative: instrumentation is injected at
-// build time, the runtime hook is redundant, and the SDK must stay quiet.
+// The Sentry bundler plugin injects instrumentation at build time instead. Then the runtime hook
+// is redundant, and the SDK must stay quiet.
 //
 // The assertions are on "did the SDK warn", not on how it decided to, so this test does not pin
 // one implementation of the check.
@@ -88,11 +89,9 @@ describe('esbuild + orchestrion build-time instrumentation', () => {
     expect(stdout).toContain('APP_STARTED');
   });
 
-  // The positive control. Without it the two tests above would still pass on a build where the SDK
-  // never warns at all, which is the regression they are meant to catch. `dataloader` is left
-  // external so it loads through Node's loader, which is where a stripped transformer actually
-  // loses the user instrumentation.
-  test('warns when an external instrumented dependency loads and no plugin ran', async () => {
+  // `dataloader` is left external so it loads through Node's loader, where only the runtime hook
+  // can instrument it.
+  test('instruments an external dependency and stays quiet when no plugin ran', async () => {
     const outfile = join(OUT_DIR, 'no-plugin', 'app.mjs');
 
     await build({
@@ -108,21 +107,13 @@ describe('esbuild + orchestrion build-time instrumentation', () => {
     const { stdout, stderr, status } = run(outfile);
 
     expect(status).toBe(0);
-    expect(stdout).toContain('DEP_LOADED');
-    // The stripped transformer left `dataloader` uninstrumented — nothing recorded on `runtime`.
-    expect(stdout).toContain('runtime=[]');
-    // Nothing instrumented `dataloader`, so the user has to be told, and the warning names the
-    // module that was lost.
-    const warning = sentryWarnings(stderr).join('\n');
-    expect(warning).toContain('@sentry/server-runtime-injection');
-    expect(warning).toContain('dataloader');
-    // One broken transformer breaks every module, so the fix is stated exactly once.
-    expect(sentryWarnings(stderr)).toHaveLength(1);
+    expect(stdout).toContain('runtime=["dataloader"]');
+    expect(sentryWarnings(stderr)).toEqual([]);
   });
 
-  // The counterpart to the warning: it tells the user to keep `@sentry/server-runtime-injection` external, so
-  // that remedy has to actually work. External, the package loads from `node_modules` with its
-  // vendored transformer intact, instruments the (also external) `dataloader`, and stays quiet.
+  // The SDK's bundling warning tells the user to keep `@sentry/server-runtime-injection` external,
+  // so that remedy has to work. External, the package loads from `node_modules`, instruments the
+  // (also external) `dataloader`, and stays quiet.
   test('instruments the dependency and stays quiet when `@sentry/server-runtime-injection` is kept external', async () => {
     const outfile = join(OUT_DIR, 'external-server-runtime-injection', 'app.mjs');
 
