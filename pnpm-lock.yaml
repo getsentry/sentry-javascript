@@ -1978,8 +1978,8 @@ importers:
         specifier: 11.10.0
         version: link:../server-utils
       glob:
-        specifier: ^13.0.6
-        version: 13.0.6
+        specifier: ^14.0.3
+        version: 14.0.3
       sentry:
         specifier: ^0.44.0
         version: 0.44.0
