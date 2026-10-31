@@ -83,8 +83,13 @@ sentryTest('captures long animation frame span for event listener.', async ({ br
 
   await page.goto(url);
 
-  // trigger long animation frame function
-  await page.getByRole('button').click();
+  // Separate mousedown and click into different frames so LoAF reports the click handler.
+  await page.getByRole('button').hover();
+  await page.mouse.down();
+  await page.evaluate(
+    () => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+  );
+  await page.mouse.up();
 
   const pageloadSpan = await pageloadSpanPromise;
   await page.evaluate(() => (window as any).Sentry.flush());
