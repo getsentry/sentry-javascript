@@ -1,8 +1,8 @@
 import { rm } from 'node:fs/promises';
 import type { Config } from '@react-router/dev/config';
 import { createSentrySDK } from 'sentry';
+import { globFiles } from '@sentry/bundler-plugins/core';
 import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
-import { glob } from 'glob';
 import type { SentryReactRouterBuildOptions } from '../types';
 
 type BuildEndHook = NonNullable<Config['buildEnd']>;
@@ -134,10 +134,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
   }
   if (updatedFilesToDeleteAfterUpload) {
     try {
-      const filePathsToDelete = await glob(updatedFilesToDeleteAfterUpload, {
-        absolute: true,
-        nodir: true,
-      });
+      const filePathsToDelete = await globFiles(updatedFilesToDeleteAfterUpload);
       if (debug) {
         filePathsToDelete.forEach(filePathToDelete => {
           // eslint-disable-next-line no-console
