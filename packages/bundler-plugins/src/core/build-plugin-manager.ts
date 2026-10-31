@@ -21,6 +21,8 @@ import {
 import { globFiles } from './glob';
 import type { SourceMapDecision, SourceMapKind } from './sourcemap-settings';
 import { decideSourceMapHandling } from './sourcemap-settings';
+import type { UploadFilter } from './upload-filter';
+import { createUploadFilter } from './upload-filter';
 import { LIB_VERSION } from './version';
 
 // Module-level guard to prevent duplicate deploy records when multiple bundler plugin
@@ -52,14 +54,15 @@ export type UploadStaging = {
    * Stamps the debug ID into the chunk and its source map and writes both into the folder.
    *
    * `mapSource` is `undefined` when the chunk has no separate source map. `mapDir` is the directory
-   * the map would be written to and is passed to the `rewriteSources` hook.
+   * the map would be written to and is passed to the `rewriteSources` hook. `chunkPath` is where
+   * the chunk is written; `sourcemaps.assets` and `sourcemaps.ignore` are matched against it.
    */
   stage(input: {
     code: string;
     mapSource: string | undefined;
     mapDir: string;
-    fileName: string;
-  }): Promise<'staged' | 'skipped' | 'failed'>;
+    chunkPath: string;
+  }): Promise<'staged' | 'skipped' | 'excluded' | 'failed'>;
   /** Removes the folder. Call this when no upload will consume it. */
   discard(): Promise<void>;
   /**
@@ -142,9 +145,17 @@ export type SentryBuildPluginManager = {
     uploadPossible: boolean;
     /**
      * Decides how the plugin treats the user's source map setting (see `decideSourceMapHandling`).
-     * Logs the decision's message once per message.
+     * Logs the decision's message once per message, unless `log` is `false`.
      */
-    decide(kind: SourceMapKind): SourceMapDecision;
+    decide(kind: SourceMapKind, options?: { log?: boolean }): SourceMapDecision;
+    /** Logs the decision's message, once per message. */
+    logDecision(decision: SourceMapDecision): void;
+    /**
+     * Whether a file of the build output is uploaded, for files that are not on disk yet. Mirrors
+     * the glob of the upload from disk: it must match `sourcemaps.assets` (all files when unset)
+     * and none of `sourcemaps.ignore`.
+     */
+    shouldUpload: UploadFilter;
   };
 
   /**
@@ -236,6 +247,8 @@ export function createSentryBuildPluginManager(
       sourceMaps: {
         uploadPossible: false,
         decide: () => ({ enableHidden: false, deleteAfterUpload: false }),
+        logDecision: () => undefined,
+        shouldUpload: () => false,
       },
       deleteArtifacts: async () => {
         /* noop */
@@ -364,6 +377,14 @@ export function createSentryBuildPluginManager(
 
   const sourceMapUploadPossible = getSourceMapUploadBlocker(options, isDevMode) === undefined;
   const loggedSourceMapMessages = new Set<string>();
+  const shouldUpload = createUploadFilter(options);
+
+  function logDecision(decision: SourceMapDecision): void {
+    if (decision.log && !loggedSourceMapMessages.has(decision.log.message)) {
+      loggedSourceMapMessages.add(decision.log.message);
+      logger[decision.log.level](decision.log.message);
+    }
+  }
 
   /**
    * Returns a Promise that resolves when all the currently active dependencies are freed again.
@@ -871,6 +892,15 @@ export function createSentryBuildPluginManager(
         },
         stagedChunkPaths,
         async stage(input) {
+          const chunkPath = path.resolve(input.chunkPath);
+          const chunkName = path.basename(chunkPath);
+          if (!shouldUpload(chunkPath)) {
+            logger.debug(
+              `Not staging ${chunkName} for upload: excluded by \`sourcemaps.assets\` or \`sourcemaps.ignore\`.`,
+            );
+            return 'excluded';
+          }
+
           const result = prepareArtifactForUpload({
             code: input.code,
             mapSource: input.mapSource,
@@ -879,7 +909,7 @@ export function createSentryBuildPluginManager(
           });
 
           if (!result.ok) {
-            logger.debug(`Not staging ${input.fileName} for upload: ${result.reason}`);
+            logger.debug(`Not staging ${chunkName} for upload: ${result.reason}`);
             return 'skipped';
           }
 
@@ -887,7 +917,7 @@ export function createSentryBuildPluginManager(
 
           try {
             await writePreparedArtifact(dir, `${result.artifact.debugId}-${index}`, result.artifact);
-            stagedChunkPaths.add(path.resolve(input.mapDir, path.basename(input.fileName)));
+            stagedChunkPaths.add(chunkPath);
             return 'staged';
           } catch (e) {
             sentryScope.captureException('Error staging build artifact for upload');
@@ -919,14 +949,15 @@ export function createSentryBuildPluginManager(
 
     sourceMaps: {
       uploadPossible: sourceMapUploadPossible,
-      decide(kind) {
+      decide(kind, { log = true } = {}) {
         const decision = decideSourceMapHandling(kind, options, sourceMapUploadPossible);
-        if (decision.log && !loggedSourceMapMessages.has(decision.log.message)) {
-          loggedSourceMapMessages.add(decision.log.message);
-          logger[decision.log.level](decision.log.message);
+        if (log) {
+          logDecision(decision);
         }
         return decision;
       },
+      logDecision,
+      shouldUpload,
     },
 
     /**

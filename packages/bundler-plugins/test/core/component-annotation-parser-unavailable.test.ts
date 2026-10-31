@@ -11,6 +11,10 @@ vi.mock('../../src/core/component-annotation-oxc', async importOriginal => {
 
 const MESSAGE = 'Could not load `oxc-parser` for this platform. React components will not be annotated.';
 
+// Each test imports the whole core module graph afresh after `resetModules`,
+// which takes several seconds on a slow CI runner.
+const IMPORT_TIMEOUT = 30_000;
+
 describe('createComponentNameAnnotateHooks without a parser', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -20,7 +24,7 @@ describe('createComponentNameAnnotateHooks without a parser', () => {
     vi.restoreAllMocks();
   });
 
-  it('leaves files unchanged and warns once through the logger', async () => {
+  it('leaves files unchanged and warns once through the logger', { timeout: IMPORT_TIMEOUT }, async () => {
     const { createComponentNameAnnotateHooks } = await import('../../src/core');
     const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
     const { transform } = createComponentNameAnnotateHooks([], false, { logger });
@@ -32,7 +36,7 @@ describe('createComponentNameAnnotateHooks without a parser', () => {
     expect(logger.warn).toHaveBeenCalledWith(MESSAGE);
   });
 
-  it('warns once through the console across hooks created without a logger', async () => {
+  it('warns once through the console across hooks created without a logger', { timeout: IMPORT_TIMEOUT }, async () => {
     const { createComponentNameAnnotateHooks } = await import('../../src/core');
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
