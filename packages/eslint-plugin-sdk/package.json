@@ -32,7 +32,7 @@
     "lint:types": "oxlint src --type-aware --type-check",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "build:tarball": "npm pack",
+    "build:tarball": "pnpm pack",
     "circularDepCheck": "madge --circular src/index.js"
   }
 }
