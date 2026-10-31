@@ -1,3 +1,4 @@
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import type { Envelope, SerializedStreamedSpan } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../runner';
@@ -82,7 +83,7 @@ it('emits a queue.publish span on env.MY_QUEUE.send and a queue.process segment 
       trace_id: publishSpan?.trace_id,
       span_id: publishSpan?.span_id,
       sampled: true,
-      attributes: { 'sentry.link.type': { type: 'string', value: 'message_origin' } },
+      attributes: { [SENTRY_LINK_TYPE]: { type: 'string', value: 'message_origin' } },
     },
   ]);
 });
@@ -130,7 +131,7 @@ it('emits a queue.publish span with batch attributes on env.MY_QUEUE.sendBatch',
       trace_id: publishSpan?.trace_id,
       span_id: publishSpan?.span_id,
       sampled: true,
-      attributes: { 'sentry.link.type': { type: 'string', value: 'message_origin' } },
+      attributes: { [SENTRY_LINK_TYPE]: { type: 'string', value: 'message_origin' } },
     },
   ]);
 });

@@ -2,6 +2,7 @@
 // Although this is not ideal, this is the best we can do until we have a better way to test cloudflare workers.
 
 import type { ExecutionContext, MessageBatch } from '@cloudflare/workers-types';
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
@@ -357,13 +358,13 @@ describe('instrumentQueue', () => {
           trace_id: '1234567890abcdef1234567890abcdef',
           span_id: '1234567890abcdef',
           sampled: true,
-          attributes: { 'sentry.link.type': 'message_origin' },
+          attributes: { [SENTRY_LINK_TYPE]: 'message_origin' },
         },
         {
           trace_id: 'abcdefabcdefabcdefabcdefabcdefab',
           span_id: 'fedcbafedcbafedc',
           sampled: false,
-          attributes: { 'sentry.link.type': 'message_origin' },
+          attributes: { [SENTRY_LINK_TYPE]: 'message_origin' },
         },
       ]);
     });
@@ -393,7 +394,7 @@ describe('instrumentQueue', () => {
           trace_id: '1234567890abcdef1234567890abcdef',
           span_id: '1234567890abcdef',
           sampled: true,
-          attributes: { 'sentry.link.type': 'message_origin' },
+          attributes: { [SENTRY_LINK_TYPE]: 'message_origin' },
         },
       ]);
     });

@@ -1,4 +1,5 @@
 import type { Queue } from '@cloudflare/workers-types';
+import { MESSAGING_MESSAGE_BODY_SIZE } from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentQueueProducer } from '../../../src/instrumentations/worker/instrumentQueueProducer';
@@ -81,7 +82,7 @@ describe('instrumentQueueProducer', () => {
       };
       expect(queue.send).toHaveBeenCalledExactlyOnceWith(sentBody, undefined);
       expect(setAttribute).toHaveBeenCalledExactlyOnceWith(
-        'messaging.message.body.size',
+        MESSAGING_MESSAGE_BODY_SIZE,
         new TextEncoder().encode(JSON.stringify(sentBody)).byteLength,
       );
     });
@@ -262,7 +263,7 @@ describe('instrumentQueueProducer', () => {
         0,
       );
       expect(queue.sendBatch).toHaveBeenCalledExactlyOnceWith(sentMessages, undefined);
-      expect(setAttribute).toHaveBeenCalledExactlyOnceWith('messaging.message.body.size', expectedSize);
+      expect(setAttribute).toHaveBeenCalledExactlyOnceWith(MESSAGING_MESSAGE_BODY_SIZE, expectedSize);
     });
 
     test('starts a queue.publish span with batch attributes', async () => {
