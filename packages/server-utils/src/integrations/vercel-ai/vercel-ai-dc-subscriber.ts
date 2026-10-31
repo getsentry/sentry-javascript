@@ -120,6 +120,7 @@ const ROOT_OPERATION_TYPES = new Set<ChannelEventType>([
   'generateText',
   'streamText',
   'generateObject',
+  'streamObject',
   'embed',
   'embedMany',
   'rerank',
@@ -242,6 +243,7 @@ export type ChannelEventType =
   | 'generateText'
   | 'streamText'
   | 'generateObject'
+  | 'streamObject'
   | 'step'
   | 'languageModelCall'
   | 'executeTool'
@@ -479,10 +481,16 @@ export function createSpanFromMessage(
     case 'generateText':
     case 'streamText':
     case 'generateObject':
-      // `generateObject` builds the same `invoke_agent` span as `generateText` (non-streaming); its
-      // distinct `ai.generateObject` operationId rides on `event.operationId`. The JSON-schema attribute
-      // the OTel path derives from the SDK's Zod schema is not reconstructed on the channel path.
-      return buildInvokeAgentSpan(event, baseAttributes, recordInputs, callId, type === 'streamText');
+    case 'streamObject':
+      // The object variants' operationId rides on `event.operationId`. The JSON-schema attribute the OTel
+      // path derives from the SDK's Zod schema is not reconstructed on the channel path.
+      return buildInvokeAgentSpan(
+        event,
+        baseAttributes,
+        recordInputs,
+        callId,
+        type === 'streamText' || type === 'streamObject',
+      );
     case 'languageModelCall':
       _INTERNAL_skipAiProviderWrapping([WORKERS_AI_INTEGRATION_NAME]);
 
