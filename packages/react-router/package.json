@@ -92,7 +92,7 @@
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:tarball": "npm pack",
+    "build:tarball": "pnpm pack",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
     "clean": "rimraf build coverage sentry-react-router-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
