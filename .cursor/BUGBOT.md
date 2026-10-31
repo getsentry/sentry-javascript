@@ -103,6 +103,12 @@ Keep reviews high-signal. Prefer actionable, high-confidence findings over specu
   - Only waiting for a request, after an action is performed. Instead, start waiting, perform action, await request promise.
   - Race conditions when waiting on multiple requests. Ensure that waiting checks are unique enough and don't depend on a hard order when there's a chance that telemetry can be sent in arbitrary order.
   - Timeouts or sleeps in tests. Instead suggest concrete events or other signals to wait on.
+- Flag cold module loading inside timed test callbacks or their helpers when
+  it can safely run during collection or setup. It can exhaust the timeout
+  before the behavior under test runs. Prefer static imports, narrower
+  modules, or setup hooks while preserving isolation and mock order.
+  Preserve imports whose evaluation timing is itself being tested.
+  Only flag concrete avoidable loading, not dynamic imports in general.
 - Flag usage of `getFirstEnvelope*`, `getMultipleEnvelope*` or related test helpers in E2E tests. These are NOT reliable anymore. Instead suggest helpers like `waitForTransaction`, `waitForError`, `waitForSpans`, etc.
 - Flag any new or modified `docker-compose.yml` under `dev-packages/node-integration-tests/suites/` where a service does not define a `healthcheck:`. The runner uses `docker compose up --wait` and relies on healthchecks to know when services are actually ready; without one the test will race the service's startup.
 - Flag new Cloudflare tests that wrap the worker by hand with `withSentry`, `instrumentDurableObjectWithSentry`, `instrumentAgentWithSentry` or `instrumentWorkflowWithSentry`. This covers new suites under `dev-packages/cloudflare-integration-tests/suites/`, new E2E apps under `dev-packages/e2e-tests/test-applications/` that run on Cloudflare, and new Cloudflare variants of existing E2E apps (an entry in `sentryTest.variants` of the app's `package.json`, for example `hono-4 (cloudflare)`). App names do not always start with `cloudflare-`. Recommend the Sentry Cloudflare Vite plugin instead: `plugins: [cloudflare(), sentryCloudflareVitePlugin()]` in `vite.config.*` (`sentryCloudflareVitePlugin` from `@sentry/cloudflare/vite`), and the SDK options in an `instrument.server.ts` next to the worker entry that default-exports `defineCloudflareOptions(...)`. Do not flag tests whose purpose is to test one of these wrappers, or apps that do not build with Vite (for example Next.js on OpenNext).
