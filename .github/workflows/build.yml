@@ -1002,7 +1002,9 @@ jobs:
         uses: ./.github/actions/restore-cache
 
       - name: Build tarballs
-        run: pnpm run build:tarball
+        run: |
+          pnpm run clean:tarballs
+          pnpm run build:tarballs --parallel=5
 
       - name: Upload tarball artifacts
         uses: actions/upload-artifact@v7
