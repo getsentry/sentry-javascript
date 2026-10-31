@@ -47,6 +47,6 @@
     "npm-run-all2": "^6.2.0"
   },
   "sentryTest": {
-    "runner": "namespace-profile-sentry-javascript-large"
+    "runner": "namespace-profile-sentry-javascript"
   }
 }
