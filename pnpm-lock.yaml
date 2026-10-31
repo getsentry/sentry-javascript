@@ -1983,9 +1983,6 @@ importers:
       '@sentry/server-utils':
         specifier: 11.9.0
         version: link:../server-utils
-      glob:
-        specifier: ^13.0.6
-        version: 13.0.6
       sentry:
         specifier: ^0.44.0
         version: 0.44.0

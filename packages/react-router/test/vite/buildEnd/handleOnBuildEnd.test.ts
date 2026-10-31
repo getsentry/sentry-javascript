@@ -1,6 +1,6 @@
 import { createSentrySDK } from 'sentry';
 import { rm } from 'node:fs/promises';
-import { glob } from 'glob';
+import { globFiles } from '@sentry/bundler-plugins/core';
 import type { ResolvedConfig } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentryOnBuildEnd } from '../../../src/vite/buildEnd/handleOnBuildEnd';
@@ -11,7 +11,7 @@ vi.mock('node:fs/promises', () => {
   const rm = vi.fn().mockResolvedValue(undefined);
   return { rm, default: { rm } };
 });
-vi.mock('glob');
+vi.mock('@sentry/bundler-plugins/core', () => ({ globFiles: vi.fn() }));
 
 type TestConfig = ResolvedConfig & {
   sentryConfig: SentryReactRouterBuildOptions;
@@ -62,7 +62,7 @@ describe('sentryOnBuildEnd', () => {
     vi.mocked(createSentrySDK)
       .mockReset()
       .mockReturnValue(mockSentrySdkInstance as unknown as ReturnType<typeof createSentrySDK>);
-    vi.mocked(glob).mockResolvedValue(['/build/file1.map', '/build/file2.map']);
+    vi.mocked(globFiles).mockResolvedValue(['/build/file1.map', '/build/file2.map']);
     vi.mocked(rm).mockResolvedValue(undefined);
   });
 
@@ -126,10 +126,7 @@ describe('sentryOnBuildEnd', () => {
       directory: '/build',
       release: '1.2.3',
     });
-    expect(glob).toHaveBeenCalledWith(['./build/custom/**/*.map'], {
-      absolute: true,
-      nodir: true,
-    });
+    expect(globFiles).toHaveBeenCalledWith(['./build/custom/**/*.map']);
   });
 
   it('should upload source maps when enabled', async () => {
@@ -196,7 +193,7 @@ describe('sentryOnBuildEnd', () => {
 
     expect(mockSentrySdkInstance.sourcemap.inject).not.toHaveBeenCalled();
     expect(mockSentrySdkInstance.sourcemap.upload).not.toHaveBeenCalled();
-    expect(glob).not.toHaveBeenCalled();
+    expect(globFiles).not.toHaveBeenCalled();
     expect(rm).not.toHaveBeenCalled();
   });
 
@@ -219,7 +216,7 @@ describe('sentryOnBuildEnd', () => {
 
     expect(mockSentrySdkInstance.sourcemap.inject).toHaveBeenCalledWith({ directory: '/build' });
     expect(mockSentrySdkInstance.sourcemap.upload).not.toHaveBeenCalled();
-    expect(glob).not.toHaveBeenCalled();
+    expect(globFiles).not.toHaveBeenCalled();
   });
 
   it('should delete custom files after upload when specified', async () => {
@@ -239,10 +236,7 @@ describe('sentryOnBuildEnd', () => {
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
-    expect(glob).toHaveBeenCalledWith('/custom/**/*.map', {
-      absolute: true,
-      nodir: true,
-    });
+    expect(globFiles).toHaveBeenCalledWith('/custom/**/*.map');
   });
 
   it('should handle errors during release creation gracefully', async () => {

@@ -111,4 +111,12 @@ for (const chunk of chunks) {
 assert.ok(crossCheckedChunks > 0, 'Expected at least one uploaded chunk to cross-check debug IDs against');
 console.log(`${crossCheckedChunks} chunk(s) ship a debug ID that was uploaded\n`);
 
+const remainingClientMaps = fs
+  .readdirSync(CLIENT_ASSETS_DIR, { recursive: true })
+  .filter(file => file.endsWith('.map'));
+assert.deepEqual(remainingClientMaps, [], 'Expected client source maps to be deleted after upload');
+
+const remainingServerMaps = fs.readdirSync('build/server', { recursive: true }).filter(file => file.endsWith('.map'));
+assert.ok(remainingServerMaps.length > 0, 'Expected server source maps outside the deletion pattern to be preserved');
+
 console.log('All react-router source map assertions passed!');

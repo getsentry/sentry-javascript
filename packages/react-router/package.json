@@ -64,7 +64,6 @@
     "@sentry/server-runtime-injection": "11.9.0",
     "@sentry/server-utils": "11.9.0",
     "@sentry/bundler-plugins": "11.9.0",
-    "glob": "^13.0.6",
     "sentry": "^0.44.0"
   },
   "devDependencies": {
