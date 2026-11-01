@@ -111,7 +111,7 @@ describe('sentryRollupPlugin', () => {
     vi.clearAllMocks();
   });
 
-  it('returns an array of rollup plugins (although only one)', () => {
+  it('returns the main plugin and the upload staging plugin', () => {
     const plugins = sentryRollupPlugin({
       authToken: 'test-token',
       org: 'test-org',
@@ -119,9 +119,13 @@ describe('sentryRollupPlugin', () => {
     }) as Plugin[];
 
     expect(Array.isArray(plugins)).toBe(true);
-    expect(plugins).toHaveLength(1);
+    expect(plugins.map(plugin => plugin.name)).toEqual(['sentry-rollup-plugin', 'sentry-rollup-upload-staging']);
+  });
 
-    expect(plugins[0]?.name).toBe('sentry-rollup-plugin');
+  it('returns only the noop plugin when disabled', () => {
+    const plugins = sentryRollupPlugin({ disable: true }) as Plugin[];
+
+    expect(plugins.map(plugin => plugin.name)).toEqual(['sentry-noop-plugin']);
   });
 });
 
