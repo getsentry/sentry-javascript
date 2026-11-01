@@ -4,6 +4,7 @@
 export * from '@sentry/node';
 
 export { nestIntegration } from './integrations/nest';
+export type { NestIntegrationOptions } from './integrations/nest';
 
 export { getDefaultIntegrations, init } from './sdk';
 

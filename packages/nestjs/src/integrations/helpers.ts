@@ -9,7 +9,13 @@ import {
 } from '@sentry/conventions/attributes';
 import { FUNCTION, MIDDLEWARE, QUEUE_PROCESS } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
-import { addNonEnumerableProperty, getClient, hasSpanStreamingEnabled, withActiveSpan } from '@sentry/core';
+import {
+  addNonEnumerableProperty,
+  getClient,
+  hasSpanStreamingEnabled,
+  isObjectLike,
+  withActiveSpan,
+} from '@sentry/core';
 import type { CatchTarget, InjectableTarget, NextFunction, Observable, Subscription } from './types';
 
 /** A function of unknown signature, matching the methods/handlers we wrap. */
@@ -33,17 +39,54 @@ export function markWrapped(fn: AnyFn): void {
 
 // `@nestjs/schedule`'s metadata key for the `@Cron()` options.
 const SCHEDULE_CRON_OPTIONS = 'SCHEDULE_CRON_OPTIONS';
+const SENTRY_CRON_METADATA = 'sentry:nestjs:sentry_cron';
+
+const SENTRY_CRON_METHODS = new WeakSet<object>();
+
+/** The options `@Cron()` stored as metadata on `fn`, if any. */
+export function getCronOptions(fn: object): object | undefined {
+  const R = Reflect as ReflectWithMetadata;
+  const options = typeof R.getMetadata === 'function' ? R.getMetadata(SCHEDULE_CRON_OPTIONS, fn) : undefined;
+  return isObjectLike(options) ? options : undefined;
+}
+
+/**
+ * Marks a method that `@SentryCron()` monitors, so `@Cron()` monitoring skips it. Other decorators may wrap the
+ * method on either side of `@SentryCron()`, so this also sets metadata they copy outward and marks the `@Cron()`
+ * options that are already there.
+ */
+export function markSentryCronMethod(fn: object): void {
+  SENTRY_CRON_METHODS.add(fn);
+  const R = Reflect as ReflectWithMetadata;
+  if (typeof R.defineMetadata === 'function') {
+    R.defineMetadata(SENTRY_CRON_METADATA, true, fn);
+  }
+  const cronOptions = getCronOptions(fn);
+  if (cronOptions) {
+    SENTRY_CRON_METHODS.add(cronOptions);
+  }
+}
+
+/** Whether `fn` is monitored by `@SentryCron()` (see {@link markSentryCronMethod}). */
+export function isSentryCronMethod(fn: object): boolean {
+  const R = Reflect as ReflectWithMetadata;
+  const cronOptions = getCronOptions(fn);
+  return (
+    SENTRY_CRON_METHODS.has(fn) ||
+    (typeof R.getMetadata === 'function' && R.getMetadata(SENTRY_CRON_METADATA, fn) === true) ||
+    (!!cronOptions && SENTRY_CRON_METHODS.has(cronOptions))
+  );
+}
 
 const NEST_SCHEDULE_VERSIONS = new WeakMap<object, string>();
 
 /** Remembers the `@nestjs/schedule` version whose `@Cron()` stored the options on `method`. */
 export function setNestScheduleVersion(method: unknown, version: string | undefined): void {
-  const R = Reflect as ReflectWithMetadata;
-  if (typeof method !== 'function' || !version || typeof R.getMetadata !== 'function') {
+  if (typeof method !== 'function' || !version) {
     return;
   }
-  const cronOptions = R.getMetadata(SCHEDULE_CRON_OPTIONS, method);
-  if (cronOptions && typeof cronOptions === 'object') {
+  const cronOptions = getCronOptions(method);
+  if (cronOptions) {
     NEST_SCHEDULE_VERSIONS.set(cronOptions, version);
   }
 }

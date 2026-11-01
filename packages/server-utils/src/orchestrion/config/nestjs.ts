@@ -94,6 +94,13 @@ export const nestjsConfig = [
     functionQuery: { functionName: 'Timeout', kind: 'Sync' },
   },
   {
+    // The function `ScheduleExplorer` returns here is what `@nestjs/schedule` passes to `CronJob` as `onTick`.
+    // From 6.0.0 it uses `cron` 4.3+, which has job names, so a named job can be monitored by the `cron` package too.
+    channelName: 'scheduleExplorerWrap',
+    module: { name: '@nestjs/schedule', versionRange: '>=6.0.0', filePath: 'dist/schedule.explorer.js' },
+    functionQuery: { className: 'ScheduleExplorer', methodName: 'wrapFunctionInTryCatchBlocks', kind: 'Sync' },
+  },
+  {
     // @nestjs/event-emitter @OnEvent:
     // `const OnEvent = (event, options) => {
     //   const decoratorFactory = (t, k, d) => {...}; return decoratorFactory;
@@ -138,6 +145,7 @@ export const nestjsChannels = {
   NESTJS_SCHEDULE_CRON: 'orchestrion:@nestjs/schedule:cronDecorator',
   NESTJS_SCHEDULE_INTERVAL: 'orchestrion:@nestjs/schedule:intervalDecorator',
   NESTJS_SCHEDULE_TIMEOUT: 'orchestrion:@nestjs/schedule:timeoutDecorator',
+  NESTJS_SCHEDULE_EXPLORER_WRAP: 'orchestrion:@nestjs/schedule:scheduleExplorerWrap',
   NESTJS_ONEVENT: 'orchestrion:@nestjs/event-emitter:onEventDecorator',
   NESTJS_PROCESSOR: 'orchestrion:@nestjs/bullmq:processorDecorator',
 } as const;
