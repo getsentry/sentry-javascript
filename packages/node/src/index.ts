@@ -18,6 +18,7 @@ export {
   nodeScheduleIntegration,
   type NodeScheduleIntegrationOptions,
   googleGenAIIntegration,
+  graphileWorkerIntegration,
   graphqlIntegration,
   groqIntegration,
   hapiIntegration,
