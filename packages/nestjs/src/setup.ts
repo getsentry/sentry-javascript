@@ -8,9 +8,20 @@ import type {
 } from '@nestjs/common';
 import { Catch, Global, HttpException, Injectable, Logger, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
-import { captureException, debug, getDefaultIsolationScope, getIsolationScope, isObjectLike } from '@sentry/core';
-import type { Observable } from 'rxjs';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { WEBSOCKET } from '@sentry/conventions/op';
+import {
+  captureException,
+  debug,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  isObjectLike,
+  startSpanManual,
+  withIsolationScope,
+} from '@sentry/core';
 import { isExpectedError, isWsOrRpcException } from './helpers';
+import { instrumentObservable } from './integrations/helpers';
+import type { Observable as IntegrationObservable } from './integrations/types';
 
 // Partial extract of FastifyRequest interface
 // https://github.com/fastify/fastify/blob/87f9f20687c938828f1138f91682d568d2a31e53/types/request.d.ts#L41
@@ -47,7 +58,57 @@ class SentryTracingInterceptor implements NestInterceptor {
   /**
    * Intercepts HTTP requests to set the transaction name for Sentry tracing.
    */
-  public intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+  public intercept(context: ExecutionContext, next: CallHandler): ReturnType<CallHandler['handle']> {
+    if (context.getType() === 'ws') {
+      const wsHost = context.switchToWs();
+      const client = wsHost.getClient<{ nsp?: { name?: string } }>();
+      const pattern = wsHost.getPattern?.();
+
+      if (!pattern) {
+        return next.handle();
+      }
+
+      const namespace = client?.nsp?.name;
+      const transactionName = namespace ? `WS ${namespace} ${pattern}` : `WS ${pattern}`;
+
+      return withIsolationScope(isolationScope => {
+        isolationScope.setTransactionName(transactionName);
+
+        return startSpanManual(
+          {
+            name: transactionName,
+            attributes: {
+              [SENTRY_OP]: WEBSOCKET,
+              [SENTRY_ORIGIN]: 'auto.middleware.nestjs.interceptor',
+            },
+          },
+          span => {
+            try {
+              const observable = next.handle();
+
+              // Keep the transaction name on the isolation scope active while the handler runs.
+              observable.subscribe = new Proxy(observable.subscribe, {
+                apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
+                  return withIsolationScope(subscriptionIsolationScope => {
+                    subscriptionIsolationScope.setTransactionName(transactionName);
+                    return originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
+                  });
+                },
+              });
+
+              // Nest returns an RxJS Observable, while the helper intentionally uses a minimal type to avoid importing RxJS here.
+              instrumentObservable(observable as unknown as IntegrationObservable<unknown>, span);
+
+              return observable;
+            } catch (error) {
+              span.end();
+              throw error;
+            }
+          },
+        );
+      });
+    }
+
     if (getIsolationScope() === getDefaultIsolationScope()) {
       debug.warn('Isolation scope is still the default isolation scope, skipping setting transactionName.');
       return next.handle();
