@@ -336,9 +336,10 @@ describe('sentryHandle', () => {
       );
     });
 
-    it("starts a span from sentry-trace header but doesn't populate a new DSC", async () => {
+    it('starts a span from sentry-trace header and creates the DSC from it', async () => {
       const event = mockEvent({
         request: {
+          method: 'GET',
           headers: {
             get: (key: string) => {
               if (key === 'sentry-trace') {
@@ -377,11 +378,17 @@ describe('sentryHandle', () => {
       expect(_span!.spanContext().traceId).toEqual('1234567890abcdef1234567890abcdef');
       expect(spanToJSON(_span!).parent_span_id).toEqual('1234567890abcdef');
       expect(spanIsSampled(_span!)).toEqual(true);
-      // Continuing a trace without incoming baggage does not populate a new DSC, but the scope's
-      // `sample_rand` is still propagated so downstream sampling decisions stay consistent. Assert it
-      // matches the scope value rather than just any number, so a freshly-minted rand would fail.
+      // Assert the scope's `sample_rand` rather than just any number, so a freshly-minted rand would fail.
       const scopeSampleRand = getCapturedScopesOnSpan(_span!).scope!.getPropagationContext().sampleRand;
-      expect(envelopeHeaders!.trace).toEqual({ sample_rand: scopeSampleRand.toString() });
+      expect(envelopeHeaders!.trace).toEqual({
+        environment: 'production',
+        public_key: 'examplePublicKey',
+        trace_id: '1234567890abcdef1234567890abcdef',
+        transaction: 'GET /users/[id]',
+        sampled: 'true',
+        sample_rate: '1',
+        sample_rand: scopeSampleRand.toString(),
+      });
     });
 
     it('creates a transaction with dynamic sampling context from baggage header', async () => {
