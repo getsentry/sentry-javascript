@@ -21,6 +21,7 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { Mistral } from '@mistralai/mistralai';
 import OpenAI from 'openai';
 import Together from 'together-ai';
+import { VERSION as TOGETHER_VERSION } from 'together-ai/version';
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
@@ -171,7 +172,9 @@ export const libraries: Library[] = [
     'together',
     'together_ai',
     'auto.ai.together_ai',
-    apiKey => new Together({ apiKey, baseURL: OPENROUTER_V1 }) as any,
+    // together-ai 1.0 moved `/v1` from its base URL into the request paths.
+    apiKey =>
+      new Together({ apiKey, baseURL: TOGETHER_VERSION.startsWith('0.') ? OPENROUTER_V1 : OPENROUTER_BASE }) as any,
   ),
 
   {
