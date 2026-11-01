@@ -14,7 +14,7 @@ import { applyPatches } from './applyPatches';
 import { INTERNAL_REQUEST_ORIGIN } from './constants';
 import { createHonoRequestMiddleware } from './createHonoMiddleware';
 import { getMiddlewareFlags } from './isMiddleware';
-import { isMatchedHandlerList } from './matchResult';
+import { isMatchedHandlerList, wrapRouteHandlers } from './matchResult';
 import { extractPathname, isInternalRequestSpanActive } from './patchAppRequest';
 import { wrapMiddlewareWithSpan } from './wrapMiddlewareSpan';
 import type { SentryHonoMiddlewareOptions } from './types';
@@ -50,8 +50,7 @@ export function honoMiddleware<E extends Env>(app: Hono<E>, options: HonoIntegra
   });
 }
 
-function wrapMatchedMiddleware(handlers: MatchedHandler[]): void {
-  const middlewareFlags = getMiddlewareFlags(handlers.map(([[, route]]) => route));
+function wrapMatchedMiddleware(handlers: MatchedHandler[], middlewareFlags: boolean[]): void {
   for (const [i, [pair]] of handlers.entries()) {
     if (middlewareFlags[i]) {
       pair[0] = wrapMiddlewareWithSpan(pair[0]);
@@ -63,7 +62,9 @@ function wrapMatchedMiddleware(handlers: MatchedHandler[]): void {
  * Per-request Context hook. `#dispatch` builds `new Context(req, { matchResult })` before its
  * single-handler fast-path check, so from the live `matchResult` we:
  *  1. wrap the matched middleware handlers for spans (route handlers are covered by the request span);
- *  2. prepend the Sentry request/response middleware — it drives route naming, request data and error
+ *  2. wrap the matched route handlers if one can call `next()`, so the route name follows the handler
+ *     that responds;
+ *  3. prepend the Sentry request/response middleware — it drives route naming, request data and error
  *     capture from inside the chain, and forces the ≥2-handler `compose` path so the fast-path is
  *     never taken.
  *
@@ -82,7 +83,9 @@ function injectHonoInstrumentation(
   injectedHandlerLists.add(handlers);
 
   if (isMatchedHandlerList(handlers)) {
-    wrapMatchedMiddleware(handlers);
+    const middlewareFlags = getMiddlewareFlags(handlers.map(([[, route]]) => route));
+    wrapMatchedMiddleware(handlers, middlewareFlags);
+    wrapRouteHandlers(handlers, middlewareFlags);
   }
 
   // Prepend the Sentry request/response middleware. Its arity marks it as a middleware, so its `/*`

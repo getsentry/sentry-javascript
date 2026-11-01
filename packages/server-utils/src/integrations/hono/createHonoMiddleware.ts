@@ -1,13 +1,9 @@
 import { addNonEnumerableProperty, getDefaultIsolationScope, getIsolationScope } from '@sentry/core';
 import type { HonoRuntime } from './connInfo';
+import { SENTRY_HONO_MIDDLEWARE } from './constants';
 import type { Context, MiddlewareHandler } from './honoTypes';
 import { captureContextError, requestHandler, responseHandler } from './middlewareHandlers';
 import type { SentryHonoMiddlewareOptions } from './types';
-
-// Marks the Sentry request/response middleware so the span-wrapping patches never turn it into a
-// middleware span — most importantly when an auto-instrumented sub-app carrying this middleware is
-// mounted into a parent and `wrapSubAppMiddleware` wraps its handlers. Read by `wrapMiddlewareWithSpan`.
-export const SENTRY_HONO_MIDDLEWARE = '__SENTRY_HONO_MIDDLEWARE__';
 
 // `Symbol.for` (global registry) so the markers are shared even if this module is evaluated from more
 // than one copy of `@sentry/server-utils`.

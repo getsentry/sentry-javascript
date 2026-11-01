@@ -15,12 +15,130 @@ type StreamedSpan = { name?: string; status?: string; is_segment?: boolean; attr
 const attr = (span: StreamedSpan, key: string): unknown => span.attributes?.[key]?.value;
 const op = (span: StreamedSpan): unknown => attr(span, 'sentry.op');
 
+const ROUTE_NAME_CASES: Array<{ method: 'get' | 'post'; path: string; name: string; route: string }> = [
+  { method: 'get', path: '/users/me', name: 'GET /users/me', route: '/users/me' },
+  { method: 'get', path: '/users/42', name: 'GET /users/:id', route: '/users/:id' },
+  { method: 'get', path: '/users/42/posts', name: 'GET /users/*', route: '/users/*' },
+  { method: 'get', path: '/overlap/123', name: 'GET /overlap/:id', route: '/overlap/:id' },
+  { method: 'get', path: '/early/1', name: 'GET /early/:id', route: '/early/:id' },
+  { method: 'get', path: '/posts/1', name: 'GET /posts/:id', route: '/posts/:id' },
+  { method: 'get', path: '/posts/draft', name: 'GET /posts/*', route: '/posts/*' },
+  { method: 'get', path: '/mw-only/anything', name: 'GET /mw-only/*', route: '/mw-only/*' },
+  { method: 'get', path: '/sub/hello', name: 'GET /sub/hello', route: '/sub/hello' },
+  {
+    method: 'get',
+    path: '/test-basepath-mw/hello',
+    name: 'GET /test-basepath-mw/hello',
+    route: '/test-basepath-mw/hello',
+  },
+  { method: 'post', path: '/any-method', name: 'POST /any-method', route: '/any-method' },
+  { method: 'get', path: '/outer/self-watering-plant', name: 'GET /outer/:itemId', route: '/outer/:itemId' },
+];
+
+function segmentNamed(name: string, route: string): { span: (container: { items: StreamedSpan[] }) => void } {
+  return {
+    span: container => {
+      const segment = container.items.find(item => item.is_segment && item.name === name);
+      if (!segment) {
+        throw new Error(`segment for \`${name}\` not in this container`);
+      }
+      expect(op(segment)).toBe('http.server');
+      expect(attr(segment, 'http.route')).toBe(route);
+      expect(attr(segment, 'sentry.segment.name.source')).toBe('route');
+    },
+  };
+}
+
 describe('hono auto-instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
+    // All cases in one test, because each `test()` starts its own Node process.
+    test('names each request after the route of the handler that responded', async () => {
+      const runner = createRunner().unordered();
+      for (const { name, route } of ROUTE_NAME_CASES) {
+        runner.expect(segmentNamed(name, route));
+      }
+
+      const started = runner.start();
+      for (const { method, path } of ROUTE_NAME_CASES) {
+        await started.makeRequest(method, path);
+      }
+      await started.completed();
+    });
+
+    test('names an event captured in a route handler after that route', async () => {
+      const runner = createRunner()
+        .ignore('span')
+        .expect({ event: { message: 'Message from a route handler', transaction: 'GET /users/:id/capture' } })
+        .start();
+      runner.makeRequest('get', '/users/42/capture');
+      await runner.completed();
+    });
+
+    test('does not rename a span that a middleware starts around the route handler', async () => {
+      const runner = createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const segment = container.items.find(item => item.is_segment && item.name === 'GET /traced/:id');
+            if (!segment) {
+              throw new Error('segment for `GET /traced/:id` not in this container');
+            }
+            expect(container.items.filter(item => item.name === 'user span')).toHaveLength(1);
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/traced/1');
+      await runner.completed();
+    });
+
+    test('keeps the runtime name for a request without a route', async () => {
+      const runner = createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const segment = container.items.find(
+              item => item.is_segment && attr(item, 'url.path') === '/does-not-exist',
+            );
+            if (!segment) {
+              throw new Error('segment for `/does-not-exist` not in this container');
+            }
+            expect(segment.name).toBe('GET');
+            expect(attr(segment, 'sentry.segment.name.source')).toBe('url');
+            expect(attr(segment, 'http.route')).toBeUndefined();
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/does-not-exist', { expectError: true });
+      await runner.completed();
+    });
+
+    test('names an event from the route handler that runs after next() after that route', async () => {
+      const runner = createRunner()
+        .ignore('span')
+        .expect({ event: { message: 'Message from a route handler after next()', transaction: 'GET /posts/*' } })
+        .start();
+      runner.makeRequest('get', '/posts/draft');
+      await runner.completed();
+    });
+
+    test('names a HEAD request after the GET route', async () => {
+      const runner = createRunner()
+        .unordered()
+        .expect({
+          event: {
+            exception: { values: [{ value: 'Test error from a HEAD request' }] },
+            transaction: 'HEAD /head-error/:id',
+          },
+        })
+        .start();
+      runner.makeRequest('head', '/head-error/1', { expectError: true });
+      await runner.completed();
+    });
+
     test('creates a transaction for a basic GET request', async () => {
       const runner = createRunner()
         .unordered()
@@ -227,42 +345,6 @@ describe('hono auto-instrumentation', () => {
       await runner.completed();
     });
 
-    test('resolves overlapping handlers to the responding route, not the catch-all', async () => {
-      const runner = createRunner()
-        .unordered()
-        .expect({
-          span: container => {
-            const segment = container.items.find(item => item.is_segment && item.name === 'GET /overlap/:id');
-            if (!segment) {
-              throw new Error('segment for `GET /overlap/:id` not in this container');
-            }
-            // The catch-all `GET /overlap/*` handler also matched, but the parameterized handler
-            // responded — the route name must not collapse to `/overlap/*`.
-            expect(attr(segment, 'sentry.segment.name.source')).toBe('route');
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/overlap/123');
-      await runner.completed();
-    });
-
-    test('falls back to the matched middleware path when only middleware matched', async () => {
-      const runner = createRunner()
-        .unordered()
-        .expect({
-          span: container => {
-            const segment = container.items.find(item => item.is_segment && item.name === 'GET /mw-only/*');
-            if (!segment) {
-              throw new Error('segment for `GET /mw-only/*` not in this container');
-            }
-            expect(op(segment)).toBe('http.server');
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/mw-only/anything');
-      await runner.completed();
-    });
-
     test('does not set the middleware span to error for a 3xx middleware error', async () => {
       const runner = createRunner()
         .unordered()
@@ -317,6 +399,31 @@ describe('hono auto-instrumentation', () => {
         })
         .start();
       runner.makeRequest('get', '/mw-throw/503', { expectError: true });
+      await runner.completed();
+    });
+  });
+});
+
+describe('hono auto-instrumentation with honoMiddleware(app)', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-honoMiddleware.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('wraps route handlers only when one declares next, and only once', async () => {
+      const runner = createRunner()
+        .unordered()
+        .expect(segmentNamed('GET /users/me', '/users/me'))
+        .expect(segmentNamed('GET /posts/:id', '/posts/:id'))
+        .expect(segmentNamed('GET /posts/:id', '/posts/:id'))
+        .expect(segmentNamed('GET /posts/*', '/posts/*'))
+        .start();
+
+      expect(await runner.makeRequest('get', '/users/me')).toEqual({ wrappers: 0 });
+      // The second request gets the same cached handler list.
+      expect(await runner.makeRequest('get', '/posts/1')).toEqual({ wrappers: 1 });
+      expect(await runner.makeRequest('get', '/posts/1')).toEqual({ wrappers: 1 });
+      expect(await runner.makeRequest('get', '/posts/draft')).toEqual({ wrappers: 1 });
       await runner.completed();
     });
   });

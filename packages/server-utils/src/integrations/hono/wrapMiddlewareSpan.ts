@@ -9,7 +9,7 @@ import {
   type WrappedFunction,
 } from '@sentry/core';
 import { type MiddlewareHandler } from './honoTypes';
-import { SENTRY_HONO_MIDDLEWARE } from './createHonoMiddleware';
+import { SENTRY_HONO_MIDDLEWARE } from './constants';
 import { defaultShouldHandleError } from './defaultShouldHandleError';
 
 const MIDDLEWARE_ORIGIN = 'auto.middleware.hono';
