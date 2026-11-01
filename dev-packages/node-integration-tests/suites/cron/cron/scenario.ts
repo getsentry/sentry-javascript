@@ -28,11 +28,11 @@ cron.start();
 // is enough to hit it, and the job is left scheduled for nothing: no ticks, no check-ins, and the
 // scenario exits on the timeout below having sent nothing at all. Starting again re-reads the clock
 // away from the boundary.
-for (let attempt = 0; attempt < 5 && !cron.running; attempt++) {
+for (let attempt = 0; attempt < 5 && !cron.isActive; attempt++) {
   cron.start();
 }
 
-if (!cron.running) {
+if (!cron.isActive) {
   throw new Error('`cron` refused to schedule the job');
 }
 
