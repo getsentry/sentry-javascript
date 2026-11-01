@@ -59,7 +59,7 @@
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "npm pack",
+    "build:tarball": "pnpm pack",
     "clean": "rimraf build coverage sentry-nitro-*.tgz",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",

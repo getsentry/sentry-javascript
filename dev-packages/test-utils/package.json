@@ -51,7 +51,7 @@
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "build": "run-s build:transpile build:types",
-    "build:tarball": "npm pack",
+    "build:tarball": "pnpm pack",
     "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",

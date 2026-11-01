@@ -17,6 +17,6 @@
   },
   "scripts": {
     "clean": "pnpm exec rimraf sentry-typescript-*.tgz",
-    "build:tarball": "npm pack"
+    "build:tarball": "pnpm pack"
   }
 }
