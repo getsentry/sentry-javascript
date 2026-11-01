@@ -1,8 +1,6 @@
 import type { TracingChannel } from 'node:diagnostics_channel';
 import {
   DB_NAMESPACE,
-  DB_QUERY_SUMMARY,
-  DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   SENTRY_OP,
   SERVER_ADDRESS,
@@ -10,9 +8,10 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
-import { getClient, hasSpanStreamingEnabled, startInactiveSpan } from '@sentry/core';
+import type { SpanAttributes } from '@sentry/core';
+import { startInactiveSpan } from '@sentry/core';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
-import { getSqlQueryAttributes } from '../../utils/sql';
+import { getSqlQueryAttributes, getSqlSpanName } from '../../utils/sql';
 
 // Channel names published by mysql2 >= 3.20.0 (see mysql2 `lib/tracing.js`).
 // Hardcoded so the subscriber does not have to import mysql2 — the channels
@@ -92,27 +91,17 @@ function setupQueryChannel(tracingChannel: MySQL2TracingChannelFactory, channelN
     // mysql2 does not sanitize its channel payload, so the statement may carry
     // raw user values (on the `query` channel they are inlined). Strip every
     // literal before it leaves the process; `values` is never attached.
-    const queryAttributes = getSqlQueryAttributes(data.query, 'mysql');
+    const attributes: SpanAttributes = {
+      [SENTRY_ORIGIN]: ORIGIN,
+      [SENTRY_OP]: DB,
+      [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
+      ...getSqlQueryAttributes(data.query, 'mysql'),
+      [DB_NAMESPACE]: data.database || undefined,
+      [SERVER_ADDRESS]: data.serverAddress,
+      [SERVER_PORT]: data.serverPort,
+    };
 
-    const client = getClient();
-    const name =
-      client && hasSpanStreamingEnabled(client)
-        ? queryAttributes[DB_QUERY_SUMMARY] || data.database || DB_SYSTEM_NAME_VALUE_MYSQL
-        : (queryAttributes[DB_QUERY_TEXT] ?? 'mysql2.query');
-
-    return startInactiveSpan({
-      name,
-      onlyIfParent: true,
-      attributes: {
-        [SENTRY_ORIGIN]: ORIGIN,
-        [SENTRY_OP]: DB,
-        [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
-        ...queryAttributes,
-        [DB_NAMESPACE]: data.database || undefined,
-        [SERVER_ADDRESS]: data.serverAddress,
-        [SERVER_PORT]: data.serverPort,
-      },
-    });
+    return startInactiveSpan({ name: getSqlSpanName(attributes, 'mysql2.query'), attributes, onlyIfParent: true });
   });
 }
 

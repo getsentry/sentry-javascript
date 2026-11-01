@@ -14,15 +14,7 @@
  */
 
 import type { Span, SpanAttributes } from '@sentry/core';
-import {
-  debug,
-  getActiveSpan,
-  getClient,
-  hasSpanStreamingEnabled,
-  LRUMap,
-  startInactiveSpan,
-  startSpanManual,
-} from '@sentry/core';
+import { debug, getActiveSpan, LRUMap, startInactiveSpan, startSpanManual } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { EngineSpan, ExtendedSpanOptions, SpanCallback, TracingHelper } from './types';
 import {
@@ -35,7 +27,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { getSqlQueryAttributes, type SqlDialect, toSqlDialect } from '../../utils/sql';
+import { getSqlQueryAttributes, getSqlSpanName, type SqlDialect, toSqlDialect } from '../../utils/sql';
 
 // Reading `process.env` can throw in runtimes that gate env access (e.g. Deno without `--allow-env`)
 // and `process` may be absent altogether (edge runtimes), so this degrades to `false` in those cases.
@@ -146,26 +138,23 @@ function getSqlStatement(name: string, attributes: SpanAttributes): string | und
     return dbStatement;
   }
   const queryText = attributes[DB_QUERY_TEXT];
-  if ((name === 'prisma:engine:db_query' || name === 'prisma:client:db_query') && typeof queryText === 'string') {
+  if (isDbQuerySpan(name) && typeof queryText === 'string') {
     return queryText;
   }
   return undefined;
 }
 
 /**
- * Db query spans are named after their SQL text (e.g. `SELECT * FROM "User"`) rather than the generic
- * engine name. v5/v6 emit `prisma:engine:db_query`; v7 inlined the engine and emits `prisma:client:db_query`.
+ * Db query spans are named like every other SQL span (see `getSqlSpanName`), falling back to the
+ * Prisma span name. v5/v6 emit `prisma:engine:db_query`; v7 inlined the engine and emits
+ * `prisma:client:db_query`. Other Prisma spans keep their own name, even when they carry db attributes.
  */
 function buildSpanName(name: string, attributes: SpanAttributes): string {
-  const client = getClient();
+  return isDbQuerySpan(name) ? getSqlSpanName(attributes, name) : name;
+}
 
-  // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
-  // instead of the full statement. Spans that report no SQL keep the engine span name.
-  if (client && hasSpanStreamingEnabled(client)) {
-    return (attributes[DB_QUERY_SUMMARY] as string | undefined) || name;
-  }
-
-  return getSqlStatement(name, attributes) ?? name;
+function isDbQuerySpan(name: string): boolean {
+  return name === 'prisma:engine:db_query' || name === 'prisma:client:db_query';
 }
 
 /**
