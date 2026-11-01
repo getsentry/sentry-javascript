@@ -42,6 +42,18 @@
         "assert-command": "pnpm test:prod-turbo && pnpm test:dev-turbo",
         "label": "nextjs-15 (turbo)"
       }
+    ],
+    "baseVariant": {
+      "build-command": "pnpm test:build",
+      "label": "nextjs-15 (production)",
+      "assert-command": "pnpm test:prod"
+    },
+    "variants": [
+      {
+        "build-command": "pnpm test:build",
+        "label": "nextjs-15 (development)",
+        "assert-command": "pnpm test:dev"
+      }
     ]
   }
 }
