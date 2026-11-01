@@ -7,7 +7,15 @@ import {
   DB_SYSTEM_NAME,
 } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
-import { Client, createTransport, getCurrentScope, initAndBind, resolvedSyncPromise, spanToJSON } from '@sentry/core';
+import {
+  Client,
+  createTransport,
+  getCurrentScope,
+  initAndBind,
+  resolvedSyncPromise,
+  spanToJSON,
+  startSpan,
+} from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { instrumentPrisma } from '../../src/integrations/prisma';
 import type { TracingHelper } from '../../src/integrations/prisma/types';
@@ -45,8 +53,10 @@ function initTestClient(): void {
 /** Runs a `db_query` span through the installed helper and returns the span it created. */
 function runDbQuerySpan(attributes: Record<string, unknown>): Span {
   let span: Span | undefined;
-  getHelper()?.runInChildSpan({ name: 'db_query', attributes }, createdSpan => {
-    span = createdSpan;
+  startSpan({ name: 'parent' }, () => {
+    getHelper()?.runInChildSpan({ name: 'db_query', attributes }, createdSpan => {
+      span = createdSpan;
+    });
   });
   return span!;
 }

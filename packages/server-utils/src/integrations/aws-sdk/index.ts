@@ -9,7 +9,7 @@ import {
   HTTP_RESPONSE_STATUS_CODE,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { RPC } from '@sentry/conventions/op';
+import { DB, RPC } from '@sentry/conventions/op';
 import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { awsSdkModuleNames } from '../../orchestrion/config/aws-sdk';
@@ -116,6 +116,7 @@ function instrumentAwsSdk(servicesExtensions: ServicesExtensions): void {
       const span = startInactiveSpan({
         name: requestMetadata.spanName ?? `${normalizedRequest.serviceName}.${normalizedRequest.commandName}`,
         op,
+        onlyIfParent: op === DB,
         attributes: {
           [SENTRY_KIND]: 'client',
           [SENTRY_ORIGIN]: getSpanOrigin(op),

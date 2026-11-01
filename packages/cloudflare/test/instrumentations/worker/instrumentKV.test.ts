@@ -48,6 +48,7 @@ describe('instrumentKV', () => {
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
+        onlyIfParent: true,
         name: CACHE_GET,
         attributes: {
           [SENTRY_OP]: CACHE_GET,
@@ -81,6 +82,7 @@ describe('instrumentKV', () => {
     expect(get).toHaveBeenCalledWith(keys, 'text');
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
+        onlyIfParent: true,
         name: CACHE_GET,
         attributes: {
           [SENTRY_OP]: CACHE_GET,
@@ -105,6 +107,7 @@ describe('instrumentKV', () => {
     expect(kv.getWithMetadata).toHaveBeenCalledWith('test-key', 'json');
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
+        onlyIfParent: true,
         name: CACHE_GET,
         attributes: {
           [SENTRY_OP]: CACHE_GET,
@@ -132,6 +135,7 @@ describe('instrumentKV', () => {
     expect(startSpanSpy).toHaveBeenNthCalledWith(
       1,
       {
+        onlyIfParent: true,
         name: CACHE_PUT,
         attributes: {
           [SENTRY_OP]: CACHE_PUT,
@@ -148,6 +152,7 @@ describe('instrumentKV', () => {
     expect(startSpanSpy).toHaveBeenNthCalledWith(
       2,
       {
+        onlyIfParent: true,
         name: CACHE_REMOVE,
         attributes: {
           [SENTRY_OP]: CACHE_REMOVE,
@@ -164,6 +169,7 @@ describe('instrumentKV', () => {
     expect(startSpanSpy).toHaveBeenNthCalledWith(
       3,
       {
+        onlyIfParent: true,
         name: CACHE_GET,
         attributes: {
           [SENTRY_OP]: CACHE_GET,
