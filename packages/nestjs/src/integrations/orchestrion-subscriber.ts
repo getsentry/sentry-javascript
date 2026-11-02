@@ -206,8 +206,12 @@ export function subscribeToNestChannels(): void {
   diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.NESTJS_SCHEDULE_EXPLORER_WRAP).subscribe({
     start: NOOP,
     end(data) {
-      if (typeof data.result === 'function' && sendsCronCheckIns(data.arguments?.[0])) {
-        addNonEnumerableProperty(data.result, Symbol.for('sentry.cron.monitored'), true);
+      try {
+        if (typeof data.result === 'function' && sendsCronCheckIns(data.arguments?.[0])) {
+          addNonEnumerableProperty(data.result, Symbol.for('sentry.cron.monitored'), true);
+        }
+      } catch (e) {
+        DEBUG_BUILD && debug.error('[Nest] Failed to check whether a @Cron() job sends check-ins:', e);
       }
     },
     asyncStart: NOOP,
