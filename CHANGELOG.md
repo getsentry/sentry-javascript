@@ -16,6 +16,10 @@
 
 ### Important Changes
 
+- **feat(nestjs): Add an option to monitor every @Cron method ([#25471](https://github.com/getsentry/sentry-javascript/pull/25471))**
+
+  Set `monitorCronJobs: true` on `nestIntegration()` to send check-ins for every `@Cron()` method, without adding `@SentryCron` to each one. It's off by default. Each monitored job creates a monitor in Sentry, and monitors are billed. Use `excludeCronJobs` to skip jobs by slug.
+
 - **feat(nestjs): Derive SentryCron monitor config from @Cron ([#25013](https://github.com/getsentry/sentry-javascript/pull/25013))**
 
   `@SentryCron` now sends the schedule and time zone from the method's `@Cron()` decorator, so Sentry creates the monitor on the first run. If you use `@SentryCron` without a `schedule`, Sentry now creates missing monitors, which are billed, and overwrites schedules and time zones set by hand. Pass `fromCronDecorator: false` to turn this off.
