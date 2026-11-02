@@ -15,7 +15,7 @@ import {
   startSpanManual,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
+import { getSqlQueryAttributes } from '../utils/sql';
 import {
   DB_NAMESPACE,
   DB_OPERATION_NAME,
@@ -30,8 +30,6 @@ import {
   ERROR_TYPE,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
-
-const SQL_OPERATION_REGEX = /^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)/i;
 
 export type PostgresConnectionContext = {
   ATTR_DB_NAMESPACE?: string;
@@ -246,11 +244,10 @@ function _wrapSingleQueryHandle(
       return originalHandle.apply(this, args);
     }
 
-    const fullQuery = _reconstructQuery(query.strings);
-    const sanitizedSqlQuery = sanitizeSqlQuery(fullQuery);
+    const queryAttributes = getSqlQueryAttributes(_reconstructQuery(query.strings));
+    const sanitizedSqlQuery = queryAttributes[DB_QUERY_TEXT] ?? '';
 
     const client = getClient();
-    const querySummary = getSqlQuerySummary(sanitizedSqlQuery);
 
     const connectionContext = sqlInstance
       ? ((sqlInstance as Record<symbol, unknown>)[CONNECTION_CONTEXT_SYMBOL] as PostgresConnectionContext | undefined)
@@ -258,7 +255,7 @@ function _wrapSingleQueryHandle(
 
     const name =
       client && hasSpanStreamingEnabled(client)
-        ? querySummary || connectionContext?.ATTR_DB_NAMESPACE || 'postgres'
+        ? queryAttributes[DB_QUERY_SUMMARY] || connectionContext?.ATTR_DB_NAMESPACE || 'postgres'
         : sanitizedSqlQuery || 'postgresjs.query';
 
     return startSpanManual(
@@ -268,9 +265,7 @@ function _wrapSingleQueryHandle(
           [SENTRY_OP]: DB,
           [SENTRY_ORIGIN]: 'auto.db.postgresjs',
           [DB_SYSTEM_NAME]: 'postgres',
-          [DB_QUERY_TEXT]: sanitizedSqlQuery,
-          [DB_QUERY_SUMMARY]: querySummary,
-          [DB_OPERATION_NAME]: _getOperationName(sanitizedSqlQuery),
+          ...queryAttributes,
           ...(connectionContext && _getConnectionAttributes(connectionContext)),
         },
       },
@@ -293,7 +288,7 @@ function _wrapSingleQueryHandle(
           apply: (resolveTarget, resolveThisArg, resolveArgs: [{ command?: string }]) => {
             try {
               // Re-set the operation name with the server-reported command, which is more reliable than the query text.
-              span.setAttribute(DB_OPERATION_NAME, _getOperationName(sanitizedSqlQuery, resolveArgs?.[0]?.command));
+              span.setAttribute(DB_OPERATION_NAME, resolveArgs?.[0]?.command || queryAttributes[DB_OPERATION_NAME]);
               span.end();
             } catch (e) {
               DEBUG_BUILD && debug.error('Error ending span in resolve callback:', e);
@@ -394,20 +389,6 @@ export function _getConnectionAttributes(connectionContext: PostgresConnectionCo
   }
 
   return attributes;
-}
-
-/**
- * Extracts the DB operation name from a SQL query, preferring the server-reported `command`.
- *
- * @internal Exported for the diagnostics-channel integration.
- */
-export function _getOperationName(sanitizedQuery: string | undefined, command?: string): string | undefined {
-  if (command) {
-    return command;
-  }
-  // Fallback: extract operation from the SQL query
-  const operationMatch = sanitizedQuery?.match(SQL_OPERATION_REGEX);
-  return operationMatch?.[1]?.toUpperCase();
 }
 
 /**

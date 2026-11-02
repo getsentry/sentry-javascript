@@ -7,6 +7,7 @@
 // `node:sqlite`, which `flue` needs, and the Vercel keep-alive, which needs `http.server.response.finish`.
 const NODE_ONLY = [
   'suites/anr/test.ts',
+  'suites/aws-lambda-web/**',
   'suites/aws-serverless/**',
   'suites/breadcrumbs/**',
   'suites/child-process/test.ts',
@@ -65,6 +66,7 @@ const NO_FETCH_INSTRUMENTATION = [
 // See https://github.com/getsentry/sentry-javascript/issues/23882
 export const NO_AUTO_INSTRUMENTATION = [
   'suites/cron/node-cron/integration/test.ts',
+  'suites/cron/node-schedule-integration/test.ts',
   'suites/express/**',
   'suites/fs-instrumentation/test.ts',
   'suites/hono/test.ts',

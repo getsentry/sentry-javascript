@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **ref(cloudflare): Use the shared request handler wrapper**
+
+  Cloudflare Workers now use the same request handler wrapper as `Deno.serve` and `Bun.serve`. Changes for Cloudflare users:
+
+  - Request spans now set `client.address` from the `CF-Connecting-IP` header (or another forwarding header), as on the other runtimes. This follows `dataCollection.userInfo`, which is `true` by default. To leave it out, set `dataCollection: { userInfo: false }`.
+  - Request spans now have the response header attributes, and events have the `response` context with the status code.
+  - When the source of a streamed response fails, the SDK now captures the error and marks the span as failed. With `captureErrors: false`, it does not capture it.
+  - Request spans now list every `Set-Cookie` header of a response, as on Deno and Bun.
+  - Without `AsyncLocalStorage` (for example on Shopify Oxygen), events now also get the request URL and method.
+
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 ### Important Changes
@@ -13,6 +23,10 @@
 - **fix(server-utils): Instrument @anthropic-ai/sdk 1.x and turn off its own OTel spans ([#25750](https://github.com/getsentry/sentry-javascript/pull/25750))**
 
   The Anthropic integration now instruments `@anthropic-ai/sdk` 1.x. Since 0.134 the SDK also records its own OpenTelemetry spans, such as `anthropic.messages.create`, which duplicated Sentry's `gen_ai` spans. Once Sentry instruments the SDK, it sets `ANTHROPIC_OPEN_TELEMETRY=false` to turn those spans off. To keep them, set `ANTHROPIC_OPEN_TELEMETRY=true` or pass the `openTelemetry` option to the Anthropic client.
+
+- **feat(nextjs): Mark pageloads of cached pages ([#25318](https://github.com/getsentry/sentry-javascript/pull/25318))**
+
+  When Next.js serves a page from its cache, for example an ISR page or a `cacheComponents` shell, the pageload now has the `page.server_rendering.type` attribute. It is `static` if the whole page came from the cache, and `partially_static` if parts of it rendered for this request. Then the pageload stays connected to this request, as before. If the request that rendered the cached page was sampled, the pageload also links to it. So in Sentry, a cached page no longer looks like missing server instrumentation.
 
 Work in this release was contributed by @lazerg and @chiliec. Thank you for your contributions!
 

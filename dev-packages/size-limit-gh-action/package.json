@@ -18,8 +18,6 @@
     "@actions/core": "1.10.1",
     "@actions/exec": "1.1.1",
     "@actions/github": "^5.0.0",
-    "@actions/glob": "0.7.0",
-    "@actions/io": "3.0.2",
     "bytes-iec": "3.1.1",
     "markdown-table": "3.0.3"
   }

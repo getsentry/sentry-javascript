@@ -44,6 +44,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "require-in-the-middle": "^8",
+    "sentry-metadata-test-dependency": "file:../../test-applications/nextjs-16/fixtures/metadata-dependency",
     "zod": "^3.22.4"
   },
   "devDependencies": {
@@ -66,6 +67,11 @@
   "sentryTest": {
     "runner": "namespace-profile-sentry-javascript",
     "variants": [
+      {
+        "build-command": "NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES=1 pnpm test:build",
+        "label": "nextjs-16 (exclude application key dependencies)",
+        "assert-command": "NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES=1 pnpm test:assert"
+      },
       {
         "build-command": "pnpm test:build-webpack",
         "label": "nextjs-16 (webpack)",

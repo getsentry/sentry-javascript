@@ -34,7 +34,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
-import { sanitizeSqlQueryWithSummary, toSqlDialect } from '../utils/sql';
+import { getSqlQueryAttributes, toSqlDialect } from '../utils/sql';
 
 // NOTE: this uses the same name as the OTel integration by design. `@sentry/node`'s `knexIntegration`
 // picks this subscriber over the vendored OTel path when orchestrion injection is active.
@@ -165,7 +165,7 @@ function subscribeQuery(): void {
       const dbSystem = mapSystem(client?.driverName);
 
       const dialect = toSqlDialect(client?.driverName);
-      const { queryText: dbStatement, querySummary } = sanitizeSqlQueryWithSummary(
+      const queryAttributes = getSqlQueryAttributes(
         query?.sql ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined,
         dialect,
       );
@@ -173,6 +173,7 @@ function subscribeQuery(): void {
         [SENTRY_OP]: DB,
         [SENTRY_KIND]: 'client',
         [SENTRY_ORIGIN]: ORIGIN,
+        ...queryAttributes,
         'knex.version': data.moduleVersion,
         [DB_SYSTEM_NAME]: dbSystem,
         [ATTR_DB_SQL_TABLE]: table,
@@ -182,15 +183,13 @@ function subscribeQuery(): void {
         [SERVER_ADDRESS]: connection?.host ?? extractHostFromConnectionString(connectionString),
         [SERVER_PORT]: connection?.port ?? extractPortFromConnectionString(connectionString),
         [NETWORK_TRANSPORT]: connection?.filename === ':memory:' ? 'inproc' : undefined,
-        [DB_QUERY_TEXT]: dbStatement,
-        [DB_QUERY_SUMMARY]: querySummary,
       };
 
       const sentryClient = getClient();
       const spanName =
         sentryClient && hasSpanStreamingEnabled(sentryClient)
-          ? querySummary || getSecondaryStreamName(dbSystem, dbNameSpace, operation, table)
-          : (dbStatement ?? getName(dbNameSpace, operation, table) ?? 'knex.query');
+          ? queryAttributes[DB_QUERY_SUMMARY] || getSecondaryStreamName(dbSystem, dbNameSpace, operation, table)
+          : (queryAttributes[DB_QUERY_TEXT] ?? getName(dbNameSpace, operation, table) ?? 'knex.query');
 
       return startInactiveSpan({
         name: spanName,

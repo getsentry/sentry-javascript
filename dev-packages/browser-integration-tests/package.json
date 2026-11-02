@@ -62,7 +62,6 @@
     "@sentry/rrweb": "2.45.0",
     "@sentry/browser": "11.10.0",
     "@sentry/replay": "11.10.0",
-    "@sentry/opentelemetry": "11.10.0",
     "@sentry/conventions": "0.30.0",
     "@supabase/supabase-js": "2.109.0",
     "axios": "1.20.0",
@@ -78,7 +77,6 @@
     "@sentry/rrweb-types": "^2.45.0",
     "@sentry/wasm": "11.10.0",
     "@types/node": "^20.19.0",
-    "eslint-plugin-regexp": "^3.1.0",
     "glob": "^13.0.6"
   }
 }

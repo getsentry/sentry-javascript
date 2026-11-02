@@ -77,7 +77,7 @@ jobs:
 
       - name: Try to fix the issue with Claude
         id: triage
-        uses: anthropics/claude-code-action@8ce9314fa9a404564fa7e954cd84f25bcba2b829 # v1
+        uses: anthropics/claude-code-action@d70510b174a1244958df0b03166a54912811f3e6 # v1
         env:
           ANTHROPIC_BASE_URL: https://openrouter.ai/api
         with:

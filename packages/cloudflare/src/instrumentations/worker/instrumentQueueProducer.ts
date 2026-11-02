@@ -32,7 +32,7 @@ function startPublishSpan<T>(
         [MESSAGING_DESTINATION_NAME]: bindingName,
         [MESSAGING_OPERATION_TYPE]: 'send',
         [MESSAGING_OPERATION_NAME]: 'send',
-        ...(messageCount !== undefined && { [MESSAGING_BATCH_MESSAGE_COUNT]: messageCount }),
+        [MESSAGING_BATCH_MESSAGE_COUNT]: messageCount,
         [MESSAGING_MESSAGE_BODY_SIZE]: bodySize,
         [SENTRY_OP]: QUEUE_PUBLISH,
         [SENTRY_ORIGIN]: ORIGIN,
