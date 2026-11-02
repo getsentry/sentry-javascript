@@ -1,4 +1,5 @@
 import type { Client } from '@sentry/core';
+import type { isNuxtError as nuxtIsNuxtError, NuxtApp } from 'nuxt/app';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import clientPlugin from '../../../src/runtime/plugins/sentry.client';
 import * as utils from '../../../src/runtime/utils';
@@ -20,7 +21,11 @@ const globalObj = vi.hoisted(() => ({
 
 vi.mock(import('@sentry/core'), async importOriginal => {
   const mod = await importOriginal();
-  return { ...mod, getClient, GLOBAL_OBJ: globalObj as never };
+  return {
+    ...mod,
+    getClient: getClient as typeof mod.getClient,
+    GLOBAL_OBJ: globalObj as never,
+  };
 });
 
 vi.mock(import('@sentry/vue'), async importOriginal => {
@@ -37,15 +42,14 @@ vi.mock(import('@sentry/vue'), async importOriginal => {
 
 vi.mock(import('nuxt/app'), () => ({
   defineNuxtPlugin: vi.fn(plugin => plugin),
-  isNuxtError: vi.fn(() => false),
+  isNuxtError: vi.fn(() => false) as unknown as typeof nuxtIsNuxtError,
 }));
 
-type PluginSetup = (nuxtApp: {
-  $router?: unknown;
-  hook: ReturnType<typeof vi.fn>;
-}) => Promise<void>;
+type PluginSetup = NonNullable<typeof clientPlugin.setup>;
 
 type NuxtPluginShape = { setup: PluginSetup };
+
+type MockNuxtApp = NuxtApp & { hook: ReturnType<typeof vi.fn> };
 
 function makeClient(overrides: Partial<Client> = {}): Client {
   return {
@@ -55,8 +59,8 @@ function makeClient(overrides: Partial<Client> = {}): Client {
   } as unknown as Client;
 }
 
-function makeNuxtApp(router?: unknown): { $router?: unknown; hook: ReturnType<typeof vi.fn> } {
-  return router === undefined ? { hook: vi.fn() } : { $router: router, hook: vi.fn() };
+function makeNuxtApp(router?: unknown): MockNuxtApp {
+  return (router === undefined ? { hook: vi.fn() } : { $router: router, hook: vi.fn() }) as unknown as MockNuxtApp;
 }
 
 describe('Sentry Nuxt client plugin', () => {
@@ -192,10 +196,7 @@ describe('Sentry Nuxt client plugin', () => {
   });
 
   describe.each(['app:error', 'vue:error'] as const)('%s hook — status-code filtering', hookName => {
-    const fireHook = (
-      nuxtApp: { hook: ReturnType<typeof vi.fn> },
-      error: unknown,
-    ) => {
+    const fireHook = (nuxtApp: { hook: ReturnType<typeof vi.fn> }, error: unknown) => {
       const cb = nuxtApp.hook.mock.calls.find(c => c[0] === hookName)?.[1] as (
         e: unknown,
         instance?: unknown,
@@ -209,24 +210,22 @@ describe('Sentry Nuxt client plugin', () => {
 
     // The plugin's skip guard reads `error.status || error.statusCode`, so both
     // field names in the 3xx/4xx range must be covered.
-    it.each([
-      { status: 404 },
-      { status: 301 },
-      { statusCode: 404 },
-      { statusCode: 301 },
-    ])('skips reporting when a Nuxt error carries %o', async errorShape => {
-      const { isNuxtError } = await import('nuxt/app');
-      const reportSpy = vi.spyOn(utils, 'reportNuxtError').mockImplementation(() => {});
-      vi.mocked(isNuxtError).mockReturnValue(true);
-      getClient.mockReturnValue(makeClient());
-      getRouteProvider.mockReturnValue(undefined);
+    it.each([{ status: 404 }, { status: 301 }, { statusCode: 404 }, { statusCode: 301 }])(
+      'skips reporting when a Nuxt error carries %o',
+      async errorShape => {
+        const { isNuxtError } = await import('nuxt/app');
+        const reportSpy = vi.spyOn(utils, 'reportNuxtError').mockImplementation(() => {});
+        vi.mocked(isNuxtError).mockReturnValue(true);
+        getClient.mockReturnValue(makeClient());
+        getRouteProvider.mockReturnValue(undefined);
 
-      const nuxtApp = makeNuxtApp();
-      await (clientPlugin as NuxtPluginShape).setup(nuxtApp);
-      fireHook(nuxtApp, errorShape);
+        const nuxtApp = makeNuxtApp();
+        await (clientPlugin as NuxtPluginShape).setup(nuxtApp);
+        fireHook(nuxtApp, errorShape);
 
-      expect(reportSpy).not.toHaveBeenCalled();
-    });
+        expect(reportSpy).not.toHaveBeenCalled();
+      },
+    );
 
     it('reports a Nuxt error when the status code is 5xx', async () => {
       const { isNuxtError } = await import('nuxt/app');
