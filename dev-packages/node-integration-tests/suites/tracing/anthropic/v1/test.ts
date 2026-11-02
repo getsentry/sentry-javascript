@@ -129,6 +129,7 @@ describe('Anthropic integration (1.x)', () => {
       { mode: 'runner', streaming: false, turns: ['tools', 'final'] },
       { mode: 'thread_send', streaming: false, turns: ['tools'] },
       { mode: 'thread_stream', streaming: true, turns: ['tools'] },
+      { mode: 'thread_stream_signal_reuse', streaming: true, turns: ['tools', 'final'] },
       // Only the span's status is known for these. The stream is aborted on its first event or before the response,
       // its body closes before `message_stop`, or the request fails.
       { mode: 'thread_stream_abort', streaming: true, turns: ['abort'], status: 'ok' },

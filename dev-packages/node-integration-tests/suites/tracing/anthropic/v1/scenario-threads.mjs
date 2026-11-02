@@ -148,6 +148,19 @@ const MODES = {
   async thread_stream(client) {
     await client.beta.messages.thread({ model: MODEL, max_tokens: 100 }).stream(params.messages).finalMessage();
   },
+  // A later request sent with a finished thread stream's signal is not that stream's request.
+  async thread_stream_signal_reuse(client) {
+    const stream = client.beta.messages.thread({ model: MODEL, max_tokens: 100 }).stream(params.messages);
+    await stream.finalMessage();
+    const answer = { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: 'sunny' }] };
+    const followUp = await client.beta.messages.create(
+      { ...params, messages: [...params.messages, answer], stream: true },
+      { signal: stream.controller.signal },
+    );
+    for await (const _event of followUp) {
+      // consume
+    }
+  },
   async thread_stream_abort(client) {
     const stream = client.beta.messages.thread({ model: MODEL, max_tokens: 100 }).stream(params.messages);
     stream.once('streamEvent', () => stream.abort());
