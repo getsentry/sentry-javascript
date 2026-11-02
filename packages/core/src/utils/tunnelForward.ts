@@ -4,7 +4,8 @@ import { suppressTracing } from '../tracing/trace';
 import { debug } from './debug-logger';
 import { makeDsn } from './dsn';
 import type { ServerTunnelOptions } from '../types/options';
-import { matchesTunnel, resolveAllowedDsns, resolveTunnelMatch } from './tunnel';
+import { DEBUG_BUILD } from '../debug-build';
+import { getServedTunnelMatch, matchesTunnel, resolveAllowedDsns, resolveTunnelMatch } from './tunnel';
 
 /**
  * Options for {@link handleTunnelRequest}.
@@ -43,6 +44,9 @@ interface NodeTunnelRequest extends AsyncIterable<Uint8Array | string> {
 interface NodeTunnelResponse {
   writeHead(statusCode: number, headers?: Record<string, string>): unknown;
   end(chunk: Uint8Array): unknown;
+  headersSent?: boolean;
+  /** Lets the forward stop when the browser goes away. */
+  once?(event: 'close', listener: () => void): unknown;
 }
 
 /**
@@ -76,7 +80,7 @@ export function handleTunnelRequest(
     const nodeResponse = responseOrOptions;
 
     return forwardTunnelRequest(
-      toFetchRequest(requestOrOptions as NodeTunnelRequest),
+      toFetchRequest(requestOrOptions as NodeTunnelRequest, nodeResponse),
       getAllowedDsns(nodeOptions),
     ).then(fetchResponse => writeNodeResponse(nodeResponse, fetchResponse));
   }
@@ -122,9 +126,48 @@ export function handleTunnelRequestIfMatched(
     return forwardTunnelRequest(request as Request, tunnel.allowedDsns);
   }
 
-  return forwardTunnelRequest(toFetchRequest(request as NodeTunnelRequest), tunnel.allowedDsns).then(fetchResponse =>
-    writeNodeResponse(response, fetchResponse),
+  return forwardTunnelRequest(toFetchRequest(request as NodeTunnelRequest, response), tunnel.allowedDsns).then(
+    fetchResponse => writeNodeResponse(response, fetchResponse),
   );
+}
+
+/**
+ * Answers a request to the tunnel `serveTunnelIntegration` serves on a Node server, ahead of the app. Returns `true`
+ * when it claimed the request and answers it, `false` to hand the request to the app.
+ *
+ * It never throws, since it runs inside the server's `emit`, where a throw crashes the process. Until a request is
+ * claimed, a failure hands it to the app. Once claimed, its body may be read already, so a failure ends in a 502.
+ */
+export function handleServedNodeTunnelRequest(request: NodeTunnelRequest, response: NodeTunnelResponse): boolean {
+  let handled: Promise<Response>;
+  try {
+    const servedTunnel = getServedTunnelMatch(request);
+    if (!servedTunnel) {
+      return false;
+    }
+
+    handled = servedTunnel.forward(toFetchRequest(request, response), servedTunnel.allowedDsns);
+  } catch (error) {
+    DEBUG_BUILD && debug.error('Sentry tunnel: failed to match a request', error);
+
+    return false;
+  }
+
+  handled
+    .then(fetchResponse => writeNodeResponse(response, fetchResponse))
+    .catch(error => {
+      DEBUG_BUILD && debug.error('Sentry tunnel: failed to forward a request', error);
+      try {
+        if (!response.headersSent) {
+          response.writeHead(502);
+        }
+        response.end(new Uint8Array());
+      } catch {
+        // The connection is gone.
+      }
+    });
+
+  return true;
 }
 
 /**
@@ -147,7 +190,7 @@ function isNodeTunnelResponse(value: unknown): value is NodeTunnelResponse {
   return typeof (value as NodeTunnelResponse | undefined)?.writeHead === 'function';
 }
 
-function toFetchRequest(request: NodeTunnelRequest): Request {
+function toFetchRequest(request: NodeTunnelRequest, response: NodeTunnelResponse): Request {
   const headers = new Headers();
   for (const [name, value] of Object.entries(request.headers)) {
     // HTTP/2 pseudo-headers like `:authority` aren't valid fetch header names.
@@ -176,6 +219,10 @@ function toFetchRequest(request: NodeTunnelRequest): Request {
     },
   });
 
+  // So the forward stops when the browser goes away, instead of waiting on Sentry for nobody.
+  const abortController = new AbortController();
+  response.once?.('close', () => abortController.abort());
+
   // The forward reads only the headers and the body. A URL built from the request's `Host` would throw on one
   // Node accepts, like `a b`.
   return new Request('http://localhost/', {
@@ -183,6 +230,7 @@ function toFetchRequest(request: NodeTunnelRequest): Request {
     headers,
     body,
     duplex: 'half',
+    signal: abortController.signal,
   } as RequestInit);
 }
 
@@ -254,6 +302,8 @@ async function forwardEnvelope(request: Request, allowedDsns: Array<string>): Pr
         headers: forwardHeaders(request),
         body: prependToStream(head.read, reader),
         duplex: 'half',
+        // Aborts when the browser goes away, so a slow or hanging Sentry doesn't keep the connection open.
+        signal: request.signal,
       } as RequestInit),
     );
   } catch (error) {

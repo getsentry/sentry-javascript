@@ -959,6 +959,7 @@ describe('getTunnelIgnoreSpanFilter', () => {
 describe('serveTunnelIntegration', () => {
   afterEach(() => {
     getCurrentScope().setClient(undefined);
+    _INTERNAL_resetManagedTunnelDefaults();
   });
 
   it('ignores the server spans of tunnel requests and keeps user filters', () => {
@@ -1030,6 +1031,18 @@ describe('serveTunnelIntegration', () => {
     expect(bundledTunnel.isServedTunnelRequest({ method: 'POST', url: tunnelUrl })).toBe(true);
     expect(bundledTunnel.isTunnelRequest({ method: 'POST', url: tunnelUrl })).toBe(true);
     expect(await response?.text()).toBe('forwarded');
+  });
+
+  it('leaves `intercept: false` tunnel requests to the app, still marked as tunnel requests so they record nothing', () => {
+    const client = new ServerRuntimeClient(
+      getDefaultTestClientOptions({ dsn: TEST_DSN, integrations: [serveTunnelIntegration({ intercept: false })] }),
+    );
+    setCurrentClient(client);
+    client.init();
+    const tunnelUrl = `http://localhost${getTunnelPath(TEST_DSN)}`;
+
+    expect(handleServedTunnelRequest(makeEnvelopeRequest({ dsn: TEST_DSN }, tunnelUrl))).toBeUndefined();
+    expect(isServedTunnelRequest({ method: 'POST', url: tunnelUrl })).toBe(true);
   });
 
   it('serves nothing for a `_managedTunnel` set without it, since only the integration brings the forwarder', () => {
