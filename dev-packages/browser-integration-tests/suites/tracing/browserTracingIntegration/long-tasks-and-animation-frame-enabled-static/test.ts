@@ -10,7 +10,12 @@ import {
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
+import {
+  envelopeRequestParser,
+  shouldSkipTracingTest,
+  waitForNextFrame,
+  waitForTransactionRequest,
+} from '../../../../utils/helpers';
 
 sentryTest(
   'should capture long animation frame for top-level script.',
@@ -86,9 +91,7 @@ sentryTest(
     // Separate mousedown and click into different frames so LoAF reports the click handler.
     await page.getByRole('button').hover();
     await page.mouse.down();
-    await page.evaluate(
-      () => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
-    );
+    await waitForNextFrame(page);
     await page.mouse.up();
 
     const eventData = envelopeRequestParser(await promise);

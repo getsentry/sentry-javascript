@@ -9,7 +9,7 @@ import {
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest, waitForNextFrame } from '../../../../utils/helpers';
 import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest(
@@ -86,9 +86,7 @@ sentryTest('captures long animation frame span for event listener.', async ({ br
   // Separate mousedown and click into different frames so LoAF reports the click handler.
   await page.getByRole('button').hover();
   await page.mouse.down();
-  await page.evaluate(
-    () => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
-  );
+  await waitForNextFrame(page);
   await page.mouse.up();
 
   const pageloadSpan = await pageloadSpanPromise;
