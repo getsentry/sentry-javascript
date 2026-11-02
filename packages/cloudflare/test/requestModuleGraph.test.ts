@@ -69,7 +69,12 @@ describe('module graph of `wrapRequestHandler`', () => {
   it('contains no package that depends on Node.js APIs', () => {
     // `@sentry/server-utils` subscribes to `node:diagnostics_channel` and `@sentry/node` needs Node.js
     // throughout. Both are only allowed in `sdk.ts`, `index.ts` and `vite/` (see `.oxlintrc.json`).
-    expect(externals.filter(specifier => /^@sentry\/(node|server-utils)(\/|$)/.test(specifier))).toEqual([]);
+    // The `request-handler` entry of `@sentry/server-utils` has no Node.js imports.
+    const nodePackages = externals.filter(
+      specifier =>
+        /^@sentry\/(node|server-utils)(\/|$)/.test(specifier) && specifier !== '@sentry/server-utils/request-handler',
+    );
+    expect(nodePackages).toEqual([]);
   });
 
   it('does not reach `async.ts`, the only shipped module importing `node:async_hooks`', () => {
