@@ -47,7 +47,9 @@
         "build-command": "pnpm test:build:tunnel-basepath",
         "assert-command": "pnpm test:assert:tunnel-basepath",
         "label": "nuxt-5 (tunnel-basepath)"
-      },
+      }
+    ],
+    "optionalVariants": [
       {
         "build-command": "pnpm install",
         "assert-command": "pnpm test:assert:tunnel-dev",
