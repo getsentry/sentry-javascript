@@ -41,8 +41,6 @@ export function markWrapped(fn: AnyFn): void {
 const SCHEDULE_CRON_OPTIONS = 'SCHEDULE_CRON_OPTIONS';
 const SENTRY_CRON_METADATA = 'sentry:nestjs:sentry_cron';
 
-const SENTRY_CRON_OPTIONS = new WeakSet<object>();
-
 /** The options `@Cron()` stored as metadata on `fn`, if any. */
 export function getCronOptions(fn: object): object | undefined {
   const R = Reflect as ReflectWithMetadata;
@@ -51,27 +49,31 @@ export function getCronOptions(fn: object): object | undefined {
 }
 
 /**
- * Marks a method that `@SentryCron()` monitors, so `@Cron()` monitoring skips it. Decorators between it and a
- * `@Cron()` above copy the metadata outward. A `@Cron()` below has already set its options, so those are marked too.
+ * Marks a method that `@SentryCron()` monitors, and the options of its `@Cron()` if it already has one, so
+ * `@Cron()` monitoring skips it. Decorators between it and a `@Cron()` above copy the metadata outward.
  */
 export function markSentryCronMethod(fn: object): void {
   const R = Reflect as ReflectWithMetadata;
-  if (typeof R.defineMetadata === 'function') {
-    R.defineMetadata(SENTRY_CRON_METADATA, true, fn);
+  if (typeof R.defineMetadata !== 'function') {
+    return;
   }
+  R.defineMetadata(SENTRY_CRON_METADATA, true, fn);
   const cronOptions = getCronOptions(fn);
   if (cronOptions) {
-    SENTRY_CRON_OPTIONS.add(cronOptions);
+    R.defineMetadata(SENTRY_CRON_METADATA, true, cronOptions);
   }
 }
 
-/** Whether `fn` is monitored by `@SentryCron()` (see {@link markSentryCronMethod}). */
+/** Whether `fn` or its `@Cron()` options are marked by {@link markSentryCronMethod}. */
 export function isSentryCronMethod(fn: object): boolean {
   const R = Reflect as ReflectWithMetadata;
+  if (typeof R.getMetadata !== 'function') {
+    return false;
+  }
   const cronOptions = getCronOptions(fn);
   return (
-    (typeof R.getMetadata === 'function' && R.getMetadata(SENTRY_CRON_METADATA, fn) === true) ||
-    (!!cronOptions && SENTRY_CRON_OPTIONS.has(cronOptions))
+    R.getMetadata(SENTRY_CRON_METADATA, fn) === true ||
+    (!!cronOptions && R.getMetadata(SENTRY_CRON_METADATA, cronOptions) === true)
   );
 }
 

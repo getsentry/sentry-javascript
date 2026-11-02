@@ -60,10 +60,9 @@ export const SentryCron = (
     };
 
     descriptor.value = wrappedMethod;
-    markSentryCronMethod(originalMethod);
-    markSentryCronMethod(wrappedMethod);
 
     copyFunctionNameAndMetadata({ originalMethod, descriptor });
+    markSentryCronMethod(wrappedMethod);
 
     return descriptor;
   };

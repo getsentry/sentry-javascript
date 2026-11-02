@@ -4,13 +4,13 @@ import type { OrchestrionChannelContext } from '@sentry/server-utils';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import { nestjsChannels as CHANNELS } from '@sentry/server-utils/orchestrion/config';
 import { DEBUG_BUILD } from '../debug-build';
+import { registerCronMonitor } from './cron-monitoring';
 import type { AnyFn } from './helpers';
 import { isWrapped, markWrapped, setNestScheduleVersion } from './helpers';
 import type { CatchTarget, InjectableTarget, MinimalNestJsExecutionContext } from './types';
 import { patchCatchTarget, patchInjectableTarget } from './wrap-components';
 import {
   extractQueueName,
-  linkCronOptionsToMonitor,
   MECHANISM_INTERVAL,
   MECHANISM_TIMEOUT,
   patchMethodDescriptor,
@@ -52,10 +52,7 @@ function subscribeDecoratorChannel<T>(channelName: string, patch: (target: T) =>
  * `descriptor.value` with a wrapped handler before delegating to the
  * original decorator.
  */
-function makeMethodDecorator(
-  original: AnyFn,
-  wrapHandler: (handler: AnyFn, target: unknown, propertyKey: string | symbol | undefined) => AnyFn,
-): AnyFn {
+function makeMethodDecorator(original: AnyFn, wrapHandler: (handler: AnyFn) => AnyFn): AnyFn {
   return function (this: unknown, ...args: unknown[]): unknown {
     patchMethodDescriptor(
       args[0] as { __SENTRY_INTERNAL__?: boolean } | undefined,
@@ -190,14 +187,23 @@ export function subscribeToNestChannels(): void {
 
   // @Cron/@Interval/@Timeout (schedule), @OnEvent (event), @Processor (bullmq)
   subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_CRON, (decorator, data) => {
-    const cronDecorator = makeMethodDecorator(decorator, (handler, target, propertyKey) =>
-      wrapCronHandler(handler, [...(data.arguments || [])], target, propertyKey, data.moduleVersion),
-    );
+    const cronDecorator = makeMethodDecorator(decorator, handler => wrapCronHandler(handler));
     return function (this: unknown, ...args: unknown[]): unknown {
+      const descriptor = args[2] as PropertyDescriptor | undefined;
+      const handler: unknown = descriptor?.value;
       const result = cronDecorator.apply(this, args);
-      const method = (args[2] as PropertyDescriptor | undefined)?.value;
+      const method: unknown = descriptor?.value;
       setNestScheduleVersion(method, data.moduleVersion);
-      linkCronOptionsToMonitor(method);
+      if (typeof method === 'function' && typeof handler === 'function' && method !== handler) {
+        registerCronMonitor(
+          method,
+          handler,
+          [...(data.arguments || [])],
+          args[0],
+          args[1] as string | symbol | undefined,
+          data.moduleVersion,
+        );
+      }
       return result;
     };
   });

@@ -2,8 +2,7 @@ import type { Client, MonitorConfig } from '@sentry/core';
 import { debug, getClient, stringMatchesSomePattern } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { nestCronOptionsToMonitorConfig } from '../decorators';
-import type { AnyFn } from './helpers';
-import { isSentryCronMethod } from './helpers';
+import { getCronOptions, isSentryCronMethod, markSentryCronMethod } from './helpers';
 
 export interface NestCronMonitoringOptions {
   /**
@@ -36,19 +35,45 @@ export function setCronMonitoringOptions(client: Client, options: NestCronMonito
   }
 }
 
+const CRON_MONITORS = new WeakMap<object, (method: object) => CronMonitor | undefined>();
+
 /**
- * Returns a function that resolves the monitor for a `@Cron()` method on each run,
- * or `undefined` if the run should not be monitored.
+ * Sets up `monitorCronJobs` for a method `@Cron()` just decorated, keyed by its `@Cron()` options, which
+ * decorators above it copy. A `@SentryCron()` below marks the options instead, so the method keeps its own slug.
  */
-export function makeCronMonitorResolver(
+export function registerCronMonitor(
+  method: object,
+  handler: object,
   cronArgs: unknown[],
   target: unknown,
   propertyKey: string | symbol | undefined,
   scheduleVersion?: string,
-): (handler: AnyFn, wrapped: AnyFn) => CronMonitor | undefined {
+): void {
+  if (isSentryCronMethod(handler)) {
+    markSentryCronMethod(method);
+    return;
+  }
+  const options = getCronOptions(method);
+  if (options) {
+    CRON_MONITORS.set(options, makeCronMonitorResolver(cronArgs, target, propertyKey, scheduleVersion));
+  }
+}
+
+/** The monitor a run of this `@Cron()` method sends check-ins for, if any. */
+export function resolveCronMonitor(method: object): CronMonitor | undefined {
+  const options = getCronOptions(method);
+  return options && CRON_MONITORS.get(options)?.(method);
+}
+
+function makeCronMonitorResolver(
+  cronArgs: unknown[],
+  target: unknown,
+  propertyKey: string | symbol | undefined,
+  scheduleVersion: string | undefined,
+): (method: object) => CronMonitor | undefined {
   let monitor: CronMonitor | null | undefined;
 
-  return (handler, wrapped) => {
+  return method => {
     const client = getClient();
     const options = client && MONITORING_OPTIONS.get(client);
     if (!options) {
@@ -57,10 +82,7 @@ export function makeCronMonitorResolver(
 
     if (monitor === undefined) {
       try {
-        monitor =
-          isSentryCronMethod(handler) || isSentryCronMethod(wrapped)
-            ? null
-            : getCronMonitor(cronArgs, target, propertyKey, scheduleVersion);
+        monitor = isSentryCronMethod(method) ? null : getCronMonitor(cronArgs, target, propertyKey, scheduleVersion);
       } catch (e) {
         DEBUG_BUILD && debug.error('[Nest] Failed to set up the cron monitor:', e);
         monitor = null;
