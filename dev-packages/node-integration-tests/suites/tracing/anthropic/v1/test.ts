@@ -130,61 +130,85 @@ describe('Anthropic integration (1.x)', () => {
       { mode: 'thread_send', streaming: false, turns: ['tools'] },
       { mode: 'thread_stream', streaming: true, turns: ['tools'] },
       { mode: 'thread_stream_signal_reuse', streaming: true, turns: ['tools', 'final'] },
-      // Only the span's status is known for these. The stream is aborted on its first event or before the response,
-      // its body closes before `message_stop`, or the request fails.
-      { mode: 'thread_stream_abort', streaming: true, turns: ['abort'], status: 'ok' },
-      { mode: 'thread_stream_abort_early', streaming: true, turns: ['abort'], status: 'ok' },
-      { mode: 'thread_stream_truncated', streaming: true, turns: ['truncated'], status: 'ok' },
-      { mode: 'thread_stream_error', streaming: true, turns: ['error'], status: 'error' },
     ];
-    const TURNS: Record<string, { input?: number; output?: number; text?: string; toolCall?: boolean }> = {
-      tools: { input: 10, output: 20, toolCall: true },
-      final: { input: 30, output: 5, text: 'Sunny.' },
-    };
+    const FINAL_TURN_MODES = MODES.filter(({ turns }) => turns.includes('final'));
+    // Only the span's status is known for these. The stream is aborted on its first event or before the response,
+    // its body closes before `message_stop`, or the request fails.
+    const STATUS_ONLY_MODES = [
+      { mode: 'thread_stream_abort', status: 'ok' },
+      { mode: 'thread_stream_abort_early', status: 'ok' },
+      { mode: 'thread_stream_truncated', status: 'ok' },
+      { mode: 'thread_stream_error', status: 'error' },
+    ];
 
-    for (const env of [{}, { OTEL_SETUP: 'true' }]) {
-      test(`emits one chat span per thread turn with ${JSON.stringify(env)}`, async () => {
-        const runner = createRunner().withEnv({ ...env, RECORD_OUTPUTS: 'true' });
-        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
+    describe.each([{}, { OTEL_SETUP: 'true' }])('with %j', env => {
+      // Every scenario run is a Node process, so the cases below share one run.
+      let run: Promise<SerializedSpan[]> | undefined;
+      function getSpans(): Promise<SerializedSpan[]> {
+        run ??= (async () => {
+          const runner = createRunner().withEnv({ ...env, RECORD_OUTPUTS: 'true' });
+          const spansPromise = runner.collectStreamedSpansUntilSegment('main');
+          await runner.start().completed();
+          return spansPromise;
+        })();
+        return run;
+      }
 
-        await runner.start().completed();
+      async function chatSpansUnder(mode: string): Promise<SerializedSpan[]> {
+        const spans = await getSpans();
+        const modeSpan = spans.find(span => span.name === mode)!;
+        return spans.filter(
+          span => span.parent_span_id === modeSpan.span_id && span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT,
+        );
+      }
 
-        const spans = await spansPromise;
-        const chatSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT);
-        expect(chatSpans).toHaveLength(MODES.flatMap(({ turns }) => turns).length);
+      test("emits one chat span per turn and none of the SDK's own spans", async () => {
+        const spans = await getSpans();
+
+        expect(spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT)).toHaveLength(
+          MODES.flatMap(({ turns }) => turns).length + STATUS_ONLY_MODES.length,
+        );
         expect(spans.filter(span => span.name.startsWith('anthropic.'))).toEqual([]);
-
-        for (const { mode, streaming, turns, status } of MODES) {
-          const modeSpan = spans.find(span => span.name === mode)!;
-          const modeChatSpans = chatSpans.filter(span => span.parent_span_id === modeSpan.span_id);
-          expect(modeChatSpans, mode).toHaveLength(turns.length);
-
-          if (status) {
-            expect(modeChatSpans[0]!.status, mode).toBe(status);
-            continue;
-          }
-
-          for (const turn of turns) {
-            const id = `msg_${mode}_${turn}`;
-            const chatSpan = spanForCall(modeChatSpans, id);
-            const { input, output, text, toolCall } = TURNS[turn]!;
-            expect(chatSpan.status, id).toBe('ok');
-            expect(chatSpan.attributes[GEN_AI_RESPONSE_STREAMING]?.value ?? false, id).toBe(streaming);
-            expect(chatSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value, id).toBe(input);
-            expect(chatSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value, id).toBe(output);
-            if (text) {
-              expect(chatSpan.attributes[GEN_AI_RESPONSE_TEXT]?.value, id).toBe(text);
-            }
-            const toolCalls = chatSpan.attributes[GEN_AI_RESPONSE_TOOL_CALLS]?.value as string | undefined;
-            expect(toolCalls && JSON.parse(toolCalls), id).toEqual(
-              toolCall
-                ? [{ type: 'tool_use', id: `toolu_${mode}`, name: 'weather', input: { city: 'Vienna' } }]
-                : undefined,
-            );
-          }
-        }
       });
-    }
+
+      test.each(MODES)('nests one chat span per $mode turn under the caller', async ({ mode, turns }) => {
+        const chatSpans = await chatSpansUnder(mode);
+
+        expect(chatSpans.map(span => span.attributes[GEN_AI_RESPONSE_ID]?.value).sort()).toEqual(
+          turns.map(turn => `msg_${mode}_${turn}`).sort(),
+        );
+      });
+
+      test.each(MODES)('records the tool call of the first $mode turn', async ({ mode, streaming }) => {
+        const chatSpan = spanForCall(await chatSpansUnder(mode), `msg_${mode}_tools`);
+
+        expect(chatSpan.status).toBe('ok');
+        expect(chatSpan.attributes[GEN_AI_RESPONSE_STREAMING]?.value ?? false).toBe(streaming);
+        expect(chatSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
+        expect(chatSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(20);
+        expect(JSON.parse(chatSpan.attributes[GEN_AI_RESPONSE_TOOL_CALLS]!.value as string)).toEqual([
+          { type: 'tool_use', id: `toolu_${mode}`, name: 'weather', input: { city: 'Vienna' } },
+        ]);
+      });
+
+      test.each(FINAL_TURN_MODES)('records the text of the final $mode turn', async ({ mode, streaming }) => {
+        const chatSpan = spanForCall(await chatSpansUnder(mode), `msg_${mode}_final`);
+
+        expect(chatSpan.status).toBe('ok');
+        expect(chatSpan.attributes[GEN_AI_RESPONSE_STREAMING]?.value ?? false).toBe(streaming);
+        expect(chatSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(30);
+        expect(chatSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(5);
+        expect(chatSpan.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('Sunny.');
+        expect(chatSpan.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeUndefined();
+      });
+
+      test.each(STATUS_ONLY_MODES)('ends the $mode chat span with status $status', async ({ mode, status }) => {
+        const chatSpans = await chatSpansUnder(mode);
+
+        expect(chatSpans).toHaveLength(1);
+        expect(chatSpans[0]!.status).toBe(status);
+      });
+    });
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-session-tool-runner.mjs', 'instrument.mjs', (createRunner, test) => {
