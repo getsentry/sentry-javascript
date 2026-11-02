@@ -95,7 +95,7 @@ export const nestjsConfig = [
   },
   {
     // The function `ScheduleExplorer` returns here is what `@nestjs/schedule` passes to `CronJob` as `onTick`.
-    // From 6.0.0 it uses `cron` 4.3+, which has job names, so a named job can be monitored by the `cron` package too.
+    // From 6.0.0 it uses `cron` 4.3+, whose jobs have names.
     channelName: 'scheduleExplorerWrap',
     module: { name: '@nestjs/schedule', versionRange: '>=6.0.0', filePath: 'dist/schedule.explorer.js' },
     functionQuery: { className: 'ScheduleExplorer', methodName: 'wrapFunctionInTryCatchBlocks', kind: 'Sync' },

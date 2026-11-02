@@ -216,7 +216,7 @@ describe('@Cron() monitoring', () => {
     expect(sentCheckIns().map(([slug]) => slug)).toEqual(['explicit-slug', 'explicit-slug']);
   });
 
-  describe('marks the CronJob onTick so the cron package integration skips it', () => {
+  describe('marks the CronJob onTick as monitored', () => {
     it('when the method is monitored', () => {
       initClient({ monitorCronJobs: true });
       const onTick = cronJobOnTick(decorate('Jobs', [cron('* * * * *', { name: 'job' })]));
