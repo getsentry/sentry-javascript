@@ -92,13 +92,8 @@ export function sendsCronCheckIns(method: unknown): boolean {
   if (typeof method !== 'function') {
     return false;
   }
-  const fn = method as AnyFn;
-  const options = getCronOptions(fn);
-  return (
-    isSentryCronMethod(fn) ||
-    !!CRON_HANDLER_MONITORS.get(fn)?.() ||
-    !!(options && CRON_OPTIONS_MONITORS.get(options)?.())
-  );
+  const options = getCronOptions(method);
+  return isSentryCronMethod(method) || !!(options && CRON_OPTIONS_MONITORS.get(options)?.());
 }
 
 /**
