@@ -10,6 +10,7 @@ export interface NestCronMonitoringOptions {
    * Send check-ins for every `@Cron()` method of `@nestjs/schedule`. The monitor slug is the `name`
    * option of `@Cron()`, or `ClassName.methodName`. Methods with `@SentryCron()` keep their own slug.
    * Methods whose schedule Sentry can't represent, like every 10 seconds, are not monitored.
+   * Sentry cuts slugs off at 50 characters, so give `@Cron()` a `name` if the class and method names are long.
    *
    * Defaults to `false`.
    */
