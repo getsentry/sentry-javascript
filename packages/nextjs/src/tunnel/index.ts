@@ -1,4 +1,5 @@
 import { handleTunnelRequest } from '@sentry/core';
+import { _INTERNAL_getTunnelPaths as getTunnelPaths } from '@sentry/core/server';
 
 export interface CreateSentryTunnelRouteOptions {
   /**
@@ -48,3 +49,13 @@ export function createSentryTunnelRoute(options: CreateSentryTunnelRouteOptions 
  * ```
  */
 export const POST: TunnelRouteHandler = createSentryTunnelRoute().POST;
+
+/**
+ * Route handler `withSentryConfig` generates on Vercel builds, where Vercel serves unknown paths without running the
+ * app, so the runtime never sees managed tunnel requests. It answers only when `serveTunnelIntegration` is set up, and
+ * otherwise behaves like the route doesn't exist.
+ *
+ * @internal
+ */
+export const _INTERNAL_servedTunnelPOST: TunnelRouteHandler = async request =>
+  getTunnelPaths().length ? handleTunnelRequest(request) : new Response(null, { status: 404 });

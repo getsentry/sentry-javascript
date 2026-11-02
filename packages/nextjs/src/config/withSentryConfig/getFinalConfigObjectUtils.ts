@@ -13,6 +13,7 @@ import { getGitRevision, getInstrumentationClientFileContents } from './buildTim
 import {
   findTunnelRouteHandlerFile,
   resolveTunnelRoute,
+  setUpManagedTunnelVercelRoute,
   setUpTunnelHandlerRewrite,
   setUpTunnelRewriteRules,
 } from './tunnel';
@@ -46,6 +47,11 @@ export function maybeSetUpTunnelRouteRewriteRules(
   userSentryOptions: SentryBuildOptions,
 ): void {
   if (userSentryOptions.tunnelRoute === undefined) {
+    if (process.env.VERCEL && incomingUserNextConfigObject.output !== 'export') {
+      setUpManagedTunnelVercelRoute(incomingUserNextConfigObject);
+      return;
+    }
+
     maybeWarnAboutUnusedTunnelRouteHandler(incomingUserNextConfigObject, userSentryOptions.silent);
     return;
   }
