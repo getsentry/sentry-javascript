@@ -26,8 +26,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
   ];
 
   const client = initNodeSdk(sentryOptions);
-  // `tunnelRoute` enables the tunnel when the server entry loads, after this preload, so the servers must be ready to
-  // answer it already.
+  // `tunnelRoute` enables the tunnel when the server entry loads, after this preload, so the servers and the Lambda
+  // handler must be ready to answer it already.
   installTunnelHooks();
 
   return client;

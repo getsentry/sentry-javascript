@@ -32,6 +32,9 @@
         "default": "./build/import-hook.mjs"
       }
     },
+    "./run-lambda-handler": {
+      "default": "./build/run-lambda-handler.mjs"
+    },
     "./vite": {
       "import": {
         "types": "./build/types/bundler-plugin/vite.d.ts",
@@ -118,7 +121,9 @@
           "{projectRoot}/build/cjs",
           "{projectRoot}/build/npm/esm",
           "{projectRoot}/build/npm/cjs",
-          "{projectRoot}/build/import-hook.mjs"
+          "{projectRoot}/build/import-hook.mjs",
+          "{projectRoot}/build/run-lambda-handler.mjs",
+          "{projectRoot}/build/run-lambda-handler.mjs.map"
         ]
       }
     }

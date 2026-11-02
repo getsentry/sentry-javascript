@@ -190,6 +190,15 @@ export {
   wrapMcpServerWithSentry,
 } from '@sentry/core/server';
 export type { TunnelRequestLike } from '@sentry/core/server';
+export {
+  answerStreamingTunnelEvent as _INTERNAL_answerStreamingLambdaTunnelEvent,
+  answerTunnelEvent as _INTERNAL_answerLambdaTunnelEvent,
+} from './lambda/tunnel';
+export {
+  parseHandlerString as _INTERNAL_parseLambdaHandlerString,
+  resolveHandlerFile as _INTERNAL_resolveLambdaHandlerFile,
+} from './lambda/handlerResolution';
+export { redirectLambdaHandler as _INTERNAL_redirectLambdaHandler } from './lambda/redirectHandler';
 export { installTunnelHooks as _INTERNAL_installTunnelHooks, serveTunnelIntegration } from './integrations/serveTunnel';
 export { getTunnelPath, handleTunnelRequest } from '@sentry/core';
 export type { HandleTunnelRequestOptions, ServerTunnelOptions } from '@sentry/core';
