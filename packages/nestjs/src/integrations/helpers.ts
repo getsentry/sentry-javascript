@@ -43,6 +43,9 @@ const SENTRY_CRON_METADATA = 'sentry:nestjs:sentry_cron';
 
 const SENTRY_CRON_OPTIONS = new WeakSet<object>();
 
+// Nest needs `reflect-metadata`, so it's loaded wherever these run.
+const ReflectMetadata = Reflect as ReflectWithMetadata as Required<ReflectWithMetadata>;
+
 /** The options `@Cron()` stored as metadata on `fn`, if any. */
 export function getCronOptions(fn: object): object | undefined {
   const R = Reflect as ReflectWithMetadata;
@@ -55,7 +58,7 @@ export function getCronOptions(fn: object): object | undefined {
  * `@Cron()` above copy the metadata outward. A `@Cron()` below has already set its options, so those are marked too.
  */
 export function markSentryCronMethod(fn: object): void {
-  (Reflect as Required<ReflectWithMetadata>).defineMetadata(SENTRY_CRON_METADATA, true, fn);
+  ReflectMetadata.defineMetadata(SENTRY_CRON_METADATA, true, fn);
   const cronOptions = getCronOptions(fn);
   if (cronOptions) {
     SENTRY_CRON_OPTIONS.add(cronOptions);
@@ -66,7 +69,7 @@ export function markSentryCronMethod(fn: object): void {
 export function isSentryCronMethod(fn: object): boolean {
   const cronOptions = getCronOptions(fn);
   return (
-    (Reflect as Required<ReflectWithMetadata>).getMetadata(SENTRY_CRON_METADATA, fn) === true ||
+    ReflectMetadata.getMetadata(SENTRY_CRON_METADATA, fn) === true ||
     (!!cronOptions && SENTRY_CRON_OPTIONS.has(cronOptions))
   );
 }
