@@ -18,7 +18,7 @@
 
 - **feat(nestjs): Add an option to monitor every @Cron method ([#25471](https://github.com/getsentry/sentry-javascript/pull/25471))**
 
-  Set `monitorCronJobs: true` on `nestIntegration()` to send check-ins for every `@Cron()` method, without adding `@SentryCron` to each one. It's off by default. Each monitored job creates a monitor in Sentry, and monitors are billed. Use `excludeCronJobs` to skip jobs by slug.
+  Set `monitorCronJobs: true` on `nestIntegration()` to send check-ins for every `@Cron()` method, without adding `@SentryCron` to each one. It's off by default. Each monitored job creates a monitor in Sentry, and monitors are billed. Use `excludeCronJobs` to skip jobs by slug. Methods that also have `@SentryCron` check in once, with the slug and options passed to `@SentryCron`.
 
 - **feat(nestjs): Derive SentryCron monitor config from @Cron ([#25013](https://github.com/getsentry/sentry-javascript/pull/25013))**
 
