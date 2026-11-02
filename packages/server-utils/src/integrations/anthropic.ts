@@ -239,7 +239,11 @@ function wrapThreadStreamRequest(
   const { recordOutputs } = resolveAIRecordingOptions(options);
   // Not `asResponse()`, which on 1.x also ends the SDK's own span when the user turned its tracing on.
   void request._responseProps().then(
-    () => instrumentMessageStream(stream, span, recordOutputs),
+    () => {
+      // Only a rejected attempt is retried, so nothing else may claim this stream.
+      threadStreams.delete(signal);
+      instrumentMessageStream(stream, span, recordOutputs);
+    },
     // A caller abort is not a failed request.
     error => end(signal.aborted ? undefined : error),
   );
@@ -252,7 +256,7 @@ function wrapThreadStreamRequest(
  *
  * - `async-iterable`: patch the `Stream`'s async iterator in place so `instrumentAsyncIterableStream` ends
  *   the span when iteration finishes.
- * - `message-stream`: `instrumentMessageStream` attaches `'message'`/`'error'` listeners that end the span.
+ * - `message-stream`: `instrumentMessageStream` attaches `'message'`/`'error'`/`'end'` listeners that end the span.
  */
 function wrapStreamResult(
   span: Span,
