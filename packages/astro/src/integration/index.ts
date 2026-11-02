@@ -198,7 +198,9 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           // This ensures Sentry.init() runs in dev mode (where the Vite plugin doesn't fire)
           // and also serves as the fallback for non-Cloudflare adapters in production.
           if (serverInitSnippet) {
-            updateConfig({ vite: { plugins: [makeServerInitVitePlugin(serverInitSnippet)] } });
+            updateConfig({
+              vite: { plugins: [makeServerInitVitePlugin(serverInitSnippet, { injectIntoEntry: !isCloudflare })] },
+            });
             injectScript('page-ssr', SERVER_INIT_IMPORT);
           }
 

@@ -10,7 +10,6 @@ import {
   updateSpanName,
   winterCGRequestToRequestData,
 } from '@sentry/core';
-import { _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest } from '@sentry/core/server';
 
 import { formatRouteTiming } from '../routeTiming';
 import type { MatcherLike, MiddlewareLike, NextFunctionLike, RequestContextLike } from '../types';
@@ -26,11 +25,6 @@ import { resolveRoutePattern } from './route';
  */
 export function sentryRemixMiddleware(matcher: MatcherLike): MiddlewareLike {
   return async function sentryMiddleware(context: RequestContextLike, next: NextFunctionLike): Promise<Response> {
-    const tunnelResponse = handleServedTunnelRequest(context.request);
-    if (tunnelResponse) {
-      return tunnelResponse;
-    }
-
     const isolationScope = getIsolationScope();
     isolationScope.setSDKProcessingMetadata({ normalizedRequest: winterCGRequestToRequestData(context.request) });
 

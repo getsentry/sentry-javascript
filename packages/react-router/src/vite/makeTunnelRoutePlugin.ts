@@ -3,8 +3,8 @@ import type { Plugin } from 'vite';
 const SERVER_BUILD_MODULE_ID = 'virtual:react-router/server-build';
 
 /**
- * Adds the managed tunnel routes to the server build. They only serve requests when `serveTunnelIntegration` is set
- * up. The server build exports the app's `basename`, which the route needs to match the request URL.
+ * Passes the app's `basename` from the server build to the managed tunnel, which serves under it. Only applies when
+ * `serveTunnelIntegration` is set up.
  */
 export function makeTunnelRoutePlugin(): Plugin {
   return {
