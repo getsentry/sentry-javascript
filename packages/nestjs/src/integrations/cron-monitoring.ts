@@ -51,13 +51,16 @@ export function makeCronMonitorResolver(
   return (handler, wrapped) => {
     const client = getClient();
     const options = client && MONITORING_OPTIONS.get(client);
-    if (!options || isSentryCronMethod(handler) || isSentryCronMethod(wrapped)) {
+    if (!options) {
       return undefined;
     }
 
     if (monitor === undefined) {
       try {
-        monitor = getCronMonitor(cronArgs, target, propertyKey, scheduleVersion);
+        monitor =
+          isSentryCronMethod(handler) || isSentryCronMethod(wrapped)
+            ? null
+            : getCronMonitor(cronArgs, target, propertyKey, scheduleVersion);
       } catch (e) {
         DEBUG_BUILD && debug.error('[Nest] Failed to set up the cron monitor:', e);
         monitor = null;
