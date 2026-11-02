@@ -134,6 +134,26 @@ describe('@Cron() monitoring', () => {
     expect(sentCheckIns().map(([, status]) => status)).toEqual(['in_progress', 'error']);
   });
 
+  it('starts a new trace for each run', () => {
+    initClient({ monitorCronJobs: true });
+    const traceIds: string[] = [];
+    const run = decorate('Jobs', [
+      cron('* * * * *', { name: 'job', timeZone: 'UTC' }),
+      (_target, _key, descriptor: PropertyDescriptor) => {
+        descriptor.value = () => {
+          traceIds.push(SentryCore.getCurrentScope().getPropagationContext().traceId);
+        };
+      },
+    ]);
+    const bootstrapTraceId = SentryCore.getCurrentScope().getPropagationContext().traceId;
+
+    run();
+    run();
+
+    expect(traceIds).toHaveLength(2);
+    expect(new Set([bootstrapTraceId, ...traceIds]).size).toBe(3);
+  });
+
   it('skips jobs whose schedule cannot be sent', () => {
     initClient({ monitorCronJobs: true });
     decorate('Jobs', [cron('*/10 * * * * *', { name: 'every-10s' })])();

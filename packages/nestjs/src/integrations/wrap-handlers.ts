@@ -1,4 +1,12 @@
-import { captureException, isObjectLike, isThenable, startSpan, withIsolationScope, withMonitor } from '@sentry/core';
+import {
+  captureException,
+  isObjectLike,
+  isThenable,
+  startNewTrace,
+  startSpan,
+  withIsolationScope,
+  withMonitor,
+} from '@sentry/core';
 import { makeCronMonitorResolver } from './cron-monitoring';
 import type { AnyFn, ReflectWithMetadata } from './helpers';
 import {
@@ -111,7 +119,7 @@ export function wrapCronHandler(
     if (!monitor) {
       return scheduleHandler.apply(this, args);
     }
-    return withMonitor(monitor.slug, () => scheduleHandler.apply(this, args), monitor.config);
+    return startNewTrace(() => withMonitor(monitor.slug, () => scheduleHandler.apply(this, args), monitor.config));
   };
   CRON_HANDLER_MONITORS.set(
     wrapped,
