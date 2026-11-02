@@ -26,6 +26,9 @@ type TunnelRouteHandler = (request: Request) => Promise<Response>;
  *   allowedDsns: ['https://public@o0.ingest.sentry.io/0'],
  * });
  * ```
+ *
+ * @deprecated Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration({ allowedDsns })` to the
+ * server `Sentry.init` instead.
  */
 export function createSentryTunnelRoute(options: CreateSentryTunnelRouteOptions = {}): { POST: TunnelRouteHandler } {
   const allowedDsns = options.allowedDsns?.length ? options.allowedDsns.map(dsn => dsn.trim()) : undefined;
@@ -47,7 +50,11 @@ export function createSentryTunnelRoute(options: CreateSentryTunnelRouteOptions 
  * // app/sentry-tunnel/route.ts
  * export { POST } from '@sentry/nextjs/tunnel';
  * ```
+ *
+ * @deprecated Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration()` to the server
+ * `Sentry.init` instead.
  */
+// oxlint-disable-next-line typescript/no-deprecated -- the deprecated default of the deprecated factory
 export const POST: TunnelRouteHandler = createSentryTunnelRoute().POST;
 
 /**

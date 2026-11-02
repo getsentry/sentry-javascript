@@ -307,6 +307,9 @@ export type SentryBuildOptions = Omit<
    * `transportOptions: { fetchOptions: { credentials: 'same-origin' } }` in `Sentry.init` of `instrumentation-client.ts`.
    *
    * NOTE: This feature only works with Next.js 11+
+   *
+   * @deprecated Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration()` to the server
+   * `Sentry.init` instead. The server answers the tunnel requests, also on Vercel.
    */
   tunnelRoute?: string | boolean;
 

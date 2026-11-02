@@ -188,6 +188,7 @@ export function getTunnelRouteInjectedValues(
   userSentryOptions: SentryBuildOptions | undefined,
   projectDir: string = process.cwd(),
 ): TunnelRouteInjectedValues {
+  // oxlint-disable-next-line typescript/no-deprecated -- reads the deprecated option to keep it working
   const tunnelRoute = userSentryOptions?.tunnelRoute;
   if (typeof tunnelRoute !== 'string' || !tunnelRoute || userNextConfig.output === 'export') {
     return {};

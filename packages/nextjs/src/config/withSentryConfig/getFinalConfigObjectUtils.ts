@@ -19,6 +19,7 @@ import {
 } from './tunnel';
 
 let showedExportModeTunnelWarning = false;
+let showedDeprecatedTunnelRouteWarning = false;
 let showedUnusedTunnelRouteHandlerWarning = false;
 let showedTunnelRouteHandlerModeLog = false;
 let showedExperimentalBuildModeWarning = false;
@@ -46,7 +47,9 @@ export function maybeSetUpTunnelRouteRewriteRules(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): void {
-  if (userSentryOptions.tunnelRoute === undefined) {
+  // oxlint-disable-next-line typescript/no-deprecated -- reads the deprecated option to keep it working
+  const tunnelRoute = userSentryOptions.tunnelRoute;
+  if (tunnelRoute === undefined) {
     if (process.env.VERCEL && incomingUserNextConfigObject.output !== 'export') {
       setUpManagedTunnelVercelRoute(incomingUserNextConfigObject);
       return;
@@ -56,7 +59,14 @@ export function maybeSetUpTunnelRouteRewriteRules(
     return;
   }
 
-  if (!userSentryOptions.tunnelRoute) {
+  if (!showedDeprecatedTunnelRouteWarning) {
+    showedDeprecatedTunnelRouteWarning = true;
+    getBuildLogger(userSentryOptions.silent).warn(
+      '[@sentry/nextjs] The `tunnelRoute` option is deprecated. Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration()` to the server `Sentry.init` instead.',
+    );
+  }
+
+  if (!tunnelRoute) {
     return;
   }
 
@@ -71,7 +81,8 @@ export function maybeSetUpTunnelRouteRewriteRules(
   }
 
   // Update the global options object to use the resolved value everywhere
-  const resolvedTunnelRoute = resolveTunnelRoute(userSentryOptions.tunnelRoute);
+  const resolvedTunnelRoute = resolveTunnelRoute(tunnelRoute);
+  // oxlint-disable-next-line typescript/no-deprecated -- reads the deprecated option to keep it working
   userSentryOptions.tunnelRoute = resolvedTunnelRoute || undefined;
 
   const tunnelRouteHandlerFile = findTunnelRouteHandlerFile(incomingUserNextConfigObject.pageExtensions);
