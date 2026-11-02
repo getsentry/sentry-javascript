@@ -38,6 +38,12 @@ export const anthropicAiConfig = [
     module: { name: '@anthropic-ai/sdk', versionRange: '>=0.97.0 <2', filePath },
     functionQuery: { className: 'SessionToolRunner' },
   })),
+  // The constructor, so each worker's `run()` loop can be told apart from the code that started it.
+  ...['lib/environments/worker.js', 'lib/environments/worker.mjs'].map(filePath => ({
+    channelName: 'environment-worker',
+    module: { name: '@anthropic-ai/sdk', versionRange: '>=0.97.0 <1', filePath },
+    functionQuery: { className: 'EnvironmentWorker' },
+  })),
 ] satisfies InstrumentationConfig[];
 
 export const anthropicAiModuleNames = getModuleNames(anthropicAiConfig);
@@ -47,4 +53,5 @@ export const anthropicAiChannels = {
   ANTHROPIC_MESSAGES_STREAM: 'orchestrion:@anthropic-ai/sdk:messages-stream',
   ANTHROPIC_TOOL_RUNNER: 'orchestrion:@anthropic-ai/sdk:tool-runner',
   ANTHROPIC_SESSION_TOOL_RUNNER: 'orchestrion:@anthropic-ai/sdk:session-tool-runner',
+  ANTHROPIC_ENVIRONMENT_WORKER: 'orchestrion:@anthropic-ai/sdk:environment-worker',
 } as const;
