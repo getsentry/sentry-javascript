@@ -15,6 +15,7 @@ import {
   URL_QUERY,
 } from '@sentry/conventions/attributes';
 import * as http from 'node:http';
+import * as http2 from 'node:http2';
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -22,7 +23,7 @@ import { getIsolationScope } from '../../../../src/currentScopes';
 import { Scope } from '../../../../src/scope';
 import { spanToJSON } from '../../../../src/utils/spanUtils';
 import { setCurrentClient } from '../../../../src/sdk';
-import { HTTP_ON_SERVER_REQUEST } from '../../../../src/integrations/http/constants';
+import { HTTP2_ON_SERVER_STREAM, HTTP_ON_SERVER_REQUEST } from '../../../../src/integrations/http/constants';
 import { getHttpServerSubscriptions } from '../../../../src/integrations/http/server-subscription';
 import type { HttpInstrumentationOptions } from '../../../../src/integrations/http/types';
 import type { Event } from '../../../../src/types/event';
@@ -145,6 +146,42 @@ describe('getHttpServerSubscriptions', () => {
         }),
       }),
     );
+  });
+
+  it('creates a root http.server span for an HTTP/2 compat API request', async () => {
+    const http2Server = http2.createServer((_req, res) => res.end('ok'));
+    server = http2Server as unknown as http.Server;
+    await new Promise<void>(resolve => http2Server.listen(0, '127.0.0.1', () => resolve()));
+
+    const { [HTTP2_ON_SERVER_STREAM]: onServerStream } = getHttpServerSubscriptions({ spans: true });
+    // The listener must run before the compat API's own 'stream' listener, like the channel does.
+    http2Server.prependListener('stream', stream => onServerStream({ stream }, HTTP2_ON_SERVER_STREAM));
+
+    const { port } = http2Server.address() as AddressInfo;
+    const session = http2.connect(`http://127.0.0.1:${port}`);
+    await new Promise<void>((resolve, reject) => {
+      const stream = session.request({ ':path': '/users/42?foo=bar' });
+      stream.on('error', reject);
+      stream.resume();
+      stream.on('end', resolve);
+      stream.end();
+    });
+    session.close();
+
+    const transaction = await waitForTransaction();
+    const data = transaction.contexts?.trace?.data;
+    expect(transaction.transaction).toBe('GET /users/42');
+    expect(data).toEqual(
+      expect.objectContaining({
+        'sentry.op': 'http.server',
+        'http.response.status_code': 200,
+        [URL_FULL]: `http://127.0.0.1:${port}/users/42?foo=bar`,
+        [SERVER_ADDRESS]: '127.0.0.1',
+        [NETWORK_PROTOCOL_VERSION]: '2.0',
+      }),
+    );
+    expect(data).not.toHaveProperty('http.response.status_text');
+    expect(Object.keys(data ?? {}).filter(key => key.includes(':'))).toEqual([]);
   });
 
   it('prefers the forwarded client over the socket for `client.address`', async () => {

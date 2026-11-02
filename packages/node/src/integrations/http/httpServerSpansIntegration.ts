@@ -42,6 +42,7 @@ import {
   getSpanStatusFromHttpCode,
   httpHeadersToSpanAttributes,
   getContentLengthFromHeaders,
+  getHostFromHeaders,
   parseStringToURLObject,
   SPAN_STATUS_ERROR,
   stripUrlQueryAndFragment,
@@ -153,7 +154,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           const headers = request.headers;
           const userAgent = headers['user-agent'];
           const httpVersion = request.httpVersion;
-          const host = headers.host as string | undefined;
+          const host = getHostFromHeaders(headers);
           const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
 
           const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
@@ -360,11 +361,12 @@ function getIncomingRequestAttributesOnResponse(
   // take socket from the request,
   // since it may be detached from the response object in keep-alive mode
   const { socket } = request;
-  const { statusCode, statusMessage } = response;
+  const { statusCode } = response;
 
   const newAttributes: SpanAttributes = {
     [HTTP_RESPONSE_STATUS_CODE]: statusCode,
-    [HTTP_RESPONSE_STATUS_TEXT]: statusMessage?.toUpperCase(),
+    // HTTP/2 has no status text, and reading it emits a process warning.
+    [HTTP_RESPONSE_STATUS_TEXT]: request.httpVersion === '2.0' ? undefined : response.statusMessage?.toUpperCase(),
   };
 
   // `client.address` is the originating client, so a forwarding header wins over the socket, which
