@@ -103,7 +103,7 @@
     "node-mock-http": "^1.0.4",
     "solid-js": "^1.9.11",
     "vinxi": "^0.5.11",
-    "vite": "^8.3.1",
+    "vite": "^8.3.5",
     "vite-plugin-solid": "^2.11.6"
   },
   "scripts": {
