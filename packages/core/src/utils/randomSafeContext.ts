@@ -2,6 +2,8 @@ import { GLOBAL_OBJ } from './worldwide';
 
 export type RandomSafeContextRunner = <T>(callback: () => T) => T;
 
+const RUNNER_KEY = Symbol.for('__SENTRY_SAFE_RANDOM_ID_WRAPPER__');
+
 let RESOLVED_RUNNER: RandomSafeContextRunner | undefined;
 
 /**
@@ -14,9 +16,8 @@ export function withRandomSafeContext<T>(cb: () => T): T {
     return RESOLVED_RUNNER(cb);
   }
 
-  const sym = Symbol.for('__SENTRY_SAFE_RANDOM_ID_WRAPPER__');
-  const globalWithSymbol: typeof GLOBAL_OBJ & { [sym]?: RandomSafeContextRunner } = GLOBAL_OBJ;
-  const runner = globalWithSymbol[sym];
+  const globalWithSymbol: typeof GLOBAL_OBJ & { [RUNNER_KEY]?: RandomSafeContextRunner } = GLOBAL_OBJ;
+  const runner = globalWithSymbol[RUNNER_KEY];
 
   if (typeof runner === 'function') {
     RESOLVED_RUNNER = runner;

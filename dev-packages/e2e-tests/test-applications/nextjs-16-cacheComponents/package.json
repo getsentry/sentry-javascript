@@ -25,7 +25,7 @@
     "start:cloudflare": "opennextjs-cloudflare preview --var \"E2E_TEST_DSN:$E2E_TEST_DSN\""
   },
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.20.10",
+    "@opennextjs/cloudflare": "^1.20.12",
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "import-in-the-middle": "^1",
