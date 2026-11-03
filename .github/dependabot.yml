@@ -14,6 +14,11 @@ updates:
       interval: 'weekly'
     ignore:
       - dependency-name: 'typescript'
+      # Keep shared Prisma dependencies on v6; v7 has a dedicated integration suite.
+      - dependency-name: 'prisma'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@prisma/client'
+        update-types: ['version-update:semver-major']
       # Major upgrades of SDK targets and coupled tooling require an explicit compatibility decision.
       - dependency-name: '@angular/*'
         update-types: ['version-update:semver-major']
