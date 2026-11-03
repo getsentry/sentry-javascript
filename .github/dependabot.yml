@@ -14,7 +14,7 @@ updates:
       interval: 'weekly'
     ignore:
       - dependency-name: 'typescript'
-      # Keep framework and compiler majors intentional to preserve compatibility coverage.
+      # Major upgrades of SDK targets and coupled tooling require an explicit compatibility decision.
       - dependency-name: '@angular/*'
         update-types: ['version-update:semver-major']
       - dependency-name: '@angular-devkit/*'
@@ -24,6 +24,10 @@ updates:
       - dependency-name: 'astro'
         update-types: ['version-update:semver-major']
       - dependency-name: 'ember-source'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'effect'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@effect/vitest'
         update-types: ['version-update:semver-major']
       - dependency-name: 'next'
         update-types: ['version-update:semver-major']
@@ -59,19 +63,7 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: '@nestjs/*'
         update-types: ['version-update:semver-major']
-      - dependency-name: 'express'
-        update-types: ['version-update:semver-major']
-      - dependency-name: 'fastify'
-        update-types: ['version-update:semver-major']
-      - dependency-name: 'koa'
-        update-types: ['version-update:semver-major']
-      - dependency-name: '@koa/router'
-        update-types: ['version-update:semver-major']
-      - dependency-name: '@hapi/hapi'
-        update-types: ['version-update:semver-major']
       - dependency-name: 'hono'
-        update-types: ['version-update:semver-major']
-      - dependency-name: '@hono/node-server'
         update-types: ['version-update:semver-major']
       - dependency-name: 'nitro'
         update-types: ['version-update:semver-major']
@@ -81,11 +73,27 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: 'nuxi'
         update-types: ['version-update:semver-major']
-      - dependency-name: 'srvx'
+      - dependency-name: '@cloudflare/workers-types'
         update-types: ['version-update:semver-major']
-      - dependency-name: '@apollo/server'
+      - dependency-name: 'wrangler'
         update-types: ['version-update:semver-major']
-      - dependency-name: 'graphql'
+      - dependency-name: 'bun-types'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@edge-runtime/types'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@opentelemetry/api'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'vite'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'webpack'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'rollup'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'rolldown'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'esbuild'
         update-types: ['version-update:semver-major']
       # These are also peer dependencies. The `increase` strategy raises the peer range too,
       # which drops support for older versions (a breaking change).
