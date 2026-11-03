@@ -31,7 +31,11 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: 'nuxt'
         update-types: ['version-update:semver-major']
-      - dependency-name: '@nuxt/*'
+      - dependency-name: '@nuxt/kit'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@nuxt/schema'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@nuxt/nitro-server'
         update-types: ['version-update:semver-major']
       - dependency-name: 'react'
         update-types: ['version-update:semver-major']
@@ -45,7 +49,13 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: '@react-router/*'
         update-types: ['version-update:semver-major']
-      - dependency-name: '@remix-run/*'
+      - dependency-name: '@remix-run/node'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@remix-run/react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@remix-run/server-runtime'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@remix-run/router'
         update-types: ['version-update:semver-major']
       - dependency-name: '@solidjs/router'
         update-types: ['version-update:semver-major']
@@ -57,7 +67,9 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: 'vue'
         update-types: ['version-update:semver-major']
-      - dependency-name: '@nestjs/*'
+      - dependency-name: '@nestjs/common'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@nestjs/core'
         update-types: ['version-update:semver-major']
       - dependency-name: 'hono'
         update-types: ['version-update:semver-major']
