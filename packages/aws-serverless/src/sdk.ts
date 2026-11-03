@@ -1,8 +1,8 @@
 import type { Scope } from '@sentry/core';
 import { debug } from '@sentry/core';
 import {
-  _INTERNAL_answerLambdaTunnelEvent,
-  _INTERNAL_answerStreamingLambdaTunnelEvent,
+  _INTERNAL_handleLambdaTunnelEvent,
+  _INTERNAL_handleStreamingLambdaTunnelEvent,
   captureException,
   captureMessage,
   flush,
@@ -201,7 +201,7 @@ export function wrapHandler<TEvent, TResult>(
 
   return async (event: TEvent, context: Context) => {
     // Lambda runs no HTTP server, so tunnel requests are answered here, before the handler.
-    const tunnelResult = _INTERNAL_answerLambdaTunnelEvent(event);
+    const tunnelResult = _INTERNAL_handleLambdaTunnelEvent(event);
     if (tunnelResult) {
       return tunnelResult as Promise<TResult>;
     }
@@ -258,7 +258,7 @@ function wrapStreamingHandler<TEvent, TResult>(
     responseStream: Parameters<StreamifyHandler<TEvent, TResult>>[1],
     context: Context,
   ): Promise<TResult> => {
-    const tunnelAnswer = _INTERNAL_answerStreamingLambdaTunnelEvent(event, responseStream);
+    const tunnelAnswer = _INTERNAL_handleStreamingLambdaTunnelEvent(event, responseStream);
     if (tunnelAnswer) {
       return tunnelAnswer as Promise<TResult>;
     }

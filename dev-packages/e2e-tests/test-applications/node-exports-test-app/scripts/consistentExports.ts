@@ -23,8 +23,8 @@ const NODE_EXPORTS_IGNORE = [
   // Only needed by framework SDKs that enable the managed tunnel after `init`
   '_INTERNAL_installTunnelHooks',
   // Lambda helpers only needed by `@sentry/aws-serverless`
-  '_INTERNAL_answerLambdaTunnelEvent',
-  '_INTERNAL_answerStreamingLambdaTunnelEvent',
+  '_INTERNAL_handleLambdaTunnelEvent',
+  '_INTERNAL_handleStreamingLambdaTunnelEvent',
   '_INTERNAL_parseLambdaHandlerString',
   '_INTERNAL_redirectLambdaHandler',
   '_INTERNAL_resolveLambdaHandlerFile',

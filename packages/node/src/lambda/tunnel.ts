@@ -55,7 +55,7 @@ declare const awslambda:
  * It never throws. Until a request is claimed, a failure hands the event to the handler. Once claimed, it ends in a
  * 502 instead.
  */
-export function answerTunnelEvent(event: unknown): Promise<HttpResult> | undefined {
+export function handleTunnelEvent(event: unknown): Promise<HttpResult> | undefined {
   const request = toTunnelRequest(event);
   if (!request) {
     return undefined;
@@ -77,7 +77,7 @@ export function answerTunnelEvent(event: unknown): Promise<HttpResult> | undefin
  * Answers a managed tunnel request for a streaming handler, writing the answer to its response stream. Returns
  * `undefined` for every other event, or when the runtime has no `awslambda.HttpResponseStream`.
  */
-export function answerStreamingTunnelEvent(event: unknown, responseStream: unknown): Promise<void> | undefined {
+export function handleStreamingTunnelEvent(event: unknown, responseStream: unknown): Promise<void> | undefined {
   if (typeof awslambda === 'undefined' || !awslambda?.HttpResponseStream) {
     return undefined;
   }
@@ -178,7 +178,7 @@ export function wrapLambdaHandlerForTunnel(handler: LambdaHandler): LambdaHandle
   const handlerSymbols = handler as unknown as Record<symbol, unknown>;
   if (handlerSymbols[HANDLER_STREAMING_SYMBOL] === 'response') {
     const streamingHandler = function (this: unknown, event: unknown, responseStream: unknown, ...rest: unknown[]) {
-      return answerStreamingTunnelEvent(event, responseStream) ?? handler.call(this, event, responseStream, ...rest);
+      return handleStreamingTunnelEvent(event, responseStream) ?? handler.call(this, event, responseStream, ...rest);
     };
     const streamingSymbols = streamingHandler as unknown as Record<symbol, unknown>;
     streamingSymbols[HANDLER_STREAMING_SYMBOL] = handlerSymbols[HANDLER_STREAMING_SYMBOL];
@@ -191,11 +191,11 @@ export function wrapLambdaHandlerForTunnel(handler: LambdaHandler): LambdaHandle
   // Node.js 24 runtime rejects).
   if (handler.length > 2) {
     return function (this: unknown, event: unknown, context: unknown, callback: unknown) {
-      return answerTunnelEvent(event) ?? handler.call(this, event, context, callback);
+      return handleTunnelEvent(event) ?? handler.call(this, event, context, callback);
     };
   }
 
   return function (this: unknown, event: unknown, context: unknown) {
-    return answerTunnelEvent(event) ?? handler.call(this, event, context);
+    return handleTunnelEvent(event) ?? handler.call(this, event, context);
   };
 }

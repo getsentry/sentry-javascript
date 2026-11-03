@@ -191,8 +191,8 @@ export {
 } from '@sentry/core/server';
 export type { TunnelRequestLike } from '@sentry/core/server';
 export {
-  answerStreamingTunnelEvent as _INTERNAL_answerStreamingLambdaTunnelEvent,
-  answerTunnelEvent as _INTERNAL_answerLambdaTunnelEvent,
+  handleStreamingTunnelEvent as _INTERNAL_handleStreamingLambdaTunnelEvent,
+  handleTunnelEvent as _INTERNAL_handleLambdaTunnelEvent,
 } from './lambda/tunnel';
 export {
   parseHandlerString as _INTERNAL_parseLambdaHandlerString,
