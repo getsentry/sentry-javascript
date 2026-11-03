@@ -64,7 +64,6 @@ export { mcpServerIntegration } from './integrations/mcp-server';
 export {
   instrumentTunnelServers as _INTERNAL_instrumentTunnelServers,
   makeServeTunnelIntegration,
-  serveTunnelIntegration,
 } from './integrations/serveTunnel';
 export { instrumentTunnelServer as _INTERNAL_instrumentTunnelServer } from './utils/tunnelServer';
 export { SentryMastraExporter } from './ai/mastra';
