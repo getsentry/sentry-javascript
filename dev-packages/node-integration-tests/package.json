@@ -107,7 +107,7 @@
     "redis-5-tracing": "npm:redis@^5.12.0",
     "together-ai": "0.54.0",
     "srvx": "^0.11.22",
-    "tedious": "^19.2.1",
+    "tedious": "^20.3.8",
     "unstorage": "2.0.0-alpha.7",
     "valibot": "1.5.0",
     "winston": "^3.17.0",
