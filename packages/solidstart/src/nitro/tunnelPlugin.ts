@@ -2,7 +2,7 @@ import { GLOBAL_OBJ } from '@sentry/core';
 import {
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
   _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
-  _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
+  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
 } from '@sentry/core/server';
 import { eventHandler, toWebRequest } from 'h3';
 import type { NitroAppPlugin } from 'nitropack';
@@ -15,7 +15,7 @@ import { TUNNEL_BASE_PATH_GLOBAL } from '../common/tunnel';
 export default (nitroApp => {
   // The first layer sees the path before Nitro strips `server.baseURL`, so the tunnel is served under it. The server
   // bundle's banner sets the global before this plugin runs.
-  setManagedTunnelDefaults({
+  setTunnelDefaults({
     basePath: (GLOBAL_OBJ as { [TUNNEL_BASE_PATH_GLOBAL]?: string })[TUNNEL_BASE_PATH_GLOBAL],
   });
 

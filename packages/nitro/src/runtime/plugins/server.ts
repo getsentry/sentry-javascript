@@ -1,6 +1,6 @@
 import {
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
-  _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
+  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
 } from '@sentry/core/server';
 import { definePlugin } from 'nitro';
 import { useRuntimeConfig } from 'nitro/runtime-config';
@@ -19,7 +19,7 @@ export default definePlugin(nitroApp => {
   // unless a framework serves the app under another prefix: `@sentry/solidstart` sets `sentryTunnelBasePath` to Vite's
   // `base`.
   const runtimeConfig = useRuntimeConfig() as { app?: { baseURL?: string }; sentryTunnelBasePath?: string };
-  setManagedTunnelDefaults({ basePath: runtimeConfig.sentryTunnelBasePath || runtimeConfig.app?.baseURL });
+  setTunnelDefaults({ basePath: runtimeConfig.sentryTunnelBasePath || runtimeConfig.app?.baseURL });
   const appFetch = nitroApp.fetch;
   nitroApp.fetch = request => handleServedTunnelRequest(request) ?? appFetch(request);
 });

@@ -1,7 +1,7 @@
 import type { Client } from '../client';
 import { getGlobalSingleton } from '../carrier';
 import type { IgnoreSpanFilter } from '../types/options';
-import type { ManagedTunnelDefaults } from './managedTunnelDefaults';
+import type { TunnelDefaults } from './tunnelDefaults';
 import type { ServedTunnel, TunnelForwarder } from './tunnel';
 
 /**
@@ -22,7 +22,7 @@ export interface ClientTunnelState {
  */
 export interface TunnelStore {
   clients: WeakMap<Client, ClientTunnelState>;
-  defaults?: ManagedTunnelDefaults;
+  defaults?: TunnelDefaults;
 }
 
 /**
@@ -48,15 +48,15 @@ export function setClientTunnel(client: Client, state: ClientTunnelState): void 
 }
 
 /**
- * The framework-known tunnel settings, see `setManagedTunnelDefaults`.
+ * The framework-known tunnel settings, see `setTunnelDefaults`.
  */
-export function getTunnelDefaults(): Readonly<ManagedTunnelDefaults> | undefined {
+export function getStoredTunnelDefaults(): Readonly<TunnelDefaults> | undefined {
   return getTunnelStore().defaults;
 }
 
 /**
  * Replaces the framework-known tunnel settings.
  */
-export function setTunnelDefaults(defaults: ManagedTunnelDefaults | undefined): void {
+export function setStoredTunnelDefaults(defaults: TunnelDefaults | undefined): void {
   getTunnelStore().defaults = defaults;
 }

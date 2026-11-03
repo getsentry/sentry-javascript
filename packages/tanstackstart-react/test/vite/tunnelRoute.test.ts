@@ -1,6 +1,6 @@
 import type { Client } from '@sentry/core';
 import { getCurrentScope, getTunnelPath, makeDsn } from '@sentry/core';
-import { _INTERNAL_resetManagedTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
+import { _INTERNAL_resetTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
 import type { Plugin, ResolvedConfig, UserConfig } from 'vite';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -183,7 +183,7 @@ describe('server entry tunnel vite plugin in `vite dev`', () => {
 
   afterEach(() => {
     getCurrentScope().setClient(undefined);
-    _INTERNAL_resetManagedTunnelDefaults();
+    _INTERNAL_resetTunnelDefaults();
   });
 
   /** Sets a client, with `serveTunnelIntegration` set up when `managedTunnel` is given. */

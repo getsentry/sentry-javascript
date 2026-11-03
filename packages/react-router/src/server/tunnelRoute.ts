@@ -2,7 +2,7 @@ import { debug, getClient } from '@sentry/core';
 import {
   _INTERNAL_getTunnelPaths as getTunnelPaths,
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
-  _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
+  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
 } from '@sentry/core/server';
 import { DEBUG_BUILD } from '../common/debug-build';
 
@@ -18,7 +18,7 @@ const DISABLED_TUNNEL_PATH = '/__sentry-tunnel-disabled__';
  */
 export function createSentryTunnelRoutes(basename?: string): Record<string, Record<string, unknown>> {
   // Runs when the server build loads. Clients created later, e.g. per request on Cloudflare, start with the basename.
-  setManagedTunnelDefaults({ basePath: basename });
+  setTunnelDefaults({ basePath: basename });
 
   // `init` runs from `--import` before the server build loads, so the client and its tunnel paths are usually known.
   if (!getClient()) {

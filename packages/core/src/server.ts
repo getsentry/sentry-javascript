@@ -21,9 +21,9 @@ export {
 export { instrumentTunnelServer as _INTERNAL_instrumentTunnelServer } from './utils/tunnelServer';
 export { serveTunnelIntegration } from './integrations/serveTunnel';
 export {
-  _INTERNAL_resetManagedTunnelDefaults,
-  setManagedTunnelDefaults as _INTERNAL_setManagedTunnelDefaults,
-} from './utils/managedTunnelDefaults';
+  _INTERNAL_resetTunnelDefaults,
+  setTunnelDefaults as _INTERNAL_setTunnelDefaults,
+} from './utils/tunnelDefaults';
 export type { ServerRuntimeOptions } from './types/options';
 export { trpcMiddleware } from './trpc';
 export { wrapMcpServerWithSentry } from './integrations/mcp-server';

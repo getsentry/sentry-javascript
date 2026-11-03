@@ -1,4 +1,4 @@
-import { _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults } from '@sentry/core/server';
+import { _INTERNAL_setTunnelDefaults as setTunnelDefaults } from '@sentry/core/server';
 import type { NitroModule } from 'nitro/types';
 import type { SentryNitroOptions } from './config';
 import { instrumentServer } from './instruments/instrumentServer';
@@ -19,7 +19,7 @@ export function createNitroModule(sentryOptions?: SentryNitroOptions, sentryEnab
       if (nitro.options.dev) {
         // `sentryTunnelBasePath` is set by `@sentry/solidstart`, whose app is served under Vite's `base`.
         const tunnelBasePath = nitro.options.runtimeConfig.sentryTunnelBasePath as string | undefined;
-        setManagedTunnelDefaults({ basePath: tunnelBasePath || nitro.options.baseURL });
+        setTunnelDefaults({ basePath: tunnelBasePath || nitro.options.baseURL });
       }
     },
   };
