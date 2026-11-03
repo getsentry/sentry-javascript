@@ -85,7 +85,7 @@
     "@sentry/server-runtime-injection": "11.10.0",
     "@sentry/server-utils": "11.10.0",
     "sentry": "^0.44.0",
-    "yargs": "^17.6.0"
+    "yargs": "^18.2.0"
   },
   "devDependencies": {
     "@remix-run/node": "^2.17.5",
