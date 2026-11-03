@@ -49,7 +49,7 @@
     },
     "variants": [
       {
-        "build-command": "pnpm test:build",
+        "build-command": "pnpm install",
         "label": "nextjs-16-static (development)",
         "assert-command": "pnpm test:dev"
       }

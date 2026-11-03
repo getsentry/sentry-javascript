@@ -68,7 +68,7 @@
     "runner": "namespace-profile-sentry-javascript",
     "variants": [
       {
-        "build-command": "pnpm test:build",
+        "build-command": "pnpm install",
         "label": "nextjs-16 (turbopack, development)",
         "assert-command": "pnpm test:dev"
       },
@@ -83,7 +83,7 @@
         "assert-command": "pnpm test:prod"
       },
       {
-        "build-command": "pnpm test:build-webpack",
+        "build-command": "pnpm install",
         "label": "nextjs-16 (webpack, development)",
         "assert-command": "pnpm test:dev-webpack"
       },
@@ -93,7 +93,7 @@
         "assert-command": "pnpm test:prod"
       },
       {
-        "build-command": "pnpm test:build-latest-webpack",
+        "build-command": "pnpm install && pnpm add next@latest",
         "label": "nextjs-16 (latest, webpack, development)",
         "assert-command": "pnpm test:dev-webpack"
       },
@@ -103,7 +103,7 @@
         "assert-command": "pnpm test:prod"
       },
       {
-        "build-command": "pnpm test:build-latest",
+        "build-command": "pnpm install && pnpm add next@latest",
         "label": "nextjs-16 (latest, turbopack, development)",
         "assert-command": "pnpm test:dev"
       },
