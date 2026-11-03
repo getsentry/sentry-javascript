@@ -19,6 +19,9 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: '@react-router/*'
         update-types: ['version-update:semver-major']
+      # Keep tedious on v19, so Node 20 tests still run it. v20 (Node >= 22) is tested separately.
+      - dependency-name: 'tedious'
+        update-types: ['version-update:semver-major']
       # These are also peer dependencies. The `increase` strategy raises the peer range too,
       # which drops support for older versions (a breaking change).
       - dependency-name: '@tanstack/vue-router'
