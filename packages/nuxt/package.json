@@ -69,7 +69,7 @@
     "@nuxt/nitro-server": "^3.21.11",
     "@nuxt/schema": "^3.21.11",
     "@sentry-internal/rollup-utils": "11.10.0",
-    "db0": "^0.3.4",
+    "db0": "^0.4.2",
     "h3": "^1.15.10",
     "nitro": "^3.0.260311-beta",
     "nitropack": "^2.13.4",
