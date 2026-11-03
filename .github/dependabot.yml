@@ -27,8 +27,6 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: 'effect'
         update-types: ['version-update:semver-major']
-      - dependency-name: '@effect/vitest'
-        update-types: ['version-update:semver-major']
       - dependency-name: 'next'
         update-types: ['version-update:semver-major']
       - dependency-name: 'nuxt'
@@ -57,8 +55,6 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: '@sveltejs/kit'
         update-types: ['version-update:semver-major']
-      - dependency-name: '@sveltejs/vite-plugin-svelte'
-        update-types: ['version-update:semver-major']
       - dependency-name: 'vue'
         update-types: ['version-update:semver-major']
       - dependency-name: '@nestjs/*'
@@ -70,8 +66,6 @@ updates:
       - dependency-name: 'nitropack'
         update-types: ['version-update:semver-major']
       - dependency-name: 'h3'
-        update-types: ['version-update:semver-major']
-      - dependency-name: 'nuxi'
         update-types: ['version-update:semver-major']
       - dependency-name: '@cloudflare/workers-types'
         update-types: ['version-update:semver-major']
