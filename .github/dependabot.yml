@@ -109,6 +109,32 @@ updates:
       aws-sdk:
         patterns:
           - '@aws-sdk/*'
+      angular:
+        patterns:
+          - '@angular/*'
+          - '@angular-devkit/*'
+          - 'ng-packagr'
+      react:
+        patterns:
+          - 'react'
+          - 'react-dom'
+      nuxt:
+        patterns:
+          - 'nuxt'
+          - '@nuxt/schema'
+          - '@nuxt/nitro-server'
+      nestjs:
+        patterns:
+          - '@nestjs/common'
+          - '@nestjs/core'
+      vitest:
+        patterns:
+          - 'vitest'
+          - '@vitest/*'
+      prisma:
+        patterns:
+          - 'prisma'
+          - '@prisma/client'
       opentelemetry:
         patterns:
           - '@opentelemetry/*'
