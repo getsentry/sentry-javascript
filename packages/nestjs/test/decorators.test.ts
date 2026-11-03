@@ -376,6 +376,7 @@ describe('SentryCron decorator with @Cron', () => {
   it.each([
     ['a sub-minute schedule', Cron('*/5 * * * * *')],
     ['a one-off date', Cron(new Date())],
+    ['an unknown preset', Cron('@reboot')],
     ['a utc offset', Cron('0 * * * *', { utcOffset: 120 })],
     ['a numeric month', Cron('0 9 1 5 *')],
     ['a numeric month range', Cron('0 9 1 1-6 *')],
@@ -385,6 +386,7 @@ describe('SentryCron decorator with @Cron', () => {
     // `0 0 1 0 *` in `@nestjs/schedule` 3
     ['CronExpression.EVERY_YEAR', Cron('0 0 1 1 *')],
     ['a full day-of-week name range with a day of month', Cron('0 9 1 * sun-sat')],
+    ['an unknown day name', Cron('0 9 1 * sunday')],
     ['a numeric month from @nestjs/schedule 3', VersionedCron('0 9 1 5 *', '3.0.4')],
     ['a fixed-offset time zone', Cron('0 * * * *', { timeZone: 'UTC+3' })],
   ])('sends no monitor config for %s', async (_, cronDecorator) => {

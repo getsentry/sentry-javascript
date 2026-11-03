@@ -81,27 +81,41 @@ export function shouldMonitorJob(
   );
 }
 
-const NICKNAMES: Record<string, string> = {
-  '@yearly': '0 0 1 1 *',
-  '@annually': '0 0 1 1 *',
-  '@monthly': '0 0 1 * *',
-  '@weekly': '0 0 * * 0',
-  '@daily': '0 0 * * *',
-  '@midnight': '0 0 * * *',
-  '@hourly': '0 * * * *',
-  '@minutely': '* * * * *',
-  '@weekdays': '0 0 * * 1-5',
-  '@weekends': '0 0 * * 0,6',
-};
-
-const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-
 /**
  * The library that parses a scheduler's cron expressions: `node-cron`, `cron` (also behind `@nestjs/schedule`), or
  * `cron-parser` (behind `node-schedule`).
  */
 export type CronDialect = 'node-cron' | 'cron' | 'cron-parser';
+
+const COMMON_NICKNAMES: Record<string, string> = {
+  '@yearly': '0 0 1 1 *',
+  '@monthly': '0 0 1 * *',
+  '@weekly': '0 0 * * 0',
+  '@daily': '0 0 * * *',
+  '@hourly': '0 * * * *',
+};
+
+const NICKNAMES: Record<CronDialect, Record<string, string>> = {
+  'node-cron': { ...COMMON_NICKNAMES, '@annually': '0 0 1 1 *', '@midnight': '0 0 * * *' },
+  cron: { ...COMMON_NICKNAMES, '@minutely': '* * * * *', '@weekdays': '0 0 * * 1-5', '@weekends': '0 0 * * 0,6' },
+  'cron-parser': COMMON_NICKNAMES,
+};
+
+const MONTHS = [
+  'january',
+  'february',
+  'march',
+  'april',
+  'may',
+  'june',
+  'july',
+  'august',
+  'september',
+  'october',
+  'november',
+  'december',
+];
+const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
 /**
  * The Sentry monitor config for a cron expression, or `undefined` if Sentry would read it differently.
@@ -113,7 +127,7 @@ export function cronExpressionToMonitorConfig(
   dialect: CronDialect,
 ): MonitorConfig | undefined {
   const trimmed = expression.trim();
-  const fields = (NICKNAMES[trimmed.toLowerCase()] || trimmed).split(/\s+/);
+  const fields = (NICKNAMES[dialect][trimmed.toLowerCase()] || trimmed).split(/\s+/);
 
   // Sentry schedules have minute granularity, so only a fixed second can be dropped.
   if (fields.length === 6 && /^\d+$/.test(fields[0] as string)) {
@@ -124,8 +138,8 @@ export function cronExpressionToMonitorConfig(
   }
 
   const [minute, hour, dayOfMonth, month, dayOfWeek] = fields as [string, string, string, string, string];
-  const monthNumbers = replaceNames(month, MONTHS, 1);
-  const weekdayNumbers = endRangesOnSundayAsSeven(replaceNames(dayOfWeek, WEEKDAYS, 0));
+  const monthNumbers = replaceNames(month, MONTHS, 1, dialect);
+  const weekdayNumbers = endRangesOnSundayAsSeven(replaceNames(dayOfWeek, WEEKDAYS, 0, dialect));
   const crontab = [minute, hour, dayOfMonth, monthNumbers, weekdayNumbers];
   if (
     crontab.some(field => /[a-z]/i.test(field) || hasReversedRange(field) || hasSteppedSingleValueRange(field)) ||
@@ -220,9 +234,12 @@ function parseDayField(field: string, low: number, high: number): DayField | und
   };
 }
 
-function replaceNames(field: string, names: string[], offset: number): string {
+function replaceNames(field: string, names: string[], offset: number, dialect: CronDialect): string {
   return field.replace(/[a-z]+/gi, word => {
-    const index = names.indexOf(word.slice(0, 3).toLowerCase());
+    const lowerCase = word.toLowerCase();
+    const index = names.findIndex(
+      name => lowerCase === name.slice(0, 3) || (dialect === 'node-cron' && lowerCase === name),
+    );
     return index === -1 ? word : String(index + offset);
   });
 }

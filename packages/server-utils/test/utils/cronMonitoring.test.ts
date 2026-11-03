@@ -15,7 +15,9 @@ describe('cronExpressionToMonitorConfig with node-cron day matching', () => {
     ['0 9 */2 * 1', '0 9 */2 * 1'],
     ['@daily', '0 0 * * *'],
     ['@Weekly', '0 0 * * 0'],
-    ['@weekdays', '0 0 * * 1-5'],
+    ['@annually', '0 0 1 1 *'],
+    ['@midnight', '0 0 * * *'],
+    ['0 9 * january,JULY MONDAY-friday', '0 9 * 1,7 1-5'],
     ['*/15 * * * *', '*/15 * * * *'],
     ['0 9 * * sun', '0 9 * * 0'],
     ['0 9 * * sat-sun', '0 9 * * 6-7'],
@@ -54,6 +56,10 @@ describe('cronExpressionToMonitorConfig with node-cron day matching', () => {
     '0 9 * * 8',
     '@reboot',
     '@secondly',
+    '@weekdays',
+    '0 9 * * sunx',
+    '0 9 * * su',
+    '0 9 * janx *',
   ])('sends no config for %s', expression => {
     expect(toMonitorConfig(expression, 'UTC')).toBeUndefined();
   });
@@ -107,6 +113,12 @@ describe('cronExpressionToMonitorConfig with cron day matching', () => {
     '0 9 1 * mon-sun',
     '0 9 15 * 0,1,2,3,4,5,6',
     '0 9 15 * 0-3,4-6',
+    '0 9 * * sunday',
+    '0 9 * * monday',
+    '0 9 * january *',
+    '0 9 15 * sunx',
+    '@annually',
+    '@midnight',
   ])('sends no config for %s', expression => {
     expect(cronExpressionToMonitorConfig(expression, 'UTC', 'cron')).toBeUndefined();
   });
@@ -151,6 +163,11 @@ describe('cronExpressionToMonitorConfig with cron-parser day matching', () => {
     '0 9 15 * 1-5,1-3',
     '0 9 * * 2-7/2',
     '0 9 * * 2/2',
+    '0 9 * * monday',
+    '0 9 * january *',
+    '@annually',
+    '@minutely',
+    '@weekdays',
   ])('sends no config for %s', expression => {
     expect(cronExpressionToMonitorConfig(expression, 'UTC', 'cron-parser')).toBeUndefined();
   });
