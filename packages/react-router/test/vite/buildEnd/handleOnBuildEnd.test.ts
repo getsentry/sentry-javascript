@@ -1,5 +1,6 @@
 import { createSentrySDK } from 'sentry';
 import { rm } from 'node:fs/promises';
+import type * as path from 'node:path';
 import { globFiles } from '@sentry/bundler-plugins/core';
 import type { ResolvedConfig } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -217,6 +218,36 @@ describe('sentryOnBuildEnd', () => {
     expect(mockSentrySdkInstance.sourcemap.inject).toHaveBeenCalledWith({ directory: '/build' });
     expect(mockSentrySdkInstance.sourcemap.upload).not.toHaveBeenCalled();
     expect(globFiles).not.toHaveBeenCalled();
+  });
+
+  it('deletes the source maps in the build directory by default', async () => {
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(defaultConfig);
+
+    expect(globFiles).toHaveBeenCalledWith(['/build/**/*.map']);
+    expect(rm).toHaveBeenCalledWith('/build/file1.map', { force: true });
+    expect(rm).toHaveBeenCalledWith('/build/file2.map', { force: true });
+  });
+
+  it('builds the default deletion pattern with forward slashes on Windows', async () => {
+    vi.doMock('node:path', async importOriginal => ({
+      ...(await importOriginal<typeof path>()),
+      sep: '\\',
+    }));
+    const { sentryOnBuildEnd: sentryOnBuildEndWin32 } = await import('../../../src/vite/buildEnd/handleOnBuildEnd');
+    const { globFiles: globFilesWin32 } = await import('@sentry/bundler-plugins/core');
+    vi.mocked(globFilesWin32).mockResolvedValue([]);
+
+    const config = {
+      ...defaultConfig,
+      reactRouterConfig: { ...defaultConfig.reactRouterConfig, buildDirectory: 'C:\\app\\build' },
+    };
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEndWin32(config);
+
+    expect(globFilesWin32).toHaveBeenCalledWith(['C:/app/build/**/*.map']);
+    vi.doUnmock('node:path');
   });
 
   it('should delete custom files after upload when specified', async () => {
