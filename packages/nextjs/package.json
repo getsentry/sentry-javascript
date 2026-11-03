@@ -83,7 +83,7 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@rollup/plugin-commonjs": "28.0.1",
+    "@rollup/plugin-commonjs": "29.0.3",
     "@sentry/browser-utils": "11.10.0",
     "@sentry/bundler-plugins": "11.10.0",
     "@sentry/cloudflare": "11.10.0",

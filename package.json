@@ -135,7 +135,7 @@
     "`@sentry/sveltekit`: size-limit bundles its build output, which imports `@sentry/sveltekit/browser-tracing-variant`."
   ],
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-commonjs": "^29.0.3",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^5.0.5",
