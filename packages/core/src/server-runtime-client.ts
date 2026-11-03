@@ -22,7 +22,7 @@ import { uuid4 } from './utils/misc';
 import { makePromiseBuffer } from './utils/promisebuffer';
 import { resolvedSyncPromise } from './utils/syncpromise';
 import { _getTraceInfoFromScope } from './utils/trace-info';
-import { resolveClientTunnel } from './utils/tunnelDefaults';
+import { applyTunnelDefaults } from './utils/tunnelDefaults';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
   platform?: string;
@@ -60,7 +60,7 @@ export class ServerRuntimeClient<
 
     super(options);
 
-    resolveClientTunnel(this);
+    applyTunnelDefaults(this);
     this._setUpMetricsProcessing();
   }
 

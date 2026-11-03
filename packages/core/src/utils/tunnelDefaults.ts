@@ -33,7 +33,7 @@ export function setTunnelDefaults(defaults: TunnelDefaults): void {
     ...(defaults.tunnel && { tunnel: defaults.tunnel, forward: defaults.forward }),
     ...(defaults.basePath !== undefined && { basePath: defaults.basePath }),
   });
-  resolveClientTunnel(getClient());
+  applyTunnelDefaults(getClient());
 }
 
 /**
@@ -46,7 +46,7 @@ export function enableManagedTunnel(
 ): void {
   client.getOptions()._managedTunnel = { ...tunnelOptions };
   setClientTunnel(client, { forward });
-  resolveClientTunnel(client);
+  applyTunnelDefaults(client);
 }
 
 /**
@@ -54,7 +54,7 @@ export function enableManagedTunnel(
  * allowed DSNs, and installs its span filters. Runs when a server client is created and from
  * {@link setTunnelDefaults}.
  */
-export function resolveClientTunnel(client: Client | undefined): void {
+export function applyTunnelDefaults(client: Client | undefined): void {
   const tunnelDefaults = getStoredTunnelDefaults();
   const options = client?.getOptions();
   const tunnelOptions: ServerTunnelOptions | undefined = options?._managedTunnel ?? tunnelDefaults?.tunnel;

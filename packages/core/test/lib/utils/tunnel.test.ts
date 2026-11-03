@@ -29,7 +29,7 @@ import {
 import { serveTunnelIntegration } from '../../../src/integrations/serveTunnel';
 import {
   _INTERNAL_resetTunnelDefaults,
-  resolveClientTunnel,
+  applyTunnelDefaults as applyServerTunnelDefaults,
   setTunnelDefaults,
 } from '../../../src/utils/tunnelDefaults';
 import type { DsnComponents } from '../../../src/types/dsn';
@@ -1158,7 +1158,7 @@ describe('setTunnelDefaults', () => {
 
     setTestClient(TEST_DSN);
     const laterClient = getCurrentScope().getClient()!;
-    resolveClientTunnel(laterClient);
+    applyServerTunnelDefaults(laterClient);
     expect(laterClient.getOptions()._managedTunnel).toEqual({ path: '/monitor' });
     expect(laterClient.getOptions().ignoreSpans).toContainEqual(
       getTunnelIgnoreSpanFilter({ path: '/monitor' }, makeDsn(TEST_DSN)),
@@ -1166,7 +1166,7 @@ describe('setTunnelDefaults', () => {
 
     setTestClient(TEST_DSN, { path: '/from-init' });
     const initClient = getCurrentScope().getClient()!;
-    resolveClientTunnel(initClient);
+    applyServerTunnelDefaults(initClient);
     expect(initClient.getOptions()._managedTunnel).toEqual({ path: '/from-init' });
   });
 });
