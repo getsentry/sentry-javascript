@@ -135,6 +135,10 @@ updates:
         patterns:
           - 'prisma'
           - '@prisma/client'
+      modelcontextprotocol:
+        patterns:
+          - '@modelcontextprotocol/client'
+          - '@modelcontextprotocol/server'
       opentelemetry:
         patterns:
           - '@opentelemetry/*'
