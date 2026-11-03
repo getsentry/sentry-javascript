@@ -169,6 +169,21 @@ export function findTunnelRouteHandlerFile(
     .find(file => getStats(path.join(projectDir, file))?.isFile());
 }
 
+/**
+ * Returns true if the project has an App Router or Pages Router page at the tunnel route handler path.
+ */
+function hasTunnelRoutePage(pageExtensions: string[], projectDir: string): boolean {
+  const pageFiles = ['app', 'src/app'].map(dir => `${dir}${TUNNEL_ROUTE_HANDLER_PATH}/page`);
+  const pagesRouterFiles = ['pages', 'src/pages'].flatMap(dir => [
+    `${dir}${TUNNEL_ROUTE_HANDLER_PATH}`,
+    `${dir}${TUNNEL_ROUTE_HANDLER_PATH}/index`,
+  ]);
+
+  return [...pageFiles, ...pagesRouterFiles].some(file =>
+    pageExtensions.some(extension => getStats(path.join(projectDir, `${file}.${extension}`))?.isFile()),
+  );
+}
+
 function getStats(filePath: string): fs.Stats | undefined {
   try {
     return fs.statSync(filePath);
@@ -212,6 +227,11 @@ export function setUpManagedTunnelVercelRoute(
   projectDir: string = process.cwd(),
 ): void {
   const pageExtensions = userNextConfig.pageExtensions ?? DEFAULT_PAGE_EXTENSIONS;
+  // A route handler next to a page at the same path fails the build.
+  if (hasTunnelRoutePage(pageExtensions, projectDir)) {
+    return;
+  }
+
   if (!findTunnelRouteHandlerFile(pageExtensions, projectDir)) {
     // A Pages Router app gets an `app` directory with only this route, next to its `pages` (or in `src`).
     const appDir =
