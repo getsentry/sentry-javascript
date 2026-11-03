@@ -14,6 +14,7 @@ import {
   captureException,
   debug,
   getClient,
+  handleCallbackErrors,
   hasSpanStreamingEnabled,
   isObjectLike,
   SPAN_STATUS_OK,
@@ -199,24 +200,25 @@ function traceCacheOperation(
 ): Promise<unknown> {
   return startSpan(options, async span => {
     try {
-      const result = await operation();
-      span.setStatus({ code: SPAN_STATUS_OK });
-
-      if (getCacheHit) {
-        span.setAttribute(CACHE_HIT, getCacheHit(result));
-      }
-
-      return result;
-    } catch (error) {
-      captureException(error, {
-        mechanism: {
-          handled: false,
-          type: options.attributes?.[SENTRY_ORIGIN],
+      return await handleCallbackErrors(
+        operation,
+        error => {
+          captureException(error, {
+            mechanism: {
+              handled: false,
+              type: options.attributes?.[SENTRY_ORIGIN],
+            },
+          });
         },
-      });
+        undefined,
+        result => {
+          span.setStatus({ code: SPAN_STATUS_OK });
 
-      // Re-throw the error to be handled by the caller
-      throw error;
+          if (getCacheHit) {
+            span.setAttribute(CACHE_HIT, getCacheHit(result));
+          }
+        },
+      );
     } finally {
       await flushIfServerless();
     }

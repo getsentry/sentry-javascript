@@ -2,9 +2,10 @@ import type * as SentryCore from '@sentry/core';
 import { describe, expect, it, vi } from 'vitest';
 import { instrumentCacheStorage } from '../../../src/runtime/utils/instrumentStorage';
 
-const { setAttributeMock, startSpanMock } = vi.hoisted(() => {
+const { captureExceptionMock, setAttributeMock, startSpanMock } = vi.hoisted(() => {
   const setAttributeMock = vi.fn();
   return {
+    captureExceptionMock: vi.fn(),
     setAttributeMock,
     startSpanMock: vi.fn((_options: unknown, callback: (span: unknown) => unknown) =>
       callback({ setAttribute: setAttributeMock, setStatus: vi.fn() }),
@@ -14,6 +15,7 @@ const { setAttributeMock, startSpanMock } = vi.hoisted(() => {
 
 vi.mock('@sentry/core', async importOriginal => ({
   ...(await importOriginal<typeof SentryCore>()),
+  captureException: captureExceptionMock,
   startSpan: startSpanMock,
 }));
 
@@ -83,6 +85,21 @@ describe('instrumentCacheStorage', () => {
       expect.objectContaining({ attributes: expect.objectContaining({ 'sentry.op': 'cache.remove' }) }),
       expect.any(Function),
     );
+  });
+
+  it('captures and rethrows a failed operation', async () => {
+    const error = new Error('storage unavailable');
+    const original = createStorage();
+    original.get.mockRejectedValueOnce(error);
+    const storage = instrumentCacheStorage(original, 'memory');
+    setAttributeMock.mockClear();
+
+    await expect(storage.get(KEY)).rejects.toBe(error);
+
+    expect(captureExceptionMock).toHaveBeenCalledWith(error, {
+      mechanism: { handled: false, type: 'auto.cache.nuxt' },
+    });
+    expect(setAttributeMock).not.toHaveBeenCalledWith('cache.hit', expect.anything());
   });
 
   it('patches the storage in place and only once', async () => {
