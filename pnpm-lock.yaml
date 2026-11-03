@@ -362,8 +362,8 @@ importers:
         specifier: ^2.18.1
         version: 2.18.1
       pg:
-        specifier: 8.16.0
-        version: 8.16.0
+        specifier: 8.23.1
+        version: 8.23.1
     devDependencies:
       '@sentry-internal/node-integration-tests':
         specifier: 11.10.0
@@ -378,8 +378,8 @@ importers:
         specifier: ^2.15.27
         version: 2.15.27
       '@types/pg':
-        specifier: ^8.20.0
-        version: 8.20.4
+        specifier: ^8.23.1
+        version: 8.23.1
       bun-types:
         specifier: ^1.2.9
         version: 1.2.9
@@ -570,8 +570,8 @@ importers:
         specifier: ^2.18.1
         version: 2.18.1
       pg:
-        specifier: ^8.22.0
-        version: 8.22.0
+        specifier: ^8.23.1
+        version: 8.23.1
     devDependencies:
       '@sentry-internal/node-integration-tests':
         specifier: 11.10.0
@@ -776,7 +776,7 @@ importers:
         version: 2.2.4
       knex:
         specifier: ^2.5.1
-        version: 2.5.1(mysql2@3.23.3(@types/node@20.19.43))(mysql@2.18.1)(pg@8.20.0)(supports-color@10.0.0)(tedious@19.2.1(supports-color@10.0.0))
+        version: 2.5.1(mysql2@3.23.3(@types/node@20.19.43))(mysql@2.18.1)(pg@8.23.1)(supports-color@10.0.0)(tedious@19.2.1(supports-color@10.0.0))
       koa:
         specifier: ^2.15.2
         version: 2.16.4(supports-color@10.0.0)
@@ -811,8 +811,8 @@ importers:
         specifier: 5.18.1
         version: 5.18.1(ws@8.21.3)(zod@4.6.7)
       pg:
-        specifier: 8.20.0
-        version: 8.20.0
+        specifier: 8.23.1
+        version: 8.23.1
       pino:
         specifier: 10.4.0
         version: 10.4.0
@@ -8848,6 +8848,9 @@ packages:
   '@types/pg@8.20.4':
     resolution: {integrity: sha512-Jz7UDOlIiFJuacC0TlBoLyNtmwlA/wpIyPDd3tvUqlRM+HzkWy2xUgpFpaXtbfTAFF6sIGq5lsCDBdJnhky1Xg==}
 
+  '@types/pg@8.23.1':
+    resolution: {integrity: sha512-fKVHpikPdg4GKks3JuLEhvwSyvwzF23hnabPy6DD8ljVbC7+6J5dQzdv4arV6jqq57djnMgs1HKBxX4P8aBI3A==}
+
   '@types/prop-types@15.7.3':
     resolution: {integrity: sha512-KfRL3PuHmqQLOG+2tGpRO26Ctg+Cq1E01D2DMriKEATHgWLfeNDmq9e29Q9WIky0dQ3NPkd1mzYH8Lm936Z9qw==}
 
@@ -15653,11 +15656,11 @@ packages:
   periscopic@3.1.0:
     resolution: {integrity: sha512-vKiQ8RRtkl9P+r/+oefh25C3fhybptkHKCZSPlcXiJux2tJF55GnEj3BVn4A5gKfq9NWWXXrxkHBwVPUfH0opw==}
 
-  pg-cloudflare@1.4.0:
-    resolution: {integrity: sha512-Vo7z/6rrQYxpNRylp4Tlob2elzbh+N/MOQbxFVWCxS7oEx6jF53GTJFxK2WWpKuBRkmiin4Mt+xofFDjx09R0A==}
+  pg-cloudflare@1.4.1:
+    resolution: {integrity: sha512-6PQbsFWZcp9EmJEwy5cGQ2La+AMWpP46lgbb8X+U/XsHIUweYDNCpeuKck5RxL2MdVFi7krbbEi5nX4Zh7JhrQ==}
 
-  pg-connection-string@2.14.0:
-    resolution: {integrity: sha512-XwWDGcLRGCXAR8F/AM5bG7Q+A3Wm2s6QeEjlOKZLlH3UYcguiqCWKyWXVag5TLTIjR7oOJUY8kcADaZgWPyLeg==}
+  pg-connection-string@2.14.1:
+    resolution: {integrity: sha512-qR3kGNPBLpCNtz0evbKA0Y/MRFXwSSdT+pTJvYp/bXTcReZbvX1kzF0IyTc1QnxqF7AZbOeBhNL8R5mYQZV/MA==}
 
   pg-connection-string@2.6.1:
     resolution: {integrity: sha512-w6ZzNu6oMmIzEAYVw+RLK0+nqHPt8K3ZnknKi+g48Ak2pr3dtljJW3o+D/n2zzCG07Zoe9VOX3aiKpj+BN0pjg==}
@@ -15676,24 +15679,15 @@ packages:
     peerDependencies:
       pg: '>=8.0'
 
-  pg-protocol@1.15.0:
-    resolution: {integrity: sha512-cq9sECI5s0+uPUXjbz8ioyPJni6RzsRib0US67i5IoTZKw8fNeYlVE7u8F4dG7vEJJtc5wdD1K189lCCUwqWTQ==}
+  pg-protocol@1.16.1:
+    resolution: {integrity: sha512-p9VOFMiHB/ZbJATetbg+99PxssTVSQRnyuPSQ67mN1+1KBOjZaZ83ZQzltnxPhJwSsC3nwVjJ10DVJlerbFzLg==}
 
   pg-types@2.2.0:
     resolution: {integrity: sha512-qTAAlrEsl8s4OiEQY69wDvcMIdQN6wdz5ojQiOy6YRMuynxenON0O5oCpJI6lshc6scgAY8qvJ2On/p+CXY0GA==}
     engines: {node: '>=4'}
 
-  pg@8.16.0:
-    resolution: {integrity: sha512-7SKfdvP8CTNXjMUzfcVTaI+TDzBEeaUnVwiVGZQD1Hh33Kpev7liQba9uLd4CfN8r9mCVsD0JIpq03+Unpz+kg==}
-    engines: {node: '>= 8.0.0'}
-    peerDependencies:
-      pg-native: '>=3.0.1'
-    peerDependenciesMeta:
-      pg-native:
-        optional: true
-
-  pg@8.20.0:
-    resolution: {integrity: sha512-ldhMxz2r8fl/6QkXnBD3CR9/xg694oT6DZQ2s6c/RI28OjtSOpxnPrUCGOBJ46RCUxcWdx3p6kw/xnDHjKvaRA==}
+  pg@8.22.0:
+    resolution: {integrity: sha512-8wih1vVIBMxoUM2oB4soJsD9tDnDpLv4OXBJ+EJzFsvycD+lfyIreC2gGHq78f8jbLLt+bvlPTFdFZfJkOuzAA==}
     engines: {node: '>= 16.0.0'}
     peerDependencies:
       pg-native: '>=3.0.1'
@@ -15701,8 +15695,8 @@ packages:
       pg-native:
         optional: true
 
-  pg@8.22.0:
-    resolution: {integrity: sha512-8wih1vVIBMxoUM2oB4soJsD9tDnDpLv4OXBJ+EJzFsvycD+lfyIreC2gGHq78f8jbLLt+bvlPTFdFZfJkOuzAA==}
+  pg@8.23.1:
+    resolution: {integrity: sha512-aL96AHANtWjPLDOLqnhx+ngp9+UK7ETEU8VJrDCGvsSSi/mGLcWYsS6Herg7lmaBJe4uwrfqsa7gTEFaSizDoQ==}
     engines: {node: '>= 16.0.0'}
     peerDependencies:
       pg-native: '>=3.0.1'
@@ -25703,7 +25697,7 @@ snapshots:
   '@prisma/adapter-pg@7.2.0':
     dependencies:
       '@prisma/driver-adapter-utils': 7.2.0
-      pg: 8.20.0
+      pg: 8.23.1
       postgres-array: 3.0.4
     transitivePeerDependencies:
       - pg-native
@@ -27406,7 +27400,13 @@ snapshots:
   '@types/pg@8.20.4':
     dependencies:
       '@types/node': 20.19.43
-      pg-protocol: 1.15.0
+      pg-protocol: 1.16.1
+      pg-types: 2.2.0
+
+  '@types/pg@8.23.1':
+    dependencies:
+      '@types/node': 20.19.43
+      pg-protocol: 1.16.1
       pg-types: 2.2.0
 
   '@types/prop-types@15.7.3': {}
@@ -33372,7 +33372,7 @@ snapshots:
 
   klona@2.0.6: {}
 
-  knex@2.5.1(mysql2@3.23.3(@types/node@20.19.43))(mysql@2.18.1)(pg@8.20.0)(supports-color@10.0.0)(tedious@19.2.1(supports-color@10.0.0)):
+  knex@2.5.1(mysql2@3.23.3(@types/node@20.19.43))(mysql@2.18.1)(pg@8.23.1)(supports-color@10.0.0)(tedious@19.2.1(supports-color@10.0.0)):
     dependencies:
       colorette: 2.0.19
       commander: 10.0.1
@@ -33391,7 +33391,7 @@ snapshots:
     optionalDependencies:
       mysql: 2.18.1
       mysql2: 3.23.3(@types/node@20.19.43)
-      pg: 8.20.0
+      pg: 8.23.1
       tedious: 19.2.1(supports-color@10.0.0)
     transitivePeerDependencies:
       - supports-color
@@ -36305,10 +36305,10 @@ snapshots:
       estree-walker: 3.0.3
       is-reference: 3.0.2
 
-  pg-cloudflare@1.4.0:
+  pg-cloudflare@1.4.1:
     optional: true
 
-  pg-connection-string@2.14.0: {}
+  pg-connection-string@2.14.1: {}
 
   pg-connection-string@2.6.1: {}
 
@@ -36318,19 +36318,15 @@ snapshots:
 
   pg-int8@1.0.1: {}
 
-  pg-pool@3.14.0(pg@8.16.0):
-    dependencies:
-      pg: 8.16.0
-
-  pg-pool@3.14.0(pg@8.20.0):
-    dependencies:
-      pg: 8.20.0
-
   pg-pool@3.14.0(pg@8.22.0):
     dependencies:
       pg: 8.22.0
 
-  pg-protocol@1.15.0: {}
+  pg-pool@3.14.0(pg@8.23.1):
+    dependencies:
+      pg: 8.23.1
+
+  pg-protocol@1.16.1: {}
 
   pg-types@2.2.0:
     dependencies:
@@ -36340,35 +36336,25 @@ snapshots:
       postgres-date: 1.0.7
       postgres-interval: 1.2.0
 
-  pg@8.16.0:
-    dependencies:
-      pg-connection-string: 2.14.0
-      pg-pool: 3.14.0(pg@8.16.0)
-      pg-protocol: 1.15.0
-      pg-types: 2.2.0
-      pgpass: 1.0.5
-    optionalDependencies:
-      pg-cloudflare: 1.4.0
-
-  pg@8.20.0:
-    dependencies:
-      pg-connection-string: 2.14.0
-      pg-pool: 3.14.0(pg@8.20.0)
-      pg-protocol: 1.15.0
-      pg-types: 2.2.0
-      pgpass: 1.0.5
-    optionalDependencies:
-      pg-cloudflare: 1.4.0
-
   pg@8.22.0:
     dependencies:
-      pg-connection-string: 2.14.0
+      pg-connection-string: 2.14.1
       pg-pool: 3.14.0(pg@8.22.0)
-      pg-protocol: 1.15.0
+      pg-protocol: 1.16.1
       pg-types: 2.2.0
       pgpass: 1.0.5
     optionalDependencies:
-      pg-cloudflare: 1.4.0
+      pg-cloudflare: 1.4.1
+
+  pg@8.23.1:
+    dependencies:
+      pg-connection-string: 2.14.1
+      pg-pool: 3.14.0(pg@8.23.1)
+      pg-protocol: 1.16.1
+      pg-types: 2.2.0
+      pgpass: 1.0.5
+    optionalDependencies:
+      pg-cloudflare: 1.4.1
 
   pgpass@1.0.5:
     dependencies:
