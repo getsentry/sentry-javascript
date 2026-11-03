@@ -74,6 +74,8 @@ const ERROR_TEXT = 'Automatic instrumentation of CronJob only supports crontab s
  *   console.log('You will see this message every minute');
  * });
  * ```
+ *
+ * @deprecated Use `cronJobIntegration` instead.
  */
 export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: string): T {
   let jobScheduled = false;
