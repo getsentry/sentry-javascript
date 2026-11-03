@@ -658,8 +658,8 @@ importers:
         specifier: ^12.0.1
         version: 12.0.2(supports-color@10.0.0)
       '@langchain/anthropic':
-        specifier: ^0.3.10
-        version: 0.3.31(@langchain/core@0.3.80(@opentelemetry/api@1.9.0)(openai@5.18.1(ws@8.21.3)(zod@4.6.7)))(zod@4.6.7)
+        specifier: ^1.6.0
+        version: 1.6.0(@langchain/core@0.3.80(@opentelemetry/api@1.9.0)(openai@5.18.1(ws@8.21.3)(zod@4.6.7)))
       '@langchain/core':
         specifier: ^0.3.80
         version: 0.3.80(@opentelemetry/api@1.9.0)(openai@5.18.1(ws@8.21.3)(zod@4.6.7))
@@ -2760,15 +2760,6 @@ packages:
 
   '@anthropic-ai/sdk@0.133.0':
     resolution: {integrity: sha512-jlqUN8p8ESTJj+GJnA4KjzbEfF1waEoGzRT8jwytlYGFFgv+/DUQOxlYGvYw10UzhD1kwLqYzxvA3FrTB2YWuQ==}
-    hasBin: true
-    peerDependencies:
-      zod: ^3.25.0 || ^4.0.0
-    peerDependenciesMeta:
-      zod:
-        optional: true
-
-  '@anthropic-ai/sdk@0.65.0':
-    resolution: {integrity: sha512-zIdPOcrCVEI8t3Di40nH4z9EoeyGZfXbYSvWdDLsB/KkaSYMnEgC7gmcgWu83g2NTn1ZTpbMvpdttWDGGIk6zw==}
     hasBin: true
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
@@ -5865,11 +5856,11 @@ packages:
   '@kwsites/promise-deferred@1.1.1':
     resolution: {integrity: sha512-GaHYm+c0O9MjZRu0ongGBRbinu8gVAMd2UZjji6jVmqKtZluZnptXGWhz1E8j8D2HJ3f/yMxKAUC0b+57wncIw==}
 
-  '@langchain/anthropic@0.3.31':
-    resolution: {integrity: sha512-XyjwE1mA1I6sirSlVZtI6tyv7nH3+b8F5IFDi9WNKA8+SidJ0o3cP90TxrK7x1sSLmdj+su3f8s2hOusw6xpaw==}
-    engines: {node: '>=18'}
+  '@langchain/anthropic@1.6.0':
+    resolution: {integrity: sha512-owIpaDngKj2LsR7TZMcfiL1bCZqGikE+YnMEijaeBoYTL9KWLUawg0GYfMupgvDBsQDqw3NNcKVDzX/g4NOl3g==}
+    engines: {node: '>=20'}
     peerDependencies:
-      '@langchain/core': '>=0.3.58 <0.4.0'
+      '@langchain/core': ^1.3.0
 
   '@langchain/core@0.3.80':
     resolution: {integrity: sha512-vcJDV2vk1AlCwSh3aBm/urQ1ZrlXFFBocv11bz/NBUfLWD5/UDNMzwPdaAd2dKvNmTWa9FM2lirLU3+JCf4cRA==}
@@ -12201,10 +12192,6 @@ packages:
   fast-xml-builder@1.2.0:
     resolution: {integrity: sha512-00aAWieqff+ZJhsXA4g1g7M8k+7AYoMUUHF+/zFb5U6Uv/P0Vl4QZo84/IcufzYalLuEj9928bXN9PbbFzMF0Q==}
 
-  fast-xml-parser@4.5.6:
-    resolution: {integrity: sha512-Yd4vkROfJf8AuJrDIVMVmYfULKmIJszVsMv7Vo71aocsKgFxpdlpSHXSaInvyYfgw2PRuObQSW2GFpVMUjxu9A==}
-    hasBin: true
-
   fast-xml-parser@5.7.3:
     resolution: {integrity: sha512-C0AaNuC+mscy6vrAQKAc/rMq+zAPHodfHGZu4sGVehvAQt/JLG1O5zEcYcXSY5zSqr4YVgxsB+pHXTq0i7eDlg==}
     hasBin: true
@@ -17648,9 +17635,6 @@ packages:
   strip-literal@4.0.0:
     resolution: {integrity: sha512-PaqAvfUZKBwc/SLmNZtHmzK+v19Z4O4eS3cKPeGvbIv/U3pnyEq4Tuw3/4v/FwfM8VQaEawsyCcOQ0P+kpwWWw==}
 
-  strnum@1.1.2:
-    resolution: {integrity: sha512-vrN+B7DBIoTTZjnPNewwhx6cBA/H+IS7rfW68n7XxC1y7uoiGQBxaKzqucGUgavX15dJgiGztLJ8vxuEzwqBdA==}
-
   strnum@2.2.3:
     resolution: {integrity: sha512-oKx6RUCuHfT3oyVjtnrmn19H1SiCqgJSg+54XqURKp5aCMbrXrhLjRN9TjuwMjiYstZ0MzDrHqkGZ5dFTKd+zg==}
 
@@ -19898,12 +19882,6 @@ snapshots:
     dependencies:
       json-schema-to-ts: 3.1.1
       standardwebhooks: 1.1.1
-    optionalDependencies:
-      zod: 4.6.7
-
-  '@anthropic-ai/sdk@0.65.0(zod@4.6.7)':
-    dependencies:
-      json-schema-to-ts: 3.1.1
     optionalDependencies:
       zod: 4.6.7
 
@@ -24160,13 +24138,11 @@ snapshots:
 
   '@kwsites/promise-deferred@1.1.1': {}
 
-  '@langchain/anthropic@0.3.31(@langchain/core@0.3.80(@opentelemetry/api@1.9.0)(openai@5.18.1(ws@8.21.3)(zod@4.6.7)))(zod@4.6.7)':
+  '@langchain/anthropic@1.6.0(@langchain/core@0.3.80(@opentelemetry/api@1.9.0)(openai@5.18.1(ws@8.21.3)(zod@4.6.7)))':
     dependencies:
-      '@anthropic-ai/sdk': 0.65.0(zod@4.6.7)
+      '@anthropic-ai/sdk': 0.129.0(zod@4.6.7)
       '@langchain/core': 0.3.80(@opentelemetry/api@1.9.0)(openai@5.18.1(ws@8.21.3)(zod@4.6.7))
-      fast-xml-parser: 4.5.6
-    transitivePeerDependencies:
-      - zod
+      zod: 4.6.7
 
   '@langchain/core@0.3.80(@opentelemetry/api@1.9.0)(openai@5.18.1(ws@8.21.3)(zod@4.6.7))':
     dependencies:
@@ -31512,10 +31488,6 @@ snapshots:
       path-expression-matcher: 1.5.0
       xml-naming: 0.1.0
 
-  fast-xml-parser@4.5.6:
-    dependencies:
-      strnum: 1.1.2
-
   fast-xml-parser@5.7.3:
     dependencies:
       '@nodable/entities': 2.1.0
@@ -38842,8 +38814,6 @@ snapshots:
   strip-literal@4.0.0:
     dependencies:
       js-tokens: 10.0.0
-
-  strnum@1.1.2: {}
 
   strnum@2.2.3: {}
 
