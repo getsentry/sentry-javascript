@@ -35,14 +35,14 @@ function getTunnelRegistry(): TunnelRegistry {
 /**
  * What the managed tunnel keeps for a client.
  */
-export function getClientTunnelState(client: Client): Readonly<ClientTunnelState> | undefined {
+export function getClientTunnel(client: Client): Readonly<ClientTunnelState> | undefined {
   return getTunnelRegistry().clients.get(client);
 }
 
 /**
- * Merges `state` into what the managed tunnel keeps for a client.
+ * Sets what the managed tunnel keeps for a client. Merges into what is already there, like `scope.setTags`.
  */
-export function updateClientTunnelState(client: Client, state: ClientTunnelState): void {
+export function setClientTunnel(client: Client, state: ClientTunnelState): void {
   const { clients } = getTunnelRegistry();
   clients.set(client, { ...clients.get(client), ...state });
 }

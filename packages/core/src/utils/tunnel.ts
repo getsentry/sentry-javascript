@@ -8,7 +8,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { escapeStringForRegex } from '../vendor/escapeStringForRegex';
 import { debug } from './debug-logger';
 import { dsnToString, makeDsn } from './dsn';
-import { getClientTunnelState, updateClientTunnelState } from './tunnelRegistry';
+import { getClientTunnel, setClientTunnel } from './tunnelRegistry';
 import { parseUrl } from './url';
 
 /**
@@ -47,7 +47,7 @@ export function setServedTunnel(
     forward,
     intercept: tunnelOptions.intercept !== false,
   };
-  updateClientTunnelState(client, { served: servedTunnel });
+  setClientTunnel(client, { served: servedTunnel });
 
   return servedTunnel;
 }
@@ -71,7 +71,7 @@ function getServedTunnel(): ServedTunnel | undefined {
     return undefined;
   }
 
-  const servedTunnel = getClientTunnelState(client)?.served;
+  const servedTunnel = getClientTunnel(client)?.served;
   if (servedTunnel) {
     return servedTunnel;
   }

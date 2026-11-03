@@ -2,7 +2,7 @@ import type { Client } from '../client';
 import { getClient } from '../currentScopes';
 import type { ServerTunnelOptions } from '../types/options';
 import type { TunnelForwarder } from './tunnel';
-import { getClientTunnelState, getTunnelDefaults, setTunnelDefaults, updateClientTunnelState } from './tunnelRegistry';
+import { getClientTunnel, getTunnelDefaults, setClientTunnel, setTunnelDefaults } from './tunnelRegistry';
 import {
   getServeTunnelForwarder,
   getTunnelIgnoreSpanFilters,
@@ -50,7 +50,7 @@ export function enableManagedTunnel(
   forward: TunnelForwarder,
 ): void {
   client.getOptions()._managedTunnel = { ...tunnelOptions };
-  updateClientTunnelState(client, { forward });
+  setClientTunnel(client, { forward });
   applyManagedTunnelDefaults(client);
 }
 
@@ -65,8 +65,7 @@ export function applyManagedTunnelDefaults(client: Client | undefined): void {
   const tunnelOptions: ServerTunnelOptions | undefined = options?._managedTunnel ?? managedTunnelDefaults?.tunnel;
   // A framework SDK can bundle its own copy of this module, which only reaches the forwarder through the client.
   const forward =
-    client &&
-    (getClientTunnelState(client)?.forward ?? getServeTunnelForwarder(client) ?? managedTunnelDefaults?.forward);
+    client && (getClientTunnel(client)?.forward ?? getServeTunnelForwarder(client) ?? managedTunnelDefaults?.forward);
   if (!client || !options || !tunnelOptions || !forward) {
     return;
   }
@@ -79,13 +78,13 @@ export function applyManagedTunnelDefaults(client: Client | undefined): void {
   options._managedTunnel = resolved;
   const { paths } = setServedTunnel(client, resolved, forward);
 
-  const previousFilters = getClientTunnelState(client)?.spanFilters ?? [];
+  const previousFilters = getClientTunnel(client)?.spanFilters ?? [];
   const spanFilters = getTunnelIgnoreSpanFilters(resolved, paths);
   options.ignoreSpans = [
     ...(options.ignoreSpans ?? []).filter(filter => !(previousFilters as unknown[]).includes(filter)),
     ...spanFilters,
   ];
-  updateClientTunnelState(client, { spanFilters });
+  setClientTunnel(client, { spanFilters });
 }
 
 /**
