@@ -190,7 +190,10 @@ export {
   wrapMcpServerWithSentry,
 } from '@sentry/core/server';
 export type { TunnelRequestLike } from '@sentry/core/server';
-export { installTunnelHooks as _INTERNAL_installTunnelHooks, serveTunnelIntegration } from './integrations/serveTunnel';
+export {
+  _INTERNAL_instrumentTunnelServers as _INTERNAL_installTunnelHooks,
+  serveTunnelIntegration,
+} from '@sentry/server-utils';
 export { getTunnelPath, handleTunnelRequest } from '@sentry/core';
 export type { HandleTunnelRequestOptions, ServerTunnelOptions } from '@sentry/core';
 
