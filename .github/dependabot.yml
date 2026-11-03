@@ -11,7 +11,7 @@ updates:
   - package-ecosystem: 'npm'
     directory: '/'
     schedule:
-      interval: 'weekly'
+      interval: 'daily'
     ignore:
       - dependency-name: 'typescript'
       # Keep shared Prisma dependencies on v6; v7 has a dedicated integration suite.
@@ -111,45 +111,9 @@ updates:
       - dependency-name: 'langchain'
       - dependency-name: '@langchain/*'
     groups:
-      aws-sdk:
+      dependencies:
         patterns:
-          - '@aws-sdk/*'
-      angular:
-        patterns:
-          - '@angular/*'
-          - '@angular-devkit/*'
-          - 'ng-packagr'
-      react:
-        patterns:
-          - 'react'
-          - 'react-dom'
-      nuxt:
-        patterns:
-          - 'nuxt'
-          - '@nuxt/schema'
-          - '@nuxt/nitro-server'
-      nestjs:
-        patterns:
-          - '@nestjs/common'
-          - '@nestjs/core'
-      vitest:
-        patterns:
-          - 'vitest'
-          - '@vitest/*'
-      prisma:
-        patterns:
-          - 'prisma'
-          - '@prisma/client'
-      opentelemetry:
-        patterns:
-          - '@opentelemetry/*'
-      remix:
-        patterns:
-          - '@remix-run/*'
-      react-router:
-        patterns:
-          - 'react-router'
-          - '@react-router/*'
+          - '*'
     versioning-strategy: increase
     commit-message:
       prefix: feat
