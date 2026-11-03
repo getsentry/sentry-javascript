@@ -1,6 +1,7 @@
 import { amqplibChannels } from './config/amqplib';
 import { anthropicAiChannels } from './config/anthropic-ai';
 import { awsSdkChannels } from './config/aws-sdk';
+import { cronChannels } from './config/cron';
 import { dataloaderChannels } from './config/dataloader';
 import { expressChannels } from './config/express';
 import { firebaseChannels } from './config/firebase';
@@ -60,6 +61,7 @@ export const CHANNELS = {
   ...amqplibChannels,
   ...anthropicAiChannels,
   ...awsSdkChannels,
+  ...cronChannels,
   ...dataloaderChannels,
   ...expressChannels,
   ...firebaseChannels,

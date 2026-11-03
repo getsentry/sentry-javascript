@@ -78,7 +78,7 @@
     "bullmq": "^5.79.1",
     "consola": "^3.2.3",
     "cors": "^2.8.5",
-    "cron": "^3.1.6",
+    "cron": "^4.4.0",
     "dataloader": "2.2.3",
     "esbuild": "0.28.1",
     "express": "^4.21.2",

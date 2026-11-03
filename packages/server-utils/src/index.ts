@@ -38,6 +38,8 @@ export { anthropicAIIntegration } from './integrations/anthropic';
 export { awsIntegration } from './integrations/aws-sdk';
 export { dataloaderIntegration } from './integrations/dataloader';
 export { genericPoolIntegration } from './integrations/generic-pool';
+export { cronJobIntegration } from './integrations/cron';
+export type { CronJobIntegrationOptions } from './integrations/cron';
 export { nodeCronIntegration } from './integrations/node-cron';
 export type { NodeCronIntegrationOptions } from './integrations/node-cron';
 export { nodeScheduleIntegration } from './integrations/node-schedule';
