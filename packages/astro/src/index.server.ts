@@ -3,7 +3,7 @@
 // Vite puts these exports into a `default` property (Sentry.default) rather than
 // on the top - level namespace.
 
-import { sentryAstro } from './integration';
+import { sentryAstro as _sentryAstro } from './integration';
 import { handleRequest } from './server/middleware';
 
 // Hence, we export everything from the Node SDK explicitly:
@@ -49,7 +49,9 @@ export {
   fsIntegration,
   functionToStringIntegration,
   genericPoolIntegration,
+  cronJobIntegration,
   nodeCronIntegration,
+  nodeScheduleIntegration,
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,
@@ -95,6 +97,7 @@ export {
   nativeNodeFetchIntegration,
   NodeClient,
   nodeContextIntegration,
+  awsLambdaWebIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   mistralAIIntegration,
@@ -217,6 +220,13 @@ export {
 
 export { init } from './server/sdk';
 
+/**
+ * @deprecated Import the integration from `@sentry/astro/integration` instead.
+ * This export will be removed in the next major version.
+ */
+const sentryAstro = _sentryAstro;
+
+// oxlint-disable-next-line typescript/no-deprecated
 export default sentryAstro;
 
 // This exports the `handleRequest` middleware for manual usage

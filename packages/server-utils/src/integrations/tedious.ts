@@ -14,6 +14,7 @@ import {
 } from '@sentry/core';
 import {
   DB_NAMESPACE,
+  DB_OPERATION_NAME,
   DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
@@ -29,7 +30,7 @@ import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { tediousModuleNames } from '../orchestrion/config/tedious';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
-import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
+import { getSqlQueryAttributes } from '../utils/sql';
 
 // NOTE: this uses the same name as the OTel integration by design. When orchestrion injection is active,
 // `_init` swaps the OTel `Tedious` integration out of the defaults and appends this one (matched by name).
@@ -131,8 +132,12 @@ function subscribeQuery(channelName: string, operation: string): void {
 
     const databaseName = connection[currentDatabaseSymbol];
     const sql = extractSql(request);
-    const queryText = sql ? sanitizeSqlQuery(sql, 'mssql') : undefined;
-    const querySummary = queryText && operation !== 'callProcedure' ? getSqlQuerySummary(queryText) : undefined;
+    const queryAttributes = getSqlQueryAttributes(sql, 'mssql');
+    if (operation === 'callProcedure') {
+      // `sql` is the procedure name here rather than a statement, so there is nothing to summarize.
+      queryAttributes[DB_QUERY_SUMMARY] = undefined;
+      queryAttributes[DB_OPERATION_NAME] = undefined;
+    }
 
     const attributes: SpanAttributes = {
       [SENTRY_OP]: DB,
@@ -142,8 +147,7 @@ function subscribeQuery(channelName: string, operation: string): void {
       [DB_NAMESPACE]: databaseName,
       // `>=4` uses the `authentication` object; older versions expose `userName` directly.
       [DB_USER]: connection.config?.userName ?? connection.config?.authentication?.options?.userName,
-      [DB_QUERY_TEXT]: queryText,
-      [DB_QUERY_SUMMARY]: querySummary,
+      ...queryAttributes,
       [ATTR_DB_SQL_TABLE]: request.table,
       [SERVER_ADDRESS]: connection.config?.server,
       [SERVER_PORT]: connection.config?.options?.port,
@@ -154,8 +158,9 @@ function subscribeQuery(channelName: string, operation: string): void {
     const span = startInactiveSpan({
       name:
         client && hasSpanStreamingEnabled(client)
-          ? querySummary || getLowCardinalitySecondarySpanName(operation, databaseName, sql, request.table)
-          : queryText || getSecondarySpanName(operation, databaseName, request.table),
+          ? queryAttributes[DB_QUERY_SUMMARY] ||
+            getLowCardinalitySecondarySpanName(operation, databaseName, sql, request.table)
+          : queryAttributes[DB_QUERY_TEXT] || getSecondarySpanName(operation, databaseName, request.table),
       attributes,
       onlyIfParent: true,
     });

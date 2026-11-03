@@ -1,6 +1,7 @@
 import { amqplibChannels } from './config/amqplib';
 import { anthropicAiChannels } from './config/anthropic-ai';
 import { awsSdkChannels } from './config/aws-sdk';
+import { cronChannels } from './config/cron';
 import { dataloaderChannels } from './config/dataloader';
 import { expressChannels } from './config/express';
 import { firebaseChannels } from './config/firebase';
@@ -27,6 +28,7 @@ import { mysqlChannels } from './config/mysql';
 import { neonChannels } from './config/neon';
 import { nestjsChannels } from './config/nestjs';
 import { nodeCronChannels } from './config/node-cron';
+import { nodeScheduleChannels } from './config/node-schedule';
 import { openaiChannels } from './config/openai';
 import { pgChannels } from './config/pg';
 import { piDurableChannels } from './config/pi-durable';
@@ -59,6 +61,7 @@ export const CHANNELS = {
   ...amqplibChannels,
   ...anthropicAiChannels,
   ...awsSdkChannels,
+  ...cronChannels,
   ...dataloaderChannels,
   ...expressChannels,
   ...firebaseChannels,
@@ -85,6 +88,7 @@ export const CHANNELS = {
   ...neonChannels,
   ...nestjsChannels,
   ...nodeCronChannels,
+  ...nodeScheduleChannels,
   ...openaiChannels,
   ...pgChannels,
   ...piDurableChannels,

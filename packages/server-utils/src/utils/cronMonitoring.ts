@@ -1,5 +1,6 @@
 import type { MonitorConfig } from '@sentry/core';
 import {
+  addNonEnumerableProperty,
   captureException,
   debug,
   isThenable,
@@ -12,7 +13,8 @@ import * as diagnosticsChannel from './diagnosticsChannel';
 
 export type AnyFn = (this: unknown, ...args: unknown[]) => unknown;
 
-// Set by `Sentry.cron.instrumentNodeCron`, which already sends check-ins.
+// Set by `Sentry.cron.instrumentCron`, `instrumentNodeCron`, `instrumentNodeSchedule` and `wrapScheduledJob`, which already
+// send check-ins.
 const MONITORED = Symbol.for('sentry.cron.monitored');
 
 /**
@@ -33,7 +35,38 @@ export function subscribeToJobCreation(
   });
 }
 
-/** Whether a job is named, not excluded, and not already monitored by `Sentry.cron.instrumentNodeCron`. */
+/** A call on a schedule-change channel: its arguments, the job it was called on, and what it returned. */
+export interface ScheduleChange {
+  arguments: unknown[];
+  self?: unknown;
+  result?: unknown;
+}
+
+/**
+ * Calls `onChange` after each call on a scheduler's schedule-change channel, so it can update the job's monitor config.
+ * `onStart` gets the same object before the call. Errors are logged and the job keeps its config.
+ */
+export function subscribeToScheduleChange(
+  channelName: string,
+  integrationName: string,
+  onChange: (change: ScheduleChange) => void,
+  onStart?: (change: ScheduleChange) => void,
+): void {
+  const channel = diagnosticsChannel.tracingChannel<ScheduleChange>(channelName);
+  const handle = (handler: (change: ScheduleChange) => void) => (message: unknown) => {
+    try {
+      handler(message as ScheduleChange);
+    } catch (e) {
+      DEBUG_BUILD && debug.error(`[${integrationName}] Failed to update the cron monitor:`, e);
+    }
+  };
+  if (onStart) {
+    channel.start.subscribe(handle(onStart));
+  }
+  channel.end.subscribe(handle(onChange));
+}
+
+/** Whether a job is named, not excluded, and not already monitored by `Sentry.cron.instrument*` or `wrapScheduledJob`. */
 export function shouldMonitorJob(
   name: unknown,
   job: unknown,
@@ -116,6 +149,8 @@ export function cronExpressionToMonitorConfig(
 
 // Sentry requires both day fields to match when one starts with `*`, and either otherwise. The `or` schedulers
 // ignore a day field that covers every day, like `1-31` or `sun-sat`, so they count the days as `cron` does.
+// `cron-parser` also ignores a day-of-month that covers every day of the current month, so with a day-of-week,
+// 29 or 30 days depend on the month.
 function isSameDayMatching(dayOfMonth: string, dayOfWeek: string, daySemantics: DayFieldSemantics): boolean {
   const daysOfMonth = countDays(dayOfMonth, 1, 31);
   const daysOfWeek = countDays(dayOfWeek, 0, 7);
@@ -124,6 +159,9 @@ function isSameDayMatching(dayOfMonth: string, dayOfWeek: string, daySemantics: 
   }
   const allDaysOfMonth = daysOfMonth === 31;
   const allDaysOfWeek = daysOfWeek === 7;
+  if (daySemantics === 'or' && daysOfMonth >= 29 && !allDaysOfMonth && !allDaysOfWeek) {
+    return false;
+  }
   const schedulerNeedsBoth = daySemantics === 'and' || allDaysOfMonth || allDaysOfWeek;
   const sentryNeedsBoth = dayOfMonth.startsWith('*') || dayOfWeek.startsWith('*');
   return (allDaysOfMonth && allDaysOfWeek) || schedulerNeedsBoth === sentryNeedsBoth;
@@ -183,6 +221,8 @@ function toSentryTimezone(timezone: string | undefined): string | undefined {
   }
 }
 
+const monitorConfigs = new WeakMap<AnyFn, MonitorConfig | undefined>();
+
 /**
  * Wraps a scheduled job with check-ins. Errors are captured, because schedulers catch them, and rethrown.
  * Jobs without a monitor config send no check-ins.
@@ -198,7 +238,7 @@ export function wrapScheduledJob(
     throw error;
   };
 
-  return function (this: unknown, ...args: unknown[]): unknown {
+  const wrapped = function (this: unknown, ...args: unknown[]): unknown {
     const run = (): unknown => {
       try {
         const result: unknown = func.apply(this, args);
@@ -207,6 +247,17 @@ export function wrapScheduledJob(
         return captureAndRethrow(e);
       }
     };
-    return startNewTrace(() => (monitorConfig ? withMonitor(monitorSlug, run, monitorConfig) : run()));
+    const currentConfig = monitorConfigs.get(wrapped);
+    return startNewTrace(() => (currentConfig ? withMonitor(monitorSlug, run, currentConfig) : run()));
   };
+  monitorConfigs.set(wrapped, monitorConfig);
+  addNonEnumerableProperty(wrapped, MONITORED, true);
+  return wrapped;
+}
+
+/** Sets the monitor config a job from `wrapScheduledJob` sends on its next runs. Other functions are ignored. */
+export function updateMonitorConfig(job: unknown, monitorConfig: MonitorConfig | undefined): void {
+  if (typeof job === 'function' && monitorConfigs.has(job as AnyFn)) {
+    monitorConfigs.set(job as AnyFn, monitorConfig);
+  }
 }

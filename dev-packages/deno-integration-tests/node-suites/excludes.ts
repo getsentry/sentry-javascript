@@ -2,8 +2,13 @@
 // fails on Deno runs only on the other runtimes, with `test.runIf(supports({ runtimes }))` in the
 // Node suite, and is not listed here.
 
-// Node-only features: ANR and native thread watchdogs, child process and worker thread breadcrumbs.
-const NODE_ONLY = ['suites/anr/test.ts', 'suites/breadcrumbs/**', 'suites/thread-blocked-native/test.ts'];
+// Node-only features: ANR and native thread watchdogs, child process and worker thread breadcrumbs, and the AWS Lambda Node runtime.
+const NODE_ONLY = [
+  'suites/anr/test.ts',
+  'suites/aws-lambda-web/**',
+  'suites/breadcrumbs/**',
+  'suites/thread-blocked-native/test.ts',
+];
 
 // `@sentry/node` instruments `fetch` through undici's diagnostics channels, which Deno's `fetch`
 // does not publish. `@sentry/deno` has its own `fetchIntegration` for this. These suites check

@@ -7,7 +7,7 @@ import { cronExpressionToMonitorConfig } from '@sentry/server-utils';
 import { DEBUG_BUILD } from './debug-build';
 import { isExpectedError } from './helpers';
 import type { ReflectWithMetadata } from './integrations/helpers';
-import { copyReflectMetadata, getNestScheduleVersion } from './integrations/helpers';
+import { copyReflectMetadata, getNestScheduleVersion, markSentryCronMethod } from './integrations/helpers';
 
 /**
  * Monitor settings for `@SentryCron` whose schedule and time zone come from the `@Cron()` decorator
@@ -63,6 +63,7 @@ export const SentryCron = (
     descriptor.value = wrappedMethod;
 
     copyFunctionNameAndMetadata({ originalMethod, descriptor });
+    markSentryCronMethod(wrappedMethod);
 
     return descriptor;
   };
@@ -127,7 +128,7 @@ function getMonitorConfigFromNestCron(candidates: unknown[]): MonitorConfig | un
  * Converts the options `@Cron()` stores as metadata into a Sentry monitor config.
  * Returns `undefined` for schedules Sentry can't represent.
  */
-function nestCronOptionsToMonitorConfig(
+export function nestCronOptionsToMonitorConfig(
   cronOptions: NestCronOptions,
   scheduleVersion: string | undefined,
 ): MonitorConfig | undefined {
