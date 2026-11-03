@@ -137,11 +137,13 @@ function runEachCallInSession(
   sdkIterator: AsyncIterator<unknown>,
   runInSession: <T>(callback: () => T) => T,
 ): AsyncIterable<unknown> {
+  const sdkReturn = sdkIterator.return?.bind(sdkIterator);
+  const sdkThrow = sdkIterator.throw?.bind(sdkIterator);
   return {
     [Symbol.asyncIterator]: () => ({
       next: (...args: [] | [unknown]) => runInSession(() => sdkIterator.next(...args)),
-      return: sdkIterator.return && ((value?: unknown) => runInSession(() => sdkIterator.return!(value))),
-      throw: sdkIterator.throw && ((error?: unknown) => runInSession(() => sdkIterator.throw!(error))),
+      return: sdkReturn && ((value?: unknown) => runInSession(() => sdkReturn(value))),
+      throw: sdkThrow && ((error?: unknown) => runInSession(() => sdkThrow(error))),
     }),
   };
 }
@@ -180,7 +182,9 @@ function startSessionSpan(sessionId: unknown): { span: Span; runInSession: <T>(c
 
     return {
       span,
-      runInSession: callback => withIsolationScope(isolationScope, () => withScope(sessionScope, callback)),
+      // The scope reaches its OTel context only through a `WeakRef`, so the span is set again on each call.
+      runInSession: callback =>
+        withIsolationScope(isolationScope, () => withScope(sessionScope, () => withActiveSpan(span, callback))),
     };
   });
 }
