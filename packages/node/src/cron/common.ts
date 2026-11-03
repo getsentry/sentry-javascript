@@ -12,8 +12,11 @@ export function getCronMonitorConfig(
   expression: string,
   timezone: unknown,
   dialect: CronDialect,
+  isReadAlike: (expression: string) => boolean = () => true,
 ): MonitorConfig | undefined {
-  const monitorConfig = cronExpressionToMonitorConfig(expression, timezone, dialect);
+  const monitorConfig = isReadAlike(expression)
+    ? cronExpressionToMonitorConfig(expression, timezone, dialect)
+    : undefined;
   if (!monitorConfig) {
     DEBUG_BUILD &&
       debug.warn(

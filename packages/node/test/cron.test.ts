@@ -172,6 +172,25 @@ describe('cron check-ins', () => {
         );
       }));
 
+    test.each(['0 9 * * 5-0', '0 9 * * sat-sun', '0 9 * * 1-7', '0 9 */2 * 1'])(
+      'sends no monitor config for %s, which node-cron before 4.6 reads differently',
+      expression =>
+        new Promise<void>(done => {
+          const nodeCron: NodeCron = {
+            schedule: (_expression: string, callback: () => void): unknown => callback(),
+          };
+
+          cron.instrumentNodeCron(nodeCron).schedule(
+            expression,
+            () => {
+              expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), undefined);
+              done();
+            },
+            { name: 'my-cron-job' },
+          );
+        }),
+    );
+
     test('keeps isolateTrace in the monitor config', () =>
       new Promise<void>(done => {
         const nodeCron: NodeCron = {

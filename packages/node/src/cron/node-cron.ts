@@ -5,6 +5,7 @@ import {
   startNewTrace,
   withMonitor,
 } from '@sentry/core';
+import { isReadAlikeByNodeCron3 } from '@sentry/server-utils';
 import { getCronMonitorConfig } from './common';
 
 export interface NodeCronOptions {
@@ -57,7 +58,8 @@ export function instrumentNodeCron<T>(
               throw new Error('Missing "name" for scheduled job. A name is required for Sentry check-in monitoring.');
             }
 
-            const cronConfig = getCronMonitorConfig(expression, timezone, 'node-cron');
+            // The node-cron version is unknown here, so check for node-cron 3 quirks, which include those before 4.6.
+            const cronConfig = getCronMonitorConfig(expression, timezone, 'node-cron', isReadAlikeByNodeCron3);
             const upsertMonitorConfig = cronConfig && { ...cronConfig, ...monitorConfig };
 
             const monitoredCallback = async (...args: Parameters<typeof callback>): Promise<void> => {
