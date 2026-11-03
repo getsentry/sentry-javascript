@@ -72,6 +72,9 @@ describe('cronExpressionToMonitorConfig with cron-parser day matching', () => {
     ['0 9 15 * sun-fri', '0 9 15 * 0-5'],
     ['0 9 15 * 1,2,3,4,5,6', '0 9 15 * 1,2,3,4,5,6'],
     ['0 9 1-28 * 1', '0 9 1-28 * 1'],
+    ['0 9 15 * 0', '0 9 15 * 0'],
+    ['0 9 15 * sun', '0 9 15 * 0'],
+    ['0 9 15 * 0,6', '0 9 15 * 0,6'],
   ])('sends %s as %s', (expression, crontab) => {
     expect(cronExpressionToMonitorConfig(expression, 'UTC', 'or')?.schedule).toEqual({
       type: 'crontab',

@@ -169,8 +169,11 @@ function countValues(field: string, min: number, max: number, normalize = (value
       continue;
     }
     const [, start, end, step] = match;
-    const first = start ? Number(start) : min;
-    const last = Math.min(end ? Number(end) : start && !step ? first : max, max);
+    const first = start === undefined ? min : Number(start);
+    const last = Math.min(
+      end !== undefined ? Number(end) : start !== undefined && step === undefined ? first : max,
+      max,
+    );
     for (let value = first; value <= last; value += Number(step) || 1) {
       values.add(normalize(value));
     }
