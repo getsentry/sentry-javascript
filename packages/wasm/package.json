@@ -48,7 +48,7 @@
     "build:bundle:watch": "rollup --config rollup.bundle.config.mjs --watch",
     "build:dev:watch": "run-p build:transpile:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:tarball": "npm pack",
+    "build:tarball": "pnpm pack",
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "circularDepCheck": "madge --circular src/index.ts",
