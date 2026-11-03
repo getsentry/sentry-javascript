@@ -14,10 +14,48 @@ updates:
       interval: 'weekly'
     ignore:
       - dependency-name: 'typescript'
-      # Keep react-router dev dependencies on v7, so tests cover the older major.
+      # Keep framework and compiler majors intentional to preserve compatibility coverage.
+      - dependency-name: '@angular/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@angular-devkit/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'ng-packagr'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'astro'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'ember-source'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'next'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'nuxt'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@nuxt/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-dom'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/react'
+        update-types: ['version-update:semver-major']
       - dependency-name: 'react-router'
         update-types: ['version-update:semver-major']
       - dependency-name: '@react-router/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@remix-run/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'solid-js'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@solidjs/router'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@solidjs/start'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'svelte'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@sveltejs/kit'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@sveltejs/vite-plugin-svelte'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'vue'
         update-types: ['version-update:semver-major']
     groups:
       opentelemetry:
