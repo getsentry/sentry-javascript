@@ -8,7 +8,6 @@ describe('static', () => {
     expect(manifest).toEqual({
       staticRoutes: [{ path: '/' }, { path: '/some/nested' }, { path: '/user' }, { path: '/users' }],
       dynamicRoutes: [],
-      isrRoutes: [],
     });
   });
 });

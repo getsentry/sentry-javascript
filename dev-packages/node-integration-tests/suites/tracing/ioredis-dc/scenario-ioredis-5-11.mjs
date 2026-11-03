@@ -8,8 +8,8 @@ async function run() {
 
   await Sentry.startSpan(
     {
-      name: 'Test Span IORedis 5.11 DC',
-      op: 'test-span-ioredis-5-11-dc',
+      name: 'Test Span IORedis DC',
+      op: 'test-span-ioredis-dc',
     },
     async () => {
       try {

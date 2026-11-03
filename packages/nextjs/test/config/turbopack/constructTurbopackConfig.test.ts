@@ -32,7 +32,6 @@ describe('constructTurbopackConfig', () => {
       { path: '/users', regex: '/users' },
       { path: '/api/health', regex: '/api/health' },
     ],
-    isrRoutes: [],
   };
 
   const mockSentryOptions = {};
@@ -285,7 +284,7 @@ describe('constructTurbopackConfig', () => {
   describe('with edge cases', () => {
     it('should handle empty route manifest', () => {
       const userNextConfig: NextConfigObject = {};
-      const emptyManifest: RouteManifest = { dynamicRoutes: [], staticRoutes: [], isrRoutes: [] };
+      const emptyManifest: RouteManifest = { dynamicRoutes: [], staticRoutes: [] };
 
       const result = constructTurbopackConfig({
         userNextConfig,
@@ -325,7 +324,6 @@ describe('constructTurbopackConfig', () => {
     it('should handle complex route manifest', () => {
       const userNextConfig: NextConfigObject = {};
       const complexManifest: RouteManifest = {
-        isrRoutes: [],
         dynamicRoutes: [
           { path: '/users/[id]/posts/[postId]', regex: '/users/([^/]+)/posts/([^/]+)', paramNames: ['id', 'postId'] },
           { path: '/api/[...params]', regex: '/api/(.+)', paramNames: ['params'] },
@@ -901,7 +899,7 @@ describe('condition field version gating', () => {
 
     const result = constructTurbopackConfig({
       userNextConfig,
-      routeManifest: { dynamicRoutes: [], staticRoutes: [], isrRoutes: [] },
+      routeManifest: { dynamicRoutes: [], staticRoutes: [] },
       nextJsVersion: '17.0.0',
     });
 
@@ -965,7 +963,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
     });
 
     expect(result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}']).toEqual({
-      condition: { not: { path: /next\/dist\/build\/polyfills/ } },
+      condition: { all: ['browser', { not: { path: /next\/dist\/build\/polyfills/ } }] },
       loaders: [
         {
           loader: '/mocked/path/to/moduleMetadataInjectionLoader.js',
@@ -992,20 +990,40 @@ describe('moduleMetadataInjection with applicationKey', () => {
     expect(rule.loaders[0]!.options.applicationKey).toBe('my-top-level-key');
   });
 
-  it('should only exclude Next.js polyfills, not all foreign modules', () => {
-    const userNextConfig: NextConfigObject = {};
+  it.each([undefined, false])(
+    'includes dependencies when applicationKeyExcludeDependencies is %s',
+    applicationKeyExcludeDependencies => {
+      const userNextConfig: NextConfigObject = {};
 
+      const result = constructTurbopackConfig({
+        userNextConfig,
+        userSentryOptions: { applicationKey: 'my-app', applicationKeyExcludeDependencies },
+        nextJsVersion: '16.0.0',
+      });
+
+      const rule = result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}'] as { condition?: unknown; loaders: unknown[] };
+      expect(rule.condition).toEqual({ all: ['browser', { not: { path: /next\/dist\/build\/polyfills/ } }] });
+    },
+  );
+
+  it('excludes dependencies from browser metadata injection when opted in', () => {
     const result = constructTurbopackConfig({
-      userNextConfig,
-      userSentryOptions: { applicationKey: 'my-app' },
+      userNextConfig: {},
+      userSentryOptions: { applicationKey: 'my-app', applicationKeyExcludeDependencies: true },
       nextJsVersion: '16.0.0',
     });
 
-    const rule = result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}'] as { condition?: { not: unknown }; loaders: unknown[] };
-    // Unlike component annotation (which uses { not: 'foreign' }), metadata injection
-    // must cover node_modules to match the webpack plugin's BannerPlugin behavior.
-    // Only Next.js build polyfills are excluded because they have non-standard syntax.
-    expect(rule.condition).toEqual({ not: { path: /next\/dist\/build\/polyfills/ } });
+    expect(result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}']).toEqual({
+      condition: {
+        all: ['browser', { not: { path: /next\/dist\/build\/polyfills/ } }, { not: 'foreign' }],
+      },
+      loaders: [
+        {
+          loader: '/mocked/path/to/moduleMetadataInjectionLoader.js',
+          options: { applicationKey: 'my-app' },
+        },
+      ],
+    });
   });
 
   it('should NOT add metadata loader rule when Next.js < 16', () => {
@@ -1020,17 +1038,20 @@ describe('moduleMetadataInjection with applicationKey', () => {
     expect(result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}']).toBeUndefined();
   });
 
-  it('should NOT add metadata loader rule when applicationKey is not set', () => {
-    const userNextConfig: NextConfigObject = {};
+  it.each([undefined, true])(
+    'does not inject metadata without applicationKey when exclusion is %s',
+    applicationKeyExcludeDependencies => {
+      const userNextConfig: NextConfigObject = {};
 
-    const result = constructTurbopackConfig({
-      userNextConfig,
-      userSentryOptions: {},
-      nextJsVersion: '16.0.0',
-    });
+      const result = constructTurbopackConfig({
+        userNextConfig,
+        userSentryOptions: { applicationKeyExcludeDependencies },
+        nextJsVersion: '16.0.0',
+      });
 
-    expect(result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}']).toBeUndefined();
-  });
+      expect(result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}']).toBeUndefined();
+    },
+  );
 
   it('should NOT add metadata loader rule when nextJsVersion is undefined', () => {
     const userNextConfig: NextConfigObject = {};
@@ -1064,7 +1085,6 @@ describe('moduleMetadataInjection with applicationKey', () => {
     const mockRouteManifest: RouteManifest = {
       dynamicRoutes: [],
       staticRoutes: [{ path: '/', regex: '/' }],
-      isrRoutes: [],
     };
 
     const result = constructTurbopackConfig({
@@ -1100,7 +1120,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
     });
 
     expect(result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}']).toEqual({
-      condition: { not: { path: /next\/dist\/build\/polyfills/ } },
+      condition: { all: ['browser', { not: { path: /next\/dist\/build\/polyfills/ } }] },
       loaders: [
         {
           loader: '/mocked/path/to/moduleMetadataInjectionLoader.js',
@@ -1264,7 +1284,6 @@ describe('componentAnnotation with turbopackReactComponentAnnotation', () => {
     const mockRouteManifest: RouteManifest = {
       dynamicRoutes: [],
       staticRoutes: [{ path: '/', regex: '/' }],
-      isrRoutes: [],
     };
 
     const result = constructTurbopackConfig({

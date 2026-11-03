@@ -182,5 +182,31 @@ describe('fastify v5 auto-instrumentation', () => {
       runner.makeRequest('get', '/test-exception/456', { expectError: true });
       await runner.completed();
     });
+
+    test('does not capture 4xx errors raised before the reply status is set', async () => {
+      const runner = createRunner()
+        .expect({
+          event: {
+            exception: {
+              values: [
+                {
+                  type: 'Error',
+                  value: 'This is an exception with id 789',
+                },
+              ],
+            },
+          },
+        })
+        .start();
+      // Fastify rejects an empty JSON body with a 400 and runs `onError` hooks before setting that status.
+      await runner.makeRequest('post', '/test-body', {
+        headers: { 'content-type': 'application/json' },
+        expectError: true,
+      });
+      // Flush so an event for the 400 would be sent before the exception below, and fail the test.
+      await runner.makeRequest('get', '/flush');
+      await runner.makeRequest('get', '/test-exception/789', { expectError: true });
+      await runner.completed();
+    });
   });
 });

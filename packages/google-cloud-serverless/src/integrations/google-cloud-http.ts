@@ -1,5 +1,12 @@
 import type * as common from '@google-cloud/common';
-import { HTTP_REQUEST_METHOD, SENTRY_OP, SERVER_ADDRESS, URL_DOMAIN, URL_FULL } from '@sentry/conventions/attributes';
+import {
+  HTTP_REQUEST_METHOD,
+  SENTRY_OP,
+  SERVER_ADDRESS,
+  URL_DOMAIN,
+  URL_FULL,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { HTTP_CLIENT } from '@sentry/conventions/op';
 import type { Client, IntegrationFn } from '@sentry/core';
 import {
@@ -9,7 +16,6 @@ import {
   hasSpanStreamingEnabled,
   isURLObjectRelative,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
   filterCollectedUrl,
   stripUrlQueryAndFragment,
@@ -72,7 +78,7 @@ function wrapRequestFunction(orig: RequestFunction): RequestFunction {
           onlyIfParent: true,
           attributes: {
             [SENTRY_OP]: HTTP_CLIENT,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
+            [SENTRY_ORIGIN]: 'auto.http.serverless',
             [HTTP_REQUEST_METHOD]: httpMethod,
             [SERVER_ADDRESS]: serverAddress,
             [URL_DOMAIN]: serverAddress,

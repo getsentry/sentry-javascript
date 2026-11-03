@@ -22,15 +22,8 @@
     "zod": "~3.25.0"
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "tsx": "^4.20.3"
-  },
-  "resolutions": {
-    "@types/qs": "6.9.17"
-  },
-  "volta": {
-    "node": "20.19.5",
-    "extends": "../../package.json"
   }
 }

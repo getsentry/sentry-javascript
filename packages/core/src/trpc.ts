@@ -5,11 +5,11 @@ import {
   SENTRY_SEGMENT_NAME_SOURCE,
   TRPC_PROCEDURE_PATH,
   TRPC_PROCEDURE_TYPE,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { RPC } from '@sentry/conventions/op';
 import { getClient, withIsolationScope } from './currentScopes';
 import { captureException } from './exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { startSpanManual } from './tracing/trace';
 import { normalize } from './utils/normalize';
 import { setNormalizationDepthOverrideHint } from './utils/normalizationHints';
@@ -97,7 +97,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
           attributes: {
             [SENTRY_OP]: RPC,
             [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.rpc.trpc',
+            [SENTRY_ORIGIN]: 'auto.rpc.trpc',
             [RPC_SYSTEM_NAME]: 'trpc',
             [RPC_METHOD]: String(path),
             [TRPC_PROCEDURE_PATH]: String(path),

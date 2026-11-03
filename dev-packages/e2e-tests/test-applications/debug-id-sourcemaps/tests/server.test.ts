@@ -28,56 +28,52 @@ function splitFrameContext(frame: SerializedFrame): Record<string, unknown> {
   };
 }
 
-test(
-  'Find symbolicated event on sentry',
-  async ({ expect }) => {
-    const eventId = childProcess.execSync(`node ${path.join(__dirname, '..', 'dist', 'app.js')}`, {
-      encoding: 'utf-8',
+test('Find symbolicated event on sentry', { timeout: EVENT_POLLING_TIMEOUT }, async ({ expect }) => {
+  const eventId = childProcess.execSync(`node ${path.join(__dirname, '..', 'dist', 'app.js')}`, {
+    encoding: 'utf-8',
+  });
+
+  console.log(`Polling for error eventId: ${eventId}`);
+
+  let timedOut = false;
+  setTimeout(() => {
+    timedOut = true;
+  }, EVENT_POLLING_TIMEOUT);
+
+  while (!timedOut) {
+    await new Promise(resolve => setTimeout(resolve, 2000)); // poll every two seconds
+    const response = await fetch(`https://sentry.io/api/0/organizations/${sentryTestOrgSlug}/eventids/${eventId}/`, {
+      headers: { Authorization: `Bearer ${authToken}` },
     });
 
-    console.log(`Polling for error eventId: ${eventId}`);
-
-    let timedOut = false;
-    setTimeout(() => {
-      timedOut = true;
-    }, EVENT_POLLING_TIMEOUT);
-
-    while (!timedOut) {
-      await new Promise(resolve => setTimeout(resolve, 2000)); // poll every two seconds
-      const response = await fetch(`https://sentry.io/api/0/organizations/${sentryTestOrgSlug}/eventids/${eventId}/`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-
-      // This is org scoped, so the auth token needs `org:read` on top of the project scopes.
-      // That never resolves by waiting, so fail loudly rather than timing out.
-      if (response.status === 401 || response.status === 403) {
-        throw new Error(
-          `Event lookup was rejected with ${response.status}: ${await response.text()}. ` +
-            'E2E_TEST_AUTH_TOKEN needs the `org:read` scope.',
-        );
-      }
-
-      // A 404 means the event has not landed yet and a 429 is the shared test org being rate limited.
-      // Both clear up by polling again.
-      if (!response.ok) {
-        expect([404, 429]).toContain(response.status);
-        continue;
-      }
-
-      const { event } = await response.json();
-      const exception = event.entries.find((entry: { type: string }) => entry.type === 'exception');
-      const frames: SerializedFrame[] = exception.data.values[0].stacktrace.frames;
-      const topFrame = frames[frames.length - 1];
-
-      if (topFrame === undefined) {
-        throw new Error('Symbolicated event has no stack frames.');
-      }
-
-      expect(splitFrameContext(topFrame)).toMatchSnapshot();
-      return;
+    // This is org scoped, so the auth token needs `org:read` on top of the project scopes.
+    // That never resolves by waiting, so fail loudly rather than timing out.
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(
+        `Event lookup was rejected with ${response.status}: ${await response.text()}. ` +
+          'E2E_TEST_AUTH_TOKEN needs the `org:read` scope.',
+      );
     }
 
-    throw new Error('Test timed out');
-  },
-  { timeout: EVENT_POLLING_TIMEOUT },
-);
+    // A 404 means the event has not landed yet and a 429 is the shared test org being rate limited.
+    // Both clear up by polling again.
+    if (!response.ok) {
+      expect([404, 429]).toContain(response.status);
+      continue;
+    }
+
+    const { event } = await response.json();
+    const exception = event.entries.find((entry: { type: string }) => entry.type === 'exception');
+    const frames: SerializedFrame[] = exception.data.values[0].stacktrace.frames;
+    const topFrame = frames[frames.length - 1];
+
+    if (topFrame === undefined) {
+      throw new Error('Symbolicated event has no stack frames.');
+    }
+
+    expect(splitFrameContext(topFrame)).toMatchSnapshot();
+    return;
+  }
+
+  throw new Error('Test timed out');
+});

@@ -64,6 +64,10 @@ body:
         - '@sentry/tanstackstart-react'
         - '@sentry/vue'
         - '@sentry/wasm'
+        - '@sentry/esbuild-plugin'
+        - '@sentry/rollup-plugin'
+        - '@sentry/vite-plugin'
+        - '@sentry/webpack-plugin'
         - Sentry Browser Loader
         - Sentry Browser CDN bundle
     validations:

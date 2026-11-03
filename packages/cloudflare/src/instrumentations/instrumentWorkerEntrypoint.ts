@@ -1,6 +1,6 @@
 import type { RpcStub, WorkerEntrypoint } from 'cloudflare:workers';
 import { RPC } from '@sentry/conventions/op';
-import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
+import { setAsyncLocalStorageAsyncContextStrategyForWorker } from '../utils/asyncContextStrategy';
 import type { CloudflareOptions } from '../client';
 import { markAsInstrumented } from '../instrument';
 import { getFinalOptions } from '../options';
@@ -151,7 +151,7 @@ export function instrumentWorkerEntrypoint<
   // Set up AsyncLocalStorage strategy ONCE at instrumentation time, not per-request
   // This is critical - calling this per-request would create a new AsyncLocalStorage
   // each time, breaking scope isolation for concurrent requests
-  setAsyncLocalStorageAsyncContextStrategy();
+  setAsyncLocalStorageAsyncContextStrategyForWorker();
 
   const InstrumentedClass = new Proxy(WorkerEntrypointClass, {
     construct(target, [ctx, env]) {

@@ -1,7 +1,7 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { getClient } from '../currentScopes';
 import { addConsoleInstrumentationHandler } from '../instrument/console';
 import { defineIntegration } from '../integration';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { ConsoleLevel } from '../types/instrument';
 import type { IntegrationFn } from '../types/integration';
 import { CONSOLE_LEVELS } from '../utils/debug-logger';
@@ -17,7 +17,7 @@ interface CaptureConsoleOptions {
 const INTEGRATION_NAME = 'ConsoleLogs' as const;
 
 const DEFAULT_ATTRIBUTES = {
-  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.log.console',
+  [SENTRY_ORIGIN]: 'auto.log.console',
 };
 
 const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {}) => {

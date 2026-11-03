@@ -1,4 +1,5 @@
 import type { Envelope, Transport, TransportMakeRequestResponse } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 import { vi } from 'vitest';
 import type { TestClientOptions } from '../../src/core/TestClient';
 import { getDefaultClientOptions, init } from '../../src/core/TestClient';
@@ -43,6 +44,8 @@ class MockTransport implements Transport {
  *
  */
 export async function mockSdk({ sentryOptions }: MockSdkParams = {}): Promise<void> {
+  getCurrentScope().setClient(undefined);
+
   init({
     ...getDefaultClientOptions(),
     dsn: 'https://dsn@ingest.f00.f00/1',

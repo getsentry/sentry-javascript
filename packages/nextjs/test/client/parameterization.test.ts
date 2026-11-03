@@ -1,10 +1,11 @@
 import { GLOBAL_OBJ } from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
-import { maybeParameterizeRoute } from '../../src/client/routing/parameterization';
+import { maybeParameterizeRoute, stripBasePath } from '../../src/client/routing/parameterization';
 import type { RouteManifest } from '../../src/config/manifest/types';
 
 const globalWithInjectedManifest = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRouteManifest: string | undefined;
+  _sentryBasePath?: string;
 };
 
 describe('maybeParameterizeRoute', () => {
@@ -1110,5 +1111,28 @@ describe('maybeParameterizeRoute', () => {
       // Root
       expect(maybeParameterizeRoute('/')).toBe(maybeParameterizeRoute('/'));
     });
+  });
+});
+
+describe('stripBasePath', () => {
+  afterEach(() => {
+    delete globalWithInjectedManifest._sentryBasePath;
+  });
+
+  it('strips the base path from paths under it', () => {
+    globalWithInjectedManifest._sentryBasePath = '/docs';
+
+    expect(stripBasePath('/docs/posts/hello')).toBe('/posts/hello');
+    expect(stripBasePath('/docs')).toBe('/');
+  });
+
+  it('leaves paths that only share a prefix with the base path alone', () => {
+    globalWithInjectedManifest._sentryBasePath = '/docs';
+
+    expect(stripBasePath('/documentation')).toBe('/documentation');
+  });
+
+  it('leaves paths alone without a base path', () => {
+    expect(stripBasePath('/docs/posts/hello')).toBe('/docs/posts/hello');
   });
 });

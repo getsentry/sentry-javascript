@@ -16,13 +16,13 @@ import {
 import { UI_ACTION_CLICK, UI_INTERACTION_CLICK } from '@sentry/conventions/op';
 import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource } from '@sentry/core';
 import {
-  browserPerformanceTimeOrigin,
   debug,
   defineIntegration,
   filterCollectedUrl,
   getActiveSpan,
   getRootSpan,
   hasSpanStreamingEnabled,
+  _INTERNAL_performanceTimeToSeconds,
   spanToJSON,
   UI_ACTION_CLICK_SPAN_NAME_FALLBACK,
   UI_INTERACTION_CLICK_SPAN_NAME_FALLBACK,
@@ -217,10 +217,10 @@ function registerInteractionListener(
             [SENTRY_SEGMENT_NAME_SOURCE]: hasSpanStreaming ? streamedNameSource : latestRoute.source || 'url',
             [SENTRY_ORIGIN]: 'auto.browser.interactions',
             ...(hasSpanStreaming && { [SENTRY_SEGMENT_NAME]: streamedName }),
-            ...(latestRoute.routeId && { [ROUTER_NAVIGATION_ROUTE_ID]: latestRoute.routeId }),
-            ...(latestRoute.urlTemplate && { [URL_TEMPLATE]: latestRoute.urlTemplate }),
-            ...(latestRoute.httpRoute && { [HTTP_ROUTE]: latestRoute.httpRoute }),
-            ...(latestRoute.urlPath && { [URL_PATH]: latestRoute.urlPath }),
+            [ROUTER_NAVIGATION_ROUTE_ID]: latestRoute.routeId,
+            [URL_TEMPLATE]: latestRoute.urlTemplate,
+            [HTTP_ROUTE]: latestRoute.httpRoute,
+            [URL_PATH]: latestRoute.urlPath,
             ...(latestRoute.urlFull && { [URL_FULL]: filterCollectedUrl(latestRoute.urlFull) }),
           },
         },
@@ -242,7 +242,10 @@ function trackInteractionsAsSpans(client: Client): void {
     }
     for (const entry of entries) {
       if (entry.name === 'click') {
-        const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
+        const startTime = _INTERNAL_performanceTimeToSeconds(entry.startTime);
+        if (!startTime) {
+          continue;
+        }
         const duration = msToSec(entry.duration);
 
         const selector = htmlTreeAsString(entry.target);

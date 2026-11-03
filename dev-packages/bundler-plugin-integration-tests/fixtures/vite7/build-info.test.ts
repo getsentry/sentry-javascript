@@ -7,7 +7,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles }) => {
     {
       "basic.js": "!(function() {
       try {
-        var e = "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : {};
+        var e = "undefined" != typeof globalThis ? globalThis : "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof self ? self : {};
         e.SENTRY_RELEASE = { id: "build-information-injection-test" };
         e.SENTRY_BUILD_INFO = { "deps": ["@sentry/bundler-plugins", "@vitejs/plugin-react", "react", "vite"], "depsVersions": { "react": 19, "vite": 7 }, "nodeVersion":"NODE_VERSION" };
         var n = new e.Error().stack;

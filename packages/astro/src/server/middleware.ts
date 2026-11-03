@@ -2,11 +2,13 @@
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
   HTTP_ROUTE,
+  HTTP_REQUEST_METHOD,
   SENTRY_OP,
   URL_FRAGMENT,
   URL_FULL,
   URL_PATH,
   URL_QUERY,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
@@ -19,13 +21,15 @@ import {
   hasSpanStreamingEnabled,
   HTTP_SPAN_NAME_FALLBACK,
   objectify,
-  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   spanToJSON,
   winterCGRequestToRequestData,
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
+import {
+  flushIfServerless,
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+} from '@sentry/core/server';
 import {
   captureException,
   continueTrace,
@@ -34,7 +38,6 @@ import {
   getCurrentScope,
   getTraceMetaTags,
   httpHeadersToSpanAttributes,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   startSpan,
   winterCGHeadersToDict,
@@ -81,17 +84,15 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler =
   const handlerOptions = { ...options };
 
   return async (ctx, next) => {
-    // If no Sentry client exists, just bail
-    // Apart from the case when no Sentry.init() is called at all, this also happens
-    // if a prerendered page is hit first before a ssr page is called
-    // For regular prerendered pages, this is fine as we do not want to instrument them at runtime anyhow
-    // BUT for server-islands requests on a static page, this can be problematic...
-    // TODO: Today, this leads to inconsistent behavior: If a prerendered page is hit first (before _any_ ssr page is called),
-    // Sentry.init() has not been called yet (as this is only injected in SSR pages), so server-island requests are not instrumented
-    // If any SSR route is hit before, the client will already be set up and everything will work as expected :O
-    // To reproduce this: Run the astro-5 "tracing.serverIslands.test" only
+    // The middleware the integration adds runs the server init first, so this only bails without a server init, or when
+    // this middleware was added by hand and the request comes before any SSR page, which still runs the init.
     if (!getClient()) {
       return next();
+    }
+
+    const tunnelResponse = handleServedTunnelRequest(ctx.request);
+    if (tunnelResponse) {
+      return tunnelResponse;
     }
 
     const isDynamicPageRequest = checkIsDynamicPageRequest(ctx);
@@ -148,7 +149,7 @@ async function enhanceHttpServerSpan(ctx: APIContext, next: MiddlewareNext, root
     rootSpan.setAttributes({
       // This is here for backwards compatibility, we used to set this here before
       method,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
+      [SENTRY_ORIGIN]: 'auto.http.astro',
     });
 
     if (parametrizedRoute) {
@@ -220,9 +221,9 @@ async function instrumentRequestStartHttpServerSpan(
 
           const attributes: SpanAttributes = {
             [SENTRY_OP]: HTTP_SERVER,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
+            [SENTRY_ORIGIN]: 'auto.http.astro',
             [SENTRY_SEGMENT_NAME_SOURCE]: source,
-            [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: method,
+            [HTTP_REQUEST_METHOD]: method,
             // This is here for backwards compatibility, we used to set this here before
             method,
             [URL_FULL]: filterCollectedUrl(ctx.url.href),

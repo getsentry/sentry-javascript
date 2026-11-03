@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 import { streamText } from 'ai';
 
 // The browser bundle also pulls in an orchestrion-instrumented module (`ai`).

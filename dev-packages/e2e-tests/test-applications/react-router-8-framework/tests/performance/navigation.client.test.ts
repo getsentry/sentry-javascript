@@ -78,7 +78,7 @@ test.describe('client - navigation performance', () => {
       return span.name === '/performance' && getSpanOp(span) === 'pageload' && span.is_segment;
     });
 
-    await page.goto(`/performance`); // pageload
+    await page.goto(`/performance/`); // pageload
     await pageloadSpanPromise;
     await page.getByRole('link', { name: 'Search Only Navigate' }).click(); // navigation with search-only object to
 
@@ -88,7 +88,6 @@ test.describe('client - navigation performance', () => {
       'sentry.op': { value: 'navigation', type: 'string' },
       'sentry.origin': { value: 'auto.navigation.react_router', type: 'string' },
       'url.template': { value: '/performance', type: 'string' },
-      // the initial pageload to `/performance` gets 301-redirected to a trailing slash by react-router-serve
       'url.path': { value: '/performance/', type: 'string' },
       'url.full': {
         value: expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/\?query=test$/),
@@ -143,7 +142,7 @@ test.describe('client - navigation performance', () => {
       return span.name === '/performance' && getSpanOp(span) === 'pageload' && span.is_segment;
     });
 
-    await page.goto(`/performance`);
+    await page.goto(`/performance/`);
     await pageloadSpanPromise;
 
     const forwardNavPromise = waitForStreamedSpan(APP_NAME, span => {
@@ -166,7 +165,6 @@ test.describe('client - navigation performance', () => {
       'sentry.op': { value: 'navigation', type: 'string' },
       'sentry.origin': { value: 'auto.navigation.react_router', type: 'string' },
       'url.template': { value: '/performance', type: 'string' },
-      // react-router-serve 301-redirects the bare index route to a trailing slash
       'url.path': { value: '/performance/', type: 'string' },
       'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/$/), type: 'string' },
     });

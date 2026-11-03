@@ -98,7 +98,7 @@ describe('elementTimingIntegration', () => {
           identifier: 'hero-image',
           id: 'img1',
           element: { tagName: 'IMG' },
-          url: 'https://example.com/hero.jpg',
+          url: 'https://example.com/hero.jpg?token=abc&w=1920',
           naturalWidth: 1920,
           naturalHeight: 1080,
         } as unknown as PerformanceEntry,
@@ -112,7 +112,7 @@ describe('elementTimingIntegration', () => {
       'ui.element.paint_type': 'image-paint',
       'ui.element.id': 'img1',
       'ui.element.type': 'img',
-      'ui.element.url': 'https://example.com/hero.jpg',
+      'ui.element.url': 'https://example.com/hero.jpg?token=[Filtered]&w=1920',
       'ui.element.width': 1920,
       'ui.element.height': 1080,
     };

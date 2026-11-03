@@ -2,11 +2,11 @@
  * @vitest-environment jsdom
  */
 
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import {
   browserPerformanceTimeOrigin,
   getActiveSpan,
   getMainCarrier,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setCurrentClient,
   spanToJSON,
 } from '@sentry/core';
@@ -66,7 +66,7 @@ describe('bfcache restore, then the first history navigation of the document', (
     WINDOW.dispatchEvent(event);
 
     expect(spanToJSON(getActiveSpan()!).attributes).toEqual(
-      expect.objectContaining({ [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser.bfcache' }),
+      expect.objectContaining({ [SENTRY_ORIGIN]: 'auto.navigation.browser.bfcache' }),
     );
 
     // Past the redirect threshold, so the navigation is judged on the pageload guard alone rather
@@ -75,7 +75,7 @@ describe('bfcache restore, then the first history navigation of the document', (
     WINDOW.history.pushState({}, '', '/after-restore');
 
     expect(spanToJSON(getActiveSpan()!).attributes).toEqual(
-      expect.objectContaining({ [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser' }),
+      expect.objectContaining({ [SENTRY_ORIGIN]: 'auto.navigation.browser' }),
     );
   });
 });

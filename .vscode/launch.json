@@ -28,7 +28,7 @@
       "type": "pwa-node",
       "cwd": "${workspaceFolder}/packages/${input:getPackageName}",
       "request": "launch",
-      "runtimeExecutable": "yarn",
+      "runtimeExecutable": "pnpm",
       "runtimeArgs": ["ts-node", "-P", "${workspaceFolder}/tsconfig.dev.json", "${file}"],
       "skipFiles": ["<node_internals>/**"],
       "outFiles": ["${workspaceFolder}/**/*.js", "!**/node_modules/**"],
@@ -43,7 +43,7 @@
       "type": "pwa-node",
       "cwd": "${workspaceFolder}/packages/${input:getPackageName}",
       "request": "launch",
-      "runtimeExecutable": "yarn",
+      "runtimeExecutable": "pnpm",
       "runtimeArgs": ["rollup", "-c", "${file}"],
       "skipFiles": ["<node_internals>/**"],
       "outFiles": ["${workspaceFolder}/**/*.js", "!**/node_modules/**"],
@@ -60,7 +60,7 @@
       "type": "pwa-node",
       "cwd": "${workspaceFolder}/packages/${input:getPackageName}",
       "request": "launch",
-      "runtimeExecutable": "yarn",
+      "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         // `nodemon` is basically `node --watch`
         "nodemon",
@@ -81,7 +81,7 @@
     },
 
     // @sentry/nextjs - Run a specific integration test file
-    // Must have test file in currently active tab when hitting the play button, and must already have run `yarn` in test app directory
+    // Must have test file in currently active tab when hitting the play button, and must already have run `pnpm install` in test app directory
     {
       "name": "Debug @sentry/nextjs integration tests - just open file",
       "type": "node",
@@ -90,7 +90,7 @@
       // since we're not using the normal test runner, we need to make sure we're using the current version of all local
       // SDK packages and then manually rebuild the test app
       "preLaunchTask": "Prepare nextjs integration test app for debugging",
-      // running `server.js` directly (rather than running the tests through yarn) allows us to skip having to reinstall
+      // running `server.js` directly (rather than running the tests through pnpm) allows us to skip having to reinstall
       // dependencies on every new test run
       "program": "${workspaceFolder}/packages/nextjs/test/integration/test/server.js",
       "args": [

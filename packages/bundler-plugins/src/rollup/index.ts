@@ -1,18 +1,17 @@
-import type { Options } from '../core';
+import type { ChunkGraphNode, Options } from '../core';
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
   generateModuleMetadataInjectorCode,
   isJsFile,
+  isInitialChunk,
   shouldSkipCodeInjection,
   getDebugIdSnippet,
-  stringToUUID,
   createDebugIdUploadFunction,
   globFiles,
   createComponentNameAnnotateHooks,
   replaceBooleanFlagsInCode,
   CodeInjection,
-  stampDebugId,
   getCodeInjectionPosition,
 } from '../core';
 import type { ComponentAnnotationTransformMeta } from '../core/component-annotation-oxc';
@@ -20,18 +19,13 @@ import type { SourceMap } from 'magic-string';
 import MagicString from 'magic-string';
 import * as path from 'node:path';
 import { createRequire } from 'node:module';
+import { finalizeRolldownDebugIds, getDebugIdForChunk, hasExistingDebugID } from './debug-id-injection';
+import { stampDebugIds, type OutputBundle } from './debug-id-stamping';
 
 // The subset of Rollup's `TransformResult` that this plugin's `transform`
 // hook actually returns. Defined locally instead of imported from `rollup`
 // because `rollup` is an optional dependency.
 type TransformResult = { code: string; map?: SourceMap | string | { mappings: string } | null } | null | undefined;
-
-// The subset of Rollup's `OutputBundle` the stamping hook reads.
-type OutputBundle = Record<
-  string,
-  | { type: 'chunk'; fileName: string; code: string; sourcemapFileName?: string | null }
-  | { type: 'asset'; fileName: string; source: string | Uint8Array }
->;
 
 type ViteModule = {
   parseAstAsync?: (code: string, options: { lang: 'jsx' | 'tsx' }) => Promise<unknown>;
@@ -41,19 +35,10 @@ type ViteParseAstAsync = NonNullable<ViteModule['parseAstAsync']>;
 
 let viteParseAstAsyncPromise: Promise<ViteParseAstAsync | null> | undefined;
 
+// Rolldown sets `meta.rolldownVersion` on the plugin context.
+type PluginContext = { meta?: { rolldownVersion?: string } };
+
 const JS_MODULE_ID_FILTER = /\.[cm]?[jt]sx?(?:[?#].*)?$/;
-
-function hasExistingDebugID(code: string): boolean {
-  // Check if a debug ID has already been injected to avoid duplicate injection (e.g. by another plugin or Sentry CLI)
-  const chunkStartSnippet = code.slice(0, 6000);
-  const chunkEndSnippet = code.slice(-500);
-
-  if (chunkStartSnippet.includes('_sentryDebugIdIdentifier') || chunkEndSnippet.includes('//# debugId=')) {
-    return true; // Debug ID already present, skip injection
-  }
-
-  return false;
-}
 
 function getRollupMajorVersion(): string | undefined {
   try {
@@ -131,7 +116,8 @@ export function _rollupPluginInternal(
   const freeGlobalDependencyOnBuildArtifacts = createDependencyOnBuildArtifacts();
   const upload = createDebugIdUploadFunction({ sentryBuildPluginManager });
   const sourcemapsEnabled = options.sourcemaps?.disable !== true;
-  const staticInjectionCode = new CodeInjection();
+  const releaseInjectionCode = new CodeInjection();
+  const chunkInjectionCode = new CodeInjection();
 
   if (!options.release.inject) {
     logger.debug('Release injection disabled via `release.inject` option. Will not inject release.');
@@ -140,7 +126,7 @@ export function _rollupPluginInternal(
       'No release name provided. Will not inject release. Please set the `release.name` option to identify your release.',
     );
   } else {
-    staticInjectionCode.append(
+    releaseInjectionCode.append(
       generateReleaseInjectorCode({
         release: options.release.name,
         injectBuildInformation: options._experiments.injectBuildInformation || false,
@@ -149,7 +135,7 @@ export function _rollupPluginInternal(
   }
 
   if (Object.keys(bundleMetadata).length > 0) {
-    staticInjectionCode.append(generateModuleMetadataInjectorCode(bundleMetadata));
+    chunkInjectionCode.append(generateModuleMetadataInjectorCode(bundleMetadata));
   }
 
   const transformAnnotations = options.reactComponentAnnotation?.enabled
@@ -195,10 +181,11 @@ export function _rollupPluginInternal(
   }
 
   function renderChunk(
+    this: PluginContext | undefined,
     code: string,
-    chunk: { fileName: string; facadeModuleId?: string | null },
+    chunk: { fileName: string; facadeModuleId?: string | null; isEntry?: boolean },
     _?: unknown,
-    meta?: { magicString?: MagicString },
+    meta?: { magicString?: MagicString; chunks?: Record<string, ChunkGraphNode> },
   ): {
     code: string;
     map?: SourceMap;
@@ -212,10 +199,16 @@ export function _rollupPluginInternal(
       return null;
     }
 
-    const injectCode = staticInjectionCode.clone();
+    const injectCode = new CodeInjection();
+
+    if (isInitialChunk(chunk, meta?.chunks)) {
+      injectCode.append(releaseInjectionCode);
+    }
+
+    injectCode.append(chunkInjectionCode);
 
     if (sourcemapsEnabled && !hasExistingDebugID(code)) {
-      const debugId = stringToUUID(code); // generate a deterministic debug ID
+      const debugId = getDebugIdForChunk(code, !!this?.meta?.rolldownVersion);
       injectCode.append(getDebugIdSnippet(debugId));
     }
 
@@ -242,35 +235,24 @@ export function _rollupPluginInternal(
   }
 
   /**
-   * Stamps debug IDs into the emitted chunks and source maps.
+   * Resolves Rolldown's placeholder debug IDs, then stamps debug IDs into the emitted chunks and
+   * source maps.
    *
    * `disable-upload` skips the upload routine (which stamps debug IDs into temp copies), so the emitted
    * artifacts get stamped here instead. Not in `renderChunk`: minifiers running after it would strip the
    * comment. Rollup computes `[hash]` file names before this hook, so only plugins that hash the final
    * assets afterwards (e.g. subresource integrity) see the stamped content.
    */
-  function generateBundle(_outputOptions: unknown, bundle: OutputBundle): void {
-    for (const output of Object.values(bundle)) {
-      if (output.type !== 'chunk' || !isJsFile(output.fileName)) {
-        continue;
-      }
-
-      const sourceMapAsset = bundle[output.sourcemapFileName ?? `${output.fileName}.map`];
-      const sourceMapSource =
-        sourceMapAsset?.type === 'asset' && typeof sourceMapAsset.source === 'string'
-          ? sourceMapAsset.source
-          : undefined;
-
-      const stamped = stampDebugId(output.code, sourceMapSource);
-      if (!stamped) {
-        continue;
-      }
-
-      output.code = stamped.bundleSource;
-      if (stamped.sourceMapSource !== undefined && sourceMapAsset?.type === 'asset') {
-        sourceMapAsset.source = stamped.sourceMapSource;
-      }
+  function generateBundle(this: PluginContext | undefined, _outputOptions: unknown, bundle: OutputBundle): void {
+    if (this?.meta?.rolldownVersion) {
+      finalizeRolldownDebugIds(bundle);
     }
+
+    if (options.sourcemaps?.disable !== 'disable-upload') {
+      return;
+    }
+
+    stampDebugIds(bundle, true);
   }
 
   async function writeBundle(
@@ -320,9 +302,7 @@ export function _rollupPluginInternal(
     buildStart,
     ...(shouldTransform ? { transform: transformHook } : {}),
     renderChunk,
-    ...(options.sourcemaps?.disable === 'disable-upload'
-      ? { generateBundle: { order: 'pre' as const, handler: generateBundle } }
-      : {}),
+    generateBundle: { order: 'pre' as const, handler: generateBundle },
     writeBundle,
   };
 }

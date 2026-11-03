@@ -3,27 +3,26 @@
 import { EventEmitter } from 'node:events';
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { DenoClient } from '@sentry/deno';
-import { init, startSpan } from '@sentry/deno';
+import { flush, init, startSpan } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
-import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
+import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('express instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
-  const client = init({ traceLifecycle: 'static', dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({ dsn: 'https://username@domain/123' }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
   assert(names.includes('Express'), `Express should be in defaults, got ${names.join(', ')}`);
 });
 
 Deno.test('express instrumentation: orchestrion:express:handle channel produces a nested middleware span', async () => {
   resetGlobals();
-  const sink = transactionSink();
+  const sink = spanSink();
   init({
-    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    beforeSendTransaction: sink.beforeSendTransaction,
+    transport: sink.transport,
   });
 
   const channel = tracingChannel('orchestrion:express:handle');
@@ -40,16 +39,25 @@ Deno.test('express instrumentation: orchestrion:express:handle channel produces 
     channel.asyncEnd.publish(ctx);
   });
 
-  const parent = await withTimeout(
-    sink.waitFor(t => t.transaction === 'parent'),
-    5000,
-    "'parent' transaction",
-  );
+  await flush();
 
-  const expressSpan = parent.spans?.find(s => s.op === 'middleware');
-  assertExists(expressSpan, `expected an express middleware span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
-  assertEquals(expressSpan!.description, 'myMiddleware');
-  assertEquals(expressSpan!.data?.['express.name'], 'myMiddleware');
-  assertEquals(expressSpan!.data?.['express.type'], 'middleware');
-  assertEquals(expressSpan!.data?.['sentry.origin'], 'auto.http.express');
+  const parent = await withTimeout(
+    sink.waitFor(span => span.is_segment && span.name === 'parent'),
+    5000,
+    "'parent' segment span",
+  );
+  const children = sink.spans.filter(span => span.parent_span_id === parent.span_id);
+  assertEquals(children.length, 1);
+  assertEquals(children[0]!.trace_id, parent.trace_id);
+  assertEquals(children[0]!.is_segment, false);
+
+  const expressSpan = children.find(s => getSpanOp(s) === 'middleware');
+  assertExists(
+    expressSpan,
+    `expected an express middleware span, got ops: ${children.map(s => getSpanOp(s)).join(', ')}`,
+  );
+  assertEquals(expressSpan.name, 'myMiddleware');
+  assertEquals(expressSpan.attributes['express.name']?.value, 'myMiddleware');
+  assertEquals(expressSpan.attributes['express.type']?.value, 'middleware');
+  assertEquals(expressSpan.attributes['sentry.origin']?.value, 'auto.http.express');
 });

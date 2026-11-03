@@ -8,11 +8,12 @@ import {
   GCP_FUNCTION_CONTEXT_SOURCE,
   GCP_FUNCTION_CONTEXT_SPECVERSION,
   GCP_FUNCTION_CONTEXT_TIME,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION_GCP } from '@sentry/conventions/op';
 import type { Client } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK } from '@sentry/core';
+import { SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { wrapCloudEventFunction } from '../../src/gcpfunction/cloud_events';
 import type { CloudEventFunction, CloudEventFunctionWithCallback } from '../../src/gcpfunction/general';
@@ -94,7 +95,7 @@ describe('wrapCloudEventFunction', () => {
           [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'cloud_event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
+          [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
           [GCP_FUNCTION_CONTEXT_TYPE]: 'google.cloud.pubsub.topic.v1.messagePublished',
           [GCP_FUNCTION_CONTEXT_ID]: '5302804326013861',
           [GCP_FUNCTION_CONTEXT_SOURCE]: '//pubsub.googleapis.com/projects/my-project/topics/my-topic',
@@ -126,7 +127,7 @@ describe('wrapCloudEventFunction', () => {
             [FAAS_NAME]: undefined,
             [FAAS_TRIGGER]: 'cloud_event',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
+            [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
             [GCP_FUNCTION_CONTEXT_TYPE]: 'google.cloud.pubsub.topic.v1.messagePublished',
             [GCP_FUNCTION_CONTEXT_ID]: '5302804326013861',
             [GCP_FUNCTION_CONTEXT_SOURCE]: '//pubsub.googleapis.com/projects/my-project/topics/my-topic',
@@ -159,7 +160,7 @@ describe('wrapCloudEventFunction', () => {
             [FAAS_NAME]: undefined,
             [FAAS_TRIGGER]: 'cloud_event',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
+            [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
             [GCP_FUNCTION_CONTEXT_TYPE]: 'google.cloud.pubsub.topic.v1.messagePublished',
             [GCP_FUNCTION_CONTEXT_ID]: '5302804326013861',
             [GCP_FUNCTION_CONTEXT_SOURCE]: '//pubsub.googleapis.com/projects/my-project/topics/my-topic',
@@ -203,7 +204,7 @@ describe('wrapCloudEventFunction', () => {
           [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'cloud_event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
+          [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
           [GCP_FUNCTION_CONTEXT_TYPE]: 'google.cloud.pubsub.topic.v1.messagePublished',
           [GCP_FUNCTION_CONTEXT_ID]: '5302804326013861',
           [GCP_FUNCTION_CONTEXT_SOURCE]: '//pubsub.googleapis.com/projects/my-project/topics/my-topic',
@@ -247,7 +248,7 @@ describe('wrapCloudEventFunction', () => {
           [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'cloud_event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
+          [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
           [GCP_FUNCTION_CONTEXT_TYPE]: 'google.cloud.pubsub.topic.v1.messagePublished',
           [GCP_FUNCTION_CONTEXT_ID]: '5302804326013861',
           [GCP_FUNCTION_CONTEXT_SOURCE]: '//pubsub.googleapis.com/projects/my-project/topics/my-topic',
@@ -276,7 +277,7 @@ describe('wrapCloudEventFunction', () => {
           [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'cloud_event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
+          [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
           [GCP_FUNCTION_CONTEXT_TYPE]: 'google.cloud.pubsub.topic.v1.messagePublished',
           [GCP_FUNCTION_CONTEXT_ID]: '5302804326013861',
           [GCP_FUNCTION_CONTEXT_SOURCE]: '//pubsub.googleapis.com/projects/my-project/topics/my-topic',
@@ -319,7 +320,7 @@ describe('wrapCloudEventFunction', () => {
           [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'cloud_event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
+          [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
           [GCP_FUNCTION_CONTEXT_TYPE]: 'google.cloud.pubsub.topic.v1.messagePublished',
           [GCP_FUNCTION_CONTEXT_ID]: '5302804326013861',
           [GCP_FUNCTION_CONTEXT_SOURCE]: '//pubsub.googleapis.com/projects/my-project/topics/my-topic',

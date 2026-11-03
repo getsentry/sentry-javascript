@@ -22,34 +22,73 @@ function startMockServer() {
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
 
-      const chunks = [
+      // Gemini's OpenAI-compatible endpoint streams whole, parallel tool calls without an `index`
+      const geminiToolCallChunks = [
         {
-          id: 'chatcmpl-stream-123',
+          id: 'chatcmpl-stream-gemini-456',
           object: 'chat.completion.chunk',
-          created: 1677652300,
+          created: 1677652305,
           model: model,
-          choices: [{ delta: { role: 'assistant', content: '' }, index: 0 }],
-        },
-        {
-          id: 'chatcmpl-stream-123',
-          object: 'chat.completion.chunk',
-          created: 1677652300,
-          model: model,
-          choices: [{ delta: { content: 'Hello from OpenAI streaming!' }, index: 0 }],
-        },
-        {
-          id: 'chatcmpl-stream-123',
-          object: 'chat.completion.chunk',
-          created: 1677652300,
-          model: model,
-          choices: [{ delta: {}, index: 0, finish_reason: 'stop' }],
+          choices: [
+            {
+              index: 0,
+              delta: {
+                role: 'assistant',
+                tool_calls: [
+                  {
+                    id: 'call_paris',
+                    type: 'function',
+                    function: { name: 'get_weather', arguments: '{"city":"Paris"}' },
+                  },
+                  {
+                    id: 'call_london',
+                    type: 'function',
+                    function: { name: 'get_weather', arguments: '{"city":"London"}' },
+                  },
+                ],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
           usage: {
-            prompt_tokens: 12,
-            completion_tokens: 18,
-            total_tokens: 30,
+            prompt_tokens: 15,
+            completion_tokens: 25,
+            total_tokens: 40,
           },
         },
       ];
+
+      const chunks =
+        model === 'gemini-compat'
+          ? geminiToolCallChunks
+          : [
+              {
+                id: 'chatcmpl-stream-123',
+                object: 'chat.completion.chunk',
+                created: 1677652300,
+                model: model,
+                choices: [{ delta: { role: 'assistant', content: '' }, index: 0 }],
+              },
+              {
+                id: 'chatcmpl-stream-123',
+                object: 'chat.completion.chunk',
+                created: 1677652300,
+                model: model,
+                choices: [{ delta: { content: 'Hello from OpenAI streaming!' }, index: 0 }],
+              },
+              {
+                id: 'chatcmpl-stream-123',
+                object: 'chat.completion.chunk',
+                created: 1677652300,
+                model: model,
+                choices: [{ delta: {}, index: 0, finish_reason: 'stop' }],
+                usage: {
+                  prompt_tokens: 12,
+                  completion_tokens: 18,
+                  total_tokens: 30,
+                },
+              },
+            ];
 
       chunks.forEach((chunk, index) => {
         setTimeout(() => {
@@ -243,6 +282,17 @@ async function run() {
       void chunk; // Prevent unused variable warning
     }
 
+    // Streaming whole parallel tool calls without an index (Gemini style)
+    const geminiStream = await client.chat.completions.create({
+      model: 'gemini-compat',
+      messages: [{ role: 'user', content: 'Weather in Paris and London?' }],
+      stream: true,
+    });
+
+    for await (const chunk of geminiStream) {
+      void chunk;
+    }
+
     // Fifth test: responses API streaming
     const stream2 = await client.responses.create({
       model: 'gpt-4',
@@ -270,6 +320,17 @@ async function run() {
     } catch {
       // Error is expected and handled
     }
+
+    // scenario: parse responses
+    await client.chat.completions.parse({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: 'What is the capital of France?' }],
+    });
+
+    await client.responses.parse({
+      model: 'gpt-4o',
+      input: 'What is the capital of France?',
+    });
   });
 
   server.close();

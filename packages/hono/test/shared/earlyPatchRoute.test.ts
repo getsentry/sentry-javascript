@@ -1,8 +1,7 @@
 import * as SentryCore from '@sentry/core';
+import { applyHonoPatches as applyPatches, earlyPatchHono } from '@sentry/server-utils';
 import { Hono } from 'hono';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { applyPatches, earlyPatchHono } from '../../src/shared/applyPatches';
-import { installRouteHookOnPrototype } from '../../src/shared/patchRoute';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -19,10 +18,12 @@ vi.mock('@sentry/core', async () => {
 
 const startSpanMock = SentryCore.startSpan as ReturnType<typeof vi.fn>;
 
-const honoBaseProto = Object.getPrototypeOf(Hono.prototype) as { route: Function };
+const honoBaseProto = Object.getPrototypeOf(Hono.prototype) as { route: (path: string, app: unknown) => unknown };
 const originalRoute = honoBaseProto.route;
 
-earlyPatchHono();
+// `earlyPatchHono` installs the `HonoBase.prototype.route` hook at import time, before any
+// `sentry()`/`applyHonoPatches` runs, so sub-apps mounted early are still collected.
+earlyPatchHono(Hono);
 
 describe('earlyPatchHono (two-phase prototype hook)', () => {
   beforeEach(() => {
@@ -44,7 +45,7 @@ describe('earlyPatchHono (two-phase prototype hook)', () => {
     expect(startSpanMock).not.toHaveBeenCalled();
   });
 
-  it('patches collected sub-apps when applyPatches activates', async () => {
+  it('patches collected sub-apps when applyHonoPatches activates', async () => {
     const subApp = new Hono();
     subApp.get('/hello', c => c.text('world'));
 
@@ -56,29 +57,6 @@ describe('earlyPatchHono (two-phase prototype hook)', () => {
     await subApp.request('/hello');
 
     expect(startSpanMock).toHaveBeenCalledTimes(1);
-    expect(startSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'GET /hello' }), expect.any(Function));
-  });
-
-  it('emits a debug log and applies patchAppRequest when sub-app was mounted before applyPatches', async () => {
-    const debugLogSpy = vi.spyOn(SentryCore.debug, 'log');
-
-    honoBaseProto.route = originalRoute;
-    installRouteHookOnPrototype();
-
-    const subApp = new Hono();
-    subApp.get('/hello', c => c.text('world'));
-
-    const parent = new Hono();
-    parent.route('/api', subApp);
-
-    applyPatches(parent); // retroactive instrumentation
-
-    // The log warns the developer about the out-of-order setup.
-    expect(debugLogSpy).toHaveBeenCalledWith(expect.stringContaining('sub-app(s) were mounted before sentry()'));
-
-    // patchAppRequest is applied retroactively
-    await subApp.request('/hello');
-
     expect(startSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'GET /hello' }), expect.any(Function));
   });
 
@@ -95,112 +73,56 @@ describe('earlyPatchHono (two-phase prototype hook)', () => {
   });
 });
 
-describe('installRouteHookOnPrototype idempotency', () => {
+// The prototype `route` hook must patch `HonoBase.prototype.route` without stripping metadata another
+// library (e.g. an OpenAPI router) may have attached to it. This behaviour is not observable through
+// spans/events, so it lives here rather than in the node-integration tests.
+describe('route hook non-invasive patching', () => {
+  const ROUTER_META = Symbol('router-meta');
+
   afterAll(() => {
     honoBaseProto.route = originalRoute;
+    Reflect.deleteProperty(originalRoute, ROUTER_META);
+    Reflect.deleteProperty(originalRoute, 'pluginId');
   });
 
-  it('returns the same handle on repeated calls', () => {
-    const handle1 = installRouteHookOnPrototype();
-    const handle2 = installRouteHookOnPrototype();
-
-    expect(handle1).toBe(handle2);
-  });
-
-  it('does not replace the patched route function on repeated calls', () => {
-    installRouteHookOnPrototype();
-    const patchedRoute = honoBaseProto.route;
-
-    installRouteHookOnPrototype();
-    expect(honoBaseProto.route).toBe(patchedRoute);
-  });
-
-  it('calling activate() multiple times has no adverse effect', async () => {
-    const handle = installRouteHookOnPrototype();
-
-    handle.activate();
-    handle.activate();
-    handle.activate();
-
-    const app = new Hono();
-    applyPatches(app);
-
-    const subApp = new Hono();
-    subApp.get('/hello', c => c.text('world'));
-    app.route('/api', subApp);
-
-    await subApp.request('/hello');
-
-    expect(startSpanMock).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('installRouteHookOnPrototype non-invasive patching', () => {
-  afterAll(() => {
+  // Re-install the hook over a pristine `route` (carrying any pre-set metadata) via the public entry.
+  function reinstallOverPristineRoute(): void {
     honoBaseProto.route = originalRoute;
+    applyPatches(new Hono());
+  }
+
+  it('preserves function name and length of the original route method', () => {
+    reinstallOverPristineRoute();
+
+    const patched = honoBaseProto.route as (...args: unknown[]) => unknown;
+    expect(patched.name).toBe(originalRoute.name);
+    expect(patched.length).toBe(originalRoute.length);
   });
 
-  it('preserves function.name of the original route method', () => {
-    honoBaseProto.route = originalRoute;
-    const originalName = originalRoute.name;
+  it('preserves symbol- and string-keyed properties on the route method', () => {
+    (originalRoute as unknown as Record<PropertyKey, unknown>)[ROUTER_META] = { version: 3 };
+    (originalRoute as unknown as Record<string, unknown>).pluginId = 'openapi-router';
 
-    installRouteHookOnPrototype();
+    reinstallOverPristineRoute();
 
-    expect(honoBaseProto.route!.name).toBe(originalName);
+    expect(Object.getOwnPropertySymbols(honoBaseProto.route)).toContain(ROUTER_META);
+    expect((honoBaseProto.route as unknown as Record<PropertyKey, unknown>)[ROUTER_META]).toEqual({ version: 3 });
+    expect((honoBaseProto.route as unknown as Record<string, unknown>).pluginId).toBe('openapi-router');
   });
 
-  it('preserves function.length of the original route method', () => {
-    honoBaseProto.route = originalRoute;
-    const originalLength = originalRoute.length;
+  it('preserves the prototype chain of the original route method', () => {
+    reinstallOverPristineRoute();
 
-    installRouteHookOnPrototype();
-
-    expect(honoBaseProto.route!.length).toBe(originalLength);
+    expect(Object.getPrototypeOf(honoBaseProto.route)).toBe(Object.getPrototypeOf(originalRoute));
   });
 
-  it('preserves symbol-keyed properties on the route method', () => {
-    honoBaseProto.route = originalRoute;
-    const ROUTER_META = Symbol('router-meta');
-    (originalRoute as any)[ROUTER_META] = { version: 3 };
+  it('still mounts sub-apps and returns the parent app', () => {
+    reinstallOverPristineRoute();
 
-    installRouteHookOnPrototype();
-
-    const symbols = Object.getOwnPropertySymbols(honoBaseProto.route!);
-    expect(symbols).toContain(ROUTER_META);
-    expect((honoBaseProto.route as any)[ROUTER_META]).toEqual({ version: 3 });
-  });
-
-  it('preserves string-keyed custom properties on the route method', () => {
-    honoBaseProto.route = originalRoute;
-    (originalRoute as any).pluginId = 'openapi-router';
-    (originalRoute as any).__patched_by_other_lib__ = true;
-
-    installRouteHookOnPrototype();
-
-    expect((honoBaseProto.route as any).pluginId).toBe('openapi-router');
-    expect((honoBaseProto.route as any).__patched_by_other_lib__).toBe(true);
-  });
-
-  it('preserves prototype chain of the original function', () => {
-    honoBaseProto.route = originalRoute;
-    const originalProto = Object.getPrototypeOf(originalRoute);
-
-    installRouteHookOnPrototype();
-
-    expect(Object.getPrototypeOf(honoBaseProto.route!)).toBe(originalProto);
-  });
-
-  it('correctly calls the original route and preserves return value', () => {
-    honoBaseProto.route = originalRoute;
-    installRouteHookOnPrototype();
-
-    const app = new Hono();
-    applyPatches(app);
-
+    const parent = new Hono();
     const subApp = new Hono();
     subApp.get('/test', c => c.text('ok'));
 
-    const result = app.route('/api', subApp);
-    expect(result).toBe(app);
+    expect(parent.route('/api', subApp)).toBe(parent);
   });
 });

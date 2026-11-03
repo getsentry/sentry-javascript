@@ -9,7 +9,7 @@ import type { RouteManifest } from '../manifest/types';
 import { constructTurbopackConfig } from '../turbopack';
 import type { NextConfigObject, SentryBuildOptions, TurbopackOptions } from '../types';
 import { detectActiveBundler, supportsProductionCompileHook, supportsTurbopackRuleCondition } from '../util';
-import { constructWebpackConfigFunction } from '../webpack';
+import { constructWebpackConfigFunction, getTreeshakeDefines } from '../webpack';
 import { DEFAULT_SERVER_EXTERNAL_PACKAGES } from './constants';
 import type { VercelCronsConfigResult } from './getFinalConfigObjectUtils';
 
@@ -350,6 +350,35 @@ export function getWebpackPatch({
       useRunAfterProductionCompileHook: shouldUseRunAfterProductionCompileHook,
       vercelCronsConfigResult,
     }),
+  };
+}
+
+/**
+ * Applies the `bundleSizeOptimizations` flags to Turbopack builds through `compiler.define`.
+ *
+ * Note: this mutates `incomingUserNextConfigObject`.
+ */
+export function maybeSetTurbopackTreeshakeDefines(
+  incomingUserNextConfigObject: NextConfigObject,
+  userSentryOptions: SentryBuildOptions,
+  bundlerInfo: BundlerInfo,
+): void {
+  if (!bundlerInfo.isTurbopackSupported || !bundlerInfo.isTurbopack) {
+    return;
+  }
+
+  const defines = getTreeshakeDefines(userSentryOptions);
+  if (Object.keys(defines).length === 0) {
+    return;
+  }
+
+  incomingUserNextConfigObject.compiler = {
+    ...incomingUserNextConfigObject.compiler,
+    define: {
+      // Must stay booleans: Turbopack injects string values as string literals, so `'false'` would be truthy.
+      ...defines,
+      ...incomingUserNextConfigObject.compiler?.define,
+    },
   };
 }
 

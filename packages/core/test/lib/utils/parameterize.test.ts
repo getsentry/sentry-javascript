@@ -24,4 +24,20 @@ describe('parameterize()', () => {
     expect(formatted.__sentry_template_string__).toEqual(string.__sentry_template_string__);
     expect(formatted.__sentry_template_values__).toEqual(string.__sentry_template_values__);
   });
+
+  test('keeps escape sequences the same in the message and the template', () => {
+    const x = 'first';
+    const formatted = parameterize`Line one\nline two with ${x} → \`done\``;
+
+    expect(String(formatted)).toBe('Line one\nline two with first → `done`');
+    expect(formatted.__sentry_template_string__).toBe('Line one\nline two with %s → `done`');
+  });
+
+  test('keeps the raw text of a string with an invalid escape sequence', () => {
+    const file = 'app.log';
+    const formatted = parameterize`Reading C:\users ${file}`;
+
+    expect(String(formatted)).toBe('Reading C:\\users app.log');
+    expect(formatted.__sentry_template_string__).toBe('Reading C:\\users %s');
+  });
 });

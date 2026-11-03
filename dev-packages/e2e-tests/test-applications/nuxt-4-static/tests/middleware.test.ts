@@ -171,9 +171,9 @@ test.describe('Server Middleware Instrumentation', () => {
     expect(onBeforeResponseSpan?.data?.['nuxt.middleware.hook.name']).toBe('onBeforeResponse');
 
     // Verify no index attributes for single hooks
-    expect(onRequestSpan?.data).not.toHaveProperty('nuxt.middleware.hook.index');
-    expect(handlerSpan?.data).not.toHaveProperty('nuxt.middleware.hook.index');
-    expect(onBeforeResponseSpan?.data).not.toHaveProperty('nuxt.middleware.hook.index');
+    expect(onRequestSpan?.data).not.toHaveProperty(['nuxt.middleware.hook.index']);
+    expect(handlerSpan?.data).not.toHaveProperty(['nuxt.middleware.hook.index']);
+    expect(onBeforeResponseSpan?.data).not.toHaveProperty(['nuxt.middleware.hook.index']);
   });
 
   test('should create spans with index attributes for array hooks', async ({ request }) => {
@@ -229,7 +229,7 @@ test.describe('Server Middleware Instrumentation', () => {
     expect(onBeforeResponse1Span?.description).toBe('05.array-hooks.onBeforeResponse');
 
     // Verify handler has no index
-    expect(handlerSpan?.data).not.toHaveProperty('nuxt.middleware.hook.index');
+    expect(handlerSpan?.data).not.toHaveProperty(['nuxt.middleware.hook.index']);
   });
 
   test('should handle errors in onRequest hooks', async ({ request }) => {

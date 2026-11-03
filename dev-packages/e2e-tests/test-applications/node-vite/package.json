@@ -11,15 +11,11 @@
   },
   "dependencies": {
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
-    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz",
-    "@sentry/bundler-plugins": "file:../../packed/sentry-bundler-plugins-packed.tgz"
+    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz"
   },
   "devDependencies": {
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "graphql": "16.9.0",
     "vite": "6.4.3"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

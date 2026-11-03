@@ -1,0 +1,23 @@
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+# Node dependencies
+node_modules
+
+# Mock Sentry server artifacts
+.tmp_mock_uploads.json
+.tmp_chunks
+.tmp_build_stdout
+.tmp_build_stderr
+
+# Logs
+logs
+*.log
+
+# Misc
+.DS_Store

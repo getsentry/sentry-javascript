@@ -13,7 +13,6 @@ import {
   instrumentFetchRequest,
   matchesTracePropagationTargets,
   parseUrl,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
   setHttpStatus,
   spanIsIgnored,
@@ -44,6 +43,7 @@ import {
   URL_FRAGMENT,
   URL_FULL,
   URL_QUERY,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HTTP_CLIENT } from '@sentry/conventions/op';
 
@@ -155,7 +155,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         propagateTraceparent,
         onRequestSpanEnd,
         // The generic fetch instrumentation has no page origin to resolve relative URLs against.
-        urlBase: WINDOW.location?.origin,
+        urlBase: WINDOW.location?.href,
       });
 
       // We cannot use `window.location` in the generic fetch instrumentation,
@@ -376,7 +376,7 @@ function xhrCallback(
 
   // `parseUrl` returns the raw authority — userinfo credentials must never reach an attribute.
   const host = parsedUrl?.host?.replace(/^.*@/, '');
-  // `getFullURL` already resolved relative URLs against the page origin; only data URLs have no domain.
+  // `getFullURL` already resolved relative URLs against the page URL; only data URLs have no domain.
   const domain = getUrlDomain(fullUrl || url);
 
   // With span streaming, span names have to be low cardinality, so only the domain is kept.
@@ -393,7 +393,7 @@ function xhrCallback(
             [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
             [SERVER_ADDRESS]: host,
             [URL_DOMAIN]: domain,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
+            [SENTRY_ORIGIN]: 'auto.http.browser',
             [SENTRY_OP]: HTTP_CLIENT,
             [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl?.search)),
             [URL_FRAGMENT]: getUrlFragment(parsedUrl?.hash),

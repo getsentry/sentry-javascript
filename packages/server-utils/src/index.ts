@@ -8,6 +8,7 @@ import { attachHapiErrorHandler as _attachHapiErrorHandler } from './integration
 export { bindTracingChannelToSpan } from './tracing-channel';
 export type { TracingChannelPayloadWithSpan } from './tracing-channel';
 export type { InstrumentationConfig } from './orchestrion/apmTypes';
+export type { OrchestrionChannelContext } from './orchestrion/types';
 // Runtime target of the bundler-injected module snippet. The snippet imports it
 // from this entry alongside the module's subscriber factory (see
 // `orchestrion/bundler/moduleInjectedTransform.ts`); it is a plain runtime
@@ -37,9 +38,15 @@ export { anthropicAIIntegration } from './integrations/anthropic';
 export { awsIntegration } from './integrations/aws-sdk';
 export { dataloaderIntegration } from './integrations/dataloader';
 export { genericPoolIntegration } from './integrations/generic-pool';
+export { nodeCronIntegration } from './integrations/node-cron';
+export type { NodeCronIntegrationOptions } from './integrations/node-cron';
+export { nodeScheduleIntegration } from './integrations/node-schedule';
+export type { NodeScheduleIntegrationOptions } from './integrations/node-schedule';
 export { googleGenAIIntegration } from './integrations/google-genai';
 export { graphqlIntegration } from './integrations/graphql';
 export { hapiIntegration } from './integrations/hapi';
+export { honoIntegration, honoMiddleware } from './integrations/hono';
+export type { HonoIntegrationOptions } from './integrations/hono';
 export { koaIntegration } from './integrations/koa';
 export { redisIntegration } from './integrations/redis';
 export { kafkaIntegration } from './integrations/kafkajs';
@@ -48,6 +55,7 @@ export { langChainIntegration } from './integrations/langchain';
 export { langGraphIntegration } from './integrations/langgraph';
 export { createFlueInstrumentation } from './ai/flue';
 export { flueIntegration } from './integrations/flue';
+export { piDurableIntegration } from './integrations/pi-durable';
 export type { FlueOptions } from './ai/flue';
 export { mastraIntegration } from './integrations/mastra';
 export { mcpServerIntegration } from './integrations/mcp-server';
@@ -62,8 +70,9 @@ export { typesafeIntegration } from './integrations/typesafe';
 export { mysqlIntegration } from './integrations/mysql';
 export { mysql2Integration } from './integrations/mysql2';
 export { openAIIntegration } from './integrations/openai';
-export { postgresIntegration } from './integrations/postgres';
-export { postgresJsIntegration } from './integrations/postgres-js';
+export { postgresIntegration } from './integrations/pg';
+export { postgresJsIntegration } from './integrations/postgresjs';
+export { neonIntegration } from './integrations/neon';
 export { tediousIntegration } from './integrations/tedious';
 export { vercelAIIntegration } from './integrations/vercel-ai';
 export { expressIntegration } from './integrations/express';
@@ -72,5 +81,7 @@ export type { ExpressIntegrationOptions } from './integrations/express/types';
 export { expressErrorHandler, setupExpressErrorHandler } from './integrations/express/error-handler';
 /* oxlint-enable typescript/no-deprecated */
 export { firebaseIntegration } from './integrations/firebase';
+export { nitroIntegration } from './integrations/nitro';
+export type { NitroIntegrationOptions } from './integrations/nitro';
 
 export { getTracingIntegrations, getErrorIntegrations } from './integrations';

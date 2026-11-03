@@ -5,14 +5,8 @@
  * directly from `react` / `react-router` so `reactRouterBrowserTracingIntegration()` can be used
  * without passing them in.
  */
-import {
-  createTransport,
-  getCurrentScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  setCurrentClient,
-} from '@sentry/core';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { createTransport, getCurrentScope, setCurrentClient } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { fireEvent, render } from '@testing-library/react';
 import * as React from 'react';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router';
@@ -78,12 +72,77 @@ describe('@sentry/react/react-router', () => {
       name: 'Pageload',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SENTRY_OP]: 'pageload',
         // version-agnostic origin (no `_v6`/`_v7` suffix)
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter',
+        [SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter',
       },
     });
     expect(getCurrentScope().getScopeData().transactionName).toEqual('/about');
+  });
+
+  it.each([
+    ['/clubs/%ED%95%9C%EA%B8%80', 'non-ASCII, what a browser holds for `/clubs/한글`'],
+    ['/clubs/%2541', 'still looks percent-encoded after decoding (`%41`)'],
+    ['/clubs/100%25', 'not valid percent-encoding after decoding (`100%`)'],
+  ])('parameterizes a pageload whose pathname has a percent-encoded parameter (%s: %s)', pathname => {
+    const client = createMockBrowserClient();
+    setCurrentClient(client);
+
+    client.addIntegration(reactRouterBrowserTracingIntegration());
+
+    const SentryRoutes = wrapReactRouterRouting(Routes);
+
+    render(
+      <MemoryRouter initialEntries={[pathname]}>
+        <SentryRoutes>
+          <Route path="/" element={<div>Home</div>} />
+          <Route path="/clubs/:clubId" element={<div>Club</div>} />
+        </SentryRoutes>
+      </MemoryRouter>,
+    );
+
+    expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
+    expect(getCurrentScope().getScopeData().transactionName).toEqual('/clubs/:clubId');
+  });
+
+  it('parameterizes a navigation whose pathname has a percent-encoded parameter', () => {
+    const client = createMockBrowserClient();
+    setCurrentClient(client);
+
+    client.addIntegration(reactRouterBrowserTracingIntegration());
+
+    const SentryRoutes = wrapReactRouterRouting(Routes);
+
+    function Home(): React.ReactElement {
+      const navigate = useNavigate();
+      return (
+        <button type="button" onClick={() => navigate('/clubs/%ED%95%9C%EA%B8%80')}>
+          to club
+        </button>
+      );
+    }
+
+    const { getByText } = render(
+      <MemoryRouter initialEntries={['/']}>
+        <SentryRoutes>
+          <Route path="/" element={<Home />} />
+          <Route path="/clubs/:clubId" element={<div>Club</div>} />
+        </SentryRoutes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(getByText('to club'));
+
+    expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+    expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+      name: '/clubs/:clubId',
+      attributes: {
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+        [URL_TEMPLATE]: '/clubs/:clubId',
+        [SENTRY_OP]: 'navigation',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter',
+      },
+    });
   });
 
   it('reactRouterBrowserTracingIntegration() instruments a navigation without passing router hooks', () => {
@@ -120,8 +179,8 @@ describe('@sentry/react/react-router', () => {
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [URL_TEMPLATE]: '/about',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter',
+        [SENTRY_OP]: 'navigation',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter',
       },
     });
   });

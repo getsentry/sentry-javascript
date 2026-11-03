@@ -192,6 +192,18 @@ export interface Options {
      * Use the `debug` option to print information about which files end up being deleted.
      */
     filesToDeleteAfterUpload?: string | string[] | Promise<string | string[] | undefined>;
+
+    /**
+     * Whether source maps are removed from the build output after they are uploaded to Sentry.
+     *
+     * When unset, the plugin removes only the source maps it turned on itself, that is, when the bundler's source map
+     * setting was not set. `true` also removes source maps you enabled yourself. `false` never removes them; the plugin
+     * still turns on hidden source maps when the setting is not set, so they can be uploaded.
+     *
+     * With Rollup, Vite and webpack the removed source maps are never written to the output directory. With esbuild
+     * they are deleted after the upload.
+     */
+    deleteSourcemapsAfterUpload?: boolean;
   };
 
   /**

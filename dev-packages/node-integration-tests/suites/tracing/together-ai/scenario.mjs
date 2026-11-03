@@ -129,6 +129,31 @@ async function run() {
       model: 'togethercomputer/m2-bert-80M-8k-retrieval',
       input: 'Embedding test!',
     });
+
+    const rawChatResponse = await client.chat.completions
+      .create({
+        model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+        messages: [{ role: 'user', content: 'Raw response test!' }],
+      })
+      .asResponse();
+    await rawChatResponse.json();
+
+    const rawStreamResponse = await client.chat.completions
+      .create({
+        model: 'meta-llama/Llama-3.1-8B-Instruct-Turbo',
+        messages: [{ role: 'user', content: 'Raw stream test!' }],
+        stream: true,
+      })
+      .asResponse();
+    await rawStreamResponse.text();
+
+    const rawEmbeddingsResponse = await client.embeddings
+      .create({
+        model: 'togethercomputer/m2-bert-80M-8k-retrieval',
+        input: 'Raw embedding test!',
+      })
+      .asResponse();
+    await rawEmbeddingsResponse.json();
   });
 
   await Sentry.flush(2000);

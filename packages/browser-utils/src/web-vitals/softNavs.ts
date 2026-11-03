@@ -1,6 +1,6 @@
 import type { Client, Span } from '@sentry/core';
-import { debug, LRUMap, SEMANTIC_ATTRIBUTE_SENTRY_OP, spanToJSON } from '@sentry/core';
-import { BROWSER_NAVIGATION_ID } from '@sentry/conventions/attributes';
+import { debug, LRUMap, spanToJSON } from '@sentry/core';
+import { BROWSER_NAVIGATION_ID, SENTRY_OP } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { PerformanceSoftNavigation } from '../instrumentation/performanceObserver';
 import { addPerformanceInstrumentationHandler, isPerformanceEventTiming } from '../instrumentation/performanceObserver';
@@ -113,7 +113,7 @@ export function startSoftNavigationCorrelation(client: Client): void {
   WINDOW.addEventListener('keydown', onInteraction, { capture: true, passive: true });
 
   client.on('spanStart', span => {
-    if (spanToJSON(span).attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] !== 'navigation') {
+    if (spanToJSON(span).attributes?.[SENTRY_OP] !== 'navigation') {
       return;
     }
 

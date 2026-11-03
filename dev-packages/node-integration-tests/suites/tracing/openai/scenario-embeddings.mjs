@@ -73,6 +73,14 @@ async function run() {
       input: ['First input text', 'Second input text', 'Third input text'],
       model: 'text-embedding-3-small',
     });
+
+    const rawResponse = await client.embeddings
+      .create({
+        input: 'Raw embedding test!',
+        model: 'text-embedding-3-large',
+      })
+      .asResponse();
+    await rawResponse.json();
   });
 
   server.close();

@@ -22,6 +22,7 @@ vi.mock('@sentry/core', async () => {
   return {
     ...actual,
     browserPerformanceTimeOrigin: vi.fn(),
+    _INTERNAL_performanceTimeToSeconds: vi.fn(),
     timestampInSeconds: vi.fn(),
     getCurrentScope: vi.fn(),
     getClient: vi.fn(),
@@ -98,7 +99,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test Vital',
       op: 'ui.webvital.lcp',
-      origin: 'auto.http.browser.lcp',
+      origin: 'auto.ui.browser.lcp',
       metricName: 'lcp',
       value: 100,
       startTime: 1.5,
@@ -107,7 +108,7 @@ describe('_emitWebVitalSpan', () => {
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith({
       name: 'Test Vital',
       attributes: {
-        'sentry.origin': 'auto.http.browser.lcp',
+        'sentry.origin': 'auto.ui.browser.lcp',
         'sentry.op': 'ui.webvital.lcp',
         'sentry.exclusive_time': 0,
         'browser.web_vital.lcp.value': 100,
@@ -134,7 +135,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test Vital',
       op: 'ui.webvital.lcp',
-      origin: 'auto.http.browser.lcp',
+      origin: 'auto.ui.browser.lcp',
       metricName: 'lcp',
       value: 100,
       startTime: 1.5,
@@ -155,7 +156,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.interaction.click',
-      origin: 'auto.http.browser.inp',
+      origin: 'auto.ui.browser.inp',
       metricName: 'inp',
       value: 100,
       startTime: 1.5,
@@ -175,7 +176,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.interaction.click',
-      origin: 'auto.http.browser.inp',
+      origin: 'auto.ui.browser.inp',
       metricName: 'inp',
       value: 100,
       startTime: 1.5,
@@ -200,7 +201,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.interaction.click',
-      origin: 'auto.http.browser.inp',
+      origin: 'auto.ui.browser.inp',
       metricName: 'inp',
       value: 100,
       startTime: 1.5,
@@ -222,7 +223,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.interaction.click',
-      origin: 'auto.http.browser.inp',
+      origin: 'auto.ui.browser.inp',
       metricName: 'inp',
       value: 100,
       startTime: 1.5,
@@ -243,7 +244,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.webvital.lcp',
-      origin: 'auto.http.browser.lcp',
+      origin: 'auto.ui.browser.lcp',
       metricName: 'lcp',
       value: 50,
       parentSpan: mockPageloadSpan as any,
@@ -269,7 +270,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.interaction.click',
-      origin: 'auto.http.browser.inp',
+      origin: 'auto.ui.browser.inp',
       metricName: 'inp',
       value: 50,
       parentSpan: mockNonPageloadSpan as any,
@@ -289,7 +290,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.webvital.lcp',
-      origin: 'auto.http.browser.lcp',
+      origin: 'auto.ui.browser.lcp',
       metricName: 'lcp',
       value: 50,
       attributes: { 'custom.attr': 'value' },
@@ -312,7 +313,7 @@ describe('_emitWebVitalSpan', () => {
       _emitWebVitalSpan({
         name: 'Test',
         op: 'ui.webvital.lcp',
-        origin: 'auto.http.browser.lcp',
+        origin: 'auto.ui.browser.lcp',
         metricName: 'lcp',
         value: 50,
         startTime: 1.0,
@@ -332,7 +333,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.webvital.lcp',
-      origin: 'auto.http.browser.lcp',
+      origin: 'auto.ui.browser.lcp',
       metricName: 'lcp',
       value: 50,
       startTime: 1.0,
@@ -350,7 +351,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.webvital.lcp',
-      origin: 'auto.http.browser.lcp',
+      origin: 'auto.ui.browser.lcp',
       metricName: 'lcp',
       value: 50,
       startTime: 1.0,
@@ -378,6 +379,9 @@ describe('_sendLcpSpan', () => {
   beforeEach(() => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
+    vi.mocked(SentryCore._INTERNAL_performanceTimeToSeconds).mockImplementation(
+      (time, entryStartTime = time) => (SentryCore.browserPerformanceTimeOrigin(entryStartTime)! + time) / 1000,
+    );
     vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.spanToJSON).mockReturnValue({
@@ -388,6 +392,7 @@ describe('_sendLcpSpan', () => {
     vi.mocked(SentryCore.getClient).mockReturnValue({
       getOptions: () => ({ traceLifecycle: 'static' }),
       getIntegrationByName: () => undefined,
+      getDataCollectionOptions: () => ({ urlQueryParams: true }),
     } as any);
   });
 
@@ -399,7 +404,7 @@ describe('_sendLcpSpan', () => {
     const mockEntry = {
       element: { tagName: 'img' } as Element,
       id: 'hero',
-      url: 'https://example.com/hero.jpg',
+      url: 'https://example.com/hero.jpg?token=abc&size=2',
       loadTime: 100,
       renderTime: 150,
       size: 50000,
@@ -414,13 +419,13 @@ describe('_sendLcpSpan', () => {
       expect.objectContaining({
         name: '<img>',
         attributes: expect.objectContaining({
-          'sentry.origin': 'auto.http.browser.lcp',
+          'sentry.origin': 'auto.ui.browser.lcp',
           'sentry.op': 'ui.webvital.lcp',
           'sentry.exclusive_time': 0,
           'sentry.pageload.span_id': 'pageload-123',
           'browser.web_vital.lcp.element': '<img>',
           'browser.web_vital.lcp.id': 'hero',
-          'browser.web_vital.lcp.url': 'https://example.com/hero.jpg',
+          'browser.web_vital.lcp.url': 'https://example.com/hero.jpg?token=[Filtered]&size=2',
           'browser.web_vital.lcp.load_time': 100,
           'browser.web_vital.lcp.render_time': 150,
           'browser.web_vital.lcp.size': 50000,
@@ -475,6 +480,22 @@ describe('_sendLcpSpan', () => {
     expect(mockSpan.end).toHaveBeenCalledWith(3.25);
   });
 
+  it('uses the time origin from the start of a soft navigation for LCP', () => {
+    // The soft navigation happens after a time origin correction.
+    const sleepDurationMs = 3_600_000;
+    vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockImplementation((monotonicTimeInMs = 0) =>
+      monotonicTimeInMs < 1500 ? 1000 : 1000 + sleepDurationMs,
+    );
+    const entry = { element: { tagName: 'img' } as Element, startTime: 2250 } as LargestContentfulPaint;
+
+    _sendLcpSpan(250, entry, undefined, 2, 'soft-navigation', 2000);
+
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({ startTime: (1000 + sleepDurationMs + 2000) / 1000 }),
+    );
+    expect(mockSpan.end).toHaveBeenCalledWith((1000 + sleepDurationMs + 2250) / 1000);
+  });
+
   it('drops implausible LCP values', () => {
     _sendLcpSpan(0, undefined);
     _sendLcpSpan(MAX_PLAUSIBLE_LCP_DURATION + 1, undefined);
@@ -497,6 +518,7 @@ describe('_sendClsSpan', () => {
   beforeEach(() => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
+    vi.mocked(SentryCore._INTERNAL_performanceTimeToSeconds).mockImplementation(time => (1000 + time) / 1000);
     vi.mocked(SentryCore.timestampInSeconds).mockReturnValue(1.5);
     vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue(mockSpan as any);
@@ -545,7 +567,7 @@ describe('_sendClsSpan', () => {
       expect.objectContaining({
         name: '<div>',
         attributes: expect.objectContaining({
-          'sentry.origin': 'auto.http.browser.cls',
+          'sentry.origin': 'auto.ui.browser.cls',
           'sentry.op': 'ui.webvital.cls',
           'sentry.pageload.span_id': 'pageload-789',
           'browser.web_vital.cls.source.1': '<div>',
@@ -590,6 +612,7 @@ describe('_sendClsSpan', () => {
 
   it('falls back to the current time when there is no performance time origin', () => {
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(undefined);
+    vi.mocked(SentryCore._INTERNAL_performanceTimeToSeconds).mockReturnValue(undefined);
 
     _sendClsSpan(0, undefined);
 
@@ -612,6 +635,7 @@ describe('_sendInpSpan', () => {
   beforeEach(() => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
+    vi.mocked(SentryCore._INTERNAL_performanceTimeToSeconds).mockImplementation(time => (1000 + time) / 1000);
     vi.mocked(htmlTreeAsString).mockReturnValue('<button>');
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
@@ -652,7 +676,7 @@ describe('_sendInpSpan', () => {
         name: '<button>',
         startTime: 1.5,
         attributes: expect.objectContaining({
-          'sentry.origin': 'auto.http.browser.inp',
+          'sentry.origin': 'auto.ui.browser.inp',
           'sentry.op': 'ui.interaction.click',
           'sentry.exclusive_time': 120,
           'browser.web_vital.inp.target': '<button>',
@@ -664,6 +688,29 @@ describe('_sendInpSpan', () => {
     );
 
     // endTime = startTime + duration = 1.5 + 120/1000 = 1.62
+    expect(mockSpan.end).toHaveBeenCalledWith(1.62);
+  });
+
+  it('uses the time origin from when the interaction happened, not from when it was reported', () => {
+    vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
+
+    // INP is reported on pagehide. If the device slept in between, the time origin was corrected, but the interaction
+    // should still use the old one.
+    const sleepDurationMs = 3_600_000;
+    vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000 + sleepDurationMs);
+    vi.mocked(SentryCore._INTERNAL_performanceTimeToSeconds).mockImplementation(time =>
+      time < 500 ? (1000 + sleepDurationMs + time) / 1000 : (1000 + time) / 1000,
+    );
+
+    _sendInpSpan(120, {
+      name: 'pointerdown',
+      startTime: 500,
+      duration: 120,
+      interactionId: 1,
+      target: { tagName: 'button' },
+    } as any);
+
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ startTime: 1.5 }));
     expect(mockSpan.end).toHaveBeenCalledWith(1.62);
   });
 
@@ -792,6 +839,7 @@ describe('trackInpAsSpan', () => {
 
   beforeEach(() => {
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
+    vi.mocked(SentryCore._INTERNAL_performanceTimeToSeconds).mockImplementation(time => (1000 + time) / 1000);
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
@@ -890,6 +938,7 @@ describe('soft navigation web vitals', () => {
       supportedEntryTypes: ['largest-contentful-paint', 'layout-shift', 'soft-navigation'],
     });
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
+    vi.mocked(SentryCore._INTERNAL_performanceTimeToSeconds).mockImplementation(time => (1000 + time) / 1000);
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
     vi.mocked(SentryCore.spanToJSON).mockImplementation(

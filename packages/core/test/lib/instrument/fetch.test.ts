@@ -121,4 +121,46 @@ describe('instrument > addFetchInstrumentationHandler', () => {
 
     expect(error.message).toBe('Failed to fetch (example.com)');
   });
+
+  describe('relative URLs', () => {
+    const globalWithLocation = GLOBAL_OBJ as typeof GLOBAL_OBJ & { location?: { href: string } };
+
+    afterEach(() => {
+      Reflect.deleteProperty(globalWithLocation, 'location');
+    });
+
+    async function failWith(target: string): Promise<TypeError> {
+      const error = new TypeError('Failed to fetch');
+      globalThis.fetch = vi.fn<typeof fetch>().mockRejectedValue(error);
+      addFetchInstrumentationHandler(() => undefined);
+      await expect(globalThis.fetch(target)).rejects.toBe(error);
+      return error;
+    }
+
+    it.each([
+      ['a relative path', 'https://app.example.com/some/page?x=1', '/api/users', 'Failed to fetch (app.example.com)'],
+      ['an empty URL (`fetch("")`)', 'https://app.example.com/some/page?x=1', '', 'Failed to fetch (app.example.com)'],
+      ['a relative path with no current page', undefined, '/api/users', 'Failed to fetch'],
+      ['a relative path on a `file://` page', 'file:///C:/app/index.html', '/api/users', 'Failed to fetch'],
+      ['a relative path in a sandboxed srcdoc iframe', 'about:srcdoc', '/api/users', 'Failed to fetch'],
+      [
+        'an absolute URL in a sandboxed srcdoc iframe',
+        'about:srcdoc',
+        'https://api.example.org/v1/users',
+        'Failed to fetch (api.example.org)',
+      ],
+      [
+        'an absolute URL, ignoring the current page',
+        'https://app.example.com/some/page',
+        'https://other.example.org/x',
+        'Failed to fetch (other.example.org)',
+      ],
+    ])('handles %s', async (_name, href, target, expected) => {
+      if (href) {
+        globalWithLocation.location = { href };
+      }
+
+      expect((await failWith(target)).message).toBe(expected);
+    });
+  });
 });

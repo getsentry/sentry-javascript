@@ -1,47 +1,35 @@
+import { PAGELOAD } from '@sentry/conventions/op';
+import { URL_PATH } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import {
-  getMultipleSentryEnvelopeRequests,
+  envelopeRequestParser,
+  waitForErrorRequest,
   runScriptInSandbox,
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest(
-  'should put the pageload transaction name onto an error event caught during pageload',
+  'puts the page path onto an error caught during pageload',
   async ({ getLocalTestUrl, page, browserName }) => {
-    if (browserName === 'webkit') {
-      // This test fails on Webkit as errors thrown from `runScriptInSandbox` are Script Errors and skipped by Sentry
-      sentryTest.skip();
-    }
-
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
-
+    // WebKit treats errors from runScriptInSandbox as Script Errors, which Sentry skips.
+    sentryTest.skip(shouldSkipTracingTest() || browserName === 'webkit');
     const url = await getLocalTestUrl({ testDir: __dirname });
-
-    const errorEventsPromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
-
+    const spans = collectStreamedSpans(page);
+    const pageloadPromise = waitForStreamedSpan(page, span => getSpanOp(span) === PAGELOAD);
+    const errorPromise = waitForErrorRequest(page);
     await page.goto(url);
-
-    await runScriptInSandbox(page, {
-      content: `
-          throw new Error('Error during pageload');
-        `,
-    });
-
-    const [e1, e2] = await errorEventsPromise;
-
-    const pageloadTxnEvent = e1.type === 'transaction' ? e1 : e2;
-    const errorEvent = e1.type === 'transaction' ? e2 : e1;
-
-    expect(pageloadTxnEvent.contexts?.trace?.op).toEqual('pageload');
-    expect(pageloadTxnEvent.spans?.length).toBeGreaterThan(0);
-    expect(errorEvent.exception?.values?.[0]).toBeDefined();
-
-    expect(pageloadTxnEvent.transaction?.endsWith('index.html')).toBe(true);
-
-    expect(errorEvent.transaction).toEqual(pageloadTxnEvent.transaction);
+    await runScriptInSandbox(page, { content: "throw new Error('Error during pageload');" });
+    const [pageload, errorRequest] = await Promise.all([pageloadPromise, errorPromise]);
+    await page.evaluate(() => (window as any).Sentry.flush());
+    expect(getSpanOp(pageload)).toBe(PAGELOAD);
+    expect(spans.filter(span => !span.is_segment)).not.toHaveLength(0);
+    const error = envelopeRequestParser<Event>(errorRequest);
+    expect(error.exception?.values?.[0]).toBeDefined();
+    expect(pageload.name).toBe('Pageload');
+    expect(error.transaction).toBe('/index.html');
+    expect(error.transaction).toBe(pageload.attributes[URL_PATH]?.value);
   },
 );

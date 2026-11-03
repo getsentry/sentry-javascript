@@ -45,7 +45,7 @@ describe('makeServerBuildCapturePlugin', () => {
     expect(result).not.toBeNull();
     expect(result.code).toContain(SERVER_BUILD_CODE);
     expect(result.code).toContain('__sentrySetServerBuild');
-    expect(result.code).toContain('({ routes })');
+    expect(result.code).toContain("({ routes, prerender: typeof prerender !== 'undefined' ? prerender : undefined })");
     expect(result.map).toBeNull();
   });
 });

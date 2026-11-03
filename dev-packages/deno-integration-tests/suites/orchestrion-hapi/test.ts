@@ -2,27 +2,26 @@
 
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { DenoClient } from '@sentry/deno';
-import { init, startSpan } from '@sentry/deno';
+import { flush, init, startSpan } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
-import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
+import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('hapi instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
-  const client = init({ traceLifecycle: 'static', dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({ dsn: 'https://username@domain/123' }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
   assert(names.includes('Hapi'), `Hapi should be in defaults, got ${names.join(', ')}`);
 });
 
 Deno.test('hapi instrumentation: orchestrion:@hapi/hapi:route channel wraps the route handler into a span', async () => {
   resetGlobals();
-  const sink = transactionSink();
+  const sink = spanSink();
   init({
-    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    beforeSendTransaction: sink.beforeSendTransaction,
+    transport: sink.transport,
   });
 
   // `start` wraps the route's `handler` in place; the span opens when that
@@ -36,16 +35,22 @@ Deno.test('hapi instrumentation: orchestrion:@hapi/hapi:route channel wraps the 
     wrappedRoute.handler({}, {});
   });
 
-  const parent = await withTimeout(
-    sink.waitFor(t => t.transaction === 'parent'),
-    5000,
-    "'parent' transaction",
-  );
+  await flush();
 
-  const hapiSpan = parent.spans?.find(s => s.op === 'router');
-  assertExists(hapiSpan, `expected a router span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
-  assertEquals(hapiSpan!.description, 'GET /hello');
-  assertEquals(hapiSpan!.data?.['hapi.type'], 'router');
-  assertEquals(hapiSpan!.data?.['http.route'], '/hello');
-  assertEquals(hapiSpan!.data?.['sentry.origin'], 'auto.http.hapi');
+  const parent = await withTimeout(
+    sink.waitFor(span => span.is_segment && span.name === 'parent'),
+    5000,
+    "'parent' segment span",
+  );
+  const children = sink.spans.filter(span => span.parent_span_id === parent.span_id);
+  assertEquals(children.length, 1);
+  assertEquals(children[0]!.trace_id, parent.trace_id);
+  assertEquals(children[0]!.is_segment, false);
+
+  const hapiSpan = children.find(s => getSpanOp(s) === 'router');
+  assertExists(hapiSpan, `expected a router span, got ops: ${children.map(s => getSpanOp(s)).join(', ')}`);
+  assertEquals(hapiSpan.name, '/hello');
+  assertEquals(hapiSpan.attributes['hapi.type']?.value, 'router');
+  assertEquals(hapiSpan.attributes['http.route']?.value, '/hello');
+  assertEquals(hapiSpan.attributes['sentry.origin']?.value, 'auto.http.hapi');
 });

@@ -84,7 +84,7 @@ export default defineConfig([
   /**
    * Disable type-aware lint rules for all .ts and .gts files because
    * ember-eslint-parser doesn't support getTypeAtLocation.
-   * Type safety is enforced by `yarn lint:types` (ember-tsc --noEmit).
+   * Type safety is enforced by `pnpm run lint:types` (ember-tsc --noEmit).
    * See: https://github.com/ember-tooling/ember-eslint-parser/issues/180
    */
   {

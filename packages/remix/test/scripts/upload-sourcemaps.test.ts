@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createMock = vi.fn();
 const uploadSourceMapsMock = vi.fn();
@@ -38,7 +38,6 @@ await vi.hoisted(async () =>
   }),
 );
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { createRelease } = require('../../scripts/createRelease');
 
 beforeEach(() => {
@@ -48,12 +47,16 @@ beforeEach(() => {
   proposeVersionMock.mockClear();
 });
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 describe('createRelease', () => {
   it('should use release param when given', async () => {
-    await createRelease({ release: '0.1.2.3' }, '~/build/', 'public/build');
+    await createRelease({ release: '0.1.2.3', project: 'my-project' }, '~/build/', 'public/build');
 
     expect(proposeVersionMock).not.toHaveBeenCalled();
-    expect(createMock).toHaveBeenCalledWith({ orgVersion: '0.1.2.3' });
+    expect(createMock).toHaveBeenCalledWith({ orgVersion: '0.1.2.3', project: 'my-project' });
     expect(uploadSourceMapsMock).toHaveBeenCalledWith({
       directory: 'public/build',
       release: '0.1.2.3',
@@ -64,10 +67,10 @@ describe('createRelease', () => {
   });
 
   it('should call `proposeVersion` when release param is not given.', async () => {
-    await createRelease({}, '~/build/', 'public/build');
+    await createRelease({ project: 'my-project' }, '~/build/', 'public/build');
 
     expect(proposeVersionMock).toHaveBeenCalled();
-    expect(createMock).toHaveBeenCalledWith({ orgVersion: '0.1.2.3.4' });
+    expect(createMock).toHaveBeenCalledWith({ orgVersion: '0.1.2.3.4', project: 'my-project' });
     expect(uploadSourceMapsMock).toHaveBeenCalledWith({
       directory: 'public/build',
       release: '0.1.2.3.4',
@@ -80,6 +83,7 @@ describe('createRelease', () => {
   it('should use given buildPath and urlPrefix over the defaults when given.', async () => {
     await createRelease(
       {
+        project: 'my-project',
         urlPrefix: '~/build/',
         buildPath: 'public/build',
       },
@@ -88,7 +92,7 @@ describe('createRelease', () => {
     );
 
     expect(proposeVersionMock).toHaveBeenCalled();
-    expect(createMock).toHaveBeenCalledWith({ orgVersion: '0.1.2.3.4' });
+    expect(createMock).toHaveBeenCalledWith({ orgVersion: '0.1.2.3.4', project: 'my-project' });
     expect(uploadSourceMapsMock).toHaveBeenCalledWith({
       directory: 'public/build',
       release: '0.1.2.3.4',
@@ -101,7 +105,7 @@ describe('createRelease', () => {
   it('logs an error when uploadSourceMaps fails', async () => {
     uploadSourceMapsMock.mockRejectedValue(new Error('Failed to upload sourcemaps'));
 
-    await createRelease({}, '~/build/', 'public/build');
+    await createRelease({ project: 'my-project' }, '~/build/', 'public/build');
 
     expect(uploadSourceMapsMock).toHaveBeenCalledWith({
       directory: 'public/build',
@@ -118,12 +122,29 @@ describe('createRelease', () => {
   it('logs an error when finalize fails', async () => {
     finalizeMock.mockRejectedValue(new Error('Failed to finalize release'));
 
-    await createRelease({}, '~/build/', 'public/build');
+    await createRelease({ project: 'my-project' }, '~/build/', 'public/build');
 
     expect(consoleWarnSpy).toHaveBeenCalledWith('[sentry] Failed to finalize release.');
+  });
+
+  it('falls back to SENTRY_PROJECT for the release project', async () => {
+    vi.stubEnv('SENTRY_PROJECT', 'env-project');
+
+    await createRelease({ release: '0.1.2.3' }, '~/build/', 'public/build');
+
+    expect(createMock).toHaveBeenCalledWith({ orgVersion: '0.1.2.3', project: 'env-project' });
+  });
+
+  it('fails before creating a release when no project is known', async () => {
+    vi.stubEnv('SENTRY_PROJECT', '');
+
+    await expect(createRelease({ release: '0.1.2.3' }, '~/build/', 'public/build')).rejects.toThrow('--project');
+
+    expect(createMock).not.toHaveBeenCalled();
   });
 });
 
 // To avoid `--isolatedModules` flag as we're not importing
 // anything for these tests.
+// oxlint-disable-next-line typescript/no-useless-empty-export
 export {};

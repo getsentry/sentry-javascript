@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { parseSemver } from '@sentry/core';
 
-const packageJson = require('../package.json');
-const nextjsVersion = packageJson.dependencies.next;
+const nextPackageJson = require('next/package.json');
+const nextjsVersion = nextPackageJson.version;
 const { major, minor } = parseSemver(nextjsVersion);
 
 test('Should propagate traces from server to client in pages router', async ({ page }) => {

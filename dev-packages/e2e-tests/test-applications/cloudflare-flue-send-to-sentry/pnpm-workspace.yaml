@@ -1,0 +1,7 @@
+allowBuilds:
+  '@google/genai': false
+  core-js-pure: false
+  esbuild: true
+  protobufjs: false
+  workerd: true
+minimumReleaseAge: 0

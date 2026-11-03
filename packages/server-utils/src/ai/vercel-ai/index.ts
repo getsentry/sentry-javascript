@@ -1,6 +1,5 @@
 import type { SpanAttributeValue } from '@sentry/core';
 import {
-  GEN_AI_CONVERSATION_ID,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
@@ -10,8 +9,8 @@ import {
 import type { OpenAiProviderMetadata, ProviderMetadata } from './vercel-ai-attributes';
 
 /**
- * Derive the `gen_ai.usage.*` cache/reasoning/prediction token attributes and `gen_ai.conversation.id`
- * from an AI SDK `providerMetadata` object.
+ * Derive the `gen_ai.usage.*` cache/reasoning/prediction token attributes from an AI SDK
+ * `providerMetadata` object.
  *
  * Used by the `ai` >= 7 tracing-channel subscriber, which receives `providerMetadata` as an object on
  * the channel result. Pass the already-parsed object; unknown/empty input yields `{}`.
@@ -39,7 +38,6 @@ export function getProviderMetadataAttributes(providerMetadata: unknown): Record
       'gen_ai.usage.output_tokens.prediction_rejected',
       openaiMetadata.rejectedPredictionTokens,
     );
-    setAttributeIfDefined(attributes, GEN_AI_CONVERSATION_ID, openaiMetadata.responseId);
   }
 
   if (metadata.anthropic) {

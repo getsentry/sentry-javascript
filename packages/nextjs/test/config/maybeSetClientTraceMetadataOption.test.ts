@@ -3,24 +3,27 @@ import type { NextConfigObject } from '../../src/config/types';
 import { maybeSetClientTraceMetadataOption } from '../../src/config/withSentryConfig/getFinalConfigObjectUtils';
 
 describe('maybeSetClientTraceMetadataOption', () => {
-  it('adds sentry-trace and baggage to clientTraceMetadata on supported Next.js versions', () => {
+  it('adds baggage, sentry-trace, and sentry-cache-origin to clientTraceMetadata on supported Next.js versions', () => {
     const config: NextConfigObject = {};
     maybeSetClientTraceMetadataOption(config, '15.0.0');
-    expect(config.experimental?.clientTraceMetadata).toEqual(['baggage', 'sentry-trace']);
+    expect(config.experimental?.clientTraceMetadata).toEqual(['baggage', 'sentry-trace', 'sentry-cache-origin']);
   });
 
   it('preserves user-provided clientTraceMetadata entries', () => {
     const config: NextConfigObject = { experimental: { clientTraceMetadata: ['my-custom-key'] } };
     maybeSetClientTraceMetadataOption(config, '15.0.0');
-    expect(config.experimental?.clientTraceMetadata).toEqual(['baggage', 'sentry-trace', 'my-custom-key']);
+    expect(config.experimental?.clientTraceMetadata).toEqual([
+      'baggage',
+      'sentry-trace',
+      'sentry-cache-origin',
+      'my-custom-key',
+    ]);
   });
 
-  it('does NOT enable trace meta tags when Cache Components is enabled', () => {
-    // With Cache Components, the shell is prerendered/detached from the request, so the meta-tag
-    // trace would be stale. The SDK skips enabling `clientTraceMetadata` so the browser pageload
-    // starts a fresh trace instead of stitching onto a stale trace.
+  it('enables trace meta tags when Cache Components is enabled', () => {
+    // The server withholds the tags while it prerenders, see `nextSentryPropagator.ts`.
     const config: NextConfigObject = { cacheComponents: true };
     maybeSetClientTraceMetadataOption(config, '16.0.0');
-    expect(config.experimental?.clientTraceMetadata).toBeUndefined();
+    expect(config.experimental?.clientTraceMetadata).toEqual(['baggage', 'sentry-trace', 'sentry-cache-origin']);
   });
 });

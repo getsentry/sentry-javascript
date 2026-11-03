@@ -34,9 +34,4 @@ export type RouteManifest = {
    * List of all static routes
    */
   staticRoutes: RouteInfo[];
-
-  /**
-   * List of ISR/SSG routes (routes with generateStaticParams)
-   */
-  isrRoutes: string[];
 };

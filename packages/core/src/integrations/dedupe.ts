@@ -34,7 +34,12 @@ const _dedupeIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Deduplication filter.
+ * Drops an error or message event if it is equal to the previous error or message event.
+ * Two events are equal if they have the same message (or the same exception type and value),
+ * the same stack trace and the same fingerprint.
+ *
+ * A repeated `captureException` of the same error object is dropped by the client, also without
+ * this integration (see `checkOrSetAlreadyCaught`).
  */
 export const dedupeIntegration = defineIntegration(_dedupeIntegration);
 

@@ -4,8 +4,8 @@ import {
   eventAndTraceHeaderRequestParser,
   shouldSkipTracingTest,
   waitForErrorRequest,
-  waitForTransactionRequest,
 } from '../../../../utils/helpers';
+import { collectStreamedSpans, waitForStreamedSpanAndTraceHeader } from '../../../../utils/spanUtils';
 
 const SAMPLED_TRACE_ID = '12345678901234567890123456789012';
 const SAMPLED_SPAN_ID = '1234567890123456';
@@ -26,18 +26,17 @@ sentryTest(
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) });
     });
 
-    // With tracesSampleRate=0 there is no pageload transaction, so we only wait for the continued one.
-    const transactionPromise = waitForTransactionRequest(
+    const spanPromise = waitForStreamedSpanAndTraceHeader(
       page,
-      event => event.contexts?.trace?.trace_id === SAMPLED_TRACE_ID,
+      span => span.is_segment && span.name === 'continued-sampled',
     );
 
     await page.goto(url);
     await page.locator('#sampled').click();
 
-    const transaction = eventAndTraceHeaderRequestParser(await transactionPromise);
-    expect(transaction[0].contexts?.trace?.trace_id).toBe(SAMPLED_TRACE_ID);
-    expect(transaction[0].contexts?.trace?.parent_span_id).toBe(SAMPLED_SPAN_ID);
+    const span = await spanPromise;
+    expect(span[0].trace_id).toBe(SAMPLED_TRACE_ID);
+    expect(span[0].parent_span_id).toBe(SAMPLED_SPAN_ID);
 
     const outgoingRequest = await outgoingRequestPromise;
     const headers = await outgoingRequest.allHeaders();
@@ -46,7 +45,7 @@ sentryTest(
 );
 
 sentryTest(
-  'continueTrace does not emit a transaction for a deferred decision with tracesSampleRate=0',
+  'continueTrace does not emit a span for a deferred decision with tracesSampleRate=0',
   async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
@@ -61,9 +60,9 @@ sentryTest(
 
     await page.goto(url);
 
-    // The captured error carries the continued trace even though no transaction is sent.
     const errorPromise = waitForErrorRequest(page);
 
+    const spans = collectStreamedSpans(page);
     await page.locator('#deferred').click();
 
     const [errorEvent] = eventAndTraceHeaderRequestParser(await errorPromise);
@@ -73,6 +72,8 @@ sentryTest(
     const outgoingRequest = await outgoingRequestPromise;
     const headers = await outgoingRequest.allHeaders();
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${DEFERRED_TRACE_ID}-[a-f0-9]{16}-0$`));
+    await page.evaluate(() => (window as any).Sentry.flush());
+    expect(spans.some(span => span.trace_id === DEFERRED_TRACE_ID)).toBe(false);
   },
 );
 
@@ -94,6 +95,7 @@ sentryTest(
 
     const errorPromise = waitForErrorRequest(page);
 
+    const spans = collectStreamedSpans(page);
     await page.locator('#unsampled').click();
 
     const [errorEvent] = eventAndTraceHeaderRequestParser(await errorPromise);
@@ -102,5 +104,7 @@ sentryTest(
     const outgoingRequest = await outgoingRequestPromise;
     const headers = await outgoingRequest.allHeaders();
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${UNSAMPLED_TRACE_ID}-[a-f0-9]{16}-0$`));
+    await page.evaluate(() => (window as any).Sentry.flush());
+    expect(spans.some(span => span.trace_id === UNSAMPLED_TRACE_ID)).toBe(false);
   },
 );

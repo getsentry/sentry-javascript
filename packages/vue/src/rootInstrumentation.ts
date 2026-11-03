@@ -18,7 +18,8 @@ function createRootViewModel(): VueSentry {
  * builds where the Options API is compiled out and `app.mixin()` is a silent no-op (Nuxt 5 default).
  *
  * Vue runs all `mounted` hooks before `mount()` returns, so the wrap covers the same window as the
- * mixin's root hooks. Late mounts extend neither path; the mixin's debounce timers are per component.
+ * mixin's root hooks. Late mounts extend the span only when mixins are used: they record render activity
+ * from every component, while the `app.mount()` wrap only observes the root component.
  */
 export function instrumentAppMountWithoutMixin(app: Vue, mixins: Mixins): void {
   // A second wrap would duplicate the root spans (e.g. user and Nuxt SDK both add the integration).

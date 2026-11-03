@@ -21,6 +21,7 @@ describe('Sentry.init', () => {
   });
 
   afterEach(() => {
+    Sentry.getCurrentScope().setClient(undefined);
     vi.clearAllMocks();
   });
 

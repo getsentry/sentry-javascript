@@ -1,6 +1,5 @@
 import * as SentryBrowser from '@sentry/browser';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { AnyRouter } from '@tanstack/vue-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { tanstackRouterBrowserTracingIntegration } from '../src/tanstackrouter';
@@ -119,7 +118,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
     expect(startBrowserTracingPageLoadSpanSpy).toHaveBeenCalledWith(mockClient, {
       name: '/test/:id',
       attributes: expect.objectContaining({
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue.tanstack_router',
+        [SENTRY_ORIGIN]: 'auto.pageload.vue.tanstack_router',
         [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         'url.path.parameter.id': '123',
         'params.id': '123',
@@ -292,7 +291,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
       {
         name: '/test/:id',
         attributes: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue.tanstack_router',
+          [SENTRY_ORIGIN]: 'auto.navigation.vue.tanstack_router',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         }),
       },

@@ -3,5 +3,5 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["tests/**/*", "deployed-worker.ts", "global-setup.ts", "global-teardown.ts", "playwright.config.ts"]
+  "include": ["tests/**/*", "global-setup.ts", "global-teardown.ts", "playwright.config.ts"]
 }

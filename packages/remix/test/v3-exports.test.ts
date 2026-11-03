@@ -40,11 +40,9 @@ describe('Remix 3 exports', () => {
   describe('the Remix 3 peer range', () => {
     const range = packageJson.peerDependencies.remix;
 
-    // Asserted by behaviour, so the range can change after Remix 3 reaches GA without failing here.
-    it('accepts release candidates', () => {
-      // `3.x` does not match `3.0.0-rc.1`: semver ranges exclude prereleases unless they name one.
-      expect(semver.satisfies('3.0.0-rc.1', range)).toBe(true);
-      expect(semver.satisfies('3.0.0-rc.2', range)).toBe(true);
+    it('rejects release candidates', () => {
+      expect(semver.satisfies('3.0.0-rc.1', range)).toBe(false);
+      expect(semver.satisfies('3.0.0-rc.5', range)).toBe(false);
     });
 
     it('accepts stable 3.x', () => {
@@ -62,5 +60,14 @@ describe('Remix 3 exports', () => {
     for (const name of Object.keys(packageJson.peerDependencies)) {
       expect(packageJson.peerDependenciesMeta, `${name} should be optional`).toHaveProperty([name, 'optional'], true);
     }
+  });
+
+  it('ships the browser channel shim with the default export the transform imports', () => {
+    // Only the explicit rollup entry keeps the default export the injected import needs. Losing it
+    // fails silently: the build stays green and the browser gets no instrumentation.
+    const shim = fs.readFileSync(path.join(packageRoot, 'build/esm/v3/client/diagnosticsChannelShim.js'), 'utf8');
+
+    // Either spelling rollup may pick for a default export.
+    expect(shim).toMatch(/^export (?:default |\{[^}]*\bas default\b)/m);
   });
 });

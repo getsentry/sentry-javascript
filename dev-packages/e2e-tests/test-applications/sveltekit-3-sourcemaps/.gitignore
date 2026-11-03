@@ -1,0 +1,8 @@
+.DS_Store
+node_modules
+/build
+/.svelte-kit
+
+# Mock Sentry server artifacts
+.tmp_*
+/tmp_mock_chunks

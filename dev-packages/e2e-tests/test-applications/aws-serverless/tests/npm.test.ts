@@ -16,7 +16,7 @@ function assertLambdaTrace(spans: SerializedStreamedSpan[], functionName: string
 
   expect(segmentSpan?.attributes).toMatchObject({
     'sentry.op': { value: 'function.aws', type: 'string' },
-    'sentry.origin': { value: 'auto.aws_lambda', type: 'string' },
+    'sentry.origin': { value: 'auto.function.aws_serverless', type: 'string' },
     'sentry.kind': { value: 'server', type: 'string' },
     'sentry.segment.name.source': { value: 'component', type: 'string' },
     'cloud.account.id': { value: '012345678912', type: 'string' },

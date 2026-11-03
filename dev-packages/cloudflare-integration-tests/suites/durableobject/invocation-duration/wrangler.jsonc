@@ -1,0 +1,13 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "durableobject-invocation-duration",
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [{ "name": "TEST_DURABLE_OBJECT", "class_name": "TestDurableObject" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TestDurableObject"] }],
+  "services": [{ "binding": "TAIL", "service": "durableobject-invocation-duration-tail" }],
+  "tail_consumers": [{ "service": "durableobject-invocation-duration-tail" }],
+}

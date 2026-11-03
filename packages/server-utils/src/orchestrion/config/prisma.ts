@@ -2,12 +2,11 @@ import type { InstrumentationConfig } from '../apmTypes';
 import { getModuleNames } from './module-names';
 
 // Prisma 8 has no tracing surface, so its ORM terminals are wrapped directly. Apps install
-// `@prisma/orm-postgres`, but `CollectionImpl` lives in the transitive `@prisma/orm-family-sql`.
+// `@prisma/orm-postgres`, but `CollectionBase` lives in the transitive `@prisma/orm-family-sql`.
 const MODULE_NAME = '@prisma/orm-family-sql';
 const ORM_CLIENT_FILE = 'dist/orm-client.mjs';
 
-// The range matcher admits every `8.0.0-rc.*`, not just rc.8 and later; the terminals were verified on rc.8.
-const VERSION_RANGE = '>=8.0.0-rc.8 <9';
+const VERSION_RANGE = '>=8.0.0-rc.15 <9';
 
 export const PRISMA_ASYNC_TERMINALS = [
   'aggregate',
@@ -31,7 +30,7 @@ function terminalConfig(methodName: PrismaTerminal, kind: 'Async' | 'Sync'): Ins
   return {
     channelName: methodName,
     module: { name: MODULE_NAME, versionRange: VERSION_RANGE, filePath: ORM_CLIENT_FILE },
-    functionQuery: { className: 'CollectionImpl', methodName, kind },
+    functionQuery: { className: 'CollectionBase', methodName, kind },
   };
 }
 

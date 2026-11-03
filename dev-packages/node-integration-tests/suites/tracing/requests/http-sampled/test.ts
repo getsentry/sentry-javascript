@@ -1,8 +1,11 @@
 import { createTestServer } from '@sentry-internal/test-utils';
 import { describe, expect } from 'vitest';
 import { createEsmAndCjsTests } from '../../../../utils/runner';
+import { supports } from '../../../../utils';
 
-describe('outgoing http', () => {
+// Bun before 1.4 does not instrument outgoing `node:http` requests.
+// See https://github.com/getsentry/sentry-javascript/issues/23881
+describe.runIf(supports({ bunMin: '1.4.0' }))('outgoing http', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('outgoing sampled http requests are correctly instrumented', async () => {
       expect.assertions(11);
@@ -31,8 +34,8 @@ describe('outgoing http', () => {
       await createRunner()
         .withEnv({ SERVER_URL })
         .expect({
-          transaction: {
-            // we're not too concerned with the actual transaction here since this is tested elsewhere
+          span: {
+            // Span contents are tested elsewhere, we just want to know that a span envelope was sent
           },
         })
         .start()

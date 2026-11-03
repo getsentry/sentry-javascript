@@ -1,8 +1,11 @@
 import { createTestServer } from '@sentry-internal/test-utils';
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
+import { supports } from '../../../../utils';
 
-test('tracePropagationTargets match regardless of casing', async () => {
+// Bun before 1.4 does not instrument outgoing `node:http` requests.
+// See https://github.com/getsentry/sentry-javascript/issues/23881
+test.runIf(supports({ bunMin: '1.4.0' }))('tracePropagationTargets match regardless of casing', async () => {
   expect.assertions(9);
 
   const [SERVER_URL, closeTestServer] = await createTestServer()

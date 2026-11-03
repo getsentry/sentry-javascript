@@ -3,15 +3,15 @@
 ## Top-Level Structure
 
 ```toml
-version = 1                     # Required, must be 1
-gitignore = true                # Optional, default true
-agents = ["claude", "cursor"]   # Optional, agent targets
+version = 1 # Required, must be 1
+gitignore = true # Optional, default true
+agents = ["claude", "cursor"] # Optional, agent targets
 
-[project]                       # Optional
-[trust]                         # Optional
-[[skills]]                      # Optional, array of skill entries
-[[mcp]]                         # Optional, array of MCP servers
-[[hooks]]                       # Optional, array of hook declarations
+[project] # Optional
+[trust] # Optional
+[[skills]] # Optional, array of skill entries
+[[mcp]] # Optional, array of MCP servers
+[[hooks]] # Optional, array of hook declarations
 ```
 
 ## Top-Level Fields
@@ -26,14 +26,14 @@ agents = ["claude", "cursor"]   # Optional, agent targets
 
 ```toml
 [project]
-name = "my-project"             # Optional, display name
+name = "my-project" # Optional, display name
 ```
 
 ## Symlinks Section
 
 ```toml
 [symlinks]
-targets = [".claude", ".cursor"]  # Legacy: explicit symlink targets
+targets = [".claude", ".cursor"] # Legacy: explicit symlink targets
 ```
 
 When `agents` is set, symlink targets are derived automatically. The `[symlinks]` section is for backward compatibility.
@@ -44,10 +44,10 @@ When `agents` is set, symlink targets are derived automatically. The `[symlinks]
 
 ```toml
 [[skills]]
-name = "find-bugs"              # Required, unique skill identifier
-source = "getsentry/skills"     # Required, skill source
-ref = "v1.0.0"                  # Optional, pin to tag/branch/commit
-path = "tools/my-skill"         # Optional, subdirectory within repo
+name = "find-bugs" # Required, unique skill identifier
+source = "getsentry/skills" # Required, skill source
+ref = "v1.0.0" # Optional, pin to tag/branch/commit
+path = "tools/my-skill" # Optional, subdirectory within repo
 ```
 
 | Field    | Type   | Required | Description                                                   |
@@ -61,10 +61,10 @@ path = "tools/my-skill"         # Optional, subdirectory within repo
 
 ```toml
 [[skills]]
-name = "*"                      # Wildcard: install all skills from source
-source = "getsentry/skills"     # Required
-ref = "v1.0.0"                  # Optional
-exclude = ["deprecated-skill"]  # Optional, skills to skip
+name = "*" # Wildcard: install all skills from source
+source = "getsentry/skills" # Required
+ref = "v1.0.0" # Optional
+exclude = ["deprecated-skill"] # Optional, skills to skip
 ```
 
 | Field     | Type          | Required | Description                        |
@@ -78,13 +78,13 @@ exclude = ["deprecated-skill"]  # Optional, skills to skip
 
 ```toml
 [trust]
-allow_all = true                    # Allow any source
+allow_all = true # Allow any source
 
 # OR restrict to specific sources:
 [trust]
-github_orgs = ["getsentry"]         # GitHub org names
-github_repos = ["ext-org/repo"]     # Exact owner/repo pairs
-git_domains = ["git.corp.example.com"]  # Git URL domains
+github_orgs = ["getsentry"] # GitHub org names
+github_repos = ["ext-org/repo"] # Exact owner/repo pairs
+git_domains = ["git.corp.example.com"] # Git URL domains
 ```
 
 | Field          | Type     | Description                                |
@@ -102,17 +102,17 @@ No `[trust]` section = allow all sources (backward compatible).
 
 ```toml
 [[mcp]]
-name = "github"                     # Required, unique server name
-command = "npx"                     # Required for stdio
-args = ["-y", "@modelcontextprotocol/server-github"]  # Optional
-env = ["GITHUB_TOKEN"]             # Optional, env vars to pass through
+name = "github" # Required, unique server name
+command = "npx" # Required for stdio
+args = ["-y", "@modelcontextprotocol/server-github"] # Optional
+env = ["GITHUB_TOKEN"] # Optional, env vars to pass through
 ```
 
 ### HTTP Transport
 
 ```toml
 [[mcp]]
-name = "remote-api"                 # Required, unique server name
+name = "remote-api" # Required, unique server name
 url = "https://mcp.example.com/sse" # Required for HTTP
 ```
 
@@ -129,9 +129,9 @@ url = "https://mcp.example.com/sse" # Required for HTTP
 
 ```toml
 [[hooks]]
-event = "PreToolUse"                # Required
-matcher = "Bash"                    # Optional, tool name filter
-command = "my-lint-check"           # Required
+event = "PreToolUse" # Required
+matcher = "Bash" # Optional, tool name filter
+command = "my-lint-check" # Required
 ```
 
 | Field     | Type   | Required | Description                                             |

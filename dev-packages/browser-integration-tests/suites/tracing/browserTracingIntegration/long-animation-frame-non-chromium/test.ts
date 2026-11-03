@@ -1,8 +1,8 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpanAndTraceHeaderOnUrl } from '../../../../utils/spanUtils';
 
 sentryTest(
   'should not capture long animation frame or long task when browser is non-chromium',
@@ -18,8 +18,10 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-    const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui'));
+    const spans = collectStreamedSpans(page);
+    await waitForStreamedSpanAndTraceHeaderOnUrl(page, url, span => getSpanOp(span) === 'pageload');
+    await page.evaluate(() => (window as any).Sentry.flush());
+    const uiSpans = spans?.filter(span => getSpanOp(span)?.startsWith('ui'));
 
     expect(uiSpans?.length).toBe(0);
   },

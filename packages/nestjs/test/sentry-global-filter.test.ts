@@ -11,7 +11,8 @@ vi.mock('../src/helpers', () => ({
   isWsOrRpcException: vi.fn(),
 }));
 
-vi.mock('@sentry/core', () => ({
+vi.mock('@sentry/core', async importOriginal => ({
+  isObjectLike: (await importOriginal<typeof SentryCore>()).isObjectLike,
   captureException: vi.fn().mockReturnValue('mock-event-id'),
   getIsolationScope: vi.fn(),
   getDefaultIsolationScope: vi.fn(),

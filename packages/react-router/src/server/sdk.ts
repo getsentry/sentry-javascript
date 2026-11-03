@@ -24,7 +24,7 @@ export function getDefaultReactRouterServerIntegrations(options: NodeOptions): I
 export function init(options: NodeOptions): NodeClient | undefined {
   const opts: NodeOptions = {
     ...options,
-    defaultIntegrations: getDefaultReactRouterServerIntegrations(options),
+    defaultIntegrations: options.defaultIntegrations ?? getDefaultReactRouterServerIntegrations(options),
   };
 
   DEBUG_BUILD && debug.log('Initializing SDK...');

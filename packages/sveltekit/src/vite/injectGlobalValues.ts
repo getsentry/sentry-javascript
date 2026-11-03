@@ -1,8 +1,8 @@
-import { escapeStringForRegex, type InternalGlobal } from '@sentry/core';
+import { type InternalGlobal } from '@sentry/core';
 import MagicString from 'magic-string';
 import type { Plugin } from 'vite';
 import type { ResolvedKitConfig } from './kitConfig';
-import { getHooksFileName } from './svelteConfig';
+import { getHooksFileName, makeEntryFileMatcher } from './svelteConfig';
 
 export type GlobalSentryValues = {
   __sentry_sveltekit_output_dir?: string;
@@ -47,9 +47,14 @@ export function makeGlobalValuesInjectionPlugin(options: GlobalValuesInjectionOp
 
   // The SvelteKit config is only available once Vite has resolved its plugins, so we compute
   // the injected values lazily (but only once) instead of at plugin creation time.
-  let injectionValuesPromise: Promise<{ globalSentryValues: GlobalSentryValues; hooksFileRegexp: RegExp }> | undefined;
+  let injectionValuesPromise:
+    | Promise<{ globalSentryValues: GlobalSentryValues; isServerEntryFile: (id: string) => boolean }>
+    | undefined;
 
-  const getInjectionValues = (): Promise<{ globalSentryValues: GlobalSentryValues; hooksFileRegexp: RegExp }> =>
+  const getInjectionValues = (): Promise<{
+    globalSentryValues: GlobalSentryValues;
+    isServerEntryFile: (id: string) => boolean;
+  }> =>
     (injectionValuesPromise ??= (async () => {
       const kitConfig = await getKitConfig();
 
@@ -67,8 +72,7 @@ export function makeGlobalValuesInjectionPlugin(options: GlobalValuesInjectionOp
 
       return {
         globalSentryValues,
-        // oxlint-disable-next-line sdk/no-regexp-constructor -- not end user input + escaped anyway
-        hooksFileRegexp: new RegExp(`/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`),
+        isServerEntryFile: makeEntryFileMatcher(kitConfig, [serverHooksFile, 'src/instrumentation.server']),
       };
     })());
 
@@ -103,11 +107,9 @@ export function makeGlobalValuesInjectionPlugin(options: GlobalValuesInjectionOp
     },
 
     transform: async (code, id) => {
-      const { hooksFileRegexp } = await getInjectionValues();
+      const { isServerEntryFile } = await getInjectionValues();
 
-      const isServerEntryFile = /instrumentation\.server\./.test(id) || hooksFileRegexp.test(id);
-
-      if (isServerEntryFile) {
+      if (isServerEntryFile(id)) {
         if (debug) {
           // eslint-disable-next-line no-console
           console.log('[Global Values Plugin] Injecting global values into', id);

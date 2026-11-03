@@ -1,12 +1,16 @@
 import * as SentryCore from '@sentry/core';
 import type { Envelope, Integration } from '@sentry/core';
-import { getClient } from '@sentry/core';
+import { getClient, startSpan } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { CloudflareOptions } from '../src/client';
 import { CloudflareClient } from '../src/client';
 import { getDefaultIntegrations, init } from '../src/sdk';
 import { resetSdk } from './testUtils';
-import { spanStreamingIntegration } from '../src/';
+import {
+  mysqlIntegration as exportedMysqlIntegration,
+  spanStreamingIntegration,
+  serveTunnelIntegration,
+} from '../src/';
 
 describe('init', () => {
   beforeEach(() => {
@@ -21,6 +25,18 @@ describe('init', () => {
 
     expect(client).toBeDefined();
     expect(client).toBeInstanceOf(CloudflareClient);
+  });
+
+  test('serves the managed tunnel with `serveTunnelIntegration`', () => {
+    const browserDsn = 'https://browser@o1.ingest.sentry.io/42';
+    init({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      integrations: [serveTunnelIntegration({ allowedDsns: [browserDsn] })],
+    });
+
+    const options = getClient()?.getOptions();
+    expect(options?.tunnel).toBeUndefined();
+    expect(options?._managedTunnel).toEqual({ allowedDsns: [browserDsn] });
   });
 
   test('installs SpanStreaming integration by default', () => {
@@ -67,6 +83,32 @@ describe('init', () => {
         integrations: expect.not.arrayContaining([expect.objectContaining({ name: 'Dedupe' })]),
       }),
     );
+  });
+
+  test('does not leave a timer pending when a segment span ends', () => {
+    vi.useFakeTimers();
+    try {
+      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 0 });
+
+      startSpan({ name: 'alarm' }, () => undefined);
+
+      // A pending timer keeps a Durable Object invocation open until it fires.
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("doesn't add spanStreamingIntegration when tracing is excluded from the bundle", () => {
+    vi.stubGlobal('__SENTRY_TRACING__', false);
+    try {
+      const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+      const integrations = client?.getOptions().integrations.filter(i => i.name === 'SpanStreaming');
+
+      expect(integrations).toEqual([]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   type MarkedIntegration = Integration & { _custom?: boolean };
@@ -151,6 +193,45 @@ describe('cacheClient', () => {
     expect(getClient()).toBe(cached);
   });
 
+  test('sets up a new cached client after close()', async () => {
+    const options = {
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+    } as const;
+
+    const first = init({ ...options });
+    await SentryCore.close();
+    const second = init({ ...options });
+
+    expect(second).not.toBe(first);
+    expect(second?.getOptions().enabled).not.toBe(false);
+    expect(getClient()).toBe(second);
+    expect(init({ ...options })).toBe(second);
+  });
+
+  test('sets up a new cached client while the cached client is closing', async () => {
+    const options = {
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+    } as const;
+
+    const first = init({ ...options });
+    const closing = first!.close();
+    const second = init({ ...options });
+    await closing;
+
+    expect(second).not.toBe(first);
+    expect(second?.getOptions().enabled).not.toBe(false);
+    expect(init({ ...options })).toBe(second);
+  });
+
+  test('keeps the cached client when a client that is not cached closes', async () => {
+    const cached = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+    const uncached = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', cacheClient: false });
+
+    await uncached?.close();
+
+    expect(init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' })).toBe(cached);
+  });
+
   test('caches a client without a DSN and reuses it', () => {
     // A disabled (DSN-less) client is still created once per isolate, not per invocation.
     const first = init({});
@@ -187,6 +268,26 @@ describe('cacheClient', () => {
     await client!.sendEnvelope(TEST_ENVELOPE);
 
     expect(flushSpy).toHaveBeenCalled();
+  });
+
+  test('does not warn about a repeated init when cacheClient is disabled', () => {
+    const originalWarn = SentryCore.originalConsoleMethods.warn;
+    const warn = vi.fn();
+    SentryCore.originalConsoleMethods.warn = warn;
+
+    try {
+      const first = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', cacheClient: false });
+      const second = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', cacheClient: false });
+
+      expect(second).not.toBe(first);
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      if (originalWarn) {
+        SentryCore.originalConsoleMethods.warn = originalWarn;
+      } else {
+        delete SentryCore.originalConsoleMethods.warn;
+      }
+    }
   });
 
   test('does not flush eagerly when cacheClient is disabled', async () => {
@@ -343,6 +444,7 @@ describe('getDefaultIntegrations', () => {
   });
 
   test('installs an integration registered after init via the module-injected event', async () => {
+    resetSdk();
     const { mysqlIntegration } = await import('@sentry/server-utils');
     const client = init({});
     expect(client?.getIntegrationByName('Mysql')).toBeUndefined();
@@ -356,5 +458,136 @@ describe('getDefaultIntegrations', () => {
     client?.emit('orchestrion.module-injected', 'mysql');
 
     expect(client?.getIntegrationByName('Mysql')).toBeDefined();
+  });
+
+  test('keeps a channel integration the user configured instead of the registered default', async () => {
+    resetSdk();
+    const { mysqlIntegration } = await import('@sentry/server-utils');
+    globalThis.__SENTRY_ORCHESTRION__ = {
+      bundler: new Set(['mysql']),
+      integrations: new Map([['mysql', mysqlIntegration]]),
+    };
+    const userInstance = exportedMysqlIntegration();
+
+    const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', integrations: [userInstance] });
+
+    expect(client?.getIntegrationByName('Mysql')).toBe(userInstance);
+  });
+
+  describe('when a channel integration module loads after init', () => {
+    const DSN = 'https://public@dsn.ingest.sentry.io/1337';
+
+    async function loadMysqlLate(client: CloudflareClient | undefined): Promise<void> {
+      const { mysqlIntegration } = await import('@sentry/server-utils');
+      globalThis.__SENTRY_ORCHESTRION__ = {
+        bundler: new Set(['mysql']),
+        integrations: new Map([['mysql', mysqlIntegration]]),
+      };
+      client?.emit('orchestrion.module-injected', 'mysql');
+    }
+
+    test('does not add it when the integrations function filtered it out', async () => {
+      resetSdk();
+      const client = init({
+        dsn: DSN,
+        integrations: defaults => defaults.filter(integration => integration.name !== 'Mysql'),
+      });
+
+      await loadMysqlLate(client);
+
+      expect(client?.getIntegrationByName('Mysql')).toBeUndefined();
+    });
+
+    test('adds it when the integrations function keeps it', async () => {
+      resetSdk();
+      const client = init({ dsn: DSN, integrations: defaults => defaults });
+
+      await loadMysqlLate(client);
+
+      expect(client?.getIntegrationByName('Mysql')).toBeDefined();
+    });
+
+    test('keeps the instance the integrations function configured', async () => {
+      resetSdk();
+      const client = init({
+        dsn: DSN,
+        integrations: defaults => [...defaults, exportedMysqlIntegration()],
+      });
+      const configured = client?.getIntegrationByName('Mysql');
+      expect(configured).toBeDefined();
+
+      await loadMysqlLate(client);
+
+      expect(client?.getIntegrationByName('Mysql')).toBe(configured);
+    });
+
+    test('does not add it and does not throw when the integrations function throws', async () => {
+      resetSdk();
+      let calls = 0;
+      const client = init({
+        dsn: DSN,
+        integrations: defaults => {
+          calls++;
+          if (calls > 1) {
+            throw new Error('integrations failed');
+          }
+          return defaults;
+        },
+      });
+
+      await expect(loadMysqlLate(client)).resolves.toBeUndefined();
+
+      expect(client?.getIntegrationByName('Mysql')).toBeUndefined();
+    });
+
+    test('adds it when a custom defaultIntegrations list extends the SDK defaults', async () => {
+      resetSdk();
+      const client = init({ dsn: DSN, defaultIntegrations: [], _extendsDefaultIntegrations: true });
+
+      await loadMysqlLate(client);
+
+      expect(client?.getIntegrationByName('Mysql')).toBeDefined();
+    });
+
+    test('does not add it when the integrations function filtered it out of a list that extends the SDK defaults', async () => {
+      resetSdk();
+      const client = init({
+        dsn: DSN,
+        defaultIntegrations: [],
+        _extendsDefaultIntegrations: true,
+        integrations: defaults => defaults.filter(integration => integration.name !== 'Mysql'),
+      });
+
+      await loadMysqlLate(client);
+
+      expect(client?.getIntegrationByName('Mysql')).toBeUndefined();
+    });
+
+    test.each([
+      ['false', false as const],
+      ['a custom list', [] as Integration[]],
+    ])('does not add it when defaultIntegrations is %s', async (_label, defaultIntegrations) => {
+      resetSdk();
+      const client = init({ dsn: DSN, defaultIntegrations });
+
+      await loadMysqlLate(client);
+
+      expect(client?.getIntegrationByName('Mysql')).toBeUndefined();
+    });
+  });
+
+  test('keeps a channel integration the user configured when its module loads after init', async () => {
+    resetSdk();
+    const { mysqlIntegration } = await import('@sentry/server-utils');
+    const userInstance = exportedMysqlIntegration();
+    const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', integrations: [userInstance] });
+
+    globalThis.__SENTRY_ORCHESTRION__ = {
+      bundler: new Set(['mysql']),
+      integrations: new Map([['mysql', mysqlIntegration]]),
+    };
+    client?.emit('orchestrion.module-injected', 'mysql');
+
+    expect(client?.getIntegrationByName('Mysql')).toBe(userInstance);
   });
 });

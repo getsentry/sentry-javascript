@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
-import { APP_NAME } from '../constants';
+import { APP_NAME, RUNTIME } from '../constants';
 
 test.describe('server-side errors', () => {
   test('captures error thrown in server loader', async ({ page }) => {
@@ -21,26 +21,26 @@ test.describe('server-side errors', () => {
             value: errorMessage,
             mechanism: {
               handled: false,
-              type: 'react-router',
+              type: 'react_router.loader',
             },
           },
         ],
       },
-      // todo: should be 'GET /errors/server-loader'
-      transaction: 'GET /{*splat}',
+      transaction: 'GET /errors/server-loader',
       request: {
         url: expect.stringContaining('errors/server-loader'),
         headers: expect.any(Object),
       },
       level: 'error',
-      platform: 'node',
+      // Only Node inits `@sentry/react-router`. Bun, Deno and Cloudflare init their runtime's own SDK.
+      platform: RUNTIME === 'cloudflare' || RUNTIME === 'deno' ? 'javascript' : 'node',
       environment: 'qa',
       sdk: {
         integrations: expect.any(Array<string>),
-        name: 'sentry.javascript.react-router',
+        name: RUNTIME === 'node' ? 'sentry.javascript.react-router' : `sentry.javascript.${RUNTIME}`,
         version: expect.any(String),
       },
-      tags: { runtime: 'node' },
+      ...(RUNTIME === 'node' ? { tags: { runtime: 'node' } } : {}),
       contexts: {
         trace: {
           span_id: expect.any(String),
@@ -69,26 +69,25 @@ test.describe('server-side errors', () => {
             value: errorMessage,
             mechanism: {
               handled: false,
-              type: 'react-router',
+              type: 'react_router.action',
             },
           },
         ],
       },
-      // todo: should be 'POST /errors/server-action'
-      transaction: 'POST /{*splat}',
+      transaction: 'POST /errors/server-action',
       request: {
         url: expect.stringContaining('errors/server-action'),
         headers: expect.any(Object),
       },
       level: 'error',
-      platform: 'node',
+      platform: RUNTIME === 'cloudflare' || RUNTIME === 'deno' ? 'javascript' : 'node',
       environment: 'qa',
       sdk: {
         integrations: expect.any(Array<string>),
-        name: 'sentry.javascript.react-router',
+        name: RUNTIME === 'node' ? 'sentry.javascript.react-router' : `sentry.javascript.${RUNTIME}`,
         version: expect.any(String),
       },
-      tags: { runtime: 'node' },
+      ...(RUNTIME === 'node' ? { tags: { runtime: 'node' } } : {}),
       contexts: {
         trace: {
           span_id: expect.any(String),

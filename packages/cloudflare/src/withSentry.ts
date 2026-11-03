@@ -1,4 +1,4 @@
-import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
+import { setAsyncLocalStorageAsyncContextStrategyForWorker } from './utils/asyncContextStrategy';
 import { instrumentExportedHandlerEmail } from './instrumentations/worker/instrumentEmail';
 import { instrumentExportedHandlerFetch } from './instrumentations/worker/instrumentFetch';
 import { instrumentExportedHandlerQueue } from './instrumentations/worker/instrumentQueue';
@@ -37,7 +37,7 @@ export function withSentry<
     return instrumentWorkerEntrypoint(optionsCallback as any, handler);
   }
 
-  setAsyncLocalStorageAsyncContextStrategy();
+  setAsyncLocalStorageAsyncContextStrategyForWorker();
 
   try {
     // oxlint-disable-next-line typescript/no-explicit-any

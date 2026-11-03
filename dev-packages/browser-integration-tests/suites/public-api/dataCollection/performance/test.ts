@@ -1,18 +1,17 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import {
-  envelopeRequestParser,
-  shouldSkipTracingTest,
-  waitForTransactionRequestOnUrl,
-} from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
 
-sentryTest('sets user.ip_address to "auto" on transactions by default', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+sentryTest('infers user IP and user agent on streamed spans by default', async ({ getLocalTestUrl, page }) => {
+  sentryTest.skip(shouldSkipTracingTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const req = await waitForTransactionRequestOnUrl(page, url);
-  const transaction = envelopeRequestParser(req);
-  expect(transaction.sdk?.settings?.infer_ip).toBe('auto');
+  const envelopePromise = waitForStreamedSpanEnvelope(page, envelope =>
+    envelope[1][0][1].items.some(span => span.is_segment && span.name === 'woot'),
+  );
+  await page.goto(url);
+
+  const envelope = await envelopePromise;
+  expect(envelope[1][0][1].ingest_settings).toEqual({ infer_ip: 'auto', infer_user_agent: 'auto' });
 });

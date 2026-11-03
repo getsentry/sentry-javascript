@@ -62,8 +62,16 @@ export interface SdkProcessingMetadata {
   dynamicSamplingContext?: Partial<DynamicSamplingContext>;
   capturedSpanScope?: Scope;
   capturedSpanIsolationScope?: Scope;
+  /**
+   * @deprecated This is no longer set or read by the SDK and will be removed in the next major version.
+   */
   spanCountBeforeProcessing?: number;
   ipAddress?: string;
+  /**
+   * Set on `captureMessage` events whose stack trace exists only because `attachStacktrace`
+   * defaults to `true`, so Replay does not treat them as errors in buffer mode.
+   */
+  hasDefaultSyntheticStacktrace?: boolean;
 }
 
 /**

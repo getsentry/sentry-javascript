@@ -1,4 +1,4 @@
-import { getIsolationScope, setCurrentClient } from '@sentry/core';
+import { getIsolationScope, makeSession, setCurrentClient } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { processSessionIntegration } from '../../src/integrations/processSession';
 import { NodeClient } from '../../src/sdk/client';
@@ -24,7 +24,7 @@ describe('processSessionIntegration', () => {
       return process;
     }) as never);
 
-    processSessionIntegration().setupOnce!();
+    processSessionIntegration().setup!(client);
     processOn.mockRestore();
   });
 
@@ -60,6 +60,56 @@ describe('processSessionIntegration', () => {
     beforeExitHandler();
 
     expect(sendSession).not.toHaveBeenCalled();
+  });
+
+  describe('when requests start being tracked as request sessions', () => {
+    it('removes a session that was never sent, without sending it', () => {
+      client.emit('startRequestSession');
+
+      expect(getIsolationScope().getSession()).toBeUndefined();
+      expect(sendSession).not.toHaveBeenCalled();
+    });
+
+    it('closes and removes a session that was already sent', () => {
+      const session = getIsolationScope().getSession()!;
+      session.init = false;
+      session.errors = 1;
+
+      client.emit('startRequestSession');
+
+      expect(sendSession).toHaveBeenCalledTimes(1);
+      expect(sendSession).toHaveBeenCalledWith(expect.objectContaining({ status: 'exited', errors: 1 }));
+      expect(getIsolationScope().getSession()).toBeUndefined();
+    });
+
+    it('removes an already-crashed session without updating it', () => {
+      const session = getIsolationScope().getSession()!;
+      session.init = false;
+      session.status = 'crashed';
+
+      client.emit('startRequestSession');
+
+      expect(sendSession).not.toHaveBeenCalled();
+      expect(getIsolationScope().getSession()).toBeUndefined();
+    });
+
+    it('only reacts to the first request session', () => {
+      client.emit('startRequestSession');
+      const laterSession = makeSession();
+      getIsolationScope().setSession(laterSession);
+
+      client.emit('startRequestSession');
+
+      expect(getIsolationScope().getSession()).toBe(laterSession);
+    });
+
+    it('does not send a session on exit afterwards', () => {
+      client.emit('startRequestSession');
+
+      beforeExitHandler();
+
+      expect(sendSession).not.toHaveBeenCalled();
+    });
   });
 
   it('does nothing when no session is on the scope', () => {

@@ -12,7 +12,7 @@ jobs:
     permissions:
       pull-requests: write
       contents: write
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-sentry-javascript
     if: |
       github.event.pull_request.merged == true
       && github.event.pull_request.author_association != 'COLLABORATOR'
@@ -28,8 +28,10 @@ jobs:
         with:
           node-version-file: 'package.json'
 
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Add external contributor to CHANGELOG.md
         uses: ./dev-packages/external-contributor-gh-action

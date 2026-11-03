@@ -11,7 +11,7 @@ describe('Pino integration', () => {
       await createRunner()
         .withMockSentryServer()
         .ignore('event')
-        .ignore('transaction')
+        .ignore('span')
         .expect({
           log: log => {
             const traceId1 = log.items?.[0]?.trace_id;
@@ -26,7 +26,7 @@ describe('Pino integration', () => {
     test('captures event and logs', async () => {
       await createRunner()
         .withMockSentryServer()
-        .ignore('transaction')
+        .ignore('span')
         .expect({
           event: {
             exception: {
@@ -110,7 +110,7 @@ describe('Pino integration', () => {
     test('captures with Pino integrated channel', async () => {
       await createRunner()
         .withMockSentryServer()
-        .ignore('transaction')
+        .ignore('span')
         .expect({
           event: {
             exception: {
@@ -193,7 +193,7 @@ describe('Pino integration', () => {
     test('captures logs when autoInstrument is false and logger is tracked', async () => {
       await createRunner()
         .withMockSentryServer()
-        .ignore('transaction')
+        .ignore('span')
         .expect({
           log: {
             items: [
@@ -246,7 +246,7 @@ describe('Pino integration', () => {
     test('captures structured logs with msg field', async () => {
       await createRunner()
         .withMockSentryServer()
-        .ignore('transaction')
+        .ignore('span')
         .expect({
           log: {
             items: [
@@ -308,7 +308,7 @@ describe('Pino integration', () => {
     test('attaches log message and fields to captured error events', async () => {
       await createRunner()
         .withMockSentryServer()
-        .ignore('transaction')
+        .ignore('span')
         .ignore('log')
         .expect({
           event: {
@@ -356,7 +356,7 @@ describe('Pino integration', () => {
     test('captures logs with custom messageKey and errorKey', async () => {
       await createRunner()
         .withMockSentryServer()
-        .ignore('transaction')
+        .ignore('span')
         .expect({
           event: {
             exception: {

@@ -1,37 +1,28 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { debug, startInactiveSpan, waitForTracingChannelBinding } from '@sentry/core';
+import { addNonEnumerableProperty, debug, startInactiveSpan, waitForTracingChannelBinding } from '@sentry/core';
+import type { OrchestrionChannelContext } from '@sentry/server-utils';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import { nestjsChannels as CHANNELS } from '@sentry/server-utils/orchestrion/config';
 import { DEBUG_BUILD } from '../debug-build';
+import { registerCronMonitor } from './cron-monitoring';
 import type { AnyFn } from './helpers';
-import { isWrapped, markWrapped } from './helpers';
+import { isWrapped, markWrapped, setNestScheduleVersion } from './helpers';
 import type { CatchTarget, InjectableTarget, MinimalNestJsExecutionContext } from './types';
 import { patchCatchTarget, patchInjectableTarget } from './wrap-components';
 import {
   extractQueueName,
-  MECHANISM_CRON,
   MECHANISM_INTERVAL,
   MECHANISM_TIMEOUT,
   patchMethodDescriptor,
   patchProcessorTarget,
+  sendsCronCheckIns,
+  wrapCronHandler,
   wrapEventHandler,
   wrapScheduleHandler,
 } from './wrap-handlers';
 import { getAppCreationSpanOptions, wrapRequestContextHandler, wrapRouteHandler } from './wrap-route';
 
 const NOOP = (): void => {};
-
-/**
- * The orchestrion tracing-channel context. `arguments` is the live call args
- * array; `result` is the return value, which an `end` handler may reassign to
- * substitute it (`traceSync`/`tracePromise` always return `ctx.result`).
- */
-interface ChannelContext {
-  arguments: unknown[];
-  moduleVersion?: string;
-  result?: unknown;
-  error?: unknown;
-}
 
 /**
  * Subscribe to a decorator channel (`Injectable`/`Catch`).
@@ -42,7 +33,7 @@ interface ChannelContext {
  * spans later.
  */
 function subscribeDecoratorChannel<T>(channelName: string, patch: (target: T) => void): void {
-  diagnosticsChannel.tracingChannel<ChannelContext>(channelName).subscribe({
+  diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channelName).subscribe({
     start(data) {
       const target = data.arguments?.[0] as T | undefined;
       if (target) {
@@ -90,8 +81,11 @@ function makeProcessorDecorator(original: AnyFn, queueName: string | undefined):
  * whatever `end` leaves there. `wrap` receives the original decorator and the
  * channel context (for the factory's args, e.g. the BullMQ queue name).
  */
-function subscribeFactoryDecorator(channelName: string, wrap: (decorator: AnyFn, data: ChannelContext) => AnyFn): void {
-  diagnosticsChannel.tracingChannel<ChannelContext>(channelName).subscribe({
+function subscribeFactoryDecorator(
+  channelName: string,
+  wrap: (decorator: AnyFn, data: OrchestrionChannelContext) => AnyFn,
+): void {
+  diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channelName).subscribe({
     start: NOOP,
     end(data) {
       const decorator = data.result;
@@ -134,10 +128,13 @@ export function subscribeToNestChannels(): void {
   // calls below stay synchronous because the decorator channels fire at
   // module-load time, which a deferred subscription could miss.
   waitForTracingChannelBinding(() => {
-    bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<ChannelContext>(CHANNELS.NESTJS_APP_CREATION), data => {
-      const moduleCls = data.arguments?.[0] as { name?: string } | undefined;
-      return startInactiveSpan(getAppCreationSpanOptions(data.moduleVersion, moduleCls?.name));
-    });
+    bindTracingChannelToSpan(
+      diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.NESTJS_APP_CREATION),
+      data => {
+        const moduleCls = data.arguments?.[0] as { name?: string } | undefined;
+        return startInactiveSpan(getAppCreationSpanOptions(data.moduleVersion, moduleCls?.name));
+      },
+    );
   });
 
   // request_context + request_handler. `RouterExecutionContext.create`
@@ -146,7 +143,7 @@ export function subscribeToNestChannels(): void {
   // (-> handler span per call) and `end` reassigns `data.result` to
   // replace the returned handler (-> request_context span per request).
   const routerMeta = new WeakMap<object, { instanceName: string; callbackName: string; moduleVersion?: string }>();
-  diagnosticsChannel.tracingChannel<ChannelContext>(CHANNELS.NESTJS_ROUTER_CONTEXT).subscribe({
+  diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.NESTJS_ROUTER_CONTEXT).subscribe({
     start(data) {
       const instance = data.arguments?.[0] as { constructor?: { name?: string } } | undefined;
       const callback = data.arguments?.[1];
@@ -189,9 +186,44 @@ export function subscribeToNestChannels(): void {
   subscribeDecoratorChannel<CatchTarget>(CHANNELS.NESTJS_CATCH, patchCatchTarget);
 
   // @Cron/@Interval/@Timeout (schedule), @OnEvent (event), @Processor (bullmq)
-  subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_CRON, decorator =>
-    makeMethodDecorator(decorator, handler => wrapScheduleHandler(handler, MECHANISM_CRON)),
-  );
+  subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_CRON, (decorator, data) => {
+    const cronDecorator = makeMethodDecorator(decorator, handler => wrapCronHandler(handler));
+    return function (this: unknown, ...args: unknown[]): unknown {
+      const descriptor = args[2] as PropertyDescriptor | undefined;
+      const handler: unknown = descriptor?.value;
+      const result = cronDecorator.apply(this, args);
+      const method: unknown = descriptor?.value;
+      setNestScheduleVersion(method, data.moduleVersion);
+      if (typeof method === 'function' && typeof handler === 'function' && method !== handler) {
+        registerCronMonitor(
+          method,
+          handler,
+          [...(data.arguments || [])],
+          args[0],
+          args[1] as string | symbol | undefined,
+          data.moduleVersion,
+        );
+      }
+      return result;
+    };
+  });
+  // `@nestjs/schedule` passes this function to `CronJob` as `onTick`. When the method already sends
+  // check-ins, mark it the way other monitored jobs are marked, so scheduler integrations skip it.
+  diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.NESTJS_SCHEDULE_EXPLORER_WRAP).subscribe({
+    start: NOOP,
+    end(data) {
+      try {
+        if (typeof data.result === 'function' && sendsCronCheckIns(data.arguments?.[0])) {
+          addNonEnumerableProperty(data.result, Symbol.for('sentry.cron.monitored'), true);
+        }
+      } catch (e) {
+        DEBUG_BUILD && debug.error('[Nest] Failed to check whether a @Cron() job sends check-ins:', e);
+      }
+    },
+    asyncStart: NOOP,
+    asyncEnd: NOOP,
+    error: NOOP,
+  });
   subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_INTERVAL, decorator =>
     makeMethodDecorator(decorator, handler => wrapScheduleHandler(handler, MECHANISM_INTERVAL)),
   );

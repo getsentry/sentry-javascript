@@ -14,19 +14,17 @@
     "test:dev": "TEST_ENV=development playwright test"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.29.0",
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "@modelcontextprotocol/server": "2.3.1",
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
-    "agents": "0.11.9",
+    "agents": "0.31.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260426.0",
-    "@playwright/test": "~1.63.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "typescript": "^6.0.3",
     "wrangler": "^4.86.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

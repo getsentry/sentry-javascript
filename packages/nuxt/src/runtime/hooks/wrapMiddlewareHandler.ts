@@ -1,11 +1,16 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+} from '@sentry/conventions/attributes';
 import { MIDDLEWARE } from '@sentry/conventions/op';
 import {
   captureException,
   debug,
   getClient,
   httpHeadersToSpanAttributes,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   type SpanAttributes,
@@ -134,7 +139,7 @@ function withSpan<TResult>(
         captureException(error, {
           mechanism: {
             handled: false,
-            type: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN],
+            type: attributes[SENTRY_ORIGIN],
           },
         });
 
@@ -166,7 +171,7 @@ function getSpanAttributes(
   const attributes: SpanAttributes = {
     [SENTRY_OP]: MIDDLEWARE,
     [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nuxt',
+    [SENTRY_ORIGIN]: 'auto.middleware.nuxt',
     'nuxt.middleware.name': middlewareName,
     'nuxt.middleware.hook.name': hookName ?? 'handler',
   };
@@ -184,11 +189,11 @@ function getSpanAttributes(
   const path = event.path ?? eventH3v2?.url?.pathname;
 
   if (method) {
-    attributes['http.request.method'] = method;
+    attributes[HTTP_REQUEST_METHOD] = method;
   }
 
   if (path) {
-    attributes['http.route'] = path;
+    attributes[HTTP_ROUTE] = path;
   }
 
   // h3 v1 (Nuxt 4): headers are on event.node.req.headers

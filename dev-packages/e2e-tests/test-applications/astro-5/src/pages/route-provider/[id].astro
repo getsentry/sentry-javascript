@@ -1,0 +1,18 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export const prerender = false;
+---
+
+<Layout title="Route provider">
+  <button id="resolve-route">Resolve route</button>
+  <div id="resolved-route"></div>
+</Layout>
+
+<script>
+  import * as Sentry from '@sentry/astro';
+
+  document.getElementById('resolve-route')?.addEventListener('click', () => {
+    document.getElementById('resolved-route')!.textContent = Sentry.resolveCurrentRoute() ?? 'unresolved';
+  });
+</script>

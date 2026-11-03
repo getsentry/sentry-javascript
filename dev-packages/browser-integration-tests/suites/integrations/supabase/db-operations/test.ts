@@ -1,12 +1,7 @@
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import {
-  getFirstSentryEnvelopeRequest,
-  getMultipleSentryEnvelopeRequests,
-  shouldSkipTracingTest,
-} from '../../../../utils/helpers';
+import { envelopeRequestParser, waitForErrorRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
 async function mockSupabaseRoute(page: Page) {
   await page.route('**/rest/v1/todos**', route => {
@@ -30,14 +25,16 @@ if (bundle.startsWith('bundle')) {
 
 sentryTest('should capture Supabase database operation breadcrumbs', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
-    return;
+    sentryTest.skip();
   }
 
   await mockSupabaseRoute(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const eventPromise = waitForErrorRequest(page, event => event.exception?.values?.[0]?.value === 'Test Error');
+  await page.goto(url);
+  const eventData = envelopeRequestParser(await eventPromise);
 
   expect(eventData.breadcrumbs).toBeDefined();
   expect(eventData.breadcrumbs).toContainEqual({
@@ -53,34 +50,32 @@ sentryTest('should capture Supabase database operation breadcrumbs', async ({ ge
 
 sentryTest('should capture multiple Supabase operations in sequence', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
-    return;
+    sentryTest.skip();
   }
 
   await mockSupabaseRoute(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const events = await getMultipleSentryEnvelopeRequests<Event>(page, 2, { url });
-
-  expect(events).toHaveLength(2);
-
-  events.forEach(event => {
-    expect(
-      event.breadcrumbs?.some(breadcrumb => breadcrumb.type === 'supabase' && breadcrumb?.category?.startsWith('db.')),
-    ).toBe(true);
-  });
+  const eventPromise = waitForErrorRequest(page, event => event.exception?.values?.[0]?.value === 'Test Error');
+  await page.goto(url);
+  const event = envelopeRequestParser(await eventPromise);
+  const supabaseBreadcrumbs = event.breadcrumbs?.filter(breadcrumb => breadcrumb.type === 'supabase');
+  expect(supabaseBreadcrumbs?.map(breadcrumb => breadcrumb.category)).toEqual(['db.insert', 'db.select']);
 });
 
 sentryTest('should include correct data payload in Supabase breadcrumbs', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
-    return;
+    sentryTest.skip();
   }
 
   await mockSupabaseRoute(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const eventPromise = waitForErrorRequest(page, event => event.exception?.values?.[0]?.value === 'Test Error');
+  await page.goto(url);
+  const eventData = envelopeRequestParser(await eventPromise);
 
   const supabaseBreadcrumb = eventData.breadcrumbs?.find(b => b.type === 'supabase');
 

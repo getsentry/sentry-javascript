@@ -4,13 +4,12 @@ import { extractTraceparentData, parseBaggageHeader } from '@sentry/core';
 import { sentryTest } from '../../../../../../utils/fixtures';
 import {
   envelopeRequestParser,
-  eventAndTraceHeaderRequestParser,
   hidePage,
   shouldSkipTracingTest,
   waitForClientReportRequest,
   waitForTracingHeadersOnUrl,
-  waitForTransactionRequest,
 } from '../../../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpanEnvelope } from '../../../../../../utils/spanUtils';
 
 const metaTagSampleRand = 0.9;
 const metaTagSampleRate = 0.2;
@@ -21,16 +20,14 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
   sentryTest(
     'meta tag decision has precedence over sampling decision from previous trace in session storage',
     async ({ getLocalTestUrl, page }) => {
-      if (shouldSkipTracingTest()) {
-        sentryTest.skip();
-      }
+      sentryTest.skip(shouldSkipTracingTest());
 
       const url = await getLocalTestUrl({ testDir: __dirname });
 
       const clientReportPromise = waitForClientReportRequest(page);
 
       await sentryTest.step('Initial pageload', async () => {
-        // negative sampling decision -> no pageload txn
+        // negative sampling decision -> no pageload span
         await page.goto(url);
       });
 
@@ -71,37 +68,49 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
           timestamp: expect.any(Number),
           discarded_events: [
             {
-              category: 'transaction',
-              quantity: 2,
+              category: 'span',
+              quantity: expect.any(Number),
               reason: 'sample_rate',
             },
           ],
         });
+        // exact number depends on performance observer emissions
+        expect(clientReport.discarded_events[0].quantity).toBeGreaterThanOrEqual(3);
       });
 
       await sentryTest.step('Navigate to another page with meta tags', async () => {
-        const page1Pageload = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'pageload');
+        const page1PageloadEnvelopePromise = waitForStreamedSpanEnvelope(
+          page,
+          env => !!env[1][0][1].items.find(s => getSpanOp(s) === 'pageload' && s.trace_id === metaTagTraceIdPage1),
+        );
         await page.locator('a').click();
 
-        const [pageloadEvent, pageloadTraceHeader] = eventAndTraceHeaderRequestParser(await page1Pageload);
-        const pageloadTraceContext = pageloadEvent.contexts?.trace;
+        const envelope = await page1PageloadEnvelopePromise;
+        const pageloadSpan = envelope[1][0][1].items.find(s => getSpanOp(s) === 'pageload')!;
 
-        expect(Number(pageloadTraceHeader?.sample_rand)).toBe(0.12);
-        expect(Number(pageloadTraceHeader?.sample_rate)).toBe(0.2);
-        expect(pageloadTraceContext?.trace_id).toEqual(metaTagTraceIdPage1);
+        expect(Number(envelope[0].trace?.sample_rand)).toBe(0.12);
+        expect(Number(envelope[0].trace?.sample_rate)).toBe(0.2);
+        expect(pageloadSpan.trace_id).toEqual(metaTagTraceIdPage1);
       });
 
       await sentryTest.step('Navigate to another page without meta tags', async () => {
-        const page2Pageload = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'pageload');
+        const page2PageloadEnvelopePromise = waitForStreamedSpanEnvelope(
+          page,
+          env =>
+            !!env[1][0][1].items.find(
+              s =>
+                getSpanOp(s) === 'pageload' && s.trace_id !== metaTagTraceIdPage1 && s.trace_id !== metaTagTraceIdIndex,
+            ),
+        );
         await page.locator('a').click();
 
-        const [pageloadEvent, pageloadTraceHeader] = eventAndTraceHeaderRequestParser(await page2Pageload);
-        const pageloadTraceContext = pageloadEvent.contexts?.trace;
+        const envelope = await page2PageloadEnvelopePromise;
+        const pageloadSpan = envelope[1][0][1].items.find(s => getSpanOp(s) === 'pageload')!;
 
-        expect(Number(pageloadTraceHeader?.sample_rand)).toBe(0.12);
-        expect(Number(pageloadTraceHeader?.sample_rate)).toBe(0.2);
-        expect(pageloadTraceContext?.trace_id).not.toEqual(metaTagTraceIdPage1);
-        expect(pageloadTraceContext?.trace_id).not.toEqual(metaTagTraceIdIndex);
+        expect(Number(envelope[0].trace?.sample_rand)).toBe(0.12);
+        expect(Number(envelope[0].trace?.sample_rate)).toBe(0.2);
+        expect(pageloadSpan.trace_id).not.toEqual(metaTagTraceIdPage1);
+        expect(pageloadSpan.trace_id).not.toEqual(metaTagTraceIdIndex);
       });
     },
   );

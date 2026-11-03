@@ -10,6 +10,7 @@ import type { Primitive } from './types/misc';
 import type { Session, SessionContext } from './types/session';
 import type { SeverityLevel } from './types/severity';
 import type { User } from './types/user';
+import { filterKeyValueData } from './utils/data-collection/filterKeyValueData';
 import { debug } from './utils/debug-logger';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
@@ -195,7 +196,8 @@ export async function flush(timeout?: number): Promise<boolean> {
 }
 
 /**
- * Call `close()` on the current client, if there is one. See {@link Client.close}.
+ * Call `close()` on the current client, if there is one, and unbind it from the current scope.
+ * See {@link Client.close}.
  *
  * @param timeout Maximum time in ms the client should wait to flush its event queue before shutting down. Omitting this
  * parameter will cause the client to wait until all events are sent before disabling itself.
@@ -203,9 +205,15 @@ export async function flush(timeout?: number): Promise<boolean> {
  * doesn't (or if there's no client defined).
  */
 export async function close(timeout?: number): Promise<boolean> {
-  const client = getClient();
+  const scope = getCurrentScope();
+  const client = scope.getClient();
   if (client) {
-    return client.close(timeout);
+    const result = await client.close(timeout);
+    // Unbind the client, so a later `init()` sets up a new one.
+    if (scope.getClient() === client) {
+      scope.setClient(undefined);
+    }
+    return result;
   }
   DEBUG_BUILD && debug.warn('Cannot flush events and disable SDK. No client defined.');
   return Promise.resolve(false);
@@ -245,12 +253,15 @@ export function startSession(context?: SessionContext): Session {
 
   const { user } = getCombinedScopeData(isolationScope, getCurrentScope());
 
-  // Will fetch userAgent if called from browser sdk
-  const { userAgent } = GLOBAL_OBJ.navigator || {};
+  let userAgent = GLOBAL_OBJ.navigator?.userAgent;
+  if (userAgent) {
+    const headerCollection = getClient()?.getDataCollectionOptions().httpHeaders.request ?? true;
+    userAgent = filterKeyValueData({ 'User-Agent': userAgent }, headerCollection)['User-Agent'];
+  }
 
   const session = makeSession({
     user,
-    ...(userAgent && { userAgent }),
+    userAgent,
     ...context,
   });
 

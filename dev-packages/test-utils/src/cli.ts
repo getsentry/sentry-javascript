@@ -8,12 +8,14 @@ import type { SpawnSyncReturns } from 'node:child_process';
 export const EVENT_POLLING_OPTIONS = { timeout: 180_000, intervals: [5_000] };
 
 /**
- * A node of the span tree returned by `sentry trace view`. Spans, errors and occurrences all
+ * A node of the span tree returned by the trace endpoint. Spans, errors and occurrences all
  * share this shape and are discriminated by `event_type`.
  */
 export interface TraceItem {
   /** On a span this is the span id. */
   event_id?: string;
+  /** On a span this is the span id of its parent span. */
+  parent_span_id?: string | null;
   event_type?: 'span' | 'error' | 'occurrence' | 'uptime_check';
   op?: string | null;
   /** On a span this is the span name. */
@@ -41,6 +43,9 @@ function runSentryCli(args: string[]): SpawnSyncReturns<string> {
       // over an env token, so force the env token for identical behaviour everywhere.
       SENTRY_AUTH_TOKEN: process.env['E2E_TEST_AUTH_TOKEN'],
       SENTRY_FORCE_ENV_TOKEN: '1',
+      // Every call polls for data that is still arriving. `sentry api` has no `--fresh` flag and would
+      // otherwise answer every poll from the cached response of the first one.
+      SENTRY_NO_CACHE: '1',
     },
   });
 
@@ -55,36 +60,48 @@ function runSentryCli(args: string[]): SpawnSyncReturns<string> {
 }
 
 /**
+ * The API rate limit is shared by every GET request of the E2E token's user, so concurrent jobs can
+ * exhaust it. The callers poll anyway, so a rate limited request is treated like data that has not
+ * landed yet instead of failing the test.
+ */
+function isRateLimited(result: SpawnSyncReturns<string>): boolean {
+  return /\b429\b|too frequently/i.test(`${result.stdout}${result.stderr}`);
+}
+
+/**
  * Fetch a trace of the E2E test project through the `sentry` CLI, which the calling test app has to
  * list as a dev dependency. Returns an empty list while the trace has not landed yet.
+ *
+ * This calls the trace endpoint directly instead of `sentry trace view --json`, which also looks up
+ * the project and fetches the details of every span, one request each. That turns every poll into
+ * dozens of requests and gets the E2E token rate limited.
  */
 export function fetchTrace(traceId: string): TraceItem[] {
-  const target = traceTarget(traceId);
-  const result = runSentryCli(['trace', 'view', target, '--json', '--fresh']);
+  const params = new URLSearchParams({ project: '-1', statsPeriod: '1h', limit: '10000' });
+  const path = `/organizations/${process.env['E2E_TEST_SENTRY_ORG_SLUG']}/trace/${traceId}/?${params}`;
+  const result = runSentryCli(['api', path]);
 
   if (result.status === 0) {
-    return (JSON.parse(result.stdout) as { spans?: TraceItem[] }).spans ?? [];
+    return JSON.parse(result.stdout) as TraceItem[];
   }
 
-  // Exit codes 10-19 are auth errors, and a rejected token also surfaces as an API error (exit 30)
-  // with a 401 in the message. Neither resolves by waiting, so fail loudly instead of polling until
-  // the timeout and reporting it as a missing event. The trace endpoint is org scoped, so the token
-  // needs `org:read` on top of the project scopes.
+  if (isRateLimited(result)) {
+    return [];
+  }
+
+  // Exit codes 10-19 are auth errors, and a rejected token also surfaces as an API error with a 401
+  // or 403 in the message. Neither resolves by waiting, so fail loudly instead of polling until the
+  // timeout and reporting it as a missing event. The trace endpoint is org scoped, so the token needs
+  // `org:read` on top of the project scopes.
   const isAuthError = result.status !== null && result.status >= 10 && result.status < 20;
-  if (isAuthError || /\b40[13]\b/.test(result.stderr)) {
+  if (isAuthError || /\b40[13]\b/.test(`${result.stdout}${result.stderr}`)) {
     throw new Error(
-      `sentry trace view ${target} failed with exit code ${result.status}: ${result.stderr}` +
+      `sentry api ${path} failed with exit code ${result.status}: ${result.stdout}${result.stderr}` +
         'E2E_TEST_AUTH_TOKEN needs the `org:read` scope.',
     );
   }
 
-  const traceMissing = result.status === 23 && result.stderr.includes(`Trace '${traceId}' not found`);
-
-  if (traceMissing) {
-    return [];
-  }
-
-  throw new Error(`sentry trace view ${target} exited with ${result.status}: ${result.stderr}`);
+  throw new Error(`sentry api ${path} exited with ${result.status}: ${result.stdout}${result.stderr}`);
 }
 
 /**
@@ -105,7 +122,62 @@ export function fetchSpanAttributes(traceId: string, spanId: string): Record<str
     return Object.fromEntries(attributes.map(({ name, value }) => [name, value]));
   }
 
-  if (result.stdout.includes('"Not found."')) {
+  if (result.stdout.includes('"Not found."') || isRateLimited(result)) {
+    return undefined;
+  }
+
+  throw new Error(`sentry api ${path} exited with ${result.status}: ${result.stdout}${result.stderr}`);
+}
+
+/** An error event in the shape the Sentry API returns it. The exception is the entry of type `exception`. */
+export interface ApiEvent {
+  entries: {
+    type: string;
+    data: { values?: { type?: string; value?: string; mechanism?: { type?: string; handled?: boolean } }[] };
+  }[];
+}
+
+/** Fetch an error event of the E2E test project. Returns `undefined` while the event is not stored yet. */
+export function fetchEvent(eventId: string): ApiEvent | undefined {
+  const path =
+    `/projects/${process.env['E2E_TEST_SENTRY_ORG_SLUG']}/${process.env['E2E_TEST_SENTRY_PROJECT']}` +
+    `/events/${eventId}/`;
+  const result = runSentryCli(['api', path]);
+
+  if (result.status === 0) {
+    return JSON.parse(result.stdout) as ApiEvent;
+  }
+
+  if (result.stdout.includes('"Event not found"') || isRateLimited(result)) {
+    return undefined;
+  }
+
+  throw new Error(`sentry api ${path} exited with ${result.status}: ${result.stdout}${result.stderr}`);
+}
+
+/**
+ * Search the spans of the E2E test project from the last hour, and return the trace id of a span that
+ * matches `query`. `query` uses the Sentry search syntax, for example `gen_ai.conversation.id:abc`.
+ * Returns `undefined` while no span matches.
+ *
+ * `sentry span list --json` cannot be used for this: it returns no trace id for a project search.
+ */
+export function findTraceIdOfSpan(query: string): string | undefined {
+  const params = new URLSearchParams({
+    dataset: 'spans',
+    field: 'trace',
+    query: `project:${process.env['E2E_TEST_SENTRY_PROJECT']} ${query}`,
+    statsPeriod: '1h',
+    per_page: '1',
+  });
+  const path = `/organizations/${process.env['E2E_TEST_SENTRY_ORG_SLUG']}/events/?${params}`;
+  const result = runSentryCli(['api', path]);
+
+  if (result.status === 0) {
+    return (JSON.parse(result.stdout) as { data: { trace: string }[] }).data[0]?.trace;
+  }
+
+  if (isRateLimited(result)) {
     return undefined;
   }
 

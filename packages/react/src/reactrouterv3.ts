@@ -5,14 +5,9 @@ import {
   WINDOW,
 } from '@sentry/browser';
 import type { Integration, TransactionSource } from '@sentry/core';
-import {
-  hasSpanStreamingEnabled,
-  NAVIGATION_SPAN_NAME_FALLBACK,
-  PAGELOAD_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-} from '@sentry/core';
+import { hasSpanStreamingEnabled, NAVIGATION_SPAN_NAME_FALLBACK, PAGELOAD_SPAN_NAME_FALLBACK } from '@sentry/core';
 import type { Location } from './types';
-import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 
 // Many of the types below had to be mocked out to prevent typescript issues
@@ -70,7 +65,7 @@ export function reactRouterV3BrowserTracingIntegration(
               name: source === 'route' || !hasSpanStreamingEnabled(client) ? localName : PAGELOAD_SPAN_NAME_FALLBACK,
               attributes: {
                 [SENTRY_OP]: PAGELOAD,
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v3',
+                [SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v3',
                 [SENTRY_SEGMENT_NAME_SOURCE]: source,
                 ...(source === 'route' && { [URL_TEMPLATE]: localName }),
               },
@@ -93,7 +88,7 @@ export function reactRouterV3BrowserTracingIntegration(
                     source === 'route' || !hasSpanStreamingEnabled(client) ? localName : NAVIGATION_SPAN_NAME_FALLBACK,
                   attributes: {
                     [SENTRY_OP]: NAVIGATION,
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
+                    [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
                     [SENTRY_SEGMENT_NAME_SOURCE]: source,
                     ...(source === 'route' && { [URL_TEMPLATE]: localName }),
                   },

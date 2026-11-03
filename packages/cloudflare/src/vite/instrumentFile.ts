@@ -10,17 +10,17 @@ export const ENV_FALLBACK_OPTIONS_FN = '() => undefined';
 const OPTIONS_IMPORT_IDENTIFIER = '__SENTRY_OPTIONS_CALLBACK__';
 
 // Conventional, non-configurable name of the Sentry options module. It is
-// looked up next to the worker entry file; its default export is the options
+// looked up next to the worker entry file, or next to the wrangler config
+// when `main` is not a file path; its default export is the options
 // callback `(env) => CloudflareOptions`.
 const INSTRUMENT_FILE_BASENAME = 'instrument.server';
 const INSTRUMENT_FILE_EXTENSIONS = ['ts', 'mts', 'js', 'mjs', 'cjs'];
 
 /**
- * Locate the conventional `instrument.server.*` module sitting next to the
- * worker entry file. Returns its absolute path, or `undefined` when absent.
+ * Locate the conventional `instrument.server.*` module in `dir`. Returns its
+ * absolute path, or `undefined` when absent.
  */
-export function resolveInstrumentFile(entryFilePath: string): string | undefined {
-  const dir = dirname(entryFilePath);
+export function resolveInstrumentFile(dir: string): string | undefined {
   for (const ext of INSTRUMENT_FILE_EXTENSIONS) {
     const candidate = resolve(dir, `${INSTRUMENT_FILE_BASENAME}.${ext}`);
     if (existsSync(candidate)) return candidate;

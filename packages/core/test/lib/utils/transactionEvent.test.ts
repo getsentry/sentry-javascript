@@ -1,5 +1,5 @@
+import { SENTRY_PROFILE_ID, SENTRY_EXCLUSIVE_TIME } from '@sentry/conventions/attributes';
 import { describe, expect, it } from 'vitest';
-import { SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME, SEMANTIC_ATTRIBUTE_PROFILE_ID } from '../../../src/semanticAttributes';
 import type { TransactionEvent } from '../../../src/types/event';
 import type { SpanJSON } from '../../../src/types/span';
 import {
@@ -44,10 +44,18 @@ describe('convertTransactionEventToSpanJson', () => {
           origin: 'manual',
           op: 'http',
           data: {
-            [SEMANTIC_ATTRIBUTE_PROFILE_ID]: 'profile123',
-            [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 123.45,
+            [SENTRY_PROFILE_ID]: 'profile123',
+            [SENTRY_EXCLUSIVE_TIME]: 123.45,
             other: 'value',
           },
+          links: [
+            {
+              span_id: 'linked-span',
+              trace_id: 'linked-trace',
+              sampled: true,
+              attributes: { 'sentry.link.type': 'previous_trace' },
+            },
+          ],
         },
       },
       start_timestamp: 1234567800,
@@ -59,8 +67,8 @@ describe('convertTransactionEventToSpanJson', () => {
 
     expect(convertTransactionEventToSpanJson(event)).toEqual({
       data: {
-        [SEMANTIC_ATTRIBUTE_PROFILE_ID]: 'profile123',
-        [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 123.45,
+        [SENTRY_PROFILE_ID]: 'profile123',
+        [SENTRY_EXCLUSIVE_TIME]: 123.45,
         other: 'value',
       },
       description: 'Test Transaction',
@@ -74,6 +82,14 @@ describe('convertTransactionEventToSpanJson', () => {
       origin: 'manual',
       profile_id: 'profile123',
       exclusive_time: 123.45,
+      links: [
+        {
+          span_id: 'linked-span',
+          trace_id: 'linked-trace',
+          sampled: true,
+          attributes: { 'sentry.link.type': 'previous_trace' },
+        },
+      ],
       measurements: {
         fp: { value: 123, unit: 'millisecond' },
       },
@@ -142,6 +158,14 @@ describe('convertSpanJsonToTransactionEvent', () => {
       origin: 'manual',
       profile_id: 'profile123',
       exclusive_time: 123.45,
+      links: [
+        {
+          span_id: 'linked-span',
+          trace_id: 'linked-trace',
+          sampled: true,
+          attributes: { 'sentry.link.type': 'previous_trace' },
+        },
+      ],
       measurements: {
         fp: { value: 123, unit: 'millisecond' },
       },
@@ -160,10 +184,18 @@ describe('convertSpanJsonToTransactionEvent', () => {
           op: 'http',
           status: 'ok',
           origin: 'manual',
+          links: [
+            {
+              span_id: 'linked-span',
+              trace_id: 'linked-trace',
+              sampled: true,
+              attributes: { 'sentry.link.type': 'previous_trace' },
+            },
+          ],
           data: {
             other: 'value',
-            [SEMANTIC_ATTRIBUTE_PROFILE_ID]: 'profile123',
-            [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 123.45,
+            [SENTRY_PROFILE_ID]: 'profile123',
+            [SENTRY_EXCLUSIVE_TIME]: 123.45,
           },
         },
       },

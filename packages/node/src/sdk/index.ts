@@ -1,5 +1,6 @@
 import type { Integration, Options } from '@sentry/core';
 import {
+  _INTERNAL_warnIfClientIsActive,
   applySdkMetadata,
   consoleSandbox,
   conversationIdIntegration,
@@ -19,6 +20,7 @@ import {
 import { isMainThread, parentPort } from 'node:worker_threads';
 import { detectOrchestrionSetup, getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
 import { DEBUG_BUILD } from '../debug-build';
+import { awsLambdaWebIntegration } from '../integrations/awsLambdaWeb';
 import { childProcessIntegration } from '../integrations/childProcess';
 import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';
@@ -40,6 +42,7 @@ import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry } from './initOtel';
+import { setupVercelKeepAlive } from './vercel';
 
 /**
  * Get the base default integrations shared by all Node SDK default-integration sets.
@@ -64,6 +67,7 @@ function getBaseDefaultIntegrations(): Integration[] {
     // Event Info
     contextLinesIntegration(),
     localVariablesIntegration(),
+    awsLambdaWebIntegration(),
     nodeContextIntegration(),
     childProcessIntegration(),
     workerThreadsIntegration(),
@@ -161,6 +165,8 @@ function _init(
 
   const clientOptions = getClientOptions({ ...options, defaultIntegrations }, getDefaultIntegrationsImpl);
 
+  _INTERNAL_warnIfClientIsActive();
+
   const scope = getCurrentScope();
   scope.update(clientOptions.initialScope);
 
@@ -189,13 +195,8 @@ function _init(
 
   updateScopeFromEnvVariables();
 
-  // Ensure we flush events when vercel functions are ended
-  // See: https://vercel.com/docs/functions/functions-api-reference#sigterm-signal
   if (process.env.VERCEL) {
-    process.on('SIGTERM', async () => {
-      // We have 500ms for processing here, so we try to make sure to have enough time to send the events
-      await client.flush(200);
-    });
+    setupVercelKeepAlive(client);
   }
 
   // Add Node SDK specific OpenTelemetry setup. `setupEventContextTrace` reads the active span from the

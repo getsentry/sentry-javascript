@@ -15,6 +15,8 @@ import { loadSvelteConfig } from './svelteConfig';
 export type ResolvedKitConfig = {
   adapter?: Adapter;
   outDir?: string;
+  /** File extensions SvelteKit treats as modules, `['.js', '.ts']` by default. */
+  moduleExtensions?: string[];
   files?: {
     hooks?: {
       client?: string;

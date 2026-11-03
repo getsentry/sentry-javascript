@@ -5,13 +5,13 @@ import { serializeAttributes } from '../attributes';
 import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
 import type { Scope } from '../scope';
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
-} from '../semanticAttributes';
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_STATUS_MESSAGE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { isStatusErrorMessageValid, SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
@@ -30,7 +30,7 @@ import type {
 import type { SpanStatus } from '../types/spanStatus';
 import { addNonEnumerableProperty } from '../utils/object';
 import { generateSpanId } from '../utils/propagationContext';
-import { timestampInSeconds } from '../utils/time';
+import { performanceTimeToSeconds, timestampInSeconds } from '../utils/time';
 import { generateSentryTraceHeader, generateTraceparentHeader } from '../utils/tracing';
 import { _getSpanForScope } from './spanOnScope';
 
@@ -165,6 +165,23 @@ function ensureTimestampInSeconds(timestamp: number): number {
 }
 
 /**
+ * Convert an OpenTelemetry time input into a timestamp in seconds.
+ *
+ * OpenTelemetry numbers are always milliseconds, either since the epoch or since the performance time origin
+ * (`performance.now()`).
+ */
+export function otelTimeInputToSeconds(input: SpanTimeInput | undefined): number {
+  if (typeof input !== 'number') {
+    return spanTimeInputToSeconds(input);
+  }
+  // Epoch milliseconds are > 1e12 for any date after 2001, `performance.now()` would need ~30 years of uptime to get there
+  if (input < 1e12) {
+    return performanceTimeToSeconds(input) ?? timestampInSeconds();
+  }
+  return input / 1000;
+}
+
+/**
  * Convert a span to a static JSON representation.
  */
 // Note: Because of this, we currently have a circular type dependency (which we opted out of in package.json).
@@ -191,8 +208,8 @@ export function spanToStaticSpanJSON(span: Span): SpanJSON {
       // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
       timestamp: spanTimeInputToSeconds(endTime) || undefined,
       status: getStatusMessage(status),
-      op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
-      origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
+      op: attributes[SENTRY_OP],
+      origin: attributes[SENTRY_ORIGIN] as SpanOrigin | undefined,
       links: convertSpanLinksForEnvelope(links),
     };
   }
@@ -346,7 +363,7 @@ export function getSimpleStatus(status: SpanStatus | undefined): 'ok' | 'error' 
 }
 
 /**
- * Returns the span's attributes with the SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE attribute added
+ * Returns the span's attributes with the SENTRY_STATUS_MESSAGE attribute added
  * if the span has an error status message worth preserving.
  *
  * An explicitly set attribute is never overwritten.
@@ -357,7 +374,7 @@ export function addStatusMessageAttribute(
 ): RawAttributes<Record<string, unknown>> {
   const statusMessage = getSimpleStatus(status) === 'error' ? status?.message : undefined;
   return {
-    ...(statusMessage && { [SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]: statusMessage }),
+    ...(statusMessage && { [SENTRY_STATUS_MESSAGE]: statusMessage }),
     ...attributes,
   };
 }

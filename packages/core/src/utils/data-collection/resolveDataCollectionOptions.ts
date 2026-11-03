@@ -13,6 +13,7 @@ const DEFAULTS: ResolvedDataCollection = {
   urlQueryParams: true,
   graphQL: { document: true, variables: true },
   genAI: { inputs: true, outputs: true },
+  mcp: { inputs: true, outputs: true },
   databaseQueryData: true,
   queues: true,
   stackFrameVariables: true,
@@ -61,6 +62,10 @@ export function resolveDataCollectionOptions(options: { dataCollection?: DataCol
     genAI: {
       inputs: dc.genAI?.inputs ?? DEFAULTS.genAI.inputs,
       outputs: dc.genAI?.outputs ?? DEFAULTS.genAI.outputs,
+    },
+    mcp: {
+      inputs: dc.mcp?.inputs ?? DEFAULTS.mcp.inputs,
+      outputs: dc.mcp?.outputs ?? DEFAULTS.mcp.outputs,
     },
     databaseQueryData: dc.databaseQueryData ?? DEFAULTS.databaseQueryData,
     queues: dc.queues ?? DEFAULTS.queues,

@@ -9,7 +9,7 @@ afterAll(() => {
 test('should aggregate successful and crashed sessions', async () => {
   const runner = createRunner(__dirname, '..', 'server.mjs')
     .withInstrument(join(__dirname, '..', 'instrument.mjs'))
-    .ignore('transaction', 'event')
+    .ignore('span', 'event')
     .unignore('sessions')
     .expect({
       sessions: agg => {

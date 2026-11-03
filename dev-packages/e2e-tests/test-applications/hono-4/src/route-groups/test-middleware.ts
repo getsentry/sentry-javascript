@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { failingMiddleware, middlewareA, middlewareB } from '../middleware';
+import { failingMiddleware, middlewareA, middlewareB, namedMiddleware } from '../middleware';
 
 const middlewareRoutes = new Hono();
 
@@ -8,11 +8,13 @@ middlewareRoutes.get('/anonymous', c => c.json({ middleware: 'anonymous' }));
 middlewareRoutes.get('/multi', c => c.json({ middleware: 'multi' }));
 middlewareRoutes.get('/error', c => c.text('should not reach'));
 middlewareRoutes.get('/param/:id', c => c.json({ paramId: c.req.param('id') }));
+middlewareRoutes.get('/declared', c => c.json({ middleware: 'declared' }));
 
 // Self-contained sub-app registering its own middleware via .use()
 const subAppWithMiddleware = new Hono();
 
 subAppWithMiddleware.use('/named/*', middlewareA);
+subAppWithMiddleware.use('/declared/*', namedMiddleware);
 subAppWithMiddleware.use('/anonymous/*', async (c, next) => {
   c.header('X-Custom', 'anonymous');
   await next();

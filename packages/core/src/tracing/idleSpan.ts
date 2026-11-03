@@ -1,6 +1,6 @@
+import { SENTRY_IDLE_SPAN_FINISH_REASON } from '@sentry/conventions/attributes';
 import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
 import type { Span } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
 import { debug } from '../utils/debug-logger';
@@ -303,8 +303,8 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     }
 
     const attributes = spanJSON.data;
-    if (!attributes[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]) {
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, _finishReason);
+    if (!attributes[SENTRY_IDLE_SPAN_FINISH_REASON]) {
+      span.setAttribute(SENTRY_IDLE_SPAN_FINISH_REASON, _finishReason);
     }
 
     // Set span status to 'ok' if it hasn't been explicitly set to an error status
@@ -322,6 +322,8 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       // We cancel all pending spans with status "cancelled" to indicate the idle span was finished early
       if (childSpan.isRecording()) {
         childSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
+        // NOTE: This deliberately does not work for OTEL-provider spans (which use ms timestamps)
+        // We do not really support OTEL in the browser, which is the only place that uses idle spans
         childSpan.end(endTimestamp);
         DEBUG_BUILD &&
           debug.log('[Tracing] Cancelling span since span ended early', JSON.stringify(childSpan, undefined, 2));

@@ -1,0 +1,6 @@
+allowBuilds:
+  esbuild: true
+  lmdb: true
+  msgpackr-extract: true
+  nice-napi: true
+minimumReleaseAge: 0

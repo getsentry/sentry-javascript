@@ -10,7 +10,6 @@ import {
   getActiveSpan,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   truncate,
@@ -28,12 +27,14 @@ import {
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../debug-build';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
-import { sanitizeSqlQueryWithSummary, toSqlDialect } from '../utils/sql';
+import { getSqlQueryAttributes, toSqlDialect } from '../utils/sql';
 
 // NOTE: this uses the same name as the OTel integration by design. `@sentry/node`'s `knexIntegration`
 // picks this subscriber over the vendored OTel path when orchestrion injection is active.
@@ -89,21 +90,10 @@ interface KnexRunner {
 }
 
 /** Context orchestrion attaches to the `orchestrion:knex:query` channel (wrapping `Runner.query`). */
-interface KnexQueryChannelContext {
+interface KnexQueryChannelContext extends OrchestrionChannelContext {
   // `arguments[0]` is the query object (`{ sql, method, bindings }`).
   arguments: [KnexQuery?];
   self?: KnexRunner;
-  moduleVersion?: string;
-  result?: unknown;
-  error?: unknown;
-}
-
-/** Context orchestrion attaches to the `Client.queryBuilder`/`schemaBuilder`/`raw` channels. */
-interface KnexBuilderChannelContext {
-  arguments: unknown[];
-  self?: unknown;
-  // The builder returned by the wrapped method.
-  result?: KnexBuilder;
 }
 
 const _knexIntegration = (() => {
@@ -135,7 +125,7 @@ const _knexIntegration = (() => {
  */
 function subscribeBuilder(channelName: string): void {
   diagnosticsChannel.tracingChannel(channelName).end.subscribe(message => {
-    const builder = (message as KnexBuilderChannelContext).result;
+    const builder = (message as OrchestrionChannelContext).result;
     if (!builder || typeof builder !== 'object' || parentSpanSymbol in builder) {
       return;
     }
@@ -175,14 +165,15 @@ function subscribeQuery(): void {
       const dbSystem = mapSystem(client?.driverName);
 
       const dialect = toSqlDialect(client?.driverName);
-      const { queryText: dbStatement, querySummary } = sanitizeSqlQueryWithSummary(
+      const queryAttributes = getSqlQueryAttributes(
         query?.sql ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined,
         dialect,
       );
       const attributes: SpanAttributes = {
         [SENTRY_OP]: DB,
         [SENTRY_KIND]: 'client',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_ORIGIN]: ORIGIN,
+        ...queryAttributes,
         'knex.version': data.moduleVersion,
         [DB_SYSTEM_NAME]: dbSystem,
         [ATTR_DB_SQL_TABLE]: table,
@@ -192,15 +183,13 @@ function subscribeQuery(): void {
         [SERVER_ADDRESS]: connection?.host ?? extractHostFromConnectionString(connectionString),
         [SERVER_PORT]: connection?.port ?? extractPortFromConnectionString(connectionString),
         [NETWORK_TRANSPORT]: connection?.filename === ':memory:' ? 'inproc' : undefined,
-        [DB_QUERY_TEXT]: dbStatement,
-        [DB_QUERY_SUMMARY]: querySummary,
       };
 
       const sentryClient = getClient();
       const spanName =
         sentryClient && hasSpanStreamingEnabled(sentryClient)
-          ? querySummary || getSecondaryStreamName(dbSystem, dbNameSpace, operation, table)
-          : (dbStatement ?? getName(dbNameSpace, operation, table) ?? 'knex.query');
+          ? queryAttributes[DB_QUERY_SUMMARY] || getSecondaryStreamName(dbSystem, dbNameSpace, operation, table)
+          : (queryAttributes[DB_QUERY_TEXT] ?? getName(dbNameSpace, operation, table) ?? 'knex.query');
 
       return startInactiveSpan({
         name: spanName,

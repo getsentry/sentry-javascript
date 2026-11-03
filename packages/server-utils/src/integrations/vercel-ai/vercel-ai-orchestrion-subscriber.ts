@@ -9,6 +9,7 @@ import {
   withActiveSpan,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan, type TracingChannelPayloadWithSpan } from '../../tracing-channel';
 import {
@@ -56,13 +57,6 @@ import { asString, isReadableStream, tapModelCallStream } from './util';
  * double-counts tool spans.
  */
 
-/** Shape orchestrion's transform attaches to the tracing-channel context. */
-interface OrchestrionContext {
-  arguments: unknown[];
-  result?: unknown;
-  error?: unknown;
-}
-
 /** Builds the normalized message for a channel from the wrapped call's first-arg options. */
 type MessageBuilder = (options: Record<string, unknown>, telemetry: Record<string, unknown>) => VercelAiChannelMessage;
 
@@ -107,6 +101,9 @@ const callIdBySpan = new WeakMap<Span, string>();
 // child `generate_content` span (whose event would fall back to the global default). v7's channel forwards
 // these flags on every event, so this keeps v6 identical.
 const recordingBySpan = new WeakMap<Span, ReturnType<typeof recording>>();
+// The operation's `experimental_telemetry.metadata`, keyed by its span, so the model-call span records it
+// too. The OTel integration put it on both, but not on tool-call spans.
+const telemetryMetadataBySpan = new WeakMap<Span, unknown>();
 interface OperationErrorInfo {
   // The span active when the operation was invoked (its call site, e.g. the enclosing request/`main` span).
   // When an operation's error bubbles out unhandled it reaches the global handler outside any span, so — as
@@ -163,6 +160,7 @@ export function subscribeVercelAiOrchestrionChannels(
           ...modelFields(callOptions.model),
           maxRetries: callOptions.maxRetries,
           value: callOptions.value,
+          telemetryMetadata: telemetry.metadata,
           ...recording(telemetry),
         },
       }),
@@ -180,6 +178,7 @@ export function subscribeVercelAiOrchestrionChannels(
           ...modelFields(callOptions.model),
           maxRetries: callOptions.maxRetries,
           values: callOptions.values,
+          telemetryMetadata: telemetry.metadata,
           ...recording(telemetry),
         },
       }),
@@ -222,13 +221,13 @@ function bindOperation(
   build: MessageBuilder,
   options: VercelAiChannelOptions,
 ): void {
-  const channel = tracingChannel<OrchestrionContext>(channelName);
+  const channel = tracingChannel<OrchestrionChannelContext>(channelName);
 
   // Build the operation span from the wrapped call's first argument and track it (so a model call can
   // resolve it as its parent). `bindTracingChannelToSpan` calls this once at channel `start` and makes
   // the returned span the active async context for the operation's duration — that active span is what
   // `resolveModelCallParent` reads. It also sets `data._sentrySpan`, so we don't here.
-  const buildOperationSpan = (data: TracingChannelPayloadWithSpan<OrchestrionContext>): Span | undefined => {
+  const buildOperationSpan = (data: TracingChannelPayloadWithSpan<OrchestrionChannelContext>): Span | undefined => {
     const callOptions = isObjectLike(data.arguments[0]) ? data.arguments[0] : {};
     const telemetry = isObjectLike(callOptions.experimental_telemetry) ? callOptions.experimental_telemetry : {};
     // `isEnabled === false` means the user opted out — emit no span. But `isEnabled` is also `false` on
@@ -263,6 +262,7 @@ function bindOperation(
         callIdBySpan.set(span, callId);
       }
       recordingBySpan.set(span, recording(telemetry));
+      telemetryMetadataBySpan.set(span, telemetry.metadata);
       // v5 has no `executeToolCall` channel, so patch each tool's `execute` to emit the tool-call span.
       // Inert on v6 (guarded inside `patchToolExecute` when the parent is `executeToolCall`'s own span).
       if (isObjectLike(callOptions.tools)) {
@@ -282,7 +282,7 @@ function bindOperation(
 
   bindTracingChannelToSpan(
     channel,
-    (data: TracingChannelPayloadWithSpan<OrchestrionContext>) => buildOperationSpan(data),
+    (data: TracingChannelPayloadWithSpan<OrchestrionChannelContext>) => buildOperationSpan(data),
     {
       beforeSpanEnd: (span, data) => {
         const message = messages.get(data);
@@ -328,7 +328,7 @@ function bindOperation(
  * anything that isn't a streamed `streamText` result, so the helper ends the span as usual.
  */
 function deferStreamTextOperationEnd(
-  data: TracingChannelPayloadWithSpan<OrchestrionContext>,
+  data: TracingChannelPayloadWithSpan<OrchestrionChannelContext>,
   end: (error?: unknown) => void,
 ): boolean {
   if (messages.get(data)?.type !== 'streamText' || 'error' in data || !isStreamingResult(data.result)) {
@@ -398,7 +398,7 @@ function subscribeResolveLanguageModel(
   channelName: string,
   options: VercelAiChannelOptions,
 ): void {
-  tracingChannel<OrchestrionContext>(channelName).subscribe({
+  tracingChannel<OrchestrionChannelContext>(channelName).subscribe({
     end(rawCtx) {
       const ctx = rawCtx;
       if (!isObjectLike(ctx.result)) {
@@ -490,6 +490,7 @@ function patchModelMethod(
         // top-level `tools` array. Reading both keeps `tool.definitions` populated on the model-call span.
         tools: callArgs.tools ?? (isObjectLike(callArgs.mode) ? callArgs.mode.tools : undefined),
         messages: callArgs.prompt,
+        telemetryMetadata: telemetryMetadataBySpan.get(parent),
         // Inherit the enclosing operation's per-call recording flags so inputs/tools/outputs are recorded on
         // the model-call span whenever they are on the parent `invoke_agent` span.
         ...recordingBySpan.get(parent),
@@ -669,6 +670,10 @@ function buildTextMessage(type: 'generateText' | 'streamText' | 'generateObject'
       // Normalize to the message-array shape the shared core (and v7's channel) expects: a bare string
       // `prompt` becomes a single user message, matching the SDK's own normalization.
       messages: normalizePromptMessages(options),
+      // v7's native start event carries `providerOptions`; the shared core reads the OpenAI
+      // Conversations API id from it.
+      providerOptions: options.providerOptions,
+      telemetryMetadata: telemetry.metadata,
       ...recording(telemetry),
     },
   });

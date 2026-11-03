@@ -1,0 +1,6 @@
+allowBuilds:
+  esbuild: true
+  unrs-resolver: true
+minimumReleaseAge: 0
+overrides:
+  '@types/react': '18.2.22'

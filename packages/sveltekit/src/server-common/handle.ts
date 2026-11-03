@@ -10,7 +10,6 @@ import {
   hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
   HTTP_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   spanToJSON,
   startSpan,
@@ -20,7 +19,12 @@ import {
   withIsolationScope,
   filterCollectedUrl,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
+import {
+  flushIfServerless,
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+  _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
+} from '@sentry/core/server';
+import { getTunnelBasePath } from '../common/tunnel';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
@@ -31,6 +35,8 @@ import {
   SENTRY_SEGMENT_NAME_SOURCE,
   URL_FULL,
   URL_PATH,
+  SENTRY_ORIGIN,
+  SVELTEKIT_TRACING_ORIGINAL_NAME,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 
@@ -205,11 +211,11 @@ async function instrumentHandle(
 
         kitRootSpan.setAttributes({
           [SENTRY_OP]: HTTP_SERVER,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
+          [SENTRY_ORIGIN]: 'auto.http.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: routeName ? 'route' : 'url',
-          'sveltekit.tracing.original_name': originalName,
-          [URL_FULL]: (kitRootSpanAttributes[URL_FULL] as string | undefined) ?? filterCollectedUrl(event.url.href),
-          [URL_PATH]: (kitRootSpanAttributes[URL_PATH] as string | undefined) ?? event.url.pathname,
+          [SVELTEKIT_TRACING_ORIGINAL_NAME]: originalName,
+          [URL_FULL]: kitRootSpanAttributes[URL_FULL] ?? filterCollectedUrl(event.url.href),
+          [URL_PATH]: kitRootSpanAttributes[URL_PATH] ?? event.url.pathname,
           ...(routeName && {
             [HTTP_ROUTE]: routeName,
           }),
@@ -238,7 +244,7 @@ async function instrumentHandle(
           {
             attributes: {
               [SENTRY_OP]: HTTP_SERVER,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
+              [SENTRY_ORIGIN]: 'auto.http.sveltekit',
               [SENTRY_SEGMENT_NAME_SOURCE]: routeId ? 'route' : 'url',
               [HTTP_REQUEST_METHOD]: event.request.method,
               [URL_FULL]: filterCollectedUrl(event.url.href),
@@ -284,6 +290,10 @@ async function instrumentHandle(
  * ```
  */
 export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
+  // The hooks file creates this after the `sentrySvelteKit()` base path module ran, however the SDK was started
+  // (`--import`, a custom server), and later per-request clients (Cloudflare) start with it too.
+  setManagedTunnelDefaults({ basePath: getTunnelBasePath() });
+
   const { handleUnknownRoutes, ...rest } = handlerOptions ?? {};
   const options = {
     handleUnknownRoutes: handleUnknownRoutes ?? false,
@@ -291,6 +301,11 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   };
 
   const sentryRequestHandler: Handle = input => {
+    const tunnelResponse = handleServedTunnelRequest(input.event.request);
+    if (tunnelResponse) {
+      return tunnelResponse;
+    }
+
     const backwardsForwardsCompatibleEvent = input.event as typeof input.event & BackwardsForwardsCompatibleEvent;
 
     // Escape hatch to suppress request isolation and trace continuation (see initCloudflareSentryHandle)

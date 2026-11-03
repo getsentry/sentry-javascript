@@ -20,7 +20,7 @@ rm -rf ./packages/aws-serverless/node_modules
 # Creating Lambda layer
 echo "Creating Lambda layer in ./packages/aws-serverless/build/aws/dist-serverless..."
 cd packages/aws-serverless
-yarn build
+pnpm run build
 echo "Done creating Lambda layer in ./packages/aws-serverless/build/aws/dist-serverless."
 
 # Deploying zipped Lambda layer to AWS

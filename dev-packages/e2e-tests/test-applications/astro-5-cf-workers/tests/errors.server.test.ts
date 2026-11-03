@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test.describe('server-side errors', () => {
   test('captures SSR error', async ({ page }) => {
@@ -7,8 +7,8 @@ test.describe('server-side errors', () => {
       return errorEvent?.exception?.values?.[0]?.value === "Cannot read properties of undefined (reading 'x')";
     });
 
-    const transactionEventPromise = waitForTransaction('astro-5-cf-workers', transactionEvent => {
-      return transactionEvent.transaction === 'GET /ssr-error';
+    const spanPromise = waitForStreamedSpan('astro-5-cf-workers', span => {
+      return getSpanOp(span) === 'http.server' && span.is_segment && span.name === 'GET /ssr-error';
     });
 
     // This page returns an error status code, so we need to catch the navigation error
@@ -17,14 +17,14 @@ test.describe('server-side errors', () => {
     });
 
     const errorEvent = await errorEventPromise;
-    const transactionEvent = await transactionEventPromise;
+    const span = await spanPromise;
 
-    expect(transactionEvent).toMatchObject({
-      transaction: 'GET /ssr-error',
+    expect(span).toMatchObject({
+      name: 'GET /ssr-error',
     });
 
-    const traceId = transactionEvent.contexts?.trace?.trace_id;
-    const spanId = transactionEvent.contexts?.trace?.span_id;
+    const traceId = span.trace_id;
+    const spanId = span.span_id;
 
     expect(traceId).toMatch(/[a-f0-9]{32}/);
     expect(spanId).toMatch(/[a-f0-9]{16}/);
@@ -73,30 +73,30 @@ test.describe('server-side errors', () => {
     const errorEventPromise = waitForError('astro-5-cf-workers', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Endpoint Error';
     });
-    const transactionEventApiPromise = waitForTransaction('astro-5-cf-workers', transactionEvent => {
-      return transactionEvent.transaction === 'GET /endpoint-error/api';
+    const apiSpanPromise = waitForStreamedSpan('astro-5-cf-workers', span => {
+      return getSpanOp(span) === 'http.server' && span.is_segment && span.name === 'GET /endpoint-error/api';
     });
-    const transactionEventEndpointPromise = waitForTransaction('astro-5-cf-workers', transactionEvent => {
-      return transactionEvent.transaction === 'GET /endpoint-error';
+    const endpointSpanPromise = waitForStreamedSpan('astro-5-cf-workers', span => {
+      return getSpanOp(span) === 'http.server' && span.is_segment && span.name === 'GET /endpoint-error';
     });
 
     await page.goto('/endpoint-error');
     await page.getByText('Get Data').click();
 
     const errorEvent = await errorEventPromise;
-    const transactionEventApi = await transactionEventApiPromise;
-    const transactionEventEndpoint = await transactionEventEndpointPromise;
+    const apiSpan = await apiSpanPromise;
+    const endpointSpan = await endpointSpanPromise;
 
-    expect(transactionEventEndpoint).toMatchObject({
-      transaction: 'GET /endpoint-error',
+    expect(endpointSpan).toMatchObject({
+      name: 'GET /endpoint-error',
     });
 
-    const traceId = transactionEventEndpoint.contexts?.trace?.trace_id;
+    const traceId = endpointSpan.trace_id;
 
     expect(traceId).toMatch(/[a-f0-9]{32}/);
 
-    expect(transactionEventApi).toMatchObject({
-      transaction: 'GET /endpoint-error/api',
+    expect(apiSpan).toMatchObject({
+      name: 'GET /endpoint-error/api',
     });
 
     expect(errorEvent).toMatchObject({

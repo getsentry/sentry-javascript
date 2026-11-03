@@ -3,12 +3,12 @@ import type { Client, Span, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   debug,
+  filterCollectedUrl,
   getActiveSpan,
   getClient,
   getRootSpan,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  _INTERNAL_performanceTimeToSeconds,
   spanToJSON,
   timestampInSeconds,
   UI_INTERACTION_CLICK_SPAN_NAME_FALLBACK,
@@ -31,10 +31,18 @@ import {
 } from '../instrumentation/performanceObserver';
 import type { LargestContentfulPaint, LayoutShift } from './emitSpan';
 import {
+  SENTRY_EXCLUSIVE_TIME,
   BROWSER_NAVIGATION_TYPE,
   BROWSER_WEB_VITAL_INP_INTERACTION_TYPE,
   BROWSER_WEB_VITAL_INP_TARGET,
   UI_COMPONENT_NAME,
+  SENTRY_OP,
+  BROWSER_WEB_VITAL_LCP_ELEMENT,
+  BROWSER_WEB_VITAL_LCP_ID,
+  BROWSER_WEB_VITAL_LCP_LOAD_TIME,
+  BROWSER_WEB_VITAL_LCP_RENDER_TIME,
+  BROWSER_WEB_VITAL_LCP_SIZE,
+  BROWSER_WEB_VITAL_LCP_URL,
 } from '@sentry/conventions/attributes';
 import { _emitWebVitalSpan } from './emitSpan';
 import { isValidLcpMetric } from './lcp';
@@ -96,10 +104,7 @@ function trackWebVitalPerNavigation<M extends WebVitalMetric>(
     // `back-forward-cache` navigation type, so matching on that alone lets the first of them replace the
     // navigation span, and every later vital then hangs off a sibling vital instead.
     const attributes = spanToJSON(span).attributes;
-    if (
-      attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === NAVIGATION &&
-      attributes[BROWSER_NAVIGATION_TYPE] === 'back-forward-cache'
-    ) {
+    if (attributes?.[SENTRY_OP] === NAVIGATION && attributes[BROWSER_NAVIGATION_TYPE] === 'back-forward-cache') {
       bfcacheNavigationSpan = span;
     }
   });
@@ -193,14 +198,17 @@ export function _sendLcpSpan(
 
   DEBUG_BUILD && debug.log(`Sending LCP span (${lcpValue})`);
 
-  const performanceTimeOrigin = browserPerformanceTimeOrigin() || 0;
   // A soft navigation's LCP is measured from the triggering interaction, not the document time
   // origin. Starting the span there too keeps it inside the navigation span it is parented to and
-  // keeps its duration equal to the value it reports.
-  const startTime = msToSec(performanceTimeOrigin + (navigationStartTime || 0));
+  // keeps its duration equal to the reported value. The span's end uses the same origin, even if
+  // the time origin was corrected in between.
+  const navigationStart = navigationStartTime || 0;
+  const startTime = _INTERNAL_performanceTimeToSeconds(navigationStart) ?? msToSec(navigationStart);
   // Without an entry there is no render time to end at, so the span lasts the value it reports,
   // like an entry-less INP does. Ending at the time origin instead would invert the span.
-  const endTime = entry ? msToSec(performanceTimeOrigin + entry.startTime) : startTime + msToSec(lcpValue);
+  const endTime = entry
+    ? (_INTERNAL_performanceTimeToSeconds(entry.startTime, navigationStart) ?? msToSec(entry.startTime))
+    : startTime + msToSec(lcpValue);
   const selector = entry ? htmlTreeAsString(entry.element) : undefined;
   const componentName = entry?.element ? getComponentName(entry.element) : null;
   const client = getClient();
@@ -212,21 +220,21 @@ export function _sendLcpSpan(
   const attributes: SpanAttributes = {};
 
   if (selector) {
-    attributes['browser.web_vital.lcp.element'] = selector;
+    attributes[BROWSER_WEB_VITAL_LCP_ELEMENT] = selector;
   }
   if (componentName) {
     attributes[UI_COMPONENT_NAME] = componentName;
   }
-  entry?.id && (attributes['browser.web_vital.lcp.id'] = entry.id);
-  entry?.url && (attributes['browser.web_vital.lcp.url'] = entry.url);
-  entry?.loadTime != null && (attributes['browser.web_vital.lcp.load_time'] = entry.loadTime);
-  entry?.renderTime != null && (attributes['browser.web_vital.lcp.render_time'] = entry.renderTime);
-  entry?.size != null && (attributes['browser.web_vital.lcp.size'] = entry.size);
+  entry?.id && (attributes[BROWSER_WEB_VITAL_LCP_ID] = entry.id);
+  entry?.url && (attributes[BROWSER_WEB_VITAL_LCP_URL] = filterCollectedUrl(entry.url, client));
+  entry?.loadTime != null && (attributes[BROWSER_WEB_VITAL_LCP_LOAD_TIME] = entry.loadTime);
+  entry?.renderTime != null && (attributes[BROWSER_WEB_VITAL_LCP_RENDER_TIME] = entry.renderTime);
+  entry?.size != null && (attributes[BROWSER_WEB_VITAL_LCP_SIZE] = entry.size);
 
   _emitWebVitalSpan({
     name,
     op: UI_WEBVITAL_LCP,
-    origin: 'auto.http.browser.lcp',
+    origin: 'auto.ui.browser.lcp',
     metricName: 'lcp',
     value: lcpValue,
     attributes,
@@ -297,12 +305,12 @@ export function _sendClsSpan(
 ): void {
   DEBUG_BUILD && debug.log(`Sending CLS span (${clsValue})`);
 
-  const performanceTimeOrigin = browserPerformanceTimeOrigin();
   // A CLS of 0 has no shift to place the span at. It is reported when the navigation it was
   // measured on is already over - the next soft navigation, or pagehide - so the current time would
   // land it outside that navigation, on the route that follows it.
   const offset = entry?.startTime ?? navigationStartTime ?? 0;
-  const startTime = performanceTimeOrigin ? msToSec(performanceTimeOrigin + offset) : timestampInSeconds();
+  // CLS is only reported on pagehide, so we use the time origin from when the layout shift happened.
+  const startTime = _INTERNAL_performanceTimeToSeconds(offset) ?? timestampInSeconds();
   const firstSourceNode = entry?.sources[0]?.node;
   const selector = entry ? htmlTreeAsString(firstSourceNode) : undefined;
   const componentName = firstSourceNode ? getComponentName(firstSourceNode) : null;
@@ -327,7 +335,7 @@ export function _sendClsSpan(
   _emitWebVitalSpan({
     name,
     op: UI_WEBVITAL_CLS,
-    origin: 'auto.http.browser.cls',
+    origin: 'auto.ui.browser.cls',
     metricName: 'cls',
     value: clsValue,
     attributes,
@@ -409,9 +417,12 @@ export function _sendInpSpan(
   // A web vital span carries the metric, not a real interaction timing, so an INP without an entry
   // is still worth reporting. It just has no element or interaction type to describe, and is placed
   // at the start of the navigation it belongs to rather than at the interaction.
-  const startTime = msToSec(
-    (browserPerformanceTimeOrigin() as number) + (entry?.startTime ?? metric?.navigationStartTime ?? 0),
-  );
+  // INP is reported on pagehide, often long after the interaction, so we use the time origin from when the
+  // interaction happened.
+  const startTime = _INTERNAL_performanceTimeToSeconds(entry?.startTime ?? metric?.navigationStartTime ?? 0);
+  if (!startTime) {
+    return;
+  }
   const duration = msToSec(inpValue);
   // An INP without an entry has no interaction type to report. It still has to land inside the
   // `ui.interaction.*` family, because falling outside it would hide exactly the fast navigations
@@ -435,7 +446,7 @@ export function _sendInpSpan(
   const name = hasSpanStreaming ? componentName || fallbackName : (selector ?? 'Interaction to next paint');
 
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration ?? inpValue,
+    [SENTRY_EXCLUSIVE_TIME]: entry?.duration ?? inpValue,
   };
 
   // The span's name and op always have a value, even for an INP without an entry, so they can't
@@ -452,7 +463,7 @@ export function _sendInpSpan(
   _emitWebVitalSpan({
     name,
     op: INTERACTION_TYPE_TO_SPAN_OP[interactionType],
-    origin: 'auto.http.browser.inp',
+    origin: 'auto.ui.browser.inp',
     metricName: 'inp',
     value: inpValue,
     attributes,

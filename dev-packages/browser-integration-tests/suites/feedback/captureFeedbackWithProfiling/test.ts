@@ -1,11 +1,11 @@
 import { expect } from '@playwright/test';
+import { getSpanOp, waitForStreamedSpan } from '../../../utils/spanUtils';
 import { sentryTest } from '../../../utils/fixtures';
 import {
   envelopeRequestParser,
   getEnvelopeType,
   shouldSkipFeedbackTest,
   shouldSkipTracingTest,
-  waitForTransactionRequest,
 } from '../../../utils/helpers';
 
 sentryTest(
@@ -21,8 +21,8 @@ sentryTest(
       responseHeaders: { 'Document-Policy': 'js-profiling' },
     });
 
-    // Wait for the pageload transaction to be sent (idle span ended)
-    const pageloadRequestPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === 'pageload');
+    // Wait for the idle pageload span to end.
+    const pageloadSpanPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
 
     const feedbackRequestPromise = page.waitForResponse(res => {
       const req = res.request();
@@ -40,7 +40,7 @@ sentryTest(
     await page.goto(url);
 
     // Wait for the idle page load span to finish
-    const pageLoadEvent = envelopeRequestParser(await pageloadRequestPromise);
+    const pageloadSpan = await pageloadSpanPromise;
 
     // Submit feedback after idle span ended — no active span
     await page.getByText('Report a Bug').waitFor({ state: 'visible' });
@@ -55,11 +55,10 @@ sentryTest(
     expect(feedbackEvent.contexts?.trace?.trace_id).toMatch(/\w{32}/);
     expect(feedbackEvent.contexts?.trace?.span_id).toMatch(/\w{16}/);
 
-    // contexts.trace.data must include thread.id to identify which thread is associated with the transaction
-    expect(pageLoadEvent.contexts?.trace?.data?.['thread.id']).toBe('0');
-    expect(pageLoadEvent.contexts?.trace?.data?.['thread.name']).toBe('main');
+    expect(pageloadSpan.attributes['thread.id']).toEqual({ type: 'string', value: '0' });
+    expect(pageloadSpan.attributes['thread.name']).toEqual({ type: 'string', value: 'main' });
 
-    const profilerId = pageLoadEvent.contexts?.profile?.profiler_id;
+    const profilerId = pageloadSpan.attributes['sentry.profiler_id']?.value;
     expect(profilerId).toMatch(/^[a-f\d]{32}$/);
     expect(feedbackEvent.contexts?.profile?.profiler_id).toBe(profilerId);
   },

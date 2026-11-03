@@ -1,9 +1,10 @@
-import { isObjectLike, logger as sentryLogger, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { isObjectLike, logger as sentryLogger } from '@sentry/core';
 import * as Logger from 'effect/Logger';
 import type * as LogLevel from 'effect/LogLevel';
 
 const LOG_ATTRIBUTES = {
-  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.log.effect',
+  [SENTRY_ORIGIN]: 'auto.log.effect',
 };
 
 function getLogLevelTag(logLevel: LogLevel.LogLevel): LogLevel.LogLevel | 'Warning' {

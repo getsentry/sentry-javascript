@@ -1,8 +1,12 @@
 import * as SentryNode from '@sentry/node';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { httpIntegration as svelteKitHttpIntegration } from '../../../src/server/integrations/http';
 
 describe('httpIntegration', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('calls the original httpIntegration with incoming request span recording disabled', () => {
     const sentryNodeHttpIntegration = vi.spyOn(SentryNode, 'httpIntegration');
     svelteKitHttpIntegration({ breadcrumbs: false });

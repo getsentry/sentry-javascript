@@ -29,7 +29,6 @@ describe('route-groups', () => {
             hasOptionalPrefix: false,
           },
         ],
-        isrRoutes: [],
       });
       // Verify we have 9 static routes total (including duplicates from special chars)
       expect(manifest.staticRoutes).toHaveLength(9);
@@ -79,7 +78,6 @@ describe('route-groups', () => {
             hasOptionalPrefix: false,
           },
         ],
-        isrRoutes: [],
       });
       expect(manifest.staticRoutes).toHaveLength(9);
     });

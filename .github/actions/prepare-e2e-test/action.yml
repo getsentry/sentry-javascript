@@ -1,0 +1,120 @@
+name: 'Prepare E2E test application'
+description:
+  'Sets up the runtimes for an E2E test application, restores the built tarballs and copies the application to
+  `runner.temp/test-application` with pnpm overrides pointing at the tarballs.'
+inputs:
+  test-application:
+    description: 'The name of the test application in dev-packages/e2e-tests/test-applications.'
+    required: true
+  runtime:
+    description: 'The `runtime` of a runtime variant, see dev-packages/e2e-tests/README.md.'
+    default: ''
+  deno-version:
+    description: 'The Deno version to install, if the application needs Deno.'
+    default: 'v2.8.3'
+  artifacts-run-id:
+    description: 'The workflow run that uploaded the tarball artifacts. Defaults to the current run.'
+    default: ''
+  github-token:
+    description: 'Token to download artifacts from `artifacts-run-id`. Only needed when that is set.'
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    # Uses the repo's root node pin for the steps before the app is copied (installing pnpm, `test:prepare`,
+    # `test:validate`, `ci:copy-to-temp`). The app's own node version is set up after the copy below.
+    - name: Set up Node
+      uses: actions/setup-node@v7
+      with:
+        node-version-file: 'package.json'
+    - name: Set up Bun
+      if:
+        inputs.test-application == 'node-exports-test-app' || contains(inputs.test-application, 'bun') || inputs.runtime
+        == 'bun'
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: '1.3.14'
+    - name: Set up AWS SAM
+      if: contains(inputs.test-application, 'aws-serverless')
+      uses: aws-actions/setup-sam@v3
+      with:
+        use-installer: true
+        token: ${{ github.token }}
+    - name: Set up Deno
+      if: contains(inputs.test-application, 'deno') || inputs.runtime == 'deno'
+      uses: denoland/setup-deno@v2.0.5
+      with:
+        deno-version: ${{ inputs.deno-version || 'v2.8.3' }}
+    # Keeps the pnpm store on the cache volume for the `pnpm install` of the test application
+    - name: Mount pnpm store
+      uses: ./.github/actions/mount-pnpm-store
+    - name: Install pnpm
+      uses: ./.github/actions/install-pnpm
+
+    # upload-artifact strips the path through the first `*`, so the tarballs are stored as <pkg>/*.tgz and have to be
+    # downloaded into packages/.
+    - name: Restore tarball artifacts
+      uses: actions/download-artifact@v8
+      with:
+        name: build-tarball-output
+        path: ${{ github.workspace }}/packages
+        run-id: ${{ inputs.artifacts-run-id || github.run_id }}
+        github-token: ${{ inputs.github-token }}
+
+    - name: Restore test-utils tarball artifact
+      uses: actions/download-artifact@v8
+      with:
+        name: build-test-utils-tarball-output
+        path: dev-packages/test-utils
+        run-id: ${{ inputs.artifacts-run-id || github.run_id }}
+        github-token: ${{ inputs.github-token }}
+
+    - name: Restore build layer artifacts
+      if: contains(inputs.test-application, 'aws-serverless')
+      uses: actions/download-artifact@v8
+      with:
+        name: build-layer-output
+        path: ${{ github.workspace }}/packages/aws-serverless/build/aws/dist-serverless
+        run-id: ${{ inputs.artifacts-run-id || github.run_id }}
+        github-token: ${{ inputs.github-token }}
+
+    # The Lambda functions install the built workspace packages directly (see `src/stack.ts`).
+    - name: Restore build artifacts
+      if: inputs.test-application == 'aws-serverless'
+      uses: actions/download-artifact@v8
+      with:
+        name: build-output
+        run-id: ${{ inputs.artifacts-run-id || github.run_id }}
+        github-token: ${{ inputs.github-token }}
+
+    - name: Prepare E2E tests
+      run: pnpm run test:prepare
+      shell: bash
+      working-directory: dev-packages/e2e-tests
+
+    - name: Validate E2E test setup
+      run: pnpm run test:validate
+      shell: bash
+      working-directory: dev-packages/e2e-tests
+
+    - name: Copy to temp
+      run:
+        pnpm run ci:copy-to-temp ./test-applications/${{ inputs.test-application }} ${{ runner.temp }}/test-application
+      shell: bash
+      working-directory: dev-packages/e2e-tests
+
+    # Reads the node version that `ci:copy-to-temp` wrote into the copied app's `devEngines.runtime`: the app's own pin
+    # if it has one, otherwise the one inherited from the repo root. setup-node can't look up parent directories, so the
+    # temp copy has to carry the resolved version.
+    - name: Set up Node for the E2E app
+      uses: actions/setup-node@v7
+      with:
+        node-version-file: '${{ runner.temp }}/test-application/package.json'
+
+    - name: Add pnpm overrides
+      run:
+        pnpm run ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
+        }}/dev-packages/e2e-tests/packed
+      shell: bash
+      working-directory: dev-packages/e2e-tests

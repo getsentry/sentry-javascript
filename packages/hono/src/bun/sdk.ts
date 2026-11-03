@@ -1,5 +1,5 @@
 import type { Client } from '@sentry/core';
-import { applySdkMetadata, consoleSandbox, getClient } from '@sentry/core';
+import { _INTERNAL_getActiveClient, applySdkMetadata, consoleSandbox } from '@sentry/core';
 import { init as initBun } from '@sentry/bun';
 import type { HonoBunOptions } from './middleware';
 import { buildFilteredIntegrations } from '../shared/buildFilteredIntegrations';
@@ -13,13 +13,16 @@ import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../shared/lowQualityTransactio
  * When manually calling `init`, add the `honoIntegration` to the `integrations` array to set up the Hono integration.
  */
 export function init(options: HonoBunOptions): Client | undefined {
-  if (getClient()) {
+  const existingClient = _INTERNAL_getActiveClient();
+  if (existingClient) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
         '[Sentry] Sentry is already initialized. Sentry should only be initialized once, through the `sentry()` middleware. Remove the `Sentry.init()` call, if one exists.',
       );
     });
+    // Re-initializing would replace the client and drop anything buffered on it
+    return existingClient;
   }
 
   applySdkMetadata(options, 'hono', ['hono', 'bun']);

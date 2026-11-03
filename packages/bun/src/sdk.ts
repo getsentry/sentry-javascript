@@ -2,6 +2,7 @@ import * as os from 'node:os';
 import type { Integration, Options } from '@sentry/core';
 import {
   applySdkMetadata,
+  conversationIdIntegration,
   dedupeIntegration,
   eventFiltersIntegration,
   functionToStringIntegration,
@@ -20,6 +21,7 @@ import {
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   processSessionIntegration,
+  systemErrorIntegration,
 } from '@sentry/node';
 import { bunServerIntegration } from './integrations/bunserver';
 import { fetchIntegration } from './integrations/fetch';
@@ -51,6 +53,8 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     linkedErrorsIntegration(),
     dedupeIntegration(),
     requestDataIntegration(),
+    systemErrorIntegration(),
+    conversationIdIntegration(),
     // Native Wrappers
     consoleIntegration(),
     httpIntegration(),

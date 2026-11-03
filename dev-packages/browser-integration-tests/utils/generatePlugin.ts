@@ -19,7 +19,7 @@ const useCompiledModule = bundleKey === 'esm' || bundleKey === 'cjs';
 
 // Bundles need to be injected into HTML before Sentry initialization.
 const useBundleOrLoader = bundleKey && !useCompiledModule;
-const useLoader = bundleKey.startsWith('loader');
+export const useLoader = bundleKey.startsWith('loader');
 
 // These are imports that, when using CDN bundles, are not included in the main CDN bundle.
 // In this case, if we encounter this import, we want to add this CDN bundle file instead

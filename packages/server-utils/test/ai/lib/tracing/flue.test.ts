@@ -1,16 +1,22 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { Event, Span } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_skipAiProviderWrapping,
+  getIsolationScope,
   getMainCarrier,
+  Scope,
+  setAsyncContextStrategy,
   setCurrentClient,
   spanToStaticSpanJSON,
   startInactiveSpan,
   startSpan,
+  withActiveSpan,
+  withIsolationScope,
 } from '@sentry/core';
 import { ANTHROPIC_AI_INTEGRATION_NAME } from '../../../../src/ai/anthropic-ai/constants';
+import { setAsyncLocalStorageAsyncContextStrategy } from '../../../../src/async-context';
 import { createFlueInstrumentation } from '../../../../src/ai/flue';
 import { MAX_TRACKED_FLUE_SPANS } from '../../../../src/ai/flue/constants';
 import { GOOGLE_GENAI_INTEGRATION_NAME } from '../../../../src/ai/google-genai/constants';
@@ -223,6 +229,114 @@ describe('createFlueInstrumentation', () => {
     });
   });
 
+  // On Node, Flue runs every submission from one claim loop that keeps the async context of the
+  // call that started it, so the run has to be put back where it was admitted.
+  describe('admission context', () => {
+    const SUBMISSION_OP = { type: 'agent', operationId: 'sub_1' };
+
+    function admit(): void {
+      instrumentation.observe({ type: 'submission_queued', submissionId: 'sub_1' }, {});
+    }
+
+    /** Run the submission the way the claim loop does: wrapper first, then the spanned operation. */
+    function runSubmission(): Promise<unknown> {
+      return instrumentation.interceptor(SUBMISSION_OP, AGENT_CTX, () =>
+        instrumentation.interceptor(AGENT_OP, AGENT_CTX, async () => undefined),
+      );
+    }
+
+    it('parents the agent span to the span that admitted the submission, not the one the loop carries', async () => {
+      const admitting = startInactiveSpan({ name: 'POST /agents/hello/b' });
+      withActiveSpan(admitting, admit);
+
+      await startSpan({ name: 'POST /agents/hello/a' }, () => runSubmission());
+
+      const agent = findSpan('invoke_agent Hello');
+      expect(agent?.trace_id).toBe(spanToStaticSpanJSON(admitting).trace_id);
+      expect(agent?.parent_span_id).toBe(admitting.spanContext().spanId);
+    });
+
+    it('restores the isolation scope the submission was admitted in', async () => {
+      // The default stack strategy ignores the scope it is handed.
+      setAsyncLocalStorageAsyncContextStrategy();
+      onTestFinished(() => setAsyncContextStrategy(undefined));
+
+      const admittingScope = new Scope();
+      withIsolationScope(admittingScope, admit);
+
+      let runScope: Scope | undefined;
+      await instrumentation.interceptor(SUBMISSION_OP, AGENT_CTX, async () => {
+        runScope = getIsolationScope();
+      });
+
+      expect(runScope).toBe(admittingScope);
+    });
+
+    it('starts a new trace when nothing was active at admission', async () => {
+      admit();
+
+      let loopTraceId: string | undefined;
+      await startSpan({ name: 'POST /agents/hello/a' }, span => {
+        loopTraceId = spanToStaticSpanJSON(span).trace_id;
+        return runSubmission();
+      });
+
+      const agent = findSpan('invoke_agent Hello');
+      expect(agent?.trace_id).toMatch(/^[0-9a-f]{32}$/);
+      expect(agent?.trace_id).not.toBe(loopTraceId);
+    });
+
+    // Each Cloudflare turn runs from its own Durable Object alarm, which already starts a fresh trace.
+    it('leaves the context alone on Cloudflare Workers', async () => {
+      vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+      onTestFinished(() => {
+        vi.unstubAllGlobals();
+      });
+      withActiveSpan(startInactiveSpan({ name: 'POST /agents/hello/b' }), admit);
+
+      let alarmSpanId: string | undefined;
+      await startSpan({ name: 'alarm' }, span => {
+        alarmSpanId = span.spanContext().spanId;
+        return runSubmission();
+      });
+
+      expect(findSpan('invoke_agent Hello')?.parent_span_id).toBe(alarmSpanId);
+    });
+
+    // A submission admitted by another process, replayed by idempotency key, or already settled has
+    // no record here, but the loop still carries the context of whichever request started it.
+    it('drops the loop context when nothing was recorded for the submission', async () => {
+      withActiveSpan(startInactiveSpan({ name: 'POST /agents/hello/b' }), admit);
+      instrumentation.observe({ type: 'submission_settled', submissionId: 'sub_1' }, {});
+
+      let loopTraceId: string | undefined;
+      await startSpan({ name: 'POST /agents/hello/a' }, span => {
+        loopTraceId = span.spanContext().traceId;
+        return runSubmission();
+      });
+
+      const agent = findSpan('invoke_agent Hello');
+      expect(agent?.parent_span_id).toBeUndefined();
+      expect(agent?.trace_id).toMatch(/^[0-9a-f]{32}$/);
+      expect(agent?.trace_id).not.toBe(loopTraceId);
+    });
+
+    it('continues the replayed traceparent when nothing was recorded for the submission', async () => {
+      const traceId = 'cccccccccccccccccccccccccccccccc';
+      await startSpan({ name: 'POST /agents/hello/a' }, () =>
+        instrumentation.interceptor(SUBMISSION_OP, AGENT_CTX, () =>
+          instrumentation.interceptor(
+            AGENT_OP,
+            { ...AGENT_CTX, traceCarrier: { traceparent: `00-${traceId}-dddddddddddddddd-01` } },
+            async () => undefined,
+          ),
+        ),
+      );
+
+      expect(findSpan('invoke_agent Hello')?.trace_id).toBe(traceId);
+    });
+  });
+
   // The spanned operation carries no `agentName` — only the submission wrapper does, and that opens
   // no span. The name arrives on the observations instead.
   it('names the agent span from the observations', async () => {
@@ -338,6 +452,55 @@ describe('createFlueInstrumentation', () => {
     expect(json?.data['gen_ai.cost.total_tokens']).toBe(0.001199);
   });
 
+  // pi-ai keeps the cached tokens out of `input`; the conventions count them in.
+  it('counts cached tokens into the input tokens and their cost into the input cost', async () => {
+    const usage = {
+      input: 37,
+      output: 2,
+      cacheRead: 52,
+      cacheWrite: 38,
+      totalTokens: 129,
+      cost: { input: 0.000037, output: 0.00001, cacheRead: 0.0000052, cacheWrite: 0.0000475, total: 0.0000997 },
+    };
+
+    await withAgent(() => {
+      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
+      instrumentation.observe(turn({ response: { ...turn().response, usage } }), {});
+    });
+
+    const json = findSpan('chat claude-haiku-4.5');
+    expect(json?.data['gen_ai.usage.input_tokens']).toBe(127);
+    expect(json?.data['gen_ai.usage.cache_read.input_tokens']).toBe(52);
+    expect(json?.data['gen_ai.usage.cache_creation.input_tokens']).toBe(38);
+    expect(json?.data['gen_ai.cost.input_tokens']).toBe(0.000037 + 0.0000052 + 0.0000475);
+    expect(json?.data['gen_ai.cost.total_tokens']).toBe(0.0000997);
+  });
+
+  it('reports a tool-calling turn with the finish reason of the conventions', async () => {
+    await withAgent(() => {
+      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
+      instrumentation.observe(
+        turn({
+          response: {
+            ...turn().response,
+            finishReason: 'toolUse',
+            output: {
+              role: 'assistant',
+              content: [{ type: 'toolCall', id: 'c1', name: 'get_weather', arguments: { city: 'Berlin' } }],
+            },
+          },
+        }),
+        {},
+      );
+    });
+
+    const json = findSpan('chat claude-haiku-4.5');
+    expect(json?.data['gen_ai.response.finish_reasons']).toBe('["tool_call"]');
+    expect(json?.data['gen_ai.output.messages']).toBe(
+      '[{"role":"assistant","parts":[{"type":"tool_call","id":"c1","name":"get_weather","arguments":"{\\"city\\":\\"Berlin\\"}"}],"finish_reason":"tool_call"}]',
+    );
+  });
+
   it('records the model-call tuning and provider endpoint', async () => {
     await withAgent(() => {
       instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1', purpose: 'agent' }, {});
@@ -404,7 +567,15 @@ describe('createFlueInstrumentation', () => {
       await instr.interceptor(AGENT_OP, AGENT_CTX, async () => {
         instr.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
         instr.observe(requestContent, {});
-        instr.observe(turn({ response: { ...turn().response, output: { role: 'assistant' } } }), {});
+        instr.observe(
+          turn({
+            response: {
+              ...turn().response,
+              output: { role: 'assistant', content: [{ type: 'text', text: 'It is sunny.' }] },
+            },
+          }),
+          {},
+        );
         instr.observe(
           {
             type: 'tool_start',
@@ -415,8 +586,16 @@ describe('createFlueInstrumentation', () => {
           },
           {},
         );
+        // `result` is the harness-level shape; `effectiveResult` is what the model receives.
         instr.observe(
-          { type: 'tool', toolCallId: 'c1', toolName: 'get_weather', result: 'sunny', operationId: 'op_1' },
+          {
+            type: 'tool',
+            toolCallId: 'c1',
+            toolName: 'get_weather',
+            result: { content: [{ type: 'text', text: '"sunny"' }], details: { output: 'sunny' } },
+            effectiveResult: 'sunny',
+            operationId: 'op_1',
+          },
           {},
         );
       });
@@ -427,13 +606,128 @@ describe('createFlueInstrumentation', () => {
 
       const chat = findSpan('chat claude-haiku-4.5');
       expect(chat?.data['gen_ai.system_instructions']).toBe('You are helpful.');
-      expect(chat?.data['gen_ai.input.messages']).toContain('"role":"user"');
-      expect(chat?.data['gen_ai.output.messages']).toContain('"role":"assistant"');
+      // Mapped from pi-ai's message shape to the conventions, which is what Sentry renders.
+      expect(chat?.data['gen_ai.input.messages']).toBe('[{"role":"user","parts":[{"type":"text","content":"hi"}]}]');
+      expect(chat?.data['gen_ai.output.messages']).toBe(
+        '[{"role":"assistant","parts":[{"type":"text","content":"It is sunny."}],"finish_reason":"stop"}]',
+      );
       expect(chat?.data['gen_ai.tool.definitions']).toContain('get_weather');
 
       const tool = findSpan('execute_tool get_weather');
       expect(tool?.data['gen_ai.tool.call.arguments']).toBe('{"city":"Berlin"}');
       expect(tool?.data['gen_ai.tool.call.result']).toBe('sunny');
+    });
+
+    it('records the content blocks of a tool result that has no effective result', async () => {
+      await withAgent(() => {
+        instrumentation.observe(
+          { type: 'tool_start', toolCallId: 'c1', toolName: 'get_weather', operationId: 'op_1' },
+          {},
+        );
+        instrumentation.observe(
+          {
+            type: 'tool',
+            toolCallId: 'c1',
+            toolName: 'get_weather',
+            result: {
+              content: [
+                { type: 'text', text: 'sunny' },
+                { type: 'image', data: 'iVBORw0KGgo=', mimeType: 'image/png' },
+              ],
+              details: { customTool: 'get_weather' },
+            },
+            operationId: 'op_1',
+          },
+          {},
+        );
+      });
+
+      expect(findSpan('execute_tool get_weather')?.data['gen_ai.tool.call.result']).toBe(
+        '[{"type":"text","content":"sunny"},{"type":"blob","mime_type":"image/png"}]',
+      );
+    });
+
+    it('maps an effective result made of several content blocks', async () => {
+      await withAgent(() => {
+        instrumentation.observe(
+          { type: 'tool_start', toolCallId: 'c1', toolName: 'get_weather', operationId: 'op_1' },
+          {},
+        );
+        instrumentation.observe(
+          {
+            type: 'tool',
+            toolCallId: 'c1',
+            toolName: 'get_weather',
+            effectiveResult: [
+              { type: 'text', text: 'sunny' },
+              { type: 'image', data: '[image data omitted from event]', mimeType: 'image/png' },
+            ],
+            operationId: 'op_1',
+          },
+          {},
+        );
+      });
+
+      expect(findSpan('execute_tool get_weather')?.data['gen_ai.tool.call.result']).toBe(
+        '[{"type":"text","content":"sunny"},{"type":"blob","mime_type":"image/png"}]',
+      );
+    });
+
+    it.each([
+      ['an empty string', { effectiveResult: '' }],
+      ['an empty text block', { effectiveResult: [{ type: 'text', text: '' }] }],
+      ['no content blocks', { result: { content: [], details: {} } }],
+    ])('records an empty tool result given as %s', async (_label, fields) => {
+      await withAgent(() => {
+        instrumentation.observe(
+          { type: 'tool_start', toolCallId: 'c1', toolName: 'get_weather', operationId: 'op_1' },
+          {},
+        );
+        instrumentation.observe(
+          { type: 'tool', toolCallId: 'c1', toolName: 'get_weather', operationId: 'op_1', ...fields },
+          {},
+        );
+      });
+
+      expect(findSpan('execute_tool get_weather')?.data['gen_ai.tool.call.result']).toBe('');
+    });
+
+    it('maps a tool result in the request and a tool call in the response', async () => {
+      await withAgent(() => {
+        instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
+        instrumentation.observe(
+          {
+            ...requestContent,
+            request: {
+              ...requestContent.request,
+              input: {
+                messages: [
+                  { role: 'user', content: 'Weather in Berlin?' },
+                  {
+                    role: 'assistant',
+                    content: [{ type: 'toolCall', id: 'c1', name: 'get_weather', arguments: { city: 'Berlin' } }],
+                  },
+                  {
+                    role: 'toolResult',
+                    toolCallId: 'c1',
+                    toolName: 'get_weather',
+                    content: [{ type: 'text', text: 'sunny' }],
+                    isError: false,
+                  },
+                ],
+              },
+            },
+          },
+          {},
+        );
+        instrumentation.observe(turn(), {});
+      });
+
+      expect(
+        JSON.parse(String(findSpan('chat claude-haiku-4.5')?.data['gen_ai.input.messages'])).map(
+          (message: { role: string }) => message.role,
+        ),
+      ).toEqual(['user', 'assistant', 'tool']);
     });
 
     it('omits inputs when recordInputs is false but keeps outputs', async () => {

@@ -4,7 +4,6 @@ import {
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
   ROUTER_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
 } from '@sentry/core';
 import {
   getCurrentScope,
@@ -13,7 +12,15 @@ import {
   startInactiveSpan,
   WINDOW,
 } from '@sentry/svelte';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  URL_TEMPLATE,
+  SENTRY_ORIGIN,
+  SENTRY_SVELTEKIT_NAVIGATION_FROM,
+  SENTRY_SVELTEKIT_NAVIGATION_TO,
+  SENTRY_SVELTEKIT_NAVIGATION_TYPE,
+} from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD, ROUTER } from '@sentry/conventions/op';
 import type { Navigation } from '@sveltejs/kit';
 import { getCurrentNavigation, onNavigationChange, onPageRouteChange } from './navigationState.svelte';
@@ -45,7 +52,7 @@ function _instrumentPageLoad(client: Client): void {
     name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : initialPath,
     attributes: {
       [SENTRY_OP]: PAGELOAD,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
+      [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
       [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
     },
   });
@@ -93,9 +100,12 @@ function _instrumentNavigations(client: Client): void {
     routingSpan?.end();
 
     const navigationInfo = {
-      'sentry.sveltekit.navigation.type': navigation.type,
-      'sentry.sveltekit.navigation.from': parameterizedRouteOrigin || undefined,
-      'sentry.sveltekit.navigation.to': parameterizedRouteDestination || undefined,
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      [SENTRY_SVELTEKIT_NAVIGATION_TYPE]: navigation.type,
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      [SENTRY_SVELTEKIT_NAVIGATION_FROM]: parameterizedRouteOrigin || undefined,
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      [SENTRY_SVELTEKIT_NAVIGATION_TO]: parameterizedRouteDestination || undefined,
     };
 
     startBrowserTracingNavigationSpan(
@@ -107,7 +117,7 @@ function _instrumentNavigations(client: Client): void {
           (hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : rawRouteDestination || 'unknown'),
         attributes: {
           [SENTRY_OP]: NAVIGATION,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
+          [SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedRouteDestination ? 'route' : 'url',
           ...(parameterizedRouteDestination && { [URL_TEMPLATE]: parameterizedRouteDestination }),
           ...navigationInfo,
@@ -122,7 +132,7 @@ function _instrumentNavigations(client: Client): void {
       name: hasSpanStreamingEnabled(client) ? ROUTER_SPAN_NAME_FALLBACK : 'SvelteKit Route Change',
       attributes: {
         [SENTRY_OP]: ROUTER,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.sveltekit',
+        [SENTRY_ORIGIN]: 'auto.ui.sveltekit',
         ...navigationInfo,
       },
       onlyIfParent: true,

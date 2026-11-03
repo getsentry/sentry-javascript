@@ -119,5 +119,15 @@ export function fetch(...rest: Parameters<typeof WINDOW.fetch>): ReturnType<type
  * avoiding triggering change detection.
  */
 export function setTimeout(...rest: Parameters<typeof WINDOW.setTimeout>): ReturnType<typeof WINDOW.setTimeout> {
-  return getNativeImplementation('setTimeout')(...rest);
+  try {
+    return getNativeImplementation('setTimeout')(...rest);
+  } catch (e) {
+    // The implementation retrieved from the (since removed) sandbox iframe may throw when invoked,
+    // e.g. Firefox throws `NS_ERROR_NOT_INITIALIZED` for timers of a detached window.
+    // In this case, fall back to (and cache) the window's own setTimeout.
+    DEBUG_BUILD && debug.warn('Could not use native setTimeout implementation, falling back to window.setTimeout: ', e);
+    const fallback = WINDOW.setTimeout.bind(WINDOW) as typeof WINDOW.setTimeout;
+    cachedImplementations.setTimeout = fallback;
+    return fallback(...rest);
+  }
 }

@@ -1,7 +1,7 @@
 import * as SentryCore from '@sentry/core';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { patchAppRequest } from '../../src/shared/patchAppRequest';
+import { applyHonoPatches } from '@sentry/server-utils';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -24,7 +24,7 @@ describe('patchAppRequest', () => {
   it('creates a hono.request span when .request() is called with an active parent span', async () => {
     const app = new Hono();
     app.get('/hello', c => c.text('world'));
-    patchAppRequest(app);
+    applyHonoPatches(app);
 
     await app.request('/hello');
 
@@ -47,7 +47,7 @@ describe('patchAppRequest', () => {
 
     const app = new Hono();
     app.get('/hello', c => c.text('world'));
-    patchAppRequest(app);
+    applyHonoPatches(app);
 
     const res = await app.request('/hello');
 
@@ -58,7 +58,7 @@ describe('patchAppRequest', () => {
   it('uses the method from requestInit when provided', async () => {
     const app = new Hono();
     app.post('/submit', c => c.text('ok'));
-    patchAppRequest(app);
+    applyHonoPatches(app);
 
     await app.request('/submit', { method: 'POST' });
 
@@ -68,7 +68,7 @@ describe('patchAppRequest', () => {
   it('uses the method from a Request object when no requestInit is provided', async () => {
     const app = new Hono();
     app.post('/submit', c => c.text('ok'));
-    patchAppRequest(app);
+    applyHonoPatches(app);
 
     await app.request(new Request('http://localhost/submit', { method: 'POST' }));
 
@@ -78,7 +78,7 @@ describe('patchAppRequest', () => {
   it('defaults to GET when no method info is available', async () => {
     const app = new Hono();
     app.get('/hello', c => c.text('world'));
-    patchAppRequest(app);
+    applyHonoPatches(app);
 
     await app.request('/hello');
 
@@ -89,17 +89,17 @@ describe('patchAppRequest', () => {
     const app = new Hono();
     app.get('/hello', c => c.text('world'));
 
-    patchAppRequest(app);
+    applyHonoPatches(app);
     const firstPatched = app.request;
 
-    patchAppRequest(app);
+    applyHonoPatches(app);
     expect(app.request).toBe(firstPatched);
   });
 
   it('preserves the original .request() return value', async () => {
     const app = new Hono();
     app.get('/hello', c => c.json({ message: 'world' }));
-    patchAppRequest(app);
+    applyHonoPatches(app);
 
     const res = await app.request('/hello');
     expect(res.status).toBe(200);
@@ -111,7 +111,7 @@ describe('patchAppRequest', () => {
   it('stores the original request via __sentry_original__', () => {
     const app = new Hono();
     const originalRequest = app.request;
-    patchAppRequest(app);
+    applyHonoPatches(app);
 
     // oxlint-disable-next-line typescript/no-explicit-any
     const sentryOriginal = (app.request as any).__sentry_original__;
@@ -121,7 +121,7 @@ describe('patchAppRequest', () => {
   it('extracts pathname from a full URL string instead of using the raw string', async () => {
     const app = new Hono();
     app.get('/api/hello', c => c.text('world'));
-    patchAppRequest(app);
+    applyHonoPatches(app);
 
     await app.request('http://localhost/api/hello');
 
@@ -134,7 +134,7 @@ describe('patchAppRequest', () => {
   it('extracts pathname from an https URL string', async () => {
     const app = new Hono();
     app.get('/secure', c => c.text('ok'));
-    patchAppRequest(app);
+    applyHonoPatches(app);
 
     await app.request('https://example.com/secure');
 
@@ -144,7 +144,7 @@ describe('patchAppRequest', () => {
   it('extracts pathname from a Request object input', async () => {
     const app = new Hono();
     app.get('/items/abc', c => c.text('found'));
-    patchAppRequest(app);
+    applyHonoPatches(app);
 
     await app.request(new Request('http://localhost/items/abc'));
 
@@ -160,7 +160,7 @@ describe('patchAppRequest', () => {
       const CUSTOM_SYMBOL = Symbol('custom-meta');
       (app.request as any)[CUSTOM_SYMBOL] = { version: 2 };
 
-      patchAppRequest(app);
+      applyHonoPatches(app);
 
       const symbols = Object.getOwnPropertySymbols(app.request);
       expect(symbols).toContain(CUSTOM_SYMBOL);
@@ -172,7 +172,7 @@ describe('patchAppRequest', () => {
       (app.request as any).customFlag = true;
       (app.request as any).metadata = { wrapped: false };
 
-      patchAppRequest(app);
+      applyHonoPatches(app);
 
       expect((app.request as any).customFlag).toBe(true);
       expect((app.request as any).metadata).toEqual({ wrapped: false });
@@ -181,7 +181,7 @@ describe('patchAppRequest', () => {
     it('preserves function.name of the original request method', () => {
       const app = new Hono();
       const originalName = app.request.name;
-      patchAppRequest(app);
+      applyHonoPatches(app);
 
       expect(app.request.name).toBe(originalName);
     });
@@ -189,14 +189,14 @@ describe('patchAppRequest', () => {
     it('preserves function.length of the original request method', () => {
       const app = new Hono();
       const originalLength = app.request.length;
-      patchAppRequest(app);
+      applyHonoPatches(app);
 
       expect(app.request.length).toBe(originalLength);
     });
 
     it('does not interfere with instanceof or typeof checks', () => {
       const app = new Hono();
-      patchAppRequest(app);
+      applyHonoPatches(app);
 
       expect(typeof app.request).toBe('function');
     });
@@ -204,7 +204,7 @@ describe('patchAppRequest', () => {
     it('preserves prototype chain of the original function', () => {
       const app = new Hono();
       const originalProto = Object.getPrototypeOf(app.request);
-      patchAppRequest(app);
+      applyHonoPatches(app);
 
       expect(Object.getPrototypeOf(app.request)).toBe(originalProto);
     });
@@ -215,7 +215,7 @@ describe('patchAppRequest', () => {
       (app.request as any)[OPENAPI] = { paths: { '/hello': { get: {} } } };
       (app.request as any).__middleware_chain__ = ['auth', 'cors'];
 
-      patchAppRequest(app);
+      applyHonoPatches(app);
 
       expect((app.request as any)[OPENAPI]).toEqual({ paths: { '/hello': { get: {} } } });
       expect((app.request as any).__middleware_chain__).toEqual(['auth', 'cors']);

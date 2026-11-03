@@ -1,3 +1,5 @@
+import { DB_OPERATION_NAME, DB_QUERY_SUMMARY, DB_QUERY_TEXT } from '@sentry/conventions/attributes';
+
 const MAX_SUMMARY_LENGTH = 255;
 
 // A single identifier: quoted (`"..."`, `'...'`, or MySQL backticks) or bare. The quoted forms have
@@ -28,7 +30,7 @@ const UPDATE_RE = new RegExp(
 );
 const DELETE_RE = new RegExp(`^\\s*(?<operation>DELETE)\\s+FROM\\s+(?<table>${TABLE_NAME})`, 'i');
 
-const SELECT_RE = /^\s*\(?\s*(?<operation>SELECT)\b/i;
+const SELECT_RE = /^\s*(?:\(\s*)?(?<operation>SELECT)\b/i;
 
 const PRAGMA_RE = /^\s*(?<operation>PRAGMA)\s+(?<command>\S+)/i;
 
@@ -101,6 +103,43 @@ export function getSqlQuerySummary(query: string | undefined): string | undefine
   }
 
   return truncate(query.trim().split(/\s+/)[0] ?? query);
+}
+
+const LEADING_KEYWORD_RE = /^\s*(?:\(\s*)*([A-Za-z]+)\b/;
+const CTE_MAIN_STATEMENT_RE = /\(|\)|\b(SELECT|INSERT|UPDATE|DELETE|MERGE|VALUES|TABLE)\b/gi;
+
+/**
+ * Derives `db.operation.name` from a SQL query: the first operation keyword, in its original case.
+ *
+ * @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/db/#db-operation-name
+ */
+export function getSqlOperationName(query: string | undefined): string | undefined {
+  const match = query ? LEADING_KEYWORD_RE.exec(query) : null;
+  const keyword = match?.[1];
+  if (!query || !match || !keyword) {
+    return undefined;
+  }
+  // Scanned from after `WITH`, so parentheses wrapping the whole query don't shift the depth.
+  return keyword.toUpperCase() === 'WITH' ? getCteMainOperationName(query.slice(match[0].length)) : keyword;
+}
+
+/**
+ * The operation of a `WITH` query is its main statement: the first operation keyword outside the
+ * CTE bodies, which are all parenthesized. Counting parentheses is safe on a sanitized query, which
+ * has no literals or comments left.
+ */
+function getCteMainOperationName(query: string): string | undefined {
+  let depth = 0;
+  for (const match of query.matchAll(CTE_MAIN_STATEMENT_RE)) {
+    if (match[0] === '(') {
+      depth++;
+    } else if (match[0] === ')') {
+      depth--;
+    } else if (depth === 0) {
+      return match[1];
+    }
+  }
+  return undefined;
 }
 
 function extractTableNames(sql: string): string[] {
@@ -237,7 +276,7 @@ function findQuotedRunEnd(sql: string, start: number, delimiter: string, backsla
  */
 function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
   const isMysql = dialect === 'mysql';
-  let out = '';
+  const out: string[] = [];
   let i = 0;
 
   while (i < sql.length) {
@@ -265,7 +304,7 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
       if (tag) {
         const bodyEnd = sql.indexOf(tag, i + tag.length);
         i = bodyEnd === -1 ? sql.length : bodyEnd + tag.length;
-        out += '?';
+        out.push('?');
         continue;
       }
     }
@@ -275,7 +314,7 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
       const runEnd = findQuotedRunEnd(sql, i, identifierCloser, false);
       // A run that never closes is not an identifier, so it collapses instead of being copied out.
       // Copying would carry every literal in the rest of the statement through unlexed.
-      out += runEnd === -1 ? '?' : sql.slice(i, runEnd);
+      out.push(runEnd === -1 ? '?' : sql.slice(i, runEnd));
       i = runEnd === -1 ? sql.length : runEnd;
       continue;
     }
@@ -284,18 +323,20 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
       // A prefix like `X'1A'`, `B'01'`, `N'…'` or PostgreSQL's `E'a\nb'` is part of the literal, so it has
       // to collapse into the same `?` instead of being left behind as a bare identifier.
       const prefix = char === "'" ? getLiteralPrefix(out, dialect) : undefined;
-      out = prefix ? out.slice(0, -1) : out;
+      if (prefix) {
+        out.pop();
+      }
       const runEnd = findQuotedRunEnd(sql, i, char, isMysql || prefix === 'E');
       i = runEnd === -1 ? sql.length : runEnd;
-      out += '?';
+      out.push('?');
       continue;
     }
 
-    out += char;
+    out.push(char);
     i++;
   }
 
-  return out;
+  return out.join('');
 }
 
 /**
@@ -329,13 +370,14 @@ function matchDollarQuoteTag(sql: string, start: number): string | undefined {
  * hex/binary literals, `N` for a national-character literal (SQL Server, MySQL), or `E` for a
  * PostgreSQL escape string (which honors backslash escapes).
  */
-function getLiteralPrefix(out: string, dialect: SqlDialect): 'X' | 'B' | 'N' | 'E' | undefined {
+function getLiteralPrefix(out: string[], dialect: SqlDialect): 'X' | 'B' | 'N' | 'E' | undefined {
+  const last = out[out.length - 1];
   // A prefix only counts when it stands alone — the `X` in `MAX'...'` belongs to the identifier
-  if (isIdentifierChar(out.slice(-2, -1))) {
+  if (last?.length !== 1 || isIdentifierChar(out[out.length - 2]?.slice(-1))) {
     return undefined;
   }
 
-  const prefix = out.slice(-1).toUpperCase();
+  const prefix = last.toUpperCase();
   if (prefix === 'X' || prefix === 'B' || prefix === 'N') {
     return prefix;
   }
@@ -363,6 +405,7 @@ export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDiale
     // whether it is looking at SQL syntax or at a user-supplied value.
     stripLiteralsAndComments(sqlQuery, dialect)
       .replace(/;\s*$/, '') // Remove trailing semicolons
+      .replace(/^[\s;]+/, '') // Remove leading semicolons (T-SQL's `;WITH`)
       // Collapse whitespace to a single space (after removing comments)
       .replace(/\s+/g, ' ')
       .trim() // Remove extra spaces and trim
@@ -382,14 +425,23 @@ export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDiale
 }
 
 /**
- * Sanitizes a collected SQL statement and derives the matching `db.query.summary`, the pair the SQL
- * integrations attach to their spans. Both come back `undefined` when there is no statement, so an
- * empty query omits the attributes instead of reporting the sanitizer's fallback text.
+ * Sanitizes a collected SQL statement into the query attributes the SQL integrations attach to
+ * their spans: `db.query.text`, `db.query.summary` and `db.operation.name`. All are `undefined`
+ * when there is no statement, so an empty query omits the attributes instead of reporting the
+ * sanitizer's fallback text.
  */
-export function sanitizeSqlQueryWithSummary(
+export function getSqlQueryAttributes(
   sqlQuery: string | undefined,
   dialect?: SqlDialect,
-): { queryText: string | undefined; querySummary: string | undefined } {
-  const queryText = sqlQuery ? sanitizeSqlQuery(sqlQuery, dialect) : undefined;
-  return { queryText, querySummary: getSqlQuerySummary(queryText) };
+): {
+  [DB_QUERY_TEXT]: string | undefined;
+  [DB_QUERY_SUMMARY]: string | undefined;
+  [DB_OPERATION_NAME]: string | undefined;
+} {
+  const queryText = (sqlQuery && sanitizeSqlQuery(sqlQuery, dialect)) || undefined;
+  return {
+    [DB_QUERY_TEXT]: queryText,
+    [DB_QUERY_SUMMARY]: getSqlQuerySummary(queryText),
+    [DB_OPERATION_NAME]: getSqlOperationName(queryText),
+  };
 }

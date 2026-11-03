@@ -1,15 +1,17 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  CODE_FUNCTION_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  CLOUDFLARE_WORKFLOW_ATTEMPT,
+  CLOUDFLARE_WORKFLOW_RETRIES_BACKOFF,
+  CLOUDFLARE_WORKFLOW_RETRIES_DELAY,
+  CLOUDFLARE_WORKFLOW_RETRIES_LIMIT,
+  CLOUDFLARE_WORKFLOW_TIMEOUT,
+} from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import type { PropagationContext, Scope } from '@sentry/core';
-import {
-  captureException,
-  flush,
-  getCurrentScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startSpan,
-  withIsolationScope,
-  withScope,
-} from '@sentry/core';
+import { captureException, flush, getCurrentScope, startSpan, withIsolationScope, withScope } from '@sentry/core';
 import type {
   WorkflowDelayDuration,
   WorkflowEntrypoint,
@@ -22,7 +24,7 @@ import type {
   WorkflowStepRollbackOptions,
   WorkflowTimeoutDuration,
 } from 'cloudflare:workers';
-import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
+import { setAsyncLocalStorageAsyncContextStrategyForWorker } from './utils/asyncContextStrategy';
 import type { CloudflareOptions } from './client';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { markAsInstrumented } from './instrument';
@@ -139,14 +141,14 @@ class WrappedWorkflowStep implements WorkflowStep {
               [SENTRY_OP]: FUNCTION,
               [CODE_FUNCTION_NAME]: name,
               'workflow.step.name': name,
-              'cloudflare.workflow.timeout': config?.timeout,
-              'cloudflare.workflow.retries.backoff': config?.retries?.backoff,
+              [CLOUDFLARE_WORKFLOW_TIMEOUT]: config?.timeout,
+              [CLOUDFLARE_WORKFLOW_RETRIES_BACKOFF]: config?.retries?.backoff,
               // In workers-types v5, `delay` may be a `WorkflowDelayFunction`, which isn't a valid span attribute value.
-              'cloudflare.workflow.retries.delay':
+              [CLOUDFLARE_WORKFLOW_RETRIES_DELAY]:
                 typeof config?.retries?.delay === 'function' ? undefined : config?.retries?.delay,
-              'cloudflare.workflow.retries.limit': config?.retries?.limit,
-              'cloudflare.workflow.attempt': attempt,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
+              [CLOUDFLARE_WORKFLOW_RETRIES_LIMIT]: config?.retries?.limit,
+              [CLOUDFLARE_WORKFLOW_ATTEMPT]: attempt,
+              [SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
               [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
             },
           },
@@ -254,7 +256,7 @@ export function instrumentWorkflowWithSentry<
         get(obj, prop, receiver) {
           if (prop === 'run') {
             return async function (event: WorkflowEvent<P>, step: WorkflowStep): Promise<unknown> {
-              setAsyncLocalStorageAsyncContextStrategy();
+              setAsyncLocalStorageAsyncContextStrategyForWorker();
 
               return withInvocationIsolationScope(async isolationScope => {
                 const waitUntil = getOriginalWaitUntil(context).bind(context);

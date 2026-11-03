@@ -7,6 +7,7 @@ import {
   CLOUDFLARE_R2_REQUEST_PART_NUMBER,
   CLOUDFLARE_R2_REQUEST_PREFIX,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import {
   OBJECT_DELETE,
@@ -19,7 +20,7 @@ import {
   OBJECT_PUT,
   OBJECT_UPLOAD_PART,
 } from '@sentry/conventions/op';
-import { isObjectLike, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { isObjectLike, startSpan } from '@sentry/core';
 
 const ORIGIN = 'auto.faas.cloudflare.r2';
 
@@ -63,11 +64,11 @@ function createSpanOptions(bindingName: string, r2Op: R2OperationKey, key?: stri
     attributes: {
       [CLOUDFLARE_R2_OPERATION]: operation,
       [CLOUDFLARE_R2_BUCKET]: bindingName,
-      ...(requestKey !== undefined && { [CLOUDFLARE_R2_REQUEST_KEY]: requestKey }),
+      [CLOUDFLARE_R2_REQUEST_KEY]: requestKey,
       ...(isR2ListOptions(key) && key.prefix !== undefined && { [CLOUDFLARE_R2_REQUEST_PREFIX]: key.prefix }),
       ...(isR2ListOptions(key) && key.delimiter !== undefined && { [CLOUDFLARE_R2_REQUEST_DELIMITER]: key.delimiter }),
       [SENTRY_OP]: op,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+      [SENTRY_ORIGIN]: ORIGIN,
     },
   };
 }

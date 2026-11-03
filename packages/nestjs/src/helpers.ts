@@ -1,3 +1,5 @@
+import { isObjectLike } from '@sentry/core';
+
 /**
  * Determines if the exception is an expected NestJS control flow error.
  * - HttpException have getStatus and getResponse methods: https://github.com/nestjs/nest/blob/master/packages/microservices/exceptions/rpc-exception.ts
@@ -10,17 +12,15 @@
  * @returns `true` if the exception is expected and should not be reported to Sentry, otherwise `false`.
  */
 export function isExpectedError(exception: unknown): boolean {
-  if (typeof exception !== 'object' || exception === null) {
+  if (!isObjectLike(exception)) {
     return false;
   }
 
-  const ex = exception as Record<string, unknown>;
-
   // HttpException
   if (
-    typeof ex.getStatus === 'function' &&
-    typeof ex.getResponse === 'function' &&
-    typeof ex.initMessage === 'function'
+    typeof exception.getStatus === 'function' &&
+    typeof exception.getResponse === 'function' &&
+    typeof exception.initMessage === 'function'
   ) {
     return true;
   }
@@ -39,10 +39,9 @@ export function isExpectedError(exception: unknown): boolean {
  * We use duck-typing to avoid importing from `@nestjs/websockets` or `@nestjs/microservices`.
  */
 export function isWsOrRpcException(exception: unknown): boolean {
-  if (typeof exception !== 'object' || exception === null) {
+  if (!isObjectLike(exception)) {
     return false;
   }
 
-  const ex = exception as Record<string, unknown>;
-  return typeof ex.getError === 'function' && typeof ex.initMessage === 'function';
+  return typeof exception.getError === 'function' && typeof exception.initMessage === 'function';
 }

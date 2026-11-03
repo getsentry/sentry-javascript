@@ -2,6 +2,7 @@ import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, waitForTracingChannelBinding } from '@sentry/core';
 import { subscribeGraphqlDiagnosticChannels, type GraphQLOptions } from './graphql-dc-subscriber';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { graphqlModuleNames } from '../../orchestrion/config/graphql';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
@@ -20,13 +21,6 @@ const INTEGRATION_NAME = 'Graphql' as const;
 
 // The context orchestrion's transform attaches to each channel: `arguments` is the live args of the
 // wrapped call, `result` the settled return value.
-interface GraphqlChannelContext {
-  arguments: unknown[];
-  self?: unknown;
-  result?: unknown;
-  error?: unknown;
-}
-
 function getOptionsWithDefaults(options: GraphQLOptions): GraphqlResolvedConfig {
   return {
     ignoreResolveSpans: options.ignoreResolveSpans !== false,
@@ -51,18 +45,18 @@ const _graphqlIntegration = ((options: GraphQLOptions = {}) => {
 }) satisfies IntegrationFn;
 
 function instrumentGraphql(config: GraphqlResolvedConfig, getConfig: () => GraphqlResolvedConfig): void {
-  bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_PARSE), () =>
+  bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.GRAPHQL_PARSE), () =>
     safeChannelCallback(() => startParseSpan()),
   );
 
   bindTracingChannelToSpan(
-    diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_VALIDATE),
+    diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.GRAPHQL_VALIDATE),
     data => safeChannelCallback(() => startValidateSpan(data.arguments[1])),
     { beforeSpanEnd: (span, data) => safeChannelCallback(() => finalizeValidateSpan(span, data.result)) },
   );
 
   bindTracingChannelToSpan(
-    diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_EXECUTE),
+    diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.GRAPHQL_EXECUTE),
     data => safeChannelCallback(() => startExecuteSpan(data.arguments, data.self, config, getConfig)),
     { beforeSpanEnd: (span, data) => safeChannelCallback(() => finalizeExecuteSpan(span, data.result)) },
   );

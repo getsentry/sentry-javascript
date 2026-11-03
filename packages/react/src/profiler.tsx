@@ -2,7 +2,6 @@ import { getClient, startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import {
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
   timestampInSeconds,
   UI_MOUNT_SPAN_NAME_FALLBACK,
@@ -10,7 +9,7 @@ import {
   UI_UPDATE_SPAN_NAME_FALLBACK,
   withActiveSpan,
 } from '@sentry/core';
-import { SENTRY_DESCRIPTION, SENTRY_OP, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
+import { SENTRY_DESCRIPTION, SENTRY_OP, UI_COMPONENT_NAME, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { UI_MOUNT, UI_RENDER, UI_UPDATE } from '@sentry/conventions/op';
 import * as React from 'react';
 import { hoistNonReactStatics } from './hoist-non-react-statics';
@@ -66,8 +65,8 @@ class Profiler extends React.Component<ProfilerProps> {
       onlyIfParent: true,
       attributes: {
         [SENTRY_OP]: UI_MOUNT,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-        ...(componentName && { [UI_COMPONENT_NAME]: componentName }),
+        [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
+        [UI_COMPONENT_NAME]: componentName || undefined,
         ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
       },
     });
@@ -102,8 +101,8 @@ class Profiler extends React.Component<ProfilerProps> {
             startTime: now,
             attributes: {
               [SENTRY_OP]: UI_UPDATE,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-              ...(componentName && { [UI_COMPONENT_NAME]: componentName }),
+              [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
+              [UI_COMPONENT_NAME]: componentName || undefined,
               'ui.react.changed_props': changedProps,
               ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
             },
@@ -142,8 +141,8 @@ class Profiler extends React.Component<ProfilerProps> {
           startTime,
           attributes: {
             [SENTRY_OP]: UI_RENDER,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-            ...(componentName && { [UI_COMPONENT_NAME]: componentName }),
+            [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
+            [UI_COMPONENT_NAME]: componentName || undefined,
             ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
           },
         });
@@ -229,8 +228,8 @@ function useProfiler(
       onlyIfParent: true,
       attributes: {
         [SENTRY_OP]: UI_MOUNT,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-        ...(componentName && { [UI_COMPONENT_NAME]: componentName }),
+        [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
+        [UI_COMPONENT_NAME]: componentName || undefined,
         ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
       },
     });
@@ -257,8 +256,8 @@ function useProfiler(
           startTime,
           attributes: {
             [SENTRY_OP]: UI_RENDER,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-            ...(componentName && { [UI_COMPONENT_NAME]: componentName }),
+            [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
+            [UI_COMPONENT_NAME]: componentName || undefined,
             ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
           },
         });

@@ -1,9 +1,11 @@
 import Redis from 'ioredis';
 import type { Route } from './+types/redis';
 
-const redis = new Redis();
+// workerd does not allow a socket connect at module scope, so the client is made in the loader.
+let redis: Redis | undefined;
 
 export async function loader() {
+  redis ??= new Redis();
   const key = 'cache:greeting';
   await redis.set(key, 'hello from react-router');
   const value = await redis.get(key);

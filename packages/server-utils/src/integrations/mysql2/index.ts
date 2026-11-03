@@ -5,12 +5,12 @@ import {
   getClient,
   hasSpanStreamingEnabled,
   isObjectLike,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
-import { sanitizeSqlQueryWithSummary } from '../../utils/sql';
+import { getSqlQueryAttributes } from '../../utils/sql';
 import { subscribeMysql2DiagnosticChannels } from './mysql2-dc-subscriber';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import type { ChannelName } from '../../orchestrion/channels';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
@@ -26,6 +26,7 @@ import {
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 
@@ -38,14 +39,8 @@ const DB_SYSTEM_VALUE_MYSQL = 'mysql';
  * object. Documented here rather than imported because orchestrion's runtime
  * doesn't export it.
  */
-interface Mysql2QueryChannelContext {
-  // The live args array passed to the wrapped `query`/`execute` call:
-  // `arguments[0]` is the SQL (a string, `Query`, or `{ sql, values }`),
-  // `arguments[1]` is the values array or a callback.
-  arguments: unknown[];
+interface Mysql2QueryChannelContext extends OrchestrionChannelContext {
   self?: Mysql2Connection;
-  result?: unknown;
-  error?: unknown;
 }
 
 interface Mysql2ConnectionConfig {
@@ -79,34 +74,32 @@ function instrumentMysql2Orchestrion(): void {
 }
 
 function subscribeQueryChannel(channelName: ChannelName): void {
-  bindTracingChannelToSpan(
-    diagnosticsChannel.tracingChannel<Mysql2QueryChannelContext>(channelName),
-    data => {
-      const statement = getQueryText(data.arguments);
-      const connectionAttributes = getConnectionAttributes(data.self?.config);
-      const { queryText, querySummary } = sanitizeSqlQueryWithSummary(statement, 'mysql');
+  bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<Mysql2QueryChannelContext>(channelName), data => {
+    const statement = getQueryText(data.arguments);
+    const connectionAttributes = getConnectionAttributes(data.self?.config);
+    const queryAttributes = getSqlQueryAttributes(statement, 'mysql');
 
-      const client = getClient();
-      const name =
-        client && hasSpanStreamingEnabled(client)
-          ? querySummary || (connectionAttributes[DB_NAMESPACE] as string | undefined) || DB_SYSTEM_VALUE_MYSQL
-          : (queryText ?? 'mysql2.query');
+    const client = getClient();
+    const name =
+      client && hasSpanStreamingEnabled(client)
+        ? queryAttributes[DB_QUERY_SUMMARY] ||
+          (connectionAttributes[DB_NAMESPACE] as string | undefined) ||
+          DB_SYSTEM_VALUE_MYSQL
+        : (queryAttributes[DB_QUERY_TEXT] ?? 'mysql2.query');
 
-      return startInactiveSpan({
-        name,
-        attributes: {
-          [SENTRY_KIND]: 'client',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SENTRY_OP]: DB,
-          [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MYSQL,
-          [DB_QUERY_TEXT]: queryText || undefined,
-          [DB_QUERY_SUMMARY]: querySummary,
-          ...connectionAttributes,
-        },
-      });
-    },
-    { requiresParentSpan: true },
-  );
+    return startInactiveSpan({
+      name,
+      onlyIfParent: true,
+      attributes: {
+        [SENTRY_KIND]: 'client',
+        [SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_OP]: DB,
+        [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MYSQL,
+        ...queryAttributes,
+        ...connectionAttributes,
+      },
+    });
+  });
 }
 
 /**

@@ -1,7 +1,7 @@
-import { GLOBAL_OBJ } from '@sentry/core';
+import { getIsolationScope, GLOBAL_OBJ, parseStringToURLObject } from '@sentry/core';
 
 /**
- * Subset of ServerBuild shape for middleware name lookup.
+ * Subset of ServerBuild shape for middleware name lookup and prerender detection.
  * The official React Router types don't expose `middleware` on route modules yet.
  * @internal
  */
@@ -14,6 +14,8 @@ interface ServerBuildLike {
       };
     }
   >;
+  /** The paths React Router prerenders to static HTML at build time. */
+  prerender?: string[];
 }
 
 /** @internal */
@@ -51,6 +53,31 @@ export function getMiddlewareName(routeId: string, index: number): string | unde
 
   const middlewareFn = route.module.middleware[index];
   return middlewareFn?.name || undefined;
+}
+
+function withoutTrailingSlash(path: string): string {
+  return path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path;
+}
+
+/**
+ * Whether the current request renders a path from the build's `prerender` list.
+ *
+ * In production these paths are served as static files and never reach the request handler, so a
+ * render of one is the build-time prerender. Trace meta tags must not be written into that HTML:
+ * every visitor of the static page would continue the same trace.
+ *
+ * @internal
+ */
+export function isPrerenderRequest(): boolean {
+  const prerender = _serverBuild?.prerender;
+  if (!prerender?.length) return false;
+
+  const url = getIsolationScope().getScopeData().sdkProcessingMetadata.normalizedRequest?.url;
+  const pathname = url ? parseStringToURLObject(url)?.pathname : undefined;
+  if (!pathname) return false;
+
+  const requestPath = withoutTrailingSlash(pathname);
+  return prerender.some(path => withoutTrailingSlash(path) === requestPath);
 }
 
 /** @internal */

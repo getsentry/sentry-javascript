@@ -3,7 +3,6 @@ import { DEBUG_BUILD } from '../../debug-build';
 import {
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startSpan,
   startSpanManual,
@@ -19,6 +18,7 @@ import {
   GEN_AI_REQUEST_MODEL,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
 import {
@@ -31,6 +31,7 @@ import {
 import { OPENAI_METHOD_REGISTRY } from './constants';
 import { instrumentStream } from './streaming';
 import type { ChatCompletionChunk, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';
+import { getDecisionInputMessages } from './mapping';
 import { addResponseAttributes, extractRequestParameters } from './utils';
 
 /**
@@ -67,18 +68,21 @@ export function extractRequestAttributes(
   const attributes: Record<string, unknown> = {
     [GEN_AI_PROVIDER_NAME]: 'openai',
     [GEN_AI_OPERATION_NAME]: operationName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
+    [SENTRY_ORIGIN]: 'auto.ai.openai',
   };
 
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
 
-    const availableTools = recordInputs ? extractAvailableTools(params) : undefined;
-    if (availableTools) {
-      attributes[GEN_AI_TOOL_DEFINITIONS] = availableTools;
+    if (recordInputs) {
+      attributes[GEN_AI_TOOL_DEFINITIONS] = extractAvailableTools(params);
     }
 
     Object.assign(attributes, extractRequestParameters(params));
+
+    if (recordInputs && operationName === 'decide') {
+      attributes[GEN_AI_INPUT_MESSAGES] = getDecisionInputMessages(params);
+    }
   } else {
     attributes[GEN_AI_REQUEST_MODEL] = 'unknown';
   }
@@ -88,6 +92,11 @@ export function extractRequestAttributes(
 
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
 export function addRequestAttributes(span: Span, params: Record<string, unknown>, operationName: string): void {
+  // A decision's input is recorded when its span starts, in `extractRequestAttributes`.
+  if (operationName === 'decide') {
+    return;
+  }
+
   // Store embeddings input on a separate attribute
   if (operationName === 'embeddings' && 'input' in params) {
     const input = params.input;
@@ -203,7 +212,7 @@ function instrumentMethod<T extends unknown[], R>(
       }
 
       return originalResult.then(result => {
-        addResponseAttributes(span, result, options.recordOutputs);
+        addResponseAttributes(span, result, options.recordOutputs, operationName);
         return result;
       });
     });
@@ -216,30 +225,46 @@ function instrumentMethod<T extends unknown[], R>(
  * Create a deep proxy for OpenAI client instrumentation
  */
 function createDeepProxy<T extends object>(target: T, currentPath = '', options: OpenAiOptions): T {
+  const propertyCache = new Map<PropertyKey, { original: unknown; wrapped: unknown }>();
+
   return new Proxy(target, {
-    get(obj: object, prop: string): unknown {
-      const value = (obj as Record<string, unknown>)[prop];
+    get(obj: object, prop: string | symbol): unknown {
+      const value = Reflect.get(obj, prop) as unknown;
+      const cachedEntry = propertyCache.get(prop);
+      if (cachedEntry) {
+        if (cachedEntry.original === value) {
+          return cachedEntry.wrapped;
+        }
+        propertyCache.delete(prop);
+      }
+
       const methodPath = buildMethodPath(currentPath, String(prop));
 
       const instrumentedMethod = OPENAI_METHOD_REGISTRY[methodPath as keyof typeof OPENAI_METHOD_REGISTRY];
       if (typeof value === 'function' && instrumentedMethod) {
-        return instrumentMethod(
+        const wrappedMethod = instrumentMethod(
           value as (...args: unknown[]) => Promise<unknown>,
           methodPath,
           instrumentedMethod,
           obj,
           options,
         );
+        propertyCache.set(prop, { original: value, wrapped: wrappedMethod });
+        return wrappedMethod;
       }
 
       if (typeof value === 'function') {
         // Bind non-instrumented functions to preserve the original `this` context,
         // which is required for accessing private class fields (e.g. #baseURL) in OpenAI SDK v5.
-        return value.bind(obj);
+        const boundMethod = value.bind(obj);
+        propertyCache.set(prop, { original: value, wrapped: boundMethod });
+        return boundMethod;
       }
 
       if (value && typeof value === 'object') {
-        return createDeepProxy(value, methodPath, options);
+        const nestedProxy = createDeepProxy(value, methodPath, options);
+        propertyCache.set(prop, { original: value, wrapped: nestedProxy });
+        return nestedProxy;
       }
 
       return value;

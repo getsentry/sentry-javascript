@@ -1,7 +1,8 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import type { Client, Span } from '@sentry/core';
 
 import * as SentryCore from '@sentry/core';
+import * as SentryCoreServer from '@sentry/core/server';
 import * as SentryNode from '@sentry/node';
 import type { APIContext } from 'astro';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -33,6 +34,27 @@ const STATIC_REQUEST_CONTEXT = {
   url: new URL('https://myDomain.io/users/'),
 };
 
+describe('sentryMiddleware with the managed tunnel', () => {
+  it('answers tunnel requests without calling the rest of the middleware chain', async () => {
+    const getClientSpy = vi.spyOn(SentryNode, 'getClient').mockReturnValue({} as Client);
+    const tunnelResponse = new Response('forwarded');
+    const matcherSpy = vi
+      .spyOn(SentryCoreServer, '_INTERNAL_handleServedTunnelRequest')
+      .mockReturnValue(Promise.resolve(tunnelResponse));
+    const next = vi.fn();
+    const request = new Request('https://myDomain.io/abc123', { method: 'POST' });
+
+    const response = await handleRequest()({ ...DYNAMIC_REQUEST_CONTEXT, request } as unknown as APIContext, next);
+
+    expect(response).toBe(tunnelResponse);
+    expect(matcherSpy).toHaveBeenCalledWith(request);
+    expect(next).not.toHaveBeenCalled();
+
+    getClientSpy.mockRestore();
+    matcherSpy.mockRestore();
+  });
+});
+
 describe('sentryMiddleware', () => {
   const startSpanSpy = vi.spyOn(SentryNode, 'startSpan');
 
@@ -54,6 +76,7 @@ describe('sentryMiddleware', () => {
     urlQueryParams: true,
     graphQL: { document: true, variables: true },
     genAI: { inputs: true, outputs: true },
+    mcp: { inputs: true, outputs: true },
     databaseQueryData: true,
     stackFrameVariables: true,
     frameContextLines: 5,
@@ -128,7 +151,7 @@ describe('sentryMiddleware', () => {
           [URL_FULL]: 'https://mydomain.io/users/123/details',
           [URL_PATH]: '/users/123/details',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-          [SentryCore.SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: 'GET',
+          [HTTP_REQUEST_METHOD]: 'GET',
           'http.route': '/users/[id]/details',
         },
         name: 'GET /users/[id]/details',
@@ -160,6 +183,7 @@ describe('sentryMiddleware', () => {
               urlQueryParams: true,
               graphQL: { document: true, variables: true },
               genAI: { inputs: true, outputs: true },
+              mcp: { inputs: true, outputs: true },
               databaseQueryData: true,
               stackFrameVariables: true,
               frameContextLines: 5,
@@ -230,7 +254,7 @@ describe('sentryMiddleware', () => {
           [URL_FULL]: 'http://localhost:1234/a%xx',
           [URL_PATH]: 'a%xx',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-          [SentryCore.SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: 'GET',
+          [HTTP_REQUEST_METHOD]: 'GET',
         },
         name: 'GET a%xx',
       },

@@ -7,7 +7,6 @@ const externalFunctionFile = require.resolve('./node_modules/out-of-app-function
 const { out_of_app_function } = require(externalFunctionFile);
 
 Sentry.init({
-  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   transport: loggingTransport,
   includeLocalVariables: true,

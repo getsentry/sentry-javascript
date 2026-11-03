@@ -9,8 +9,29 @@ import {
 import { FUNCTION } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
+import * as SentryCoreServer from '@sentry/core/server';
+import type { WrappedFunction } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { instrumentBuild } from '../../src/server/instrumentServer';
+import { instrumentBuild, instrumentServer } from '../../src/server/instrumentServer';
+
+describe('instrumentServer', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('wraps `createRequestHandler` only once when called again', () => {
+    const createRequestHandler = vi.fn();
+    const pkg = { createRequestHandler };
+    vi.spyOn(SentryCoreServer, 'loadModule').mockReturnValue(pkg);
+
+    instrumentServer();
+    const wrapped = pkg.createRequestHandler;
+    instrumentServer();
+
+    expect(pkg.createRequestHandler).toBe(wrapped);
+    expect((pkg.createRequestHandler as WrappedFunction).__sentry_original__).toBe(createRequestHandler);
+  });
+});
 
 describe('instrumentBuild', () => {
   afterEach(() => {

@@ -14,6 +14,7 @@ import {
   addFetchInstrumentationHandler,
   debug,
   defineIntegration,
+  filterCollectedUrl,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
   getEventDescription,
@@ -192,7 +193,7 @@ function _getXhrBreadcrumbHandler(client: Client): (handlerData: HandlerDataXhr)
 
     const data: XhrBreadcrumbData = {
       method,
-      url,
+      url: filterCollectedUrl(url),
       status_code,
     };
 
@@ -247,7 +248,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
 
       const breadcrumb = {
         category: 'fetch',
-        data: handlerData.fetchData,
+        data: { ...handlerData.fetchData, url: filterCollectedUrl(handlerData.fetchData.url) },
         level: 'error',
         type: 'http',
       } satisfies Breadcrumb;
@@ -259,6 +260,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
       const response = handlerData.response as Response | undefined;
       const data: FetchBreadcrumbData = {
         ...handlerData.fetchData,
+        url: filterCollectedUrl(handlerData.fetchData.url),
         status_code: response?.status,
       };
 
@@ -315,8 +317,8 @@ function _getHistoryBreadcrumbHandler(client: Client): (handlerData: HandlerData
     addBreadcrumb({
       category: 'navigation',
       data: {
-        from,
-        to,
+        from: filterCollectedUrl(from),
+        to: filterCollectedUrl(to),
       },
     });
   };

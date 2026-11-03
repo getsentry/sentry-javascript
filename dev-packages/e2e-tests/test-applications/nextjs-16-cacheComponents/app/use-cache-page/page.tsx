@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { cacheLife } from 'next/cache';
+import { CachedBox, DynamicBox } from '@/components/scenarioBox';
 
 async function getCachedPageData(id: string): Promise<{ id: string; createdAt: number }> {
   'use cache';
@@ -10,9 +11,12 @@ async function getCachedPageData(id: string): Promise<{ id: string; createdAt: n
 
 export default function Page({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <CachedContent searchParams={searchParams} />
-    </Suspense>
+    <main>
+      <h1>Cached data function in a page</h1>
+      <Suspense fallback={<div>Loading...</div>}>
+        <CachedContent searchParams={searchParams} />
+      </Suspense>
+    </main>
   );
 }
 
@@ -21,5 +25,12 @@ async function CachedContent({ searchParams }: { searchParams: Promise<{ id?: st
   // cache handler instead of serving prerendered output.
   const { id = 'default-id' } = await searchParams;
   const data = await getCachedPageData(id);
-  return <div id="cached-data">{JSON.stringify(data)}</div>;
+  return (
+    <DynamicBox label="dynamic hole · awaits searchParams">
+      <p>request-time: {Date.now()}</p>
+      <CachedBox label="getCachedPageData · use cache · hours">
+        <div id="cached-data">{JSON.stringify(data)}</div>
+      </CachedBox>
+    </DynamicBox>
+  );
 }

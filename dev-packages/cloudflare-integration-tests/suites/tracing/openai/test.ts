@@ -17,8 +17,9 @@ import {
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_TRACE_LIFECYCLE,
+  SENTRY_ENVIRONMENT,
 } from '@sentry/conventions/attributes';
-import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT } from '@sentry/core';
+import { SDK_VERSION } from '@sentry/core';
 import { createRunner } from '../../../runner';
 import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
 
@@ -74,7 +75,7 @@ it('traces a basic chat completion request with the openai SDK', async ({ signal
           [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
           [SENTRY_SDK_NAME]: { value: 'sentry.javascript.cloudflare', type: 'string' },
           [SENTRY_SDK_VERSION]: { value: SDK_VERSION, type: 'string' },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
+          [SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
         },
       });
     })

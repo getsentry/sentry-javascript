@@ -8,20 +8,13 @@ import {
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_ORIGIN,
+  DB_CONNECTION_STRING,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
-import {
-  getClient,
-  hasSpanStreamingEnabled,
-  isObjectLike,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
-} from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, isObjectLike, startInactiveSpan } from '@sentry/core';
 
-// `db.connection_string` is not part of `@sentry/conventions`, so it stays inlined to match
-// what `@opentelemetry/instrumentation-mongodb` emitted.
-const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
 const DB_SYSTEM_VALUE_MONGODB = 'mongodb';
 
 /**
@@ -127,12 +120,13 @@ export function getSpanAttributes(
   origin: string,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
+    [SENTRY_ORIGIN]: origin,
     [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MONGODB,
     [DB_NAMESPACE]: dbName,
     [DB_COLLECTION_NAME]: dbCollection,
     [DB_OPERATION_NAME]: operation,
-    [ATTR_DB_CONNECTION_STRING]: `mongodb://${host}:${port}/${dbName}`,
+    // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+    [DB_CONNECTION_STRING]: `mongodb://${host}:${port}/${dbName}`,
   };
 
   if (host && port) {
@@ -241,6 +235,7 @@ export function startMongoSpan(attributes: SpanAttributes): Span {
 
   return startInactiveSpan({
     name,
+    onlyIfParent: true,
     attributes: {
       [SENTRY_OP]: DB,
       [SENTRY_KIND]: 'client',

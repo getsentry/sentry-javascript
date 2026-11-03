@@ -1,7 +1,6 @@
 import type { Client } from '../client';
 import { getIsolationScope } from '../currentScopes';
 import { defineIntegration } from '../integration';
-import { SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS } from '../semanticAttributes';
 import type { SdkProcessingMetadata } from '../scope';
 import type { CollectBehavior, ResolvedDataCollection } from '../types/datacollection';
 import type { Event } from '../types/event';
@@ -16,9 +15,17 @@ import { filterQueryParams } from '../utils/data-collection/filterQueryParams';
 import { filterUrlQuery } from '../utils/data-collection/filterUrlQuery';
 import { filterCookiePairs, httpHeadersToSpanAttributes } from '../utils/request';
 import { getUrlQuery } from '../utils/url';
-import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
+import { getClientIPAddress } from '../utils/clientIPAddress';
+import { ipHeaderNames } from '../vendor/getIpAddress';
 import { safeSetSpanJSONAttributes } from '../tracing/spans/captureSpan';
-import { SENTRY_IS_LOCALHOST, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
+import {
+  SENTRY_IS_LOCALHOST,
+  URL_FULL,
+  URL_QUERY,
+  USER_IP_ADDRESS,
+  HTTP_REQUEST_BODY_DATA,
+  HTTP_REQUEST_METHOD,
+} from '@sentry/conventions/attributes';
 
 type RequestDataIncludeOptions = {
   cookies?: boolean;
@@ -219,7 +226,7 @@ function addNormalizedRequestDataToSpan(
   }
 
   if (requestData.method) {
-    attributes['http.request.method'] = requestData.method;
+    attributes[HTTP_REQUEST_METHOD] = requestData.method;
   }
 
   if (requestData.query_string) {
@@ -254,14 +261,14 @@ function addNormalizedRequestDataToSpan(
   if (requestData.data != null) {
     const serialized = typeof requestData.data === 'string' ? requestData.data : JSON.stringify(requestData.data);
     if (serialized) {
-      safeSetSpanJSONAttributes(span, { 'http.request.body.data': serialized });
+      safeSetSpanJSONAttributes(span, { [HTTP_REQUEST_BODY_DATA]: serialized });
     }
   }
 
   if (include.ip) {
     const ip = (normalizedRequest.headers && getClientIPAddress(normalizedRequest.headers)) || ipAddress || undefined;
     if (ip) {
-      safeSetSpanJSONAttributes(span, { [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: ip });
+      safeSetSpanJSONAttributes(span, { [USER_IP_ADDRESS]: ip });
     }
   }
 }

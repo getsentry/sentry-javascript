@@ -2,7 +2,7 @@
 
 Most of the setup is committed to the repo and works automatically:
 
-- **`scripts/claude-cloud-setup.sh`** — bootstrap: `yarn install --frozen-lockfile` + `yarn build:dev`. Runs **every** session so the checkout is always built against the current branch. Repeated runs are cheap (frozen install is a no-op when warm; Nx only rebuilds changed packages).
+- **`scripts/claude-cloud-setup.sh`** — bootstrap: `pnpm install --frozen-lockfile` + `pnpm run build:dev`. Runs **every** session so the checkout is always built against the current branch. Repeated runs are cheap (frozen install is a no-op when warm; Nx only rebuilds changed packages).
 - **`.claude/settings.json`** — a `SessionStart` hook runs that script, but only in cloud sessions (`CLAUDE_CODE_REMOTE=true`). Local sessions are unaffected.
 
 ## One-time environment setup (done in the `claude.ai/code` UI)
@@ -23,5 +23,5 @@ These cannot live in the repo and must be set once per environment:
 
 ## Notes
 
-- Node/Yarn versions come from `package.json` (Volta locally). In the cloud we use the sandbox runtime and pass `--ignore-engines`, matching CI.
-- The full production `yarn build` is not run at startup; `build:dev` (transpile + types) is enough for editing and running unit tests. Run `yarn build` manually if you need bundles.
+- Node.js/pnpm versions come from `package.json` (`devEngines.runtime` and `packageManager`, managed by pnpm locally). In the cloud we use the sandbox Node.js runtime, and the setup script installs the pinned pnpm version when the sandbox has none.
+- The full production `pnpm run build` is not run at startup; `build:dev` (transpile + types) is enough for editing and running unit tests. Run `pnpm run build` manually if you need bundles.

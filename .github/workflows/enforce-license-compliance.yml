@@ -16,10 +16,18 @@ on:
       - v10
       - v9
       - v8
+  merge_group:
+    branches: [develop]
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   enforce-license-compliance:
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-sentry-javascript
     steps:
       - name: 'Enforce License Compliance'
         uses: getsentry/action-enforce-license-compliance@main

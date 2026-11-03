@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import type { Event } from '@sentry/core';
 import { afterAll, describe, expect, test } from 'vitest';
-import { NODE_VERSION } from '../../utils/index';
+import { supports } from '../../utils/index';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
 function EXCEPTION(thread_id = '0', fn = 'longWork') {
@@ -162,19 +162,11 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
   });
 
   test('should exit', async () => {
-    const runner = createRunner(__dirname, 'should-exit.js').start();
-
-    await new Promise(resolve => setTimeout(resolve, 5_000));
-
-    expect(runner.childHasExited()).toBe(true);
+    await createRunner(__dirname, 'should-exit.js').start().exited();
   });
 
   test('should exit forced', async () => {
-    const runner = createRunner(__dirname, 'should-exit-forced.js').start();
-
-    await new Promise(resolve => setTimeout(resolve, 5_000));
-
-    expect(runner.childHasExited()).toBe(true);
+    await createRunner(__dirname, 'should-exit-forced.js').start().exited();
   });
 
   test('can be disabled with disableBlockDetectionForCallback', async () => {
@@ -240,12 +232,7 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
       .completed();
   });
 
-  test('Capture scope via AsyncLocalStorage', async ctx => {
-    if (NODE_VERSION < 24) {
-      ctx.skip();
-      return;
-    }
-
+  test.runIf(supports({ min: 24 }))('Capture scope via AsyncLocalStorage', async () => {
     const instrument = join(__dirname, 'instrument.mjs');
     await createRunner(__dirname, 'isolated.mjs')
       .withMockSentryServer()

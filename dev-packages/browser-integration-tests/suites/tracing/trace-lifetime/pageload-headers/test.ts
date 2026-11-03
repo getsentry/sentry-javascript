@@ -1,11 +1,8 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import type { EventAndTraceHeader } from '../../../../utils/helpers';
-import {
-  eventAndTraceHeaderRequestParser,
-  getFirstSentryEnvelopeRequest,
-  shouldSkipTracingTest,
-} from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { waitForStreamedSpanAndTraceHeaderOnUrl } from '../../../../utils/spanUtils';
 
 const META_TAG_TRACE_ID = '12345678901234567890123456789012';
 const META_TAG_PARENT_SPAN_ID = '1234567890123456';
@@ -28,23 +25,13 @@ sentryTest(
       },
     });
 
-    const [pageloadEvent, pageloadTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
-      page,
-      url,
-      eventAndTraceHeaderRequestParser,
-    );
-    const [navigationEvent, navigationTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
-      page,
-      `${url}#foo`,
-      eventAndTraceHeaderRequestParser,
-    );
+    const [pageloadSpan, pageloadTraceHeader] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url);
+    const [navigationSpan, navigationTraceHeader] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, `${url}#foo`);
 
-    const pageloadTraceContext = pageloadEvent.contexts?.trace;
-    const navigationTraceContext = navigationEvent.contexts?.trace;
-
-    expect(pageloadEvent.type).toEqual('transaction');
-    expect(pageloadTraceContext).toMatchObject({
-      op: 'pageload',
+    expect(pageloadSpan.is_segment).toBe(true);
+    expect(pageloadSpan).toMatchObject({
+      is_segment: true,
+      attributes: expect.objectContaining({ [SENTRY_OP]: { type: 'string', value: 'pageload' } }),
       trace_id: META_TAG_TRACE_ID,
       parent_span_id: META_TAG_PARENT_SPAN_ID,
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
@@ -61,25 +48,26 @@ sentryTest(
       sample_rand: '0.42',
     });
 
-    expect(navigationEvent.type).toEqual('transaction');
-    expect(navigationTraceContext).toMatchObject({
-      op: 'navigation',
+    expect(navigationSpan.is_segment).toBe(true);
+    expect(navigationSpan).toMatchObject({
+      is_segment: true,
+      attributes: expect.objectContaining({ [SENTRY_OP]: { type: 'string', value: 'navigation' } }),
       trace_id: expect.stringMatching(/^[\da-f]{32}$/),
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
     // navigation span is head of trace, so there's no parent span:
-    expect(navigationTraceContext).not.toHaveProperty('parent_span_id');
+    expect(navigationSpan).not.toHaveProperty('parent_span_id');
 
     expect(navigationTraceHeader).toEqual({
       environment: 'production',
       public_key: 'public',
       sample_rate: '1',
       sampled: 'true',
-      trace_id: navigationTraceContext?.trace_id,
+      trace_id: navigationSpan?.trace_id,
       sample_rand: expect.any(String),
     });
 
-    expect(pageloadTraceContext?.trace_id).not.toEqual(navigationTraceContext?.trace_id);
+    expect(pageloadSpan?.trace_id).not.toEqual(navigationSpan?.trace_id);
     expect(pageloadTraceHeader?.sample_rand).not.toEqual(navigationTraceHeader?.sample_rand);
   },
 );

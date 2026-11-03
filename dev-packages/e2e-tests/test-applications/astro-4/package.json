@@ -14,17 +14,14 @@
   "dependencies": {
     "@astrojs/check": "0.9.2",
     "@astrojs/node": "8.3.4",
-    "@playwright/test": "~1.63.0",
+    "@playwright/test": "1.64.1",
     "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@spotlightjs/astro": "2.1.6",
     "astro": "4.16.19",
     "typescript": "^5.5.4"
   },
   "devDependencies": {
     "@astrojs/internal-helpers": "^0.4.1"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

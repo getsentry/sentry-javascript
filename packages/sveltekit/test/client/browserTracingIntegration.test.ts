@@ -4,13 +4,12 @@
 
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
 import { writable } from 'svelte/store';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { navigating, page } from '$app/stores';
 import { browserTracingIntegration } from '../../src/client';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 
 // we have to overwrite the global mock from `vitest.setup.ts` here to reset the
 // `navigating` store for each test.
@@ -115,7 +114,7 @@ describe('browserTracingIntegration', () => {
       name: '/',
       attributes: {
         'sentry.op': 'pageload',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
+        [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
       },
     });
@@ -219,7 +218,7 @@ describe('browserTracingIntegration', () => {
         name: '/users/[id]',
         attributes: {
           'sentry.op': 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
+          [SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/users/[id]',
           'sentry.sveltekit.navigation.from': '/users',
@@ -234,7 +233,7 @@ describe('browserTracingIntegration', () => {
       name: 'SvelteKit Route Change',
       attributes: {
         [SENTRY_OP]: 'router',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.sveltekit',
+        [SENTRY_ORIGIN]: 'auto.ui.sveltekit',
         'sentry.sveltekit.navigation.from': '/users',
         'sentry.sveltekit.navigation.to': '/users/[id]',
         'sentry.sveltekit.navigation.type': 'link',
@@ -364,7 +363,7 @@ describe('browserTracingIntegration', () => {
           attributes: {
             'sentry.op': 'navigation',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
+            [SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
             [URL_TEMPLATE]: '/users/[id]',
             'sentry.sveltekit.navigation.from': '/users/[id]',
             'sentry.sveltekit.navigation.to': '/users/[id]',
@@ -377,7 +376,7 @@ describe('browserTracingIntegration', () => {
         name: 'SvelteKit Route Change',
         attributes: {
           [SENTRY_OP]: 'router',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.sveltekit',
+          [SENTRY_ORIGIN]: 'auto.ui.sveltekit',
           'sentry.sveltekit.navigation.from': '/users/[id]',
           'sentry.sveltekit.navigation.to': '/users/[id]',
         },

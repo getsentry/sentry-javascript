@@ -25,55 +25,49 @@ describe('MCP server spans (streamed, auto-instrumentation, v1)', () => {
     cleanupChildProcesses();
   });
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario.mjs',
-    'instrument.mjs',
-    (createTestRunner, test) => {
-      test('auto-instruments the initialize handshake', async () => {
-        await createTestRunner()
-          .unordered()
-          .expect({
-            span: container => {
-              const initialize = mcpSpan(container, 'initialize');
-              expect(initialize.name).toBe('initialize');
-              expect(initialize.attributes['sentry.origin']).toEqual({
-                type: 'string',
-                value: 'auto.function.mcp_server',
-              });
-            },
-          })
-          .start()
-          .completed();
-      });
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
+    test('auto-instruments the initialize handshake', async () => {
+      await createTestRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const initialize = mcpSpan(container, 'initialize');
+            expect(initialize.name).toBe('initialize');
+            expect(initialize.attributes['sentry.origin']).toEqual({
+              type: 'string',
+              value: 'auto.function.mcp_server',
+            });
+          },
+        })
+        .start()
+        .completed();
+    });
 
-      test('auto-instruments a resource read', async () => {
-        await createTestRunner()
-          .unordered()
-          .expect({
-            span: container => {
-              const resource = mcpSpan(container, 'resources/read');
-              expect(resource.name).toBe('resources/read');
-              expect(resource.attributes['mcp.resource.uri']?.value).toBe('echo://foobar');
-            },
-          })
-          .start()
-          .completed();
-      });
+    test('auto-instruments a resource read', async () => {
+      await createTestRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const resource = mcpSpan(container, 'resources/read');
+            expect(resource.name).toBe('resources/read');
+            expect(resource.attributes['mcp.resource.uri']?.value).toBe('echo://foobar');
+          },
+        })
+        .start()
+        .completed();
+    });
 
-      test('auto-instruments a tool call', async () => {
-        await createTestRunner()
-          .unordered()
-          .expect({
-            span: container => {
-              const tool = mcpSpan(container, 'tools/call');
-              expect(tool.name).toBe('tools/call echo');
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    { additionalDependencies: { '@modelcontextprotocol/sdk': '1.30.0' } },
-  );
+    test('auto-instruments a tool call', async () => {
+      await createTestRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const tool = mcpSpan(container, 'tools/call');
+            expect(tool.name).toBe('tools/call echo');
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });

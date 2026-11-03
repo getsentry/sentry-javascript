@@ -1,3 +1,4 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { performance } from 'perf_hooks';
 import { _INTERNAL_safeDateNow, defineIntegration, metrics } from '@sentry/core';
 import { _INTERNAL_safeUnref } from '@sentry/core/server';
@@ -92,9 +93,9 @@ export const bunRuntimeMetricsIntegration = defineIntegration((options: BunRunti
   let prevFlushTime: number = 0;
   let eluAvailable = false;
 
-  const METRIC_ATTRIBUTES = { attributes: { 'sentry.origin': 'auto.bun.runtime_metrics' } };
-  const METRIC_ATTRIBUTES_BYTE = { unit: 'byte', attributes: { 'sentry.origin': 'auto.bun.runtime_metrics' } };
-  const METRIC_ATTRIBUTES_SECOND = { unit: 'second', attributes: { 'sentry.origin': 'auto.bun.runtime_metrics' } };
+  const METRIC_ATTRIBUTES = { attributes: { [SENTRY_ORIGIN]: 'auto.bun.runtime_metrics' } };
+  const METRIC_ATTRIBUTES_BYTE = { unit: 'byte', attributes: { [SENTRY_ORIGIN]: 'auto.bun.runtime_metrics' } };
+  const METRIC_ATTRIBUTES_SECOND = { unit: 'second', attributes: { [SENTRY_ORIGIN]: 'auto.bun.runtime_metrics' } };
 
   function collectMetrics(): void {
     const now = _INTERNAL_safeDateNow();

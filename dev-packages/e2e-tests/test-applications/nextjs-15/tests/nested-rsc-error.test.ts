@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-const packageJson = require('../package.json');
+const nextPackageJson = require('next/package.json');
 
 test('Should capture errors from nested server components when `Sentry.captureRequestError` is added to the `onRequestError` hook', async ({
   page,
 }) => {
-  const [, minor, patch, canary] = packageJson.dependencies.next.split('.');
+  const [, minor, patch, canary] = nextPackageJson.version.split('.');
 
   test.skip(
     minor === '0' &&

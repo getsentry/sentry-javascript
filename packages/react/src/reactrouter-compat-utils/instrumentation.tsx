@@ -18,7 +18,6 @@ import {
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
 import * as React from 'react';
@@ -45,11 +44,12 @@ import { checkRouteForAsyncHandler } from './lazy-routes';
 import {
   clearNavigationContext,
   getActiveRootSpan,
+  getRootRoutes,
   resolveRouteNameAndSource,
   setNavigationContext,
   transactionNameHasWildcard,
 } from './utils';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 
 const reactRouterConfigByClient = new WeakMap<Client, ReactRouterConfig>();
@@ -390,7 +390,7 @@ export function updateNavigationSpan(
   const shouldUpdate = !hasBeenNamed || forceUpdate || currentNameHasWildcard;
 
   if (shouldUpdate && !end_timestamp) {
-    const currentBranches = config.matchRoutes(allRoutes, location);
+    const currentBranches = config.matchRoutes(getRootRoutes(allRoutes), location);
     const [name, source] = resolveRouteNameAndSource(
       location,
       allRoutes,
@@ -756,7 +756,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
           attributes: {
             [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
             [SENTRY_OP]: PAGELOAD,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.pageload.react.reactrouter${version ? `_v${version}` : ''}`,
+            [SENTRY_ORIGIN]: `auto.pageload.react.reactrouter${version ? `_v${version}` : ''}`,
           },
         });
       }
@@ -994,7 +994,7 @@ export function handleNavigation(opts: {
   const { location, routes, navigationType, version, config, matches, allRoutes } = opts;
   const branches = Array.isArray(matches)
     ? matches
-    : config.matchRoutes(allRoutes || routes, location, config.basename);
+    : config.matchRoutes(getRootRoutes(allRoutes || routes), location, config.basename);
 
   const client = getClient();
   if (!client || !config.instrumentNavigation) {
@@ -1078,7 +1078,7 @@ export function handleNavigation(opts: {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: source,
           [SENTRY_OP]: NAVIGATION,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter${version ? `_v${version}` : ''}`,
+          [SENTRY_ORIGIN]: `auto.navigation.react.reactrouter${version ? `_v${version}` : ''}`,
           ...(source === 'route' && { [URL_TEMPLATE]: placeholderEntry.routeName }),
         },
       });
@@ -1168,7 +1168,7 @@ function updatePageloadTransaction({
 }): void {
   const branches = Array.isArray(matches)
     ? matches
-    : (config.matchRoutes(allRoutes || routes, location, config.basename) as unknown as RouteMatch[]);
+    : (config.matchRoutes(getRootRoutes(allRoutes || routes), location, config.basename) as unknown as RouteMatch[]);
 
   if (branches) {
     const [name, source] = resolveRouteNameAndSource(
@@ -1264,7 +1264,11 @@ function tryUpdateSpanNameBeforeEnd(
 
     const currentAllRoutes = Array.from(allRoutes);
     const routesToUse = currentAllRoutes.length > 0 ? currentAllRoutes : routes;
-    const branches = config.matchRoutes(routesToUse, location, config.basename) as unknown as RouteMatch[];
+    const branches = config.matchRoutes(
+      getRootRoutes(routesToUse),
+      location,
+      config.basename,
+    ) as unknown as RouteMatch[];
 
     if (!branches) {
       return;

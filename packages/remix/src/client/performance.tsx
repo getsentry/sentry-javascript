@@ -7,7 +7,6 @@ import {
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
 } from '@sentry/core';
 import { isNodeEnv } from '@sentry/core/server';
 import type { BrowserClient, browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
@@ -15,7 +14,7 @@ import { getClient, startBrowserTracingNavigationSpan, startBrowserTracingPageLo
 import * as React from 'react';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { hasManifest, maybeParameterizeRemixRoute } from './remixRouteParameterization';
-import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 
 export type Params<Key extends string = string> = {
@@ -104,7 +103,7 @@ export function startPageloadSpan(client: Client): void {
     name: source === 'route' || !hasSpanStreamingEnabled(client) ? spanName : PAGELOAD_SPAN_NAME_FALLBACK,
     attributes: {
       [SENTRY_OP]: PAGELOAD,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.remix',
+      [SENTRY_ORIGIN]: 'auto.pageload.remix',
       [SENTRY_SEGMENT_NAME_SOURCE]: source,
       ...(source === 'route' && { [URL_TEMPLATE]: spanName }),
     },
@@ -129,7 +128,7 @@ function startNavigationSpan(matches: RouteMatch<string>[], location: ReturnType
     name: source === 'route' || !hasSpanStreamingEnabled(client) ? name : NAVIGATION_SPAN_NAME_FALLBACK,
     attributes: {
       [SENTRY_OP]: NAVIGATION,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.remix',
+      [SENTRY_ORIGIN]: 'auto.navigation.remix',
       [SENTRY_SEGMENT_NAME_SOURCE]: source,
       ...(source === 'route' && { [URL_TEMPLATE]: name }),
     },

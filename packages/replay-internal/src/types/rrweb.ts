@@ -37,6 +37,7 @@ export type ReplayEventWithTime = {
 export type RrwebRecordOptions = {
   maskAllText?: boolean;
   maskAllInputs?: boolean;
+  maskAttributeFn?: (key: string, value: string, el: HTMLElement) => string;
   blockClass?: ClassOption;
   ignoreClass?: string;
   maskTextClass?: ClassOption;

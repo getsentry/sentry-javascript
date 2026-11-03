@@ -1,3 +1,4 @@
+import type { OrchestrionChannelContext } from '../../../src/orchestrion/types';
 import { tracingChannel } from 'node:diagnostics_channel';
 import { GLOBAL_OBJ, setCurrentClient } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -5,7 +6,7 @@ import { mastraIntegration } from '../../../src/integrations/mastra';
 import { CHANNELS } from '../../../src/orchestrion/channels';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
-const channel = tracingChannel<{ error: unknown; arguments: unknown[] }>(CHANNELS.MASTRA_EXECUTE_WITH_CONTEXT);
+const channel = tracingChannel<OrchestrionChannelContext>(CHANNELS.MASTRA_EXECUTE_WITH_CONTEXT);
 
 describe('mastraIntegration error capture', () => {
   let client: TestClient;
