@@ -64,7 +64,6 @@
     "wrangler": "^4.61.0"
   },
   "sentryTest": {
-    "runner": "namespace-profile-sentry-javascript",
     "variants": [
       {
         "build-command": "pnpm test:build-webpack",

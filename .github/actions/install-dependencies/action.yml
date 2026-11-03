@@ -1,5 +1,10 @@
 name: 'Install pnpm dependencies'
-description: 'Installs pnpm dependencies into node_modules folders on the Namespace cache volume.'
+description: 'Installs pnpm dependencies and caches them.'
+
+outputs:
+  cache_key:
+    description: 'The dependency cache key'
+    value: ${{ steps.compute_lockfile_hash.outputs.hash }}
 
 runs:
   using: 'composite'
@@ -16,19 +21,27 @@ runs:
         } >> "$GITHUB_OUTPUT"
       shell: bash
 
-    - name: Mount dependency cache
-      uses: ./.github/actions/mount-pnpm-store
-      with:
-        path: ${{ steps.paths.outputs.paths }}
-
     - name: Install pnpm
       uses: ./.github/actions/install-pnpm
 
+    - name: Compute dependency cache key
+      id: compute_lockfile_hash
+      run: node ./scripts/dependency-hash-key.js >> "$GITHUB_OUTPUT"
+      shell: bash
+
+    - name: Check dependency cache
+      uses: actions/cache@v6.1.0
+      id: cache_dependencies
+      with:
+        path: ${{ steps.paths.outputs.paths }}
+        key: ${{ steps.compute_lockfile_hash.outputs.hash }}
+
     # When the node_modules layout changes, `pnpm install` keeps the `.bin` scripts of the workspace packages, which
-    # then point into a folder that the new layout does not have. Branches that change `nodeLinker` share this cache
-    # volume, so start from empty node_modules folders when the layout on the volume differs, or when an earlier
-    # install already left such broken `.bin` scripts behind.
+    # then point into a folder that the new layout does not have. Start from empty node_modules folders when the layout
+    # differs, or when an earlier install already left such broken `.bin` scripts behind.
     - name: Remove node_modules of another layout
+      id: remove_layout
+      if: steps.cache_dependencies.outputs.cache-hit == 'true'
       run: |
         mapfile -t dirs < <(grep '/node_modules$' <<< "$DEPENDENCY_PATHS")
         expected=$(pnpm config get node-linker)
@@ -46,9 +59,9 @@ runs:
         fi
         if [[ -n "$reason" ]]; then
           echo "$reason Removing the node_modules folders."
+          echo 'emptied=true' >> "$GITHUB_OUTPUT"
           for dir in "${dirs[@]}"; do
             if [[ -d "$dir" ]]; then
-              # The folders are mounted from the cache volume, so empty them instead of removing them
               find "$dir/" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
             fi
           done
@@ -57,8 +70,7 @@ runs:
         DEPENDENCY_PATHS: ${{ steps.paths.outputs.paths }}
       shell: bash
 
-    # The cache volume can hold node_modules of another commit or branch. This is a no-op when they match
-    # pnpm-lock.yaml.
     - name: Install dependencies
+      if: steps.cache_dependencies.outputs.cache-hit != 'true' || steps.remove_layout.outputs.emptied == 'true'
       run: pnpm install --frozen-lockfile
       shell: bash

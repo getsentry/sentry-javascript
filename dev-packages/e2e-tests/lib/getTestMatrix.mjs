@@ -72,8 +72,7 @@ function addIncludesForTestApp(testApp, includes, { optionalMode }) {
   const shouldSkip = packageJson.sentryTest?.skip || false;
   const isOptional = packageJson.sentryTest?.optional || false;
   const variants = (optionalMode ? packageJson.sentryTest?.optionalVariants : packageJson.sentryTest?.variants) || [];
-  const runner = packageJson.sentryTest?.runner;
-  const baseInclude = { 'test-application': testApp, ...(runner ? { runner } : {}) };
+  const baseInclude = { 'test-application': testApp };
 
   if (shouldSkip) {
     return;

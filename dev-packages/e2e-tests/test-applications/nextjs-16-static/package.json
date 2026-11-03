@@ -39,8 +39,5 @@
     "eslint": "^9",
     "eslint-config-next": "^16",
     "typescript": "^5"
-  },
-  "sentryTest": {
-    "runner": "namespace-profile-sentry-javascript"
   }
 }

@@ -21,7 +21,6 @@
     "rimraf": "^5.0.10"
   },
   "sentryTest": {
-    "runner": "namespace-profile-sentry-javascript",
     "variants": [
       {
         "build-command": "NODE_VERSION=22 pnpm test:build",

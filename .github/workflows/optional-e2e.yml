@@ -37,11 +37,7 @@ env:
 jobs:
   job_optional_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test (optional)
-    # Same cache volume as the E2E jobs in build.yml. The event is always `workflow_dispatch`, so the PR number
-    # decides if the run gets the PR volume.
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-e2e${{ inputs.pr_number != '' && '-pr'
-      || '' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read

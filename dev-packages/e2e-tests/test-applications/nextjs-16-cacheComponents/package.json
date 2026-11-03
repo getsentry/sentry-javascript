@@ -43,7 +43,6 @@
     "typescript": "^5"
   },
   "sentryTest": {
-    "runner": "namespace-profile-sentry-javascript",
     "variants": [
       {
         "build-command": "pnpm test:build-webpack",

@@ -29,7 +29,6 @@
     "ts-node": "10.9.1"
   },
   "sentryTest": {
-    "runner": "namespace-profile-sentry-javascript",
     "variants": [
       {
         "build-command": "pnpm test:build-15",

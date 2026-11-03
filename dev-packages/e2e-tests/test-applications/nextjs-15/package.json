@@ -31,7 +31,6 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz"
   },
   "sentryTest": {
-    "runner": "namespace-profile-sentry-javascript",
     "optionalVariants": [
       {
         "build-command": "pnpm test:build-latest",
