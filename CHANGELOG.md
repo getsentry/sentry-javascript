@@ -4,17 +4,35 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @lazerg, @chiliec, @61465, @jpdefo, and @AyeshaWaseemAhmad. Thank you for your contributions!
+
 ### Important Changes
+
+- **ref(cloudflare): Use the shared request handler wrapper**
+
+  Cloudflare Workers now use the same request handler wrapper as `Deno.serve` and `Bun.serve`. Changes for Cloudflare users:
+
+  - Request spans now set `client.address` from the `CF-Connecting-IP` header (or another forwarding header), as on the other runtimes. This follows `dataCollection.userInfo`, which is `true` by default. To leave it out, set `dataCollection: { userInfo: false }`.
+  - Request spans now have the response header attributes, and events have the `response` context with the status code.
+  - When the source of a streamed response fails, the SDK now captures the error and marks the span as failed. With `captureErrors: false`, it does not capture it.
+  - Request spans now list every `Set-Cookie` header of a response, as on Deno and Bun.
+  - Without `AsyncLocalStorage` (for example on Shopify Oxygen), events now also get the request URL and method.
+
+- **feat(nestjs): Add an option to monitor every @Cron method ([#25471](https://github.com/getsentry/sentry-javascript/pull/25471))**
+
+  Set `monitorCronJobs: true` on `nestIntegration()` to send check-ins for every `@Cron()` method, without adding `@SentryCron` to each one. It's off by default. Each monitored job creates a monitor in Sentry, and monitors are billed. Use `excludeCronJobs` to skip jobs by slug. Methods that also have `@SentryCron` check in once, with the slug and options passed to `@SentryCron`.
 
 - **feat(nestjs): Derive SentryCron monitor config from @Cron ([#25013](https://github.com/getsentry/sentry-javascript/pull/25013))**
 
   `@SentryCron` now sends the schedule and time zone from the method's `@Cron()` decorator, so Sentry creates the monitor on the first run. If you use `@SentryCron` without a `schedule`, Sentry now creates missing monitors, which are billed, and overwrites schedules and time zones set by hand. Pass `fromCronDecorator: false` to turn this off.
 
+- **feat(node): Add cronJobIntegration to monitor cron jobs ([#25477](https://github.com/getsentry/sentry-javascript/pull/25477))**
+
+  Add `Sentry.cronJobIntegration()` to `integrations` to send check-ins for every named `CronJob` of the `cron` package (4.3+), with the job name as the monitor slug. It's off by default. Each monitored job creates a monitor in Sentry, and monitors are billed. Use `excludeJobs` to skip jobs by name. `Sentry.cron.instrumentCron` is deprecated; use `cronJobIntegration` instead.
+
 - **feat(nextjs): Mark pageloads of cached pages ([#25318](https://github.com/getsentry/sentry-javascript/pull/25318))**
 
   When Next.js serves a page from its cache, for example an ISR page or a `cacheComponents` shell, the pageload now has the `page.server_rendering.type` attribute. It is `static` if the whole page came from the cache, and `partially_static` if parts of it rendered for this request. Then the pageload stays connected to this request, as before. If the request that rendered the cached page was sampled, the pageload also links to it. So in Sentry, a cached page no longer looks like missing server instrumentation.
-
-Work in this release was contributed by @lazerg and @chiliec. Thank you for your contributions!
 
 ## 11.10.0
 

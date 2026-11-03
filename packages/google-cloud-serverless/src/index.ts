@@ -119,6 +119,7 @@ export {
   fastifyIntegration,
   firebaseIntegration,
   genericPoolIntegration,
+  cronJobIntegration,
   graphileWorkerIntegration,
   nodeCronIntegration,
   nodeScheduleIntegration,

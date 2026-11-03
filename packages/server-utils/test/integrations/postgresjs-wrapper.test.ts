@@ -1,6 +1,6 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { _reconstructQuery, instrumentPostgresJsSql } from '../../src/integrations/postgresjs';
+import { _reconstructQuery, instrumentPostgresJsSql } from '../../src/integrations/postgresjs-wrapper';
 import { sanitizeSqlQuery } from '../../src/utils/sql';
 
 describe('PostgresJs portable instrumentation', () => {
