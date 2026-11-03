@@ -284,7 +284,7 @@ importers:
         version: 1.0.0-pre.53
 
   dev-packages/browser-integration-tests:
-    dependencies:
+    devDependencies:
       '@babel/core':
         specifier: ^7.29.6
         version: 7.29.7(supports-color@10.0.0)
@@ -297,18 +297,36 @@ importers:
       '@sentry/browser':
         specifier: 11.10.0
         version: link:../../packages/browser
+      '@sentry/browser-utils':
+        specifier: 11.10.0
+        version: link:../../packages/browser-utils
       '@sentry/conventions':
         specifier: 0.30.0
         version: 0.30.0
+      '@sentry/core':
+        specifier: 11.10.0
+        version: link:../../packages/core
       '@sentry/replay':
         specifier: 11.10.0
         version: link:../../packages/replay-internal
+      '@sentry/replay-canvas':
+        specifier: 11.10.0
+        version: link:../../packages/replay-canvas
       '@sentry/rrweb':
         specifier: 2.45.0
         version: 2.45.0
+      '@sentry/rrweb-types':
+        specifier: ^2.45.0
+        version: 2.45.0
+      '@sentry/wasm':
+        specifier: 11.10.0
+        version: link:../../packages/wasm
       '@supabase/supabase-js':
         specifier: 2.109.0
         version: 2.109.0
+      '@types/node':
+        specifier: ^20.19.0
+        version: 20.19.43
       axios:
         specifier: 1.21.0
         version: 1.21.0(debug@4.4.3(supports-color@10.0.0))(supports-color@10.0.0)
@@ -318,52 +336,17 @@ importers:
       fflate:
         specifier: 0.8.3
         version: 0.8.3
+      glob:
+        specifier: ^14.0.3
+        version: 14.0.3
       html-webpack-plugin:
         specifier: ^5.5.0
         version: 5.6.0(webpack@5.112.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(sharp@0.35.5(@types/node@20.19.43))(svgo@4.1.0)(uglify-js@3.13.3))
       webpack:
         specifier: ^5.112.2
         version: 5.112.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(sharp@0.35.5(@types/node@20.19.43))(svgo@4.1.0)(uglify-js@3.13.3)
-    devDependencies:
-      '@sentry/browser-utils':
-        specifier: 11.10.0
-        version: link:../../packages/browser-utils
-      '@sentry/core':
-        specifier: 11.10.0
-        version: link:../../packages/core
-      '@sentry/replay-canvas':
-        specifier: 11.10.0
-        version: link:../../packages/replay-canvas
-      '@sentry/rrweb-types':
-        specifier: ^2.45.0
-        version: 2.45.0
-      '@sentry/wasm':
-        specifier: 11.10.0
-        version: link:../../packages/wasm
-      '@types/node':
-        specifier: ^20.19.0
-        version: 20.19.43
-      glob:
-        specifier: ^14.0.3
-        version: 14.0.3
 
   dev-packages/bun-integration-tests:
-    dependencies:
-      '@sentry/bun':
-        specifier: 11.10.0
-        version: link:../../packages/bun
-      '@sentry/hono':
-        specifier: 11.10.0
-        version: link:../../packages/hono
-      hono:
-        specifier: ^4.13.7
-        version: 4.13.11
-      mysql:
-        specifier: ^2.18.1
-        version: 2.18.1
-      pg:
-        specifier: 8.23.1
-        version: 8.23.1
     devDependencies:
       '@sentry-internal/node-integration-tests':
         specifier: 11.10.0
@@ -371,9 +354,15 @@ importers:
       '@sentry-internal/test-utils':
         specifier: 11.10.0
         version: link:../test-utils
+      '@sentry/bun':
+        specifier: 11.10.0
+        version: link:../../packages/bun
       '@sentry/core':
         specifier: 11.10.0
         version: link:../../packages/core
+      '@sentry/hono':
+        specifier: 11.10.0
+        version: link:../../packages/hono
       '@types/mysql':
         specifier: ^2.15.27
         version: 2.15.27
@@ -383,16 +372,24 @@ importers:
       bun-types:
         specifier: ^1.2.9
         version: 1.2.9
+      hono:
+        specifier: ^4.13.7
+        version: 4.13.11
+      mysql:
+        specifier: ^2.18.1
+        version: 2.18.1
+      pg:
+        specifier: 8.23.1
+        version: 8.23.1
       vitest:
         specifier: ^4.1.11
         version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
 
   dev-packages/bundler-plugin-integration-tests:
-    dependencies:
+    devDependencies:
       '@sentry/bundler-plugins':
         specifier: 11.10.0
         version: link:../../packages/bundler-plugins
-    devDependencies:
       premove:
         specifier: ^4.0.0
         version: 4.0.0
@@ -407,29 +404,16 @@ importers:
         version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
 
   dev-packages/bundler-tests:
-    dependencies:
+    devDependencies:
       '@rollup/plugin-node-resolve':
         specifier: ^16.0.3
         version: 16.0.3(rollup@4.62.3)
-      '@sentry/browser':
-        specifier: 11.10.0
-        version: link:../../packages/browser
-      rollup:
-        specifier: ^4.60.3
-        version: 4.62.3
-      vite:
-        specifier: ^8.3.5
-        version: 8.3.5(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
-      vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
-      webpack:
-        specifier: ^5.112.2
-        version: 5.112.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(sharp@0.35.5(@types/node@20.19.43))(svgo@4.1.0)(uglify-js@3.13.3)
-    devDependencies:
       '@sentry/astro':
         specifier: 11.10.0
         version: link:../../packages/astro
+      '@sentry/browser':
+        specifier: 11.10.0
+        version: link:../../packages/browser
       '@sentry/bun':
         specifier: 11.10.0
         version: link:../../packages/bun
@@ -469,9 +453,21 @@ importers:
       '@vercel/nft':
         specifier: ^1.11.0
         version: 1.11.0(encoding@0.1.13)(rollup@4.62.3)(supports-color@10.0.0)
+      rollup:
+        specifier: ^4.60.3
+        version: 4.62.3
+      vite:
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
+      webpack:
+        specifier: ^5.112.2
+        version: 5.112.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(sharp@0.35.5(@types/node@20.19.43))(svgo@4.1.0)(uglify-js@3.13.3)
 
   dev-packages/clear-cache-gh-action:
-    dependencies:
+    devDependencies:
       '@actions/core':
         specifier: 1.10.1
         version: 1.10.1
@@ -480,10 +476,19 @@ importers:
         version: 5.1.1(encoding@0.1.13)
 
   dev-packages/cloudflare-integration-tests:
-    dependencies:
+    devDependencies:
       '@anthropic-ai/sdk':
         specifier: 0.133.0
         version: 0.133.0(zod@4.6.7)
+      '@cloudflare/vite-plugin':
+        specifier: 1.34.0
+        version: 1.34.0(vite@8.3.5(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))(workerd@1.20260426.1)(wrangler@4.156.0(@cloudflare/workers-types@4.20260519.1)(@types/node@20.19.43))
+      '@cloudflare/workers-types':
+        specifier: ^4.20260426.0
+        version: 4.20260519.1
+      '@cloudflare/workers-types-v5':
+        specifier: npm:@cloudflare/workers-types@5.20260710.1
+        version: '@cloudflare/workers-types@5.20260710.1'
       '@google/genai':
         specifier: ^1.20.0
         version: 1.52.0(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(supports-color@10.0.0)
@@ -499,15 +504,24 @@ importers:
       '@langchain/typesafe':
         specifier: ^0.0.2
         version: 0.0.2(@langchain/core@1.2.17(@opentelemetry/api@1.10.0)(openai@5.18.1(ws@8.21.3)(zod@4.6.7))(ws@8.21.3))(langchain@1.5.16(@langchain/core@1.2.17(@opentelemetry/api@1.10.0)(openai@5.18.1(ws@8.21.3)(zod@4.6.7))(ws@8.21.3))(@opentelemetry/api@1.10.0)(openai@5.18.1(ws@8.21.3)(zod@4.6.7))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(ws@8.21.3))
+      '@opentelemetry/api':
+        specifier: ^1.9.1
+        version: 1.10.0
       '@prisma/adapter-d1':
         specifier: 6.15.0
         version: 6.15.0
       '@prisma/client':
         specifier: 6.15.0
         version: 6.15.0(prisma@6.15.0(magicast@0.3.5)(typescript@7.0.2))(typescript@7.0.2)
+      '@sentry-internal/test-utils':
+        specifier: 11.10.0
+        version: link:../test-utils
       '@sentry/cloudflare':
         specifier: 11.10.0
         version: link:../../packages/cloudflare
+      '@sentry/conventions':
+        specifier: 0.30.0
+        version: 0.30.0
       '@sentry/core':
         specifier: 11.10.0
         version: link:../../packages/core
@@ -526,25 +540,6 @@ importers:
       openai:
         specifier: 5.18.1
         version: 5.18.1(ws@8.21.3)(zod@4.6.7)
-    devDependencies:
-      '@cloudflare/vite-plugin':
-        specifier: 1.34.0
-        version: 1.34.0(vite@8.3.5(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))(workerd@1.20260426.1)(wrangler@4.156.0(@cloudflare/workers-types@4.20260519.1)(@types/node@20.19.43))
-      '@cloudflare/workers-types':
-        specifier: ^4.20260426.0
-        version: 4.20260519.1
-      '@cloudflare/workers-types-v5':
-        specifier: npm:@cloudflare/workers-types@5.20260710.1
-        version: '@cloudflare/workers-types@5.20260710.1'
-      '@opentelemetry/api':
-        specifier: ^1.9.1
-        version: 1.10.0
-      '@sentry-internal/test-utils':
-        specifier: 11.10.0
-        version: link:../test-utils
-      '@sentry/conventions':
-        specifier: 0.30.0
-        version: 0.30.0
       prisma:
         specifier: 6.15.0
         version: 6.15.0(magicast@0.3.5)(typescript@7.0.2)
@@ -559,7 +554,13 @@ importers:
         version: 4.156.0(@cloudflare/workers-types@4.20260519.1)(@types/node@20.19.43)
 
   dev-packages/deno-integration-tests:
-    dependencies:
+    devDependencies:
+      '@sentry-internal/node-integration-tests':
+        specifier: 11.10.0
+        version: link:../node-integration-tests
+      '@sentry/conventions':
+        specifier: ^0.30.0
+        version: 0.30.0
       '@sentry/core':
         specifier: 11.10.0
         version: link:../../packages/core
@@ -572,13 +573,6 @@ importers:
       pg:
         specifier: ^8.23.1
         version: 8.23.1
-    devDependencies:
-      '@sentry-internal/node-integration-tests':
-        specifier: 11.10.0
-        version: link:../node-integration-tests
-      '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
       vitest:
         specifier: ^4.1.11
         version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
@@ -590,13 +584,13 @@ importers:
         version: 6.1.3
 
   dev-packages/external-contributor-gh-action:
-    dependencies:
+    devDependencies:
       '@actions/core':
         specifier: 1.10.1
         version: 1.10.1
 
   dev-packages/node-integration-tests:
-    dependencies:
+    devDependencies:
       '@anthropic-ai/sdk':
         specifier: 0.133.0
         version: 0.133.0(zod@4.6.7)
@@ -648,6 +642,9 @@ importers:
       '@growthbook/growthbook':
         specifier: ^1.6.5
         version: 1.6.5
+      '@hapi/boom':
+        specifier: ^10.0.1
+        version: 10.0.1
       '@hapi/hapi':
         specifier: ^21.3.10
         version: 21.3.10
@@ -681,6 +678,9 @@ importers:
       '@modelcontextprotocol/server':
         specifier: ^2.0.0
         version: 2.0.0
+      '@neondatabase/serverless':
+        specifier: 1.2.0
+        version: 1.2.0
       '@prisma/adapter-pg':
         specifier: 7.2.0
         version: 7.2.0
@@ -690,9 +690,18 @@ importers:
       '@prisma/orm-postgres':
         specifier: 8.0.0-rc.17
         version: 8.0.0-rc.17(magicast@0.3.5)(typescript@7.0.2)(vite@8.3.5(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))
+      '@sentry-internal/rollup-utils':
+        specifier: 11.10.0
+        version: link:../rollup-utils
+      '@sentry-internal/test-utils':
+        specifier: 11.10.0
+        version: link:../test-utils
       '@sentry/aws-serverless':
         specifier: 11.10.0
         version: link:../../packages/aws-serverless
+      '@sentry/conventions':
+        specifier: 0.30.0
+        version: 0.30.0
       '@sentry/core':
         specifier: 11.10.0
         version: link:../../packages/core
@@ -702,6 +711,9 @@ importers:
       '@sentry/node':
         specifier: 11.10.0
         version: link:../../packages/node
+      '@sentry/node-native':
+        specifier: 11.10.0
+        version: link:../../packages/node-native
       '@sentry/server-runtime-injection':
         specifier: 11.10.0
         version: link:../../packages/server-runtime-injection
@@ -711,6 +723,12 @@ importers:
       '@smithy/node-http-handler':
         specifier: 4.12.1
         version: 4.12.1
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.21
+      '@types/node-schedule':
+        specifier: ^2.1.7
+        version: 2.1.7
       '@typesafe-ai/sdk':
         specifier: ^0.6.0
         version: 0.6.0
@@ -738,6 +756,9 @@ importers:
       dataloader:
         specifier: 2.2.3
         version: 2.2.3
+      esbuild:
+        specifier: 0.28.1
+        version: 0.28.1
       express:
         specifier: ^4.21.2
         version: 4.22.1(supports-color@10.0.0)
@@ -828,6 +849,9 @@ importers:
       proxy:
         specifier: ^4.1.0
         version: 4.1.0(supports-color@10.0.0)
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
       redis-4:
         specifier: npm:redis@^4.6.14
         version: redis@4.6.14
@@ -855,52 +879,21 @@ importers:
       winston:
         specifier: ^3.17.0
         version: 3.19.0
+      winston-transport:
+        specifier: ^4.9.0
+        version: 4.9.0
       ws:
         specifier: ^8.20.1
         version: 8.21.3
       yargs:
         specifier: ^18.2.0
         version: 18.2.0
-    devDependencies:
-      '@hapi/boom':
-        specifier: ^10.0.1
-        version: 10.0.1
-      '@neondatabase/serverless':
-        specifier: 1.2.0
-        version: 1.2.0
-      '@sentry-internal/rollup-utils':
-        specifier: 11.10.0
-        version: link:../rollup-utils
-      '@sentry-internal/test-utils':
-        specifier: 11.10.0
-        version: link:../test-utils
-      '@sentry/conventions':
-        specifier: 0.30.0
-        version: 0.30.0
-      '@sentry/node-native':
-        specifier: 11.10.0
-        version: link:../../packages/node-native
-      '@types/express':
-        specifier: ^4.17.21
-        version: 4.17.21
-      '@types/node-schedule':
-        specifier: ^2.1.7
-        version: 2.1.7
-      esbuild:
-        specifier: 0.28.1
-        version: 0.28.1
-      react:
-        specifier: ^18.3.1
-        version: 18.3.1
-      winston-transport:
-        specifier: ^4.9.0
-        version: 4.9.0
       zod:
         specifier: ^4.6.7
         version: 4.6.7
 
   dev-packages/optional-e2e-gh-action:
-    dependencies:
+    devDependencies:
       '@actions/core':
         specifier: 1.10.1
         version: 1.10.1
@@ -914,7 +907,7 @@ importers:
   dev-packages/rollup-utils: {}
 
   dev-packages/size-limit-gh-action:
-    dependencies:
+    devDependencies:
       '@actions/artifact':
         specifier: ^6.2.1
         version: 6.2.1(supports-color@10.0.0)
