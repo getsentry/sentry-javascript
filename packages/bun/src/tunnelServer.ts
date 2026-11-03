@@ -4,8 +4,8 @@ import { _INTERNAL_normalizeTunnelBasePath, debug, getClient } from '@sentry/cor
 import {
   _INTERNAL_getTunnelPaths as getTunnelPaths,
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
-  _INTERNAL_instrumentTunnelServer as instrumentTunnelServer,
 } from '@sentry/core/server';
+import { _INTERNAL_instrumentTunnelServer as instrumentTunnelServer } from '@sentry/server-utils';
 import type { Server } from 'bun';
 
 type BunServeOptions = Parameters<typeof Bun.serve>[0] & { routes?: Record<string, unknown> };

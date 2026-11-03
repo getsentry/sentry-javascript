@@ -18,7 +18,6 @@ export {
   handleServedNodeTunnelRequest as _INTERNAL_handleServedNodeTunnelRequest,
   handleTunnelRequestIfMatched,
 } from './utils/tunnelForward';
-export { instrumentTunnelServer as _INTERNAL_instrumentTunnelServer } from './utils/tunnelServer';
 export { serveTunnelIntegration } from './integrations/serveTunnel';
 export {
   _INTERNAL_resetTunnelDefaults,

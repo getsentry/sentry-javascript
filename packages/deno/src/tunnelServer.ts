@@ -1,36 +1,16 @@
-import { subscribe } from 'node:diagnostics_channel';
 import { debug } from '@sentry/core';
-import {
-  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
-  _INTERNAL_instrumentTunnelServer as instrumentTunnelServer,
-  HTTP_ON_SERVER_REQUEST,
-} from '@sentry/core/server';
+import { _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest } from '@sentry/core/server';
 
 type ServeHandler = (request: Request, info: Deno.ServeHandlerInfo<Deno.Addr>) => Response | Promise<Response>;
 
 let hasPatchedDenoServe = false;
-let isSubscribed = false;
-
-/**
- * Lets `Deno.serve` (including `deno serve`) and `node:http` servers answer managed tunnel requests before the app
- * sees them. Nothing is answered unless the tunnel is on, through `serveTunnelIntegration` or a framework SDK. A
- * `Deno.serve` server started before `init` isn't covered.
- */
-export function instrumentTunnelServers(): void {
-  if (!isSubscribed) {
-    isSubscribed = true;
-    // `node:http` servers publish the same channel on Deno as on Node.
-    subscribe(HTTP_ON_SERVER_REQUEST, instrumentTunnelServer);
-  }
-
-  patchDenoServe();
-}
 
 /**
  * Answers tunnel requests ahead of every `Deno.serve` handler. `deno serve` starts the default export through the
- * same global, so it's covered too.
+ * same global, so it's covered too. Nothing is answered unless the tunnel is on. A server started before `init`
+ * isn't covered.
  */
-function patchDenoServe(): void {
+export function patchDenoServe(): void {
   if (hasPatchedDenoServe) {
     return;
   }

@@ -1,9 +1,10 @@
+import { debug } from '@sentry/core';
+import { _INTERNAL_handleServedNodeTunnelRequest as handleServedNodeTunnelRequest } from '@sentry/core/server';
 import { DEBUG_BUILD } from '../debug-build';
-import type { HttpServer } from '../integrations/http/types';
-import { debug } from './debug-logger';
-import { handleServedNodeTunnelRequest } from './tunnelForward';
 
-const tunnelServers = new WeakSet<HttpServer>();
+type TunnelServer = { emit(event: string, ...data: unknown[]): boolean };
+
+const tunnelServers = new WeakSet<TunnelServer>();
 
 /**
  * Wraps a Node server's `emit` once, so requests to the tunnel `serveTunnelIntegration` serves are answered before
@@ -14,7 +15,7 @@ const tunnelServers = new WeakSet<HttpServer>();
  */
 export function instrumentTunnelServer(message: unknown): void {
   try {
-    const server = (message as { server?: HttpServer } | undefined)?.server;
+    const server = (message as { server?: TunnelServer } | undefined)?.server;
     if (!server || tunnelServers.has(server)) {
       return;
     }
@@ -22,14 +23,14 @@ export function instrumentTunnelServer(message: unknown): void {
     tunnelServers.add(server);
     // oxlint-disable-next-line typescript/unbound-method -- called with the server as `this` below
     const originalEmit = server.emit;
-    server.emit = function (this: HttpServer, event: string, ...data: unknown[]) {
+    server.emit = function (this: TunnelServer, event: string, ...data: unknown[]) {
       const [request, response] = data as Parameters<typeof handleServedNodeTunnelRequest>;
       if (event === 'request' && handleServedNodeTunnelRequest(request, response)) {
         return true;
       }
 
       return originalEmit.call(this, event, ...data);
-    } as HttpServer['emit'];
+    };
   } catch (error) {
     DEBUG_BUILD && debug.error('Sentry tunnel: failed to instrument a server', error);
   }
