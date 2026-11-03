@@ -38,6 +38,7 @@ export {
   flush,
   functionToStringIntegration,
   genericPoolIntegration,
+  cronJobIntegration,
   nodeCronIntegration,
   nodeScheduleIntegration,
   getActiveSpan,
