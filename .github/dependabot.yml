@@ -120,6 +120,7 @@ updates:
       prefix-development: chore
       include: scope
     exclude-paths:
+      - 'dev-packages/browser-integration-tests/**'
       - 'dev-packages/bundler-plugin-integration-tests/**'
       - 'dev-packages/bundler-tests/**'
       - 'dev-packages/bun-integration-tests/**'
