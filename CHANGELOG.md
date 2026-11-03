@@ -30,6 +30,10 @@ Work in this release was contributed by @lazerg, @chiliec, @61465, @jpdefo, and 
 
   Add `Sentry.cronJobIntegration()` to `integrations` to send check-ins for every named `CronJob` of the `cron` package (4.3+), with the job name as the monitor slug. It's off by default. Each monitored job creates a monitor in Sentry, and monitors are billed. Use `excludeJobs` to skip jobs by name. `Sentry.cron.instrumentCron` is deprecated; use `cronJobIntegration` instead.
 
+- **ref(server-utils): Share one cron converter across cron integrations ([#25918](https://github.com/getsentry/sentry-javascript/pull/25918))**
+
+  `Sentry.cron.instrumentCron`, `instrumentNodeCron` and `instrumentNodeSchedule` read schedules the same way as `@SentryCron` and the cron integrations. Without a time zone, they send the server's time zone, where the scheduler runs the job, instead of letting Sentry assume UTC. For expressions Sentry would read differently than the scheduler, like per-second schedules, they send no monitor config, so existing monitors keep their schedule. They send names and nicknames like `MON` or `@daily` as numbers, and drop a fixed seconds field.
+
 - **feat(nextjs): Mark pageloads of cached pages ([#25318](https://github.com/getsentry/sentry-javascript/pull/25318))**
 
   When Next.js serves a page from its cache, for example an ISR page or a `cacheComponents` shell, the pageload now has the `page.server_rendering.type` attribute. It is `static` if the whole page came from the cache, and `partially_static` if parts of it rendered for this request. Then the pageload stays connected to this request, as before. If the request that rendered the cached page was sampled, the pageload also links to it. So in Sentry, a cached page no longer looks like missing server instrumentation.
