@@ -3,7 +3,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {
   assertSourceMapUpload,
-  findDebugIdsInFilesWithGlobCharacters,
   findDebugIdsWithConflictingSourcemaps,
   findFilesWithForeignSourcemaps,
   findFilesWithMultipleDebugIds,
@@ -73,9 +72,6 @@ const outputDirsWithSourceMaps = [
 const debugIdsWithoutSourceMap = new Set(
   outputDirsWithSourceMaps.flatMap(dir => [...debugIdsOfChunksWithoutSourceMap(dir)]),
 );
-const debugIdsSkippedByUploader = isStaticBuild
-  ? []
-  : findDebugIdsInFilesWithGlobCharacters({ outputDir: SERVER_OUTPUT });
 
 const { requests, bundles, sourcemaps, uploadedDebugIds } = assertSourceMapUpload({
   outputDirs: outputDirsWithSourceMaps,
@@ -86,7 +82,7 @@ const { requests, bundles, sourcemaps, uploadedDebugIds } = assertSourceMapUploa
   // Nitro 3 deletes `sourcesContent` from the server maps unless `experimental.sourcemapMinify` is `false`. The module
   // sets it to `false`, which is the only reason the server marker survives into `sourcesContent`.
   markers: { 'client source (Vite plugin)': CLIENT_MARKER, 'server source (Rollup plugin)': SERVER_MARKER },
-  debugIdsWithoutSourceMap: [...debugIdsWithoutSourceMap, ...debugIdsSkippedByUploader],
+  debugIdsWithoutSourceMap: [...debugIdsWithoutSourceMap],
 });
 console.log(`Found ${bundles.length} artifact bundle(s)\n`);
 
