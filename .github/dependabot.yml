@@ -95,12 +95,6 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: 'webpack'
         update-types: ['version-update:semver-major']
-      - dependency-name: 'rollup'
-        update-types: ['version-update:semver-major']
-      - dependency-name: 'rolldown'
-        update-types: ['version-update:semver-major']
-      - dependency-name: 'esbuild'
-        update-types: ['version-update:semver-major']
       # These are also peer dependencies. The `increase` strategy raises the peer range too,
       # which drops support for older versions (a breaking change).
       - dependency-name: '@tanstack/vue-router'
