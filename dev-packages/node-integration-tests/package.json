@@ -27,7 +27,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "0.133.0",
     "@apollo/server": "^5.5.0",
-    "@aws-sdk/client-bedrock-runtime": "^3.1046.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1161.0",
     "@aws-sdk/client-dynamodb": "^3.1046.0",
     "@aws-sdk/client-kinesis": "^3.1146.0",
     "@aws-sdk/client-lambda": "^3.1046.0",
