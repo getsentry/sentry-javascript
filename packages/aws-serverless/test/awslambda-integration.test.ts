@@ -28,6 +28,7 @@ describe('redirectLambdaHandler', () => {
     delete process.env._HANDLER;
     delete process.env.LAMBDA_TASK_ROOT;
     delete process.env.SENTRY_ORIGINAL_HANDLER;
+    delete process.env.SENTRY_LAMBDA_TUNNEL_ONLY_SHIM;
   });
 
   afterEach(() => {
@@ -109,6 +110,18 @@ describe('redirectLambdaHandler', () => {
     expect(tunnelHandler).toMatch(/node\/build\/run-lambda-handler\.handler$/);
     expect(process.env._HANDLER).toMatch(/aws-serverless\/build\/npm\/run-lambda-handler\.handler$/);
     expect(process.env.SENTRY_ORIGINAL_HANDLER).toBe('index.handler');
+  });
+
+  test('takes over from the tunnel-only handler of another copy of @sentry/node', () => {
+    process.env.LAMBDA_TASK_ROOT = taskRoot;
+    process.env.SENTRY_ORIGINAL_HANDLER = 'index.handler';
+    process.env._HANDLER = '/opt/other-copy/@sentry/node/build/run-lambda-handler.handler';
+    process.env.SENTRY_LAMBDA_TUNNEL_ONLY_SHIM = '1';
+
+    awsLambdaIntegration().setupOnce!();
+
+    expect(process.env._HANDLER).toMatch(/aws-serverless\/build\/npm\/run-lambda-handler\.handler$/);
+    expect(process.env.SENTRY_LAMBDA_TUNNEL_ONLY_SHIM).toBeUndefined();
   });
 
   test("leaves the handler alone when @sentry/node's tunnel comes after", () => {

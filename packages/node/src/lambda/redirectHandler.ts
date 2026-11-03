@@ -15,7 +15,7 @@ import { parseHandlerString, resolveHandlerFile } from './handlerResolution';
  * Because the shim wraps the handler *value* (whatever the export resolves to), this also
  * covers handlers that are re-exported, wrapped (e.g. middy), bundled, or streaming.
  */
-export function redirectLambdaHandler(resolveShimFile: () => string | undefined): void {
+export function redirectLambdaHandler(resolveShimFile: () => string | undefined, tunnelOnly = false): void {
   const taskRoot = process.env.LAMBDA_TASK_ROOT;
   const handlerString = process.env._HANDLER;
 
@@ -28,7 +28,9 @@ export function redirectLambdaHandler(resolveShimFile: () => string | undefined)
 
   // Already redirected (e.g. `init()` ran twice, or the user redirected manually).
   if (process.env.SENTRY_ORIGINAL_HANDLER) {
-    replaceTunnelShim(handlerString, resolveShimFile);
+    if (!tunnelOnly) {
+      replaceTunnelOnlyShim(resolveShimFile);
+    }
     DEBUG_BUILD && debug.log('Skipping lambda handler redirect: SENTRY_ORIGINAL_HANDLER is already set.');
     return;
   }
@@ -62,7 +64,11 @@ export function redirectLambdaHandler(resolveShimFile: () => string | undefined)
   }
 
   process.env.SENTRY_ORIGINAL_HANDLER = handlerString;
-  process.env._HANDLER = toHandlerString(shimFile);
+  process.env._HANDLER = `${shimFile.replace(/\.mjs$/, '')}.handler`;
+  if (tunnelOnly) {
+    // A marker rather than the shim's path, so a full shim recognizes it even from another copy of this package.
+    process.env.SENTRY_LAMBDA_TUNNEL_ONLY_SHIM = '1';
+  }
 
   DEBUG_BUILD &&
     debug.log('Redirected lambda handler.', { originalHandler: handlerString, newHandler: process.env._HANDLER });
@@ -75,43 +81,30 @@ export function redirectLambdaHandler(resolveShimFile: () => string | undefined)
  */
 export function redirectLambdaHandlerForTunnel(): void {
   redirectLambdaHandler(() => {
-    const shimFile = getTunnelShimFile();
+    // The shim sits at `build/run-lambda-handler.mjs`, next to the `build/esm` and `build/cjs` this file is built into.
+    // Rollup converts `import.meta.url` for the CJS build.
+    const shimFile = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../run-lambda-handler.mjs');
     if (!fs.existsSync(shimFile)) {
       DEBUG_BUILD && debug.warn(`Could not find ${shimFile}, not answering tunnel requests.`);
       return undefined;
     }
 
     return shimFile;
-  });
+  }, true);
 }
 
 /**
  * A shim with the full Lambda instrumentation, like `@sentry/aws-serverless`'s, replaces the tunnel-only one when that
  * one redirected first. It answers tunnel requests too, so the order the integrations set up in doesn't matter.
  */
-function replaceTunnelShim(handlerString: string, resolveShimFile: () => string | undefined): void {
-  const tunnelShimHandler = toHandlerString(getTunnelShimFile());
-  if (handlerString !== tunnelShimHandler) {
+function replaceTunnelOnlyShim(resolveShimFile: () => string | undefined): void {
+  if (!process.env.SENTRY_LAMBDA_TUNNEL_ONLY_SHIM) {
     return;
   }
 
   const shimFile = resolveShimFile();
-  if (shimFile && toHandlerString(shimFile) !== tunnelShimHandler) {
-    process.env._HANDLER = toHandlerString(shimFile);
+  if (shimFile) {
+    process.env._HANDLER = `${shimFile.replace(/\.mjs$/, '')}.handler`;
+    delete process.env.SENTRY_LAMBDA_TUNNEL_ONLY_SHIM;
   }
-}
-
-/**
- * The tunnel-only shim, at `build/run-lambda-handler.mjs` next to the `build/esm` and `build/cjs` this file is built
- * into. Rollup converts `import.meta.url` for the CJS build.
- */
-function getTunnelShimFile(): string {
-  return path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../run-lambda-handler.mjs');
-}
-
-/**
- * The `_HANDLER` value that loads a shim's `handler` export.
- */
-function toHandlerString(shimFile: string): string {
-  return `${shimFile.replace(/\.mjs$/, '')}.handler`;
 }
