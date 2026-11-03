@@ -727,8 +727,8 @@ importers:
         specifier: ^4.17.21
         version: 4.17.21
       '@types/node-schedule':
-        specifier: ^2.1.7
-        version: 2.1.7
+        specifier: ^2.1.8
+        version: 2.1.8
       '@typesafe-ai/sdk':
         specifier: ^0.6.0
         version: 0.6.0
@@ -826,8 +826,8 @@ importers:
         specifier: ^4.6.0
         version: 4.6.0
       node-schedule:
-        specifier: ^2.1.1
-        version: 2.1.1
+        specifier: ^2.1.2
+        version: 2.1.2
       openai:
         specifier: 5.18.1
         version: 5.18.1(ws@8.21.3)(zod@4.6.7)
@@ -8891,8 +8891,8 @@ packages:
   '@types/node-forge@1.3.11':
     resolution: {integrity: sha512-FQx220y22OKNTqaByeBGqHWYz4cl94tpcxeFdvBo3wjG6XPBuZ0BNgNZRV5J5TFmmcsJ4IzsLkmGRiQbnYsBEQ==}
 
-  '@types/node-schedule@2.1.7':
-    resolution: {integrity: sha512-G7Z3R9H7r3TowoH6D2pkzUHPhcJrDF4Jz1JOQ80AX0K2DWTHoN9VC94XzFAPNMdbW9TBzMZ3LjpFi7RYdbxtXA==}
+  '@types/node-schedule@2.1.8':
+    resolution: {integrity: sha512-k00g6Yj/oUg/CDC+MeLHUzu0+OFxWbIqrFfDiLi6OPKxTujvpv29mHGM8GtKr7B+9Vv92FcK/8mRqi1DK5f3hA==}
 
   '@types/node@14.18.63':
     resolution: {integrity: sha512-fAtCfv4jJg+ExtXhvCkCqUKZ+4ok/JQk01qDKhL5BDDoS3AxKXhV5/MAVUZyQnSEd2GT92fkgZl0pz0Q0AzcIQ==}
@@ -15043,8 +15043,8 @@ packages:
     resolution: {integrity: sha512-5qr2okC4ItAI0hG5SaV0HoYMpnM/Y6+Oqr7AmPYy/2uEoGvS+GbSKLeRxSS1uAdu59yz0ouzcuXievSgg///WA==}
     engines: {node: '>=18'}
 
-  node-schedule@2.1.1:
-    resolution: {integrity: sha512-OXdegQq03OmXEjt2hZP33W2YPs/E5BcFQks46+G2gAxs4gHOIVD1u7EqlYLYSKsaIpyKCK9Gbk0ta1/gjRSMRQ==}
+  node-schedule@2.1.2:
+    resolution: {integrity: sha512-JuKopr93W+WP+TaK5yoHJGpzPF9fpkH8Vcc9CXGE993BNeRKsb3L4Wy6FzL0VxkEa6U+8M4Ni0HEm9rMMnwurg==}
     engines: {node: '>=6'}
 
   node-source-walk@7.0.1:
@@ -28092,7 +28092,7 @@ snapshots:
     dependencies:
       '@types/node': 14.18.63
 
-  '@types/node-schedule@2.1.7':
+  '@types/node-schedule@2.1.8':
     dependencies:
       '@types/node': 20.19.43
 
@@ -36074,7 +36074,7 @@ snapshots:
 
   node-releases@2.0.59: {}
 
-  node-schedule@2.1.1:
+  node-schedule@2.1.2:
     dependencies:
       cron-parser: 4.9.0
       long-timeout: 0.1.1
