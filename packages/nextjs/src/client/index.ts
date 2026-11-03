@@ -3,7 +3,7 @@
 /* eslint-disable import/export */
 import type { Client, EventProcessor, Integration } from '@sentry/core';
 import {
-  _INTERNAL_applyTunnelDefaults as applyTunnelDefaults,
+  _INTERNAL_applyBrowserTunnelDefaults as applyBrowserTunnelDefaults,
   applySdkMetadata,
   consoleSandbox,
   getGlobalScope,
@@ -62,7 +62,7 @@ export function init(options: BrowserOptions): Client | undefined {
 
   applyTunnelRouteOption(opts);
   // The managed tunnel is served under the app's `basePath`, like every other route. A `basePath` the user set wins.
-  opts.tunnel = applyTunnelDefaults(opts.tunnel, { basePath: getInjectedBasePath() });
+  opts.tunnel = applyBrowserTunnelDefaults(opts.tunnel, { basePath: getInjectedBasePath() });
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'react']);
 
   opts.ignoreSpans = [
