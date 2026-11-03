@@ -141,7 +141,7 @@ function subscribeQueryLikeChannel(
       const spanOptions = getSpanOptions(data);
       return startInactiveSpan({
         ...spanOptions,
-        onlyIfParent: true,
+        onlyIfParent: channelName !== CHANNELS.PG_CONNECT && channelName !== CHANNELS.PGPOOL_CONNECT,
         attributes: { ...spanOptions.attributes, [SENTRY_KIND]: 'client' },
       });
     },

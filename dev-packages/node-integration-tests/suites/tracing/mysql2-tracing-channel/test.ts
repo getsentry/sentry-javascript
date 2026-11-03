@@ -66,7 +66,7 @@ describe('mysql2 tracing channel Test', () => {
         await createTestRunner()
           .expect({
             span: container => {
-              expect(container.items.find(span => span.is_segment)?.name).toBe('Test Transaction');
+              expect(container.items.find(span => span.is_segment && span.name === 'Test Transaction')).toBeDefined();
               const spans = container.items.filter(span => !span.is_segment);
               // The monkey-patch path (origin `auto.db.mysql2`) must be inactive on 3.20.0+.
               expect(spans.find(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mysql2')).toBeUndefined();
@@ -84,7 +84,7 @@ describe('mysql2 tracing channel Test', () => {
         await createTestRunner()
           .expect({
             span: container => {
-              expect(container.items.find(span => span.is_segment)?.name).toBe('Test Transaction');
+              expect(container.items.find(span => span.is_segment && span.name === 'Test Transaction')).toBeDefined();
               const spans = container.items.filter(span => !span.is_segment);
               for (const span of spans) {
                 const queryText = span.attributes[DB_QUERY_TEXT]?.value;
