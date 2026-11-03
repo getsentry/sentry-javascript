@@ -1,424 +1,349 @@
-// Portable instrumentation for https://github.com/porsager/postgres
-// This can be used in any environment (Node.js, Cloudflare Workers, etc.)
-// without depending on OpenTelemetry module hooking.
-/* eslint-disable max-lines */
-
+import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import {
-  debug,
-  getActiveSpan,
-  getClient,
-  hasSpanStreamingEnabled,
-  isObjectLike,
-  type Span,
-  type SpanAttributes,
-  SPAN_STATUS_ERROR,
-  startSpanManual,
-} from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
-import { getSqlQueryAttributes } from '../utils/sql';
-import {
-  DB_NAMESPACE,
   DB_OPERATION_NAME,
   DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
+  ERROR_TYPE,
+  SENTRY_KIND,
   SENTRY_OP,
   SENTRY_ORIGIN,
-  SERVER_ADDRESS,
-  SERVER_PORT,
   DB_RESPONSE_STATUS_CODE,
-  ERROR_TYPE,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
+import type { IntegrationFn, Span } from '@sentry/core';
+import {
+  debug,
+  defineIntegration,
+  getClient,
+  hasSpanStreamingEnabled,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+} from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
+import { getSqlQueryAttributes } from '../utils/sql';
+import {
+  _buildConnectionContext,
+  _getConnectionAttributes,
+  _reconstructQuery,
+  type PostgresConnectionContext,
+} from './postgresjs-wrapper';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
+import { CHANNELS } from '../orchestrion/channels';
+import { bindTracingChannelToSpan } from '../tracing-channel';
+import { postgresJsModuleNames } from '../orchestrion/config/postgres';
+import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 
-export type PostgresConnectionContext = {
-  ATTR_DB_NAMESPACE?: string;
-  ATTR_SERVER_ADDRESS?: string;
-  ATTR_SERVER_PORT?: string;
-};
+// Same name as the OTel `PostgresJs` integration by design, so the OTel
+// integration of the same name is deduplicated out of the default set.
+const INTEGRATION_NAME = 'PostgresJs' as const;
 
-interface PostgresJsSqlInstrumentationOptions {
+const ORIGIN = 'auto.db.postgresjs';
+
+const DB_SYSTEM_NAME_POSTGRES = 'postgres';
+
+const NOOP = (): void => {};
+
+// Same `Symbol.for()` marker the core `instrumentPostgresJsSql` wrapper sets on
+// queries it manually instruments, so we skip them there and never double-span.
+const QUERY_FROM_INSTRUMENTED_SQL = Symbol.for('sentry.query.from.instrumented.sql');
+// The query span, stashed on the `Query` so the `execute`/`connect` channels can
+// attach connection attributes to it.
+const QUERY_SPAN = Symbol('sentryPostgresJsSpan');
+// Set once connection attributes are on the span, so the fallback and the
+// `execute`/`connect` channels don't both write them.
+const CONNECTION_ATTRS_SET = Symbol('sentryPostgresJsConnectionAttrsSet');
+// Set on the channel context once the resolve/reject wrappers have ended the
+// span, so `deferSpanEnd` knows the wrappers own the lifecycle.
+const SPAN_ENDED = Symbol('sentryPostgresJsSpanEnded');
+
+export interface PostgresJsIntegrationOptions {
   /**
-   * Whether to require a parent span for the instrumentation.
-   * If set to true, the instrumentation will only create spans if there is a parent span
-   * available in the current scope.
-   * @default true
+   * Only create spans when there's already an active parent span. Defaults to
+   * `true`, matching the OTel `postgresJsIntegration`.
    */
   requireParentSpan?: boolean;
   /**
-   * Hook to modify the span before it is started.
-   * This can be used to set additional attributes or modify the span in any way.
+   * Hook to modify the query span before the query runs. Receives the span, the
+   * sanitized SQL, and (when resolvable) the connection context.
    */
   requestHook?: (span: Span, sanitizedSqlQuery: string, postgresConnectionContext?: PostgresConnectionContext) => void;
 }
 
-const CONNECTION_CONTEXT_SYMBOL = Symbol('sentryPostgresConnectionContext');
+/** The `Query` instance postgres.js passes as `self` to `Query.prototype.handle`. */
+interface PostgresQuery {
+  strings?: string[];
+  executed?: boolean;
+  resolve?: (...args: unknown[]) => unknown;
+  reject?: (...args: unknown[]) => unknown;
+}
 
-// Use the same Symbol.for() markers as the Node.js OTel instrumentation
-// so that both approaches recognize each other and prevent double-wrapping.
-const INSTRUMENTED_MARKER = Symbol.for('sentry.instrumented.postgresjs');
-// Marker to track if a query was created from an instrumented sql instance.
-// This prevents double-spanning when both the wrapper and the Node.js Query.prototype
-// fallback patch are active simultaneously.
-const QUERY_FROM_INSTRUMENTED_SQL = Symbol.for('sentry.query.from.instrumented.sql');
+interface PostgresJsQueryContext extends OrchestrionChannelContext {
+  self?: PostgresQuery;
+  [SPAN_ENDED]?: boolean;
+}
 
-/**
- * Instruments a postgres.js `sql` instance with Sentry tracing.
- *
- * This is a portable instrumentation function that works in any environment
- * (Node.js, Cloudflare Workers, etc.) without depending on OpenTelemetry.
- *
- * @example
- * ```javascript
- * import postgres from 'postgres';
- * import * as Sentry from '@sentry/cloudflare'; // or '@sentry/deno'
- *
- * const sql = Sentry.instrumentPostgresJsSql(
- *   postgres({ host: 'localhost', database: 'mydb' })
- * );
- *
- * // All queries now create Sentry spans
- * await sql`SELECT * FROM users WHERE id = ${userId}`;
- * ```
- */
-export function instrumentPostgresJsSql<T>(sql: T, options?: PostgresJsSqlInstrumentationOptions): T {
-  if (!sql || typeof sql !== 'function') {
-    DEBUG_BUILD && debug.warn('instrumentPostgresJsSql: provided value is not a valid postgres.js sql instance');
-    return sql;
+// A connection object -> its resolved context, populated on the `connection`
+// channel and read on the `execute`/`connect` channels (keyed by the same object).
+const connectionContexts = new WeakMap<object, PostgresConnectionContext>();
+// Distinct endpoints seen so far (value-compared, so N connections to one DB
+// count once). When exactly one endpoint exists — the common case, and the only
+// one the tests exercise — every query resolves to it at handle-start.
+const endpointRegistry: PostgresConnectionContext[] = [];
+
+function registerEndpoint(context: PostgresConnectionContext): void {
+  const alreadyKnown = endpointRegistry.some(
+    e =>
+      e.ATTR_SERVER_ADDRESS === context.ATTR_SERVER_ADDRESS &&
+      e.ATTR_SERVER_PORT === context.ATTR_SERVER_PORT &&
+      e.ATTR_DB_NAMESPACE === context.ATTR_DB_NAMESPACE,
+  );
+  if (!alreadyKnown) {
+    endpointRegistry.push(context);
   }
+}
 
-  return _instrumentSqlInstance(sql, { requireParentSpan: true, ...options }) as T;
+/** The single known endpoint, or `undefined` when zero or multiple are known. */
+function resolveSingleEndpoint(): PostgresConnectionContext | undefined {
+  return endpointRegistry.length === 1 ? endpointRegistry[0] : undefined;
 }
 
 /**
- * Instruments a sql instance by wrapping its query execution methods.
+ * Record a connection from the `connection` channel `end` (`result` is the
+ * connection object, `arguments[0]` the parsed options), keying its resolved
+ * context by the connection object and tracking its endpoint.
  */
-function _instrumentSqlInstance(
-  sql: unknown,
-  options: PostgresJsSqlInstrumentationOptions,
-  parentConnectionContext?: PostgresConnectionContext,
-): unknown {
-  // Check if already instrumented to prevent double-wrapping
-  // Using Symbol.for() ensures the marker survives proxying
-  if ((sql as Record<symbol, unknown>)[INSTRUMENTED_MARKER]) {
-    return sql;
+function recordConnectionFromChannel(message: PostgresJsQueryContext): void {
+  const connection = message.result;
+  const options = message.arguments?.[0] as { host?: string[]; port?: number[]; database?: string } | undefined;
+  if (!connection || typeof connection !== 'object' || !options) {
+    return;
+  }
+  const context = _buildConnectionContext(options);
+  connectionContexts.set(connection, context);
+  registerEndpoint(context);
+}
+
+function setConnectionAttributes(span: Span, query: PostgresQuery, context: PostgresConnectionContext): void {
+  const queryRecord = query as Record<symbol, unknown>;
+  if (queryRecord[CONNECTION_ATTRS_SET]) {
+    return;
+  }
+  queryRecord[CONNECTION_ATTRS_SET] = true;
+  if (context) {
+    span.setAttributes(_getConnectionAttributes(context));
+  }
+}
+
+/**
+ * Backfill connection attributes onto a query's span from a channel whose `self`
+ * is the connection object and `arguments[0]` the query. Shared by the `execute`
+ * and `connect` channels; both carry that shape and both resolve the context via
+ * the `connectionContexts` WeakMap. Idempotent (guarded inside
+ * `setConnectionAttributes`).
+ */
+function attachConnectionAttributesFromChannel(message: PostgresJsQueryContext): void {
+  const connection = message.self;
+  const query = message.arguments?.[0] as PostgresQuery | undefined;
+  if (!connection || !query) {
+    return;
+  }
+  const span = (query as Record<symbol, unknown>)[QUERY_SPAN] as Span | undefined;
+  const context = connectionContexts.get(connection);
+  if (span && context) {
+    setConnectionAttributes(span, query, context);
+  }
+}
+
+/**
+ * Wrap `query.resolve`/`query.reject` so the span ends when the query settles.
+ *
+ * `Query extends Promise` and `async handle()` only dispatches — its promise
+ * resolves immediately, long before the query completes. postgres.js signals
+ * completion by calling `this.resolve`/`this.reject`, so we own the span end
+ * there. Wrapping happens at handle-start because `reject` can fire
+ * synchronously during dispatch and `cursor()` reassigns both before executing.
+ */
+function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, operationName: string | undefined): void {
+  const query = data.self;
+  if (!query) {
+    return;
   }
 
-  // Wrap the sql function to intercept query creation
-  const proxiedSql: unknown = new Proxy(sql as (...args: unknown[]) => unknown, {
-    apply(target, thisArg, argumentsList: unknown[]) {
-      const query = Reflect.apply(target, thisArg, argumentsList);
+  // Claim ownership of ending the span up front, so `deferSpanEnd` defers to the
+  // wrapper even if `span.end()` below throws.
+  const markEnded = (): void => {
+    data[SPAN_ENDED] = true;
+  };
 
-      if (isObjectLike(query) && 'handle' in query) {
-        _wrapSingleQueryHandle(query as { handle: unknown; strings?: string[] }, proxiedSql, options);
+  const originalResolve = query.resolve;
+  if (typeof originalResolve === 'function') {
+    query.resolve = function (this: unknown, ...resolveArgs: unknown[]): unknown {
+      markEnded();
+      try {
+        const command = (resolveArgs[0] as { command?: string } | undefined)?.command;
+        // Re-set the operation name with the server-reported command, which is more reliable than the query text.
+        span.setAttribute(DB_OPERATION_NAME, command || operationName);
+        span.end();
+      } catch (e) {
+        DEBUG_BUILD && debug.error('[instrumentation:postgresjs] error ending span in resolve:', e);
       }
+      return originalResolve.apply(this, resolveArgs);
+    };
+  }
 
-      return query;
+  const originalReject = query.reject;
+  if (typeof originalReject === 'function') {
+    query.reject = function (this: unknown, ...rejectArgs: unknown[]): unknown {
+      markEnded();
+      try {
+        const err = rejectArgs[0] as { message?: string; code?: string; name?: string } | undefined;
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: err?.message || 'unknown_error' });
+        span.setAttribute(DB_RESPONSE_STATUS_CODE, err?.code || 'unknown');
+        span.setAttribute(ERROR_TYPE, err?.name || 'unknown');
+        span.end();
+      } catch (e) {
+        DEBUG_BUILD && debug.error('[instrumentation:postgresjs] error ending span in reject:', e);
+      }
+      return originalReject.apply(this, rejectArgs);
+    };
+  }
+}
+
+const _postgresJsIntegration = ((options: PostgresJsIntegrationOptions = {}) => {
+  return {
+    name: INTEGRATION_NAME,
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, postgresJsModuleNames, instrumentPostgresJs, [options]);
     },
-    get(target, prop) {
-      const original = (target as unknown as Record<string | symbol, unknown>)[prop];
+  };
+}) satisfies IntegrationFn;
 
-      if (typeof prop !== 'string' || typeof original !== 'function') {
-        return original;
-      }
+function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
+  const { requireParentSpan, requestHook } = options;
 
-      // Wrap methods that return PendingQuery objects (unsafe, file)
-      if (prop === 'unsafe' || prop === 'file') {
-        return _wrapQueryMethod(original as (...args: unknown[]) => unknown, target, proxiedSql, options);
-      }
-
-      // Wrap begin and reserve (not savepoint to avoid duplicate spans)
-      if (prop === 'begin' || prop === 'reserve') {
-        return _wrapCallbackMethod(original as (...args: unknown[]) => unknown, target, proxiedSql, options);
-      }
-
-      return original;
-    },
+  // Connection + execute are pure observers (no span, no async binding).
+  diagnosticsChannel.tracingChannel<PostgresJsQueryContext>(CHANNELS.POSTGRESJS_CONNECTION).subscribe({
+    start: NOOP,
+    asyncStart: NOOP,
+    asyncEnd: NOOP,
+    error: NOOP,
+    end: recordConnectionFromChannel,
   });
 
-  // Use provided parent context if available, otherwise extract from sql.options
-  if (parentConnectionContext) {
-    (proxiedSql as Record<symbol, unknown>)[CONNECTION_CONTEXT_SYMBOL] = parentConnectionContext;
-  } else {
-    _attachConnectionContext(sql, proxiedSql as Record<symbol, unknown>);
-  }
+  // Per-connection attributes for queries reusing an already-open connection
+  // (`c.execute(q)`, `self === c`). `execute` is also called bare
+  // (`self === undefined`) for the first query on each connection, `fetchState`
+  // and `retry`; those miss here (the `connect` channel below covers the first
+  // user query, and the single-endpoint fallback covers the common case).
+  diagnosticsChannel.tracingChannel<PostgresJsQueryContext>(CHANNELS.POSTGRESJS_EXECUTE).subscribe({
+    end: NOOP,
+    asyncStart: NOOP,
+    asyncEnd: NOOP,
+    error: NOOP,
+    start: attachConnectionAttributesFromChannel,
+  });
 
-  // Mark both the original and proxy as instrumented to prevent double-wrapping
-  (sql as Record<symbol, unknown>)[INSTRUMENTED_MARKER] = true;
-  (proxiedSql as Record<symbol, unknown>)[INSTRUMENTED_MARKER] = true;
+  // The connection's `connect(query)` method (`self === c`, `arguments[0]` the
+  // query) fires when a fresh connection is opened for a query. That first query
+  // is later dispatched via a bare `execute` (no `self`), so this is where it
+  // gets its connection attributes in multi-endpoint apps.
+  diagnosticsChannel.tracingChannel<PostgresJsQueryContext>(CHANNELS.POSTGRESJS_CONNECT).subscribe({
+    end: NOOP,
+    asyncStart: NOOP,
+    asyncEnd: NOOP,
+    error: NOOP,
+    start: attachConnectionAttributesFromChannel,
+  });
 
-  return proxiedSql;
-}
-
-/**
- * Wraps query-returning methods (unsafe, file) to ensure their queries are instrumented.
- */
-function _wrapQueryMethod(
-  original: (...args: unknown[]) => unknown,
-  target: unknown,
-  proxiedSql: unknown,
-  options: PostgresJsSqlInstrumentationOptions,
-): (...args: unknown[]) => unknown {
-  return function (this: unknown, ...args: unknown[]): unknown {
-    const query = Reflect.apply(original, target, args);
-
-    if (isObjectLike(query) && 'handle' in query) {
-      _wrapSingleQueryHandle(query as { handle: unknown; strings?: string[] }, proxiedSql, options);
-    }
-
-    return query;
-  };
-}
-
-/**
- * Wraps callback-based methods (begin, reserve) to recursively instrument Sql instances.
- * Note: These methods can also be used as tagged templates, which we pass through unchanged.
- *
- * Savepoint is not wrapped to avoid complex nested transaction instrumentation issues.
- * Queries within savepoint callbacks are still instrumented through the parent transaction's Sql instance.
- */
-function _wrapCallbackMethod(
-  original: (...args: unknown[]) => unknown,
-  target: unknown,
-  parentSqlInstance: unknown,
-  options: PostgresJsSqlInstrumentationOptions,
-): (...args: unknown[]) => unknown {
-  return function (this: unknown, ...args: unknown[]): unknown {
-    // Extract parent context to propagate to child instances
-    const parentContext = (parentSqlInstance as Record<symbol, unknown>)[CONNECTION_CONTEXT_SYMBOL] as
-      | PostgresConnectionContext
-      | undefined;
-
-    // Check if this is a callback-based call by verifying the last argument is a function
-    const isCallbackBased = typeof args[args.length - 1] === 'function';
-
-    if (!isCallbackBased) {
-      // Not a callback-based call - could be tagged template or promise-based
-      const result = Reflect.apply(original, target, args);
-      // If result is a Promise (e.g., reserve() without callback), instrument the resolved Sql instance
-      if (result && typeof (result as Promise<unknown>).then === 'function') {
-        return (result as Promise<unknown>).then((sqlInstance: unknown) => {
-          return _instrumentSqlInstance(sqlInstance, options, parentContext);
-        });
+  bindTracingChannelToSpan<PostgresJsQueryContext>(
+    diagnosticsChannel.tracingChannel<PostgresJsQueryContext>(CHANNELS.POSTGRESJS_HANDLE),
+    data => {
+      const query = data.self;
+      if (!query) {
+        return undefined;
       }
-      return result;
-    }
 
-    // Callback-based call: wrap the callback to instrument the Sql instance
-    const callback = (args.length === 1 ? args[0] : args[1]) as (sql: unknown) => unknown;
-    const wrappedCallback = function (sqlInstance: unknown): unknown {
-      const instrumentedSql = _instrumentSqlInstance(sqlInstance, options, parentContext);
-      return callback(instrumentedSql);
-    };
+      // Opt out of re-entrant `handle()` calls (then/catch/finally re-invoke
+      // it, guarded by `executed`) and queries already wrapped by the portable
+      // `instrumentPostgresJsSql`.
+      if (query.executed === true || (query as Record<symbol, unknown>)[QUERY_FROM_INSTRUMENTED_SQL]) {
+        return undefined;
+      }
 
-    const newArgs = args.length === 1 ? [wrappedCallback] : [args[0], wrappedCallback];
-    return Reflect.apply(original, target, newArgs);
-  };
-}
+      const queryAttributes = getSqlQueryAttributes(_reconstructQuery(query.strings));
+      const sanitizedSqlQuery = queryAttributes[DB_QUERY_TEXT] ?? '';
 
-/**
- * Wraps a single query's handle method to create spans.
- */
-function _wrapSingleQueryHandle(
-  query: { handle: unknown; strings?: string[]; __sentryWrapped?: boolean },
-  sqlInstance: unknown,
-  options: PostgresJsSqlInstrumentationOptions,
-): void {
-  // Prevent double wrapping - check if the handle itself is already wrapped
-  if ((query.handle as { __sentryWrapped?: boolean })?.__sentryWrapped) {
-    return;
-  }
+      const client = getClient();
 
-  // Mark this query as coming from an instrumented sql instance.
-  // This prevents the Node.js Query.prototype fallback patch from double-spanning.
-  (query as Record<symbol, unknown>)[QUERY_FROM_INSTRUMENTED_SQL] = true;
+      // Single-endpoint fallback: resolve context now so the span name and `requestHook` have
+      // it, and the first-query-per-connection (bare `execute`) path still gets attrs.
+      const context = resolveSingleEndpoint();
 
-  const originalHandle = query.handle as (...args: unknown[]) => Promise<unknown>;
+      const name =
+        client && hasSpanStreamingEnabled(client)
+          ? queryAttributes[DB_QUERY_SUMMARY] || context?.ATTR_DB_NAMESPACE || DB_SYSTEM_NAME_POSTGRES
+          : sanitizedSqlQuery || 'postgresjs.query';
 
-  // IMPORTANT: We must replace the handle function directly, not use a Proxy,
-  // because Query.then() internally calls this.handle(), which would bypass a Proxy wrapper.
-  const wrappedHandle = async function (this: { executed?: boolean }, ...args: unknown[]): Promise<unknown> {
-    // postgres.js calls handle() from then/catch/finally — only the first call executes SQL,
-    // subsequent calls are no-ops (guarded by this.executed). Skip span creation for no-ops.
-    if (this.executed || !_shouldCreateSpans(options)) {
-      return originalHandle.apply(this, args);
-    }
-
-    const queryAttributes = getSqlQueryAttributes(_reconstructQuery(query.strings));
-    const sanitizedSqlQuery = queryAttributes[DB_QUERY_TEXT] ?? '';
-
-    const client = getClient();
-
-    const connectionContext = sqlInstance
-      ? ((sqlInstance as Record<symbol, unknown>)[CONNECTION_CONTEXT_SYMBOL] as PostgresConnectionContext | undefined)
-      : undefined;
-
-    const name =
-      client && hasSpanStreamingEnabled(client)
-        ? queryAttributes[DB_QUERY_SUMMARY] || connectionContext?.ATTR_DB_NAMESPACE || 'postgres'
-        : sanitizedSqlQuery || 'postgresjs.query';
-
-    return startSpanManual(
-      {
+      // `sentry.kind: client` matches the mysql/pg channel subscribers.
+      const span = startInactiveSpan({
         name,
+        onlyIfParent: requireParentSpan !== false,
         attributes: {
           [SENTRY_OP]: DB,
-          [SENTRY_ORIGIN]: 'auto.db.postgresjs',
-          [DB_SYSTEM_NAME]: 'postgres',
+          [SENTRY_KIND]: 'client',
+          [SENTRY_ORIGIN]: ORIGIN,
+          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_POSTGRES,
           ...queryAttributes,
-          ...(connectionContext && _getConnectionAttributes(connectionContext)),
         },
-      },
-      (span: Span) => {
-        if (options.requestHook) {
-          try {
-            options.requestHook(span, sanitizedSqlQuery, connectionContext);
-          } catch (e) {
-            span.setAttribute('sentry.hook.error', 'requestHook failed');
-            DEBUG_BUILD && debug.error('Error in requestHook for PostgresJs instrumentation:', e);
-          }
-        }
+      });
 
-        const queryWithCallbacks = this as {
-          resolve: unknown;
-          reject: unknown;
-        };
+      // Stash for the `execute`/`connect` channels to attach per-connection attributes.
+      (query as Record<symbol, unknown>)[QUERY_SPAN] = span;
 
-        queryWithCallbacks.resolve = new Proxy(queryWithCallbacks.resolve as (...args: unknown[]) => unknown, {
-          apply: (resolveTarget, resolveThisArg, resolveArgs: [{ command?: string }]) => {
-            try {
-              // Re-set the operation name with the server-reported command, which is more reliable than the query text.
-              span.setAttribute(DB_OPERATION_NAME, resolveArgs?.[0]?.command || queryAttributes[DB_OPERATION_NAME]);
-              span.end();
-            } catch (e) {
-              DEBUG_BUILD && debug.error('Error ending span in resolve callback:', e);
-            }
+      if (context) {
+        setConnectionAttributes(span, query, context);
+      }
 
-            return Reflect.apply(resolveTarget, resolveThisArg, resolveArgs);
-          },
-        });
-
-        queryWithCallbacks.reject = new Proxy(queryWithCallbacks.reject as (...args: unknown[]) => unknown, {
-          apply: (rejectTarget, rejectThisArg, rejectArgs: { message?: string; code?: string; name?: string }[]) => {
-            try {
-              span.setStatus({
-                code: SPAN_STATUS_ERROR,
-                message: rejectArgs?.[0]?.message || 'unknown_error',
-              });
-
-              span.setAttribute(DB_RESPONSE_STATUS_CODE, rejectArgs?.[0]?.code || 'unknown');
-              span.setAttribute(ERROR_TYPE, rejectArgs?.[0]?.name || 'unknown');
-
-              span.end();
-            } catch (e) {
-              DEBUG_BUILD && debug.error('Error ending span in reject callback:', e);
-            }
-            return Reflect.apply(rejectTarget, rejectThisArg, rejectArgs);
-          },
-        });
-
-        // Handle synchronous errors that might occur before promise is created
+      if (requestHook) {
         try {
-          return originalHandle.apply(this, args);
+          requestHook(span, sanitizedSqlQuery, context);
         } catch (e) {
-          span.setStatus({
-            code: SPAN_STATUS_ERROR,
-            message: e instanceof Error ? e.message : 'unknown_error',
-          });
-          span.end();
-          throw e;
+          span.setAttribute('sentry.hook.error', 'requestHook failed');
+          DEBUG_BUILD && debug.error('[instrumentation:postgresjs] error in requestHook:', e);
         }
+      }
+
+      wrapQuerySettlement(data, span, queryAttributes[DB_OPERATION_NAME]);
+
+      return span;
+    },
+    {
+      deferSpanEnd({ data }) {
+        // `handle` is async: its promise settles on dispatch (asyncEnd), long
+        // before the query does. The resolve/reject wrappers own the ending.
+        if (data[SPAN_ENDED]) {
+          return true; // wrappers already ended it
+        }
+        if ('error' in data) {
+          return false; // `handle()` itself threw; the error subscriber annotated the span, let the helper end it
+        }
+        // NOTE: for a cursor consumed as an async iterator, only the first batch
+        // reaches `handle` (the `executed` guard blocks the rest), so the span
+        // ends on the first batch — a pre-existing flaw kept for parity.
+        return true; // query in flight; the wrappers will end the span when it settles
       },
-    );
-  };
-
-  (wrappedHandle as { __sentryWrapped?: boolean }).__sentryWrapped = true;
-  query.handle = wrappedHandle;
+    },
+  );
 }
 
 /**
- * Determines whether a span should be created based on the current context.
- * If `requireParentSpan` is set to true in the options, a span will
- * only be created if there is a parent span available.
- */
-function _shouldCreateSpans(options: PostgresJsSqlInstrumentationOptions): boolean {
-  const hasParentSpan = getActiveSpan() !== undefined;
-  return hasParentSpan || !options.requireParentSpan;
-}
-
-/**
- * Reconstructs the full SQL query from template strings with PostgreSQL placeholders.
+ * Diagnostics-channel-based postgres.js (`postgres` v3.x) integration.
  *
- * For sql`SELECT * FROM users WHERE id = ${123} AND name = ${'foo'}`:
- *   strings = ["SELECT * FROM users WHERE id = ", " AND name = ", ""]
- *   returns: "SELECT * FROM users WHERE id = $1 AND name = $2"
- *
- * @internal Exported for testing only
+ * Subscribes to the `orchestrion:postgres:handle` / `:connection` / `:execute` /
+ * `:connect` diagnostics channels injected into postgres.js' `Query.prototype.handle`
+ * and `Connection`/`execute`/`connect` (in `src/*` and `cjs/src/*`) and creates db
+ * spans matching the OTel `postgresJsIntegration`. Requires the Sentry runtime
+ * hook or bundler plugin.
  */
-export function _reconstructQuery(strings: string[] | undefined): string | undefined {
-  if (!strings?.length) {
-    return undefined;
-  }
-  if (strings.length === 1) {
-    return strings[0] || undefined;
-  }
-  // Join template parts with PostgreSQL placeholders ($1, $2, etc.)
-  return strings.reduce((acc, str, i) => (i === 0 ? str : `${acc}$${i}${str}`), '');
-}
-
-/**
- * Returns connection context attributes.
- *
- * @internal Exported for the diagnostics-channel integration.
- */
-export function _getConnectionAttributes(connectionContext: PostgresConnectionContext): SpanAttributes {
-  const attributes: SpanAttributes = {};
-
-  const portNumber = connectionContext.ATTR_SERVER_PORT ? parseInt(connectionContext.ATTR_SERVER_PORT, 10) : undefined;
-  const dbNamespace = connectionContext.ATTR_DB_NAMESPACE;
-  const serverAddress = connectionContext.ATTR_SERVER_ADDRESS;
-
-  if (dbNamespace) {
-    attributes[DB_NAMESPACE] = dbNamespace;
-  }
-  if (serverAddress) {
-    attributes[SERVER_ADDRESS] = serverAddress;
-  }
-  if (portNumber !== undefined && !isNaN(portNumber)) {
-    attributes[SERVER_PORT] = portNumber;
-  }
-
-  return attributes;
-}
-
-/**
- * Builds a {@link PostgresConnectionContext} from postgres.js' parsed options
- * (which store `host`/`port` as arrays). Defaults to 'localhost'/5432.
- *
- * @internal Exported for the diagnostics-channel integration.
- */
-export function _buildConnectionContext(options: {
-  host?: string[];
-  port?: number[];
-  database?: string;
-}): PostgresConnectionContext {
-  const host = options.host?.[0] || 'localhost';
-  const port = options.port?.[0] || 5432;
-  return {
-    ATTR_DB_NAMESPACE: typeof options.database === 'string' && options.database !== '' ? options.database : undefined,
-    ATTR_SERVER_ADDRESS: host,
-    ATTR_SERVER_PORT: String(port),
-  };
-}
-
-/**
- * Extracts and stores connection context from sql.options.
- */
-function _attachConnectionContext(sql: unknown, proxiedSql: Record<symbol, unknown>): void {
-  const sqlInstance = sql as { options?: { host?: string[]; port?: number[]; database?: string } };
-  if (!sqlInstance.options || typeof sqlInstance.options !== 'object') {
-    return;
-  }
-
-  proxiedSql[CONNECTION_CONTEXT_SYMBOL] = _buildConnectionContext(sqlInstance.options);
-}
+export const postgresJsIntegration = defineIntegration(_postgresJsIntegration);

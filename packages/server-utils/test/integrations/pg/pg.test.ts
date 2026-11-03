@@ -11,7 +11,7 @@ import {
   setAsyncContextStrategy,
 } from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
-import { postgresIntegration } from '../../../src/integrations/postgres';
+import { postgresIntegration } from '../../../src/integrations/pg';
 import { CHANNELS } from '../../../src/orchestrion/channels';
 
 interface TestStore {

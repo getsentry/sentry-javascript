@@ -45,13 +45,9 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: '@remix-run/*'
         update-types: ['version-update:semver-major']
-      - dependency-name: 'solid-js'
-        update-types: ['version-update:semver-major']
       - dependency-name: '@solidjs/router'
         update-types: ['version-update:semver-major']
       - dependency-name: '@solidjs/start'
-        update-types: ['version-update:semver-major']
-      - dependency-name: '@tanstack/*-router'
         update-types: ['version-update:semver-major']
       - dependency-name: 'svelte'
         update-types: ['version-update:semver-major']
@@ -77,8 +73,6 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: '@hono/node-server'
         update-types: ['version-update:semver-major']
-      - dependency-name: 'elysia'
-        update-types: ['version-update:semver-major']
       - dependency-name: 'nitro'
         update-types: ['version-update:semver-major']
       - dependency-name: 'nitropack'
@@ -93,6 +87,12 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: 'graphql'
         update-types: ['version-update:semver-major']
+      # These are also peer dependencies. The `increase` strategy raises the peer range too,
+      # which drops support for older versions (a breaking change).
+      - dependency-name: '@tanstack/vue-router'
+      - dependency-name: '@tanstack/solid-router'
+      - dependency-name: 'solid-js'
+      - dependency-name: 'elysia'
     groups:
       opentelemetry:
         patterns:
