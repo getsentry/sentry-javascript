@@ -44,7 +44,7 @@ export function instrumentNodeSchedule<T>(lib: T & NodeSchedule): T {
 
             const monitorSlug = nameOrExpression;
             const expression = expressionOrCallback;
-            const monitorConfig = getCronMonitorConfig(expression, undefined, 'or');
+            const monitorConfig = getCronMonitorConfig(expression, undefined, 'cron-parser');
 
             async function monitoredCallback(): Promise<void> {
               return withMonitor(

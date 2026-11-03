@@ -399,6 +399,9 @@ describe('SentryCron decorator with @Cron', () => {
     ['a month name', '0 9 1 MAY *', '0 9 1 5 *'],
     ['a day-of-week name list with a day of month', '0 9 1 * mon,fri', '0 9 1 * 1,5'],
     ['both day fields covering every day', '0 9 1-31 * sun-sat', '0 9 1-31 * 0-6'],
+    ['a day-of-month range of 29 days with a day of week', '0 9 1-29 * 1', '0 9 1-29 * 1'],
+    ['a day-of-month range of 30 days with a day of week', '0 9 2-31 * 1', '0 9 2-31 * 1'],
+    ['a day-of-month list of 30 days with a day of week', '0 9 1,3-31 * 1', '0 9 1,3-31 * 1'],
     ['CronExpression.EVERY_QUARTER', '0 0 1 */3 *', '0 0 1 */3 *'],
     ['a preset', '@WEEKLY', '0 0 * * 0'],
   ])('sends a crontab with %s', async (_, cronTime, crontab) => {

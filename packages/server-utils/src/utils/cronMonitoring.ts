@@ -98,11 +98,10 @@ const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', '
 const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
 /**
- * How a scheduler combines a restricted day-of-month and day-of-week:
- * - `and`: both must match (`node-cron`).
- * - `or`: either matches, unless one is `*` or a full range (`cron-parser`, `cron`).
+ * The library that parses a scheduler's cron expressions: `node-cron`, `cron` (also behind `@nestjs/schedule`), or
+ * `cron-parser` (behind `node-schedule`).
  */
-export type DayFieldSemantics = 'and' | 'or';
+export type CronDialect = 'node-cron' | 'cron' | 'cron-parser';
 
 /**
  * The Sentry monitor config for a cron expression, or `undefined` if Sentry would read it differently.
@@ -111,7 +110,7 @@ export type DayFieldSemantics = 'and' | 'or';
 export function cronExpressionToMonitorConfig(
   expression: string,
   timezone: unknown,
-  daySemantics: DayFieldSemantics,
+  dialect: CronDialect,
 ): MonitorConfig | undefined {
   const trimmed = expression.trim();
   const fields = (NICKNAMES[trimmed.toLowerCase()] || trimmed).split(/\s+/);
@@ -125,16 +124,12 @@ export function cronExpressionToMonitorConfig(
   }
 
   const [minute, hour, dayOfMonth, month, dayOfWeek] = fields as [string, string, string, string, string];
-  const crontab = [
-    minute,
-    hour,
-    dayOfMonth,
-    replaceNames(month, MONTHS, 1),
-    endRangesOnSundayAsSeven(replaceNames(dayOfWeek, WEEKDAYS, 0)),
-  ];
+  const monthNumbers = replaceNames(month, MONTHS, 1);
+  const weekdayNumbers = endRangesOnSundayAsSeven(replaceNames(dayOfWeek, WEEKDAYS, 0));
+  const crontab = [minute, hour, dayOfMonth, monthNumbers, weekdayNumbers];
   if (
     crontab.some(field => /[a-z]/i.test(field) || hasReversedRange(field)) ||
-    !isSameDayMatching(crontab[2] as string, crontab[4] as string, daySemantics)
+    !isSameDayMatching(dayOfMonth, weekdayNumbers, dialect)
   ) {
     return undefined;
   }
@@ -147,28 +142,55 @@ export function cronExpressionToMonitorConfig(
   return { schedule: { type: 'crontab', value: crontab.join(' ') }, timezone: sentryTimezone };
 }
 
-// Sentry requires both day fields to match when one starts with `*`, and either otherwise. The `or` schedulers
-// ignore a day field that covers every day, like `1-31` or `sun-sat`, so they count the days as `cron` does.
-// `cron-parser` also ignores a day-of-month that covers every day of the current month, so with a day-of-week,
-// 29 or 30 days depend on the month.
-function isSameDayMatching(dayOfMonth: string, dayOfWeek: string, daySemantics: DayFieldSemantics): boolean {
-  const daysOfMonth = countDays(dayOfMonth, 1, 31);
-  const daysOfWeek = countDays(dayOfWeek, 0, 7);
-  if (daysOfMonth === undefined || daysOfWeek === undefined) {
+// Sentry needs both day fields to match when one starts with `*`, and either otherwise.
+function isSameDayMatching(dayOfMonth: string, dayOfWeek: string, dialect: CronDialect): boolean {
+  const monthDays = parseDayField(dayOfMonth, 1, 31);
+  const weekdays = parseDayField(dayOfWeek, 0, 7);
+  if (!monthDays || !weekdays) {
     return false;
   }
-  const allDaysOfMonth = daysOfMonth === 31;
-  const allDaysOfWeek = daysOfWeek === 7;
-  if (daySemantics === 'or' && daysOfMonth >= 29 && !allDaysOfMonth && !allDaysOfWeek) {
-    return false;
-  }
-  const schedulerNeedsBoth = daySemantics === 'and' || allDaysOfMonth || allDaysOfWeek;
   const sentryNeedsBoth = dayOfMonth.startsWith('*') || dayOfWeek.startsWith('*');
-  return (allDaysOfMonth && allDaysOfWeek) || schedulerNeedsBoth === sentryNeedsBoth;
+  if (dialect === 'cron-parser') {
+    return isSameDayMatchingInCronParser(dayOfMonth, dayOfWeek, monthDays, weekdays, sentryNeedsBoth);
+  }
+  // `cron` needs either day field to match, but ignores one that lists every day, like `1-31` or `sun-sat`.
+  const allMonthDays = monthDays.days === 31;
+  const allWeekdays = weekdays.days === 7;
+  const schedulerNeedsBoth = dialect === 'node-cron' || allMonthDays || allWeekdays;
+  return (allMonthDays && allWeekdays) || schedulerNeedsBoth === sentryNeedsBoth;
 }
 
-function countDays(field: string, low: number, high: number): number | undefined {
+// `cron-parser` ignores a day-of-week with 8 values, and a day-of-month with at least as many values as the month has
+// days (29 in February), duplicates included. Then only the other field has to match, and otherwise either.
+function isSameDayMatchingInCronParser(
+  dayOfMonth: string,
+  dayOfWeek: string,
+  monthDays: DayField,
+  weekdays: DayField,
+  sentryNeedsBoth: boolean,
+): boolean {
+  if (weekdays.cronParserAddsSunday) {
+    return false;
+  }
+  if (dayOfWeek === '*') {
+    return true;
+  }
+  if (dayOfMonth === '*') {
+    return weekdays.cronParserValues !== 8 || weekdays.days === 7;
+  }
+  return !sentryNeedsBoth && monthDays.cronParserValues < 29 && weekdays.cronParserValues !== 8;
+}
+
+interface DayField {
+  days: number;
+  cronParserValues: number;
+  cronParserAddsSunday: boolean;
+}
+
+function parseDayField(field: string, low: number, high: number): DayField | undefined {
   const days = new Set<number>();
+  let cronParserValues = 0;
+  let cronParserListsSunday = false;
   for (const part of field.split(',')) {
     const match = /^(?:(\*)|(\d+)(?:-(\d+))?)(?:\/(\d+))?$/.exec(part);
     if (!match) {
@@ -181,11 +203,21 @@ function countDays(field: string, low: number, high: number): number | undefined
     if (!increment || lower < low || upper > high || lower > upper) {
       return undefined;
     }
+    // `cron-parser` starts a weekday range that ends on 7 with a Sunday, whatever the step.
+    if (high === 7 && upper === 7 && lower !== 0 && (to || step)) {
+      cronParserValues++;
+      cronParserListsSunday = true;
+    }
     for (let day = lower; day <= upper; day += increment) {
       days.add(high === 7 && day === 7 ? 0 : day);
+      cronParserValues++;
     }
   }
-  return days.size;
+  return {
+    days: days.size,
+    cronParserValues,
+    cronParserAddsSunday: cronParserListsSunday && !days.has(0),
+  };
 }
 
 function replaceNames(field: string, names: string[], offset: number): string {

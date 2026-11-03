@@ -57,7 +57,7 @@ export function instrumentNodeCron<T>(
               throw new Error('Missing "name" for scheduled job. A name is required for Sentry check-in monitoring.');
             }
 
-            const cronConfig = getCronMonitorConfig(expression, timezone, 'and');
+            const cronConfig = getCronMonitorConfig(expression, timezone, 'node-cron');
             const upsertMonitorConfig = cronConfig && { ...cronConfig, ...monitorConfig };
 
             const monitoredCallback = async (...args: Parameters<typeof callback>): Promise<void> => {

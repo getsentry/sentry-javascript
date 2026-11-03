@@ -52,7 +52,9 @@ export function onSetTime({ arguments: [cronTime], self }: ScheduleChange): void
   }
   const { source, timeZone, utcOffset } = cronTime as { source?: unknown; timeZone?: unknown; utcOffset?: unknown };
   const monitorConfig: MonitorConfig | undefined =
-    typeof source === 'string' && utcOffset == null ? cronExpressionToMonitorConfig(source, timeZone, 'or') : undefined;
+    typeof source === 'string' && utcOffset == null
+      ? cronExpressionToMonitorConfig(source, timeZone, 'cron')
+      : undefined;
   for (const callback of job._callbacks || []) {
     updateMonitorConfig(callback, monitorConfig);
   }
@@ -66,6 +68,6 @@ function wrapJob(args: unknown[], options: CronJobIntegrationOptions): void {
   if (typeof cronTime !== 'string' || !shouldMonitorJob(name, onTick, options.excludeJobs)) {
     return;
   }
-  const monitorConfig = utcOffset == null ? cronExpressionToMonitorConfig(cronTime, timeZone, 'or') : undefined;
+  const monitorConfig = utcOffset == null ? cronExpressionToMonitorConfig(cronTime, timeZone, 'cron') : undefined;
   args[1] = wrapScheduledJob(onTick as AnyFn, name, monitorConfig, 'auto.function.cron');
 }

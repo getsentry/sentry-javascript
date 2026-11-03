@@ -147,7 +147,7 @@ export function nestCronOptionsToMonitorConfig(
     return undefined;
   }
 
-  return cronExpressionToMonitorConfig(cronTime, timeZone, 'or');
+  return cronExpressionToMonitorConfig(cronTime, timeZone, 'cron');
 }
 
 /**

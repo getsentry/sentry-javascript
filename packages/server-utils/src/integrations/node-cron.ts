@@ -70,7 +70,7 @@ export function getMonitorConfig(
 ): MonitorConfig | undefined {
   return isReadAlike && !isReadAlike(expression)
     ? undefined
-    : cronExpressionToMonitorConfig(expression, timezone, 'and');
+    : cronExpressionToMonitorConfig(expression, timezone, 'node-cron');
 }
 
 const NODE_CRON_3_FIELD_MINIMUMS = [0, 0, 1, 1, 0];

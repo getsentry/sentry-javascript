@@ -45,7 +45,7 @@ export type { NodeCronIntegrationOptions } from './integrations/node-cron';
 export { nodeScheduleIntegration } from './integrations/node-schedule';
 export type { NodeScheduleIntegrationOptions } from './integrations/node-schedule';
 export { cronExpressionToMonitorConfig } from './utils/cronMonitoring';
-export type { DayFieldSemantics } from './utils/cronMonitoring';
+export type { CronDialect } from './utils/cronMonitoring';
 export { googleGenAIIntegration } from './integrations/google-genai';
 export { graphqlIntegration } from './integrations/graphql';
 export { hapiIntegration } from './integrations/hapi';

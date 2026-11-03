@@ -95,7 +95,7 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
       jobScheduled = true;
 
       const utcOffset = args[7];
-      const monitorConfig = utcOffset == null ? getCronMonitorConfig(cronTime, timeZone, 'or') : undefined;
+      const monitorConfig = utcOffset == null ? getCronMonitorConfig(cronTime, timeZone, 'cron') : undefined;
 
       async function monitoredTick(context: unknown, onComplete?: unknown): Promise<void> {
         return withMonitor(
@@ -137,7 +137,7 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
 
           jobScheduled = true;
 
-          const monitorConfig = utcOffset == null ? getCronMonitorConfig(cronTime, timeZone, 'or') : undefined;
+          const monitorConfig = utcOffset == null ? getCronMonitorConfig(cronTime, timeZone, 'cron') : undefined;
 
           param.onTick = async (context: unknown, onComplete?: unknown) => {
             return withMonitor(
