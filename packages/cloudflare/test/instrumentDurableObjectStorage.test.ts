@@ -29,6 +29,7 @@ describe('instrumentDurableObjectStorage', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
+          onlyIfParent: true,
           name: 'durable_object_storage_get',
           attributes: {
             'sentry.op': 'db',
@@ -50,6 +51,7 @@ describe('instrumentDurableObjectStorage', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
+          onlyIfParent: true,
           name: 'durable_object_storage_get',
           attributes: {
             'sentry.op': 'db',
@@ -73,6 +75,7 @@ describe('instrumentDurableObjectStorage', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
+          onlyIfParent: true,
           name: 'durable_object_storage_put',
           attributes: {
             'sentry.op': 'db',
@@ -94,6 +97,7 @@ describe('instrumentDurableObjectStorage', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
+          onlyIfParent: true,
           name: 'durable_object_storage_put',
           attributes: {
             'sentry.op': 'db',
@@ -117,6 +121,7 @@ describe('instrumentDurableObjectStorage', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
+          onlyIfParent: true,
           name: 'durable_object_storage_delete',
           attributes: {
             'sentry.op': 'db',
@@ -138,6 +143,7 @@ describe('instrumentDurableObjectStorage', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
+          onlyIfParent: true,
           name: 'durable_object_storage_delete',
           attributes: {
             'sentry.op': 'db',
@@ -161,6 +167,7 @@ describe('instrumentDurableObjectStorage', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
+          onlyIfParent: true,
           name: 'durable_object_storage_list',
           attributes: {
             'sentry.op': 'db',
@@ -184,6 +191,7 @@ describe('instrumentDurableObjectStorage', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
+          onlyIfParent: true,
           name: 'durable_object_storage_setAlarm',
           attributes: {
             'sentry.op': 'db',
@@ -268,6 +276,7 @@ describe('instrumentDurableObjectStorage', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
+          onlyIfParent: true,
           name: 'durable_object_storage_getAlarm',
           attributes: {
             'sentry.op': 'db',
@@ -289,6 +298,7 @@ describe('instrumentDurableObjectStorage', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
+          onlyIfParent: true,
           name: 'durable_object_storage_deleteAlarm',
           attributes: {
             'sentry.op': 'db',
@@ -312,6 +322,7 @@ describe('instrumentDurableObjectStorage', () => {
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
+        onlyIfParent: true,
         name: 'SELECT',
         attributes: {
           'sentry.op': 'db.query',
@@ -436,6 +447,7 @@ describe('instrumentDurableObjectStorage', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
+          onlyIfParent: true,
           name: 'durable_object_storage_kv_get',
           attributes: {
             'sentry.op': 'db',

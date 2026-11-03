@@ -90,6 +90,7 @@ function instrumentMysql(): void {
           : (queryAttributes[DB_QUERY_TEXT] ?? 'mysql.query');
 
       return startInactiveSpan({
+        onlyIfParent: true,
         name,
         attributes: {
           [SENTRY_OP]: DB,

@@ -18,6 +18,7 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
+          onlyIfParent: true,
           name: 'durable_object_storage_kv_get',
           attributes: {
             'sentry.op': 'db',
@@ -61,6 +62,7 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
+          onlyIfParent: true,
           name: 'durable_object_storage_kv_put',
           attributes: {
             'sentry.op': 'db',
@@ -93,6 +95,7 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
+          onlyIfParent: true,
           name: 'durable_object_storage_kv_delete',
           attributes: {
             'sentry.op': 'db',
@@ -126,6 +129,7 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
+          onlyIfParent: true,
           name: 'durable_object_storage_kv_list',
           attributes: {
             'sentry.op': 'db',

@@ -296,6 +296,7 @@ export class ActiveTracingHelper implements TracingHelper {
     const attributes = buildSpanAttributes(name, options.attributes);
     const spanOptions = {
       name: buildSpanName(name, attributes),
+      onlyIfParent: name !== 'prisma:client:connect',
       attributes,
       kind: options.kind,
       links: options.links,
@@ -333,6 +334,7 @@ function dispatchEngineSpan(
   startSpanManual(
     {
       name: buildSpanName(engineSpan.name, attributes),
+      onlyIfParent: engineSpan.name !== 'prisma:engine:connect',
       attributes: {
         ...attributes,
         [SENTRY_KIND]: engineSpan.kind === 'client' ? 'client' : undefined,

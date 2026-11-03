@@ -74,6 +74,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',
@@ -176,6 +177,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',
@@ -230,6 +232,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',
@@ -284,6 +287,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',
@@ -335,6 +339,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',
@@ -374,6 +379,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',
@@ -403,6 +409,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',
@@ -441,6 +448,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',
@@ -478,6 +486,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',

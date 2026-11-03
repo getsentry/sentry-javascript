@@ -73,6 +73,7 @@ export function startMongooseLegacySpan({
       : `mongoose.${modelName}.${operation}`;
 
   return startInactiveSpan({
+    onlyIfParent: true,
     name,
     // Set this explicitly, for platforms lacking `inferDbSpanData`
     attributes,

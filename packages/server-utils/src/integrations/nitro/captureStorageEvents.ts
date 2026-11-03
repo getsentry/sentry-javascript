@@ -98,6 +98,7 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
       const client = getClient();
 
       return startInactiveSpan({
+        onlyIfParent: true,
         // With span streaming, span names have to be low cardinality, so we can't fall back to the cache keys.
         name:
           client && hasSpanStreamingEnabled(client) ? OPERATION_SPAN_OPS[operation] : cacheKeys.join(', ') || operation,

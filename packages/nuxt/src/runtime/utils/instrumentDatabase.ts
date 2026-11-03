@@ -271,6 +271,7 @@ function createStartSpanOptions(
 
   return {
     name,
+    onlyIfParent: true,
     attributes: {
       ...queryAttributes,
       [SENTRY_ORIGIN]: NUXT_DATABASE_ORIGIN,

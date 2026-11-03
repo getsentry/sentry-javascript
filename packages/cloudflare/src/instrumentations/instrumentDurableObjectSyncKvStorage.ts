@@ -26,6 +26,7 @@ export function instrumentDurableObjectSyncKvStorage(syncKv: SyncKvStorage): Syn
         return startSpan(
           {
             name: `durable_object_storage_kv_${methodName}`,
+            onlyIfParent: true,
             attributes: {
               [SENTRY_OP]: DB,
               [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',

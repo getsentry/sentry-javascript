@@ -24,6 +24,7 @@ describe('instrumentSqlStorage', () => {
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
+        onlyIfParent: true,
         name: 'SELECT users',
         attributes: {
           'sentry.op': 'db.query',
@@ -48,6 +49,7 @@ describe('instrumentSqlStorage', () => {
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
+        onlyIfParent: true,
         name: 'SELECT users',
         attributes: {
           'sentry.op': 'db.query',
@@ -81,6 +83,7 @@ describe('instrumentSqlStorage', () => {
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
+        onlyIfParent: true,
         name: 'INSERT users',
         attributes: {
           'sentry.op': 'db.query',
@@ -301,6 +304,7 @@ describe('instrumentSqlStorage', () => {
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
+        onlyIfParent: true,
         name: 'exec',
         attributes: {
           'sentry.op': 'db.query',
