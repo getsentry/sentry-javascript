@@ -29,7 +29,7 @@ export interface TunnelRegistry {
  * Only this module touches the registry, through the functions below.
  */
 function getTunnelRegistry(): TunnelRegistry {
-  return getGlobalSingleton('managedTunnel', () => ({ clients: new WeakMap() }));
+  return getGlobalSingleton('tunnelRegistry', () => ({ clients: new WeakMap() }));
 }
 
 /**

@@ -53,7 +53,7 @@ export interface SentryCarrier {
   decodePolyfill?: (input: Uint8Array) => string;
 
   /** Only `utils/tunnelRegistry.ts` reads or writes it. */
-  managedTunnel?: TunnelRegistry;
+  tunnelRegistry?: TunnelRegistry;
 }
 
 /**
