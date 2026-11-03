@@ -40,7 +40,7 @@
   },
   "scripts": {
     "clean": "pnpm exec rimraf sentry-eslint-config-sdk-*.tgz",
-    "build:tarball": "pnpm pack",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.js"
   }
 }
