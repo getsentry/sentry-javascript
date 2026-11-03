@@ -69,6 +69,8 @@ strictPeerDependencies: false
 # The packages depend on each other by exact version, not with `workspace:`.
 # This links them from the workspace instead of installing them from npm.
 linkWorkspacePackages: true
+# Lockfiles written by Dependabot or `pnpm add` would otherwise fail `pnpm dedupe --check` in CI.
+autoDedupe: true
 
 overrides:
   nx>minimatch: 10.2.5
@@ -99,6 +101,7 @@ packageExtensions:
 # `false` only for scripts that just print a message.
 allowBuilds:
   '@apollo/protobufjs': true
+  '@google/genai': false
   '@nestjs/core': false
   '@parcel/watcher': true
   '@prisma/client': true
@@ -112,6 +115,7 @@ allowBuilds:
   nice-napi: true
   nx: true
   prisma: true
+  protobufjs: false
   sharp: true
   vue-demi: true
   workerd: true

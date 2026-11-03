@@ -1,4 +1,5 @@
 export { httpIntegration } from './integrations/http';
+export { awsLambdaWebIntegration } from './integrations/awsLambdaWeb';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
 // oxlint-disable-next-line typescript/no-deprecated
@@ -14,6 +15,8 @@ export {
   genericPoolIntegration,
   nodeCronIntegration,
   type NodeCronIntegrationOptions,
+  nodeScheduleIntegration,
+  type NodeScheduleIntegrationOptions,
   googleGenAIIntegration,
   graphqlIntegration,
   groqIntegration,

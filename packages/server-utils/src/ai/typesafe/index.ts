@@ -50,7 +50,7 @@ function getRequestAttributes(
     [SENTRY_ORIGIN]: TYPESAFE_ORIGIN,
     [GEN_AI_OPERATION_NAME]: 'decide',
     [GEN_AI_PROVIDER_NAME]: TYPESAFE_PROVIDER_NAME,
-    ...(model ? { [GEN_AI_REQUEST_MODEL]: model } : {}),
+    [GEN_AI_REQUEST_MODEL]: model,
     ...(recordInputs ? { [GEN_AI_INPUT_MESSAGES]: getEvaluationInputMessages(request) } : {}),
   };
 }

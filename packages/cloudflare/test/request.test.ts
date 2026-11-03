@@ -677,6 +677,7 @@ describe('withSentry', () => {
           'http.response.status_code': 200,
           'http.request.body.size': 10,
           'http.request.header.content-length': ['10'],
+          'http.response.header.content-type': ['text/plain;charset=UTF-8'],
         },
         op: 'http.server',
         origin: 'auto.http.cloudflare',
@@ -1297,13 +1298,16 @@ describe('flushAndDispose', () => {
       },
     );
 
-    test('tears down at handler return when TransformStream ignores the transformer', async () => {
-      // workerd without `transformstream_enable_standard_constructor` returns an identity stream.
+    test('tears down at handler return when the ReadableStream constructor is not available', async () => {
+      const response = new Response('<div>shell</div>', {
+        headers: { 'content-type': 'text/x-component;charset=utf-8' },
+      });
+      // workerd before the 2022-11-30 compatibility date, without `streams_enable_constructors`.
       vi.stubGlobal(
-        'TransformStream',
-        class extends TransformStream {
+        'ReadableStream',
+        class {
           constructor() {
-            super();
+            throw new TypeError('To use the new ReadableStream() constructor, enable streams_enable_constructors.');
           }
         },
       );
@@ -1316,16 +1320,14 @@ describe('flushAndDispose', () => {
 
       const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
 
-      const response = new Response('<div>shell</div>', {
-        headers: { 'content-type': 'text/x-component;charset=utf-8' },
-      });
-
       const result = await wrapRequestHandler(
         { options, request: new Request('https://example.com'), context },
         () => response,
       );
 
       expect(result).toBe(response);
+      expect(result.bodyUsed).toBe(false);
+      expect(result.body?.locked).toBe(false);
       expect(waitUntil).toHaveBeenCalledTimes(1);
 
       flushSpy.mockRestore();
