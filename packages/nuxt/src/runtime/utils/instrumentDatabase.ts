@@ -18,7 +18,10 @@ import type { Database, PreparedStatement } from 'db0';
 import { type DatabaseConnectionConfig, type DatabaseSpanData, getDatabaseSpanData } from './database-span-data';
 import { DB_NAMESPACE, DB_QUERY_SUMMARY, DB_QUERY_TEXT, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
 
-type MaybeInstrumentedDatabase = Database & {
+// Nitro may ship a different db0 version than the one we type against, so only require the members we patch.
+type InstrumentableDatabase = Pick<Database, 'dialect' | 'prepare' | 'sql' | 'exec'>;
+
+type MaybeInstrumentedDatabase = InstrumentableDatabase & {
   __sentry_instrumented__?: boolean;
 };
 
@@ -39,7 +42,7 @@ const NUXT_DATABASE_ORIGIN = 'auto.db.nuxt';
  * which supply the correct `useDatabase` import for their respective Nitro version.
  */
 export function createDatabasePlugin(
-  useDatabase: (name: string) => Database,
+  useDatabase: (name: string) => InstrumentableDatabase,
   databaseConfig: Record<string, DatabaseConnectionConfig>,
 ): void {
   try {
