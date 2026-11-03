@@ -50,7 +50,7 @@
     "decorator-transforms": "^2.3.2"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.0",
+    "@babel/core": "^8.1.0",
     "@babel/eslint-parser": "^7.28.6",
     "@babel/plugin-transform-typescript": "^8.0.6",
     "@ember/app-tsconfig": "^2.0.0",
