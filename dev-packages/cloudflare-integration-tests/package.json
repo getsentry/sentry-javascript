@@ -18,8 +18,8 @@
     "@anthropic-ai/sdk": "0.133.0",
     "@google/genai": "^1.20.0",
     "@langchain/core": "^1.2.17",
-    "@langchain/langgraph": "^1.0.1",
-    "@langchain/openai": "^1.6.2",
+    "@langchain/langgraph": "^0.4.10",
+    "@langchain/openai": "^0.6.17",
     "@langchain/typesafe": "^0.0.2",
     "@prisma/adapter-d1": "6.15.0",
     "@prisma/client": "6.15.0",
@@ -27,7 +27,7 @@
     "@sentry/core": "11.10.0",
     "@sentry/hono": "11.10.0",
     "hono": "^4.13.7",
-    "langchain": "^1.5.16",
+    "langchain": "^1.6.0",
     "openai": "5.18.1"
   },
   "devDependencies": {
