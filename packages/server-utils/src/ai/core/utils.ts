@@ -2,7 +2,7 @@
 /**
  * Shared utils for AI integrations (OpenAI, Anthropic, Verce.AI, etc.)
  */
-import { getClient, isObjectLike, isThenable, stringify } from '@sentry/core';
+import { getClient, isError, isObjectLike, isThenable, SPAN_STATUS_ERROR, stringify } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import {
   GEN_AI_OUTPUT_MESSAGES,
@@ -217,6 +217,15 @@ function buildOutputMessage({
   }
 
   return finishReason ? { role: 'assistant', parts, finish_reason: finishReason } : { role: 'assistant', parts };
+}
+
+/**
+ * Marks a streaming span as failed when the provider stream throws.
+ * A caller's abort is recorded as `cancelled`, like the other gen_ai spans.
+ */
+export function setStreamErrorStatus(span: Span, error: unknown): void {
+  const isAbort = isError(error) && error.name === 'AbortError';
+  span.setStatus({ code: SPAN_STATUS_ERROR, message: isAbort ? 'cancelled' : 'internal_error' });
 }
 
 export interface StreamResponseState {

@@ -1,6 +1,6 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { endStreamSpan } from '../core/utils';
+import { endStreamSpan, setStreamErrorStatus } from '../core/utils';
 import type { AnthropicAiStreamingEvent } from './types';
 import { mapAnthropicErrorToStatusMessage } from './utils';
 
@@ -242,11 +242,21 @@ export async function* instrumentAsyncIterableStream(
     activeToolBlocks: {},
   };
 
+  // Errors thrown into the generator at `yield` come from the consumer, e.g. `Readable.from` when a piped
+  // client disconnects, so only errors raised while waiting on the provider mark the span failed.
+  let awaitingProvider = true;
   try {
     for await (const event of stream) {
+      awaitingProvider = false;
       processEvent(event, state, recordOutputs, span);
       yield event;
+      awaitingProvider = true;
     }
+  } catch (error) {
+    if (awaitingProvider) {
+      setStreamErrorStatus(span, error);
+    }
+    throw error;
   } finally {
     endStreamSpan(span, state, recordOutputs);
   }

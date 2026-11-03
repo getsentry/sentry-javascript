@@ -1,6 +1,6 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { endStreamSpan } from '../core/utils';
+import { endStreamSpan, setStreamErrorStatus } from '../core/utils';
 import { RESPONSE_EVENT_TYPES } from './constants';
 import type {
   ChatCompletionChunk,
@@ -273,15 +273,25 @@ export async function* instrumentStream<T>(
     responsesApiToolCalls: [],
   };
 
+  // Errors thrown into the generator at `yield` come from the consumer, e.g. `Readable.from` when a piped
+  // client disconnects, so only errors raised while waiting on the provider mark the span failed.
+  let awaitingProvider = true;
   try {
     for await (const event of stream) {
+      awaitingProvider = false;
       if (isChatCompletionChunk(event)) {
         processChatCompletionChunk(event, state, recordOutputs);
       } else if (isResponsesApiStreamEvent(event)) {
         processResponsesApiEvent(event, state, recordOutputs, span);
       }
       yield event;
+      awaitingProvider = true;
     }
+  } catch (error) {
+    if (awaitingProvider) {
+      setStreamErrorStatus(span, error);
+    }
+    throw error;
   } finally {
     const allToolCalls = [...state.chatCompletionToolCalls.values(), ...state.responsesApiToolCalls];
     endStreamSpan(span, { ...state, toolCalls: allToolCalls }, recordOutputs);
