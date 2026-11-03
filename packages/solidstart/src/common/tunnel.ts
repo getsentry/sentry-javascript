@@ -7,8 +7,8 @@ export const TUNNEL_BASE_PATH_GLOBAL = '__sentry_solidstart_base_path';
 declare const __SENTRY_SOLIDSTART_TUNNEL_BASE_PATH__: string | undefined;
 
 /**
- * Serves the browser's managed tunnel under the app's `server.baseURL`, which `withSentry` defines at build time.
- * A `basePath` the user set wins.
+ * Serves the browser's managed tunnel under the app's base path, which `withSentry` (SolidStart 1) or
+ * `sentrySolidStart` (SolidStart 2) defines at build time. A `basePath` the user set wins.
  */
 export function applyTunnelBasePath(options: Pick<Options, 'tunnel'>): void {
   const basePath =

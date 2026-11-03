@@ -1,4 +1,13 @@
-import { CACHE_HIT, CACHE_KEY, CACHE_OPERATION, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  CACHE_HIT,
+  CACHE_KEY,
+  CACHE_OPERATION,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  DB_COLLECTION_NAME,
+  DB_OPERATION_NAME,
+  DB_SYSTEM_NAME,
+} from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import {
   CACHE_OPERATION_NAMES,
@@ -97,9 +106,9 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
           [CACHE_OPERATION]: cacheOperationName,
           [SENTRY_ORIGIN]: ORIGIN,
           [CACHE_KEY]: cacheKeys.length > 1 ? cacheKeys : cacheKeys[0],
-          'db.operation.name': operation,
-          'db.collection.name': mountBase(data),
-          'db.system.name': data.driver?.name ?? 'unknown',
+          [DB_OPERATION_NAME]: operation,
+          [DB_COLLECTION_NAME]: mountBase(data),
+          [DB_SYSTEM_NAME]: data.driver?.name ?? 'unknown',
         },
       });
     },

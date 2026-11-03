@@ -71,7 +71,7 @@
     "@sentry/node": "11.10.0",
     "@sentry/server-runtime-injection": "11.10.0",
     "@sentry/server-utils": "11.10.0",
-    "@types/aws-lambda": "^8.10.161"
+    "@types/aws-lambda": "^8.10.164"
   },
   "devDependencies": {
     "@sentry-internal/rollup-utils": "11.10.0",

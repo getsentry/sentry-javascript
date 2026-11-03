@@ -38,7 +38,7 @@
         "label": "nuxt-4-static (tracer provider)"
       }
     ],
-    "optionalVariants": [
+    "canaryVariants": [
       {
         "build-command": "pnpm test:build-canary",
         "label": "nuxt-4-static (canary)"

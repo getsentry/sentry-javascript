@@ -1,3 +1,4 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { Client } from '../client';
 import { getClient } from '../currentScopes';
 import { _INTERNAL_captureLog } from '../logs/internal';
@@ -253,7 +254,7 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
         attributes[key] = normalize(value, normalizeDepth, normalizeMaxBreadth);
       }
 
-      attributes['sentry.origin'] = 'auto.log.consola';
+      attributes[SENTRY_ORIGIN] = 'auto.log.consola';
 
       if (tag) {
         attributes['consola.tag'] = tag;

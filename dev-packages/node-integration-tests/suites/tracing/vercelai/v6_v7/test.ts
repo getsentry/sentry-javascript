@@ -26,7 +26,12 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_DECIDE } from '@sentry/conventions/op';
+import {
+  GEN_AI_DECIDE,
+  GEN_AI_EXECUTE_TOOL,
+  GEN_AI_GENERATE_CONTENT,
+  GEN_AI_INVOKE_AGENT,
+} from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../utils/runner';
 
@@ -1427,5 +1432,64 @@ describe('Vercel AI telemetry metadata (v6)', () => {
       });
     },
     { additionalDependencies: { ai: '^6.0.0' } },
+  );
+});
+
+describe('Vercel AI runtime and tool context (v7)', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmTests(
+    __dirname,
+    'scenario-runtime-context.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('records the context keys included in telemetry as span attributes', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items.filter(
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
+              );
+              // Keys left out of `includeRuntimeContext`/`includeToolsContext` must not reach any span.
+              expect(JSON.stringify(spans)).not.toMatch(/secret-runtime|secret-tool|apiToken|apiKey/);
+
+              const generateSpans = spans.filter(
+                span => span.attributes['vercel.ai.settings.context.requestId']?.value === 'req_generate',
+              );
+              expect(generateSpans.map(span => span.attributes[SENTRY_OP]?.value).sort()).toEqual([
+                GEN_AI_EXECUTE_TOOL,
+                GEN_AI_GENERATE_CONTENT,
+                GEN_AI_GENERATE_CONTENT,
+                GEN_AI_INVOKE_AGENT,
+              ]);
+              for (const span of generateSpans) {
+                expect(span.attributes['vercel.ai.settings.context.tenantId']).toEqual({
+                  type: 'string',
+                  value: 'acme',
+                });
+              }
+
+              const toolSpan = generateSpans.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXECUTE_TOOL);
+              expect(toolSpan?.attributes['vercel.ai.tool_call.context.units']).toEqual({
+                type: 'string',
+                value: 'metric',
+              });
+
+              const streamSpans = spans.filter(
+                span => span.attributes['vercel.ai.settings.context.requestId']?.value === 'req_stream',
+              );
+              expect(streamSpans.map(span => span.attributes[SENTRY_OP]?.value).sort()).toEqual([
+                GEN_AI_GENERATE_CONTENT,
+                GEN_AI_INVOKE_AGENT,
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { additionalDependencies: { ai: '^7.0.154' } },
   );
 });

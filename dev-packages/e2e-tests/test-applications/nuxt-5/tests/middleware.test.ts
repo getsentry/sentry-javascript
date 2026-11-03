@@ -8,19 +8,19 @@ import { IMPORT_SURFACES } from './importSurfaces';
 // simple middleware has a copy.
 const MIDDLEWARE = {
   nitro: {
-    names: ['01.first', '02.second', '03.auth', '04.hooks', '05.array-hooks'],
-    simpleNames: ['01.first', '02.second', '03.auth'],
+    names: ['01-first', '02-second', '03-auth', '04-hooks', '05-array-hooks'],
+    simpleNames: ['01-first', '02-second', '03-auth'],
     // 3 simple + 2 hooks (middleware+handler) + 3 array hooks (2 middleware + 1 handler)
     spanCount: 8,
-    authName: '03.auth',
+    authName: '03-auth',
     authErrorQuery: 'throwError=true',
     authErrorMessage: 'Auth middleware error',
   },
   'nuxt/server': {
-    names: ['06.nuxt-server-first', '07.nuxt-server-auth'],
-    simpleNames: ['06.nuxt-server-first', '07.nuxt-server-auth'],
+    names: ['06-nuxt-server-first', '07-nuxt-server-auth'],
+    simpleNames: ['06-nuxt-server-first', '07-nuxt-server-auth'],
     spanCount: 2,
-    authName: '07.nuxt-server-auth',
+    authName: '07-nuxt-server-auth',
     authErrorQuery: 'throwNuxtServerError=true',
     authErrorMessage: 'nuxt/server auth middleware error',
   },
@@ -127,17 +127,17 @@ test.describe('Server Middleware Instrumentation (nitro hooks)', () => {
     expect(response.status()).toBe(200);
 
     const spans = await spansPromise;
-    const middlewareSpan = findMiddlewareSpan(spans, '04.hooks', 'middleware');
-    const handlerSpan = findMiddlewareSpan(spans, '04.hooks', 'handler');
+    const middlewareSpan = findMiddlewareSpan(spans, '04-hooks', 'middleware');
+    const handlerSpan = findMiddlewareSpan(spans, '04-hooks', 'handler');
 
     // h3 v2 has no `onBeforeResponse`, so a hooks object gives only `middleware` and `handler` spans.
-    expect(spans.filter(span => span.attributes['nuxt.middleware.name']?.value === '04.hooks')).toHaveLength(2);
+    expect(spans.filter(span => span.attributes['nuxt.middleware.name']?.value === '04-hooks')).toHaveLength(2);
 
-    expect(middlewareSpan?.name).toBe('04.hooks.middleware');
+    expect(middlewareSpan?.name).toBe('04-hooks.middleware');
     // h3 v2 always stores `middleware` as an array, so even a single hook has an index.
     expect(middlewareSpan?.attributes['nuxt.middleware.hook.index']?.value).toBe(0);
 
-    expect(handlerSpan?.name).toBe('04.hooks');
+    expect(handlerSpan?.name).toBe('04-hooks');
     expect(handlerSpan?.attributes['nuxt.middleware.hook.index']).toBeUndefined();
   });
 
@@ -148,15 +148,15 @@ test.describe('Server Middleware Instrumentation (nitro hooks)', () => {
     expect(response.status()).toBe(200);
 
     const spans = await spansPromise;
-    const arrayHooksSpans = spans.filter(span => span.attributes['nuxt.middleware.name']?.value === '05.array-hooks');
-    const middleware0Span = findMiddlewareSpan(spans, '05.array-hooks', 'middleware', 0);
-    const middleware1Span = findMiddlewareSpan(spans, '05.array-hooks', 'middleware', 1);
-    const handlerSpan = findMiddlewareSpan(spans, '05.array-hooks', 'handler');
+    const arrayHooksSpans = spans.filter(span => span.attributes['nuxt.middleware.name']?.value === '05-array-hooks');
+    const middleware0Span = findMiddlewareSpan(spans, '05-array-hooks', 'middleware', 0);
+    const middleware1Span = findMiddlewareSpan(spans, '05-array-hooks', 'middleware', 1);
+    const handlerSpan = findMiddlewareSpan(spans, '05-array-hooks', 'handler');
 
     expect(arrayHooksSpans).toHaveLength(3);
-    expect(middleware0Span?.name).toBe('05.array-hooks.middleware');
-    expect(middleware1Span?.name).toBe('05.array-hooks.middleware');
-    expect(handlerSpan?.name).toBe('05.array-hooks');
+    expect(middleware0Span?.name).toBe('05-array-hooks.middleware');
+    expect(middleware1Span?.name).toBe('05-array-hooks.middleware');
+    expect(handlerSpan?.name).toBe('05-array-hooks');
     expect(handlerSpan?.attributes['nuxt.middleware.hook.index']).toBeUndefined();
   });
 
@@ -171,7 +171,7 @@ test.describe('Server Middleware Instrumentation (nitro hooks)', () => {
 
     const [spans, errorEvent] = await Promise.all([spansPromise, errorEventPromise]);
 
-    expect(findMiddlewareSpan(spans, '04.hooks', 'middleware')?.status).toBe('error');
+    expect(findMiddlewareSpan(spans, '04-hooks', 'middleware')?.status).toBe('error');
     expect(errorEvent.exception?.values?.[0]?.value).toBe('OnRequest hook error');
   });
 
@@ -186,8 +186,8 @@ test.describe('Server Middleware Instrumentation (nitro hooks)', () => {
 
     const [spans, errorEvent] = await Promise.all([spansPromise, errorEventPromise]);
 
-    expect(findMiddlewareSpan(spans, '05.array-hooks', 'middleware', 0)?.status).toBe('ok');
-    expect(findMiddlewareSpan(spans, '05.array-hooks', 'middleware', 1)?.status).toBe('error');
+    expect(findMiddlewareSpan(spans, '05-array-hooks', 'middleware', 0)?.status).toBe('ok');
+    expect(findMiddlewareSpan(spans, '05-array-hooks', 'middleware', 1)?.status).toBe('error');
     expect(errorEvent.exception?.values?.[0]?.value).toBe('OnRequest[1] hook error');
   });
 });

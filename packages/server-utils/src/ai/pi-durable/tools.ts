@@ -122,8 +122,8 @@ export function instrumentTool(tool: PiTool, runs: PiRuns, options: GenAiOptions
           [SENTRY_ORIGIN]: PI_DURABLE_ORIGIN,
           [GEN_AI_OPERATION_NAME]: 'execute_tool',
           [GEN_AI_TOOL_NAME]: tool.name,
-          ...(tool.description ? { [GEN_AI_TOOL_DESCRIPTION]: tool.description } : {}),
-          ...(api?.callId ? { [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: api.callId } : {}),
+          [GEN_AI_TOOL_DESCRIPTION]: tool.description,
+          [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: api?.callId,
           ...(api?.conversationId !== undefined
             ? { [GEN_AI_CONVERSATION_ID]: toSentryConversationId(runs, api.conversationId) }
             : {}),

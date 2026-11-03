@@ -1,3 +1,4 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { _INTERNAL_safeDateNow, defineIntegration, metrics } from '@sentry/core';
 
 const INTEGRATION_NAME = 'DenoRuntimeMetrics' as const;
@@ -79,8 +80,8 @@ export const denoRuntimeMetricsIntegration = defineIntegration((options: DenoRun
   let intervalId: number | undefined;
   let prevFlushTime: number = 0;
 
-  const METRIC_ATTRIBUTES_BYTE = { unit: 'byte', attributes: { 'sentry.origin': 'auto.deno.runtime_metrics' } };
-  const METRIC_ATTRIBUTES_SECOND = { unit: 'second', attributes: { 'sentry.origin': 'auto.deno.runtime_metrics' } };
+  const METRIC_ATTRIBUTES_BYTE = { unit: 'byte', attributes: { [SENTRY_ORIGIN]: 'auto.deno.runtime_metrics' } };
+  const METRIC_ATTRIBUTES_SECOND = { unit: 'second', attributes: { [SENTRY_ORIGIN]: 'auto.deno.runtime_metrics' } };
 
   function collectMetrics(): void {
     const now = _INTERNAL_safeDateNow();

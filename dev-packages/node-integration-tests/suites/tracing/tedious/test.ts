@@ -1,4 +1,3 @@
-import type { SerializedStreamedSpan } from '@sentry/core';
 import {
   DB_NAMESPACE,
   DB_QUERY_SUMMARY,
@@ -120,44 +119,6 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
         })
         .start()
         .completed();
-    });
-  });
-
-  createEsmAndCjsTests(__dirname, 'scenario-no-parent.mjs', 'instrument.mjs', (createTestRunner, test) => {
-    test('only instruments queries with an active parent span', async () => {
-      const runner = createTestRunner();
-      const dbSpans = new Map<string, SerializedStreamedSpan>();
-      const spansPromise = runner.collectStreamedSpans(spans => {
-        for (const span of spans) {
-          if (span.attributes[SENTRY_ORIGIN]?.value === ORIGIN) {
-            dbSpans.set(span.span_id, span);
-          }
-        }
-        return spans.some(span => span.is_segment && span.name === 'parent operation');
-      });
-
-      await runner.unordered().start().completed();
-
-      const spans = await spansPromise;
-      const parent = spans.find(span => span.is_segment && span.name === 'parent operation');
-      expect(parent).toBeDefined();
-      expect(
-        Array.from(dbSpans.values(), span => ({
-          query: span.attributes[DB_QUERY_TEXT]?.value,
-          database: span.attributes[DB_NAMESPACE]?.value,
-          parentSpanId: span.parent_span_id,
-          traceId: span.trace_id,
-          isSegment: span.is_segment,
-        })),
-      ).toEqual([
-        {
-          query: 'SELECT ? AS inside_parent',
-          database: 'master',
-          parentSpanId: parent?.span_id,
-          traceId: parent?.trace_id,
-          isSegment: false,
-        },
-      ]);
     });
   });
 

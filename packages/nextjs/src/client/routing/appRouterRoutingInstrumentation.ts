@@ -1,25 +1,20 @@
-import type { Client, Span, StartSpanOptions } from '@sentry/core';
+import type { Client, Span } from '@sentry/core';
 import {
-  getCurrentScope,
   GLOBAL_OBJ,
   hasSpanStreamingEnabled,
   isObjectLike,
   NAVIGATION_SPAN_NAME_FALLBACK,
-  PAGELOAD_SPAN_NAME_FALLBACK,
   filterCollectedUrl,
   timestampInSeconds,
 } from '@sentry/core';
 import {
   startBrowserTracingNavigationSpan,
-  startBrowserTracingPageLoadSpan,
   WINDOW,
   getAbsoluteUrl,
   resolveCurrentRoute,
   resolveRoute,
 } from '@sentry/react';
 import { stripTrailingSlash } from './parameterization';
-import type { TraceMetaTagValues, TraceMetaTagWait } from './traceMetaTags';
-import { addTraceMetaTagLink, canWaitForTraceMetaTag, readTraceMetaTags, waitForTraceMetaTag } from './traceMetaTags';
 import {
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
@@ -27,8 +22,9 @@ import {
   URL_PATH,
   URL_TEMPLATE,
   SENTRY_ORIGIN,
+  NAVIGATION_TYPE,
 } from '@sentry/conventions/attributes';
-import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
+import { NAVIGATION } from '@sentry/conventions/op';
 
 function setNavigationSpanUrlAttributes(span: Span, urlPath: string, urlOrPath: string): void {
   span.setAttributes({
@@ -98,92 +94,6 @@ let navigationRoutingMode: 'router-patch' | 'transition-start-hook' = 'router-pa
 
 const currentRouterPatchingNavigationSpanRef: NavigationSpanRef = { current: undefined };
 
-/**
- * How long the pageload start may wait for the resumed part of a Cache Components document. The wait
- * normally ends with `DOMContentLoaded`; the cap only matters for a response the server keeps open.
- */
-const PAGELOAD_TRACE_META_TAG_TIMEOUT_MS = 10_000;
-
-let pendingPageloadWait: TraceMetaTagWait | undefined;
-
-/**
- * Starts a pageload that is still waiting for its trace meta tag with a fresh trace. Called when a
- * navigation starts, before the navigation span is created, so the navigation ends the pageload like
- * any pageload it interrupts, and the pageload is still recorded.
- */
-export function settlePendingPageloadWait(): void {
-  pendingPageloadWait?.giveUp();
-}
-
-/**
- * Starts the pageload span with the request data of the document. The span may start after a
- * navigation already changed the location, so the browser SDK would otherwise read the new one.
- */
-function startPageloadSpan(
-  client: Client,
-  spanOptions: StartSpanOptions,
-  documentUrl: string,
-  traceMetaTags?: TraceMetaTagValues,
-): Span | undefined {
-  const span = startBrowserTracingPageLoadSpan(client, spanOptions, traceMetaTags);
-  const scope = getCurrentScope();
-  const { normalizedRequest } = scope.getScopeData().sdkProcessingMetadata;
-  if (normalizedRequest) {
-    scope.setSDKProcessingMetadata({ normalizedRequest: { ...normalizedRequest, url: documentUrl } });
-  }
-  return span;
-}
-
-/** Instruments the Next.js app router for pageloads. */
-export function appRouterInstrumentPageLoad(client: Client): void {
-  const documentUrl = filterCollectedUrl(WINDOW.location.href, client);
-  const pathname = stripTrailingSlash(WINDOW.location.pathname);
-  const parameterizedPathname = resolveCurrentRoute(client);
-  const spanOptions: StartSpanOptions = {
-    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
-    name: parameterizedPathname ?? (hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : pathname),
-    // pageload should always start at timeOrigin (and needs to be in s, not ms)
-    attributes: {
-      [SENTRY_OP]: PAGELOAD,
-      [SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
-      [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
-      [URL_PATH]: WINDOW.location.pathname,
-      [URL_FULL]: documentUrl,
-      ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
-    },
-  };
-
-  // A tag that is already in the document was rendered for this request and can be continued. A
-  // Cache Components document that resumes a prerendered shell gets its tag with the resumed part,
-  // which usually arrives after the SDK started. Waiting for it lets the pageload continue the server
-  // trace instead of linking it; the span's start is backdated to the time origin either way.
-  const traceMetaTags = readTraceMetaTags();
-  if (traceMetaTags || !canWaitForTraceMetaTag()) {
-    startPageloadSpan(client, spanOptions, documentUrl, traceMetaTags);
-    return;
-  }
-
-  pendingPageloadWait = waitForTraceMetaTag(
-    values => {
-      pendingPageloadWait = undefined;
-      startPageloadSpan(client, spanOptions, documentUrl, values);
-    },
-    () => {
-      pendingPageloadWait = undefined;
-      const span = startPageloadSpan(client, spanOptions, documentUrl);
-      // Only reachable through the cap or a navigation while the document still streams: a tag that
-      // shows up after this can no longer be continued, but the server request can still be linked.
-      if (span) {
-        waitForTraceMetaTag(
-          values => span.isRecording() && addTraceMetaTagLink(span, values),
-          () => undefined,
-        );
-      }
-    },
-    PAGELOAD_TRACE_META_TAG_TIMEOUT_MS,
-  );
-}
-
 interface NavigationSpanRef {
   current: Span | undefined;
 }
@@ -239,7 +149,8 @@ export function appRouterInstrumentNavigation(client: Client): void {
     if (currentNavigationSpan) {
       currentNavigationSpan.updateName(spanName);
       currentNavigationSpan.setAttributes({
-        'navigation.type': `router.${navigationType}`,
+        // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+        [NAVIGATION_TYPE]: `router.${navigationType}`,
         [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
         ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
       });
@@ -254,8 +165,9 @@ export function appRouterInstrumentNavigation(client: Client): void {
             [SENTRY_OP]: NAVIGATION,
             [SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
             [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
-            'navigation.type': `router.${navigationType}`,
-            ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
+            // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+            [NAVIGATION_TYPE]: `router.${navigationType}`,
+            [URL_TEMPLATE]: parameterizedPathname,
           },
         },
         { url: getAbsoluteUrl(normalizedHref) },
@@ -291,8 +203,9 @@ export function appRouterInstrumentNavigation(client: Client): void {
           attributes: {
             [SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
             [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
-            'navigation.type': traversal?.navigationType ?? 'browser.popstate',
-            ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
+            // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+            [NAVIGATION_TYPE]: traversal?.navigationType ?? 'browser.popstate',
+            [URL_TEMPLATE]: parameterizedPathname,
           },
         },
         // The full location rather than just the pathname, so the span's `url.full` keeps the
@@ -388,8 +301,9 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
                 [SENTRY_OP]: NAVIGATION,
                 [SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
                 [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
-                'navigation.type': `router.${routerFunctionName}`,
-                ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
+                // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+                [NAVIGATION_TYPE]: `router.${routerFunctionName}`,
+                [URL_TEMPLATE]: parameterizedPathname,
               },
             },
             { url: getAbsoluteUrl(normalizedHref) },

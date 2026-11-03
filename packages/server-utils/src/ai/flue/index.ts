@@ -144,8 +144,8 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
             attributes: {
               [SENTRY_ORIGIN]: FLUE_ORIGIN,
               [GEN_AI_OPERATION_NAME]: 'invoke_agent',
-              ...(ctx.agentName ? { [GEN_AI_AGENT_NAME]: ctx.agentName } : {}),
-              ...(ctx.conversationId ? { [GEN_AI_CONVERSATION_ID]: ctx.conversationId } : {}),
+              [GEN_AI_AGENT_NAME]: ctx.agentName,
+              [GEN_AI_CONVERSATION_ID]: ctx.conversationId,
             },
           },
           async (span: Span) => {

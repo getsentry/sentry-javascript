@@ -9,7 +9,10 @@
     "start": "HOST=localhost PORT=3030 node .output/server/index.mjs",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "node assert-build.ts && pnpm test:prod"
+    "test:assert": "node assert-build.ts && pnpm test:prod",
+    "test:build:tunnel-basepath": "pnpm install && E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app pnpm build",
+    "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test:prod tunnel",
+    "test:assert:tunnel-basepath-dev": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app E2E_TEST_DSN=http://public@localhost:3031/1337 TEST_ENV=development playwright test tunnel"
   },
   "type": "module",
   "dependencies": {
@@ -35,6 +38,18 @@
     "node": ">=24"
   },
   "sentryTest": {
-    "optional": true
+    "optional": true,
+    "variants": [
+      {
+        "build-command": "pnpm test:build:tunnel-basepath",
+        "assert-command": "pnpm test:assert:tunnel-basepath",
+        "label": "solidstart-2 (tunnel-basepath)"
+      },
+      {
+        "build-command": "pnpm install",
+        "assert-command": "pnpm test:assert:tunnel-basepath-dev",
+        "label": "solidstart-2 (tunnel-basepath-dev)"
+      }
+    ]
   }
 }

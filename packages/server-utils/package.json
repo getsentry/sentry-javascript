@@ -27,6 +27,11 @@
       "import": "./build/esm/index.no-diagnostic-channels.js",
       "require": "./build/cjs/index.no-diagnostic-channels.js"
     },
+    "./request-handler": {
+      "types": "./build/types/index.request-handler.d.ts",
+      "import": "./build/esm/index.request-handler.js",
+      "require": "./build/cjs/index.request-handler.js"
+    },
     "./orchestrion/config": {
       "types": "./build/types/orchestrion/config/index.d.ts",
       "import": "./build/esm/orchestrion/config/index.js",
@@ -101,13 +106,13 @@
     "@sentry/core": "11.10.0"
   },
   "devDependencies": {
-    "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.4",
+    "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.5",
     "@neondatabase/serverless": "1.2.0",
     "@sentry-internal/rollup-utils": "11.10.0",
     "@types/node": "^20.19.0",
     "meriyah": "^6.1.4",
-    "vite": "^8.3.1",
-    "webpack": "^5.104.1"
+    "vite": "^8.3.5",
+    "webpack": "^5.112.2"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

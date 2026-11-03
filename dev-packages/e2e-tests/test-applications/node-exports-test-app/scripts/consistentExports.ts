@@ -51,6 +51,7 @@ const DEPENDENTS: Dependent[] = [
     exports: Object.keys(SentryBun),
     ignoreExports: [
       // not supported in bun:
+      'awsLambdaWebIntegration',
       'NodeClient',
       'NODE_VERSION',
       'childProcessIntegration',

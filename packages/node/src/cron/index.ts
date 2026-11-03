@@ -6,6 +6,7 @@ import { instrumentNodeSchedule } from './node-schedule';
 /** Methods to instrument cron libraries for Sentry check-ins */
 export const cron = {
   instrumentBullMQWorker,
+  // oxlint-disable-next-line typescript/no-deprecated
   instrumentCron,
   instrumentNodeCron,
   instrumentNodeSchedule,

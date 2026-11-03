@@ -63,7 +63,7 @@
         "label": "nuxt-4 (tunnel-basepath-dev)"
       }
     ],
-    "optionalVariants": [
+    "canaryVariants": [
       {
         "build-command": "pnpm test:build-canary",
         "label": "nuxt-4 (canary)"

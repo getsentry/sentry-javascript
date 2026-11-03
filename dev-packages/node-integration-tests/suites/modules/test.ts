@@ -19,7 +19,7 @@ describe('modulesIntegration', () => {
             express: expect.stringMatching(/^4\.\d+\.\d+$/),
             // this comes from package.json
             '@sentry/node': SDK_VERSION,
-            yargs: '^16.2.0',
+            yargs: '^18.2.0',
           },
         },
       })
@@ -78,7 +78,7 @@ describe('modulesIntegration', () => {
             // this comes from package.json
             express: expect.stringMatching(/^\^4\.\d+\.\d+$/),
             '@sentry/node': SDK_VERSION,
-            yargs: '^16.2.0',
+            yargs: '^18.2.0',
           },
         },
       })

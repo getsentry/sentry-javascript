@@ -11,8 +11,11 @@ export default definePlugin(nitroApp => {
 
   // Nitro runs the app's `middleware/` before anything a module registers, so an auth middleware there would block
   // the tunnel. Every preset hands requests to `nitroApp.fetch` after the plugins ran, so wrapping it goes first,
-  // before route rules and middleware. Requests still carry Nitro's `baseURL` here, so the tunnel is served under it.
-  setManagedTunnelDefaults({ basePath: (useRuntimeConfig() as { app?: { baseURL?: string } }).app?.baseURL });
+  // before route rules and middleware. Requests still carry Nitro's `baseURL` here, so the tunnel is served under it,
+  // unless a framework serves the app under another prefix: `@sentry/solidstart` sets `sentryTunnelBasePath` to Vite's
+  // `base`.
+  const runtimeConfig = useRuntimeConfig() as { app?: { baseURL?: string }; sentryTunnelBasePath?: string };
+  setManagedTunnelDefaults({ basePath: runtimeConfig.sentryTunnelBasePath || runtimeConfig.app?.baseURL });
   const appFetch = nitroApp.fetch;
   nitroApp.fetch = request => handleServedTunnelRequest(request) ?? appFetch(request);
 });
