@@ -52,7 +52,7 @@
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@babel/eslint-parser": "^7.28.6",
-    "@babel/plugin-transform-typescript": "^7.28.6",
+    "@babel/plugin-transform-typescript": "^8.0.6",
     "@ember/app-tsconfig": "^2.0.0",
     "@ember/library-tsconfig": "^2.0.0",
     "@embroider/addon-dev": "^8.3.0",
