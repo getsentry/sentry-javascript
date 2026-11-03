@@ -91,7 +91,7 @@
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
     "@types/node": "^20.19.0",
     "svelte": "^4.2.8",
-    "vite": "^8.3.1"
+    "vite": "^8.3.5"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
