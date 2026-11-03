@@ -25,7 +25,7 @@
     "@langchain/typesafe": "^0.0.2",
     "@opentelemetry/api": "^1.9.1",
     "@prisma/adapter-d1": "6.15.0",
-    "@prisma/client": "6.15.0",
+    "@prisma/client": "7.10.1",
     "@sentry-internal/test-utils": "11.10.0",
     "@sentry/cloudflare": "11.10.0",
     "@sentry/conventions": "0.30.0",
@@ -35,7 +35,7 @@
     "hono": "^4.13.7",
     "langchain": "^1.5.16",
     "openai": "5.18.1",
-    "prisma": "6.15.0",
+    "prisma": "7.10.1",
     "vite": "^8.3.5",
     "vitest": "^4.1.11",
     "wrangler": "4.156.0"
