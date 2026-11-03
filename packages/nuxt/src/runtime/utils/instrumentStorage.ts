@@ -198,31 +198,30 @@ function traceCacheOperation(
   operation: () => unknown,
   getCacheHit?: (result: unknown) => boolean,
 ): Promise<unknown> {
-  return startSpan(options, async span => {
-    try {
-      return await handleCallbackErrors(
-        operation,
-        error => {
-          captureException(error, {
-            mechanism: {
-              handled: false,
-              type: options.attributes?.[SENTRY_ORIGIN],
-            },
-          });
-        },
-        undefined,
-        result => {
-          span.setStatus({ code: SPAN_STATUS_OK });
+  return handleCallbackErrors(
+    () =>
+      startSpan(options, async span => {
+        const result = await operation();
+        span.setStatus({ code: SPAN_STATUS_OK });
 
-          if (getCacheHit) {
-            span.setAttribute(CACHE_HIT, getCacheHit(result));
-          }
+        if (getCacheHit) {
+          span.setAttribute(CACHE_HIT, getCacheHit(result));
+        }
+
+        return result;
+      }),
+    error => {
+      captureException(error, {
+        mechanism: {
+          handled: false,
+          type: options.attributes?.[SENTRY_ORIGIN],
         },
-      );
-    } finally {
-      await flushIfServerless();
-    }
-  });
+      });
+    },
+    () => {
+      void flushIfServerless();
+    },
+  );
 }
 
 /**
