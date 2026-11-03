@@ -109,7 +109,7 @@
     "srvx": "^0.11.22",
     "tedious": "^19.2.1",
     "unstorage": "2.0.0-alpha.7",
-    "valibot": "1.4.2",
+    "valibot": "1.5.0",
     "winston": "^3.17.0",
     "ws": "^8.20.1",
     "yargs": "^16.2.0"

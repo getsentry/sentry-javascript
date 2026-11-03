@@ -1,7 +1,7 @@
 import type { Client } from '@sentry/core';
 import { debug, getClient, withIsolationScope } from '@sentry/core';
 import type { ServerRequestOptions } from '@sentry/core/server';
-import { wrapServerRequestHandler } from '@sentry/server-utils';
+import { wrapServerRequestHandler } from '@sentry/server-utils/request-handler';
 
 export type RequestHandlerWrapperOptions<Addr extends Deno.Addr> = {
   request: Request;

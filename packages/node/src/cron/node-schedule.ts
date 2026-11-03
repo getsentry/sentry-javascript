@@ -1,4 +1,4 @@
-import { withMonitor } from '@sentry/core';
+import { addNonEnumerableProperty, withMonitor } from '@sentry/core';
 import { replaceCronNames } from './common';
 
 export interface NodeSchedule {
@@ -57,6 +57,9 @@ export function instrumentNodeSchedule<T>(lib: T & NodeSchedule): T {
                 },
               );
             }
+
+            // Tells `nodeScheduleIntegration` that this job is already monitored.
+            addNonEnumerableProperty(monitoredCallback, Symbol.for('sentry.cron.monitored'), true);
 
             return target.apply(thisArg, [monitorSlug, expression, monitoredCallback]);
           },

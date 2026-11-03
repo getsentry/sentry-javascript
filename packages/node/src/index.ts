@@ -15,6 +15,8 @@ export {
   genericPoolIntegration,
   nodeCronIntegration,
   type NodeCronIntegrationOptions,
+  nodeScheduleIntegration,
+  type NodeScheduleIntegrationOptions,
   googleGenAIIntegration,
   graphqlIntegration,
   groqIntegration,
