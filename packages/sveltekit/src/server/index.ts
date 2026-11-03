@@ -38,6 +38,8 @@ export {
   flush,
   functionToStringIntegration,
   genericPoolIntegration,
+  nodeCronIntegration,
+  nodeScheduleIntegration,
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,

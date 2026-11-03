@@ -13,13 +13,103 @@ updates:
     schedule:
       interval: 'weekly'
     ignore:
-      - dependency-name: '@opentelemetry/instrumentation'
-      - dependency-name: '@opentelemetry/instrumentation-*'
       - dependency-name: 'typescript'
-      # 2.110.0 raised the engine requirement to Node >=22, while this repo runs Node 20.
-      - dependency-name: '@supabase/supabase-js'
-        versions: ['>=2.110.0']
+      # Major upgrades of SDK targets and coupled tooling require an explicit compatibility decision.
+      - dependency-name: '@angular/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@angular-devkit/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'ng-packagr'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'astro'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'ember-source'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'effect'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'next'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'nuxt'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@nuxt/kit'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@nuxt/schema'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@nuxt/nitro-server'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-dom'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/express'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-router'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@react-router/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@remix-run/node'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@remix-run/react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@remix-run/server-runtime'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@remix-run/router'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@solidjs/router'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@solidjs/start'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'svelte'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@sveltejs/kit'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'vue'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@nestjs/common'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@nestjs/core'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'hono'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'nitro'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'nitropack'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'h3'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@cloudflare/workers-types'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'wrangler'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'bun-types'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@edge-runtime/types'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@opentelemetry/api'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'vite'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'webpack'
+        update-types: ['version-update:semver-major']
+      # These are also peer dependencies. The `increase` strategy raises the peer range too,
+      # which drops support for older versions (a breaking change).
+      - dependency-name: '@tanstack/vue-router'
+      - dependency-name: '@tanstack/solid-router'
+      - dependency-name: 'solid-js'
+      - dependency-name: 'elysia'
+      # Keep node-integration-tests on langchain v0. The v1 suite installs v1 via additionalDependencies.
+      - dependency-name: 'langchain'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@langchain/*'
+        update-types: ['version-update:semver-major']
     groups:
+      aws-sdk:
+        patterns:
+          - '@aws-sdk/*'
       opentelemetry:
         patterns:
           - '@opentelemetry/*'
@@ -29,8 +119,11 @@ updates:
       react-router:
         patterns:
           - 'react-router'
-          - 'react-router-dom'
           - '@react-router/*'
+      langchain:
+        patterns:
+          - 'langchain'
+          - '@langchain/*'
     versioning-strategy: increase
     commit-message:
       prefix: feat

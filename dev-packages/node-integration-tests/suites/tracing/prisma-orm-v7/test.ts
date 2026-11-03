@@ -106,7 +106,6 @@ describe('Prisma ORM v7 Tests', () => {
       },
       {
         additionalDependencies: {
-          '@prisma/adapter-pg': '7.2.0',
           '@prisma/client': '7.2.0',
           pg: '^8.11.0',
           prisma: '7.2.0',

@@ -64,23 +64,17 @@ function instrumentMongodb(): void {
  * (both publish to this channel).
  */
 function subscribeV4Command(): void {
-  bindTracingChannelToSpan(
-    diagnosticsChannel.tracingChannel<MongoChannelContext>(CHANNELS.MONGODB_COMMAND),
-    data => {
-      const args = data.arguments ?? [];
-      const ns = args[0] as MongodbNamespace | undefined;
-      const cmd = args[1] as Record<string, unknown> | undefined;
-      // Skip handshake/heartbeat commands (matches otel).
-      if (!ns || !cmd || typeof cmd !== 'object' || cmd.ismaster || cmd.hello) {
-        return undefined;
-      }
-      const operation = Object.keys(cmd)[0];
-      return startMongoSpan(getV4SpanAttributes(data.self, ns, cmd, operation, ORIGIN));
-    },
-    // Matches otel's `shouldSkipInstrumentation`: only trace when there is
-    // an active parent span, to avoid emitting orphaned mongodb spans.
-    { requiresParentSpan: true },
-  );
+  bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<MongoChannelContext>(CHANNELS.MONGODB_COMMAND), data => {
+    const args = data.arguments ?? [];
+    const ns = args[0] as MongodbNamespace | undefined;
+    const cmd = args[1] as Record<string, unknown> | undefined;
+    // Skip handshake/heartbeat commands (matches otel).
+    if (!ns || !cmd || typeof cmd !== 'object' || cmd.ismaster || cmd.hello) {
+      return undefined;
+    }
+    const operation = Object.keys(cmd)[0];
+    return startMongoSpan(getV4SpanAttributes(data.self, ns, cmd, operation, ORIGIN));
+  });
 }
 
 /**
@@ -150,21 +144,17 @@ function subscribeV3Wireprotocol(): void {
 }
 
 function bindV3(channelName: string, extract: (args: unknown[]) => V3CallInfo | undefined): void {
-  bindTracingChannelToSpan(
-    diagnosticsChannel.tracingChannel<MongoChannelContext>(channelName),
-    data => {
-      const args = data.arguments;
-      if (!args) {
-        return undefined;
-      }
-      const info = extract(args);
-      if (!info || typeof info.ns !== 'string') {
-        return undefined;
-      }
-      return startMongoSpan(getV3SpanAttributes(info.ns, info.topology, info.command, info.operation, ORIGIN));
-    },
-    { requiresParentSpan: true },
-  );
+  bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<MongoChannelContext>(channelName), data => {
+    const args = data.arguments;
+    if (!args) {
+      return undefined;
+    }
+    const info = extract(args);
+    if (!info || typeof info.ns !== 'string') {
+      return undefined;
+    }
+    return startMongoSpan(getV3SpanAttributes(info.ns, info.topology, info.command, info.operation, ORIGIN));
+  });
 }
 
 /**

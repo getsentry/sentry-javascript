@@ -32,6 +32,12 @@
       "import": "./build/esm/index.client.js",
       "require": "./build/cjs/index.server.js"
     },
+    "./integration": {
+      "types": "./build/types/index.integration.d.ts",
+      "node": "./build/esm/index.integration.js",
+      "import": "./build/esm/index.integration.js",
+      "require": "./build/cjs/index.integration.js"
+    },
     "./middleware": {
       "types": "./build/types/integration/middleware/index.d.ts",
       "node": "./build/esm/integration/middleware/index.js",
@@ -53,7 +59,7 @@
   "dependencies": {
     "@sentry/browser": "11.10.0",
     "@sentry/core": "11.10.0",
-    "@sentry/conventions": "^0.29.0",
+    "@sentry/conventions": "^0.30.0",
     "@sentry/node": "11.10.0",
     "@sentry/server-runtime-injection": "11.10.0",
     "@sentry/server-utils": "11.10.0",
@@ -62,7 +68,7 @@
   "devDependencies": {
     "@sentry-internal/rollup-utils": "11.10.0",
     "astro": "^4.16.19",
-    "vite": "^8.3.1"
+    "vite": "^8.3.5"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

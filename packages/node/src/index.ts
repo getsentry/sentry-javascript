@@ -1,4 +1,5 @@
 export { httpIntegration } from './integrations/http';
+export { awsLambdaWebIntegration } from './integrations/awsLambdaWeb';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
 // oxlint-disable-next-line typescript/no-deprecated
@@ -12,6 +13,10 @@ export {
   type ExpressIntegrationOptions,
   firebaseIntegration,
   genericPoolIntegration,
+  nodeCronIntegration,
+  type NodeCronIntegrationOptions,
+  nodeScheduleIntegration,
+  type NodeScheduleIntegrationOptions,
   googleGenAIIntegration,
   graphqlIntegration,
   groqIntegration,
@@ -68,6 +73,7 @@ export {
 export { setupHapiErrorHandler } from './integrations/tracing/hapi';
 // oxlint-disable-next-line typescript/no-deprecated -- deprecated but still re-exported for backwards compatibility
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
+export { BullMQTelemetry } from './integrations/tracing/bullmq';
 export {
   launchDarklyIntegration,
   buildLaunchDarklyFlagUsedHandler,

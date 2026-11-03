@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
-import type { OnStartResult, PluginBuild } from 'esbuild';
+import type { OnResolveArgs, OnResolveResult, OnStartResult, Plugin as EsbuildPlugin, PluginBuild } from 'esbuild';
 import type { NormalizedInputOptions, PluginContext } from 'rollup';
-import type { ResolvedConfig } from 'vite';
+import type { ResolvedConfig, Plugin as VitePlugin } from 'vite';
 import type { Compiler } from 'webpack';
 import { describe, expect, it, vi } from 'vitest';
 import { sentryOrchestrionPlugin as bunPlugin } from '../../src/orchestrion/bundler/bun';
@@ -245,18 +245,34 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     return config.handler.call(plugin, userConfig, { command, mode: 'production' });
   }
 
+  type EnvironmentConfigResult = {
+    resolve?: { noExternal: string[] };
+    optimizeDeps?: {
+      esbuildOptions?: { plugins: EsbuildPlugin[] };
+      rolldownOptions?: { plugins: VitePlugin[] };
+    };
+  } | null;
+
   function runConfigEnvironment(
     name: string,
     environmentConfig: Record<string, unknown>,
-    command: 'build' | 'serve' = 'build',
-  ): { resolve: { noExternal: string[] } } | null {
-    const plugin = vitePlugin();
+    {
+      command = 'build',
+      context,
+      plugin = vitePlugin(),
+    }: {
+      command?: 'build' | 'serve';
+      // Vite 6 passes no context, Vite 8 passes `rolldownVersion`.
+      context?: { meta: { rolldownVersion?: string } };
+      plugin?: VitePlugin;
+    } = {},
+  ): EnvironmentConfigResult {
     const configEnvironment = plugin.configEnvironment as (
       name: string,
       config: unknown,
       env: unknown,
-    ) => { resolve: { noExternal: string[] } } | null;
-    return configEnvironment.call(plugin, name, environmentConfig, { command, mode: 'production' });
+    ) => EnvironmentConfigResult;
+    return configEnvironment.call(context, name, environmentConfig, { command, mode: 'production' });
   }
 
   it('warns when instrumented modules are listed in ssr.external', () => {
@@ -286,7 +302,145 @@ describe('sentryOrchestrionPlugin (vite)', () => {
   it('does not force-bundle instrumented modules on the dev server', () => {
     // Inlined in dev, the CommonJS drivers throw `exports is not defined` on import.
     expect(runConfig('serve')).toBeNull();
-    expect(runConfigEnvironment('ssr', {}, 'serve')).toBeNull();
+    expect(
+      runConfigEnvironment('ssr', {}, { command: 'serve', plugin: vitePlugin({ transformOptimizedDeps: true }) })
+        ?.resolve,
+    ).toBeUndefined();
+  });
+
+  it('does not change the dependency optimizer on the dev server without transformOptimizedDeps', () => {
+    // A Node server loads its dependencies with Node, where the runtime hook instruments them.
+    expect(runConfigEnvironment('ssr', {}, { command: 'serve' })).toBeNull();
+    expect(
+      runConfigEnvironment(
+        'worker',
+        { consumer: 'server' },
+        { command: 'serve', context: { meta: { rolldownVersion: '1.2.14' } } },
+      ),
+    ).toBeNull();
+  });
+
+  it('runs the transform in the dependency optimizer of server environments with transformOptimizedDeps', () => {
+    const plugin = vitePlugin({ transformOptimizedDeps: true });
+    const context = { meta: { rolldownVersion: '1.2.14' } };
+
+    expect(runConfigEnvironment('ssr', {}, { command: 'serve', plugin })).toEqual({
+      optimizeDeps: {
+        esbuildOptions: { plugins: [expect.objectContaining({ name: 'sentry-orchestrion-dep-optimizer' })] },
+      },
+    });
+    expect(runConfigEnvironment('worker', { consumer: 'server' }, { command: 'serve', context, plugin })).toEqual({
+      optimizeDeps: {
+        rolldownOptions: { plugins: [expect.objectContaining({ name: 'sentry-orchestrion-dep-optimizer' })] },
+      },
+    });
+    expect(runConfigEnvironment('client', {}, { command: 'serve', plugin })).toBeNull();
+    expect(runConfigEnvironment('browser', { consumer: 'client' }, { command: 'serve', context, plugin })).toBeNull();
+  });
+
+  it('transforms in the Rolldown dependency optimizer without the ssr flag, only in the first instance with transformOptimizedDeps', () => {
+    // For example the instance of `sentryReactRouter` before the one of `sentryCloudflareVitePlugin`.
+    const other = vitePlugin();
+    const first = vitePlugin({ transformOptimizedDeps: true });
+    const second = vitePlugin({ transformOptimizedDeps: true });
+    const config = {
+      command: 'serve',
+      plugins: [other, first, second],
+      ssr: {},
+      logger: { warn: vi.fn() },
+    } as unknown as ResolvedConfig;
+    const context = { meta: { rolldownVersion: '1.2.14' } };
+    const firstOptimizerPlugin = runConfigEnvironment('worker', {}, { command: 'serve', context, plugin: first })
+      ?.optimizeDeps?.rolldownOptions?.plugins[0];
+    const secondOptimizerPlugin = runConfigEnvironment('worker', {}, { command: 'serve', context, plugin: second })
+      ?.optimizeDeps?.rolldownOptions?.plugins[0];
+
+    (other.configResolved as (config: unknown) => void)(config);
+    (first.configResolved as (config: unknown) => void)(config);
+    (second.configResolved as (config: unknown) => void)(config);
+
+    const firstTransform = firstOptimizerPlugin?.transform as (this: unknown, code: string, id: string) => unknown;
+    const secondTransform = secondOptimizerPlugin?.transform as (this: unknown, code: string, id: string) => unknown;
+    expect(firstTransform.call({}, 'code', 'id')).toBe('transformed');
+    expect(secondTransform.call({}, 'code', 'id')).toBeNull();
+  });
+
+  it('resolves the snippet import to the ESM entry in the Rolldown dependency optimizer', async () => {
+    const optimizerPlugin = runConfigEnvironment(
+      'worker',
+      {},
+      {
+        command: 'serve',
+        context: { meta: { rolldownVersion: '1.2.14' } },
+        plugin: vitePlugin({ transformOptimizedDeps: true }),
+      },
+    )?.optimizeDeps?.rolldownOptions?.plugins[0];
+    const resolveId = optimizerPlugin?.resolveId as (
+      this: unknown,
+      source: string,
+      importer: string,
+      opts: { kind: string },
+    ) => unknown;
+    const resolve = vi.fn().mockResolvedValue({ id: '/app/node_modules/@sentry/server-utils/build/cjs/index.js' });
+
+    await expect(
+      resolveId.call({ resolve }, '@sentry/server-utils', '/app/node_modules/mysql/index.js', { kind: 'require-call' }),
+    ).resolves.toEqual({ id: '/app/node_modules/@sentry/server-utils/build/esm/index.js' });
+    expect(resolveId.call({ resolve }, 'mysql', '/app/src/index.ts', { kind: 'import-statement' })).toBeNull();
+    expect(resolve).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves the snippet import to the ESM entry in the esbuild dependency optimizer', async () => {
+    const optimizerPlugin = runConfigEnvironment(
+      'ssr',
+      {},
+      { command: 'serve', plugin: vitePlugin({ transformOptimizedDeps: true }) },
+    )?.optimizeDeps?.esbuildOptions?.plugins[0];
+    const onResolve = vi.fn();
+    const resolve = vi.fn().mockResolvedValue({
+      errors: [],
+      path: '/app/node_modules/@sentry/server-utils/build/cjs/index.js',
+    });
+    await optimizerPlugin?.setup({ onResolve, resolve } as unknown as PluginBuild);
+
+    expect(onResolve).toHaveBeenCalledWith({ filter: /^@sentry\/server-utils$/ }, expect.any(Function));
+    const callback = onResolve.mock.lastCall?.[1] as (args: Partial<OnResolveArgs>) => Promise<OnResolveResult | null>;
+    await expect(
+      callback({ path: '@sentry/server-utils', importer: '/app/node_modules/mysql/index.js', kind: 'require-call' }),
+    ).resolves.toEqual({ errors: [], path: '/app/node_modules/@sentry/server-utils/build/esm/index.js' });
+
+    // When it fails (pnpm isolation), fall back to this package's own resolution.
+    resolve.mockResolvedValueOnce({ errors: [{ text: 'Could not resolve' }] });
+    const fallback = await callback({ path: '@sentry/server-utils', importer: '/x.js', kind: 'require-call' });
+    expect(fallback?.path).toMatch(/[/\\]build[/\\]esm[/\\]index\.js$/);
+  });
+
+  it('sets up the esbuild dependency optimizer plugin only in the first instance with transformOptimizedDeps', async () => {
+    const other = vitePlugin();
+    const first = vitePlugin({ transformOptimizedDeps: true });
+    const second = vitePlugin({ transformOptimizedDeps: true });
+    const config = {
+      command: 'serve',
+      plugins: [other, first, second],
+      ssr: {},
+      logger: { warn: vi.fn() },
+    } as unknown as ResolvedConfig;
+    const firstOptimizerPlugin = runConfigEnvironment('ssr', {}, { command: 'serve', plugin: first })?.optimizeDeps
+      ?.esbuildOptions?.plugins[0];
+    const secondOptimizerPlugin = runConfigEnvironment('ssr', {}, { command: 'serve', plugin: second })?.optimizeDeps
+      ?.esbuildOptions?.plugins[0];
+
+    (other.configResolved as (config: unknown) => void)(config);
+    (first.configResolved as (config: unknown) => void)(config);
+    (second.configResolved as (config: unknown) => void)(config);
+
+    const firstOnResolve = vi.fn();
+    const secondOnResolve = vi.fn();
+    await firstOptimizerPlugin?.setup({ onResolve: firstOnResolve } as unknown as PluginBuild);
+    await secondOptimizerPlugin?.setup({ onResolve: secondOnResolve } as unknown as PluginBuild);
+
+    expect(firstOnResolve).toHaveBeenCalledTimes(1);
+    expect(secondOnResolve).not.toHaveBeenCalled();
   });
 
   it('adds the top-level ssr option only when the config already has ssr or build.ssr', () => {
@@ -296,10 +450,10 @@ describe('sentryOrchestrionPlugin (vite)', () => {
   });
 
   it('force-bundles instrumented modules in server environments', () => {
-    expect(runConfigEnvironment('ssr', {})?.resolve.noExternal).toEqual(
+    expect(runConfigEnvironment('ssr', {})?.resolve?.noExternal).toEqual(
       expect.arrayContaining(['mysql', '@sentry/server-utils']),
     );
-    expect(runConfigEnvironment('worker', { consumer: 'server' })?.resolve.noExternal).toContain('mysql');
+    expect(runConfigEnvironment('worker', { consumer: 'server' })?.resolve?.noExternal).toContain('mysql');
     expect(runConfigEnvironment('client', {})).toBeNull();
     expect(runConfigEnvironment('browser', { consumer: 'client' })).toBeNull();
   });

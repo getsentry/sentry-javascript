@@ -25,6 +25,11 @@ function recordChunksWithoutSourceMap() {
 }
 
 export default defineConfig({
+  // The base-path variant serves the app, and so the tunnel, under `/app`.
+  ...(process.env.E2E_TEST_BASE_PATH && { base: `${process.env.E2E_TEST_BASE_PATH}/` }),
+  define: {
+    __E2E_TEST_TUNNEL__: JSON.stringify(!!process.env.E2E_TEST_TUNNEL),
+  },
   plugins: [
     solidStart({
       appRoot: './src',

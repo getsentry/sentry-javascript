@@ -1,7 +1,7 @@
 import { debug, getActiveSpan, getRootSpan, SPAN_STATUS_ERROR, spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_CANCELLATION_REASON } from '@sentry/conventions/attributes';
 
 /**
  * Add a listener that cancels and finishes a transaction when the global
@@ -35,7 +35,7 @@ export function registerBackgroundTabDetection(): void {
           rootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: cancelledStatus });
         }
 
-        rootSpan.setAttribute('sentry.cancellation_reason', 'document.hidden');
+        rootSpan.setAttribute(SENTRY_CANCELLATION_REASON, 'document.hidden');
         rootSpan.end();
       }
     });

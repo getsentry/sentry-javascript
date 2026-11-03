@@ -62,7 +62,9 @@ export function handleTunnelRequest(
   options?: TunnelForwardOptions,
 ): Promise<void>;
 /**
- * The released form, kept until v12. Its `request` option is deprecated: pass the request as the first argument.
+ * The released form, kept until v12.
+ *
+ * @deprecated Pass the request as the first argument instead: `handleTunnelRequest(request, options)`.
  */
 export function handleTunnelRequest(options: HandleTunnelRequestOptions): Promise<Response>;
 export function handleTunnelRequest(

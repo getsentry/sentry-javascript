@@ -87,7 +87,7 @@
     "@sentry/server-utils": "11.10.0",
     "@sentry/solid": "11.10.0",
     "@sentry/bundler-plugins": "11.10.0",
-    "@sentry/conventions": "0.29.0",
+    "@sentry/conventions": "0.30.0",
     "h3": "^1.15.10"
   },
   "devDependencies": {
@@ -101,9 +101,9 @@
     "@types/node": "^20.19.0",
     "nitropack": "^2.13.4",
     "node-mock-http": "^1.0.4",
-    "solid-js": "^1.9.11",
+    "solid-js": "^1.9.18",
     "vinxi": "^0.5.11",
-    "vite": "^8.3.1",
+    "vite": "^8.3.5",
     "vite-plugin-solid": "^2.11.6"
   },
   "scripts": {

@@ -42,5 +42,13 @@
     "ts-loader": "^9.4.3",
     "tsconfig-paths": "^4.2.0",
     "typescript": "~5.9.0"
+  },
+  "sentryTest": {
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-latest",
+        "label": "nestjs-12 (latest)"
+      }
+    ]
   }
 }

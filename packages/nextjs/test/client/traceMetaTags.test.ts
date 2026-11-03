@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
-import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
-import type { Span } from '@sentry/core';
+import { SENTRY_LINK_TYPE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { PAGELOAD } from '@sentry/conventions/op';
+import type { Span, StartSpanOptions } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addTraceMetaTagLink,
   canWaitForTraceMetaTag,
   readTraceMetaTags,
   waitForTraceMetaTag,
+  withCacheOrigin,
 } from '../../src/client/routing/traceMetaTags';
 
 const HEAD_TRACE = '11111111111111111111111111111111-1111111111111111-1';
@@ -217,5 +219,65 @@ describe('addTraceMetaTagLink', () => {
     addTraceMetaTagLink(span, { sentryTrace: 'not-a-trace', baggage: undefined });
 
     expect(span.addLink).not.toHaveBeenCalled();
+  });
+});
+
+describe('withCacheOrigin', () => {
+  const PAGELOAD_OPTIONS: StartSpanOptions = { name: '/products/:id', attributes: { [SENTRY_OP]: PAGELOAD } };
+  const PRERENDER_LINK = {
+    context: { traceId: '11111111111111111111111111111111', spanId: '1111111111111111', traceFlags: 1 },
+    attributes: { [SENTRY_LINK_TYPE]: 'cache_origin' },
+  };
+
+  it('returns the options unchanged for a document without a sentry-cache-origin tag', () => {
+    appendMeta(document.head, 'sentry-trace', HEAD_TRACE);
+
+    expect(withCacheOrigin(PAGELOAD_OPTIONS, { sentryTrace: HEAD_TRACE, baggage: undefined })).toBe(PAGELOAD_OPTIONS);
+  });
+
+  it('marks a fully reused page as static and links a sampled render as cache origin', () => {
+    appendMeta(document.head, 'sentry-cache-origin', HEAD_TRACE);
+
+    expect(withCacheOrigin(PAGELOAD_OPTIONS)).toEqual({
+      name: '/products/:id',
+      attributes: { [SENTRY_OP]: PAGELOAD, 'page.server_rendering.type': 'static' },
+      links: [PRERENDER_LINK],
+    });
+  });
+
+  it('marks a page as partially static when the pageload continues the trace of this request', () => {
+    appendMeta(document.head, 'sentry-cache-origin', HEAD_TRACE);
+
+    expect(withCacheOrigin(PAGELOAD_OPTIONS, { sentryTrace: BODY_TRACE, baggage: undefined })).toEqual({
+      name: '/products/:id',
+      attributes: { [SENTRY_OP]: PAGELOAD, 'page.server_rendering.type': 'partially_static' },
+      links: [PRERENDER_LINK],
+    });
+  });
+
+  // A navigation or the wait cap can start the pageload before the resumed part arrives.
+  it('leaves the type unset while a resumed part can still bring the trace of this request', () => {
+    appendMeta(document.head, 'sentry-cache-origin', HEAD_TRACE);
+    setReadyState('loading');
+    vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
+
+    expect(withCacheOrigin(PAGELOAD_OPTIONS)).toEqual({
+      name: '/products/:id',
+      attributes: { [SENTRY_OP]: PAGELOAD },
+      links: [PRERENDER_LINK],
+    });
+  });
+
+  it.each([
+    { tag: 'holds an unsampled trace', content: '11111111111111111111111111111111-1111111111111111-0' },
+    { tag: 'holds a trace without a sampling decision', content: '11111111111111111111111111111111-1111111111111111' },
+    { tag: 'holds no sentry-trace value', content: 'prerendered' },
+  ])('marks the page without a link when the tag $tag', ({ content }) => {
+    appendMeta(document.head, 'sentry-cache-origin', content);
+
+    expect(withCacheOrigin(PAGELOAD_OPTIONS)).toEqual({
+      name: '/products/:id',
+      attributes: { [SENTRY_OP]: PAGELOAD, 'page.server_rendering.type': 'static' },
+    });
   });
 });

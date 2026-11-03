@@ -24,5 +24,9 @@ export function shouldSampleForBufferEvent(replay: ReplayContainer, event: Event
     return false;
   }
 
+  if (event.sdkProcessingMetadata?.hasDefaultSyntheticStacktrace) {
+    return false;
+  }
+
   return isSampled(replay.getOptions().errorSampleRate);
 }

@@ -9,6 +9,7 @@ import {
   lastEventId,
   linkedErrorsIntegration,
   makeSession,
+  resolvedSyncPromise,
   Scope,
   setCurrentClient,
   SyncPromise,
@@ -661,6 +662,44 @@ describe('Client', () => {
           message: 'test message',
           timestamp: 2020,
         }),
+      );
+    });
+
+    test.each([
+      ['left at its default', {}, expect.objectContaining({ hasDefaultSyntheticStacktrace: true })],
+      [
+        'explicitly enabled',
+        { attachStacktrace: true },
+        expect.not.objectContaining({ hasDefaultSyntheticStacktrace: true }),
+      ],
+    ])('marks message stack traces only when attachStacktrace is %s', (_, attachStacktraceOptions, metadataMatcher) => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN, ...attachStacktraceOptions }));
+      vi.spyOn(client, 'eventFromMessage').mockReturnValue(
+        resolvedSyncPromise({ message: 'test message', exception: { values: [{ value: 'test message' }] } }),
+      );
+      const processor = vi.fn((event: Event) => event);
+      client.addEventProcessor(processor);
+
+      client.captureMessage('test message');
+
+      expect(processor).toHaveBeenCalledWith(
+        expect.objectContaining({ sdkProcessingMetadata: metadataMatcher }),
+        expect.anything(),
+      );
+    });
+
+    test('does not mark message events without a stack trace', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const processor = vi.fn((event: Event) => event);
+      client.addEventProcessor(processor);
+
+      client.captureMessage('test message');
+
+      expect(processor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sdkProcessingMetadata: expect.not.objectContaining({ hasDefaultSyntheticStacktrace: true }),
+        }),
+        expect.anything(),
       );
     });
 
@@ -1595,6 +1634,37 @@ describe('Client', () => {
           },
         },
       });
+    });
+
+    test('keeps root span links on the sent transaction with `beforeSendSpan`', () => {
+      const beforeSendSpan = withStaticSpan(vi.fn((span: SpanJSON) => span));
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
+      const client = new TestClient(options);
+
+      const links = [
+        {
+          trace_id: '12312012123120121231201212312012',
+          span_id: '1231201212312012',
+          sampled: true,
+          attributes: { 'sentry.link.type': 'previous_trace' },
+        },
+      ];
+
+      client.captureEvent({
+        transaction: '/animals/are/great',
+        type: 'transaction',
+        spans: [],
+        contexts: {
+          trace: {
+            span_id: '9e15bf99fbe4bc80',
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            links,
+          },
+        },
+      });
+
+      expect(beforeSendSpan).toHaveBeenCalledTimes(1);
+      expect(TestClient.instance!.event!.contexts?.trace?.links).toEqual(links);
     });
 
     test('calls `beforeSendTransaction` and uses the modified event', () => {
