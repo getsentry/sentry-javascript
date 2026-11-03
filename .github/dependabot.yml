@@ -25,6 +25,11 @@ updates:
       - dependency-name: '@tanstack/solid-router'
       - dependency-name: 'solid-js'
       - dependency-name: 'elysia'
+      # Keep node-integration-tests on langchain v0. The v1 suite installs v1 via additionalDependencies.
+      - dependency-name: 'langchain'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@langchain/*'
+        update-types: ['version-update:semver-major']
     groups:
       aws-sdk:
         patterns:
@@ -39,6 +44,10 @@ updates:
         patterns:
           - 'react-router'
           - '@react-router/*'
+      langchain:
+        patterns:
+          - 'langchain'
+          - '@langchain/*'
     versioning-strategy: increase
     commit-message:
       prefix: feat

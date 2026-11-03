@@ -74,8 +74,13 @@
       },
       {
         "build-command": "NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES=1 pnpm test:build",
-        "label": "nextjs-16 (exclude application key dependencies)",
-        "assert-command": "NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES=1 pnpm test:assert"
+        "label": "nextjs-16 (exclude application key dependencies, production)",
+        "assert-command": "NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES=1 pnpm test:prod"
+      },
+      {
+        "build-command": "pnpm install",
+        "label": "nextjs-16 (exclude application key dependencies, development)",
+        "assert-command": "NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES=1 pnpm test:dev"
       },
       {
         "build-command": "pnpm test:build-webpack",

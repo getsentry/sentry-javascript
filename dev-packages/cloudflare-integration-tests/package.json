@@ -38,7 +38,7 @@
     "@sentry-internal/test-utils": "11.10.0",
     "@sentry/conventions": "0.30.0",
     "prisma": "6.15.0",
-    "vite": "^8.3.1",
+    "vite": "^8.3.5",
     "vitest": "^4.1.11",
     "wrangler": "4.156.0"
   }

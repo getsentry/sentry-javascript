@@ -19,7 +19,7 @@
     "@sentry/core": "11.10.0",
     "@sentry/deno": "11.10.0",
     "mysql": "^2.18.1",
-    "pg": "^8.22.0"
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "@sentry-internal/node-integration-tests": "11.10.0",
