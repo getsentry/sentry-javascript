@@ -1175,8 +1175,8 @@ importers:
         specifier: ^7.18.5
         version: 7.29.7(supports-color@8.1.1)
       '@babel/parser':
-        specifier: ^7.29.8
-        version: 7.29.9
+        specifier: ^8.0.10
+        version: 8.1.0
       '@babel/preset-react':
         specifier: ^7.23.3
         version: 7.29.7(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)

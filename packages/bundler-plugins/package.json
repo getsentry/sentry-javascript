@@ -137,7 +137,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.18.5",
-    "@babel/parser": "^7.29.8",
+    "@babel/parser": "^8.0.10",
     "@babel/preset-react": "^7.23.3",
     "@sentry-internal/rollup-utils": "11.10.0",
     "@sentry-internal/test-utils": "11.10.0",
