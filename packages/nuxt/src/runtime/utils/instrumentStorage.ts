@@ -16,7 +16,6 @@ import {
   getClient,
   hasSpanStreamingEnabled,
   isObjectLike,
-  SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   type SpanAttributes,
   startSpan,
@@ -209,7 +208,6 @@ function traceCacheOperation(
 
       return result;
     } catch (error) {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       captureException(error, {
         mechanism: {
           handled: false,
