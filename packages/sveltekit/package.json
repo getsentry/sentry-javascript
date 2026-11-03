@@ -79,7 +79,7 @@
     "@sentry/server-utils": "11.10.0",
     "@sentry/svelte": "11.10.0",
     "@sentry/bundler-plugins": "11.10.0",
-    "@sveltejs/acorn-typescript": "^1.0.9",
+    "@sveltejs/acorn-typescript": "^1.0.13",
     "acorn": "^8.14.0",
     "magic-string": "~0.30.0",
     "sorcery": "1.0.0"
