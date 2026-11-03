@@ -1,7 +1,5 @@
 import type { Client } from '../client';
 import type { Integration } from '../types/integration';
-import type { SentryCarrier } from '../carrier';
-import { getGlobalSingleton } from '../carrier';
 import { getClient } from '../currentScopes';
 import { URL_PATH } from '@sentry/conventions/attributes';
 import type { DsnComponents, DsnLike } from '../types/dsn';
@@ -10,6 +8,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { escapeStringForRegex } from '../vendor/escapeStringForRegex';
 import { debug } from './debug-logger';
 import { dsnToString, makeDsn } from './dsn';
+import { getClientTunnelState, updateClientTunnelState } from './tunnelRegistry';
 import { parseUrl } from './url';
 
 /**
@@ -24,13 +23,6 @@ export interface ServedTunnel extends TunnelMatch {
   forward: TunnelForwarder;
   /** Whether the SDK answers tunnel requests itself, see `ServerTunnelOptions.intercept`. */
   intercept: boolean;
-}
-
-/**
- * The managed tunnel state every copy of this module shares.
- */
-export function getManagedTunnelState(): NonNullable<SentryCarrier['managedTunnel']> {
-  return getGlobalSingleton('managedTunnel', () => ({ served: new WeakMap() }));
 }
 
 /**
@@ -55,7 +47,7 @@ export function setServedTunnel(
     forward,
     intercept: tunnelOptions.intercept !== false,
   };
-  getManagedTunnelState().served.set(client, servedTunnel);
+  updateClientTunnelState(client, { served: servedTunnel });
 
   return servedTunnel;
 }
@@ -79,7 +71,7 @@ function getServedTunnel(): ServedTunnel | undefined {
     return undefined;
   }
 
-  const servedTunnel = getManagedTunnelState().served.get(client);
+  const servedTunnel = getClientTunnelState(client)?.served;
   if (servedTunnel) {
     return servedTunnel;
   }

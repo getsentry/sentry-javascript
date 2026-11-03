@@ -1,9 +1,9 @@
 import type { Client } from '../client';
 import { getClient } from '../currentScopes';
-import type { IgnoreSpanFilter, ServerTunnelOptions } from '../types/options';
+import type { ServerTunnelOptions } from '../types/options';
 import type { TunnelForwarder } from './tunnel';
+import { getClientTunnelState, getTunnelDefaults, setTunnelDefaults, updateClientTunnelState } from './tunnelRegistry';
 import {
-  getManagedTunnelState,
   getServeTunnelForwarder,
   getTunnelIgnoreSpanFilters,
   normalizeTunnelBasePath,
@@ -28,22 +28,16 @@ export interface ManagedTunnelDefaults {
   basePath?: string;
 }
 
-const tunnelForwarders = new WeakMap<Client, TunnelForwarder>();
-
-// So re-applying defaults replaces a client's filters instead of adding more.
-const installedSpanFilters = new WeakMap<Client, IgnoreSpanFilter[]>();
-
 /**
  * Sets framework-known tunnel settings for the current and every later server client, so per-request clients
  * (Cloudflare) start with them. Settings from `init` win. Framework SDKs call this once at load.
  */
 export function setManagedTunnelDefaults(defaults: ManagedTunnelDefaults): void {
-  const state = getManagedTunnelState();
-  state.defaults = {
-    ...state.defaults,
+  setTunnelDefaults({
+    ...getTunnelDefaults(),
     ...(defaults.tunnel && { tunnel: defaults.tunnel, forward: defaults.forward }),
     ...(defaults.basePath !== undefined && { basePath: defaults.basePath }),
-  };
+  });
   applyManagedTunnelDefaults(getClient());
 }
 
@@ -56,7 +50,7 @@ export function enableManagedTunnel(
   forward: TunnelForwarder,
 ): void {
   client.getOptions()._managedTunnel = { ...tunnelOptions };
-  tunnelForwarders.set(client, forward);
+  updateClientTunnelState(client, { forward });
   applyManagedTunnelDefaults(client);
 }
 
@@ -66,12 +60,13 @@ export function enableManagedTunnel(
  * {@link setManagedTunnelDefaults}.
  */
 export function applyManagedTunnelDefaults(client: Client | undefined): void {
-  const managedTunnelDefaults = getManagedTunnelState().defaults;
+  const managedTunnelDefaults = getTunnelDefaults();
   const options = client?.getOptions();
   const tunnelOptions: ServerTunnelOptions | undefined = options?._managedTunnel ?? managedTunnelDefaults?.tunnel;
   // A framework SDK can bundle its own copy of this module, which only reaches the forwarder through the client.
   const forward =
-    client && (tunnelForwarders.get(client) ?? getServeTunnelForwarder(client) ?? managedTunnelDefaults?.forward);
+    client &&
+    (getClientTunnelState(client)?.forward ?? getServeTunnelForwarder(client) ?? managedTunnelDefaults?.forward);
   if (!client || !options || !tunnelOptions || !forward) {
     return;
   }
@@ -84,13 +79,13 @@ export function applyManagedTunnelDefaults(client: Client | undefined): void {
   options._managedTunnel = resolved;
   const { paths } = setServedTunnel(client, resolved, forward);
 
-  const previousFilters = installedSpanFilters.get(client) ?? [];
+  const previousFilters = getClientTunnelState(client)?.spanFilters ?? [];
   const spanFilters = getTunnelIgnoreSpanFilters(resolved, paths);
   options.ignoreSpans = [
     ...(options.ignoreSpans ?? []).filter(filter => !(previousFilters as unknown[]).includes(filter)),
     ...spanFilters,
   ];
-  installedSpanFilters.set(client, spanFilters);
+  updateClientTunnelState(client, { spanFilters });
 }
 
 /**
@@ -99,5 +94,5 @@ export function applyManagedTunnelDefaults(client: Client | undefined): void {
  * @internal
  */
 export function _INTERNAL_resetManagedTunnelDefaults(): void {
-  getManagedTunnelState().defaults = undefined;
+  setTunnelDefaults(undefined);
 }
