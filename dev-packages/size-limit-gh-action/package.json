@@ -19,6 +19,6 @@
     "@actions/exec": "1.1.1",
     "@actions/github": "^5.0.0",
     "bytes-iec": "3.1.1",
-    "markdown-table": "3.0.3"
+    "markdown-table": "3.0.4"
   }
 }
