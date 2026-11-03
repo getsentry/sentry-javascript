@@ -564,6 +564,15 @@ export async function waitForLcpCandidate(page: Page, selector: string): Promise
   });
 }
 
+/**
+ * Resolves after the current frame has been presented (double rAF).
+ */
+export async function waitForNextFrame(page: Page): Promise<void> {
+  await page.evaluate(
+    () => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+  );
+}
+
 export async function hidePage(page: Page, interactionSelector?: string): Promise<void> {
   // web-vitals processes an interaction's event entries in `requestIdleCallback(..., { timeout:
   // 1000 })`, and Chromium only reaches idle here once that timeout elapses. Hiding before that
