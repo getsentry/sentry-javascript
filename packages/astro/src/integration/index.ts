@@ -248,7 +248,8 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         if (isSSR && shouldAddMiddleware) {
           addMiddleware({
             order: 'pre',
-            entrypoint: serverInitSnippet && !isCloudflareWorkers ? SENTRY_MIDDLEWARE_MODULE : '@sentry/astro/middleware',
+            entrypoint:
+              serverInitSnippet && !isCloudflareWorkers ? SENTRY_MIDDLEWARE_MODULE : '@sentry/astro/middleware',
           });
         }
       },

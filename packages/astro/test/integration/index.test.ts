@@ -692,7 +692,9 @@ describe('sentryAstro integration', () => {
 
   it('keeps the default middleware entrypoint for the Cloudflare Workers adapter', async () => {
     const addMiddleware = vi.fn();
-    const setup = sentryAstro({ serverInitPath: 'my-server-init-path.js' }).hooks['astro:config:setup'] as (params: unknown) => Promise<void>;
+    const setup = sentryAstro({ serverInitPath: 'my-server-init-path.js' }).hooks['astro:config:setup'] as (
+      params: unknown,
+    ) => Promise<void>;
 
     await setup({
       ...baseConfigHookObject,
