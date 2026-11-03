@@ -3,12 +3,7 @@ import { getClient } from '../currentScopes';
 import type { ServerTunnelOptions } from '../types/options';
 import type { TunnelForwarder } from './tunnel';
 import { getClientTunnel, getTunnelDefaults, setClientTunnel, setTunnelDefaults } from './tunnelRegistry';
-import {
-  getServeTunnelForwarder,
-  getTunnelIgnoreSpanFilters,
-  normalizeTunnelBasePath,
-  setServedTunnel,
-} from './tunnel';
+import { getTunnelIgnoreSpanFilters, normalizeTunnelBasePath, setServedTunnel } from './tunnel';
 
 /**
  * Managed tunnel settings a framework SDK knows outside `init`.
@@ -63,9 +58,7 @@ export function applyManagedTunnelDefaults(client: Client | undefined): void {
   const managedTunnelDefaults = getTunnelDefaults();
   const options = client?.getOptions();
   const tunnelOptions: ServerTunnelOptions | undefined = options?._managedTunnel ?? managedTunnelDefaults?.tunnel;
-  // A framework SDK can bundle its own copy of this module, which only reaches the forwarder through the client.
-  const forward =
-    client && (getClientTunnel(client)?.forward ?? getServeTunnelForwarder(client) ?? managedTunnelDefaults?.forward);
+  const forward = client && (getClientTunnel(client)?.forward ?? managedTunnelDefaults?.forward);
   if (!client || !options || !tunnelOptions || !forward) {
     return;
   }

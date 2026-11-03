@@ -1,5 +1,4 @@
 import type { Client } from '../client';
-import type { Integration } from '../types/integration';
 import { getClient } from '../currentScopes';
 import { URL_PATH } from '@sentry/conventions/attributes';
 import type { DsnComponents, DsnLike } from '../types/dsn';
@@ -26,12 +25,6 @@ export interface ServedTunnel extends TunnelMatch {
 }
 
 /**
- * The name of `serveTunnelIntegration`, which carries the forwarder. Kept here so this module doesn't import the
- * integration, and with it the forwarder, into apps that don't use it.
- */
-export const SERVE_TUNNEL_INTEGRATION_NAME = 'ServeTunnel';
-
-/**
  * Computes a server client's served tunnel from its resolved options, and stores it.
  */
 export function setServedTunnel(
@@ -53,33 +46,13 @@ export function setServedTunnel(
 }
 
 /**
- * The forwarder `serveTunnelIntegration` carries. Any copy of this module can reach it through the client.
- */
-export function getServeTunnelForwarder(client: Client): TunnelForwarder | undefined {
-  return client.getIntegrationByName?.<Integration & { forward?: TunnelForwarder }>(SERVE_TUNNEL_INTEGRATION_NAME)
-    ?.forward;
-}
-
-/**
- * The active client's served tunnel. A copy of this module that didn't set it up rebuilds it once from what the
- * client carries. Bundlers can give a framework's request hook its own copy, like Next.js's middleware next to its
- * `instrumentation`.
+ * The active client's served tunnel. It lives in the tunnel registry, so a copy of this module that didn't set it up,
+ * like the one a bundler gives Next.js's middleware next to its `instrumentation`, still finds it.
  */
 function getServedTunnel(): ServedTunnel | undefined {
   const client = getClient();
-  if (!client) {
-    return undefined;
-  }
 
-  const servedTunnel = getClientTunnel(client)?.served;
-  if (servedTunnel) {
-    return servedTunnel;
-  }
-
-  const tunnelOptions = client.getOptions()._managedTunnel;
-  const forward = getServeTunnelForwarder(client);
-
-  return tunnelOptions && forward ? setServedTunnel(client, tunnelOptions, forward) : undefined;
+  return client && getClientTunnel(client)?.served;
 }
 
 /**
