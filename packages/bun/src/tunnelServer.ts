@@ -19,7 +19,7 @@ let hasPatchedHttpServer = false;
  * before the app sees them. Nothing is answered unless the tunnel is on, through `serveTunnelIntegration` or a
  * framework SDK. A server started before `init` isn't covered.
  */
-export function instrumentTunnelServers(): void {
+export function instrumentBunServers(): void {
   patchBunServe();
   patchHttpServer();
 }

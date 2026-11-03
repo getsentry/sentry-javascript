@@ -1,18 +1,5 @@
-import type { IntegrationFn, ServerTunnelOptions } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
-import { serveTunnelIntegration as coreServeTunnelIntegration } from '@sentry/core/server';
-import { instrumentTunnelServers } from '../tunnelServer';
-
-const _serveTunnelIntegration = ((options: ServerTunnelOptions = {}) => {
-  return {
-    ...coreServeTunnelIntegration(options),
-    setupOnce() {
-      if (options.intercept !== false) {
-        instrumentTunnelServers();
-      }
-    },
-  };
-}) satisfies IntegrationFn;
+import { makeServeTunnelIntegration } from '@sentry/server-utils';
+import { instrumentBunServers } from '../tunnelServer';
 
 /**
  * Lets your server forward the events of a browser SDK set up with `tunnel: true` to Sentry.
@@ -41,4 +28,4 @@ const _serveTunnelIntegration = ((options: ServerTunnelOptions = {}) => {
  * });
  * ```
  */
-export const serveTunnelIntegration = defineIntegration(_serveTunnelIntegration);
+export const serveTunnelIntegration = makeServeTunnelIntegration(instrumentBunServers);

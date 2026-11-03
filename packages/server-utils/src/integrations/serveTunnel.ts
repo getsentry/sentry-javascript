@@ -1,4 +1,4 @@
-import type { IntegrationFn, ServerTunnelOptions } from '@sentry/core';
+import type { ServerTunnelOptions } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { HTTP_ON_SERVER_REQUEST, serveTunnelIntegration as coreServeTunnelIntegration } from '@sentry/core/server';
 import { subscribe } from '../utils/diagnosticsChannel';
@@ -19,16 +19,23 @@ export function instrumentTunnelServers(): void {
   subscribe(HTTP_ON_SERVER_REQUEST, instrumentTunnelServer);
 }
 
-const _serveTunnelIntegration = ((options: ServerTunnelOptions = {}) => {
-  return {
-    ...coreServeTunnelIntegration(options),
-    setupOnce() {
-      if (options.intercept !== false) {
-        instrumentTunnelServers();
-      }
-    },
-  };
-}) satisfies IntegrationFn;
+/**
+ * Makes a `serveTunnelIntegration` that, unless `intercept` is off, also runs `instrumentRuntimeServers` to answer
+ * tunnel requests on the runtime's own servers, like `Bun.serve` or `Deno.serve`.
+ */
+export function makeServeTunnelIntegration(instrumentRuntimeServers?: () => void) {
+  return defineIntegration((options: ServerTunnelOptions = {}) => {
+    return {
+      ...coreServeTunnelIntegration(options),
+      setupOnce() {
+        if (options.intercept !== false) {
+          instrumentTunnelServers();
+          instrumentRuntimeServers?.();
+        }
+      },
+    };
+  });
+}
 
 /**
  * Lets your server forward the events of a browser SDK set up with `tunnel: true` to Sentry.
@@ -56,4 +63,4 @@ const _serveTunnelIntegration = ((options: ServerTunnelOptions = {}) => {
  * });
  * ```
  */
-export const serveTunnelIntegration = defineIntegration(_serveTunnelIntegration);
+export const serveTunnelIntegration = makeServeTunnelIntegration();

@@ -1,21 +1,5 @@
-import type { IntegrationFn, ServerTunnelOptions } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
-import { serveTunnelIntegration as originalServeTunnelIntegration } from '@sentry/server-utils';
+import { makeServeTunnelIntegration } from '@sentry/server-utils';
 import { patchDenoServe } from '../tunnelServer';
-
-const _serveTunnelIntegration = ((options: ServerTunnelOptions = {}) => {
-  const integration = originalServeTunnelIntegration(options);
-
-  return {
-    ...integration,
-    setupOnce() {
-      integration.setupOnce?.();
-      if (options.intercept !== false) {
-        patchDenoServe();
-      }
-    },
-  };
-}) satisfies IntegrationFn;
 
 /**
  * Lets your server forward the events of a browser SDK set up with `tunnel: true` to Sentry.
@@ -44,4 +28,4 @@ const _serveTunnelIntegration = ((options: ServerTunnelOptions = {}) => {
  * });
  * ```
  */
-export const serveTunnelIntegration = defineIntegration(_serveTunnelIntegration);
+export const serveTunnelIntegration = makeServeTunnelIntegration(patchDenoServe);
