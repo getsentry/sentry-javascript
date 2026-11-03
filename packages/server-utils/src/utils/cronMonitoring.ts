@@ -128,7 +128,7 @@ export function cronExpressionToMonitorConfig(
   const weekdayNumbers = endRangesOnSundayAsSeven(replaceNames(dayOfWeek, WEEKDAYS, 0));
   const crontab = [minute, hour, dayOfMonth, monthNumbers, weekdayNumbers];
   if (
-    crontab.some(field => /[a-z]/i.test(field) || hasReversedRange(field)) ||
+    crontab.some(field => /[a-z]/i.test(field) || hasReversedRange(field) || hasSteppedSingleValueRange(field)) ||
     !isSameDayMatching(dayOfMonth, weekdayNumbers, dialect)
   ) {
     return undefined;
@@ -238,6 +238,14 @@ function hasReversedRange(field: string): boolean {
   return field.split(',').some(part => {
     const range = /^(\d+)-(\d+)/.exec(part);
     return !!range && Number(range[1]) > Number(range[2]);
+  });
+}
+
+// The schedulers run `13-13/3` only on the 13th, but Sentry reads it as `13/3`.
+function hasSteppedSingleValueRange(field: string): boolean {
+  return field.split(',').some(part => {
+    const range = /^(\d+)-(\d+)\//.exec(part);
+    return !!range && Number(range[1]) === Number(range[2]);
   });
 }
 
