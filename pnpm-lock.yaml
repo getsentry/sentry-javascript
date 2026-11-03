@@ -310,8 +310,8 @@ importers:
         specifier: 2.109.0
         version: 2.109.0
       axios:
-        specifier: 1.20.0
-        version: 1.20.0(debug@4.4.3(supports-color@10.0.0))(supports-color@10.0.0)
+        specifier: 1.21.0
+        version: 1.21.0(debug@4.4.3(supports-color@10.0.0))(supports-color@10.0.0)
       babel-loader:
         specifier: ^10.1.1
         version: 10.1.1(@babel/core@7.29.7(supports-color@10.0.0))(webpack@5.112.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(sharp@0.35.5(@types/node@20.19.43))(svgo@4.1.0)(uglify-js@3.13.3))
@@ -9914,8 +9914,8 @@ packages:
   axios@1.18.1:
     resolution: {integrity: sha512-3nTvFlvpn9Zu/RkHUqtc7/+al4UpRW5az71ap5zccp6e8RAYEzhMTecX8Dz1wWDYrPpUoB1HAQEGEAEvUr7S9g==}
 
-  axios@1.20.0:
-    resolution: {integrity: sha512-r8aOh8j9cGKpgQAqpzrUHnSIc6a59Y3Xf/cv8sy1DrHCkZHzQGEuoq1tARk6qSyDdtQGSDgpb9kFlruzPvrgwg==}
+  axios@1.21.0:
+    resolution: {integrity: sha512-YCzXMB53Q9PZBsh7yN7wtapit4WepwcHS2fP8QhGsBxSz5YtgYobV7GGlWlAJi+RxfU77GQTQi2DSLUma42EYA==}
 
   axobject-query@3.2.1:
     resolution: {integrity: sha512-jsyHu61e6N4Vbz/v18DHwWYKK0bSWLqn47eeDSKPB7m8tqMHF9YJ+mhIk2lVteyZrY8tnSj/jHOv4YiTCuCJgg==}
@@ -28802,7 +28802,7 @@ snapshots:
       - debug
       - supports-color
 
-  axios@1.20.0(debug@4.4.3(supports-color@10.0.0))(supports-color@10.0.0):
+  axios@1.21.0(debug@4.4.3(supports-color@10.0.0))(supports-color@10.0.0):
     dependencies:
       follow-redirects: 1.16.0(debug@4.4.3(supports-color@10.0.0))
       form-data: 4.0.6
