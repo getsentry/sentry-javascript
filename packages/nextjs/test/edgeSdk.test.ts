@@ -4,7 +4,7 @@ import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import * as SentryVercelEdge from '@sentry/vercel-edge';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  _INTERNAL_resetManagedTunnelDefaults,
+  _INTERNAL_resetTunnelDefaults,
   handleTunnelRequestIfMatched,
   serveTunnelIntegration,
 } from '@sentry/core/server';
@@ -99,7 +99,7 @@ describe('Edge init()', () => {
   describe('managed tunnel', () => {
     afterEach(() => {
       delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryBasePath?: string })._sentryBasePath;
-      _INTERNAL_resetManagedTunnelDefaults();
+      _INTERNAL_resetTunnelDefaults();
     });
 
     it("serves the tunnel of `serveTunnelIntegration` under the app's `basePath`", () => {
