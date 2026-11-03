@@ -90,7 +90,7 @@
     "@sveltejs/kit": "^2.70.2",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
     "@types/node": "^20.19.0",
-    "svelte": "^4.2.8",
+    "svelte": "^5.57.3",
     "vite": "^8.3.1"
   },
   "scripts": {
