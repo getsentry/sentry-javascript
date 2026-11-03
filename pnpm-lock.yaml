@@ -344,8 +344,8 @@ importers:
         specifier: ^20.19.0
         version: 20.19.43
       glob:
-        specifier: ^13.0.6
-        version: 13.0.6
+        specifier: ^14.0.3
+        version: 14.0.3
 
   dev-packages/bun-integration-tests:
     dependencies:
