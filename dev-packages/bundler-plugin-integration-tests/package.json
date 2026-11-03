@@ -11,10 +11,8 @@
     "clean:build": "premove ./fixtures/*/out",
     "clean:deps": "premove node_modules"
   },
-  "dependencies": {
-    "@sentry/bundler-plugins": "11.10.0"
-  },
   "devDependencies": {
+    "@sentry/bundler-plugins": "11.10.0",
     "premove": "^4.0.0",
     "sentry": "^0.45.0",
     "typescript": "~6.0.3",
