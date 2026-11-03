@@ -1,6 +1,11 @@
 import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
+const MONITOR_CONFIG = {
+  schedule: { type: 'crontab', value: '0 9 * * 1-5' },
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+};
+
 afterAll(() => {
   cleanupChildProcesses();
 });
@@ -13,6 +18,7 @@ test('node-schedule instrumentation', { timeout: 30_000 }, async () => {
         monitor_slug: 'my-cron-job',
         status: 'in_progress',
         release: '1.0',
+        monitor_config: MONITOR_CONFIG,
         contexts: {
           trace: {
             trace_id: expect.stringMatching(/[a-f\d]{32}/),
@@ -42,6 +48,7 @@ test('node-schedule instrumentation', { timeout: 30_000 }, async () => {
         monitor_slug: 'my-cron-job',
         status: 'in_progress',
         release: '1.0',
+        monitor_config: MONITOR_CONFIG,
         contexts: {
           trace: {
             trace_id: expect.stringMatching(/[a-f\d]{32}/),
