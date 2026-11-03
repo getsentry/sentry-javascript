@@ -101,7 +101,7 @@
     "pino-next": "npm:pino@^9.12.0",
     "postgres": "^3.4.7",
     "prisma": "6.15.0",
-    "proxy": "^2.1.1",
+    "proxy": "^4.1.0",
     "redis-4": "npm:redis@^4.6.14",
     "redis-5": "npm:redis@~5.11.0",
     "redis-5-tracing": "npm:redis@^5.12.0",

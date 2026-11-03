@@ -826,8 +826,8 @@ importers:
         specifier: 6.15.0
         version: 6.15.0(magicast@0.3.5)(typescript@7.0.2)
       proxy:
-        specifier: ^2.1.1
-        version: 2.1.1(supports-color@10.0.0)
+        specifier: ^4.1.0
+        version: 4.1.0(supports-color@10.0.0)
       redis-4:
         specifier: npm:redis@^4.6.14
         version: redis@4.6.14
@@ -10075,9 +10075,6 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
-  basic-auth-parser@0.0.2-1:
-    resolution: {integrity: sha512-GFj8iVxo9onSU6BnnQvVwqvxh60UcSHJEDnIk3z4B6iOjsKSmqe+ibW0Rsz7YO7IE1HG3D3tqCNIidP46SZVdQ==}
-
   batch@0.6.1:
     resolution: {integrity: sha512-x+VAiMRL6UPkx+kudNvxTl6hB2XNNCG2r+7wixVfIYwu/2HKRXimwQyaumLjMveWvT2Hkd/cAJw+QBMfJ/EKVw==}
 
@@ -16382,9 +16379,10 @@ packages:
     resolution: {integrity: sha512-cJ+oHTW1VAEa8cJslgmUZrc+sjRKgAKl3Zyse6+PV38hZe/V6Z14TbCuXcan9F9ghlz4QrFr2c92TNF82UkYHA==}
     engines: {node: '>=10'}
 
-  proxy@2.1.1:
-    resolution: {integrity: sha512-nLgd7zdUAOpB3ZO/xCkU8gy74UER7P0aihU8DkUsDS5ZoFwVCX7u8dy+cv5tVK8UaB/yminU1GiLWE26TKPYpg==}
-    engines: {node: '>= 14'}
+  proxy@4.1.0:
+    resolution: {integrity: sha512-X3gqRNkp5dLWQolWksIfFSltI0ls8oQ01+tckxnPoz3bQ5+OUsdE7bwX/i/Q3TDEG4gx2PQjc3D07dIx90CQdg==}
+    engines: {node: '>= 20'}
+    hasBin: true
 
   prr@1.0.1:
     resolution: {integrity: sha512-yPw4Sng1gWghHQWj0B3ZggWUm4qVbPwPFcRG8KyxiU7J2OHFSoEHKS+EZ3fv5l1t9CyCiop6l/ZYeWbrgoQejw==}
@@ -28987,8 +28985,6 @@ snapshots:
 
   baseline-browser-mapping@2.11.29: {}
 
-  basic-auth-parser@0.0.2-1: {}
-
   batch@0.6.1: {}
 
   before-after-hook@2.2.3: {}
@@ -37226,10 +37222,9 @@ snapshots:
 
   proxy-from-env@2.1.0: {}
 
-  proxy@2.1.1(supports-color@10.0.0):
+  proxy@4.1.0(supports-color@10.0.0):
     dependencies:
       args: 5.0.3
-      basic-auth-parser: 0.0.2-1
       debug: 4.4.3(supports-color@10.0.0)
     transitivePeerDependencies:
       - supports-color
