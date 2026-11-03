@@ -19,6 +19,12 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: '@react-router/*'
         update-types: ['version-update:semver-major']
+      # These are also peer dependencies. The `increase` strategy raises the peer range too,
+      # which drops support for older versions (a breaking change).
+      - dependency-name: '@tanstack/vue-router'
+      - dependency-name: '@tanstack/solid-router'
+      - dependency-name: 'solid-js'
+      - dependency-name: 'elysia'
     groups:
       opentelemetry:
         patterns:
