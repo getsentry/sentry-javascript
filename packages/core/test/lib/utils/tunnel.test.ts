@@ -9,7 +9,7 @@ import { isTracingSuppressed } from '../../../src/tracing/trace';
 import { makeDsn } from '../../../src/utils/dsn';
 import { createEnvelope, serializeEnvelope } from '../../../src/utils/envelope';
 import {
-  applyTunnelDefaults,
+  applyBrowserTunnelDefaults,
   getTunnelPath,
   getTunnelIgnoreSpanFilters,
   getTunnelPaths,
@@ -29,7 +29,7 @@ import {
 import { serveTunnelIntegration } from '../../../src/integrations/serveTunnel';
 import {
   _INTERNAL_resetTunnelDefaults,
-  applyTunnelDefaults as applyServerTunnelDefaults,
+  applyServerTunnelDefaults,
   setTunnelDefaults,
 } from '../../../src/utils/tunnelDefaults';
 import type { DsnComponents } from '../../../src/types/dsn';
@@ -1057,34 +1057,36 @@ describe('serveTunnelIntegration', () => {
   });
 });
 
-describe('applyTunnelDefaults', () => {
+describe('applyBrowserTunnelDefaults', () => {
   it('fills in the defaults for `true` and options, and lets options the user set win', () => {
     const serverTunnel: ServerTunnelOptions = { allowedDsns: [TEST_DSN] };
 
-    expect(applyTunnelDefaults(true, { basePath: '/app' })).toEqual({ basePath: '/app' });
-    expect(applyTunnelDefaults(serverTunnel, { basePath: '/app' })).toEqual({
+    expect(applyBrowserTunnelDefaults(true, { basePath: '/app' })).toEqual({ basePath: '/app' });
+    expect(applyBrowserTunnelDefaults(serverTunnel, { basePath: '/app' })).toEqual({
       basePath: '/app',
       allowedDsns: [TEST_DSN],
     });
-    expect(applyTunnelDefaults({ basePath: '/custom' }, { basePath: '/app' })).toEqual({ basePath: '/custom' });
+    expect(applyBrowserTunnelDefaults({ basePath: '/custom' }, { basePath: '/app' })).toEqual({ basePath: '/custom' });
   });
 
   it('leaves a path the user wrote as written', () => {
-    expect(applyTunnelDefaults('/monitor', { basePath: '/app' })).toBe('/monitor');
-    expect(applyTunnelDefaults({ path: '/monitor' }, { basePath: '/app' })).toEqual({ path: '/monitor' });
+    expect(applyBrowserTunnelDefaults('/monitor', { basePath: '/app' })).toBe('/monitor');
+    expect(applyBrowserTunnelDefaults({ path: '/monitor' }, { basePath: '/app' })).toEqual({ path: '/monitor' });
   });
 
   it('leaves a URL, an unset tunnel and empty defaults alone', () => {
-    expect(applyTunnelDefaults('https://example.com/tunnel', { basePath: '/app' })).toBe('https://example.com/tunnel');
-    expect(applyTunnelDefaults(undefined, { basePath: '/app' })).toBeUndefined();
-    expect(applyTunnelDefaults('/monitor', {})).toBe('/monitor');
-    expect(applyTunnelDefaults(true, undefined)).toBe(true);
+    expect(applyBrowserTunnelDefaults('https://example.com/tunnel', { basePath: '/app' })).toBe(
+      'https://example.com/tunnel',
+    );
+    expect(applyBrowserTunnelDefaults(undefined, { basePath: '/app' })).toBeUndefined();
+    expect(applyBrowserTunnelDefaults('/monitor', {})).toBe('/monitor');
+    expect(applyBrowserTunnelDefaults(true, undefined)).toBe(true);
   });
 
   it('normalizes the default base path and ignores a root one', () => {
-    expect(applyTunnelDefaults(true, { basePath: 'app/' })).toEqual({ basePath: '/app' });
-    expect(applyTunnelDefaults(true, { basePath: '/' })).toBe(true);
-    expect(applyTunnelDefaults(true, { basePath: undefined })).toBe(true);
+    expect(applyBrowserTunnelDefaults(true, { basePath: 'app/' })).toEqual({ basePath: '/app' });
+    expect(applyBrowserTunnelDefaults(true, { basePath: '/' })).toBe(true);
+    expect(applyBrowserTunnelDefaults(true, { basePath: undefined })).toBe(true);
   });
 });
 

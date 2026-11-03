@@ -60,7 +60,7 @@ function getServedTunnel(): ServedTunnel | undefined {
  * A path the user wrote, as a string or `path`, is used as written, so a tunnel served outside the app keeps working.
  * The base path is normalized, and a root one is no default at all.
  */
-export function applyTunnelDefaults(
+export function applyBrowserTunnelDefaults(
   tunnel: TunnelInit | undefined,
   defaults: TunnelOptions | undefined,
 ): TunnelInit | undefined {
