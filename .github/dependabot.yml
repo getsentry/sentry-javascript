@@ -26,6 +26,9 @@ updates:
       - dependency-name: 'solid-js'
       - dependency-name: 'elysia'
     groups:
+      aws-sdk:
+        patterns:
+          - '@aws-sdk/*'
       opentelemetry:
         patterns:
           - '@opentelemetry/*'
