@@ -986,7 +986,7 @@ describe('serveTunnelIntegration', () => {
     expect(client.getOptions().ignoreSpans).toBeUndefined();
   });
 
-  it('serves the tunnel from a separately bundled copy of core through the shared tunnel registry', async () => {
+  it('serves the tunnel from a separately bundled copy of core through the shared tunnel store', async () => {
     const client = new ServerRuntimeClient(
       getDefaultTestClientOptions({ dsn: TEST_DSN, integrations: [serveTunnelIntegration()] }),
     );

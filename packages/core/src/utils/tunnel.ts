@@ -7,7 +7,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { escapeStringForRegex } from '../vendor/escapeStringForRegex';
 import { debug } from './debug-logger';
 import { dsnToString, makeDsn } from './dsn';
-import { getClientTunnel, setClientTunnel } from './tunnelRegistry';
+import { getClientTunnel, setClientTunnel } from './tunnelStore';
 import { parseUrl } from './url';
 
 /**
@@ -46,7 +46,7 @@ export function setServedTunnel(
 }
 
 /**
- * The active client's served tunnel. It lives in the tunnel registry, so a copy of this module that didn't set it up,
+ * The active client's served tunnel. It lives in the tunnel store, so a copy of this module that didn't set it up,
  * like the one a bundler gives Next.js's middleware next to its `instrumentation`, still finds it.
  */
 function getServedTunnel(): ServedTunnel | undefined {

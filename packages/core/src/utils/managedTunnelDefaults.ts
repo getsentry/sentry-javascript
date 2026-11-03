@@ -2,7 +2,7 @@ import type { Client } from '../client';
 import { getClient } from '../currentScopes';
 import type { ServerTunnelOptions } from '../types/options';
 import type { TunnelForwarder } from './tunnel';
-import { getClientTunnel, getTunnelDefaults, setClientTunnel, setTunnelDefaults } from './tunnelRegistry';
+import { getClientTunnel, getTunnelDefaults, setClientTunnel, setTunnelDefaults } from './tunnelStore';
 import { getTunnelIgnoreSpanFilters, normalizeTunnelBasePath, setServedTunnel } from './tunnel';
 
 /**

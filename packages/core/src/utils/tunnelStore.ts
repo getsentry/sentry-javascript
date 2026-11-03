@@ -5,7 +5,7 @@ import type { ManagedTunnelDefaults } from './managedTunnelDefaults';
 import type { ServedTunnel, TunnelForwarder } from './tunnel';
 
 /**
- * What the managed tunnel keeps per server client.
+ * What the tunnel keeps per server client.
  */
 export interface ClientTunnelState {
   /** The paths, allowed DSNs and forwarder the client answers tunnel requests with. */
@@ -17,33 +17,33 @@ export interface ClientTunnelState {
 }
 
 /**
- * The managed tunnel state, shared by every copy of `@sentry/core`: a framework's server bundle can carry its own
+ * The tunnel state, shared by every copy of `@sentry/core`: a framework's server bundle can carry its own
  * copy, which sets the tunnel up for the runtime's copy that answers it.
  */
-export interface TunnelRegistry {
+export interface TunnelStore {
   clients: WeakMap<Client, ClientTunnelState>;
   defaults?: ManagedTunnelDefaults;
 }
 
 /**
- * Only this module touches the registry, through the functions below.
+ * Only this module touches the store, through the functions below.
  */
-function getTunnelRegistry(): TunnelRegistry {
-  return getGlobalSingleton('tunnelRegistry', () => ({ clients: new WeakMap() }));
+function getTunnelStore(): TunnelStore {
+  return getGlobalSingleton('tunnelStore', () => ({ clients: new WeakMap() }));
 }
 
 /**
- * What the managed tunnel keeps for a client.
+ * What the tunnel keeps for a client.
  */
 export function getClientTunnel(client: Client): Readonly<ClientTunnelState> | undefined {
-  return getTunnelRegistry().clients.get(client);
+  return getTunnelStore().clients.get(client);
 }
 
 /**
- * Sets what the managed tunnel keeps for a client. Merges into what is already there, like `scope.setTags`.
+ * Sets what the tunnel keeps for a client. Merges into what is already there, like `scope.setTags`.
  */
 export function setClientTunnel(client: Client, state: ClientTunnelState): void {
-  const { clients } = getTunnelRegistry();
+  const { clients } = getTunnelStore();
   clients.set(client, { ...clients.get(client), ...state });
 }
 
@@ -51,12 +51,12 @@ export function setClientTunnel(client: Client, state: ClientTunnelState): void 
  * The framework-known tunnel settings, see `setManagedTunnelDefaults`.
  */
 export function getTunnelDefaults(): Readonly<ManagedTunnelDefaults> | undefined {
-  return getTunnelRegistry().defaults;
+  return getTunnelStore().defaults;
 }
 
 /**
  * Replaces the framework-known tunnel settings.
  */
 export function setTunnelDefaults(defaults: ManagedTunnelDefaults | undefined): void {
-  getTunnelRegistry().defaults = defaults;
+  getTunnelStore().defaults = defaults;
 }
