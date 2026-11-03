@@ -2,6 +2,7 @@ import type { StreamedSpanJSON } from '@sentry/core';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { serveTunnelIntegration } from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { awsLambdaIntegration, redirectLambdaHandler } from '../src/integration/awslambda';
 
@@ -94,6 +95,31 @@ describe('redirectLambdaHandler', () => {
     awsLambdaIntegration().setupOnce!();
 
     expect(process.env._HANDLER).toMatch(/\/run-lambda-handler\.handler$/);
+    expect(process.env.SENTRY_ORIGINAL_HANDLER).toBe('index.handler');
+  });
+
+  test("takes over from @sentry/node's tunnel-only handler when that redirected first", () => {
+    process.env.LAMBDA_TASK_ROOT = taskRoot;
+    process.env._HANDLER = 'index.handler';
+
+    serveTunnelIntegration().setupOnce!();
+    const tunnelHandler = process.env._HANDLER;
+    awsLambdaIntegration().setupOnce!();
+
+    expect(tunnelHandler).toMatch(/node\/build\/run-lambda-handler\.handler$/);
+    expect(process.env._HANDLER).toMatch(/aws-serverless\/build\/npm\/run-lambda-handler\.handler$/);
+    expect(process.env.SENTRY_ORIGINAL_HANDLER).toBe('index.handler');
+  });
+
+  test("leaves the handler alone when @sentry/node's tunnel comes after", () => {
+    process.env.LAMBDA_TASK_ROOT = taskRoot;
+    process.env._HANDLER = 'index.handler';
+
+    awsLambdaIntegration().setupOnce!();
+    const awsHandler = process.env._HANDLER;
+    serveTunnelIntegration().setupOnce!();
+
+    expect(process.env._HANDLER).toBe(awsHandler);
     expect(process.env.SENTRY_ORIGINAL_HANDLER).toBe('index.handler');
   });
 });

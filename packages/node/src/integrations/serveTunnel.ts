@@ -1,8 +1,6 @@
-import type { IntegrationFn, ServerTunnelOptions } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
 import {
   _INTERNAL_instrumentTunnelServers as instrumentTunnelServers,
-  serveTunnelIntegration as originalServeTunnelIntegration,
+  makeServeTunnelIntegration,
 } from '@sentry/server-utils';
 import { redirectLambdaHandlerForTunnel } from '../lambda/redirectHandler';
 
@@ -22,19 +20,6 @@ function redirectLambdaHandlerForTunnelIfOnLambda(): void {
     redirectLambdaHandlerForTunnel();
   }
 }
-
-const _serveTunnelIntegration = ((options: ServerTunnelOptions = {}) => {
-  return {
-    ...originalServeTunnelIntegration(options),
-    afterAllSetup() {
-      // After every `setupOnce`, so the redirect of `@sentry/aws-serverless`, whose handler answers tunnel requests
-      // too, goes first and this one stays out of it.
-      if (options.intercept !== false) {
-        redirectLambdaHandlerForTunnelIfOnLambda();
-      }
-    },
-  };
-}) satisfies IntegrationFn;
 
 /**
  * Lets your server forward the events of a browser SDK set up with `tunnel: true` to Sentry.
@@ -63,4 +48,4 @@ const _serveTunnelIntegration = ((options: ServerTunnelOptions = {}) => {
  * });
  * ```
  */
-export const serveTunnelIntegration = defineIntegration(_serveTunnelIntegration);
+export const serveTunnelIntegration = makeServeTunnelIntegration(redirectLambdaHandlerForTunnelIfOnLambda);
