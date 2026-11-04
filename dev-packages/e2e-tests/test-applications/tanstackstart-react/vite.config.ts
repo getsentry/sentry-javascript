@@ -26,6 +26,17 @@ function recordChunksWithoutSourceMap() {
   };
 }
 
+// Hosts without `node --import`, such as Vercel, initialize the SDK with an import at the top of the server entry.
+function initInServerEntry() {
+  return {
+    name: 'init-in-server-entry',
+    enforce: 'pre' as const,
+    transform(code: string, id: string) {
+      return id.endsWith('/src/server.ts') ? `import '../instrument.server.mjs';\n${code}` : undefined;
+    },
+  };
+}
+
 const tunnelRouteMode = process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off';
 const useManagedTunnelRoute = tunnelRouteMode !== 'off';
 const useCustomTunnelRoute = process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1';
@@ -81,5 +92,6 @@ export default defineConfig({
       tunnelRoute,
     }),
     recordChunksWithoutSourceMap(),
+    process.env.E2E_TEST_INIT_IN_SERVER_ENTRY === '1' && initInServerEntry(),
   ],
 });

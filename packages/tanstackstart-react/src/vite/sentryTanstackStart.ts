@@ -2,6 +2,7 @@ import type { BuildTimeOptionsBase, ReactComponentAnnotationOptions } from '@sen
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
+import { makePreloadNitroServerEntryPlugin } from './nitroPreloadServerEntry';
 import { makeComposeNitroServiceSourceMapsPlugin, makeEnableNitroSourceMapsPlugin } from './nitroSourceMaps';
 import { makeRoutePatternPlugin } from './routePatterns';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
@@ -97,7 +98,11 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   // (CommonJS) deps via `ssr.noExternal`, which the `vite dev` SSR module runner can't evaluate.
   plugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: options.buildTimeInstrumentation }));
 
-  plugins.push(...makeAddSentryVitePlugin(options), makeComposeNitroServiceSourceMapsPlugin());
+  plugins.push(
+    ...makeAddSentryVitePlugin(options),
+    makeComposeNitroServiceSourceMapsPlugin(),
+    makePreloadNitroServerEntryPlugin(),
+  );
 
   // middleware auto-instrumentation
   if (options.autoInstrumentMiddleware !== false) {
