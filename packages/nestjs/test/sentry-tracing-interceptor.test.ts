@@ -1,8 +1,8 @@
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { WEBSOCKET } from '@sentry/conventions/op';
-import { getDefaultIsolationScope, getIsolationScope, startSpanManual } from '@sentry/core';
-import { of, tap } from 'rxjs';
+import { getDefaultIsolationScope, getIsolationScope, SPAN_STATUS_ERROR, startSpanManual } from '@sentry/core';
+import { of, tap, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SentryModule } from '../src/setup';
 
@@ -14,11 +14,13 @@ const mocks = vi.hoisted(() => ({
   debugWarn: vi.fn(),
   inIsolationScope: false,
   span: {
+    setStatus: vi.fn(),
     end: vi.fn(),
   },
 }));
 
 vi.mock('@sentry/core', () => ({
+  SPAN_STATUS_ERROR: 2,
   getDefaultIsolationScope: vi.fn(() => mocks.defaultIsolationScope),
   getIsolationScope: vi.fn(() => mocks.isolationScope),
   withIsolationScope: vi.fn((callback: (scope: unknown) => unknown) => {
@@ -79,7 +81,7 @@ describe('SentryTracingInterceptor', () => {
         name: 'WS /events message',
         attributes: {
           [SENTRY_OP]: WEBSOCKET,
-          [SENTRY_ORIGIN]: 'auto.middleware.nestjs.interceptor',
+          [SENTRY_ORIGIN]: 'auto.websocket.nestjs.interceptor',
         },
       },
       expect.any(Function),
@@ -93,6 +95,44 @@ describe('SentryTracingInterceptor', () => {
     const next = { handle: vi.fn(() => { throw new Error('handler failed'); }) } as unknown as CallHandler;
 
     expect(() => interceptor.intercept(context, next)).toThrow('handler failed');
+    expect(mocks.span.setStatus).toHaveBeenCalledWith({
+      code: SPAN_STATUS_ERROR,
+      message: 'internal_error',
+    });
+    expect(mocks.span.end).toHaveBeenCalled();
+  });
+
+  it('marks the WebSocket span as failed when the handler Observable errors', () => {
+    const interceptor = createInterceptor();
+    const context = createContext({ nsp: { name: '/events' } }, 'message');
+    const handlerError = new Error('handler failed');
+    const errorHandler = vi.fn();
+    const next = { handle: vi.fn(() => throwError(() => handlerError)) } as unknown as CallHandler;
+
+    interceptor.intercept(context, next).subscribe({ error: errorHandler });
+
+    expect(errorHandler).toHaveBeenCalledWith(handlerError);
+    expect(mocks.span.setStatus).toHaveBeenCalledWith({
+      code: SPAN_STATUS_ERROR,
+      message: 'internal_error',
+    });
+    expect(mocks.span.end).toHaveBeenCalled();
+  });
+
+  it('marks the WebSocket span as failed with the positional subscribe error callback', () => {
+    const interceptor = createInterceptor();
+    const context = createContext({ nsp: { name: '/events' } }, 'message');
+    const handlerError = new Error('handler failed');
+    const errorHandler = vi.fn();
+    const next = { handle: vi.fn(() => throwError(() => handlerError)) } as unknown as CallHandler;
+
+    interceptor.intercept(context, next).subscribe(undefined, errorHandler);
+
+    expect(errorHandler).toHaveBeenCalledWith(handlerError);
+    expect(mocks.span.setStatus).toHaveBeenCalledWith({
+      code: SPAN_STATUS_ERROR,
+      message: 'internal_error',
+    });
     expect(mocks.span.end).toHaveBeenCalled();
   });
 
