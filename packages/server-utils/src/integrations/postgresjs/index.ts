@@ -1,4 +1,4 @@
-import * as diagnosticsChannel from '../utils/diagnosticsChannel';
+import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import {
   DB_OPERATION_NAME,
   DB_QUERY_TEXT,
@@ -9,9 +9,9 @@ import {
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
-import { debug, defineIntegration, startInactiveSpan } from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
-import { getSqlQueryAttributes, getSqlSpanName } from '../utils/sql';
+import { debug, defineIntegration, startInactiveSpan, waitForTracingChannelBinding } from '@sentry/core';
+import { DEBUG_BUILD } from '../../debug-build';
+import { getSqlQueryAttributes, getSqlSpanName } from '../../utils/sql';
 import {
   _buildConnectionContext,
   _getConnectionAttributes,
@@ -19,12 +19,13 @@ import {
   _wrapQuerySettlement,
   type PostgresConnectionContext,
   type PostgresQuerySettlement,
-} from './postgresjs-wrapper';
-import type { OrchestrionChannelContext } from '../orchestrion/types';
-import { CHANNELS } from '../orchestrion/channels';
-import { bindTracingChannelToSpan } from '../tracing-channel';
-import { postgresJsModuleNames } from '../orchestrion/config/postgres';
-import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
+} from '../postgresjs-wrapper';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
+import { CHANNELS } from '../../orchestrion/channels';
+import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { postgresJsModuleNames } from '../../orchestrion/config/postgres';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
+import { subscribePostgresJsDiagnosticChannels } from './postgresjs-dc-subscriber';
 
 // Same name as the OTel `PostgresJs` integration by design, so the OTel
 // integration of the same name is deduplicated out of the default set.
@@ -133,7 +134,18 @@ function attachConnectionAttributesFromChannel(message: PostgresJsQueryContext):
 const _postgresJsIntegration = ((options: PostgresJsIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
+    setupOnce() {
+      // postgres >= 4 publishes its own `postgres:query` tracing channel, with no orchestrion event to
+      // signal that it was loaded, so subscribe eagerly.
+      if (!diagnosticsChannel.tracingChannel) {
+        return;
+      }
+      waitForTracingChannelBinding(() => {
+        subscribePostgresJsDiagnosticChannels(diagnosticsChannel.tracingChannel, options);
+      });
+    },
     setup(client) {
+      // postgres 3.x is covered by the orchestrion-injected channels, subscribed lazily.
       invokeOrchestrionInstrumentation(client, postgresJsModuleNames, instrumentPostgresJs, [options]);
     },
   };
@@ -247,12 +259,15 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
 }
 
 /**
- * Diagnostics-channel-based postgres.js (`postgres` v3.x) integration.
+ * Diagnostics-channel-based postgres.js integration.
  *
- * Subscribes to the `orchestrion:postgres:handle` / `:connection` / `:execute` /
- * `:connect` diagnostics channels injected into postgres.js' `Query.prototype.handle`
- * and `Connection`/`execute`/`connect` (in `src/*` and `cjs/src/*`) and creates db
- * spans matching the OTel `postgresJsIntegration`. Requires the Sentry runtime
- * hook or bundler plugin.
+ * - `postgres` 3.x: subscribes to the `orchestrion:postgres:handle` / `:connection` /
+ *   `:execute` / `:connect` channels injected into postgres.js' `Query.prototype.handle`
+ *   and `Connection`/`execute`/`connect` (in `src/*` and `cjs/src/*`). Requires the
+ *   Sentry runtime hook or bundler plugin.
+ * - `postgres` >= 4.0.0: subscribes to the `postgres:query` tracing channel the library
+ *   publishes natively.
+ *
+ * Both paths create the same db spans.
  */
 export const postgresJsIntegration = defineIntegration(_postgresJsIntegration);

@@ -4,6 +4,7 @@
 /* eslint-disable max-lines */
 
 import {
+  addNonEnumerableProperty,
   debug,
   getActiveSpan,
   isObjectLike,
@@ -40,7 +41,7 @@ export type PostgresConnectionContext = {
   ATTR_SERVER_PORT?: string;
 };
 
-interface PostgresJsSqlInstrumentationOptions {
+export interface PostgresJsSqlInstrumentationOptions {
   /**
    * Whether to require a parent span for the instrumentation.
    * If set to true, the instrumentation will only create spans if there is a parent span
@@ -64,6 +65,9 @@ const INSTRUMENTED_MARKER = Symbol.for('sentry.instrumented.postgresjs');
 // This prevents double-spanning when both the wrapper and the Node.js Query.prototype
 // fallback patch are active simultaneously.
 const QUERY_FROM_INSTRUMENTED_SQL = Symbol.for('sentry.query.from.instrumented.sql');
+// postgres >= 4 publishes `postgres:query` without exposing the `Query`, so the native channel
+// subscriber can't read QUERY_FROM_INSTRUMENTED_SQL. It checks this marker on the active span instead.
+const POSTGRESJS_WRAPPER_SPAN = Symbol.for('sentry.postgresjs.wrapper.span');
 
 /**
  * Instruments a postgres.js `sql` instance with Sentry tracing.
@@ -266,6 +270,8 @@ function _wrapSingleQueryHandle(
     };
 
     return startSpanManual({ name: getSqlSpanName(attributes, 'postgresjs.query'), attributes }, (span: Span) => {
+      addNonEnumerableProperty(span, POSTGRESJS_WRAPPER_SPAN, true);
+
       if (options.requestHook) {
         try {
           options.requestHook(span, sanitizedSqlQuery, connectionContext);
@@ -293,6 +299,15 @@ function _wrapSingleQueryHandle(
 
   (wrappedHandle as { __sentryWrapped?: boolean }).__sentryWrapped = true;
   query.handle = wrappedHandle;
+}
+
+/**
+ * Whether `span` was started by {@link instrumentPostgresJsSql}.
+ *
+ * @internal Exported for the diagnostics-channel integration.
+ */
+export function _isPostgresJsWrapperSpan(span: Span | undefined): boolean {
+  return !!span && POSTGRESJS_WRAPPER_SPAN in span;
 }
 
 /**
