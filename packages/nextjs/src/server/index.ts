@@ -26,6 +26,7 @@ import {
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { registerNextSentryPropagator } from './nextSentryPropagator';
 import { addNextjsServerSpanHooks, NEXTJS_SERVER_IGNORE_SPANS } from './serverSpanHooks';
+import { addServerTimingTraceHeader } from './serverTimingHeader';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
 import { nextjsUseCacheIntegration } from './useCacheInstrumentation';
 
@@ -181,6 +182,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   if (client) {
     addNextjsServerSpanHooks(client);
+    addServerTimingTraceHeader(client);
   } else if (isOwnedByCloudflare) {
     setCloudflareWorkerRelease(opts.release);
   }
