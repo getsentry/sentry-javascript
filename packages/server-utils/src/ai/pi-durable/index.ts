@@ -10,6 +10,7 @@ import {
 } from '@sentry/core';
 import { GEN_AI_CONVERSATION_ID } from '@sentry/conventions/attributes';
 import type { GenAiOptions } from '../core/utils';
+import { setPiAiRecordingOptions } from '../pi-ai/recording';
 import { PI_DURABLE_ORIGIN, PI_TASK } from './constants';
 import type { PiRuns } from './runs';
 import { createRuns, endRun, observeRunControl, readProviderSessionId, startRun, toSentryConversationId } from './runs';
@@ -137,6 +138,7 @@ function instrumentRegistry(registry: PiRegistryReader, options: PiDurableOption
             runs,
             wrapTool,
             isAbort,
+            options,
           );
       const phases: Record<string, PiPhaseHandler> = {};
       for (const [name, phase] of Object.entries(definition.phases)) {
@@ -192,6 +194,7 @@ function runPhase(
   runs: PiRuns,
   wrapTool: (tool: PiTool) => PiTool,
   isAbort: boolean,
+  options: PiDurableOptions,
 ): Promise<unknown> {
   const { conversationId } = runtime;
   const isRunWork = kind === PI_TASK.GENERATION || kind === PI_TASK.TOOL;
@@ -225,6 +228,7 @@ function runPhase(
       }
     }
     scope.setConversationId(sessionId ?? toSentryConversationId(runs, conversationId));
+    setPiAiRecordingOptions(scope, options);
     try {
       return await phase(observed);
     } catch (error) {

@@ -103,6 +103,55 @@ describe.runIf(supports({ min: 22 }))('Flue integration', () => {
     });
   });
 
+  // `instrument-with-pii.mjs` turns recording on and `instrument.mjs` off, so the options of the Flue
+  // instrumentation decide here.
+  createEsmTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('keeps message content off chat and tool spans when the Flue options turn recording off', async () => {
+      await createRunner()
+        .withEnv({ FLUE_RECORDING: 'off' })
+        .expect({
+          span: container => {
+            const chats = container.items.filter(span => span.name === 'chat faux-model');
+            const tools = container.items.filter(span => span.name === 'execute_tool get_weather');
+            expect(chats).toHaveLength(2);
+            expect(tools).toHaveLength(1);
+            for (const span of [...chats, ...tools]) {
+              for (const attribute of [
+                GEN_AI_INPUT_MESSAGES,
+                GEN_AI_OUTPUT_MESSAGES,
+                GEN_AI_SYSTEM_INSTRUCTIONS,
+                GEN_AI_TOOL_CALL_ARGUMENTS,
+                GEN_AI_TOOL_CALL_RESULT,
+              ]) {
+                expect(span.attributes[attribute]).toBeUndefined();
+              }
+            }
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('records message content on chat spans when the Flue options turn recording on', async () => {
+      await createRunner()
+        .withEnv({ FLUE_RECORDING: 'on' })
+        .expect({
+          span: container => {
+            const chats = container.items.filter(span => span.name === 'chat faux-model');
+            expect(chats).toHaveLength(2);
+            for (const chat of chats) {
+              expect(chat.attributes[GEN_AI_INPUT_MESSAGES]?.value).toEqual(expect.any(String));
+              expect(chat.attributes[GEN_AI_OUTPUT_MESSAGES]?.value).toEqual(expect.any(String));
+            }
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
   createEsmTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('records the messages of the turns in the gen_ai conventions shape', async () => {
       await createRunner()

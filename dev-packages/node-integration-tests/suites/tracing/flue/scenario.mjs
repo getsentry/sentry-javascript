@@ -6,7 +6,12 @@ import * as v from 'valibot';
 
 // `pi-ai`'s faux provider scripts model responses in-process, so the run is deterministic and needs
 // no provider key or mock server. Two steps: a tool call, then the final answer.
-instrument(Sentry.createFlueInstrumentation());
+const recording = process.env.FLUE_RECORDING === 'on';
+instrument(
+  Sentry.createFlueInstrumentation(
+    process.env.FLUE_RECORDING ? { recordInputs: recording, recordOutputs: recording } : undefined,
+  ),
+);
 
 const faux = fauxProvider({
   provider: 'faux',

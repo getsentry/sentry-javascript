@@ -2,10 +2,10 @@ import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration, isThenable, startInactiveSpan } from '@sentry/core';
 import type { GenAiOptions } from '../ai/core/utils';
-import { resolveAIRecordingOptions } from '../ai/core/utils';
 import { getPiAiChatSpanOptions, setPiAiResponseAttributes } from '../ai/pi-ai/chat';
 import { PI_AI_INTEGRATION_NAME } from '../ai/pi-ai/constants';
 import type { PiAiContext } from '../ai/pi-ai/messages';
+import { resolvePiAiRecordingOptions } from '../ai/pi-ai/recording';
 import type { PiEventStream, PiStreamOptions } from '../ai/pi-ai/types';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
@@ -14,6 +14,8 @@ import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation
 import { bindTracingChannelToSpan } from '../tracing-channel';
 
 export type PiAiOptions = GenAiOptions;
+
+type PiAiChannelContext = OrchestrionChannelContext & { _sentryRecordOutputs?: boolean };
 
 const _piAiIntegration = ((options: PiAiOptions = {}) => {
   return {
@@ -25,17 +27,19 @@ const _piAiIntegration = ((options: PiAiOptions = {}) => {
 }) satisfies IntegrationFn;
 
 function instrumentPiAi(options: PiAiOptions): void {
-  const streamChannel = diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.PI_AI_STREAM);
-  const completeChannel = diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.PI_AI_COMPLETE);
+  const streamChannel = diagnosticsChannel.tracingChannel<PiAiChannelContext>(CHANNELS.PI_AI_STREAM);
+  const completeChannel = diagnosticsChannel.tracingChannel<PiAiChannelContext>(CHANNELS.PI_AI_COMPLETE);
 
   // `complete` awaits `stream`, and the `compat` functions hand some models to a `Models` of their
   // own, so a traced call can make another one synchronously. Only the outermost gets a span.
   let depth = 0;
-  const startSpan = (data: OrchestrionChannelContext, streaming: boolean): Span | undefined => {
+  const startSpan = (data: PiAiChannelContext, streaming: boolean): Span | undefined => {
     if (depth > 0) {
       return undefined;
     }
     const [model, context, callOptions] = data.arguments ?? [];
+    const { recordInputs, recordOutputs } = resolvePiAiRecordingOptions(options);
+    data._sentryRecordOutputs = recordOutputs;
     return startInactiveSpan(
       getPiAiChatSpanOptions({
         model: model ?? {},
@@ -43,14 +47,14 @@ function instrumentPiAi(options: PiAiOptions): void {
         context: context as PiAiContext | undefined,
         callOptions: callOptions as PiStreamOptions | undefined,
         streaming,
-        recordInputs: resolveAIRecordingOptions(options).recordInputs,
+        recordInputs,
       }),
     );
   };
 
-  const setResponse = (span: Span, message: unknown): void => {
+  const setResponse = (span: Span, data: PiAiChannelContext, message: unknown): void => {
     if (message && typeof message === 'object') {
-      setPiAiResponseAttributes(span, message, resolveAIRecordingOptions(options).recordOutputs);
+      setPiAiResponseAttributes(span, message, !!data._sentryRecordOutputs);
     }
   };
 
@@ -63,7 +67,7 @@ function instrumentPiAi(options: PiAiOptions): void {
         return false;
       }
       settled.then(message => {
-        setResponse(span, message);
+        setResponse(span, data, message);
         end();
       }, end);
       return true;
@@ -73,7 +77,7 @@ function instrumentPiAi(options: PiAiOptions): void {
   bindTracingChannelToSpan(completeChannel, data => startSpan(data, false), {
     beforeSpanEnd: (span, data) => {
       if (!('error' in data)) {
-        setResponse(span, data.result);
+        setResponse(span, data, data.result);
       }
     },
   });

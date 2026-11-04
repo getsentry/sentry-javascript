@@ -15,6 +15,7 @@ import {
 } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../../../../src/async-context';
 import { createFlueInstrumentation } from '../../../../src/ai/flue';
+import { resolvePiAiRecordingOptions } from '../../../../src/ai/pi-ai/recording';
 import type { FlueInstrumentation } from '../../../../src/ai/flue/types';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
@@ -311,6 +312,17 @@ describe('createFlueInstrumentation', () => {
     expect(conversationId).toBe('conv_1');
     expect(getCurrentScope().getScopeData().conversationId).toBeUndefined();
     expect(endedSpans.map(span => spanToStaticSpanJSON(span).description)).toEqual(['invoke_agent Hello']);
+  });
+
+  it('hands its recording options to the model operation it wraps through the scope', async () => {
+    let recording: unknown;
+
+    await createFlueInstrumentation({ recordInputs: false }).interceptor({ type: 'model' }, {}, async () => {
+      recording = resolvePiAiRecordingOptions({});
+    });
+
+    expect(recording).toEqual({ recordInputs: false, recordOutputs: true });
+    expect(resolvePiAiRecordingOptions({})).toEqual({ recordInputs: true, recordOutputs: true });
   });
 
   // The `tool` operation opens no span of its own; it makes the span `observe` already opened

@@ -9,4 +9,7 @@ Sentry.init({
   ...(process.env.PI_DURABLE_RECORDING === 'off'
     ? { dataCollection: { genAI: { inputs: false, outputs: false } } }
     : {}),
+  ...(process.env.PI_DURABLE_RECORDING === 'integration-off'
+    ? { integrations: [Sentry.piDurableIntegration({ recordInputs: false, recordOutputs: false })] }
+    : {}),
 });
