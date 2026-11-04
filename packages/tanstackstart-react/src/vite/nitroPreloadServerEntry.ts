@@ -77,8 +77,12 @@ export async function readViteServices(template: NitroTemplate | undefined): Pro
   }
 
   const services = [];
-  for (const match of code.matchAll(/\[("(?:[^"\\]|\\.)*")\]: lazyService\(\(\) => import\(("(?:[^"\\]|\\.)*")\)\)/g)) {
-    services.push({ name: JSON.parse(match[1]!) as string, file: JSON.parse(match[2]!) as string });
+  for (const [, name, file] of code.matchAll(
+    /\[("(?:[^"\\]|\\.)*")\]: lazyService\(\(\) => import\(("(?:[^"\\]|\\.)*")\)\)/g,
+  )) {
+    if (name && file) {
+      services.push({ name: JSON.parse(name) as string, file: JSON.parse(file) as string });
+    }
   }
   return services;
 }
