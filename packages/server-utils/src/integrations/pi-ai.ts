@@ -5,6 +5,7 @@ import type { GenAiOptions } from '../ai/core/utils';
 import { getPiAiChatSpanOptions, setPiAiResponseAttributes } from '../ai/pi-ai/chat';
 import { PI_AI_INTEGRATION_NAME } from '../ai/pi-ai/constants';
 import type { PiAiContext } from '../ai/pi-ai/messages';
+import { isInsidePiAiSpan } from '../ai/pi-ai/providers';
 import { resolvePiAiRecordingOptions } from '../ai/pi-ai/recording';
 import type { PiEventStream, PiStreamOptions } from '../ai/pi-ai/types';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
@@ -30,11 +31,10 @@ function instrumentPiAi(options: PiAiOptions): void {
   const streamChannel = diagnosticsChannel.tracingChannel<PiAiChannelContext>(CHANNELS.PI_AI_STREAM);
   const completeChannel = diagnosticsChannel.tracingChannel<PiAiChannelContext>(CHANNELS.PI_AI_COMPLETE);
 
-  // `complete` awaits `stream`, and the `compat` functions hand some models to a `Models` of their
-  // own, so a traced call can make another one synchronously. Only the outermost gets a span.
-  let depth = 0;
   const startSpan = (data: PiAiChannelContext, streaming: boolean): Span | undefined => {
-    if (depth > 0) {
+    // `complete` awaits `stream`, and the `compat` functions hand some models to a `Models` of their
+    // own, so a traced call can make another one. Only the outermost gets a span.
+    if (isInsidePiAiSpan()) {
       return undefined;
     }
     const [model, context, callOptions] = data.arguments ?? [];
@@ -81,15 +81,6 @@ function instrumentPiAi(options: PiAiOptions): void {
       }
     },
   });
-
-  for (const channel of [streamChannel, completeChannel]) {
-    channel.start.subscribe(() => {
-      depth++;
-    });
-    channel.end.subscribe(() => {
-      depth--;
-    });
-  }
 }
 
 /**

@@ -180,6 +180,19 @@ describe('piAiIntegration', () => {
     expect(endedSpans.map(span => spanToJSON(span).attributes[GEN_AI_RESPONSE_STREAMING])).toEqual([undefined, true]);
   });
 
+  it('traces a call that makes another traced call after an await as one request', async () => {
+    await complete(
+      async () => {
+        await Promise.resolve();
+        return stream(settlesWith(ANSWER), MODEL, { messages: [] }).result();
+      },
+      MODEL,
+      { messages: [] },
+    );
+
+    expect(endedSpans).toHaveLength(1);
+  });
+
   it('traces requests after a nested one, and after one that threw', async () => {
     expect(() =>
       stream(() => {

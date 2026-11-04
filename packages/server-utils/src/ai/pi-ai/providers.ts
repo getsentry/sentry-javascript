@@ -1,5 +1,5 @@
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
-import { getActiveSpan, spanToJSON } from '@sentry/core';
+import { _INTERNAL_shouldSkipAiProviderWrapping, getActiveSpan, spanToJSON } from '@sentry/core';
 import { PI_AI_ORIGIN } from './constants';
 
 /**
@@ -14,4 +14,13 @@ import { PI_AI_ORIGIN } from './constants';
 export function isInsidePiAiSpan(): boolean {
   const span = getActiveSpan();
   return !!span && spanToJSON(span).attributes[SENTRY_ORIGIN] === PI_AI_ORIGIN;
+}
+
+/**
+ * Whether a provider integration should leave a call alone, because the integration driving the SDK
+ * reports it. LangChain and Vercel AI mark the providers they drive as skipped; pi-ai is detected per
+ * request, by its active span.
+ */
+export function shouldSkipAiProviderSpan(integrationName: string): boolean {
+  return _INTERNAL_shouldSkipAiProviderWrapping(integrationName) || isInsidePiAiSpan();
 }
