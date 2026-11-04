@@ -1,3 +1,4 @@
+import { stripUrlQueryAndFragment } from '@sentry/core';
 import type * as OxcParser from 'oxc-parser';
 import type { ProgramBody } from './ast';
 
@@ -44,7 +45,7 @@ export function isParserLoading(): boolean {
 
 /** The source dialect a module id names by its extension. */
 export function langFromId(id: string): ModuleLang {
-  const extension = /\.([cm]?[jt]sx?)$/.exec(id.replace(/[?#].*$/, ''))?.[1] ?? 'js';
+  const extension = /\.([cm]?[jt]sx?)$/.exec(stripUrlQueryAndFragment(id))?.[1] ?? 'js';
   if (extension === 'tsx') return 'tsx';
   if (extension === 'jsx') return 'jsx';
   return extension.endsWith('ts') ? 'ts' : 'js';
