@@ -18,8 +18,9 @@ export default (nitroApp => {
 
   // Not the `request` hook: h3 still runs the first layer after a hook answered, and with a `headers` route rule
   // that layer throws for writing headers on the sent response.
+  // `/` (not `''`) so h3's WebSocket resolver skips this layer and finds the app's WebSocket handlers.
   nitroApp.h3App.stack.unshift({
-    route: '',
+    route: '/',
     handler: eventHandler(event => {
       // Checked on the method and path first, so no other request's body gets wrapped in a web `Request`.
       if (!isServedTunnelRequest({ method: event.method, url: event.path })) {
