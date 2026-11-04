@@ -212,7 +212,7 @@ function traceCacheOperation(
       captureException(error, {
         mechanism: {
           handled: false,
-          type: options.attributes?.[SENTRY_ORIGIN],
+          type: 'auto.cache.nuxt',
         },
       });
     },
