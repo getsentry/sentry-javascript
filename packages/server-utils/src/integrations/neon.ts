@@ -17,7 +17,7 @@ import { CHANNELS } from '../orchestrion/channels';
 import { neonModuleNames } from '../orchestrion/config/neon';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import { bindTracingChannelToSpan } from '../tracing-channel';
-import { bindPgQueryChannel, getConnectionAttributes } from './postgres';
+import { bindPgQueryChannel, getConnectionAttributes } from './pg';
 
 const INTEGRATION_NAME = 'Neon' as const;
 const ORIGIN = 'auto.db.neon';

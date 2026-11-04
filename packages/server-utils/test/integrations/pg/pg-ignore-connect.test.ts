@@ -9,7 +9,7 @@ import {
   setAsyncContextStrategy,
 } from '@sentry/core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { postgresIntegration } from '../../../src/integrations/postgres';
+import { postgresIntegration } from '../../../src/integrations/pg';
 import { CHANNELS } from '../../../src/orchestrion/channels';
 
 interface TestStore {
@@ -64,7 +64,7 @@ function installTestAsyncContextStrategy(): void {
 // ABSENCE of connect subscribers only holds when no other (default-options)
 // integration in the same module context has subscribed. vitest isolates
 // module state per file, so this file keeps that assertion clean (the default
-// options integration is exercised in `postgres.test.ts`).
+// options integration is exercised in `pg.test.ts`).
 describe('postgresIntegration({ ignoreConnectSpans: true })', () => {
   beforeAll(() => {
     installTestAsyncContextStrategy();
