@@ -24,12 +24,13 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 
 const MODEL_ID = 'anthropic.claude-3-5-sonnet-20240620-v1:0';
 
-const CONTENT_ATTRIBUTES = [
-  GEN_AI_SYSTEM_INSTRUCTIONS,
-  GEN_AI_INPUT_MESSAGES,
-  GEN_AI_TOOL_DEFINITIONS,
-  GEN_AI_OUTPUT_MESSAGES,
-];
+const INPUT_ATTRIBUTES = [GEN_AI_SYSTEM_INSTRUCTIONS, GEN_AI_INPUT_MESSAGES, GEN_AI_TOOL_DEFINITIONS];
+const OUTPUT_ATTRIBUTES = [GEN_AI_OUTPUT_MESSAGES, 'gen_ai.response.text', 'gen_ai.response.tool_calls'];
+
+interface Recording {
+  inputs: boolean;
+  outputs: boolean;
+}
 
 const SYSTEM_INSTRUCTIONS = JSON.stringify([{ type: 'text', content: 'You are a helpful assistant.' }]);
 const CONVERSE_INPUT_MESSAGES = JSON.stringify([{ role: 'user', parts: [{ type: 'text', content: 'Hello' }] }]);
@@ -87,42 +88,51 @@ function assertBedrockSpans(container: SerializedStreamedSpanContainer): void {
   expect(invokeModelSpan.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["end_turn"]');
 }
 
-function assertBedrockContent(container: SerializedStreamedSpanContainer): void {
-  const converseSpan = findSpan(container, `chat ${MODEL_ID}`);
-  expect(converseSpan.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(SYSTEM_INSTRUCTIONS);
-  expect(converseSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(CONVERSE_INPUT_MESSAGES);
-  expect(converseSpan.attributes[GEN_AI_TOOL_DEFINITIONS].value).toBe(
-    JSON.stringify([
-      {
-        name: 'get_weather',
-        description: 'Get the weather for a city',
-        inputSchema: { json: { type: 'object', properties: { city: { type: 'string' } } } },
-      },
-    ]),
-  );
-  expect(converseSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(CONVERSE_OUTPUT_MESSAGES);
+function assertBedrockContent(container: SerializedStreamedSpanContainer, { inputs, outputs }: Recording): void {
+  assertNoContent(container, { inputs: !inputs, outputs: !outputs });
 
+  const converseSpan = findSpan(container, `chat ${MODEL_ID}`);
   const invokeModelSpan = findSpan(container, `generate_content ${MODEL_ID}`);
-  expect(invokeModelSpan.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(SYSTEM_INSTRUCTIONS);
-  expect(invokeModelSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
-    JSON.stringify([{ role: 'user', content: 'Hello' }]),
-  );
-  expect(invokeModelSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(
-    JSON.stringify([
-      { role: 'assistant', parts: [{ type: 'text', content: 'Hello from Bedrock' }], finish_reason: 'end_turn' },
-    ]),
-  );
+
+  if (inputs) {
+    expect(converseSpan.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(SYSTEM_INSTRUCTIONS);
+    expect(converseSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(CONVERSE_INPUT_MESSAGES);
+    expect(converseSpan.attributes[GEN_AI_TOOL_DEFINITIONS].value).toBe(
+      JSON.stringify([
+        {
+          name: 'get_weather',
+          description: 'Get the weather for a city',
+          inputSchema: { json: { type: 'object', properties: { city: { type: 'string' } } } },
+        },
+      ]),
+    );
+    expect(invokeModelSpan.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(SYSTEM_INSTRUCTIONS);
+    expect(invokeModelSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
+      JSON.stringify([{ role: 'user', content: 'Hello' }]),
+    );
+  }
+
+  if (outputs) {
+    expect(converseSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(CONVERSE_OUTPUT_MESSAGES);
+    expect(invokeModelSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(
+      JSON.stringify([
+        { role: 'assistant', parts: [{ type: 'text', content: 'Hello from Bedrock' }], finish_reason: 'end_turn' },
+      ]),
+    );
+  }
 }
 
-function assertNoContent(container: SerializedStreamedSpanContainer): void {
+/** Assert that the given kinds of content are absent from every Bedrock span. */
+function assertNoContent(container: SerializedStreamedSpanContainer, absent: Recording): void {
+  const attributes = [...(absent.inputs ? INPUT_ATTRIBUTES : []), ...(absent.outputs ? OUTPUT_ATTRIBUTES : [])];
   for (const span of container.items.filter(item => item.attributes[GEN_AI_PROVIDER_NAME]?.value === 'aws.bedrock')) {
-    for (const attribute of CONTENT_ATTRIBUTES) {
-      expect(span.attributes[attribute]).toBeUndefined();
+    for (const attribute of attributes) {
+      expect(span.attributes[attribute], `${span.name} ${attribute}`).toBeUndefined();
     }
   }
 }
 
-function assertStreamSpans(container: SerializedStreamedSpanContainer, recordsContent: boolean): void {
+function assertStreamSpans(container: SerializedStreamedSpanContainer, { inputs, outputs }: Recording): void {
   const converseStreamSpan = findSpan(container, `chat ${MODEL_ID}`);
   expect(converseStreamSpan.status).toBe('ok');
   expect(converseStreamSpan.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
@@ -144,24 +154,60 @@ function assertStreamSpans(container: SerializedStreamedSpanContainer, recordsCo
   const failedStreamSpan = findSpan(container, 'chat amazon.nova-pro-v1:0');
   expect(failedStreamSpan.status).toBe('error');
 
-  if (!recordsContent) {
-    assertNoContent(container);
-    return;
+  assertNoContent(container, { inputs: !inputs, outputs: !outputs });
+
+  if (inputs) {
+    expect(converseStreamSpan.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(SYSTEM_INSTRUCTIONS);
+    expect(converseStreamSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(CONVERSE_INPUT_MESSAGES);
+    expect(invokeStreamSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
+      JSON.stringify([{ role: 'user', content: 'Stream please' }]),
+    );
   }
 
-  expect(converseStreamSpan.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(SYSTEM_INSTRUCTIONS);
-  expect(converseStreamSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(CONVERSE_INPUT_MESSAGES);
-  expect(converseStreamSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(CONVERSE_OUTPUT_MESSAGES);
-  expect(invokeStreamSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(
-    JSON.stringify([
-      { role: 'assistant', parts: [{ type: 'text', content: 'Streamed reply' }], finish_reason: 'end_turn' },
-    ]),
-  );
-  // What streamed before the failure is kept.
-  expect(failedStreamSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(
-    JSON.stringify([{ role: 'assistant', parts: [{ type: 'text', content: 'Partial' }] }]),
-  );
+  if (outputs) {
+    expect(converseStreamSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(CONVERSE_OUTPUT_MESSAGES);
+    expect(invokeStreamSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(
+      JSON.stringify([
+        { role: 'assistant', parts: [{ type: 'text', content: 'Streamed reply' }], finish_reason: 'end_turn' },
+      ]),
+    );
+    // What streamed before the failure is kept.
+    expect(failedStreamSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(
+      JSON.stringify([{ role: 'assistant', parts: [{ type: 'text', content: 'Partial' }] }]),
+    );
+  }
 }
+
+// `GEN_AI_DATA_COLLECTION` sets `dataCollection.genAI`, `AWS_INTEGRATION_OPTIONS` sets `awsIntegration()` options.
+const RECORDING_CASES: Array<{ name: string; env: Record<string, string>; expected: Recording }> = [
+  { name: 'records inputs and outputs by default', env: {}, expected: { inputs: true, outputs: true } },
+  {
+    name: 'skips inputs when dataCollection.genAI.inputs is false',
+    env: { GEN_AI_DATA_COLLECTION: '{"inputs":false}' },
+    expected: { inputs: false, outputs: true },
+  },
+  {
+    name: 'skips outputs when dataCollection.genAI.outputs is false',
+    env: { GEN_AI_DATA_COLLECTION: '{"outputs":false}' },
+    expected: { inputs: true, outputs: false },
+  },
+  {
+    name: 'lets awsIntegration options turn on what dataCollection turns off',
+    env: {
+      GEN_AI_DATA_COLLECTION: '{"inputs":false,"outputs":false}',
+      AWS_INTEGRATION_OPTIONS: '{"recordInputs":true,"recordOutputs":true}',
+    },
+    expected: { inputs: true, outputs: true },
+  },
+  {
+    name: 'lets awsIntegration options turn off what dataCollection turns on',
+    env: {
+      GEN_AI_DATA_COLLECTION: '{"inputs":true,"outputs":true}',
+      AWS_INTEGRATION_OPTIONS: '{"recordInputs":false}',
+    },
+    expected: { inputs: false, outputs: true },
+  },
+];
 
 describe('awsIntegration - Bedrock', () => {
   afterAll(() => {
@@ -175,7 +221,7 @@ describe('awsIntegration - Bedrock', () => {
         .expect({
           span: container => {
             assertBedrockSpans(container);
-            assertNoContent(container);
+            assertNoContent(container, { inputs: true, outputs: true });
           },
         })
         .start()
@@ -183,46 +229,46 @@ describe('awsIntegration - Bedrock', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createTestRunner, test) => {
-    test('records prompts, tools, and responses when genAI data collection is on', { timeout: 90_000 }, async () => {
-      await createTestRunner()
-        .ignore('event')
-        .expect({
-          span: container => {
-            assertBedrockSpans(container);
-            assertBedrockContent(container);
-          },
-        })
-        .start()
-        .completed();
-    });
-  });
-
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createTestRunner, test) => {
-    test('lets awsIntegration options override genAI data collection', { timeout: 90_000 }, async () => {
-      await createTestRunner().ignore('event').expect({ span: assertBedrockContent }).start().completed();
-    });
-  });
-
-  createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument-with-pii.mjs', (createTestRunner, test) => {
-    test(
-      'records streamed responses and ends the spans when the streams finish or fail',
-      { timeout: 90_000 },
-      async () => {
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-gen-ai.mjs', (createTestRunner, test) => {
+    for (const { name, env, expected } of RECORDING_CASES) {
+      test(name, { timeout: 90_000 }, async () => {
         await createTestRunner()
+          .withEnv(env)
           .ignore('event')
-          .expect({ span: container => assertStreamSpans(container, true) })
+          .expect({
+            span: container => {
+              assertBedrockSpans(container);
+              assertBedrockContent(container, expected);
+            },
+          })
           .start()
           .completed();
-      },
-    );
+      });
+    }
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument-gen-ai.mjs', (createTestRunner, test) => {
+    for (const { name, env, expected } of RECORDING_CASES) {
+      test(
+        `${name} when streaming, and ends the spans when the streams finish or fail`,
+        { timeout: 90_000 },
+        async () => {
+          await createTestRunner()
+            .withEnv(env)
+            .ignore('event')
+            .expect({ span: container => assertStreamSpans(container, expected) })
+            .start()
+            .completed();
+        },
+      );
+    }
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test('records no streamed content when genAI data collection is off', { timeout: 90_000 }, async () => {
       await createTestRunner()
         .ignore('event')
-        .expect({ span: container => assertStreamSpans(container, false) })
+        .expect({ span: container => assertStreamSpans(container, { inputs: false, outputs: false }) })
         .start()
         .completed();
     });

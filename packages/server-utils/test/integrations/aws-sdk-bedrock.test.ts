@@ -236,6 +236,17 @@ describe('BedrockRuntimeServiceExtension', () => {
       expect(attrs).toHaveProperty(GEN_AI_INPUT_MESSAGES);
       expect(attrs).not.toHaveProperty(GEN_AI_OUTPUT_MESSAGES);
     });
+
+    it('reads dataCollection.genAI from the client current at call time', () => {
+      const extension = new BedrockRuntimeServiceExtension();
+      const request = { serviceName: 'BedrockRuntime', commandName: 'Converse', commandInput: CONVERSE_INPUT };
+
+      setUpClient({ inputs: false });
+      expect(extension.requestPreSpanHook(request).spanAttributes).not.toHaveProperty(GEN_AI_INPUT_MESSAGES);
+
+      setUpClient();
+      expect(extension.requestPreSpanHook(request).spanAttributes).toHaveProperty(GEN_AI_INPUT_MESSAGES);
+    });
   });
 
   describe('ConverseStream', () => {
