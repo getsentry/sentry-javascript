@@ -5,6 +5,7 @@ const PURPLE = 'rgba(88, 74, 192, 1)';
 
 interface InternalTheme extends NonNullable<FeedbackInternalOptions['themeLight']> {
   border: string;
+  inputBorder: string;
   interactiveFilter: string;
 }
 
@@ -16,6 +17,7 @@ const DEFAULT_LIGHT: InternalTheme = {
   successColor: '#268d75',
   errorColor: '#df3338',
   border: '1.5px solid rgba(41, 35, 47, 0.13)',
+  inputBorder: '1.5px solid rgba(41, 35, 47, 0.6)',
   boxShadow: '0px 4px 24px 0px rgba(43, 34, 51, 0.12)',
   outline: '1px auto var(--accent-background)',
   interactiveFilter: 'brightness(95%)',
@@ -28,6 +30,7 @@ const DEFAULT_DARK: InternalTheme = {
   successColor: '#2da98c',
   errorColor: '#f55459',
   border: '1.5px solid rgba(235, 230, 239, 0.15)',
+  inputBorder: '1.5px solid rgba(235, 230, 239, 0.6)',
   boxShadow: '0px 4px 24px 0px rgba(43, 34, 51, 0.12)',
   outline: '1px auto var(--accent-background)',
   interactiveFilter: 'brightness(150%)',
@@ -42,6 +45,7 @@ function getThemedCssVariables(theme: InternalTheme): string {
   --success-color: ${theme.successColor};
   --error-color: ${theme.errorColor};
   --border: ${theme.border};
+  --input-border: ${theme.inputBorder};
   --box-shadow: ${theme.boxShadow};
   --outline: ${theme.outline};
   --interactive-filter: ${theme.interactiveFilter};

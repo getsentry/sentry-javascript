@@ -13,6 +13,8 @@ const DIALOG = `
   padding: 0;
   height: 100vh;
   width: 100vw;
+  max-height: none;
+  max-width: none;
 
   color: var(--dialog-color, var(--foreground));
   fill: var(--dialog-color, var(--foreground));
@@ -23,6 +25,10 @@ const DIALOG = `
   inset: 0;
   opacity: 1;
   transition: opacity 0.2s ease-in-out;
+}
+
+.dialog::backdrop {
+  background: transparent;
 }
 
 .dialog__position {
