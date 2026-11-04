@@ -18,8 +18,8 @@ const config = {
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
-  retries: 0,
+  /* Retry on PRs only */
+  retries: process.env.GITHUB_EVENT_NAME === 'pull_request' ? 1 : 0,
   /* Opt out of parallel tests on CI. */
   workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */

@@ -2,7 +2,8 @@ import type { PlaywrightTestConfig } from '@playwright/test';
 import { devices } from '@playwright/test';
 
 const config: PlaywrightTestConfig = {
-  retries: 0,
+  // Retry only on PRs, so flaky tests keep failing on develop, where the weekly flaky test report looks for them.
+  retries: process.env.GITHUB_EVENT_NAME === 'pull_request' ? 1 : 0,
   // Run tests inside of a single file in parallel
   fullyParallel: true,
   // Use 3 workers on CI, else use defaults (based on available CPU cores)

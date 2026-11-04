@@ -31,6 +31,8 @@ export default defineConfig({
     },
     isolate: false,
     testTimeout: 20_000,
+    // Retry only on PRs, so flaky tests keep failing on develop, where the weekly flaky test report looks for them.
+    retry: process.env.GITHUB_EVENT_NAME === 'pull_request' ? 1 : 0,
     ...(process.env.DEBUG
       ? {
           disableConsoleIntercept: true,

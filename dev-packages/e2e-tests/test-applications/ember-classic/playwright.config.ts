@@ -33,7 +33,7 @@ const config: PlaywrightTestConfig = {
   workers: 1,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  retries: 0,
+  retries: process.env.GITHUB_EVENT_NAME === 'pull_request' ? 1 : 0,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: process.env.CI ? [['list'], ['junit', { outputFile: 'results.junit.xml' }]] : 'list',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
