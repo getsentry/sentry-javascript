@@ -16,6 +16,7 @@ describe('langFromId', () => {
     ['/a/b.cts', 'ts'],
     ['/a/b.tsx', 'tsx'],
     ['/a/b.ts?v=123', 'ts'],
+    ['/a/b.tsx#hash', 'tsx'],
     ['/a/b.svelte', 'js'],
     ['virtual:module', 'js'],
   ])('%s → %s', (id, lang) => {
