@@ -67,6 +67,7 @@ interface EsbuildPluginBuild {
     options: { filter: RegExp },
     callback: (args: EsbuildOnResolveArgs) => EsbuildOnResolveResult | undefined,
   ) => void;
+  onStart: (callback: () => void) => void;
   onEnd: (callback: (result: EsbuildOnEndArgs) => void | Promise<void>) => void;
 }
 
@@ -156,7 +157,7 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
 
   return {
     name: pluginName,
-    setup({ initialOptions, onLoad, onResolve, onEnd }: EsbuildPluginBuild) {
+    setup({ initialOptions, onLoad, onResolve, onStart, onEnd }: EsbuildPluginBuild) {
       // Release and/or metadata injection
       if (!staticInjectionCode.isEmpty()) {
         const virtualInjectionFilePath = path.resolve('_sentry-injection-stub');
@@ -194,8 +195,9 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
 
       // Debug ID injection - requires per-entry-point unique IDs
       if (sourcemapsEnabled) {
-        // Clear state from previous builds (important for watch mode and test suites)
-        debugIdWrappedPaths.clear();
+        // `setup` runs once per context, `onStart` once per build, so a
+        // rebuild wraps the entry points again.
+        onStart(() => debugIdWrappedPaths.clear());
 
         if (!initialOptions.bundle) {
           logger.warn(
