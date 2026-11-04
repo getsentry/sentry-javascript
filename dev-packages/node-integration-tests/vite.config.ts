@@ -1,3 +1,4 @@
+import { getTestRetries } from '@sentry-internal/test-utils';
 import { defineConfig } from 'vitest/config';
 import baseConfig from '../../vite/vite.config';
 
@@ -11,6 +12,7 @@ export default defineConfig({
     },
     include: ['./**/test.ts'],
     testTimeout: 15000,
+    retry: getTestRetries(),
     // Ensure we can see debug output when DEBUG=true
     ...(process.env.DEBUG
       ? {

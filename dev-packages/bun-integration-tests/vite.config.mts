@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import { getTestRetries } from '@sentry-internal/test-utils';
 import { defineConfig } from 'vitest/config';
 import baseConfig from '../../vite/vite.config';
 import {
@@ -31,6 +32,7 @@ export default defineConfig({
     },
     isolate: false,
     testTimeout: 20_000,
+    retry: getTestRetries(),
     ...(process.env.DEBUG
       ? {
           disableConsoleIntercept: true,

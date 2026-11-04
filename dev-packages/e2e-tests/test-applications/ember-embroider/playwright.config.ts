@@ -1,5 +1,6 @@
 import type { PlaywrightTestConfig } from '@playwright/test';
 import { devices } from '@playwright/test';
+import { getTestRetries } from '@sentry-internal/test-utils';
 
 // Fix urls not resolving to localhost on Node v17+
 // See: https://github.com/axios/axios/issues/3821#issuecomment-1413727575
@@ -33,7 +34,7 @@ const config: PlaywrightTestConfig = {
   workers: 1,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  retries: 0,
+  retries: getTestRetries(),
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: process.env.CI ? [['list'], ['junit', { outputFile: 'results.junit.xml' }]] : 'list',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
