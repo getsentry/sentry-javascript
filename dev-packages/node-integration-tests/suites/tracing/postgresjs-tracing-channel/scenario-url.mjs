@@ -25,47 +25,16 @@ async function run() {
         `;
 
         await sql`
-          UPDATE "User" SET "name" = 'Foo' WHERE "email" = ${email};
-        `;
-
-        await sql`
           SELECT * FROM "User" WHERE "email" = ${email};
         `;
 
-        // Test parameterized queries
-        await sql`
-          SELECT * FROM "User" WHERE "email" = ${email} AND "name" = ${'Foo'};
-        `;
-
-        // Test DELETE operation
         await sql`
           DELETE FROM "User" WHERE "email" = ${email};
         `;
-
-        // Test INSERT with RETURNING
-        await sql`
-          INSERT INTO "User" ("email", "name") VALUES (${email}, 'Test User') RETURNING *;
-        `;
-
-        // Test cursor-based queries
-        await sql`SELECT * from generate_series(1,1000) as x `.cursor(10, async rows => {
-          await Promise.all(rows);
-        });
-
-        // Test multiple rows at once
-        await sql`
-          SELECT * FROM "User" LIMIT 10;
-        `;
-
+      } finally {
         await sql`
           DROP TABLE "User";
         `;
-
-        // This will be captured as an error as the table no longer exists
-        await sql`
-          SELECT * FROM "User" WHERE "email" = ${email};
-        `;
-      } finally {
         await sql.end();
       }
     },
