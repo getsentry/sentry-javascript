@@ -168,8 +168,32 @@ export function getConverseInputAttributes(input: Record<string, unknown>): Reco
 }
 
 /**
- * Input attributes of an Anthropic Messages `InvokeModel` body. The messages are recorded as sent, like
- * the Anthropic integration records the same payload, so both render alike.
+ * Anthropic image and document blocks carry their file inline as base64 `source.data`, which must not be
+ * recorded, so they are replaced with blob parts, also inside tool results.
+ */
+function claudeContentWithoutMedia(content: unknown): unknown {
+  return Array.isArray(content) ? content.map(claudeBlockWithoutMedia) : content;
+}
+
+function claudeBlockWithoutMedia(block: unknown): unknown {
+  if (!isObjectLike(block)) {
+    return block;
+  }
+  if (block.type === 'image' || block.type === 'document') {
+    const mimeType = isObjectLike(block.source) ? block.source.media_type : undefined;
+    return typeof mimeType === 'string'
+      ? { type: 'blob', modality: block.type, mime_type: mimeType }
+      : { type: 'blob', modality: block.type };
+  }
+  if (block.type === 'tool_result') {
+    return { ...block, content: claudeContentWithoutMedia(block.content) };
+  }
+  return block;
+}
+
+/**
+ * Input attributes of an Anthropic Messages `InvokeModel` body. Apart from media, the messages are
+ * recorded as sent, like the Anthropic integration records the same payload, so both render alike.
  */
 export function getClaudeInputAttributes(body: Record<string, unknown>): Record<string, unknown> {
   const attributes: Record<string, unknown> = {};
@@ -190,7 +214,11 @@ export function getClaudeInputAttributes(body: Record<string, unknown>): Record<
   }
 
   if (Array.isArray(messages) && messages.length) {
-    attributes[GEN_AI_INPUT_MESSAGES] = stringify(messages);
+    attributes[GEN_AI_INPUT_MESSAGES] = stringify(
+      messages.map(message =>
+        isObjectLike(message) ? { ...message, content: claudeContentWithoutMedia(message.content) } : message,
+      ),
+    );
   } else if (typeof prompt === 'string') {
     // Claude 2's legacy Text Completions body.
     Object.assign(attributes, getPromptInputAttributes(prompt));
@@ -320,13 +348,13 @@ interface StreamBlock {
   name?: unknown;
 }
 
-/** Accumulates a streamed response. Content blocks are keyed by their index in the assistant message. */
+/**
+ * Accumulates a streamed response. Content blocks are keyed by their index in the assistant message, and
+ * are only collected when outputs are recorded.
+ */
 export interface BedrockStreamState extends Omit<StreamResponseState, 'responseTexts' | 'toolCalls'> {
   blocks: Map<number, StreamBlock>;
-}
-
-function createStreamState(): BedrockStreamState {
-  return { finishReasons: [], blocks: new Map() };
+  recordOutputs: boolean;
 }
 
 /** Append streamed content to the block at `index`, opening it with `type` if it is new. */
@@ -336,6 +364,9 @@ export function appendStreamBlock(
   type: StreamBlock['type'],
   content: unknown,
 ): void {
+  if (!state.recordOutputs) {
+    return;
+  }
   const key = typeof index === 'number' ? index : 0;
   let block = state.blocks.get(key);
   if (!block) {
@@ -349,6 +380,9 @@ export function appendStreamBlock(
 
 /** Open a tool-call block, whose arguments then stream in as JSON fragments. */
 export function startStreamToolCall(state: BedrockStreamState, index: unknown, id: unknown, name: unknown): void {
+  if (!state.recordOutputs) {
+    return;
+  }
   state.blocks.set(typeof index === 'number' ? index : 0, { type: 'tool_call', content: '', id, name });
 }
 
@@ -382,7 +416,7 @@ export async function* instrumentBedrockStream<T>(
   recordOutputs: boolean,
   processItem: (item: T, state: BedrockStreamState) => void,
 ): AsyncGenerator<T> {
-  const state = createStreamState();
+  const state: BedrockStreamState = { finishReasons: [], blocks: new Map(), recordOutputs };
   try {
     for await (const item of stream) {
       try {

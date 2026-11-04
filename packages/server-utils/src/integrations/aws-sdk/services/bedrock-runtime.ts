@@ -464,39 +464,46 @@ function resolveStreamProcessor(modelId: string): StreamProcessor | undefined {
   if (modelId.includes('amazon.nova')) return processConverseStreamEvent;
   if (modelId.includes('meta.llama')) return processLlamaChunk;
   if (modelId.includes('cohere.command-r')) {
-    return withApproximatedOutputTokens((chunk, state) => {
-      appendStreamBlock(state, 0, 'text', chunk.text);
-      pushFinishReason(state, chunk.finish_reason);
-    });
+    return withApproximatedOutputTokens(
+      chunk => chunk.text,
+      chunk => chunk.finish_reason,
+    );
   }
   if (modelId.includes('cohere.command')) {
-    return withApproximatedOutputTokens((chunk, state) => {
-      appendStreamBlock(state, 0, 'text', chunk.generations?.[0]?.text);
-      pushFinishReason(state, chunk.generations?.[0]?.finish_reason);
-    });
+    return withApproximatedOutputTokens(
+      chunk => chunk.generations?.[0]?.text,
+      chunk => chunk.generations?.[0]?.finish_reason,
+    );
   }
   if (modelId.includes('mistral')) {
-    return withApproximatedOutputTokens((chunk, state) => {
-      appendStreamBlock(state, 0, 'text', chunk.outputs?.[0]?.text);
-      pushFinishReason(state, chunk.outputs?.[0]?.stop_reason);
-    });
+    return withApproximatedOutputTokens(
+      chunk => chunk.outputs?.[0]?.text,
+      chunk => chunk.outputs?.[0]?.stop_reason,
+    );
   }
   return undefined;
 }
 
 /**
  * These models report no token usage, so output tokens are approximated from the generated text (Bedrock
- * prices them at 6 characters per token). The count has to cover the text of all chunks, not the last one.
+ * prices them at 6 characters per token). The count has to cover the text of all chunks, not the last one,
+ * and is kept apart from the text, which is only buffered when outputs are recorded.
  */
-function withApproximatedOutputTokens(process: StreamProcessor): StreamProcessor {
+function withApproximatedOutputTokens(
+  getText: (chunk: ParsedChunk) => unknown,
+  getFinishReason: (chunk: ParsedChunk) => unknown,
+): StreamProcessor {
   let outputChars = 0;
   return (chunk, state) => {
-    const before = state.blocks.get(0)?.content.length ?? 0;
-    process(chunk, state);
-    outputChars += (state.blocks.get(0)?.content.length ?? 0) - before;
+    const text = getText(chunk);
+    appendStreamBlock(state, 0, 'text', text);
+    if (typeof text === 'string') {
+      outputChars += text.length;
+    }
     if (outputChars > 0) {
       state.completionTokens = Math.ceil(outputChars / 6);
     }
+    pushFinishReason(state, getFinishReason(chunk));
   };
 }
 

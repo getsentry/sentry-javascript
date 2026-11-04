@@ -107,9 +107,30 @@ function assertBedrockContent(container: SerializedStreamedSpanContainer, { inpu
       ]),
     );
     expect(invokeModelSpan.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(SYSTEM_INSTRUCTIONS);
+    // Inline image and document data is replaced with blob parts, also inside tool results.
     expect(invokeModelSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
-      JSON.stringify([{ role: 'user', content: 'Hello' }]),
+      JSON.stringify([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Hello' },
+            { type: 'blob', modality: 'image', mime_type: 'image/png' },
+          ],
+        },
+        { role: 'assistant', content: [{ type: 'tool_use', id: 'toolu_1', name: 'get_report', input: {} }] },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'toolu_1',
+              content: [{ type: 'blob', modality: 'document', mime_type: 'application/pdf' }],
+            },
+          ],
+        },
+      ]),
     );
+    expect(JSON.stringify(invokeModelSpan.attributes)).not.toMatch(/iVBORw0K|JVBERi0x/);
   }
 
   if (outputs) {
@@ -218,6 +239,7 @@ describe('awsIntegration - Bedrock', () => {
     test('auto-instruments Bedrock Converse and InvokeModel', { timeout: 90_000 }, async () => {
       await createTestRunner()
         .ignore('event')
+        .unordered()
         .expect({
           span: container => {
             assertBedrockSpans(container);
@@ -235,6 +257,7 @@ describe('awsIntegration - Bedrock', () => {
         await createTestRunner()
           .withEnv(env)
           .ignore('event')
+          .unordered()
           .expect({
             span: container => {
               assertBedrockSpans(container);
@@ -256,6 +279,7 @@ describe('awsIntegration - Bedrock', () => {
           await createTestRunner()
             .withEnv(env)
             .ignore('event')
+            .unordered()
             .expect({ span: container => assertStreamSpans(container, expected) })
             .start()
             .completed();
@@ -268,6 +292,7 @@ describe('awsIntegration - Bedrock', () => {
     test('records no streamed content when genAI data collection is off', { timeout: 90_000 }, async () => {
       await createTestRunner()
         .ignore('event')
+        .unordered()
         .expect({ span: container => assertStreamSpans(container, { inputs: false, outputs: false }) })
         .start()
         .completed();

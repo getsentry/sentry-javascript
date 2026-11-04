@@ -22,6 +22,12 @@ import {
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { GenAiOptions } from '../../src/ai/core/utils';
 import { BedrockRuntimeServiceExtension } from '../../src/integrations/aws-sdk/services/bedrock-runtime';
+import type { BedrockStreamState } from '../../src/integrations/aws-sdk/services/bedrock-runtime-content';
+import {
+  appendStreamBlock,
+  instrumentBedrockStream,
+  startStreamToolCall,
+} from '../../src/integrations/aws-sdk/services/bedrock-runtime-content';
 import type { NormalizedResponse } from '../../src/integrations/aws-sdk/types';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
@@ -407,6 +413,67 @@ describe('BedrockRuntimeServiceExtension', () => {
       });
     });
 
+    it('records Claude image and document blocks as blob parts without their data', () => {
+      setUpClient();
+      const body = {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What is in this chart?' },
+              { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo=' } },
+            ],
+          },
+          { role: 'assistant', content: [{ type: 'tool_use', id: 'toolu_1', name: 'get_report', input: {} }] },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'toolu_1',
+                content: [
+                  { type: 'text', text: 'The report:' },
+                  { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: 'JVBERi0xLjQ=' } },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      const { span } = send(
+        'InvokeModel',
+        { modelId: CLAUDE, body: JSON.stringify(body) },
+        { body: encoder.encode(JSON.stringify(CLAUDE_RESPONSE)) },
+      );
+
+      expect(attributes(span)[GEN_AI_INPUT_MESSAGES]).toBe(
+        JSON.stringify([
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What is in this chart?' },
+              { type: 'blob', modality: 'image', mime_type: 'image/png' },
+            ],
+          },
+          { role: 'assistant', content: [{ type: 'tool_use', id: 'toolu_1', name: 'get_report', input: {} }] },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'toolu_1',
+                content: [
+                  { type: 'text', text: 'The report:' },
+                  { type: 'blob', modality: 'document', mime_type: 'application/pdf' },
+                ],
+              },
+            ],
+          },
+        ]),
+      );
+    });
+
     it('reads a request body passed as bytes', () => {
       setUpClient();
 
@@ -580,6 +647,26 @@ describe('BedrockRuntimeServiceExtension', () => {
       });
     });
 
+    it('buffers no streamed content when dataCollection.genAI.outputs is off', async () => {
+      setUpClient({ outputs: false });
+      const chunks = [
+        invokeModelChunk({ outputs: [{ text: 'Hello ', stop_reason: null }] }),
+        invokeModelChunk({ outputs: [{ text: 'world!', stop_reason: 'stop' }] }),
+      ];
+
+      const { span, response } = send(
+        'InvokeModelWithResponseStream',
+        { modelId: 'mistral.mistral-7b-instruct-v0:2', body: JSON.stringify({ prompt: 'Hi' }) },
+        { body: asyncIterable(chunks) },
+      );
+      await expect(drain(response.data.body)).resolves.toEqual(chunks);
+
+      const attrs = attributes(span);
+      expect(attrs).toMatchObject({ [GEN_AI_USAGE_OUTPUT_TOKENS]: 2, [GEN_AI_RESPONSE_FINISH_REASONS]: '["stop"]' });
+      expect(attrs).not.toHaveProperty(GEN_AI_OUTPUT_MESSAGES);
+      expect(attrs).not.toHaveProperty(GEN_AI_RESPONSE_TEXT);
+    });
+
     it('ends the span for a model family it cannot read', async () => {
       setUpClient();
       const chunks = [invokeModelChunk({ unknown: true })];
@@ -592,6 +679,25 @@ describe('BedrockRuntimeServiceExtension', () => {
       await expect(drain(response.data.body)).resolves.toEqual(chunks);
 
       expect(span.isRecording()).toBe(false);
+    });
+  });
+
+  describe('instrumentBedrockStream', () => {
+    it.each([true, false])('buffers streamed content only when recordOutputs is %s', async recordOutputs => {
+      setUpClient();
+      let state: BedrockStreamState | undefined;
+      const span = startInactiveSpan({ name: 'stream' });
+
+      await drain(
+        instrumentBedrockStream(asyncIterable(['Hi']), span, recordOutputs, (text, streamState) => {
+          state = streamState;
+          appendStreamBlock(streamState, 0, 'text', text);
+          startStreamToolCall(streamState, 1, 'toolu_1', 'get_weather');
+          appendStreamBlock(streamState, 1, 'tool_call', '{}');
+        }),
+      );
+
+      expect(state?.blocks.size).toBe(recordOutputs ? 2 : 0);
     });
   });
 });

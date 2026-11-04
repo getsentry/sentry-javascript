@@ -91,7 +91,28 @@ async function invokeModel() {
         temperature: 0.5,
         top_p: 0.9,
         system: 'You are a helpful assistant.',
-        messages: [{ role: 'user', content: 'Hello' }],
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Hello' },
+              { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo=' } },
+            ],
+          },
+          { role: 'assistant', content: [{ type: 'tool_use', id: 'toolu_1', name: 'get_report', input: {} }] },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'toolu_1',
+                content: [
+                  { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: 'JVBERi0xLjQ=' } },
+                ],
+              },
+            ],
+          },
+        ],
       }),
     }),
   );
