@@ -951,9 +951,9 @@ function buildInputMessageAttributes(event: Record<string, unknown>): Record<str
   // `ai` >= 7 forbids system messages in `messages`/`prompt` and exposes the system prompt as a
   // separate `instructions` field. The OTel path lifts the system message out of the prompt into
   // `gen_ai.system_instructions` as `[{ type: 'text', content }]`; mirror that shape here.
-  const instructions = asString(event.instructions);
+  const instructions = systemInstructionEntries(event.instructions);
   if (instructions) {
-    attributes[GEN_AI_SYSTEM_INSTRUCTIONS] = stringify([{ type: 'text', content: instructions }]);
+    attributes[GEN_AI_SYSTEM_INSTRUCTIONS] = stringify(instructions);
   }
 
   // The AI SDK start events extend `StandardizedPrompt`; messages live on `messages`, otherwise the
@@ -964,4 +964,23 @@ function buildInputMessageAttributes(event: Record<string, unknown>): Record<str
   }
 
   return attributes;
+}
+
+/**
+ * Normalize the `system`/`instructions` option into `gen_ai.system_instructions` entries. The AI SDK
+ * accepts `string | SystemModelMessage | SystemModelMessage[]` there — the message form is how a
+ * caller attaches `providerOptions` to the system prompt (e.g. Anthropic prompt caching) — so a bare
+ * string and single message both become one entry, and an array contributes one entry per message.
+ */
+function systemInstructionEntries(value: unknown): Array<{ type: 'text'; content: string }> | undefined {
+  if (typeof value === 'string') {
+    return [{ type: 'text', content: value }];
+  }
+  const messages = Array.isArray(value) ? value : isObjectLike(value) ? [value] : [];
+  const entries = messages.filter(isObjectLike).flatMap(message => {
+    const content = asString(message.content);
+    return content ? [{ type: 'text' as const, content }] : [];
+  });
+
+  return entries.length ? entries : undefined;
 }
