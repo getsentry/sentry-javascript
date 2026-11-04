@@ -9,6 +9,7 @@ import {
 } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { isReadableStream, resolveAIRecordingOptions } from '../core/utils';
+import { isInsidePiAiSpan } from '../pi-ai/providers';
 import { WORKERS_AI_INTEGRATION_NAME } from './constants';
 import { instrumentWorkersAiStream } from './streaming';
 import type { WorkersAiOptions } from './types';
@@ -31,7 +32,7 @@ function instrumentRun(
   return function instrumentedRun(...args: unknown[]): Promise<unknown> {
     // When another integration (e.g. Vercel AI via `workers-ai-provider`) is driving this binding,
     // it records the spans itself and marks this provider as skipped; skip here to avoid double spans.
-    if (_INTERNAL_shouldSkipAiProviderWrapping(WORKERS_AI_INTEGRATION_NAME)) {
+    if (_INTERNAL_shouldSkipAiProviderWrapping(WORKERS_AI_INTEGRATION_NAME) || isInsidePiAiSpan()) {
       return originalRun.apply(context, args);
     }
 

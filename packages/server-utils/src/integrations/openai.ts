@@ -14,6 +14,7 @@ import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { instrumentStream } from '../ai/openai/streaming';
 import type { OpenAiOptions } from '../ai/openai/types';
 import { addResponseAttributes } from '../ai/openai/utils';
+import { isInsidePiAiSpan } from '../ai/pi-ai/providers';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -75,7 +76,7 @@ function instrumentOpenai(options: OpenAiOptions): void {
 function createGenAiSpan(data: OrchestrionChannelContext, operation: string, options: OpenAiOptions): Span | undefined {
   // When another provider (e.g. LangChain) is driving the SDK, it records the spans itself and marks this
   // provider as skipped; skip here to avoid double spans.
-  if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME)) {
+  if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME) || isInsidePiAiSpan()) {
     return undefined;
   }
 

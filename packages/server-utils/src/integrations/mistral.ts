@@ -8,6 +8,7 @@ import { MISTRAL_INTEGRATION_NAME, MISTRAL_ORIGIN } from '../ai/mistral/constant
 import { instrumentEventStream } from '../ai/mistral/streaming';
 import type { MistralOptions } from '../ai/mistral/types';
 import { addResponseAttributes, getSpanName } from '../ai/mistral/utils';
+import { isInsidePiAiSpan } from '../ai/pi-ai/providers';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { mistralModuleNames } from '../orchestrion/config/mistral';
@@ -64,7 +65,7 @@ function createGenAiSpan(
 ): Span | undefined {
   // When another provider (e.g. LangChain) is driving the SDK, it records the spans itself and marks
   // this provider as skipped; skip here to avoid double spans.
-  if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME)) {
+  if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME) || isInsidePiAiSpan()) {
     return undefined;
   }
 
