@@ -19,13 +19,17 @@ test('Sends an error event to Sentry', async ({ request }) => {
       type: 'Error',
       value: 'This is a test error',
       mechanism: expect.objectContaining({
-        handled: false,
-        type: 'auto.function.nitro.captureErrorHook',
+        handled: true,
+        type: 'chained',
       }),
     }),
     expect.objectContaining({
       type: 'HTTPError',
       value: 'This is a test error',
+      mechanism: expect.objectContaining({
+        handled: false,
+        type: 'auto.function.nitro.captureErrorHook',
+      }),
     }),
   ]);
 });
