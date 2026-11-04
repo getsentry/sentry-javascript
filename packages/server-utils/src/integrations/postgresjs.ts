@@ -122,9 +122,7 @@ function setConnectionAttributes(span: Span, query: PostgresQuery, context: Post
     return;
   }
   queryRecord[CONNECTION_ATTRS_SET] = true;
-  if (context) {
-    span.setAttributes(_getConnectionAttributes(context));
-  }
+  span.setAttributes(_getConnectionAttributes(context));
 }
 
 /**
@@ -287,12 +285,6 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
 
       // Stash for the `execute`/`connect` channels to attach per-connection attributes.
       (query as Record<symbol, unknown>)[QUERY_SPAN] = span;
-
-      // The attributes are already on the span; this marks the query so the `execute`/`connect`
-      // channels don't backfill them again.
-      if (context) {
-        setConnectionAttributes(span, query, context);
-      }
 
       if (requestHook) {
         try {
