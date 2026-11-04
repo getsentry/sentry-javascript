@@ -83,8 +83,8 @@ function getPiAiInstrumentationHint(): string {
  * (https://github.com/withastro/flue/issues/813).
  */
 function runInAdmissionContext<T>(admission: Admission | undefined, next: () => T): T {
-  // Cloudflare runs each turn from a Durable Object alarm, which already starts a trace of its own, so
-  // there is no leaked context to undo there.
+  // Cloudflare runs each turn from a Durable Object alarm, which already starts a trace of its own,
+  // so there is no leaked context to undo there.
   if (isCloudflareWorkers()) {
     return next();
   }
@@ -110,8 +110,9 @@ function runInAdmissionContext<T>(admission: Admission | undefined, next: () => 
  * Model calls get no span here: Flue sends them through pi-ai, whose integration reports each one
  * as a `gen_ai.chat` span under the agent span.
  *
- * Message content, tool arguments and tool results are gated on `recordInputs`/`recordOutputs`,
- * which fall back to the current client's `dataCollection.genAI` settings and are read per event.
+ * Tool arguments and results are gated on `recordInputs`/`recordOutputs`, which fall back to the
+ * current client's `dataCollection.genAI` settings and are read per event. The same options apply to
+ * the message content of the `gen_ai.chat` spans.
  */
 export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstrumentation {
   // Keyed by the agent operation's own id, which is what the observations carry. That keeps
@@ -128,8 +129,8 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
     key: FLUE_INSTRUMENTATION_KEY,
 
     interceptor: async (operation, ctx, next) => {
-      // `observe` has already opened the span for this unit of work; make it active for the
-      // duration so whatever the tool or model call does lands inside it rather than beside it.
+      // `observe` has already opened the tool span; make it active for the duration so whatever the
+      // tool does lands inside it rather than beside it.
       if (operation?.type === FLUE_OPERATION.TOOL) {
         const toolSpan = operation.toolCallId ? toolSpans.get(operation.toolCallId) : undefined;
         return toolSpan ? withActiveSpan(toolSpan, next) : next();

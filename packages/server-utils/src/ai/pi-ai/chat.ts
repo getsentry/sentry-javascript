@@ -40,7 +40,7 @@ import {
 import type { PiAssistantMessage, PiModel, PiStreamOptions } from './types';
 import { setPiAiUsageAttributes } from './usage';
 
-export interface PiAiChatRequest {
+interface PiAiChatRequest {
   model: PiModel;
   /** Absent for the deferred calls, which pass a handle in place of the request context. */
   context?: PiAiContext;
@@ -49,10 +49,7 @@ export interface PiAiChatRequest {
   recordInputs: boolean;
 }
 
-/**
- * The span options of the `gen_ai.chat` span of a pi-ai request. Returned rather than started so
- * the caller picks whether the span is active while the request is sent.
- */
+/** The span options of the `gen_ai.chat` span of a pi-ai request. */
 export function getPiAiChatSpanOptions(request: PiAiChatRequest): StartSpanOptions {
   const { model, context, callOptions, streaming, recordInputs } = request;
   const conversationId =

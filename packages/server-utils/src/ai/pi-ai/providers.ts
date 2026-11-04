@@ -3,13 +3,8 @@ import { _INTERNAL_shouldSkipAiProviderWrapping, getActiveSpan, spanToJSON } fro
 import { PI_AI_ORIGIN } from './constants';
 
 /**
- * Whether the active span is a pi-ai `chat` span, which means the provider SDK call being made is
- * pi-ai sending its request. pi-ai sends through the `openai`, `@anthropic-ai/sdk`, `@google/genai`
- * and (before 0.84.2) `@mistralai/mistralai` clients, and on Cloudflare through the Workers AI binding
- * (`createAI()` of `agents/models/pi-ai`). Those integrations check this per request so that they
- * don't report it a second time, while the app's own calls to those SDKs keep their spans.
- *
- * Bedrock requests go through `@aws-sdk/client-bedrock-runtime`, which `awsIntegration` still reports.
+ * Whether the active span is a pi-ai `chat` span, which means a provider SDK call being made is pi-ai
+ * sending its request. Bedrock requests are the exception: `awsIntegration` still reports them.
  */
 export function isInsidePiAiSpan(): boolean {
   const span = getActiveSpan();
