@@ -421,7 +421,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     // the chunks don't need to be parsed at all.
     const processChunk =
       typeof modelId === 'string'
-        ? resolveStreamProcessor(modelId, parseJsonBody(response.request.commandInput?.body))
+        ? resolveStreamProcessor(modelId, () => parseJsonBody(response.request.commandInput?.body))
         : undefined;
 
     // Replace the original response body with our instrumented stream, deferring span.end() until the
@@ -468,8 +468,11 @@ function getApproximatedInputTokens(modelId: string, requestBody: ParsedChunk): 
   return typeof prompt === 'string' ? Math.ceil(prompt.length / 6) : undefined;
 }
 
-function resolveStreamProcessor(modelId: string, requestBody: ParsedChunk): StreamProcessor | undefined {
-  const inputTokens = getApproximatedInputTokens(modelId, requestBody);
+/**
+ * `getRequestBody` is only called for the families that approximate input tokens, so the request body,
+ * which can be large, is not parsed again for the others.
+ */
+function resolveStreamProcessor(modelId: string, getRequestBody: () => ParsedChunk): StreamProcessor | undefined {
   if (modelId.includes('amazon.titan')) return processTitanChunk;
   if (modelId.includes('anthropic.claude')) return processClaudeChunk;
   if (modelId.includes('amazon.nova')) return processConverseStreamEvent;
@@ -478,21 +481,21 @@ function resolveStreamProcessor(modelId: string, requestBody: ParsedChunk): Stre
     return withApproximatedOutputTokens(
       chunk => chunk.text,
       chunk => chunk.finish_reason,
-      inputTokens,
+      getApproximatedInputTokens(modelId, getRequestBody()),
     );
   }
   if (modelId.includes('cohere.command')) {
     return withApproximatedOutputTokens(
       chunk => chunk.generations?.[0]?.text,
       chunk => chunk.generations?.[0]?.finish_reason,
-      inputTokens,
+      getApproximatedInputTokens(modelId, getRequestBody()),
     );
   }
   if (modelId.includes('mistral')) {
     return withApproximatedOutputTokens(
       chunk => chunk.outputs?.[0]?.text,
       chunk => chunk.outputs?.[0]?.stop_reason,
-      inputTokens,
+      getApproximatedInputTokens(modelId, getRequestBody()),
     );
   }
   return undefined;

@@ -650,12 +650,12 @@ describe('BedrockRuntimeServiceExtension', () => {
     it.each([
       {
         modelId: 'cohere.command-r-v1:0',
-        body: { message: 'Hello there!' },
+        body: { message: 'What is the weather like today?' },
         chunks: [{ text: 'Hello ' }, { text: 'world!', finish_reason: 'COMPLETE' }],
       },
       {
         modelId: 'cohere.command-text-v14',
-        body: { prompt: 'Hello there!' },
+        body: { prompt: 'What is the weather like today?' },
         chunks: [
           { generations: [{ text: 'Hello ' }] },
           { generations: [{ text: 'world!', finish_reason: 'COMPLETE' }] },
@@ -663,7 +663,7 @@ describe('BedrockRuntimeServiceExtension', () => {
       },
       {
         modelId: 'mistral.mistral-7b-instruct-v0:2',
-        body: { prompt: 'Hello there!' },
+        body: { prompt: 'What is the weather like today?' },
         chunks: [{ outputs: [{ text: 'Hello ' }] }, { outputs: [{ text: 'world!', stop_reason: 'stop' }] }],
       },
     ])(
@@ -679,12 +679,32 @@ describe('BedrockRuntimeServiceExtension', () => {
         await drain(response.data.body);
 
         expect(attributes(span)).toMatchObject({
-          [GEN_AI_USAGE_INPUT_TOKENS]: 2,
+          [GEN_AI_USAGE_INPUT_TOKENS]: 6,
           [GEN_AI_USAGE_OUTPUT_TOKENS]: 2,
-          [GEN_AI_USAGE_TOTAL_TOKENS]: 4,
+          [GEN_AI_USAGE_TOTAL_TOKENS]: 8,
         });
       },
     );
+
+    it.each([
+      { modelId: CLAUDE, reads: 1 },
+      { modelId: 'mistral.mistral-7b-instruct-v0:2', reads: 2 },
+    ])('reads the request body $reads time(s) for a $modelId stream', async ({ modelId, reads }) => {
+      setUpClient();
+      let bodyReads = 0;
+      const commandInput = {
+        modelId,
+        get body() {
+          bodyReads++;
+          return JSON.stringify({ prompt: 'Hi', messages: [{ role: 'user', content: 'Hi' }] });
+        },
+      };
+
+      const { response } = send('InvokeModelWithResponseStream', commandInput, { body: asyncIterable([]) });
+      await drain(response.data.body);
+
+      expect(bodyReads).toBe(reads);
+    });
 
     it('buffers no streamed content when dataCollection.genAI.outputs is off', async () => {
       setUpClient({ outputs: false });
