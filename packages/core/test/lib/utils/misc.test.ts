@@ -5,6 +5,7 @@ import type { StackFrame } from '../../../src/types/stackframe';
 import {
   addContextToFrame,
   addExceptionMechanism,
+  addExceptionMechanismToCapturedException,
   checkOrSetAlreadyCaught,
   getEventDescription,
   uuid4,
@@ -241,6 +242,63 @@ describe('addExceptionMechanism', () => {
 
     // the new `handled` value took precedence
     expect(event.exception.values[0].mechanism).toEqual({ type: 'instrument', handled: true, synthetic: true });
+  });
+
+  it('adds the mechanism to the captured exception in an exception group', () => {
+    const event: Event = {
+      exception: {
+        values: [
+          {
+            value: 'Cause',
+            mechanism: { type: 'chained', handled: true, exception_id: 1, parent_id: 0 },
+          },
+          {
+            value: 'Captured Error',
+            mechanism: { type: 'generic', handled: true, exception_id: 0, data: { source: 'existing' } },
+          },
+        ],
+      },
+    };
+
+    addExceptionMechanismToCapturedException(event, {
+      type: 'auto.test.capture',
+      handled: false,
+      data: { handler: 'request' },
+    });
+
+    expect(event.exception?.values).toEqual([
+      {
+        value: 'Cause',
+        mechanism: { type: 'chained', handled: true, exception_id: 1, parent_id: 0 },
+      },
+      {
+        value: 'Captured Error',
+        mechanism: {
+          type: 'auto.test.capture',
+          handled: false,
+          exception_id: 0,
+          data: { source: 'existing', handler: 'request' },
+        },
+      },
+    ]);
+  });
+
+  it('falls back to the first exception without exception group metadata', () => {
+    const event: Event = {
+      exception: {
+        values: [
+          { value: 'First', mechanism: { type: 'generic', handled: true } },
+          { value: 'Second', mechanism: { type: 'generic', handled: true } },
+        ],
+      },
+    };
+
+    addExceptionMechanismToCapturedException(event, { type: 'auto.test.capture', handled: false });
+
+    expect(event.exception?.values).toEqual([
+      { value: 'First', mechanism: { type: 'auto.test.capture', handled: false } },
+      { value: 'Second', mechanism: { type: 'generic', handled: true } },
+    ]);
   });
 
   it('merges data values', () => {

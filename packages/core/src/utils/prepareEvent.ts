@@ -8,7 +8,7 @@ import type { ClientOptions } from '../types/options';
 import type { StackParser } from '../types/stacktrace';
 import { getFilenameToDebugIdMap } from './debug-ids';
 import { isInternalException } from './eventUtils';
-import { addExceptionMechanism, uuid4 } from './misc';
+import { addExceptionMechanismToCapturedException, uuid4 } from './misc';
 import { normalize } from './normalize';
 import { applyScopeDataToEvent, getCombinedScopeData } from './scopeData';
 import { truncate } from './string';
@@ -72,7 +72,7 @@ export function prepareEvent(
   const finalScope = getFinalScope(scope, hint.captureContext);
 
   if (hint.mechanism) {
-    addExceptionMechanism(prepared, hint.mechanism);
+    addExceptionMechanismToCapturedException(prepared, hint.mechanism);
   }
 
   const clientEventProcessors = client ? client.getEventProcessors() : [];
