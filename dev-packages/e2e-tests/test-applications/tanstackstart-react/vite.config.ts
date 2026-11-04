@@ -32,7 +32,8 @@ function initInServerEntry() {
     name: 'init-in-server-entry',
     enforce: 'pre' as const,
     transform(code: string, id: string) {
-      return id.endsWith('/src/server.ts') ? `import '../instrument.server.mjs';\n${code}` : undefined;
+      // On the first line, so that the server source maps stay correct without a map for this change.
+      return id.endsWith('/src/server.ts') ? { code: `import '../instrument.server.mjs';${code}`, map: null } : undefined;
     },
   };
 }

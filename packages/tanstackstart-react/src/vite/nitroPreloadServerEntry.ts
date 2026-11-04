@@ -1,18 +1,20 @@
-import * as path from 'node:path';
-import type { Plugin, Rollup } from 'vite';
+import type { Plugin } from 'vite';
 import { isNitroService } from './nitroSourceMaps';
 
 const PRELOAD_PLUGIN_ID = '#sentry/tanstackstart-react/preload-server-entry';
+const VITE_SERVICES_ID = '#nitro/virtual/vite-services';
 
 // A safety net against an import cycle that the build could not detect, which would otherwise never settle.
 const PRELOAD_TIMEOUT_MS = 3000;
+
+type NitroTemplate = string | (() => string | Promise<string>);
 
 type Nitro = {
   options: {
     dev: boolean;
     node: boolean;
     plugins: string[];
-    virtual: Record<string, string | (() => string | Promise<string>)>;
+    virtual: Record<string, NitroTemplate>;
   };
 };
 
@@ -22,35 +24,21 @@ type ServiceEntry = { file: string; importsNitroRuntime: boolean };
  * Nitro imports the entry of a Vite service, such as TanStack Start's server entry, on the first request. An
  * `instrument.server` import at the top of the server entry so only initializes the SDK during that request, too late
  * for the HTTP instrumentation to see it. This adds a Nitro plugin that imports the service entries at server startup.
- *
- * Because the plugin imports the same files that Nitro imports lazily, the SDK is not bundled a second time.
  */
 export function makePreloadNitroServerEntryPlugin(): Plugin & {
   nitro: { name: string; setup: (nitro: Nitro) => void };
 } {
-  const serviceEntries = new Map<string, ServiceEntry[]>();
+  const servicesImportingNitroRuntime = new Map<string, boolean>();
 
   return {
     name: 'sentry-tanstackstart-nitro-preload-server-entry',
     apply: 'build',
     applyToEnvironment: isNitroService,
-    writeBundle(outputOptions, bundle) {
-      if (!outputOptions.dir) {
-        return;
-      }
-
-      const chunks = Object.values(bundle).filter((output): output is Rollup.OutputChunk => output.type === 'chunk');
-      const importsNitroRuntime = chunks.some(chunk =>
-        [...chunk.imports, ...chunk.dynamicImports].some(isNitroRuntimeImport),
+    writeBundle(_outputOptions, bundle) {
+      const importsNitroRuntime = Object.values(bundle).some(
+        output => output.type === 'chunk' && [...output.imports, ...output.dynamicImports].some(isNitroRuntimeImport),
       );
-      const entryChunk = findServiceEntryChunk(chunks, this.environment.config.build.rolldownOptions.input);
-      if (!entryChunk) {
-        return;
-      }
-
-      // Nitro imports the entry by a forward-slash path, so the bundler sees one module rather than two copies.
-      const file = path.resolve(outputOptions.dir, entryChunk.fileName).replace(/\\/g, '/');
-      serviceEntries.set(this.environment.name, [{ file, importsNitroRuntime }]);
+      servicesImportingNitroRuntime.set(this.environment.name, importsNitroRuntime);
     },
     nitro: {
       name: 'sentry-tanstackstart-nitro-preload-server-entry',
@@ -60,12 +48,39 @@ export function makePreloadNitroServerEntryPlugin(): Plugin & {
           return;
         }
 
-        // Nitro renders the template when it builds its own environment, after the service environments.
-        nitro.options.virtual[PRELOAD_PLUGIN_ID] = () => renderPreloadPlugin([...serviceEntries.values()].flat());
+        // Nitro renders the templates when it builds its own environment, after the service environments.
+        nitro.options.virtual[PRELOAD_PLUGIN_ID] = async () => {
+          const services = await readViteServices(nitro.options.virtual[VITE_SERVICES_ID]);
+          return renderPreloadPlugin(
+            services.map(({ name, file }) => ({
+              file,
+              // A service that was not checked could import the Nitro runtime.
+              importsNitroRuntime: servicesImportingNitroRuntime.get(name) ?? true,
+            })),
+          );
+        };
         nitro.options.plugins.push(PRELOAD_PLUGIN_ID);
       },
     },
   };
+}
+
+/**
+ * Reads the services and the entry files that Nitro imports lazily from its internal `vite-services` module. Importing
+ * the very same specifiers makes the bundler load the same modules, rather than a second copy of the SDK. If the module
+ * changes shape, nothing is preloaded.
+ */
+export async function readViteServices(template: NitroTemplate | undefined): Promise<{ name: string; file: string }[]> {
+  const code = typeof template === 'function' ? await template() : template;
+  if (!code) {
+    return [];
+  }
+
+  const services = [];
+  for (const match of code.matchAll(/\[("(?:[^"\\]|\\.)*")\]: lazyService\(\(\) => import\(("(?:[^"\\]|\\.)*")\)\)/g)) {
+    services.push({ name: JSON.parse(match[1]!) as string, file: JSON.parse(match[2]!) as string });
+  }
+  return services;
 }
 
 /**
@@ -102,20 +117,6 @@ export function renderPreloadPlugin(entries: ServiceEntry[]): string {
 // Errors surface when Nitro imports the entry for the first request, as without the preload.
 function renderImport(file: string): string {
   return `import(${JSON.stringify(file)}).catch(() => {})`;
-}
-
-/** The chunk that Nitro picks as the entry of a service: the one of the build input, or else the first. */
-function findServiceEntryChunk(
-  chunks: Rollup.OutputChunk[],
-  input: Rollup.InputOption | undefined,
-): Rollup.OutputChunk | undefined {
-  const entryChunks = chunks.filter(chunk => chunk.isEntry);
-  const inputs = (typeof input === 'string' ? [input] : Object.values(input ?? {})).map(file => path.resolve(file));
-
-  return (
-    entryChunks.find(chunk => chunk.facadeModuleId && inputs.includes(path.resolve(chunk.facadeModuleId))) ??
-    entryChunks[0]
-  );
 }
 
 function isNitroRuntimeImport(id: string): boolean {

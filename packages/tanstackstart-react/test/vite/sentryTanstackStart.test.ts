@@ -134,6 +134,13 @@ describe('sentryTanstackStart()', () => {
       ]);
     });
 
+    it('does not return the server entry preload plugin when preloadServerEntry is false', () => {
+      const plugins = sentryTanstackStart({ autoInstrumentMiddleware: false, preloadServerEntry: false });
+
+      expect(plugins).not.toContain(mockPreloadNitroServerEntryPlugin);
+      expect(plugins).toContain(mockComposeNitroServiceSourceMapsPlugin);
+    });
+
     it('returns no build-time plugins in development mode when tunnelRoute is not configured', () => {
       process.env.NODE_ENV = 'development';
 

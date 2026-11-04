@@ -45,6 +45,9 @@ test('sends an http.server span for the first request of a server started withou
       String(span.attributes[URL_FULL]?.value ?? '').includes(`localhost:${PORT}/`),
   );
 
+  // The preload timing out would still initialize the SDK before the server listens, so the test would pass anyway.
+  expect(output).not.toContain('The first request may not be traced');
+
   const response = await fetch(`http://localhost:${PORT}/`);
   expect(response.status).toBe(200);
 
