@@ -1,3 +1,13 @@
+import {
+  CACHE_HIT,
+  CACHE_KEY,
+  CACHE_OPERATION,
+  DB_OPERATION_NAME,
+  DB_SYSTEM_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import type * as SentryCore from '@sentry/core';
 import { describe, expect, it, vi } from 'vitest';
 import { instrumentCacheStorage } from '../../../src/runtime/utils/instrumentStorage';
@@ -41,17 +51,17 @@ describe('instrumentCacheStorage', () => {
       {
         name: KEY,
         attributes: {
-          'sentry.op': 'cache.get',
-          'cache.operation': 'get',
-          'sentry.origin': 'auto.cache.nuxt',
-          'cache.key': KEY,
-          'db.operation.name': 'get',
-          'db.system.name': 'memory',
+          [SENTRY_OP]: CACHE_GET,
+          [CACHE_OPERATION]: 'get',
+          [SENTRY_ORIGIN]: 'auto.cache.nuxt',
+          [CACHE_KEY]: KEY,
+          [DB_OPERATION_NAME]: 'get',
+          [DB_SYSTEM_NAME]: 'memory',
         },
       },
       expect.any(Function),
     );
-    expect(setAttributeMock).toHaveBeenLastCalledWith('cache.hit', true);
+    expect(setAttributeMock).toHaveBeenLastCalledWith(CACHE_HIT, true);
   });
 
   it.each([
@@ -63,7 +73,7 @@ describe('instrumentCacheStorage', () => {
 
     await storage.get(KEY);
 
-    expect(setAttributeMock).toHaveBeenLastCalledWith('cache.hit', false);
+    expect(setAttributeMock).toHaveBeenLastCalledWith(CACHE_HIT, false);
   });
 
   it('traces writes, and writes of `null` as removals', async () => {
@@ -75,14 +85,14 @@ describe('instrumentCacheStorage', () => {
     expect(originalSet).toHaveBeenLastCalledWith(KEY, { value: 1 }, { ttl: 60 });
     expect(startSpanMock).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        attributes: expect.objectContaining({ 'sentry.op': 'cache.put', 'db.operation.name': 'set' }),
+        attributes: expect.objectContaining({ [SENTRY_OP]: CACHE_PUT, [DB_OPERATION_NAME]: 'set' }),
       }),
       expect.any(Function),
     );
 
     await storage.set(KEY, null);
     expect(startSpanMock).toHaveBeenLastCalledWith(
-      expect.objectContaining({ attributes: expect.objectContaining({ 'sentry.op': 'cache.remove' }) }),
+      expect.objectContaining({ attributes: expect.objectContaining({ [SENTRY_OP]: CACHE_REMOVE }) }),
       expect.any(Function),
     );
   });
@@ -99,7 +109,7 @@ describe('instrumentCacheStorage', () => {
     expect(captureExceptionMock).toHaveBeenCalledWith(error, {
       mechanism: { handled: false, type: 'auto.cache.nuxt' },
     });
-    expect(setAttributeMock).not.toHaveBeenCalledWith('cache.hit', expect.anything());
+    expect(setAttributeMock).not.toHaveBeenCalledWith(CACHE_HIT, expect.anything());
   });
 
   it('patches the storage in place and only once', async () => {
