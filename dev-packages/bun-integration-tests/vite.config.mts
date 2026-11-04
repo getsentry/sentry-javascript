@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import { getTestRetries } from '@sentry-internal/test-utils';
 import { defineConfig } from 'vitest/config';
 import baseConfig from '../../vite/vite.config';
 import {
@@ -31,8 +32,7 @@ export default defineConfig({
     },
     isolate: false,
     testTimeout: 20_000,
-    // Retry only on PRs, so flaky tests keep failing on develop, where the weekly flaky test report looks for them.
-    retry: process.env.GITHUB_EVENT_NAME === 'pull_request' ? 1 : 0,
+    retry: getTestRetries(),
     ...(process.env.DEBUG
       ? {
           disableConsoleIntercept: true,
