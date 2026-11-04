@@ -14,6 +14,8 @@ export default defineConfig({
     // delivered — there is no internal runner timeout, so this ceiling covers cold-start + async work +
     // delivery. Cold-start is slow and highly variable on CI, so give it generous headroom to de-flake.
     testTimeout: 60_000,
+    // Retry only on PRs, so flaky tests keep failing on develop, where the weekly flaky test report looks for them.
+    retry: process.env.GITHUB_EVENT_NAME === 'pull_request' ? 1 : 0,
     // Ensure we can see debug output when DEBUG=true
     ...(process.env.DEBUG
       ? {

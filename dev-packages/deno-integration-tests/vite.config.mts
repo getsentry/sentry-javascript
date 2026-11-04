@@ -22,6 +22,8 @@ export default defineConfig({
     },
     // Above the 30 second port timeout of the runner on Deno, so a slow start can still pass.
     testTimeout: 45_000,
+    // Retry only on PRs, so flaky tests keep failing on develop, where the weekly flaky test report looks for them.
+    retry: process.env.GITHUB_EVENT_NAME === 'pull_request' ? 1 : 0,
     ...(process.env.DEBUG
       ? {
           disableConsoleIntercept: true,
