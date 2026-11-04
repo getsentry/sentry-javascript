@@ -1,6 +1,8 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 
 test.skip(process.env.E2E_TEST_INIT_IN_SERVER_ENTRY !== '1', 'Runs only in the init-in-server-entry variant');
 
@@ -39,13 +41,13 @@ test('sends an http.server span for the first request of a server started withou
     'tanstackstart-react',
     span =>
       !!span.is_segment &&
-      getSpanOp(span) === 'http.server' &&
-      String(span.attributes['url.full']?.value ?? '').includes(`localhost:${PORT}/`),
+      getSpanOp(span) === HTTP_SERVER &&
+      String(span.attributes[URL_FULL]?.value ?? '').includes(`localhost:${PORT}/`),
   );
 
   const response = await fetch(`http://localhost:${PORT}/`);
   expect(response.status).toBe(200);
 
   const span = await spanPromise;
-  expect(span.attributes['url.path']?.value).toBe('/');
+  expect(span.attributes[URL_PATH]?.value).toBe('/');
 });
