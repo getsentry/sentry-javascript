@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { HTTP_TARGET } from '@sentry/conventions/attributes';
 import { waitForStreamedSpan, waitForStreamedSpans } from '@sentry-internal/test-utils';
 
 test('drops the `Next.request` root span of tunnel requests through the proxy', async ({ request }) => {
@@ -13,7 +14,7 @@ test('drops the `Next.request` root span of tunnel requests through the proxy', 
     return (
       span.is_segment &&
       span.attributes['next.span_type']?.value === 'Next.request' &&
-      span.attributes['http.target']?.value === '/api/proxy-ok'
+      span.attributes[HTTP_TARGET]?.value === '/api/proxy-ok'
     );
   });
 
@@ -23,7 +24,7 @@ test('drops the `Next.request` root span of tunnel requests through the proxy', 
   await request.get('/api/proxy-ok');
   await proxyOkSpanPromise;
 
-  expect(segmentSpans.filter(span => String(span.attributes['http.target']?.value).startsWith('/monitoring'))).toEqual(
+  expect(segmentSpans.filter(span => String(span.attributes[HTTP_TARGET]?.value).startsWith('/monitoring'))).toEqual(
     [],
   );
 });
