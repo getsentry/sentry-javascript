@@ -1,3 +1,4 @@
+import { DB_OPERATION_NAME, DB_RESPONSE_STATUS_CODE, ERROR_TYPE } from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -104,7 +105,7 @@ describe('PostgresJs portable instrumentation', () => {
       _wrapQuerySettlement(query, span, 'SELECT', onSettle);
       const result = query.resolve({ command: 'UPDATE' });
 
-      expect(span.setAttribute).toHaveBeenCalledWith('db.operation.name', 'UPDATE');
+      expect(span.setAttribute).toHaveBeenCalledWith(DB_OPERATION_NAME, 'UPDATE');
       expect(span.end).toHaveBeenCalledTimes(1);
       expect(onSettle).toHaveBeenCalledTimes(1);
       expect(resolve).toHaveBeenCalledWith({ command: 'UPDATE' });
@@ -118,7 +119,7 @@ describe('PostgresJs portable instrumentation', () => {
       _wrapQuerySettlement(query, span, 'SELECT');
       query.resolve({});
 
-      expect(span.setAttribute).toHaveBeenCalledWith('db.operation.name', 'SELECT');
+      expect(span.setAttribute).toHaveBeenCalledWith(DB_OPERATION_NAME, 'SELECT');
     });
 
     it('marks the span as errored and ends it on reject', () => {
@@ -132,8 +133,8 @@ describe('PostgresJs portable instrumentation', () => {
       const result = query.reject(error);
 
       expect(span.setStatus).toHaveBeenCalledWith({ code: SentryCore.SPAN_STATUS_ERROR, message: 'boom' });
-      expect(span.setAttribute).toHaveBeenCalledWith('db.response.status_code', '42P01');
-      expect(span.setAttribute).toHaveBeenCalledWith('error.type', 'PostgresError');
+      expect(span.setAttribute).toHaveBeenCalledWith(DB_RESPONSE_STATUS_CODE, '42P01');
+      expect(span.setAttribute).toHaveBeenCalledWith(ERROR_TYPE, 'PostgresError');
       expect(span.end).toHaveBeenCalledTimes(1);
       expect(onSettle).toHaveBeenCalledTimes(1);
       expect(reject).toHaveBeenCalledWith(error);
@@ -148,8 +149,8 @@ describe('PostgresJs portable instrumentation', () => {
       query.reject(undefined);
 
       expect(span.setStatus).toHaveBeenCalledWith({ code: SentryCore.SPAN_STATUS_ERROR, message: 'unknown_error' });
-      expect(span.setAttribute).toHaveBeenCalledWith('db.response.status_code', 'unknown');
-      expect(span.setAttribute).toHaveBeenCalledWith('error.type', 'unknown');
+      expect(span.setAttribute).toHaveBeenCalledWith(DB_RESPONSE_STATUS_CODE, 'unknown');
+      expect(span.setAttribute).toHaveBeenCalledWith(ERROR_TYPE, 'unknown');
     });
 
     it('still settles the query and runs onSettle when ending the span throws', () => {
