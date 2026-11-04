@@ -10,9 +10,9 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
-import type { IntegrationFn, Span } from '@sentry/core';
+import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import { defineIntegration, getActiveSpan, startInactiveSpan } from '@sentry/core';
-import { getSqlQueryAttributes } from '../utils/sql';
+import { getLowCardinalitySqlSpanName, getSqlQueryAttributes } from '../utils/sql';
 import { CHANNELS } from '../orchestrion/channels';
 import { neonModuleNames } from '../orchestrion/config/neon';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
@@ -104,22 +104,18 @@ function httpQuerySpanOptions(args: unknown[]): Parameters<typeof startInactiveS
   const querySummary = joinDefined(statements.map(s => s[DB_QUERY_SUMMARY]));
   const operationName =
     batchSize === undefined ? statements[0]?.[DB_OPERATION_NAME] : getBatchOperationName(statements);
-  const name = querySummary || DB_SYSTEM_POSTGRESQL;
-
-  return {
-    name,
-    onlyIfParent: true,
-    attributes: {
-      [SENTRY_OP]: DB,
-      [SENTRY_ORIGIN]: ORIGIN,
-      [SENTRY_KIND]: 'client',
-      [DB_SYSTEM_NAME]: DB_SYSTEM_POSTGRESQL,
-      [DB_QUERY_TEXT]: queryText || undefined,
-      [DB_QUERY_SUMMARY]: querySummary,
-      [DB_OPERATION_NAME]: operationName,
-      [DB_OPERATION_BATCH_SIZE]: batchSize,
-    },
+  const attributes: SpanAttributes = {
+    [SENTRY_OP]: DB,
+    [SENTRY_ORIGIN]: ORIGIN,
+    [SENTRY_KIND]: 'client',
+    [DB_SYSTEM_NAME]: DB_SYSTEM_POSTGRESQL,
+    [DB_QUERY_TEXT]: queryText || undefined,
+    [DB_QUERY_SUMMARY]: querySummary,
+    [DB_OPERATION_NAME]: operationName,
+    [DB_OPERATION_BATCH_SIZE]: batchSize,
   };
+
+  return { name: getLowCardinalitySqlSpanName(attributes, DB_SYSTEM_POSTGRESQL), onlyIfParent: true, attributes };
 }
 
 // OTel names a batch `BATCH <op>` when every statement shares one operation, plain `BATCH` otherwise.

@@ -6,8 +6,6 @@
 import {
   debug,
   getActiveSpan,
-  getClient,
-  hasSpanStreamingEnabled,
   isObjectLike,
   type Span,
   type SpanAttributes,
@@ -15,11 +13,10 @@ import {
   startSpanManual,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { getSqlQueryAttributes } from '../utils/sql';
+import { getSqlQueryAttributes, getSqlSpanName } from '../utils/sql';
 import {
   DB_NAMESPACE,
   DB_OPERATION_NAME,
-  DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   SENTRY_OP,
@@ -247,89 +244,78 @@ function _wrapSingleQueryHandle(
     const queryAttributes = getSqlQueryAttributes(_reconstructQuery(query.strings));
     const sanitizedSqlQuery = queryAttributes[DB_QUERY_TEXT] ?? '';
 
-    const client = getClient();
-
     const connectionContext = sqlInstance
       ? ((sqlInstance as Record<symbol, unknown>)[CONNECTION_CONTEXT_SYMBOL] as PostgresConnectionContext | undefined)
       : undefined;
 
-    const name =
-      client && hasSpanStreamingEnabled(client)
-        ? queryAttributes[DB_QUERY_SUMMARY] || connectionContext?.ATTR_DB_NAMESPACE || 'postgres'
-        : sanitizedSqlQuery || 'postgresjs.query';
+    const attributes: SpanAttributes = {
+      [SENTRY_OP]: DB,
+      [SENTRY_ORIGIN]: 'auto.db.postgresjs',
+      [DB_SYSTEM_NAME]: 'postgres',
+      ...queryAttributes,
+      ...(connectionContext && _getConnectionAttributes(connectionContext)),
+    };
 
-    return startSpanManual(
-      {
-        name,
-        attributes: {
-          [SENTRY_OP]: DB,
-          [SENTRY_ORIGIN]: 'auto.db.postgresjs',
-          [DB_SYSTEM_NAME]: 'postgres',
-          ...queryAttributes,
-          ...(connectionContext && _getConnectionAttributes(connectionContext)),
-        },
-      },
-      (span: Span) => {
-        if (options.requestHook) {
-          try {
-            options.requestHook(span, sanitizedSqlQuery, connectionContext);
-          } catch (e) {
-            span.setAttribute('sentry.hook.error', 'requestHook failed');
-            DEBUG_BUILD && debug.error('Error in requestHook for PostgresJs instrumentation:', e);
-          }
-        }
-
-        const queryWithCallbacks = this as {
-          resolve: unknown;
-          reject: unknown;
-        };
-
-        queryWithCallbacks.resolve = new Proxy(queryWithCallbacks.resolve as (...args: unknown[]) => unknown, {
-          apply: (resolveTarget, resolveThisArg, resolveArgs: [{ command?: string }]) => {
-            try {
-              // Re-set the operation name with the server-reported command, which is more reliable than the query text.
-              span.setAttribute(DB_OPERATION_NAME, resolveArgs?.[0]?.command || queryAttributes[DB_OPERATION_NAME]);
-              span.end();
-            } catch (e) {
-              DEBUG_BUILD && debug.error('Error ending span in resolve callback:', e);
-            }
-
-            return Reflect.apply(resolveTarget, resolveThisArg, resolveArgs);
-          },
-        });
-
-        queryWithCallbacks.reject = new Proxy(queryWithCallbacks.reject as (...args: unknown[]) => unknown, {
-          apply: (rejectTarget, rejectThisArg, rejectArgs: { message?: string; code?: string; name?: string }[]) => {
-            try {
-              span.setStatus({
-                code: SPAN_STATUS_ERROR,
-                message: rejectArgs?.[0]?.message || 'unknown_error',
-              });
-
-              span.setAttribute(DB_RESPONSE_STATUS_CODE, rejectArgs?.[0]?.code || 'unknown');
-              span.setAttribute(ERROR_TYPE, rejectArgs?.[0]?.name || 'unknown');
-
-              span.end();
-            } catch (e) {
-              DEBUG_BUILD && debug.error('Error ending span in reject callback:', e);
-            }
-            return Reflect.apply(rejectTarget, rejectThisArg, rejectArgs);
-          },
-        });
-
-        // Handle synchronous errors that might occur before promise is created
+    return startSpanManual({ name: getSqlSpanName(attributes, 'postgresjs.query'), attributes }, (span: Span) => {
+      if (options.requestHook) {
         try {
-          return originalHandle.apply(this, args);
+          options.requestHook(span, sanitizedSqlQuery, connectionContext);
         } catch (e) {
-          span.setStatus({
-            code: SPAN_STATUS_ERROR,
-            message: e instanceof Error ? e.message : 'unknown_error',
-          });
-          span.end();
-          throw e;
+          span.setAttribute('sentry.hook.error', 'requestHook failed');
+          DEBUG_BUILD && debug.error('Error in requestHook for PostgresJs instrumentation:', e);
         }
-      },
-    );
+      }
+
+      const queryWithCallbacks = this as {
+        resolve: unknown;
+        reject: unknown;
+      };
+
+      queryWithCallbacks.resolve = new Proxy(queryWithCallbacks.resolve as (...args: unknown[]) => unknown, {
+        apply: (resolveTarget, resolveThisArg, resolveArgs: [{ command?: string }]) => {
+          try {
+            // Re-set the operation name with the server-reported command, which is more reliable than the query text.
+            span.setAttribute(DB_OPERATION_NAME, resolveArgs?.[0]?.command || queryAttributes[DB_OPERATION_NAME]);
+            span.end();
+          } catch (e) {
+            DEBUG_BUILD && debug.error('Error ending span in resolve callback:', e);
+          }
+
+          return Reflect.apply(resolveTarget, resolveThisArg, resolveArgs);
+        },
+      });
+
+      queryWithCallbacks.reject = new Proxy(queryWithCallbacks.reject as (...args: unknown[]) => unknown, {
+        apply: (rejectTarget, rejectThisArg, rejectArgs: { message?: string; code?: string; name?: string }[]) => {
+          try {
+            span.setStatus({
+              code: SPAN_STATUS_ERROR,
+              message: rejectArgs?.[0]?.message || 'unknown_error',
+            });
+
+            span.setAttribute(DB_RESPONSE_STATUS_CODE, rejectArgs?.[0]?.code || 'unknown');
+            span.setAttribute(ERROR_TYPE, rejectArgs?.[0]?.name || 'unknown');
+
+            span.end();
+          } catch (e) {
+            DEBUG_BUILD && debug.error('Error ending span in reject callback:', e);
+          }
+          return Reflect.apply(rejectTarget, rejectThisArg, rejectArgs);
+        },
+      });
+
+      // Handle synchronous errors that might occur before promise is created
+      try {
+        return originalHandle.apply(this, args);
+      } catch (e) {
+        span.setStatus({
+          code: SPAN_STATUS_ERROR,
+          message: e instanceof Error ? e.message : 'unknown_error',
+        });
+        span.end();
+        throw e;
+      }
+    });
   };
 
   (wrappedHandle as { __sentryWrapped?: boolean }).__sentryWrapped = true;
