@@ -498,11 +498,11 @@ jobs:
 
       - name: Run affected tests
         run: pnpm run test:pr:browser --base=${{ github.event.pull_request.base.sha }}
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && needs.job_get_metadata.outputs.changed_ci != 'true'
 
       - name: Run all tests
         run: pnpm run test:ci:browser
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' || needs.job_get_metadata.outputs.changed_ci == 'true'
 
   job_bun_unit_tests:
     name: Bun (${{ matrix.bun }}) Unit Tests
@@ -602,13 +602,13 @@ jobs:
 
       - name: Run affected tests
         run: pnpm run test:pr:node --base=${{ github.event.pull_request.base.sha }}
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && needs.job_get_metadata.outputs.changed_ci != 'true'
         env:
           NODE_VERSION: ${{ matrix.node }}
 
       - name: Run all tests
         run: pnpm run test:ci:node
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' || needs.job_get_metadata.outputs.changed_ci == 'true'
         env:
           NODE_VERSION: ${{ matrix.node }}
 
