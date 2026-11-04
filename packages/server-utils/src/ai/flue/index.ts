@@ -21,6 +21,7 @@ import type { GenAiOptions } from '../core/utils';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
 import { getOrchestrionInjectedModules } from '../../orchestrion/detect';
 import { piAiModuleNames } from '../../orchestrion/config/pi-ai';
+import { setPiAiRecordingOptions } from '../pi-ai/recording';
 import { isCloudflareWorkers } from '../../utils/runtime';
 import { withCleanScopes } from '../../utils/withCleanScopes';
 import { FLUE_INSTRUMENTATION_KEY, FLUE_OPERATION, FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
@@ -134,16 +135,17 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
         return toolSpan ? withActiveSpan(toolSpan, next) : next();
       }
       // The `gen_ai.chat` span of the model call comes from the pi-ai integration, which reads the
-      // conversation from the scope.
+      // conversation and the recording options from the scope.
       if (operation?.type === FLUE_OPERATION.MODEL) {
         warnIfPiAiNotInstrumented();
         const { conversationId } = ctx;
-        return conversationId
-          ? withScope(scope => {
-              scope.setConversationId(conversationId);
-              return next();
-            })
-          : next();
+        return withScope(scope => {
+          if (conversationId) {
+            scope.setConversationId(conversationId);
+          }
+          setPiAiRecordingOptions(scope, options);
+          return next();
+        });
       }
 
       if (operation?.type !== FLUE_OPERATION.AGENT) {
