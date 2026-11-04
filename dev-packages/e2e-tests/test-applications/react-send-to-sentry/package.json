@@ -41,12 +41,8 @@
     ]
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0",
+    "@playwright/test": "1.64.1",
     "serve": "14.0.1"
-  },
-  "volta": {
-    "node": "20.19.5",
-    "extends": "../../package.json"
   },
   "sentryTest": {
     "optional": true

@@ -30,3 +30,17 @@ allow-ghsas:
   # 0.35.0, which is outside that range. Already present on develop via sharp 0.32.6
   # and 0.34.5, both of which are affected by the same advisory.
   - GHSA-f88m-g3jw-g9cj
+  # axios, pinned exactly to 1.18.1 by nx (dev-only build tooling, not shipped).
+  # Can be removed once nx pins axios >= 1.20.0.
+  - GHSA-542g-h47m-68v8
+  - GHSA-3pq3-5fj3-cg6v
+  - GHSA-x97p-jq2g-jp4f
+  - GHSA-mghh-pgcx-3jjj
+  - GHSA-c29m-xwm3-cm6r
+  - GHSA-r4gj-5m52-g5wh
+  - GHSA-m8m8-qj5v-23w3
+  # brace-expansion, pinned exactly to 5.0.8 by nx (dev-only build tooling, not shipped).
+  # Can be removed once nx pins brace-expansion >= 5.0.11.
+  - GHSA-rgw5-rvv9-x895
+  - GHSA-6j4f-fj2g-mc7p
+  - GHSA-qhr7-859c-m2p7

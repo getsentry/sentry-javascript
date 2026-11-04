@@ -2,7 +2,7 @@ import { debug, getOriginalFunction } from '@sentry/core';
 import type { WrappedFunction } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { Hono, HonoRoute } from './honoTypes';
-import { isMiddleware } from './isMiddleware';
+import { getMiddlewareFlags } from './isMiddleware';
 import { patchAppRequest } from './patchAppRequest';
 import { wrapMiddlewareWithSpan } from './wrapMiddlewareSpan';
 
@@ -103,31 +103,12 @@ export function installRouteHookOnPrototype(honoBaseProto: HonoBaseProto): Route
 }
 
 /**
- * Identifies middleware handlers in a sub-app's flat routes array and wraps them in spans.
- *
- * Heuristics (since Hono has no "isMiddleware" flag):
- * 1. Position: `app.get('/path', mw, handler)` produces entries with the same method+path.
- *    All but the LAST are middleware (they call `next()`).
- * 2. Arity (# of params) for method 'ALL': `.use()` handlers always have 2+ params (context, next),
- *    while `.all()` route handlers typically have 1 (`context` only).
- *    See: https://github.com/honojs/hono/blob/18fe604c8cefc2628240651b1af219692e1918c1/src/hono-base.ts#L156-L168
+ * Wraps the middleware handlers of a sub-app's routes in spans.
  */
 export function wrapSubAppMiddleware(routes: HonoRoute[]): void {
-  const lastIndexByKey = new Map<string, number>();
+  const middlewareFlags = getMiddlewareFlags(routes);
   for (const [i, route] of routes.entries()) {
-    // \0 (null byte) is a collision-free delimiter: it cannot appear in a valid HTTP method name or URL path
-    lastIndexByKey.set(`${route.method}\0${route.path}`, i);
-  }
-
-  for (const [i, route] of routes.entries()) {
-    if (typeof route.handler !== 'function') {
-      continue;
-    }
-
-    const isLastForGroup = lastIndexByKey.get(`${route.method}\0${route.path}`) === i;
-
-    const isMW = !isLastForGroup || (route.method === 'ALL' && isMiddleware(route.handler));
-    if (isMW) {
+    if (middlewareFlags[i] && typeof route.handler === 'function') {
       route.handler = wrapMiddlewareWithSpan(route.handler);
     }
   }

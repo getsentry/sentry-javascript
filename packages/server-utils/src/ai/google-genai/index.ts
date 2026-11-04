@@ -27,13 +27,11 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
-  GEN_AI_USAGE_INPUT_TOKENS,
-  GEN_AI_USAGE_OUTPUT_TOKENS,
-  GEN_AI_USAGE_TOTAL_TOKENS,
+  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
-import { buildMethodPath, getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
+import { buildMethodPath, getGenAiSpanOp, getTokenUsageAttributes, resolveAIRecordingOptions } from '../core/utils';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
@@ -205,20 +203,18 @@ export function addResponseAttributes(span: Span, response: GoogleGenAIResponse,
   // Add usage metadata if present
   if (response.usageMetadata && typeof response.usageMetadata === 'object') {
     const usage = response.usageMetadata;
-    if (typeof usage.promptTokenCount === 'number') {
-      span.setAttributes({
-        [GEN_AI_USAGE_INPUT_TOKENS]: usage.promptTokenCount,
-      });
-    }
-    if (typeof usage.candidatesTokenCount === 'number') {
-      span.setAttributes({
-        [GEN_AI_USAGE_OUTPUT_TOKENS]: usage.candidatesTokenCount,
-      });
-    }
-    if (typeof usage.totalTokenCount === 'number') {
-      span.setAttributes({
-        [GEN_AI_USAGE_TOTAL_TOKENS]: usage.totalTokenCount,
-      });
+    const hasOutput = typeof usage.candidatesTokenCount === 'number' || typeof usage.thoughtsTokenCount === 'number';
+    span.setAttributes(
+      getTokenUsageAttributes(
+        usage.promptTokenCount,
+        hasOutput ? (usage.candidatesTokenCount ?? 0) + (usage.thoughtsTokenCount ?? 0) : undefined,
+        undefined,
+        usage.cachedContentTokenCount,
+        usage.totalTokenCount,
+      ),
+    );
+    if (typeof usage.thoughtsTokenCount === 'number') {
+      span.setAttribute(GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, usage.thoughtsTokenCount);
     }
   }
 
@@ -382,9 +378,19 @@ function instrumentMethod<T extends unknown[], R>(
  * Recursively instruments methods and handles special cases like chats.create
  */
 function createDeepProxy<T extends object>(target: T, currentPath = '', options: GoogleGenAIOptions): T {
+  const propertyCache = new Map<PropertyKey, { original: unknown; wrapped: unknown }>();
+
   return new Proxy(target, {
     get: (t, prop, receiver) => {
       const value = Reflect.get(t, prop, receiver);
+      const cachedEntry = propertyCache.get(prop);
+      if (cachedEntry) {
+        if (cachedEntry.original === value) {
+          return cachedEntry.wrapped;
+        }
+        propertyCache.delete(prop);
+      }
+
       const methodPath = buildMethodPath(currentPath, String(prop));
 
       const instrumentedMethod: InstrumentedMethodEntry | undefined =
@@ -396,6 +402,7 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
           : value.bind(t);
 
         if (!instrumentedMethod.proxyResultPath) {
+          propertyCache.set(prop, { original: value, wrapped: wrappedMethod });
           return wrappedMethod;
         }
 
@@ -403,22 +410,28 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
         // Note: This currently only properly handles synchronous methods. For async methods,
         // the Promise itself would be proxied instead of the resolved value. Currently we
         // don't have a case where this is needed, so I'll keep it simple for now.
-        return function (...args: unknown[]): unknown {
+        const methodWithProxiedResult = function (...args: unknown[]): unknown {
           const result = wrappedMethod(...args);
           if (result && typeof result === 'object') {
             return createDeepProxy(result as object, instrumentedMethod.proxyResultPath, options);
           }
           return result;
         };
+        propertyCache.set(prop, { original: value, wrapped: methodWithProxiedResult });
+        return methodWithProxiedResult;
       }
 
       if (typeof value === 'function') {
         // Bind non-instrumented functions to preserve the original `this` context
-        return value.bind(t);
+        const boundMethod = value.bind(t);
+        propertyCache.set(prop, { original: value, wrapped: boundMethod });
+        return boundMethod;
       }
 
       if (value && typeof value === 'object') {
-        return createDeepProxy(value, methodPath, options);
+        const nestedProxy = createDeepProxy(value, methodPath, options);
+        propertyCache.set(prop, { original: value, wrapped: nestedProxy });
+        return nestedProxy;
       }
 
       return value;

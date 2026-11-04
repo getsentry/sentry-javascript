@@ -15,6 +15,7 @@ export type MastraSpanType =
   | 'provider_tool_call'
   | 'client_tool_call'
   | 'rag_embedding'
+  | 'classifier_evaluation'
   | (string & {});
 
 export type MastraTracingEventType = 'span_started' | 'span_updated' | 'span_ended';
@@ -58,6 +59,8 @@ export interface MastraSpanAttributes {
     stopSequences?: string[];
     seed?: number;
   };
+  // classifier_evaluation
+  modelId?: string;
   // tool_call / mcp_tool_call / provider_tool_call / client_tool_call
   toolDescription?: string;
   // agent_run / workflow_run
@@ -69,6 +72,7 @@ export interface MastraSpanAttributes {
 
 export interface MastraExportedSpan {
   id: string;
+  traceId?: string;
   parentSpanId?: string;
   /** Mastra's own name; unused for Sentry span names. */
   name: string;
@@ -89,6 +93,17 @@ export interface MastraExportedSpan {
 export interface MastraTracingEvent {
   type: MastraTracingEventType;
   exportedSpan: MastraExportedSpan;
+}
+
+/** Mastra's `SpanOutputProcessor`, such as its default `SensitiveDataFilter`. */
+export interface MastraSpanOutputProcessor {
+  name: string;
+  process(span: MastraExportedSpan): MastraExportedSpan | undefined;
+}
+
+/** Subset of what Mastra passes to `ObservabilityExporter.init()`. */
+export interface MastraExporterInitOptions {
+  config?: { spanOutputProcessors?: MastraSpanOutputProcessor[] };
 }
 
 /** Subset of Mastra's `ObservabilityExporter`. The rest of that interface is optional. */

@@ -315,7 +315,7 @@ describe('instrumentDurableObjectStorage', () => {
         name: 'SELECT',
         attributes: {
           'sentry.op': 'db.query',
-          [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+          [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object_sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',
           'db.query.text': 'SELECT ?',

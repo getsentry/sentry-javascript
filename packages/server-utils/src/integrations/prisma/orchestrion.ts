@@ -3,6 +3,7 @@ import type { Span } from '@sentry/core';
 import { getActiveSpan, getRootSpan, spanIsIgnored, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { DB_COLLECTION_NAME, DB_OPERATION_NAME, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { prismaChannels, PRISMA_LAZY_TERMINALS } from '../../orchestrion/config/prisma';
 import type { TracingChannelLifeCycleOptions } from '../../tracing-channel';
 import { bindTracingChannelToSpan, safeChannelCallback } from '../../tracing-channel';
@@ -20,12 +21,8 @@ interface PrismaCollection {
   tableName?: unknown;
 }
 
-interface PrismaTerminalChannelContext {
-  arguments: unknown[];
+interface PrismaTerminalChannelContext extends OrchestrionChannelContext {
   self?: PrismaCollection;
-  moduleVersion?: string;
-  result?: unknown;
-  error?: unknown;
 }
 
 // Prisma's `AsyncIterableResult`: `await`, `.then()` and `.first()` all funnel through `toArray()`; only
@@ -55,11 +52,7 @@ export function instrumentPrismaV8(options: PrismaV8InstrumentationOptions): voi
     bindTracingChannelToSpan<PrismaTerminalChannelContext>(
       diagnosticsChannel.tracingChannel<PrismaTerminalChannelContext>(channelName),
       data => startOperationSpan(method, data),
-      {
-        // A stray query outside a request must not become a segment of its own.
-        requiresParentSpan: true,
-        ...(isLazy ? { deferSpanEnd: deferSpanEndUntilConsumed } : {}),
-      },
+      isLazy ? { deferSpanEnd: deferSpanEndUntilConsumed } : undefined,
     );
   }
 }
@@ -75,6 +68,7 @@ function startOperationSpan(method: string, data: PrismaTerminalChannelContext):
 
   const span = startInactiveSpan({
     name: OPERATION_SPAN_NAME,
+    onlyIfParent: true,
     parentSpan,
     attributes: {
       [SENTRY_ORIGIN]: PRISMA_ORIGIN,

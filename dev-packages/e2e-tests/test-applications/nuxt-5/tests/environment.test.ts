@@ -39,7 +39,7 @@ test.describe('environment detection', async () => {
 
   test('sets correct environment for server-side errors', async ({ page }) => {
     const errorPromise = waitForError('nuxt-5', async errorEvent => {
-      return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 4 Server error';
+      return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 5 Server error';
     });
 
     await page.goto(`/fetch-server-routes`, isDevMode ? { waitUntil: 'networkidle' } : {});

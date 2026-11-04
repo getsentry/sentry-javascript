@@ -8,4 +8,7 @@ export const variables = defineEnvVars({
   // `process.env` at runtime, so a dynamic var would never reach the SDK.
   E2E_TEST_DSN: { static: true },
   PUBLIC_E2E_TEST_DSN: { public: true, static: true },
+  // Only the tunnel variant sets these, so a missing value means the tunnel is off.
+  E2E_TEST_TUNNEL: { static: true, schema: (value: string | undefined) => !!value },
+  PUBLIC_E2E_TEST_TUNNEL: { public: true, static: true, schema: (value: string | undefined) => !!value },
 });

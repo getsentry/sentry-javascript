@@ -14,7 +14,6 @@ let originalDocument: unknown;
 const MANIFEST = JSON.stringify({
   staticRoutes: [{ path: '/about' }],
   dynamicRoutes: [{ path: '/users/:id', regex: '^/users/([^/]+)$', paramNames: ['id'] }],
-  isrRoutes: [],
 });
 
 function makeClient(): BrowserClient {

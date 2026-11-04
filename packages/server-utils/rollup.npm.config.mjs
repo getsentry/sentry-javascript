@@ -63,10 +63,12 @@ const importMetaUrlNodeShim = {
 
 // Bundling files from the repo-root `node_modules` moves rollup's common source ancestor up to the
 // repo root, so `preserveModules` names our own files `packages/server-utils/src/...` — strip that
-// prefix to keep the `build/cjs/index.js` layout the `exports` map points at. And npm never packs
-// `node_modules` directories, so the vendored dependencies must not be emitted under that name.
+// prefix to keep the `build/cjs/index.js` layout the `exports` map points at. A vendored dependency
+// is named by its path after the last `node_modules/`, because pnpm installs some of them in nested
+// or `.pnpm` folders. And npm never packs `node_modules` directories, so the vendored dependencies
+// are emitted under `vendored/`.
 const sanitizedFileNames = info =>
-  `${info.name.replace(/^packages\/server-utils\/src\//, '').replace(/node_modules/g, 'vendored')}.js`;
+  `${info.name.replace(/^packages\/server-utils\/src\//, '').replace(/^.*node_modules\//, 'vendored/')}.js`;
 
 // The vendored dependencies (see above) are third-party code redistributed inside this package's
 // published `build/`, so their licenses require us to carry each one's copyright/permission notice
@@ -98,6 +100,7 @@ export default [
       entrypoints: [
         'src/index.ts',
         'src/index.no-diagnostic-channels.ts',
+        'src/index.request-handler.ts',
         'src/orchestrion/config/index.ts',
         'src/orchestrion/bundler/vite.ts',
         'src/orchestrion/bundler/rollup.ts',

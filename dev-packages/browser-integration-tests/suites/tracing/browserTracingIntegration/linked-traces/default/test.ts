@@ -1,70 +1,69 @@
-import { expect } from '@playwright/test';
 import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
+import { expect } from '@playwright/test';
+
 import { sentryTest } from '../../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 
 sentryTest("navigation spans link back to previous trace's root span", async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const pageloadTraceContext = await sentryTest.step('Initial pageload', async () => {
-    const pageloadRequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'pageload');
-    await page.goto(url);
-    const pageloadRequest = envelopeRequestParser(await pageloadRequestPromise);
-    return pageloadRequest.contexts?.trace;
-  });
+  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+  await page.goto(url);
+  const pageloadSpan = await pageloadSpanPromise;
 
-  const navigation1TraceContext = await sentryTest.step('First navigation', async () => {
-    const navigation1RequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'navigation');
-    await page.goto(`${url}#foo`);
-    const navigation1Request = envelopeRequestParser(await navigation1RequestPromise);
-    return navigation1Request.contexts?.trace;
-  });
+  const navigation1SpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'navigation');
+  await page.goto(`${url}#foo`);
+  const navigation1Span = await navigation1SpanPromise;
 
-  const navigation2TraceContext = await sentryTest.step('Second navigation', async () => {
-    const navigation2RequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'navigation');
-    await page.goto(`${url}#bar`);
-    const navigation2Request = envelopeRequestParser(await navigation2RequestPromise);
-    return navigation2Request.contexts?.trace;
-  });
+  const navigation2SpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'navigation');
+  await page.goto(`${url}#bar`);
+  const navigation2Span = await navigation2SpanPromise;
 
-  const pageloadTraceId = pageloadTraceContext?.trace_id;
-  const navigation1TraceId = navigation1TraceContext?.trace_id;
-  const navigation2TraceId = navigation2TraceContext?.trace_id;
+  const pageloadTraceId = pageloadSpan.trace_id;
+  const navigation1TraceId = navigation1Span.trace_id;
+  const navigation2TraceId = navigation2Span.trace_id;
 
-  expect(pageloadTraceContext?.links).toBeUndefined();
+  expect(pageloadSpan.links).toBeUndefined();
 
-  expect(navigation1TraceContext?.links).toEqual([
+  expect(navigation1Span.links).toEqual([
     {
       trace_id: pageloadTraceId,
-      span_id: pageloadTraceContext?.span_id,
+      span_id: pageloadSpan.span_id,
       sampled: true,
       attributes: {
-        [SENTRY_LINK_TYPE]: 'previous_trace',
+        [SENTRY_LINK_TYPE]: {
+          type: 'string',
+          value: 'previous_trace',
+        },
       },
     },
   ]);
 
-  expect(navigation1TraceContext?.data).toMatchObject({
-    'sentry.previous_trace': `${pageloadTraceId}-${pageloadTraceContext?.span_id}-1`,
+  expect(navigation1Span.attributes['sentry.previous_trace']).toEqual({
+    type: 'string',
+    value: `${pageloadTraceId}-${pageloadSpan.span_id}-1`,
   });
 
-  expect(navigation2TraceContext?.links).toEqual([
+  expect(navigation2Span.links).toEqual([
     {
       trace_id: navigation1TraceId,
-      span_id: navigation1TraceContext?.span_id,
+      span_id: navigation1Span.span_id,
       sampled: true,
       attributes: {
-        [SENTRY_LINK_TYPE]: 'previous_trace',
+        [SENTRY_LINK_TYPE]: {
+          type: 'string',
+          value: 'previous_trace',
+        },
       },
     },
   ]);
 
-  expect(navigation2TraceContext?.data).toMatchObject({
-    'sentry.previous_trace': `${navigation1TraceId}-${navigation1TraceContext?.span_id}-1`,
+  expect(navigation2Span.attributes['sentry.previous_trace']).toEqual({
+    type: 'string',
+    value: `${navigation1TraceId}-${navigation1Span.span_id}-1`,
   });
 
   expect(pageloadTraceId).not.toEqual(navigation1TraceId);
@@ -73,27 +72,25 @@ sentryTest("navigation spans link back to previous trace's root span", async ({ 
 });
 
 sentryTest("doesn't link between hard page reloads by default", async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await sentryTest.step('First pageload', async () => {
-    const pageloadRequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'pageload');
+    const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
     await page.goto(url);
-    const pageload1Event = envelopeRequestParser(await pageloadRequestPromise);
+    const pageload1Span = await pageloadSpanPromise;
 
-    expect(pageload1Event.contexts?.trace).toBeDefined();
-    expect(pageload1Event.contexts?.trace?.links).toBeUndefined();
+    expect(pageload1Span).toBeDefined();
+    expect(pageload1Span.links).toBeUndefined();
   });
 
   await sentryTest.step('Second pageload', async () => {
-    const pageload2RequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'pageload');
+    const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
     await page.reload();
-    const pageload2Event = envelopeRequestParser(await pageload2RequestPromise);
+    const pageload2Span = await pageloadSpanPromise;
 
-    expect(pageload2Event.contexts?.trace).toBeDefined();
-    expect(pageload2Event.contexts?.trace?.links).toBeUndefined();
+    expect(pageload2Span).toBeDefined();
+    expect(pageload2Span.links).toBeUndefined();
   });
 });

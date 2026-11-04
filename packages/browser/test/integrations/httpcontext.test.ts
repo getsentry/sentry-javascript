@@ -142,6 +142,74 @@ describe('httpContextIntegration', () => {
       });
     });
 
+    it('filters sensitive query params in the URL attached to events', () => {
+      const client = new BrowserClient(getDefaultBrowserClientOptions());
+      const event: Event = {};
+
+      document.location.href = 'https://example.com/?jwt=baz&page=1';
+      try {
+        httpContextIntegration().preprocessEvent!(event, {}, client);
+      } finally {
+        document.location.href = 'https://example.com';
+      }
+
+      expect(event.request?.url).toBe('https://example.com/?jwt=[Filtered]&page=1');
+    });
+
+    it('filters sensitive query params in the Referer header attached to events', () => {
+      const client = new BrowserClient(getDefaultBrowserClientOptions());
+      const event: Event = {};
+
+      document.referrer = 'https://example.com/?jwt=baz&page=1';
+      try {
+        httpContextIntegration().preprocessEvent!(event, {}, client);
+      } finally {
+        document.referrer = 'https://example.com';
+      }
+
+      expect(event.request?.headers?.Referer).toBe('https://example.com/?jwt=[Filtered]&page=1');
+    });
+
+    it('removes the query from the Referer header attached to events when `urlQueryParams` is disabled', () => {
+      const client = new BrowserClient(getDefaultBrowserClientOptions({ dataCollection: { urlQueryParams: false } }));
+      const event: Event = {};
+
+      document.referrer = 'https://example.com/?jwt=baz&page=1';
+      try {
+        httpContextIntegration().preprocessEvent!(event, {}, client);
+      } finally {
+        document.referrer = 'https://example.com';
+      }
+
+      expect(event.request?.headers?.Referer).toBe('https://example.com/');
+    });
+
+    it('filters sensitive query params in the referer attribute of segment spans', () => {
+      const client = new BrowserClient(getDefaultBrowserClientOptions());
+      const span: Partial<StreamedSpanJSON> = {
+        is_segment: true,
+        attributes: { [SENTRY_OP]: 'pageload' },
+      };
+
+      document.referrer = 'https://example.com/?jwt=baz&page=1';
+      try {
+        httpContextIntegration().processSpan!(span as StreamedSpanJSON, client);
+      } finally {
+        document.referrer = 'https://example.com';
+      }
+
+      expect(span.attributes?.['http.request.header.referer']).toEqual(['https://example.com/?jwt=[Filtered]&page=1']);
+    });
+
+    it('leaves a user-supplied event URL untouched', () => {
+      const client = new BrowserClient(getDefaultBrowserClientOptions());
+      const event: Event = { request: { url: 'https://example.com/?jwt=user-set' } };
+
+      httpContextIntegration().preprocessEvent!(event, {}, client);
+
+      expect(event.request?.url).toBe('https://example.com/?jwt=user-set');
+    });
+
     it('applies an allowlist to event headers', () => {
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({ dataCollection: { httpHeaders: { request: { allow: ['user-agent'] } } } }),

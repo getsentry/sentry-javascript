@@ -29,7 +29,7 @@ export function getDebugId(source: string): string {
 
 /** The snippet that registers a module's debug ID in `globalThis._sentryDebugIds`, keyed by its stack. */
 export function getDebugIdSnippet(debugId: string): string {
-  return `!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="${debugId}",e._sentryDebugIdIdentifier="sentry-dbid-${debugId}");}catch(e){}}();`;
+  return `!function(){try{var e="undefined"!=typeof globalThis?globalThis:"undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="${debugId}",e._sentryDebugIdIdentifier="sentry-dbid-${debugId}");}catch(e){}}();`;
 }
 
 /** Reads back the debug ID that {@link getDebugIdSnippet} put into a module, which survives minification. */

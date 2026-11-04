@@ -31,7 +31,6 @@ describe('double baggage prevention', () => {
 
       await createRunner()
         .withEnv({ SERVER_URL })
-        .ignore('transaction')
         .expect({
           event: {
             exception: {

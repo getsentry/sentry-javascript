@@ -2,9 +2,9 @@
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   BROWSER_NAVIGATION_TIMING_SPAN_NAMES,
-  browserPerformanceTimeOrigin,
   getActiveSpan,
   parseUrl,
+  _INTERNAL_performanceTimeToSeconds,
   RESOURCE_SPAN_NAME_FALLBACK,
   setMeasurement,
   spanToJSON,
@@ -28,6 +28,17 @@ import {
   URL_FULL,
   URL_SCHEME,
   SENTRY_ORIGIN,
+  BROWSER_SCRIPT_INVOKER,
+  BROWSER_SCRIPT_INVOKER_TYPE,
+  BROWSER_SCRIPT_SOURCE_CHAR_POSITION,
+  CONNECTIONTYPE,
+  DEVICEMEMORY,
+  DEVICE_MEMORY_ESTIMATED_CAPACITY,
+  DEVICE_PROCESSOR_COUNT,
+  EFFECTIVECONNECTIONTYPE,
+  HARDWARECONCURRENCY,
+  HTTP_RESPONSE_BODY_DECODED_SIZE,
+  RESOURCE_RENDER_BLOCKING_STATUS,
 } from '@sentry/conventions/attributes';
 import {
   BROWSER_CACHE,
@@ -108,7 +119,10 @@ export function startTrackingLongTasks(): void {
     const { attributes: parentAttributes, start_timestamp: parentStartTimestamp } = spanToJSON(parent);
 
     for (const entry of entries) {
-      const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
+      const startTime = _INTERNAL_performanceTimeToSeconds(entry.startTime);
+      if (!startTime) {
+        continue;
+      }
       const duration = msToSec(entry.duration);
 
       if (parentAttributes[SENTRY_OP] === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
@@ -143,11 +157,10 @@ export function startTrackingLongAnimationFrames(): void {
       return;
     }
     for (const entry of list.getEntries() as PerformanceLongAnimationFrameTiming[]) {
-      if (!entry.scripts[0]) {
+      const startTime = _INTERNAL_performanceTimeToSeconds(entry.startTime);
+      if (!startTime || !entry.scripts[0]) {
         continue;
       }
-
-      const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
 
       const {
         start_timestamp: parentStartTimestamp,
@@ -169,8 +182,8 @@ export function startTrackingLongAnimationFrames(): void {
 
       const initialScript = entry.scripts[0];
       const { invoker, invokerType, sourceURL, sourceFunctionName, sourceCharPosition } = initialScript;
-      attributes['browser.script.invoker'] = invoker;
-      attributes['browser.script.invoker_type'] = invokerType;
+      attributes[BROWSER_SCRIPT_INVOKER] = invoker;
+      attributes[BROWSER_SCRIPT_INVOKER_TYPE] = invokerType;
       if (sourceURL) {
         attributes[CODE_FILE_PATH] = sourceURL;
       }
@@ -178,7 +191,7 @@ export function startTrackingLongAnimationFrames(): void {
         attributes[CODE_FUNCTION_NAME] = sourceFunctionName;
       }
       if (sourceCharPosition !== -1) {
-        attributes['browser.script.source_char_position'] = sourceCharPosition;
+        attributes[BROWSER_SCRIPT_SOURCE_CHAR_POSITION] = sourceCharPosition;
       }
 
       startAndEndSpan(parent, startTime, startTime + duration, {
@@ -209,22 +222,22 @@ interface AddPerformanceEntriesOptions {
 /** Add performance related spans to a transaction */
 export function addPerformanceEntries(span: Span, options: AddPerformanceEntriesOptions): void {
   const performance = getBrowserPerformanceAPI();
-  const origin = browserPerformanceTimeOrigin();
-  if (!performance?.getEntries || !origin) {
+  if (!performance?.getEntries) {
     // Gatekeeper if performance API not available
     return;
   }
 
   const { spanStreamingEnabled, ignoreResourceSpans } = options;
 
-  const timeOrigin = msToSec(origin);
-
   const performanceEntries = performance.getEntries();
 
   const { attributes, start_timestamp: transactionStartTime } = spanToJSON(span);
 
   performanceEntries.slice(_performanceCursor).forEach(entry => {
-    const startTime = msToSec(entry.startTime);
+    const startTimestamp = _INTERNAL_performanceTimeToSeconds(entry.startTime);
+    if (!startTimestamp) {
+      return;
+    }
     const duration = msToSec(
       // Inexplicably, Chrome sometimes emits a negative duration. We need to work around this.
       // There is a SO post attempting to explain this, but it leaves one with open questions: https://stackoverflow.com/questions/23191918/peformance-getentries-and-negative-duration-display
@@ -233,21 +246,17 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       Math.max(0, entry.duration),
     );
 
-    if (
-      attributes[SENTRY_OP] === 'navigation' &&
-      transactionStartTime &&
-      timeOrigin + startTime < transactionStartTime
-    ) {
+    if (attributes[SENTRY_OP] === 'navigation' && transactionStartTime && startTimestamp < transactionStartTime) {
       return;
     }
 
     switch (entry.entryType) {
       case 'navigation': {
-        _addNavigationSpans(span, entry as PerformanceNavigationTiming, timeOrigin, spanStreamingEnabled);
+        _addNavigationSpans(span, entry as PerformanceNavigationTiming, spanStreamingEnabled);
         break;
       }
       case 'paint': {
-        _addPaintSpan(span, entry, startTime, duration, timeOrigin);
+        _addPaintSpan(span, entry, startTimestamp, duration);
         break;
       }
       case 'resource': {
@@ -255,9 +264,8 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
           span,
           entry as PerformanceResourceTiming,
           entry.name,
-          startTime,
+          startTimestamp,
           duration,
-          timeOrigin,
           ignoreResourceSpans,
           spanStreamingEnabled,
         );
@@ -276,15 +284,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
  * Create a span for a browser paint performance entry.
  * Exported only for tests.
  */
-export function _addPaintSpan(
-  span: Span,
-  entry: PerformanceEntry,
-  startTime: number,
-  duration: number,
-  timeOrigin: number,
-): void {
-  const startTimestamp = timeOrigin + startTime;
-
+export function _addPaintSpan(span: Span, entry: PerformanceEntry, startTimestamp: number, duration: number): void {
   startAndEndSpan(span, startTimestamp, startTimestamp + duration, {
     // The entry name (`first-paint`, `first-contentful-paint`) is already the low-cardinality name
     // the conventions ask for, so only the attribute backing it has to be added.
@@ -304,19 +304,27 @@ export function _addPaintSpan(
 export function _addNavigationSpans(
   span: Span,
   entry: PerformanceNavigationTiming,
-  timeOrigin: number,
   spanStreamingEnabled?: boolean,
 ): void {
-  _addPerformanceNavigationTiming(span, entry, 'unloadEvent', timeOrigin, spanStreamingEnabled);
-  _addPerformanceNavigationTiming(span, entry, 'redirect', timeOrigin, spanStreamingEnabled);
-  _addPerformanceNavigationTiming(span, entry, 'domContentLoadedEvent', timeOrigin, spanStreamingEnabled);
-  _addPerformanceNavigationTiming(span, entry, 'loadEvent', timeOrigin, spanStreamingEnabled);
-  _addPerformanceNavigationTiming(span, entry, 'connect', timeOrigin, spanStreamingEnabled);
-  _addPerformanceNavigationTiming(span, entry, 'secureConnection', timeOrigin, spanStreamingEnabled);
-  _addPerformanceNavigationTiming(span, entry, 'fetch', timeOrigin, spanStreamingEnabled);
-  _addPerformanceNavigationTiming(span, entry, 'domainLookup', timeOrigin, spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'unloadEvent', spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'redirect', spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'domContentLoadedEvent', spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'loadEvent', spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'connect', spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'secureConnection', spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'fetch', spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'domainLookup', spanStreamingEnabled);
 
-  _addRequest(span, entry, timeOrigin, spanStreamingEnabled);
+  _addRequest(span, entry, spanStreamingEnabled);
+}
+
+/**
+ * Navigations can happen long after page load, after the time origin was corrected for drift. We use the origin from
+ * the entry's start for all its timings, so its duration stays correct.
+ */
+function _navigationTimeToSeconds(entry: PerformanceNavigationTiming, time: number): number {
+  // The cast is safe: `addPerformanceEntries` only adds navigation spans if the time origin is available.
+  return _INTERNAL_performanceTimeToSeconds(time, entry.startTime) as number;
 }
 
 type StartEventName =
@@ -354,7 +362,6 @@ function _addPerformanceNavigationTiming(
   span: Span,
   entry: PerformanceNavigationTiming,
   event: StartEventName,
-  timeOrigin: number,
   spanStreamingEnabled: boolean | undefined,
 ): void {
   const eventEnd = _getEndPropertyNameForNavigationTiming(event) satisfies keyof PerformanceNavigationTiming;
@@ -364,14 +371,15 @@ function _addPerformanceNavigationTiming(
     return;
   }
   const op = NAVIGATION_TIMING_SPAN_OPS[event];
-  startAndEndSpan(span, timeOrigin + msToSec(start), timeOrigin + msToSec(end), {
+  const filteredUrl = filterCollectedUrl(entry.name);
+  startAndEndSpan(span, _navigationTimeToSeconds(entry, start), _navigationTimeToSeconds(entry, end), {
     // With span streaming, span names have to be low cardinality, so we can't fall back to the
     // document URL. `url.full` keeps it, and is what Relay derives the description from.
-    name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[op] : entry.name,
+    name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[op] : filteredUrl,
     attributes: {
       [SENTRY_OP]: op,
       [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-      [URL_FULL]: filterCollectedUrl(entry.name),
+      [URL_FULL]: filteredUrl,
       ...(event === 'redirect' && entry.redirectCount != null ? { 'http.redirect_count': entry.redirectCount } : {}),
     },
   });
@@ -388,15 +396,10 @@ function _getEndPropertyNameForNavigationTiming(event: StartEventName): EndEvent
 }
 
 /** Create request and response related spans */
-function _addRequest(
-  span: Span,
-  entry: PerformanceNavigationTiming,
-  timeOrigin: number,
-  spanStreamingEnabled: boolean | undefined,
-): void {
-  const requestStartTimestamp = timeOrigin + msToSec(entry.requestStart);
-  const responseEndTimestamp = timeOrigin + msToSec(entry.responseEnd);
-  const responseStartTimestamp = timeOrigin + msToSec(entry.responseStart);
+function _addRequest(span: Span, entry: PerformanceNavigationTiming, spanStreamingEnabled: boolean | undefined): void {
+  const requestStartTimestamp = _navigationTimeToSeconds(entry, entry.requestStart);
+  const responseEndTimestamp = _navigationTimeToSeconds(entry, entry.responseEnd);
+  const responseStartTimestamp = _navigationTimeToSeconds(entry, entry.responseStart);
   if (entry.responseEnd) {
     // It is possible that we are collecting these metrics when the page hasn't finished loading yet, for example when the HTML slowly streams in.
     // In this case, ie. when the document request hasn't finished yet, `entry.responseEnd` will be 0.
@@ -405,23 +408,23 @@ function _addRequest(
 
     // With span streaming, span names have to be low cardinality, so we can't fall back to the
     // document URL. `url.full` keeps it, and is what Relay derives the description from.
-    const url = filterCollectedUrl(entry.name);
+    const filteredUrl = filterCollectedUrl(entry.name);
 
     startAndEndSpan(span, requestStartTimestamp, responseEndTimestamp, {
-      name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[BROWSER_REQUEST] : entry.name,
+      name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[BROWSER_REQUEST] : filteredUrl,
       attributes: {
         [SENTRY_OP]: BROWSER_REQUEST,
         [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-        [URL_FULL]: url,
+        [URL_FULL]: filteredUrl,
       },
     });
 
     startAndEndSpan(span, responseStartTimestamp, responseEndTimestamp, {
-      name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[BROWSER_RESPONSE] : entry.name,
+      name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[BROWSER_RESPONSE] : filteredUrl,
       attributes: {
         [SENTRY_OP]: BROWSER_RESPONSE,
         [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-        [URL_FULL]: url,
+        [URL_FULL]: filteredUrl,
       },
     });
   }
@@ -435,9 +438,8 @@ export function _addResourceSpans(
   span: Span,
   entry: PerformanceResourceTiming,
   resourceUrl: string,
-  startTime: number,
+  startTimestamp: number,
   duration: number,
-  timeOrigin: number,
   ignoredResourceSpanOps?: Array<string>,
   spanStreamingEnabled?: boolean,
 ): void {
@@ -478,7 +480,8 @@ export function _addResourceSpans(
 
   attributes[HTTP_REQUEST_SAME_ORIGIN] = resourceUrl.includes(WINDOW.location.origin);
 
-  attributes[URL_FULL] = filterCollectedUrl(resourceUrl);
+  const filteredUrl = filterCollectedUrl(resourceUrl);
+  attributes[URL_FULL] = filteredUrl;
 
   _setResourceRequestAttributes(entry, attributes, [
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus
@@ -486,10 +489,10 @@ export function _addResourceSpans(
 
     ['transferSize', HTTP_RESPONSE_SIZE],
     ['encodedBodySize', HTTP_RESPONSE_BODY_SIZE],
-    ['decodedBodySize', 'http.response.body.decoded_size'],
+    ['decodedBodySize', HTTP_RESPONSE_BODY_DECODED_SIZE],
 
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/renderBlockingStatus
-    ['renderBlockingStatus', 'resource.render_blocking_status'],
+    ['renderBlockingStatus', RESOURCE_RENDER_BLOCKING_STATUS],
 
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/deliveryType
     ['deliveryType', 'http.response_delivery_type'],
@@ -497,14 +500,13 @@ export function _addResourceSpans(
 
   const attributesWithResourceTiming: SpanAttributes = { ...attributes, ...resourceTimingToSpanAttributes(entry) };
 
-  const startTimestamp = timeOrigin + startTime;
   const endTimestamp = startTimestamp + duration;
 
   startAndEndSpan(span, startTimestamp, endTimestamp, {
     // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
     name: spanStreamingEnabled
       ? domain || RESOURCE_SPAN_NAME_FALLBACK
-      : resourceUrl.replace(WINDOW.location.origin, ''),
+      : filteredUrl.replace(WINDOW.location.origin, ''),
     op,
     attributes: attributesWithResourceTiming,
   });
@@ -525,13 +527,15 @@ function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined):
   if (connection) {
     if (connection.effectiveType) {
       span.setAttribute(
-        spanStreamingEnabled ? NETWORK_CONNECTION_EFFECTIVE_TYPE : 'effectiveConnectionType',
+        // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+        spanStreamingEnabled ? NETWORK_CONNECTION_EFFECTIVE_TYPE : EFFECTIVECONNECTIONTYPE,
         connection.effectiveType,
       );
     }
 
     if (connection.type) {
-      span.setAttribute(spanStreamingEnabled ? NETWORK_CONNECTION_TYPE : 'connectionType', connection.type);
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      span.setAttribute(spanStreamingEnabled ? NETWORK_CONNECTION_TYPE : CONNECTIONTYPE, connection.type);
     }
 
     if (isMeasurementValue(connection.rtt)) {
@@ -547,17 +551,19 @@ function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined):
 
   if (isMeasurementValue(navigator.deviceMemory)) {
     if (spanStreamingEnabled) {
-      span.setAttribute('device.memory.estimated_capacity', navigator.deviceMemory);
+      span.setAttribute(DEVICE_MEMORY_ESTIMATED_CAPACITY, navigator.deviceMemory);
     } else {
-      span.setAttribute('deviceMemory', `${navigator.deviceMemory} GB`);
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      span.setAttribute(DEVICEMEMORY, `${navigator.deviceMemory} GB`);
     }
   }
 
   if (isMeasurementValue(navigator.hardwareConcurrency)) {
     if (spanStreamingEnabled) {
-      span.setAttribute('device.processor_count', navigator.hardwareConcurrency);
+      span.setAttribute(DEVICE_PROCESSOR_COUNT, navigator.hardwareConcurrency);
     } else {
-      span.setAttribute('hardwareConcurrency', String(navigator.hardwareConcurrency));
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      span.setAttribute(HARDWARECONCURRENCY, String(navigator.hardwareConcurrency));
     }
   }
 }

@@ -3,7 +3,12 @@ import * as http from 'node:http';
 import * as https from 'node:https';
 import type { IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import type { HttpIncomingMessage, HttpServerResponse } from '@sentry/core/server';
+import type {
+  AssertTrue,
+  CheckServerRequestOptions,
+  HttpIncomingMessage,
+  HttpServerResponse,
+} from '@sentry/core/server';
 import { getHttpServerSubscriptions, HTTP_ON_SERVER_REQUEST } from '@sentry/core/server';
 
 const INTEGRATION_NAME = 'BunHttpServer' as const;
@@ -37,8 +42,12 @@ interface BunHttpServerOptions {
 
   /**
    * Do not capture the request body for incoming HTTP requests to URLs where the given callback returns `true`.
+   *
+   * The `request` parameter is the incoming `node:http` `IncomingMessage`. The `RequestOptions` part of the type is
+   * deprecated and will be removed in v12. Its fields that `IncomingMessage` does not have (such as `path` or
+   * `hostname`) are always `undefined`.
    */
-  ignoreRequestBody?: (url: string, request: http.RequestOptions) => boolean;
+  ignoreRequestBody?: (url: string, request: http.RequestOptions & HttpIncomingMessage) => boolean;
 
   /**
    * Controls the maximum size of incoming HTTP request bodies attached to events.
@@ -72,6 +81,13 @@ interface BunHttpServerOptions {
    */
   onSpanEnd?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
 }
+
+// Checks these options against the shared `ServerRequestOptions`. A new
+// shared field fails to compile here, until this integration supports
+// it or lists it as unsupported.
+type _ServerRequestOptionsCheck = AssertTrue<
+  CheckServerRequestOptions<BunHttpServerOptions, HttpIncomingMessage, HttpServerResponse>
+>;
 
 let hasPatched = false;
 

@@ -2,10 +2,12 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('Sends exceptions to Sentry on error in @Cron decorated method', async ({ baseURL }) => {
+  const testStart = Date.now();
   const errorEventPromise = waitForError('nestjs-basic', event => {
+    const thrownAt = event.exception?.values?.[0]?.value?.match(/^Test error from schedule cron (\d+)$/)?.[1];
     return (
       !event.type &&
-      event.exception?.values?.[0]?.value === 'Test error from schedule cron' &&
+      Number(thrownAt) >= testStart &&
       event.exception?.values?.[0]?.mechanism?.type === 'auto.function.nestjs.cron'
     );
   });
@@ -23,10 +25,12 @@ test('Sends exceptions to Sentry on error in @Cron decorated method', async ({ b
 });
 
 test('Sends exceptions to Sentry on error in @Interval decorated method', async ({ baseURL }) => {
+  const testStart = Date.now();
   const errorEventPromise = waitForError('nestjs-basic', event => {
+    const thrownAt = event.exception?.values?.[0]?.value?.match(/^Test error from schedule interval (\d+)$/)?.[1];
     return (
       !event.type &&
-      event.exception?.values?.[0]?.value === 'Test error from schedule interval' &&
+      Number(thrownAt) >= testStart &&
       event.exception?.values?.[0]?.mechanism?.type === 'auto.function.nestjs.interval'
     );
   });

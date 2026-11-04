@@ -1,24 +1,16 @@
 import type { Integration } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const mockApplySdkMetadata = vi.fn();
 const mockInitNode = vi.fn();
 const mockGetBunDefaultIntegrations = vi.fn(() => [] as Integration[]);
 const mockMakeFetchTransport = vi.fn();
-
-vi.mock('@sentry/core', async importActual => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  const actual = await importActual<typeof import('@sentry/core')>();
-  return {
-    ...actual,
-    applySdkMetadata: mockApplySdkMetadata,
-  };
-});
+const mockMakeNodeTransport = vi.fn();
 
 vi.mock('@sentry/bun', () => ({
   init: mockInitNode,
   getDefaultIntegrations: mockGetBunDefaultIntegrations,
   makeFetchTransport: mockMakeFetchTransport,
+  makeNodeTransport: mockMakeNodeTransport,
   bunServerIntegration: () => ({ name: 'BunServer', setupOnce: vi.fn() }),
 }));
 
@@ -32,13 +24,21 @@ describe('init', () => {
     vi.unstubAllGlobals();
   });
 
-  it('sets SDK metadata to elysia', () => {
+  it('passes Elysia SDK metadata to initNode', () => {
     init({ dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0' });
 
-    expect(mockApplySdkMetadata).toHaveBeenCalledWith(
-      expect.objectContaining({ dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0' }),
-      'elysia',
-      ['elysia', 'node'],
+    expect(mockInitNode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _metadata: {
+          sdk: expect.objectContaining({
+            name: 'sentry.javascript.elysia',
+            packages: [
+              expect.objectContaining({ name: 'npm:@sentry/elysia' }),
+              expect.objectContaining({ name: 'npm:@sentry/node' }),
+            ],
+          }),
+        },
+      }),
     );
   });
 
@@ -53,14 +53,22 @@ describe('init', () => {
     );
   });
 
-  it('uses makeFetchTransport by default', () => {
+  it('uses makeNodeTransport by default on Node', () => {
     init({ dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0' });
 
     expect(mockInitNode).toHaveBeenCalledWith(
       expect.objectContaining({
-        transport: mockMakeFetchTransport,
+        transport: mockMakeNodeTransport,
       }),
     );
+  });
+
+  it('uses makeFetchTransport by default on Bun', () => {
+    vi.stubGlobal('Bun', { version: '1.2.3' });
+
+    init({ dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0' });
+
+    expect(mockInitNode).toHaveBeenCalledWith(expect.objectContaining({ transport: mockMakeFetchTransport }));
   });
 
   it('allows overriding transport', () => {
@@ -104,10 +112,12 @@ describe('init', () => {
   it('detects runtime correctly', () => {
     init({ dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0' });
 
-    const calledOptions = mockInitNode.mock.calls[0]![0];
     // In vitest (Node), Bun is not defined, so runtime should be node
-    expect(calledOptions.runtime.name).toBe('node');
-    expect(calledOptions.runtime.version).toBe(process.version);
+    expect(mockInitNode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runtime: { name: 'node', version: process.version },
+      }),
+    );
   });
 
   it('detects bun runtime when Bun is defined', () => {
@@ -115,9 +125,20 @@ describe('init', () => {
 
     init({ dsn: 'https://***@o0.ingest.sentry.io/0' });
 
-    const calledOptions = mockInitNode.mock.calls[0]![0];
-    expect(calledOptions.runtime).toEqual({ name: 'bun', version: '1.2.3' });
-    expect(mockApplySdkMetadata).toHaveBeenCalledWith(expect.anything(), 'elysia', ['elysia', 'bun']);
+    expect(mockInitNode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runtime: { name: 'bun', version: '1.2.3' },
+        _metadata: {
+          sdk: expect.objectContaining({
+            name: 'sentry.javascript.elysia',
+            packages: [
+              expect.objectContaining({ name: 'npm:@sentry/elysia' }),
+              expect.objectContaining({ name: 'npm:@sentry/bun' }),
+            ],
+          }),
+        },
+      }),
+    );
   });
 });
 

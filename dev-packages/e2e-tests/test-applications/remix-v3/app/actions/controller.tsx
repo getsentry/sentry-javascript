@@ -30,6 +30,12 @@ function HomePage(handle: Handle<Record<string, never>>) {
         <a id="to-user" href="/users/12345">
           User
         </a>
+        <a id="to-user-prefetch-intent" href="/users/intent" data-rmx-prefetch="intent">
+          User (prefetch on intent)
+        </a>
+        <a id="to-user-prefetch-viewport" href="/users/viewport" data-rmx-prefetch="viewport">
+          User (prefetch in viewport)
+        </a>
         <button type="button" id="component-error">
           Component error
         </button>

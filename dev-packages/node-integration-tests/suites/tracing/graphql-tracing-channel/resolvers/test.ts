@@ -1,11 +1,11 @@
-import { afterAll, expect } from 'vitest';
-import { conditionalTest } from '../../../../utils';
+import { afterAll, describe, expect } from 'vitest';
+import { supports } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 // With `ignoreResolveSpans: false`, the channel path also subscribes `graphql:resolve` and emits a
 // span per non-trivial field resolver. `ignoreTrivialResolveSpans` defaults to true, so graphql's
 // default property resolver (the `name` field) is skipped. graphql 17 requires Node >= 22.
-conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () => {
+describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test > resolve spans', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -51,7 +51,7 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () 
               expect(helloResolverSpan?.name).toBe('GraphQL resolve');
               expect(helloResolverSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(helloResolverSpan?.attributes['sentry.origin']).toEqual({
-                value: 'auto.graphql.diagnostic_channel',
+                value: 'auto.graphql.graphql',
                 type: 'string',
               });
               expect(helloResolverSpan?.attributes['graphql.field.name']).toEqual({ value: 'hello', type: 'string' });
@@ -65,7 +65,7 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () 
               expect(userResolverSpan?.name).toBe('GraphQL resolve');
               expect(userResolverSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(userResolverSpan?.attributes['sentry.origin']).toEqual({
-                value: 'auto.graphql.diagnostic_channel',
+                value: 'auto.graphql.graphql',
                 type: 'string',
               });
               expect(userResolverSpan?.attributes['graphql.field.name']).toEqual({ value: 'user', type: 'string' });

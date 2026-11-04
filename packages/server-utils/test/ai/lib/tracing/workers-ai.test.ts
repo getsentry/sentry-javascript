@@ -14,6 +14,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getMainCarrier,
@@ -164,7 +165,7 @@ describe('instrumentWorkersAiClient', () => {
     });
   });
 
-  it('records TypeSafe models as evaluate spans, like the TypeSafe integration', async () => {
+  it('records TypeSafe models as decide spans, like the TypeSafe integration', async () => {
     const client = new TestClient(
       getDefaultTestClientOptions({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 }),
     );
@@ -185,14 +186,14 @@ describe('instrumentWorkersAiClient', () => {
     await instrumentWorkersAiClient(ai).run('typesafe/jev', { state: 'Help!', questions });
 
     const span = spanToStaticSpanJSON(endedSpans[0]!);
-    expect(span.description).toBe('evaluate typesafe/jev');
+    expect(span.description).toBe('decide typesafe/jev');
     expect(span.data).toEqual({
       [SENTRY_ORIGIN]: 'auto.ai.cloudflare.workers_ai',
-      [SENTRY_OP]: 'gen_ai.evaluate',
+      [SENTRY_OP]: GEN_AI_DECIDE,
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
       [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
       [GEN_AI_PROVIDER_NAME]: 'cloudflare.workers_ai',
-      [GEN_AI_OPERATION_NAME]: 'evaluate',
+      [GEN_AI_OPERATION_NAME]: 'decide',
       [GEN_AI_REQUEST_MODEL]: 'typesafe/jev',
       [GEN_AI_RESPONSE_MODEL]: 'jev-1.13.0',
       [GEN_AI_USAGE_INPUT_TOKENS]: 426,

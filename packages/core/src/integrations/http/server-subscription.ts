@@ -23,6 +23,7 @@ import { HTTP_ON_SERVER_REQUEST } from './constants';
 import type { HttpIncomingMessage, HttpInstrumentationOptions, HttpServer, HttpServerResponse } from './types';
 import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
+import { safeCallback } from '../../utils/safeCallback';
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
 import {
@@ -66,6 +67,8 @@ import {
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
   SENTRY_ORIGIN,
+  HTTP_REQUEST_BODY_SIZE,
+  HTTP_RESPONSE_STATUS_TEXT,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import { filterCollectedUrl, filterCollectedUrlQuery } from '../../utils/data-collection/filterCollectedUrl';
@@ -147,7 +150,14 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
         configuredBodySize ??
         (client.getDataCollectionOptions().httpBodies.includes('incomingRequest') ? 'medium' : 'none');
 
-      if (effectiveBodySize !== 'none' && !ignoreRequestBody?.(url, request)) {
+      if (
+        effectiveBodySize !== 'none' &&
+        !safeCallback(
+          DEBUG_BUILD ? 'The `ignoreRequestBody` callback threw an error, ignoring the request body:' : '',
+          () => !!ignoreRequestBody?.(url, request),
+          () => true,
+        )
+      ) {
         patchRequestToCaptureBody(request, isolationScope, effectiveBodySize, INTEGRATION_NAME);
       }
 
@@ -326,7 +336,7 @@ function buildServerSpanWrap(
           attributes: {
             // Sentry-specific attributes
             [SENTRY_OP]: HTTP_SERVER,
-            [SENTRY_ORIGIN]: 'auto.http.server',
+            [SENTRY_ORIGIN]: 'auto.http.http_server',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
             [SENTRY_KIND]: 'server',
             // Network attributes
@@ -349,12 +359,16 @@ function buildServerSpanWrap(
             [USER_AGENT_ORIGINAL]: userAgent,
             [URL_SCHEME]: scheme,
             [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
-            'http.request.body.size': getContentLengthFromHeaders(request.headers),
+            [HTTP_REQUEST_BODY_SIZE]: getContentLengthFromHeaders(request.headers),
             ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, dataCollectionOptions),
           },
         },
         span => {
-          onSpanCreated?.(span, request, response);
+          safeCallback(
+            DEBUG_BUILD ? 'The `onSpanCreated` callback threw an error:' : '',
+            () => onSpanCreated?.(span, request, response),
+            () => undefined,
+          );
           // Ensure we only end the span once
           // E.g. error can be emitted before close is emitted
           let isEnded = false;
@@ -367,12 +381,16 @@ function buildServerSpanWrap(
             isEnded = true;
             // set attributes that come from the response
             span.setAttributes({
-              'http.response.status_text': response.statusMessage?.toUpperCase(),
+              [HTTP_RESPONSE_STATUS_TEXT]: response.statusMessage?.toUpperCase(),
               [HTTP_RESPONSE_STATUS_CODE]: response.statusCode,
               ...httpHeadersToSpanAttributes(headersToDict(response.headers), dataCollectionOptions, 'response'),
             });
             span.setStatus(status);
-            onSpanEnd?.(span, request, response);
+            safeCallback(
+              DEBUG_BUILD ? 'The `onSpanEnd` callback threw an error:' : '',
+              () => onSpanEnd?.(span, request, response),
+              () => undefined,
+            );
             span.end();
           }
 
@@ -419,7 +437,13 @@ function shouldIgnoreSpansForIncomingRequest(
     return true;
   }
 
-  if (ignoreIncomingRequests?.(urlPath, request)) {
+  if (
+    safeCallback(
+      DEBUG_BUILD ? 'The `ignoreIncomingRequests` callback threw an error, not ignoring the request:' : '',
+      () => !!ignoreIncomingRequests?.(urlPath, request),
+      () => false,
+    )
+  ) {
     return true;
   }
 

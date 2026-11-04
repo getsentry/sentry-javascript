@@ -1,7 +1,10 @@
 // mock helper functions not tested directly in this file
 import '../mocks';
 import * as coreServer from '@sentry/core/server';
-import { describe, expect, it, vi } from 'vitest';
+import * as fs from 'fs';
+import type * as os from 'os';
+import * as path from 'path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as getBuildPluginOptionsModule from '../../../src/config/getBuildPluginOptions';
 import {
   CLIENT_SDK_CONFIG_FILE,
@@ -14,6 +17,9 @@ import {
   userNextConfig,
 } from '../fixtures';
 import { materializeFinalNextConfig, materializeFinalWebpackConfig } from '../testUtils';
+
+const realFs = await vi.importActual<typeof fs>('fs');
+const realOs = await vi.importActual<typeof os>('os');
 
 // Only the plugin factory is stubbed — `resolveOrchestrionRuntimeRequest` must stay real because
 // the externals handler under test uses it.
@@ -543,6 +549,41 @@ describe('constructWebpackConfigFunction()', () => {
       expect(treeshakePlugin.definitions.__SENTRY_EXCLUDE_REPLAY_WORKER__).toBe(true);
     });
 
+    it('adds flags from the top-level bundleSizeOptimizations option', async () => {
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
+        sentryWebpackPlugin: () => ({
+          _name: 'sentry-webpack-plugin',
+        }),
+      }));
+
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+        sentryBuildTimeOptions: {
+          bundleSizeOptimizations: {
+            excludeDebugStatements: true,
+            excludeTracing: true,
+            excludeReplayIframe: true,
+            excludeReplayShadowDom: true,
+            excludeReplayWorker: true,
+          },
+        },
+      });
+
+      const definePlugin = finalWebpackConfig.plugins?.find(
+        plugin => plugin.constructor.name === 'DefinePlugin' && plugin.definitions?.__SENTRY_TRACING__ !== undefined,
+      ) as any;
+
+      expect(definePlugin.definitions).toEqual({
+        __SENTRY_DEBUG__: false,
+        __SENTRY_TRACING__: false,
+        __RRWEB_EXCLUDE_IFRAME__: true,
+        __RRWEB_EXCLUDE_SHADOW_DOM__: true,
+        __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
+      });
+    });
+
     it('does not add flags when treeshake options are false', async () => {
       vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
@@ -785,6 +826,41 @@ describe('constructWebpackConfigFunction()', () => {
       });
 
       expect(finalWebpackConfig.externals).toBeUndefined();
+    });
+  });
+
+  describe('tunnel route value injection', () => {
+    let projectDir: string | undefined;
+    let cwdSpy: ReturnType<typeof vi.spyOn> | undefined;
+
+    afterEach(() => {
+      vi.mocked(fs.statSync).mockReset();
+      cwdSpy?.mockRestore();
+      if (projectDir) {
+        realFs.rmSync(projectDir, { recursive: true, force: true });
+      }
+    });
+
+    it('injects the tunnel path and the handler mode', async () => {
+      projectDir = realFs.mkdtempSync(path.join(realOs.tmpdir(), 'sentry-nextjs-webpack-tunnel-'));
+      realFs.mkdirSync(path.join(projectDir, 'app/sentry-tunnel'), { recursive: true });
+      realFs.writeFileSync(path.join(projectDir, 'app/sentry-tunnel/route.ts'), '');
+      cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(projectDir);
+      vi.mocked(fs.statSync).mockImplementation(realFs.statSync);
+
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig: userNextConfig,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: clientBuildContext,
+        sentryBuildTimeOptions: { tunnelRoute: '/monitoring' },
+      });
+
+      const valueInjectionLoader = finalWebpackConfig.module.rules
+        .flatMap(rule => rule.use ?? [])
+        .find(loader => String(loader.loader).endsWith('valueInjectionLoader.js'));
+      expect(valueInjectionLoader?.options).toMatchObject({
+        values: { _sentryRewritesTunnelPath: '/monitoring', _sentryTunnelRouteMode: 'handler' },
+      });
     });
   });
 });

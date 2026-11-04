@@ -42,6 +42,7 @@ When `init()` replaces a client, nothing closes the old one:
 | Nuxt server                                                               | Keeps the first client and returns it. Logs that a `--import` preload is no longer needed.                                                                            |
 | Cloudflare (default)                                                      | Keeps the first client of the isolate and returns it, unless that client is closed or closing. `cacheClient: false` makes a new client on each call, with no warning. |
 | Next.js edge                                                              | Warns, then replaces the client. Returns `void`.                                                                                                                      |
+| Next.js server and edge in a request of `withSentry` (Cloudflare)         | Creates no client, because the client of `withSentry` handles the request. Returns `undefined`.                                                                       |
 
 The shared warning lives in `warnIfClientIsActive()` in
 `packages/core/src/sdk.ts`. Core exports it as

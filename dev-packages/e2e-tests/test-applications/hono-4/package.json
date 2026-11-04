@@ -8,13 +8,16 @@
     "dev:bun": "bun run dist/entry.bun.js",
     "dev:deno": "deno run --allow-net --allow-env --allow-read --preload=npm:@sentry/deno/import src/entry.deno.ts",
     "dev:cloudflare": "wrangler dev --config ./dist/hono_4/wrangler.json --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --log-level=$(test $CI && echo 'none' || echo 'log')",
-    "test:build": "pnpm install",
+    "dev:cloudflare:vite": "CLOUDFLARE_INCLUDE_PROCESS_ENV=true vite dev",
+    "test:build": "pnpm install && pnpm typecheck",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "test": "TEST_ENV=production playwright test",
+    "test:dev": "TEST_ENV=development playwright test",
     "test:assert": "pnpm test:assert:node",
     "test:assert:node": "RUNTIME=node pnpm test",
     "test:assert:bun": "bun run build-bun.ts && RUNTIME=bun pnpm test",
     "test:assert:deno": "RUNTIME=deno pnpm test",
-    "test:assert:cloudflare": "vite build && RUNTIME=cloudflare pnpm test"
+    "test:assert:cloudflare": "vite build && RUNTIME=cloudflare pnpm test && RUNTIME=cloudflare pnpm test:dev"
   },
   "dependencies": {
     "@sentry/bun": "latest || *",
@@ -25,18 +28,14 @@
     "hono": "^4.13.1"
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0",
+    "@playwright/test": "1.64.1",
     "@cloudflare/vite-plugin": "^1.47.0",
     "@cloudflare/workers-types": "^4.20240725.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "tsx": "4.21.0",
     "typescript": "^5.5.2",
     "vite": "^8.1.5",
     "wrangler": "^4.114.0"
-  },
-  "volta": {
-    "node": "24.15.0",
-    "extends": "../../package.json"
   },
   "sentryTest": {
     "variants": [

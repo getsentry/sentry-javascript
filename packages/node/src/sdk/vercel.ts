@@ -14,6 +14,9 @@ interface VercelRequestContextGlobal {
   get?(): { waitUntil?: (task: Promise<unknown>) => void } | undefined;
 }
 
+// A repeated `init()` replaces the client, so the listeners are registered once and flush the latest client.
+let keepAliveClient: Client | undefined;
+
 /**
  * Keeps Vercel Node.js functions alive until the SDK has sent the telemetry of each request.
  *
@@ -23,11 +26,17 @@ interface VercelRequestContextGlobal {
  * end (2 seconds at most), and then flushes the client.
  */
 export function setupVercelKeepAlive(client: Client): void {
+  const isRegistered = !!keepAliveClient;
+  keepAliveClient = client;
+  if (isRegistered) {
+    return;
+  }
+
   // Ensure we flush events when vercel functions are ended
   // See: https://vercel.com/docs/functions/functions-api-reference#sigterm-signal
   process.on('SIGTERM', async () => {
     // We have 500ms for processing here, so we try to make sure to have enough time to send the events
-    await client.flush(200);
+    await keepAliveClient?.flush(200);
   });
 
   subscribeDiagnosticsChannel(HTTP_ON_SERVER_RESPONSE_FINISH, message => {
@@ -36,7 +45,8 @@ export function setupVercelKeepAlive(client: Client): void {
       // @ts-expect-error Vercel sets this global, so `GLOBAL_OBJ` does not type it
       GLOBAL_OBJ[Symbol.for('@vercel/request-context')];
     const requestContext = requestContextGlobal?.get?.();
-    if (!response || !requestContext?.waitUntil) {
+    const client = keepAliveClient;
+    if (!client || !response || !requestContext?.waitUntil) {
       return;
     }
 

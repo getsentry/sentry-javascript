@@ -49,6 +49,7 @@ export interface OpenAIResponseObject {
     input_tokens: number;
     input_tokens_details?: {
       cached_tokens?: number;
+      cache_write_tokens?: number;
     };
     output_tokens: number;
     output_tokens_details?: {
@@ -175,7 +176,7 @@ interface ResponseOutputItemDoneEvent {
  * Tool call object for Chat Completion streaming
  */
 export interface ChatCompletionToolCall {
-  index?: number; // Present for streaming responses
+  index?: number | null; // Present for streaming responses; some compatible providers send null
   id: string;
   type?: string; // Could be missing for streaming responses
   function?: {
@@ -231,6 +232,7 @@ export interface ChatCompletionChunk {
     prompt_tokens_details: {
       audio_tokens: number;
       cached_tokens: number;
+      cache_write_tokens?: number;
     };
   };
 }

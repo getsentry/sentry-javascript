@@ -2,10 +2,10 @@ import type { InstrumentationConfig } from '../apmTypes';
 
 import { getModuleNames } from './module-names';
 
-// `@mistralai/mistralai` v2 is ESM-only, so there is a single built file per resource (no dual CJS/ESM
+// `@mistralai/mistralai` v2+ is ESM-only, so there is a single built file per resource (no dual CJS/ESM
 // variants). Each SDK resource class exposes async methods that return a thenable, so `kind: 'Auto'`
 // resolves to `wrapPromise`; the `.stream` methods resolve to an async-iterable `EventStream`.
-const MODULE = { name: '@mistralai/mistralai', versionRange: '>=2.0.0 <3' } as const;
+const MODULE = { name: '@mistralai/mistralai', versionRange: '>=2.0.0 <4' } as const;
 
 const CHAT_FILE = { ...MODULE, filePath: 'esm/sdk/chat.js' } as const;
 const AGENTS_FILE = { ...MODULE, filePath: 'esm/sdk/agents.js' } as const;

@@ -6,7 +6,6 @@ import { loggingTransport } from '@sentry-internal/node-integration-tests';
 const tracesSampleRate = process.env.TRACES_SAMPLE_RATE;
 
 Sentry.init({
-  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   ...(tracesSampleRate !== undefined ? { tracesSampleRate: Number(tracesSampleRate) } : {}),
@@ -14,7 +13,7 @@ Sentry.init({
   transport: loggingTransport,
   // Stash the outgoing propagation data as observed inside the continueTrace callback onto every
   // error event, so we can assert on it uniformly across all sampling configs (even when no
-  // transaction is emitted).
+  // span is emitted).
   beforeSend(event) {
     event.contexts = {
       ...event.contexts,

@@ -1,0 +1,5 @@
+allowBuilds:
+  core-js: false
+minimumReleaseAge: 0
+overrides:
+  '@embroider/macros@1.21.2': '1.21.1'

@@ -16,7 +16,6 @@ describe('catchall', () => {
           hasOptionalPrefix: false,
         },
       ],
-      isrRoutes: [],
     });
   });
 

@@ -173,7 +173,7 @@ describe('_addResourceSpans', () => {
       renderBlockingStatus: 'non-blocking',
       nextHopProtocol: 'http/1.1',
     });
-    _addResourceSpans(span, entry, resourceEntryName, 123, 456, 100);
+    _addResourceSpans(span, entry, resourceEntryName, 123, 456);
 
     expect(spans).toHaveLength(0);
   });
@@ -193,7 +193,7 @@ describe('_addResourceSpans', () => {
       renderBlockingStatus: 'non-blocking',
       nextHopProtocol: 'http/1.1',
     });
-    _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 456, 100);
+    _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 456);
 
     expect(spans).toHaveLength(0);
   });
@@ -226,18 +226,17 @@ describe('_addResourceSpans', () => {
       workerStart: 1006,
     });
 
-    const timeOrigin = 100;
-    const startTime = 23;
+    const startTimestamp = 123;
     const duration = 356;
 
-    _addResourceSpans(span, entry, resourceEntryName, startTime, duration, timeOrigin);
+    _addResourceSpans(span, entry, resourceEntryName, startTimestamp, duration);
 
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         name: '/assets/to/css',
-        start_timestamp: timeOrigin + startTime,
-        end_timestamp: timeOrigin + startTime + duration,
+        start_timestamp: startTimestamp,
+        end_timestamp: startTimestamp + duration,
         attributes: {
           [SENTRY_OP]: 'resource.css',
           [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
@@ -282,12 +281,32 @@ describe('_addResourceSpans', () => {
       nextHopProtocol: 'http/1.1',
     });
 
-    _addResourceSpans(span, entry, 'https://example.com/assets/app.js?v=42#main', 100, 23, 345);
+    _addResourceSpans(span, entry, 'https://example.com/assets/app.js?v=42#main', 100, 23);
 
     expect(spans).toHaveLength(1);
     const json = spanToJSON(spans[0]!);
     expect(json.name).toBe('/assets/app.js?v=42#main');
     expect(json.attributes['url.full']).toBe('https://example.com/assets/app.js?v=42#main');
+  });
+
+  it('filters sensitive query params in the description and url.full', () => {
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const entry = mockPerformanceResourceTiming({
+      initiatorType: 'script',
+      nextHopProtocol: 'http/1.1',
+    });
+
+    _addResourceSpans(span, entry, 'https://example.com/assets/app.js?token=abc&v=42', 100, 23);
+
+    expect(spans).toHaveLength(1);
+    const json = spanToJSON(spans[0]!);
+    expect(json.name).toBe('/assets/app.js?token=[Filtered]&v=42');
+    expect(json.attributes['url.full']).toBe('https://example.com/assets/app.js?token=[Filtered]&v=42');
   });
 
   it('sets url.full to the full cross-origin URL', () => {
@@ -302,7 +321,7 @@ describe('_addResourceSpans', () => {
       nextHopProtocol: 'http/1.1',
     });
 
-    _addResourceSpans(span, entry, 'https://cdn.example.org/static/logo.png', 100, 23, 345);
+    _addResourceSpans(span, entry, 'https://cdn.example.org/static/logo.png', 100, 23);
 
     expect(spans).toHaveLength(1);
     const json = spanToJSON(spans[0]!);
@@ -346,7 +365,7 @@ describe('_addResourceSpans', () => {
         initiatorType,
         nextHopProtocol: 'http/1.1',
       });
-      _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 234, 465);
+      _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 234);
 
       expect(spans).toHaveLength(i + 1);
       expect(spanToJSON(spans[i]!).attributes).toEqual(expect.objectContaining({ [SENTRY_OP]: op }));
@@ -389,7 +408,7 @@ describe('_addResourceSpans', () => {
         initiatorType,
         nextHopProtocol: 'http/1.1',
       });
-      _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 234, 465, ignoredResourceSpans);
+      _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 234, ignoredResourceSpans);
     }
     expect(spans).toHaveLength(table.length - ignoredResourceSpans.length);
     const spanOps = new Set(
@@ -416,7 +435,7 @@ describe('_addResourceSpans', () => {
       nextHopProtocol: 'h2',
     });
 
-    _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
+    _addResourceSpans(span, entry, resourceEntryName, 100, 23);
 
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
@@ -455,7 +474,7 @@ describe('_addResourceSpans', () => {
       nextHopProtocol: 'h3',
     });
 
-    _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
+    _addResourceSpans(span, entry, resourceEntryName, 100, 23);
 
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
@@ -472,8 +491,8 @@ describe('_addResourceSpans', () => {
           ['network.protocol.version']: '3',
         }),
         name: '/assets/to/css',
-        end_timestamp: 468,
-        start_timestamp: 445,
+        end_timestamp: 123,
+        start_timestamp: 100,
       }),
     );
   });
@@ -507,7 +526,7 @@ describe('_addResourceSpans', () => {
       workerStart: 1006,
     } as unknown as PerformanceResourceTiming;
 
-    _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
+    _addResourceSpans(span, entry, resourceEntryName, 100, 23);
 
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
@@ -537,8 +556,8 @@ describe('_addResourceSpans', () => {
           'http.request.worker_start': expect.any(Number),
         },
         name: '/assets/to/css',
-        end_timestamp: 468,
-        start_timestamp: 445,
+        end_timestamp: 123,
+        start_timestamp: 100,
       }),
     );
   });
@@ -563,7 +582,7 @@ describe('_addResourceSpans', () => {
         nextHopProtocol: 'h3',
       });
 
-      _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
+      _addResourceSpans(span, entry, resourceEntryName, 100, 23);
 
       expect(spans).toHaveLength(1);
       expect(spanToJSON(spans[0]!).attributes).toMatchObject({
@@ -586,7 +605,7 @@ describe('_addResourceSpans', () => {
 
       const entry = mockPerformanceResourceTiming({ initiatorType: 'css', nextHopProtocol: 'h2' });
 
-      _addResourceSpans(span, entry, url, 100, 23, 345, undefined, true);
+      _addResourceSpans(span, entry, url, 100, 23, undefined, true);
 
       expect(spans).toHaveLength(1);
       expect(spanToJSON(spans[0]!)).toEqual(
@@ -609,7 +628,7 @@ describe('_addResourceSpans', () => {
 
       const entry = mockPerformanceResourceTiming({ initiatorType: 'script', nextHopProtocol: 'h2' });
 
-      _addResourceSpans(span, entry, 'blob:0f6b3f0a-1e2d-4d1a-9c3f-2a5c1d7b8e90', 100, 23, 345, undefined, true);
+      _addResourceSpans(span, entry, 'blob:0f6b3f0a-1e2d-4d1a-9c3f-2a5c1d7b8e90', 100, 23, undefined, true);
 
       expect(spans).toHaveLength(1);
       const spanJson = spanToJSON(spans[0]!);
@@ -688,7 +707,7 @@ describe('_addNavigationSpans', () => {
       spans.push(span);
     });
 
-    _addNavigationSpans(pageloadSpan, entry, 999);
+    _addNavigationSpans(pageloadSpan, entry);
 
     const trace_id = pageloadSpan.spanContext().traceId;
     const parent_span_id = pageloadSpan.spanContext().spanId;
@@ -791,6 +810,26 @@ describe('_addNavigationSpans', () => {
     );
   });
 
+  it('filters sensitive query params in span names and url.full', () => {
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    _addNavigationSpans(pageloadSpan, { ...entry, name: 'https://santry.com/test?jwt=baz&q=1' });
+
+    const filteredUrl = 'https://santry.com/test?jwt=[Filtered]&q=1';
+    expect(spans.map(spanToJSON)).toEqual(
+      Array(9).fill(
+        expect.objectContaining({
+          name: filteredUrl,
+          attributes: expect.objectContaining({ 'url.full': filteredUrl }),
+        }),
+      ),
+    );
+  });
+
   describe('with span streaming enabled', () => {
     it.each([
       ['browser.unload_event', 'Unload event'],
@@ -811,7 +850,7 @@ describe('_addNavigationSpans', () => {
       });
 
       // `unloadEventStart`/`End` are 0 in the shared entry, so that span is never created.
-      _addNavigationSpans(pageloadSpan, { ...entry, unloadEventStart: 1, unloadEventEnd: 2 }, 999, true);
+      _addNavigationSpans(pageloadSpan, { ...entry, unloadEventStart: 1, unloadEventEnd: 2 }, true);
 
       const spanJson = spans.map(spanToJSON).find(span => span.attributes[SENTRY_OP] === op);
 
@@ -846,7 +885,7 @@ describe('_addPaintSpan', () => {
       duration: 0,
     } as PerformanceEntry;
 
-    _addPaintSpan(pageloadSpan, entry, 12, 0, 999);
+    _addPaintSpan(pageloadSpan, entry, 12, 0);
 
     expect(spans).toHaveLength(1);
     const spanJson = spanToJSON(spans[0]!);

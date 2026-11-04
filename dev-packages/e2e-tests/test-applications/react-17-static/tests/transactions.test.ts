@@ -105,7 +105,7 @@ test('sends an INP span', async ({ page }) => {
   expect(inpSpan.attributes).toEqual(
     expect.objectContaining({
       'sentry.op': { value: 'ui.interaction.click', type: 'string' },
-      'sentry.origin': { value: 'auto.http.browser.inp', type: 'string' },
+      'sentry.origin': { value: 'auto.ui.browser.inp', type: 'string' },
       'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
       'browser.web_vital.inp.value': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
       'sentry.transaction': { value: '/', type: 'string' },

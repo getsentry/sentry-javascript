@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .next",
-    "start-local-supabase": "supabase stop --no-backup 2>/dev/null || true && supabase start -o env",
+    "start-local-supabase": "supabase stop --no-backup 2>/dev/null || true && SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io supabase start -x postgres-meta -o env",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm start-local-supabase && pnpm build",
     "test:assert": "pnpm test:prod"
@@ -29,13 +29,10 @@
     "typescript": "4.9.5"
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "eslint": "8.34.0",
     "eslint-config-next": "14.2.25"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sentryTest": {
     "optional": true

@@ -102,7 +102,7 @@ function installTestAsyncContextStrategy(): void {
 
 /**
  * Drives a channel's `tracePromise` inside an enclosing span and captures the span bound by the
- * subscriber. The subscriber only creates a span when there is an enclosing active span, so the
+ * subscriber. The subscriber only creates a recording span when there is an enclosing active span, so the
  * helper always establishes one and returns its id for parenting assertions.
  */
 async function traceOperation(
@@ -168,7 +168,7 @@ describe('subscribeMysql2DiagnosticChannels', () => {
     vi.clearAllMocks();
   });
 
-  it('does not create a span when there is no enclosing active span', async () => {
+  it('does not create a recording span when there is no enclosing active span', async () => {
     const channel = tracingChannel(MYSQL2_DC_CHANNEL_QUERY);
     let span: Span | undefined;
 
@@ -179,7 +179,8 @@ describe('subscribeMysql2DiagnosticChannels', () => {
       { query: 'SELECT 1' },
     );
 
-    expect(span).toBeUndefined();
+    expect(span).toBeDefined();
+    expect(span?.isRecording()).toBe(false);
   });
 
   describe('query channel', () => {
@@ -199,7 +200,7 @@ describe('subscribeMysql2DiagnosticChannels', () => {
       const json = spanToJSON(span!);
       expect(json.name).toBe('SELECT solution FROM maths');
       expect(json.attributes['sentry.op']).toBe('db');
-      expect(json.attributes['sentry.origin']).toBe('auto.db.mysql2.diagnostic_channel');
+      expect(json.attributes['sentry.origin']).toBe('auto.db.mysql2.native_channel');
       expect(json.attributes['db.system.name']).toBe('mysql');
       expect(json.attributes['db.operation.name']).toBe('SELECT');
       // reported regardless of trace lifecycle, even though only span streaming names the span after it
@@ -358,7 +359,7 @@ describe('subscribeMysql2DiagnosticChannels', () => {
       const json = spanToJSON(span!);
       expect(json.name).toBe('mysql2.connect');
       expect(json.attributes['sentry.op']).toBe('db');
-      expect(json.attributes['sentry.origin']).toBe('auto.db.mysql2.diagnostic_channel');
+      expect(json.attributes['sentry.origin']).toBe('auto.db.mysql2.native_channel');
       expect(json.attributes['db.system.name']).toBe('mysql');
       expect(json.attributes['db.namespace']).toBe('test');
       expect(json.attributes['server.address']).toBe('127.0.0.1');

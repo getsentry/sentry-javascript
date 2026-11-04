@@ -37,6 +37,76 @@ const UNSAFE_MEMBER_CALLS = [
   },
 ];
 
+// `@sentry/core` exports the wrapper as `_INTERNAL_withRandomSafeContext` to other packages
+const WRAPPER_NAMES = ['withRandomSafeContext', '_INTERNAL_withRandomSafeContext'];
+
+const TRANSPARENT_WRAPPERS = [
+  'ChainExpression',
+  'ParenthesizedExpression',
+  'TSNonNullExpression',
+  'TSAsExpression',
+  'TSSatisfiesExpression',
+  'TSTypeAssertion',
+];
+
+function unwrap(node) {
+  let current = node;
+  while (current && TRANSPARENT_WRAPPERS.includes(current.type)) {
+    current = current.expression;
+  }
+  return current;
+}
+
+function getPropertyName(memberExpression) {
+  const property = memberExpression.property;
+  if (!memberExpression.computed && property.type === 'Identifier') {
+    return property.name;
+  }
+  if (memberExpression.computed && property.type === 'Literal') {
+    return property.value;
+  }
+  return null;
+}
+
+/**
+ * Returns the name of the global an expression refers to, e.g. `performance` for
+ * `performance`, `globalThis.performance` or `GLOBAL_OBJ.performance`.
+ */
+function getObjectName(node) {
+  const object = unwrap(node);
+  if (object?.type === 'Identifier') {
+    return object.name;
+  }
+  if (object?.type === 'MemberExpression') {
+    return getPropertyName(object);
+  }
+  return null;
+}
+
+function getUnsafeApi(callee) {
+  const member = unwrap(callee);
+  if (member?.type !== 'MemberExpression') {
+    return undefined;
+  }
+  const objectName = getObjectName(member.object);
+  const propertyName = getPropertyName(member);
+  return UNSAFE_MEMBER_CALLS.find(api => api.object === objectName && api.property === propertyName);
+}
+
+function isInsideWithRandomSafeContext(node) {
+  let current = node.parent;
+  while (current) {
+    if (current.type === 'CallExpression') {
+      const callee = unwrap(current.callee);
+      if (callee.type === 'Identifier' && WRAPPER_NAMES.includes(callee.name)) {
+        return true;
+      }
+    }
+    current = current.parent;
+  }
+  return false;
+}
+
 module.exports = {
   meta: {
     type: 'problem',
@@ -64,103 +134,23 @@ module.exports = {
     },
   },
   create: function (context) {
-    /**
-     * Check if a node is inside a withRandomSafeContext call
-     */
-    function isInsidewithRandomSafeContext(node) {
-      let current = node.parent;
-
-      while (current) {
-        // Check if we're inside a callback passed to withRandomSafeContext
-        if (
-          current.type === 'CallExpression' &&
-          current.callee.type === 'Identifier' &&
-          current.callee.name === 'withRandomSafeContext'
-        ) {
-          return true;
-        }
-
-        // Also check for arrow functions or regular functions passed to withRandomSafeContext
-        if (
-          (current.type === 'ArrowFunctionExpression' || current.type === 'FunctionExpression') &&
-          current.parent?.type === 'CallExpression' &&
-          current.parent.callee.type === 'Identifier' &&
-          current.parent.callee.name === 'withRandomSafeContext'
-        ) {
-          return true;
-        }
-
-        current = current.parent;
-      }
-
-      return false;
-    }
-
-    /**
-     * Check if a node is inside the safeRandomGeneratorRunner.ts file (the definition file)
-     */
-    function isInSafeRandomGeneratorRunner(_node) {
-      const filename = context.getFilename();
-      return filename.includes('safeRandomGeneratorRunner');
-    }
-
     return {
       CallExpression(node) {
-        // Skip if we're in the safeRandomGeneratorRunner.ts file itself
-        if (isInSafeRandomGeneratorRunner(node)) {
-          return;
-        }
-
-        // Check for member expression calls like Date.now(), Math.random(), etc.
-        if (node.callee.type === 'MemberExpression') {
-          const callee = node.callee;
-
-          // Get the object name (e.g., 'Date', 'Math', 'performance', 'crypto')
-          let objectName = null;
-          if (callee.object.type === 'Identifier') {
-            objectName = callee.object.name;
-          }
-
-          // Get the property name (e.g., 'now', 'random', 'randomUUID')
-          let propertyName = null;
-          if (callee.property.type === 'Identifier') {
-            propertyName = callee.property.name;
-          } else if (callee.computed && callee.property.type === 'Literal') {
-            propertyName = callee.property.value;
-          }
-
-          if (!objectName || !propertyName) {
-            return;
-          }
-
-          // Check if this is one of the unsafe APIs
-          const unsafeApi = UNSAFE_MEMBER_CALLS.find(api => api.object === objectName && api.property === propertyName);
-
-          if (unsafeApi && !isInsidewithRandomSafeContext(node)) {
-            context.report({
-              node,
-              messageId: unsafeApi.messageId,
-            });
-          }
+        const api = getUnsafeApi(node.callee);
+        if (api && !isInsideWithRandomSafeContext(node)) {
+          context.report({ node, messageId: api.messageId });
         }
       },
       // Flag the `new Date()` constructor with no arguments, which reads the ambient clock.
       // `new Date(<number>)` is safe because it does not read the current time.
       NewExpression(node) {
-        if (isInSafeRandomGeneratorRunner(node)) {
-          return;
-        }
-
         if (
           node.callee.type === 'Identifier' &&
           node.callee.name === 'Date' &&
           node.arguments.length === 0 &&
-          !isInsidewithRandomSafeContext(node)
+          !isInsideWithRandomSafeContext(node)
         ) {
-          context.report({
-            node,
-            messageId: 'unsafeDateConstructor',
-          });
+          context.report({ node, messageId: 'unsafeDateConstructor' });
         }
       },
     };

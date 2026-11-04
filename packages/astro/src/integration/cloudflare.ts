@@ -37,6 +37,10 @@ export function sentryCloudflareNodeWarningPlugin(): VitePlugin {
   };
 }
 
+// The Worker entry module: `@astrojs/cloudflare` v12 builds its own virtual entry, and v13+ builds
+// through `@cloudflare/vite-plugin`, whose entry ends in `export default mod.default ?? {};`.
+export const WORKER_ENTRY_IDS = ['astrojs-ssr-virtual-entry', 'virtual:cloudflare/worker-entry'];
+
 /**
  * A Vite plugin that ensures the Sentry server config is loaded at the
  * top level of the Cloudflare Worker entry module, rather than only being
@@ -57,16 +61,14 @@ export function sentryCloudflareVitePlugin(): VitePlugin {
     enforce: 'post',
 
     transform(code, id) {
-      // Match the Astro SSR virtual entry — this becomes dist/_worker.js/index.js
-      // The resolved virtual module ID is `\0@astrojs-ssr-virtual-entry`
-      if (!id.includes('astrojs-ssr-virtual-entry')) {
+      if (!WORKER_ENTRY_IDS.some(entryId => id.includes(entryId))) {
         return undefined;
       }
 
       // In @astrojs/cloudflare v12, the virtual entry module structure is:
       // https://github.com/withastro/astro/blob/09bbdbb1e62c388eb405eeea03554c15e01f2957/packages/integrations/cloudflare/src/entrypoints/server.ts#L23
       // We need to wrap `default` with `withSentry` before it's exported.
-      const defaultExportMatch = code.match(/export\s+default\s+([\w.]+)\s*;/);
+      const defaultExportMatch = code.match(/export\s+default\s+([^;]+?)\s*;/);
 
       if (!defaultExportMatch) {
         return undefined;

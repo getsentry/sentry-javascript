@@ -3,6 +3,7 @@
 /* eslint-disable import/export */
 import {
   applySdkMetadata,
+  debug,
   getGlobalScope,
   getIsolationScope,
   getRootSpan,
@@ -24,11 +25,17 @@ import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { backfillHttpResponseStatusCode } from '../common/utils/backfillHttpResponseStatusCode';
 import { backfillHttpServerStatus } from '../common/utils/backfillHttpServerStatus';
 import { createLiveRootSpanAdapter } from '../common/utils/liveRootSpanAdapter';
-import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
+import { dropMiddlewareTunnelRequests, getTunnelRouteIgnoreSpans } from '../common/utils/dropMiddlewareTunnelRequests';
 import { maybeForkIsolationScopeForRootSpan } from '../common/utils/forkIsolationScopeForRootSpan';
 import { getNormalizedRequestFromAttributes } from '../common/utils/getNormalizedRequestFromAttributes';
 import { isBuild } from '../common/utils/isBuild';
-import { flushSafelyWithTimeout, isCloudflareWaitUntilAvailable, waitUntil } from '../common/utils/responseEnd';
+import {
+  flushSafelyWithTimeout,
+  isAsyncContextOwnedByCloudflare,
+  isCloudflareWaitUntilAvailable,
+  setCloudflareWorkerRelease,
+  waitUntil,
+} from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
@@ -71,9 +78,10 @@ export function init(options: VercelEdgeOptions = {}): void {
   }
 
   if (!DEBUG_BUILD && options.debug) {
+    // TODO(v12): Remove the `webpack.treeshake` mention together with that option
     // eslint-disable-next-line no-console
     console.warn(
-      '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
+      '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `bundleSizeOptimizations.excludeDebugStatements: true` or `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
     );
   }
 
@@ -102,8 +110,30 @@ export function init(options: VercelEdgeOptions = {}): void {
   const nextjsIgnoreSpans: NonNullable<VercelEdgeOptions['ignoreSpans']> = [
     // (set in `dropMiddlewareTunnelRequests` during `spanStart`)
     { attributes: { [TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]: true } },
+    ...getTunnelRouteIgnoreSpans(),
   ];
   opts.ignoreSpans = [...(opts.ignoreSpans || []), ...nextjsIgnoreSpans];
+
+  // Before the Cloudflare check, so that the events of the client of `withSentry` get the tag too.
+  try {
+    // @ts-expect-error `process.turbopack` is a magic string that will be replaced by Next.js
+    if (process.turbopack) {
+      getGlobalScope().setTag('turbopack', true);
+      getGlobalScope().setAttribute('turbopack', true);
+    }
+  } catch {
+    // Noop
+    // The statement above can throw because process is not defined on the client
+  }
+
+  if (isAsyncContextOwnedByCloudflare()) {
+    setCloudflareWorkerRelease(opts.release);
+    DEBUG_BUILD &&
+      debug.log(
+        'The client of `withSentry` handles this Worker, so `init` creates no client and only applies `release`. Set the other options in `withSentry`.',
+      );
+    return;
+  }
 
   // Use appropriate SDK metadata based on the runtime environment
   if (isRunningOnCloudflare) {
@@ -213,15 +243,4 @@ export function init(options: VercelEdgeOptions = {}): void {
 
     waitUntil(flushSafelyWithTimeout());
   });
-
-  try {
-    // @ts-expect-error `process.turbopack` is a magic string that will be replaced by Next.js
-    if (process.turbopack) {
-      getGlobalScope().setTag('turbopack', true);
-      getGlobalScope().setAttribute('turbopack', true);
-    }
-  } catch {
-    // Noop
-    // The statement above can throw because process is not defined on the client
-  }
 }

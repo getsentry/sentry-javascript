@@ -1,0 +1,34 @@
+{
+  "name": "tanstackstart-react-sourcemaps",
+  "description": "E2E test app asserting what the TanStack Start SDK uploads to Sentry when Nitro builds the server.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node start-mock-sentry-server.mjs & vite build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; if [ $BUILD_EXIT -ne 0 ]; then cat .tmp_build_stdout; cat .tmp_build_stderr >&2; fi; exit $BUILD_EXIT",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml .output",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm ts-node --script-mode assert-build.ts"
+  },
+  "dependencies": {
+    "@sentry/tanstackstart-react": "file:../../packed/sentry-tanstackstart-react-packed.tgz",
+    "@tanstack/react-router": "1.170.44",
+    "@tanstack/react-start": "1.169.1",
+    "nitro": "latest",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
+    "@types/node": "^22.20.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react-swc": "^4.2.0",
+    "ts-node": "10.9.1",
+    "typescript": "^5.9.0",
+    "vite": "^8.3.0"
+  },
+  "sentryTest": {
+    "optional": true
+  }
+}

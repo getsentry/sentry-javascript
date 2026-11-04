@@ -11,6 +11,10 @@ describe('resourceTimingToSpanAttributes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     browserPerformanceTimeOriginSpy = vi.spyOn(utils, 'browserPerformanceTimeOrigin');
+    vi.spyOn(utils, '_INTERNAL_performanceTimeToSeconds').mockImplementation((time, entryStartTime = time) => {
+      const origin = utils.browserPerformanceTimeOrigin(entryStartTime);
+      return origin ? (origin + time) / 1000 : undefined;
+    });
     extractNetworkProtocolSpy = vi.spyOn(browserMetricsUtils, 'extractNetworkProtocol');
   });
 
@@ -364,117 +368,6 @@ describe('resourceTimingToSpanAttributes', () => {
         'http.request.response_end': 1000.1,
         'http.request.time_to_first_byte': 0.08,
       });
-    });
-  });
-
-  describe('fallback to performance.timeOrigin', () => {
-    it('uses performance.timeOrigin when browserPerformanceTimeOrigin returns null', () => {
-      // Mock browserPerformanceTimeOrigin to return null for the main check
-      browserPerformanceTimeOriginSpy.mockReturnValue(null);
-
-      extractNetworkProtocolSpy.mockReturnValue({
-        name: '',
-        version: 'unknown',
-      });
-
-      const mockResourceTiming = createMockResourceTiming({
-        nextHopProtocol: '',
-        redirectStart: 20,
-        fetchStart: 40,
-        domainLookupStart: 60,
-        domainLookupEnd: 80,
-        connectStart: 100,
-        secureConnectionStart: 120,
-        connectEnd: 140,
-        requestStart: 160,
-        responseStart: 300,
-        responseEnd: 400,
-      });
-
-      const result = resourceTimingToSpanAttributes(mockResourceTiming);
-
-      // When browserPerformanceTimeOrigin returns null, function returns early with only network protocol attributes
-      expect(result).toEqual({
-        'network.protocol.version': 'unknown',
-        'network.protocol.name': '',
-      });
-    });
-
-    it('uses performance.timeOrigin fallback in getAbsoluteTime when available', () => {
-      // Mock browserPerformanceTimeOrigin to return 500000 for the main check
-      browserPerformanceTimeOriginSpy.mockReturnValue(500000);
-
-      extractNetworkProtocolSpy.mockReturnValue({
-        name: '',
-        version: 'unknown',
-      });
-
-      const mockResourceTiming = createMockResourceTiming({
-        nextHopProtocol: '',
-        redirectStart: 20,
-        redirectEnd: 30,
-        workerStart: 35,
-        fetchStart: 40,
-        domainLookupStart: 60,
-        domainLookupEnd: 80,
-        connectStart: 100,
-        secureConnectionStart: 120,
-        connectEnd: 140,
-        requestStart: 160,
-        responseStart: 300,
-        responseEnd: 400,
-      });
-
-      const result = resourceTimingToSpanAttributes(mockResourceTiming);
-
-      expect(result).toEqual({
-        'network.protocol.version': 'unknown',
-        'network.protocol.name': '',
-        'http.request.redirect_start': 500.02, // (500000 + 20) / 1000
-        'http.request.redirect_end': 500.03, // (500000 + 30) / 1000
-        'http.request.worker_start': 500.035, // (500000 + 35) / 1000
-        'http.request.fetch_start': 500.04, // (500000 + 40) / 1000
-        'http.request.domain_lookup_start': 500.06, // (500000 + 60) / 1000
-        'http.request.domain_lookup_end': 500.08, // (500000 + 80) / 1000
-        'http.request.connect_start': 500.1, // (500000 + 100) / 1000
-        'http.request.secure_connection_start': 500.12, // (500000 + 120) / 1000
-        'http.request.connection_end': 500.14, // (500000 + 140) / 1000
-        'http.request.request_start': 500.16, // (500000 + 160) / 1000
-        'http.request.response_start': 500.3, // (500000 + 300) / 1000
-        'http.request.response_end': 500.4, // (500000 + 400) / 1000
-        'http.request.time_to_first_byte': 0.3, // 300 / 1000
-      });
-    });
-
-    it('handles case when neither browserPerformanceTimeOrigin nor performance.timeOrigin is available', () => {
-      browserPerformanceTimeOriginSpy.mockReturnValue(null);
-
-      extractNetworkProtocolSpy.mockReturnValue({
-        name: '',
-        version: 'unknown',
-      });
-
-      // Mock performance.timeOrigin as undefined
-      const originalPerformance = global.performance;
-      global.performance = {
-        ...originalPerformance,
-        timeOrigin: undefined,
-      } as any;
-
-      const mockResourceTiming = createMockResourceTiming({
-        nextHopProtocol: '',
-      });
-
-      const result = resourceTimingToSpanAttributes(mockResourceTiming);
-
-      // When neither timing source is available, should return network protocol attributes for empty string
-      expect(result).toEqual({
-        'network.protocol.version': 'unknown',
-        'network.protocol.name': '',
-      });
-
-      // Restore global performance
-      global.performance = originalPerformance;
     });
   });
 

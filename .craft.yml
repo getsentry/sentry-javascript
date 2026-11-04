@@ -146,6 +146,18 @@ targets:
     id: '@sentry/bundler-plugins'
     includeNames: /^sentry-bundler-plugins-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/esbuild-plugin'
+    includeNames: /^sentry-esbuild-plugin-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/rollup-plugin'
+    includeNames: /^sentry-rollup-plugin-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/vite-plugin'
+    includeNames: /^sentry-vite-plugin-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/webpack-plugin'
+    includeNames: /^sentry-webpack-plugin-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/typescript'
     includeNames: /^sentry-typescript-\d.*\.tgz$/
   - name: npm

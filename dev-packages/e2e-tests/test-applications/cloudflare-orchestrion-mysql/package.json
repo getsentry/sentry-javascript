@@ -18,16 +18,13 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.35.0",
-    "@playwright/test": "~1.63.0",
+    "@playwright/test": "1.64.1",
     "@cloudflare/workers-types": "^4.20260629.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@types/node": "^24.12.4",
     "typescript": "^5.5.2",
     "vite": "7.3.2",
     "wrangler": "^4.61.0",
     "ws": "^8.18.3"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

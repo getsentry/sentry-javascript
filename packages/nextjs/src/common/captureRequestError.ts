@@ -1,5 +1,5 @@
 import type { RequestEventData } from '@sentry/core';
-import { captureException, headersToDict, withScope } from '@sentry/core';
+import { captureException, filterCollectedUrl, headersToDict, withScope } from '@sentry/core';
 import { isPrerenderControlFlowError } from './nextNavigationErrorUtils';
 import { flushSafelyWithTimeout, waitUntil } from './utils/responseEnd';
 
@@ -32,7 +32,7 @@ export function captureRequestError(error: unknown, request: RequestInfo, errorC
     });
 
     scope.setContext('nextjs', {
-      request_path: request.path,
+      request_path: filterCollectedUrl(request.path, scope.getClient()),
       router_kind: errorContext.routerKind,
       router_path: errorContext.routePath,
       route_type: errorContext.routeType,

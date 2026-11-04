@@ -4,8 +4,10 @@ import * as path from 'path';
 import * as os from 'os';
 import {
   addDebugIdToEmittedArtifacts,
+  prepareArtifactForUpload,
   prepareBundleForDebugIdUpload,
   stampDebugId,
+  writePreparedArtifact,
 } from '../../src/core/debug-id-upload';
 import type { RewriteSourcesHook } from '../../src/core/types';
 import type { Logger } from '../../src/core';
@@ -40,7 +42,7 @@ describe('prepareBundleForDebugIdUpload', () => {
     // Bundle with debug ID snippet and sourceMappingURL
     fs.writeFileSync(
       bundlePath,
-      `"use strict";\n// some code\n;!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{},n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="${debugId}",e._sentryDebugIdIdentifier="sentry-dbid-${debugId}")}catch(e){}}();\n//# sourceMappingURL=bundle.js.map`,
+      `"use strict";\n// some code\n;!function(){try{var e="undefined"!=typeof globalThis?globalThis:"undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:{},n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="${debugId}",e._sentryDebugIdIdentifier="sentry-dbid-${debugId}")}catch(e){}}();\n//# sourceMappingURL=bundle.js.map`,
     );
 
     // Source map file
@@ -73,6 +75,19 @@ describe('prepareBundleForDebugIdUpload', () => {
   });
 
   const noopRewriteHook: RewriteSourcesHook = source => source;
+
+  it('lets a failed write of the upload artifact propagate', async () => {
+    const bundlePath = path.join(tmpDir, 'bundle.js');
+    fs.writeFileSync(
+      bundlePath,
+      `"use strict";\n${debugIdSnippet('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')}\n//# sourceMappingURL=bundle.js.map`,
+    );
+    fs.writeFileSync(`${bundlePath}.map`, JSON.stringify({ version: 3, sources: ['a.ts'], mappings: 'AAAA' }));
+
+    await expect(
+      prepareBundleForDebugIdUpload(bundlePath, path.join(tmpDir, 'missing'), 0, makeLogger(), s => s, undefined),
+    ).rejects.toThrow();
+  });
 
   it('does not write an upload artifact for a chunk that has no source map', async () => {
     const bundleDir = path.join(tmpDir, 'src');
@@ -109,6 +124,117 @@ describe('prepareBundleForDebugIdUpload', () => {
     await prepareBundleForDebugIdUpload(bundlePath, uploadDir, 0, makeLogger(), noopRewriteHook, undefined);
 
     expect(fs.readdirSync(uploadDir)).toEqual([`${debugId}-0.js`]);
+  });
+});
+
+describe('prepareArtifactForUpload', () => {
+  const debugId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+  const noopRewriteHook: RewriteSourcesHook = source => source;
+  const map = JSON.stringify({ version: 3, sources: ['../src/a.ts'], mappings: 'AAAA' });
+
+  it('stamps the debug ID into the bundle and the map and rewrites the sources', () => {
+    const rewriteHook: RewriteSourcesHook = (source, _map, context) => `${context?.mapDir}|${source}`;
+
+    const result = prepareArtifactForUpload({
+      code: `code();\n${debugIdSnippet(debugId)}`,
+      mapSource: map,
+      mapDir: '/out/assets',
+      rewriteSourcesHook: rewriteHook,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    expect(result.artifact.debugId).toBe(debugId);
+    expect(result.artifact.bundleSource).toBe(`code();\n${debugIdSnippet(debugId)}\n//# debugId=${debugId}`);
+    expect(JSON.parse(result.artifact.sourceMapSource!)).toEqual({
+      version: 3,
+      sources: ['/out/assets|../src/a.ts'],
+      mappings: 'AAAA',
+      debug_id: debugId,
+      debugId,
+    });
+  });
+
+  it('replaces an existing spec comment', () => {
+    const result = prepareArtifactForUpload({
+      code: `${debugIdSnippet(debugId)}\n//# debugId=00000000-0000-0000-0000-000000000000`,
+      mapSource: map,
+      mapDir: '/out',
+      rewriteSourcesHook: noopRewriteHook,
+    });
+
+    expect(result.ok && result.artifact.bundleSource).toBe(`${debugIdSnippet(debugId)}\n//# debugId=${debugId}`);
+  });
+
+  it('prepares a bundle with an inlined map without a separate map', () => {
+    const result = prepareArtifactForUpload({
+      code: `${debugIdSnippet(debugId)}\n//# sourceMappingURL=data:application/json;base64,e30=`,
+      mapSource: undefined,
+      mapDir: '/out',
+      rewriteSourcesHook: noopRewriteHook,
+    });
+
+    expect(result.ok && result.artifact.sourceMapSource).toBeUndefined();
+  });
+
+  it('reports a bundle without a debug ID', () => {
+    expect(
+      prepareArtifactForUpload({
+        code: 'code();',
+        mapSource: map,
+        mapDir: '/out',
+        rewriteSourcesHook: noopRewriteHook,
+      }),
+    ).toEqual({ ok: false, reason: 'no-debug-id' });
+  });
+
+  it('reports a bundle without any source map', () => {
+    expect(
+      prepareArtifactForUpload({
+        code: debugIdSnippet(debugId),
+        mapSource: undefined,
+        mapDir: '/out',
+        rewriteSourcesHook: noopRewriteHook,
+      }),
+    ).toEqual({ ok: false, reason: 'no-source-map' });
+  });
+
+  it('reports an invalid source map', () => {
+    expect(
+      prepareArtifactForUpload({
+        code: debugIdSnippet(debugId),
+        mapSource: '{not json',
+        mapDir: '/out',
+        rewriteSourcesHook: noopRewriteHook,
+      }),
+    ).toEqual({ ok: false, reason: 'invalid-source-map' });
+  });
+});
+
+describe('writePreparedArtifact', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sentry-test-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('writes the bundle and the map', async () => {
+    await writePreparedArtifact(tmpDir, 'abc-0', { debugId: 'abc', bundleSource: 'js', sourceMapSource: '{}' });
+
+    expect(fs.readFileSync(path.join(tmpDir, 'abc-0.js'), 'utf8')).toBe('js');
+    expect(fs.readFileSync(path.join(tmpDir, 'abc-0.js.map'), 'utf8')).toBe('{}');
+  });
+
+  it('writes only the bundle when there is no separate map', async () => {
+    await writePreparedArtifact(tmpDir, 'abc-0', { debugId: 'abc', bundleSource: 'js', sourceMapSource: undefined });
+
+    expect(fs.readdirSync(tmpDir)).toEqual(['abc-0.js']);
   });
 });
 

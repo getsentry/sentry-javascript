@@ -9,4 +9,8 @@ Sentry.init({
     // We are doing a lot of events at once in this test
     bufferSize: 1000,
   },
+  // Lets the middleware tunnel envelopes for the event proxy's DSN.
+  integrations: [
+    Sentry.serveTunnelIntegration({ allowedDsns: ['http://public@localhost:3031/1337'], basePath: '/my-app' }),
+  ],
 });

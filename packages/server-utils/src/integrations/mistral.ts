@@ -8,6 +8,7 @@ import { MISTRAL_INTEGRATION_NAME, MISTRAL_ORIGIN } from '../ai/mistral/constant
 import { instrumentEventStream } from '../ai/mistral/streaming';
 import type { MistralOptions } from '../ai/mistral/types';
 import { addResponseAttributes, getSpanName } from '../ai/mistral/utils';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { mistralModuleNames } from '../orchestrion/config/mistral';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
@@ -25,15 +26,6 @@ const INSTRUMENTED_CHANNELS = [
   { channel: CHANNELS.MISTRAL_AGENTS_STREAM, operation: 'invoke_agent', streaming: true },
 ] as const;
 
-/**
- * The context orchestrion shares across the tracing-channel lifecycle hooks: `arguments` is the live
- * args array passed to the SDK method, and Node's `tracingChannel` attaches `result` when it settles.
- */
-interface MistralChannelContext {
-  arguments: unknown[];
-  result?: unknown;
-}
-
 const _mistralAIIntegration = ((options: MistralOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
@@ -46,7 +38,7 @@ const _mistralAIIntegration = ((options: MistralOptions = {}) => {
 function instrumentMistral(options: MistralOptions): void {
   for (const { channel, operation, streaming } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
-      diagnosticsChannel.tracingChannel<MistralChannelContext>(channel),
+      diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channel),
       data => createGenAiSpan(data, operation, streaming, options),
       {
         beforeSpanEnd: (span, data) => {
@@ -65,7 +57,7 @@ function instrumentMistral(options: MistralOptions): void {
  * Returning `undefined` opts the payload out so no span is opened.
  */
 function createGenAiSpan(
-  data: MistralChannelContext,
+  data: OrchestrionChannelContext,
   operation: string,
   streaming: boolean,
   options: MistralOptions,

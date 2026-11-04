@@ -16,6 +16,7 @@ import {
   withScope,
 } from '@sentry/core';
 import {
+  getAuthInterruptStatusCode,
   isNotFoundNavigationError,
   isPrerenderControlFlowError,
   isRedirectNavigationError,
@@ -83,6 +84,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
             const response: Response = await handleCallbackErrors(
               () => originalFunction.apply(thisArg, args),
               error => {
+                const authInterruptStatusCode = getAuthInterruptStatusCode(error);
                 // Next.js throws errors when calling `redirect()`. We don't wanna report these.
                 if (isRedirectNavigationError(error)) {
                   // Don't do anything
@@ -92,6 +94,13 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
                   }
                   if (rootSpan) {
                     setHttpStatus(rootSpan, 404);
+                  }
+                } else if (authInterruptStatusCode) {
+                  if (activeSpan) {
+                    setHttpStatus(activeSpan, authInterruptStatusCode);
+                  }
+                  if (rootSpan) {
+                    setHttpStatus(rootSpan, authInterruptStatusCode);
                   }
                 } else if (isPrerenderControlFlowError(error)) {
                   // Next.js aborts prerenders by rejecting the promises it handed out. React discards those

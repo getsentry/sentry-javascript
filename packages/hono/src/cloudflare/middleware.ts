@@ -1,6 +1,5 @@
-import { withSentry } from '@sentry/cloudflare';
-import { applySdkMetadata, type BaseTransportOptions, debug, type Options } from '@sentry/core';
-import { getConnInfo } from 'hono/cloudflare-workers';
+import { withSentry, type CloudflareOptions } from '@sentry/cloudflare';
+import { applySdkMetadata, debug } from '@sentry/core';
 import {
   applyHonoPatches,
   createHonoRequestMiddleware,
@@ -10,7 +9,7 @@ import type { Env, Hono, MiddlewareHandler } from 'hono';
 import { buildFilteredIntegrations } from '../shared/buildFilteredIntegrations';
 import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../shared/lowQualityTransactionPatterns';
 
-export interface HonoCloudflareOptions extends Options<BaseTransportOptions>, SentryHonoMiddlewareOptions {}
+export interface HonoCloudflareOptions extends CloudflareOptions, SentryHonoMiddlewareOptions {}
 
 /**
  * Sentry middleware for Hono on Cloudflare Workers.
@@ -46,7 +45,7 @@ export function sentry<E extends Env>(
   applyHonoPatches(app);
 
   return createHonoRequestMiddleware({
-    getConnInfo,
+    runtime: 'cloudflare',
     // Cloudflare accepts middleware options as a function of `env`, so `shouldHandleError` is only
     // known per request.
     resolveShouldHandleError: context =>

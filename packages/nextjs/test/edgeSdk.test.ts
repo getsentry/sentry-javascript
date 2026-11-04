@@ -1,5 +1,6 @@
 import type { Integration } from '@sentry/core';
-import { GLOBAL_OBJ } from '@sentry/core';
+import { getGlobalScope, getMainCarrier, GLOBAL_OBJ, withIsolationScope } from '@sentry/core';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import * as SentryVercelEdge from '@sentry/vercel-edge';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../src/common/span-attributes-with-logic-attached';
@@ -22,6 +23,13 @@ describe('Edge init()', () => {
   afterEach(() => {
     SentryVercelEdge.getCurrentScope().setClient(undefined);
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
+
+    getMainCarrier().__SENTRY__ = undefined;
+
+    delete (process as { turbopack?: boolean }).turbopack;
+
+    delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRelease?: string })._sentryRelease;
   });
 
   it('inits the Vercel Edge SDK', () => {
@@ -51,6 +59,34 @@ describe('Edge init()', () => {
         defaultIntegrations: expect.any(Array),
       }),
     );
+  });
+
+  it('skips init on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    setAsyncLocalStorageAsyncContextStrategy();
+
+    withIsolationScope(() => init({}));
+
+    expect(vercelEdgeInit).not.toHaveBeenCalled();
+  });
+
+  it('stores the release on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    setAsyncLocalStorageAsyncContextStrategy();
+
+    withIsolationScope(() => init({ release: '1.2.3' }));
+
+    expect((GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRelease?: string })._sentryRelease).toBe('1.2.3');
+  });
+
+  it('sets the `turbopack` tag on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    setAsyncLocalStorageAsyncContextStrategy();
+    (process as { turbopack?: boolean }).turbopack = true;
+
+    withIsolationScope(() => init({}));
+
+    expect(getGlobalScope().getScopeData().tags.turbopack).toBe(true);
   });
 
   describe('integrations', () => {

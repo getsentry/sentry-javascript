@@ -1,7 +1,8 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpanAndTraceHeaderOnUrl } from '../../../../utils/spanUtils';
 
 sentryTest('should call onRequestSpanStart hook', async ({ browserName, getLocalTestUrl, page }) => {
   const supportedBrowsers = ['chromium', 'firefox'];
@@ -27,24 +28,24 @@ sentryTest('should call onRequestSpanStart hook', async ({ browserName, getLocal
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 2, { url, timeout: 10000 });
+  const spans = collectStreamedSpans(page);
+  await waitForStreamedSpanAndTraceHeaderOnUrl(page, url, span => getSpanOp(span) === 'pageload');
+  await page.evaluate(() => (window as any).Sentry.flush());
 
-  const tracingEvent = envelopes[envelopes.length - 1]; // last envelope contains tracing data on all browsers
-
-  expect(tracingEvent.spans).toContainEqual(
+  expect(spans).toContainEqual(
     expect.objectContaining({
-      op: 'http.client',
-      data: expect.objectContaining({
-        'hook.called.headers': 'xhr',
+      attributes: expect.objectContaining({
+        [SENTRY_OP]: { type: 'string', value: 'http.client' },
+        'hook.called.headers': { type: 'string', value: 'xhr' },
       }),
     }),
   );
 
-  expect(tracingEvent.spans).toContainEqual(
+  expect(spans).toContainEqual(
     expect.objectContaining({
-      op: 'http.client',
-      data: expect.objectContaining({
-        'hook.called.headers': 'fetch',
+      attributes: expect.objectContaining({
+        [SENTRY_OP]: { type: 'string', value: 'http.client' },
+        'hook.called.headers': { type: 'string', value: 'fetch' },
       }),
     }),
   );

@@ -1,8 +1,8 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpanAndTraceHeaderOnUrl } from '../../../../utils/spanUtils';
 
 sentryTest('should allow specific types of resource spans to be ignored.', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -13,8 +13,10 @@ sentryTest('should allow specific types of resource spans to be ignored.', async
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const allSpans = eventData.spans?.filter(({ op }) => op?.startsWith('resource.script'));
+  const spans = collectStreamedSpans(page);
+  await waitForStreamedSpanAndTraceHeaderOnUrl(page, url, span => getSpanOp(span) === 'pageload');
+  await page.evaluate(() => (window as any).Sentry.flush());
+  const allSpans = spans?.filter(span => getSpanOp(span)?.startsWith('resource.script'));
 
   expect(allSpans?.length).toBe(0);
 });

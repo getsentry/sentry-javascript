@@ -1,4 +1,4 @@
-import { addServerPlugin, createResolver } from '@nuxt/kit';
+import { addNitroPlugin, createResolver } from '@nuxt/kit';
 import type { Nuxt } from '@nuxt/schema';
 import { addServerTemplate } from '../vendor/server-template';
 
@@ -18,8 +18,8 @@ export function addStorageInstrumentation(nuxt: Nuxt, isLegacyNitro: boolean): v
   });
 
   if (isLegacyNitro) {
-    addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/storage-legacy.server'));
+    addNitroPlugin(moduleDirResolver.resolve('./runtime/plugins/storage-legacy.server'));
   } else {
-    addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/storage.server'));
+    addNitroPlugin(moduleDirResolver.resolve('./runtime/plugins/storage.server'));
   }
 }

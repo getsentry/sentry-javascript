@@ -5,7 +5,7 @@ if (!testEnv) {
   throw new Error('No test env defined');
 }
 
-const APP_PORT = 38787;
+const APP_PORT = 8787;
 
 const config = getPlaywrightConfig(
   {

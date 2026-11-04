@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { SENTRY_LINK_TYPE, SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { PAGELOAD } from '@sentry/conventions/op';
 import type { Client } from '@sentry/core';
 import type * as SentryCore from '@sentry/core';
 import type * as SentryReact from '@sentry/react';
@@ -10,13 +12,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@sentry/core';
 import '@sentry/react';
 import '../../src/client/routing/appRouterRoutingInstrumentation';
+import '../../src/client/routing/appRouterPageloadInstrumentation';
 import type * as AppRouterInstrumentation from '../../src/client/routing/appRouterRoutingInstrumentation';
+import type * as AppRouterPageload from '../../src/client/routing/appRouterPageloadInstrumentation';
 import type * as RouteProvider from '../../src/client/routing/routeProvider';
 import type { RouteManifest } from '../../src/config/manifest/types';
 
 type Core = typeof SentryCore;
 type React = typeof SentryReact;
 type Instrumentation = typeof AppRouterInstrumentation;
+type PageloadInstrumentation = typeof AppRouterPageload;
 type RouteProviderModule = typeof RouteProvider;
 
 interface NextRouter {
@@ -48,7 +53,6 @@ const manifest: RouteManifest = {
       hasOptionalPrefix: false,
     },
   ],
-  isrRoutes: [],
 };
 
 function sleep(ms: number): Promise<void> {
@@ -66,11 +70,16 @@ async function setup(traceLifecycle: 'stream' | 'static'): Promise<{
   router: NextRouter;
   client: Client;
   instrumentation: Instrumentation;
+  pageload: PageloadInstrumentation;
 }> {
   vi.resetModules();
   const core: Core = await import('@sentry/core');
+  // The scopes live on a global carrier that `vi.resetModules()` keeps, so the active span of an
+  // earlier test would otherwise become the parent of the spans of this one.
+  core.getMainCarrier().__SENTRY__ = undefined;
   const react: React = await import('@sentry/react');
   const instrumentation: Instrumentation = await import('../../src/client/routing/appRouterRoutingInstrumentation');
+  const pageload: PageloadInstrumentation = await import('../../src/client/routing/appRouterPageloadInstrumentation');
   const routeProvider: RouteProviderModule = await import('../../src/client/routing/routeProvider');
 
   const client = new react.BrowserClient({
@@ -92,7 +101,7 @@ async function setup(traceLifecycle: 'stream' | 'static'): Promise<{
   instrumentation.appRouterInstrumentNavigation(client);
   await vi.waitFor(() => expect(router.back).not.toBe(originalBack));
 
-  return { core, router, client, instrumentation };
+  return { core, router, client, instrumentation, pageload };
 }
 
 describe('appRouterInstrumentNavigation (router-patch mode)', () => {
@@ -263,5 +272,165 @@ describe('appRouterInstrumentNavigation with basePath', () => {
     const span = core.getActiveSpan();
     expect(span).toBeDefined();
     expect(core.spanToJSON(span!).name).toBe('/my-app/navigation/:param/router-push');
+  });
+});
+
+describe('appRouterInstrumentPageLoad', () => {
+  const originalReadyState = Object.getOwnPropertyDescriptor(Document.prototype, 'readyState');
+  const PRERENDER_TRACE_ID = '11111111111111111111111111111111';
+  const PRERENDER_SENTRY_TRACE = `${PRERENDER_TRACE_ID}-1111111111111111-1`;
+  const PRERENDER_LINK = {
+    trace_id: PRERENDER_TRACE_ID,
+    span_id: '1111111111111111',
+    sampled: true,
+    attributes: { [SENTRY_LINK_TYPE]: 'cache_origin' },
+  };
+
+  function setReadyState(value: DocumentReadyState): void {
+    Object.defineProperty(document, 'readyState', { value, configurable: true });
+  }
+
+  function appendMeta(parent: HTMLElement, name: string, content: string): void {
+    const meta = document.createElement('meta');
+    meta.setAttribute('name', name);
+    meta.setAttribute('content', content);
+    parent.appendChild(meta);
+  }
+
+  beforeEach(() => {
+    globalWithNext._sentryRouteManifest = JSON.stringify(manifest);
+    window.history.replaceState({}, '', '/navigation?from=document');
+    setReadyState('loading');
+    vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
+    vi.stubEnv('_sentryCacheComponents', 'true');
+  });
+
+  afterEach(() => {
+    delete globalWithNext.next;
+    delete globalWithNext._sentryRouteManifest;
+    document.head.innerHTML = '';
+    document.body.innerHTML = '';
+    vi.useRealTimers();
+    // @ts-expect-error deleting the instance override restores the prototype getter
+    delete document.readyState;
+    if (originalReadyState) {
+      Object.defineProperty(Document.prototype, 'readyState', originalReadyState);
+    }
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  it('records the URL of the document when the pageload starts after a navigation changed it', async () => {
+    const { core, pageload } = await setup('static');
+
+    pageload.appRouterInstrumentPageLoad(core.getClient()!);
+    const spanBeforeSettling = core.getActiveSpan();
+
+    window.history.replaceState({}, '', '/navigation/42/router-back');
+    pageload.settlePendingPageloadWait();
+
+    const span = core.getActiveSpan();
+    expect(span).toBeDefined();
+    expect(span).not.toBe(spanBeforeSettling);
+    const spanJson = core.spanToJSON(span!);
+    expect(spanJson.name).toBe('/navigation');
+    expect(spanJson.attributes?.[SENTRY_OP]).toBe(PAGELOAD);
+    expect(spanJson.attributes).toEqual(
+      expect.objectContaining({
+        [URL_PATH]: '/navigation',
+        [URL_FULL]: 'http://localhost:3000/navigation?from=document',
+      }),
+    );
+    expect(core.getCurrentScope().getScopeData().sdkProcessingMetadata.normalizedRequest?.url).toBe(
+      'http://localhost:3000/navigation?from=document',
+    );
+  });
+
+  // `settlePendingPageloadWait` is a no-op when the pageload did not wait, so both cases run the same steps.
+  it.each([
+    { start: 'at once', cacheComponents: 'false' },
+    { start: 'after the wait', cacheComponents: 'true' },
+  ])(
+    'filters sensitive query parameters from the document URL of a pageload that starts $start',
+    async ({ cacheComponents }) => {
+      vi.stubEnv('_sentryCacheComponents', cacheComponents);
+      window.history.replaceState({}, '', '/navigation?token=2c4f9e1b&from=document');
+      const { core, pageload } = await setup('static');
+
+      pageload.appRouterInstrumentPageLoad(core.getClient()!);
+      pageload.settlePendingPageloadWait();
+
+      const filteredUrl = 'http://localhost:3000/navigation?token=[Filtered]&from=document';
+      expect(core.spanToJSON(core.getActiveSpan()!).attributes?.[URL_FULL]).toBe(filteredUrl);
+      expect(core.getCurrentScope().getScopeData().sdkProcessingMetadata.normalizedRequest?.url).toBe(filteredUrl);
+    },
+  );
+
+  it('starts a new trace for a static page and links the prerender as cache origin', async () => {
+    const { core, pageload } = await setup('static');
+    setReadyState('complete');
+    appendMeta(document.head, 'sentry-cache-origin', PRERENDER_SENTRY_TRACE);
+
+    pageload.appRouterInstrumentPageLoad(core.getClient()!);
+
+    const spanJson = core.spanToJSON(core.getActiveSpan()!);
+    expect(spanJson.attributes?.[SENTRY_OP]).toBe(PAGELOAD);
+    expect(spanJson.attributes?.['page.server_rendering.type']).toBe('static');
+    expect(spanJson.trace_id).not.toBe(PRERENDER_TRACE_ID);
+    expect(spanJson.links).toEqual([PRERENDER_LINK]);
+  });
+
+  // A shell that was prerendered at runtime keeps its tag, and the part resumed for this request
+  // brings its own `sentry-trace` tag.
+  it('continues the server trace of a resumed cached shell and links the prerender as cache origin', async () => {
+    const { core, pageload } = await setup('static');
+    setReadyState('complete');
+    appendMeta(document.head, 'sentry-cache-origin', PRERENDER_SENTRY_TRACE);
+    appendMeta(document.body, 'sentry-trace', '22222222222222222222222222222222-2222222222222222-1');
+
+    pageload.appRouterInstrumentPageLoad(core.getClient()!);
+
+    const spanJson = core.spanToJSON(core.getActiveSpan()!);
+    expect(spanJson.trace_id).toBe('22222222222222222222222222222222');
+    expect(spanJson.parent_span_id).toBe('2222222222222222');
+    expect(spanJson.attributes?.['page.server_rendering.type']).toBe('partially_static');
+    expect(spanJson.links).toEqual([PRERENDER_LINK]);
+  });
+
+  it('links the prerender without a type when a navigation starts the pageload before the resumed part', async () => {
+    const { core, pageload } = await setup('static');
+    appendMeta(document.head, 'sentry-cache-origin', PRERENDER_SENTRY_TRACE);
+
+    pageload.appRouterInstrumentPageLoad(core.getClient()!);
+    pageload.settlePendingPageloadWait();
+
+    const spanJson = core.spanToJSON(core.getActiveSpan()!);
+    expect(spanJson.attributes?.[SENTRY_OP]).toBe(PAGELOAD);
+    expect(spanJson.attributes).not.toHaveProperty('page.server_rendering.type');
+    expect(spanJson.links).toEqual([PRERENDER_LINK]);
+  });
+
+  it('links the server request when its trace meta tag arrives after the wait gave up', async () => {
+    const { core, pageload } = await setup('static');
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+    pageload.appRouterInstrumentPageLoad(core.getClient()!);
+    vi.advanceTimersByTime(10_000);
+    const span = core.getActiveSpan()!;
+    appendMeta(document.body, 'sentry-trace', '22222222222222222222222222222222-2222222222222222-1');
+    // MutationObserver callbacks run as microtasks.
+    await Promise.resolve();
+
+    const spanJson = core.spanToJSON(span);
+    expect(spanJson.attributes?.[SENTRY_OP]).toBe(PAGELOAD);
+    expect(spanJson.trace_id).not.toBe('22222222222222222222222222222222');
+    expect(spanJson.links).toEqual([
+      {
+        trace_id: '22222222222222222222222222222222',
+        span_id: '2222222222222222',
+        sampled: true,
+        attributes: { [SENTRY_LINK_TYPE]: 'server_request' },
+      },
+    ]);
   });
 });

@@ -40,6 +40,8 @@ describe('wrapServerComponentWithSentry', () => {
   it.each([
     ['not-found', 'NEXT_NOT_FOUND'],
     ['redirect', 'NEXT_REDIRECT;/somewhere'],
+    ['forbidden', 'NEXT_HTTP_ERROR_FALLBACK;403'],
+    ['unauthorized', 'NEXT_HTTP_ERROR_FALLBACK;401'],
     ['hanging prerender promise', 'HANGING_PROMISE_REJECTION'],
     ['prerender interruption', 'NEXT_PRERENDER_INTERRUPTED'],
     ['dynamic server usage', 'DYNAMIC_SERVER_USAGE'],
@@ -51,6 +53,18 @@ describe('wrapServerComponentWithSentry', () => {
     await runWrapped(Object.assign(new Error('control flow'), { digest }));
 
     expect(captureException).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['NEXT_HTTP_ERROR_FALLBACK;403', 'permission_denied'],
+    ['NEXT_HTTP_ERROR_FALLBACK;401', 'unauthenticated'],
+  ])('marks the active span for the %s auth interrupt', async (digest, message) => {
+    vi.spyOn(SentryCore, 'captureException').mockImplementation(() => '');
+    const { setStatus } = mockActiveSpan({} as Span);
+
+    await runWrapped(Object.assign(new Error('control flow'), { digest }));
+
+    expect(setStatus).toHaveBeenCalledWith({ code: SentryCore.SPAN_STATUS_ERROR, message });
   });
 
   it.each(['NEXT_NOT_FOUND', 'NEXT_REDIRECT;/somewhere', 'HANGING_PROMISE_REJECTION'])(

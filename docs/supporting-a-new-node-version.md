@@ -87,11 +87,14 @@ Repo: [sentry-javascript](https://github.com/getsentry/sentry-javascript)
 Reference: [#20710](https://github.com/getsentry/sentry-javascript/pull/20710)
 
 1. Add the version to the CI test matrix in `.github/workflows/build.yml` to every `node: [20.19, 22, 24, 26]` entry.
+   While the new major is an alpha, the matrix has it as a range (e.g. `'^27.0.0-0'`) with `continue-on-error`, and a
+   `Compile native modules` step compiles the native modules from source for it. When the major is released, replace
+   the range with the major and remove `continue-on-error` and that step.
 
 2. Bump the native module dependencies to the versions released in Steps 1 and 2:
    - [ ] `@sentry-internal/node-cpu-profiler` in `packages/profiling-node`
    - [ ] `@sentry-internal/node-native-stacktrace` in `packages/node-native/package.json`
-   - [ ] Run `yarn install` to update `yarn.lock`
+   - [ ] Run `pnpm install` to update `pnpm-lock.yaml`
 
 3. Allow the new major in the profiling integration, in `packages/profiling-node/src/integration.ts`:
    - [ ] Add the version number to the `if (![16, 18, 20, 22, 24, 26].includes(NODE_MAJOR))` guard

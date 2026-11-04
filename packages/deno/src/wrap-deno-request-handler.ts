@@ -1,44 +1,14 @@
-import {
-  CLIENT_ADDRESS,
-  CLIENT_PORT,
-  NETWORK_PROTOCOL_NAME,
-  SENTRY_OP,
-  SENTRY_SEGMENT_NAME_SOURCE,
-} from '@sentry/conventions/attributes';
-import { HTTP_SERVER } from '@sentry/conventions/op';
-import type { Integration, MaxRequestBodySize } from '@sentry/core';
-import {
-  captureBodyFromWinterCGRequest,
-  captureException,
-  continueTrace,
-  debug,
-  getClient,
-  getHttpSpanDetailsFromUrlObject,
-  hasSpanStreamingEnabled,
-  httpHeadersToSpanAttributes,
-  HTTP_SPAN_NAME_FALLBACK,
-  parseStringToURLObject,
-  setHttpStatus,
-  startSpanManual,
-  winterCGHeadersToDict,
-  winterCGRequestToRequestData,
-  withIsolationScope,
-} from '@sentry/core';
-import { getClientIPAddress } from '@sentry/core/server';
-import { streamResponse } from './utils/streaming';
+import type { Client } from '@sentry/core';
+import { debug, getClient, withIsolationScope } from '@sentry/core';
+import type { ServerRequestOptions } from '@sentry/core/server';
+import { wrapServerRequestHandler } from '@sentry/server-utils/request-handler';
 
 export type RequestHandlerWrapperOptions<Addr extends Deno.Addr> = {
   request: Request;
   info: Deno.ServeHandlerInfo<Addr>;
   serveOptions?: Deno.ServeOptions<Addr>;
-};
-
-const assignIfSet = <T extends Record<string, unknown>, K extends keyof T>(
-  obj: T,
-  key: K,
-  value: T[K] | undefined | null,
-): void => {
-  if (value !== undefined && value !== null) obj[key] = value;
+  /** Reads the incoming request options from the client's `denoServeIntegration`. */
+  getRequestOptions: (client: Client) => ServerRequestOptions<Request, Response> | undefined;
 };
 
 export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
@@ -46,7 +16,7 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
   handler: () => Promise<Response> | Response,
 ): Response | Promise<Response> => {
   return withIsolationScope(async isolationScope => {
-    const { request, info } = wrapperOptions;
+    const { request, info, getRequestOptions } = wrapperOptions;
 
     const client = getClient();
     if (!client) {
@@ -59,111 +29,20 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
     }
     isolationScope.setClient(client);
 
-    if (request.method === 'OPTIONS' || request.method === 'HEAD') {
-      try {
-        return await handler();
-      } catch (e) {
-        captureException(e, {
-          mechanism: {
-            handled: false,
-            type: 'auto.http.deno',
-            data: { function: 'serve' },
-          },
-        });
-        throw e;
-      }
-    }
-
-    const urlObject = parseStringToURLObject(request.url);
-    const [rawName, attributes] = getHttpSpanDetailsFromUrlObject(
-      urlObject,
-      'server',
-      'auto.http.deno',
-      request,
-      undefined,
-      client,
-    );
-    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
-    // A `route` source means the name already is (e.g. the `/` path), so it is kept as-is.
-    const name =
-      attributes[SENTRY_SEGMENT_NAME_SOURCE] === 'route' || !hasSpanStreamingEnabled(client)
-        ? rawName
-        : request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK;
-
-    const contentLength = request.headers.get('content-length');
-    assignIfSet(attributes, 'http.request.body.size', contentLength && parseInt(contentLength, 10));
-    assignIfSet(attributes, 'user_agent.original', request.headers.get('user-agent'));
-
-    const headers = winterCGHeadersToDict(request.headers);
-    const socketIp = (info?.remoteAddr as Deno.NetAddr)?.hostname;
-    const dataCollection = client.getDataCollectionOptions();
-    if (dataCollection.userInfo) {
-      // `client.address` is the originating client, so a forwarding header wins over the socket, which
-      // behind a proxy holds the proxy's address. The socket port is the proxy's too, so `client.port`
-      // stays unset then.
-      const forwardedAddress = getClientIPAddress(headers);
-      assignIfSet(
-        attributes,
-        CLIENT_ADDRESS,
-        forwardedAddress || socketIp || (info?.remoteAddr as Deno.UnixAddr)?.path,
-      );
-      if (!forwardedAddress) {
-        assignIfSet(attributes, CLIENT_PORT, (info?.remoteAddr as Deno.NetAddr)?.port);
-      }
-    }
-
-    // describes the OSI application-layer protocol (http), not the scheme (might be https)
-    attributes[NETWORK_PROTOCOL_NAME] = 'http';
-
-    Object.assign(attributes, httpHeadersToSpanAttributes(headers, dataCollection));
-    attributes[SENTRY_OP] = HTTP_SERVER;
-    isolationScope.setSDKProcessingMetadata({
-      normalizedRequest: winterCGRequestToRequestData(request),
-      ipAddress: socketIp,
-    });
-
-    const configuredBodySize = client.getIntegrationByName<Integration & { maxRequestBodySize?: MaxRequestBodySize }>(
-      'DenoServe',
-    )?.maxRequestBodySize;
-    const effectiveBodySize =
-      configuredBodySize ?? (dataCollection.httpBodies.includes('incomingRequest') ? 'medium' : 'none');
-    if (request.method !== 'GET' && effectiveBodySize !== 'none') {
-      await captureBodyFromWinterCGRequest(request, isolationScope, effectiveBodySize);
-    }
-
-    return continueTrace(
+    return wrapServerRequestHandler(
       {
-        sentryTrace: request.headers.get('sentry-trace') || '',
-        baggage: request.headers.get('baggage'),
+        request,
+        client,
+        isolationScope,
+        options: getRequestOptions(client),
+        origin: 'auto.http.deno',
+        mechanism: { handled: false, type: 'auto.http.deno', data: { function: 'serve' } },
+        getSocketAddress: () => {
+          const remoteAddr = info?.remoteAddr as Deno.NetAddr | undefined;
+          return remoteAddr?.hostname ? { address: remoteAddr.hostname, port: remoteAddr.port } : undefined;
+        },
       },
-      () => {
-        return startSpanManual({ name, attributes }, async span => {
-          let res: Response;
-
-          try {
-            res = await handler();
-            setHttpStatus(span, res.status);
-            isolationScope.setContext('response', {
-              status_code: res.status,
-            });
-            span.setAttributes(
-              httpHeadersToSpanAttributes(Object.fromEntries(res.headers), dataCollection, 'response'),
-            );
-          } catch (e) {
-            span.end();
-            captureException(e, {
-              mechanism: {
-                handled: false,
-                type: 'auto.http.deno',
-                data: { function: 'serve' },
-              },
-            });
-            throw e;
-          }
-
-          return streamResponse(span, res);
-        });
-      },
+      handler,
     );
   });
 };

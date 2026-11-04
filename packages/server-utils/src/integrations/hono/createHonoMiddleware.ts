@@ -1,5 +1,6 @@
 import { addNonEnumerableProperty, getDefaultIsolationScope, getIsolationScope } from '@sentry/core';
-import type { Context, GetConnInfo, MiddlewareHandler } from './honoTypes';
+import type { HonoRuntime } from './connInfo';
+import type { Context, MiddlewareHandler } from './honoTypes';
 import { captureContextError, requestHandler, responseHandler } from './middlewareHandlers';
 import type { SentryHonoMiddlewareOptions } from './types';
 
@@ -16,11 +17,8 @@ const HONO_REQUEST_HANDLED = Symbol.for('sentry.hono.requestHandled');
 const HONO_SHOULD_HANDLE_ERROR = Symbol.for('sentry.hono.shouldHandleError');
 
 export interface CreateHonoRequestMiddlewareOptions {
-  /**
-   * Runtime-specific `getConnInfo` helper (e.g. `@hono/node-server/conninfo`, `hono/bun`).
-   * Optional — connection-info attributes are simply skipped when it is not provided.
-   */
-  getConnInfo?: GetConnInfo;
+  /** Selects where the connection info is read from. */
+  runtime: HonoRuntime;
 
   /** Static `shouldHandleError` callback (Node/Bun/Deno). */
   shouldHandleError?: SentryHonoMiddlewareOptions['shouldHandleError'];
@@ -65,7 +63,7 @@ function getRequestScope(context: Context): Record<PropertyKey, unknown> {
  * `Context` constructor hook): the deduplicated middleware records its callback on the request scope, and the
  * middleware that actually runs `responseHandler` uses it in preference to its own default.
  */
-export function createHonoRequestMiddleware(options: CreateHonoRequestMiddlewareOptions = {}): MiddlewareHandler {
+export function createHonoRequestMiddleware(options: CreateHonoRequestMiddlewareOptions): MiddlewareHandler {
   const middleware: MiddlewareHandler = async (context, next) => {
     const scope = getRequestScope(context);
 
@@ -92,7 +90,7 @@ export function createHonoRequestMiddleware(options: CreateHonoRequestMiddleware
     addNonEnumerableProperty(scope, HONO_REQUEST_HANDLED, true);
 
     try {
-      requestHandler(context, options.getConnInfo);
+      requestHandler(context, options.runtime);
 
       await next(); // Handler runs in between Request above ⤴ and Response below ⤵
 

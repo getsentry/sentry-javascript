@@ -1,4 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+const tunnelVariant = !!process.env.E2E_TEST_TUNNEL;
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   imports: { autoImport: false },
@@ -12,12 +14,17 @@ export default defineNuxtConfig({
     '/rendering-modes/pre-rendered-page': { prerender: true },
   },
 
+  // The base-path variant serves the app, and so the tunnel, under `/app`.
+  ...(process.env.E2E_TEST_BASE_PATH && { app: { baseURL: `${process.env.E2E_TEST_BASE_PATH}/` } }),
+
   modules: ['@pinia/nuxt', '@sentry/nuxt/module'],
   runtimeConfig: {
     public: {
       sentry: {
-        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        // The tunnel variant forwards to the test proxy, so the DSN has to point there.
+        dsn: tunnelVariant ? 'http://public@localhost:3031/1337' : 'https://public@dsn.ingest.sentry.io/1337',
       },
+      e2eTunnel: tunnelVariant,
     },
   },
   nitro: {

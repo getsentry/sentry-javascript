@@ -69,4 +69,24 @@ describe('Server init()', () => {
   it('returns client from init', () => {
     expect(init({})).not.toBeUndefined();
   });
+
+  it.each([
+    { value: 'false', defaultIntegrations: false as const },
+    { value: 'an empty array', defaultIntegrations: [] },
+  ])('disables default integrations when set to $value', ({ defaultIntegrations }) => {
+    const client = init({ defaultIntegrations });
+
+    expect(client?.getOptions().integrations.map(integration => integration.name)).toEqual(['SpanStreaming']);
+  });
+
+  it('replaces default integrations with a custom array', () => {
+    const integration = { name: 'CustomIntegration' };
+
+    const client = init({ defaultIntegrations: [integration] });
+
+    expect(client?.getOptions().integrations.map(integration => integration.name)).toEqual([
+      'CustomIntegration',
+      'SpanStreaming',
+    ]);
+  });
 });

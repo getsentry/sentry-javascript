@@ -2,10 +2,10 @@ import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
-const packageJson = require('../package.json');
+const nextPackageJson = require('next/package.json');
 
 test('Sends a pageload span', async ({ page }) => {
-  const nextjsVersion = packageJson.dependencies.next;
+  const nextjsVersion = nextPackageJson.version;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
 
   const pageloadSpanPromise = waitForStreamedSpan('nextjs-pages-dir', span => {

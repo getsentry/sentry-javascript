@@ -38,6 +38,25 @@ export default {
         });
         return Response.json({ traceId: spanContext?.traceId });
       }
+      case '/test-workers-ai-clef': {
+        await env.AI.run('@cf/cloudflare/clef', {
+          model: 'clef',
+          state: 'Checkout has been failing for every customer for the last hour.',
+          questions: { urgent: { type: 'noul', instructions: 'Is this support request urgent?' } },
+        });
+        return Response.json({ traceId: spanContext?.traceId });
+      }
+      case '/test-workers-ai-clairic': {
+        await env.AI.run('@cf/cloudflare/clairic', {
+          model: 'clairic',
+          state: 'Invoice INV-2291 from Northwind Supply. Total due: $1,080.00.',
+          fields: {
+            invoice_number: { type: 'text' },
+            total: { type: 'number', decimals: 2, unit: 'USD', instructions: 'Amount due' },
+          },
+        });
+        return Response.json({ traceId: spanContext?.traceId });
+      }
       case '/test-span':
         return Response.json({ spanId: spanContext?.spanId, traceId: spanContext?.traceId });
       case '/test-workflow-sleep': {

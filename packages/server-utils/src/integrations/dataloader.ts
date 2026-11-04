@@ -21,6 +21,7 @@ import {
   waitForTracingChannelBinding,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import type { ChannelName } from '../orchestrion/channels';
 import { CHANNELS } from '../orchestrion/channels';
 import type { TracingChannelPayloadWithSpan } from '../tracing-channel';
@@ -63,15 +64,8 @@ interface DataLoaderInstance {
   _batch?: DataLoaderBatch | null;
 }
 
-/**
- * The shape orchestrion's transform attaches to the tracing-channel `context`. Documented here rather
- * than imported because orchestrion's runtime doesn't export it.
- */
-interface DataLoaderChannelContext {
-  arguments: unknown[];
+interface DataLoaderChannelContext extends OrchestrionChannelContext {
   self?: DataLoaderInstance;
-  result?: unknown;
-  error?: unknown;
 }
 
 // Marks a wrapped `batchLoadFn` so a re-used loader (or a double construct) isn't wrapped twice.
@@ -185,9 +179,7 @@ function subscribeConstruct(): void {
 function subscribeLoad(): void {
   const channel = diagnosticsChannel.tracingChannel<DataLoaderChannelContext>(CHANNELS.DATALOADER_LOAD);
 
-  bindTracingChannelToSpan(channel, data => startInactiveSpanFor(data.self, 'load', data.arguments[0]), {
-    requiresParentSpan: true,
-  });
+  bindTracingChannelToSpan(channel, data => startInactiveSpanFor(data.self, 'load', data.arguments[0]));
 
   channel.end.subscribe(message => {
     const data = message as TracingChannelPayloadWithSpan<DataLoaderChannelContext>;
@@ -200,10 +192,8 @@ function subscribeLoad(): void {
 }
 
 function subscribeSimpleOperation(channelName: ChannelName, operation: Operation): void {
-  bindTracingChannelToSpan(
-    diagnosticsChannel.tracingChannel<DataLoaderChannelContext>(channelName),
-    data => startInactiveSpanFor(data.self, operation, data.arguments[0]),
-    { requiresParentSpan: true },
+  bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<DataLoaderChannelContext>(channelName), data =>
+    startInactiveSpanFor(data.self, operation, data.arguments[0]),
   );
 }
 

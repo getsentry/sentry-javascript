@@ -1,9 +1,9 @@
-import { type BaseTransportOptions, consoleSandbox, debug, getClient, type Options } from '@sentry/core';
-import { getConnInfo } from '@hono/node-server/conninfo';
+import { consoleSandbox, debug, getClient } from '@sentry/core';
+import type { NodeOptions } from '@sentry/node';
 import { applyHonoPatches, createHonoRequestMiddleware, type SentryHonoMiddlewareOptions } from '@sentry/server-utils';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
 
-export interface HonoNodeOptions extends Options<BaseTransportOptions> {}
+export interface HonoNodeOptions extends NodeOptions {}
 
 /**
  * Sentry middleware for Hono applications running in a Node.js environment.
@@ -40,5 +40,5 @@ export const sentry = <E extends Env>(app: Hono<E>, options?: SentryHonoMiddlewa
 
   applyHonoPatches(app);
 
-  return createHonoRequestMiddleware({ getConnInfo, shouldHandleError: options?.shouldHandleError });
+  return createHonoRequestMiddleware({ runtime: 'node', shouldHandleError: options?.shouldHandleError });
 };

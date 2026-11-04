@@ -28,8 +28,8 @@ describe('createHonoRequestMiddleware — duplicate registration handling', () =
   });
 
   it('runs request/response handling exactly once when two Sentry middlewares wrap the same request', async () => {
-    const outer = createHonoRequestMiddleware();
-    const inner = createHonoRequestMiddleware();
+    const outer = createHonoRequestMiddleware({ runtime: 'node' });
+    const inner = createHonoRequestMiddleware({ runtime: 'node' });
     const context = fakeContext();
 
     // Onion order: outer → inner → handler → inner → outer.
@@ -45,8 +45,8 @@ describe('createHonoRequestMiddleware — duplicate registration handling', () =
     const context = fakeContext();
     const handler = vi.fn();
 
-    await createHonoRequestMiddleware()(context, async () => {
-      await createHonoRequestMiddleware()(context, handler);
+    await createHonoRequestMiddleware({ runtime: 'node' })(context, async () => {
+      await createHonoRequestMiddleware({ runtime: 'node' })(context, handler);
     });
 
     expect(handler).toHaveBeenCalledTimes(1);
@@ -56,8 +56,8 @@ describe('createHonoRequestMiddleware — duplicate registration handling', () =
 
   it('handles sequential requests sharing one isolation scope independently', async () => {
     const userShouldHandleError = (): boolean => true;
-    const auto = createHonoRequestMiddleware();
-    const manual = createHonoRequestMiddleware({ shouldHandleError: userShouldHandleError });
+    const auto = createHonoRequestMiddleware({ runtime: 'node' });
+    const manual = createHonoRequestMiddleware({ runtime: 'node', shouldHandleError: userShouldHandleError });
     setAsyncLocalStorageAsyncContextStrategy();
     onTestFinished(() => setAsyncContextStrategy(undefined));
 
@@ -77,7 +77,7 @@ describe('createHonoRequestMiddleware — duplicate registration handling', () =
   });
 
   it('handles independent requests independently (marker is per-context)', async () => {
-    const middleware = createHonoRequestMiddleware();
+    const middleware = createHonoRequestMiddleware({ runtime: 'node' });
 
     await middleware(fakeContext(), async () => {});
     await middleware(fakeContext(), async () => {});
@@ -89,9 +89,9 @@ describe('createHonoRequestMiddleware — duplicate registration handling', () =
   it("uses a deduplicated middleware's shouldHandleError over the outer (auto) default", async () => {
     const userShouldHandleError = (): boolean => true;
     // Outer middleware mirrors the auto-instrumentation: registered first, no shouldHandleError.
-    const auto = createHonoRequestMiddleware();
+    const auto = createHonoRequestMiddleware({ runtime: 'node' });
     // Inner middleware mirrors a manual `sentry({ shouldHandleError })`: deduplicated behind `auto`.
-    const manual = createHonoRequestMiddleware({ shouldHandleError: userShouldHandleError });
+    const manual = createHonoRequestMiddleware({ runtime: 'node', shouldHandleError: userShouldHandleError });
     const context = fakeContext();
 
     await auto(context, async () => {

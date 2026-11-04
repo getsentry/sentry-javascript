@@ -320,6 +320,7 @@ describe('pagesRouterInstrumentNavigation', () => {
       const client = {
         emit,
         getOptions: () => ({}),
+        getDataCollectionOptions: () => ({ urlQueryParams: true }),
       } as unknown as Client;
 
       pagesRouterInstrumentNavigation(client);

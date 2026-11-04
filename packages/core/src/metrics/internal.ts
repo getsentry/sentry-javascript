@@ -1,3 +1,13 @@
+import {
+  SENTRY_ENVIRONMENT,
+  SENTRY_RELEASE,
+  SENTRY_REPLAY_ID,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  USER_EMAIL,
+  USER_ID,
+  USER_NAME,
+} from '@sentry/conventions/attributes';
 import { type RawAttributes, serializeAttributes } from '../attributes';
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
@@ -88,18 +98,18 @@ function _enrichMetricAttributes(beforeMetric: Metric, client: Client, user: Use
   };
 
   // Add user attributes
-  setMetricAttribute(processedMetricAttributes, 'user.id', user.id, false);
-  setMetricAttribute(processedMetricAttributes, 'user.email', user.email, false);
-  setMetricAttribute(processedMetricAttributes, 'user.name', user.username, false);
+  setMetricAttribute(processedMetricAttributes, USER_ID, user.id, false);
+  setMetricAttribute(processedMetricAttributes, USER_EMAIL, user.email, false);
+  setMetricAttribute(processedMetricAttributes, USER_NAME, user.username, false);
 
   // Add Sentry metadata
-  setMetricAttribute(processedMetricAttributes, 'sentry.release', release);
-  setMetricAttribute(processedMetricAttributes, 'sentry.environment', environment);
+  setMetricAttribute(processedMetricAttributes, SENTRY_RELEASE, release);
+  setMetricAttribute(processedMetricAttributes, SENTRY_ENVIRONMENT, environment);
 
   // Add SDK metadata
   const { name, version } = client.getSdkMetadata()?.sdk ?? {};
-  setMetricAttribute(processedMetricAttributes, 'sentry.sdk.name', name);
-  setMetricAttribute(processedMetricAttributes, 'sentry.sdk.version', version);
+  setMetricAttribute(processedMetricAttributes, SENTRY_SDK_NAME, name);
+  setMetricAttribute(processedMetricAttributes, SENTRY_SDK_VERSION, version);
 
   // Add replay metadata
   const replay = client.getIntegrationByName<
@@ -110,7 +120,7 @@ function _enrichMetricAttributes(beforeMetric: Metric, client: Client, user: Use
   >('Replay');
 
   const replayId = replay?.getReplayId(true);
-  setMetricAttribute(processedMetricAttributes, 'sentry.replay_id', replayId);
+  setMetricAttribute(processedMetricAttributes, SENTRY_REPLAY_ID, replayId);
 
   if (replayId && replay?.getRecordingMode() === 'buffer') {
     setMetricAttribute(processedMetricAttributes, 'sentry._internal.replay_is_buffering', true);
@@ -191,12 +201,12 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
     : enrichedMetric;
 
   if (processedMetric === CALLBACK_ERROR) {
-    client.recordDroppedEvent('callback_error', 'metric', 1);
+    client.recordDroppedEvent('callback_error', 'trace_metric', 1);
     return;
   }
 
   if (!processedMetric) {
-    client.recordDroppedEvent('before_send', 'metric', 1);
+    client.recordDroppedEvent('before_send', 'trace_metric', 1);
     DEBUG_BUILD && debug.log('`beforeSendMetric` returned `null`, will not send metric.');
     return;
   }

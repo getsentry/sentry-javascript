@@ -5,6 +5,7 @@ import { uniq } from '@sentry/core';
 import { awsSdkConfig } from './aws-sdk';
 import { amqplibConfig } from './amqplib';
 import { anthropicAiConfig } from './anthropic-ai';
+import { cronConfig } from './cron';
 import { dataloaderConfig } from './dataloader';
 import { expressConfig } from './express';
 import { firebaseConfig } from './firebase';
@@ -23,13 +24,18 @@ import { langgraphConfig } from './langgraph';
 import { lruMemoizerConfig } from './lru-memoizer';
 import { flueConfig } from './flue';
 import { mastraConfig } from './mastra';
+import { piDurableConfig } from './pi-durable';
 import { mcpServerConfig } from './mcp-server';
 import { mistralConfig } from './mistral';
 import { mongodbConfig } from './mongodb';
 import { mongooseConfig } from './mongoose';
 import { mysql2Config } from './mysql2';
 import { mysqlConfig } from './mysql';
+import { neonConfig } from './neon';
 import { nestjsConfig } from './nestjs';
+import { nitroConfig } from './nitro';
+import { nodeCronConfig } from './node-cron';
+import { nodeScheduleConfig } from './node-schedule';
 import { openaiConfig } from './openai';
 import { pgConfig } from './pg';
 import { postgresJsConfig } from './postgres';
@@ -61,6 +67,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...amqplibConfig,
   ...anthropicAiConfig,
   ...awsSdkConfig,
+  ...cronConfig,
   ...dataloaderConfig,
   ...expressConfig,
   ...firebaseConfig,
@@ -85,9 +92,14 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...mongooseConfig,
   ...mysql2Config,
   ...mysqlConfig,
+  ...neonConfig,
   ...nestjsConfig,
+  ...nitroConfig,
+  ...nodeCronConfig,
+  ...nodeScheduleConfig,
   ...openaiConfig,
   ...pgConfig,
+  ...piDurableConfig,
   ...postgresJsConfig,
   ...prismaConfig,
   ...redisConfig,

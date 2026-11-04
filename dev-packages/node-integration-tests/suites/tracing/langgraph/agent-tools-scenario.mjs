@@ -110,9 +110,10 @@ async function run() {
       name: 'math_assistant',
     });
 
-    await agent.invoke({
-      messages: [new HumanMessage('Calculate (3 + 5) * 4')],
-    });
+    await agent.invoke(
+      { messages: [new HumanMessage('Calculate (3 + 5) * 4')] },
+      { configurable: { thread_id: 'math_thread' } },
+    );
   });
 
   await Sentry.flush(2000);

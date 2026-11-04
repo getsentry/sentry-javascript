@@ -3,7 +3,7 @@ import * as childProcess from 'child_process';
 import * as path from 'path';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
-import { RUNTIME } from '../../../utils';
+import { supports } from '../../../utils';
 
 describe('onUnhandledRejectionIntegration', () => {
   afterAll(() => {
@@ -170,32 +170,35 @@ test rejection`);
   });
 
   // Bun: the rejection event's span ID differs from the already-ended span's ID.
-  test.skipIf(RUNTIME === 'bun')('handles unhandled rejection in spans that are ended early', async () => {
-    let segment: SerializedStreamedSpanContainer['items'][number] | undefined;
-    let errorEvent: Event | undefined;
+  test.runIf(supports({ runtimes: ['node', 'deno'] }))(
+    'handles unhandled rejection in spans that are ended early',
+    async () => {
+      let segment: SerializedStreamedSpanContainer['items'][number] | undefined;
+      let errorEvent: Event | undefined;
 
-    await createRunner(__dirname, 'scenario-with-span-ended.ts')
-      .unordered()
-      .expect({
-        span: container => {
-          segment = container.items.find(span => span.is_segment);
-          expect(segment?.name).toBe('test-span');
-        },
-      })
-      .expect({
-        event: event => {
-          errorEvent = event;
-        },
-      })
-      .start()
-      .completed();
+      await createRunner(__dirname, 'scenario-with-span-ended.ts')
+        .unordered()
+        .expect({
+          span: container => {
+            segment = container.items.find(span => span.is_segment);
+            expect(segment?.name).toBe('test-span');
+          },
+        })
+        .expect({
+          event: event => {
+            errorEvent = event;
+          },
+        })
+        .start()
+        .completed();
 
-    expect(segment).toBeDefined();
-    expect(errorEvent).toBeDefined();
+      expect(segment).toBeDefined();
+      expect(errorEvent).toBeDefined();
 
-    expect(segment!.trace_id).toBe(errorEvent!.contexts!.trace!.trace_id);
-    expect(segment!.span_id).toBe(errorEvent!.contexts!.trace!.span_id);
-  });
+      expect(segment!.trace_id).toBe(errorEvent!.contexts!.trace!.trace_id);
+      expect(segment!.span_id).toBe(errorEvent!.contexts!.trace!.span_id);
+    },
+  );
 
   test('should not warn when AI_NoOutputGeneratedError or AbortError is rejected (default ignore)', () =>
     new Promise<void>(done => {

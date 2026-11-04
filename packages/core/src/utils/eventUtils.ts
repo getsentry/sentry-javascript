@@ -1,4 +1,8 @@
-import type { Event } from '../types/event';
+import type { Event, EventHint } from '../types/event';
+
+export function isInternalException(hint: EventHint): boolean {
+  return (hint.data as { __sentry__: boolean })?.__sentry__ === true;
+}
 
 /**
  * Get a list of possible event messages from a Sentry event.

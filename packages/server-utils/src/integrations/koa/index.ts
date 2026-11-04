@@ -15,6 +15,7 @@ import {
 import { CODE_FUNCTION_NAME, HTTP_ROUTE, KOA_TYPE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { MIDDLEWARE, ROUTER } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { koaModuleNames } from '../../orchestrion/config/koa';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
@@ -66,12 +67,8 @@ interface KoaMiddlewareMetadata {
   name: string;
 }
 
-interface KoaUseContext {
-  arguments: unknown[];
-}
-
 /** The `callback` channel `context` shape: `self` is the live app to attach the error listener to. */
-interface KoaCallbackContext {
+interface KoaCallbackContext extends OrchestrionChannelContext {
   self?: KoaApp;
 }
 
@@ -96,7 +93,7 @@ const _koaIntegration = ((options: KoaIntegrationOptions = {}) => {
 function instrumentKoa(ignoreLayersType: KoaLayerType[]): void {
   diagnosticsChannel.tracingChannel(CHANNELS.KOA_USE).subscribe({
     start(rawCtx) {
-      handleUse(rawCtx as KoaUseContext, ignoreLayersType);
+      handleUse(rawCtx as OrchestrionChannelContext, ignoreLayersType);
     },
     end() {},
     asyncStart() {},
@@ -123,7 +120,7 @@ function instrumentKoa(ignoreLayersType: KoaLayerType[]): void {
   });
 }
 
-function handleUse(ctx: KoaUseContext, ignoreLayersType: KoaLayerType[]): void {
+function handleUse(ctx: OrchestrionChannelContext, ignoreLayersType: KoaLayerType[]): void {
   const middleware = ctx.arguments[0];
   if (typeof middleware === 'function') {
     ctx.arguments[0] = patchUse(middleware as KoaMiddleware, ignoreLayersType);

@@ -31,6 +31,7 @@ describe('mayTargetCloudflareInternalTable', () => {
     ['a quoted cf_ table', 'SELECT * FROM "cf_agents_state"'],
     ['a schema-qualified cf_ table', 'SELECT * FROM main.cf_agents_state'],
     ['a cf_ table in a CREATE INDEX ON clause', 'CREATE INDEX idx_agents_state_id ON cf_agents_state (id)'],
+    ['a pi_ table', 'SELECT record FROM pi_tasks WHERE id = ?'],
   ])('returns true for %s', (_label, query) => {
     expect(mayTargetCloudflareInternalTable(query)).toBe(true);
   });
@@ -39,6 +40,7 @@ describe('mayTargetCloudflareInternalTable', () => {
     ['a user table', 'SELECT * FROM users WHERE id = ?'],
     ['a table with cf in the middle', 'SELECT * FROM my_cf_table'],
     ['a table starting with cfg', 'SELECT * FROM cfg_settings'],
+    ['a table with pi_ in the middle', 'SELECT * FROM api_keys'],
   ])('returns false for %s', (_label, query) => {
     expect(mayTargetCloudflareInternalTable(query)).toBe(false);
   });

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, hidePage } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, hidePage, waitForSoftNavigation } from '@sentry-internal/test-utils';
 
 // The correlation between a soft navigation and the SDK's navigation span hangs off the interaction
 // that triggered it, so it only holds while the navigation span is started before the interaction's
@@ -14,6 +14,8 @@ test('attributes soft navigation web vitals to the navigation span they were mea
 
   await page.goto('/');
   await page.locator('#navLink').click();
+
+  await waitForSoftNavigation(page);
 
   // A soft navigation's vitals are finalized at the next soft navigation or on pagehide, so nothing
   // is reported for it until the page goes away.

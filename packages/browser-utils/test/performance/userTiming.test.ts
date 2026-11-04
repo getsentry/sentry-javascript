@@ -1,9 +1,22 @@
+import type * as SentryCore from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { getMainCarrier, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
+import {
+  getMainCarrier,
+  _INTERNAL_performanceTimeToSeconds,
+  SentrySpan,
+  setCurrentClient,
+  spanToJSON,
+} from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { _addUserTimingSpan, userTimingIntegration } from '../../src/performance/userTiming';
 import * as utils from '../../src/performance/utils';
+import * as webVitalsUtils from '../../src/web-vitals/utils';
 import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
+
+vi.mock('@sentry/core', async importOriginal => {
+  const actual = await importOriginal<typeof SentryCore>();
+  return { ...actual, _INTERNAL_performanceTimeToSeconds: vi.fn(actual._INTERNAL_performanceTimeToSeconds) };
+});
 
 describe('userTimingIntegration', () => {
   let client: TestClient;
@@ -12,6 +25,7 @@ describe('userTimingIntegration', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.mocked(_INTERNAL_performanceTimeToSeconds).mockReset();
     getMainCarrier().__SENTRY__ = undefined;
 
     client = new TestClient(getDefaultClientOptions({ tracesSampleRate: 1 }));
@@ -124,6 +138,45 @@ describe('userTimingIntegration', () => {
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!).name).toBe('current-route');
   });
+
+  it('gives measures starting before the request the exact request span start timestamp', () => {
+    userTimingIntegration().setup?.(client);
+
+    // Many values, because only some of them round differently with the old conversion.
+    for (let i = 0; i < 50; i++) {
+      const requestStart = 10.1 + i * 0.37;
+      vi.spyOn(webVitalsUtils, 'getNavigationEntry').mockReturnValue({
+        startTime: 0,
+        requestStart,
+      } as PerformanceNavigationTiming);
+      performanceEntries.push(createPerformanceEntry('measure', `before-request-${i}`, 0, 1000));
+
+      client.emit('beforeIdleSpanEnd', new SentrySpan({ op: 'pageload', name: '/', sampled: true }));
+
+      expect(spanToJSON(spans[i]!).start_timestamp).toBe(_INTERNAL_performanceTimeToSeconds(requestStart, 0));
+    }
+  });
+
+  it('keeps measures recorded after the wall clock was corrected backwards', () => {
+    const timeOrigin = performance.timeOrigin;
+    // The time origin was corrected 60s backwards at 1000ms, e.g. by NTP.
+    vi.mocked(_INTERNAL_performanceTimeToSeconds).mockImplementation(
+      (monotonicTimeInMs, entryStartTimeInMs = monotonicTimeInMs) =>
+        ((entryStartTimeInMs < 1000 ? timeOrigin : timeOrigin - 60_000) + monotonicTimeInMs) / 1000,
+    );
+    vi.spyOn(webVitalsUtils, 'getNavigationEntry').mockReturnValue({
+      startTime: 0,
+      requestStart: 10,
+    } as PerformanceNavigationTiming);
+
+    userTimingIntegration().setup?.(client);
+    performanceEntries.push(createPerformanceEntry('measure', 'after-correction', 2000, 10));
+    client.emit('beforeIdleSpanEnd', new SentrySpan({ op: 'pageload', name: '/', sampled: true }));
+
+    expect(spans).toHaveLength(1);
+    expect(spanToJSON(spans[0]!).start_timestamp).toBe((timeOrigin - 60_000 + 2000) / 1000);
+    expect(spanToJSON(spans[0]!).attributes['sentry.browser.measure_happened_before_request']).toBeUndefined();
+  });
 });
 
 describe('_addUserTimingSpan', () => {
@@ -154,7 +207,7 @@ describe('_addUserTimingSpan', () => {
       },
     } as PerformanceMeasure;
 
-    _addUserTimingSpan(parentSpan, entry, 0.012, 0.01, 100, 0, []);
+    _addUserTimingSpan(parentSpan, entry, 100.012, 100.022, 0, []);
 
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!).attributes).toEqual({
@@ -175,7 +228,7 @@ describe('_addUserTimingSpan', () => {
       },
     } as PerformanceMeasure;
 
-    _addUserTimingSpan(parentSpan, entry, 0.012, 0.01, 100, 0, []);
+    _addUserTimingSpan(parentSpan, entry, 100.012, 100.022, 0, []);
 
     expect(spans).toHaveLength(0);
   });
@@ -184,10 +237,9 @@ describe('_addUserTimingSpan', () => {
     _addUserTimingSpan(
       parentSpan,
       createPerformanceEntry('measure', 'before-request', 10, 10),
-      0.01,
-      0.01,
-      100,
-      0.05,
+      100.01,
+      100.02,
+      100.05,
       [],
     );
 

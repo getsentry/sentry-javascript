@@ -11,6 +11,7 @@ import { makeGlobalValuesInjectionPlugin } from './injectGlobalValues';
 import { createKitConfigResolver } from './kitConfig';
 import { makeCustomSentryVitePlugins } from './sourceMaps';
 import { getAdapterOutputDir } from './svelteConfig';
+import { makeTunnelBasePathPlugin } from './tunnelBasePath';
 import type { CustomSentryVitePluginOptions, SentrySvelteKitPluginOptions } from './types';
 
 const DEFAULT_PLUGIN_OPTIONS: SentrySvelteKitPluginOptions = {
@@ -38,9 +39,9 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   const getAdapter = (): Promise<SupportedSvelteKitAdapters> =>
     (adapterPromise ??= (async () => options.adapter || detectAdapter(await getKitConfig(), options.debug))());
 
-  // Side effect: for the Node adapter we invoke `adapter.adapt()` to learn the output directory,
-  // and `@sveltejs/adapter-node` v6 wipes that directory when it runs. So this must happen once,
-  // before the build writes anything - never from a late hook like `closeBundle`.
+  // For the Node adapter we invoke `adapter.adapt()` to learn the output directory. It runs from a temp
+  // cwd so it can't wipe the real output, but it's still resolved once and before the build writes
+  // anything, never from a late hook like `closeBundle`, in case an adapter deletes an absolute `out`.
   let adapterOutputDirPromise: Promise<string> | undefined;
   const getAdapterOutputDirOnce = (): Promise<string> =>
     (adapterOutputDirPromise ??= (async () => getAdapterOutputDir(await getKitConfig(), await getAdapter()))());
@@ -56,6 +57,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     kitConfigResolver.plugin,
     makeBrowserTracingVariantResolverPlugin(),
     makeOpenTelemetryApiResolverPlugin(),
+    makeTunnelBasePathPlugin(getKitConfig),
   ];
 
   if (mergedOptions.autoInstrument) {
