@@ -34,12 +34,18 @@ describe('isReadAlikeByNodeCron4', () => {
     },
   );
 
-  it.each(['0 9 * * sat-sun', '0 9 * * 6-0', '0 9 * * 6-7', '0 9 * * 5-0/2', '0 9 * * 1-3,sat-sun'])(
-    'is false for %s',
-    expression => {
-      expect(isReadAlikeByNodeCron4(expression)).toBe(false);
-    },
-  );
+  it.each([
+    '0 9 * * sat-sun',
+    '0 9 * * 6-0',
+    '0 9 * * 6-7',
+    '0 9 * * 5-0/2',
+    '0 9 * * 1-3,sat-sun',
+    '5/15 * * * *',
+    '0 9 * * fri/2',
+    '0 9 1,10/5 * *',
+  ])('is false for %s', expression => {
+    expect(isReadAlikeByNodeCron4(expression)).toBe(false);
+  });
 });
 
 describe('getMonitorConfig', () => {

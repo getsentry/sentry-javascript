@@ -81,28 +81,41 @@ export function shouldMonitorJob(
   );
 }
 
-const NICKNAMES: Record<string, string> = {
+/**
+ * The library that parses a scheduler's cron expressions: `node-cron`, `cron` (also behind `@nestjs/schedule`), or
+ * `cron-parser` (behind `node-schedule`).
+ */
+export type CronDialect = 'node-cron' | 'cron' | 'cron-parser';
+
+const COMMON_NICKNAMES: Record<string, string> = {
   '@yearly': '0 0 1 1 *',
-  '@annually': '0 0 1 1 *',
   '@monthly': '0 0 1 * *',
   '@weekly': '0 0 * * 0',
   '@daily': '0 0 * * *',
-  '@midnight': '0 0 * * *',
   '@hourly': '0 * * * *',
-  '@minutely': '* * * * *',
-  '@weekdays': '0 0 * * 1-5',
-  '@weekends': '0 0 * * 0,6',
 };
 
-const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const NICKNAMES: Record<CronDialect, Record<string, string>> = {
+  'node-cron': { ...COMMON_NICKNAMES, '@annually': '0 0 1 1 *', '@midnight': '0 0 * * *' },
+  cron: { ...COMMON_NICKNAMES, '@minutely': '* * * * *', '@weekdays': '0 0 * * 1-5', '@weekends': '0 0 * * 0,6' },
+  'cron-parser': COMMON_NICKNAMES,
+};
 
-/**
- * How a scheduler combines a restricted day-of-month and day-of-week:
- * - `and`: both must match (`node-cron`).
- * - `or`: either matches, unless one is `*` or a full range (`cron-parser`, `cron`).
- */
-export type DayFieldSemantics = 'and' | 'or';
+const MONTHS = [
+  'january',
+  'february',
+  'march',
+  'april',
+  'may',
+  'june',
+  'july',
+  'august',
+  'september',
+  'october',
+  'november',
+  'december',
+];
+const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
 /**
  * The Sentry monitor config for a cron expression, or `undefined` if Sentry would read it differently.
@@ -111,10 +124,10 @@ export type DayFieldSemantics = 'and' | 'or';
 export function cronExpressionToMonitorConfig(
   expression: string,
   timezone: unknown,
-  daySemantics: DayFieldSemantics,
+  dialect: CronDialect,
 ): MonitorConfig | undefined {
   const trimmed = expression.trim();
-  const fields = (NICKNAMES[trimmed.toLowerCase()] || trimmed).split(/\s+/);
+  const fields = (NICKNAMES[dialect][trimmed.toLowerCase()] || trimmed).split(/\s+/);
 
   // Sentry schedules have minute granularity, so only a fixed second can be dropped.
   if (fields.length === 6 && /^\d+$/.test(fields[0] as string)) {
@@ -124,14 +137,14 @@ export function cronExpressionToMonitorConfig(
     return undefined;
   }
 
-  const [minute, hour, dayOfMonth, month, dayOfWeekWithNames] = fields as [string, string, string, string, string];
-  const dayOfWeek = replaceNames(dayOfWeekWithNames, WEEKDAYS, 0);
-  if (!isSameDayMatching(dayOfMonth, dayOfWeek, daySemantics)) {
-    return undefined;
-  }
-
-  const crontab = [minute, hour, dayOfMonth, replaceNames(month, MONTHS, 1), endRangesOnSundayAsSeven(dayOfWeek)];
-  if (crontab.some(field => /[a-z]/i.test(field) || hasReversedRange(field))) {
+  const [minute, hour, dayOfMonth, month, dayOfWeek] = fields as [string, string, string, string, string];
+  const monthNumbers = replaceNames(month, MONTHS, 1, dialect);
+  const weekdayNumbers = endRangesOnSundayAsSeven(replaceNames(dayOfWeek, WEEKDAYS, 0, dialect));
+  const crontab = [minute, hour, dayOfMonth, monthNumbers, weekdayNumbers];
+  if (
+    crontab.some(field => /[a-z]/i.test(field) || hasReversedRange(field) || hasSteppedSingleValueRange(field)) ||
+    !isSameDayMatching(dayOfMonth, weekdayNumbers, dialect)
+  ) {
     return undefined;
   }
 
@@ -143,47 +156,90 @@ export function cronExpressionToMonitorConfig(
   return { schedule: { type: 'crontab', value: crontab.join(' ') }, timezone: sentryTimezone };
 }
 
-// Sentry requires both day fields to match when one starts with `*`, and either otherwise.
-function isSameDayMatching(dayOfMonth: string, dayOfWeek: string, daySemantics: DayFieldSemantics): boolean {
-  if (dayOfMonth === '*' || dayOfWeek === '*') {
+// Sentry needs both day fields to match when one starts with `*`, and either otherwise.
+function isSameDayMatching(dayOfMonth: string, dayOfWeek: string, dialect: CronDialect): boolean {
+  const monthDays = parseDayField(dayOfMonth, 1, 31);
+  const weekdays = parseDayField(dayOfWeek, 0, 7);
+  if (!monthDays || !weekdays) {
+    return false;
+  }
+  const sentryNeedsBoth = dayOfMonth.startsWith('*') || dayOfWeek.startsWith('*');
+  if (dialect === 'cron-parser') {
+    return isSameDayMatchingInCronParser(dayOfMonth, dayOfWeek, monthDays, weekdays, sentryNeedsBoth);
+  }
+  // `cron` needs either day field to match, but ignores one that lists every day, like `1-31` or `sun-sat`.
+  const allMonthDays = monthDays.days === 31;
+  const allWeekdays = weekdays.days === 7;
+  const schedulerNeedsBoth = dialect === 'node-cron' || allMonthDays || allWeekdays;
+  return (allMonthDays && allWeekdays) || schedulerNeedsBoth === sentryNeedsBoth;
+}
+
+// `cron-parser` ignores a day-of-week with 8 values, and a day-of-month with at least as many values as the month has
+// days (29 in February), duplicates included. Then only the other field has to match, and otherwise either.
+function isSameDayMatchingInCronParser(
+  dayOfMonth: string,
+  dayOfWeek: string,
+  monthDays: DayField,
+  weekdays: DayField,
+  sentryNeedsBoth: boolean,
+): boolean {
+  if (weekdays.cronParserAddsSunday) {
+    return false;
+  }
+  if (dayOfWeek === '*') {
     return true;
   }
-  if (daySemantics === 'and') {
-    return dayOfMonth.startsWith('*') || dayOfWeek.startsWith('*');
+  if (dayOfMonth === '*') {
+    return weekdays.cronParserValues !== 8 || weekdays.days === 7;
   }
-  // `cron` reads a field that lists every day like `*`. `cron-parser` does so for a day-of-month that lists every day
-  // of the current month, and February has 29 there.
-  return !(
-    dayOfMonth.startsWith('*') ||
-    dayOfWeek.startsWith('*') ||
-    countValues(dayOfMonth, 1, 31) >= 29 ||
-    countValues(dayOfWeek, 0, 7, day => day % 7) === 7
-  );
+  return !sentryNeedsBoth && monthDays.cronParserValues < 29 && weekdays.cronParserValues !== 8;
 }
 
-function countValues(field: string, min: number, max: number, normalize = (value: number): number => value): number {
-  const values = new Set<number>();
+interface DayField {
+  days: number;
+  cronParserValues: number;
+  cronParserAddsSunday: boolean;
+}
+
+function parseDayField(field: string, low: number, high: number): DayField | undefined {
+  const days = new Set<number>();
+  let cronParserValues = 0;
+  let cronParserListsSunday = false;
   for (const part of field.split(',')) {
-    const match = /^(?:\*|(\d+)(?:-(\d+))?)(?:\/(\d+))?$/.exec(part);
+    const match = /^(?:(\*)|(\d+)(?:-(\d+))?)(?:\/(\d+))?$/.exec(part);
     if (!match) {
-      continue;
+      return undefined;
     }
-    const [, start, end, step] = match;
-    const first = start === undefined ? min : Number(start);
-    const last = Math.min(
-      end !== undefined ? Number(end) : start !== undefined && step === undefined ? first : max,
-      max,
-    );
-    for (let value = first; value <= last; value += Number(step) || 1) {
-      values.add(normalize(value));
+    const [, wildcard, from, to, step] = match;
+    const lower = wildcard ? low : Number(from);
+    const upper = wildcard || (step && !to) ? high : Number(to ?? from);
+    const increment = Number(step ?? 1);
+    if (!increment || lower < low || upper > high || lower > upper) {
+      return undefined;
+    }
+    // `cron-parser` starts a weekday range that ends on 7 with a Sunday, whatever the step.
+    if (high === 7 && upper === 7 && lower !== 0 && (to || step)) {
+      cronParserValues++;
+      cronParserListsSunday = true;
+    }
+    for (let day = lower; day <= upper; day += increment) {
+      days.add(high === 7 && day === 7 ? 0 : day);
+      cronParserValues++;
     }
   }
-  return values.size;
+  return {
+    days: days.size,
+    cronParserValues,
+    cronParserAddsSunday: cronParserListsSunday && !days.has(0),
+  };
 }
 
-function replaceNames(field: string, names: string[], offset: number): string {
+function replaceNames(field: string, names: string[], offset: number, dialect: CronDialect): string {
   return field.replace(/[a-z]+/gi, word => {
-    const index = names.indexOf(word.slice(0, 3).toLowerCase());
+    const lowerCase = word.toLowerCase();
+    const index = names.findIndex(
+      name => lowerCase === name.slice(0, 3) || (dialect === 'node-cron' && lowerCase === name),
+    );
     return index === -1 ? word : String(index + offset);
   });
 }
@@ -199,6 +255,14 @@ function hasReversedRange(field: string): boolean {
   return field.split(',').some(part => {
     const range = /^(\d+)-(\d+)/.exec(part);
     return !!range && Number(range[1]) > Number(range[2]);
+  });
+}
+
+// The schedulers run `13-13/3` only on the 13th, but Sentry reads it as `13/3`.
+function hasSteppedSingleValueRange(field: string): boolean {
+  return field.split(',').some(part => {
+    const range = /^(\d+)-(\d+)\//.exec(part);
+    return !!range && Number(range[1]) === Number(range[2]);
   });
 }
 
