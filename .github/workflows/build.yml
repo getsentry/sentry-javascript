@@ -29,6 +29,12 @@ concurrency:
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
+  CACHED_DEPENDENCY_PATHS: |
+    ${{ github.workspace }}/node_modules
+    ${{ github.workspace }}/packages/*/node_modules
+    ${{ github.workspace }}/dev-packages/*/node_modules
+    ~/.cache/mongodb-binaries/
+
   # build-output artifact paths are computed in job_build (step output from
   # pnpm run ci:print-build-artifact-paths — Nx merged outputs for build:transpile, and build:types).
 
@@ -52,11 +58,8 @@ env:
   # This option both controls the `v8-compile-cache-lib` and `v8-compile-cache` packages.
   DISABLE_V8_COMPILE_CACHE: '1'
 
-# Jobs that install the monorepo dependencies share one Namespace cache volume through `overrides.cache-tag`, E2E jobs
-# share another one (`-e2e`). The optional Cloudflare integration tests replace the installed wrangler with the latest
-# one, so they use a third one (`-latest-wrangler`). Jobs that do not use a cache volume have no cache tag. Pull request
-# jobs get their own volumes (`-pr`), so they cannot change the node_modules that develop and release builds install
-# from.
+# Jobs that need the monorepo dependencies restore them from the GitHub Actions cache (see `restore-cache`),
+# keyed by the lockfile hash. E2E jobs install their test application separately and do not use that cache.
 jobs:
   job_get_metadata:
     uses: ./.github/workflows/ci-metadata.yml
@@ -69,9 +72,7 @@ jobs:
   job_build:
     name: Build
     needs: job_get_metadata
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: |
       needs.job_get_metadata.outputs.changed_any_code == 'true' ||
@@ -97,6 +98,7 @@ jobs:
 
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
+        id: install_dependencies
 
       - name: Check for Affected Nx Projects
         uses: ./.github/actions/nx-affected-list
@@ -154,6 +156,7 @@ jobs:
         working-directory: dev-packages/e2e-tests
 
     outputs:
+      dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
       changed_node_integration:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry-internal/node-integration-tests') }}
@@ -196,9 +199,7 @@ jobs:
       'aws-serverless') || contains(needs.job_build.outputs.e2e-matrix-2, 'aws-serverless') || github.event_name !=
       'pull_request'
     timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -218,6 +219,8 @@ jobs:
 
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Build Lambda layer
         run: pnpm run build:layer
@@ -235,9 +238,7 @@ jobs:
     name: Build bundles
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -257,6 +258,8 @@ jobs:
 
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Build bundles
         run: pnpm run build:bundle
@@ -273,7 +276,7 @@ jobs:
   job_check_branches:
     name: Check PR branches
     needs: job_get_metadata
-    runs-on: namespace-profile-sentry-javascript-small
+    runs-on: ubuntu-24.04
     if: github.event_name == 'pull_request'
     permissions:
       pull-requests: write
@@ -289,9 +292,7 @@ jobs:
     name: Size Check
     needs: [job_get_metadata, job_build, job_build_bundles]
     timeout-minutes: 15
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     if:
       github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_base_branch == 'true' ||
       needs.job_get_metadata.outputs.is_release == 'true'
@@ -306,6 +307,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Restore build bundle artifacts
         uses: actions/download-artifact@v8
         with:
@@ -324,9 +327,7 @@ jobs:
     # inter-package dependencies resolve cleanly.
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -338,6 +339,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - parallel:
           - name: Lint source files
             run: pnpm run lint
@@ -366,7 +369,7 @@ jobs:
     needs: [job_get_metadata]
     # `pnpm dedupe --check` fetches metadata for every package from npm, so this job can take 8+ min on PRs.
     timeout-minutes: 20
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: ubuntu-24.04
     if: |
       needs.job_get_metadata.outputs.changed_deps == 'true' ||
       needs.job_get_metadata.outputs.is_base_branch == 'true' ||
@@ -397,9 +400,7 @@ jobs:
     name: Check file formatting
     needs: [job_get_metadata]
     timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -420,9 +421,7 @@ jobs:
   job_artifacts:
     name: Upload Artifacts
     needs: [job_get_metadata, job_build, job_build_layer, job_build_bundles, job_build_tarballs]
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     # Build artifacts are only needed for releasing workflow.
     if: needs.job_get_metadata.outputs.is_release == 'true'
     steps:
@@ -436,6 +435,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Restore tarball artifacts
         uses: actions/download-artifact@v8
@@ -474,9 +475,7 @@ jobs:
     name: Browser Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v7
@@ -494,6 +493,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Run affected tests
         run: pnpm run test:pr:browser --base=${{ github.event.pull_request.base.sha }}
@@ -508,9 +509,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -531,6 +530,8 @@ jobs:
           bun-version: ${{ matrix.bun }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run tests
         run: |
           pnpm run test:ci:bun
@@ -540,9 +541,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -558,6 +557,8 @@ jobs:
           deno-version: 'v2.8.3'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run tests
         run: |
           cd packages/deno
@@ -568,9 +569,7 @@ jobs:
     name: Node (${{ matrix.node }}) Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
     continue-on-error: ${{ matrix.node == '^27.0.0-0' }}
     strategy:
@@ -593,6 +592,8 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       # The native modules have no prebuilt binaries for the Node 27 alpha, so compile them like an install on a
       # user's machine does.
       - name: Compile native modules
@@ -617,9 +618,7 @@ jobs:
       matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
     needs: [job_get_metadata, job_build, job_build_bundles]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: ubuntu-24.04-large-js
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -679,6 +678,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Restore build bundle artifacts
         uses: actions/download-artifact@v8
@@ -715,9 +716,7 @@ jobs:
     name: PW ${{ matrix.bundle }} Tests
     needs: [job_get_metadata, job_build, job_build_bundles]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -742,6 +741,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Restore build bundle artifacts
         uses: actions/download-artifact@v8
@@ -775,9 +776,7 @@ jobs:
     name: Node (${{ matrix.node }}) Integration Tests (${{ matrix.shard }}/3)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
     continue-on-error: ${{ matrix.node == '^27.0.0-0' }}
@@ -810,6 +809,8 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       # The native modules have no prebuilt binaries for the Node 27 alpha, so compile them like an install on a
       # user's machine does.
       - name: Compile native modules
@@ -825,9 +826,7 @@ jobs:
     name: Cloudflare Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -844,11 +843,12 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       # The Vite plugin depends on wrangler and writes config for it, so both move together. In the hoisted layout,
       # pnpm keeps the nested `node_modules` folders of the old versions (for example an old workerd under
-      # `node_modules/wrangler`), so the install starts from empty `node_modules` folders. They are mount points of the
-      # cache volume, so only their contents are deleted.
+      # `node_modules/wrangler`), so the install starts from empty `node_modules` folders.
       - name: Install the latest wrangler
         if: matrix.wrangler == 'latest'
         run: |
@@ -868,9 +868,7 @@ jobs:
     if:
       needs.job_get_metadata.outputs.is_release != 'true' && (needs.job_build.outputs.changed_cloudflare_integration ==
       'true' || github.event_name != 'pull_request')
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-latest-wrangler${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -883,9 +881,7 @@ jobs:
     name: Bundler Plugin Integration Tests (Node ${{ matrix.node }})
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bundler_plugin_integration == 'true' || github.event_name != 'pull_request'
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
     continue-on-error: ${{ matrix.node == '^27.0.0-0' }}
@@ -904,6 +900,8 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Run integration tests
         working-directory: dev-packages/bundler-plugin-integration-tests
@@ -913,9 +911,7 @@ jobs:
     name: Bun (${{ matrix.bun }}) Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun_integration == 'true' || github.event_name != 'pull_request'
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -938,6 +934,8 @@ jobs:
           bun-version: ${{ matrix.bun }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Run integration tests
         working-directory: dev-packages/bun-integration-tests
@@ -947,9 +945,7 @@ jobs:
     name: Deno Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -970,6 +966,8 @@ jobs:
           deno-version: 'v2.8.3'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Build @sentry/deno
         working-directory: packages/deno
         run: pnpm run build
@@ -992,9 +990,7 @@ jobs:
       always() &&
       needs.job_build.result == 'success'
     needs: [job_get_metadata, job_build]
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -1015,6 +1011,8 @@ jobs:
 
       - name: Restore caches
         uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Build tarballs
         run: |
@@ -1051,10 +1049,7 @@ jobs:
       always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix-1 !=
       '{"include":[]}'
     needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
-    # Most apps finish in under a minute on 4 vCPUs, so they run on 2. Apps that take longer set `sentryTest.runner`.
-    runs-on:
-      ${{ matrix.runner || 'namespace-profile-sentry-javascript-small' }};overrides.cache-tag=sentry-javascript-e2e${{
-      github.event_name == 'pull_request' && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     # We just use a dummy DSN here, only send to the tunnel anyhow
     env: &e2e-env
@@ -1084,10 +1079,9 @@ jobs:
           runtime: ${{ matrix.runtime }}
           deno-version: ${{ matrix.deno-version }}
 
-      # Installs Playwright while the app installs and builds. Keep it right before the install: the runner sets up a
-      # background composite action's steps from the job's shared `github` context, which fails with "Collection was
-      # modified" if a foreground step starts at that moment. Starting next to `download-artifact` also made it fail to
-      # read the event file.
+      # Installs Playwright while the app builds. Keep it right before the build: the runner sets up a background
+      # composite action's steps from the job's shared `github` context, which fails with "Collection was modified" if
+      # a foreground step starts at that moment. Starting next to `download-artifact` also made it fail to read the event file.
       - name: Install Playwright
         id: install-playwright
         background: true
@@ -1095,23 +1089,6 @@ jobs:
         with:
           browsers: chromium
           cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-
-      # Every build command runs `pnpm install`, so installing first makes that a no-op. Some downloads from the npm
-      # registry crawl at tens of kB/s for the whole 7 minutes of the build step, and pnpm does not give up on a slow
-      # download. Another attempt reuses what is already in the store and opens new connections.
-      # The hoisted variant installs with another node linker, so installing first would only redo the install.
-      - name: Install E2E app dependencies
-        if: ${{ !contains(matrix.build-command, 'hoisted') }}
-        working-directory: ${{ runner.temp }}/test-application
-        timeout-minutes: 7
-        run: |
-          for attempt in 1 2; do
-            timeout 150 pnpm install && exit 0
-            echo "::warning::pnpm install attempt $attempt failed or did not finish in 150 s, retrying"
-          done
-          pnpm install
-        env:
-          SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
 
       - name: Build E2E app
         working-directory: ${{ runner.temp }}/test-application
@@ -1144,9 +1121,7 @@ jobs:
       always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix-2 !=
       '{"include":[]}'
     needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
-    runs-on:
-      ${{ matrix.runner || 'namespace-profile-sentry-javascript-small' }};overrides.cache-tag=sentry-javascript-e2e${{
-      github.event_name == 'pull_request' && '-pr' || '' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env: *e2e-env
     strategy:
@@ -1167,8 +1142,7 @@ jobs:
       needs.job_build.outputs.e2e-matrix-optional != '{"include":[]}' && (github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_build_tarballs]
-    # This job only waits for optional-e2e.yml, which can take most of an hour. GitHub runners are free for public
-    # repos and Namespace runners are paid per minute, so the wait runs here and the tests run on Namespace.
+    # This job only waits for optional-e2e.yml, which can take most of an hour.
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -1185,7 +1159,7 @@ jobs:
           node-version-file: 'package.json'
       - name: Install pnpm
         uses: ./.github/actions/install-pnpm
-      # The Namespace cache volume is not available here, so only install what the action needs
+      # Only install what the action needs
       - name: Install action dependencies
         run: pnpm install --frozen-lockfile --filter @sentry-internal/optional-e2e-gh-action
       - name: Run optional E2E tests
@@ -1224,7 +1198,7 @@ jobs:
       ]
     # Always run this, even if a dependent job failed
     if: always()
-    runs-on: namespace-profile-sentry-javascript-small
+    runs-on: ubuntu-24.04
     permissions: {}
     steps:
       - name: Check for failures

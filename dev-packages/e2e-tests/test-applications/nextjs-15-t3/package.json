@@ -43,8 +43,5 @@
   },
   "ct3aMetadata": {
     "initVersion": "7.47.1"
-  },
-  "sentryTest": {
-    "runner": "namespace-profile-sentry-javascript"
   }
 }
