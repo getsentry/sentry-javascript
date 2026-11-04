@@ -83,6 +83,21 @@ describe('edge beforeSampling handler', () => {
     });
   });
 
+  it('seeds normalizedRequest for Next.request root spans', () => {
+    beforeSamplingHandler!({
+      spanAttributes: {
+        [ATTR_NEXT_SPAN_TYPE]: 'Next.request',
+        'http.method': 'GET',
+        'http.target': '/behind-proxy',
+      },
+    });
+
+    expect(getNormalizedRequest()).toEqual({
+      method: 'GET',
+      url: '/behind-proxy',
+    });
+  });
+
   it('overwrites stale normalizedRequest from a previous invocation', () => {
     getIsolationScope().setSDKProcessingMetadata({
       normalizedRequest: { method: 'GET', url: '/previous-request' },
