@@ -34,7 +34,7 @@ import { indexFs } from './utils';
 
 // In native ESM, `import * as fs` is a read-only module namespace, so we patch the mutable `fs` object
 // behind its default export instead. The CJS build has no `.default` and already gets the mutable object.
-const fs = (fsNamespace as unknown as { default?: typeof fsNamespace }).default ?? fsNamespace;
+const fs = (fsNamespace as { default?: typeof fsNamespace }).default ?? fsNamespace;
 
 const SPAN_ORIGIN = 'auto.file.fs';
 const SPAN_OP = FILE;
