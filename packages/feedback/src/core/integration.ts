@@ -328,11 +328,14 @@ export const buildFeedbackIntegration = ({
         onFormOpen() {
           actor.hide();
         },
+        // The dialog cannot restore focus to the actor on close, because the actor is hidden while the dialog is open
         onFormClose() {
           actor.show();
+          actor.el.focus();
         },
         onFormSubmitted() {
           actor.show();
+          actor.el.focus();
         },
       });
       return actor;

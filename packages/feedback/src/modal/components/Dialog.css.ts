@@ -23,6 +23,12 @@ const DIALOG = `
   inset: 0;
   opacity: 1;
   transition: opacity 0.2s ease-in-out;
+  max-width: none;
+  max-height: none;
+}
+
+.dialog::backdrop {
+  background: transparent;
 }
 
 .dialog__position {
@@ -171,7 +177,7 @@ const FORM = `
   line-height: inherit;
   background: transparent;
   box-sizing: border-box;
-  border: var(--input-border, var(--border));
+  border: var(--input-border, var(--default-input-border));
   border-radius: var(--input-border-radius, 6px);
   color: var(--input-color, inherit);
   fill: var(--input-color, inherit);

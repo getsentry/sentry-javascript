@@ -4,6 +4,8 @@ import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-
 import { useMemo } from 'preact/hooks';
 import { SentryLogo } from './SentryLogo';
 
+export const DIALOG_TITLE_ID = 'sentry-feedback-dialog-title';
+
 export interface Props {
   options: FeedbackInternalOptions;
 }
@@ -13,7 +15,9 @@ export function DialogHeader({ options }: Props): VNode {
 
   return (
     <h2 class="dialog__header">
-      <span class="dialog__title">{options.formTitle}</span>
+      <span id={DIALOG_TITLE_ID} class="dialog__title">
+        {options.formTitle}
+      </span>
       {options.showBranding ? (
         <a
           class="brand-link"
