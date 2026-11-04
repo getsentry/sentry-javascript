@@ -28,7 +28,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { instrumentAnthropicAiClient } from '../../../../src/ai/anthropic-ai';
-import { instrumentEnvironmentWorker, instrumentSessionToolRunner } from '../../../../src/ai/anthropic-ai/tool-runner';
+import { instrumentSessionToolRunner } from '../../../../src/ai/anthropic-ai/tool-runner';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../../../../src/async-context';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../src/ai/core/gen-ai-attributes';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
@@ -53,19 +53,20 @@ class FakeRunner {
 }
 
 type ToolCall = { name: string; id: string; input: unknown };
-type WorkItem = { sessionId: string; tools: Tool[]; calls: ToolCall[] };
 
 // Mirrors the SDK session runner: it keeps `opts.tools` as `tools`, passes the call event as both `toolUse` and
-// `toolUseBlock`, starts the background loop that runs the tools on the first `next()`, and closes the tools last.
+// `toolUseBlock`, and starts the background loop that runs the tools on the first `next()`.
 class FakeSessionRunner {
   public readonly tools: Tool[];
   public drained = false;
+  private readonly _calls: ToolCall[];
   private _consumed = false;
   public constructor(
     public readonly sessionId: string,
-    private readonly _opts: { tools: Tool[]; calls?: ToolCall[] },
+    { tools, calls = [] }: { tools: Tool[]; calls?: ToolCall[] },
   ) {
-    this.tools = _opts.tools;
+    this.tools = tools;
+    this._calls = calls;
   }
   public async dispatch(name: string, toolUse: { id: string; input: unknown }): Promise<{ isError: boolean }> {
     const tool = this.tools.find(t => t.name === name)!;
@@ -83,7 +84,7 @@ class FakeSessionRunner {
     this._consumed = true;
     const loop = (async () => {
       const results = [];
-      for (const { name, ...toolUse } of this._opts.calls ?? []) {
+      for (const { name, ...toolUse } of this._calls) {
         await new Promise(resolve => setTimeout(resolve, 1));
         results.push({ name, ...(await this.dispatch(name, toolUse)) });
       }
@@ -95,24 +96,7 @@ class FakeSessionRunner {
       }
     } finally {
       await new Promise(resolve => setTimeout(resolve, 1));
-      startSpan({ name: 'close tools', op: 'tool.close' }, () => undefined);
       this.drained = true;
-    }
-  }
-}
-
-// Mirrors the SDK worker: `run()` drives one runner per work item from a single loop, building each with
-// `new SessionToolRunner()`, and makes its own calls, such as the lease heartbeat, in between.
-class FakeEnvironmentWorker {
-  public constructor(private readonly _items: WorkItem[]) {}
-  public async run(): Promise<void> {
-    for (const { sessionId, ...opts } of this._items) {
-      startSpan({ name: 'POST /v1/environments/work/heartbeat', op: 'http.client' }, () => undefined);
-      const runner = new FakeSessionRunner(sessionId, opts);
-      // What the `SessionToolRunner` constructor hook does.
-      instrumentSessionToolRunner(runner, {});
-      for await (const _call of runner) {
-      }
     }
   }
 }
@@ -395,19 +379,22 @@ describe('instrumentAnthropicAiClient tool runner', () => {
       ]);
     });
 
-    async function drain(runner: AsyncIterable<unknown>): Promise<void> {
-      for await (const _call of runner) {
-      }
-    }
-
-    function sessionRunner(sessionId: string, calls: ToolCall[]) {
-      const tools = [
+    function defaultTools(): Tool[] {
+      return [
         tool('weather', async () => 'sunny'),
         tool('read', async () => '# Weather app'),
         tool('explode', async () => {
           throw new Error('disk full');
         }),
       ];
+    }
+
+    async function drain(runner: AsyncIterable<unknown>): Promise<void> {
+      for await (const _call of runner) {
+      }
+    }
+
+    function sessionRunner(sessionId: string, calls: ToolCall[], tools = defaultTools()) {
       return instrumentAnthropicAiClient(fakeClient()).beta.sessions.events.toolRunner(sessionId, { tools, calls });
     }
 
@@ -440,22 +427,11 @@ describe('instrumentAnthropicAiClient tool runner', () => {
     });
 
     it('gives each tool span the session id of its runner, even for a tool shared between runners', async () => {
-      const weather = tool('weather', async () => 'sunny');
-      const client = instrumentAnthropicAiClient(fakeClient());
+      const tools = [tool('weather', async () => 'sunny')];
 
       await Promise.all([
-        drain(
-          client.beta.sessions.events.toolRunner('sesn_vienna', {
-            tools: [weather],
-            calls: [{ name: 'weather', id: 'sevt_1', input: {} }],
-          }),
-        ),
-        drain(
-          client.beta.sessions.events.toolRunner('sesn_graz', {
-            tools: [weather],
-            calls: [{ name: 'weather', id: 'sevt_2', input: {} }],
-          }),
-        ),
+        drain(sessionRunner('sesn_vienna', [{ name: 'weather', id: 'sevt_1', input: {} }], tools)),
+        drain(sessionRunner('sesn_graz', [{ name: 'weather', id: 'sevt_2', input: {} }], tools)),
       ]);
 
       expect(
@@ -534,23 +510,9 @@ describe('instrumentAnthropicAiClient tool runner', () => {
 
     it('keeps the scope data of one session off the next outside any span', async () => {
       const tagging = tool('tagging', async () => getIsolationScope().setTag('customer', 'acme'));
-      const explode = tool('explode', async () => {
-        throw new Error('disk full');
-      });
-      const client = instrumentAnthropicAiClient(fakeClient());
 
-      await drain(
-        client.beta.sessions.events.toolRunner('sesn_acme', {
-          tools: [tagging],
-          calls: [{ name: 'tagging', id: 'sevt_1', input: {} }],
-        }),
-      );
-      await drain(
-        client.beta.sessions.events.toolRunner('sesn_globex', {
-          tools: [explode],
-          calls: [{ name: 'explode', id: 'sevt_2', input: {} }],
-        }),
-      );
+      await drain(sessionRunner('sesn_acme', [{ name: 'tagging', id: 'sevt_1', input: {} }], [tagging]));
+      await drain(sessionRunner('sesn_globex', [{ name: 'explode', id: 'sevt_2', input: {} }]));
 
       await vi.waitFor(() => expect(events).toHaveLength(1));
       expect(events[0]!.tags?.customer).toBeUndefined();
@@ -589,16 +551,9 @@ describe('instrumentAnthropicAiClient tool runner', () => {
         sentTraceIds.push(getTraceData()['sentry-trace']!.split('-')[0]!);
         throw new Error('disk full');
       });
-      const anthropic = instrumentAnthropicAiClient(fakeClient());
-
       await Promise.all(
         ['sesn_vienna', 'sesn_graz'].map(sessionId =>
-          drain(
-            anthropic.beta.sessions.events.toolRunner(sessionId, {
-              tools: [explode],
-              calls: [{ name: 'explode', id: `sevt_${sessionId}`, input: {} }],
-            }),
-          ),
+          drain(sessionRunner(sessionId, [{ name: 'explode', id: `sevt_${sessionId}`, input: {} }], [explode])),
         ),
       );
 
@@ -607,7 +562,7 @@ describe('instrumentAnthropicAiClient tool runner', () => {
       expect(events.map(event => event.contexts?.trace?.trace_id).sort()).toEqual([...sentTraceIds].sort());
     });
 
-    it('passes throw() on to the runner', async () => {
+    it('closes the runner when the consumer throws into the loop', async () => {
       const runner = sessionRunner('sesn_vienna', [{ name: 'weather', id: 'sevt_1', input: {} }]);
       const iterator = runner[Symbol.asyncIterator]();
       await iterator.next();
@@ -617,72 +572,43 @@ describe('instrumentAnthropicAiClient tool runner', () => {
       expect(runner.drained).toBe(true);
     });
 
-    describe('driven by an EnvironmentWorker', () => {
-      function startWorker(items: WorkItem[]) {
-        const worker = new FakeEnvironmentWorker(items);
-        instrumentEnvironmentWorker(worker);
-        return worker.run();
-      }
+    it('ends the runner span when closing the runner fails', async () => {
+      const runner = {
+        sessionId: 'sesn_vienna',
+        tools: [],
+        [Symbol.asyncIterator]: () => ({
+          next: async () => ({ done: false, value: 'call' }),
+          return: async () => {
+            throw new Error('close failed');
+          },
+        }),
+      };
+      instrumentSessionToolRunner(runner, {});
 
-      function twoSessions(): WorkItem[] {
-        const weather = tool('weather', async () => 'sunny');
-        return [
-          { sessionId: 'sesn_vienna', tools: [weather], calls: [{ name: 'weather', id: 'sevt_1', input: {} }] },
-          { sessionId: 'sesn_graz', tools: [weather], calls: [{ name: 'weather', id: 'sevt_2', input: {} }] },
-        ];
-      }
+      const leaveEarly = async (): Promise<void> => {
+        for await (const _call of runner as AsyncIterable<unknown>) {
+          break;
+        }
+      };
 
-      it.each([
-        ['a request span', (run: () => Promise<void>) => startSpan({ name: 'POST /workers/start' }, run)],
-        ['an unsampled span', (run: () => Promise<void>) => withActiveSpan(new SentryNonRecordingSpan(), run)],
-        ['a request scope without a span', (run: () => Promise<void>) => withIsolationScope(() => run())],
-      ])('gives each session its own trace when the worker starts inside %s', async (_name, startInside) => {
-        await startInside(() => startWorker(twoSessions()));
+      await expect(leaveEarly()).rejects.toThrow('close failed');
+      expect(agentSpans()).toHaveLength(1);
+    });
 
-        const agents = agentSpans();
-        expect(agents).toHaveLength(2);
-        expect(agents.map(span => span.parent_span_id)).toEqual([undefined, undefined]);
-        expect(agents[0]!.trace_id).not.toBe(agents[1]!.trace_id);
-      });
+    it('ends the runner span as failed when the first next() throws synchronously', async () => {
+      const runner = {
+        sessionId: 'sesn_vienna',
+        tools: [],
+        [Symbol.asyncIterator]: () => ({
+          next: () => {
+            throw new Error('not iterable');
+          },
+        }),
+      };
+      instrumentSessionToolRunner(runner, {});
 
-      it('runs the calls of the worker loop apart from the request that started it', async () => {
-        const request = await startSpan({ name: 'POST /workers/start' }, async span => {
-          await startWorker(twoSessions());
-          return spanToStaticSpanJSON(span);
-        });
-
-        const heartbeats = spansWithOp('http.client');
-        expect(heartbeats).toHaveLength(2);
-        expect(heartbeats.map(span => span.trace_id)).not.toContain(request.trace_id);
-      });
-
-      it('keeps the scope data of one session off the next', async () => {
-        const tagging = tool('tagging', async () => getIsolationScope().setTag('customer', 'acme'));
-        const explode = tool('explode', async () => {
-          throw new Error('disk full');
-        });
-
-        await startWorker([
-          { sessionId: 'sesn_acme', tools: [tagging], calls: [{ name: 'tagging', id: 'sevt_1', input: {} }] },
-          { sessionId: 'sesn_globex', tools: [explode], calls: [{ name: 'explode', id: 'sevt_2', input: {} }] },
-        ]);
-
-        await vi.waitFor(() => expect(events).toHaveLength(1));
-        expect(events[0]!.tags?.customer).toBeUndefined();
-      });
-
-      it('gives the tool spans the session id, not the conversation id of the request that started the worker', async () => {
-        await withIsolationScope(scope => {
-          scope.setConversationId('chat_1');
-          return startWorker(twoSessions());
-        });
-
-        expect(
-          toolSpans()
-            .map(span => span.data[GEN_AI_CONVERSATION_ID])
-            .sort(),
-        ).toEqual(['sesn_graz', 'sesn_vienna']);
-      });
+      await expect(drain(runner as AsyncIterable<unknown>)).rejects.toThrow('not iterable');
+      expect(agentSpans().map(span => span.status)).toEqual(['internal_error']);
     });
 
     it('starts the runner span on the first next(), not when the iterator is created', async () => {
@@ -697,7 +623,7 @@ describe('instrumentAnthropicAiClient tool runner', () => {
       expect(started).toEqual([GEN_AI_INVOKE_AGENT, GEN_AI_EXECUTE_TOOL]);
     });
 
-    it('drains the runner under its span, before ending it, when the loop is left early', async () => {
+    it('ends the runner span after the runner has drained when the loop is left early', async () => {
       const runner = sessionRunner('sesn_vienna', [
         { name: 'weather', id: 'sevt_1', input: {} },
         { name: 'read', id: 'sevt_2', input: {} },
@@ -715,7 +641,6 @@ describe('instrumentAnthropicAiClient tool runner', () => {
       }
 
       expect(drainedWhenSpanEnded).toEqual([true]);
-      expect(spansWithOp('tool.close')[0]!.parent_span_id).toBe(agentSpans()[0]!.span_id);
     });
 
     it('marks the runner span as failed and rethrows when the runner is iterated twice', async () => {

@@ -97,12 +97,8 @@ async function run() {
     ],
   });
 
-  // Started by a request that returns right away, so the worker outlives the request's span.
-  let workerDone;
-  Sentry.startSpan({ op: 'http.server', name: 'POST /workers/start' }, () => {
-    workerDone = worker.run(controller.signal);
-  });
-  await workerDone;
+  // Outside any span, as the SDK docs run the worker.
+  await worker.run(controller.signal);
 
   await Sentry.flush(2000);
 

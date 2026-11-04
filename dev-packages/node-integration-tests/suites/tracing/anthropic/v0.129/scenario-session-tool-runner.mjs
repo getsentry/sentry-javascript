@@ -9,6 +9,7 @@ const STREAM_EVENTS = {
     { type: 'agent.tool_use', id: 'sevt_explode', name: 'explode', input: {} },
     { type: 'session.status_terminated', id: 'sevt_weather_end' },
   ],
+  // Served by a runner built with `new SessionToolRunner()`, as `EnvironmentWorker` does.
   sesn_direct: [
     { type: 'agent.tool_use', id: 'sevt_read', name: 'read', input: { file_path: 'README.md' } },
     { type: 'session.status_terminated', id: 'sevt_direct_end' },
@@ -56,12 +57,12 @@ async function drain(runner) {
 async function run() {
   const server = await startMockSessionsServer();
 
-  const client = new Anthropic({
-    apiKey: 'mock-api-key',
-    baseURL: `http://localhost:${server.address().port}/anthropic`,
-  });
-
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
+    const client = new Anthropic({
+      apiKey: 'mock-api-key',
+      baseURL: `http://localhost:${server.address().port}/anthropic`,
+    });
+
     await drain(
       client.beta.sessions.events.toolRunner('sesn_weather', {
         tools: [

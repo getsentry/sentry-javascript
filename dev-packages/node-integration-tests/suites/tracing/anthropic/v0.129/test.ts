@@ -144,7 +144,7 @@ describe('Anthropic integration (0.129)', () => {
     'scenario-environment-worker.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      test('gives each session an EnvironmentWorker runs a trace of its own, apart from the request that started it', async () => {
+      test('runs each session of an EnvironmentWorker in a trace of its own', async () => {
         const receivedSpans: SerializedStreamedSpanContainer['items'] = [];
         const sessionSegment = {
           span: (container: SerializedStreamedSpanContainer) => {
@@ -153,25 +153,11 @@ describe('Anthropic integration (0.129)', () => {
           },
         };
 
-        await createRunner()
-          .unordered()
-          .expect({
-            span: container => {
-              expect(
-                container.items.find(span => span.is_segment && span.name === 'POST /workers/start'),
-              ).toBeDefined();
-              receivedSpans.push(...container.items);
-            },
-          })
-          .expect(sessionSegment)
-          .expect(sessionSegment)
-          .start()
-          .completed();
+        await createRunner().unordered().expect(sessionSegment).expect(sessionSegment).start().completed();
 
-        const request = receivedSpans.find(span => span.name === 'POST /workers/start')!;
         const agentSpans = receivedSpans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT);
         expect(agentSpans).toHaveLength(2);
-        expect(new Set([request.trace_id, ...agentSpans.map(span => span.trace_id)]).size).toBe(3);
+        expect(agentSpans[0]!.trace_id).not.toBe(agentSpans[1]!.trace_id);
 
         for (const sessionId of ['sesn_vienna', 'sesn_graz']) {
           const agent = agentSpans.find(span => span.attributes[GEN_AI_CONVERSATION_ID]?.value === sessionId)!;
@@ -202,14 +188,14 @@ describe('Anthropic integration (0.129)', () => {
     (createRunner, test) => {
       test('parents the execute_tool spans of each session runner to one invoke_agent span', async () => {
         let receivedEvent: Event | undefined;
-        const receivedSpans: SerializedStreamedSpanContainer['items'] = [];
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         await createRunner()
           .unordered()
           .expect({
             span: container => {
               expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
-              receivedSpans.push(...container.items);
+              receivedSpans = container.items;
             },
           })
           .expect({

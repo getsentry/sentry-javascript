@@ -14,11 +14,7 @@ import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../ai/anthropic-ai';
 import { ANTHROPIC_AI_ORIGIN } from '../ai/anthropic-ai/constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from '../ai/anthropic-ai/streaming';
-import {
-  instrumentEnvironmentWorker,
-  instrumentSessionToolRunner,
-  instrumentToolRunner,
-} from '../ai/anthropic-ai/tool-runner';
+import { instrumentSessionToolRunner, instrumentToolRunner } from '../ai/anthropic-ai/tool-runner';
 import type { AnthropicAiOptions, AnthropicAiResponse } from '../ai/anthropic-ai/types';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
@@ -100,11 +96,6 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
     .tracingChannel<OrchestrionChannelContext>(CHANNELS.ANTHROPIC_SESSION_TOOL_RUNNER)
     .end.subscribe(message => {
       instrumentSessionToolRunner((message as OrchestrionChannelContext).self, options);
-    });
-  diagnosticsChannel
-    .tracingChannel<OrchestrionChannelContext>(CHANNELS.ANTHROPIC_ENVIRONMENT_WORKER)
-    .end.subscribe(message => {
-      instrumentEnvironmentWorker((message as OrchestrionChannelContext).self);
     });
 }
 
