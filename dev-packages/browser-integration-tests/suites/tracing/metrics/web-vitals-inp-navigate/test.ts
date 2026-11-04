@@ -8,6 +8,9 @@ import {
   BROWSER_WEB_VITAL_INP_TARGET,
   SENTRY_EXCLUSIVE_TIME,
   BROWSER_WEB_VITAL_INP_INTERACTION_TYPE,
+  BROWSER_WEB_VITAL_INP_INPUT_DELAY,
+  BROWSER_WEB_VITAL_INP_PROCESSING_DURATION,
+  BROWSER_WEB_VITAL_INP_PRESENTATION_DELAY,
   BROWSER_NAVIGATION_TYPE,
   SENTRY_TRANSACTION,
   SENTRY_SEGMENT_NAME,
@@ -108,6 +111,18 @@ sentryTest(
         [SENTRY_EXCLUSIVE_TIME]: { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
         [BROWSER_WEB_VITAL_INP_VALUE]: { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
         [BROWSER_WEB_VITAL_INP_INTERACTION_TYPE]: { value: 'click', type: 'string' },
+        [BROWSER_WEB_VITAL_INP_INPUT_DELAY]: {
+          value: expect.any(Number),
+          type: expect.stringMatching(/^(integer)|(double)$/),
+        },
+        [BROWSER_WEB_VITAL_INP_PROCESSING_DURATION]: {
+          value: expect.any(Number),
+          type: expect.stringMatching(/^(integer)|(double)$/),
+        },
+        [BROWSER_WEB_VITAL_INP_PRESENTATION_DELAY]: {
+          value: expect.any(Number),
+          type: expect.stringMatching(/^(integer)|(double)$/),
+        },
         [BROWSER_NAVIGATION_TYPE]: { value: 'navigate', type: 'string' },
         [SENTRY_TRANSACTION]: { value: 'test-url', type: 'string' },
         [SENTRY_SEGMENT_NAME]: { value: 'test-url', type: 'string' },
@@ -198,6 +213,18 @@ sentryTest(
         [SENTRY_EXCLUSIVE_TIME]: { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
         [BROWSER_WEB_VITAL_INP_VALUE]: { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
         [BROWSER_WEB_VITAL_INP_INTERACTION_TYPE]: { value: 'click', type: 'string' },
+        [BROWSER_WEB_VITAL_INP_INPUT_DELAY]: {
+          value: expect.any(Number),
+          type: expect.stringMatching(/^(integer)|(double)$/),
+        },
+        [BROWSER_WEB_VITAL_INP_PROCESSING_DURATION]: {
+          value: expect.any(Number),
+          type: expect.stringMatching(/^(integer)|(double)$/),
+        },
+        [BROWSER_WEB_VITAL_INP_PRESENTATION_DELAY]: {
+          value: expect.any(Number),
+          type: expect.stringMatching(/^(integer)|(double)$/),
+        },
         [BROWSER_NAVIGATION_TYPE]: { value: 'navigate', type: 'string' },
         [SENTRY_TRANSACTION]: { value: 'test-url', type: 'string' },
         [SENTRY_SEGMENT_NAME]: { value: 'test-url', type: 'string' },
