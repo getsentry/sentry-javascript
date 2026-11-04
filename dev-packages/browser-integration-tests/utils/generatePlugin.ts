@@ -43,6 +43,9 @@ const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   makeMultiplexedTransport: 'multiplexedtransport',
 };
 
+// The mfe bundles include these exports, and the addon bundles would overwrite them on `window.Sentry`
+const ADDONS_INCLUDED_IN_BUNDLE = bundleKey.includes('_mfe') ? ['multiplexedtransport', 'modulemetadata'] : [];
+
 const BUNDLE_PATHS: Record<string, Record<string, string>> = {
   browser: {
     cjs: 'build/npm/cjs/prod/index.js',
@@ -52,6 +55,9 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle_logs_metrics: 'build/bundles/bundle.logs.metrics.js',
     bundle_logs_metrics_min: 'build/bundles/bundle.logs.metrics.min.js',
     bundle_logs_metrics_debug_min: 'build/bundles/bundle.logs.metrics.debug.min.js',
+    bundle_mfe: 'build/bundles/bundle.mfe.js',
+    bundle_mfe_min: 'build/bundles/bundle.mfe.min.js',
+    bundle_mfe_debug_min: 'build/bundles/bundle.mfe.debug.min.js',
     bundle_replay: 'build/bundles/bundle.replay.js',
     bundle_replay_min: 'build/bundles/bundle.replay.min.js',
     bundle_replay_logs_metrics: 'build/bundles/bundle.replay.logs.metrics.js',
@@ -211,7 +217,7 @@ class SentryScenarioGenerationPlugin {
             const imported = statement.specifiers?.[0]?.imported?.name;
 
             const bundleName = imported && IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS[imported];
-            if (bundleName) {
+            if (bundleName && !ADDONS_INCLUDED_IN_BUNDLE.includes(bundleName)) {
               this.requiredIntegrations.push(bundleName);
             } else if (source === '@sentry/wasm') {
               this.requiresWASMIntegration = true;
@@ -267,7 +273,8 @@ class SentryScenarioGenerationPlugin {
             .replace('_tracing', '')
             .replace('_feedback', '')
             .replace('_logs', '')
-            .replace('_metrics', '');
+            .replace('_metrics', '')
+            .replace('_mfe', '');
 
           // For feedback bundle, make sure to add modal & screenshot integrations
           if (bundleKey.includes('_feedback')) {

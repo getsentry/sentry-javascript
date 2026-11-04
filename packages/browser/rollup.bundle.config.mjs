@@ -78,6 +78,13 @@ const logsMetricsBaseBundleConfig = makeBaseBundleConfig({
   outputFileBase: () => 'bundles/bundle.logs.metrics',
 });
 
+const mfeBaseBundleConfig = makeBaseBundleConfig({
+  bundleType: 'standalone',
+  entrypoints: ['src/index.bundle.mfe.ts'],
+  licenseTitle: '@sentry/browser (Multiplexed Transport and Module Metadata)',
+  outputFileBase: () => 'bundles/bundle.mfe',
+});
+
 const replayBaseBundleConfig = makeBaseBundleConfig({
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.replay.ts'],
@@ -146,6 +153,7 @@ builds.push(
   ...makeBundleConfigVariants(baseBundleConfig),
   ...makeBundleConfigVariants(feedbackBaseBundleConfig),
   ...makeBundleConfigVariants(logsMetricsBaseBundleConfig),
+  ...makeBundleConfigVariants(mfeBaseBundleConfig),
   ...makeBundleConfigVariants(replayBaseBundleConfig),
   ...makeBundleConfigVariants(replayFeedbackBaseBundleConfig),
   ...makeBundleConfigVariants(replayLogsMetricsBaseBundleConfig),

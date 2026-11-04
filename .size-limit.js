@@ -224,6 +224,12 @@ module.exports = [
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
+    name: 'CDN Bundle (incl. Multiplexed Transport, Module Metadata)',
+    path: createCDNPath('bundle.mfe.min.js'),
+    gzip: true,
+    disablePlugins: ['@size-limit/esbuild'],
+  },
+  {
     name: 'CDN Bundle (incl. Tracing)',
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: true,
@@ -275,6 +281,13 @@ module.exports = [
   {
     name: 'CDN Bundle - uncompressed',
     path: createCDNPath('bundle.min.js'),
+    gzip: false,
+    brotli: false,
+    disablePlugins: ['@size-limit/esbuild'],
+  },
+  {
+    name: 'CDN Bundle (incl. Multiplexed Transport, Module Metadata) - uncompressed',
+    path: createCDNPath('bundle.mfe.min.js'),
     gzip: false,
     brotli: false,
     disablePlugins: ['@size-limit/esbuild'],
