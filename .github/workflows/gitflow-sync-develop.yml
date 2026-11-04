@@ -21,6 +21,8 @@ jobs:
     permissions:
       pull-requests: write
       contents: write
+      checks: read
+      statuses: read
     steps:
       - name: git checkout
         uses: actions/checkout@v7
@@ -44,12 +46,6 @@ jobs:
           pr_label: 'Dev: Gitflow'
           github_token: ${{ steps.app-token.outputs.token }}
 
-      - name: Enable automerge for PR
-        if: steps.open-pr.outputs.pr_number != ''
-        run: gh pr merge --merge --auto "${{ steps.open-pr.outputs.pr_number }}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       # https://github.com/marketplace/actions/auto-approve
       - name: Auto approve PR
         if: steps.open-pr.outputs.pr_number != ''
@@ -57,3 +53,22 @@ jobs:
         with:
           pull-request-number: ${{ steps.open-pr.outputs.pr_number }}
           review-message: 'Auto approved automated PR'
+
+      - name: Wait for checks and merge backmerge
+        if: steps.open-pr.outputs.pr_number != ''
+        timeout-minutes: 45
+        shell: bash
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITFLOW_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ steps.open-pr.outputs.pr_number }}
+        run: |
+          backmerge_head=$(gh pr view "$PR_NUMBER" --json headRefOid --jq .headRefOid)
+
+          gh pr checks "$PR_NUMBER" --required --watch --fail-fast --interval 30
+
+          GH_TOKEN="$GITFLOW_TOKEN" gh pr merge "$PR_NUMBER" \
+            --merge \
+            --admin \
+            --match-head-commit "$backmerge_head"
