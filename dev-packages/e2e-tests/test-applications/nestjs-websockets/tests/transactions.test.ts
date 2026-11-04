@@ -16,6 +16,35 @@ test('Sends an HTTP segment span', async ({ baseURL }) => {
   expect(span.status).toBe('ok');
 });
 
+test('Marks WebSocket segment spans as failed when the handler errors', async ({ baseURL }) => {
+  const socket = io(`${baseURL}/events`);
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      socket.once('connect', resolve);
+      socket.once('connect_error', reject);
+    });
+
+    const spanPromise = waitForStreamedSpan('nestjs-websockets', span => {
+      return span.is_segment && span.name === 'WS /events test-transaction-error';
+    });
+    const exceptionPromise = new Promise<void>(resolve => {
+      socket.once('exception', () => resolve());
+    });
+
+    socket.emit('test-transaction-error', {});
+
+    const [span] = await Promise.all([spanPromise, exceptionPromise]);
+
+    expect(span.is_segment).toBe(true);
+    expect(getSpanOp(span)).toBe(WEBSOCKET);
+    expect(span.name).toBe('WS /events test-transaction-error');
+    expect(span.status).toBe('error');
+  } finally {
+    socket.disconnect();
+  }
+});
+
 test('Names WebSocket segment spans with the Socket.IO namespace and message pattern', async ({ baseURL }) => {
   const socket = io(`${baseURL}/events`);
 

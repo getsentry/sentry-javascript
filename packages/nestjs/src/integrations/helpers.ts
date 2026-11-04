@@ -228,13 +228,50 @@ export function getBullMQProcessSpanOptions(queueName: string | undefined): {
  * Adds instrumentation to a js observable and attaches the span to an active
  * parent span.
  */
-export function instrumentObservable(observable: Observable<unknown>, activeSpan: Span | undefined): void {
+export function instrumentObservable(
+  observable: Observable<unknown>,
+  activeSpan: Span | undefined,
+  onError?: (error: unknown) => void,
+): void {
   if (activeSpan) {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     observable.subscribe = new Proxy(observable.subscribe, {
       apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
         return withActiveSpan(activeSpan, () => {
-          const subscription: Subscription = originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
+          const subscribeArgs = [...argsSubscribe];
+
+          if (onError) {
+            const observer = argsSubscribe[0];
+            if (observer && typeof observer === 'object') {
+              subscribeArgs[0] = new Proxy(observer, {
+                get(target, property, receiver) {
+                  if (property !== 'error') {
+                    return Reflect.get(target, property, receiver);
+                  }
+
+                  const errorHandler = Reflect.get(target, property, target);
+                  return function (this: unknown, error: unknown): unknown {
+                    onError(error);
+                    if (typeof errorHandler !== 'function') {
+                      throw error;
+                    }
+                    return Reflect.apply(errorHandler, target, [error]);
+                  };
+                },
+              });
+            } else {
+              const errorHandler = argsSubscribe[1];
+              subscribeArgs[1] = function (this: unknown, error: unknown): unknown {
+                onError(error);
+                if (typeof errorHandler !== 'function') {
+                  throw error;
+                }
+                return Reflect.apply(errorHandler, this, [error]);
+              };
+            }
+          }
+
+          const subscription: Subscription = originalSubscribe.apply(thisArgSubscribe, subscribeArgs);
           subscription.add(() => activeSpan.end());
           return subscription;
         });

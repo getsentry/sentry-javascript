@@ -16,6 +16,7 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   isObjectLike,
+  SPAN_STATUS_ERROR,
   startSpanManual,
   withIsolationScope,
 } from '@sentry/core';
@@ -79,10 +80,14 @@ class SentryTracingInterceptor implements NestInterceptor {
             name: transactionName,
             attributes: {
               [SENTRY_OP]: WEBSOCKET,
-              [SENTRY_ORIGIN]: 'auto.middleware.nestjs.interceptor',
+              [SENTRY_ORIGIN]: 'auto.websocket.nestjs.interceptor',
             },
           },
           span => {
+            const markSpanAsFailed = (): void => {
+              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            };
+
             try {
               const observable = next.handle();
 
@@ -97,10 +102,11 @@ class SentryTracingInterceptor implements NestInterceptor {
               });
 
               // Nest returns an RxJS Observable, while the helper intentionally uses a minimal type to avoid importing RxJS here.
-              instrumentObservable(observable as unknown as IntegrationObservable<unknown>, span);
+              instrumentObservable(observable as unknown as IntegrationObservable<unknown>, span, markSpanAsFailed);
 
               return observable;
             } catch (error) {
+              markSpanAsFailed();
               span.end();
               throw error;
             }

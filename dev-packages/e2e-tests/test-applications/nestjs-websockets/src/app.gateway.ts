@@ -33,4 +33,9 @@ export class EventsGateway {
   handleTestTransaction() {
     return { event: 'test-transaction-response', data: { success: true } };
   }
+
+  @SubscribeMessage('test-transaction-error')
+  handleTestTransactionError() {
+    throw new Error('WebSocket handler failed');
+  }
 }
