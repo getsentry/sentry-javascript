@@ -414,11 +414,13 @@ describeWithDockerCompose('postgresjs v4 tracing channel', { workingDirectory: [
 
     createEsmTests(
       __dirname,
-      'scenario-requestHook.mjs',
+      'scenario.mjs',
       'instrument-requestHook.mjs',
       (createTestRunner, test) => {
         test('should call requestHook when provided', { timeout: 60_000 }, async () => {
+          // The scenario's last query fails on purpose, so ignore its error event.
           await createTestRunner()
+            .ignore('event')
             .expect({
               span: container => {
                 expect(container).toMatchObject(EXPECTED_SPANS);

@@ -1,5 +1,19 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { tracingChannel } from 'node:diagnostics_channel';
+import {
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_QUERY_TEXT,
+  DB_RESPONSE_STATUS_CODE,
+  DB_SYSTEM_NAME,
+  ERROR_TYPE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_STATUS_MESSAGE,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import type { Scope, Span } from '@sentry/core';
 import {
   _INTERNAL_setSpanForScope,
@@ -179,10 +193,10 @@ describe('postgresjs diagnostics-channel subscriber', () => {
           result: [],
         }),
       ).toEqual({
-        'db.namespace': 'test_db',
-        'server.address': 'localhost',
-        'server.port': 5444,
-        'db.operation.name': 'SELECT',
+        [DB_NAMESPACE]: 'test_db',
+        [SERVER_ADDRESS]: 'localhost',
+        [SERVER_PORT]: 5444,
+        [DB_OPERATION_NAME]: 'SELECT',
       });
     });
 
@@ -192,13 +206,13 @@ describe('postgresjs diagnostics-channel subscriber', () => {
           ...newContext('SELECT 1'),
           error: Object.assign(new Error('relation "User" does not exist'), { code: '42P01' }),
         }),
-      ).toEqual({ 'db.namespace': 'test_db', 'db.response.status_code': '42P01' });
+      ).toEqual({ [DB_NAMESPACE]: 'test_db', [DB_RESPONSE_STATUS_CODE]: '42P01' });
     });
 
     it('falls back to `unknown` when the error has no code', () => {
       expect(
         getPostgresJsQueryEndAttributes({ ...newContext('SELECT 1'), error: new Error('boom') })[
-          'db.response.status_code'
+          DB_RESPONSE_STATUS_CODE
         ],
       ).toBe('unknown');
     });
@@ -243,14 +257,14 @@ describe('postgresjs diagnostics-channel subscriber', () => {
           parent_span_id: parentSpanId,
           status: 'ok',
           attributes: expect.objectContaining({
-            'sentry.origin': 'auto.db.postgresjs',
-            'sentry.op': 'db',
-            'db.system.name': 'postgres',
-            'db.query.text': 'SELECT * FROM "User" WHERE "email" = $1 AND "name" = ?',
-            'db.operation.name': 'SELECT',
-            'db.namespace': 'test_db',
-            'server.address': 'localhost',
-            'server.port': 5444,
+            [SENTRY_ORIGIN]: 'auto.db.postgresjs',
+            [SENTRY_OP]: DB,
+            [DB_SYSTEM_NAME]: 'postgres',
+            [DB_QUERY_TEXT]: 'SELECT * FROM "User" WHERE "email" = $1 AND "name" = ?',
+            [DB_OPERATION_NAME]: 'SELECT',
+            [DB_NAMESPACE]: 'test_db',
+            [SERVER_ADDRESS]: 'localhost',
+            [SERVER_PORT]: 5444,
           }),
           end_timestamp: expect.any(Number),
         }),
@@ -271,9 +285,9 @@ describe('postgresjs diagnostics-channel subscriber', () => {
         expect.objectContaining({
           status: 'error',
           attributes: expect.objectContaining({
-            'sentry.status.message': 'relation "User" does not exist',
-            'db.response.status_code': '42P01',
-            'error.type': 'PostgresError',
+            [SENTRY_STATUS_MESSAGE]: 'relation "User" does not exist',
+            [DB_RESPONSE_STATUS_CODE]: '42P01',
+            [ERROR_TYPE]: 'PostgresError',
           }),
           end_timestamp: expect.any(Number),
         }),
