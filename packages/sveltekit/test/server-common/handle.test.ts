@@ -5,7 +5,7 @@ import * as SentryCore from '@sentry/core';
 import { NodeClient, serveTunnelIntegration, setCurrentClient } from '@sentry/node';
 import { _INTERNAL_resetManagedTunnelDefaults } from '@sentry/core/server';
 import { TUNNEL_BASE_PATH_GLOBAL } from '../../src/common/tunnel';
-import type { Handle } from '@sveltejs/kit';
+import type { Handle } from '../../src/server-common/handleTypes';
 import { redirect } from '@sveltejs/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
