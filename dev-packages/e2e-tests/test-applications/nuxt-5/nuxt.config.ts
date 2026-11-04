@@ -28,6 +28,7 @@ export default defineNuxtConfig({
     },
   },
   nitro: {
+    ...(process.env.E2E_TEST_CACHE_DRIVER && { cache: { driver: process.env.E2E_TEST_CACHE_DRIVER } }),
     experimental: {
       database: true,
     },

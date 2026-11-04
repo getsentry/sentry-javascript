@@ -1,6 +1,15 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
+// Nitro v3 only routes cached functions and handlers through KV storage with the `kv` cache driver,
+// so the default (`memory`) driver is traced through ocache's storage instead.
+const isKvCacheDriver = process.env.E2E_TEST_CACHE_DRIVER === 'kv';
+const GET_METHOD = isKvCacheDriver ? 'getItem' : 'get';
+const SET_METHOD = isKvCacheDriver ? 'setItem' : 'set';
+const STORAGE_ATTRIBUTES = isKvCacheDriver
+  ? { 'db.collection.name': { type: 'string', value: expect.stringMatching(/^(cache)?$/) } }
+  : { 'db.system.name': { type: 'string', value: 'memory' } };
+
 test.describe('Cache Instrumentation', () => {
   const SEMANTIC_ATTRIBUTE_CACHE_KEY = 'cache.key';
   const SEMANTIC_ATTRIBUTE_CACHE_HIT = 'cache.hit';
@@ -34,8 +43,8 @@ test.describe('Cache Instrumentation', () => {
 
     const getCacheKey = (span: (typeof allCacheSpans)[number]) => span.attributes[SEMANTIC_ATTRIBUTE_CACHE_KEY]?.value;
 
-    // Test get spans for cachedFunction - should have both cache miss and cache hit
-    const getItemSpans = findSpansByMethod('get');
+    // Test read spans for cachedFunction - should have both cache miss and cache hit
+    const getItemSpans = findSpansByMethod(GET_METHOD);
     expect(getItemSpans.length).toBeGreaterThan(0);
 
     // Find cache miss (first call to getCachedUser('123'))
@@ -51,8 +60,8 @@ test.describe('Cache Instrumentation', () => {
         'cache.operation': { type: 'string', value: 'get' },
         'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: false },
-        'db.operation.name': { type: 'string', value: 'get' },
-        'db.system.name': { type: 'string', value: 'memory' },
+        'db.operation.name': { type: 'string', value: GET_METHOD },
+        ...STORAGE_ATTRIBUTES,
       });
     }
 
@@ -69,13 +78,13 @@ test.describe('Cache Instrumentation', () => {
         'cache.operation': { type: 'string', value: 'get' },
         'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: true },
-        'db.operation.name': { type: 'string', value: 'get' },
-        'db.system.name': { type: 'string', value: 'memory' },
+        'db.operation.name': { type: 'string', value: GET_METHOD },
+        ...STORAGE_ATTRIBUTES,
       });
     }
 
-    // Test set spans for cachedFunction - when cache miss occurs, value is set
-    const setItemSpans = findSpansByMethod('set');
+    // Test write spans for cachedFunction - when cache miss occurs, value is set
+    const setItemSpans = findSpansByMethod(SET_METHOD);
     expect(setItemSpans.length).toBeGreaterThan(0);
 
     const cacheSetSpan = setItemSpans.find(
@@ -86,8 +95,8 @@ test.describe('Cache Instrumentation', () => {
         'sentry.op': { type: 'string', value: 'cache.put' },
         'cache.operation': { type: 'string', value: 'put' },
         'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
-        'db.operation.name': { type: 'string', value: 'set' },
-        'db.system.name': { type: 'string', value: 'memory' },
+        'db.operation.name': { type: 'string', value: SET_METHOD },
+        ...STORAGE_ATTRIBUTES,
       });
     }
 
