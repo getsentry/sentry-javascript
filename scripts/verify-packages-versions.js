@@ -28,7 +28,7 @@ ref: https://twitter.com/wesleytodd/status/1297974661574262784
 
 // pnpm reads the workspace packages from `pnpm-workspace.yaml`, the repo scripts and Deno from `package.json`.
 function readPnpmWorkspacePackages() {
-  const lines = fs.readFileSync(path.join(__dirname, '../pnpm-workspace.yaml'), 'utf8').split('\n');
+  const lines = fs.readFileSync(path.join(__dirname, '../pnpm-workspace.yaml'), 'utf8').split(/\r?\n/);
   const start = lines.indexOf('packages:');
   const packages = [];
 
