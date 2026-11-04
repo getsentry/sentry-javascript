@@ -250,25 +250,33 @@ export function instrumentObservable(
                   }
 
                   const errorHandler = Reflect.get(target, property, target);
-                  return function (this: unknown, error: unknown): unknown {
-                    onError(error);
-                    if (typeof errorHandler !== 'function') {
+                  if (typeof errorHandler === 'function') {
+                    return function (this: unknown, error: unknown): unknown {
+                      onError(error);
+                      return Reflect.apply(errorHandler, target, [error]);
+                    };
+                  }
+
+                  // Preserve RxJS's positional error-handler fallback for observer objects.
+                  if (errorHandler || typeof argsSubscribe[1] !== 'function') {
+                    return function (this: unknown, error: unknown): never {
+                      onError(error);
                       throw error;
-                    }
-                    return Reflect.apply(errorHandler, target, [error]);
-                  };
+                    };
+                  }
+                  return errorHandler;
                 },
               });
-            } else {
-              const errorHandler = argsSubscribe[1];
-              subscribeArgs[1] = function (this: unknown, error: unknown): unknown {
-                onError(error);
-                if (typeof errorHandler !== 'function') {
-                  throw error;
-                }
-                return Reflect.apply(errorHandler, this, [error]);
-              };
             }
+
+            const errorHandler = argsSubscribe[1];
+            subscribeArgs[1] = function (this: unknown, error: unknown): unknown {
+              onError(error);
+              if (typeof errorHandler !== 'function') {
+                throw error;
+              }
+              return Reflect.apply(errorHandler, this, [error]);
+            };
           }
 
           const subscription: Subscription = originalSubscribe.apply(thisArgSubscribe, subscribeArgs);
