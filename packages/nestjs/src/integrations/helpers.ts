@@ -246,7 +246,11 @@ export function instrumentObservable(
               subscribeArgs[0] = new Proxy(observer, {
                 get(target, property, receiver) {
                   if (property !== 'error') {
-                    return Reflect.get(target, property, receiver);
+                    const value = Reflect.get(target, property, target);
+                    if ((property === 'next' || property === 'complete') && typeof value === 'function') {
+                      return (...args: unknown[]) => Reflect.apply(value, target, args);
+                    }
+                    return value;
                   }
 
                   const errorHandler = Reflect.get(target, property, target);
