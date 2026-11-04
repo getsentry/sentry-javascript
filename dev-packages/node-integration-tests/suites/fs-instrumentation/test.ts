@@ -1,7 +1,8 @@
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
-import { cleanupChildProcesses, createCjsTests } from '../../utils/runner';
+import { supports } from '../../utils';
+import { cleanupChildProcesses, createEsmAndCjsTests } from '../../utils/runner';
 
 type FileSpan = Pick<SerializedStreamedSpanContainer['items'][number], 'name' | 'status' | 'attributes'>;
 
@@ -37,11 +38,14 @@ describe('fs instrumentation', () => {
   });
 
   describe('records file paths and error messages', () => {
-    createCjsTests(
+    createEsmAndCjsTests(
       __dirname,
       'scenario.mjs',
       'instrument.mjs',
-      (createRunner, test) => {
+      (createRunner, test, mode) => {
+        // Deno's ESM `node:fs` exports are not tied to the `fs` object we patch, so only `fs.promises` is traced there.
+        const testUnlessDenoEsm = test.runIf(mode === 'cjs' || supports({ runtimes: ['node'] }));
+
         test('should create spans for fs operations that take target argument', async () => {
           const runner = createRunner()
             .expect({
@@ -68,7 +72,7 @@ describe('fs instrumentation', () => {
           await runner.completed();
         });
 
-        test('should create spans for fs operations that take one path', async () => {
+        testUnlessDenoEsm('should create spans for fs operations that take one path', async () => {
           const runner = createRunner()
             .expect({
               span: expectFileSpans('GET /readFile', [
@@ -111,7 +115,45 @@ describe('fs instrumentation', () => {
           await runner.completed();
         });
 
-        test('should create spans for fs operations that take src and dest arguments', async () => {
+        // CJS destructuring copies the functions at require time, before the instrumentation patches them.
+        test.runIf(mode === 'esm' && supports({ runtimes: ['node'] }))(
+          'should create spans for named imports from fs and fs/promises',
+          async () => {
+            const runner = createRunner()
+              .expect({
+                span: expectFileSpans('GET /named-imports', [
+                  {
+                    name: 'fs.readFileSync',
+                    status: 'ok',
+                    attributes: {
+                      path_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file.txt') },
+                      [SENTRY_OP]: { type: 'string', value: 'file' },
+                      [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    },
+                  },
+                  {
+                    name: 'fs.readFile',
+                    status: 'ok',
+                    attributes: {
+                      path_argument: {
+                        type: 'string',
+                        value: expect.stringMatching('/fixtures/some-file-promises.txt'),
+                      },
+                      [SENTRY_OP]: { type: 'string', value: 'file' },
+                      [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    },
+                  },
+                ]),
+              })
+              .start();
+
+            const result = await runner.makeRequest('get', '/named-imports');
+            expect(result).toEqual('done');
+            await runner.completed();
+          },
+        );
+
+        testUnlessDenoEsm('should create spans for fs operations that take src and dest arguments', async () => {
           const runner = createRunner()
             .expect({
               span: expectFileSpans('GET /copyFile', [
@@ -160,54 +202,69 @@ describe('fs instrumentation', () => {
           await runner.completed();
         });
 
-        test('should create spans for fs operations that take existing path and new path arguments', async () => {
-          const runner = createRunner()
-            .expect({
-              span: expectFileSpans('GET /link', [
-                {
-                  name: 'fs.link',
-                  status: 'ok',
-                  attributes: {
-                    existing_path_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file.txt') },
-                    new_path_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file.txt.link') },
-                    [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
-                  },
-                },
-                {
-                  name: 'fs.link',
-                  status: 'ok',
-                  attributes: {
-                    existing_path_argument: { type: 'string', value: expect.stringMatching('/some-file-promises.txt') },
-                    new_path_argument: { type: 'string', value: expect.stringMatching('/some-file-promises.txt.link') },
-                    [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
-                  },
-                },
-                {
-                  name: 'fs.link',
-                  status: 'ok',
-                  attributes: {
-                    existing_path_argument: {
-                      type: 'string',
-                      value: expect.stringMatching('/fixtures/some-file-promisify.txt'),
+        testUnlessDenoEsm(
+          'should create spans for fs operations that take existing path and new path arguments',
+          async () => {
+            const runner = createRunner()
+              .expect({
+                span: expectFileSpans('GET /link', [
+                  {
+                    name: 'fs.link',
+                    status: 'ok',
+                    attributes: {
+                      existing_path_argument: {
+                        type: 'string',
+                        value: expect.stringMatching('/fixtures/some-file.txt'),
+                      },
+                      new_path_argument: {
+                        type: 'string',
+                        value: expect.stringMatching('/fixtures/some-file.txt.link'),
+                      },
+                      [SENTRY_OP]: { type: 'string', value: 'file' },
+                      [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                     },
-                    new_path_argument: {
-                      type: 'string',
-                      value: expect.stringMatching('/fixtures/some-file-promisify.txt.link'),
-                    },
-                    [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
-                },
-              ]),
-            })
-            .start();
+                  {
+                    name: 'fs.link',
+                    status: 'ok',
+                    attributes: {
+                      existing_path_argument: {
+                        type: 'string',
+                        value: expect.stringMatching('/some-file-promises.txt'),
+                      },
+                      new_path_argument: {
+                        type: 'string',
+                        value: expect.stringMatching('/some-file-promises.txt.link'),
+                      },
+                      [SENTRY_OP]: { type: 'string', value: 'file' },
+                      [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    },
+                  },
+                  {
+                    name: 'fs.link',
+                    status: 'ok',
+                    attributes: {
+                      existing_path_argument: {
+                        type: 'string',
+                        value: expect.stringMatching('/fixtures/some-file-promisify.txt'),
+                      },
+                      new_path_argument: {
+                        type: 'string',
+                        value: expect.stringMatching('/fixtures/some-file-promisify.txt.link'),
+                      },
+                      [SENTRY_OP]: { type: 'string', value: 'file' },
+                      [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    },
+                  },
+                ]),
+              })
+              .start();
 
-          const result = await runner.makeRequest('get', '/link');
-          expect(result).toEqual('done');
-          await runner.completed();
-        });
+            const result = await runner.makeRequest('get', '/link');
+            expect(result).toEqual('done');
+            await runner.completed();
+          },
+        );
 
         test('should create spans for fs operations that take prefix argument', async () => {
           const runner = createRunner()
@@ -249,7 +306,7 @@ describe('fs instrumentation', () => {
           await runner.completed();
         });
 
-        test('should create spans for fs symlink operations that take target argument', async () => {
+        testUnlessDenoEsm('should create spans for fs symlink operations that take target argument', async () => {
           const runner = createRunner()
             .expect({
               span: expectFileSpans('GET /symlink', [
@@ -304,7 +361,7 @@ describe('fs instrumentation', () => {
           await runner.completed();
         });
 
-        test('should create spans for fs.exists callback and promisified versions', async () => {
+        testUnlessDenoEsm('should create spans for fs.exists callback and promisified versions', async () => {
           const runner = createRunner()
             .expect({
               span: expectFileSpans('GET /exists', [
@@ -343,7 +400,7 @@ describe('fs instrumentation', () => {
   });
 
   describe('records file paths only', () => {
-    createCjsTests(
+    createEsmAndCjsTests(
       __dirname,
       'scenario.mjs',
       'instrument-record-paths-only.mjs',
@@ -379,7 +436,7 @@ describe('fs instrumentation', () => {
   });
 
   describe('records error messages only', () => {
-    createCjsTests(
+    createEsmAndCjsTests(
       __dirname,
       'scenario.mjs',
       'instrument-record-errors-only.mjs',
