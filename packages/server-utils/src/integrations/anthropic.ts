@@ -16,6 +16,7 @@ import { ANTHROPIC_AI_ORIGIN } from '../ai/anthropic-ai/constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from '../ai/anthropic-ai/streaming';
 import { instrumentSessionToolRunner, instrumentToolRunner } from '../ai/anthropic-ai/tool-runner';
 import type { AnthropicAiOptions, AnthropicAiResponse } from '../ai/anthropic-ai/types';
+import { isInsidePiAiSpan } from '../ai/pi-ai/providers';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -101,7 +102,7 @@ function createGenAiSpan(
 
   // When LangChain (or another provider) is driving the SDK, it records the spans itself and marks this
   // provider as skipped — mirror the OTel integration and don't double-instrument.
-  if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME)) {
+  if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME) || isInsidePiAiSpan()) {
     return undefined;
   }
 

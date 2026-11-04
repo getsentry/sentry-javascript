@@ -6,7 +6,6 @@ import { resolveAIRecordingOptions } from '../ai/core/utils';
 import { getPiAiChatSpanOptions, setPiAiResponseAttributes } from '../ai/pi-ai/chat';
 import { PI_AI_INTEGRATION_NAME } from '../ai/pi-ai/constants';
 import type { PiAiContext } from '../ai/pi-ai/messages';
-import { skipPiAiProviderIntegrations } from '../ai/pi-ai/providers';
 import type { PiEventStream, PiStreamOptions } from '../ai/pi-ai/types';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
@@ -36,7 +35,6 @@ function instrumentPiAi(options: PiAiOptions): void {
     if (depth > 0) {
       return undefined;
     }
-    skipPiAiProviderIntegrations();
     const [model, context, callOptions] = data.arguments ?? [];
     return startInactiveSpan(
       getPiAiChatSpanOptions({
@@ -95,9 +93,6 @@ function instrumentPiAi(options: PiAiOptions): void {
  * through `createModels()` or the standalone `stream` and `complete` functions. Needs the Sentry
  * runtime hook (`--import`) or bundler plugin. This includes the model calls of Flue and pi-durable
  * agents, which send them through pi-ai.
- *
- * Once pi-ai has sent a request, the `openai`, `@anthropic-ai/sdk`, `@google/genai` and Workers AI
- * integrations stop recording requests for the rest of the process, since pi-ai sends through them.
  *
  * @example
  * ```javascript

@@ -88,6 +88,26 @@ describe.runIf(supports({ min: 22 }))('pi-ai integration', () => {
     });
   });
 
+  createEsmTests(__dirname, 'scenario-provider-sdk.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('reports requests through a provider SDK once, and leaves direct calls to it alone', async () => {
+      await createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const spans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT);
+            const namesFrom = (origin: string): (string | undefined)[] =>
+              spans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === origin).map(span => span.name);
+
+            expect(namesFrom('auto.ai.pi_ai')).toEqual(['chat pi-model', 'chat pi-model']);
+            expect(namesFrom('auto.ai.openai')).toEqual(['chat direct-model', 'chat direct-model']);
+            expect(spans).toHaveLength(4);
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
   createEsmTests(__dirname, 'scenario-compat.mjs', 'instrument.mjs', (createRunner, test) => {
     // `compat` loads pi-ai's model catalog with `import ... with { type: 'json' }`. Deno 2.8 drops
     // the import attributes once any module hook is registered and compiles the JSON as JavaScript,

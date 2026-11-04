@@ -17,6 +17,7 @@ import {
   extractRequestAttributes,
   resolveChatParams,
 } from '../ai/google-genai';
+import { isInsidePiAiSpan } from '../ai/pi-ai/providers';
 import { instrumentStream } from '../ai/google-genai/streaming';
 import type { GoogleGenAIOptions, GoogleGenAIResponse } from '../ai/google-genai/types';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
@@ -80,7 +81,7 @@ function createGenAiSpan(
 ): Span | undefined {
   // When another provider (e.g. LangChain) is driving the SDK, it records the spans itself and marks this
   // provider as skipped; skip here to avoid double spans.
-  if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME)) {
+  if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME) || isInsidePiAiSpan()) {
     return undefined;
   }
 
