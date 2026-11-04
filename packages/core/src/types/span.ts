@@ -317,7 +317,8 @@ export interface Span {
   addLinks(links: SpanLink[]): this;
 
   /**
-   * NOT USED IN SENTRY, only added for compliance with OTEL Span interface
+   * Only added for compliance with OTEL Span interface. The exception is captured as an error if
+   * `spanExceptionsIntegration` is added, and ignored otherwise.
    */
   recordException(exception: unknown, time?: SpanTimeInput): void;
 }

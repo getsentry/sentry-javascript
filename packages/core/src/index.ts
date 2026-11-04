@@ -174,6 +174,7 @@ export { featureFlagsIntegration } from './integrations/featureFlags';
 export { growthbookIntegration } from './integrations/featureFlags';
 export { conversationIdIntegration } from './integrations/conversationId';
 export { spanStreamingIntegration } from './integrations/spanStreaming';
+export { spanExceptionsIntegration } from './integrations/spanExceptions';
 export { createFetchIntegration } from './integrations/fetch';
 export type { FetchIntegrationOptions } from './integrations/fetch';
 export { profiler } from './profiling';

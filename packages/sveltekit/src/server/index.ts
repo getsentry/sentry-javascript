@@ -156,6 +156,7 @@ export {
   vercelAIIntegration,
   metrics,
   spanStreamingIntegration,
+  spanExceptionsIntegration,
   withStaticSpan,
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,

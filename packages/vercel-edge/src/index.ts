@@ -104,6 +104,7 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   spanStreamingIntegration,
+  spanExceptionsIntegration,
 } from '@sentry/core';
 export {
   handleTunnelRequestIfMatched,

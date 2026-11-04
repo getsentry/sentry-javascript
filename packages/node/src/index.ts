@@ -182,6 +182,7 @@ export {
   createConsolaReporter,
   featureFlagsIntegration,
   spanStreamingIntegration,
+  spanExceptionsIntegration,
 } from '@sentry/core';
 export {
   handleTunnelRequestIfMatched,

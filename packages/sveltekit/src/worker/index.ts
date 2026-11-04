@@ -98,6 +98,7 @@ export {
   zodErrorsIntegration,
   featureFlagsIntegration,
   vercelAIIntegration,
+  spanExceptionsIntegration,
   type FeatureFlagsIntegration,
 } from '@sentry/cloudflare';
 

@@ -110,6 +110,7 @@ export {
   logger,
   consoleLoggingIntegration,
   spanStreamingIntegration,
+  spanExceptionsIntegration,
 } from '@sentry/core';
 export {
   handleTunnelRequestIfMatched,

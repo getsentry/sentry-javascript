@@ -722,6 +722,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(hook: 'spanEnd', callback: (span: Span) => void): () => void;
 
+  /**
+   * Register a callback for whenever an exception is recorded on a span with `span.recordException()`.
+   * Receives the span and the exception as arguments.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'recordException', callback: (span: Span, exception: unknown) => void): () => void;
+
   /** Register a callback before an idle span ends and its end timestamp is finalized. */
   public on(hook: 'beforeIdleSpanEnd', callback: (idleSpan: Span) => void): () => void;
 
@@ -1071,6 +1078,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** Fire a hook whenever a span ends. */
   public emit(hook: 'spanEnd', span: Span): void;
+
+  /** Fire a hook whenever an exception is recorded on a span. */
+  public emit(hook: 'recordException', span: Span, exception: unknown): void;
 
   /** Fire a hook before an idle span ends and its end timestamp is finalized. */
   public emit(hook: 'beforeIdleSpanEnd', idleSpan: Span): void;
