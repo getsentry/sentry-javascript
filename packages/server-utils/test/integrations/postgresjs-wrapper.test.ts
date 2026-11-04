@@ -1,6 +1,10 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { _reconstructQuery, instrumentPostgresJsSql } from '../../src/integrations/postgresjs-wrapper';
+import {
+  _reconstructQuery,
+  _wrapQuerySettlement,
+  instrumentPostgresJsSql,
+} from '../../src/integrations/postgresjs-wrapper';
 import { sanitizeSqlQuery } from '../../src/utils/sql';
 
 describe('PostgresJs portable instrumentation', () => {
@@ -84,6 +88,96 @@ describe('PostgresJs portable instrumentation', () => {
         const strings = ['SELECT *\n  FROM users\n  WHERE id = ', ';'];
         expect(sanitizeSqlQuery(_reconstructQuery(strings))).toBe('SELECT * FROM users WHERE id = $1');
       });
+    });
+  });
+
+  describe('_wrapQuerySettlement', () => {
+    const createSpan = () =>
+      ({ end: vi.fn(), setAttribute: vi.fn(), setStatus: vi.fn() }) as unknown as SentryCore.Span;
+
+    it('ends the span with the server-reported command on resolve', () => {
+      const span = createSpan();
+      const resolve = vi.fn((_result: unknown) => 'resolved');
+      const onSettle = vi.fn();
+      const query = { resolve, reject: vi.fn() };
+
+      _wrapQuerySettlement(query, span, 'SELECT', onSettle);
+      const result = query.resolve({ command: 'UPDATE' });
+
+      expect(span.setAttribute).toHaveBeenCalledWith('db.operation.name', 'UPDATE');
+      expect(span.end).toHaveBeenCalledTimes(1);
+      expect(onSettle).toHaveBeenCalledTimes(1);
+      expect(resolve).toHaveBeenCalledWith({ command: 'UPDATE' });
+      expect(result).toBe('resolved');
+    });
+
+    it('falls back to the given operation name on resolve', () => {
+      const span = createSpan();
+      const query = { resolve: vi.fn(), reject: vi.fn() };
+
+      _wrapQuerySettlement(query, span, 'SELECT');
+      query.resolve({});
+
+      expect(span.setAttribute).toHaveBeenCalledWith('db.operation.name', 'SELECT');
+    });
+
+    it('marks the span as errored and ends it on reject', () => {
+      const span = createSpan();
+      const reject = vi.fn((_error: unknown) => 'rejected');
+      const onSettle = vi.fn();
+      const query = { resolve: vi.fn(), reject };
+      const error = { message: 'boom', code: '42P01', name: 'PostgresError' };
+
+      _wrapQuerySettlement(query, span, 'SELECT', onSettle);
+      const result = query.reject(error);
+
+      expect(span.setStatus).toHaveBeenCalledWith({ code: SentryCore.SPAN_STATUS_ERROR, message: 'boom' });
+      expect(span.setAttribute).toHaveBeenCalledWith('db.response.status_code', '42P01');
+      expect(span.setAttribute).toHaveBeenCalledWith('error.type', 'PostgresError');
+      expect(span.end).toHaveBeenCalledTimes(1);
+      expect(onSettle).toHaveBeenCalledTimes(1);
+      expect(reject).toHaveBeenCalledWith(error);
+      expect(result).toBe('rejected');
+    });
+
+    it('uses fallbacks for an error without details', () => {
+      const span = createSpan();
+      const query = { resolve: vi.fn(), reject: vi.fn() };
+
+      _wrapQuerySettlement(query, span, undefined);
+      query.reject(undefined);
+
+      expect(span.setStatus).toHaveBeenCalledWith({ code: SentryCore.SPAN_STATUS_ERROR, message: 'unknown_error' });
+      expect(span.setAttribute).toHaveBeenCalledWith('db.response.status_code', 'unknown');
+      expect(span.setAttribute).toHaveBeenCalledWith('error.type', 'unknown');
+    });
+
+    it('still settles the query and runs onSettle when ending the span throws', () => {
+      const span = createSpan();
+      vi.mocked(span.end).mockImplementation(() => {
+        throw new Error('end failed');
+      });
+      const resolve = vi.fn();
+      const reject = vi.fn();
+      const onSettle = vi.fn();
+      const query = { resolve, reject };
+
+      _wrapQuerySettlement(query, span, 'SELECT', onSettle);
+      query.resolve({});
+      query.reject(new Error('boom'));
+
+      expect(resolve).toHaveBeenCalledTimes(1);
+      expect(reject).toHaveBeenCalledTimes(1);
+      expect(onSettle).toHaveBeenCalledTimes(2);
+    });
+
+    it('leaves missing callbacks alone', () => {
+      const query: { resolve?: () => void; reject?: () => void } = {};
+
+      _wrapQuerySettlement(query, createSpan(), 'SELECT');
+
+      expect(query.resolve).toBeUndefined();
+      expect(query.reject).toBeUndefined();
     });
   });
 

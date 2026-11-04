@@ -3,22 +3,22 @@ import {
   DB_OPERATION_NAME,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
-  ERROR_TYPE,
   SENTRY_KIND,
   SENTRY_OP,
   SENTRY_ORIGIN,
-  DB_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
-import { debug, defineIntegration, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
+import { debug, defineIntegration, startInactiveSpan } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { getSqlQueryAttributes, getSqlSpanName } from '../utils/sql';
 import {
   _buildConnectionContext,
   _getConnectionAttributes,
   _reconstructQuery,
+  _wrapQuerySettlement,
   type PostgresConnectionContext,
+  type PostgresQuerySettlement,
 } from './postgresjs-wrapper';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
@@ -60,11 +60,9 @@ export interface PostgresJsIntegrationOptions {
 }
 
 /** The `Query` instance postgres.js passes as `self` to `Query.prototype.handle`. */
-interface PostgresQuery {
+interface PostgresQuery extends PostgresQuerySettlement {
   strings?: string[];
   executed?: boolean;
-  resolve?: (...args: unknown[]) => unknown;
-  reject?: (...args: unknown[]) => unknown;
 }
 
 interface PostgresJsQueryContext extends OrchestrionChannelContext {
@@ -129,57 +127,6 @@ function attachConnectionAttributesFromChannel(message: PostgresJsQueryContext):
   const context = connectionContexts.get(connection);
   if (span && context) {
     span.setAttributes(_getConnectionAttributes(context));
-  }
-}
-
-/**
- * Wrap `query.resolve`/`query.reject` so the span ends when the query settles.
- *
- * `Query extends Promise` and `async handle()` only dispatches — its promise
- * resolves immediately, long before the query completes. postgres.js signals
- * completion by calling `this.resolve`/`this.reject`, so we own the span end
- * there. Wrapping happens at handle-start because `reject` can fire
- * synchronously during dispatch and `cursor()` reassigns both before executing.
- */
-function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, operationName: string | undefined): void {
-  const query = data.self;
-  if (!query) {
-    return;
-  }
-
-  const originalResolve = query.resolve;
-  if (typeof originalResolve === 'function') {
-    query.resolve = function (this: unknown, ...resolveArgs: unknown[]): unknown {
-      // Claim ownership of ending the span up front, so `deferSpanEnd` defers to the
-      // wrapper even if `span.end()` below throws.
-      data[SPAN_ENDED] = true;
-      try {
-        const command = (resolveArgs[0] as { command?: string } | undefined)?.command;
-        // Re-set the operation name with the server-reported command, which is more reliable than the query text.
-        span.setAttribute(DB_OPERATION_NAME, command || operationName);
-        span.end();
-      } catch (e) {
-        DEBUG_BUILD && debug.error('[instrumentation:postgresjs] error ending span in resolve:', e);
-      }
-      return originalResolve.apply(this, resolveArgs);
-    };
-  }
-
-  const originalReject = query.reject;
-  if (typeof originalReject === 'function') {
-    query.reject = function (this: unknown, ...rejectArgs: unknown[]): unknown {
-      data[SPAN_ENDED] = true;
-      try {
-        const err = rejectArgs[0] as { message?: string; code?: string; name?: string } | undefined;
-        span.setStatus({ code: SPAN_STATUS_ERROR, message: err?.message || 'unknown_error' });
-        span.setAttribute(DB_RESPONSE_STATUS_CODE, err?.code || 'unknown');
-        span.setAttribute(ERROR_TYPE, err?.name || 'unknown');
-        span.end();
-      } catch (e) {
-        DEBUG_BUILD && debug.error('[instrumentation:postgresjs] error ending span in reject:', e);
-      }
-      return originalReject.apply(this, rejectArgs);
-    };
   }
 }
 
@@ -277,7 +224,11 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
         }
       }
 
-      wrapQuerySettlement(data, span, queryAttributes[DB_OPERATION_NAME]);
+      // Claim ownership of ending the span up front, so `deferSpanEnd` defers to the
+      // settlement wrappers even if `span.end()` throws in them.
+      _wrapQuerySettlement(query, span, queryAttributes[DB_OPERATION_NAME], () => {
+        data[SPAN_ENDED] = true;
+      });
 
       return span;
     },

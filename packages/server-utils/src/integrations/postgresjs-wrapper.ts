@@ -28,6 +28,12 @@ import {
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 
+/** The callbacks postgres.js calls on a `Query` when it settles. */
+export interface PostgresQuerySettlement {
+  resolve?: (...args: unknown[]) => unknown;
+  reject?: (...args: unknown[]) => unknown;
+}
+
 export type PostgresConnectionContext = {
   ATTR_DB_NAMESPACE?: string;
   ATTR_SERVER_ADDRESS?: string;
@@ -234,7 +240,10 @@ function _wrapSingleQueryHandle(
 
   // IMPORTANT: We must replace the handle function directly, not use a Proxy,
   // because Query.then() internally calls this.handle(), which would bypass a Proxy wrapper.
-  const wrappedHandle = async function (this: { executed?: boolean }, ...args: unknown[]): Promise<unknown> {
+  const wrappedHandle = async function (
+    this: PostgresQuerySettlement & { executed?: boolean },
+    ...args: unknown[]
+  ): Promise<unknown> {
     // postgres.js calls handle() from then/catch/finally — only the first call executes SQL,
     // subsequent calls are no-ops (guarded by this.executed). Skip span creation for no-ops.
     if (this.executed || !_shouldCreateSpans(options)) {
@@ -266,43 +275,7 @@ function _wrapSingleQueryHandle(
         }
       }
 
-      const queryWithCallbacks = this as {
-        resolve: unknown;
-        reject: unknown;
-      };
-
-      queryWithCallbacks.resolve = new Proxy(queryWithCallbacks.resolve as (...args: unknown[]) => unknown, {
-        apply: (resolveTarget, resolveThisArg, resolveArgs: [{ command?: string }]) => {
-          try {
-            // Re-set the operation name with the server-reported command, which is more reliable than the query text.
-            span.setAttribute(DB_OPERATION_NAME, resolveArgs?.[0]?.command || queryAttributes[DB_OPERATION_NAME]);
-            span.end();
-          } catch (e) {
-            DEBUG_BUILD && debug.error('Error ending span in resolve callback:', e);
-          }
-
-          return Reflect.apply(resolveTarget, resolveThisArg, resolveArgs);
-        },
-      });
-
-      queryWithCallbacks.reject = new Proxy(queryWithCallbacks.reject as (...args: unknown[]) => unknown, {
-        apply: (rejectTarget, rejectThisArg, rejectArgs: { message?: string; code?: string; name?: string }[]) => {
-          try {
-            span.setStatus({
-              code: SPAN_STATUS_ERROR,
-              message: rejectArgs?.[0]?.message || 'unknown_error',
-            });
-
-            span.setAttribute(DB_RESPONSE_STATUS_CODE, rejectArgs?.[0]?.code || 'unknown');
-            span.setAttribute(ERROR_TYPE, rejectArgs?.[0]?.name || 'unknown');
-
-            span.end();
-          } catch (e) {
-            DEBUG_BUILD && debug.error('Error ending span in reject callback:', e);
-          }
-          return Reflect.apply(rejectTarget, rejectThisArg, rejectArgs);
-        },
-      });
+      _wrapQuerySettlement(this, span, queryAttributes[DB_OPERATION_NAME]);
 
       // Handle synchronous errors that might occur before promise is created
       try {
@@ -395,6 +368,55 @@ export function _buildConnectionContext(options: {
     ATTR_SERVER_ADDRESS: host,
     ATTR_SERVER_PORT: String(port),
   };
+}
+
+/**
+ * Wrap `query.resolve`/`query.reject` so the span ends when the query settles.
+ *
+ * `Query extends Promise` and `async handle()` only dispatches — its promise
+ * resolves immediately, long before the query completes. postgres.js signals
+ * completion by calling `this.resolve`/`this.reject`, so we own the span end
+ * there. Wrapping happens at handle-start because `reject` can fire
+ * synchronously during dispatch and `cursor()` reassigns both before executing.
+ */
+export function _wrapQuerySettlement(
+  query: PostgresQuerySettlement,
+  span: Span,
+  operationName: string | undefined,
+  onSettle?: () => void,
+): void {
+  const originalResolve = query.resolve;
+  if (typeof originalResolve === 'function') {
+    query.resolve = function (this: unknown, ...resolveArgs: unknown[]): unknown {
+      onSettle?.();
+      try {
+        const command = (resolveArgs[0] as { command?: string } | undefined)?.command;
+        // Re-set the operation name with the server-reported command, which is more reliable than the query text.
+        span.setAttribute(DB_OPERATION_NAME, command || operationName);
+        span.end();
+      } catch (e) {
+        DEBUG_BUILD && debug.error('[instrumentation:postgresjs] error ending span in resolve:', e);
+      }
+      return originalResolve.apply(this, resolveArgs);
+    };
+  }
+
+  const originalReject = query.reject;
+  if (typeof originalReject === 'function') {
+    query.reject = function (this: unknown, ...rejectArgs: unknown[]): unknown {
+      onSettle?.();
+      try {
+        const err = rejectArgs[0] as { message?: string; code?: string; name?: string } | undefined;
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: err?.message || 'unknown_error' });
+        span.setAttribute(DB_RESPONSE_STATUS_CODE, err?.code || 'unknown');
+        span.setAttribute(ERROR_TYPE, err?.name || 'unknown');
+        span.end();
+      } catch (e) {
+        DEBUG_BUILD && debug.error('[instrumentation:postgresjs] error ending span in reject:', e);
+      }
+      return originalReject.apply(this, rejectArgs);
+    };
+  }
 }
 
 /**
