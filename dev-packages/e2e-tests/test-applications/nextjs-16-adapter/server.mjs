@@ -19,7 +19,8 @@ createServer(async (req, res) => {
     res.writeHead(response.status, { 'x-middleware-next': response.headers.get('x-middleware-next') ?? '' });
     res.end(await response.text());
   } catch (error) {
+    console.error(error);
     res.writeHead(500);
-    res.end(String(error));
+    res.end();
   }
 }).listen(3030);
