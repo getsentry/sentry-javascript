@@ -56,12 +56,23 @@ function warnIfPiAiNotInstrumented(): void {
     // eslint-disable-next-line no-console
     console.warn(
       '[Sentry] Flue model calls are not being traced: `@earendil-works/pi-ai` was not instrumented, so ' +
-        'Flue agents record agent and tool spans but no `gen_ai.chat` spans. Model calls are traced by the ' +
-        "pi-ai integration, which needs Sentry's module hook or bundler plugin. On Node, load Sentry with " +
-        '`--import` (for example `node --import ./instrument.mjs app.mjs`). On Cloudflare, add ' +
-        '`sentryCloudflareVitePlugin()`. On Bun, build with `@sentry/bun/plugin`.',
+        `Flue agents record agent and tool spans but no \`gen_ai.chat\` spans. ${getPiAiInstrumentationHint()}`,
     );
   });
+}
+
+function getPiAiInstrumentationHint(): string {
+  const { Bun, Deno } = GLOBAL_OBJ as { Bun?: unknown; Deno?: unknown };
+  if (Bun) {
+    return 'Build your app with `sentryBunPlugin()` from `@sentry/bun/plugin`; `bun run` cannot instrument it.';
+  }
+  if (Deno) {
+    return 'Run your app with `deno run --preload=npm:@sentry/deno/import app.ts`.';
+  }
+  if (isCloudflareWorkers()) {
+    return 'Add `sentryCloudflareVitePlugin()` from `@sentry/cloudflare/vite` to your Vite config.';
+  }
+  return 'Load Sentry with `--import`, for example `node --import ./instrument.mjs app.mjs`.';
 }
 
 /**
