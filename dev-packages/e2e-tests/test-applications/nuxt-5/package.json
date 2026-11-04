@@ -29,6 +29,7 @@
   "dependencies": {
     "@pinia/nuxt": "^0.11.3",
     "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
+    "db0": "^0.4.2",
     "mongoose": "^9.10.2",
     "ofetch": "^2.0.0-alpha.3",
     "nuxt": "npm:nuxt-nightly@5x",
