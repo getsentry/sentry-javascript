@@ -34,8 +34,9 @@ import {
   filterCollectedUrl,
 } from '@sentry/core';
 import { isNodeEnv, loadModule } from '@sentry/core/server';
+import { isCloudflareWorkers } from '@sentry/server-utils/no-diagnostic-channels';
 import { DEBUG_BUILD } from '../utils/debug-build';
-import { createRoutes, getTransactionName, isCloudflareEnv } from '../utils/utils';
+import { createRoutes, getTransactionName } from '../utils/utils';
 import { extractData, isResponse, json } from '../utils/vendor/response';
 import { captureRemixServerException, errorHandleDataFunction } from './errors';
 import { generateSentryServerTimingHeader, injectServerTimingHeaderValue } from './serverTimingTracePropagation';
@@ -111,7 +112,7 @@ function getTraceAndBaggage(): {
   sentryTrace?: string;
   sentryBaggage?: string;
 } {
-  if (isNodeEnv() || isCloudflareEnv()) {
+  if (isNodeEnv() || isCloudflareWorkers()) {
     const traceData = getTraceData();
 
     return {

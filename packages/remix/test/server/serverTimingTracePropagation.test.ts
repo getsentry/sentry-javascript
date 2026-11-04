@@ -1,5 +1,6 @@
 import { getActiveSpan, getTraceData } from '@sentry/core';
 import { isNodeEnv } from '@sentry/core/server';
+import { isCloudflareWorkers } from '@sentry/server-utils/no-diagnostic-channels';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   generateSentryServerTimingHeader,
@@ -33,6 +34,10 @@ vi.mock('@sentry/core', () => ({
 
 vi.mock('@sentry/core/server', () => ({
   isNodeEnv: vi.fn(() => true),
+}));
+
+vi.mock('@sentry/server-utils/no-diagnostic-channels', () => ({
+  isCloudflareWorkers: vi.fn(() => false),
 }));
 
 describe('serverTimingTracePropagation', () => {
@@ -83,21 +88,10 @@ describe('serverTimingTracePropagation', () => {
 
     it('generates header in Cloudflare environment when isNodeEnv is false', () => {
       vi.mocked(isNodeEnv).mockReturnValueOnce(false);
-
-      const originalNavigator = globalThis.navigator;
-      Object.defineProperty(globalThis, 'navigator', {
-        value: { userAgent: 'Cloudflare' },
-        configurable: true,
-      });
+      vi.mocked(isCloudflareWorkers).mockReturnValueOnce(true);
 
       const result = generateSentryServerTimingHeader();
       expect(result).not.toBeNull();
-
-      // Restore
-      Object.defineProperty(globalThis, 'navigator', {
-        value: originalNavigator,
-        configurable: true,
-      });
     });
   });
 

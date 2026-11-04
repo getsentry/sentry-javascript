@@ -1,11 +1,11 @@
 import { debug, getTraceData } from '@sentry/core';
 import { isNodeEnv } from '@sentry/core/server';
+import { isCloudflareWorkers } from '@sentry/server-utils/no-diagnostic-channels';
 import { DEBUG_BUILD } from '../utils/debug-build';
-import { isCloudflareEnv } from '../utils/utils';
 
 /** Generate a Server-Timing header value containing Sentry trace context. */
 export function generateSentryServerTimingHeader(): string | null {
-  if (!isNodeEnv() && !isCloudflareEnv()) {
+  if (!isNodeEnv() && !isCloudflareWorkers()) {
     return null;
   }
 
