@@ -221,11 +221,6 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
         if (requestBody.p !== undefined) {
           spanAttributes[GEN_AI_REQUEST_TOP_P] = requestBody.p;
         }
-        if (requestBody.message !== undefined) {
-          // NOTE: We approximate the token count since this value is not directly available in the body.
-          // According to Bedrock docs they use (total_chars / 6) to approximate token count for pricing.
-          spanAttributes[GEN_AI_USAGE_INPUT_TOKENS] = Math.ceil(requestBody.message.length / 6);
-        }
         if (requestBody.stop_sequences !== undefined) {
           spanAttributes[ATTR_GEN_AI_REQUEST_STOP_SEQUENCES] = requestBody.stop_sequences;
         }
@@ -239,16 +234,10 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
         if (requestBody.p !== undefined) {
           spanAttributes[GEN_AI_REQUEST_TOP_P] = requestBody.p;
         }
-        if (requestBody.prompt !== undefined) {
-          spanAttributes[GEN_AI_USAGE_INPUT_TOKENS] = Math.ceil(requestBody.prompt.length / 6);
-        }
         if (requestBody.stop_sequences !== undefined) {
           spanAttributes[ATTR_GEN_AI_REQUEST_STOP_SEQUENCES] = requestBody.stop_sequences;
         }
       } else if (modelId.includes('mistral')) {
-        if (requestBody.prompt !== undefined) {
-          spanAttributes[GEN_AI_USAGE_INPUT_TOKENS] = Math.ceil(requestBody.prompt.length / 6);
-        }
         if (requestBody.max_tokens !== undefined) {
           spanAttributes[GEN_AI_REQUEST_MAX_TOKENS] = requestBody.max_tokens;
         }
@@ -261,6 +250,11 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
         if (requestBody.stop !== undefined) {
           spanAttributes[ATTR_GEN_AI_REQUEST_STOP_SEQUENCES] = requestBody.stop;
         }
+      }
+
+      const approximatedInputTokens = getApproximatedInputTokens(modelId, requestBody);
+      if (approximatedInputTokens !== undefined) {
+        spanAttributes[GEN_AI_USAGE_INPUT_TOKENS] = approximatedInputTokens;
       }
     }
 
@@ -425,7 +419,10 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
 
     // Resolved once: the model family is fixed for the whole stream, and for unrecognized families
     // the chunks don't need to be parsed at all.
-    const processChunk = typeof modelId === 'string' ? resolveStreamProcessor(modelId) : undefined;
+    const processChunk =
+      typeof modelId === 'string'
+        ? resolveStreamProcessor(modelId, parseJsonBody(response.request.commandInput?.body))
+        : undefined;
 
     // Replace the original response body with our instrumented stream, deferring span.end() until the
     // entire stream is consumed. Downstream consumers still receive the full stream.
@@ -458,7 +455,21 @@ function getInvokeModelInputAttributes(modelId: string, requestBody: ParsedChunk
 
 type StreamProcessor = (parsedChunk: ParsedChunk, state: BedrockStreamState) => void;
 
-function resolveStreamProcessor(modelId: string): StreamProcessor | undefined {
+/**
+ * Cohere and Mistral report no input token usage, so it is approximated from the prompt (Bedrock prices
+ * them at 6 characters per token).
+ */
+function getApproximatedInputTokens(modelId: string, requestBody: ParsedChunk): number | undefined {
+  const prompt = modelId.includes('cohere.command-r')
+    ? requestBody?.message
+    : modelId.includes('cohere.command') || modelId.includes('mistral')
+      ? requestBody?.prompt
+      : undefined;
+  return typeof prompt === 'string' ? Math.ceil(prompt.length / 6) : undefined;
+}
+
+function resolveStreamProcessor(modelId: string, requestBody: ParsedChunk): StreamProcessor | undefined {
+  const inputTokens = getApproximatedInputTokens(modelId, requestBody);
   if (modelId.includes('amazon.titan')) return processTitanChunk;
   if (modelId.includes('anthropic.claude')) return processClaudeChunk;
   if (modelId.includes('amazon.nova')) return processConverseStreamEvent;
@@ -467,34 +478,40 @@ function resolveStreamProcessor(modelId: string): StreamProcessor | undefined {
     return withApproximatedOutputTokens(
       chunk => chunk.text,
       chunk => chunk.finish_reason,
+      inputTokens,
     );
   }
   if (modelId.includes('cohere.command')) {
     return withApproximatedOutputTokens(
       chunk => chunk.generations?.[0]?.text,
       chunk => chunk.generations?.[0]?.finish_reason,
+      inputTokens,
     );
   }
   if (modelId.includes('mistral')) {
     return withApproximatedOutputTokens(
       chunk => chunk.outputs?.[0]?.text,
       chunk => chunk.outputs?.[0]?.stop_reason,
+      inputTokens,
     );
   }
   return undefined;
 }
 
 /**
- * These models report no token usage, so output tokens are approximated from the generated text (Bedrock
- * prices them at 6 characters per token). The count has to cover the text of all chunks, not the last one,
- * and is kept apart from the text, which is only buffered when outputs are recorded.
+ * These models report no token usage, so output tokens are approximated from the generated text like the
+ * input tokens are from the prompt. The count has to cover the text of all chunks, not the last one, and is
+ * kept apart from the text, which is only buffered when outputs are recorded. The input estimate is carried
+ * into the stream so the total covers both.
  */
 function withApproximatedOutputTokens(
   getText: (chunk: ParsedChunk) => unknown,
   getFinishReason: (chunk: ParsedChunk) => unknown,
+  inputTokens: number | undefined,
 ): StreamProcessor {
   let outputChars = 0;
   return (chunk, state) => {
+    state.promptTokens = inputTokens;
     const text = getText(chunk);
     appendStreamBlock(state, 0, 'text', text);
     if (typeof text === 'string') {

@@ -647,6 +647,45 @@ describe('BedrockRuntimeServiceExtension', () => {
       });
     });
 
+    it.each([
+      {
+        modelId: 'cohere.command-r-v1:0',
+        body: { message: 'Hello there!' },
+        chunks: [{ text: 'Hello ' }, { text: 'world!', finish_reason: 'COMPLETE' }],
+      },
+      {
+        modelId: 'cohere.command-text-v14',
+        body: { prompt: 'Hello there!' },
+        chunks: [
+          { generations: [{ text: 'Hello ' }] },
+          { generations: [{ text: 'world!', finish_reason: 'COMPLETE' }] },
+        ],
+      },
+      {
+        modelId: 'mistral.mistral-7b-instruct-v0:2',
+        body: { prompt: 'Hello there!' },
+        chunks: [{ outputs: [{ text: 'Hello ' }] }, { outputs: [{ text: 'world!', stop_reason: 'stop' }] }],
+      },
+    ])(
+      'counts approximated input and output tokens in the total of a $modelId stream',
+      async ({ modelId, body, chunks }) => {
+        setUpClient();
+
+        const { span, response } = send(
+          'InvokeModelWithResponseStream',
+          { modelId, body: JSON.stringify(body) },
+          { body: asyncIterable(chunks.map(invokeModelChunk)) },
+        );
+        await drain(response.data.body);
+
+        expect(attributes(span)).toMatchObject({
+          [GEN_AI_USAGE_INPUT_TOKENS]: 2,
+          [GEN_AI_USAGE_OUTPUT_TOKENS]: 2,
+          [GEN_AI_USAGE_TOTAL_TOKENS]: 4,
+        });
+      },
+    );
+
     it('buffers no streamed content when dataCollection.genAI.outputs is off', async () => {
       setUpClient({ outputs: false });
       const chunks = [
