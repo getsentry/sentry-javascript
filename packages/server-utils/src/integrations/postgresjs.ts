@@ -42,9 +42,6 @@ const QUERY_FROM_INSTRUMENTED_SQL = Symbol.for('sentry.query.from.instrumented.s
 // The query span, stashed on the `Query` so the `execute`/`connect` channels can
 // attach connection attributes to it.
 const QUERY_SPAN = Symbol('sentryPostgresJsSpan');
-// Set once connection attributes are on the span, so the fallback and the
-// `execute`/`connect` channels don't both write them.
-const CONNECTION_ATTRS_SET = Symbol('sentryPostgresJsConnectionAttrsSet');
 // Set on the channel context once the resolve/reject wrappers have ended the
 // span, so `deferSpanEnd` knows the wrappers own the lifecycle.
 const SPAN_ENDED = Symbol('sentryPostgresJsSpanEnded');
@@ -116,21 +113,11 @@ function recordConnectionFromChannel(message: PostgresJsQueryContext): void {
   registerEndpoint(context);
 }
 
-function setConnectionAttributes(span: Span, query: PostgresQuery, context: PostgresConnectionContext): void {
-  const queryRecord = query as Record<symbol, unknown>;
-  if (queryRecord[CONNECTION_ATTRS_SET]) {
-    return;
-  }
-  queryRecord[CONNECTION_ATTRS_SET] = true;
-  span.setAttributes(_getConnectionAttributes(context));
-}
-
 /**
  * Backfill connection attributes onto a query's span from a channel whose `self`
  * is the connection object and `arguments[0]` the query. Shared by the `execute`
  * and `connect` channels; both carry that shape and both resolve the context via
- * the `connectionContexts` WeakMap. Idempotent (guarded inside
- * `setConnectionAttributes`).
+ * the `connectionContexts` WeakMap.
  */
 function attachConnectionAttributesFromChannel(message: PostgresJsQueryContext): void {
   const connection = message.self;
@@ -141,7 +128,7 @@ function attachConnectionAttributesFromChannel(message: PostgresJsQueryContext):
   const span = (query as Record<symbol, unknown>)[QUERY_SPAN] as Span | undefined;
   const context = connectionContexts.get(connection);
   if (span && context) {
-    setConnectionAttributes(span, query, context);
+    span.setAttributes(_getConnectionAttributes(context));
   }
 }
 
@@ -160,16 +147,12 @@ function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, operation
     return;
   }
 
-  // Claim ownership of ending the span up front, so `deferSpanEnd` defers to the
-  // wrapper even if `span.end()` below throws.
-  const markEnded = (): void => {
-    data[SPAN_ENDED] = true;
-  };
-
   const originalResolve = query.resolve;
   if (typeof originalResolve === 'function') {
     query.resolve = function (this: unknown, ...resolveArgs: unknown[]): unknown {
-      markEnded();
+      // Claim ownership of ending the span up front, so `deferSpanEnd` defers to the
+      // wrapper even if `span.end()` below throws.
+      data[SPAN_ENDED] = true;
       try {
         const command = (resolveArgs[0] as { command?: string } | undefined)?.command;
         // Re-set the operation name with the server-reported command, which is more reliable than the query text.
@@ -185,7 +168,7 @@ function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, operation
   const originalReject = query.reject;
   if (typeof originalReject === 'function') {
     query.reject = function (this: unknown, ...rejectArgs: unknown[]): unknown {
-      markEnded();
+      data[SPAN_ENDED] = true;
       try {
         const err = rejectArgs[0] as { message?: string; code?: string; name?: string } | undefined;
         span.setStatus({ code: SPAN_STATUS_ERROR, message: err?.message || 'unknown_error' });
@@ -262,7 +245,6 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
       }
 
       const queryAttributes = getSqlQueryAttributes(_reconstructQuery(query.strings));
-      const sanitizedSqlQuery = queryAttributes[DB_QUERY_TEXT] ?? '';
 
       // Single-endpoint fallback: resolve context now so the span name and `requestHook` have
       // it, and the first-query-per-connection (bare `execute`) path still gets attrs.
@@ -288,7 +270,7 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
 
       if (requestHook) {
         try {
-          requestHook(span, sanitizedSqlQuery, context);
+          requestHook(span, queryAttributes[DB_QUERY_TEXT] ?? '', context);
         } catch (e) {
           span.setAttribute('sentry.hook.error', 'requestHook failed');
           DEBUG_BUILD && debug.error('[instrumentation:postgresjs] error in requestHook:', e);
@@ -302,17 +284,12 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
     {
       deferSpanEnd({ data }) {
         // `handle` is async: its promise settles on dispatch (asyncEnd), long
-        // before the query does. The resolve/reject wrappers own the ending.
-        if (data[SPAN_ENDED]) {
-          return true; // wrappers already ended it
-        }
-        if ('error' in data) {
-          return false; // `handle()` itself threw; the error subscriber annotated the span, let the helper end it
-        }
+        // before the query does, so the resolve/reject wrappers own the ending.
+        // The helper only ends the span if `handle()` itself threw.
         // NOTE: for a cursor consumed as an async iterator, only the first batch
         // reaches `handle` (the `executed` guard blocks the rest), so the span
         // ends on the first batch — a pre-existing flaw kept for parity.
-        return true; // query in flight; the wrappers will end the span when it settles
+        return !!data[SPAN_ENDED] || !('error' in data);
       },
     },
   );
