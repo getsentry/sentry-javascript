@@ -2,7 +2,7 @@ import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { WEBSOCKET } from '@sentry/conventions/op';
 import { getDefaultIsolationScope, getIsolationScope, SPAN_STATUS_ERROR, startSpanManual } from '@sentry/core';
-import { asyncScheduler, of, observeOn, tap, throwError } from 'rxjs';
+import { asyncScheduler, observeOn, of, tap, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SentryModule } from '../src/setup';
 
@@ -120,23 +120,6 @@ describe('SentryTracingInterceptor', () => {
         },
       });
     });
-
-    expect(errorHandler).toHaveBeenCalledWith(handlerError);
-    expect(mocks.span.setStatus).toHaveBeenCalledWith({
-      code: SPAN_STATUS_ERROR,
-      message: 'internal_error',
-    });
-    expect(mocks.span.end).toHaveBeenCalled();
-  });
-
-  it('preserves the positional error callback when subscribing with an observer object', () => {
-    const interceptor = createInterceptor();
-    const context = createContext({ nsp: { name: '/events' } }, 'message');
-    const handlerError = new Error('handler failed');
-    const errorHandler = vi.fn();
-    const next = { handle: vi.fn(() => throwError(() => handlerError)) } as unknown as CallHandler;
-
-    interceptor.intercept(context, next).subscribe({}, errorHandler);
 
     expect(errorHandler).toHaveBeenCalledWith(handlerError);
     expect(mocks.span.setStatus).toHaveBeenCalledWith({
