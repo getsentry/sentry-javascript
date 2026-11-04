@@ -17,7 +17,6 @@ import {
   handleCallbackErrors,
   hasSpanStreamingEnabled,
   isObjectLike,
-  SPAN_STATUS_OK,
   type SpanAttributes,
   startSpan,
   type StartSpanOptions,
@@ -202,7 +201,6 @@ function traceCacheOperation(
     () =>
       startSpan(options, async span => {
         const result = await operation();
-        span.setStatus({ code: SPAN_STATUS_OK });
 
         if (getCacheHit) {
           span.setAttribute(CACHE_HIT, getCacheHit(result));
