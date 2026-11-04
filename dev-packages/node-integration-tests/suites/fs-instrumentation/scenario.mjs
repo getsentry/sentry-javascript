@@ -7,8 +7,9 @@ import * as os from 'os';
 import * as path from 'path';
 import * as util from 'util';
 
-// `__dirname` does not exist in ESM and `import.meta` breaks the CJS variant of this file.
-const fixturesDir = path.join(path.dirname(process.argv[1]), 'fixtures');
+// `__dirname` does not exist in ESM, `import.meta` breaks the CJS variant of this file, and the Bun
+// build project runs a bundle outside the test's tmp dir, so the test passes the fixtures dir in.
+const fixturesDir = process.env.FIXTURES_DIR;
 
 const app = express();
 

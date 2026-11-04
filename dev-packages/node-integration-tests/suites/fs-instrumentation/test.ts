@@ -1,5 +1,6 @@
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { join } from 'path';
 import { afterAll, describe, expect } from 'vitest';
 import { supports } from '../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../utils/runner';
@@ -42,9 +43,11 @@ describe('fs instrumentation', () => {
       __dirname,
       'scenario.mjs',
       'instrument.mjs',
-      (createRunner, test, mode) => {
-        // Deno's ESM `node:fs` exports are not tied to the `fs` object we patch, so only `fs.promises` is traced there.
-        const testUnlessDenoEsm = test.runIf(mode === 'cjs' || supports({ runtimes: ['node'] }));
+      (createTestRunner, test, mode, cwd) => {
+        const createRunner = (): ReturnType<typeof createTestRunner> =>
+          createTestRunner().withEnv({ FIXTURES_DIR: join(cwd, 'fixtures') });
+        // On Bun and Deno the ESM `node:fs` exports are not tied to the `fs` object we patch, so only `fs.promises` is traced there.
+        const testUnlessNonNodeEsm = test.runIf(mode === 'cjs' || supports({ runtimes: ['node'] }));
 
         test('should create spans for fs operations that take target argument', async () => {
           const runner = createRunner()
@@ -72,7 +75,7 @@ describe('fs instrumentation', () => {
           await runner.completed();
         });
 
-        testUnlessDenoEsm('should create spans for fs operations that take one path', async () => {
+        testUnlessNonNodeEsm('should create spans for fs operations that take one path', async () => {
           const runner = createRunner()
             .expect({
               span: expectFileSpans('GET /readFile', [
@@ -153,7 +156,7 @@ describe('fs instrumentation', () => {
           },
         );
 
-        testUnlessDenoEsm('should create spans for fs operations that take src and dest arguments', async () => {
+        testUnlessNonNodeEsm('should create spans for fs operations that take src and dest arguments', async () => {
           const runner = createRunner()
             .expect({
               span: expectFileSpans('GET /copyFile', [
@@ -202,7 +205,7 @@ describe('fs instrumentation', () => {
           await runner.completed();
         });
 
-        testUnlessDenoEsm(
+        testUnlessNonNodeEsm(
           'should create spans for fs operations that take existing path and new path arguments',
           async () => {
             const runner = createRunner()
@@ -306,7 +309,7 @@ describe('fs instrumentation', () => {
           await runner.completed();
         });
 
-        testUnlessDenoEsm('should create spans for fs symlink operations that take target argument', async () => {
+        testUnlessNonNodeEsm('should create spans for fs symlink operations that take target argument', async () => {
           const runner = createRunner()
             .expect({
               span: expectFileSpans('GET /symlink', [
@@ -361,7 +364,7 @@ describe('fs instrumentation', () => {
           await runner.completed();
         });
 
-        testUnlessDenoEsm('should create spans for fs.exists callback and promisified versions', async () => {
+        testUnlessNonNodeEsm('should create spans for fs.exists callback and promisified versions', async () => {
           const runner = createRunner()
             .expect({
               span: expectFileSpans('GET /exists', [
@@ -404,7 +407,9 @@ describe('fs instrumentation', () => {
       __dirname,
       'scenario.mjs',
       'instrument-record-paths-only.mjs',
-      (createRunner, test) => {
+      (createTestRunner, test, _mode, cwd) => {
+        const createRunner = (): ReturnType<typeof createTestRunner> =>
+          createTestRunner().withEnv({ FIXTURES_DIR: join(cwd, 'fixtures') });
         test('records file path but not error messages when only `recordFilePaths` is enabled', async () => {
           const runner = createRunner()
             .expect({
@@ -440,7 +445,9 @@ describe('fs instrumentation', () => {
       __dirname,
       'scenario.mjs',
       'instrument-record-errors-only.mjs',
-      (createRunner, test) => {
+      (createTestRunner, test, _mode, cwd) => {
+        const createRunner = (): ReturnType<typeof createTestRunner> =>
+          createTestRunner().withEnv({ FIXTURES_DIR: join(cwd, 'fixtures') });
         test('records error messages but not file paths when only `recordErrorMessagesAsSpanAttributes` is enabled', async () => {
           const runner = createRunner()
             .expect({
