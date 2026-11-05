@@ -8,12 +8,12 @@ const needsDocker = !usesManagedTunnelRoute && process.env.E2E_TEST_INIT_IN_SERV
 
 // The dev server has no build output, so `--import` points at the app's own instrumentation file.
 // `vite dev` ignores PORT, so the port goes on the command.
-// The init-in-server-entry variant initializes the SDK from the server entry instead.
+// The init-in-server-entry test starts a server of its own.
 const startCommand =
   process.env.TEST_ENV === 'development'
     ? `NODE_OPTIONS='--import ./instrument.server.mjs' pnpm dev --port 3000`
     : process.env.E2E_TEST_INIT_IN_SERVER_ENTRY === '1'
-      ? 'node .output/server/index.mjs'
+      ? undefined
       : `pnpm start`;
 
 const config = getPlaywrightConfig({

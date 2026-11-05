@@ -113,7 +113,7 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   plugins.push(...makeAddSentryVitePlugin(options), makeComposeNitroServiceSourceMapsPlugin());
 
   if (options.preloadServerEntry !== false) {
-    plugins.push(makePreloadNitroServerEntryPlugin());
+    plugins.push(makePreloadNitroServerEntryPlugin({ debug: options.debug }));
   }
 
   // middleware auto-instrumentation
