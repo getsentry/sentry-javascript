@@ -4,11 +4,17 @@ import {
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
+  GEN_AI_USAGE_INPUT_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
-import { describe, expect, it } from 'vitest';
+import type { Span } from '@sentry/core';
+import { setCurrentClient, spanToJSON, startInactiveSpan } from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { BedrockRuntimeServiceExtension } from '../../src/integrations/aws-sdk/services/bedrock-runtime';
 import type { RequestMetadata } from '../../src/integrations/aws-sdk/types';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 const CLAUDE_MODEL_ID = 'anthropic.claude-3-5-sonnet-20240620-v1:0';
 
@@ -69,5 +75,104 @@ describe('BedrockRuntimeServiceExtension InvokeModel request', () => {
         [GEN_AI_OPERATION_NAME]: 'generate_content',
       },
     });
+  });
+});
+
+describe('BedrockRuntimeServiceExtension token usage with prompt caching', () => {
+  const encoder = new TextEncoder();
+
+  // 20 uncached prompt tokens, 1800 read from the cache, and 300 written to it.
+  const EXPECTED_USAGE = {
+    [GEN_AI_USAGE_INPUT_TOKENS]: 2120,
+    [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: 1800,
+    [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: 300,
+  };
+
+  const CLAUDE_USAGE = {
+    input_tokens: 20,
+    cache_read_input_tokens: 1800,
+    cache_creation_input_tokens: 300,
+    output_tokens: 50,
+  };
+
+  function respond(span: Span, commandName: string, data: unknown): void {
+    new BedrockRuntimeServiceExtension().responseHook(
+      {
+        data,
+        request: { serviceName: 'BedrockRuntime', commandName, commandInput: { modelId: CLAUDE_MODEL_ID } },
+        requestId: 'b0a5e5a2-2c2b-4f56-9d0e-8c7c2d3f4a10',
+      },
+      span,
+    );
+  }
+
+  function usageAttributes(span: Span): Record<string, unknown> {
+    const attributes = spanToJSON(span).attributes ?? {};
+    return Object.fromEntries(Object.keys(EXPECTED_USAGE).map(key => [key, attributes[key]]));
+  }
+
+  beforeEach(() => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+  });
+
+  afterEach(() => {
+    setCurrentClient(undefined as never);
+  });
+
+  it('counts cache reads and writes as input tokens for Converse', () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+
+    respond(span, 'Converse', {
+      stopReason: 'end_turn',
+      usage: {
+        inputTokens: 20,
+        outputTokens: 50,
+        totalTokens: 2170,
+        cacheReadInputTokens: 1800,
+        cacheWriteInputTokens: 300,
+      },
+    });
+
+    expect(usageAttributes(span)).toEqual(EXPECTED_USAGE);
+  });
+
+  it('counts cache reads and writes as input tokens for Claude InvokeModel', () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const body = encoder.encode(
+      JSON.stringify({
+        id: 'msg_bdrk_01Fv2yWBqLQ8Pp4q9kJbDxXz',
+        type: 'message',
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Paris.' }],
+        stop_reason: 'end_turn',
+        usage: CLAUDE_USAGE,
+      }),
+    );
+
+    respond(span, 'InvokeModel', { body });
+
+    expect(usageAttributes(span)).toEqual(EXPECTED_USAGE);
+  });
+
+  it('counts cache reads and writes as input tokens for a Claude stream', async () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const messageStart = {
+      type: 'message_start',
+      message: { id: 'msg_bdrk_01Fv2yWBqLQ8Pp4q9kJbDxXz', role: 'assistant', usage: CLAUDE_USAGE },
+    };
+    const data = {
+      body: (async function* () {
+        yield { chunk: { bytes: encoder.encode(JSON.stringify(messageStart)) } };
+      })(),
+    };
+
+    respond(span, 'InvokeModelWithResponseStream', data);
+    for await (const _ of data.body) {
+      // consume
+    }
+
+    expect(usageAttributes(span)).toEqual(EXPECTED_USAGE);
   });
 });
