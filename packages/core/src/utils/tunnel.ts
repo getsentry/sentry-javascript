@@ -235,26 +235,29 @@ function matchServedTunnel(request: TunnelRequestLike, client?: Client): ServedT
  * it to the app. Once claimed, its body may be read already, so a failure ends in a 502 instead.
  */
 export function handleServedTunnelRequest(request: Request): Promise<Response> | undefined {
-  let handled: Promise<Response>;
+  let servedTunnel: ServedTunnel | undefined | null;
   try {
     // An envelope always has a body. Nuxt's Cloudflare plugin passes a copy without one, which its app answers later.
-    const servedTunnel = request.body && getServedTunnelMatch(request);
+    servedTunnel = request.body && getServedTunnelMatch(request);
     if (!servedTunnel) {
       return undefined;
     }
-
-    handled = servedTunnel.forward(request, servedTunnel.allowedDsns);
   } catch (error) {
     DEBUG_BUILD && debug.error('Sentry tunnel: failed to match a request', error);
 
     return undefined;
   }
 
-  return handled.catch(error => {
-    DEBUG_BUILD && debug.error('Sentry tunnel: failed to forward a request', error);
+  // Claimed from here on, so even a `forward` that throws right away ends in a 502.
+  const { forward, allowedDsns } = servedTunnel;
 
-    return new Response(null, { status: 502 });
-  });
+  return Promise.resolve()
+    .then(() => forward(request, allowedDsns))
+    .catch(error => {
+      DEBUG_BUILD && debug.error('Sentry tunnel: failed to forward a request', error);
+
+      return new Response(null, { status: 502 });
+    });
 }
 
 /**

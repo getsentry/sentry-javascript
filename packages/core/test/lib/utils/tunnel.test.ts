@@ -23,6 +23,7 @@ import {
 import type { HandleTunnelRequestOptions } from '../../../src/utils/tunnelForward';
 import {
   forwardTunnelRequest,
+  handleServedNodeTunnelRequest,
   handleTunnelRequest,
   handleTunnelRequestIfMatched,
 } from '../../../src/utils/tunnelForward';
@@ -30,6 +31,7 @@ import { serveTunnelIntegration } from '../../../src/integrations/serveTunnel';
 import {
   _INTERNAL_resetTunnelDefaults,
   applyServerTunnelDefaults,
+  enableManagedTunnel,
   setTunnelDefaults,
 } from '../../../src/utils/tunnelDefaults';
 import type { DsnComponents } from '../../../src/types/dsn';
@@ -953,6 +955,61 @@ describe('getTunnelIgnoreSpanFilter', () => {
 
   it('returns nothing when there is no path to match', () => {
     expect(getTunnelIgnoreSpanFilter({}, undefined)).toBeUndefined();
+  });
+});
+
+describe('a forward that throws right away', () => {
+  const throwingForward = (): Promise<Response> => {
+    throw new Error('forward failed');
+  };
+
+  beforeEach(() => {
+    const client = new ServerRuntimeClient(getDefaultTestClientOptions({ dsn: TEST_DSN }));
+    setCurrentClient(client);
+    client.init();
+    enableManagedTunnel(client, {}, throwingForward);
+  });
+
+  afterEach(() => {
+    getCurrentScope().setClient(undefined);
+  });
+
+  it('ends a claimed `Request` in a 502 instead of handing it to the app', async () => {
+    const response = handleServedTunnelRequest(
+      makeEnvelopeRequest({ dsn: TEST_DSN }, `http://localhost${getTunnelPath(TEST_DSN)}`),
+    );
+
+    expect((await response)?.status).toBe(502);
+  });
+
+  it('ends a claimed Node request in a 502 instead of handing it to the app', async () => {
+    const server = http.createServer((req, res) => {
+      if (!handleServedNodeTunnelRequest(req, res)) {
+        res.end('app');
+      }
+    });
+    await new Promise<void>(resolve => server.listen(0, resolve));
+    const { port } = server.address() as AddressInfo;
+    const envelope = serializeEnvelope(createEnvelope({ dsn: TEST_DSN }, [])) as string;
+
+    try {
+      // Not `fetch`, which other tests stub.
+      const status = await new Promise<number | undefined>((resolve, reject) => {
+        const request = http.request(
+          { port, path: getTunnelPath(TEST_DSN), method: 'POST', headers: { 'content-length': envelope.length } },
+          response => {
+            response.resume();
+            resolve(response.statusCode);
+          },
+        );
+        request.on('error', reject);
+        request.end(envelope);
+      });
+
+      expect(status).toBe(502);
+    } finally {
+      await new Promise(resolve => server.close(resolve));
+    }
   });
 });
 

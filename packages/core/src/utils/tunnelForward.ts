@@ -1,3 +1,4 @@
+/* oxlint-disable max-lines */
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
 import { getClient } from '../currentScopes';
 import { suppressTracing } from '../tracing/trace';
@@ -139,21 +140,24 @@ export function handleTunnelRequestIfMatched(
  * claimed, a failure hands it to the app. Once claimed, its body may be read already, so a failure ends in a 502.
  */
 export function handleServedNodeTunnelRequest(request: NodeTunnelRequest, response: NodeTunnelResponse): boolean {
-  let handled: Promise<Response>;
+  let forward: () => Promise<Response>;
   try {
     const servedTunnel = getServedTunnelMatch(request);
     if (!servedTunnel) {
       return false;
     }
 
-    handled = servedTunnel.forward(toFetchRequest(request), servedTunnel.allowedDsns);
+    const fetchRequest = toFetchRequest(request);
+    forward = () => servedTunnel.forward(fetchRequest, servedTunnel.allowedDsns);
   } catch (error) {
     DEBUG_BUILD && debug.error('Sentry tunnel: failed to match a request', error);
 
     return false;
   }
 
-  handled
+  // Claimed from here on, so even a `forward` that throws right away ends in a 502.
+  Promise.resolve()
+    .then(forward)
     .then(fetchResponse => writeNodeResponse(response, fetchResponse))
     .catch(error => {
       DEBUG_BUILD && debug.error('Sentry tunnel: failed to forward a request', error);
@@ -198,12 +202,14 @@ function toFetchRequest(request: NodeTunnelRequest): Request {
       headers.set(name, Array.isArray(value) ? value.join(', ') : value);
     }
   }
-  const iterator = request[Symbol.asyncIterator]();
+  // Created on the first read, so building the `Request` doesn't touch the body.
+  let iterator: AsyncIterator<Uint8Array | string> | undefined;
+  const getIterator = (): AsyncIterator<Uint8Array | string> => (iterator ??= request[Symbol.asyncIterator]());
   const encoder = new TextEncoder();
   // Not `ReadableStream.from`, which Bun 1.3 lacks.
   const body = new ReadableStream<Uint8Array>({
     async pull(controller) {
-      const { done, value } = await iterator.next();
+      const { done, value } = await getIterator().next();
       if (done) {
         controller.close();
         return;
@@ -213,7 +219,7 @@ function toFetchRequest(request: NodeTunnelRequest): Request {
     },
     // Node only reads the rest of a body nobody started reading, and unread bytes stall a keep-alive connection.
     async cancel() {
-      while (!(await iterator.next()).done) {
+      while (!(await getIterator().next()).done) {
         // Drain.
       }
     },
