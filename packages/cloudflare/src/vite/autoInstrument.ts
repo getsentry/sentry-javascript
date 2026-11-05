@@ -1,8 +1,9 @@
 import { basename, dirname, isAbsolute } from 'node:path';
+import { createCallSiteRewriter, type ModuleParser, parseModule } from '@sentry/bundler-plugins/rewriter';
 import { createIdResolver, type ResolvedConfig } from 'vite';
 import { collectAgentCandidates, detectAgentClasses, type ModuleResolver } from './agentClass';
 import { buildOptionsImport, ENV_FALLBACK_OPTIONS_FN, resolveInstrumentFile } from './instrumentFile';
-import { applyAutoInstrumentTransforms, type ClassWrapperKind, type ProgramBody } from './transform';
+import { applyAutoInstrumentTransforms, type ClassWrapperKind } from './transform';
 import { resolveWranglerConfig, type WranglerConfig } from './wranglerConfig';
 
 // Vite normalizes module IDs to posix separators even on Windows, while
@@ -120,7 +121,8 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
       code: string,
       id: string,
     ): Promise<{ code: string; map: unknown } | undefined> {
-      if (!wranglerConfig || (!entryFilePath && !entrySpecifier)) return undefined;
+      const config = wranglerConfig;
+      if (!config || (!entryFilePath && !entrySpecifier)) return undefined;
 
       // The worker entry never belongs to the client (browser) environment.
       // Skipping it keeps a same-basename sibling (e.g. a `src/index.tsx`
@@ -140,78 +142,94 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
         }
       }
 
-      let ast: ProgramBody;
-      try {
-        ast = this.parse(code);
-      } catch {
-        // Raw TypeScript or syntax error — esbuild hasn't run yet (unlikely)
-        // or the file is genuinely broken.  Either way, skip silently.
-        return undefined;
-      }
+      // `this.parse` fails on raw TypeScript, which oxc parses.
+      const parse: ModuleParser = (source, moduleId) => {
+        try {
+          return this.parse(source);
+        } catch {
+          return parseModule(source, moduleId);
+        }
+      };
 
-      const classWrappers = new Map<string, ClassWrapperKind>();
-      for (const { className } of wranglerConfig.durableObjects) {
-        classWrappers.set(className, 'durableObject');
-      }
-      for (const { className } of wranglerConfig.workflows) {
-        classWrappers.set(className, 'workflow');
-      }
-      for (const className of wranglerConfig.workerEntrypoints) {
-        classWrappers.set(className, 'workerEntrypoint');
-      }
+      const output = await createCallSiteRewriter(
+        [
+          {
+            name: 'cloudflare-worker-entry',
+            include: {},
+            apply: async ({ ast, state }) => {
+              const classWrappers = new Map<string, ClassWrapperKind>();
+              for (const { className } of config.durableObjects) {
+                classWrappers.set(className, 'durableObject');
+              }
+              for (const { className } of config.workflows) {
+                classWrappers.set(className, 'workflow');
+              }
+              for (const className of config.workerEntrypoints) {
+                classWrappers.set(className, 'workerEntrypoint');
+              }
 
-      // An `agents` Agent is a Durable Object, so wrangler lists it among the DO bindings and only
-      // its base-class chain tells the two apart. Detection walks the module graph (base classes
-      // usually live in their own file), so it is limited to the configured DO classes.
-      //
-      // Only `resolve` is handed over — never `load`: awaiting `load()` from inside a transform
-      // hook deadlocks the build, since the module can't finish loading while this transform is
-      // still pending. `agentClass` reads sibling modules off disk instead.
-      const agentCandidates = collectAgentCandidates(
-        ast,
-        [...classWrappers].filter(([, kind]) => kind === 'durableObject').map(([name]) => name),
-      );
-      const agentClasses =
-        agentCandidates.size > 0
-          ? await detectAgentClasses(ast, normalizedId, agentCandidates, {
-              parse: code => this.parse(code),
-              resolve: this.resolve ? (source, importer) => this.resolve!(source, importer) : undefined,
-            })
-          : undefined;
+              // An `agents` Agent is a Durable Object, so wrangler lists it among the DO bindings and only
+              // its base-class chain tells the two apart. Detection walks the module graph (base classes
+              // usually live in their own file), so it is limited to the configured DO classes.
+              //
+              // Only `resolve` is handed over — never `load`: awaiting `load()` from inside a transform
+              // hook deadlocks the build, since the module can't finish loading while this transform is
+              // still pending. `agentClass` reads sibling modules off disk instead.
+              const agentCandidates = collectAgentCandidates(
+                ast,
+                [...classWrappers].filter(([, kind]) => kind === 'durableObject').map(([name]) => name),
+              );
+              const agentClasses =
+                agentCandidates.size > 0
+                  ? await detectAgentClasses(ast, normalizedId, agentCandidates, {
+                      parse: code => this.parse(code),
+                      resolve: this.resolve ? (source, importer) => this.resolve!(source, importer) : undefined,
+                    })
+                  : undefined;
 
-      // A vinext app with `@sentry/nextjs` installed gets `withSentry` of `@sentry/nextjs/cloudflare`.
-      const sentryModule =
-        isVinext && (await resolvesNextjsCloudflare(this, normalizedId)) ? NEXTJS_CLOUDFLARE_MODULE : undefined;
+              // A vinext app with `@sentry/nextjs` installed gets `withSentry` of `@sentry/nextjs/cloudflare`.
+              const sentryModule =
+                isVinext && (await resolvesNextjsCloudflare(this, normalizedId)) ? NEXTJS_CLOUDFLARE_MODULE : undefined;
 
-      const { optionsFn, importStmt: optionsImport } = instrumentFilePath
-        ? buildOptionsImport(entryPath, instrumentFilePath)
-        : { optionsFn: ENV_FALLBACK_OPTIONS_FN, importStmt: undefined };
+              const { optionsFn, importStmt: optionsImport } = instrumentFilePath
+                ? buildOptionsImport(entryPath, instrumentFilePath)
+                : { optionsFn: ENV_FALLBACK_OPTIONS_FN, importStmt: undefined };
 
-      // No registration import is injected here: the orchestrion plugin's
-      // subscribe-injection makes each bundled package self-register its channel
-      // subscriber on the global marker, so wrapping the entry with `withSentry`
-      // is all this plugin needs to do.
-      const result = applyAutoInstrumentTransforms(code, ast, {
-        classWrappers,
-        agentClasses,
-        optionsFn,
-        optionsImport,
-        sameWorkerBindings: wranglerConfig.sameWorkerBindings,
-        sentryModule,
-      });
+              // No registration import is injected here: the orchestrion plugin's
+              // subscribe-injection makes each bundled package self-register its channel
+              // subscriber on the global marker, so wrapping the entry with `withSentry`
+              // is all this plugin needs to do.
+              const result = applyAutoInstrumentTransforms(
+                code,
+                ast,
+                {
+                  classWrappers,
+                  agentClasses,
+                  optionsFn,
+                  optionsImport,
+                  sameWorkerBindings: config.sameWorkerBindings,
+                  sentryModule,
+                },
+                state,
+              );
 
-      const wrappedClasses = result?.wrappedClasses ?? new Set<string>();
-      const missing = [...classWrappers.keys()].filter(name => !wrappedClasses.has(name));
-      if (missing.length > 0) {
-        this.warn?.(
-          `[sentry] Could not auto-instrument ${missing.join(', ')}.` +
-            'The worker entry has no export matching them. ' +
-            'Star re-exports (`export * from "./do"`) are not matched. ' +
-            'Export them by name or wrap them manually with corresponding `instrument*WithSentry` helpers.',
-        );
-      }
+              const wrappedClasses = result?.wrappedClasses ?? new Set<string>();
+              const missing = [...classWrappers.keys()].filter(name => !wrappedClasses.has(name));
+              if (missing.length > 0) {
+                this.warn?.(
+                  `[sentry] Could not auto-instrument ${missing.join(', ')}.` +
+                    'The worker entry has no export matching them. ' +
+                    'Star re-exports (`export * from "./do"`) are not matched. ' +
+                    'Export them by name or wrap them manually with corresponding `instrument*WithSentry` helpers.',
+                );
+              }
+            },
+          },
+        ],
+        { parse },
+      ).transform(code, normalizedId);
 
-      return result ?? undefined;
+      return output ?? undefined;
     },
   };
 }
