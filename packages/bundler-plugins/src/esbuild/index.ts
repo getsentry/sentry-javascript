@@ -227,19 +227,20 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
 
           return {
             pluginName,
-            path: resolvedPath,
+            // Treat the generated proxy as dependency code without changing the user's entry point.
+            path: path.join(
+              path.dirname(resolvedPath),
+              'node_modules',
+              '@sentry',
+              'esbuild-plugin',
+              path.basename(resolvedPath),
+            ),
+            namespace: 'sentry-debug-id-proxy',
             pluginData: {
               isDebugIdProxy: true,
               originalPath: args.path,
               originalResolveDir: args.resolveDir,
             },
-            // We need to add a suffix here, otherwise esbuild will mark the entrypoint as resolved and won't traverse
-            // the module tree any further down past the proxy module because we're essentially creating a dependency
-            // loop back to the proxy module.
-            // By setting a suffix we're telling esbuild that the entrypoint and proxy module are two different things,
-            // making it re-resolve the entrypoint when it is imported from the proxy module.
-            // Super confusing? Yes. Works? Apparently... Let's see.
-            suffix: '?sentryDebugIdProxy=true',
           };
         });
 
