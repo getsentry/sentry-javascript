@@ -8,6 +8,8 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 
 interface FakeIngest {
   port: number;
+  /** Uploads the tunnel started to Sentry. */
+  uploads: number;
   /** Envelopes Sentry received in full and answered. */
   delivered: string[];
   /** Uploads that broke off before the whole envelope arrived. */
@@ -20,8 +22,10 @@ interface FakeIngest {
  */
 async function startFakeIngest(): Promise<FakeIngest> {
   const delivered: string[] = [];
+  let uploads = 0;
   let brokenUploads = 0;
   const server = http.createServer((request, response) => {
+    uploads++;
     const chunks: Buffer[] = [];
     let ended = false;
     request.on('data', chunk => chunks.push(chunk));
@@ -47,6 +51,9 @@ async function startFakeIngest(): Promise<FakeIngest> {
   return {
     port: (server.address() as AddressInfo).port,
     delivered,
+    get uploads() {
+      return uploads;
+    },
     get brokenUploads() {
       return brokenUploads;
     },
@@ -55,22 +62,26 @@ async function startFakeIngest(): Promise<FakeIngest> {
 }
 
 /**
- * Posts the first `sentLength` characters of `body` to the tunnel like a browser would, then leaves before the
- * tunnel answers.
+ * Posts the first `sentLength` characters of `body` to the tunnel like a browser would, then leaves once the tunnel
+ * started the upload to Sentry, before it answers.
  */
-function postAndLeave(port: number, path: string, body: string, sentLength = body.length): Promise<void> {
-  return new Promise(resolve => {
-    const socket = net.connect(port, 'localhost', () => {
-      socket.write(
-        `POST ${path} HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/x-sentry-envelope\r\nContent-Length: ${Buffer.byteLength(body)}\r\n\r\n`,
-      );
-      socket.write(body.slice(0, sentLength));
-      setTimeout(() => {
-        socket.destroy();
-        resolve();
-      }, 50);
-    });
+async function postAndLeave(
+  port: number,
+  path: string,
+  body: string,
+  ingest: FakeIngest,
+  sentLength = body.length,
+): Promise<void> {
+  const socket = await new Promise<net.Socket>(resolve => {
+    const connection = net.connect(port, 'localhost', () => resolve(connection));
   });
+  socket.write(
+    `POST ${path} HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/x-sentry-envelope\r\nContent-Length: ${Buffer.byteLength(body)}\r\n\r\n`,
+  );
+  socket.write(body.slice(0, sentLength));
+  // Leaving earlier would only test the tunnel rejecting a body that broke off before it contacted Sentry.
+  await vi.waitUntil(() => ingest.uploads > 0, { timeout: 5_000 });
+  socket.destroy();
 }
 
 function makeEnvelope(dsn: string, message: string): string {
@@ -111,7 +122,7 @@ describe('managed tunnel', () => {
 
       try {
         expect(await runner.makeRequest<string>('get', '/')).toBe('app');
-        await postAndLeave(runner.getPort()!, getTunnelPath(dsn)!, makeEnvelope(dsn, 'sent in full'));
+        await postAndLeave(runner.getPort()!, getTunnelPath(dsn)!, makeEnvelope(dsn, 'sent in full'), ingest);
 
         await vi.waitUntil(() => ingest.delivered.length > 0, { timeout: 5_000 });
         expect(ingest.delivered[0]).toContain('sent in full');
@@ -131,7 +142,7 @@ describe('managed tunnel', () => {
 
       try {
         expect(await runner.makeRequest<string>('get', '/')).toBe('app');
-        await postAndLeave(runner.getPort()!, getTunnelPath(dsn)!, envelope, 1024);
+        await postAndLeave(runner.getPort()!, getTunnelPath(dsn)!, envelope, ingest, 1024);
 
         await vi.waitUntil(() => ingest.brokenUploads > 0, { timeout: 5_000 });
         expect(ingest.delivered).toEqual([]);
