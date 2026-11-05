@@ -10,6 +10,7 @@ import { CHANNELS } from '../../orchestrion/channels';
 import { honoModuleNames } from '../../orchestrion/config/hono';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import { bindTracingChannelToSpan, safeChannelCallback } from '../../tracing-channel';
+import { isBun, isCloudflareWorkers, isDeno } from '../../utils/runtime';
 import { applyPatches } from './applyPatches';
 import { INTERNAL_REQUEST_ORIGIN } from './constants';
 import { createHonoRequestMiddleware } from './createHonoMiddleware';
@@ -25,12 +26,9 @@ const INTEGRATION_NAME = 'Hono' as const;
 
 export interface HonoIntegrationOptions extends SentryHonoMiddlewareOptions {}
 
-const globalAny = globalThis as { Bun?: unknown; Deno?: unknown; navigator?: { userAgent?: string } };
-const isBun = typeof globalAny.Bun !== 'undefined';
-const isDeno = typeof globalAny.Deno !== 'undefined';
-const isCloudflare = globalAny.navigator?.userAgent === 'Cloudflare-Workers';
-
-const runtime: HonoRuntime = isBun ? 'bun' : isDeno ? 'deno' : isCloudflare ? 'cloudflare' : 'node';
+function getHonoRuntime(): HonoRuntime {
+  return isBun() ? 'bun' : isDeno() ? 'deno' : isCloudflareWorkers() ? 'cloudflare' : 'node';
+}
 
 /**
  * Manually instruments a Hono app and returns the Sentry request/response middleware to register
@@ -45,7 +43,7 @@ export function honoMiddleware<E extends Env>(app: Hono<E>, options: HonoIntegra
   applyPatches(app);
 
   return createHonoRequestMiddleware({
-    runtime,
+    runtime: getHonoRuntime(),
     shouldHandleError: options.shouldHandleError,
   });
 }
@@ -138,7 +136,7 @@ function instrumentHono(options: HonoIntegrationOptions): void {
   // The request/response middleware is stateless (per-request state lives on the request scope) and
   // `options` is fixed, so build it once and reuse it across every dispatched Context.
   const requestMiddleware = createHonoRequestMiddleware({
-    runtime,
+    runtime: getHonoRuntime(),
     shouldHandleError: options.shouldHandleError,
   });
 
