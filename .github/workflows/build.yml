@@ -199,7 +199,7 @@ jobs:
       'aws-serverless') || contains(needs.job_build.outputs.e2e-matrix-2, 'aws-serverless') || github.event_name !=
       'pull_request'
     timeout-minutes: 10
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -369,7 +369,7 @@ jobs:
     needs: [job_get_metadata]
     # `pnpm dedupe --check` fetches metadata for every package from npm, so this job can take 8+ min on PRs.
     timeout-minutes: 20
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     if: |
       needs.job_get_metadata.outputs.changed_deps == 'true' ||
       needs.job_get_metadata.outputs.is_base_branch == 'true' ||
@@ -400,7 +400,7 @@ jobs:
     name: Check file formatting
     needs: [job_get_metadata]
     timeout-minutes: 10
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -475,7 +475,7 @@ jobs:
     name: Browser Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v7
@@ -618,7 +618,7 @@ jobs:
       matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
     needs: [job_get_metadata, job_build, job_build_bundles]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04-large-js' }}
+    runs-on: ubuntu-24.04-large-js
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -716,7 +716,7 @@ jobs:
     name: PW ${{ matrix.bundle }} Tests
     needs: [job_get_metadata, job_build, job_build_bundles]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -827,7 +827,7 @@ jobs:
     name: Cloudflare Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -1052,7 +1052,7 @@ jobs:
       always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix-1 !=
       '{"include":[]}'
     needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     # We just use a dummy DSN here, only send to the tunnel anyhow
     env: &e2e-env
@@ -1124,7 +1124,7 @@ jobs:
       always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix-2 !=
       '{"include":[]}'
     needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env: *e2e-env
     strategy:
