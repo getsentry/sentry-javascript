@@ -259,7 +259,14 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     const { stopReason, usage } = response.data;
 
     setStopReason(span, stopReason);
-    setUsage(span, usage);
+    span.setAttributes(
+      getTokenUsageAttributes(
+        getInputTokensWithCache(usage?.inputTokens, usage?.cacheReadInputTokens, usage?.cacheWriteInputTokens),
+        usage?.outputTokens,
+        usage?.cacheWriteInputTokens,
+        usage?.cacheReadInputTokens,
+      ),
+    );
   }
 
   private _responseHookConverseStream(response: NormalizedResponse, span: Span): void {
@@ -297,20 +304,18 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
         }
       } else if (currentModelId.includes('anthropic.claude')) {
         const usage = responseBody.usage;
-        if (usage) {
-          span.setAttributes(
-            getTokenUsageAttributes(
-              getInputTokensWithCache(
-                usage.input_tokens,
-                usage.cache_read_input_tokens,
-                usage.cache_creation_input_tokens,
-              ),
-              usage.output_tokens,
-              usage.cache_creation_input_tokens,
-              usage.cache_read_input_tokens,
+        span.setAttributes(
+          getTokenUsageAttributes(
+            getInputTokensWithCache(
+              usage?.input_tokens,
+              usage?.cache_read_input_tokens,
+              usage?.cache_creation_input_tokens,
             ),
-          );
-        }
+            usage?.output_tokens,
+            usage?.cache_creation_input_tokens,
+            usage?.cache_read_input_tokens,
+          ),
+        );
         if (responseBody.stop_reason !== undefined) {
           span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.stop_reason]);
         }
@@ -402,7 +407,14 @@ async function* wrapConverseStreamResponse(
       usage = item.metadata?.usage;
       yield item;
     }
-    setUsage(span, usage);
+    span.setAttributes(
+      getTokenUsageAttributes(
+        getInputTokensWithCache(usage?.inputTokens, usage?.cacheReadInputTokens, usage?.cacheWriteInputTokens),
+        usage?.outputTokens,
+        usage?.cacheWriteInputTokens,
+        usage?.cacheReadInputTokens,
+      ),
+    );
   } finally {
     span.end();
   }
@@ -411,20 +423,6 @@ async function* wrapConverseStreamResponse(
 function setStopReason(span: Span, stopReason: string | undefined): void {
   if (stopReason !== undefined) {
     span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [stopReason]);
-  }
-}
-
-function setUsage(span: Span, usage: TokenUsage | undefined): void {
-  if (usage) {
-    const { inputTokens, outputTokens, cacheReadInputTokens, cacheWriteInputTokens } = usage;
-    span.setAttributes(
-      getTokenUsageAttributes(
-        getInputTokensWithCache(inputTokens, cacheReadInputTokens, cacheWriteInputTokens),
-        outputTokens,
-        cacheWriteInputTokens,
-        cacheReadInputTokens,
-      ),
-    );
   }
 }
 
