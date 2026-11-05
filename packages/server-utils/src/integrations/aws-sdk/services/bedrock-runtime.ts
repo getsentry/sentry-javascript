@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { debug } from '@sentry/core';
+import { debug, SPAN_STATUS_ERROR } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
@@ -258,6 +258,11 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
   }
 
   private _responseHookConverseStream(response: NormalizedResponse, span: Span): void {
+    if (!response.data?.stream) {
+      span.end();
+      return;
+    }
+
     // Wrap and replace the response stream in place to process events into telemetry
     // before yielding to the user.
     response.data.stream = wrapConverseStreamResponse(response.data.stream, span);
@@ -338,13 +343,14 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
   private _responseHookInvokeModelWithResponseStream(response: NormalizedResponse, span: Span): void {
     const stream = response.data?.body;
     const modelId = response.request.commandInput?.modelId;
-    if (!stream || !modelId) {
+    if (!stream) {
+      span.end();
       return;
     }
 
     // Resolved once: the model family is fixed for the whole stream, and for unrecognized families
     // the chunks don't need to be parsed at all.
-    const recordAttributes = resolveStreamRecorder(modelId);
+    const recordAttributes = typeof modelId === 'string' ? resolveStreamRecorder(modelId) : undefined;
 
     // Replace the original response body with our instrumented stream, deferring span.end() until the
     // entire stream is consumed. Downstream consumers still receive the full stream.
@@ -359,6 +365,9 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
           }
           yield chunk;
         }
+      } catch (error) {
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+        throw error;
       } finally {
         span.end();
       }
@@ -389,6 +398,9 @@ async function* wrapConverseStreamResponse(
       yield item;
     }
     setUsage(span, usage);
+  } catch (error) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    throw error;
   } finally {
     span.end();
   }
