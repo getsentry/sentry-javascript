@@ -819,6 +819,7 @@ jobs:
 
       - name: Run integration tests
         working-directory: dev-packages/node-integration-tests
+        # Tedious runs in the dedicated SQL Server job because its database container requires x86.
         run: pnpm run test --shard=${{ matrix.shard }}/3 --exclude '**/tracing/tedious/**'
 
   job_sql_server_integration_tests:
@@ -1005,6 +1006,7 @@ jobs:
           pnpm run test:unit
       - name: Run shared Node integration tests
         working-directory: dev-packages/deno-integration-tests
+        # Tedious runs in the dedicated SQL Server job because its database container requires x86.
         run: pnpm run test:node-suites --shard=${{ matrix.shard }}/2 --exclude '**/tracing/tedious/**'
 
   job_build_tarballs:
