@@ -3144,19 +3144,20 @@ describe('Client', () => {
     test('close flushes the logs buffer', async () => {
       vi.useRealTimers();
 
-      const flushLogsSpy = vi
-        .spyOn(logsInternalModule, '_INTERNAL_flushLogsBuffer')
-        .mockImplementation(() => undefined);
-
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const flushLogsHandler = vi.fn();
+      client.on('flushLogs', flushLogsHandler);
+
+      _INTERNAL_captureLog({ message: 'test log', level: 'info' }, scope);
 
       await client.close();
 
-      expect(flushLogsSpy).toHaveBeenCalledTimes(1);
-      expect(flushLogsSpy).toHaveBeenCalledWith(client);
-
-      flushLogsSpy.mockRestore();
+      expect(flushLogsHandler).toHaveBeenCalledTimes(1);
+      expect(logsInternalModule._INTERNAL_getLogBuffer(client)).toEqual([]);
     });
 
     test('multiple concurrent flush calls should just work', async () => {
@@ -4215,6 +4216,24 @@ describe('Client', () => {
       vi.useRealTimers();
     });
 
+    it('sets up log flushing on the first captured log only', () => {
+      const onSpy = vi.spyOn(TestClient.prototype, 'on');
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const scope = new Scope();
+      scope.setClient(client);
+
+      expect(onSpy).not.toHaveBeenCalledWith('afterCaptureLog', expect.any(Function));
+
+      _INTERNAL_captureLog({ message: 'test log 1', level: 'info' }, scope);
+      expect(onSpy).toHaveBeenCalledWith('afterCaptureLog', expect.any(Function));
+
+      onSpy.mockClear();
+      _INTERNAL_captureLog({ message: 'test log 2', level: 'info' }, scope);
+      expect(onSpy).not.toHaveBeenCalled();
+
+      onSpy.mockRestore();
+    });
+
     it('flushes logs when weight exceeds 800KB', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
@@ -4396,6 +4415,24 @@ describe('Client', () => {
 
     afterEach(() => {
       vi.useRealTimers();
+    });
+
+    it('sets up metric flushing on the first captured metric only', () => {
+      const onSpy = vi.spyOn(TestClient.prototype, 'on');
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const scope = new Scope();
+      scope.setClient(client);
+
+      expect(onSpy).not.toHaveBeenCalledWith('afterCaptureMetric', expect.any(Function));
+
+      _INTERNAL_captureMetric({ name: 'metric1', value: 1, type: 'counter', attributes: {} }, { scope });
+      expect(onSpy).toHaveBeenCalledWith('afterCaptureMetric', expect.any(Function));
+
+      onSpy.mockClear();
+      _INTERNAL_captureMetric({ name: 'metric2', value: 2, type: 'counter', attributes: {} }, { scope });
+      expect(onSpy).not.toHaveBeenCalled();
+
+      onSpy.mockRestore();
     });
 
     it('flushes metrics when weight exceeds 800KB', () => {
