@@ -80,43 +80,42 @@ function dsnFromComponents(components: DsnComponents): DsnComponents {
   };
 }
 
-function validateDsn(dsn: DsnComponents): boolean {
-  if (!DEBUG_BUILD) {
-    return true;
-  }
+// A ternary instead of an early return, so that esbuild can drop the debug-only body in non-debug builds.
+const validateDsn: (dsn: DsnComponents) => boolean = DEBUG_BUILD
+  ? dsn => {
+      const { port, projectId, protocol } = dsn;
 
-  const { port, projectId, protocol } = dsn;
+      const requiredComponents: ReadonlyArray<keyof DsnComponents> = ['protocol', 'publicKey', 'host', 'projectId'];
+      const hasMissingRequiredComponent = requiredComponents.find(component => {
+        if (!dsn[component]) {
+          debug.error(`Invalid Sentry Dsn: ${component} missing`);
+          return true;
+        }
+        return false;
+      });
 
-  const requiredComponents: ReadonlyArray<keyof DsnComponents> = ['protocol', 'publicKey', 'host', 'projectId'];
-  const hasMissingRequiredComponent = requiredComponents.find(component => {
-    if (!dsn[component]) {
-      debug.error(`Invalid Sentry Dsn: ${component} missing`);
+      if (hasMissingRequiredComponent) {
+        return false;
+      }
+
+      if (!projectId.match(/^\d+$/)) {
+        debug.error(`Invalid Sentry Dsn: Invalid projectId ${projectId}`);
+        return false;
+      }
+
+      if (!isValidProtocol(protocol)) {
+        debug.error(`Invalid Sentry Dsn: Invalid protocol ${protocol}`);
+        return false;
+      }
+
+      if (port && isNaN(parseInt(port, 10))) {
+        debug.error(`Invalid Sentry Dsn: Invalid port ${port}`);
+        return false;
+      }
+
       return true;
     }
-    return false;
-  });
-
-  if (hasMissingRequiredComponent) {
-    return false;
-  }
-
-  if (!projectId.match(/^\d+$/)) {
-    debug.error(`Invalid Sentry Dsn: Invalid projectId ${projectId}`);
-    return false;
-  }
-
-  if (!isValidProtocol(protocol)) {
-    debug.error(`Invalid Sentry Dsn: Invalid protocol ${protocol}`);
-    return false;
-  }
-
-  if (port && isNaN(parseInt(port, 10))) {
-    debug.error(`Invalid Sentry Dsn: Invalid port ${port}`);
-    return false;
-  }
-
-  return true;
-}
+  : () => true;
 
 /**
  * Extract the org ID from a DSN host.
