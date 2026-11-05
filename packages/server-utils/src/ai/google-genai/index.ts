@@ -333,7 +333,12 @@ function instrumentMethod<T extends unknown[], R>(
                 addPrivateRequestAttributes(span, attributeParams, operationName);
               }
               const stream = await target.apply(context, args);
-              return instrumentStream(stream, span, Boolean(options.recordOutputs)) as R;
+              return instrumentStream(
+                stream,
+                span,
+                Boolean(options.recordOutputs),
+                (attributeParams?.config as { abortSignal?: AbortSignal } | undefined)?.abortSignal,
+              ) as R;
             } catch (error) {
               span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
               span.end();

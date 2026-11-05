@@ -1692,4 +1692,34 @@ describe('OpenAI integration', () => {
       expect(rawSpans[0]!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
     });
   });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-stream-midway-error.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('marks the span as errored when the stream fails midway, but not when the caller breaks early', async () => {
+        await createRunner()
+          .unordered()
+          .expect({
+            span: container => {
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+              expect(spans).toHaveLength(2);
+
+              const midwaySpan = spans.find(span => span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'midway-error');
+              expect(midwaySpan!.status).toBe('error');
+              expect(midwaySpan!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+              expect(midwaySpan!.attributes[GEN_AI_RESPONSE_ID]?.value).toBe('chatcmpl-midway');
+              expect(midwaySpan!.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('This stream will be cut off');
+
+              const earlyBreakSpan = spans.find(span => span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'early-break');
+              expect(earlyBreakSpan!.status).toBe('ok');
+              expect(earlyBreakSpan!.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('This stream will ');
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });
