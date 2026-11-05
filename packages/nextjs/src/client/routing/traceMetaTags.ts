@@ -59,19 +59,21 @@ export function hasServerTimingTraceContext(): boolean {
 }
 
 /**
- * Whether the SDK can still expect a `sentry-trace` meta tag to arrive: the app has `cacheComponents`
- * enabled, so a document can resume a prerendered shell and get its tag with the resumed part, the
- * document is still streaming, and nothing else already carries the trace. Without `cacheComponents`
- * a tag is either in `<head>` from the start or never comes, so waiting would only hold the pageload
- * back.
+ * Whether a `sentry-trace` meta tag can still arrive: the app has `cacheComponents` enabled, so a
+ * document can resume a prerendered shell and get its tag with the resumed part, and the document is
+ * still streaming. Without `cacheComponents` a tag is either in `<head>` from the start or never comes.
+ */
+function canObserveTraceMetaTag(): boolean {
+  return hasCacheComponents() && getDocument()?.readyState === 'loading' && typeof MutationObserver !== 'undefined';
+}
+
+/**
+ * Whether the pageload should hold its start for a `sentry-trace` meta tag: one can still arrive, and
+ * nothing else already carries the trace. With a `Server-Timing` header the pageload continues the
+ * trace at once, and a tag can only still settle how the server rendered the page.
  */
 export function canWaitForTraceMetaTag(): boolean {
-  return (
-    hasCacheComponents() &&
-    getDocument()?.readyState === 'loading' &&
-    typeof MutationObserver !== 'undefined' &&
-    !hasServerTimingTraceContext()
-  );
+  return canObserveTraceMetaTag() && !hasServerTimingTraceContext();
 }
 
 export interface TraceMetaTagWait {
@@ -86,7 +88,7 @@ export interface TraceMetaTagWait {
  *
  * Calls `onTag` once with the tag, or `onGiveUp` once when the document finished parsing without
  * one, `timeoutMs` passed, or `giveUp()` was called, whichever comes first. Settles with `onGiveUp`
- * right away when `canWaitForTraceMetaTag()` is false.
+ * right away when no tag can arrive anymore.
  */
 export function waitForTraceMetaTag(
   onTag: (values: TraceMetaTagValues) => void,
@@ -94,7 +96,7 @@ export function waitForTraceMetaTag(
   timeoutMs?: number,
 ): TraceMetaTagWait {
   const document = getDocument();
-  if (!document || !canWaitForTraceMetaTag()) {
+  if (!document || !canObserveTraceMetaTag()) {
     onGiveUp();
     return { giveUp: () => undefined };
   }
@@ -163,6 +165,37 @@ export function addTraceMetaTagLink(span: Span, { sentryTrace }: TraceMetaTagVal
 }
 
 /**
+ * Watches for a `sentry-trace` meta tag that arrives after the pageload span started, which can no
+ * longer be continued. It still settles how the server rendered a document with a
+ * `sentry-cache-origin` tag, and links the server request unless a `Server-Timing` header already
+ * connected the pageload to it.
+ */
+export function observeLateTraceMetaTag(span: Span): void {
+  const document = getDocument();
+  if (!document || !canObserveTraceMetaTag()) {
+    return;
+  }
+
+  const hasCacheOrigin = !!lastMetaContent(document, CACHE_ORIGIN_META_TAG_NAME);
+  const isConnected = hasServerTimingTraceContext();
+  const setServerRenderingType = (type: string): void => {
+    if (hasCacheOrigin && span.isRecording()) {
+      span.setAttribute(PAGE_SERVER_RENDERING_TYPE, type);
+    }
+  };
+
+  waitForTraceMetaTag(
+    values => {
+      if (!isConnected && span.isRecording()) {
+        addTraceMetaTagLink(span, values);
+      }
+      setServerRenderingType('partially_static');
+    },
+    () => setServerRenderingType('static'),
+  );
+}
+
+/**
  * How the server rendered a document with a `sentry-cache-origin` tag. With trace meta tags of this
  * request, only the shell was reused. Unset while a resumed part can still bring those tags.
  */
@@ -170,13 +203,15 @@ function getServerRenderingType(traceMetaTags: TraceMetaTagValues | undefined): 
   if (traceMetaTags) {
     return 'partially_static';
   }
-  return canWaitForTraceMetaTag() ? undefined : 'static';
+  return canObserveTraceMetaTag() ? undefined : 'static';
 }
 
 /**
  * Marks a pageload whose document carries a `sentry-cache-origin` tag with how the server rendered
  * it, and links the render that the page reuses. Applied at span start, so `tracesSampler` and
- * `ignoreSpans` see both. Like a `use cache` hit, the pageload links only a sampled render.
+ * `ignoreSpans` see the link, and the type when it is already known: with a `Server-Timing` header
+ * the pageload starts while a resumed part can still bring the tag, and `observeLateTraceMetaTag`
+ * settles the type later. Like a `use cache` hit, the pageload links only a sampled render.
  */
 export function withCacheOrigin(spanOptions: StartSpanOptions, traceMetaTags?: TraceMetaTagValues): StartSpanOptions {
   const document = getDocument();
