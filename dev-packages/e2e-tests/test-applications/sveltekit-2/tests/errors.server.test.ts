@@ -14,7 +14,7 @@ test.describe('server-side errors', () => {
 
     expect(errorEventFrames?.[errorEventFrames?.length - 1]).toEqual(
       expect.objectContaining({
-        function: 'load$1',
+        function: 'load',
         in_app: true,
       }),
     );
@@ -32,7 +32,7 @@ test.describe('server-side errors', () => {
 
     expect(errorEventFrames?.[errorEventFrames?.length - 1]).toEqual(
       expect.objectContaining({
-        function: 'load$1',
+        function: 'load',
         in_app: true,
       }),
     );

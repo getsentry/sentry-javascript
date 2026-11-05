@@ -1,13 +1,21 @@
-import { tsPlugin } from '@sveltejs/acorn-typescript';
-import * as acorn from 'acorn';
-import * as fs from 'fs';
-import * as path from 'path';
+import {
+  addImport,
+  collectDeclaringStatements,
+  collectManuallyWrappedLocals,
+  createCallSiteRewriter,
+  exportedName,
+  findNamedExports,
+  hasImport,
+  type RewriteRule,
+  type RuleContext,
+  wrapForeignExport,
+  wrapInlineExport,
+  wrapLocalBinding,
+  wrapSpecifierExports,
+} from '@sentry/bundler-plugins/rewriter';
 import type { Plugin } from 'vite';
-import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
 import type { ResolvedKitConfig } from './kitConfig';
 import { isNativeServerTracingEnabled } from './kitConfig';
-
-const AcornParser = acorn.Parser.extend(tsPlugin());
 
 export type AutoInstrumentSelection = {
   /**
@@ -33,6 +41,10 @@ type AutoInstrumentPluginOptions = AutoInstrumentSelection & {
   getKitConfig: () => Promise<ResolvedKitConfig>;
 };
 
+type LoadWrapper = 'wrapLoadWithSentry' | 'wrapServerLoadWithSentry';
+
+const LOAD_WRAPPERS: readonly LoadWrapper[] = ['wrapLoadWithSentry', 'wrapServerLoadWithSentry'];
+
 /**
  * Creates a Vite plugin that automatically instruments the parts of the app
  * specified in @param options. This includes
@@ -53,6 +65,15 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
   const shouldOnlyInstrumentClient = (): Promise<boolean> =>
     (onlyInstrumentClientPromise ??= getKitConfig().then(isNativeServerTracingEnabled));
 
+  const universalRules = wrapLoadEnabled
+    ? [loadRule(/^\+(page|layout)\.(js|ts|mjs|mts)$/, 'wrapLoadWithSentry', debug)]
+    : [];
+  const serverRules = wrapServerLoadEnabled
+    ? [loadRule(/^\+(page|layout)\.server\.(js|ts|mjs|mts)$/, 'wrapServerLoadWithSentry', debug)]
+    : [];
+  const universalRewriter = createCallSiteRewriter(universalRules);
+  const rewriter = createCallSiteRewriter([...universalRules, ...serverRules]);
+
   return {
     name: 'sentry-auto-instrumentation',
     // This plugin needs to run as early as possible, before the SvelteKit plugin virtualizes all paths and ids
@@ -66,142 +87,84 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
       isServerBuild = !!config.build.ssr;
     },
 
-    async load(id) {
+    async transform(code, id) {
       // On Vite 6+ `config.build.ssr` captured in `configResolved` no longer reliably reflects the per-environment build.
       // Prefer the environment of the current build (`this.environment.name === 'ssr'`) and fall back to
       // `isServerBuild` for older Vite versions that don't expose environments.
       const environmentName = (this as { environment?: { name?: string } }).environment?.name;
       const isServerEnvironment = environmentName != null ? environmentName === 'ssr' : !!isServerBuild;
 
-      if (isServerEnvironment && (await shouldOnlyInstrumentClient())) {
+      const onlyInstrumentClient = await shouldOnlyInstrumentClient();
+      if (isServerEnvironment && onlyInstrumentClient) {
         return null;
       }
 
-      const applyUniversalLoadWrapper =
-        wrapLoadEnabled &&
-        /^\+(page|layout)\.(js|ts|mjs|mts)$/.test(path.basename(id)) &&
-        (await canWrapLoad(id, debug));
+      return (onlyInstrumentClient ? universalRewriter : rewriter).transform(code, id, this);
+    },
+  };
+}
 
-      if (applyUniversalLoadWrapper) {
+function loadRule(basename: RegExp, wrapper: LoadWrapper, debug: boolean): RewriteRule {
+  return {
+    name: wrapper,
+    include: { basename, contains: ['load'] },
+    apply: ctx => {
+      if (wrapLoadExport(ctx, wrapper)) {
         // eslint-disable-next-line no-console
-        debug && console.log(`Wrapping ${id} with Sentry load wrapper`);
-        return getWrapperCode('wrapLoadWithSentry', `${id}${WRAPPED_MODULE_SUFFIX}`);
+        debug && console.log(`Wrapping ${ctx.id} with Sentry load wrapper`);
       }
-
-      if (await shouldOnlyInstrumentClient()) {
-        // Now that we've checked universal files, we can early return and avoid further
-        // regexp checks below for server-only files.
-        return null;
-      }
-
-      const applyServerLoadWrapper =
-        wrapServerLoadEnabled &&
-        /^\+(page|layout)\.server\.(js|ts|mjs|mts)$/.test(path.basename(id)) &&
-        (await canWrapLoad(id, debug));
-
-      if (applyServerLoadWrapper) {
-        // eslint-disable-next-line no-console
-        debug && console.log(`Wrapping ${id} with Sentry load wrapper`);
-        return getWrapperCode('wrapServerLoadWithSentry', `${id}${WRAPPED_MODULE_SUFFIX}`);
-      }
-
-      return null;
     },
   };
 }
 
 /**
- * We only want to apply our wrapper to files that
+ * Wraps the module's `load` export in place, in any export form, unless the
+ * user already wrapped it.
  *
- *  - Have no Sentry code yet in them. This is to avoid double-wrapping or interfering with custom
- *    Sentry calls.
- *  - Actually declare a `load` function. The second check of course is not 100% accurate, but it's good enough.
- *    Injecting our wrapper into files that don't declare a `load` function would result in a build-time warning
- *    because vite/rollup warns if we reference an export from the user's file in our wrapping code that
- *    doesn't exist.
- *
- * Exported for testing
- *
- * @returns `true` if we can wrap the given file, `false` otherwise
+ * @returns whether the export was wrapped
  */
-export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> {
-  // Some 3rd party plugins add ids to the build that actually don't exist.
-  // We need to check for that here, otherwise users get get a build errors.
-  if (!fs.existsSync(id)) {
-    debug &&
-      // eslint-disable-next-line no-console
-      console.log(
-        `Skipping wrapping ${id} because it doesn't exist. A 3rd party plugin might have added this as a virtual file to the build`,
-      );
-    return false;
-  }
+function wrapLoadExport({ ast, state }: RuleContext, wrapper: LoadWrapper): boolean {
+  const handWrapped = collectManuallyWrappedLocals(ast, LOAD_WRAPPERS);
+  const declaringStatements = collectDeclaringStatements(ast);
+  const wrap = (target: string): string => `${wrapper}(${target})`;
+  let wrapped = false;
 
-  const code = (await fs.promises.readFile(id, 'utf8')).toString();
+  for (const node of findNamedExports(ast, 'load')) {
+    if (node.declaration) {
+      if (handWrapped.has('load')) {
+        state.report.alreadyWrapped.push('load');
+      } else if (wrapInlineExport(state, node, 'load', wrap)) {
+        wrapped = true;
+      }
+      continue;
+    }
 
-  let program: acorn.Program;
-  try {
-    program = AcornParser.parse(code, {
-      sourceType: 'module',
-      ecmaVersion: 'latest',
-      locations: true,
+    wrapSpecifierExports(state, node, (specifier, sourceLiteral, prelude) => {
+      const local = specifier.local?.type === 'Identifier' ? specifier.local.name : undefined;
+      if (exportedName(specifier.exported) !== 'load' || !local) return undefined;
+
+      if (sourceLiteral) {
+        wrapped = true;
+        return wrapForeignExport(state, local, 'load', sourceLiteral, prelude, wrap);
+      }
+
+      const declaringStatement = declaringStatements.get(local);
+      if (handWrapped.has(local)) {
+        state.report.alreadyWrapped.push('load');
+        return undefined;
+      }
+      if (!declaringStatement) return undefined;
+
+      wrapped = true;
+      return `${wrapLocalBinding(state, local, declaringStatement, wrap)} as load`;
     });
-  } catch {
-    // eslint-disable-next-line no-console
-    debug && console.log(`Skipping wrapping ${id} because it doesn't contain valid JavaScript or TypeScript`);
-    return false;
   }
 
-  const hasLoadDeclaration = program.body
-    .filter((statement): statement is acorn.ExportNamedDeclaration => statement.type === 'ExportNamedDeclaration')
-    .find(exportDecl => {
-      // find `export const load = ...`
-      if (exportDecl.declaration?.type === 'VariableDeclaration') {
-        const variableDeclarations = exportDecl.declaration.declarations;
-        return variableDeclarations.find(
-          decl => decl.type === 'VariableDeclarator' && decl.id.type === 'Identifier' && decl.id.name === 'load',
-        );
-      }
-
-      // find `export function load = ...`
-      if (exportDecl.declaration?.type === 'FunctionDeclaration') {
-        const functionId = exportDecl.declaration.id;
-        return functionId?.name === 'load';
-      }
-
-      // find `export { load, somethingElse as load, somethingElse as "load" }`
-      if (exportDecl.specifiers) {
-        return exportDecl.specifiers.find(specifier => {
-          return (
-            (specifier.exported.type === 'Identifier' && specifier.exported.name === 'load') ||
-            // ESTree/acorn represents `export { x as "load" }` with a Literal node (not Babel's StringLiteral)
-            (specifier.exported.type === 'Literal' && specifier.exported.value === 'load')
-          );
-        });
-      }
-
-      return false;
-    });
-
-  if (!hasLoadDeclaration) {
-    // eslint-disable-next-line no-console
-    debug && console.log(`Skipping wrapping ${id} because it doesn't declare a \`load\` function`);
-    return false;
+  if (wrapped) {
+    state.report.wrapped.push('load');
+    if (!hasImport(ast, '@sentry/sveltekit', wrapper)) {
+      addImport(state, ast, `import { ${wrapper} } from '@sentry/sveltekit';`);
+    }
   }
-
-  return true;
-}
-
-/**
- * Return wrapper code fo the given module id and wrapping function
- */
-function getWrapperCode(
-  wrapperFunction: 'wrapLoadWithSentry' | 'wrapServerLoadWithSentry',
-  idWithSuffix: string,
-): string {
-  return (
-    `import { ${wrapperFunction} } from "@sentry/sveltekit";` +
-    `import * as userModule from ${JSON.stringify(idWithSuffix)};` +
-    `export const load = userModule.load ? ${wrapperFunction}(userModule.load) : undefined;` +
-    `export * from ${JSON.stringify(idWithSuffix)};`
-  );
+  return wrapped;
 }

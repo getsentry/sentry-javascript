@@ -1,4 +1,4 @@
-import { escapeStringForRegex, uuid4 } from '@sentry/core';
+import { uuid4 } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
@@ -6,7 +6,6 @@ import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Plugin, UserConfig } from 'vite';
-import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
 import type { CustomSentryVitePluginOptions } from './types';
 
 // sorcery has no types, so these are some basic type definitions:
@@ -201,21 +200,6 @@ export async function makeCustomSentryVitePlugins(
           // eslint-disable-next-line no-console
           console.error('[Source Maps Plugin] error while flattening', file, e);
         }
-      }
-
-      // We need to remove the query string from the source map files that our auto-instrument plugin added
-      // to proxy the load functions during building.
-      const mapFile = `${file}.map`;
-      try {
-        const mapContent = (await fs.promises.readFile(mapFile, 'utf-8')).toString();
-        const cleanedMapContent = mapContent.replace(
-          // oxlint-disable-next-line sdk/no-regexp-constructor -- no user input + escaped anyway
-          new RegExp(escapeStringForRegex(WRAPPED_MODULE_SUFFIX), 'gm'),
-          '',
-        );
-        await fs.promises.writeFile(mapFile, cleanedMapContent);
-      } catch {
-        // Map file doesn't exist, nothing to clean
       }
     }
 
