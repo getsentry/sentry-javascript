@@ -90,6 +90,46 @@ describe('instrumentOutgoingRequests', () => {
     expect(requestSpanJson.attributes[HTTP_REQUEST_METHOD]).toBe('QUERY');
   });
 
+  describe('HTTP timings', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    function startFetchRequestSpan(): void {
+      let fetchHandler: ((data: utils.HandlerDataFetch) => void) | undefined;
+      vi.spyOn(utils, 'addFetchInstrumentationHandler').mockImplementation(handler => {
+        fetchHandler = handler;
+      });
+      const tracingClient = new BrowserClient(getDefaultBrowserClientOptions({ tracesSampleRate: 1 }));
+      utils.setCurrentClient(tracingClient);
+      utils._INTERNAL_setSpanForScope(utils.getCurrentScope(), new utils.SentrySpan({ sampled: true }));
+
+      instrumentOutgoingRequests(tracingClient, { traceXHR: false });
+      fetchHandler?.({
+        fetchData: { method: 'GET', url: 'https://example.com/api' },
+        args: ['https://example.com/api'],
+        startTimestamp: Date.now(),
+      });
+    }
+
+    it('collects HTTP timings by default', () => {
+      const addPerformanceSpy = vi.spyOn(browserUtils, 'addPerformanceInstrumentationHandler');
+
+      startFetchRequestSpan();
+
+      expect(addPerformanceSpy).toHaveBeenCalledWith('resource', expect.any(Function));
+    });
+
+    it("doesn't collect HTTP timings if `__SENTRY_EXCLUDE_HTTP_TIMINGS__` is true", () => {
+      vi.stubGlobal('__SENTRY_EXCLUDE_HTTP_TIMINGS__', true);
+      const addPerformanceSpy = vi.spyOn(browserUtils, 'addPerformanceInstrumentationHandler');
+
+      startFetchRequestSpan();
+
+      expect(addPerformanceSpy).not.toHaveBeenCalled();
+    });
+  });
+
   it('creates a QUERY XHR span with the QUERY method attribute', () => {
     let xhrHandler: ((data: browserUtils.HandlerDataXhr) => void) | undefined;
     let requestSpan: utils.Span | undefined;

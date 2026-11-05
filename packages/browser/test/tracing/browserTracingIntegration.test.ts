@@ -33,6 +33,8 @@ import { PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE } from '../../src/tracing/linkedTrace
 import { bfcacheMetricsIntegration } from '../../src/integrations/bfcacheMetrics';
 import * as webVitalsModule from '../../src/integrations/webVitals';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
+import * as sentryCore from '@sentry/core';
+import * as backgroundTab from '../../src/tracing/backgroundtab';
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
   URL_FULL,
@@ -493,6 +495,51 @@ describe('browserTracingIntegration', () => {
         parent_span_id: span.spanContext().spanId,
       }),
     );
+  });
+
+  describe('tree-shakeable root span handlers', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    function initClient(): void {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+    }
+
+    it('registers span error instrumentation and background tab detection by default', () => {
+      const registerSpanErrorSpy = vi.spyOn(sentryCore, 'registerSpanErrorInstrumentation');
+      const registerBackgroundTabSpy = vi.spyOn(backgroundTab, 'registerBackgroundTabDetection');
+
+      initClient();
+
+      expect(registerSpanErrorSpy).toHaveBeenCalledOnce();
+      expect(registerBackgroundTabSpy).toHaveBeenCalledOnce();
+    });
+
+    it("doesn't register span error instrumentation if `__SENTRY_EXCLUDE_SPAN_ERROR_INSTRUMENTATION__` is true", () => {
+      vi.stubGlobal('__SENTRY_EXCLUDE_SPAN_ERROR_INSTRUMENTATION__', true);
+      const registerSpanErrorSpy = vi.spyOn(sentryCore, 'registerSpanErrorInstrumentation');
+
+      initClient();
+
+      expect(registerSpanErrorSpy).not.toHaveBeenCalled();
+    });
+
+    it("doesn't register background tab detection if `__SENTRY_EXCLUDE_BACKGROUND_TAB_DETECTION__` is true", () => {
+      vi.stubGlobal('__SENTRY_EXCLUDE_BACKGROUND_TAB_DETECTION__', true);
+      const registerBackgroundTabSpy = vi.spyOn(backgroundTab, 'registerBackgroundTabDetection');
+
+      initClient();
+
+      expect(registerBackgroundTabSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('startBrowserTracingPageLoadSpan', () => {

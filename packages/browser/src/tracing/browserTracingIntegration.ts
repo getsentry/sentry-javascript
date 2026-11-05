@@ -292,6 +292,10 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   ...defaultRequestInstrumentationOptions,
 };
 
+// Bundlers can define these as `true` to tree-shake the root span error handlers and background tab detection
+declare const __SENTRY_EXCLUDE_SPAN_ERROR_INSTRUMENTATION__: boolean | undefined;
+declare const __SENTRY_EXCLUDE_BACKGROUND_TAB_DETECTION__: boolean | undefined;
+
 /**
  * The Browser Tracing integration automatically instruments browser pageload/navigation
  * actions as transactions, and captures requests, metrics and errors as spans.
@@ -431,7 +435,12 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         return;
       }
 
-      registerSpanErrorInstrumentation();
+      if (
+        typeof __SENTRY_EXCLUDE_SPAN_ERROR_INSTRUMENTATION__ === 'undefined' ||
+        !__SENTRY_EXCLUDE_SPAN_ERROR_INSTRUMENTATION__
+      ) {
+        registerSpanErrorInstrumentation();
+      }
 
       if (
         enableLongAnimationFrame &&
@@ -733,7 +742,11 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         }
       }
 
-      if (markBackgroundSpan) {
+      if (
+        markBackgroundSpan &&
+        (typeof __SENTRY_EXCLUDE_BACKGROUND_TAB_DETECTION__ === 'undefined' ||
+          !__SENTRY_EXCLUDE_BACKGROUND_TAB_DETECTION__)
+      ) {
         registerBackgroundTabDetection();
       }
 
