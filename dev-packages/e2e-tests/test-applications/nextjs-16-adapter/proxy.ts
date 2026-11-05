@@ -3,6 +3,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname !== '/api/proxy-isolation') {
+    return NextResponse.next();
+  }
+
   const requestId = request.nextUrl.searchParams.get('id');
 
   Sentry.addBreadcrumb({ message: `proxy breadcrumb ${requestId}` });
@@ -16,5 +20,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/proxy-isolation'],
+  matcher: ['/api/proxy-isolation', '/api/proxy-ok', '/monitoring'],
 };

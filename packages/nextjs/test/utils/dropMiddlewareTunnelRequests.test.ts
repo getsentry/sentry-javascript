@@ -125,6 +125,20 @@ describe('dropMiddlewareTunnelRequests', () => {
     });
   });
 
+  describe('Next.request spans', () => {
+    it('marks the proxy root span for dropping when http.target matches tunnel path', () => {
+      globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
+      const span = createMockSpan();
+
+      dropMiddlewareTunnelRequests(span as any, {
+        'next.span_type': 'Next.request',
+        'http.target': '/monitoring',
+      });
+
+      expect(span.setAttribute).toHaveBeenCalledWith(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
+    });
+  });
+
   describe('unrelated spans', () => {
     it('does not process spans without matching span type or origin', () => {
       globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
@@ -208,6 +222,26 @@ describe('getTunnelRouteIgnoreSpans', () => {
       globalWithInjectedValues._sentryTunnelRouteMode = 'handler';
 
       expect(isIgnored(nextRequestSpanAttributes('BaseServer.handleRequest', target))).toBe(true);
+    },
+  );
+
+  it.each([
+    ['rewrite', '/monitoring'],
+    ['rewrite', '/monitoring/'],
+    ['handler', '/monitoring'],
+  ] as const)('ignores a Next.request proxy root span in %s mode for %s', (mode, target) => {
+    globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
+    globalWithInjectedValues._sentryTunnelRouteMode = mode;
+
+    expect(isIgnored(nextRequestSpanAttributes('Next.request', target))).toBe(true);
+  });
+
+  it.each(['/monitoring/dashboard', '/monitoring-dashboard', '/api/monitoring'])(
+    'does not ignore a Next.request proxy root span for %s',
+    target => {
+      globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
+
+      expect(isIgnored(nextRequestSpanAttributes('Next.request', target))).toBe(false);
     },
   );
 
