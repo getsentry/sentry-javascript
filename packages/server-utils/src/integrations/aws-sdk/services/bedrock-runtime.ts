@@ -15,6 +15,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
+import { getTokenUsageAttributes } from '../../../ai/core/utils';
 import { DEBUG_BUILD } from '../../../debug-build';
 import {
   GEN_AI_OPERATION_NAME_VALUE_CHAT,
@@ -295,9 +296,20 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
           span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.stopReason]);
         }
       } else if (currentModelId.includes('anthropic.claude')) {
-        setClaudeInputTokens(span, responseBody.usage);
-        if (responseBody.usage?.output_tokens !== undefined) {
-          span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, responseBody.usage.output_tokens);
+        const usage = responseBody.usage;
+        if (usage) {
+          span.setAttributes(
+            getTokenUsageAttributes(
+              getInputTokensWithCache(
+                usage.input_tokens,
+                usage.cache_read_input_tokens,
+                usage.cache_creation_input_tokens,
+              ),
+              usage.output_tokens,
+              usage.cache_creation_input_tokens,
+              usage.cache_read_input_tokens,
+            ),
+          );
         }
         if (responseBody.stop_reason !== undefined) {
           span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.stop_reason]);
@@ -405,10 +417,14 @@ function setStopReason(span: Span, stopReason: string | undefined): void {
 function setUsage(span: Span, usage: TokenUsage | undefined): void {
   if (usage) {
     const { inputTokens, outputTokens, cacheReadInputTokens, cacheWriteInputTokens } = usage;
-    setInputTokens(span, inputTokens, cacheReadInputTokens, cacheWriteInputTokens);
-    if (outputTokens !== undefined) {
-      span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, outputTokens);
-    }
+    span.setAttributes(
+      getTokenUsageAttributes(
+        getInputTokensWithCache(inputTokens, cacheReadInputTokens, cacheWriteInputTokens),
+        outputTokens,
+        cacheWriteInputTokens,
+        cacheReadInputTokens,
+      ),
+    );
   }
 }
 
@@ -416,14 +432,24 @@ function setUsage(span: Span, usage: TokenUsage | undefined): void {
  * With prompt caching, Bedrock and Anthropic count only the uncached prompt tokens as input tokens, while the
  * conventions count cache reads and writes as input tokens too.
  */
-function setInputTokens(
-  span: Span,
+function getInputTokensWithCache(
   inputTokens: number | undefined,
   cacheReadTokens: number | undefined,
   cacheWriteTokens: number | undefined,
-): void {
-  if (typeof inputTokens === 'number') {
-    span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, inputTokens + (cacheReadTokens ?? 0) + (cacheWriteTokens ?? 0));
+): number | undefined {
+  return typeof inputTokens === 'number' ? inputTokens + (cacheReadTokens ?? 0) + (cacheWriteTokens ?? 0) : undefined;
+}
+
+/**
+ * `getTokenUsageAttributes` is not used here: `message_start` carries only a placeholder output token count,
+ * so a total computed from it would be wrong.
+ */
+function setClaudeStreamInputTokens(span: Span, usage: ParsedChunk): void {
+  const cacheReadTokens = usage?.cache_read_input_tokens;
+  const cacheWriteTokens = usage?.cache_creation_input_tokens;
+  const inputTokens = getInputTokensWithCache(usage?.input_tokens, cacheReadTokens, cacheWriteTokens);
+  if (inputTokens !== undefined) {
+    span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, inputTokens);
   }
   if (typeof cacheReadTokens === 'number') {
     span.setAttribute(GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheReadTokens);
@@ -431,10 +457,6 @@ function setInputTokens(
   if (typeof cacheWriteTokens === 'number') {
     span.setAttribute(GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheWriteTokens);
   }
-}
-
-function setClaudeInputTokens(span: Span, usage: ParsedChunk): void {
-  setInputTokens(span, usage?.input_tokens, usage?.cache_read_input_tokens, usage?.cache_creation_input_tokens);
 }
 
 function parseRequestBody(body: unknown): ParsedChunk {
@@ -478,7 +500,7 @@ function recordNovaAttributes(parsedChunk: ParsedChunk, span: Span): void {
 }
 
 function recordClaudeAttributes(parsedChunk: ParsedChunk, span: Span): void {
-  setClaudeInputTokens(span, parsedChunk.message?.usage);
+  setClaudeStreamInputTokens(span, parsedChunk.message?.usage);
   if (parsedChunk.message?.usage?.output_tokens !== undefined) {
     span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, parsedChunk.message.usage.output_tokens);
   }

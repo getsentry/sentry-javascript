@@ -7,6 +7,8 @@ import {
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
@@ -82,10 +84,16 @@ describe('BedrockRuntimeServiceExtension token usage with prompt caching', () =>
   const encoder = new TextEncoder();
 
   // 20 uncached prompt tokens, 1800 read from the cache, and 300 written to it.
-  const EXPECTED_USAGE = {
+  const EXPECTED_INPUT_USAGE = {
     [GEN_AI_USAGE_INPUT_TOKENS]: 2120,
     [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: 1800,
     [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: 300,
+  };
+
+  const EXPECTED_USAGE = {
+    ...EXPECTED_INPUT_USAGE,
+    [GEN_AI_USAGE_OUTPUT_TOKENS]: 50,
+    [GEN_AI_USAGE_TOTAL_TOKENS]: 2170,
   };
 
   const CLAUDE_USAGE = {
@@ -106,9 +114,9 @@ describe('BedrockRuntimeServiceExtension token usage with prompt caching', () =>
     );
   }
 
-  function usageAttributes(span: Span): Record<string, unknown> {
+  function usageAttributes(span: Span, expected: Record<string, unknown>): Record<string, unknown> {
     const attributes = spanToJSON(span).attributes ?? {};
-    return Object.fromEntries(Object.keys(EXPECTED_USAGE).map(key => [key, attributes[key]]));
+    return Object.fromEntries(Object.keys(expected).map(key => [key, attributes[key]]));
   }
 
   beforeEach(() => {
@@ -135,7 +143,7 @@ describe('BedrockRuntimeServiceExtension token usage with prompt caching', () =>
       },
     });
 
-    expect(usageAttributes(span)).toEqual(EXPECTED_USAGE);
+    expect(usageAttributes(span, EXPECTED_USAGE)).toEqual(EXPECTED_USAGE);
   });
 
   it('counts cache reads and writes as input tokens for Claude InvokeModel', () => {
@@ -153,7 +161,7 @@ describe('BedrockRuntimeServiceExtension token usage with prompt caching', () =>
 
     respond(span, 'InvokeModel', { body });
 
-    expect(usageAttributes(span)).toEqual(EXPECTED_USAGE);
+    expect(usageAttributes(span, EXPECTED_USAGE)).toEqual(EXPECTED_USAGE);
   });
 
   it('counts cache reads and writes as input tokens for a Claude stream', async () => {
@@ -173,6 +181,8 @@ describe('BedrockRuntimeServiceExtension token usage with prompt caching', () =>
       // consume
     }
 
-    expect(usageAttributes(span)).toEqual(EXPECTED_USAGE);
+    // The total waits for the final output count, which `message_start` does not carry.
+    const expected = { ...EXPECTED_INPUT_USAGE, [GEN_AI_USAGE_TOTAL_TOKENS]: undefined };
+    expect(usageAttributes(span, expected)).toEqual(expected);
   });
 });
