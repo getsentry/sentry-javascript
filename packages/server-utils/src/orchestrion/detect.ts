@@ -32,10 +32,10 @@ export function getOrchestrionInjectedModules(): string[] {
  * is fine.
  */
 export function detectOrchestrionSetup(): void {
-  const { runtime, bundler } = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ?? {};
+  const { runtime, bundler, channelIntegrations } = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ?? {};
 
   if (!runtime && !bundler) {
-    if (typeof (globalThis as { Bun?: unknown }).Bun !== 'undefined') {
+    if (channelIntegrations && typeof (globalThis as { Bun?: unknown }).Bun !== 'undefined') {
       consoleSandbox(() => {
         // oxlint-disable-next-line no-console
         console.warn(

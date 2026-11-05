@@ -96,6 +96,11 @@ export type InternalGlobal = {
      */
     runtimeUnavailable?: boolean;
     /**
+     * Set when an integration asks to subscribe to orchestrion-injected
+     * channels, so a missing injection is only reported when it loses data.
+     */
+    channelIntegrations?: boolean;
+    /**
      * Module namespaces stashed by build-time provider imports, keyed by module
      * name (e.g. `@mastra/observability`). A bundler plugin can splice a static
      * `import * as ns from '<pkg>'` into an integration and record `ns` here, so

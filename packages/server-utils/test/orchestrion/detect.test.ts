@@ -39,17 +39,27 @@ describe('detectOrchestrionSetup', () => {
 
   it('always warns on Bun when no injection is detected', () => {
     vi.stubGlobal('Bun', {});
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { channelIntegrations: true };
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     detectOrchestrionSetup();
 
     expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls[0]?.[0]).toContain('@sentry/bun/plugin');
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('@sentry/bun/plugin'));
+  });
+
+  it('does not warn on Bun when no channel integration is installed', () => {
+    vi.stubGlobal('Bun', {});
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    detectOrchestrionSetup();
+
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it('does not warn on Bun when the bundler plugin ran', () => {
     vi.stubGlobal('Bun', {});
-    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { bundler: new Set() };
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { bundler: new Set(), channelIntegrations: true };
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     detectOrchestrionSetup();
@@ -58,6 +68,7 @@ describe('detectOrchestrionSetup', () => {
   });
 
   it('does not warn outside Bun when debug is off', () => {
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { channelIntegrations: true };
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     detectOrchestrionSetup();
