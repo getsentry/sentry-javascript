@@ -261,7 +261,10 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     setStopReason(span, stopReason);
     span.setAttributes(
       getTokenUsageAttributes(
-        getInputTokensWithCache(usage?.inputTokens, usage?.cacheReadInputTokens, usage?.cacheWriteInputTokens),
+        // With prompt caching, `inputTokens` leaves out cache reads and writes, which the conventions count as input.
+        typeof usage?.inputTokens === 'number'
+          ? usage.inputTokens + (usage.cacheReadInputTokens ?? 0) + (usage.cacheWriteInputTokens ?? 0)
+          : undefined,
         usage?.outputTokens,
         usage?.cacheWriteInputTokens,
         usage?.cacheReadInputTokens,
@@ -306,11 +309,10 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
         const usage = responseBody.usage;
         span.setAttributes(
           getTokenUsageAttributes(
-            getInputTokensWithCache(
-              usage?.input_tokens,
-              usage?.cache_read_input_tokens,
-              usage?.cache_creation_input_tokens,
-            ),
+            // Anthropic's `input_tokens` leaves out cache reads and writes, which the conventions count as input.
+            typeof usage?.input_tokens === 'number'
+              ? usage.input_tokens + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0)
+              : undefined,
             usage?.output_tokens,
             usage?.cache_creation_input_tokens,
             usage?.cache_read_input_tokens,
@@ -409,7 +411,10 @@ async function* wrapConverseStreamResponse(
     }
     span.setAttributes(
       getTokenUsageAttributes(
-        getInputTokensWithCache(usage?.inputTokens, usage?.cacheReadInputTokens, usage?.cacheWriteInputTokens),
+        // With prompt caching, `inputTokens` leaves out cache reads and writes, which the conventions count as input.
+        typeof usage?.inputTokens === 'number'
+          ? usage.inputTokens + (usage.cacheReadInputTokens ?? 0) + (usage.cacheWriteInputTokens ?? 0)
+          : undefined,
         usage?.outputTokens,
         usage?.cacheWriteInputTokens,
         usage?.cacheReadInputTokens,
@@ -427,27 +432,14 @@ function setStopReason(span: Span, stopReason: string | undefined): void {
 }
 
 /**
- * With prompt caching, Bedrock and Anthropic count only the uncached prompt tokens as input tokens, while the
- * conventions count cache reads and writes as input tokens too.
- */
-function getInputTokensWithCache(
-  inputTokens: number | undefined,
-  cacheReadTokens: number | undefined,
-  cacheWriteTokens: number | undefined,
-): number | undefined {
-  return typeof inputTokens === 'number' ? inputTokens + (cacheReadTokens ?? 0) + (cacheWriteTokens ?? 0) : undefined;
-}
-
-/**
  * `getTokenUsageAttributes` is not used here: `message_start` carries only a placeholder output token count,
  * so a total computed from it would be wrong.
  */
 function setClaudeStreamInputTokens(span: Span, usage: ParsedChunk): void {
   const cacheReadTokens = usage?.cache_read_input_tokens;
   const cacheWriteTokens = usage?.cache_creation_input_tokens;
-  const inputTokens = getInputTokensWithCache(usage?.input_tokens, cacheReadTokens, cacheWriteTokens);
-  if (inputTokens !== undefined) {
-    span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, inputTokens);
+  if (typeof usage?.input_tokens === 'number') {
+    span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, usage.input_tokens + (cacheReadTokens ?? 0) + (cacheWriteTokens ?? 0));
   }
   if (typeof cacheReadTokens === 'number') {
     span.setAttribute(GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheReadTokens);
