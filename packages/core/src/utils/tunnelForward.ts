@@ -80,7 +80,7 @@ export function handleTunnelRequest(
     const nodeResponse = responseOrOptions;
 
     return forwardTunnelRequest(
-      toFetchRequest(requestOrOptions as NodeTunnelRequest, nodeResponse),
+      toFetchRequest(requestOrOptions as NodeTunnelRequest),
       getAllowedDsns(nodeOptions),
     ).then(fetchResponse => writeNodeResponse(nodeResponse, fetchResponse));
   }
@@ -126,8 +126,8 @@ export function handleTunnelRequestIfMatched(
     return forwardTunnelRequest(request as Request, tunnel.allowedDsns);
   }
 
-  return forwardTunnelRequest(toFetchRequest(request as NodeTunnelRequest, response), tunnel.allowedDsns).then(
-    fetchResponse => writeNodeResponse(response, fetchResponse),
+  return forwardTunnelRequest(toFetchRequest(request as NodeTunnelRequest), tunnel.allowedDsns).then(fetchResponse =>
+    writeNodeResponse(response, fetchResponse),
   );
 }
 
@@ -146,7 +146,7 @@ export function handleServedNodeTunnelRequest(request: NodeTunnelRequest, respon
       return false;
     }
 
-    handled = servedTunnel.forward(toFetchRequest(request, response), servedTunnel.allowedDsns);
+    handled = servedTunnel.forward(toFetchRequest(request), servedTunnel.allowedDsns);
   } catch (error) {
     DEBUG_BUILD && debug.error('Sentry tunnel: failed to match a request', error);
 
@@ -190,7 +190,7 @@ function isNodeTunnelResponse(value: unknown): value is NodeTunnelResponse {
   return typeof (value as NodeTunnelResponse | undefined)?.writeHead === 'function';
 }
 
-function toFetchRequest(request: NodeTunnelRequest, response: NodeTunnelResponse): Request {
+function toFetchRequest(request: NodeTunnelRequest): Request {
   const headers = new Headers();
   for (const [name, value] of Object.entries(request.headers)) {
     // HTTP/2 pseudo-headers like `:authority` aren't valid fetch header names.
@@ -219,10 +219,6 @@ function toFetchRequest(request: NodeTunnelRequest, response: NodeTunnelResponse
     },
   });
 
-  // So the forward stops when the browser goes away, instead of waiting on Sentry for nobody.
-  const abortController = new AbortController();
-  response.once?.('close', () => abortController.abort());
-
   // The forward reads only the headers and the body. A URL built from the request's `Host` would throw on one
   // Node accepts, like `a b`.
   return new Request('http://localhost/', {
@@ -230,7 +226,6 @@ function toFetchRequest(request: NodeTunnelRequest, response: NodeTunnelResponse
     headers,
     body,
     duplex: 'half',
-    signal: abortController.signal,
   } as RequestInit);
 }
 
@@ -270,6 +265,11 @@ export async function forwardTunnelRequest(request: Request, allowedDsns: Array<
   return withDecodedBodyHeaders(await forwardEnvelope(request, allowedDsns));
 }
 
+/**
+ * How long a forward waits on Sentry, so a hanging Sentry doesn't hold the browser's connection open.
+ */
+const FORWARD_TIMEOUT_MS = 30_000;
+
 async function forwardEnvelope(request: Request, allowedDsns: Array<string>): Promise<Response> {
   if (allowedDsns.length === 0) {
     return new Response('Tunnel not configured', { status: 500 });
@@ -302,8 +302,9 @@ async function forwardEnvelope(request: Request, allowedDsns: Array<string>): Pr
         headers: forwardHeaders(request),
         body: prependToStream(head.read, reader),
         duplex: 'half',
-        // Aborts when the browser goes away, so a slow or hanging Sentry doesn't keep the connection open.
-        signal: request.signal,
+        // Not the browser's signal: once the envelope is here, it still goes to Sentry after the browser leaves. A
+        // browser that leaves mid-upload breaks the body, which fails the forward on its own.
+        signal: AbortSignal.timeout(FORWARD_TIMEOUT_MS),
       } as RequestInit),
     );
   } catch (error) {
