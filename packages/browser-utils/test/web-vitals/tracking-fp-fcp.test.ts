@@ -1,3 +1,4 @@
+import { BROWSER_PERFORMANCE_TIME_ORIGIN, PERFORMANCE_TIMEORIGIN } from '@sentry/conventions/attributes';
 import { getClient, getMainCarrier, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { addWebVitalsToSpan, startTrackingWebVitals } from '../../src/web-vitals/tracking';
@@ -111,7 +112,8 @@ describe('startTrackingWebVitals', () => {
     });
 
     const { attributes } = spanToJSON(pageloadSpan);
-    expect(attributes['browser.performance.time_origin']).toEqual(expect.any(Number));
-    expect(attributes['performance.timeOrigin']).toBeUndefined();
+    expect(attributes[BROWSER_PERFORMANCE_TIME_ORIGIN]).toEqual(expect.any(Number));
+    // oxlint-disable-next-line typescript/no-deprecated -- Asserting the legacy attribute is not set.
+    expect(attributes[PERFORMANCE_TIMEORIGIN]).toBeUndefined();
   });
 });
