@@ -48,6 +48,17 @@ describe('detectOrchestrionSetup', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('@sentry/bun/plugin'));
   });
 
+  it('warns on Bun only once when called again, as on a repeated `init()`', () => {
+    vi.stubGlobal('Bun', {});
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { channelIntegrations: true };
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    detectOrchestrionSetup();
+    detectOrchestrionSetup();
+
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
   it('does not warn on Bun when no channel integration is installed', () => {
     vi.stubGlobal('Bun', {});
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);

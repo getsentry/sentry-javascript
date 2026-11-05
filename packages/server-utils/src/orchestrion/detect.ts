@@ -32,18 +32,22 @@ export function getOrchestrionInjectedModules(): string[] {
  * is fine.
  */
 export function detectOrchestrionSetup(): void {
-  const { runtime, bundler, channelIntegrations } = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ?? {};
+  const marker = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ?? {};
+  const { runtime, bundler, channelIntegrations } = marker;
 
   if (!runtime && !bundler) {
     if (channelIntegrations && typeof (globalThis as { Bun?: unknown }).Bun !== 'undefined') {
-      consoleSandbox(() => {
-        // oxlint-disable-next-line no-console
-        console.warn(
-          '[Sentry] No diagnostics-channel injection detected. Channel-based integrations will not record ' +
-            'spans or capture errors, because Bun cannot instrument modules at runtime. Build your app with ' +
-            '`@sentry/bun/plugin` to enable them.',
-        );
-      });
+      if (!marker.warnedBunRunNotInjected) {
+        marker.warnedBunRunNotInjected = true;
+        consoleSandbox(() => {
+          // oxlint-disable-next-line no-console
+          console.warn(
+            '[Sentry] No diagnostics-channel injection detected. Channel-based integrations will not record ' +
+              'spans or capture errors, because Bun cannot instrument modules at runtime. Build your app with ' +
+              '`@sentry/bun/plugin` to enable them.',
+          );
+        });
+      }
       return;
     }
 

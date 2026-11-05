@@ -101,6 +101,11 @@ export type InternalGlobal = {
      */
     channelIntegrations?: boolean;
     /**
+     * Set once the Bun warning for missing channel injection has been shown.
+     * Lives on the marker so that duplicate SDK copies warn only once.
+     */
+    warnedBunRunNotInjected?: boolean;
+    /**
      * Module namespaces stashed by build-time provider imports, keyed by module
      * name (e.g. `@mastra/observability`). A bundler plugin can splice a static
      * `import * as ns from '<pkg>'` into an integration and record `ns` here, so
