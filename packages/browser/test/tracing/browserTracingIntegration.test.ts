@@ -18,6 +18,7 @@ import {
   getSpanDescendants,
 } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/core/browser';
+import * as browserUtils from '@sentry/browser-utils';
 import { JSDOM } from 'jsdom';
 import { TextDecoder, TextEncoder } from 'util';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -160,6 +161,45 @@ describe('browserTracingIntegration', () => {
       client.init();
 
       expect(getActiveSpan()).toBeDefined();
+    });
+  });
+
+  describe('long task tracking', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('starts long task tracking by default', () => {
+      const startTrackingLongTasksSpy = vi.spyOn(browserUtils, 'startTrackingLongTasks');
+
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      expect(startTrackingLongTasksSpy).toHaveBeenCalledOnce();
+    });
+
+    it("doesn't start long task or long animation frame tracking if `__SENTRY_EXCLUDE_LONG_TASKS__` is true", () => {
+      vi.stubGlobal('__SENTRY_EXCLUDE_LONG_TASKS__', true);
+      const startTrackingLongTasksSpy = vi.spyOn(browserUtils, 'startTrackingLongTasks');
+      const startTrackingLongAnimationFramesSpy = vi.spyOn(browserUtils, 'startTrackingLongAnimationFrames');
+
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      expect(startTrackingLongTasksSpy).not.toHaveBeenCalled();
+      expect(startTrackingLongAnimationFramesSpy).not.toHaveBeenCalled();
     });
   });
 
