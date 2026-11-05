@@ -5,6 +5,16 @@ import { extractSystemInstructions } from '../core/utils';
 import type { AnthropicAiResponse } from './types';
 
 /**
+ * The `gen_ai.provider.name` of the client that owns an SDK resource such as `messages`. The SDK's clients
+ * for other platforms set their own, e.g. `aws.bedrock` for `AnthropicBedrock`.
+ */
+export function getProviderName(resource: unknown): string {
+  const name = (resource as { _client?: { _genAIProviderName?: unknown } } | null | undefined)?._client
+    ?._genAIProviderName;
+  return typeof name === 'string' && name ? name : 'anthropic';
+}
+
+/**
  * Set the input messages attribute, extracting system instructions into their own attribute.
  */
 export function setMessagesAttribute(span: Span, messages: unknown): void {

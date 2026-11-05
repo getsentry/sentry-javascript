@@ -1,5 +1,6 @@
 import type { Event, SerializedStreamedSpanContainer } from '@sentry/core';
 import {
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_TOOL_NAME,
@@ -154,5 +155,20 @@ describe('Anthropic integration (1.x)', () => {
         expect(receivedEvent?.exception?.values?.[0]?.value).toBe('Tool exploded');
       });
     }
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-platform-client.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('uses the provider name of a platform client such as AnthropicBedrock', async () => {
+      await createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const chatSpan = spanForCall(container.items, 'msg_bedrock');
+            expect(chatSpan.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('aws.bedrock');
+          },
+        })
+        .start()
+        .completed();
+    });
   });
 });

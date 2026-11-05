@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getProviderName,
   mapAnthropicErrorToStatusMessage,
   messagesFromParams,
   setMessagesAttribute,
@@ -7,6 +8,23 @@ import {
 import type { Span } from '@sentry/core';
 
 describe('anthropic-ai-utils', () => {
+  describe('getProviderName', () => {
+    it('reads the provider name of the client that owns the resource', () => {
+      expect(getProviderName({ _client: { _genAIProviderName: 'aws.bedrock' } })).toBe('aws.bedrock');
+    });
+
+    it.each([
+      undefined,
+      null,
+      {},
+      { _client: {} },
+      { _client: { _genAIProviderName: '' } },
+      { _client: { _genAIProviderName: 1 } },
+    ])('falls back to anthropic for %j', resource => {
+      expect(getProviderName(resource)).toBe('anthropic');
+    });
+  });
+
   describe('mapAnthropicErrorToStatusMessage', () => {
     it('maps known Anthropic error types to SpanStatusType values', () => {
       expect(mapAnthropicErrorToStatusMessage('invalid_request_error')).toBe('invalid_argument');
