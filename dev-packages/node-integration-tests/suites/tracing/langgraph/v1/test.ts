@@ -8,7 +8,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_DECIDE } from '@sentry/conventions/op';
+import { GEN_AI_CHAT, GEN_AI_DECIDE, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('LangGraph integration (v1)', () => {
@@ -100,7 +100,7 @@ describe('LangGraph integration (v1)', () => {
         await runner.start().completed();
 
         const spans = await spansPromise;
-        const agentSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent');
+        const agentSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT);
         const agentSpanFor = (prompt: string) =>
           agentSpans.find(span => String(span.attributes[GEN_AI_INPUT_MESSAGES]?.value).includes(prompt));
         const byName = (name: string) => agentSpans.filter(span => span.name === `invoke_agent ${name}`);
@@ -114,7 +114,7 @@ describe('LangGraph integration (v1)', () => {
           expect(span.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('[{"role":"assistant","content":"Sunny"}]');
           expect(
             spans.filter(
-              child => child.attributes[SENTRY_OP]?.value === 'gen_ai.chat' && child.parent_span_id === span.span_id,
+              child => child.attributes[SENTRY_OP]?.value === GEN_AI_CHAT && child.parent_span_id === span.span_id,
             ),
           ).toHaveLength(1);
         }

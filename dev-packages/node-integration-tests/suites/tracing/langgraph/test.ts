@@ -19,6 +19,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { getStringAttributeValue } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -373,14 +374,14 @@ describe('LangGraph integration', () => {
         .expect({
           span: container => {
             const spans = container.items;
-            const agentSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent');
+            const agentSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT);
             const agentSpanFor = (prompt: string) =>
               agentSpans.find(span =>
                 getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(prompt),
               );
             const chatSpanUnder = (parent: { span_id: string } | undefined) =>
               spans.find(
-                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat' && span.parent_span_id === parent?.span_id,
+                span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT && span.parent_span_id === parent?.span_id,
               );
 
             expect(agentSpans).toHaveLength(10);
@@ -432,9 +433,9 @@ describe('LangGraph integration', () => {
           .expect({
             span: container => {
               const agentSpans = container.items.filter(
-                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent',
+                span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT,
               );
-              const chatSpans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat');
+              const chatSpans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT);
               expect(agentSpans).toHaveLength(1);
               expect(chatSpans).toHaveLength(1);
               expect(agentSpans[0]!.name).toBe('invoke_agent helpful_assistant');

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON, startSpan } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { GEN_AI_RESPONSE_STREAMING, GEN_AI_RESPONSE_TEXT } from '@sentry/conventions/attributes';
+import { GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import {
   instrumentCompiledGraph,
   instrumentCreateReactAgent,
@@ -74,7 +75,7 @@ describe('LangGraph stream() agent span', () => {
     return graph;
   }
 
-  const agentSpans = (): Span[] => endedSpans.filter(span => spanToStaticSpanJSON(span).op === 'gen_ai.invoke_agent');
+  const agentSpans = (): Span[] => endedSpans.filter(span => spanToStaticSpanJSON(span).op === GEN_AI_INVOKE_AGENT);
 
   it('ends the span when the root run ends, not when a child run does', async () => {
     let emit!: Emit;
