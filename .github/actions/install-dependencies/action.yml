@@ -22,10 +22,7 @@ runs:
       id: cache_dependencies
       with:
         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-        # Preserve warm x64 caches while keeping native dependencies separate on other architectures.
-        key:
-          ${{ steps.compute_lockfile_hash.outputs.hash }}${{ runner.arch != 'X64' && format('-{0}', runner.arch) || ''
-          }}
+        key: ${{ steps.compute_lockfile_hash.outputs.hash }}
 
     - name: Install dependencies
       if: steps.cache_dependencies.outputs.cache-hit != 'true'

@@ -34,9 +34,7 @@ runs:
         path: |
           ~/.cache/ms-playwright
         # Bump the iteration when bumping runner images to use a new cache
-        key:
-          playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}${{ runner.arch !=
-          'X64' && format('-{0}', runner.arch) || '' }}
+        key: playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}
 
     # We always install all browsers, if uncached
     # `npx` runs outside the repo, so it can't pick up a `playwright` that a parallel `pnpm install` is still linking.
@@ -67,6 +65,4 @@ runs:
         path: |
           ~/.cache/ms-playwright
         # Bump the iteration when bumping runner images to use a new cache
-        key:
-          playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}${{ runner.arch !=
-          'X64' && format('-{0}', runner.arch) || '' }}
+        key: playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}
