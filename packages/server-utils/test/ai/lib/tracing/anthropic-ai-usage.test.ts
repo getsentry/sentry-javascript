@@ -9,7 +9,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { EventEmitter } from 'node:events';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Span } from '@sentry/core';
 import { addResponseAttributes } from '../../../../src/ai/anthropic-ai';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from '../../../../src/ai/anthropic-ai/streaming';
@@ -271,3 +271,37 @@ describe.each(['async iterable', 'message stream'] as const)(
     });
   },
 );
+
+describe('instrumentMessageStream', () => {
+  it('ends the span once with the streamed usage when an aborted stream ends without a message', () => {
+    const { span, attributes } = createMockSpan();
+    const endSpy = vi.spyOn(span, 'end');
+    const stream = instrumentMessageStream(new EventEmitter(), span, false);
+
+    stream.emit('streamEvent', {
+      type: 'message_start',
+      message: {
+        id: 'msg_aborted',
+        type: 'message',
+        model: 'claude-sonnet-4-6',
+        role: 'assistant',
+        content: [],
+        stop_reason: null,
+        stop_sequence: null,
+        usage: { input_tokens: 42, output_tokens: 1 },
+      },
+    });
+    stream.emit('abort', new Error('Request was aborted.'));
+    stream.emit('end');
+    stream.emit('end');
+
+    expect(endSpy).toHaveBeenCalledTimes(1);
+    expect(attributes).toEqual({
+      [GEN_AI_RESPONSE_STREAMING]: true,
+      [GEN_AI_RESPONSE_ID]: 'msg_aborted',
+      [GEN_AI_RESPONSE_MODEL]: 'claude-sonnet-4-6',
+      [GEN_AI_USAGE_INPUT_TOKENS]: 42,
+      [GEN_AI_USAGE_TOTAL_TOKENS]: 42,
+    });
+  });
+});
