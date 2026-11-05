@@ -265,7 +265,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
 
     // Wrap and replace the response stream in place to process events into telemetry
     // before yielding to the user.
-    response.data.stream = wrapConverseStreamResponse(response.data.stream, span);
+    response.data.stream = wrapConverseStreamResponse(response.data.stream, span, response.request.abortSignal);
   }
 
   private _responseHookInvokeModel(response: NormalizedResponse, span: Span): void {
@@ -343,6 +343,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
   private _responseHookInvokeModelWithResponseStream(response: NormalizedResponse, span: Span): void {
     const stream = response.data?.body;
     const modelId = response.request.commandInput?.modelId;
+    const abortSignal = response.request.abortSignal;
     if (!stream) {
       span.end();
       return;
@@ -366,7 +367,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
           yield chunk;
         }
       } catch (error) {
-        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+        setStreamErrorStatus(span, abortSignal);
         throw error;
       } finally {
         span.end();
@@ -389,6 +390,7 @@ function resolveStreamRecorder(modelId: string): ((parsedChunk: ParsedChunk, spa
 async function* wrapConverseStreamResponse(
   stream: AsyncIterable<ConverseStreamOutput>,
   span: Span,
+  abortSignal: AbortSignal | undefined,
 ): AsyncGenerator<ConverseStreamOutput> {
   try {
     let usage: TokenUsage | undefined;
@@ -399,11 +401,15 @@ async function* wrapConverseStreamResponse(
     }
     setUsage(span, usage);
   } catch (error) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    setStreamErrorStatus(span, abortSignal);
     throw error;
   } finally {
     span.end();
   }
+}
+
+function setStreamErrorStatus(span: Span, abortSignal: AbortSignal | undefined): void {
+  span.setStatus({ code: SPAN_STATUS_ERROR, message: abortSignal?.aborted ? 'cancelled' : 'internal_error' });
 }
 
 function setStopReason(span: Span, stopReason: string | undefined): void {

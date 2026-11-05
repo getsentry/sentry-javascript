@@ -12,10 +12,16 @@ const STREAM_COMMANDS = [
   { commandName: 'InvokeModelWithResponseStream', streamField: 'body' },
 ];
 
-function respond(span: Span, commandName: string, commandInput: Record<string, unknown>, data: unknown): void {
+function respond(
+  span: Span,
+  commandName: string,
+  commandInput: Record<string, unknown>,
+  data: unknown,
+  abortSignal?: AbortSignal,
+): void {
   const response: NormalizedResponse = {
     data,
-    request: { serviceName: 'BedrockRuntime', commandName, commandInput },
+    request: { serviceName: 'BedrockRuntime', commandName, commandInput, abortSignal },
     requestId: 'b0a5e5a2-2c2b-4f56-9d0e-8c7c2d3f4a10',
   };
   new BedrockRuntimeServiceExtension().responseHook(response, span);
@@ -38,9 +44,15 @@ describe('BedrockRuntimeServiceExtension stream spans', () => {
     setCurrentClient(undefined as never);
   });
 
-  it.each(STREAM_COMMANDS)(
-    'marks a $commandName span as failed when the stream fails',
-    async ({ commandName, streamField }) => {
+  it.each(
+    STREAM_COMMANDS.flatMap(command => [
+      { ...command, when: 'fails', abortSignal: undefined, status: 'error' },
+      // `cancelled` is sent as `ok` under span streaming.
+      { ...command, when: 'is aborted by the caller', abortSignal: AbortSignal.abort(), status: 'ok' },
+    ]),
+  )(
+    'sets status $status when a $commandName stream $when',
+    async ({ commandName, streamField, abortSignal, status }) => {
       const span = startInactiveSpan({ name: 'bedrock' });
       const error = new Error('ThrottlingException: Too many tokens, please wait before trying again.');
       const data: Record<string, unknown> = {
@@ -50,10 +62,10 @@ describe('BedrockRuntimeServiceExtension stream spans', () => {
         })(),
       };
 
-      respond(span, commandName, { modelId: CLAUDE_MODEL_ID }, data);
+      respond(span, commandName, { modelId: CLAUDE_MODEL_ID }, data, abortSignal);
 
       await expect(drain(data[streamField] as AsyncIterable<unknown>)).rejects.toBe(error);
-      expect(spanToJSON(span).status).toBe('error');
+      expect(spanToJSON(span).status).toBe(status);
       expect(spanToJSON(span).end_timestamp).toBeDefined();
     },
   );
