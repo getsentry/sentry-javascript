@@ -72,7 +72,7 @@ jobs:
   job_build:
     name: Build
     needs: job_get_metadata
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 15
     if: |
       needs.job_get_metadata.outputs.changed_any_code == 'true' ||
@@ -128,7 +128,7 @@ jobs:
           path: |
             .nx/cache
             .nx/workspace-data
-          key: ${{ env.NX_CACHE_KEY }}
+          key: ${{ env.NX_CACHE_KEY }}-${{ runner.arch }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
@@ -199,7 +199,7 @@ jobs:
       'aws-serverless') || contains(needs.job_build.outputs.e2e-matrix-2, 'aws-serverless') || github.event_name !=
       'pull_request'
     timeout-minutes: 10
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -215,7 +215,7 @@ jobs:
           path: |
             .nx/cache
             .nx/workspace-data
-          key: ${{ env.NX_CACHE_KEY }}
+          key: ${{ env.NX_CACHE_KEY }}-${{ runner.arch }}
 
       - name: Restore caches
         uses: ./.github/actions/restore-cache
@@ -238,7 +238,7 @@ jobs:
     name: Build bundles
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -254,7 +254,7 @@ jobs:
           path: |
             .nx/cache
             .nx/workspace-data
-          key: ${{ env.NX_CACHE_KEY }}
+          key: ${{ env.NX_CACHE_KEY }}-${{ runner.arch }}
 
       - name: Restore caches
         uses: ./.github/actions/restore-cache
@@ -292,7 +292,7 @@ jobs:
     name: Size Check
     needs: [job_get_metadata, job_build, job_build_bundles]
     timeout-minutes: 15
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     if:
       github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_base_branch == 'true' ||
       needs.job_get_metadata.outputs.is_release == 'true'
@@ -327,7 +327,7 @@ jobs:
     # inter-package dependencies resolve cleanly.
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -369,7 +369,7 @@ jobs:
     needs: [job_get_metadata]
     # `pnpm dedupe --check` fetches metadata for every package from npm, so this job can take 8+ min on PRs.
     timeout-minutes: 20
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     if: |
       needs.job_get_metadata.outputs.changed_deps == 'true' ||
       needs.job_get_metadata.outputs.is_base_branch == 'true' ||
@@ -400,7 +400,7 @@ jobs:
     name: Check file formatting
     needs: [job_get_metadata]
     timeout-minutes: 10
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -475,7 +475,7 @@ jobs:
     name: Browser Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v7
@@ -509,7 +509,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     strategy:
       fail-fast: false
       matrix:
@@ -541,7 +541,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -569,7 +569,7 @@ jobs:
     name: Node (${{ matrix.node }}) Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
     continue-on-error: ${{ matrix.node == '^27.0.0-0' }}
     strategy:
@@ -618,7 +618,7 @@ jobs:
       matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
     needs: [job_get_metadata, job_build, job_build_bundles]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-24.04-large-js
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04-large-js' }}
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -716,7 +716,7 @@ jobs:
     name: PW ${{ matrix.bundle }} Tests
     needs: [job_get_metadata, job_build, job_build_bundles]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -776,6 +776,7 @@ jobs:
     name: Node (${{ matrix.node }}) Integration Tests (${{ matrix.shard }}/3)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
+    # The tedious suite uses a SQL Server container that requires x86-64.
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
@@ -826,7 +827,7 @@ jobs:
     name: Cloudflare Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -868,7 +869,7 @@ jobs:
     if:
       needs.job_get_metadata.outputs.is_release != 'true' && (needs.job_build.outputs.changed_cloudflare_integration ==
       'true' || github.event_name != 'pull_request')
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -881,7 +882,7 @@ jobs:
     name: Bundler Plugin Integration Tests (Node ${{ matrix.node }})
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bundler_plugin_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 15
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
     continue-on-error: ${{ matrix.node == '^27.0.0-0' }}
@@ -911,6 +912,7 @@ jobs:
     name: Bun (${{ matrix.bun }}) Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun_integration == 'true' || github.event_name != 'pull_request'
+    # Shared Node suites include the x86-only SQL Server container.
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
@@ -945,6 +947,7 @@ jobs:
     name: Deno Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
+    # Shared Node suites include the x86-only SQL Server container.
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
@@ -990,7 +993,7 @@ jobs:
       always() &&
       needs.job_build.result == 'success'
     needs: [job_get_metadata, job_build]
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 15
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -1007,7 +1010,7 @@ jobs:
           path: |
             .nx/cache
             .nx/workspace-data
-          key: ${{ env.NX_CACHE_KEY }}
+          key: ${{ env.NX_CACHE_KEY }}-${{ runner.arch }}
 
       - name: Restore caches
         uses: ./.github/actions/restore-cache
@@ -1049,7 +1052,7 @@ jobs:
       always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix-1 !=
       '{"include":[]}'
     needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 15
     # We just use a dummy DSN here, only send to the tunnel anyhow
     env: &e2e-env
@@ -1121,7 +1124,7 @@ jobs:
       always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix-2 !=
       '{"include":[]}'
     needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 15
     env: *e2e-env
     strategy:
