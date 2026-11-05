@@ -10,6 +10,7 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { RPC } from '@sentry/conventions/op';
+import type { GenAiOptions } from '../../ai/core/utils';
 import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { awsSdkModuleNames } from '../../orchestrion/config/aws-sdk';
@@ -63,8 +64,14 @@ function setMetadataAttributes(span: Span, metadata: Record<string, any> | undef
   }
 }
 
-const _awsIntegration = (() => {
-  const servicesExtensions = new ServicesExtensions();
+/**
+ * Options for `awsIntegration`. `recordInputs`/`recordOutputs` apply to the gen_ai spans of Bedrock Runtime
+ * inference calls, the only AWS calls that carry prompts and responses.
+ */
+export type AwsIntegrationOptions = GenAiOptions;
+
+const _awsIntegration = ((options: AwsIntegrationOptions = {}) => {
+  const servicesExtensions = new ServicesExtensions(options);
 
   return {
     name: INTEGRATION_NAME,

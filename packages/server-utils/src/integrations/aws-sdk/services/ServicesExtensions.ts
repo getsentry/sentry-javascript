@@ -1,4 +1,5 @@
 import type { Span } from '@sentry/core';
+import type { GenAiOptions } from '../../../ai/core/utils';
 import type { NormalizedRequest, NormalizedResponse, RequestMetadata } from '../types';
 import { BedrockRuntimeServiceExtension } from './bedrock-runtime';
 import { DynamodbServiceExtension } from './dynamodb';
@@ -14,17 +15,21 @@ import { StepFunctionsServiceExtension } from './stepfunctions';
 export class ServicesExtensions implements ServiceExtension {
   // Per-service extensions, keyed by the client's `serviceId` (e.g. `'S3'`). Services without a
   // registered extension still get the base rpc span from the subscriber.
-  private _services: Map<string, ServiceExtension> = new Map<string, ServiceExtension>([
-    ['SecretsManager', new SecretsManagerServiceExtension()],
-    ['SFN', new StepFunctionsServiceExtension()],
-    ['SQS', new SqsServiceExtension()],
-    ['SNS', new SnsServiceExtension()],
-    ['DynamoDB', new DynamodbServiceExtension()],
-    ['Lambda', new LambdaServiceExtension()],
-    ['S3', new S3ServiceExtension()],
-    ['Kinesis', new KinesisServiceExtension()],
-    ['BedrockRuntime', new BedrockRuntimeServiceExtension()],
-  ]);
+  private _services: Map<string, ServiceExtension>;
+
+  public constructor(genAiOptions: GenAiOptions = {}) {
+    this._services = new Map<string, ServiceExtension>([
+      ['SecretsManager', new SecretsManagerServiceExtension()],
+      ['SFN', new StepFunctionsServiceExtension()],
+      ['SQS', new SqsServiceExtension()],
+      ['SNS', new SnsServiceExtension()],
+      ['DynamoDB', new DynamodbServiceExtension()],
+      ['Lambda', new LambdaServiceExtension()],
+      ['S3', new S3ServiceExtension()],
+      ['Kinesis', new KinesisServiceExtension()],
+      ['BedrockRuntime', new BedrockRuntimeServiceExtension(genAiOptions)],
+    ]);
+  }
 
   public requestPreSpanHook(request: NormalizedRequest): RequestMetadata {
     const serviceExtension = this._services.get(request.serviceName);

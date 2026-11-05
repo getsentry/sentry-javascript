@@ -23,8 +23,16 @@ async function converse() {
     .reply(
       200,
       JSON.stringify({
-        output: { message: { role: 'assistant', content: [{ text: 'Hello from Bedrock' }] } },
-        stopReason: 'end_turn',
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              { text: 'Hello from Bedrock' },
+              { toolUse: { toolUseId: 'tooluse_1', name: 'get_weather', input: { city: 'Vienna' } } },
+            ],
+          },
+        },
+        stopReason: 'tool_use',
         usage: { inputTokens: 12, outputTokens: 8, totalTokens: 20 },
       }),
       { 'content-type': 'application/json' },
@@ -33,8 +41,20 @@ async function converse() {
   await client.send(
     new ConverseCommand({
       modelId: 'anthropic.claude-3-5-sonnet-20240620-v1:0',
+      system: [{ text: 'You are a helpful assistant.' }],
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       inferenceConfig: { maxTokens: 100, temperature: 0.5, topP: 0.9 },
+      toolConfig: {
+        tools: [
+          {
+            toolSpec: {
+              name: 'get_weather',
+              description: 'Get the weather for a city',
+              inputSchema: { json: { type: 'object', properties: { city: { type: 'string' } } } },
+            },
+          },
+        ],
+      },
     }),
   );
 }
@@ -52,6 +72,8 @@ async function invokeModel() {
     .reply(
       200,
       JSON.stringify({
+        id: 'msg_bdrk_1',
+        model: 'claude-3-5-sonnet-20240620',
         content: [{ type: 'text', text: 'Hello from Bedrock' }],
         stop_reason: 'end_turn',
         usage: { input_tokens: 15, output_tokens: 9 },
@@ -68,7 +90,29 @@ async function invokeModel() {
         max_tokens: 100,
         temperature: 0.5,
         top_p: 0.9,
-        messages: [{ role: 'user', content: 'Hello' }],
+        system: 'You are a helpful assistant.',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Hello' },
+              { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo=' } },
+            ],
+          },
+          { role: 'assistant', content: [{ type: 'tool_use', id: 'toolu_1', name: 'get_report', input: {} }] },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'toolu_1',
+                content: [
+                  { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: 'JVBERi0xLjQ=' } },
+                ],
+              },
+            ],
+          },
+        ],
       }),
     }),
   );
