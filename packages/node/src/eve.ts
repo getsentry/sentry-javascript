@@ -45,8 +45,9 @@ interface EveInstrumentationProvider {
  *
  * It:
  * - runs `Sentry.init` with the given options at server startup (`setup`), adding
- *   {@link eveIntegration} so gen_ai inputs/outputs are recorded by default (eve stamps every AI SDK
- *   call with `recordInputs`/`recordOutputs: false`);
+ *   {@link eveIntegration} so gen_ai outputs are recorded by default (eve stamps every AI SDK call with
+ *   `recordInputs`/`recordOutputs: false`). On `ai` >= 7.0.163, inputs also need an `otelIntegration()`
+ *   destination and `audience: 'public'` on the channel in the eve app;
  * - tags each turn's AI spans with a Sentry conversation id via `turn.started` and `step.attempt.started`
  *   (eve < 0.84) / `model.started` (eve >= 0.84) events — the instrumentation-provider equivalent of `eveConversationHook`. Provider event handlers
  *   receive the session id on the event (`event.sessionId` / `event.scope.sessionId`), unlike hook

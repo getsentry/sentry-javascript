@@ -67,11 +67,18 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
   expect(executeTool?.attributes?.['gen_ai.operation.name']?.value).toBe('execute_tool');
   expect(executeTool?.attributes?.['gen_ai.tool.name']?.value).toBe('get_weather');
 
-  // Model outputs are recorded with the SDK's default data collection (no `dataCollection` override).
-  // `ai` >= 7.0.163 strips inputs and tool results from calls with eve's `recordInputs`/`recordOutputs: false`,
-  // so they are not asserted here.
   expect(typeof invokeAgent?.attributes?.['gen_ai.output.messages']?.value).toBe('string');
   expect(String(invokeAgent?.attributes?.['gen_ai.output.messages']?.value ?? '')).not.toBe('');
+
+  if (process.env.USE_CONTENT_RECORDING === '1') {
+    expect(invokeAgent?.attributes?.['gen_ai.input.messages']?.value).toContain('What is the weather in Paris?');
+    expect(executeTool?.attributes?.['gen_ai.tool.call.arguments']?.value).toContain('Paris');
+    // The tool returns `{ city, condition: 'Sunny', temperatureC: 22 }`.
+    expect(executeTool?.attributes?.['gen_ai.tool.call.result']?.value).toContain('Sunny');
+  } else if (process.env.TEST_ENV === 'production') {
+    // By default `ai` >= 7.0.163 strips inputs from calls with eve's `recordInputs: false`.
+    expect(invokeAgent?.attributes?.['gen_ai.input.messages']).toBeUndefined();
+  }
 
   // `get_weather` wraps its work in a manual `Sentry.startSpan`. Because eve runs
   // the tool while the SDK's `execute_tool` span is active, that user span nests
