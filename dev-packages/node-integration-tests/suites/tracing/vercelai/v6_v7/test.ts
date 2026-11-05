@@ -1493,3 +1493,81 @@ describe('Vercel AI runtime and tool context (v7)', () => {
     { additionalDependencies: { ai: '^7.0.154' } },
   );
 });
+
+describe('Vercel AI calls with recording off (v7)', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmTests(
+    __dirname,
+    'scenario-no-recording.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('captures usage and tool errors for calls with recordInputs/recordOutputs: false', async () => {
+        await createRunner()
+          .unordered()
+          .expect({
+            event: event => {
+              expect(event.exception?.values?.[0]).toMatchObject({
+                value: 'Error in tool',
+                mechanism: { type: 'auto.ai.vercelai', handled: false },
+              });
+            },
+          })
+          .expect({
+            span: container => {
+              const spans = container.items.filter(
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
+              );
+              const modelCalls = spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content');
+              expect(modelCalls).toHaveLength(2);
+              for (const modelCall of modelCalls) {
+                expect(modelCall.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
+                expect(modelCall.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(20);
+                expect(modelCall.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value).toBe('["tool-calls"]');
+                expect(modelCall.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+                expect(modelCall.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+              }
+
+              const streamAgent = spans.find(
+                span => span.attributes['vercel.ai.operationId']?.value === 'ai.streamText',
+              )!;
+              expect(streamAgent.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
+              expect(streamAgent.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(20);
+
+              const toolSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.execute_tool');
+              expect(toolSpans).toHaveLength(2);
+              toolSpans.forEach(span => expect(span.status).toBe('error'));
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { additionalDependencies: { ai: '^7.0.163' } },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-no-recording.mjs',
+    'instrument-unsampled.mjs',
+    (createRunner, test) => {
+      test('captures the real tool error in an unsampled trace with recordInputs/recordOutputs: false', async () => {
+        await createRunner()
+          .unordered()
+          .expect({
+            event: event => {
+              expect(event.exception?.values?.[0]).toMatchObject({
+                value: 'Error in tool',
+                mechanism: { type: 'auto.ai.vercelai', handled: false },
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { additionalDependencies: { ai: '^7.0.163' } },
+  );
+});

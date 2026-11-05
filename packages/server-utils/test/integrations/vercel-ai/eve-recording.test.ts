@@ -30,11 +30,13 @@ describe('Vercel AI recording under eve', () => {
   }
 
   // A `generateText` operation carrying input messages and eve's per-call `recordInputs: false`.
-  function recordedInputMessages(): unknown {
+  function recordedInputMessages(
+    messages: unknown[] = [{ role: 'user', content: 'What is the weather in Paris?' }],
+  ): unknown {
     const message = {
       type: 'generateText',
       event: {
-        messages: [{ role: 'user', content: 'What is the weather in Paris?' }],
+        messages,
         recordInputs: false,
       },
     } as Parameters<typeof createSpanFromMessage>[0];
@@ -53,6 +55,13 @@ describe('Vercel AI recording under eve', () => {
     markEveGenAiRecordingDefault(getClient()!);
 
     expect(recordedInputMessages()).toContain('What is the weather in Paris?');
+  });
+
+  it('records no input messages when ai emptied them', () => {
+    setupClient();
+    markEveGenAiRecordingDefault(getClient()!);
+
+    expect(recordedInputMessages([])).toBeUndefined();
   });
 
   it('still honors an explicit dataCollection.genAI opt-out under eve', () => {

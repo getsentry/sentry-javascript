@@ -12,6 +12,8 @@ const eveRecordingClients = new WeakSet<Client>();
  * message content would be dropped even when the user wants it. In this mode the per-call flag is
  * treated as eve's default rather than an end-user decision: an explicit `recordInputs`/`recordOutputs`
  * on the integration or a `dataCollection.genAI` setting still takes precedence.
+ *
+ * `ai` >= 7.0.163 strips input messages from these calls, and tool arguments and results in its own tool loop.
  */
 export function markEveGenAiRecordingDefault(client: Client): void {
   eveRecordingClients.add(client);

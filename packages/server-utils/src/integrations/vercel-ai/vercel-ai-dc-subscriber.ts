@@ -278,6 +278,13 @@ export type VercelAiTracingChannelFactory = <T extends object>(name: string) => 
 /** Integration-level recording options, pinned at subscribe time so we never look the integration up per event. */
 export type VercelAiChannelOptions = GenAiOptions;
 
+// `ai` >= 7.0.163 publishes no channel `result` for calls with `recordInputs`/`recordOutputs: false`.
+const fallbackChannelResults = new WeakMap<Span, unknown>();
+
+export function setFallbackChannelResult(span: Span, result: unknown): void {
+  fallbackChannelResults.set(span, result);
+}
+
 /**
  * Subscribe Sentry span handlers to the `ai` SDK's native telemetry tracing channel (`ai:telemetry`,
  * available in `ai` >= 7) and emit fully-formed `gen_ai.*` spans directly — no OpenTelemetry span
@@ -306,7 +313,12 @@ export function subscribeVercelAiTracingChannel(
       },
       // A streamed model call resolves before its stream is drained, so we tap the stream, keep the
       // span open, and end it (via `end`) once the final usage/finish/output chunks arrive.
-      deferSpanEnd: ({ data, end }) => deferStreamedModelCallEnd(data, options, end),
+      deferSpanEnd: ({ span, data, end }) => {
+        data.result ??= fallbackChannelResults.get(span);
+        // The result can hold the provider request and response bodies, and spans outlive the call.
+        fallbackChannelResults.delete(span);
+        return deferStreamedModelCallEnd(data, options, end);
+      },
     },
   );
 }
@@ -959,7 +971,8 @@ function buildInputMessageAttributes(event: Record<string, unknown>): Record<str
   // The AI SDK start events extend `StandardizedPrompt`; messages live on `messages`, otherwise the
   // simpler `prompt` field is used.
   const messages = event.messages ?? event.prompt;
-  if (messages !== undefined) {
+  // `ai` >= 7.0.163 empties `messages` when `recordInputs` is false.
+  if (Array.isArray(messages) ? messages.length > 0 : messages !== undefined) {
     attributes[GEN_AI_INPUT_MESSAGES] = stringify(messages);
   }
 
