@@ -597,7 +597,7 @@ describe('Google GenAI integration', () => {
           .expect({
             span: container => {
               const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === EXPECTED_ORIGIN);
-              expect(spans).toHaveLength(2);
+              expect(spans).toHaveLength(4);
 
               const midwaySpan = spans.find(span => span.name === 'generate_content midway-error');
               expect(midwaySpan!.status).toBe('error');
@@ -609,6 +609,10 @@ describe('Google GenAI integration', () => {
               const earlyBreakSpan = spans.find(span => span.name === 'generate_content early-break');
               expect(earlyBreakSpan!.status).toBe('ok');
               expect(earlyBreakSpan!.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('This stream will ');
+
+              // `cancelled` is sent as `ok` under span streaming, so a timeout must not be recorded as one.
+              expect(spans.find(span => span.name === 'generate_content caller-abort')!.status).toBe('ok');
+              expect(spans.find(span => span.name === 'generate_content timeout')!.status).toBe('error');
             },
           })
           .start()

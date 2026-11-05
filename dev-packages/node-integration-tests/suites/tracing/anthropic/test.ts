@@ -469,6 +469,7 @@ describe('Anthropic integration', () => {
             );
             expect(streamMidwayErrorSpan!.name).toBe('chat error-stream-midway');
             expect(streamMidwayErrorSpan!.status).toBe('error');
+            expect(streamMidwayErrorSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('This stream will ');
           },
         })
         .start()

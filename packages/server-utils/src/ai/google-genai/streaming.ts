@@ -1,6 +1,6 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { endStreamSpan, setStreamErrorStatus } from '../core/utils';
+import { endStreamSpan } from '../core/utils';
 import type { GoogleGenAIResponse } from './types';
 import type { MessagePart } from './utils';
 import { candidatesToMessageParts, setOutputMessagesAttribute } from './utils';
@@ -122,6 +122,7 @@ export async function* instrumentStream(
   stream: AsyncIterable<GoogleGenAIResponse>,
   span: Span,
   recordOutputs: boolean,
+  abortSignal?: AbortSignal,
 ): AsyncGenerator<GoogleGenAIResponse, void, unknown> {
   const state: StreamingState = {
     responseTexts: [],
@@ -130,20 +131,13 @@ export async function* instrumentStream(
     outputParts: [],
   };
 
-  // Errors thrown into the generator at `yield` come from the consumer, e.g. `Readable.from` when a piped
-  // client disconnects, so only errors raised while waiting on the provider mark the span failed.
-  let awaitingProvider = true;
   try {
     for await (const chunk of stream) {
-      awaitingProvider = false;
       processChunk(chunk, state, recordOutputs, span);
       yield chunk;
-      awaitingProvider = true;
     }
   } catch (error) {
-    if (awaitingProvider) {
-      setStreamErrorStatus(span, error);
-    }
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: abortSignal?.aborted ? 'cancelled' : 'internal_error' });
     throw error;
   } finally {
     if (recordOutputs) {

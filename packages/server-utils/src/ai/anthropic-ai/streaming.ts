@@ -1,6 +1,6 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { endStreamSpan, setStreamErrorStatus } from '../core/utils';
+import { endStreamSpan } from '../core/utils';
 import type { AnthropicAiStreamingEvent } from './types';
 import { mapAnthropicErrorToStatusMessage } from './utils';
 
@@ -242,20 +242,13 @@ export async function* instrumentAsyncIterableStream(
     activeToolBlocks: {},
   };
 
-  // Errors thrown into the generator at `yield` come from the consumer, e.g. `Readable.from` when a piped
-  // client disconnects, so only errors raised while waiting on the provider mark the span failed.
-  let awaitingProvider = true;
   try {
     for await (const event of stream) {
-      awaitingProvider = false;
       processEvent(event, state, recordOutputs, span);
       yield event;
-      awaitingProvider = true;
     }
   } catch (error) {
-    if (awaitingProvider) {
-      setStreamErrorStatus(span, error);
-    }
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
     throw error;
   } finally {
     endStreamSpan(span, state, recordOutputs);
@@ -306,7 +299,7 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
 
     if (span.isRecording()) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-      span.end();
+      endStreamSpan(span, state, recordOutputs);
     }
   });
 

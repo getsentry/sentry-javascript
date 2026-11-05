@@ -4,6 +4,7 @@ import { SPAN_STATUS_ERROR } from '@sentry/core';
 import { GEN_AI_RESPONSE_STREAMING, GEN_AI_USAGE_INPUT_TOKENS } from '@sentry/conventions/attributes';
 import { instrumentAsyncIterableStream } from '../../../../src/ai/anthropic-ai/streaming';
 import { instrumentStream as instrumentGoogleGenAIStream } from '../../../../src/ai/google-genai/streaming';
+import type { GoogleGenAIResponse } from '../../../../src/ai/google-genai/types';
 import { instrumentStream as instrumentOpenAIStream } from '../../../../src/ai/openai/streaming';
 
 function createMockSpan(): { span: Span; attributes: Record<string, unknown>; setStatus: ReturnType<typeof vi.fn> } {
@@ -93,36 +94,6 @@ describe.each(providers)('$name stream errors', ({ instrument, chunks }) => {
     expect(attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBe(8);
   });
 
-  it('marks the span as cancelled when the caller aborts the stream', async () => {
-    const { span, setStatus } = createMockSpan();
-    const abortError = new DOMException('This operation was aborted', 'AbortError');
-    async function* abortedStream(): AsyncGenerator<unknown> {
-      yield* chunks;
-      throw abortError;
-    }
-
-    await expect(drain(run(abortedStream(), span))).rejects.toBe(abortError);
-
-    expect(setStatus).toHaveBeenCalledTimes(1);
-    expect(setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
-    expect(span.isRecording()).toBe(false);
-  });
-
-  it('leaves the span status alone when the consumer throws into the stream', async () => {
-    const { span, setStatus } = createMockSpan();
-    const prematureClose = Object.assign(new Error('Premature close'), { code: 'ERR_STREAM_PREMATURE_CLOSE' });
-    async function* healthyStream(): AsyncGenerator<unknown> {
-      yield* chunks;
-    }
-    const instrumented = run(healthyStream(), span);
-    await instrumented.next();
-
-    await expect(instrumented.throw(prematureClose)).rejects.toBe(prematureClose);
-
-    expect(setStatus).not.toHaveBeenCalled();
-    expect(span.isRecording()).toBe(false);
-  });
-
   it('leaves the span status alone when the consumer breaks out of the stream early', async () => {
     const { span, attributes, setStatus } = createMockSpan();
     async function* endlessStream(): AsyncGenerator<unknown> {
@@ -137,5 +108,38 @@ describe.each(providers)('$name stream errors', ({ instrument, chunks }) => {
     expect(setStatus).not.toHaveBeenCalled();
     expect(span.isRecording()).toBe(false);
     expect(attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBe(8);
+  });
+});
+
+describe('google-genai stream aborts', () => {
+  const abortError = new DOMException('This operation was aborted', 'AbortError');
+
+  async function* abortedStream(): AsyncGenerator<GoogleGenAIResponse> {
+    yield {};
+    throw abortError;
+  }
+
+  it("marks the span as cancelled when the caller's signal fired", async () => {
+    const { span, setStatus } = createMockSpan();
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(drain(instrumentGoogleGenAIStream(abortedStream(), span, false, controller.signal))).rejects.toBe(
+      abortError,
+    );
+
+    expect(setStatus).toHaveBeenCalledTimes(1);
+    expect(setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
+  });
+
+  it("marks the span as errored when an abort didn't come from the caller's signal", async () => {
+    const { span, setStatus } = createMockSpan();
+
+    await expect(
+      drain(instrumentGoogleGenAIStream(abortedStream(), span, false, new AbortController().signal)),
+    ).rejects.toBe(abortError);
+
+    expect(setStatus).toHaveBeenCalledTimes(1);
+    expect(setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
   });
 });

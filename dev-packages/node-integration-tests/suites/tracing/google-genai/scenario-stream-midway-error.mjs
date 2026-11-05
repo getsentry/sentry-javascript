@@ -24,7 +24,11 @@ function startMockGoogleGenAIServer() {
     });
 
     // The midway case drops the connection after the chunks are parsed, without a final chunk.
-    setTimeout(() => (req.params.model === 'midway-error' ? res.destroy() : res.end()), chunks.length * 10 + 50);
+    // The other cases need the body to stay open long enough for their abort to hit a pending read.
+    setTimeout(
+      () => (req.params.model === 'midway-error' ? res.destroy() : res.end()),
+      req.params.model === 'midway-error' ? 70 : 1000,
+    );
   });
 
   return new Promise(resolve => {
@@ -61,6 +65,33 @@ async function run() {
     });
     for await (const _ of stream) {
       break;
+    }
+
+    const controller = new AbortController();
+    try {
+      const abortedStream = await client.models.generateContentStream({
+        model: 'caller-abort',
+        contents: [{ role: 'user', parts: [{ text: 'The caller aborts after the first chunk' }] }],
+        config: { abortSignal: controller.signal },
+      });
+      for await (const _ of abortedStream) {
+        controller.abort();
+      }
+    } catch {
+      // Error expected
+    }
+
+    try {
+      const timedOutStream = await client.models.generateContentStream({
+        model: 'timeout',
+        contents: [{ role: 'user', parts: [{ text: 'The SDK timeout fires mid-stream' }] }],
+        config: { httpOptions: { timeout: 100 } },
+      });
+      for await (const _ of timedOutStream) {
+        void _;
+      }
+    } catch {
+      // Error expected
     }
   });
 
