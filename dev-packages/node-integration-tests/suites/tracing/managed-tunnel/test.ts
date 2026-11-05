@@ -26,4 +26,36 @@ describe('managed tunnel', () => {
       await runner.completed();
     });
   });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'server-intercept-false.mjs',
+    'instrument-intercept-false.mjs',
+    (createRunner, test) => {
+      test('records nothing for tunnel requests the app answers, and keeps their scope data isolated', async () => {
+        const runner = createRunner()
+          .unordered()
+          .expect({
+            span: container => {
+              const segmentPaths = container.items
+                .filter(item => item.is_segment)
+                .map(item => item.attributes[URL_PATH]);
+              expect(segmentPaths).toEqual([{ type: 'string', value: '/after-tunnel' }]);
+            },
+          })
+          .expect({
+            event: event => {
+              expect(event.exception?.values?.[0]?.value).toBe('after tunnel');
+              expect(event.user?.id).toBeUndefined();
+            },
+          })
+          .start();
+
+        await runner.makeRequest('post', getTunnelPath('https://public@dsn.ingest.sentry.io/1337')!);
+        await runner.makeRequest('get', '/after-tunnel');
+
+        await runner.completed();
+      });
+    },
+  );
 });

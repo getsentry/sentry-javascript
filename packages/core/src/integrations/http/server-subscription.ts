@@ -129,9 +129,14 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
       const client = getClient();
       const [request, response] = data as [HttpIncomingMessage, HttpServerResponse];
 
-      // Tunnel requests get no isolation scope, session or span, whether the SDK or the app answers them.
-      if (!client || isServedTunnelRequest(request) || !markRequest(request)) {
+      if (!client || !markRequest(request)) {
         return target.apply(thisArg, args);
+      }
+
+      // Tunnel requests record no session or span. The app may still answer them (`intercept: false`), so they keep
+      // their own isolation scope.
+      if (isServedTunnelRequest(request)) {
+        return withIsolationScope(getIsolationScope().clone(), () => target.apply(thisArg, args));
       }
 
       DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Handling incoming request');
