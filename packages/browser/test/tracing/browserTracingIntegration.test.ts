@@ -1830,6 +1830,10 @@ describe('browserTracingIntegration', () => {
   });
 
   describe('linkPreviousTrace', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
     it('registers the previous trace listener on span start by default', () => {
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
@@ -1895,6 +1899,29 @@ describe('browserTracingIntegration', () => {
       const spanJson2 = spanToJSON(span2);
 
       expect(spanJson2.links).toBeUndefined();
+    });
+
+    it("doesn't register the previous trace listener if `__SENTRY_EXCLUDE_LINKED_TRACES__` is true", () => {
+      vi.stubGlobal('__SENTRY_EXCLUDE_LINKED_TRACES__', true);
+
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false, instrumentNavigation: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      startInactiveSpan({ name: 'test span 1', forceTransaction: true }).end();
+
+      // ensure we start a new trace
+      getCurrentScope().setPropagationContext({ traceId: '123', sampleRand: 0.2 });
+
+      const span2 = startInactiveSpan({ name: 'test span 2', forceTransaction: true });
+      span2.end();
+
+      expect(spanToJSON(span2).links).toBeUndefined();
     });
   });
 });
