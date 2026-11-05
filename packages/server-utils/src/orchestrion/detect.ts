@@ -40,7 +40,8 @@ export function detectOrchestrionSetup(): void {
         // oxlint-disable-next-line no-console
         console.warn(
           '[Sentry] No diagnostics-channel injection detected. Channel-based integrations will not record ' +
-            'spans or capture errors under `bun run`. Build your app with `@sentry/bun/plugin` to enable them.',
+            'spans or capture errors, because Bun cannot instrument modules at runtime. Build your app with ' +
+            '`@sentry/bun/plugin` to enable them.',
         );
       });
       return;
