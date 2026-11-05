@@ -1,7 +1,7 @@
 // import/export got a false positive, and affects most of our index barrel files
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
-import type { Client, EventProcessor, Integration } from '@sentry/core';
+import type { BrowserTunnelOptions, Client, EventProcessor, Integration } from '@sentry/core';
 import {
   _INTERNAL_applyBrowserTunnelDefaults as applyBrowserTunnelDefaults,
   applySdkMetadata,
@@ -61,8 +61,13 @@ export function init(options: BrowserOptions): Client | undefined {
   } satisfies BrowserOptions;
 
   applyTunnelRouteOption(opts);
-  // The managed tunnel is served under the app's `basePath`, like every other route. A `basePath` the user set wins.
-  opts.tunnel = applyBrowserTunnelDefaults(opts.tunnel, { basePath: getInjectedBasePath() });
+  // The managed tunnel is served under the app's `basePath` and `trailingSlash`, like every other route. Options the
+  // user set win.
+  const tunnelDefaults: BrowserTunnelOptions = { basePath: getInjectedBasePath() };
+  if (process.env._sentryTrailingSlash) {
+    tunnelDefaults.trailingSlash = true;
+  }
+  opts.tunnel = applyBrowserTunnelDefaults(opts.tunnel, tunnelDefaults);
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'react']);
 
   opts.ignoreSpans = [

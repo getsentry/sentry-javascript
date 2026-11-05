@@ -12,8 +12,9 @@ function getStringAttribute(span: SerializedStreamedSpan, key: string): string |
   return attribute?.type === 'string' ? attribute.value : undefined;
 }
 
+// With `trailingSlash`, a POST to the path without the slash would get a redirect.
 function isTunnelPath(pathname: string): boolean {
-  return /^\/docs\/[a-z0-9]+$/.test(pathname);
+  return /^\/docs\/[a-z0-9]+\/$/.test(pathname);
 }
 
 test('sends the pageload span through the managed tunnel under the base path', async ({ page, baseURL }) => {

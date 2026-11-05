@@ -31,6 +31,8 @@ export type NextConfigObject = {
   assetPrefix?: string;
   // The root at which the nextjs app will be served (defaults to "/")
   basePath?: string;
+  // Whether URLs end with a slash, which Next.js redirects to for paths without one
+  trailingSlash?: boolean;
   // Config which will be available at runtime
   publicRuntimeConfig?: { [key: string]: unknown };
   // File extensions that count as pages in the `pages/` directory
