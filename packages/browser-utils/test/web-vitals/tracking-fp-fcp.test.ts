@@ -92,4 +92,26 @@ describe('startTrackingWebVitals', () => {
     expect(spanToJSON(pageloadSpan).attributes['browser.web_vital.fcp.value']).toBe(18);
     expect(spanToJSON(pageloadSpan).attributes['browser.navigation.type']).toBe('navigate');
   });
+
+  it('reports web vitals as span attributes when transactions are excluded from the bundle', () => {
+    vi.stubGlobal('__SENTRY_EXCLUDE_TRANSACTIONS__', true);
+    vi.stubGlobal('addEventListener', vi.fn());
+    vi.stubGlobal('performance', {
+      timeOrigin: realPerformance.timeOrigin,
+      now: () => realPerformance.now(),
+      getEntries: () => [],
+      getEntriesByType: () => [],
+    });
+
+    const pageloadSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
+    addWebVitalsToSpan(pageloadSpan, {
+      recordClsOnPageloadSpan: true,
+      recordLcpOnPageloadSpan: true,
+      spanStreamingEnabled: false,
+    });
+
+    const { attributes } = spanToJSON(pageloadSpan);
+    expect(attributes['browser.performance.time_origin']).toEqual(expect.any(Number));
+    expect(attributes['performance.timeOrigin']).toBeUndefined();
+  });
 });

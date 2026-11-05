@@ -57,6 +57,9 @@ import { getCapturedScopesOnSpan, spanIsTracerProviderSpan } from './utils';
 
 const MAX_SPAN_COUNT = 1000;
 
+// Treeshakable guard to always stream spans and drop the code paths that build and process transactions
+declare const __SENTRY_EXCLUDE_TRANSACTIONS__: boolean | undefined;
+
 /**
  * Span contains all data about a span
  */
@@ -410,8 +413,11 @@ export class SentrySpan implements Span {
       return;
     }
 
-    if (client && hasSpanStreamingEnabled(client)) {
-      client.emit('afterSegmentSpanEnd', this);
+    if (
+      (typeof __SENTRY_EXCLUDE_TRANSACTIONS__ === 'boolean' && __SENTRY_EXCLUDE_TRANSACTIONS__) ||
+      (client && hasSpanStreamingEnabled(client))
+    ) {
+      client?.emit('afterSegmentSpanEnd', this);
       return;
     }
 
@@ -433,6 +439,11 @@ export class SentrySpan implements Span {
    * Finish the transaction & prepare the event to send to Sentry.
    */
   private _convertSpanToTransaction(options: SegmentSpanCaptureConvertOptions = {}): TransactionEvent | undefined {
+    // Class methods can't be tree-shaken, so we empty the body instead
+    if (typeof __SENTRY_EXCLUDE_TRANSACTIONS__ === 'boolean' && __SENTRY_EXCLUDE_TRANSACTIONS__) {
+      return undefined;
+    }
+
     // We can only convert finished spans
     if (!isFullFinishedSpan(spanToStaticSpanJSON(this))) {
       return undefined;
@@ -579,7 +590,11 @@ function sendStandaloneSpan(span: SentrySpan, client: Client): void {
   // callbacks), so scrub the span in its native v1 shape and convert it forward to v2, mirroring the
   // gen_ai extraction path.
   // TODO(standalone): remove this branch once the static trace lifecycle is dropped.
-  if (traceLifecycle === 'static' && isStaticBeforeSendSpanCallback(beforeSendSpan)) {
+  if (
+    !(typeof __SENTRY_EXCLUDE_TRANSACTIONS__ === 'boolean' && __SENTRY_EXCLUDE_TRANSACTIONS__) &&
+    traceLifecycle === 'static' &&
+    isStaticBeforeSendSpanCallback(beforeSendSpan)
+  ) {
     const serializedSpan = captureStandaloneSpanWithStaticCallback(span, client, beforeSendSpan);
     const dsc = getDynamicSamplingContextFromSpan(span);
     // sendEnvelope should not throw
