@@ -85,23 +85,36 @@ export async function wrapServerRequestHandler<R extends Response | undefined = 
 ): Promise<R> {
   const { request, client, isolationScope, options, mechanism } = config;
 
-  // Tunnel requests get no session, request data, body or span, whether the SDK or the app answers them.
-  if (isServedTunnelRequest(request)) {
-    let response: R | undefined;
-    try {
-      response = await handler();
-      return response;
-    } finally {
-      config.onDone?.(response);
-    }
-  }
-
   const method = request.method.toUpperCase();
   const captureError = (error: unknown): void => {
     if (mechanism) {
       captureException(error, { mechanism });
     }
   };
+
+  const socketAddress = config.getSocketAddress?.();
+  // Without `AsyncLocalStorage`, all requests share one isolation scope, so clear what an earlier
+  // request left on it: the merge keeps its body, and its response context would stay set.
+  isolationScope.setSDKProcessingMetadata({
+    normalizedRequest: { ...winterCGRequestToRequestData(request), data: undefined },
+    ipAddress: socketAddress?.address,
+  });
+  isolationScope.setContext('response', null);
+
+  // Tunnel requests get no session, body or span, whether the SDK or the app answers them. The app answers them with
+  // `intercept: false`, from its own code, so its errors are still captured.
+  if (isServedTunnelRequest(request, client)) {
+    let response: R | undefined;
+    try {
+      response = await handler();
+      return response;
+    } catch (e) {
+      captureError(e);
+      throw e;
+    } finally {
+      config.onDone?.(response);
+    }
+  }
 
   const endSession = options?.sessions
     ? startRequestSession(client, {
@@ -117,15 +130,6 @@ export async function wrapServerRequestHandler<R extends Response | undefined = 
     const classification = config.isStreamingResponse?.(response);
     return typeof classification === 'boolean' ? classification : classifyResponseStreaming(response).isStreaming;
   };
-
-  const socketAddress = config.getSocketAddress?.();
-  // Without `AsyncLocalStorage`, all requests share one isolation scope, so clear what an earlier
-  // request left on it: the merge keeps its body, and its response context would stay set.
-  isolationScope.setSDKProcessingMetadata({
-    normalizedRequest: { ...winterCGRequestToRequestData(request), data: undefined },
-    ipAddress: socketAddress?.address,
-  });
-  isolationScope.setContext('response', null);
 
   if (method === 'OPTIONS' || method === 'HEAD') {
     let response: R | undefined;

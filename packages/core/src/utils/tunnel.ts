@@ -49,9 +49,7 @@ export function setServedTunnel(
  * The active client's served tunnel. It lives in the tunnel store, so a copy of this module that didn't set it up,
  * like the one a bundler gives Next.js's middleware next to its `instrumentation`, still finds it.
  */
-function getServedTunnel(): ServedTunnel | undefined {
-  const client = getClient();
-
+function getServedTunnel(client = getClient()): ServedTunnel | undefined {
   return client && getClientTunnel(client)?.served;
 }
 
@@ -197,12 +195,13 @@ export function isTunnelRequest(request: TunnelRequestLike, options?: ServerTunn
 
 /**
  * Returns true if the request targets the tunnel `serveTunnelIntegration` serves, whether the SDK answers it or the
- * app does with `intercept: false`. The server SDKs record nothing for these. Unlike {@link isTunnelRequest}, there's
- * no fallback, so the framework SDKs serve nothing without the integration.
+ * app does with `intercept: false`. The server SDKs record no session or span for these. Unlike
+ * {@link isTunnelRequest}, there's no fallback, so the framework SDKs serve nothing without the integration. `client`
+ * defaults to the active one.
  */
-export function isServedTunnelRequest(request: TunnelRequestLike): boolean {
+export function isServedTunnelRequest(request: TunnelRequestLike, client?: Client): boolean {
   try {
-    return !!matchServedTunnel(request);
+    return !!matchServedTunnel(request, client);
   } catch (error) {
     DEBUG_BUILD && debug.error('Sentry tunnel: failed to match a request', error);
 
@@ -222,8 +221,8 @@ export function getServedTunnelMatch(request: TunnelRequestLike): ServedTunnel |
 /**
  * The served tunnel, if this request targets it.
  */
-function matchServedTunnel(request: TunnelRequestLike): ServedTunnel | undefined {
-  const servedTunnel = getServedTunnel();
+function matchServedTunnel(request: TunnelRequestLike, client?: Client): ServedTunnel | undefined {
+  const servedTunnel = getServedTunnel(client);
 
   return servedTunnel?.allowedDsns.length && matchesTunnel(request, servedTunnel) ? servedTunnel : undefined;
 }

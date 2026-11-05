@@ -674,7 +674,8 @@ export interface ServerTunnelOptions extends TunnelOptions {
 
   /**
    * Whether the SDK answers tunnel requests itself, before they reach the app. Set it to `false` to serve the tunnel
-   * from your own code instead, e.g. behind your own middleware, with `handleTunnelRequestIfMatched`.
+   * from your own code instead, e.g. behind your own middleware, with `handleTunnelRequestIfMatched`. Tunnel requests
+   * still get no session or span then, but errors your code throws while answering them are captured.
    *
    * @default true
    */
