@@ -137,8 +137,8 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       spanName += ` ${modelId}`;
     }
 
-    if (request.commandInput?.body) {
-      const requestBody = JSON.parse(request.commandInput.body);
+    const requestBody = parseRequestBody(request.commandInput?.body);
+    if (requestBody && typeof modelId === 'string') {
       if (modelId.includes('amazon.titan')) {
         if (requestBody.textGenerationConfig?.temperature !== undefined) {
           spanAttributes[GEN_AI_REQUEST_TEMPERATURE] = requestBody.textGenerationConfig.temperature;
@@ -409,6 +409,19 @@ function setUsage(span: Span, usage: TokenUsage | undefined): void {
     if (outputTokens !== undefined) {
       span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, outputTokens);
     }
+  }
+}
+
+function parseRequestBody(body: unknown): ParsedChunk {
+  // `InvokeModel` takes the body as a JSON string or as bytes.
+  const text = typeof body === 'string' ? body : body instanceof Uint8Array ? textDecoder.decode(body) : undefined;
+  if (!text) {
+    return undefined;
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
   }
 }
 
