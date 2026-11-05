@@ -166,7 +166,8 @@ describe('Anthropic integration (1.x)', () => {
         const spans = await getSpans();
 
         expect(spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT)).toHaveLength(
-          MODES.flatMap(({ turns }) => turns).length + STATUS_ONLY_MODES.length,
+          // Plus the failed request and the follow-up of `thread_stream_failed_signal_reuse`.
+          MODES.flatMap(({ turns }) => turns).length + STATUS_ONLY_MODES.length + 2,
         );
         expect(spans.filter(span => span.name.startsWith('anthropic.'))).toEqual([]);
       });
@@ -207,6 +208,15 @@ describe('Anthropic integration (1.x)', () => {
 
         expect(chatSpans).toHaveLength(1);
         expect(chatSpans[0]!.status).toBe(status);
+      });
+
+      test("ends the span of a request sent with a failed stream's signal", async () => {
+        const chatSpans = await chatSpansUnder('thread_stream_failed_signal_reuse');
+        const followUp = spanForCall(chatSpans, 'msg_thread_stream_failed_signal_reuse_final');
+
+        expect(chatSpans.map(span => span.status).sort()).toEqual(['error', 'ok']);
+        expect(followUp.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(5);
+        expect(followUp.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('Sunny.');
       });
     });
   });

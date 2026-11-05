@@ -211,7 +211,7 @@ function isMessageStream(value: unknown): value is MessageStreamEmitter {
   return !!value && typeof (value as MessageStreamEmitter).on === 'function';
 }
 
-type ThreadStream = MessageStreamEmitter & { controller?: { signal?: AbortSignal } };
+type ThreadStream = MessageStreamEmitter & { ended?: boolean; controller?: { signal?: AbortSignal } };
 
 /**
  * The streams of threads and tool runners on 1.2+, by the signal they send each `create()` call with. Such a
@@ -232,7 +232,8 @@ function wrapThreadStreamRequest(
   const signal = (data.arguments?.[1] as { signal?: AbortSignal } | undefined)?.signal;
   const stream = signal && threadStreams.get(signal);
   const request = data.result as { _responseProps?: () => Promise<unknown> } | undefined;
-  if (!stream || typeof request?._responseProps !== 'function') {
+  // A finished stream sends no more requests, so a later call with its signal is the caller's own.
+  if (!stream || stream.ended || typeof request?._responseProps !== 'function') {
     return false;
   }
 
