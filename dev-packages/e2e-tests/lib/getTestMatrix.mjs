@@ -108,8 +108,7 @@ function addIncludesForTestApp(testApp, includes, { variant }) {
   const shouldSkip = packageJson.sentryTest?.skip || false;
   const isOptional = packageJson.sentryTest?.optional || false;
   const variants = packageJson.sentryTest?.[VARIANT_FIELDS[variant]] || [];
-  const runner = packageJson.sentryTest?.runner;
-  const baseInclude = { 'test-application': testApp, ...(runner ? { runner } : {}) };
+  const baseInclude = { 'test-application': testApp };
 
   if (shouldSkip) {
     return;
@@ -118,7 +117,7 @@ function addIncludesForTestApp(testApp, includes, { variant }) {
   // The test application itself is either required or optional, never canary, and only runs in the matrix of its mode.
   const appVariant = isOptional ? 'optional' : 'required';
   if (appVariant === variant) {
-    includes.push(baseInclude);
+    includes.push({ ...baseInclude, ...packageJson.sentryTest?.baseVariant });
   }
 
   variants.forEach(variant => {

@@ -11,11 +11,16 @@ import { isTunnelRouteSpan } from '../common/utils/dropMiddlewareTunnelRequests'
 import { dropReactControlFlowErrorsEventProcessor } from '../common/utils/dropReactControlFlowErrors';
 import { markAsyncContextOwnedByNextjsCloudflare } from '../common/utils/responseEnd';
 import { NextSentryPropagator } from '../server/nextSentryPropagator';
+import { prepareSafeIdGeneratorContext } from '../server/prepareSafeIdGeneratorContext';
 import { getGlobalTracerProvider, markPrerendersOnTracerProvider } from '../server/prerenderContext';
 import { addNextjsServerSpanHooks, NEXTJS_SERVER_IGNORE_SPANS } from '../server/serverSpanHooks';
 import { nextjsUseCacheIntegration } from '../server/useCacheInstrumentation';
 
 export * from '@sentry/cloudflare';
+
+// At isolate startup, so the copy of `@sentry/core` in the Worker bundle finds the runner on its first ID. A snapshot
+// taken here is not bound to a request, unlike one taken while OpenNext loads Next.js inside the first request.
+prepareSafeIdGeneratorContext();
 
 class NextjsCloudflarePropagator extends NextSentryPropagator {
   /** @inheritDoc */

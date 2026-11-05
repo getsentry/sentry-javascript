@@ -13,7 +13,8 @@ import * as diagnosticsChannel from './diagnosticsChannel';
 
 export type AnyFn = (this: unknown, ...args: unknown[]) => unknown;
 
-// Set by `Sentry.cron.instrumentNodeCron`, `Sentry.cron.instrumentNodeSchedule` and `wrapScheduledJob`, which already send check-ins.
+// Set by `Sentry.cron.instrumentCron`, `instrumentNodeCron`, `instrumentNodeSchedule` and `wrapScheduledJob`, which already
+// send check-ins.
 const MONITORED = Symbol.for('sentry.cron.monitored');
 
 /**
@@ -65,7 +66,7 @@ export function subscribeToScheduleChange(
   channel.end.subscribe(handle(onChange));
 }
 
-/** Whether a job is named, not excluded, and not already monitored by `Sentry.cron.instrumentNode*` or `wrapScheduledJob`. */
+/** Whether a job is named, not excluded, and not already monitored by `Sentry.cron.instrument*` or `wrapScheduledJob`. */
 export function shouldMonitorJob(
   name: unknown,
   job: unknown,
@@ -88,6 +89,9 @@ const NICKNAMES: Record<string, string> = {
   '@daily': '0 0 * * *',
   '@midnight': '0 0 * * *',
   '@hourly': '0 * * * *',
+  '@minutely': '* * * * *',
+  '@weekdays': '0 0 * * 1-5',
+  '@weekends': '0 0 * * 0,6',
 };
 
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
@@ -120,18 +124,13 @@ export function cronExpressionToMonitorConfig(
     return undefined;
   }
 
-  const [minute, hour, dayOfMonth, month, dayOfWeek] = fields as [string, string, string, string, string];
+  const [minute, hour, dayOfMonth, month, dayOfWeekWithNames] = fields as [string, string, string, string, string];
+  const dayOfWeek = replaceNames(dayOfWeekWithNames, WEEKDAYS, 0);
   if (!isSameDayMatching(dayOfMonth, dayOfWeek, daySemantics)) {
     return undefined;
   }
 
-  const crontab = [
-    minute,
-    hour,
-    dayOfMonth,
-    replaceNames(month, MONTHS, 1),
-    endRangesOnSundayAsSeven(replaceNames(dayOfWeek, WEEKDAYS, 0)),
-  ];
+  const crontab = [minute, hour, dayOfMonth, replaceNames(month, MONTHS, 1), endRangesOnSundayAsSeven(dayOfWeek)];
   if (crontab.some(field => /[a-z]/i.test(field) || hasReversedRange(field))) {
     return undefined;
   }
@@ -152,12 +151,34 @@ function isSameDayMatching(dayOfMonth: string, dayOfWeek: string, daySemantics: 
   if (daySemantics === 'and') {
     return dayOfMonth.startsWith('*') || dayOfWeek.startsWith('*');
   }
+  // `cron` reads a field that lists every day like `*`. `cron-parser` does so for a day-of-month that lists every day
+  // of the current month, and February has 29 there.
   return !(
     dayOfMonth.startsWith('*') ||
     dayOfWeek.startsWith('*') ||
-    dayOfMonth === '1-31' ||
-    ['0-6', '0-7', '1-7'].includes(dayOfWeek)
+    countValues(dayOfMonth, 1, 31) >= 29 ||
+    countValues(dayOfWeek, 0, 7, day => day % 7) === 7
   );
+}
+
+function countValues(field: string, min: number, max: number, normalize = (value: number): number => value): number {
+  const values = new Set<number>();
+  for (const part of field.split(',')) {
+    const match = /^(?:\*|(\d+)(?:-(\d+))?)(?:\/(\d+))?$/.exec(part);
+    if (!match) {
+      continue;
+    }
+    const [, start, end, step] = match;
+    const first = start === undefined ? min : Number(start);
+    const last = Math.min(
+      end !== undefined ? Number(end) : start !== undefined && step === undefined ? first : max,
+      max,
+    );
+    for (let value = first; value <= last; value += Number(step) || 1) {
+      values.add(normalize(value));
+    }
+  }
+  return values.size;
 }
 
 function replaceNames(field: string, names: string[], offset: number): string {

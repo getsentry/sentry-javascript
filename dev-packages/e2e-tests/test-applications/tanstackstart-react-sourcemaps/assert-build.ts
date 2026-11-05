@@ -59,16 +59,6 @@ function sourceMapsIn(dir: string): string[] {
     .map(entry => path.join(entry.parentPath, entry.name));
 }
 
-// TODO: The uploader passes the emitted file paths to `glob` as patterns, so it skips a file whose path has glob
-// characters, like Nitro's `_libs/@tanstack/react-router+[...].mjs`. Remove this when the uploader matches paths literally.
-function debugIdsOfFilesWithGlobCharacters(dir: string): Set<string> {
-  return new Set(
-    emittedJsFiles(dir)
-      .filter(file => /[[\]{}()*?]/.test(path.relative(dir, file)))
-      .flatMap(readDebugIds),
-  );
-}
-
 const requests = loadMockServerResults();
 
 // --- The upload reached Sentry ---
@@ -125,10 +115,7 @@ for (const outputDir of [CLIENT_OUTPUT, SERVER_OUTPUT]) {
   const injectedDebugIds = findInjectedDebugIds({ outputDir });
   assert.ok(injectedDebugIds.length > 0, `Expected debug IDs to be injected into ${outputDir}`);
 
-  const exemptDebugIds = new Set([
-    ...debugIdsOfChunksWithoutSourceMap(outputDir),
-    ...debugIdsOfFilesWithGlobCharacters(outputDir),
-  ]);
+  const exemptDebugIds = debugIdsOfChunksWithoutSourceMap(outputDir);
   const unuploaded = injectedDebugIds.filter(debugId => !uploadedDebugIds.has(debugId) && !exemptDebugIds.has(debugId));
   assert.deepEqual(unuploaded, [], `Expected every debug ID in ${outputDir} to have an uploaded source map`);
 
