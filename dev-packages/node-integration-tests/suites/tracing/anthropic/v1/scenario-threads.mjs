@@ -78,6 +78,10 @@ function startMockAnthropicServer() {
     const answersTool = req.body.messages.some(
       message => Array.isArray(message.content) && message.content.some(block => block.type === 'tool_result'),
     );
+    if (mode === 'thread_stream_failed_signal_reuse' && !answersTool) {
+      res.status(400).json({ type: 'error', error: { type: 'invalid_request_error', message: 'Bad thread' } });
+      return;
+    }
     const message = reply(mode, answersTool ? 'final' : 'tools');
 
     if (!req.body.stream) {
@@ -86,7 +90,7 @@ function startMockAnthropicServer() {
     }
 
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
-    // The body closes after the first text delta, without `message_stop`.
+    // The body closes after the first tool input delta, without `message_stop`.
     const events = mode === 'thread_stream_truncated' ? streamEvents(message).slice(0, 3) : streamEvents(message);
     events.forEach((event, index) => {
       setTimeout(() => {
@@ -114,6 +118,17 @@ const tools = [
   },
 ];
 const params = { model: MODEL, max_tokens: 100, messages: [{ role: 'user', content: 'Weather in Vienna?' }] };
+
+async function streamFollowUp(client, signal) {
+  const answer = { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: 'sunny' }] };
+  const followUp = await client.beta.messages.create(
+    { ...params, messages: [...params.messages, answer], stream: true },
+    { signal },
+  );
+  for await (const _event of followUp) {
+    // consume
+  }
+}
 
 const MODES = {
   async runner_stream_eager(client) {
@@ -152,14 +167,12 @@ const MODES = {
   async thread_stream_signal_reuse(client) {
     const stream = client.beta.messages.thread({ model: MODEL, max_tokens: 100 }).stream(params.messages);
     await stream.finalMessage();
-    const answer = { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: 'sunny' }] };
-    const followUp = await client.beta.messages.create(
-      { ...params, messages: [...params.messages, answer], stream: true },
-      { signal: stream.controller.signal },
-    );
-    for await (const _event of followUp) {
-      // consume
-    }
+    await streamFollowUp(client, stream.controller.signal);
+  },
+  async thread_stream_failed_signal_reuse(client) {
+    const stream = client.beta.messages.thread({ model: MODEL, max_tokens: 100 }).stream(params.messages);
+    await stream.finalMessage().catch(() => {});
+    await streamFollowUp(client, stream.controller.signal);
   },
   async thread_stream_abort(client) {
     const stream = client.beta.messages.thread({ model: MODEL, max_tokens: 100 }).stream(params.messages);
