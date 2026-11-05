@@ -90,6 +90,7 @@ export function sentryCloudflareVitePlugin(options: SentryCloudflareVitePluginOp
       // Route the injected `tracingChannel` imports through the workerd-safe façade so a
       // dependency wrapped at module scope (`const app = new Hono()`) doesn't throw on workerd.
       dcModule: '@sentry/cloudflare/orchestrion-diagnostics-channel',
+      transformOptimizedDeps: true,
     }),
     sentryMastraObservabilityProviderPlugin(),
     sentryFlueRuntimeProviderPlugin(),

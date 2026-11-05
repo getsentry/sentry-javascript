@@ -1,3 +1,4 @@
+import { SENTRY_REPLAY_ID } from '@sentry/conventions/attributes';
 import type { Client, Integration, IntegrationFn, ReplayRecordingMode, StreamedSpanJSON } from '@sentry/core';
 import type { BrowserClientReplayOptions } from '@sentry/core/browser';
 import { consoleSandbox, GLOBAL_OBJ, isBrowser, parseSampleRate, safeSetSpanJSONAttributes } from '@sentry/core';
@@ -368,7 +369,7 @@ export class Replay implements Integration {
   public processSpan(span: StreamedSpanJSON): void {
     const replayId = this.getReplayId(true);
     if (replayId) {
-      safeSetSpanJSONAttributes(span, { 'sentry.replay_id': replayId });
+      safeSetSpanJSONAttributes(span, { [SENTRY_REPLAY_ID]: replayId });
       if (this.getRecordingMode() === 'buffer') {
         safeSetSpanJSONAttributes(span, { 'sentry._internal.replay_is_buffering': true });
       }

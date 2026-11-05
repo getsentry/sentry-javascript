@@ -37,11 +37,7 @@ env:
 jobs:
   job_optional_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test (optional)
-    # Same cache volume as the E2E jobs in build.yml. The event is always `workflow_dispatch`, so the PR number
-    # decides if the run gets the PR volume.
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-e2e${{ inputs.pr_number != '' && '-pr'
-      || '' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -59,8 +55,7 @@ jobs:
       E2E_OPENROUTER_API_KEY: ${{ secrets.E2E_OPENROUTER_API_KEY }}
       # Only this app talks to OpenAI directly (OpenRouter has no Decisions route), so only it gets the key.
       E2E_OPENAI_DECISIONS_API_KEY:
-        ${{ matrix.test-application == 'node-openai-decisions-send-to-sentry' && secrets.E2E_OPENAI_DECISIONS_API_KEY ||
-        '' }}
+        ${{ matrix.test-application == 'node-openai-decisions' && secrets.E2E_OPENAI_DECISIONS_API_KEY || '' }}
       # Used by test apps that deploy a real Cloudflare Worker, e.g. cloudflare-workers-send-to-sentry
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

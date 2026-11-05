@@ -15,15 +15,13 @@
     "test:unit": "deno test --allow-net --allow-read --allow-run --allow-env --no-check suites",
     "test:node-suites": "vitest run"
   },
-  "dependencies": {
+  "devDependencies": {
+    "@sentry-internal/node-integration-tests": "11.10.0",
+    "@sentry/conventions": "^0.30.0",
     "@sentry/core": "11.10.0",
     "@sentry/deno": "11.10.0",
     "mysql": "^2.18.1",
-    "pg": "^8.22.0"
-  },
-  "devDependencies": {
-    "@sentry-internal/node-integration-tests": "11.10.0",
-    "@sentry/conventions": "^0.29.0",
+    "pg": "^8.23.1",
     "vitest": "^4.1.11"
   }
 }

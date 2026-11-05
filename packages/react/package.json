@@ -59,7 +59,7 @@
   "dependencies": {
     "@sentry/browser": "11.10.0",
     "@sentry/core": "11.10.0",
-    "@sentry/conventions": "^0.29.0"
+    "@sentry/conventions": "^0.30.0"
   },
   "peerDependencies": {
     "react": "17.x || 18.x || 19.x",
@@ -84,12 +84,12 @@
     "history-5": "npm:history@4.9.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router": "^7.18.3",
+    "react-router": "^7.18.4",
     "react-router-3": "npm:react-router@3.2.0",
     "react-router-4": "npm:react-router@4.1.0",
     "react-router-5": "npm:react-router@5.3.4",
     "react-router-6": "npm:react-router@6.30.4",
-    "redux": "^4.0.5"
+    "redux": "^5.0.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

@@ -220,5 +220,14 @@ describe('cron check-ins', () => {
         "Automatic instrumentation of 'node-schedule' requires the first parameter of 'scheduleJob' to be a job name string and the second parameter to be a crontab string",
       );
     });
+
+    test('marks the callback as monitored, so nodeScheduleIntegration skips it', () => {
+      const scheduleWithCheckIn = cron.instrumentNodeSchedule({
+        scheduleJob: (_name: unknown, _expression: unknown, callback: unknown) => callback,
+      });
+
+      const callback = scheduleWithCheckIn.scheduleJob('my-cron-job', '* * * * *', () => {}) as Record<symbol, unknown>;
+      expect(callback[Symbol.for('sentry.cron.monitored')]).toBe(true);
+    });
   });
 });

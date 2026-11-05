@@ -25,7 +25,7 @@ import {
   _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
 } from '@sentry/core/server';
 import { getTunnelBasePath } from '../common/tunnel';
-import type { Handle, ResolveOptions } from '@sveltejs/kit';
+import type { Handle, ResolveOptions } from './handleTypes';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
 import {
@@ -36,6 +36,7 @@ import {
   URL_FULL,
   URL_PATH,
   SENTRY_ORIGIN,
+  SVELTEKIT_TRACING_ORIGINAL_NAME,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 
@@ -212,7 +213,7 @@ async function instrumentHandle(
           [SENTRY_OP]: HTTP_SERVER,
           [SENTRY_ORIGIN]: 'auto.http.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: routeName ? 'route' : 'url',
-          'sveltekit.tracing.original_name': originalName,
+          [SVELTEKIT_TRACING_ORIGINAL_NAME]: originalName,
           [URL_FULL]: kitRootSpanAttributes[URL_FULL] ?? filterCollectedUrl(event.url.href),
           [URL_PATH]: kitRootSpanAttributes[URL_PATH] ?? event.url.pathname,
           ...(routeName && {

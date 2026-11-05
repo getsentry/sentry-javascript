@@ -16,8 +16,11 @@ import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTran
 
 // Explicitly annotated with the vendored types so the emitted declaration doesn't reference
 // `@apm-js-collab/code-transformer-bundler-plugins` — a bundled devDependency consumers don't have.
-export const serializeInstrumentations: (configs: AnyInstrumentationConfig[]) => SerializableInstrumentationConfig[] =
-  serializeInstrumentationsImpl;
+// Upstream also allows a function in `transform`. The vendored configs only allow a string there,
+// and the serializer copies `transform` unchanged, so its output only contains strings too.
+export const serializeInstrumentations = serializeInstrumentationsImpl as (
+  configs: AnyInstrumentationConfig[],
+) => SerializableInstrumentationConfig[];
 export type { SerializableInstrumentationConfig } from '../apmTypes';
 
 export { getOrchestrionLoaderPath, resolveOrchestrionRuntimeRequest };

@@ -46,9 +46,6 @@ runs:
       uses: denoland/setup-deno@v2.0.5
       with:
         deno-version: ${{ inputs.deno-version || 'v2.8.3' }}
-    # Keeps the pnpm store on the cache volume for the `pnpm install` of the test application
-    - name: Mount pnpm store
-      uses: ./.github/actions/mount-pnpm-store
     - name: Install pnpm
       uses: ./.github/actions/install-pnpm
 

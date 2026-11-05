@@ -49,6 +49,11 @@
     "npm-run-all2": "^6.2.0"
   },
   "sentryTest": {
-    "runner": "namespace-profile-sentry-javascript"
+    "canaryVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "react-router-6 (canary)"
+      }
+    ]
   }
 }
