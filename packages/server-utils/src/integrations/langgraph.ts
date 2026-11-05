@@ -17,8 +17,8 @@ import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation
 // deduplicated out of the default set.
 const INTEGRATION_NAME = LANGGRAPH_INTEGRATION_NAME;
 
-// `createReactAgent` compiles a `StateGraph` internally. When set, the compile subscriber skips that
-// nested graph so its `invoke` is wrapped once (by the createReactAgent handler), not twice.
+// `createReactAgent` compiles a `StateGraph` internally. When set, the compile subscriber skips that nested
+// graph, so the createReactAgent handler wraps it with the agent's name and model instead.
 let insideCreateReactAgent = false;
 
 const _langGraphIntegration = ((options: LangGraphOptions = {}) => {

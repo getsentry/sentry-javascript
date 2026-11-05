@@ -1,8 +1,8 @@
-import { getCurrentScope, SPAN_STATUS_ERROR, startSpanManual } from '@sentry/core';
+import { SPAN_STATUS_ERROR, startSpanManual } from '@sentry/core';
 import { GEN_AI_RESPONSE_STREAMING } from '@sentry/conventions/attributes';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { _INTERNAL_addLangChainCallbackHandler } from '../langchain/utils';
-import { getAgentSpanOptions, getInvokeMarker, LANGGRAPH_INVOKE_ACTIVE, prepareAgentSpan } from './agent-span';
+import { getAgentSpanOptions, isInvokeInternalStream, prepareAgentSpan } from './agent-span';
 import type { CompiledGraph, LangGraphOptions } from './types';
 import { setResponseAttributes } from './utils';
 
@@ -20,13 +20,9 @@ export function instrumentCompiledGraphStream(
   llm?: BaseChatModel | null,
   sentryCallbackHandler?: unknown,
 ): (...args: unknown[]) => Promise<unknown> {
-  const invokeMarker = getInvokeMarker(graphInstance);
-
   return new Proxy(originalStream, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
-      const scope = getCurrentScope();
-      if (scope.getScopeData().sdkProcessingMetadata[LANGGRAPH_INVOKE_ACTIVE] === invokeMarker) {
-        scope.setSDKProcessingMetadata({ [LANGGRAPH_INVOKE_ACTIVE]: undefined });
+      if (isInvokeInternalStream(graphInstance)) {
         return Reflect.apply(target, thisArg, args);
       }
 

@@ -1,13 +1,12 @@
-import { getCurrentScope, SPAN_STATUS_ERROR, startSpan } from '@sentry/core';
+import { SPAN_STATUS_ERROR, startSpan } from '@sentry/core';
 import { resolveAIRecordingOptions } from '../core/utils';
 import { createLangChainCallbackHandler } from '../langchain';
 import type { BaseChatModel } from '../langchain/types';
-import { getAgentSpanOptions, getInvokeMarker, LANGGRAPH_INVOKE_ACTIVE, prepareAgentSpan } from './agent-span';
+import { callInvoke, getAgentSpanOptions, prepareAgentSpan } from './agent-span';
 import { instrumentCompiledGraphStream } from './stream';
 import type { CompiledGraph, LangGraphOptions } from './types';
 import { extractAgentNameFromParams, extractLLMFromParams, setResponseAttributes, wrapToolsWithSpans } from './utils';
 
-let _insideCreateReactAgent = false;
 // Set while a manual wrapper runs the original `compile`/`createReactAgent`. The integration's channel hooks
 // fire synchronously inside that call, and skip the graph so the options passed explicitly win.
 let _insideManualInstrumentation = false;
@@ -49,8 +48,8 @@ export function instrumentStateGraphCompile(
 
   const wrapped = new Proxy(originalCompile, {
     apply(target, thisArg, args: unknown[]): CompiledGraph {
-      // Skip when called from within createReactAgent to avoid duplicate instrumentation
-      if (_insideCreateReactAgent) {
+      // The createReactAgent wrapper instruments the graph it compiles internally, with the agent's name and model.
+      if (_insideManualInstrumentation) {
         return Reflect.apply(target, thisArg, args);
       }
 
@@ -118,8 +117,6 @@ export function instrumentCompiledGraphInvoke(
   llm?: BaseChatModel | null,
   sentryCallbackHandler?: unknown,
 ): (...args: unknown[]) => Promise<unknown> {
-  const invokeMarker = getInvokeMarker(graphInstance);
-
   return new Proxy(originalInvoke, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
       return startSpan(getAgentSpanOptions(args), async span => {
@@ -133,9 +130,7 @@ export function instrumentCompiledGraphInvoke(
             llm,
             sentryCallbackHandler,
           );
-          getCurrentScope().setSDKProcessingMetadata({ [LANGGRAPH_INVOKE_ACTIVE]: invokeMarker });
-
-          const result = await Reflect.apply(target, thisArg, args);
+          const result = await callInvoke(graphInstance, () => Reflect.apply(target, thisArg, args));
 
           if (options.recordOutputs) {
             setResponseAttributes(span, inputMessages, result);
@@ -178,14 +173,7 @@ export function instrumentCreateReactAgent(
         wrapToolsWithSpans(params.tools, resolvedOptions, agentName ?? undefined);
       }
 
-      // Suppress StateGraph.compile instrumentation inside createReactAgent
-      _insideCreateReactAgent = true;
-      let compiledGraph: CompiledGraph;
-      try {
-        compiledGraph = runManually(() => Reflect.apply(target, thisArg, args));
-      } finally {
-        _insideCreateReactAgent = false;
-      }
+      const compiledGraph = runManually(() => Reflect.apply(target, thisArg, args));
 
       const compileOptions: Record<string, unknown> = agentName ? { name: agentName } : {};
       instrumentCompiledGraph(compiledGraph, compileOptions, resolvedOptions, llm, sentryHandler);

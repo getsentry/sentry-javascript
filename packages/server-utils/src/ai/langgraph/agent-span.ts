@@ -25,19 +25,24 @@ import { LANGGRAPH_ORIGIN } from './constants';
 import type { CompiledGraph, LangGraphOptions } from './types';
 import { extractToolsFromCompiledGraph } from './utils';
 
-// invoke() drains this.stream() internally. The marker sits on invoke's own span scope, so only that call is
-// skipped, and a stream() of the same graph started later in the run (e.g. from a tool) still gets a span.
-export const LANGGRAPH_INVOKE_ACTIVE = 'sentry_langgraph_invoke_active';
-const INVOKE_MARKERS = new WeakMap<object, symbol>();
+// LangGraph's invoke() calls this.stream() before its first await, so a graph set only for that synchronous
+// stretch marks exactly invoke's own stream() call. A stream() started later in the run gets its own span.
+let invokingGraph: object | undefined;
 
-/** The marker invoke() leaves for its own internal stream() call on `graph`. */
-export function getInvokeMarker(graph: object): symbol {
-  let marker = INVOKE_MARKERS.get(graph);
-  if (!marker) {
-    marker = Symbol('sentry.langgraph.invoke');
-    INVOKE_MARKERS.set(graph, marker);
+/** Runs the original invoke() of `graph`, so its internal stream() call can be recognised. */
+export function callInvoke<T>(graph: object, invoke: () => T): T {
+  const previous = invokingGraph;
+  invokingGraph = graph;
+  try {
+    return invoke();
+  } finally {
+    invokingGraph = previous;
   }
-  return marker;
+}
+
+/** Whether this stream() call on `graph` is the one its invoke() makes internally. */
+export function isInvokeInternalStream(graph: object): boolean {
+  return invokingGraph === graph;
 }
 
 /** Name and initial attributes of an agent span, from the call's config. */

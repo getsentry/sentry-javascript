@@ -2,7 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON, startSpan } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { GEN_AI_RESPONSE_STREAMING, GEN_AI_RESPONSE_TEXT } from '@sentry/conventions/attributes';
-import { instrumentCompiledGraph } from '../../../../src/ai/langgraph';
+import {
+  instrumentCompiledGraph,
+  instrumentCreateReactAgent,
+  instrumentStateGraphCompile,
+} from '../../../../src/ai/langgraph';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 type Handler = Record<string, ((...args: unknown[]) => void) | undefined>;
@@ -38,10 +42,10 @@ function getHandlers(callbacks: unknown): Handler[] {
 // run starts before `stream()` resolves, and ends or fails later.
 function createGraph(run: (emit: Emit, input: unknown) => unknown) {
   return {
-    async stream(input: unknown, config?: { callbacks?: unknown }): Promise<unknown> {
+    async stream(input: unknown, config?: { callbacks?: unknown; metadata?: unknown }): Promise<unknown> {
       const emit: Emit = (event, ...args) =>
         getHandlers(config?.callbacks).forEach(handler => handler[event]?.(...args));
-      emit('handleChainStart', {}, input, 'root');
+      emit('handleChainStart', {}, input, 'root', undefined, [], config?.metadata);
       return run(emit, input);
     },
   };
@@ -358,5 +362,25 @@ describe('LangGraph stream() agent span', () => {
     await graph.stream({}, config);
 
     expect(config).toEqual({ configurable: { thread_id: 't1' } });
+  });
+
+  it('names the span after the agent when createReactAgent compiles through an instrumented compile()', async () => {
+    const compile = instrumentStateGraphCompile(
+      () =>
+        createGraph(emit => {
+          emit('handleChainEnd', {}, 'root');
+          return createStream();
+        }) as never,
+      {},
+    );
+    const createReactAgent = instrumentCreateReactAgent(() => compile());
+
+    const agent = createReactAgent({ name: 'weather_agent', llm: { modelName: 'mock-model' } }) as unknown as {
+      stream: (input: unknown) => Promise<unknown>;
+    };
+    await agent.stream({});
+
+    expect(agentSpans()).toHaveLength(1);
+    expect(spanToStaticSpanJSON(agentSpans()[0]!).description).toBe('invoke_agent weather_agent');
   });
 });
