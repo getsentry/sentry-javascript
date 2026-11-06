@@ -14,7 +14,10 @@ export {
   isServedTunnelRequest as _INTERNAL_isServedTunnelRequest,
   isTunnelRequest,
 } from './utils/tunnel';
-export { httpServerAnswersTunnel as _INTERNAL_httpServerAnswersTunnel } from './utils/tunnelStore';
+export {
+  httpServerHandlesTunnel as _INTERNAL_httpServerHandlesTunnel,
+  setNodeTunnelHandler as _INTERNAL_setNodeTunnelHandler,
+} from './utils/tunnelStore';
 export {
   forwardTunnelRequest as _INTERNAL_forwardTunnelRequest,
   handleServedNodeTunnelRequest as _INTERNAL_handleServedNodeTunnelRequest,

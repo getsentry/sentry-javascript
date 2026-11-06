@@ -131,6 +131,11 @@ export function handleTunnelRequestIfMatched(
 }
 
 /**
+ * Answers a tunnel request on a Node server ahead of the app, see {@link handleServedNodeTunnelRequest}.
+ */
+export type NodeTunnelHandler = (request: NodeTunnelRequest, response: NodeTunnelResponse) => boolean;
+
+/**
  * Answers a request to the tunnel `serveTunnelIntegration` serves on a Node server, ahead of the app. Returns `true`
  * when it claimed the request and answers it, `false` to hand the request to the app.
  *

@@ -1,6 +1,11 @@
 import type { ServerTunnelOptions } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { HTTP_ON_SERVER_REQUEST, serveTunnelIntegration as coreServeTunnelIntegration } from '@sentry/core/server';
+import {
+  _INTERNAL_handleServedNodeTunnelRequest as handleServedNodeTunnelRequest,
+  _INTERNAL_setNodeTunnelHandler as setNodeTunnelHandler,
+  HTTP_ON_SERVER_REQUEST,
+  serveTunnelIntegration as coreServeTunnelIntegration,
+} from '@sentry/core/server';
 import { subscribe } from '../utils/diagnosticsChannel';
 import { instrumentTunnelServer } from '../utils/tunnelServer';
 
@@ -16,6 +21,9 @@ export function instrumentTunnelServers(): void {
   }
 
   isSubscribed = true;
+  // Core's HTTP server instrumentation answers tunnel requests through it, without bundling it for apps that have no
+  // tunnel.
+  setNodeTunnelHandler(handleServedNodeTunnelRequest);
   subscribe(HTTP_ON_SERVER_REQUEST, instrumentTunnelServer);
 }
 

@@ -1,7 +1,7 @@
 import { debug } from '@sentry/core';
 import {
   _INTERNAL_handleServedNodeTunnelRequest as handleServedNodeTunnelRequest,
-  _INTERNAL_httpServerAnswersTunnel as httpServerAnswersTunnel,
+  _INTERNAL_httpServerHandlesTunnel as httpServerHandlesTunnel,
 } from '@sentry/core/server';
 import { DEBUG_BUILD } from '../debug-build';
 
@@ -20,7 +20,7 @@ const tunnelServers = new WeakSet<TunnelServer>();
 export function instrumentTunnelServer(message: unknown): void {
   try {
     const server = (message as { server?: TunnelServer } | undefined)?.server;
-    if (!server || tunnelServers.has(server) || httpServerAnswersTunnel()) {
+    if (!server || tunnelServers.has(server) || httpServerHandlesTunnel()) {
       return;
     }
 
