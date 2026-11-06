@@ -11,6 +11,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT, GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -55,14 +56,14 @@ function assertBedrockSpans(container: SerializedStreamedSpanContainer): void {
 function assertStreamSpans(container: SerializedStreamedSpanContainer): void {
   const converseStreamSpan = container.items.find(span => span.name === `chat ${MODEL_ID}`);
   expect(converseStreamSpan!.status).toBe('ok');
-  expect(converseStreamSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
+  expect(converseStreamSpan!.attributes[SENTRY_OP].value).toBe(GEN_AI_CHAT);
   expect(converseStreamSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(12);
   expect(converseStreamSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(8);
   expect(converseStreamSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["tool_use"]');
 
   const invokeStreamSpan = container.items.find(span => span.name === `generate_content ${MODEL_ID}`);
   expect(invokeStreamSpan!.status).toBe('ok');
-  expect(invokeStreamSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.generate_content');
+  expect(invokeStreamSpan!.attributes[SENTRY_OP].value).toBe(GEN_AI_GENERATE_CONTENT);
   expect(invokeStreamSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
   expect(invokeStreamSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(9);
   expect(invokeStreamSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["end_turn"]');
