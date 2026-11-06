@@ -8,16 +8,12 @@ import {
   URL_QUERY,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
-import { parseSemver } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Node publishes the `http2.server.stream.*` channels from 22.17.0 and 24.2.0.
-const { major = 0, minor = 0 } = parseSemver(process.versions.node);
-const hasHttp2ServerChannels = major > 24 || (major === 24 && minor >= 2) || (major === 22 && minor >= 17);
-
-describe.runIf(supports({ runtimes: ['node'] }) && hasHttp2ServerChannels)('http2 server', () => {
+describe.runIf(supports({ nodeMin: ['22.17.0', '24.2.0'], runtimes: ['node'] }))('http2 server', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
