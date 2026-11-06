@@ -122,13 +122,15 @@ function toTunnelRequest(event: unknown): Request | undefined {
 
     const httpEvent = event as HttpEvent;
     const method = httpEvent.requestContext?.http?.method ?? httpEvent.httpMethod;
-    // The path the browser posted to, so one `basePath` fits both sides: a REST API's `path` drops the stage, its
-    // `requestContext.path` keeps it like an HTTP API's `rawPath` does. An ALB event has neither.
-    const path =
+    // A REST API's `path` drops a named stage that its `requestContext.path` keeps, like an HTTP API's `rawPath` does.
+    // Which one is the path the browser posted to depends on the domain, so a REST request is claimed if either
+    // matches. An ALB event has only `path`.
+    const paths =
       typeof httpEvent.rawPath === 'string'
-        ? `${httpEvent.rawPath}${httpEvent.rawQueryString ? `?${httpEvent.rawQueryString}` : ''}`
-        : (httpEvent.requestContext?.path ?? httpEvent.path);
-    if (!method || !path || !isServedTunnelRequest({ method, url: path })) {
+        ? [`${httpEvent.rawPath}${httpEvent.rawQueryString ? `?${httpEvent.rawQueryString}` : ''}`]
+        : [httpEvent.requestContext?.path, httpEvent.path];
+    const path = method && paths.find(candidate => candidate && isServedTunnelRequest({ method, url: candidate }));
+    if (!method || !path) {
       return undefined;
     }
 
