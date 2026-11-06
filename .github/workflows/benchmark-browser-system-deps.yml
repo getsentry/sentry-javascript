@@ -137,6 +137,8 @@ jobs:
               const page = await browser.newPage();
               await page.setContent('<title>Browser launch check</title>');
               console.log(`Launched ${process.env.PLAYWRIGHT_BROWSER}: ${await page.title()}`);
+              await page.goto('https://github.com/');
+              console.log(`HTTPS navigation: ${await page.title()}`);
             } finally {
               await browser.close();
             }
