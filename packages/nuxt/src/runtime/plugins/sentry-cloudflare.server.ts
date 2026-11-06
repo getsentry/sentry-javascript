@@ -54,10 +54,16 @@ export const sentryCloudflareNitroPlugin =
     const appFetch = nitroV3App.fetch;
     if (typeof nitroV3App.localFetch !== 'function' && typeof appFetch === 'function') {
       nitroV3App.fetch = request => {
+        const runtime = (request as Request & { runtime?: { cloudflare?: { context?: ExecutionContext } } }).runtime;
+        // Internal `$fetch` calls go through `fetch` too, without the Worker's context. They run inside the request
+        // that made them, so they aren't wrapped again.
+        if (!runtime?.cloudflare?.context) {
+          return appFetch(request);
+        }
+
         setAsyncLocalStorageAsyncContextStrategy();
 
         const cloudflareOptions = typeof optionsOrFn === 'function' ? optionsOrFn(nitroApp) : optionsOrFn;
-        const runtime = (request as Request & { runtime?: { cloudflare?: { context?: ExecutionContext } } }).runtime;
 
         return wrapRequestHandler(
           {
@@ -67,7 +73,7 @@ export const sentryCloudflareNitroPlugin =
               ...cloudflareOptions,
             },
             request,
-            context: runtime?.cloudflare?.context,
+            context: runtime.cloudflare.context,
           },
           () => appFetch(request),
         );
