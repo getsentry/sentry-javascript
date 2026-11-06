@@ -54,6 +54,7 @@ describe('sentrySolidStart()', () => {
       'code-transformer',
       'sentry-solidstart-files-to-delete-after-upload',
       'sentry-vite-plugin',
+      'sentry-vite-upload-staging',
       'sentry-solidstart-update-source-map-setting',
     ]);
   });
