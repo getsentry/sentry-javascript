@@ -142,9 +142,9 @@ jobs:
       - name: Determine which test applications should be run
         id: matrix
         run:
-          pnpm --silent run ci:build-matrix --shards=2 --base=${{ (github.event_name == 'pull_request' &&
-          needs.job_get_metadata.outputs.changed_ci != 'true' && github.event.pull_request.base.sha) || '' }} >>
-          $GITHUB_OUTPUT
+          pnpm --silent run ci:build-matrix --shards=2 --separate-aws-layer --base=${{ (github.event_name ==
+          'pull_request' && needs.job_get_metadata.outputs.changed_ci != 'true' && github.event.pull_request.base.sha)
+          || '' }} >> $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
       - name: Determine which optional E2E test applications should be run
@@ -189,15 +189,15 @@ jobs:
         '@sentry/aws-serverless') }}
       e2e-matrix-1: ${{ steps.matrix.outputs.matrix-1 }}
       e2e-matrix-2: ${{ steps.matrix.outputs.matrix-2 }}
+      e2e-matrix-aws-layer: ${{ steps.matrix.outputs.matrix-aws-layer }}
       e2e-matrix-optional: ${{ steps.matrix-optional.outputs.matrix }}
 
   job_build_layer:
     name: Build Lambda layer
     needs: [job_get_metadata, job_build]
     if:
-      needs.job_build.outputs.changed_aws_serverless == 'true' || contains(needs.job_build.outputs.e2e-matrix-1,
-      'aws-serverless') || contains(needs.job_build.outputs.e2e-matrix-2, 'aws-serverless') || github.event_name !=
-      'pull_request'
+      needs.job_build.outputs.changed_aws_serverless == 'true' || contains(needs.job_build.outputs.e2e-matrix-aws-layer,
+      'aws-serverless-layer') || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-24.04
     steps:
@@ -1089,7 +1089,7 @@ jobs:
     if:
       always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix-1 !=
       '{"include":[]}'
-    needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
+    needs: [job_get_metadata, job_build, job_build_tarballs]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -1161,13 +1161,27 @@ jobs:
     if:
       always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix-2 !=
       '{"include":[]}'
-    needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
+    needs: [job_get_metadata, job_build, job_build_tarballs]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env: *e2e-env
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix-2) }}
+    steps: *e2e-steps
+
+  job_e2e_aws_layer_tests:
+    name: E2E ${{ matrix.label || matrix.test-application }} Test
+    needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
+    if: >-
+      always() && needs.job_build_tarballs.result == 'success' && needs.job_build_layer.result == 'success' &&
+      needs.job_build.outputs.e2e-matrix-aws-layer != '{"include":[]}'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env: *e2e-env
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix-aws-layer) }}
     steps: *e2e-steps
 
   # - We skip optional tests on release branches
@@ -1232,6 +1246,7 @@ jobs:
         job_browser_loader_tests,
         job_e2e_tests_1,
         job_e2e_tests_2,
+        job_e2e_aws_layer_tests,
         job_artifacts,
         job_lint,
         job_check_lockfile,
