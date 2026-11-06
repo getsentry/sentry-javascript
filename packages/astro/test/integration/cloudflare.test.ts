@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentryAstro } from '../../src/integration';
+import { sentryCloudflareVitePlugin } from '../../src/integration/cloudflare';
 
 const getWranglerConfig = vi.hoisted(() => vi.fn());
 
@@ -76,6 +77,38 @@ describe('Cloudflare Pages vs Workers detection', () => {
           }),
         }),
       );
+    });
+
+    it('imports the user server config at the Worker entry', async () => {
+      const integration = sentryAstro({ serverInitPath: 'sentry.server.config.js' });
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        config: {
+          // @ts-expect-error - we only need to pass what we actually use
+          adapter: { name: '@astrojs/cloudflare' },
+        },
+        command: 'build',
+      });
+
+      expect(sentryCloudflareVitePlugin).toHaveBeenCalledWith({ importServerInit: true });
+    });
+
+    it('does not import the default server init at the Worker entry', async () => {
+      const integration = sentryAstro({});
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        config: {
+          // @ts-expect-error - we only need to pass what we actually use
+          adapter: { name: '@astrojs/cloudflare' },
+        },
+        command: 'build',
+      });
+
+      expect(sentryCloudflareVitePlugin).toHaveBeenCalledWith({ importServerInit: false });
     });
 
     it('adds Cloudflare Vite plugins when no wrangler config exists', async () => {

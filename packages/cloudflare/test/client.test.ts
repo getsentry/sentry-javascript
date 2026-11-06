@@ -497,6 +497,26 @@ describe('CloudflareClient', () => {
       expect(flushMock).toHaveBeenCalledTimes(1);
     });
 
+    it('waits in flush() for an eager drain started outside any invocation', async () => {
+      let finishDrain: (value: boolean) => void = () => undefined;
+      const flushMock = vi
+        .fn()
+        .mockImplementationOnce(() => new Promise<boolean>(resolve => (finishDrain = resolve)))
+        .mockResolvedValue(true);
+      const client = makeEagerFlushClient(flushMock);
+
+      client.emit('afterEnvelope', {});
+
+      let flushed = false;
+      const flushPromise = client.flush(2000).then(() => (flushed = true));
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(flushed).toBe(false);
+
+      finishDrain(true);
+      await flushPromise;
+      expect(flushed).toBe(true);
+    });
+
     it('does not register a waitUntil when no context is known', () => {
       const flushMock = vi.fn().mockResolvedValue(true);
       const client = makeEagerFlushClient(flushMock);

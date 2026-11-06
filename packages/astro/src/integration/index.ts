@@ -206,8 +206,10 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
 
           if (isCloudflareWorkers && command !== 'dev') {
             // For Cloudflare Workers production builds, additionally use a Vite plugin to:
-            // 1. Import the server config at the Worker entry level (so Sentry.init() runs
-            //    for ALL requests, not just SSR pages — covers actions and API routes)
+            // 1. Import the user's server config at the top of the Worker entry, so their Sentry.init()
+            //    runs before the `withSentry` wrap inits a client from the bindings, and also for
+            //    actions and API routes, not just SSR pages. Not the default init: it has no DSN, and
+            //    running it first would keep the wrap from using the bindings' DSN.
             // 2. Wrap the default export with `withSentry` from @sentry/cloudflare for
             //    per-request isolation, async context, and trace propagation
             //
@@ -221,7 +223,10 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
               vite: {
                 plugins: usesCloudflareVitePlugin
                   ? [sentryCloudflareNodeWarningPlugin()]
-                  : [sentryCloudflareNodeWarningPlugin(), sentryCloudflareVitePlugin()],
+                  : [
+                      sentryCloudflareNodeWarningPlugin(),
+                      sentryCloudflareVitePlugin({ importServerInit: !!pathToServerInit }),
+                    ],
               },
             });
           } else if (isCloudflare) {
