@@ -48,6 +48,11 @@ export function setUpBuildTimeVariables(
     buildTimeVariables._sentryBasePath = basePath;
   }
 
+  // Next redirects a POST to the tunnel path without the slash, so the browser posts to the one with it.
+  if (userNextConfig.trailingSlash) {
+    buildTimeVariables._sentryTrailingSlash = 'true';
+  }
+
   if (userNextConfig.assetPrefix) {
     buildTimeVariables._sentryAssetPrefix = userNextConfig.assetPrefix;
   }

@@ -4,7 +4,8 @@ import { SENTRY_DSN } from './sentry-dsn';
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: SENTRY_DSN,
-  // No tunnel option - using tunnelRoute from withSentryConfig
+  // The other variants use the tunnelRoute of withSentryConfig
+  tunnel: process.env.NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE === 'managed' ? true : undefined,
   tracesSampleRate: 1.0,
 });
 

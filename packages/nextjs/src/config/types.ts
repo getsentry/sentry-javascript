@@ -31,6 +31,8 @@ export type NextConfigObject = {
   assetPrefix?: string;
   // The root at which the nextjs app will be served (defaults to "/")
   basePath?: string;
+  // Whether URLs end with a slash, which Next.js redirects to for paths without one
+  trailingSlash?: boolean;
   // Config which will be available at runtime
   publicRuntimeConfig?: { [key: string]: unknown };
   // File extensions that count as pages in the `pages/` directory
@@ -295,8 +297,8 @@ export type SentryBuildOptions = Omit<
    * export { POST } from '@sentry/nextjs/tunnel';
    * ```
    *
-   * This handler accepts the DSN of the server SDK, also a self-hosted one. For other DSNs, use
-   * `createSentryTunnelRoute` from the same import.
+   * This handler accepts the DSN of the server SDK, also a self-hosted one, and the DSNs `serveTunnelIntegration`
+   * allows. For other DSNs, use `createSentryTunnelRoute` from the same import.
    *
    * Tunnel requests go through your middleware (`proxy.ts` / `middleware.ts`) like any other request. If your
    * middleware redirects or blocks unauthenticated requests, exclude the tunnel route in its `matcher` so events
@@ -307,6 +309,9 @@ export type SentryBuildOptions = Omit<
    * `transportOptions: { fetchOptions: { credentials: 'same-origin' } }` in `Sentry.init` of `instrumentation-client.ts`.
    *
    * NOTE: This feature only works with Next.js 11+
+   *
+   * @deprecated Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration()` to the server
+   * `Sentry.init` instead. The server answers the tunnel requests, also on Vercel.
    */
   tunnelRoute?: string | boolean;
 

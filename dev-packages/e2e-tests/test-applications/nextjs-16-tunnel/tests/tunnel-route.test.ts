@@ -8,6 +8,11 @@ function getStringAttribute(span: SerializedStreamedSpan, key: string): string |
   return attribute?.type === 'string' ? attribute.value : undefined;
 }
 
+test.skip(
+  process.env.NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE === 'managed',
+  'The managed variants have no tunnel route, see tunnel-managed.test.ts',
+);
+
 test('Tunnel route should proxy pageload span to Sentry', async ({ page }) => {
   // Wait for the pageload span to be sent through the tunnel
   const pageloadSpanPromise = waitForStreamedSpan('nextjs-16-tunnel', span => {

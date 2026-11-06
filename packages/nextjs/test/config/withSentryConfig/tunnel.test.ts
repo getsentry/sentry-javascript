@@ -1,8 +1,11 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { NextConfigObject } from '../../../src/config/types';
 import {
   findTunnelRouteHandlerFile,
   getTunnelRouteInjectedValues,
+  setUpManagedTunnelVercelRoute,
   setUpTunnelHandlerRewrite,
 } from '../../../src/config/withSentryConfig/tunnel';
 import { makeProject, removeProjects } from './projectFixture';
@@ -131,5 +134,38 @@ describe('setUpTunnelHandlerRewrite', () => {
       beforeFiles: [HANDLER_REWRITE, userBeforeFilesRewrite],
       fallback: [userFallbackRewrite],
     });
+  });
+});
+
+describe('setUpManagedTunnelVercelRoute', () => {
+  it('writes the tunnel route handler and rewrites envelope requests to it', async () => {
+    const projectDir = makeProject(['app/page.tsx']);
+    const nextConfig: NextConfigObject = {};
+
+    setUpManagedTunnelVercelRoute(nextConfig, projectDir);
+
+    expect(fs.readFileSync(path.join(projectDir, 'app/sentry-tunnel/route.js'), 'utf8')).toContain(
+      "export { POST } from '@sentry/nextjs/tunnel';",
+    );
+    await expect(nextConfig.rewrites?.()).resolves.toEqual({
+      afterFiles: [expect.objectContaining({ destination: '/sentry-tunnel' })],
+    });
+  });
+
+  it.each([
+    ['an App Router page', 'app/sentry-tunnel/page.tsx'],
+    ['an App Router page in `src`', 'src/app/sentry-tunnel/page.tsx'],
+    ['a Pages Router page', 'pages/sentry-tunnel.tsx'],
+    ['a Pages Router index page', 'src/pages/sentry-tunnel/index.js'],
+  ])('does nothing when the project has %s at the route path', (_description, file) => {
+    const projectDir = makeProject([file]);
+    const nextConfig: NextConfigObject = {};
+
+    setUpManagedTunnelVercelRoute(nextConfig, projectDir);
+
+    expect(fs.readdirSync(projectDir, { recursive: true }).filter(entry => String(entry).includes('route'))).toEqual(
+      [],
+    );
+    expect(nextConfig.rewrites).toBeUndefined();
   });
 });

@@ -113,7 +113,8 @@ describe('maybeSetUpTunnelRouteRewriteRules', () => {
 
     expect(nextConfig.rewrites).toBeUndefined();
     expect(logSpy).not.toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledTimes(2);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('The `tunnelRoute` option is deprecated'));
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining('will not work in combination with Next.js static exports'),
     );
@@ -127,7 +128,7 @@ describe('maybeSetUpTunnelRouteRewriteRules', () => {
 
     maybeSetUpTunnelRouteRewriteRules(nextConfig, sentryOptions);
 
-    expect(warnSpy).not.toHaveBeenCalled();
+    expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('but the `tunnelRoute` option is not set'));
   });
 });
 
