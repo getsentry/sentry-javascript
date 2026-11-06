@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/aws-serverless';
 
 Sentry.init({
   // Nothing listens on this port, so forwarding a tunnel request fails after the tunnel claimed it.

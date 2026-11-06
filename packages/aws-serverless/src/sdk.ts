@@ -1,18 +1,11 @@
 import type { Scope } from '@sentry/core';
 import { debug } from '@sentry/core';
-import {
-  _INTERNAL_handleLambdaTunnelEvent,
-  _INTERNAL_handleStreamingLambdaTunnelEvent,
-  captureException,
-  captureMessage,
-  flush,
-  getCurrentScope,
-  withScope,
-} from '@sentry/node';
+import { captureException, captureMessage, flush, getCurrentScope, withScope } from '@sentry/node';
 import type { Context, Handler, StreamifyHandler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
 import { types } from 'util';
 import { DEBUG_BUILD } from './debug-build';
+import { handleStreamingTunnelEvent, handleTunnelEvent } from './tunnel';
 import { markEventUnhandled } from './utils';
 
 const { isPromise } = types;
@@ -201,7 +194,7 @@ export function wrapHandler<TEvent, TResult>(
 
   return async (event: TEvent, context: Context) => {
     // Lambda runs no HTTP server, so tunnel requests are answered here, before the handler.
-    const tunnelResult = _INTERNAL_handleLambdaTunnelEvent(event);
+    const tunnelResult = handleTunnelEvent(event);
     if (tunnelResult) {
       return tunnelResult as Promise<TResult>;
     }
@@ -258,7 +251,7 @@ function wrapStreamingHandler<TEvent, TResult>(
     responseStream: Parameters<StreamifyHandler<TEvent, TResult>>[1],
     context: Context,
   ): Promise<TResult> => {
-    const tunnelAnswer = _INTERNAL_handleStreamingLambdaTunnelEvent(event, responseStream);
+    const tunnelAnswer = handleStreamingTunnelEvent(event, responseStream);
     if (tunnelAnswer) {
       return tunnelAnswer as Promise<TResult>;
     }

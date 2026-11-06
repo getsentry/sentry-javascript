@@ -53,7 +53,6 @@ const ESM: Format[] = ['esm'];
 const CASES: Case[] = [
   { specifier: '@sentry/node', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/node/import', conditions: NODE, formats: ESM },
-  { specifier: '@sentry/node/run-lambda-handler', conditions: NODE, formats: ESM },
   { specifier: '@sentry/bun', conditions: ['bun', 'node'], formats: BOTH },
   { specifier: '@sentry/deno', conditions: ['deno', 'node'], formats: ESM },
   { specifier: '@sentry/vercel-edge', conditions: ['edge-light'], formats: BOTH },

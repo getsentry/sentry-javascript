@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/aws-serverless';
 
 Sentry.init({
   // The test's ingest on this port answers 200 and then breaks off mid-body.

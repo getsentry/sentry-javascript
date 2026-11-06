@@ -4,7 +4,7 @@ import {
   _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
   _INTERNAL_pickForwardedHeaders as pickForwardedHeaders,
 } from '@sentry/core/server';
-import { DEBUG_BUILD } from '../debug-build';
+import { DEBUG_BUILD } from './debug-build';
 
 /**
  * The parts of an API Gateway (REST and HTTP API), function URL or ALB event the tunnel reads.
@@ -51,7 +51,7 @@ declare const awslambda:
 
 /**
  * Answers a managed tunnel request that came in as an HTTP event, before the handler runs. Lambda runs no HTTP server,
- * so the handler invocation is the only place to do it. Returns `undefined` for every other event.
+ * so `wrapHandler` answers it from the handler invocation. Returns `undefined` for every other event.
  *
  * It never throws. Until a request is claimed, a failure hands the event to the handler. Once claimed, it ends in a
  * 502 instead.
@@ -173,50 +173,5 @@ async function toHttpResult(response: Response, multiValueHeaders: boolean): Pro
       : { headers }),
     body: await response.text(),
     isBase64Encoded: false,
-  };
-}
-
-// The symbols the Lambda runtime reads off a streaming handler (`awslambda.streamifyResponse`).
-const HANDLER_STREAMING_SYMBOL: unique symbol = Symbol.for('aws.lambda.runtime.handler.streaming');
-const HANDLER_HIGHWATERMARK_SYMBOL: unique symbol = Symbol.for('aws.lambda.runtime.handler.streaming.highWaterMark');
-
-type LambdaHandler = (...args: unknown[]) => unknown;
-
-type StreamingHandler = LambdaHandler & {
-  [HANDLER_STREAMING_SYMBOL]?: unknown;
-  [HANDLER_HIGHWATERMARK_SYMBOL]?: unknown;
-};
-
-/**
- * Wraps a Lambda handler so it answers managed tunnel requests before the handler runs, and passes every other event
- * to it unchanged. Streaming handlers keep the symbols the runtime reads off them.
- */
-export function wrapLambdaHandlerForTunnel(handler: LambdaHandler): LambdaHandler {
-  const streamingSource: StreamingHandler = handler;
-  if (streamingSource[HANDLER_STREAMING_SYMBOL] === 'response') {
-    const streamingHandler: StreamingHandler = function (
-      this: unknown,
-      event: unknown,
-      responseStream: unknown,
-      ...rest: unknown[]
-    ) {
-      return handleStreamingTunnelEvent(event, responseStream) ?? handler.call(this, event, responseStream, ...rest);
-    };
-    streamingHandler[HANDLER_STREAMING_SYMBOL] = streamingSource[HANDLER_STREAMING_SYMBOL];
-    streamingHandler[HANDLER_HIGHWATERMARK_SYMBOL] = streamingSource[HANDLER_HIGHWATERMARK_SYMBOL];
-
-    return streamingHandler;
-  }
-
-  // Keeps the handler's arity, which the runtime reads to tell a callback handler from an async one (and which the
-  // Node.js 24 runtime rejects).
-  if (handler.length > 2) {
-    return function (this: unknown, event: unknown, context: unknown, callback: unknown) {
-      return handleTunnelEvent(event) ?? handler.call(this, event, context, callback);
-    };
-  }
-
-  return function (this: unknown, event: unknown, context: unknown) {
-    return handleTunnelEvent(event) ?? handler.call(this, event, context);
   };
 }

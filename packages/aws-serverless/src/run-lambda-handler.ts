@@ -8,10 +8,7 @@
 import type { Handler } from 'aws-lambda';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
-import {
-  _INTERNAL_parseLambdaHandlerString as parseHandlerString,
-  _INTERNAL_resolveLambdaHandlerFile as resolveHandlerFile,
-} from '@sentry/node';
+import { parseHandlerString, resolveHandlerFile } from './handlerResolution';
 import { instrumentHandler } from './instrumentHandler';
 
 function fail(message: string): never {

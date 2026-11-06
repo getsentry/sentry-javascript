@@ -75,7 +75,7 @@ function makeHttpEvent(shape: EventShape, path: string, envelope: string, base64
 }
 
 test.describe('managed tunnel', () => {
-  for (const functionName of ['NpmTunnelAsync', 'NpmTunnelNodeAsync', 'NpmTunnelNodeCallback']) {
+  for (const functionName of ['NpmTunnelAsync', 'NpmTunnelCallback']) {
     test(`${functionName} answers tunnel requests before the handler`, async ({ lambdaClient }) => {
       const dsn = await getDsn();
       const marker = `${functionName}-${crypto.randomUUID()}`;
@@ -131,7 +131,7 @@ test.describe('managed tunnel', () => {
     });
   }
 
-  for (const functionName of ['NpmTunnelStreaming', 'NpmTunnelNodeStreaming']) {
+  for (const functionName of ['NpmTunnelStreaming']) {
     test(`${functionName} streams the tunnel answer before the handler`, async ({ lambdaClient }) => {
       const dsn = await getDsn();
       const marker = `${functionName}-${crypto.randomUUID()}`;
@@ -156,7 +156,7 @@ test.describe('managed tunnel', () => {
 
     const result = await invoke(
       lambdaClient,
-      'NpmTunnelNodeStreamingUnreachable',
+      'NpmTunnelStreamingUnreachable',
       makeHttpEvent('apiGatewayV2', getTunnelPath(dsn)!, makeEnvelope(dsn, 'unreachable')),
     );
 
@@ -183,7 +183,7 @@ test.describe('managed tunnel', () => {
 
       const result = await invoke(
         lambdaClient,
-        'NpmTunnelNodeStreamingBrokenAnswer',
+        'NpmTunnelStreamingBrokenAnswer',
         makeHttpEvent('apiGatewayV2', getTunnelPath(dsn)!, makeEnvelope(dsn, 'broken-answer')),
       );
 
@@ -194,27 +194,6 @@ test.describe('managed tunnel', () => {
     } finally {
       ingest.close();
     }
-  });
-
-  test('warns when the SDK is initialized in the handler module, where the tunnel cannot answer', async ({
-    lambdaClient,
-  }) => {
-    const dsn = await getDsn();
-
-    const result = await invoke(
-      lambdaClient,
-      'NpmTunnelNodeInitInHandler',
-      makeHttpEvent('apiGatewayV2', getTunnelPath(dsn)!, makeEnvelope(dsn, 'init-in-handler')),
-    );
-    // The runtime loaded the handler before `init` redirected it, so the app answers.
-    expect(JSON.parse(result.payload)).toEqual({ statusCode: 200, body: 'app' });
-
-    const warnings = JSON.parse(
-      JSON.parse((await invoke(lambdaClient, 'NpmTunnelNodeInitInHandler', { readWarnings: true })).payload).body,
-    );
-    expect(warnings).toContainEqual(
-      expect.stringContaining('Sentry was initialized after the Lambda runtime loaded the handler'),
-    );
   });
 
   // The shapes a real API Gateway sends on a stage named `prod`: a REST API leaves the stage out of `path` but keeps it
@@ -251,7 +230,7 @@ test.describe('managed tunnel', () => {
 
       const result = await invoke(
         lambdaClient,
-        'NpmTunnelNodeStagePath',
+        'NpmTunnelStagePath',
         makeStageEvent(getTunnelPath(dsn)!, makeEnvelope(dsn, marker)),
       );
 
@@ -267,7 +246,7 @@ test.describe('managed tunnel', () => {
     const forwarded = waitForError('aws-serverless', event => event.message === marker);
     const tunnelPath = getTunnelPath(dsn)!;
 
-    const result = await invoke(lambdaClient, 'NpmTunnelNodeAsync', {
+    const result = await invoke(lambdaClient, 'NpmTunnelAsync', {
       httpMethod: 'POST',
       path: tunnelPath,
       headers: { 'content-type': 'application/x-sentry-envelope' },
