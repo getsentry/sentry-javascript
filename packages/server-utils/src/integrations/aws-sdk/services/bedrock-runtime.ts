@@ -509,8 +509,9 @@ function recordNovaAttributes(parsedChunk: ParsedChunk, span: Span): void {
 
 function recordClaudeAttributes(parsedChunk: ParsedChunk, span: Span): void {
   setClaudeStreamInputTokens(span, parsedChunk.message?.usage);
-  if (parsedChunk.message?.usage?.output_tokens !== undefined) {
-    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, parsedChunk.message.usage.output_tokens);
+  // `message_start` carries only a placeholder output count. The final count arrives in `message_delta`.
+  if (parsedChunk.usage?.output_tokens !== undefined) {
+    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, parsedChunk.usage.output_tokens);
   }
   if (parsedChunk.delta?.stop_reason !== undefined) {
     span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.delta.stop_reason]);
