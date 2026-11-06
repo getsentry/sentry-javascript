@@ -5,6 +5,7 @@ import type { Hono, HonoRoute } from './honoTypes';
 import { getMiddlewareFlags } from './isMiddleware';
 import { patchAppRequest } from './patchAppRequest';
 import { wrapMiddlewareWithSpan } from './wrapMiddlewareSpan';
+import { sentryOriginalTraps } from './sentryOriginalTraps';
 
 export type { HonoRoute };
 
@@ -88,12 +89,7 @@ export function installRouteHookOnPrototype(honoBaseProto: HonoBaseProto): Route
 
       return Reflect.apply(_target, thisArg, args);
     },
-    get(target, prop, receiver) {
-      if (prop === '__sentry_original__') {
-        return originalRoute;
-      }
-      return Reflect.get(target, prop, receiver);
-    },
+    ...sentryOriginalTraps(originalRoute),
   });
   honoBaseProto.__sentryRouteHook__ = handle;
 

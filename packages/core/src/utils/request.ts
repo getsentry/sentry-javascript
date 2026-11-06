@@ -274,8 +274,8 @@ function getAbsoluteUrl({
  * @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/http/#http-request-header
  * @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/http/#http-response-header
  *
- * @see https://getsentry.github.io/sentry-conventions/attributes/http/#http-request-header-key
- * @see https://getsentry.github.io/sentry-conventions/attributes/http/#http-response-header-key
+ * @see https://conventions.sentry.dev/attributes/http/#http-request-header-key
+ * @see https://conventions.sentry.dev/attributes/http/#http-response-header-key
  */
 export function httpHeadersToSpanAttributes(
   headers: Record<string, string | string[] | undefined>,
