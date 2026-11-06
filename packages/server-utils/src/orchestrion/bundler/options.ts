@@ -43,6 +43,11 @@ export type PluginOptions = {
    * @default false
    */
   transformOptimizedDeps?: boolean;
+  /**
+   * Packages that publish their own namespace on `providedModules`, for integrations that register
+   * with a package instead of patching it. Opt-in, as apps that register it themselves would clash.
+   */
+  selfProvidedModules?: string[];
 };
 
 /**
@@ -89,7 +94,10 @@ export function orchestrionTransformOptions(
 ): CodeTransformerPluginOptions {
   return {
     instrumentations: [...SENTRY_INSTRUMENTATIONS, ...(options.instrumentations || [])],
-    customTransforms: { ...options.customTransforms, ...moduleInjectedTransforms() },
+    customTransforms: {
+      ...options.customTransforms,
+      ...moduleInjectedTransforms(undefined, { selfProvidedModules: options.selfProvidedModules }),
+    },
     ...(options.dcModule && { dcModule: options.dcModule }),
     ...(injectDiagnostics && { injectDiagnostics: () => ORCHESTRION_BUNDLER_MARKER_BANNER }),
   };
