@@ -623,8 +623,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        shard: [1, 2]
+        shards: [2]
         bundle:
-          - esm
           - bundle
           - bundle_min
           - bundle_logs_metrics
@@ -640,10 +641,14 @@ jobs:
         project:
           - chromium
         include:
-          # Only check all projects for full bundle
-          # We also shard the tests as they take the longest
           - bundle: bundle_tracing_replay_feedback_logs_metrics_min
             project: 'webkit'
+            shard: 1
+            shards: 2
+          - bundle: bundle_tracing_replay_feedback_logs_metrics_min
+            project: 'webkit'
+            shard: 2
+            shards: 2
           - bundle: bundle_tracing_replay_feedback_logs_metrics_min
             project: 'firefox'
           - bundle: esm
@@ -662,10 +667,6 @@ jobs:
             project: chromium
             shard: 4
             shards: 4
-        exclude:
-          # Do not run the un-sharded esm tests
-          - bundle: esm
-            project: 'chromium'
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -773,7 +774,7 @@ jobs:
           retention-days: 7
 
   job_node_integration_tests:
-    name: Node (${{ matrix.node }}) Integration Tests (${{ matrix.shard }}/3)
+    name: Node (${{ matrix.node }}) Integration Tests (${{ matrix.shard }}/${{ matrix.shards }})
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04-arm
@@ -783,8 +784,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20.19, 22, 24, 26, '^27.0.0-0']
-        shard: [1, 2, 3]
+        node: [20.19, 22, 24, 26]
+        shard: [1, 2, 3, 4]
+        shards: [4]
+        include:
+          - node: '^27.0.0-0'
+            shard: 1
+            shards: 3
+          - node: '^27.0.0-0'
+            shard: 2
+            shards: 3
+          - node: '^27.0.0-0'
+            shard: 3
+            shards: 3
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -820,7 +832,7 @@ jobs:
       - name: Run integration tests
         working-directory: dev-packages/node-integration-tests
         # Tedious runs in the dedicated SQL Server job because its database container requires x86.
-        run: pnpm run test --shard=${{ matrix.shard }}/3 --exclude '**/tracing/tedious/**'
+        run: pnpm run test --shard=${{ matrix.shard }}/${{ matrix.shards }} --exclude '**/tracing/tedious/**'
 
   job_sql_server_integration_tests:
     name: SQL Server Integration Tests (Node 24)
@@ -849,7 +861,7 @@ jobs:
 
   # Runs on the wrangler pinned in the package, so the required run stays on a fixed, older runtime.
   job_cloudflare_integration_tests:
-    name: Cloudflare Integration Tests (${{ matrix.shard }}/2)
+    name: Cloudflare Integration Tests (${{ matrix.shard }}/${{ matrix.shards }})
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
@@ -857,7 +869,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3, 4]
+        shards: [4]
     steps: &cloudflare_integration_tests_steps
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -884,7 +897,7 @@ jobs:
 
       - name: Run integration tests
         working-directory: dev-packages/cloudflare-integration-tests
-        run: pnpm run test --shard=${{ matrix.shard }}/2
+        run: pnpm run test --shard=${{ matrix.shard }}/${{ matrix.shards }}
 
   # Shows breakage from new wrangler and workerd releases early. It is not in `job_required_jobs_passed`, so it cannot
   # block a PR, and like the optional E2E tests it does not run on release branches.
@@ -900,6 +913,7 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1, 2]
+        shards: [2]
         wrangler: [latest]
     steps: *cloudflare_integration_tests_steps
 
