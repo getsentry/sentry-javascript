@@ -43,7 +43,7 @@ describe('release injection', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it('injects the release only into initial chunks', async () => {
+  it('injects the release only into initial chunks', { timeout: 15_000 }, async () => {
     const outDir = path.join(tmpDir, 'dist');
 
     await build({

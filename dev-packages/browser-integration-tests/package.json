@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "11.10.0",
+  "version": "11.11.0",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -55,28 +55,26 @@
     "test:update-snapshots": "pnpm run test:all --update-snapshots",
     "test:detect-flaky": "tsx scripts/detectFlakyTests.ts"
   },
-  "dependencies": {
+  "devDependencies": {
     "@babel/core": "^7.29.6",
     "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "1.64.1",
+    "@sentry/browser": "11.11.0",
+    "@sentry/browser-utils": "11.11.0",
+    "@sentry/conventions": "0.31.0",
+    "@sentry/core": "11.11.0",
+    "@sentry/replay": "11.11.0",
+    "@sentry/replay-canvas": "11.11.0",
     "@sentry/rrweb": "2.45.0",
-    "@sentry/browser": "11.10.0",
-    "@sentry/replay": "11.10.0",
-    "@sentry/conventions": "0.30.0",
+    "@sentry/rrweb-types": "^2.45.0",
+    "@sentry/wasm": "11.11.0",
     "@supabase/supabase-js": "2.109.0",
-    "axios": "1.20.0",
+    "@types/node": "^20.19.0",
+    "axios": "1.21.0",
     "babel-loader": "^10.1.1",
     "fflate": "0.8.3",
+    "glob": "^14.0.3",
     "html-webpack-plugin": "^5.5.0",
     "webpack": "^5.112.2"
-  },
-  "devDependencies": {
-    "@sentry/browser-utils": "11.10.0",
-    "@sentry/core": "11.10.0",
-    "@sentry/replay-canvas": "11.10.0",
-    "@sentry/rrweb-types": "^2.45.0",
-    "@sentry/wasm": "11.10.0",
-    "@types/node": "^20.19.0",
-    "glob": "^13.0.6"
   }
 }

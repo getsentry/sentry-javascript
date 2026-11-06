@@ -1,8 +1,9 @@
 import { rm } from 'node:fs/promises';
+import * as path from 'node:path';
 import type { Config } from '@react-router/dev/config';
 import { createSentrySDK } from 'sentry';
+import { globFiles } from '@sentry/bundler-plugins/core';
 import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
-import { glob } from 'glob';
 import type { SentryReactRouterBuildOptions } from '../types';
 
 type BuildEndHook = NonNullable<Config['buildEnd']>;
@@ -22,6 +23,11 @@ function getSentryConfig(viteConfig: unknown): SentryReactRouterBuildOptions {
   }
 
   return (viteConfig as { sentryConfig: SentryReactRouterBuildOptions }).sentryConfig;
+}
+
+/** Glob patterns need forward slashes, but React Router resolves `buildDirectory` with the platform separator. */
+function toGlobPath(directory: string): string {
+  return directory.split(path.sep).join('/');
 }
 
 /**
@@ -123,7 +129,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
 
   // set a default value no option was set
   if (typeof updatedFilesToDeleteAfterUpload === 'undefined') {
-    updatedFilesToDeleteAfterUpload = [`${reactRouterConfig.buildDirectory}/**/*.map`];
+    updatedFilesToDeleteAfterUpload = [`${toGlobPath(reactRouterConfig.buildDirectory)}/**/*.map`];
     debug &&
       // eslint-disable-next-line no-console
       console.info(
@@ -134,10 +140,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
   }
   if (updatedFilesToDeleteAfterUpload) {
     try {
-      const filePathsToDelete = await glob(updatedFilesToDeleteAfterUpload, {
-        absolute: true,
-        nodir: true,
-      });
+      const filePathsToDelete = await globFiles(updatedFilesToDeleteAfterUpload);
       if (debug) {
         filePathsToDelete.forEach(filePathToDelete => {
           // eslint-disable-next-line no-console

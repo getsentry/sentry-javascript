@@ -29,6 +29,8 @@ test('excludes dependency metadata while preserving application metadata', () =>
 });
 
 test('emits no absolute-path imports into the server output', () => {
+  test.skip(isDevMode, 'Checks production build output');
+
   const leaks = findAbsolutePathImports({ outputDir: path.join(process.cwd(), '.next', 'server') });
 
   expect(leaks).toEqual([]);

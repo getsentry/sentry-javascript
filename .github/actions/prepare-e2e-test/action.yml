@@ -46,9 +46,6 @@ runs:
       uses: denoland/setup-deno@v2.0.5
       with:
         deno-version: ${{ inputs.deno-version || 'v2.8.3' }}
-    # Keeps the pnpm store on the cache volume for the `pnpm install` of the test application
-    - name: Mount pnpm store
-      uses: ./.github/actions/mount-pnpm-store
     - name: Install pnpm
       uses: ./.github/actions/install-pnpm
 
@@ -71,7 +68,7 @@ runs:
         github-token: ${{ inputs.github-token }}
 
     - name: Restore build layer artifacts
-      if: contains(inputs.test-application, 'aws-serverless')
+      if: inputs.test-application == 'aws-serverless-layer'
       uses: actions/download-artifact@v8
       with:
         name: build-layer-output

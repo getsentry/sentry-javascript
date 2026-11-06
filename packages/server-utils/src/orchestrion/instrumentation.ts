@@ -58,6 +58,8 @@ export function invokeOrchestrionInstrumentation<Callback extends Instrumentatio
   // they pass `false` so a missing binding never blocks their subscription.
   { requiresTracingChannelBinding = true }: { requiresTracingChannelBinding?: boolean } = {},
 ): void {
+  (GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ??= {}).channelIntegrations = true;
+
   const label = moduleNames.join(', ');
 
   // `tracingChannel` is unavailable before Node 18.19; nothing to subscribe to.

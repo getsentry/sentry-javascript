@@ -34,8 +34,10 @@ export function dropMiddlewareTunnelRequests(
     return;
   }
 
-  // Only filter middleware spans, HTTP fetch spans, or BaseServer.handleRequest spans
-  const isMiddleware = attrs?.[ATTR_NEXT_SPAN_TYPE] === 'Middleware.execute';
+  // Only filter middleware spans, HTTP fetch spans, or BaseServer.handleRequest spans. Since Next.js 16.4.3, a proxy
+  // invoked separately from the render runs under a `Next.request` root span, which has to be dropped too.
+  const isMiddleware =
+    attrs?.[ATTR_NEXT_SPAN_TYPE] === 'Middleware.execute' || attrs?.[ATTR_NEXT_SPAN_TYPE] === 'Next.request';
   // The fetch span could be originating from rewrites re-writing a tunnel request
   // So we want to filter it out
   const isFetchSpan = attrs?.[SENTRY_ORIGIN] === 'auto.http.node_fetch';
@@ -114,8 +116,18 @@ export function getTunnelRouteIgnoreSpans(): NonNullable<ClientOptions['ignoreSp
     },
   };
 
+  // Since Next.js 16.4.3, a proxy invoked separately from the render runs under a `Next.request` root span. Its
+  // `http.target` is the pathname only, so the query of a rewrite-mode tunnel request can't be matched.
+  const proxyRootSpanIgnoreSpan = {
+    attributes: {
+      [ATTR_NEXT_SPAN_TYPE]: /^Next\.request$/,
+      // eslint-disable-next-line typescript/no-deprecated
+      [HTTP_TARGET]: new RegExp(`^${escapeStringForRegex(tunnelPath)}/?$`),
+    },
+  };
+
   if (tunnelRouteMode !== 'handler') {
-    return [tunnelRequestIgnoreSpan];
+    return [tunnelRequestIgnoreSpan, proxyRootSpanIgnoreSpan];
   }
 
   // On edge, the root span of a route handler has only `next.route`, with a `/route` suffix before Next.js 16.
@@ -125,5 +137,5 @@ export function getTunnelRouteIgnoreSpans(): NonNullable<ClientOptions['ignoreSp
       [ATTR_NEXT_ROUTE]: new RegExp(`^${escapeStringForRegex(TUNNEL_ROUTE_HANDLER_PATH)}(?:/route)?$`),
     },
   };
-  return [tunnelRequestIgnoreSpan, tunnelRouteHandlerIgnoreSpan];
+  return [tunnelRequestIgnoreSpan, proxyRootSpanIgnoreSpan, tunnelRouteHandlerIgnoreSpan];
 }

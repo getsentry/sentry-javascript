@@ -292,9 +292,9 @@ For example, if something is changed in the browser package, only E2E test apps 
 You can add additional information about the test (e.g. canary versions, optional in CI) by adding `sentryTest` in the `package.json`
 of a test application.
 
-The required E2E jobs run on 2 vCPUs (`namespace-profile-sentry-javascript-small`). If an app's job takes longer than
-about 90 seconds, set `"sentryTest": { "runner": "namespace-profile-sentry-javascript" }` to run it and its variants on
-4 vCPUs.
+`sentryTest.baseVariant` overrides the default matrix entry using the same fields as an entry in `variants`. For example,
+set its `assert-command` to run production tests and add a development variant to run both environments in parallel.
+The local `test:assert` script can still run both; select the base variant locally with `--variant <label>`.
 
 Variants that build against upstream prereleases (for example `canary`, `next` or nightly builds of a framework) go into
 `canaryVariants`. They do not run on PRs, only in the nightly `CI: Canary Tests` workflow (`.github/workflows/canary.yml`),

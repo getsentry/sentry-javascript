@@ -6,7 +6,7 @@ on:
 
 jobs:
   validate-pr:
-    runs-on: namespace-profile-sentry-javascript-small
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
     steps:

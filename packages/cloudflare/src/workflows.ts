@@ -11,7 +11,15 @@ import {
 } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import type { PropagationContext, Scope } from '@sentry/core';
-import { captureException, flush, getCurrentScope, startSpan, withIsolationScope, withScope } from '@sentry/core';
+import {
+  captureException,
+  flush,
+  getCurrentScope,
+  isError,
+  startSpan,
+  withIsolationScope,
+  withScope,
+} from '@sentry/core';
 import type {
   WorkflowDelayDuration,
   WorkflowEntrypoint,
@@ -68,6 +76,14 @@ async function propagationContextFromInstanceId(instanceId: string): Promise<Pro
     traceId,
     sampleRand,
   };
+}
+
+// Same check the Workflows engine uses to stop retrying a step. Not `constructor.name`: a
+// `NonRetryableError` with a custom `name` is retried, so capturing it early would duplicate events.
+function isNonRetryableError(error: unknown): boolean {
+  return (
+    isError(error) && (error.name === 'NonRetryableError' || String(error.message).startsWith('NonRetryableError'))
+  );
 }
 
 class WrappedWorkflowStep implements WorkflowStep {
@@ -158,7 +174,7 @@ class WrappedWorkflowStep implements WorkflowStep {
               span.setStatus({ code: 1 });
               return result;
             } catch (error) {
-              if (isFinalAttempt) {
+              if (isFinalAttempt || isNonRetryableError(error)) {
                 captureException(error, { mechanism: { handled: true, type: 'auto.faas.cloudflare.workflow' } });
               }
               throw error;

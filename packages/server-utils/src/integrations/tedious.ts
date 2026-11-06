@@ -153,6 +153,9 @@ function subscribeQuery(channelName: string, operation: string): void {
       [SERVER_PORT]: connection.config?.options?.port,
     };
 
+    // Not `getSqlSpanName`: bulk loads and procedure calls carry no statement, and naming them
+    // after the operation (`execBulkLoad <table>`, `callProcedure <name>`) says more than the
+    // namespace or db system it would fall back to.
     const client = getClient();
 
     const span = startInactiveSpan({

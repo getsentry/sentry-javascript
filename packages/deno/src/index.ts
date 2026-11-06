@@ -195,6 +195,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   neonIntegration,
+  cronJobIntegration,
   nodeCronIntegration,
   nodeScheduleIntegration,
   tediousIntegration,

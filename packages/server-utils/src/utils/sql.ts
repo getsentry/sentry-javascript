@@ -1,4 +1,12 @@
-import { DB_OPERATION_NAME, DB_QUERY_SUMMARY, DB_QUERY_TEXT } from '@sentry/conventions/attributes';
+import {
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+} from '@sentry/conventions/attributes';
+import type { SpanAttributes } from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled } from '@sentry/core';
 
 const MAX_SUMMARY_LENGTH = 255;
 
@@ -424,24 +432,50 @@ export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDiale
   );
 }
 
+export interface SqlQueryAttributes {
+  [DB_QUERY_TEXT]: string | undefined;
+  [DB_QUERY_SUMMARY]: string | undefined;
+  [DB_OPERATION_NAME]: string | undefined;
+}
+
 /**
  * Sanitizes a collected SQL statement into the query attributes the SQL integrations attach to
  * their spans: `db.query.text`, `db.query.summary` and `db.operation.name`. All are `undefined`
  * when there is no statement, so an empty query omits the attributes instead of reporting the
  * sanitizer's fallback text.
  */
-export function getSqlQueryAttributes(
-  sqlQuery: string | undefined,
-  dialect?: SqlDialect,
-): {
-  [DB_QUERY_TEXT]: string | undefined;
-  [DB_QUERY_SUMMARY]: string | undefined;
-  [DB_OPERATION_NAME]: string | undefined;
-} {
+export function getSqlQueryAttributes(sqlQuery: string | undefined, dialect?: SqlDialect): SqlQueryAttributes {
   const queryText = (sqlQuery && sanitizeSqlQuery(sqlQuery, dialect)) || undefined;
   return {
     [DB_QUERY_TEXT]: queryText,
     [DB_QUERY_SUMMARY]: getSqlQuerySummary(queryText),
     [DB_OPERATION_NAME]: getSqlOperationName(queryText),
   };
+}
+
+/**
+ * Names a SQL span with a low-cardinality name: `db.query.summary`, falling back to `db.namespace`
+ * and then `db.system.name`. `fallback` is the integration's name for a span with none of those.
+ *
+ * New SQL integrations should name their spans with this regardless of span streaming.
+ */
+export function getLowCardinalitySqlSpanName(attributes: SpanAttributes, fallback: string): string {
+  return toSpanName(attributes[DB_QUERY_SUMMARY] || attributes[DB_NAMESPACE] || attributes[DB_SYSTEM_NAME], fallback);
+}
+
+/**
+ * Names a SQL span from its attributes. Streamed span names have to be low cardinality (see
+ * {@link getLowCardinalitySqlSpanName}); otherwise the sanitized `db.query.text` is used, which
+ * existing integrations keep for spans that aren't streamed.
+ */
+export function getSqlSpanName(attributes: SpanAttributes, fallback: string): string {
+  const client = getClient();
+  if (client && hasSpanStreamingEnabled(client)) {
+    return getLowCardinalitySqlSpanName(attributes, fallback);
+  }
+  return toSpanName(attributes[DB_QUERY_TEXT], fallback);
+}
+
+function toSpanName(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value ? value : fallback;
 }

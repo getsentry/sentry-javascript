@@ -4,10 +4,14 @@ import {
 } from '@sentry/core/server';
 import { definePlugin } from 'nitro';
 import { useRuntimeConfig } from 'nitro/runtime-config';
+// @ts-expect-error - This is a virtual module
+import { tasks } from '#nitro/virtual/tasks';
 import { captureErrorHook } from '../hooks/captureErrorHook';
+import { instrumentTasks } from '../utils/instrumentTasks';
 
 export default definePlugin(nitroApp => {
   nitroApp.hooks.hook('error', captureErrorHook);
+  instrumentTasks(tasks);
 
   // Nitro runs the app's `middleware/` before anything a module registers, so an auth middleware there would block
   // the tunnel. Every preset hands requests to `nitroApp.fetch` after the plugins ran, so wrapping it goes first,

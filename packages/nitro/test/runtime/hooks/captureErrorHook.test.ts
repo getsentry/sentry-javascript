@@ -98,6 +98,16 @@ describe('captureErrorHook', () => {
     );
   });
 
+  it('should skip HTTPError whose cause was already captured', async () => {
+    const cause = new Error('Task error');
+    Object.defineProperty(cause, '__sentry_captured__', { value: true });
+    const error = new HTTPError(cause);
+
+    await captureErrorHook(error, mockErrorContext);
+
+    expect(SentryCore.captureException).not.toHaveBeenCalled();
+  });
+
   it('should skip when enableNitroErrorHandler is false', async () => {
     (SentryCore.getClient as any).mockReturnValue({
       getOptions: () => ({ enableNitroErrorHandler: false }),
