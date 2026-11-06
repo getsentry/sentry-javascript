@@ -1,4 +1,4 @@
-import { debug } from '@sentry/core';
+import { debug, GLOBAL_OBJ } from '@sentry/core';
 import { createRequire } from 'node:module';
 import { DEBUG_BUILD } from '../debug-build';
 import { parseHandlerString, resolveHandlerFile } from './handlerResolution';
@@ -80,6 +80,14 @@ export function redirectLambdaHandler(resolveShimFile: () => string | undefined,
  * the handler.
  */
 export function redirectLambdaHandlerForTunnel(): void {
+  // The runtime defines `awslambda` before it loads the handler, after the preloads ran. So `init` runs in the handler
+  // module, where the runtime already read `_HANDLER`.
+  if (DEBUG_BUILD && typeof (GLOBAL_OBJ as { awslambda?: unknown }).awslambda !== 'undefined') {
+    debug.warn(
+      "Sentry was initialized after the Lambda runtime loaded the handler, so tunnel requests reach the handler. Initialize Sentry from a preload (`NODE_OPTIONS=--import`), or wrap the handler with `@sentry/aws-serverless`'s `wrapHandler`.",
+    );
+  }
+
   redirectLambdaHandler(() => {
     try {
       // A CJS bundle has `require`, but leaves `import.meta.url` empty, so it's only read without one.

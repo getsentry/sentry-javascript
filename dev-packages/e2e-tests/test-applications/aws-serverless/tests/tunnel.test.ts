@@ -195,4 +195,25 @@ test.describe('managed tunnel', () => {
       ingest.close();
     }
   });
+
+  test('warns when the SDK is initialized in the handler module, where the tunnel cannot answer', async ({
+    lambdaClient,
+  }) => {
+    const dsn = await getDsn();
+
+    const result = await invoke(
+      lambdaClient,
+      'NpmTunnelNodeInitInHandler',
+      makeHttpEvent('apiGatewayV2', getTunnelPath(dsn)!, makeEnvelope(dsn, 'init-in-handler')),
+    );
+    // The runtime loaded the handler before `init` redirected it, so the app answers.
+    expect(JSON.parse(result.payload)).toEqual({ statusCode: 200, body: 'app' });
+
+    const warnings = JSON.parse(
+      JSON.parse((await invoke(lambdaClient, 'NpmTunnelNodeInitInHandler', { readWarnings: true })).payload).body,
+    );
+    expect(warnings).toContainEqual(
+      expect.stringContaining('Sentry was initialized after the Lambda runtime loaded the handler'),
+    );
+  });
 });
