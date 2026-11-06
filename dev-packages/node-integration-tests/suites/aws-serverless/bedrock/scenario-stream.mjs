@@ -1,4 +1,3 @@
-/* eslint-disable no-bitwise -- CRC32 for the AWS event stream framing */
 import * as Sentry from '@sentry/aws-serverless';
 import {
   BedrockRuntimeClient,
@@ -7,6 +6,7 @@ import {
 } from '@aws-sdk/client-bedrock-runtime';
 // Force the HTTP/1 handler so `nock` can intercept the request instead of hitting real AWS.
 import { NodeHttpHandler } from '@smithy/node-http-handler';
+import { EventStreamCodec } from '@smithy/core/event-streams';
 import nock from 'nock';
 import { Buffer } from 'node:buffer';
 
@@ -17,46 +17,16 @@ const credentials = { accessKeyId: 'aws-test-key', secretAccessKey: 'aws-test-se
 const host = `https://bedrock-runtime.${region}.amazonaws.com`;
 const modelId = 'anthropic.claude-3-5-sonnet-20240620-v1:0';
 
-// Streaming responses use the AWS event stream framing: a prelude with the total and header
-// lengths, string headers, the payload, and CRC32 checksums the SDK verifies.
-// https://docs.aws.amazon.com/AmazonS3/latest/API/RESTSelectObjectAppendix.html
-const CRC32_TABLE = Array.from({ length: 256 }, (_, n) => {
-  let c = n;
-  for (let k = 0; k < 8; k++) {
-    c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  }
-  return c >>> 0;
-});
-
-function crc32(bytes) {
-  let crc = 0xffffffff;
-  for (const byte of bytes) {
-    crc = CRC32_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
-  }
-  return (crc ^ 0xffffffff) >>> 0;
-}
-
-function uint32(value) {
-  const buffer = Buffer.alloc(4);
-  buffer.writeUInt32BE(value);
-  return buffer;
-}
+const codec = new EventStreamCodec(
+  bytes => Buffer.from(bytes).toString('utf8'),
+  text => Buffer.from(text),
+);
 
 function encodeMessage(headers, payload) {
-  const encodedHeaders = Buffer.concat(
-    Object.entries(headers).map(([name, value]) => {
-      const nameBytes = Buffer.from(name);
-      const valueBytes = Buffer.from(value);
-      const valueLength = Buffer.alloc(2);
-      valueLength.writeUInt16BE(valueBytes.length);
-      // 7 is the header value type for strings.
-      return Buffer.concat([Buffer.from([nameBytes.length]), nameBytes, Buffer.from([7]), valueLength, valueBytes]);
-    }),
-  );
-  const body = Buffer.from(JSON.stringify(payload));
-  const prelude = Buffer.concat([uint32(12 + encodedHeaders.length + body.length + 4), uint32(encodedHeaders.length)]);
-  const message = Buffer.concat([prelude, uint32(crc32(prelude)), encodedHeaders, body]);
-  return Buffer.concat([message, uint32(crc32(message))]);
+  return codec.encode({
+    headers: Object.fromEntries(Object.entries(headers).map(([name, value]) => [name, { type: 'string', value }])),
+    body: Buffer.from(JSON.stringify(payload)),
+  });
 }
 
 function event(eventType, payload) {
