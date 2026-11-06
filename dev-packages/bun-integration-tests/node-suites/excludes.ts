@@ -257,6 +257,8 @@ const BUN_BUILD_NOT_TRIAGED = [
 
 export const BUN_BUILD_EXCLUDE = [
   '**/node_modules/**',
+  // SQL Server runs in the dedicated Node/x86 CI job.
+  'suites/tracing/tedious/test.ts',
   ...BUN_BUILD_EAGER_SUBSCRIPTION,
   ...BUN_BUILD_NO_HTTP_SERVER_INTEGRATION,
   ...BUN_BUILD_UNBUNDLEABLE_DEPENDENCY,
