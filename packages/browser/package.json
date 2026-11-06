@@ -62,7 +62,7 @@
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build coverage .rpt2_cache sentry-browser-*.tgz",
+    "clean": "premove build coverage .rpt2_cache sentry-browser-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",

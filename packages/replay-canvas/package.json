@@ -35,7 +35,7 @@
     "build:bundle:watch": "pnpm run build:bundle --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build sentry-replay-*.tgz",
+    "clean": "premove build sentry-replay-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",

@@ -46,7 +46,7 @@
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
-    "clean": "rimraf build coverage sentry-webpack-plugin-*.tgz",
+    "clean": "premove build coverage sentry-webpack-plugin-*.tgz",
     "lint": "oxlint . --type-aware",
     "lint:fix": "oxlint . --fix --type-aware",
     "test": "vitest run",

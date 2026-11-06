@@ -249,9 +249,9 @@ importers:
       oxlint-tsgolint:
         specifier: ^7.0.2004
         version: 7.0.2004
-      rimraf:
-        specifier: ^6.1.3
-        version: 6.1.3
+      premove:
+        specifier: ^4.0.0
+        version: 4.0.0
       rollup:
         specifier: ^4.60.3
         version: 4.62.3
@@ -579,9 +579,9 @@ importers:
 
   dev-packages/e2e-tests:
     devDependencies:
-      rimraf:
-        specifier: ^6.1.3
-        version: 6.1.3
+      premove:
+        specifier: ^4.0.0
+        version: 4.0.0
 
   dev-packages/external-contributor-gh-action:
     devDependencies:

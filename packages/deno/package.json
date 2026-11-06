@@ -44,7 +44,7 @@
     "build:types": "tsc -p tsconfig.types.json",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build build-types build-test coverage node_modules/.deno sentry-deno-*.tgz",
+    "clean": "premove build build-types build-test coverage node_modules/.deno sentry-deno-*.tgz",
     "prefix": "pnpm run deno-types",
     "prelint": "pnpm run deno-types",
     "lint": "oxlint . --type-aware",

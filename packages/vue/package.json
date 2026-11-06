@@ -78,7 +78,7 @@
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts && madge --circular src/tanstackrouter.ts",
-    "clean": "rimraf build coverage sentry-vue-*.tgz",
+    "clean": "premove build coverage sentry-vue-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",

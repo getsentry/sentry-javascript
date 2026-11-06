@@ -51,7 +51,7 @@
     "build:transpile:watch": "ng build --configuration production --watch",
     "build:tarball": "npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build coverage sentry-angular-*.tgz",
+    "clean": "premove build coverage sentry-angular-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",

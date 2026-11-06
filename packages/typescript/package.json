@@ -16,7 +16,7 @@
     "typescript": "~5.8.0"
   },
   "scripts": {
-    "clean": "pnpm exec rimraf sentry-typescript-*.tgz",
+    "clean": "premove sentry-typescript-*.tgz",
     "build:tarball": "npm pack"
   }
 }
