@@ -1,6 +1,8 @@
 import {
   CLIENT_ADDRESS,
   CLIENT_PORT,
+  HTTP_RESPONSE_STATUS_CODE,
+  HTTP_RESPONSE_STATUS_TEXT,
   NETWORK_LOCAL_ADDRESS,
   NETWORK_LOCAL_PORT,
   NETWORK_PEER_ADDRESS,
@@ -8,12 +10,14 @@ import {
   NETWORK_PROTOCOL_NAME,
   NETWORK_PROTOCOL_VERSION,
   NETWORK_TRANSPORT,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
   URL_FULL,
   URL_PATH,
   URL_QUERY,
 } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 import * as http from 'node:http';
 import * as http2 from 'node:http2';
 import type { AddressInfo } from 'node:net';
@@ -173,14 +177,14 @@ describe('getHttpServerSubscriptions', () => {
     expect(transaction.transaction).toBe('GET /users/42');
     expect(data).toEqual(
       expect.objectContaining({
-        'sentry.op': 'http.server',
-        'http.response.status_code': 200,
+        [SENTRY_OP]: HTTP_SERVER,
+        [HTTP_RESPONSE_STATUS_CODE]: 200,
         [URL_FULL]: `http://127.0.0.1:${port}/users/42?foo=bar`,
         [SERVER_ADDRESS]: '127.0.0.1',
         [NETWORK_PROTOCOL_VERSION]: '2.0',
       }),
     );
-    expect(data).not.toHaveProperty('http.response.status_text');
+    expect(data).not.toHaveProperty(HTTP_RESPONSE_STATUS_TEXT);
     expect(Object.keys(data ?? {}).filter(key => key.includes(':'))).toEqual([]);
   });
 

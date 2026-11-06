@@ -31,7 +31,10 @@ server.listen(0, async () => {
     'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
     baggage: 'sentry-release=2.1.0,sentry-environment=myEnv',
   });
-  await request(client, { ':path': '/error' });
+  await request(client, {
+    ':path': '/error',
+    'sentry-trace': '45645645645645645645645645645645-4564564564564564-1',
+  });
 
   client.close();
   server.close();
