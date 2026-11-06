@@ -7,6 +7,7 @@ import { expressChannels } from './config/express';
 import { firebaseChannels } from './config/firebase';
 import { genericPoolChannels } from './config/generic-pool';
 import { googleGenAiChannels } from './config/google-genai';
+import { graphileWorkerChannels } from './config/graphile-worker';
 import { graphqlChannels } from './config/graphql';
 import { groqChannels } from './config/groq';
 import { hapiChannels } from './config/hapi';
@@ -67,6 +68,7 @@ export const CHANNELS = {
   ...firebaseChannels,
   ...genericPoolChannels,
   ...googleGenAiChannels,
+  ...graphileWorkerChannels,
   ...graphqlChannels,
   ...groqChannels,
   ...hapiChannels,

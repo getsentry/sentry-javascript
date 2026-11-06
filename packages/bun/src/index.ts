@@ -144,6 +144,7 @@ export {
   setupKoaErrorHandler,
   genericPoolIntegration,
   cronJobIntegration,
+  graphileWorkerIntegration,
   nodeCronIntegration,
   nodeScheduleIntegration,
   graphqlIntegration,

@@ -66,6 +66,7 @@ const NO_FETCH_INSTRUMENTATION = [
 // See https://github.com/getsentry/sentry-javascript/issues/23882
 export const NO_AUTO_INSTRUMENTATION = [
   'suites/cron/cron-integration/test.ts',
+  'suites/cron/graphile-worker/test.ts',
   'suites/cron/node-cron/integration/test.ts',
   'suites/cron/node-schedule-integration/test.ts',
   'suites/express/**',

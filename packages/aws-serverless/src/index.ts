@@ -120,6 +120,7 @@ export {
   fsIntegration,
   genericPoolIntegration,
   cronJobIntegration,
+  graphileWorkerIntegration,
   nodeCronIntegration,
   nodeScheduleIntegration,
   graphqlIntegration,

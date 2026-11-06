@@ -120,6 +120,7 @@ export {
   firebaseIntegration,
   genericPoolIntegration,
   cronJobIntegration,
+  graphileWorkerIntegration,
   nodeCronIntegration,
   nodeScheduleIntegration,
   graphqlIntegration,
