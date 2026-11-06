@@ -945,15 +945,24 @@ function resolveRecording(
   return globalDefault === true;
 }
 
+/** The `ai` SDK accepts the system prompt as `string | SystemModelMessage | SystemModelMessage[]`. */
+function getSystemInstructionParts(instructions: unknown): { type: 'text'; content: string }[] {
+  const messages = Array.isArray(instructions) ? instructions : [instructions];
+  return messages.flatMap(message => {
+    const content = asString(isObjectLike(message) ? message.content : message);
+    return content ? [{ type: 'text' as const, content }] : [];
+  });
+}
+
 function buildInputMessageAttributes(event: Record<string, unknown>): Record<string, string | number | undefined> {
   const attributes: Record<string, string | number | undefined> = {};
 
   // `ai` >= 7 forbids system messages in `messages`/`prompt` and exposes the system prompt as a
   // separate `instructions` field. The OTel path lifts the system message out of the prompt into
   // `gen_ai.system_instructions` as `[{ type: 'text', content }]`; mirror that shape here.
-  const instructions = asString(event.instructions);
-  if (instructions) {
-    attributes[GEN_AI_SYSTEM_INSTRUCTIONS] = stringify([{ type: 'text', content: instructions }]);
+  const instructions = getSystemInstructionParts(event.instructions);
+  if (instructions.length) {
+    attributes[GEN_AI_SYSTEM_INSTRUCTIONS] = stringify(instructions);
   }
 
   // The AI SDK start events extend `StandardizedPrompt`; messages live on `messages`, otherwise the
