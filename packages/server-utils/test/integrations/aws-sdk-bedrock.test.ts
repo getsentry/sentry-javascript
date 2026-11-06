@@ -151,6 +151,27 @@ describe('BedrockRuntimeServiceExtension stream spans', () => {
     expect(spanToJSON(span).end_timestamp).toBeDefined();
   });
 
+  it('reads the Claude stream output tokens from message_delta', async () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const encoder = new TextEncoder();
+    const chunks = [
+      { type: 'message_start', message: { role: 'assistant', usage: { input_tokens: 14, output_tokens: 1 } } },
+      { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 42 } },
+    ];
+    const data = {
+      body: (async function* () {
+        for (const chunk of chunks) {
+          yield { chunk: { bytes: encoder.encode(JSON.stringify(chunk)) } };
+        }
+      })(),
+    };
+
+    respond(span, 'InvokeModelWithResponseStream', { modelId: CLAUDE_MODEL_ID }, data);
+    await drain(data.body);
+
+    expect(spanToJSON(span).attributes?.[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(42);
+  });
+
   it('ends an InvokeModelWithResponseStream span without a modelId when the stream is drained', async () => {
     const span = startInactiveSpan({ name: 'bedrock' });
     const data = { body: (async function* () {})() };
