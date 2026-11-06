@@ -195,6 +195,21 @@ describe('SentryCliAdapter against the real CLI', () => {
     expect(requestsSince(before)).toContain('POST /api/0/organizations/test-org/artifactbundle/assemble/');
   });
 
+  it('skips a directory without source maps and still uploads the next one', async () => {
+    const emptyDir = join(workDir, 'server');
+    mkdirSync(emptyDir);
+    writeFileSync(join(emptyDir, 'page.js'), 'console.log("no map");\n');
+    const before = recordedRequests();
+
+    const emptyDirectories = await createAdapter().uploadSourcemaps('1.0.0', [
+      { directory: emptyDir },
+      { directory: buildDir },
+    ]);
+
+    expect(emptyDirectories).toEqual([emptyDir]);
+    expect(requestsSince(before)).toContain('POST /api/0/organizations/test-org/artifactbundle/assemble/');
+  });
+
   it('resolves the server url, or gives up quietly', async () => {
     const adapter = createAdapter();
 
