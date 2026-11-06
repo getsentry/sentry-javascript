@@ -193,6 +193,21 @@ function getAllowedDsns(options: TunnelForwardOptions | undefined): string[] {
  */
 const FORWARDED_RESPONSE_HEADERS = ['content-type', 'retry-after', 'x-sentry-rate-limits'];
 
+/**
+ * The headers of Sentry's answer to pass on to the browser, see `FORWARDED_RESPONSE_HEADERS`.
+ */
+export function pickForwardedHeaders(response: Response): Record<string, string> {
+  const headers: Record<string, string> = {};
+  for (const name of FORWARDED_RESPONSE_HEADERS) {
+    const value = response.headers.get(name);
+    if (value) {
+      headers[name] = value;
+    }
+  }
+
+  return headers;
+}
+
 function isNodeTunnelResponse(value: unknown): value is NodeTunnelResponse {
   return typeof (value as NodeTunnelResponse | undefined)?.writeHead === 'function';
 }
@@ -247,14 +262,7 @@ async function writeNodeResponse(response: NodeTunnelResponse, fetchResponse: Re
     return;
   }
 
-  const responseHeaders: Record<string, string> = {};
-  for (const name of FORWARDED_RESPONSE_HEADERS) {
-    const value = fetchResponse.headers.get(name);
-    if (value) {
-      responseHeaders[name] = value;
-    }
-  }
-  response.writeHead(fetchResponse.status, responseHeaders);
+  response.writeHead(fetchResponse.status, pickForwardedHeaders(fetchResponse));
   response.end(new Uint8Array(body));
 }
 

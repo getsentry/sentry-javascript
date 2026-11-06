@@ -21,6 +21,7 @@ export {
 export {
   forwardTunnelRequest as _INTERNAL_forwardTunnelRequest,
   handleServedNodeTunnelRequest as _INTERNAL_handleServedNodeTunnelRequest,
+  pickForwardedHeaders as _INTERNAL_pickForwardedHeaders,
   handleTunnelRequestIfMatched,
 } from './utils/tunnelForward';
 export { serveTunnelIntegration } from './integrations/serveTunnel';
