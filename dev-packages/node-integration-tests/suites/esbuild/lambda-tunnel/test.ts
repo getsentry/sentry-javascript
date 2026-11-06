@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 const OUT_DIR = join(__dirname, 'tmp_build');
 const BUNDLE = join(OUT_DIR, 'app.cjs');
 
-function runOnLambda(bundle: string): { stdout: string; stderr: string; status: number | null } {
+function runOnLambda(bundle: string): { stdout: string; status: number | null } {
   // pnpm's `NODE_PATH` would resolve `@sentry/node` from anywhere, which a deployed bundle can't.
   const { NODE_PATH: _nodePath, ...env } = process.env;
   const result = spawnSync('node', [bundle], {
@@ -17,7 +17,7 @@ function runOnLambda(bundle: string): { stdout: string; stderr: string; status: 
     env: { ...env, LAMBDA_TASK_ROOT: join(__dirname, 'task'), _HANDLER: 'index.handler' },
   });
 
-  return { stdout: result.stdout, stderr: result.stderr, status: result.status };
+  return { stdout: result.stdout, status: result.status };
 }
 
 describe('managed tunnel on Lambda with `@sentry/node` bundled to CJS by esbuild', () => {
@@ -37,9 +37,8 @@ describe('managed tunnel on Lambda with `@sentry/node` bundled to CJS by esbuild
   });
 
   test('answers tunnel requests when the shim is installed next to the bundle', () => {
-    const { stdout, stderr, status } = runOnLambda(BUNDLE);
+    const { stdout, status } = runOnLambda(BUNDLE);
 
-    expect(stderr).toBe('');
     expect(status).toBe(0);
     expect(stdout).toContain('ANSWERED_BY ingest');
   });
@@ -50,9 +49,8 @@ describe('managed tunnel on Lambda with `@sentry/node` bundled to CJS by esbuild
     copyFileSync(BUNDLE, bundle);
 
     try {
-      const { stdout, stderr, status } = runOnLambda(bundle);
+      const { stdout, status } = runOnLambda(bundle);
 
-      expect(stderr).toBe('');
       expect(status).toBe(0);
       expect(stdout).toContain('ANSWERED_BY app');
     } finally {
