@@ -53,8 +53,9 @@ function patchBunServe(): void {
 }
 
 /**
- * Adds a `POST` route per tunnel path and answers tunnel requests ahead of `fetch`. Leaves the options as they were if
- * anything goes wrong, so the server still starts.
+ * Adds a `POST` route per tunnel path and answers tunnel requests ahead of `fetch`, on a copy of the options. The app's
+ * own options stay as they were, so passing them again, e.g. to `server.reload`, doesn't wrap our wrappers. Returns
+ * the app's options if anything goes wrong, so the server still starts.
  *
  * Routes, not only `fetch`: Bun answers a POST under a `'/*'` HTML import or static `Response` without running any
  * JavaScript, so only an exact route reaches the tunnel there. A `POST`-only route leaves every other method to the
@@ -66,26 +67,41 @@ function withTunnel(serveOptions: BunServeOptions): BunServeOptions {
       return serveOptions;
     }
 
+    // Keeps the prototype and the getters, which class-based options read Bun's settings through.
+    const patchedOptions = Object.create(
+      Object.getPrototypeOf(serveOptions),
+      Object.getOwnPropertyDescriptors(serveOptions),
+    ) as BunServeOptions;
     const userFetch = serveOptions.fetch as BunHandler | undefined;
     if (typeof userFetch === 'function') {
-      serveOptions.fetch = function (this: Server, request: Request, server: Server) {
+      setOption(patchedOptions, 'fetch', function (this: Server, request: Request, server: Server) {
         return handleServedTunnelRequest(request) ?? userFetch.call(this, request, server);
-      } as typeof serveOptions.fetch;
+      });
     }
 
     const tunnelPaths = getTunnelRoutePaths();
     if (tunnelPaths.length) {
       const routes: Record<string, unknown> = { ...serveOptions.routes };
       for (const path of tunnelPaths) {
-        routes[path] = makeTunnelRoute(routes[path], serveOptions);
+        routes[path] = makeTunnelRoute(routes[path], userFetch);
       }
-      serveOptions.routes = routes as BunServeOptions['routes'];
+      setOption(patchedOptions, 'routes', routes);
     }
+
+    return patchedOptions;
   } catch (error) {
     debug.warn('Sentry tunnel: could not add the tunnel to Bun.serve', error);
-  }
 
-  return serveOptions;
+    return serveOptions;
+  }
+}
+
+/**
+ * Sets an option on our copy as its own property, which also replaces an option the app's class reads through a
+ * getter.
+ */
+function setOption(options: BunServeOptions, name: 'fetch' | 'routes', value: unknown): void {
+  Object.defineProperty(options, name, { value, writable: true, enumerable: true, configurable: true });
 }
 
 /**
@@ -106,7 +122,7 @@ function getTunnelRoutePaths(): string[] {
  * Our `POST` handler, merged with whatever the app has on the same path. An app route that is neither a handler nor
  * a handler per method (a static `Response` or an HTML import) is left as it is.
  */
-function makeTunnelRoute(existing: unknown, serveOptions: BunServeOptions): unknown {
+function makeTunnelRoute(existing: unknown, appFetch: BunHandler | undefined): unknown {
   if (typeof existing === 'function') {
     const appRoute = existing as BunHandler;
 
@@ -124,7 +140,7 @@ function makeTunnelRoute(existing: unknown, serveOptions: BunServeOptions): unkn
   return {
     ...methods,
     POST: (request: Request, server: Server) =>
-      handleServedTunnelRequest(request) ?? toApp(request, server, appPost, serveOptions),
+      handleServedTunnelRequest(request) ?? toApp(request, server, appPost, appFetch),
   };
 }
 
@@ -136,7 +152,7 @@ function toApp(
   request: Request,
   server: Server,
   appPost: unknown,
-  serveOptions: BunServeOptions,
+  appFetch: BunHandler | undefined,
 ): Response | Promise<Response> {
   if (appPost instanceof Response) {
     return appPost.clone();
@@ -146,8 +162,8 @@ function toApp(
     return (appPost as BunHandler)(request, server);
   }
 
-  if (typeof serveOptions.fetch === 'function') {
-    return (serveOptions.fetch as BunHandler).call(server, request, server);
+  if (appFetch) {
+    return appFetch.call(server, request, server);
   }
 
   return new Response('Not Found', { status: 404 });
