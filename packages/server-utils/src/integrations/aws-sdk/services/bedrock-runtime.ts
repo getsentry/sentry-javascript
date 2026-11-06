@@ -542,28 +542,36 @@ function recordLlamaAttributes(parsedChunk: ParsedChunk, span: Span): void {
   }
 }
 
-function recordMistralAttributes(parsedChunk: ParsedChunk, span: Span): void {
-  if (parsedChunk.outputs?.[0]?.text !== undefined) {
-    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(parsedChunk.outputs[0].text.length / 6));
+/**
+ * Bedrock adds the token counts to the last chunk of a stream. For models that send no counts of their own,
+ * this is the only real count.
+ */
+function recordInvocationMetrics(parsedChunk: ParsedChunk, span: Span): void {
+  const metrics = parsedChunk['amazon-bedrock-invocationMetrics'];
+  if (typeof metrics?.inputTokenCount === 'number') {
+    span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, metrics.inputTokenCount);
   }
+  if (typeof metrics?.outputTokenCount === 'number') {
+    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, metrics.outputTokenCount);
+  }
+}
+
+function recordMistralAttributes(parsedChunk: ParsedChunk, span: Span): void {
+  recordInvocationMetrics(parsedChunk, span);
   if (parsedChunk.outputs?.[0]?.stop_reason !== undefined) {
     span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.outputs[0].stop_reason]);
   }
 }
 
 function recordCohereAttributes(parsedChunk: ParsedChunk, span: Span): void {
-  if (parsedChunk.generations?.[0]?.text !== undefined) {
-    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(parsedChunk.generations[0].text.length / 6));
-  }
+  recordInvocationMetrics(parsedChunk, span);
   if (parsedChunk.generations?.[0]?.finish_reason !== undefined) {
     span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.generations[0].finish_reason]);
   }
 }
 
 function recordCohereRAttributes(parsedChunk: ParsedChunk, span: Span): void {
-  if (parsedChunk.text !== undefined) {
-    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(parsedChunk.text.length / 6));
-  }
+  recordInvocationMetrics(parsedChunk, span);
   if (parsedChunk.finish_reason !== undefined) {
     span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.finish_reason]);
   }
