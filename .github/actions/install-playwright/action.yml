@@ -1,5 +1,5 @@
 name: 'Install Playwright dependencies'
-description: 'Installs Playwright dependencies and caches them.'
+description: 'Installs Playwright browsers and system dependencies, and caches browser binaries.'
 inputs:
   browsers:
     description: 'What browsers to install.'
