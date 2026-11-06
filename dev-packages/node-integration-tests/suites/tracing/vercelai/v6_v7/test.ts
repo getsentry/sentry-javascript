@@ -1502,7 +1502,7 @@ describe('Vercel AI calls with recording off (v7)', () => {
   createEsmTests(
     __dirname,
     'scenario-no-recording.mjs',
-    'instrument.mjs',
+    'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('captures usage and tool errors for calls with recordInputs/recordOutputs: false', async () => {
         await createRunner()
@@ -1551,10 +1551,39 @@ describe('Vercel AI calls with recording off (v7)', () => {
   createEsmTests(
     __dirname,
     'scenario-no-recording.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('records output messages when only recordInputs is false', async () => {
+        await createRunner()
+          .withEnv({ RECORD_OUTPUTS: '1' })
+          .unordered()
+          .expect({
+            span: container => {
+              const modelCalls = container.items.filter(
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
+              );
+              expect(modelCalls).toHaveLength(2);
+              for (const modelCall of modelCalls) {
+                expect(modelCall.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+                expect(modelCall.attributes[GEN_AI_OUTPUT_MESSAGES]?.value).toContain('getWeather');
+              }
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { additionalDependencies: { ai: '^7.0.163' } },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-no-recording.mjs',
     'instrument-unsampled.mjs',
     (createRunner, test) => {
       test('captures the real tool error in an unsampled trace with recordInputs/recordOutputs: false', async () => {
         await createRunner()
+          .withEnv({ UNSAMPLED: '1' })
           .unordered()
           .expect({
             event: event => {

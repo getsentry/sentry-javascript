@@ -1,9 +1,24 @@
+import { tracingChannel } from 'node:diagnostics_channel';
 import * as Sentry from '@sentry/node';
 import { generateText, stepCountIs, streamText, tool } from 'ai';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import { z } from 'zod';
 
-const telemetry = { isEnabled: true, recordInputs: false, recordOutputs: false };
+const telemetry = { isEnabled: true, recordInputs: false, recordOutputs: process.env.RECORD_OUTPUTS === '1' };
+
+// `ai` withholds results from channel subscribers for these calls, and Sentry must not hand them back.
+tracingChannel('ai:telemetry').subscribe({
+  start() {},
+  end() {},
+  asyncStart() {},
+  asyncEnd(message) {
+    // Unsampled tool spans go through Sentry's own `executeTool` message, which carries the tool error.
+    if (message.result !== undefined && !(process.env.UNSAMPLED === '1' && message.type === 'executeTool')) {
+      process.exit(42);
+    }
+  },
+  error() {},
+});
 const finishReason = { unified: 'tool-calls', raw: 'tool_calls' };
 const usage = {
   inputTokens: { total: 10, noCache: 10, cached: 0 },

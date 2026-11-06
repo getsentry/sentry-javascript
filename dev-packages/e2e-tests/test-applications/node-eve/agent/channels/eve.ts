@@ -5,5 +5,4 @@ import { eveChannel } from 'eve/channels/eve';
 // is left open. Do not copy this into a real deployment.
 export default eveChannel({
   auth: [none()],
-  ...(process.env.USE_CONTENT_RECORDING === '1' ? { audience: 'public' } : {}),
 });

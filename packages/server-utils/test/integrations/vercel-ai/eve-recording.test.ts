@@ -1,4 +1,4 @@
-import { GEN_AI_INPUT_MESSAGES } from '@sentry/conventions/attributes';
+import { GEN_AI_EMBEDDINGS_INPUT, GEN_AI_INPUT_MESSAGES } from '@sentry/conventions/attributes';
 import { getClient, getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { markEveGenAiRecordingDefault } from '../../../src/integrations/vercel-ai/gen-ai-recording-mode';
@@ -62,6 +62,20 @@ describe('Vercel AI recording under eve', () => {
     markEveGenAiRecordingDefault(getClient()!);
 
     expect(recordedInputMessages([])).toBeUndefined();
+  });
+
+  it.each([
+    ['embed', { value: '' }, GEN_AI_EMBEDDINGS_INPUT],
+    ['embedMany', { values: [] }, GEN_AI_EMBEDDINGS_INPUT],
+    ['experimental_decide', { state: {}, questions: {} }, GEN_AI_INPUT_MESSAGES],
+  ])('records no input when ai emptied it on %s', (type, event, attribute) => {
+    setupClient();
+    markEveGenAiRecordingDefault(getClient()!);
+
+    const message = { type, event: { ...event, recordInputs: false } } as Parameters<typeof createSpanFromMessage>[0];
+    const span = createSpanFromMessage(message, {});
+
+    expect(spanToStaticSpanJSON(span!).data?.[attribute]).toBeUndefined();
   });
 
   it('still honors an explicit dataCollection.genAI opt-out under eve', () => {
