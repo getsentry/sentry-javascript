@@ -206,6 +206,29 @@ export function makeBaseNPMConfig(options = {}) {
   });
 }
 
+/**
+ * Make the CJS variants flat: one file per entry, plus chunks for the code that entries share.
+ * Node resolves, reads and evaluates each file on its own, so `require()` starts much faster than
+ * with `preserveModules`. The ESM variants keep one file per module, because bundlers use them and
+ * drop unused files by the package's `sideEffects` setting. Name the entries with an object `input`
+ * to keep their paths. Chunk names have no hash, so file tracers see the same paths in each build.
+ */
+export function makeCjsVariantsFlat(configs) {
+  return configs.map(config =>
+    config.output.format === 'cjs'
+      ? {
+          ...config,
+          output: {
+            ...config.output,
+            preserveModules: false,
+            entryFileNames: '[name].js',
+            chunkFileNames: 'chunks/[name].js',
+          },
+        }
+      : config,
+  );
+}
+
 export function makeNPMConfigVariants(baseConfig, options = {}) {
   const { emitEsm = true, emitCjs = true, splitDevProd = false } = options;
 
