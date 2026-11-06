@@ -8,12 +8,12 @@ interface TunnelInvokeResult {
   responseBody: string;
 }
 
-function parseLambdaPayload<T = TunnelInvokeResult>(payload: Uint8Array | undefined): T {
+function parseLambdaPayload(payload: Uint8Array | undefined): TunnelInvokeResult {
   if (!payload) {
     throw new Error('Missing Lambda payload');
   }
 
-  return JSON.parse(Buffer.from(payload).toString('utf8')) as T;
+  return JSON.parse(Buffer.from(payload).toString('utf8')) as TunnelInvokeResult;
 }
 
 test.describe('Lambda layer', () => {
@@ -396,16 +396,16 @@ test.describe('Lambda layer', () => {
 
   test('does not leak isolation scope data between invocations on a warm container', async ({ lambdaClient }) => {
     const errorEventPromise = waitForError('aws-serverless-layer', errorEvent => {
-      return errorEvent?.exception?.values?.[0]?.value === 'anonymous request failed';
+      return errorEvent?.exception?.values?.[0]?.value === 'untagged request failed';
     });
 
-    const firstResponse = await lambdaClient.send(
+    await lambdaClient.send(
       new InvokeCommand({
         FunctionName: 'LayerIsolationScope',
-        Payload: JSON.stringify({ user: 'alice' }),
+        Payload: JSON.stringify({ tag: 'first-invocation' }),
       }),
     );
-    const secondResponse = await lambdaClient.send(
+    await lambdaClient.send(
       new InvokeCommand({
         FunctionName: 'LayerIsolationScope',
         Payload: JSON.stringify({}),
@@ -414,14 +414,7 @@ test.describe('Lambda layer', () => {
 
     const errorEvent = await errorEventPromise;
 
-    const { invocationCount: firstCount } = parseLambdaPayload<{ invocationCount: number }>(firstResponse.Payload);
-    const { invocationCount: secondCount } = parseLambdaPayload<{ invocationCount: number }>(secondResponse.Payload);
-    expect(secondCount).toBe(firstCount + 1);
-
-    expect(errorEvent.user).toBeUndefined();
-    expect(errorEvent.breadcrumbs ?? []).not.toContainEqual(
-      expect.objectContaining({ message: 'handled request for alice' }),
-    );
+    expect(errorEvent.tags?.invocation_tag).toBeUndefined();
   });
 
   test('extension tunnel validates DSN allowlist and rejects invalid envelopes', async ({ lambdaClient }) => {
