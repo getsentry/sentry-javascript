@@ -397,6 +397,31 @@ describe('handleTunnelRequest', () => {
     );
   });
 
+  it('passes the client IP headers through unchanged, since Sentry SaaS replaces X-Sentry-Forwarded-For', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('ok'));
+    const clientIpHeaders = {
+      'cf-connecting-ip': '1.1.1.1',
+      'x-vercel-forwarded-for': '3.3.3.3',
+      'x-forwarded-for': '2.2.2.2, 10.0.0.1',
+    };
+
+    await handleTunnelRequest(
+      new Request('http://localhost/tunnel', {
+        method: 'POST',
+        body: `${JSON.stringify({ dsn: TEST_DSN })}\n`,
+        headers: { ...clientIpHeaders, 'content-length': '1' },
+      }),
+      { allowedDsns: [TEST_DSN] },
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({ ...clientIpHeaders, 'X-Sentry-Forwarded-For': '1.1.1.1' }),
+      }),
+    );
+  });
+
   it('forwards the client headers Relay reads the browser and allowed domains from', async () => {
     fetchMock.mockResolvedValueOnce(new Response('ok'));
     const clientHeaders = {
