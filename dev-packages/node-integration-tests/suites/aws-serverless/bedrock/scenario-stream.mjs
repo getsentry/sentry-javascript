@@ -17,11 +17,16 @@ const credentials = { accessKeyId: 'aws-test-key', secretAccessKey: 'aws-test-se
 const host = `https://bedrock-runtime.${region}.amazonaws.com`;
 const modelId = 'anthropic.claude-3-5-sonnet-20240620-v1:0';
 
+// Bedrock streams responses in the binary AWS event stream format, not JSON. The SDK decodes and
+// checks each message (headers, payload, CRC32), so the mocked response must use the same format.
+// The SDK's own codec encodes the messages. It needs UTF-8 helpers to encode the header strings.
+// https://docs.aws.amazon.com/AmazonS3/latest/API/RESTSelectObjectAppendix.html
 const codec = new EventStreamCodec(
   bytes => Buffer.from(bytes).toString('utf8'),
   text => Buffer.from(text),
 );
 
+// The codec needs a type for each header value. All Bedrock headers are strings.
 function encodeMessage(headers, payload) {
   return codec.encode({
     headers: Object.fromEntries(Object.entries(headers).map(([name, value]) => [name, { type: 'string', value }])),
@@ -29,6 +34,7 @@ function encodeMessage(headers, payload) {
   });
 }
 
+// The SDK reads `:event-type` to find the stream member (for example `messageStart` or `chunk`).
 function event(eventType, payload) {
   return encodeMessage(
     { ':message-type': 'event', ':event-type': eventType, ':content-type': 'application/json' },
@@ -36,6 +42,8 @@ function event(eventType, payload) {
   );
 }
 
+// An exception message makes the SDK throw while the caller iterates the stream. This is how a
+// stream fails after the response starts.
 function exception(exceptionType, payload) {
   return encodeMessage(
     { ':message-type': 'exception', ':exception-type': exceptionType, ':content-type': 'application/json' },
@@ -43,6 +51,7 @@ function exception(exceptionType, payload) {
   );
 }
 
+// InvokeModelWithResponseStream wraps each model chunk as base64 JSON in a `chunk` event.
 function invokeModelChunk(chunk) {
   return event('chunk', { bytes: Buffer.from(JSON.stringify(chunk)).toString('base64') });
 }
