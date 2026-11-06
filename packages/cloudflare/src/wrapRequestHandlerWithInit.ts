@@ -79,7 +79,7 @@ export function wrapRequestHandlerWithInit(
 
     // The tunnel answers these before the app, with no span. A Durable Object is only reached through the Worker,
     // which answered them already.
-    const tunnelResponse = !isDurableObjectContext(context) && handleServedTunnelRequest(request);
+    const tunnelResponse = !isDurableObjectContext(context) && handleServedTunnelRequest(request, client);
     if (tunnelResponse) {
       return tunnelResponse.finally(() => waitUntil?.(flushAndDispose(client)));
     }
