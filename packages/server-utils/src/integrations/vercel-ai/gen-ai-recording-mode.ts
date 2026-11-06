@@ -4,7 +4,7 @@ const eveRecordingClients = new WeakSet<Client>();
 
 /**
  * Mark this client as running under eve, so the Vercel AI channel subscriber records gen_ai
- * inputs/outputs by default.
+ * inputs/outputs by default, as far as `ai` still provides them.
  *
  * eve stamps every AI SDK call with `recordInputs`/`recordOutputs: false` as its framework default
  * (its content-capture default is "public conversations only"). That per-call flag on the
@@ -12,6 +12,10 @@ const eveRecordingClients = new WeakSet<Client>();
  * message content would be dropped even when the user wants it. In this mode the per-call flag is
  * treated as eve's default rather than an end-user decision: an explicit `recordInputs`/`recordOutputs`
  * on the integration or a `dataCollection.genAI` setting still takes precedence.
+ *
+ * `ai` >= 7.0.163 strips input messages from these calls, and tool arguments and results in its own tool loop,
+ * unless the eve app has an OTel destination and a `tracePolicy` that allows content. eve doesn't document an
+ * empty destination for this, so that setup may change.
  */
 export function markEveGenAiRecordingDefault(client: Client): void {
   eveRecordingClients.add(client);
