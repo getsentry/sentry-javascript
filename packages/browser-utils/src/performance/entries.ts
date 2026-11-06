@@ -220,7 +220,7 @@ interface AddPerformanceEntriesOptions {
   /**
    * Minimum duration in milliseconds a resource span must have to be emitted.
    *
-   * Default: 0
+   * @default 0 - all resource spans are emitted, regardless of their duration.
    */
   resourceMinDuration?: number;
 
