@@ -23,6 +23,8 @@ export interface ClientTunnelState {
 export interface TunnelStore {
   clients: WeakMap<Client, ClientTunnelState>;
   defaults?: TunnelDefaults;
+  /** Whether core's HTTP server instrumentation is set up, whose `emit` wrapper answers tunnel requests itself. */
+  httpServerAnswersTunnel?: boolean;
 }
 
 /**
@@ -59,4 +61,19 @@ export function getStoredTunnelDefaults(): Readonly<TunnelDefaults> | undefined 
  */
 export function setStoredTunnelDefaults(defaults: TunnelDefaults | undefined): void {
   getTunnelStore().defaults = defaults;
+}
+
+/**
+ * Records that core's HTTP server instrumentation is set up. Its `emit` wrapper answers tunnel requests, so `node:http`
+ * servers need no second one for the tunnel.
+ */
+export function setHttpServerAnswersTunnel(): void {
+  getTunnelStore().httpServerAnswersTunnel = true;
+}
+
+/**
+ * Whether core's HTTP server instrumentation answers tunnel requests, see {@link setHttpServerAnswersTunnel}.
+ */
+export function httpServerAnswersTunnel(): boolean {
+  return !!getTunnelStore().httpServerAnswersTunnel;
 }
