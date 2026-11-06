@@ -172,17 +172,40 @@ describe('BedrockRuntimeServiceExtension stream spans', () => {
     expect(spanToJSON(span).attributes?.[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(42);
   });
 
-  it.each([
-    { modelId: 'mistral.mistral-large-2402-v1:0', toChunk: (text: string) => ({ outputs: [{ text }] }) },
-    { modelId: 'cohere.command-text-v14', toChunk: (text: string) => ({ generations: [{ text }] }) },
-    { modelId: 'cohere.command-r-plus-v1:0', toChunk: (text: string) => ({ text }) },
-  ])('estimates $modelId stream output tokens from the text of all chunks', async ({ modelId, toChunk }) => {
+  const INVOCATION_METRICS = {
+    inputTokenCount: 11,
+    outputTokenCount: 3,
+    invocationLatency: 412,
+    firstByteLatency: 198,
+  };
+
+  it.each(
+    [
+      { modelId: 'mistral.mistral-large-2402-v1:0', toChunk: (text: string) => ({ outputs: [{ text }] }) },
+      { modelId: 'cohere.command-text-v14', toChunk: (text: string) => ({ generations: [{ text }] }) },
+      { modelId: 'cohere.command-r-plus-v1:0', toChunk: (text: string) => ({ text }) },
+    ].flatMap(family => [
+      {
+        ...family,
+        when: 'has invocation metrics',
+        metrics: INVOCATION_METRICS,
+        expected: { [GEN_AI_USAGE_INPUT_TOKENS]: 11, [GEN_AI_USAGE_OUTPUT_TOKENS]: 3 },
+      },
+      {
+        ...family,
+        when: 'has no invocation metrics',
+        metrics: undefined,
+        expected: { [GEN_AI_USAGE_INPUT_TOKENS]: undefined, [GEN_AI_USAGE_OUTPUT_TOKENS]: undefined },
+      },
+    ]),
+  )('records only real token counts when a $modelId stream $when', async ({ modelId, toChunk, metrics, expected }) => {
     const span = startInactiveSpan({ name: 'bedrock' });
     const encoder = new TextEncoder();
+    const chunks = [toChunk('The capital'), { ...toChunk(' is Paris.'), 'amazon-bedrock-invocationMetrics': metrics }];
     const data = {
       body: (async function* () {
-        for (const text of ['Answer:', 'Paris']) {
-          yield { chunk: { bytes: encoder.encode(JSON.stringify(toChunk(text))) } };
+        for (const chunk of chunks) {
+          yield { chunk: { bytes: encoder.encode(JSON.stringify(chunk)) } };
         }
       })(),
     };
@@ -190,8 +213,11 @@ describe('BedrockRuntimeServiceExtension stream spans', () => {
     respond(span, 'InvokeModelWithResponseStream', { modelId }, data);
     await drain(data.body);
 
-    // 12 characters at 6 characters per token.
-    expect(spanToJSON(span).attributes?.[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(2);
+    const attributes = spanToJSON(span).attributes;
+    expect({
+      [GEN_AI_USAGE_INPUT_TOKENS]: attributes?.[GEN_AI_USAGE_INPUT_TOKENS],
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: attributes?.[GEN_AI_USAGE_OUTPUT_TOKENS],
+    }).toEqual(expected);
   });
 
   it('ends an InvokeModelWithResponseStream span without a modelId when the stream is drained', async () => {

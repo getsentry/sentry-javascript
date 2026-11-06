@@ -373,7 +373,6 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     // Resolved once: the model family is fixed for the whole stream, and for unrecognized families
     // the chunks don't need to be parsed at all.
     const recordAttributes = typeof modelId === 'string' ? resolveStreamRecorder(modelId) : undefined;
-    const state: StreamState = { outputTextLength: 0 };
 
     // Replace the original response body with our instrumented stream, deferring span.end() until the
     // entire stream is consumed. Downstream consumers still receive the full stream.
@@ -383,7 +382,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
           if (recordAttributes) {
             const parsedChunk = parseChunk(chunk?.chunk?.bytes);
             if (parsedChunk) {
-              recordAttributes(parsedChunk, span, state);
+              recordAttributes(parsedChunk, span);
             }
           }
           yield chunk;
@@ -398,14 +397,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
   }
 }
 
-interface StreamState {
-  // Models that send no output token count get an estimate from the text of all chunks.
-  outputTextLength: number;
-}
-
-function resolveStreamRecorder(
-  modelId: string,
-): ((parsedChunk: ParsedChunk, span: Span, state: StreamState) => void) | undefined {
+function resolveStreamRecorder(modelId: string): ((parsedChunk: ParsedChunk, span: Span) => void) | undefined {
   if (modelId.includes('amazon.titan')) return recordTitanAttributes;
   if (modelId.includes('anthropic.claude')) return recordClaudeAttributes;
   if (modelId.includes('amazon.nova')) return recordNovaAttributes;
@@ -550,31 +542,36 @@ function recordLlamaAttributes(parsedChunk: ParsedChunk, span: Span): void {
   }
 }
 
-function recordMistralAttributes(parsedChunk: ParsedChunk, span: Span, state: StreamState): void {
-  if (parsedChunk.outputs?.[0]?.text !== undefined) {
-    state.outputTextLength += parsedChunk.outputs[0].text.length;
-    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(state.outputTextLength / 6));
+/**
+ * Bedrock adds the token counts to the last chunk of a stream. For models that send no counts of their own,
+ * this is the only real count.
+ */
+function recordInvocationMetrics(parsedChunk: ParsedChunk, span: Span): void {
+  const metrics = parsedChunk['amazon-bedrock-invocationMetrics'];
+  if (typeof metrics?.inputTokenCount === 'number') {
+    span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, metrics.inputTokenCount);
   }
+  if (typeof metrics?.outputTokenCount === 'number') {
+    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, metrics.outputTokenCount);
+  }
+}
+
+function recordMistralAttributes(parsedChunk: ParsedChunk, span: Span): void {
+  recordInvocationMetrics(parsedChunk, span);
   if (parsedChunk.outputs?.[0]?.stop_reason !== undefined) {
     span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.outputs[0].stop_reason]);
   }
 }
 
-function recordCohereAttributes(parsedChunk: ParsedChunk, span: Span, state: StreamState): void {
-  if (parsedChunk.generations?.[0]?.text !== undefined) {
-    state.outputTextLength += parsedChunk.generations[0].text.length;
-    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(state.outputTextLength / 6));
-  }
+function recordCohereAttributes(parsedChunk: ParsedChunk, span: Span): void {
+  recordInvocationMetrics(parsedChunk, span);
   if (parsedChunk.generations?.[0]?.finish_reason !== undefined) {
     span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.generations[0].finish_reason]);
   }
 }
 
-function recordCohereRAttributes(parsedChunk: ParsedChunk, span: Span, state: StreamState): void {
-  if (parsedChunk.text !== undefined) {
-    state.outputTextLength += parsedChunk.text.length;
-    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(state.outputTextLength / 6));
-  }
+function recordCohereRAttributes(parsedChunk: ParsedChunk, span: Span): void {
+  recordInvocationMetrics(parsedChunk, span);
   if (parsedChunk.finish_reason !== undefined) {
     span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.finish_reason]);
   }
