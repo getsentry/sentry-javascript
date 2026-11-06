@@ -55,7 +55,7 @@
     "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
-    "clean": "rimraf -g ./node_modules ./build"
+    "clean": "node ../../scripts/rm.mjs ./node_modules ./build"
   },
   "peerDependencies": {
     "@playwright/test": "1.64.1"
