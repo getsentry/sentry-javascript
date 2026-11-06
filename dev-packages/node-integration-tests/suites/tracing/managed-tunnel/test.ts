@@ -156,6 +156,30 @@ describe('managed tunnel', () => {
     });
   });
 
+  createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument-no-http.mjs', (createRunner, test) => {
+    test('answers tunnel requests without the HTTP integration', async () => {
+      const ingest = await startFakeIngest();
+      const dsn = `http://public@localhost:${ingest.port}/1337`;
+      const runner = createRunner()
+        .withEnv({ INGEST_PORT: String(ingest.port) })
+        .start();
+
+      try {
+        const answer = await runner.makeRequest<string>('post', getTunnelPath(dsn)!, {
+          headers: { 'content-type': 'application/x-sentry-envelope' },
+          data: makeEnvelope(dsn, 'without the HTTP integration'),
+        });
+
+        expect(answer).not.toBe('app');
+        expect(ingest.delivered[0]).toContain('without the HTTP integration');
+        expect(await runner.makeRequest<string>('get', '/')).toBe('app');
+      } finally {
+        runner.sendSignal('SIGTERM');
+        await ingest.close();
+      }
+    });
+  });
+
   createEsmAndCjsTests(__dirname, 'server-late-emit.mjs', 'instrument-late-emit.mjs', (createRunner, test) => {
     test('still answers tunnel requests after the app replaces `emit`', async () => {
       const ingest = await startFakeIngest();
