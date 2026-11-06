@@ -16,7 +16,7 @@ env:
 
 jobs:
   browser:
-    name: '${{ matrix.browser }} without install-deps'
+    name: '${{ matrix.browser }} with minimal runtime packages'
     runs-on: ubuntu-24.04-large-js
     timeout-minutes: 15
     env:
@@ -93,6 +93,25 @@ jobs:
           cat "$webkit_root/minibrowser-wpe/MiniBrowser"
           export LD_LIBRARY_PATH="$webkit_root/minibrowser-wpe/lib:$webkit_root/minibrowser-wpe/sys/lib"
           ldd "$webkit_root/minibrowser-wpe/bin/MiniBrowser"
+
+      - name: Install candidate headless WebKit runtime packages
+        run: |
+          webkit_packages=(
+            libavif16
+            libevent-2.1-7t64
+            libflite1
+            libgstreamer-gl1.0-0
+            libgstreamer-plugins-bad1.0-0
+            libgstreamer-plugins-base1.0-0
+            libharfbuzz-icu0
+            libhyphen0
+            libmanette-0.2-0
+            libopus0
+            libwayland-server0
+          )
+          sudo apt-get update
+          apt-get --simulate install --no-install-recommends "${webkit_packages[@]}"
+          sudo apt-get install -y --no-install-recommends "${webkit_packages[@]}"
 
       - name: Check browser launch without system dependencies
         working-directory: dev-packages/browser-integration-tests
