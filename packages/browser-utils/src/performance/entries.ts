@@ -220,7 +220,7 @@ interface AddPerformanceEntriesOptions {
   /**
    * Minimum duration in milliseconds a resource span must have to be emitted.
    *
-   * @default 0 - all resource spans are emitted, regardless of their duration.
+   * @default 0. By default, all resource spans are emitted, regardless of their duration.
    */
   resourceMinDuration?: number;
 
@@ -454,7 +454,7 @@ export function _addResourceSpans(
   duration: number,
   ignoredResourceSpanOps?: Array<string>,
   spanStreamingEnabled?: boolean,
-  resourceMinDuration?: number,
+  resourceMinDuration = 0,
 ): void {
   // we already instrument based on fetch and xhr, so we don't need to
   // duplicate spans here.
@@ -467,7 +467,7 @@ export function _addResourceSpans(
     return;
   }
 
-  if (resourceMinDuration && duration < msToSec(resourceMinDuration)) {
+  if (duration < msToSec(resourceMinDuration)) {
     return;
   }
 

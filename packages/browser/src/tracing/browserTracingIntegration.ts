@@ -183,7 +183,7 @@ export interface BrowserTracingOptions {
   /**
    * Resource spans shorter than this duration (in milliseconds) will not be emitted.
    *
-   * @default 0 - all resource spans are emitted, regardless of their duration.
+   * @default 0. By default, all resource spans are emitted, regardless of their duration.
    */
   resourceMinDuration: number;
 
