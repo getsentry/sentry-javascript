@@ -8,11 +8,16 @@ const SHIM_MODULE_ID = '@sentry/aws-serverless/run-lambda-handler';
 
 function resolveShimFile(): string | undefined {
   try {
-    // In the CJS build `require` exists; in the ESM build (and when running the TS source
-    // directly, e.g. in tests) we create one. Rollup converts `import.meta.url` to an
-    // equivalent for the CJS build, so both branches are always syntactically valid.
-    const resolve = typeof require === 'function' ? require.resolve : createRequire(import.meta.url).resolve;
-    return resolve(SHIM_MODULE_ID);
+    // `createRequire(import.meta.url)` covers both halves of the build: the CJS output rewrites
+    // `import.meta.url` to a `pathToFileURL(__filename)` equivalent, and the ESM output keeps it
+    // as-is.
+    //
+    // Do not reintroduce a `typeof require === 'function'` branch here. Rolldown renames a bare
+    // `require` to its own `__require` polyfill, which is a Proxy over a function that throws.
+    // The `typeof` check passes, `.resolve` on it is `undefined`, and calling that throws into
+    // the catch below - so the handler redirect is skipped and the Lambda runs uninstrumented,
+    // with nothing logged outside debug builds.
+    return createRequire(import.meta.url).resolve(SHIM_MODULE_ID);
   } catch (error) {
     DEBUG_BUILD && debug.warn(`Could not resolve ${SHIM_MODULE_ID}, not instrumenting the Lambda handler.`, error);
     return undefined;
