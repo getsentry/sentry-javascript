@@ -94,7 +94,7 @@ describe('managed tunnel', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('drops the server span of tunnel requests', async () => {
+    test('answers tunnel requests before the app, without a server span', async () => {
       const runner = createRunner()
         .expect({
           span: container => {
@@ -105,7 +105,10 @@ describe('managed tunnel', () => {
         })
         .start();
 
-      await runner.makeRequest('post', getTunnelPath('https://public@dsn.ingest.sentry.io/1337')!);
+      // The tunnel rejects the empty body. The app would have answered with a 200.
+      await runner.makeRequest('post', getTunnelPath('https://public@dsn.ingest.sentry.io/1337')!, {
+        expectError: true,
+      });
       await runner.makeRequest('get', '/after-tunnel');
 
       await runner.completed();
@@ -146,6 +149,56 @@ describe('managed tunnel', () => {
 
         await vi.waitUntil(() => ingest.brokenUploads > 0, { timeout: 5_000 });
         expect(ingest.delivered).toEqual([]);
+      } finally {
+        runner.sendSignal('SIGTERM');
+        await ingest.close();
+      }
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument-no-http.mjs', (createRunner, test) => {
+    test('answers tunnel requests without the HTTP integration', async () => {
+      const ingest = await startFakeIngest();
+      const dsn = `http://public@localhost:${ingest.port}/1337`;
+      const runner = createRunner()
+        .withEnv({ INGEST_PORT: String(ingest.port) })
+        .start();
+
+      try {
+        const answer = await runner.makeRequest<string>('post', getTunnelPath(dsn)!, {
+          headers: { 'content-type': 'application/x-sentry-envelope' },
+          data: makeEnvelope(dsn, 'without the HTTP integration'),
+        });
+
+        expect(answer).not.toBe('app');
+        expect(ingest.delivered[0]).toContain('without the HTTP integration');
+        expect(await runner.makeRequest<string>('get', '/')).toBe('app');
+      } finally {
+        runner.sendSignal('SIGTERM');
+        await ingest.close();
+      }
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'server-late-emit.mjs', 'instrument-late-emit.mjs', (createRunner, test) => {
+    test('still answers tunnel requests after the app replaces `emit`', async () => {
+      const ingest = await startFakeIngest();
+      const dsn = `http://public@localhost:${ingest.port}/1337`;
+      const runner = createRunner()
+        .withEnv({ INGEST_PORT: String(ingest.port) })
+        .start();
+
+      try {
+        expect(await runner.makeRequest<string>('get', '/')).toBe('app');
+        expect(await runner.makeRequest<string>('get', '/replace-emit')).toBe('replaced');
+
+        const answer = await runner.makeRequest<string>('post', getTunnelPath(dsn)!, {
+          headers: { 'content-type': 'application/x-sentry-envelope' },
+          data: makeEnvelope(dsn, 'after emit was replaced'),
+        });
+
+        expect(answer).not.toBe('app');
+        expect(ingest.delivered[0]).toContain('after emit was replaced');
       } finally {
         runner.sendSignal('SIGTERM');
         await ingest.close();

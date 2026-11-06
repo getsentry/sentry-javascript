@@ -8,17 +8,21 @@ export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export { ServerRuntimeClient } from './server-runtime-client';
 export type { TunnelRequestLike } from './utils/tunnel';
 export {
+  getServedTunnel as _INTERNAL_getServedTunnel,
   getTunnelPaths as _INTERNAL_getTunnelPaths,
   handleServedTunnelRequest as _INTERNAL_handleServedTunnelRequest,
   isServedTunnelRequest as _INTERNAL_isServedTunnelRequest,
   isTunnelRequest,
 } from './utils/tunnel';
 export {
+  httpServerHandlesTunnel as _INTERNAL_httpServerHandlesTunnel,
+  setNodeTunnelHandler as _INTERNAL_setNodeTunnelHandler,
+} from './utils/tunnelStore';
+export {
   forwardTunnelRequest as _INTERNAL_forwardTunnelRequest,
   handleServedNodeTunnelRequest as _INTERNAL_handleServedNodeTunnelRequest,
   handleTunnelRequestIfMatched,
 } from './utils/tunnelForward';
-export { instrumentTunnelServer as _INTERNAL_instrumentTunnelServer } from './utils/tunnelServer';
 export { serveTunnelIntegration } from './integrations/serveTunnel';
 export {
   _INTERNAL_resetTunnelDefaults,

@@ -25,6 +25,7 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
 import { safeCallback } from '../../utils/safeCallback';
 import { isServedTunnelRequest } from '../../utils/tunnel';
+import { getNodeTunnelHandler, setHttpServerHandlesTunnel } from '../../utils/tunnelStore';
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
 import {
@@ -133,9 +134,14 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
         return target.apply(thisArg, args);
       }
 
-      // Tunnel requests record no session or span. The app may still answer them (`intercept: false`), so they keep
-      // their own isolation scope.
+      // Tunnel requests record no session or span. This wrapper answers them ahead of the app, so `emit` needs no
+      // second wrapper for the tunnel. With `intercept: false` the app answers them, so they keep their own isolation
+      // scope.
       if (isServedTunnelRequest(request)) {
+        if (getNodeTunnelHandler()?.(request, response)) {
+          return true;
+        }
+
         const tunnelIsolationScope = getIsolationScope().clone();
         tunnelIsolationScope.setClient(client);
 
@@ -251,6 +257,7 @@ export function getHttpServerSubscriptions(options: HttpInstrumentationOptions):
   // this because it creates spans through a separate code path).
   const userWrap = options.wrapServerEmitRequest;
   const spanWrap = buildServerSpanWrap(options);
+  setHttpServerHandlesTunnel();
 
   const effectiveOptions: HttpInstrumentationOptions = {
     ...options,

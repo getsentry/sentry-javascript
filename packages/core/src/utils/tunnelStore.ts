@@ -3,6 +3,7 @@ import { getGlobalSingleton } from '../carrier';
 import type { IgnoreSpanFilter } from '../types/options';
 import type { TunnelDefaults } from './tunnelDefaults';
 import type { ServedTunnel, TunnelForwarder } from './tunnel';
+import type { NodeTunnelHandler } from './tunnelForward';
 
 /**
  * What the tunnel keeps per server client.
@@ -23,6 +24,10 @@ export interface ClientTunnelState {
 export interface TunnelStore {
   clients: WeakMap<Client, ClientTunnelState>;
   defaults?: TunnelDefaults;
+  /** Whether core's HTTP server instrumentation is set up, whose `emit` wrapper handles tunnel requests itself. */
+  httpServerHandlesTunnel?: boolean;
+  /** Answers tunnel requests on Node servers. The tunnel sets it, so apps without one don't bundle it. */
+  nodeHandler?: NodeTunnelHandler;
 }
 
 /**
@@ -59,4 +64,33 @@ export function getStoredTunnelDefaults(): Readonly<TunnelDefaults> | undefined 
  */
 export function setStoredTunnelDefaults(defaults: TunnelDefaults | undefined): void {
   getTunnelStore().defaults = defaults;
+}
+
+/**
+ * Records that core's HTTP server instrumentation is set up. Its `emit` wrapper handles tunnel requests, so `node:http`
+ * servers need no second one for the tunnel.
+ */
+export function setHttpServerHandlesTunnel(): void {
+  getTunnelStore().httpServerHandlesTunnel = true;
+}
+
+/**
+ * Whether core's HTTP server instrumentation handles tunnel requests, see {@link setHttpServerHandlesTunnel}.
+ */
+export function httpServerHandlesTunnel(): boolean {
+  return !!getTunnelStore().httpServerHandlesTunnel;
+}
+
+/**
+ * Sets what answers tunnel requests on Node servers, like the forwarder `serveTunnelIntegration` brings in.
+ */
+export function setNodeTunnelHandler(handler: NodeTunnelHandler): void {
+  getTunnelStore().nodeHandler = handler;
+}
+
+/**
+ * What answers tunnel requests on Node servers, see {@link setNodeTunnelHandler}.
+ */
+export function getNodeTunnelHandler(): NodeTunnelHandler | undefined {
+  return getTunnelStore().nodeHandler;
 }
