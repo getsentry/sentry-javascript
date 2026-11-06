@@ -1,8 +1,8 @@
 import * as http from 'node:http';
 import * as https from 'node:https';
-import { _INTERNAL_normalizeTunnelBasePath, debug, getClient } from '@sentry/core';
+import { _INTERNAL_normalizeTunnelBasePath, debug } from '@sentry/core';
 import {
-  _INTERNAL_getTunnelPaths as getTunnelPaths,
+  _INTERNAL_getServedTunnel as getServedTunnel,
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
 } from '@sentry/core/server';
 import { _INTERNAL_instrumentTunnelServer as instrumentTunnelServer } from '@sentry/server-utils';
@@ -92,9 +92,14 @@ function withTunnel(serveOptions: BunServeOptions): BunServeOptions {
  * The full tunnel paths, with and without a trailing slash, since Bun routes match exactly.
  */
 function getTunnelRoutePaths(): string[] {
-  const basePath = _INTERNAL_normalizeTunnelBasePath(getClient()?.getOptions()._managedTunnel?.basePath);
+  const servedTunnel = getServedTunnel();
+  if (!servedTunnel) {
+    return [];
+  }
 
-  return getTunnelPaths().flatMap(path => [`${basePath}${path}`, `${basePath}${path}/`]);
+  const basePath = _INTERNAL_normalizeTunnelBasePath(servedTunnel.basePath);
+
+  return servedTunnel.paths.flatMap(path => [`${basePath}${path}`, `${basePath}${path}/`]);
 }
 
 /**

@@ -8,6 +8,7 @@ export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export { ServerRuntimeClient } from './server-runtime-client';
 export type { TunnelRequestLike } from './utils/tunnel';
 export {
+  getServedTunnel as _INTERNAL_getServedTunnel,
   getTunnelPaths as _INTERNAL_getTunnelPaths,
   handleServedTunnelRequest as _INTERNAL_handleServedTunnelRequest,
   isServedTunnelRequest as _INTERNAL_isServedTunnelRequest,

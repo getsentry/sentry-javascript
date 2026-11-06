@@ -49,7 +49,7 @@ export function setServedTunnel(
  * The active client's served tunnel. It lives in the tunnel store, so a copy of this module that didn't set it up,
  * like the one a bundler gives Next.js's middleware next to its `instrumentation`, still finds it.
  */
-function getServedTunnel(client = getClient()): ServedTunnel | undefined {
+export function getServedTunnel(client = getClient()): ServedTunnel | undefined {
   return client && getClientTunnel(client)?.served;
 }
 
