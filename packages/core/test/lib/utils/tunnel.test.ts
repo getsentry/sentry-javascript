@@ -9,7 +9,7 @@ import { isTracingSuppressed } from '../../../src/tracing/trace';
 import { makeDsn } from '../../../src/utils/dsn';
 import { createEnvelope, serializeEnvelope } from '../../../src/utils/envelope';
 import {
-  applyTunnelDefaults,
+  applyBrowserTunnelDefaults,
   getTunnelPath,
   getTunnelIgnoreSpanFilters,
   getTunnelPaths,
@@ -23,15 +23,17 @@ import {
 import type { HandleTunnelRequestOptions } from '../../../src/utils/tunnelForward';
 import {
   forwardTunnelRequest,
+  handleServedNodeTunnelRequest,
   handleTunnelRequest,
   handleTunnelRequestIfMatched,
 } from '../../../src/utils/tunnelForward';
 import { serveTunnelIntegration } from '../../../src/integrations/serveTunnel';
 import {
-  _INTERNAL_resetManagedTunnelDefaults,
-  applyManagedTunnelDefaults,
-  setManagedTunnelDefaults,
-} from '../../../src/utils/managedTunnelDefaults';
+  _INTERNAL_resetTunnelDefaults,
+  applyServerTunnelDefaults,
+  enableManagedTunnel,
+  setTunnelDefaults,
+} from '../../../src/utils/tunnelDefaults';
 import type { DsnComponents } from '../../../src/types/dsn';
 import type { IgnoreSpanFilter, ServerTunnelOptions } from '../../../src/types/options';
 import { getDefaultTestClientOptions } from '../../mocks/client';
@@ -956,9 +958,65 @@ describe('getTunnelIgnoreSpanFilter', () => {
   });
 });
 
+describe('a forward that throws right away', () => {
+  const throwingForward = (): Promise<Response> => {
+    throw new Error('forward failed');
+  };
+
+  beforeEach(() => {
+    const client = new ServerRuntimeClient(getDefaultTestClientOptions({ dsn: TEST_DSN }));
+    setCurrentClient(client);
+    client.init();
+    enableManagedTunnel(client, {}, throwingForward);
+  });
+
+  afterEach(() => {
+    getCurrentScope().setClient(undefined);
+  });
+
+  it('ends a claimed `Request` in a 502 instead of handing it to the app', async () => {
+    const response = handleServedTunnelRequest(
+      makeEnvelopeRequest({ dsn: TEST_DSN }, `http://localhost${getTunnelPath(TEST_DSN)}`),
+    );
+
+    expect((await response)?.status).toBe(502);
+  });
+
+  it('ends a claimed Node request in a 502 instead of handing it to the app', async () => {
+    const server = http.createServer((req, res) => {
+      if (!handleServedNodeTunnelRequest(req, res)) {
+        res.end('app');
+      }
+    });
+    await new Promise<void>(resolve => server.listen(0, resolve));
+    const { port } = server.address() as AddressInfo;
+    const envelope = serializeEnvelope(createEnvelope({ dsn: TEST_DSN }, [])) as string;
+
+    try {
+      // Not `fetch`, which other tests stub.
+      const status = await new Promise<number | undefined>((resolve, reject) => {
+        const request = http.request(
+          { port, path: getTunnelPath(TEST_DSN), method: 'POST', headers: { 'content-length': envelope.length } },
+          response => {
+            response.resume();
+            resolve(response.statusCode);
+          },
+        );
+        request.on('error', reject);
+        request.end(envelope);
+      });
+
+      expect(status).toBe(502);
+    } finally {
+      await new Promise(resolve => server.close(resolve));
+    }
+  });
+});
+
 describe('serveTunnelIntegration', () => {
   afterEach(() => {
     getCurrentScope().setClient(undefined);
+    _INTERNAL_resetTunnelDefaults();
   });
 
   it('ignores the server spans of tunnel requests and keeps user filters', () => {
@@ -985,7 +1043,7 @@ describe('serveTunnelIntegration', () => {
     expect(client.getOptions().ignoreSpans).toBeUndefined();
   });
 
-  it('serves the tunnel from a separately bundled copy of core, which reaches the forwarder through the client', async () => {
+  it('serves the tunnel from a separately bundled copy of core through the shared tunnel store', async () => {
     const client = new ServerRuntimeClient(
       getDefaultTestClientOptions({ dsn: TEST_DSN, integrations: [serveTunnelIntegration()] }),
     );
@@ -993,9 +1051,9 @@ describe('serveTunnelIntegration', () => {
     client.init();
 
     vi.resetModules();
-    const bundledDefaults = await import('../../../src/utils/managedTunnelDefaults');
+    const bundledDefaults = await import('../../../src/utils/tunnelDefaults');
     const bundledTunnel = await import('../../../src/utils/tunnel');
-    bundledDefaults.setManagedTunnelDefaults({ basePath: '/app' });
+    bundledDefaults.setTunnelDefaults({ basePath: '/app' });
 
     vi.stubGlobal(
       'fetch',
@@ -1032,6 +1090,18 @@ describe('serveTunnelIntegration', () => {
     expect(await response?.text()).toBe('forwarded');
   });
 
+  it('leaves `intercept: false` tunnel requests to the app, still marked as tunnel requests so they record nothing', () => {
+    const client = new ServerRuntimeClient(
+      getDefaultTestClientOptions({ dsn: TEST_DSN, integrations: [serveTunnelIntegration({ intercept: false })] }),
+    );
+    setCurrentClient(client);
+    client.init();
+    const tunnelUrl = `http://localhost${getTunnelPath(TEST_DSN)}`;
+
+    expect(handleServedTunnelRequest(makeEnvelopeRequest({ dsn: TEST_DSN }, tunnelUrl))).toBeUndefined();
+    expect(isServedTunnelRequest({ method: 'POST', url: tunnelUrl })).toBe(true);
+  });
+
   it('serves nothing for a `_managedTunnel` set without it, since only the integration brings the forwarder', () => {
     const client = new ServerRuntimeClient(getDefaultTestClientOptions({ dsn: TEST_DSN, _managedTunnel: {} }));
     setCurrentClient(client);
@@ -1044,34 +1114,36 @@ describe('serveTunnelIntegration', () => {
   });
 });
 
-describe('applyTunnelDefaults', () => {
+describe('applyBrowserTunnelDefaults', () => {
   it('fills in the defaults for `true` and options, and lets options the user set win', () => {
     const serverTunnel: ServerTunnelOptions = { allowedDsns: [TEST_DSN] };
 
-    expect(applyTunnelDefaults(true, { basePath: '/app' })).toEqual({ basePath: '/app' });
-    expect(applyTunnelDefaults(serverTunnel, { basePath: '/app' })).toEqual({
+    expect(applyBrowserTunnelDefaults(true, { basePath: '/app' })).toEqual({ basePath: '/app' });
+    expect(applyBrowserTunnelDefaults(serverTunnel, { basePath: '/app' })).toEqual({
       basePath: '/app',
       allowedDsns: [TEST_DSN],
     });
-    expect(applyTunnelDefaults({ basePath: '/custom' }, { basePath: '/app' })).toEqual({ basePath: '/custom' });
+    expect(applyBrowserTunnelDefaults({ basePath: '/custom' }, { basePath: '/app' })).toEqual({ basePath: '/custom' });
   });
 
   it('leaves a path the user wrote as written', () => {
-    expect(applyTunnelDefaults('/monitor', { basePath: '/app' })).toBe('/monitor');
-    expect(applyTunnelDefaults({ path: '/monitor' }, { basePath: '/app' })).toEqual({ path: '/monitor' });
+    expect(applyBrowserTunnelDefaults('/monitor', { basePath: '/app' })).toBe('/monitor');
+    expect(applyBrowserTunnelDefaults({ path: '/monitor' }, { basePath: '/app' })).toEqual({ path: '/monitor' });
   });
 
   it('leaves a URL, an unset tunnel and empty defaults alone', () => {
-    expect(applyTunnelDefaults('https://example.com/tunnel', { basePath: '/app' })).toBe('https://example.com/tunnel');
-    expect(applyTunnelDefaults(undefined, { basePath: '/app' })).toBeUndefined();
-    expect(applyTunnelDefaults('/monitor', {})).toBe('/monitor');
-    expect(applyTunnelDefaults(true, undefined)).toBe(true);
+    expect(applyBrowserTunnelDefaults('https://example.com/tunnel', { basePath: '/app' })).toBe(
+      'https://example.com/tunnel',
+    );
+    expect(applyBrowserTunnelDefaults(undefined, { basePath: '/app' })).toBeUndefined();
+    expect(applyBrowserTunnelDefaults('/monitor', {})).toBe('/monitor');
+    expect(applyBrowserTunnelDefaults(true, undefined)).toBe(true);
   });
 
   it('normalizes the default base path and ignores a root one', () => {
-    expect(applyTunnelDefaults(true, { basePath: 'app/' })).toEqual({ basePath: '/app' });
-    expect(applyTunnelDefaults(true, { basePath: '/' })).toBe(true);
-    expect(applyTunnelDefaults(true, { basePath: undefined })).toBe(true);
+    expect(applyBrowserTunnelDefaults(true, { basePath: 'app/' })).toEqual({ basePath: '/app' });
+    expect(applyBrowserTunnelDefaults(true, { basePath: '/' })).toBe(true);
+    expect(applyBrowserTunnelDefaults(true, { basePath: undefined })).toBe(true);
   });
 });
 
@@ -1090,17 +1162,17 @@ describe('normalizeTunnelBasePath', () => {
   });
 });
 
-describe('setManagedTunnelDefaults', () => {
+describe('setTunnelDefaults', () => {
   afterEach(() => {
     getCurrentScope().setClient(undefined);
-    _INTERNAL_resetManagedTunnelDefaults();
+    _INTERNAL_resetTunnelDefaults();
   });
 
   it('serves the tunnel under the base path and drops its spans there', () => {
     setTestClient(TEST_DSN, {});
     const client = getCurrentScope().getClient()!;
 
-    setManagedTunnelDefaults({ basePath: '/app/' });
+    setTunnelDefaults({ basePath: '/app/' });
 
     expect(client.getOptions()._managedTunnel).toEqual({ basePath: '/app' });
     expect(isTunnelRequest({ method: 'POST', url: `/app${getTunnelPath(TEST_DSN)}` })).toBe(true);
@@ -1114,7 +1186,7 @@ describe('setManagedTunnelDefaults', () => {
     setTestClient(TEST_DSN, { path: '/monitor' });
     const client = getCurrentScope().getClient()!;
 
-    setManagedTunnelDefaults({ basePath: '/app' });
+    setTunnelDefaults({ basePath: '/app' });
 
     expect(client.getOptions()._managedTunnel).toEqual({ path: '/monitor' });
     expect(isTunnelRequest({ method: 'POST', url: '/monitor' })).toBe(true);
@@ -1124,28 +1196,28 @@ describe('setManagedTunnelDefaults', () => {
   it('keeps a base path the user set, and does nothing without a managed tunnel or a base path', () => {
     setTestClient(TEST_DSN, { basePath: '/custom' });
     const client = getCurrentScope().getClient()!;
-    setManagedTunnelDefaults({ basePath: '/app' });
+    setTunnelDefaults({ basePath: '/app' });
     expect(client.getOptions()._managedTunnel).toEqual({ basePath: '/custom' });
-    _INTERNAL_resetManagedTunnelDefaults();
+    _INTERNAL_resetTunnelDefaults();
 
     setTestClient(TEST_DSN, {});
     const rootClient = getCurrentScope().getClient()!;
-    setManagedTunnelDefaults({ basePath: '/' });
+    setTunnelDefaults({ basePath: '/' });
     expect(rootClient.getOptions()._managedTunnel).toEqual({});
-    _INTERNAL_resetManagedTunnelDefaults();
+    _INTERNAL_resetTunnelDefaults();
 
     setTestClient(TEST_DSN);
     const offClient = getCurrentScope().getClient()!;
-    setManagedTunnelDefaults({ basePath: '/app' });
+    setTunnelDefaults({ basePath: '/app' });
     expect(offClient.getOptions()._managedTunnel).toBeUndefined();
   });
 
   it('enables the tunnel on clients created later, unless their `init` set one', () => {
-    setManagedTunnelDefaults({ tunnel: { path: '/monitor' }, forward: forwardTunnelRequest, basePath: '/app' });
+    setTunnelDefaults({ tunnel: { path: '/monitor' }, forward: forwardTunnelRequest, basePath: '/app' });
 
     setTestClient(TEST_DSN);
     const laterClient = getCurrentScope().getClient()!;
-    applyManagedTunnelDefaults(laterClient);
+    applyServerTunnelDefaults(laterClient);
     expect(laterClient.getOptions()._managedTunnel).toEqual({ path: '/monitor' });
     expect(laterClient.getOptions().ignoreSpans).toContainEqual(
       getTunnelIgnoreSpanFilter({ path: '/monitor' }, makeDsn(TEST_DSN)),
@@ -1153,7 +1225,7 @@ describe('setManagedTunnelDefaults', () => {
 
     setTestClient(TEST_DSN, { path: '/from-init' });
     const initClient = getCurrentScope().getClient()!;
-    applyManagedTunnelDefaults(initClient);
+    applyServerTunnelDefaults(initClient);
     expect(initClient.getOptions()._managedTunnel).toEqual({ path: '/from-init' });
   });
 });

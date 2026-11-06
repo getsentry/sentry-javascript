@@ -5,7 +5,7 @@ import {
   _INTERNAL_forwardTunnelRequest as forwardTunnelRequest,
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
   _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
-  _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
+  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
 } from '@sentry/core/server';
 import type { ServerEntry } from './wrapFetchWithSentry';
 
@@ -114,7 +114,7 @@ export function wrapServerEntryWithSentryTunnel<T extends ServerEntry>(
 ): T {
   // Runs when the server entry loads, before any request. Requests still carry Start's base path here, so the tunnel
   // is served under it.
-  setManagedTunnelDefaults({ tunnel: tunnelRoute, forward: forwardTunnelRequest, basePath });
+  setTunnelDefaults({ tunnel: tunnelRoute, forward: forwardTunnelRequest, basePath });
 
   // A class entry, like Cloudflare's `WorkerEntrypoint`, can't be spread into an object. The tunnel is then served
   // by the wrapped default server entry it calls.

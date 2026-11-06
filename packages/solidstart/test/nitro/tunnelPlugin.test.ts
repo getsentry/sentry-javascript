@@ -1,6 +1,6 @@
 import type { Client } from '@sentry/core';
 import { createEnvelope, getCurrentScope, getTunnelPath, makeDsn, serializeEnvelope } from '@sentry/core';
-import { _INTERNAL_resetManagedTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
+import { _INTERNAL_resetTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
 import { createApp, eventHandler, setHeaders, toNodeListener } from 'h3';
 import { fetchNodeRequestHandler } from 'node-mock-http';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -40,7 +40,7 @@ const onError = vi.fn();
 describe('SolidStart v1 tunnel plugin', () => {
   afterEach(() => {
     getCurrentScope().setClient(undefined);
-    _INTERNAL_resetManagedTunnelDefaults();
+    _INTERNAL_resetTunnelDefaults();
     vi.unstubAllGlobals();
     vi.clearAllMocks();
   });

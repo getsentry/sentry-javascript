@@ -1,11 +1,13 @@
 import type { Client } from '../client';
-import type { Integration } from '../types/integration';
 import { getClient } from '../currentScopes';
 import { URL_PATH } from '@sentry/conventions/attributes';
 import type { DsnComponents, DsnLike } from '../types/dsn';
 import type { IgnoreSpanFilter, ServerTunnelOptions, TunnelInit, TunnelOptions } from '../types/options';
+import { DEBUG_BUILD } from '../debug-build';
 import { escapeStringForRegex } from '../vendor/escapeStringForRegex';
+import { debug } from './debug-logger';
 import { dsnToString, makeDsn } from './dsn';
+import { getClientTunnel, setClientTunnel } from './tunnelStore';
 import { parseUrl } from './url';
 
 /**
@@ -16,17 +18,11 @@ export type TunnelForwarder = (request: Request, allowedDsns: Array<string>) => 
 /**
  * A server client's tunnel paths, base path, allowed DSNs and forwarder, computed once per client.
  */
-interface ServedTunnel extends TunnelMatch {
+export interface ServedTunnel extends TunnelMatch {
   forward: TunnelForwarder;
+  /** Whether the SDK answers tunnel requests itself, see `ServerTunnelOptions.intercept`. */
+  intercept: boolean;
 }
-
-const servedTunnels = new WeakMap<Client, ServedTunnel>();
-
-/**
- * The name of `serveTunnelIntegration`, which carries the forwarder. Kept here so this module doesn't import the
- * integration, and with it the forwarder, into apps that don't use it.
- */
-export const SERVE_TUNNEL_INTEGRATION_NAME = 'ServeTunnel';
 
 /**
  * Computes a server client's served tunnel from its resolved options, and stores it.
@@ -42,40 +38,19 @@ export function setServedTunnel(
     basePath: tunnelOptions.basePath,
     allowedDsns,
     forward,
+    intercept: tunnelOptions.intercept !== false,
   };
-  servedTunnels.set(client, servedTunnel);
+  setClientTunnel(client, { served: servedTunnel });
 
   return servedTunnel;
 }
 
 /**
- * The forwarder `serveTunnelIntegration` carries. Any copy of this module can reach it through the client.
+ * The active client's served tunnel. It lives in the tunnel store, so a copy of this module that didn't set it up,
+ * like the one a bundler gives Next.js's middleware next to its `instrumentation`, still finds it.
  */
-export function getServeTunnelForwarder(client: Client): TunnelForwarder | undefined {
-  return client.getIntegrationByName?.<Integration & { forward?: TunnelForwarder }>(SERVE_TUNNEL_INTEGRATION_NAME)
-    ?.forward;
-}
-
-/**
- * The active client's served tunnel. A copy of this module that didn't set it up rebuilds it once from what the
- * client carries. Bundlers can give a framework's request hook its own copy, like Next.js's middleware next to its
- * `instrumentation`.
- */
-function getServedTunnel(): ServedTunnel | undefined {
-  const client = getClient();
-  if (!client) {
-    return undefined;
-  }
-
-  const servedTunnel = servedTunnels.get(client);
-  if (servedTunnel) {
-    return servedTunnel;
-  }
-
-  const tunnelOptions = client.getOptions()._managedTunnel;
-  const forward = getServeTunnelForwarder(client);
-
-  return tunnelOptions && forward ? setServedTunnel(client, tunnelOptions, forward) : undefined;
+function getServedTunnel(client = getClient()): ServedTunnel | undefined {
+  return client && getClientTunnel(client)?.served;
 }
 
 /**
@@ -83,7 +58,7 @@ function getServedTunnel(): ServedTunnel | undefined {
  * A path the user wrote, as a string or `path`, is used as written, so a tunnel served outside the app keeps working.
  * The base path is normalized, and a root one is no default at all.
  */
-export function applyTunnelDefaults(
+export function applyBrowserTunnelDefaults(
   tunnel: TunnelInit | undefined,
   defaults: TunnelOptions | undefined,
 ): TunnelInit | undefined {
@@ -219,26 +194,70 @@ export function isTunnelRequest(request: TunnelRequestLike, options?: ServerTunn
 }
 
 /**
- * Returns true if the request targets the tunnel `serveTunnelIntegration` serves. Unlike {@link isTunnelRequest},
- * there's no fallback, so the framework SDKs serve nothing without the integration.
+ * Returns true if the request targets the tunnel `serveTunnelIntegration` serves, whether the SDK answers it or the
+ * app does with `intercept: false`. The server SDKs record no session or span for these. Unlike
+ * {@link isTunnelRequest}, there's no fallback, so the framework SDKs serve nothing without the integration. `client`
+ * defaults to the active one.
  */
-export function isServedTunnelRequest(request: TunnelRequestLike): boolean {
-  const servedTunnel = getServedTunnel();
+export function isServedTunnelRequest(request: TunnelRequestLike, client?: Client): boolean {
+  try {
+    return !!matchServedTunnel(request, client);
+  } catch (error) {
+    DEBUG_BUILD && debug.error('Sentry tunnel: failed to match a request', error);
 
-  return !!servedTunnel && matchesTunnel(request, servedTunnel);
+    return false;
+  }
+}
+
+/**
+ * The served tunnel, if the SDK answers this request on it.
+ */
+export function getServedTunnelMatch(request: TunnelRequestLike): ServedTunnel | undefined {
+  const servedTunnel = matchServedTunnel(request);
+
+  return servedTunnel?.intercept ? servedTunnel : undefined;
+}
+
+/**
+ * The served tunnel, if this request targets it.
+ */
+function matchServedTunnel(request: TunnelRequestLike, client?: Client): ServedTunnel | undefined {
+  const servedTunnel = getServedTunnel(client);
+
+  return servedTunnel?.allowedDsns.length && matchesTunnel(request, servedTunnel) ? servedTunnel : undefined;
 }
 
 /**
  * Forwards the request if it targets the tunnel `serveTunnelIntegration` serves, otherwise returns `undefined`. The
- * framework SDKs answer tunnel requests with it.
+ * runtime and framework SDKs answer tunnel requests with it, ahead of the app.
+ *
+ * It never throws, since a throw here would break the app's own requests. Until a request is claimed, a failure hands
+ * it to the app. Once claimed, its body may be read already, so a failure ends in a 502 instead.
  */
 export function handleServedTunnelRequest(request: Request): Promise<Response> | undefined {
-  const servedTunnel = getServedTunnel();
-  if (!servedTunnel?.allowedDsns.length || !matchesTunnel(request, servedTunnel)) {
+  let servedTunnel: ServedTunnel | undefined | null;
+  try {
+    // An envelope always has a body. Nuxt's Cloudflare plugin passes a copy without one, which its app answers later.
+    servedTunnel = request.body && getServedTunnelMatch(request);
+    if (!servedTunnel) {
+      return undefined;
+    }
+  } catch (error) {
+    DEBUG_BUILD && debug.error('Sentry tunnel: failed to match a request', error);
+
     return undefined;
   }
 
-  return servedTunnel.forward(request, servedTunnel.allowedDsns);
+  // Claimed from here on, so even a `forward` that throws right away ends in a 502.
+  const { forward, allowedDsns } = servedTunnel;
+
+  return Promise.resolve()
+    .then(() => forward(request, allowedDsns))
+    .catch(error => {
+      DEBUG_BUILD && debug.error('Sentry tunnel: failed to forward a request', error);
+
+      return new Response(null, { status: 502 });
+    });
 }
 
 /**

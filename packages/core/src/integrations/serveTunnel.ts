@@ -1,14 +1,12 @@
 import { defineIntegration } from '../integration';
 import type { IntegrationFn } from '../types/integration';
 import type { ServerTunnelOptions } from '../types/options';
-import { enableManagedTunnel } from '../utils/managedTunnelDefaults';
-import { SERVE_TUNNEL_INTEGRATION_NAME } from '../utils/tunnel';
+import { enableManagedTunnel } from '../utils/tunnelDefaults';
 import { forwardTunnelRequest } from '../utils/tunnelForward';
 
 const _serveTunnelIntegration = ((options: ServerTunnelOptions = {}) => {
   return {
-    name: SERVE_TUNNEL_INTEGRATION_NAME,
-    forward: forwardTunnelRequest,
+    name: 'ServeTunnel',
     setup(client) {
       enableManagedTunnel(client, options, forwardTunnelRequest);
     },

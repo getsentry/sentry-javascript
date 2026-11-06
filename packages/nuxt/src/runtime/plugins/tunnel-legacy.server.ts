@@ -1,7 +1,7 @@
 import {
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
   _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
-  _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
+  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
 } from '@sentry/core/server';
 import { eventHandler, toWebRequest } from 'h3';
 import type { NitroAppPlugin } from 'nitropack';
@@ -14,7 +14,7 @@ import { useRuntimeConfig } from 'nitropack/runtime';
 export default (nitroApp => {
   // The first layer sees the path before Nitro strips `app.baseURL`, so the tunnel is served under it.
   // `useRuntimeConfig` also picks up a `NUXT_APP_BASE_URL` set at runtime, the same value the browser gets.
-  setManagedTunnelDefaults({ basePath: useRuntimeConfig().app?.baseURL });
+  setTunnelDefaults({ basePath: useRuntimeConfig().app?.baseURL });
 
   // Not the `request` hook: h3 still runs the first layer after a hook answered, and with a `headers` route rule
   // that layer throws for writing headers on the sent response.

@@ -24,6 +24,7 @@ import type { HttpIncomingMessage, HttpInstrumentationOptions, HttpServer, HttpS
 import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
 import { safeCallback } from '../../utils/safeCallback';
+import { isServedTunnelRequest } from '../../utils/tunnel';
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
 import {
@@ -130,6 +131,15 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
 
       if (!client || !markRequest(request)) {
         return target.apply(thisArg, args);
+      }
+
+      // Tunnel requests record no session or span. The app may still answer them (`intercept: false`), so they keep
+      // their own isolation scope.
+      if (isServedTunnelRequest(request)) {
+        const tunnelIsolationScope = getIsolationScope().clone();
+        tunnelIsolationScope.setClient(client);
+
+        return withIsolationScope(tunnelIsolationScope, () => target.apply(thisArg, args));
       }
 
       DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Handling incoming request');
