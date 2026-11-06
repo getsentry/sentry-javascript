@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { Span } from '@sentry/core';
-import { GEN_AI_RESPONSE_TOOL_CALLS } from '@sentry/conventions/attributes';
+import {
+  GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
 import { addResponseAttributes } from '../../../../src/ai/google-genai/index';
 import { instrumentStream } from '../../../../src/ai/google-genai/streaming';
 import type { ContentPart, GoogleGenAIResponse } from '../../../../src/ai/google-genai/types';
@@ -124,5 +129,58 @@ describe('instrumentStream (google-genai tool calls)', () => {
 
     const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string) as Array<Record<string, unknown>>;
     expect(toolCalls).toEqual([functionCall]);
+  });
+});
+
+describe('google-genai tool-use prompt tokens', () => {
+  // Google Search, URL context and code execution results are fed back to the model and counted in
+  // `toolUsePromptTokenCount`, apart from `promptTokenCount`; `totalTokenCount` includes both.
+  const usageMetadata = {
+    promptTokenCount: 100,
+    toolUsePromptTokenCount: 40,
+    candidatesTokenCount: 20,
+    totalTokenCount: 160,
+  };
+
+  it('counts them as input tokens on a response', () => {
+    const { span, attributes } = createMockSpan();
+
+    addResponseAttributes(span, { usageMetadata } as GoogleGenAIResponse, false);
+
+    expect(attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBe(140);
+    expect(attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(20);
+    expect(attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(160);
+  });
+
+  it('leaves the input tokens alone when there are no tool-use prompt tokens', () => {
+    const { span, attributes } = createMockSpan();
+
+    addResponseAttributes(
+      span,
+      {
+        usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 20, totalTokenCount: 120 },
+      } as GoogleGenAIResponse,
+      false,
+    );
+
+    expect(attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBe(100);
+    expect(attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(120);
+  });
+
+  it('counts them as input tokens on a stream, also when a later chunk only repeats one of the counts', async () => {
+    const { span, attributes } = createMockSpan();
+
+    const chunks = [
+      chunkWithParts([{ text: 'Hi' }], { usageMetadata: { promptTokenCount: 100, toolUsePromptTokenCount: 40 } }),
+      chunkWithParts([{ text: ' there' }], {
+        usageMetadata: { candidatesTokenCount: 20, totalTokenCount: 160 },
+      }),
+    ];
+
+    await drain(instrumentStream(streamOf(chunks), span, false));
+
+    expect(attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBe(140);
+    expect(attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(20);
+    expect(attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(160);
   });
 });
