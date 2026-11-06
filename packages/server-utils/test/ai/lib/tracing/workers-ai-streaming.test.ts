@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { Span } from '@sentry/core';
 import {
   GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_RESPONSE_ID,
+  GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
@@ -105,10 +107,10 @@ describe('instrumentWorkersAiStream', () => {
   // which the Cloudflare Agents SDK uses) stream `choices[].delta.content` instead of the
   // native top-level `response` field. Usage still arrives top-level, which is why the
   // pre-fix parser captured tokens but dropped the response text entirely.
-  it('accumulates response text from OpenAI-compatible choices[].delta.content chunks', async () => {
+  it('records output, id and model from OpenAI-compatible choices[].delta.content chunks', async () => {
     const { span, attributes, ended } = createMockSpan();
     const chunks = [
-      'data: {"choices":[{"delta":{"content":"The capital "},"finish_reason":null}]}\n\n',
+      'data: {"id":"chatcmpl-1","model":"@cf/google/gemma-4-26b-a4b-it","choices":[{"delta":{"content":"The capital "},"finish_reason":null}]}\n\n',
       'data: {"choices":[{"delta":{"content":"of France "},"finish_reason":null}]}\n\n',
       'data: {"choices":[{"delta":{"content":"is Paris."},"finish_reason":"stop"}]}\n\n',
       'data: {"usage":{"prompt_tokens":12,"completion_tokens":7,"total_tokens":19}}\n\ndata: [DONE]\n\n',
@@ -118,7 +120,16 @@ describe('instrumentWorkersAiStream', () => {
     await new Response(instrumented).text();
 
     expect(attributes[GEN_AI_RESPONSE_STREAMING]).toBe(true);
-    expect(attributes[GEN_AI_RESPONSE_TEXT]).toBe('The capital of France is Paris.');
+    expect(attributes[GEN_AI_RESPONSE_ID]).toBe('chatcmpl-1');
+    expect(attributes[GEN_AI_RESPONSE_MODEL]).toBe('@cf/google/gemma-4-26b-a4b-it');
+    expect(attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
+    expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+      {
+        role: 'assistant',
+        parts: [{ type: 'text', content: 'The capital of France is Paris.' }],
+        finish_reason: 'stop',
+      },
+    ]);
     expect(attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBe(12);
     expect(attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(7);
     expect(attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(19);
@@ -158,6 +169,7 @@ describe('instrumentWorkersAiStream', () => {
             arguments: '{"owner":"cloudflare","name":"agents"}',
           },
         ],
+        finish_reason: 'tool_calls',
       },
     ]);
   });
@@ -189,6 +201,7 @@ describe('instrumentWorkersAiStream', () => {
       {
         role: 'assistant',
         parts: [{ type: 'tool_call', id: 'call_1', name: 'getRepoInfo', arguments: '{"owner":"cloudflare"}' }],
+        finish_reason: 'tool_calls',
       },
     ]);
   });
