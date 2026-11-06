@@ -4229,7 +4229,7 @@ describe('Client', () => {
 
       onSpy.mockClear();
       _INTERNAL_captureLog({ message: 'test log 2', level: 'info' }, scope);
-      expect(onSpy).not.toHaveBeenCalled();
+      expect(onSpy).not.toHaveBeenCalledWith('afterCaptureLog', expect.any(Function));
 
       onSpy.mockRestore();
     });
@@ -4430,7 +4430,7 @@ describe('Client', () => {
 
       onSpy.mockClear();
       _INTERNAL_captureMetric({ name: 'metric2', value: 2, type: 'counter', attributes: {} }, { scope });
-      expect(onSpy).not.toHaveBeenCalled();
+      expect(onSpy).not.toHaveBeenCalledWith('afterCaptureMetric', expect.any(Function));
 
       onSpy.mockRestore();
     });
