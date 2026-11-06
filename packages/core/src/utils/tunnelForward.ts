@@ -46,8 +46,6 @@ interface NodeTunnelResponse {
   writeHead(statusCode: number, headers?: Record<string, string>): unknown;
   end(chunk: Uint8Array): unknown;
   headersSent?: boolean;
-  /** Lets the forward stop when the browser goes away. */
-  once?(event: 'close', listener: () => void): unknown;
 }
 
 /**
