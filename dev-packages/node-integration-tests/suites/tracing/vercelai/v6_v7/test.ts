@@ -1053,7 +1053,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
           .expect({
             span: container => {
               const systemInstructions = container.items
-                .filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent')
+                .filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT)
                 .map(span => span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]?.value);
 
               expect(systemInstructions).toEqual([
