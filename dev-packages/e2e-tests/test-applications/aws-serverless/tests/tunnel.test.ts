@@ -259,4 +259,24 @@ test.describe('managed tunnel', () => {
       await forwarded;
     });
   }
+
+  // Where the browser posted to the stage-stripped `path`, like a custom domain mapped to the stage.
+  test('answers a REST API tunnel request when only its stage-stripped path matches', async ({ lambdaClient }) => {
+    const dsn = await getDsn();
+    const marker = `stage-stripped-${crypto.randomUUID()}`;
+    const forwarded = waitForError('aws-serverless', event => event.message === marker);
+    const tunnelPath = getTunnelPath(dsn)!;
+
+    const result = await invoke(lambdaClient, 'NpmTunnelNodeAsync', {
+      httpMethod: 'POST',
+      path: tunnelPath,
+      headers: { 'content-type': 'application/x-sentry-envelope' },
+      requestContext: { path: `/prod${tunnelPath}`, stage: 'prod' },
+      body: makeEnvelope(dsn, marker),
+      isBase64Encoded: false,
+    });
+
+    expect(JSON.parse(result.payload).body).not.toBe('app');
+    await forwarded;
+  });
 });
