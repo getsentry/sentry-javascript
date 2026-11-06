@@ -321,6 +321,12 @@ const FORWARDED_CLIENT_HEADERS = [
 ];
 
 /**
+ * Sentry SaaS replaces `X-Sentry-Forwarded-For` with the connecting IP, which is the tunnel server, but keeps these
+ * and prefers them. Passing them through keeps the client IP, as a rewrite proxy does.
+ */
+const FORWARDED_CLIENT_IP_HEADERS = ['cf-connecting-ip', 'x-vercel-forwarded-for', 'x-forwarded-for'];
+
+/**
  * Reads the body up to the envelope header line. Returns the line and every byte read, or `undefined`.
  */
 async function readEnvelopeHeaderLine(
@@ -383,16 +389,13 @@ function forwardHeaders(request: Request): Record<string, string> {
   // No `Content-Length`: some runtimes reject it on a streamed body (Next.js edge in dev).
   const headers: Record<string, string> = { 'Content-Type': 'application/x-sentry-envelope' };
 
-  // Relay would otherwise attribute the server's IP. Same precedence Relay uses.
-  const clientIp =
-    request.headers.get('cf-connecting-ip') ||
-    request.headers.get('x-vercel-forwarded-for') ||
-    request.headers.get('x-forwarded-for');
+  // For self-hosted Relay, which honors this header. Same precedence Relay uses.
+  const clientIp = FORWARDED_CLIENT_IP_HEADERS.map(name => request.headers.get(name)).find(Boolean);
   if (clientIp) {
     headers['X-Sentry-Forwarded-For'] = clientIp;
   }
 
-  for (const name of FORWARDED_CLIENT_HEADERS) {
+  for (const name of [...FORWARDED_CLIENT_IP_HEADERS, ...FORWARDED_CLIENT_HEADERS]) {
     const value = request.headers.get(name);
     if (value) {
       headers[name] = value;
