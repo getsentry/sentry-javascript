@@ -5,6 +5,7 @@ const variants = makeNPMConfigVariants(
     entrypoints: [
       'src/index.server.ts',
       'src/index.client.ts',
+      'src/index.worker.ts',
       'src/index.integration.ts',
       'src/integration/middleware/index.ts',
     ],

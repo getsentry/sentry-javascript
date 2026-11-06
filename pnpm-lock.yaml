@@ -1005,6 +1005,9 @@ importers:
       '@sentry/bundler-plugins':
         specifier: 11.12.0
         version: link:../bundler-plugins
+      '@sentry/cloudflare':
+        specifier: 11.12.0
+        version: link:../cloudflare
       '@sentry/conventions':
         specifier: ^0.32.0
         version: 0.32.0

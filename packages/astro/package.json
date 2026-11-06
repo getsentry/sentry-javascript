@@ -27,6 +27,14 @@
   "exports": {
     ".": {
       "types": "./build/types/index.types.d.ts",
+      "workerd": {
+        "import": "./build/esm/index.worker.js",
+        "require": "./build/cjs/index.worker.js"
+      },
+      "worker": {
+        "import": "./build/esm/index.worker.js",
+        "require": "./build/cjs/index.worker.js"
+      },
       "node": "./build/esm/index.server.js",
       "browser": "./build/esm/index.client.js",
       "import": "./build/esm/index.client.js",
@@ -58,6 +66,7 @@
   },
   "dependencies": {
     "@sentry/browser": "11.12.0",
+    "@sentry/cloudflare": "11.12.0",
     "@sentry/core": "11.12.0",
     "@sentry/conventions": "^0.32.0",
     "@sentry/node": "11.12.0",
