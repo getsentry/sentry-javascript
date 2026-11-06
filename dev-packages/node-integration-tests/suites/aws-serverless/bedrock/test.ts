@@ -34,7 +34,7 @@ function assertBedrockSpans(container: SerializedStreamedSpanContainer): void {
   expect(converseSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
   expect(converseSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(12);
   expect(converseSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(8);
-  expect(converseSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toEqual(['end_turn']);
+  expect(converseSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["end_turn"]');
 
   // InvokeModel (non-streaming, anthropic.claude request/response body)
   const invokeModelSpan = container.items.find(span => span.name === `generate_content ${MODEL_ID}`);
@@ -49,7 +49,7 @@ function assertBedrockSpans(container: SerializedStreamedSpanContainer): void {
   expect(invokeModelSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
   expect(invokeModelSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
   expect(invokeModelSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(9);
-  expect(invokeModelSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toEqual(['end_turn']);
+  expect(invokeModelSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["end_turn"]');
 }
 
 describe('awsIntegration - Bedrock', () => {
