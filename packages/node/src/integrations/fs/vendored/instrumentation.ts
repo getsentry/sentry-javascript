@@ -25,11 +25,21 @@ import {
   suppressTracing,
   withActiveSpan,
 } from '@sentry/core';
-import * as fs from 'fs';
+import * as fsNamespace from 'fs';
+import * as moduleNamespace from 'module';
 import { promisify } from 'util';
 import { CALLBACK_FUNCTIONS, PROMISE_FUNCTIONS, SYNC_FUNCTIONS } from './constants';
 import type { FMember, FPMember, FsInstrumentationConfig, GenericFunction } from './types';
 import { indexFs } from './utils';
+
+// In native ESM, `import * as fs` is a read-only module namespace, so we patch the mutable `fs` object
+// behind its default export instead. The CJS build has no `.default` and already gets the mutable object.
+const fs = (fsNamespace as { default?: typeof fsNamespace }).default ?? fsNamespace;
+
+// Deno before 2.8.2 has `syncBuiltinESMExports` only on the default export of `node:module`, so a named import fails to link.
+type SyncBuiltinESMExports = { syncBuiltinESMExports?: () => void };
+const moduleExports = moduleNamespace as unknown as SyncBuiltinESMExports & { default?: SyncBuiltinESMExports };
+const syncBuiltinESMExports = moduleExports.default?.syncBuiltinESMExports ?? moduleExports.syncBuiltinESMExports;
 
 const SPAN_ORIGIN = 'auto.file.fs';
 const SPAN_OP = FILE;
@@ -303,6 +313,13 @@ export function enableFsInstrumentation(config: FsInstrumentationConfig = {}): v
   const fsPromises = fs.promises as unknown as Record<string, GenericFunction>;
   for (const fName of PROMISE_FUNCTIONS) {
     _patchMethod(fsPromises, fName, original => _patchPromiseFunction(fName, original, config));
+  }
+
+  // Named ESM imports (`import { readFile } from 'fs'`) are snapshots of the CJS exports until synced.
+  try {
+    syncBuiltinESMExports?.();
+  } catch {
+    // Cloudflare workerd exports `syncBuiltinESMExports` but throws `ERR_METHOD_NOT_IMPLEMENTED` when it is called.
   }
 }
 
