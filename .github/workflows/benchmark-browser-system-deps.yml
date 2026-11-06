@@ -1,0 +1,119 @@
+name: 'Benchmark: Firefox and WebKit system dependencies'
+
+on:
+  push:
+    branches: [feat/benchmark-firefox-webkit-deps]
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  SKIP_PLAYWRIGHT_BROWSER_INSTALL: '1'
+  pnpm_config_verify_deps_before_run: 'false'
+  DISABLE_V8_COMPILE_CACHE: '1'
+  PW_BUNDLE: bundle_tracing_replay_feedback_logs_metrics_min
+
+jobs:
+  browser:
+    name: '${{ matrix.browser }} without install-deps'
+    runs-on: ubuntu-24.04-large-js
+    timeout-minutes: 15
+    env:
+      PLAYWRIGHT_BROWSER: ${{ matrix.browser }}
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [firefox, webkit]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 4f1237d4d4ad34cd6bfa73e1106e66cd8a28acff
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+
+      - uses: ./.github/actions/install-pnpm
+
+      - name: Compute dependency cache key
+        id: dependencies
+        run: node scripts/dependency-hash-key.js >> "$GITHUB_OUTPUT"
+
+      - name: Restore dependencies
+        id: dependency-cache
+        uses: actions/cache/restore@v6.1.0
+        with:
+          key: ${{ steps.dependencies.outputs.hash }}
+          path: |
+            node_modules
+            packages/*/node_modules
+            dev-packages/*/node_modules
+            ~/.cache/mongodb-binaries/
+
+      - name: Install dependencies on cache miss
+        if: steps.dependency-cache.outputs.cache-hit != 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: build-output
+          run-id: 42169764361
+          github-token: ${{ github.token }}
+
+      - name: Restore bundle artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: build-bundle-output
+          path: packages
+          run-id: 42169764361
+          github-token: ${{ github.token }}
+
+      - name: Restore browser binaries
+        uses: actions/cache/restore@v6.1.0
+        with:
+          key: playwright-Linux-iteration-1-1.64.1
+          path: ~/.cache/ms-playwright
+
+      - name: Inspect existing system packages
+        run: |
+          for package in libavcodec60 libopus0 libgtk-4-1 libsoup-3.0-0 libwoff1 gstreamer1.0-plugins-base; do
+            dpkg-query -W -f='${Package}: ${Status}\n' "$package" || true
+          done
+
+      - name: Install browser binaries without system dependencies
+        working-directory: dev-packages/browser-integration-tests
+        run: pnpm exec playwright install "$PLAYWRIGHT_BROWSER"
+
+      - name: Check browser launch without system dependencies
+        working-directory: dev-packages/browser-integration-tests
+        run: |
+          node <<'JS'
+          const browserType = require('@playwright/test')[process.env.PLAYWRIGHT_BROWSER];
+          (async () => {
+            const browser = await browserType.launch();
+            try {
+              const page = await browser.newPage();
+              await page.setContent('<title>Browser launch check</title>');
+              console.log(`Launched ${process.env.PLAYWRIGHT_BROWSER}: ${await page.title()}`);
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          JS
+
+      - name: Run existing browser integration suite
+        working-directory: dev-packages/browser-integration-tests
+        run: pnpm run test:all --project="$PLAYWRIGHT_BROWSER"
+
+      - name: Upload failure traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-dependency-experiment-${{ matrix.browser }}
+          path: dev-packages/browser-integration-tests/test-results
+          if-no-files-found: ignore
