@@ -315,17 +315,17 @@ describe('BedrockRuntimeServiceExtension token usage with prompt caching', () =>
       type: 'message_start',
       message: { id: 'msg_bdrk_01Fv2yWBqLQ8Pp4q9kJbDxXz', role: 'assistant', usage: CLAUDE_USAGE },
     };
+    const messageDelta = { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 50 } };
     const data = {
       body: (async function* () {
         yield { chunk: { bytes: encoder.encode(JSON.stringify(messageStart)) } };
+        yield { chunk: { bytes: encoder.encode(JSON.stringify(messageDelta)) } };
       })(),
     };
 
     respond(span, 'InvokeModelWithResponseStream', { modelId: CLAUDE_MODEL_ID }, data);
     await drain(data.body);
 
-    // The total waits for the final output count, which `message_start` does not carry.
-    const expected = { ...EXPECTED_INPUT_USAGE, [GEN_AI_USAGE_TOTAL_TOKENS]: undefined };
-    expect(usageAttributes(span, expected)).toEqual(expected);
+    expect(usageAttributes(span, EXPECTED_USAGE)).toEqual(EXPECTED_USAGE);
   });
 });
