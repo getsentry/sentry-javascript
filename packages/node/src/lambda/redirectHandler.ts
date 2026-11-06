@@ -1,9 +1,9 @@
 import { debug } from '@sentry/core';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import { DEBUG_BUILD } from '../debug-build';
 import { parseHandlerString, resolveHandlerFile } from './handlerResolution';
+
+const TUNNEL_SHIM_MODULE_ID = '@sentry/node/run-lambda-handler';
 
 /**
  * Redirects the Lambda runtime to a Sentry handler shim by rewriting the `_HANDLER`
@@ -81,15 +81,21 @@ export function redirectLambdaHandler(resolveShimFile: () => string | undefined,
  */
 export function redirectLambdaHandlerForTunnel(): void {
   redirectLambdaHandler(() => {
-    // The shim sits at `build/run-lambda-handler.mjs`, next to the `build/esm` and `build/cjs` this file is built into.
-    // Rollup converts `import.meta.url` for the CJS build.
-    const shimFile = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../run-lambda-handler.mjs');
-    if (!fs.existsSync(shimFile)) {
-      DEBUG_BUILD && debug.warn(`Could not find ${shimFile}, not answering tunnel requests.`);
+    try {
+      // A CJS bundle has `require`, but leaves `import.meta.url` empty, so it's only read without one.
+      const resolve = typeof require === 'function' ? require.resolve : createRequire(import.meta.url).resolve;
+
+      return resolve(TUNNEL_SHIM_MODULE_ID);
+    } catch (error) {
+      // With `@sentry/node` bundled into the app, there is no shim file to point the runtime at.
+      DEBUG_BUILD &&
+        debug.warn(
+          `Could not resolve ${TUNNEL_SHIM_MODULE_ID}, not answering tunnel requests. Wrap the handler with \`@sentry/aws-serverless\`'s \`wrapHandler\` instead.`,
+          error,
+        );
+
       return undefined;
     }
-
-    return shimFile;
   }, true);
 }
 
