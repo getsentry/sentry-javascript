@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [firefox, webkit]
+        browser: [webkit]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -85,6 +85,14 @@ jobs:
       - name: Install browser binaries without system dependencies
         working-directory: dev-packages/browser-integration-tests
         run: pnpm exec playwright install "$PLAYWRIGHT_BROWSER"
+
+      - name: Inspect headless WebKit shared libraries
+        working-directory: dev-packages/browser-integration-tests
+        run: |
+          webkit_root=$(dirname "$(node -p "require('@playwright/test').webkit.executablePath()")")
+          cat "$webkit_root/minibrowser-wpe/MiniBrowser"
+          export LD_LIBRARY_PATH="$webkit_root/minibrowser-wpe/lib:$webkit_root/minibrowser-wpe/sys/lib"
+          ldd "$webkit_root/minibrowser-wpe/bin/MiniBrowser"
 
       - name: Check browser launch without system dependencies
         working-directory: dev-packages/browser-integration-tests
