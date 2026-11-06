@@ -7,7 +7,7 @@ if (!testEnv) {
 }
 
 const config = getPlaywrightConfig({
-  startCommand: process.env.PUBLIC_E2E_TEST_SERVER_CONFIG ? 'pnpm preview:server-config' : 'pnpm preview',
+  startCommand: process.env.PUBLIC_E2E_TEST_SERVER_CONFIG === '1' ? 'pnpm preview:server-config' : 'pnpm preview',
   port: 3030,
 });
 
