@@ -64,8 +64,8 @@ export async function detectAgentClasses(
   candidates: Iterable<string>,
   resolver: ModuleResolver,
 ): Promise<Set<string>> {
-  // The entry's shape comes from the AST Vite already handed us (TypeScript stripped, full
-  // fidelity); only sibling modules fall back to source scanning.
+  // The entry's shape comes from the AST the plugin already parsed; sibling modules are parsed
+  // from their source on disk.
   const ctx: DetectContext = { resolver, modules: new Map([[entryId, shapeFromAst(ast)]]) };
 
   const detected = new Set<string>();
@@ -225,7 +225,7 @@ async function getModuleShape(ctx: DetectContext, moduleId: string): Promise<Mod
       ? ctx.resolver.readFile(moduleId)
       : readFileSync(moduleId.replace(/[?#].*$/, ''), 'utf8');
     if (typeof code === 'string') {
-      shape = shapeFromSource(code);
+      shape = shapeFromSource(code, moduleId);
     }
   } catch {
     // Unreadable or not a source file — treat as "not an Agent" rather than failing the build.
