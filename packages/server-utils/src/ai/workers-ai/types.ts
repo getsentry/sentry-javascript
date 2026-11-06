@@ -39,7 +39,6 @@ export interface WorkersAiInput {
 export interface WorkersAiOutput {
   response?: unknown;
   tool_calls?: unknown[];
-  // OpenAI chat-completion format, returned by newer models instead of `response`/`tool_calls`.
   choices?: WorkersAiChoice[];
   usage?: WorkersAiUsage;
 }
