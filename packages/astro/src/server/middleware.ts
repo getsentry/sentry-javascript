@@ -26,7 +26,10 @@ import {
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
+import {
+  flushIfServerless,
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+} from '@sentry/core/server';
 import {
   captureException,
   continueTrace,
@@ -85,6 +88,11 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler =
     // this middleware was added by hand and the request comes before any SSR page, which still runs the init.
     if (!getClient()) {
       return next();
+    }
+
+    const tunnelResponse = handleServedTunnelRequest(ctx.request);
+    if (tunnelResponse) {
+      return tunnelResponse;
     }
 
     const isDynamicPageRequest = checkIsDynamicPageRequest(ctx);

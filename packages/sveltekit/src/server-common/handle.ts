@@ -19,7 +19,11 @@ import {
   withIsolationScope,
   filterCollectedUrl,
 } from '@sentry/core';
-import { flushIfServerless, _INTERNAL_setTunnelDefaults as setTunnelDefaults } from '@sentry/core/server';
+import {
+  flushIfServerless,
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
+} from '@sentry/core/server';
 import { getTunnelBasePath } from '../common/tunnel';
 import type { Handle, ResolveOptions } from './handleTypes';
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -297,6 +301,11 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   };
 
   const sentryRequestHandler: Handle = input => {
+    const tunnelResponse = handleServedTunnelRequest(input.event.request);
+    if (tunnelResponse) {
+      return tunnelResponse;
+    }
+
     const backwardsForwardsCompatibleEvent = input.event as typeof input.event & BackwardsForwardsCompatibleEvent;
 
     // Escape hatch to suppress request isolation and trace continuation (see initCloudflareSentryHandle)
