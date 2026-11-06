@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import {
+  continueTrace,
   getClient,
+  getCurrentScope,
   registerExternalPropagationContext,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   setCurrentClient,
@@ -13,8 +15,13 @@ import {
   SentrySpan,
   setCapturedScopesOnSpan,
 } from '../../../src/tracing';
-import { startInactiveSpan } from '../../../src/tracing/trace';
-import { freezeDscOnSpan, getDynamicSamplingContextFromClient } from '../../../src/tracing/dynamicSamplingContext';
+import { startInactiveSpan, startSpan } from '../../../src/tracing/trace';
+import {
+  freezeDscOnSpan,
+  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromScope,
+} from '../../../src/tracing/dynamicSamplingContext';
+import type { DynamicSamplingContext } from '../../../src/types/envelope';
 import type { Span, SpanContextData } from '../../../src/types/span';
 import type { TransactionSource } from '../../../src/types/transaction';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
@@ -244,6 +251,116 @@ describe('getDynamicSamplingContextFromSpan', () => {
     } finally {
       registerExternalPropagationContext(() => undefined);
     }
+  });
+});
+
+describe('getDynamicSamplingContextFromSpan when continuing a trace without an incoming DSC', () => {
+  const TRACE_ID = '12312012123120121231201212312012';
+  const PARENT_SPAN_ID = '1121201211212012';
+
+  function initClient(options: Parameters<typeof getDefaultTestClientOptions>[0]): void {
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://username@o123.ingest.sentry.io/42',
+        release: '1.0.1',
+        environment: 'myEnv',
+        ...options,
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+  }
+
+  function getDscOfContinuedSpan(sentryTrace: string, baggage?: string): Partial<DynamicSamplingContext> {
+    return continueTrace({ sentryTrace, baggage }, () =>
+      startSpan({ name: 'GET /users/:id', attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'route' } }, span =>
+        getDynamicSamplingContextFromSpan(span),
+      ),
+    );
+  }
+
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it.each([
+    ['no baggage header', undefined],
+    ['a baggage header without sentry values', 'foo=bar,other=value'],
+  ])('creates the DSC from the segment span for %s', (_, baggage) => {
+    initClient({ tracesSampleRate: 0.5 });
+
+    const dsc = getDscOfContinuedSpan(`${TRACE_ID}-${PARENT_SPAN_ID}-1`, baggage);
+
+    expect(dsc).toStrictEqual({
+      trace_id: TRACE_ID,
+      public_key: 'username',
+      org_id: '123',
+      release: '1.0.1',
+      environment: 'myEnv',
+      transaction: 'GET /users/:id',
+      sampled: 'true',
+      sample_rate: '1',
+      sample_rand: expect.any(String),
+    });
+  });
+
+  it('sets sample_rate to 0 for an inherited negative sampling decision', () => {
+    initClient({ tracesSampleRate: 0.5 });
+
+    const dsc = getDscOfContinuedSpan(`${TRACE_ID}-${PARENT_SPAN_ID}-0`);
+
+    expect(dsc).toMatchObject({ trace_id: TRACE_ID, sampled: 'false', sample_rate: '0' });
+  });
+
+  it('sets sample_rate to the local tracesSampleRate for a deferred sampling decision', () => {
+    initClient({ tracesSampleRate: 0.5 });
+
+    const dsc = getDscOfContinuedSpan(`${TRACE_ID}-${PARENT_SPAN_ID}`);
+
+    expect(dsc).toMatchObject({ trace_id: TRACE_ID, sample_rate: '0.5' });
+    expect(Number(dsc.sample_rand) < 0.5).toBe(dsc.sampled === 'true');
+  });
+
+  it('sets sample_rate to the tracesSampler result', () => {
+    initClient({ tracesSampler: () => 0.25 });
+
+    const dsc = getDscOfContinuedSpan(`${TRACE_ID}-${PARENT_SPAN_ID}-1`);
+
+    expect(dsc).toMatchObject({ trace_id: TRACE_ID, sample_rate: '0.25' });
+    expect(Number(dsc.sample_rand) < 0.25).toBe(dsc.sampled === 'true');
+  });
+
+  it('omits span related values in Tracing without Performance mode', () => {
+    initClient({});
+
+    const dsc = continueTrace({ sentryTrace: `${TRACE_ID}-${PARENT_SPAN_ID}-1`, baggage: undefined }, () =>
+      getDynamicSamplingContextFromScope(getClient()!, getCurrentScope()),
+    );
+
+    expect(dsc).toStrictEqual({
+      trace_id: TRACE_ID,
+      public_key: 'username',
+      org_id: '123',
+      release: '1.0.1',
+      environment: 'myEnv',
+    });
+  });
+
+  it('keeps an incoming DSC frozen', () => {
+    initClient({ tracesSampleRate: 0.5 });
+
+    const dsc = getDscOfContinuedSpan(
+      `${TRACE_ID}-${PARENT_SPAN_ID}-1`,
+      'sentry-trace_id=12312012123120121231201212312012,sentry-environment=upstream,sentry-sample_rate=0.3,sentry-sampled=true,sentry-sample_rand=0.1',
+    );
+
+    expect(dsc).toStrictEqual({
+      trace_id: TRACE_ID,
+      environment: 'upstream',
+      sample_rate: '0.3',
+      sampled: 'true',
+      sample_rand: '0.1',
+    });
   });
 });
 

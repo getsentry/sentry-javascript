@@ -9,16 +9,7 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   ...(tracesSampleRate !== undefined ? { tracesSampleRate: Number(tracesSampleRate) } : {}),
+  traceLifecycle: process.env.TRACE_LIFECYCLE === 'static' ? 'static' : 'stream',
   integrations: [],
   transport: loggingTransport,
-  // Stash the outgoing propagation data as observed inside the continueTrace callback onto every
-  // error event, so we can assert on it uniformly across all sampling configs (even when no
-  // span is emitted).
-  beforeSend(event) {
-    event.contexts = {
-      ...event.contexts,
-      traceData: { ...Sentry.getTraceData() },
-    };
-    return event;
-  },
 });

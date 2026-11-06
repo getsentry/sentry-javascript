@@ -39,13 +39,14 @@ describe('propagationContextFromHeaders()', () => {
     );
   });
 
-  it('returns a frozen dynamic sampling context (empty object) when there is an incoming trace but no baggage header', () => {
+  it('does not freeze a dynamic sampling context when there is an incoming trace but no baggage header', () => {
     const result = propagationContextFromHeaders(EXAMPLE_SENTRY_TRACE, undefined);
-    expect(result).toEqual(
-      expect.objectContaining({
-        dsc: {},
-      }),
-    );
+    expect(result.dsc).toBeUndefined();
+  });
+
+  it('does not freeze a dynamic sampling context when the incoming baggage has no sentry values', () => {
+    const result = propagationContextFromHeaders(EXAMPLE_SENTRY_TRACE, 'foo=bar,other=value');
+    expect(result.dsc).toBeUndefined();
   });
 
   it('returns the correct trace parent data when both sentry-trace and baggage are given', () => {
