@@ -291,6 +291,31 @@ describe('BedrockRuntimeServiceExtension token usage with prompt caching', () =>
     expect(usageAttributes(span, EXPECTED_USAGE)).toEqual(EXPECTED_USAGE);
   });
 
+  it('counts cache reads and writes in the total tokens for ConverseStream', async () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const data = {
+      stream: (async function* () {
+        yield {
+          metadata: {
+            // The total comes from the cache-adjusted input, like for Converse, not from `totalTokens`.
+            usage: {
+              inputTokens: 20,
+              outputTokens: 50,
+              totalTokens: 70,
+              cacheReadInputTokens: 1800,
+              cacheWriteInputTokens: 300,
+            },
+          },
+        };
+      })(),
+    };
+
+    respond(span, 'ConverseStream', { modelId: CLAUDE_MODEL_ID }, data);
+    await drain(data.stream);
+
+    expect(usageAttributes(span, EXPECTED_USAGE)).toEqual(EXPECTED_USAGE);
+  });
+
   it('counts cache reads and writes as input tokens for Claude InvokeModel', () => {
     const span = startInactiveSpan({ name: 'bedrock' });
     const body = encoder.encode(

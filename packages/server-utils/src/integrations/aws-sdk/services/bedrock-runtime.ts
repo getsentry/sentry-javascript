@@ -442,7 +442,6 @@ function processConverseStreamEvent(event: ConverseStreamOutput, state: StreamRe
         ? usage.inputTokens + (usage.cacheReadInputTokens ?? 0) + (usage.cacheWriteInputTokens ?? 0)
         : undefined;
     state.completionTokens = usage.outputTokens;
-    state.totalTokens = usage.totalTokens;
     state.cacheReadInputTokens = usage.cacheReadInputTokens;
     state.cacheCreationInputTokens = usage.cacheWriteInputTokens;
   }
