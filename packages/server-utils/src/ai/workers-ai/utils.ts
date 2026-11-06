@@ -13,6 +13,7 @@ import {
   GEN_AI_REQUEST_TOP_K,
   GEN_AI_REQUEST_TOP_P,
   GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
@@ -211,6 +212,12 @@ export function addResponseAttributes(
   }
 
   if (Array.isArray(response.choices)) {
+    if (typeof response.id === 'string') {
+      span.setAttribute(GEN_AI_RESPONSE_ID, response.id);
+    }
+    if (typeof response.model === 'string') {
+      span.setAttribute(GEN_AI_RESPONSE_MODEL, response.model);
+    }
     addChoicesResponseAttributes(span, response.choices, recordOutputs);
     return;
   }

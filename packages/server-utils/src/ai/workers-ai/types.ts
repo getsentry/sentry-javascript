@@ -37,6 +37,8 @@ export interface WorkersAiInput {
  * The (subset of) outputs returned by Workers AI text generation models that we read from.
  */
 export interface WorkersAiOutput {
+  id?: unknown;
+  model?: unknown;
   response?: unknown;
   tool_calls?: unknown[];
   choices?: WorkersAiChoice[];

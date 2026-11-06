@@ -14,6 +14,7 @@ import {
   GEN_AI_REQUEST_TOP_P,
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
@@ -372,13 +373,15 @@ describe('workers-ai utils', () => {
       );
     });
 
-    it('records text and finish reason from OpenAI chat-completion responses', () => {
+    it('records id, model, text and finish reason from OpenAI chat-completion responses', () => {
       const { span, attributes } = createMockSpan();
 
       addResponseAttributes(
         span,
         {
+          id: 'chatcmpl-1',
           object: 'chat.completion',
+          model: '@cf/google/gemma-4-26b-a4b-it',
           choices: [{ index: 0, message: { role: 'assistant', content: 'Hello there!' }, finish_reason: 'stop' }],
           usage: { prompt_tokens: 19, completion_tokens: 4, total_tokens: 23 },
         },
@@ -386,6 +389,8 @@ describe('workers-ai utils', () => {
       );
 
       expect(attributes).toEqual({
+        [GEN_AI_RESPONSE_ID]: 'chatcmpl-1',
+        [GEN_AI_RESPONSE_MODEL]: '@cf/google/gemma-4-26b-a4b-it',
         [GEN_AI_RESPONSE_TEXT]: 'Hello there!',
         [GEN_AI_RESPONSE_FINISH_REASONS]: JSON.stringify(['stop']),
         [GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
