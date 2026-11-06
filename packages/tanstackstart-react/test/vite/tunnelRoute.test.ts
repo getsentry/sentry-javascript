@@ -94,17 +94,17 @@ describe('server entry tunnel vite plugin', () => {
       ) as Promise<unknown>;
   }
 
-  it('wraps the app server entry and the default entry', async () => {
+  it('sets the tunnel route from the app server entry and the default entry', async () => {
     const load = setup();
 
-    expect(await load(USER_ENTRY)).toContain('export default wrapServerEntryWithSentryTunnel(entry, undefined, "");');
+    expect(await load(USER_ENTRY)).toContain('setTunnelRoute(undefined, "");');
     expect(await load(`${USER_ENTRY}?sentry-tunnel-original`)).toBeNull();
     expect(await load('/app/node_modules/@tanstack/react-start/dist/default-entry/esm/server.js')).toContain(
-      'wrapServerEntryWithSentryTunnel',
+      'setTunnelRoute(',
     );
     expect(
       await load('C:\\app\\node_modules\\@tanstack\\react-start\\dist\\plugin\\default-entry\\server.ts'),
-    ).toContain('wrapServerEntryWithSentryTunnel');
+    ).toContain('setTunnelRoute(');
     expect(await load('/app/src/routes/index.tsx')).toBeNull();
   });
 
@@ -112,25 +112,22 @@ describe('server entry tunnel vite plugin', () => {
     const load = setup();
 
     expect(await load(USER_ENTRY)).toContain(`export * from "${USER_ENTRY}?sentry-tunnel-original";`);
+    expect(await load(USER_ENTRY)).toContain(`export { default } from "${USER_ENTRY}?sentry-tunnel-original";`);
   });
 
   it('passes the build-time options when `tunnelRoute` derives the path from the DSN', async () => {
-    expect(await setup(true)(USER_ENTRY)).toContain('wrapServerEntryWithSentryTunnel(entry, {}, "");');
+    expect(await setup(true)(USER_ENTRY)).toContain('setTunnelRoute({}, "");');
     expect(await setup({ allowedDsns: ['https://public@o0.ingest.sentry.io/0'] })(USER_ENTRY)).toContain(
-      'wrapServerEntryWithSentryTunnel(entry, {"allowedDsns":["https://public@o0.ingest.sentry.io/0"]}, "");',
+      'setTunnelRoute({"allowedDsns":["https://public@o0.ingest.sentry.io/0"]}, "");',
     );
   });
 
-  it('serves a static `tunnelRoute` path from the wrapper too', async () => {
-    expect(await setup('/monitor')(USER_ENTRY)).toContain(
-      'wrapServerEntryWithSentryTunnel(entry, {"path":"/monitor"}, "");',
-    );
+  it('passes a static `tunnelRoute` path too', async () => {
+    expect(await setup('/monitor')(USER_ENTRY)).toContain('setTunnelRoute({"path":"/monitor"}, "");');
   });
 
-  it('passes the base path Start routes on to the wrapper', async () => {
-    expect(await setup(undefined, '/app')(USER_ENTRY)).toContain(
-      'wrapServerEntryWithSentryTunnel(entry, undefined, "/app");',
-    );
+  it('passes the base path Start routes on', async () => {
+    expect(await setup(undefined, '/app')(USER_ENTRY)).toContain('setTunnelRoute(undefined, "/app");');
   });
 
   it('imports a bundled SDK from where the app resolves it, which also works without hoisting', async () => {
@@ -138,7 +135,7 @@ describe('server entry tunnel vite plugin', () => {
     const load = setup(undefined, '', resolve);
 
     expect(await load('/app/node_modules/@tanstack/react-start/dist/default-entry/esm/server.js')).toContain(
-      `import { _INTERNAL_wrapServerEntryWithSentryTunnel as wrapServerEntryWithSentryTunnel } from "${SDK_ID}";`,
+      `import { _INTERNAL_setTunnelRoute as setTunnelRoute } from "${SDK_ID}";`,
     );
     expect(resolve).toHaveBeenCalledWith('@sentry/tanstackstart-react', '/app/package.json', { skipSelf: true });
   });
