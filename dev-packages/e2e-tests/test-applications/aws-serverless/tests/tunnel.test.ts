@@ -104,10 +104,11 @@ test.describe('managed tunnel', () => {
     });
   }
 
-  for (const [shape, base64] of [
-    ['apiGatewayV1', false],
-    ['alb', false],
-    ['apiGatewayV2', true],
+  // An ALB event with multi-value headers needs multi-value headers back.
+  for (const [shape, base64, headersKey] of [
+    ['apiGatewayV1', false, 'headers'],
+    ['alb', false, 'multiValueHeaders'],
+    ['apiGatewayV2', true, 'headers'],
   ] as const) {
     test(`reads ${base64 ? 'a base64 body from ' : ''}an ${shape} event`, async ({ lambdaClient }) => {
       const dsn = await getDsn();
@@ -122,10 +123,9 @@ test.describe('managed tunnel', () => {
 
       const response = JSON.parse(result.payload);
       expect(response.statusCode).toBe(200);
-      // An ALB event with multi-value headers needs multi-value headers back.
-      expect(response).toHaveProperty(shape === 'alb' ? 'multiValueHeaders' : 'headers');
+      expect(response).toHaveProperty(headersKey);
       // Only the headers the browser SDK reads, like the Node answer, not the ones about the connection to Sentry.
-      const headerNames = Object.keys(response.headers ?? response.multiValueHeaders);
+      const headerNames = Object.keys(response[headersKey]);
       expect(headerNames.filter(name => !FORWARDED_RESPONSE_HEADERS.includes(name))).toEqual([]);
       await forwarded;
     });

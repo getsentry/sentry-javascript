@@ -173,24 +173,33 @@ async function toHttpResult(response: Response, multiValueHeaders: boolean): Pro
 }
 
 // The symbols the Lambda runtime reads off a streaming handler (`awslambda.streamifyResponse`).
-const HANDLER_STREAMING_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming');
-const HANDLER_HIGHWATERMARK_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming.highWaterMark');
+const HANDLER_STREAMING_SYMBOL: unique symbol = Symbol.for('aws.lambda.runtime.handler.streaming');
+const HANDLER_HIGHWATERMARK_SYMBOL: unique symbol = Symbol.for('aws.lambda.runtime.handler.streaming.highWaterMark');
 
 type LambdaHandler = (...args: unknown[]) => unknown;
+
+type StreamingHandler = LambdaHandler & {
+  [HANDLER_STREAMING_SYMBOL]?: unknown;
+  [HANDLER_HIGHWATERMARK_SYMBOL]?: unknown;
+};
 
 /**
  * Wraps a Lambda handler so it answers managed tunnel requests before the handler runs, and passes every other event
  * to it unchanged. Streaming handlers keep the symbols the runtime reads off them.
  */
 export function wrapLambdaHandlerForTunnel(handler: LambdaHandler): LambdaHandler {
-  const handlerSymbols = handler as unknown as Record<symbol, unknown>;
-  if (handlerSymbols[HANDLER_STREAMING_SYMBOL] === 'response') {
-    const streamingHandler = function (this: unknown, event: unknown, responseStream: unknown, ...rest: unknown[]) {
+  const streamingSource: StreamingHandler = handler;
+  if (streamingSource[HANDLER_STREAMING_SYMBOL] === 'response') {
+    const streamingHandler: StreamingHandler = function (
+      this: unknown,
+      event: unknown,
+      responseStream: unknown,
+      ...rest: unknown[]
+    ) {
       return handleStreamingTunnelEvent(event, responseStream) ?? handler.call(this, event, responseStream, ...rest);
     };
-    const streamingSymbols = streamingHandler as unknown as Record<symbol, unknown>;
-    streamingSymbols[HANDLER_STREAMING_SYMBOL] = handlerSymbols[HANDLER_STREAMING_SYMBOL];
-    streamingSymbols[HANDLER_HIGHWATERMARK_SYMBOL] = handlerSymbols[HANDLER_HIGHWATERMARK_SYMBOL];
+    streamingHandler[HANDLER_STREAMING_SYMBOL] = streamingSource[HANDLER_STREAMING_SYMBOL];
+    streamingHandler[HANDLER_HIGHWATERMARK_SYMBOL] = streamingSource[HANDLER_HIGHWATERMARK_SYMBOL];
 
     return streamingHandler;
   }
