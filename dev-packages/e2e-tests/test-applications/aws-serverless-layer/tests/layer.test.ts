@@ -395,26 +395,30 @@ test.describe('Lambda layer', () => {
   });
 
   test('does not leak isolation scope data between invocations on a warm container', async ({ lambdaClient }) => {
-    const errorEventPromise = waitForError('aws-serverless-layer', errorEvent => {
-      return errorEvent?.exception?.values?.[0]?.value === 'untagged request failed';
+    const firstErrorEventPromise = waitForError('aws-serverless-layer', errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === 'first invocation error';
+    });
+    const secondErrorEventPromise = waitForError('aws-serverless-layer', errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === 'second invocation error';
     });
 
     await lambdaClient.send(
       new InvokeCommand({
         FunctionName: 'LayerIsolationScope',
-        Payload: JSON.stringify({ tag: 'first-invocation' }),
+        Payload: JSON.stringify({ tag: 'first-invocation', errorMessage: 'first invocation error' }),
       }),
     );
     await lambdaClient.send(
       new InvokeCommand({
         FunctionName: 'LayerIsolationScope',
-        Payload: JSON.stringify({}),
+        Payload: JSON.stringify({ errorMessage: 'second invocation error' }),
       }),
     );
 
-    const errorEvent = await errorEventPromise;
+    const [firstErrorEvent, secondErrorEvent] = await Promise.all([firstErrorEventPromise, secondErrorEventPromise]);
 
-    expect(errorEvent.tags?.invocation_tag).toBeUndefined();
+    expect(firstErrorEvent.tags?.invocation_tag).toBe('first-invocation');
+    expect(secondErrorEvent.tags?.invocation_tag).toBeUndefined();
   });
 
   test('extension tunnel validates DSN allowlist and rejects invalid envelopes', async ({ lambdaClient }) => {
