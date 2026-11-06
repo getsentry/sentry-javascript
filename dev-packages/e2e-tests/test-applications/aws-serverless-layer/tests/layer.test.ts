@@ -8,12 +8,12 @@ interface TunnelInvokeResult {
   responseBody: string;
 }
 
-function parseLambdaPayload(payload: Uint8Array | undefined): TunnelInvokeResult {
+function parseLambdaPayload<T = TunnelInvokeResult>(payload: Uint8Array | undefined): T {
   if (!payload) {
     throw new Error('Missing Lambda payload');
   }
 
-  return JSON.parse(Buffer.from(payload).toString('utf8')) as TunnelInvokeResult;
+  return JSON.parse(Buffer.from(payload).toString('utf8')) as T;
 }
 
 test.describe('Lambda layer', () => {
@@ -392,6 +392,36 @@ test.describe('Lambda layer', () => {
     // The Lambda transaction is parented to the incoming trace context (eventContextExtractor + startInactiveSpan).
     expect(transactionEvent.contexts?.trace?.trace_id).toEqual(traceId);
     expect(transactionEvent.contexts?.trace?.parent_span_id).toEqual(parentSpanId);
+  });
+
+  test('does not leak isolation scope data between invocations on a warm container', async ({ lambdaClient }) => {
+    const errorEventPromise = waitForError('aws-serverless-layer', errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === 'anonymous request failed';
+    });
+
+    const firstResponse = await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerIsolationScope',
+        Payload: JSON.stringify({ user: 'alice' }),
+      }),
+    );
+    const secondResponse = await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerIsolationScope',
+        Payload: JSON.stringify({}),
+      }),
+    );
+
+    const errorEvent = await errorEventPromise;
+
+    const { invocationCount: firstCount } = parseLambdaPayload<{ invocationCount: number }>(firstResponse.Payload);
+    const { invocationCount: secondCount } = parseLambdaPayload<{ invocationCount: number }>(secondResponse.Payload);
+    expect(secondCount).toBe(firstCount + 1);
+
+    expect(errorEvent.user).toBeUndefined();
+    expect(errorEvent.breadcrumbs ?? []).not.toContainEqual(
+      expect.objectContaining({ message: 'handled request for alice' }),
+    );
   });
 
   test('extension tunnel validates DSN allowlist and rejects invalid envelopes', async ({ lambdaClient }) => {
