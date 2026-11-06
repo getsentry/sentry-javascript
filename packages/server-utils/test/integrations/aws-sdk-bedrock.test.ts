@@ -4,6 +4,11 @@ import {
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
@@ -154,5 +159,104 @@ describe('BedrockRuntimeServiceExtension stream spans', () => {
     await drain(data.body);
 
     expect(spanToJSON(span).end_timestamp).toBeDefined();
+  });
+});
+
+describe('BedrockRuntimeServiceExtension token usage with prompt caching', () => {
+  const encoder = new TextEncoder();
+
+  // 20 uncached prompt tokens, 1800 read from the cache, and 300 written to it.
+  const EXPECTED_INPUT_USAGE = {
+    [GEN_AI_USAGE_INPUT_TOKENS]: 2120,
+    [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: 1800,
+    [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: 300,
+  };
+
+  const EXPECTED_USAGE = {
+    ...EXPECTED_INPUT_USAGE,
+    [GEN_AI_USAGE_OUTPUT_TOKENS]: 50,
+    [GEN_AI_USAGE_TOTAL_TOKENS]: 2170,
+  };
+
+  const CLAUDE_USAGE = {
+    input_tokens: 20,
+    cache_read_input_tokens: 1800,
+    cache_creation_input_tokens: 300,
+    output_tokens: 50,
+  };
+
+  function usageAttributes(span: Span, expected: Record<string, unknown>): Record<string, unknown> {
+    const attributes = spanToJSON(span).attributes ?? {};
+    return Object.fromEntries(Object.keys(expected).map(key => [key, attributes[key]]));
+  }
+
+  beforeEach(() => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+  });
+
+  afterEach(() => {
+    setCurrentClient(undefined as never);
+  });
+
+  it('counts cache reads and writes as input tokens for Converse', () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+
+    respond(
+      span,
+      'Converse',
+      { modelId: CLAUDE_MODEL_ID },
+      {
+        stopReason: 'end_turn',
+        usage: {
+          inputTokens: 20,
+          outputTokens: 50,
+          totalTokens: 2170,
+          cacheReadInputTokens: 1800,
+          cacheWriteInputTokens: 300,
+        },
+      },
+    );
+
+    expect(usageAttributes(span, EXPECTED_USAGE)).toEqual(EXPECTED_USAGE);
+  });
+
+  it('counts cache reads and writes as input tokens for Claude InvokeModel', () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const body = encoder.encode(
+      JSON.stringify({
+        id: 'msg_bdrk_01Fv2yWBqLQ8Pp4q9kJbDxXz',
+        type: 'message',
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Paris.' }],
+        stop_reason: 'end_turn',
+        usage: CLAUDE_USAGE,
+      }),
+    );
+
+    respond(span, 'InvokeModel', { modelId: CLAUDE_MODEL_ID }, { body });
+
+    expect(usageAttributes(span, EXPECTED_USAGE)).toEqual(EXPECTED_USAGE);
+  });
+
+  it('counts cache reads and writes as input tokens for a Claude stream', async () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const messageStart = {
+      type: 'message_start',
+      message: { id: 'msg_bdrk_01Fv2yWBqLQ8Pp4q9kJbDxXz', role: 'assistant', usage: CLAUDE_USAGE },
+    };
+    const data = {
+      body: (async function* () {
+        yield { chunk: { bytes: encoder.encode(JSON.stringify(messageStart)) } };
+      })(),
+    };
+
+    respond(span, 'InvokeModelWithResponseStream', { modelId: CLAUDE_MODEL_ID }, data);
+    await drain(data.body);
+
+    // The total waits for the final output count, which `message_start` does not carry.
+    const expected = { ...EXPECTED_INPUT_USAGE, [GEN_AI_USAGE_TOTAL_TOKENS]: undefined };
+    expect(usageAttributes(span, expected)).toEqual(expected);
   });
 });
