@@ -26,6 +26,8 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  VERCEL_AI_SETTINGS_CONTEXT_KEY_BASE,
+  VERCEL_AI_TOOL_CALL_CONTEXT_KEY_BASE,
 } from '@sentry/conventions/attributes';
 import {
   GEN_AI_DECIDE,
@@ -86,8 +88,6 @@ const VERCEL_AI_OPERATION_ID_ATTRIBUTE = 'vercel.ai.operationId';
 const VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE = 'vercel.ai.model.provider';
 const VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE = 'vercel.ai.settings.maxRetries';
 const VERCEL_AI_TELEMETRY_METADATA_ATTRIBUTE_PREFIX = 'vercel.ai.telemetry.metadata.';
-const VERCEL_AI_SETTINGS_CONTEXT_ATTRIBUTE_PREFIX = 'vercel.ai.settings.context.';
-const VERCEL_AI_TOOL_CALL_CONTEXT_ATTRIBUTE_PREFIX = 'vercel.ai.tool_call.context.';
 
 // Tracks the top-level operationId (and whether it streams) per `callId` so a model-call span can
 // name its `doGenerate`/`doStream` operation the same way the OTel integration does. `isStream` is
@@ -459,7 +459,7 @@ export function createSpanFromMessage(
 
   const runtimeContextAttributes =
     (callId ? runtimeContextAttributesByCallId.get(callId) : undefined) ??
-    contextAttributes(event, event.runtimeContext, VERCEL_AI_SETTINGS_CONTEXT_ATTRIBUTE_PREFIX);
+    contextAttributes(event, event.runtimeContext, VERCEL_AI_SETTINGS_CONTEXT_KEY_BASE);
   if (callId && ROOT_OPERATION_TYPES.has(type)) {
     runtimeContextAttributesByCallId.set(callId, runtimeContextAttributes);
   }
@@ -541,7 +541,7 @@ function telemetryMetadataAttributes(metadata: unknown): Record<string, string> 
  * looks the same as an unfiltered one. `aiVersion` (added in 7.0.154) is the only reliable sign that
  * the AI SDK filtered it, so without it we record nothing.
  */
-function contextAttributes(event: Record<string, unknown>, context: unknown, prefix: string): SpanAttributes {
+function contextAttributes(event: Record<string, unknown>, context: unknown, keyBase: string): SpanAttributes {
   const attributes: SpanAttributes = {};
   if (typeof event.aiVersion !== 'string' || !isObjectLike(context)) {
     return attributes;
@@ -549,7 +549,7 @@ function contextAttributes(event: Record<string, unknown>, context: unknown, pre
   for (const [key, value] of Object.entries(context)) {
     const attributeValue = stringify(value);
     if (value !== null && attributeValue !== undefined) {
-      attributes[`${prefix}${key}`] = attributeValue;
+      attributes[`${keyBase}.${key}`] = attributeValue;
     }
   }
   return attributes;
@@ -629,7 +629,7 @@ function buildToolSpan(
   return startGenAiSpan('execute_tool', toolName, {
     [SENTRY_ORIGIN]: ORIGIN,
     ...runtimeContextAttributes,
-    ...contextAttributes(event, event.toolContext, VERCEL_AI_TOOL_CALL_CONTEXT_ATTRIBUTE_PREFIX),
+    ...contextAttributes(event, event.toolContext, VERCEL_AI_TOOL_CALL_CONTEXT_KEY_BASE),
     [GEN_AI_TOOL_NAME]: toolName,
     [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId,
     [GEN_AI_TOOL_DESCRIPTION]: description,
