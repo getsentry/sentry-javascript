@@ -456,18 +456,16 @@ export function _addResourceSpans(
   spanStreamingEnabled?: boolean,
   resourceMinDuration = 0,
 ): void {
-  // we already instrument based on fetch and xhr, so we don't need to
-  // duplicate spans here.
-  if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
-    return;
-  }
+  const { initiatorType } = entry;
+  const op = initiatorType ? `resource.${initiatorType}` : RESOURCE_OTHER;
 
-  const op = entry.initiatorType ? `resource.${entry.initiatorType}` : RESOURCE_OTHER;
-  if (ignoredResourceSpanOps?.includes(op)) {
-    return;
-  }
-
-  if (duration < msToSec(resourceMinDuration)) {
+  if (
+    // we already instrument based on fetch and xhr, so we don't need to duplicate spans here.
+    initiatorType === 'xmlhttprequest' ||
+    initiatorType === 'fetch' ||
+    ignoredResourceSpanOps?.includes(op) ||
+    duration < msToSec(resourceMinDuration)
+  ) {
     return;
   }
 
