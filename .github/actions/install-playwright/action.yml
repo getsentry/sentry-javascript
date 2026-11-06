@@ -41,7 +41,8 @@ runs:
     - name: Install Playwright dependencies (uncached)
       env:
         PLAYWRIGHT_VERSION: ${{ steps.playwright-version.outputs.version }}
-      run: npx -y "playwright@$PLAYWRIGHT_VERSION" install chromium webkit firefox --with-deps
+        PLAYWRIGHT_INSTALL_DEPS: ${{ inputs.browsers != 'chromium' && '--with-deps' || '' }}
+      run: npx -y "playwright@$PLAYWRIGHT_VERSION" install chromium webkit firefox $PLAYWRIGHT_INSTALL_DEPS
       if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit != 'true'
       shell: bash
       working-directory: ${{ runner.temp }}
@@ -51,7 +52,9 @@ runs:
         PLAYWRIGHT_BROWSERS: ${{ inputs.browsers || 'chromium webkit firefox' }}
         PLAYWRIGHT_VERSION: ${{ steps.playwright-version.outputs.version }}
       run: npx -y "playwright@$PLAYWRIGHT_VERSION" install-deps $PLAYWRIGHT_BROWSERS
-      if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit == 'true'
+      if:
+        steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit == 'true' &&
+        inputs.browsers != 'chromium'
       shell: bash
       working-directory: ${{ runner.temp }}
 
