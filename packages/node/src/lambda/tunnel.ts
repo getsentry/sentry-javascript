@@ -2,6 +2,7 @@ import { debug } from '@sentry/core';
 import {
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
   _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
+  _INTERNAL_pickForwardedHeaders as pickForwardedHeaders,
 } from '@sentry/core/server';
 import { DEBUG_BUILD } from '../debug-build';
 
@@ -93,7 +94,7 @@ export function handleStreamingTunnelEvent(event: unknown, responseStream: unkno
       const body = new Uint8Array(await response.arrayBuffer());
       const stream = awslambda.HttpResponseStream.from(responseStream, {
         statusCode: response.status,
-        headers: Object.fromEntries(response.headers),
+        headers: pickForwardedHeaders(response),
       });
       stream.end(body);
     })
@@ -152,7 +153,7 @@ function toTunnelRequest(event: unknown): Request | undefined {
 }
 
 async function toHttpResult(response: Response, multiValueHeaders: boolean): Promise<HttpResult> {
-  const headers = Object.fromEntries(response.headers);
+  const headers = pickForwardedHeaders(response);
 
   return {
     statusCode: response.status,

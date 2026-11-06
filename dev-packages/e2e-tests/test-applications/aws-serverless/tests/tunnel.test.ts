@@ -5,6 +5,11 @@ import { getTunnelPath } from '@sentry/aws-serverless';
 import { getHostIp } from '../src/stack';
 import { expect, test } from './lambda-fixtures';
 
+/**
+ * The headers of Sentry's answer the Node tunnel passes on, see `FORWARDED_RESPONSE_HEADERS` in `@sentry/core`.
+ */
+const FORWARDED_RESPONSE_HEADERS = ['content-type', 'retry-after', 'x-sentry-rate-limits'];
+
 interface InvokeResult {
   functionError?: string;
   payload: string;
@@ -118,6 +123,9 @@ test.describe('managed tunnel', () => {
       expect(response.statusCode).toBe(200);
       // An ALB event with multi-value headers needs multi-value headers back.
       expect(response).toHaveProperty(shape === 'alb' ? 'multiValueHeaders' : 'headers');
+      // Only the headers the browser SDK reads, like the Node answer, not the ones about the connection to Sentry.
+      const headerNames = Object.keys(response.headers ?? response.multiValueHeaders);
+      expect(headerNames.filter(name => !FORWARDED_RESPONSE_HEADERS.includes(name))).toEqual([]);
       await forwarded;
     });
   }
