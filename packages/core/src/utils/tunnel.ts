@@ -237,7 +237,7 @@ function matchServedTunnel(request: TunnelRequestLike, client?: Client): ServedT
 export function handleServedTunnelRequest(request: Request): Promise<Response> | undefined {
   let servedTunnel: ServedTunnel | undefined | null;
   try {
-    // An envelope always has a body. Nuxt's Cloudflare plugin passes a copy without one, which its app answers later.
+    // An envelope always has a body, so a request without one is never a tunnel request.
     servedTunnel = request.body && getServedTunnelMatch(request);
     if (!servedTunnel) {
       return undefined;

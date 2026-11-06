@@ -3,6 +3,7 @@ import type { CloudflareOptions } from '@sentry/cloudflare';
 import { getDefaultIntegrations, setAsyncLocalStorageAsyncContextStrategy } from '@sentry/cloudflare';
 import { wrapRequestHandler } from '@sentry/cloudflare/request';
 import { debug, getDefaultIsolationScope, getIsolationScope, getTraceData } from '@sentry/core';
+import { _INTERNAL_isServedTunnelRequest as isServedTunnelRequest } from '@sentry/core/server';
 import type { H3Event } from 'h3';
 import type { NitroApp, NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
@@ -93,9 +94,9 @@ export const sentryCloudflareNitroPlugin =
           const request = new Request(url, {
             method: event.method,
             headers: event.headers,
-            // Nitro read the body before calling `localFetch`. The managed tunnel answers from this request, so it
-            // needs the body; a `GET` or `HEAD` request can't have one.
-            body: event.method === 'GET' || event.method === 'HEAD' ? undefined : event.body,
+            // Nitro read the body before calling `localFetch`. Only the managed tunnel answers from this request, so
+            // only its requests get the body, and other requests' bodies don't end up on events.
+            body: isServedTunnelRequest({ method: event.method, url: pathname }) ? event.body : undefined,
             // @ts-expect-error - 'cf' is a valid property in the RequestInit type for Cloudflare
             cf: getCfProperties(event),
           });
