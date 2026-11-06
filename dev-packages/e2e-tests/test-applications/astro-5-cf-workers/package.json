@@ -10,7 +10,9 @@
     "test:build": "pnpm install && pnpm build",
     "test:assert": "TEST_ENV=production playwright test",
     "test:build:server-config": "pnpm install && PUBLIC_E2E_TEST_SERVER_CONFIG=1 pnpm build",
-    "test:assert:server-config": "PUBLIC_E2E_TEST_SERVER_CONFIG=1 TEST_ENV=production playwright test server-config"
+    "test:assert:server-config": "PUBLIC_E2E_TEST_SERVER_CONFIG=1 TEST_ENV=production playwright test server-config",
+    "test:build:no-server-config": "pnpm install && rm sentry.server.config.js && pnpm build",
+    "test:assert:no-server-config": "TEST_ENV=production playwright test"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.12",
@@ -29,6 +31,11 @@
         "build-command": "pnpm test:build:server-config",
         "assert-command": "pnpm test:assert:server-config",
         "label": "astro-5-cf-workers (server-config)"
+      },
+      {
+        "build-command": "pnpm test:build:no-server-config",
+        "assert-command": "pnpm test:assert:no-server-config",
+        "label": "astro-5-cf-workers (no-server-config)"
       }
     ]
   }
