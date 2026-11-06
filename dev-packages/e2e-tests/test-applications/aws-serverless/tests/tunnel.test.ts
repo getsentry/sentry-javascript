@@ -216,4 +216,47 @@ test.describe('managed tunnel', () => {
       expect.stringContaining('Sentry was initialized after the Lambda runtime loaded the handler'),
     );
   });
+
+  // The shapes a real API Gateway sends on a stage named `prod`: a REST API leaves the stage out of `path` but keeps it
+  // in `requestContext.path`, an HTTP API keeps it in `rawPath`.
+  for (const [api, makeStageEvent] of [
+    [
+      'REST API',
+      (tunnelPath: string, envelope: string) => ({
+        httpMethod: 'POST',
+        path: tunnelPath,
+        headers: { 'content-type': 'application/x-sentry-envelope' },
+        requestContext: { path: `/prod${tunnelPath}`, stage: 'prod' },
+        body: envelope,
+        isBase64Encoded: false,
+      }),
+    ],
+    [
+      'HTTP API',
+      (tunnelPath: string, envelope: string) => ({
+        version: '2.0',
+        rawPath: `/prod${tunnelPath}`,
+        rawQueryString: '',
+        headers: { 'content-type': 'application/x-sentry-envelope' },
+        requestContext: { http: { method: 'POST' }, stage: 'prod' },
+        body: envelope,
+        isBase64Encoded: false,
+      }),
+    ],
+  ] as const) {
+    test(`answers tunnel requests on a named ${api} stage with the stage as \`basePath\``, async ({ lambdaClient }) => {
+      const dsn = await getDsn();
+      const marker = `stage-${api}-${crypto.randomUUID()}`;
+      const forwarded = waitForError('aws-serverless', event => event.message === marker);
+
+      const result = await invoke(
+        lambdaClient,
+        'NpmTunnelNodeStagePath',
+        makeStageEvent(getTunnelPath(dsn)!, makeEnvelope(dsn, marker)),
+      );
+
+      expect(JSON.parse(result.payload).body).not.toBe('app');
+      await forwarded;
+    });
+  }
 });

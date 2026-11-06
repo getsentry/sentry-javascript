@@ -15,7 +15,7 @@ interface HttpEvent {
   path?: string;
   rawPath?: string;
   rawQueryString?: string;
-  requestContext?: { http?: { method?: string }; elb?: unknown };
+  requestContext?: { http?: { method?: string }; elb?: unknown; path?: string };
   headers?: Record<string, string | undefined> | null;
   multiValueHeaders?: Record<string, string[] | undefined> | null;
   body?: string | null;
@@ -122,10 +122,12 @@ function toTunnelRequest(event: unknown): Request | undefined {
 
     const httpEvent = event as HttpEvent;
     const method = httpEvent.requestContext?.http?.method ?? httpEvent.httpMethod;
+    // The path the browser posted to, so one `basePath` fits both sides: a REST API's `path` drops the stage, its
+    // `requestContext.path` keeps it like an HTTP API's `rawPath` does. An ALB event has neither.
     const path =
       typeof httpEvent.rawPath === 'string'
         ? `${httpEvent.rawPath}${httpEvent.rawQueryString ? `?${httpEvent.rawQueryString}` : ''}`
-        : httpEvent.path;
+        : (httpEvent.requestContext?.path ?? httpEvent.path);
     if (!method || !path || !isServedTunnelRequest({ method, url: path })) {
       return undefined;
     }
