@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { debug } from '@sentry/core';
+import { debug, SPAN_STATUS_ERROR } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
@@ -137,8 +137,8 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       spanName += ` ${modelId}`;
     }
 
-    if (request.commandInput?.body) {
-      const requestBody = JSON.parse(request.commandInput.body);
+    const requestBody = parseRequestBody(request.commandInput?.body);
+    if (requestBody && typeof modelId === 'string') {
       if (modelId.includes('amazon.titan')) {
         if (requestBody.textGenerationConfig?.temperature !== undefined) {
           spanAttributes[GEN_AI_REQUEST_TEMPERATURE] = requestBody.textGenerationConfig.temperature;
@@ -258,9 +258,14 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
   }
 
   private _responseHookConverseStream(response: NormalizedResponse, span: Span): void {
+    if (!response.data?.stream) {
+      span.end();
+      return;
+    }
+
     // Wrap and replace the response stream in place to process events into telemetry
     // before yielding to the user.
-    response.data.stream = wrapConverseStreamResponse(response.data.stream, span);
+    response.data.stream = wrapConverseStreamResponse(response.data.stream, span, response.request.abortSignal);
   }
 
   private _responseHookInvokeModel(response: NormalizedResponse, span: Span): void {
@@ -338,13 +343,15 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
   private _responseHookInvokeModelWithResponseStream(response: NormalizedResponse, span: Span): void {
     const stream = response.data?.body;
     const modelId = response.request.commandInput?.modelId;
-    if (!stream || !modelId) {
+    const abortSignal = response.request.abortSignal;
+    if (!stream) {
+      span.end();
       return;
     }
 
     // Resolved once: the model family is fixed for the whole stream, and for unrecognized families
     // the chunks don't need to be parsed at all.
-    const recordAttributes = resolveStreamRecorder(modelId);
+    const recordAttributes = typeof modelId === 'string' ? resolveStreamRecorder(modelId) : undefined;
 
     // Replace the original response body with our instrumented stream, deferring span.end() until the
     // entire stream is consumed. Downstream consumers still receive the full stream.
@@ -359,6 +366,9 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
           }
           yield chunk;
         }
+      } catch (error) {
+        setStreamErrorStatus(span, abortSignal);
+        throw error;
       } finally {
         span.end();
       }
@@ -380,6 +390,7 @@ function resolveStreamRecorder(modelId: string): ((parsedChunk: ParsedChunk, spa
 async function* wrapConverseStreamResponse(
   stream: AsyncIterable<ConverseStreamOutput>,
   span: Span,
+  abortSignal: AbortSignal | undefined,
 ): AsyncGenerator<ConverseStreamOutput> {
   try {
     let usage: TokenUsage | undefined;
@@ -389,9 +400,16 @@ async function* wrapConverseStreamResponse(
       yield item;
     }
     setUsage(span, usage);
+  } catch (error) {
+    setStreamErrorStatus(span, abortSignal);
+    throw error;
   } finally {
     span.end();
   }
+}
+
+function setStreamErrorStatus(span: Span, abortSignal: AbortSignal | undefined): void {
+  span.setStatus({ code: SPAN_STATUS_ERROR, message: abortSignal?.aborted ? 'cancelled' : 'internal_error' });
 }
 
 function setStopReason(span: Span, stopReason: string | undefined): void {
@@ -409,6 +427,19 @@ function setUsage(span: Span, usage: TokenUsage | undefined): void {
     if (outputTokens !== undefined) {
       span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, outputTokens);
     }
+  }
+}
+
+function parseRequestBody(body: unknown): ParsedChunk {
+  // `InvokeModel` takes the body as a JSON string or as bytes.
+  const text = typeof body === 'string' ? body : body instanceof Uint8Array ? textDecoder.decode(body) : undefined;
+  if (!text) {
+    return undefined;
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
   }
 }
 
