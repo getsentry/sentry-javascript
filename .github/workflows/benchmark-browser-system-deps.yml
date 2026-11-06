@@ -113,8 +113,20 @@ jobs:
           apt-get --simulate install --no-install-recommends "${webkit_packages[@]}"
           sudo apt-get install -y --no-install-recommends "${webkit_packages[@]}"
 
+      - name: Inspect WebKit child process libraries
+        working-directory: dev-packages/browser-integration-tests
+        run: |
+          webkit_root=$(dirname "$(node -p "require('@playwright/test').webkit.executablePath()")")
+          export LD_LIBRARY_PATH="$webkit_root/minibrowser-wpe/lib:$webkit_root/minibrowser-wpe/sys/lib"
+          for webkit_binary in "$webkit_root/minibrowser-wpe/bin/"*; do
+            echo "$webkit_binary"
+            ldd "$webkit_binary" || true
+          done
+
       - name: Check browser launch without system dependencies
         working-directory: dev-packages/browser-integration-tests
+        env:
+          DEBUG: pw:browser
         run: |
           node <<'JS'
           const browserType = require('@playwright/test')[process.env.PLAYWRIGHT_BROWSER];
