@@ -100,6 +100,13 @@ export function handleStreamingTunnelEvent(event: unknown, responseStream: unkno
     })
     .catch(error => {
       DEBUG_BUILD && debug.error('Sentry tunnel: failed to answer a streaming tunnel request', error);
+      // Lambda holds an unended stream until the function timeout.
+      try {
+        awslambda?.HttpResponseStream.from(responseStream, { statusCode: 502, headers: {} }).end();
+      } catch {
+        // `from` already wrote the metadata, so only ending the stream is left.
+        (responseStream as { end(): void }).end();
+      }
     });
 }
 

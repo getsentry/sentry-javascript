@@ -1,6 +1,7 @@
 import { InvokeCommand } from '@aws-sdk/client-lambda';
 import type { LambdaClient } from '@aws-sdk/client-lambda';
 import { waitForError } from '@sentry-internal/test-utils';
+import { createServer } from 'node:http';
 import { getTunnelPath } from '@sentry/aws-serverless';
 import { getHostIp } from '../src/stack';
 import { expect, test } from './lambda-fixtures';
@@ -163,5 +164,35 @@ test.describe('managed tunnel', () => {
     expect(result.functionError).toBeUndefined();
     expect(Date.now() - startedAt).toBeLessThan(8_000);
     expect(result.payload).toBe('Failed to forward envelope to Sentry');
+  });
+
+  test('ends the stream with an error answer when the answer from Sentry breaks off', async ({ lambdaClient }) => {
+    // Answers 200, then drops the connection before the body is complete.
+    const ingest = createServer((req, res) => {
+      req.resume();
+      req.on('end', () => {
+        res.writeHead(200, { 'content-type': 'application/json', 'content-length': '100' });
+        res.write('{"id":');
+        setTimeout(() => res.socket?.destroy(), 50);
+      });
+    }).listen(3033, '0.0.0.0');
+
+    try {
+      const dsn = await getDsn(3033);
+      const startedAt = Date.now();
+
+      const result = await invoke(
+        lambdaClient,
+        'NpmTunnelNodeStreamingBrokenAnswer',
+        makeHttpEvent('apiGatewayV2', getTunnelPath(dsn)!, makeEnvelope(dsn, 'broken-answer')),
+      );
+
+      // An unended stream would hold the invocation until the 10s function timeout.
+      expect(result.functionError).toBeUndefined();
+      expect(Date.now() - startedAt).toBeLessThan(8_000);
+      expect(result.payload).not.toContain('app');
+    } finally {
+      ingest.close();
+    }
   });
 });
