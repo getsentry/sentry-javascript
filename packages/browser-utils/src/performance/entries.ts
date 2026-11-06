@@ -218,6 +218,13 @@ interface AddPerformanceEntriesOptions {
   ignoreResourceSpans: Array<'resource.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
 
   /**
+   * Minimum duration in milliseconds a resource span must have to be emitted.
+   *
+   * Default: 0
+   */
+  resourceMinDuration?: number;
+
+  /**
    * Whether span streaming is enabled.
    */
   spanStreamingEnabled?: boolean;
@@ -231,7 +238,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
     return;
   }
 
-  const { spanStreamingEnabled, ignoreResourceSpans } = options;
+  const { spanStreamingEnabled, ignoreResourceSpans, resourceMinDuration } = options;
 
   const performanceEntries = performance.getEntries();
 
@@ -272,6 +279,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
           duration,
           ignoreResourceSpans,
           spanStreamingEnabled,
+          resourceMinDuration,
         );
         break;
       }
@@ -446,6 +454,7 @@ export function _addResourceSpans(
   duration: number,
   ignoredResourceSpanOps?: Array<string>,
   spanStreamingEnabled?: boolean,
+  resourceMinDuration?: number,
 ): void {
   // we already instrument based on fetch and xhr, so we don't need to
   // duplicate spans here.
@@ -455,6 +464,10 @@ export function _addResourceSpans(
 
   const op = entry.initiatorType ? `resource.${entry.initiatorType}` : RESOURCE_OTHER;
   if (ignoredResourceSpanOps?.includes(op)) {
+    return;
+  }
+
+  if (resourceMinDuration && duration < msToSec(resourceMinDuration)) {
     return;
   }
 
