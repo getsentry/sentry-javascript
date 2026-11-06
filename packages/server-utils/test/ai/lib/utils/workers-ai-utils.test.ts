@@ -13,6 +13,7 @@ import {
   GEN_AI_REQUEST_TOP_K,
   GEN_AI_REQUEST_TOP_P,
   GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
@@ -369,6 +370,64 @@ describe('workers-ai utils', () => {
           },
         ]),
       );
+    });
+
+    it('records text and finish reason from OpenAI chat-completion responses', () => {
+      const { span, attributes } = createMockSpan();
+
+      addResponseAttributes(
+        span,
+        {
+          object: 'chat.completion',
+          choices: [{ index: 0, message: { role: 'assistant', content: 'Hello there!' }, finish_reason: 'stop' }],
+          usage: { prompt_tokens: 19, completion_tokens: 4, total_tokens: 23 },
+        },
+        true,
+      );
+
+      expect(attributes).toEqual({
+        [GEN_AI_RESPONSE_TEXT]: 'Hello there!',
+        [GEN_AI_RESPONSE_FINISH_REASONS]: JSON.stringify(['stop']),
+        [GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+          { role: 'assistant', parts: [{ type: 'text', content: 'Hello there!' }], finish_reason: 'stop' },
+        ]),
+        [GEN_AI_USAGE_INPUT_TOKENS]: 19,
+        [GEN_AI_USAGE_OUTPUT_TOKENS]: 4,
+        [GEN_AI_USAGE_TOTAL_TOKENS]: 23,
+      });
+    });
+
+    it('records tool calls from OpenAI chat-completion responses with null content', () => {
+      const { span, attributes } = createMockSpan();
+      const toolCalls = [
+        { id: 'call_1', type: 'function', function: { name: 'lookup', arguments: '{"city":"Paris"}' } },
+      ];
+
+      addResponseAttributes(
+        span,
+        { choices: [{ message: { content: null, tool_calls: toolCalls }, finish_reason: 'tool_calls' }] },
+        true,
+      );
+
+      expect(attributes).toEqual({
+        [GEN_AI_RESPONSE_TOOL_CALLS]: JSON.stringify(toolCalls),
+        [GEN_AI_RESPONSE_FINISH_REASONS]: JSON.stringify(['tool_calls']),
+        [GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+          {
+            role: 'assistant',
+            parts: [{ type: 'tool_call', id: 'call_1', name: 'lookup', arguments: '{"city":"Paris"}' }],
+            finish_reason: 'tool_calls',
+          },
+        ]),
+      });
+    });
+
+    it('records only the finish reason from OpenAI chat-completion responses when recordOutputs is false', () => {
+      const { span, attributes } = createMockSpan();
+
+      addResponseAttributes(span, { choices: [{ message: { content: 'Hi' }, finish_reason: 'stop' }] }, false);
+
+      expect(attributes).toEqual({ [GEN_AI_RESPONSE_FINISH_REASONS]: JSON.stringify(['stop']) });
     });
 
     it('does not set output messages when recordOutputs is false', () => {

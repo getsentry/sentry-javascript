@@ -39,5 +39,15 @@ export interface WorkersAiInput {
 export interface WorkersAiOutput {
   response?: unknown;
   tool_calls?: unknown[];
+  // OpenAI chat-completion format, returned by newer models instead of `response`/`tool_calls`.
+  choices?: WorkersAiChoice[];
   usage?: WorkersAiUsage;
+}
+
+/**
+ * The (subset of) a choice in the OpenAI chat-completion format that we read from.
+ */
+export interface WorkersAiChoice {
+  message?: { content?: unknown; tool_calls?: unknown[] };
+  finish_reason?: unknown;
 }
