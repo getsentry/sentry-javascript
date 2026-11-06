@@ -210,10 +210,10 @@ export function isServedTunnelRequest(request: TunnelRequestLike, client?: Clien
 }
 
 /**
- * The served tunnel, if the SDK answers this request on it.
+ * The served tunnel, if the SDK answers this request on it. `client` defaults to the active one.
  */
-export function getServedTunnelMatch(request: TunnelRequestLike): ServedTunnel | undefined {
-  const servedTunnel = matchServedTunnel(request);
+export function getServedTunnelMatch(request: TunnelRequestLike, client?: Client): ServedTunnel | undefined {
+  const servedTunnel = matchServedTunnel(request, client);
 
   return servedTunnel?.intercept ? servedTunnel : undefined;
 }
@@ -232,13 +232,14 @@ function matchServedTunnel(request: TunnelRequestLike, client?: Client): ServedT
  * runtime and framework SDKs answer tunnel requests with it, ahead of the app.
  *
  * It never throws, since a throw here would break the app's own requests. Until a request is claimed, a failure hands
- * it to the app. Once claimed, its body may be read already, so a failure ends in a 502 instead.
+ * it to the app. Once claimed, its body may be read already, so a failure ends in a 502 instead. `client` defaults to
+ * the active one.
  */
-export function handleServedTunnelRequest(request: Request): Promise<Response> | undefined {
+export function handleServedTunnelRequest(request: Request, client?: Client): Promise<Response> | undefined {
   let servedTunnel: ServedTunnel | undefined | null;
   try {
-    // An envelope always has a body. Nuxt's Cloudflare plugin passes a copy without one, which its app answers later.
-    servedTunnel = request.body && getServedTunnelMatch(request);
+    // An envelope always has a body, so a request without one is never a tunnel request.
+    servedTunnel = request.body && getServedTunnelMatch(request, client);
     if (!servedTunnel) {
       return undefined;
     }
