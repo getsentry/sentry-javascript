@@ -21,6 +21,8 @@ interface WorkersAiStreamChunk {
   tool_calls?: unknown[];
   // OpenAI-compatible streaming shape emitted for models routed through the
   // OpenAI-compatible endpoint (e.g. via `workers-ai-provider`).
+  id?: unknown;
+  model?: unknown;
   choices?: Array<{
     delta?: { content?: unknown; tool_calls?: WorkersAiStreamingToolCall[] };
     finish_reason?: unknown;
@@ -82,6 +84,7 @@ function processLine(
   state: StreamResponseState,
   recordOutputs: boolean,
   toolCallAccumulator: Record<number, WorkersAiStreamingToolCall>,
+  choiceTexts: string[],
 ): void {
   const trimmed = line.trim();
   if (!trimmed.startsWith('data:')) {
@@ -121,9 +124,16 @@ function processLine(
   }
 
   if (Array.isArray(parsed.choices)) {
+    if (typeof parsed.id === 'string') {
+      state.responseId = parsed.id;
+    }
+    if (typeof parsed.model === 'string') {
+      state.responseModel = parsed.model;
+    }
+
     for (const choice of parsed.choices) {
       if (recordOutputs && typeof choice.delta?.content === 'string' && choice.delta.content) {
-        state.responseTexts.push(choice.delta.content);
+        choiceTexts.push(choice.delta.content);
       }
       if (recordOutputs && Array.isArray(choice.delta?.tool_calls)) {
         accumulateStreamingToolCalls(choice.delta.tool_calls, toolCallAccumulator);
@@ -164,6 +174,10 @@ export function instrumentWorkersAiStream(
   // accumulate them here and flatten into `state.toolCalls` once the stream ends.
   const toolCallAccumulator: Record<number, WorkersAiStreamingToolCall> = {};
 
+  // Kept out of `state.responseTexts` so `endStreamSpan` does not set the deprecated
+  // `gen_ai.response.text` for this shape.
+  const choiceTexts: string[] = [];
+
   let buffer = '';
   let spanEnded = false;
 
@@ -182,8 +196,9 @@ export function instrumentWorkersAiStream(
       // Set the authoritative `gen_ai.output.messages` alongside the deprecated response
       // attributes `endStreamSpan` writes, so tool calls survive Relay's lossy migration.
       setOutputMessagesAttribute(span, {
-        responseText: state.responseTexts.join(''),
+        responseText: [...state.responseTexts, ...choiceTexts].join(''),
         toolCalls: state.toolCalls,
+        finishReason: state.finishReasons[0],
       });
     }
 
@@ -195,7 +210,7 @@ export function instrumentWorkersAiStream(
     // Keep the last (potentially incomplete) line in the buffer unless the stream is done.
     buffer = isDone ? '' : (lines.pop() ?? '');
     for (const line of lines) {
-      processLine(line, state, recordOutputs, toolCallAccumulator);
+      processLine(line, state, recordOutputs, toolCallAccumulator, choiceTexts);
     }
   };
 

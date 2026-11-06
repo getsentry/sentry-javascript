@@ -391,7 +391,6 @@ describe('workers-ai utils', () => {
       expect(attributes).toEqual({
         [GEN_AI_RESPONSE_ID]: 'chatcmpl-1',
         [GEN_AI_RESPONSE_MODEL]: '@cf/google/gemma-4-26b-a4b-it',
-        [GEN_AI_RESPONSE_TEXT]: 'Hello there!',
         [GEN_AI_RESPONSE_FINISH_REASONS]: JSON.stringify(['stop']),
         [GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
           { role: 'assistant', parts: [{ type: 'text', content: 'Hello there!' }], finish_reason: 'stop' },

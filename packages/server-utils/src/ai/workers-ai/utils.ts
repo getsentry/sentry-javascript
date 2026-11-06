@@ -260,11 +260,6 @@ function addChoicesResponseAttributes(span: Span, choices: WorkersAiChoice[], re
     finishReason: typeof finish_reason === 'string' ? finish_reason : undefined,
   }));
 
-  const responseText = messages.map(message => message.responseText ?? '').join('');
-  if (responseText) {
-    span.setAttribute(GEN_AI_RESPONSE_TEXT, responseText);
-  }
-
   const toolCalls = messages.flatMap(message => message.toolCalls ?? []);
   if (toolCalls.length > 0) {
     span.setAttribute(GEN_AI_RESPONSE_TOOL_CALLS, JSON.stringify(toolCalls));
