@@ -59,6 +59,11 @@
       "import": "./build/esm/babel-plugin/index.js",
       "require": "./build/cjs/babel-plugin/index.js"
     },
+    "./rewriter": {
+      "types": "./build/types/rewriter/index.d.ts",
+      "import": "./build/esm/rewriter/index.js",
+      "require": "./build/cjs/rewriter/index.js"
+    },
     "./sentry-release-injection-file": {
       "import": "./sentry-release-injection-file.js",
       "require": "./sentry-release-injection-file.js"
