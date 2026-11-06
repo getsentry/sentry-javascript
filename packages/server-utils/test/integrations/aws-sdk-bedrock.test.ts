@@ -172,6 +172,28 @@ describe('BedrockRuntimeServiceExtension stream spans', () => {
     expect(spanToJSON(span).attributes?.[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(42);
   });
 
+  it.each([
+    { modelId: 'mistral.mistral-large-2402-v1:0', toChunk: (text: string) => ({ outputs: [{ text }] }) },
+    { modelId: 'cohere.command-text-v14', toChunk: (text: string) => ({ generations: [{ text }] }) },
+    { modelId: 'cohere.command-r-plus-v1:0', toChunk: (text: string) => ({ text }) },
+  ])('estimates $modelId stream output tokens from the text of all chunks', async ({ modelId, toChunk }) => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const encoder = new TextEncoder();
+    const data = {
+      body: (async function* () {
+        for (const text of ['Answer:', 'Paris']) {
+          yield { chunk: { bytes: encoder.encode(JSON.stringify(toChunk(text))) } };
+        }
+      })(),
+    };
+
+    respond(span, 'InvokeModelWithResponseStream', { modelId }, data);
+    await drain(data.body);
+
+    // 12 characters at 6 characters per token.
+    expect(spanToJSON(span).attributes?.[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(2);
+  });
+
   it('ends an InvokeModelWithResponseStream span without a modelId when the stream is drained', async () => {
     const span = startInactiveSpan({ name: 'bedrock' });
     const data = { body: (async function* () {})() };

@@ -373,6 +373,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     // Resolved once: the model family is fixed for the whole stream, and for unrecognized families
     // the chunks don't need to be parsed at all.
     const recordAttributes = typeof modelId === 'string' ? resolveStreamRecorder(modelId) : undefined;
+    const state: StreamState = { outputTextLength: 0 };
 
     // Replace the original response body with our instrumented stream, deferring span.end() until the
     // entire stream is consumed. Downstream consumers still receive the full stream.
@@ -382,7 +383,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
           if (recordAttributes) {
             const parsedChunk = parseChunk(chunk?.chunk?.bytes);
             if (parsedChunk) {
-              recordAttributes(parsedChunk, span);
+              recordAttributes(parsedChunk, span, state);
             }
           }
           yield chunk;
@@ -397,7 +398,14 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
   }
 }
 
-function resolveStreamRecorder(modelId: string): ((parsedChunk: ParsedChunk, span: Span) => void) | undefined {
+interface StreamState {
+  // Models that send no output token count get an estimate from the text of all chunks.
+  outputTextLength: number;
+}
+
+function resolveStreamRecorder(
+  modelId: string,
+): ((parsedChunk: ParsedChunk, span: Span, state: StreamState) => void) | undefined {
   if (modelId.includes('amazon.titan')) return recordTitanAttributes;
   if (modelId.includes('anthropic.claude')) return recordClaudeAttributes;
   if (modelId.includes('amazon.nova')) return recordNovaAttributes;
@@ -542,27 +550,30 @@ function recordLlamaAttributes(parsedChunk: ParsedChunk, span: Span): void {
   }
 }
 
-function recordMistralAttributes(parsedChunk: ParsedChunk, span: Span): void {
+function recordMistralAttributes(parsedChunk: ParsedChunk, span: Span, state: StreamState): void {
   if (parsedChunk.outputs?.[0]?.text !== undefined) {
-    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(parsedChunk.outputs[0].text.length / 6));
+    state.outputTextLength += parsedChunk.outputs[0].text.length;
+    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(state.outputTextLength / 6));
   }
   if (parsedChunk.outputs?.[0]?.stop_reason !== undefined) {
     span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.outputs[0].stop_reason]);
   }
 }
 
-function recordCohereAttributes(parsedChunk: ParsedChunk, span: Span): void {
+function recordCohereAttributes(parsedChunk: ParsedChunk, span: Span, state: StreamState): void {
   if (parsedChunk.generations?.[0]?.text !== undefined) {
-    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(parsedChunk.generations[0].text.length / 6));
+    state.outputTextLength += parsedChunk.generations[0].text.length;
+    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(state.outputTextLength / 6));
   }
   if (parsedChunk.generations?.[0]?.finish_reason !== undefined) {
     span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.generations[0].finish_reason]);
   }
 }
 
-function recordCohereRAttributes(parsedChunk: ParsedChunk, span: Span): void {
+function recordCohereRAttributes(parsedChunk: ParsedChunk, span: Span, state: StreamState): void {
   if (parsedChunk.text !== undefined) {
-    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(parsedChunk.text.length / 6));
+    state.outputTextLength += parsedChunk.text.length;
+    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(state.outputTextLength / 6));
   }
   if (parsedChunk.finish_reason !== undefined) {
     span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.finish_reason]);
