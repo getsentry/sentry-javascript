@@ -196,6 +196,26 @@ describe('appRouterInstrumentNavigation (router-patch mode)', () => {
       expect(core.spanToJSON(pushSpan!).end_timestamp).toBeDefined();
     });
 
+    it('records a protocol-relative `router.push()` target as an external URL', async () => {
+      const { core, router } = await setup(traceLifecycle);
+
+      router.push('//cdn.example.com/x');
+
+      expect(core.spanToJSON(core.getActiveSpan()!).attributes).toEqual(
+        expect.objectContaining({ [URL_FULL]: 'http://cdn.example.com/x' }),
+      );
+    });
+
+    it('records a protocol-relative transition-start-hook target as an external URL', async () => {
+      const { core, instrumentation } = await setup(traceLifecycle);
+
+      instrumentation.captureRouterTransitionStart('//cdn.example.com/x', 'push');
+
+      expect(core.spanToJSON(core.getActiveSpan()!).attributes).toEqual(
+        expect.objectContaining({ [URL_FULL]: 'http://cdn.example.com/x' }),
+      );
+    });
+
     it('tags a popstate without a preceding router call with `browser.popstate`', async () => {
       const { core } = await setup(traceLifecycle);
 
@@ -257,6 +277,16 @@ describe('appRouterInstrumentNavigation with basePath', () => {
     expect(spanJson.name).toBe('/my-app/navigation/:param/router-push');
     expect(spanJson.attributes).toEqual(
       expect.objectContaining({ 'url.full': 'http://localhost:3000/my-app/navigation/42/router-push' }),
+    );
+  });
+
+  it('records a `//` target as a path under basePath, like Next.js does', async () => {
+    const { core, router } = await setup('static');
+
+    router.push('//cdn.example.com/x');
+
+    expect(core.spanToJSON(core.getActiveSpan()!).attributes).toEqual(
+      expect.objectContaining({ [URL_FULL]: 'http://localhost:3000/my-app//cdn.example.com/x' }),
     );
   });
 
