@@ -1,6 +1,6 @@
 import type { Scope } from '@sentry/core';
 import { debug } from '@sentry/core';
-import { captureException, captureMessage, flush, getCurrentScope, withScope } from '@sentry/node';
+import { captureException, captureMessage, flush, getCurrentScope, withIsolationScope, withScope } from '@sentry/node';
 import type { Context, Handler, StreamifyHandler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
 import { types } from 'util';
@@ -164,8 +164,6 @@ export function wrapHandler<TEvent, TResult>(
     return wrapStreamingHandler(handler, options, START_TIME);
   }
 
-  let timeoutWarningTimer: NodeJS.Timeout | undefined;
-
   // AWSLambda is like Express. It makes a distinction about handlers based on its last argument
   // async (event) => async handler
   // async (event, context) => async handler
@@ -194,9 +192,8 @@ export function wrapHandler<TEvent, TResult>(
   return async (event: TEvent, context: Context) => {
     context.callbackWaitsForEmptyEventLoop = options.callbackWaitsForEmptyEventLoop;
 
-    timeoutWarningTimer = setupTimeoutWarning(context, options);
-
     async function processResult(): Promise<TResult> {
+      const timeoutWarningTimer = setupTimeoutWarning(context, options);
       const scope = getCurrentScope();
 
       let rv: TResult;
@@ -226,7 +223,7 @@ export function wrapHandler<TEvent, TResult>(
       return rv;
     }
 
-    return withScope(async () => {
+    return withIsolationScope(async () => {
       return processResult();
     });
   };
@@ -237,8 +234,6 @@ function wrapStreamingHandler<TEvent, TResult>(
   options: WrapperOptions,
   startTime: number,
 ): StreamifyHandler<TEvent, TResult> {
-  let timeoutWarningTimer: NodeJS.Timeout | undefined;
-
   const wrappedHandler = async (
     event: TEvent,
     responseStream: Parameters<StreamifyHandler<TEvent, TResult>>[1],
@@ -246,9 +241,8 @@ function wrapStreamingHandler<TEvent, TResult>(
   ): Promise<TResult> => {
     context.callbackWaitsForEmptyEventLoop = options.callbackWaitsForEmptyEventLoop;
 
-    timeoutWarningTimer = setupTimeoutWarning(context, options);
-
     async function processStreamingResult(): Promise<TResult> {
+      const timeoutWarningTimer = setupTimeoutWarning(context, options);
       const scope = getCurrentScope();
 
       try {
@@ -274,7 +268,7 @@ function wrapStreamingHandler<TEvent, TResult>(
       }
     }
 
-    return withScope(() => processStreamingResult());
+    return withIsolationScope(() => processStreamingResult());
   };
 
   const handlerWithSymbols = handler as unknown as Record<symbol, unknown>;
