@@ -1,15 +1,12 @@
 import { _INTERNAL_setTunnelDefaults as setTunnelDefaults } from '@sentry/core/server';
 
 /**
- * Serves the managed tunnel under the app's `basename`, which React Router leaves in the request URL. The runtime
- * answers the requests, so it adds no routes. `sentryReactRouter()` calls it from the server build. Not meant to be
- * used directly.
+ * Serves the managed tunnel under the app's `basename`, which React Router leaves in the request URL.
+ * `sentryReactRouter()` calls it from the server build.
  *
  * @param basename The app's `basename`.
  */
-export function createSentryTunnelRoutes(basename?: string): Record<string, Record<string, unknown>> {
+export function setTunnelBasePath(basename?: string): void {
   // Runs when the server build loads. Clients created later, e.g. per request on Cloudflare, start with the basename.
   setTunnelDefaults({ basePath: basename });
-
-  return {};
 }

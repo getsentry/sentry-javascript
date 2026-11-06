@@ -5,7 +5,6 @@ import {
   _INTERNAL_forwardTunnelRequest as forwardTunnelRequest,
   _INTERNAL_setTunnelDefaults as setTunnelDefaults,
 } from '@sentry/core/server';
-import type { ServerEntry } from './wrapFetchWithSentry';
 
 const registeredTunnelRoutePaths = new Set<string>();
 
@@ -97,23 +96,15 @@ export function createSentryTunnelRoute(options: CreateSentryTunnelRouteOptions)
 }
 
 /**
- * Enables the managed tunnel for the server entry, which the runtime then answers. The `sentryTanstackStart` Vite
- * plugin applies this to the app's server entry automatically, with its `tunnelRoute` and the base path Start routes
- * on.
+ * Enables the managed tunnel when the server entry loads, which the runtime then answers. The `sentryTanstackStart`
+ * Vite plugin calls this from the app's server entry, with its `tunnelRoute` and the base path Start routes on.
  *
  * `tunnelRoute` enables the managed tunnel on every server client the same way `serveTunnelIntegration` does, unless
  * that integration is set up too, and the tunnel is then served from the client's config like in every other SDK.
  *
  * @internal Only the code the Vite plugin generates calls this, so its parameters can change at any time.
  */
-export function wrapServerEntryWithSentryTunnel<T extends ServerEntry>(
-  entry: T,
-  tunnelRoute?: ServerTunnelOptions,
-  basePath?: string,
-): T {
-  // Runs when the server entry loads, before any request. Requests still carry Start's base path, so the tunnel is
-  // served under it.
+export function setTunnelRoute(tunnelRoute?: ServerTunnelOptions, basePath?: string): void {
+  // Requests still carry Start's base path, so the tunnel is served under it.
   setTunnelDefaults({ tunnel: tunnelRoute, forward: forwardTunnelRequest, basePath });
-
-  return entry;
 }
