@@ -1,5 +1,11 @@
 // @vitest-environment jsdom
-import { SENTRY_LINK_TYPE, SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  PAGE_SERVER_RENDERING_TYPE,
+  SENTRY_LINK_TYPE,
+  SENTRY_OP,
+  URL_FULL,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
 import { PAGELOAD } from '@sentry/conventions/op';
 import type { Client } from '@sentry/core';
 import type * as SentryCore from '@sentry/core';
@@ -405,7 +411,7 @@ describe('appRouterInstrumentPageLoad', () => {
 
     const spanJson = core.spanToJSON(core.getActiveSpan()!);
     expect(spanJson.attributes?.[SENTRY_OP]).toBe(PAGELOAD);
-    expect(spanJson.attributes?.['page.server_rendering.type']).toBe('static');
+    expect(spanJson.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toBe('static');
     expect(spanJson.trace_id).not.toBe(PRERENDER_TRACE_ID);
     expect(spanJson.links).toEqual([PRERENDER_LINK]);
   });
@@ -423,7 +429,7 @@ describe('appRouterInstrumentPageLoad', () => {
     const spanJson = core.spanToJSON(core.getActiveSpan()!);
     expect(spanJson.trace_id).toBe('22222222222222222222222222222222');
     expect(spanJson.parent_span_id).toBe('2222222222222222');
-    expect(spanJson.attributes?.['page.server_rendering.type']).toBe('partially_static');
+    expect(spanJson.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toBe('partially_static');
     expect(spanJson.links).toEqual([PRERENDER_LINK]);
   });
 
@@ -436,7 +442,7 @@ describe('appRouterInstrumentPageLoad', () => {
 
     const spanJson = core.spanToJSON(core.getActiveSpan()!);
     expect(spanJson.attributes?.[SENTRY_OP]).toBe(PAGELOAD);
-    expect(spanJson.attributes).not.toHaveProperty('page.server_rendering.type');
+    expect(spanJson.attributes).not.toHaveProperty(PAGE_SERVER_RENDERING_TYPE);
     expect(spanJson.links).toEqual([PRERENDER_LINK]);
   });
 

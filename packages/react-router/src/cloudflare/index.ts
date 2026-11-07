@@ -1,7 +1,7 @@
 export * from '../client';
 
 export { wrapSentryHandleRequest } from '../server/wrapSentryHandleRequest';
-export { createSentryTunnelRoutes } from '../server/tunnelRoute';
+export { setTunnelBasePath as _INTERNAL_setTunnelBasePath } from '../server/tunnelRoute';
 export {
   createSentryServerInstrumentation,
   type CreateSentryServerInstrumentationOptions,

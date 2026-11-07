@@ -5,6 +5,7 @@ import type { Context, Handler, StreamifyHandler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
 import { types } from 'util';
 import { DEBUG_BUILD } from './debug-build';
+import { handleStreamingTunnelEvent, handleTunnelEvent } from './tunnel';
 import { markEventUnhandled } from './utils';
 
 const { isPromise } = types;
@@ -192,6 +193,12 @@ export function wrapHandler<TEvent, TResult>(
       : (handler as AsyncHandler<Handler<TEvent, TResult>>);
 
   return async (event: TEvent, context: Context) => {
+    // Lambda runs no HTTP server, so tunnel requests are answered here, before the handler.
+    const tunnelResult = handleTunnelEvent(event);
+    if (tunnelResult) {
+      return tunnelResult as Promise<TResult>;
+    }
+
     context.callbackWaitsForEmptyEventLoop = options.callbackWaitsForEmptyEventLoop;
 
     timeoutWarningTimer = setupTimeoutWarning(context, options);
@@ -244,6 +251,11 @@ function wrapStreamingHandler<TEvent, TResult>(
     responseStream: Parameters<StreamifyHandler<TEvent, TResult>>[1],
     context: Context,
   ): Promise<TResult> => {
+    const tunnelAnswer = handleStreamingTunnelEvent(event, responseStream);
+    if (tunnelAnswer) {
+      return tunnelAnswer as Promise<TResult>;
+    }
+
     context.callbackWaitsForEmptyEventLoop = options.callbackWaitsForEmptyEventLoop;
 
     timeoutWarningTimer = setupTimeoutWarning(context, options);
