@@ -12,14 +12,15 @@ export const vercelAiConfig = [
   // not to span it, but so the subscriber can monkey-patch `doGenerate`/
   // `doStream` on the returned model (the only way to span the model call,
   // which is an inline call with no injectable definition in `ai`).
-  // `streamText` returns its result synchronously (streaming is lazy), so it's
-  // `Sync`; the subscriber binds the span via `bindTracingChannelToSpan`, which
-  // ends it when the (synchronous) call returns.
+  // `streamText` and `streamObject` return their result synchronously (streaming
+  // is lazy), so they're `Sync`; the subscriber binds the span via
+  // `bindTracingChannelToSpan`, which ends it when the (synchronous) call returns.
 
   // The majority of entrypoints are present in all versions we support
   ...vercelAiEntries('>=4.0.0 <7.0.0', 'generateText', 'generateText', 'Async'),
   ...vercelAiEntries('>=4.0.0 <7.0.0', 'streamText', 'streamText', 'Sync'),
   ...vercelAiEntries('>=4.0.0 <7.0.0', 'generateObject', 'generateObject', 'Async'),
+  ...vercelAiEntries('>=4.0.0 <7.0.0', 'streamObject', 'streamObject', 'Sync'),
   ...vercelAiEntries('>=4.0.0 <7.0.0', 'embed', 'embed', 'Async'),
   ...vercelAiEntries('>=4.0.0 <7.0.0', 'embedMany', 'embedMany', 'Async'),
 
@@ -40,6 +41,7 @@ export const vercelAiChannels = {
   VERCEL_AI_GENERATE_TEXT: 'orchestrion:ai:generateText',
   VERCEL_AI_STREAM_TEXT: 'orchestrion:ai:streamText',
   VERCEL_AI_GENERATE_OBJECT: 'orchestrion:ai:generateObject',
+  VERCEL_AI_STREAM_OBJECT: 'orchestrion:ai:streamObject',
   VERCEL_AI_EMBED: 'orchestrion:ai:embed',
   VERCEL_AI_EMBED_MANY: 'orchestrion:ai:embedMany',
   VERCEL_AI_EXECUTE_TOOL_CALL: 'orchestrion:ai:executeToolCall',

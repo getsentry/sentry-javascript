@@ -150,6 +150,7 @@ export function subscribeVercelAiOrchestrionChannels(
     bindOperation(tracingChannel, CHANNELS.VERCEL_AI_GENERATE_TEXT, buildTextMessage('generateText'), options);
     bindOperation(tracingChannel, CHANNELS.VERCEL_AI_STREAM_TEXT, buildTextMessage('streamText'), options);
     bindOperation(tracingChannel, CHANNELS.VERCEL_AI_GENERATE_OBJECT, buildTextMessage('generateObject'), options);
+    bindOperation(tracingChannel, CHANNELS.VERCEL_AI_STREAM_OBJECT, buildTextMessage('streamObject'), options);
     bindOperation(
       tracingChannel,
       CHANNELS.VERCEL_AI_EMBED,
@@ -305,33 +306,35 @@ function bindOperation(
           message.result = message.type === 'executeTool' ? { output: data.result } : data.result;
           enrichSpanOnEnd(span, message, options);
         }
-        // A `streamText` model call runs after this (synchronously-returning) operation's span has
-        // already ended, so its `callId` entry must outlive the operation — it's cleared once the model
-        // call settles (see `patchModelMethod`). Every other operation can clear here.
-        if (message.type !== 'streamText') {
+        // A `streamText`/`streamObject` model call runs after this (synchronously-returning) operation's
+        // span has already ended, so its `callId` entry must outlive the operation — it's cleared once the
+        // model call settles (see `patchModelMethod`). Every other operation can clear here.
+        if (!isStreamOperation(message.type)) {
           clearOperationId(message);
         }
         messages.delete(data);
       },
-      // `streamText` returns synchronously, so its operation span would otherwise end before the stream
-      // drains — losing the aggregate usage/output. Defer the end and await the result's completion
-      // promises (`totalUsage`/`text`/…, which resolve on drain), mirroring how v7's channel defers the
-      // operation span on the SDK's total-usage promise.
-      deferSpanEnd: ({ data, end }) => deferStreamTextOperationEnd(data, end),
+      // `streamText`/`streamObject` return synchronously, so their operation span would otherwise end
+      // before the stream drains — losing the aggregate usage/output. Defer the end and await the result's
+      // completion promises (`totalUsage`/`text`/…, which resolve on drain), mirroring how v7's channel
+      // defers the operation span on the SDK's total-usage promise.
+      deferSpanEnd: ({ data, end }) => deferStreamOperationEnd(data, end),
     },
   );
 }
 
 /**
- * Keep a streamed `streamText` operation span open until the stream drains, then enrich it from the
- * `StreamTextResult`'s completion promises (usage/output/finish reason) and end it. Returns `false` for
- * anything that isn't a streamed `streamText` result, so the helper ends the span as usual.
+ * Keep a streamed `streamText`/`streamObject` operation span open until the stream drains, then enrich it
+ * from the result's completion promises (usage/output/finish reason) and end it. A `StreamObjectResult`
+ * has no `text`/`toolCalls`/`totalUsage`, so those resolve to `undefined`. Returns `false` for anything
+ * that isn't a streamed result, so the helper ends the span as usual.
  */
-function deferStreamTextOperationEnd(
+function deferStreamOperationEnd(
   data: TracingChannelPayloadWithSpan<OrchestrionChannelContext>,
   end: (error?: unknown) => void,
 ): boolean {
-  if (messages.get(data)?.type !== 'streamText' || 'error' in data || !isStreamingResult(data.result)) {
+  const type = messages.get(data)?.type;
+  if (!type || !isStreamOperation(type) || 'error' in data || !isStreamingResult(data.result)) {
     return false;
   }
 
@@ -344,6 +347,8 @@ function deferStreamTextOperationEnd(
         streamResult.toolCalls,
         streamResult.finishReason,
         streamResult.response,
+        // Only `object` rejects when the output fails the schema; awaiting it fails the span like `generateObject`.
+        type === 'streamObject' ? streamResult.object : undefined,
       ]);
       // Feed the resolved values back through the shared enrichment: `beforeSpanEnd` reads `data.result`.
       data.result = { usage, text, toolCalls, finishReason, response };
@@ -356,7 +361,11 @@ function deferStreamTextOperationEnd(
   return true;
 }
 
-/** A `StreamTextResult` exposes its aggregates as promises (`totalUsage`/`usage`); a settled result does not. */
+function isStreamOperation(type: VercelAiChannelMessage['type']): boolean {
+  return type === 'streamText' || type === 'streamObject';
+}
+
+/** A streamed result exposes its aggregates as promises (`totalUsage`/`usage`); a settled result does not. */
 function isStreamingResult(result: unknown): result is Record<string, PromiseLike<unknown> | undefined> {
   return isObjectLike(result) && (isThenable(result.totalUsage) || isThenable(result.usage));
 }
@@ -502,8 +511,8 @@ function patchModelMethod(
       return Promise.resolve(original.apply(this, args));
     }
 
-    // `streamText` ends its operation span synchronously, so its `callId` entry was deliberately left in
-    // place for this later model call; drop it now that we've used it.
+    // `streamText`/`streamObject` end their operation span synchronously, so the `callId` entry was
+    // deliberately left in place for this later model call; drop it now that we've used it.
     const clearStreamCallId = (): void => {
       if (method === 'doStream' && callId) {
         clearOperationCallId(callId);
@@ -525,7 +534,7 @@ function patchModelMethod(
         // A streamed model call resolves to `{ stream, ... }` before the stream is consumed, so its
         // usage/finish/output only arrive as the stream drains. Tap it (same helper as the v7 path) and
         // defer ending this model-call span until then. The parent `invoke_agent` span is enriched
-        // separately by `deferStreamTextOperationEnd`, which awaits the operation's own result promises.
+        // separately by `deferStreamOperationEnd`, which awaits the operation's own result promises.
         if (method === 'doStream' && isObjectLike(value) && isReadableStream(value.stream)) {
           value.stream = tapModelCallStream(
             value.stream,
@@ -654,7 +663,7 @@ function patchToolExecute(
   };
 }
 
-function buildTextMessage(type: 'generateText' | 'streamText' | 'generateObject'): MessageBuilder {
+function buildTextMessage(type: 'generateText' | 'streamText' | 'generateObject' | 'streamObject'): MessageBuilder {
   return (options, telemetry) => ({
     type,
     event: {
