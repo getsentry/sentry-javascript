@@ -41,6 +41,8 @@ export function _resetDeployedReleasesForTesting(): void {
  * before the bundler writes them to disk. The upload reads from this folder, so the bundler can
  * drop the source map assets from its own output.
  */
+export type UploadResult = { uploaded: boolean; uploadedSourceMapPaths: string[] };
+
 export type UploadStaging = {
   readonly dir: string;
   /** Number of artifacts written so far. */
@@ -127,11 +129,14 @@ export type SentryBuildPluginManager = {
 
   /**
    * Uploads sourcemaps using the "Debug ID" method. This function takes a list of build artifact paths that will be uploaded
+   *
+   * `uploadedSourceMapPaths` lists the source maps read from disk that were uploaded. It is empty
+   * when nothing was uploaded, in direct mode (`prepareArtifacts: false`) and for staged artifacts.
    */
   uploadSourcemaps(
     buildArtifactPaths: string[],
     opts?: { prepareArtifacts?: boolean; staging?: UploadStaging },
-  ): Promise<{ uploaded: boolean }>;
+  ): Promise<UploadResult>;
 
   /**
    * Creates a staging folder that `uploadSourcemaps` uploads together with the build artifacts
@@ -232,7 +237,7 @@ export function createSentryBuildPluginManager(
       createRelease: async () => {
         /* noop */
       },
-      uploadSourcemaps: async () => ({ uploaded: false }),
+      uploadSourcemaps: async () => ({ uploaded: false, uploadedSourceMapPaths: [] }),
       createUploadStaging: async () => ({
         dir: '',
         count: 0,
@@ -655,16 +660,17 @@ export function createSentryBuildPluginManager(
     async uploadSourcemaps(
       buildArtifactPaths: string[],
       opts?: { prepareArtifacts?: boolean; staging?: UploadStaging },
-    ): Promise<{ uploaded: boolean }> {
+    ): Promise<UploadResult> {
       const staging = opts?.staging;
 
       if (!canUploadSourceMaps(options, logger, isDevMode)) {
         await staging?.discard();
-        return { uploaded: false };
+        return { uploaded: false, uploadedSourceMapPaths: [] };
       }
 
       const assets = options.sourcemaps?.assets;
       let uploaded = false;
+      const preparedSourceMapPaths: string[] = [];
 
       await startSpan(
         // This is `forceTransaction`ed because this span is used in dashboards in the form of indexed transactions.
@@ -763,7 +769,7 @@ export function createSentryBuildPluginManager(
                   // Preparing the bundles can be a lot of work and doing it all at once has the potential of nuking the heap so
                   // instead we do it with a maximum of 16 concurrent workers
                   const preparationTasks = debugIdChunkFilePaths.map((chunkFilePath, chunkIndex) => async () => {
-                    await prepareBundleForDebugIdUpload(
+                    const prepared = await prepareBundleForDebugIdUpload(
                       chunkFilePath,
                       tmpUploadFolder,
                       stagedCount + chunkIndex,
@@ -771,6 +777,9 @@ export function createSentryBuildPluginManager(
                       options.sourcemaps?.rewriteSources ?? defaultRewriteSourcesHook,
                       options.sourcemaps?.resolveSourceMap,
                     );
+                    if (prepared?.sourceMapPath !== undefined) {
+                      preparedSourceMapPaths.push(prepared.sourceMapPath);
+                    }
                   });
                   const workers: Promise<void>[] = [];
                   const worker = async (): Promise<void> => {
@@ -859,7 +868,7 @@ export function createSentryBuildPluginManager(
         },
       );
 
-      return { uploaded };
+      return { uploaded, uploadedSourceMapPaths: uploaded ? preparedSourceMapPaths.sort() : [] };
     },
 
     async createUploadStaging(): Promise<UploadStaging> {
