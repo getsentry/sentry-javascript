@@ -66,19 +66,22 @@ runs:
           libopus0
           libwayland-server0
         )
-        # Save the package list for the install step, which runs in a separate shell.
+        # Resolve now and install after restoring the cache; share the package list across both steps.
         printf '%s\n' "${packages[@]}" > "$RUNNER_TEMP/webkit-apt-packages"
-        # Keep installers accessible to apt's sandbox user.
+        # runner.temp is private, so keep installers where apt's sandbox user can access them.
         mkdir -p /var/tmp/webkit-apt-cache
 
         sudo apt-get update
-        # Resolve downloads before restoring the cache so cached files don't affect the key.
+        # Ask apt which installers it needs, including dependencies, without downloading them.
+        # Do this before restoring cached files so the key describes the full download set.
         plan=$(sudo apt-get \
           -o Dir::Cache::archives=/var/tmp/webkit-apt-cache \
           --print-uris --download-only -y --no-install-recommends \
           install "${packages[@]}")
+        # Hash only download records, in a stable order, so package updates produce a new key.
         hash=$(printf '%s\n' "$plan" | sed -n "/^'/p" | LC_ALL=C sort | sha256sum | cut -d ' ' -f1)
 
+        # Separate Ubuntu versions and architectures, while allowing older package sets as fallbacks.
         . /etc/os-release
         prefix="webkit-apt-$ID-$VERSION_ID-${{ runner.arch }}-v1-"
         echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
@@ -92,21 +95,22 @@ runs:
       with:
         path: /var/tmp/webkit-apt-cache/*.deb
         key: ${{ steps.webkit-dependencies.outputs.key }}
-        # Older caches can still supply packages whose versions haven't changed.
+        # If this exact package set isn't cached, reuse an older set; apt downloads only what's missing.
         restore-keys: ${{ steps.webkit-dependencies.outputs.prefix }}
 
     - name: Install headless WebKit system dependencies
       if: steps.webkit-dependencies.outputs.key != ''
       run: |
         mapfile -t packages < "$RUNNER_TEMP/webkit-apt-packages"
-        # Retain downloaded installers so they can be cached afterward.
+        # Install from restored .deb files where possible, retaining new downloads for the cache save.
         sudo apt-get \
           -o Dir::Cache::archives=/var/tmp/webkit-apt-cache \
           -o APT::Keep-Downloaded-Packages=true \
           install -y --no-install-recommends "${packages[@]}"
       shell: bash
 
-    # Populate shared caches from develop; PRs only restore.
+    # Develop populates caches shared with PRs. Save after misses or fallback restores,
+    # which may have downloaded packages absent from the restored cache.
     - name: Store cached WebKit system packages
       if:
         steps.webkit-dependencies.outputs.key != '' && steps.webkit-apt-cache.outputs.cache-hit != 'true' &&
