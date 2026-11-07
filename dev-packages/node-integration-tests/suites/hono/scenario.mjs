@@ -1,5 +1,6 @@
 import { serve } from '@hono/node-server';
 import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
+import { captureMessage, startSpan } from '@sentry/node';
 import { Hono } from 'hono';
 
 // No `@sentry/hono` and no `sentry()` middleware: the app is instrumented automatically by the
@@ -96,6 +97,50 @@ app
     await next();
   })
   .get('/hello', c => c.json({ greeting: 'world' }));
+
+// Both routes match `/users/me`. The name must come from the handler that responded.
+app.get('/users/me', c => c.text('me'));
+app.get('/users/:id', c => c.text(`user ${c.req.param('id')}`));
+
+// The catch-all below also matches. An event from inside this handler must still get this route.
+app.get('/users/:id/capture', c => {
+  captureMessage('Message from a route handler');
+  return c.text('captured');
+});
+
+// A middleware that returns early. The request gets the route that would have run.
+app.use('/early/*', async (c, _next) => c.text('blocked by middleware'));
+app.get('/early/:id', c => c.text('never reached'));
+
+app.all('/any-method', c => c.text(`any method: ${c.req.method}`));
+
+// Hono answers `HEAD` with the `GET` route. The SDK records no server span for `HEAD`, so the test
+// checks the name on the error event.
+app.get('/head-error/:id', () => {
+  throw new Error('Test error from a HEAD request');
+});
+
+// A user span around the route handler. The SDK must rename the segment, not this span. The handler
+// declares `next`, so the SDK renames inside this span.
+app.use('/traced/*', (_c, next) => startSpan({ name: 'user span' }, () => next()));
+app.get('/traced/:id', (c, _next) => c.text('traced'));
+
+// Passes `draft` on to the catch-all below, which then names the request.
+app.get('/posts/:id', async (c, next) => {
+  if (c.req.param('id') === 'draft') {
+    await next();
+    return;
+  }
+  return c.text('post');
+});
+app.get('/posts/*', c => {
+  captureMessage('Message from a route handler after next()');
+  return c.text('fallback');
+});
+
+// A catch-all registered last. It also matches `/users/me` and `/users/42`, but must not name them.
+app.get('/users/*', c => c.text('users catch-all'));
+app.get('/early/*', c => c.text('never reached'));
 
 serve({ fetch: app.fetch, port: 0 }, info => {
   sendPortToRunner(info.port);
