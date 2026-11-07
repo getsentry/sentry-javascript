@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { SENTRY_LINK_TYPE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { PAGELOAD } from '@sentry/conventions/op';
 import type { Span, StartSpanOptions } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -240,7 +240,7 @@ describe('withCacheOrigin', () => {
 
     expect(withCacheOrigin(PAGELOAD_OPTIONS)).toEqual({
       name: '/products/:id',
-      attributes: { [SENTRY_OP]: PAGELOAD, 'page.server_rendering.type': 'static' },
+      attributes: { [SENTRY_OP]: PAGELOAD, [PAGE_SERVER_RENDERING_TYPE]: 'static' },
       links: [PRERENDER_LINK],
     });
   });
@@ -250,7 +250,7 @@ describe('withCacheOrigin', () => {
 
     expect(withCacheOrigin(PAGELOAD_OPTIONS, { sentryTrace: BODY_TRACE, baggage: undefined })).toEqual({
       name: '/products/:id',
-      attributes: { [SENTRY_OP]: PAGELOAD, 'page.server_rendering.type': 'partially_static' },
+      attributes: { [SENTRY_OP]: PAGELOAD, [PAGE_SERVER_RENDERING_TYPE]: 'partially_static' },
       links: [PRERENDER_LINK],
     });
   });
@@ -277,7 +277,7 @@ describe('withCacheOrigin', () => {
 
     expect(withCacheOrigin(PAGELOAD_OPTIONS)).toEqual({
       name: '/products/:id',
-      attributes: { [SENTRY_OP]: PAGELOAD, 'page.server_rendering.type': 'static' },
+      attributes: { [SENTRY_OP]: PAGELOAD, [PAGE_SERVER_RENDERING_TYPE]: 'static' },
     });
   });
 });

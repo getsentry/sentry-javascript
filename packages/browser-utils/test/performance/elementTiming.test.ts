@@ -1,4 +1,5 @@
 import * as sentryCore from '@sentry/core';
+import { UI_ELEMENT_LOAD_TIME, UI_ELEMENT_RENDER_TIME } from '@sentry/conventions/metrics';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { elementTimingIntegration, startTrackingElementTiming } from '../../src/performance/elementTiming';
 import * as browserMetricsInstrumentation from '../../src/instrumentation/performanceObserver';
@@ -71,7 +72,7 @@ describe('elementTimingIntegration', () => {
     });
 
     expect(distributionSpy).toHaveBeenCalledTimes(1);
-    expect(distributionSpy).toHaveBeenCalledWith('ui.element.render_time', 150, {
+    expect(distributionSpy).toHaveBeenCalledWith(UI_ELEMENT_RENDER_TIME, 150, {
       unit: 'millisecond',
       attributes: {
         'sentry.origin': 'auto.ui.browser.element_timing',
@@ -116,11 +117,11 @@ describe('elementTimingIntegration', () => {
       'ui.element.width': 1920,
       'ui.element.height': 1080,
     };
-    expect(distributionSpy).toHaveBeenCalledWith('ui.element.render_time', 200, {
+    expect(distributionSpy).toHaveBeenCalledWith(UI_ELEMENT_RENDER_TIME, 200, {
       unit: 'millisecond',
       attributes: expectedAttributes,
     });
-    expect(distributionSpy).toHaveBeenCalledWith('ui.element.load_time', 150, {
+    expect(distributionSpy).toHaveBeenCalledWith(UI_ELEMENT_LOAD_TIME, 150, {
       unit: 'millisecond',
       attributes: expectedAttributes,
     });

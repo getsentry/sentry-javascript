@@ -516,6 +516,42 @@ describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory:
     });
   });
 
+  describe('multiple endpoints', () => {
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-multiple-endpoints.mjs',
+      'instrument.mjs',
+      (createTestRunner, test, mode) => {
+        test.runIf(mode === 'esm' || supports({ runtimes: ['node', 'deno'] }))(
+          'should set the connection attributes of the endpoint each query ran on',
+          { timeout: 90_000 },
+          async () => {
+            let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
+            await createTestRunner()
+              .expect({
+                span: container => {
+                  receivedSpans = container.items;
+                },
+              })
+              .unordered()
+              .start()
+              .completed();
+
+            const getNamespace = (alias: string): unknown =>
+              receivedSpans.find(span => String(span.attributes[DB_QUERY_TEXT]?.value).includes(alias))?.attributes[
+                DB_NAMESPACE
+              ];
+
+            expect(getNamespace('test_db_new_connection')).toEqual({ type: 'string', value: 'test_db' });
+            expect(getNamespace('test_db_open_connection')).toEqual({ type: 'string', value: 'test_db' });
+            expect(getNamespace('postgres_db_new_connection')).toEqual({ type: 'string', value: 'postgres' });
+            expect(getNamespace('postgres_db_open_connection')).toEqual({ type: 'string', value: 'postgres' });
+          },
+        );
+      },
+    );
+  });
+
   describe('sql.unsafe()', () => {
     const EXPECTED_SPANS = {
       items: expect.arrayContaining([

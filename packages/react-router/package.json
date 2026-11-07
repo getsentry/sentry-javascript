@@ -1,6 +1,6 @@
 {
   "name": "@sentry/react-router",
-  "version": "11.10.0",
+  "version": "11.11.0",
   "description": "Official Sentry SDK for React Router (Framework)",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/react-router",
@@ -56,20 +56,20 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/browser": "11.10.0",
-    "@sentry/conventions": "^0.30.0",
-    "@sentry/core": "11.10.0",
-    "@sentry/node": "11.10.0",
-    "@sentry/react": "11.10.0",
-    "@sentry/server-runtime-injection": "11.10.0",
-    "@sentry/server-utils": "11.10.0",
-    "@sentry/bundler-plugins": "11.10.0",
-    "sentry": "^0.44.0"
+    "@sentry/browser": "11.11.0",
+    "@sentry/conventions": "^0.31.0",
+    "@sentry/core": "11.11.0",
+    "@sentry/node": "11.11.0",
+    "@sentry/react": "11.11.0",
+    "@sentry/server-runtime-injection": "11.11.0",
+    "@sentry/server-utils": "11.11.0",
+    "@sentry/bundler-plugins": "11.11.0",
+    "sentry": "^0.49.0"
   },
   "devDependencies": {
     "@react-router/dev": "^7.18.4",
     "@react-router/node": "^7.15.0",
-    "@sentry-internal/rollup-utils": "11.10.0",
+    "@sentry-internal/rollup-utils": "11.11.0",
     "@testing-library/react": "^15.0.5",
     "@types/node": "^20.19.0",
     "@types/react": "17.0.3",
