@@ -138,7 +138,7 @@ for (const { name, prefix } of SCENARIOS) {
 
       expect(middlewareSpans[0]?.parent_span_id).toBe(middlewareSpans[1]?.parent_span_id);
 
-      // Allow 5ms of timer variance around the 50ms and 60ms delays.
+      // middlewareA has a 50ms delay, middlewareB has a 60ms delay; allow 5ms of timer variance.
       const aDurationMs = (middlewareSpans[0].end_timestamp - middlewareSpans[0]?.start_timestamp) * 1000;
       const bDurationMs = (middlewareSpans[1].end_timestamp - middlewareSpans[1]?.start_timestamp) * 1000;
       expect(aDurationMs).toBeGreaterThanOrEqual(45);
