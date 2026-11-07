@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import type { BuildEnvironmentOptions, Plugin, ResolvedConfig } from 'vite';
 
 /** `nitro/vite` builds the final server in an environment with this name. */
-const NITRO_ENVIRONMENT = 'nitro';
+export const NITRO_ENVIRONMENT = 'nitro';
 
 /** The environment Vite passes to `applyToEnvironment`. */
 export type PluginEnvironment = Parameters<NonNullable<Plugin['applyToEnvironment']>>[0];
@@ -16,16 +16,19 @@ type NitroSourceMapConfig = {
   rolldownConfig?: BundlerSourceMapConfig;
 };
 
-/** The parts of the Nitro instance that this plugin uses. */
-type Nitro = {
-  options: {
-    sourcemap: unknown;
-    experimental: { sourcemapMinify?: false };
-    // c12 keeps each config source that Nitro merged: the `nitro()` options, `nitro.config.ts`, presets and more.
-    // It is internal until Nitro exposes the layers: https://github.com/nitrojs/nitro/issues/4771
-    _c12?: { layers?: { config?: NitroSourceMapConfig | null }[] };
-  };
+/** The parts of the Nitro options that the Sentry Nitro modules use. */
+export type NitroOptions = {
+  dev: boolean;
+  node: boolean;
+  plugins: string[];
+  sourcemap: unknown;
+  experimental: { sourcemapMinify?: false };
+  // c12 keeps each config source that Nitro merged: the `nitro()` options, `nitro.config.ts`, presets and more.
+  // It is internal until Nitro exposes the layers: https://github.com/nitrojs/nitro/issues/4771
+  _c12?: { layers?: { config?: NitroSourceMapConfig | null }[] };
 };
+
+type Nitro = { options: Pick<NitroOptions, 'sourcemap' | 'experimental' | '_c12'> };
 
 /**
  * Tells the plugin that deletes source maps after the upload whether the source maps of an environment are only
@@ -152,7 +155,8 @@ function hasNitroSourceMapSetting(config: NitroSourceMapConfig | null | undefine
   );
 }
 
-function logDebug(debug: boolean | undefined, message: string): void {
+/** Logs a message when the `debug` option is enabled. */
+export function logDebug(debug: boolean | undefined, message: string): void {
   if (debug) {
     // eslint-disable-next-line no-console
     console.log(`[Sentry] ${message}`);

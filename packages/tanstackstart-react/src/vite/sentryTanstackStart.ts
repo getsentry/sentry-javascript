@@ -2,6 +2,7 @@ import type { BuildTimeOptionsBase, ReactComponentAnnotationOptions } from '@sen
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
+import { makePreloadNitroServerEntryPlugin } from './nitroPreloadServerEntry';
 import { makeComposeNitroServiceSourceMapsPlugin, makeEnableNitroSourceMapsPlugin } from './nitroSourceMaps';
 import { makeRoutePatternPlugin } from './routePatterns';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
@@ -24,6 +25,18 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
    * @default true
    */
   autoInstrumentMiddleware?: boolean;
+
+  /**
+   * If this flag is `true`, Nitro builds import the server entry at server startup instead of on the first request. This
+   * way, an SDK init at the top of the server entry runs before the server handles requests, for hosts without
+   * `node --import`. The Nitro server module then waits for the server entry with top-level `await`.
+   *
+   * Set to `false` to keep loading the server entry on the first request, for example if you initialize the SDK with
+   * `node --import`.
+   *
+   * @default true
+   */
+  preloadServerEntry?: boolean;
 
   /**
    * Options related to react component name annotations.
@@ -98,6 +111,10 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   plugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: options.buildTimeInstrumentation }));
 
   plugins.push(...makeAddSentryVitePlugin(options), makeComposeNitroServiceSourceMapsPlugin());
+
+  if (options.preloadServerEntry !== false) {
+    plugins.push(makePreloadNitroServerEntryPlugin({ debug: options.debug }));
+  }
 
   // middleware auto-instrumentation
   if (options.autoInstrumentMiddleware !== false) {
