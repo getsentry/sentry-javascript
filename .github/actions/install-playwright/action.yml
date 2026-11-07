@@ -46,26 +46,74 @@ runs:
       shell: bash
       working-directory: ${{ runner.temp }}
 
-    - name: Install headless WebKit system dependencies
+    - name: Resolve headless WebKit system dependencies
+      id: webkit-dependencies
       if: steps.playwright-version.outputs.version != '' && contains(inputs.browsers, 'webkit')
       run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends \
-          gstreamer1.0-plugins-base \
-          gstreamer1.0-plugins-good \
-          libavif16 \
-          libevent-2.1-7t64 \
-          libflite1 \
-          libgles2 \
-          libgstreamer-gl1.0-0 \
-          libgstreamer-plugins-bad1.0-0 \
-          libgstreamer-plugins-base1.0-0 \
-          libharfbuzz-icu0 \
-          libhyphen0 \
-          libmanette-0.2-0 \
-          libopus0 \
+        packages=(
+          gstreamer1.0-plugins-base
+          gstreamer1.0-plugins-good
+          libavif16
+          libevent-2.1-7t64
+          libflite1
+          libgles2
+          libgstreamer-gl1.0-0
+          libgstreamer-plugins-bad1.0-0
+          libgstreamer-plugins-base1.0-0
+          libharfbuzz-icu0
+          libhyphen0
+          libmanette-0.2-0
+          libopus0
           libwayland-server0
+        )
+        # Save the package list for the install step, which runs in a separate shell.
+        printf '%s\n' "${packages[@]}" > "$RUNNER_TEMP/webkit-apt-packages"
+        mkdir -p "$RUNNER_TEMP/webkit-apt-cache"
+
+        sudo apt-get update
+        # Resolve downloads before restoring the cache so cached files don't affect the key.
+        plan=$(sudo apt-get \
+          -o Dir::Cache::archives="$RUNNER_TEMP/webkit-apt-cache" \
+          --print-uris --download-only -y --no-install-recommends \
+          install "${packages[@]}")
+        hash=$(printf '%s\n' "$plan" | sed -n "/^'/p" | LC_ALL=C sort | sha256sum | cut -d ' ' -f1)
+
+        . /etc/os-release
+        prefix="webkit-apt-$ID-$VERSION_ID-${{ runner.arch }}-v1-"
+        echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
+        echo "key=$prefix$hash" >> "$GITHUB_OUTPUT"
       shell: bash
+
+    - name: Restore cached WebKit system packages
+      id: webkit-apt-cache
+      if: steps.webkit-dependencies.outputs.key != ''
+      uses: actions/cache/restore@v6.1.0
+      with:
+        path: ${{ runner.temp }}/webkit-apt-cache/*.deb
+        key: ${{ steps.webkit-dependencies.outputs.key }}
+        # Older caches can still supply packages whose versions haven't changed.
+        restore-keys: ${{ steps.webkit-dependencies.outputs.prefix }}
+
+    - name: Install headless WebKit system dependencies
+      if: steps.webkit-dependencies.outputs.key != ''
+      run: |
+        mapfile -t packages < "$RUNNER_TEMP/webkit-apt-packages"
+        # Retain downloaded installers so they can be cached afterward.
+        sudo apt-get \
+          -o Dir::Cache::archives="$RUNNER_TEMP/webkit-apt-cache" \
+          -o APT::Keep-Downloaded-Packages=true \
+          install -y --no-install-recommends "${packages[@]}"
+      shell: bash
+
+    # Populate shared caches from develop; PRs only restore.
+    - name: Store cached WebKit system packages
+      if:
+        steps.webkit-dependencies.outputs.key != '' && steps.webkit-apt-cache.outputs.cache-hit != 'true' &&
+        github.event_name == 'push' && github.ref == 'refs/heads/develop'
+      uses: actions/cache/save@v6.1.0
+      with:
+        path: ${{ runner.temp }}/webkit-apt-cache/*.deb
+        key: ${{ steps.webkit-dependencies.outputs.key }}
 
     # Only store cache on develop branch
     - name: Store cached playwright binaries
