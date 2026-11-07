@@ -127,7 +127,7 @@ export interface BrowserTracingOptions {
   /**
    * If true, Sentry will capture long animation frames and add them to the corresponding transaction.
    *
-   * Default: false
+   * Default: true
    */
   enableLongAnimationFrame: boolean;
 
@@ -273,6 +273,9 @@ export interface BrowserTracingOptions {
    */
   onRequestSpanEnd?(span: Span, responseInformation: ResponseHookInfo): void;
 }
+
+// Bundlers can define this as `true` to tree-shake long task and long animation frame tracking
+declare const __SENTRY_EXCLUDE_LONG_TASKS__: boolean | undefined;
 
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   ...TRACING_DEFAULTS,
@@ -433,14 +436,16 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
       registerSpanErrorInstrumentation();
 
-      if (
-        enableLongAnimationFrame &&
-        GLOBAL_OBJ.PerformanceObserver &&
-        PerformanceObserver.supportedEntryTypes?.includes('long-animation-frame')
-      ) {
-        startTrackingLongAnimationFrames();
-      } else if (enableLongTask) {
-        startTrackingLongTasks();
+      if (typeof __SENTRY_EXCLUDE_LONG_TASKS__ === 'undefined' || !__SENTRY_EXCLUDE_LONG_TASKS__) {
+        if (
+          enableLongAnimationFrame &&
+          GLOBAL_OBJ.PerformanceObserver &&
+          PerformanceObserver.supportedEntryTypes?.includes('long-animation-frame')
+        ) {
+          startTrackingLongAnimationFrames();
+        } else if (enableLongTask) {
+          startTrackingLongTasks();
+        }
       }
 
       if (detectRedirects && optionalWindowDocument) {
