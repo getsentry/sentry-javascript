@@ -32,6 +32,9 @@ export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportO
 
 declare const __SENTRY_TRACING__: boolean;
 
+// Treeshakable guard to always stream spans and drop the code paths that build and process transactions
+declare const __SENTRY_EXCLUDE_TRANSACTIONS__: boolean | undefined;
+
 /**
  * The Sentry Server Runtime Client SDK.
  */
@@ -52,7 +55,8 @@ export class ServerRuntimeClient<
     // A user-provided `spanStreamingIntegration` always takes precedence over the one we add.
     if (
       (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) &&
-      options.traceLifecycle !== 'static' &&
+      ((typeof __SENTRY_EXCLUDE_TRANSACTIONS__ === 'boolean' && __SENTRY_EXCLUDE_TRANSACTIONS__) ||
+        options.traceLifecycle !== 'static') &&
       !options.integrations.some(i => i.name === SPAN_STREAMING_INTEGRATION_NAME)
     ) {
       options.integrations.push(spanStreamingIntegration());

@@ -85,6 +85,9 @@ export function makeSetSDKSourcePlugin(sdkSource) {
 /**
  * Create a plugin to set the value of the `__SENTRY_BROWSER_BUNDLE__` magic string.
  *
+ * It also sets `__SENTRY_EXCLUDE_TRANSACTIONS__` to `false`. CDN bundles always keep transaction support, so the
+ * unresolved runtime checks for that flag would only add bytes.
+ *
  * @param isBrowserBuild Whether or not the resulting build will be run in the browser
  * @returns An instance of the `replace` plugin to do the replacement of the magic string with `true` or 'false`
  */
@@ -94,6 +97,7 @@ export function makeBrowserBuildPlugin(isBrowserBuild) {
     preventAssignment: true,
     values: {
       __SENTRY_BROWSER_BUNDLE__: isBrowserBuild,
+      __SENTRY_EXCLUDE_TRANSACTIONS__: false,
     },
   });
   plugin.name = 'replace-browser-bundle-flag';

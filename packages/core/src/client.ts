@@ -55,6 +55,9 @@ import { maybeWarnAboutIgnoredTransactionOptions } from './utils/warnAboutIgnore
 import { resolveDataCollectionOptions } from './utils/data-collection/resolveDataCollectionOptions';
 import { applyBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 
+// Treeshakable guard to always stream spans and drop the code paths that build and process transactions
+declare const __SENTRY_EXCLUDE_TRANSACTIONS__: boolean | undefined;
+
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
 
@@ -190,10 +193,15 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   protected constructor(options: O) {
     // Any value other than `'static'` normalizes to the `'stream'` default, so that `traceLifecycle`
     // is always one of the two known values for the rest of the SDK.
+    // With transactions excluded from the bundle, the SDK can only stream spans.
     this._options = {
       attachStacktrace: true,
       ...options,
-      traceLifecycle: options.traceLifecycle === 'static' ? 'static' : 'stream',
+      traceLifecycle:
+        options.traceLifecycle === 'static' &&
+        !(typeof __SENTRY_EXCLUDE_TRANSACTIONS__ === 'boolean' && __SENTRY_EXCLUDE_TRANSACTIONS__)
+          ? 'static'
+          : 'stream',
     };
     this._integrations = {};
     this._numProcessing = 0;
@@ -524,7 +532,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     // Extract gen_ai spans from transaction and convert to span v2 format.
     // This mutates event.spans to remove the extracted spans.
-    const genAiSpanItem = extractGenAiSpansFromEvent(event, this);
+    const genAiSpanItem =
+      typeof __SENTRY_EXCLUDE_TRANSACTIONS__ === 'boolean' && __SENTRY_EXCLUDE_TRANSACTIONS__
+        ? undefined
+        : extractGenAiSpansFromEvent(event, this);
 
     let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
@@ -1715,7 +1726,10 @@ function processBeforeSend(
     );
   }
 
-  if (isTransactionEvent(processedEvent)) {
+  if (
+    !(typeof __SENTRY_EXCLUDE_TRANSACTIONS__ === 'boolean' && __SENTRY_EXCLUDE_TRANSACTIONS__) &&
+    isTransactionEvent(processedEvent)
+  ) {
     // Avoid processing if we don't have to
     if (beforeSendSpan || ignoreSpans) {
       // 1. Process root span
