@@ -30,6 +30,7 @@ it.for([
 
     expect(getSpanOp(segmentSpan!)).toBe('http.server');
     expect(renderSpan?.parent_span_id).toBe(segmentSpan?.span_id);
-    expect(segmentSpan!.end_timestamp).toBeGreaterThanOrEqual(renderSpan!.end_timestamp);
+    // Allow one microsecond for rounding differences in epoch timestamps.
+    expect(segmentSpan!.end_timestamp).toBeGreaterThanOrEqual(renderSpan!.end_timestamp - 0.000001);
   },
 );
