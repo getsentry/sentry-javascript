@@ -68,12 +68,13 @@ runs:
         )
         # Save the package list for the install step, which runs in a separate shell.
         printf '%s\n' "${packages[@]}" > "$RUNNER_TEMP/webkit-apt-packages"
-        mkdir -p "$RUNNER_TEMP/webkit-apt-cache"
+        # Keep installers accessible to apt's sandbox user.
+        mkdir -p /var/tmp/webkit-apt-cache
 
         sudo apt-get update
         # Resolve downloads before restoring the cache so cached files don't affect the key.
         plan=$(sudo apt-get \
-          -o Dir::Cache::archives="$RUNNER_TEMP/webkit-apt-cache" \
+          -o Dir::Cache::archives=/var/tmp/webkit-apt-cache \
           --print-uris --download-only -y --no-install-recommends \
           install "${packages[@]}")
         hash=$(printf '%s\n' "$plan" | sed -n "/^'/p" | LC_ALL=C sort | sha256sum | cut -d ' ' -f1)
@@ -89,7 +90,7 @@ runs:
       if: steps.webkit-dependencies.outputs.key != ''
       uses: actions/cache/restore@v6.1.0
       with:
-        path: ${{ runner.temp }}/webkit-apt-cache/*.deb
+        path: /var/tmp/webkit-apt-cache/*.deb
         key: ${{ steps.webkit-dependencies.outputs.key }}
         # Older caches can still supply packages whose versions haven't changed.
         restore-keys: ${{ steps.webkit-dependencies.outputs.prefix }}
@@ -100,7 +101,7 @@ runs:
         mapfile -t packages < "$RUNNER_TEMP/webkit-apt-packages"
         # Retain downloaded installers so they can be cached afterward.
         sudo apt-get \
-          -o Dir::Cache::archives="$RUNNER_TEMP/webkit-apt-cache" \
+          -o Dir::Cache::archives=/var/tmp/webkit-apt-cache \
           -o APT::Keep-Downloaded-Packages=true \
           install -y --no-install-recommends "${packages[@]}"
       shell: bash
@@ -112,7 +113,7 @@ runs:
         github.event_name == 'push' && github.ref == 'refs/heads/develop'
       uses: actions/cache/save@v6.1.0
       with:
-        path: ${{ runner.temp }}/webkit-apt-cache/*.deb
+        path: /var/tmp/webkit-apt-cache/*.deb
         key: ${{ steps.webkit-dependencies.outputs.key }}
 
     # Only store cache on develop branch
