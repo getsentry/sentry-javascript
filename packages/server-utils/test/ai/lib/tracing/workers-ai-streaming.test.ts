@@ -162,6 +162,61 @@ describe('instrumentWorkersAiStream', () => {
     ]);
   });
 
+  it('keeps parallel tool calls that stream without an index as separate calls', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"id":"call_1","type":"function","function":{"name":"getWeather","arguments":"{\\"city\\":\\"Paris\\"}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"id":"call_2","type":"function","function":{"name":"getTime","arguments":"{\\"tz\\":\\"CET\\"}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
+    expect(toolCalls).toEqual([
+      { index: 0, id: 'call_1', type: 'function', function: { name: 'getWeather', arguments: '{"city":"Paris"}' } },
+      { index: 1, id: 'call_2', type: 'function', function: { name: 'getTime', arguments: '{"tz":"CET"}' } },
+    ]);
+  });
+
+  it('merges argument fragments of a tool call that streams without an index', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"id":"call_1","type":"function","function":{"name":"getRepoInfo","arguments":"{\\"owner\\":"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"function":{"arguments":"\\"cloudflare\\"}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
+    expect(toolCalls).toEqual([
+      {
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'getRepoInfo', arguments: '{"owner":"cloudflare"}' },
+      },
+    ]);
+  });
+
+  it('does not merge a tool call without an index into one that has the same index number', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"getWeather","arguments":"{}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"id":"call_2","type":"function","function":{"name":"getTime","arguments":"{}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
+    expect(toolCalls.map((call: { id: string }) => call.id)).toEqual(['call_1', 'call_2']);
+  });
+
   // Some Workers AI models (e.g. `@cf/moonshotai/kimi-k2.6`) stream tool calls with the
   // name/arguments at the top level of the tool-call object rather than nested under `function`.
   it('assembles tool calls whose name/arguments are at the top level of the delta', async () => {
