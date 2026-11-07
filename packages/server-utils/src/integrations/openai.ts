@@ -1,19 +1,14 @@
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
-import {
-  _INTERNAL_shouldSkipAiProviderWrapping,
-  defineIntegration,
-  getClient,
-  hasSpanStreamingEnabled,
-  startInactiveSpan,
-} from '@sentry/core';
+import { defineIntegration, getClient, hasSpanStreamingEnabled, startInactiveSpan } from '@sentry/core';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/openai';
 import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { instrumentStream } from '../ai/openai/streaming';
 import type { OpenAiOptions } from '../ai/openai/types';
 import { addResponseAttributes } from '../ai/openai/utils';
+import { shouldSkipAiProviderSpan } from '../ai/pi-ai/providers';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -73,9 +68,7 @@ function instrumentOpenai(options: OpenAiOptions): void {
  * Returning `undefined` opts the payload out so no span is opened.
  */
 function createGenAiSpan(data: OrchestrionChannelContext, operation: string, options: OpenAiOptions): Span | undefined {
-  // When another provider (e.g. LangChain) is driving the SDK, it records the spans itself and marks this
-  // provider as skipped; skip here to avoid double spans.
-  if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME)) {
+  if (shouldSkipAiProviderSpan(INTEGRATION_NAME)) {
     return undefined;
   }
 
