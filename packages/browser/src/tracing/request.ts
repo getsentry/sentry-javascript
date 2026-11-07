@@ -171,7 +171,10 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
           [SERVER_ADDRESS]: host,
         });
 
-        if (enableHTTPTimings) {
+        if (
+          enableHTTPTimings &&
+          (typeof __SENTRY_EXCLUDE_HTTP_TIMINGS__ === 'undefined' || !__SENTRY_EXCLUDE_HTTP_TIMINGS__)
+        ) {
           addHTTPTimings(createdSpan, client);
         }
 
@@ -192,7 +195,10 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
       );
 
       if (createdSpan) {
-        if (enableHTTPTimings) {
+        if (
+          enableHTTPTimings &&
+          (typeof __SENTRY_EXCLUDE_HTTP_TIMINGS__ === 'undefined' || !__SENTRY_EXCLUDE_HTTP_TIMINGS__)
+        ) {
           addHTTPTimings(createdSpan, client);
         }
 
@@ -203,6 +209,9 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
     });
   }
 }
+
+// Bundlers can define this as `true` to tree-shake HTTP timing collection (`enableHTTPTimings`)
+declare const __SENTRY_EXCLUDE_HTTP_TIMINGS__: boolean | undefined;
 
 /**
  * The maximum time (ms) to wait for PerformanceResourceTiming data before ending the span.
