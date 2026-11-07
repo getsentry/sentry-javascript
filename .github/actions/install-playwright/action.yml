@@ -106,11 +106,11 @@ runs:
           install -y --no-install-recommends "${packages[@]}"
       shell: bash
 
-    # Populate shared caches from develop; PRs only restore.
+    # Temporarily allow PR saves to verify the cache round trip.
     - name: Store cached WebKit system packages
       if:
         steps.webkit-dependencies.outputs.key != '' && steps.webkit-apt-cache.outputs.cache-hit != 'true' &&
-        github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        ((github.event_name == 'push' && github.ref == 'refs/heads/develop') || github.event_name == 'pull_request')
       uses: actions/cache/save@v6.1.0
       with:
         path: /var/tmp/webkit-apt-cache/*.deb
