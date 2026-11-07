@@ -55,6 +55,9 @@ import { NAVIGATION, NAVIGATION_REDIRECT, PAGELOAD } from '@sentry/conventions/o
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
+// Bundlers can define this as `true` to tree-shake previous trace linking (`linkPreviousTrace`)
+declare const __SENTRY_EXCLUDE_LINKED_TRACES__: boolean | undefined;
+
 /** Options for Browser Tracing integration */
 export interface BrowserTracingOptions {
   /**
@@ -634,7 +637,10 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
       let startingUrl: string | undefined = getLocationHref();
 
-      if (linkPreviousTrace !== 'off') {
+      if (
+        linkPreviousTrace !== 'off' &&
+        (typeof __SENTRY_EXCLUDE_LINKED_TRACES__ === 'undefined' || !__SENTRY_EXCLUDE_LINKED_TRACES__)
+      ) {
         linkTraces(client, { linkPreviousTrace, consistentTraceSampling });
       }
 
