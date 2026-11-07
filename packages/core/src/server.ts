@@ -58,7 +58,7 @@ export {
   getRequestUrlFromClientRequest,
   getRequestOptions,
 } from './integrations/http/get-request-url';
-export { HTTP_ON_CLIENT_REQUEST, HTTP_ON_SERVER_REQUEST } from './integrations/http/constants';
+export { HTTP_ON_CLIENT_REQUEST, HTTP_ON_SERVER_REQUEST, HTTP2_ON_SERVER_STREAM } from './integrations/http/constants';
 export type {
   HttpInstrumentationOptions,
   HttpClientRequest,
