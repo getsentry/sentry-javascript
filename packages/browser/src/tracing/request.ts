@@ -47,6 +47,9 @@ import {
 } from '@sentry/conventions/attributes';
 import { HTTP_CLIENT } from '@sentry/conventions/op';
 
+// Bundlers can define this as `true` to tree-shake XHR request instrumentation
+declare const __SENTRY_EXCLUDE_XHR_TRACING__: boolean | undefined;
+
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
   /**
@@ -180,7 +183,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
     });
   }
 
-  if (traceXHR) {
+  if (traceXHR && (typeof __SENTRY_EXCLUDE_XHR_TRACING__ === 'undefined' || !__SENTRY_EXCLUDE_XHR_TRACING__)) {
     addXhrInstrumentationHandler(handlerData => {
       const createdSpan = xhrCallback(
         handlerData,

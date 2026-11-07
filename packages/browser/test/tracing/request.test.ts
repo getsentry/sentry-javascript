@@ -33,6 +33,10 @@ describe('instrumentOutgoingRequests', () => {
     utils._INTERNAL_setSpanForScope(utils.getCurrentScope(), undefined);
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('instruments fetch and xhr requests', () => {
     const addFetchSpy = vi.spyOn(utils, 'addFetchInstrumentationHandler');
     const addXhrSpy = vi.spyOn(browserUtils, 'addXhrInstrumentationHandler');
@@ -57,6 +61,17 @@ describe('instrumentOutgoingRequests', () => {
     instrumentOutgoingRequests(client, { traceXHR: false });
 
     expect(addXhrSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not instrument xhr requests if `__SENTRY_EXCLUDE_XHR_TRACING__` is true', () => {
+    vi.stubGlobal('__SENTRY_EXCLUDE_XHR_TRACING__', true);
+    const addFetchSpy = vi.spyOn(utils, 'addFetchInstrumentationHandler');
+    const addXhrSpy = vi.spyOn(browserUtils, 'addXhrInstrumentationHandler');
+
+    instrumentOutgoingRequests(client, { traceXHR: true });
+
+    expect(addXhrSpy).not.toHaveBeenCalled();
+    expect(addFetchSpy).toHaveBeenCalledWith(expect.any(Function));
   });
 
   it('creates a QUERY fetch span with the QUERY method attribute', () => {
