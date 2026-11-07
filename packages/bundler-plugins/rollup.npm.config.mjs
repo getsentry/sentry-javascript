@@ -12,6 +12,7 @@ export default makeNPMConfigVariants(
       'src/webpack/index.ts',
       'src/webpack/component-annotation-transform.ts',
       'src/babel-plugin/index.ts',
+      'src/rewriter/index.ts',
     ],
     packageSpecificConfig: {
       output: {
