@@ -1,5 +1,4 @@
 name: 'CI: Build & Test'
-# Run the full pipeline for the circular-dependency benchmark.
 on:
   push:
     branches:
