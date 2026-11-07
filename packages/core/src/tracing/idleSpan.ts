@@ -339,11 +339,16 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       const spanEndedBeforeFinalTimeout = childEndTimestamp - childStartTimestamp <= timeoutWithMarginOfError;
 
       if (DEBUG_BUILD) {
-        const stringifiedSpan = JSON.stringify(childSpan, undefined, 2);
         if (!spanStartedBeforeIdleSpanEnd) {
-          debug.log('[Tracing] Discarding span since it happened after idle span was finished', stringifiedSpan);
+          debug.log(
+            '[Tracing] Discarding span since it happened after idle span was finished',
+            JSON.stringify(childSpan, undefined, 2),
+          );
         } else if (!spanEndedBeforeFinalTimeout) {
-          debug.log('[Tracing] Discarding span since it finished after idle span final timeout', stringifiedSpan);
+          debug.log(
+            '[Tracing] Discarding span since it finished after idle span final timeout',
+            JSON.stringify(childSpan, undefined, 2),
+          );
         }
       }
 

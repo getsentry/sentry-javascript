@@ -3,11 +3,12 @@ import { debug } from '../../../src/utils/debug-logger';
 import { dsnToString, extractOrgIdFromClient, extractOrgIdFromDsnHost, makeDsn } from '../../../src/utils/dsn';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
-let mockDebugBuild = true;
+// must be var, because vi.mock hoists
+var mockDebugBuild: boolean = true;
 
 vi.mock('../../../src/debug-build', () => ({
   get DEBUG_BUILD() {
-    return mockDebugBuild;
+    return mockDebugBuild ?? true;
   },
 }));
 
@@ -204,8 +205,10 @@ describe('Dsn', () => {
       expect(dsn?.projectId).toBe('123');
     });
 
-    test('skips validation for non-debug builds', () => {
+    test('skips validation for non-debug builds', async () => {
+      vi.resetModules();
       mockDebugBuild = false;
+      const { makeDsn } = await import('../../../src/utils/dsn');
       const dsn = makeDsn('httx://abc@192.168.1.1/123');
       expect(dsn?.protocol).toBe('httx');
       expect(dsn?.publicKey).toBe('abc');

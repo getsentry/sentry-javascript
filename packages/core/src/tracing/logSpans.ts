@@ -3,57 +3,58 @@ import type { Span } from '../types/span';
 import { debug } from '../utils/debug-logger';
 import { getRootSpan, spanIsSampled, spanToStaticSpanJSON } from '../utils/spanUtils';
 
+// A ternary instead of an early return, so that esbuild can drop the debug-only body in non-debug builds.
 /**
  * Print a log message for a started span.
  */
-export function logSpanStart(span: Span): void {
-  if (!DEBUG_BUILD) return;
+export const logSpanStart: (span: Span) => void = DEBUG_BUILD
+  ? span => {
+      const {
+        description = '< unknown name >',
+        op = '< unknown op >',
+        parent_span_id: parentSpanId,
+      } = spanToStaticSpanJSON(span);
+      const { spanId } = span.spanContext();
 
-  const {
-    description = '< unknown name >',
-    op = '< unknown op >',
-    parent_span_id: parentSpanId,
-  } = spanToStaticSpanJSON(span);
-  const { spanId } = span.spanContext();
+      const sampled = spanIsSampled(span);
+      const rootSpan = getRootSpan(span);
+      const isRootSpan = rootSpan === span;
 
-  const sampled = spanIsSampled(span);
-  const rootSpan = getRootSpan(span);
-  const isRootSpan = rootSpan === span;
+      const header = `[Tracing] Starting ${sampled ? 'sampled' : 'unsampled'} ${isRootSpan ? 'root ' : ''}span`;
 
-  const header = `[Tracing] Starting ${sampled ? 'sampled' : 'unsampled'} ${isRootSpan ? 'root ' : ''}span`;
+      const infoParts: string[] = [`op: ${op}`, `name: ${description}`, `ID: ${spanId}`];
 
-  const infoParts: string[] = [`op: ${op}`, `name: ${description}`, `ID: ${spanId}`];
+      if (parentSpanId) {
+        infoParts.push(`parent ID: ${parentSpanId}`);
+      }
 
-  if (parentSpanId) {
-    infoParts.push(`parent ID: ${parentSpanId}`);
-  }
+      if (!isRootSpan) {
+        const { op, description } = spanToStaticSpanJSON(rootSpan);
+        infoParts.push(`root ID: ${rootSpan.spanContext().spanId}`);
+        if (op) {
+          infoParts.push(`root op: ${op}`);
+        }
+        if (description) {
+          infoParts.push(`root description: ${description}`);
+        }
+      }
 
-  if (!isRootSpan) {
-    const { op, description } = spanToStaticSpanJSON(rootSpan);
-    infoParts.push(`root ID: ${rootSpan.spanContext().spanId}`);
-    if (op) {
-      infoParts.push(`root op: ${op}`);
-    }
-    if (description) {
-      infoParts.push(`root description: ${description}`);
-    }
-  }
-
-  debug.log(`${header}
+      debug.log(`${header}
   ${infoParts.join('\n  ')}`);
-}
+    }
+  : () => {};
 
 /**
  * Print a log message for an ended span.
  */
-export function logSpanEnd(span: Span): void {
-  if (!DEBUG_BUILD) return;
+export const logSpanEnd: (span: Span) => void = DEBUG_BUILD
+  ? span => {
+      const { description = '< unknown name >', op = '< unknown op >' } = spanToStaticSpanJSON(span);
+      const { spanId } = span.spanContext();
+      const rootSpan = getRootSpan(span);
+      const isRootSpan = rootSpan === span;
 
-  const { description = '< unknown name >', op = '< unknown op >' } = spanToStaticSpanJSON(span);
-  const { spanId } = span.spanContext();
-  const rootSpan = getRootSpan(span);
-  const isRootSpan = rootSpan === span;
-
-  const msg = `[Tracing] Finishing "${op}" ${isRootSpan ? 'root ' : ''}span "${description}" with ID ${spanId}`;
-  debug.log(msg);
-}
+      const msg = `[Tracing] Finishing "${op}" ${isRootSpan ? 'root ' : ''}span "${description}" with ID ${spanId}`;
+      debug.log(msg);
+    }
+  : () => {};

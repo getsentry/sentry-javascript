@@ -64,6 +64,18 @@ module.exports = [
     gzip: true,
     disablePlugins: ['@size-limit/esbuild'],
   },
+  // esbuild drops dead code differently from webpack + terser, so measure one bundle with it too.
+  {
+    name: '@sentry/browser (incl. Tracing) - esbuild with treeshaking flags',
+    path: 'packages/browser/build/npm/esm/prod/index.js',
+    import: createImport('init', 'browserTracingIntegration'),
+    gzip: true,
+    disablePlugins: ['@size-limit/webpack'],
+    modifyEsbuildConfig: function (config) {
+      config.define = { __SENTRY_DEBUG__: 'false' };
+      return config;
+    },
+  },
   {
     name: '@sentry/browser (incl. Tracing + Span Streaming)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
