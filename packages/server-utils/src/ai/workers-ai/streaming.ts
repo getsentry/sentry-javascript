@@ -29,28 +29,55 @@ interface WorkersAiStreamChunk {
 }
 
 /**
- * Tool calls accumulated from a stream: those that carry an `index` are keyed by it, those that don't
- * are kept in arrival order so they can never collide with a real index.
+ * Tool calls accumulated from a stream, keyed in the order they were opened (so output order is arrival order).
  */
 interface ToolCallAccumulator {
-  byIndex: Record<number, WorkersAiStreamingToolCall>;
-  unindexed: WorkersAiStreamingToolCall[];
+  calls: Map<string, WorkersAiStreamingToolCall>;
+  /** Key of the latest call, which argument fragments with neither `index`, `id` nor name continue. */
+  lastKey?: string;
+  /** Key of the call currently open for a reported `index`, when a new `id` reused that index. */
+  keyByIndex: Map<number, string>;
 }
 
 /**
- * Find the call a tool call delta without an `index` belongs to. Some providers omit the index and send each
- * parallel call whole in its own chunk: a delta with a known id continues that call, a new id (or a name without
- * an id) starts a new call, and anything else continues the latest one.
+ * Find the key of the call a tool call delta belongs to. A numeric `index` groups deltas, except that a different
+ * non-empty `id` arriving on an index that is already taken opens a new call (a known `id` continues its own call).
+ * Some providers omit the index and send each parallel call whole: a known `id` continues that call, a new `id` (or
+ * a name without an id) starts a new call, and anything else continues the latest one.
  */
-function getUnindexedToolCall(
+function getToolCallKey(
   toolCall: WorkersAiStreamingToolCall,
   name: string | undefined,
   accumulator: ToolCallAccumulator,
-): WorkersAiStreamingToolCall | undefined {
-  if (toolCall.id) {
-    return accumulator.unindexed.find(call => call.id === toolCall.id);
+): string {
+  const { calls } = accumulator;
+  const findById = (id: string): string | undefined => {
+    for (const [key, call] of calls) {
+      if (call.id === id) return key;
+    }
+    return undefined;
+  };
+
+  if (typeof toolCall.index === 'number') {
+    const key = accumulator.keyByIndex.get(toolCall.index) ?? `index-${toolCall.index}`;
+    const existingId = calls.get(key)?.id;
+    if (existingId && toolCall.id && existingId !== toolCall.id) {
+      const next = findById(toolCall.id) ?? `index-${toolCall.index}-${calls.size}`;
+      accumulator.keyByIndex.set(toolCall.index, next);
+      return next;
+    }
+    return key;
   }
-  return name ? undefined : accumulator.unindexed[accumulator.unindexed.length - 1];
+  if (toolCall.id) {
+    const known = findById(toolCall.id);
+    if (known !== undefined) {
+      return known;
+    }
+  }
+  if (toolCall.id || name || accumulator.lastKey === undefined) {
+    return `no-index-${calls.size}`;
+  }
+  return accumulator.lastKey;
 }
 
 /**
@@ -68,24 +95,19 @@ function accumulateStreamingToolCalls(toolCalls: WorkersAiStreamingToolCall[], a
       continue;
     }
 
-    const existing =
-      toolCall.index == null ? getUnindexedToolCall(toolCall, name, accumulator) : accumulator.byIndex[toolCall.index];
+    const key = getToolCallKey(toolCall, name, accumulator);
+    const existing = accumulator.calls.get(key);
 
     if (!existing) {
-      const created: WorkersAiStreamingToolCall = {
-        index: toolCall.index ?? accumulator.unindexed.length,
+      accumulator.calls.set(key, {
+        index: toolCall.index ?? accumulator.calls.size,
         id: toolCall.id,
         type: toolCall.type,
         function: {
           name,
           arguments: args ?? '',
         },
-      };
-      if (toolCall.index == null) {
-        accumulator.unindexed.push(created);
-      } else {
-        accumulator.byIndex[toolCall.index] = created;
-      }
+      });
     } else if (existing.function) {
       if (name && !existing.function.name) {
         existing.function.name = name;
@@ -94,6 +116,7 @@ function accumulateStreamingToolCalls(toolCalls: WorkersAiStreamingToolCall[], a
         existing.function.arguments = `${existing.function.arguments ?? ''}${args}`;
       }
     }
+    accumulator.lastKey = key;
   }
 }
 
@@ -189,7 +212,7 @@ export function instrumentWorkersAiStream(
 
   // OpenAI-compatible tool calls arrive fragmented across chunks and are keyed by index;
   // accumulate them here and flatten into `state.toolCalls` once the stream ends.
-  const toolCallAccumulator: ToolCallAccumulator = { byIndex: {}, unindexed: [] };
+  const toolCallAccumulator: ToolCallAccumulator = { calls: new Map(), keyByIndex: new Map() };
 
   let buffer = '';
   let spanEnded = false;
@@ -201,7 +224,7 @@ export function instrumentWorkersAiStream(
     spanEnded = true;
 
     if (recordOutputs) {
-      const accumulatedToolCalls = [...Object.values(toolCallAccumulator.byIndex), ...toolCallAccumulator.unindexed];
+      const accumulatedToolCalls = [...toolCallAccumulator.calls.values()];
       if (accumulatedToolCalls.length > 0) {
         state.toolCalls.push(...accumulatedToolCalls);
       }
