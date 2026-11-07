@@ -94,7 +94,7 @@
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
-    "circularDepCheck": "madge --circular src/index.ts && madge --circular src/solidrouter.ts && madge --circular src/tanstackrouter.ts",
+    "circularDepCheck": "madge --circular src/index.ts src/solidrouter.ts src/tanstackrouter.ts",
     "clean": "rimraf build coverage sentry-solid-*.tgz ./*.d.ts ./*.d.ts.map",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
