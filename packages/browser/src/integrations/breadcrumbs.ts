@@ -19,6 +19,7 @@ import {
   getClient,
   getEventDescription,
   parseUrl,
+  stripUrlQueryAndFragment,
 } from '@sentry/core';
 import type { FetchHint, HandlerDataDom, HandlerDataHistory, HandlerDataXhr } from '@sentry/browser-utils';
 import {
@@ -193,7 +194,7 @@ function _getXhrBreadcrumbHandler(client: Client): (handlerData: HandlerDataXhr)
 
     const data: XhrBreadcrumbData = {
       method,
-      url: filterCollectedUrl(url),
+      url: getBreadcrumbUrl(url),
       status_code,
     };
 
@@ -248,7 +249,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
 
       const breadcrumb = {
         category: 'fetch',
-        data: { ...handlerData.fetchData, url: filterCollectedUrl(handlerData.fetchData.url) },
+        data: { ...handlerData.fetchData, url: getBreadcrumbUrl(handlerData.fetchData.url) },
         level: 'error',
         type: 'http',
       } satisfies Breadcrumb;
@@ -260,7 +261,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
       const response = handlerData.response as Response | undefined;
       const data: FetchBreadcrumbData = {
         ...handlerData.fetchData,
-        url: filterCollectedUrl(handlerData.fetchData.url),
+        url: getBreadcrumbUrl(handlerData.fetchData.url),
         status_code: response?.status,
       };
 
@@ -322,6 +323,11 @@ function _getHistoryBreadcrumbHandler(client: Client): (handlerData: HandlerData
       },
     });
   };
+}
+
+function getBreadcrumbUrl(url: string): string {
+  const pageurl = url === '' ? WINDOW.location?.href : undefined;
+  return filterCollectedUrl(pageurl ? stripUrlQueryAndFragment(pageurl) : url);
 }
 
 function _isEvent(event: unknown): event is Event {
