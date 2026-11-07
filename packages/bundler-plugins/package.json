@@ -80,7 +80,7 @@
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:tarball": "npm pack",
+    "build:tarball": "pnpm pack",
     "prebuild": "pnpm run build:version",
     "precheck:types": "pnpm run build:version",
     "prelint:types": "pnpm run build:version",
