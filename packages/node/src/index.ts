@@ -48,6 +48,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   neonIntegration,
+  clickhouseIntegration,
   redisIntegration,
   tediousIntegration,
   vercelAIIntegration,

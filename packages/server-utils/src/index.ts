@@ -80,6 +80,7 @@ export { openAIIntegration } from './integrations/openai';
 export { postgresIntegration } from './integrations/pg';
 export { postgresJsIntegration } from './integrations/postgresjs';
 export { neonIntegration } from './integrations/neon';
+export { clickhouseIntegration } from './integrations/clickhouse';
 export { tediousIntegration } from './integrations/tedious';
 export { vercelAIIntegration } from './integrations/vercel-ai';
 export { expressIntegration } from './integrations/express';

@@ -5,6 +5,7 @@ import { uniq } from '@sentry/core';
 import { awsSdkConfig } from './aws-sdk';
 import { amqplibConfig } from './amqplib';
 import { anthropicAiConfig } from './anthropic-ai';
+import { clickhouseConfig } from './clickhouse';
 import { cronConfig } from './cron';
 import { dataloaderConfig } from './dataloader';
 import { expressConfig } from './express';
@@ -67,6 +68,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...amqplibConfig,
   ...anthropicAiConfig,
   ...awsSdkConfig,
+  ...clickhouseConfig,
   ...cronConfig,
   ...dataloaderConfig,
   ...expressConfig,

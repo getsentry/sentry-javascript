@@ -137,6 +137,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   neonIntegration,
+  clickhouseIntegration,
   processSessionIntegration,
   prismaIntegration,
   openTelemetryIntegration,
