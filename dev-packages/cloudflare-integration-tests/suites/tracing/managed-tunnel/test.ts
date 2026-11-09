@@ -10,7 +10,7 @@ function expectServerSpanAt(path: string) {
   };
 }
 
-it('drops the server span of managed tunnel requests', async ({ signal }) => {
+it('answers managed tunnel requests before the app, without a server span', async ({ signal }) => {
   // Envelopes are expected in order, so a span of the tunnel request would arrive before the last one.
   const runner = createRunner(__dirname)
     .expect(expectServerSpanAt('/tunnel-path'))
@@ -18,7 +18,8 @@ it('drops the server span of managed tunnel requests', async ({ signal }) => {
     .start(signal);
 
   const tunnelPath = await runner.makeRequest<string>('get', '/tunnel-path');
-  expect(await runner.makeRequest<string>('post', tunnelPath!, { data: 'envelope' })).toBe('app');
+  // The tunnel rejects the body as an envelope. The app would have answered with a 200.
+  await runner.makeRequest('post', tunnelPath!, { data: 'envelope', expectError: true });
   await runner.makeRequest('get', '/after-tunnel');
 
   await runner.completed();

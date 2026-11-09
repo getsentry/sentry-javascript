@@ -18,6 +18,8 @@ export {
 } from './event-proxy-server';
 export type { SerializedStreamedSpan } from '@sentry/core';
 export { isServerSpanAt, makeClientReportEnvelope, watchForTunnelSpan } from './tunnel';
+export { EXPECTED_TUNNEL_OUTCOMES, runTunnelHardeningCases, startFakeIngests } from './tunnel-hardening';
+export type { FakeIngests, TunnelHardeningResult } from './tunnel-hardening';
 
 export {
   findAbsolutePathImports,

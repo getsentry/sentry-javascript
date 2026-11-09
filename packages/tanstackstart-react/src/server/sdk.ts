@@ -1,6 +1,10 @@
 import { applySdkMetadata } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { getDefaultIntegrations as getDefaultNodeIntegrations, init as initNodeSdk } from '@sentry/node';
+import {
+  _INTERNAL_installTunnelHooks as installTunnelHooks,
+  getDefaultIntegrations as getDefaultNodeIntegrations,
+  init as initNodeSdk,
+} from '@sentry/node';
 
 /**
  * Initializes the server side of the TanStack Start React SDK
@@ -21,5 +25,10 @@ export function init(options: NodeOptions): NodeClient | undefined {
     /\/@vite\//,
   ];
 
-  return initNodeSdk(sentryOptions);
+  const client = initNodeSdk(sentryOptions);
+  // `tunnelRoute` enables the tunnel when the server entry loads, after this preload, so the servers must be ready to
+  // answer it already.
+  installTunnelHooks();
+
+  return client;
 }
