@@ -1,6 +1,6 @@
 import * as SentryCore from '@sentry/core';
 import { applyHonoPatches, createHonoRequestMiddleware } from '@sentry/server-utils';
-import { Hono } from 'hono';
+import { Hono, type MiddlewareHandler, type Next } from 'hono';
 import { HonoRequest } from 'hono/request';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -29,7 +29,13 @@ function freshIsolationScope(): void {
   });
 }
 
-function createApp({ restoreRouteIndex }: { restoreRouteIndex: boolean }): Hono {
+function createApp({
+  restoreRouteIndex,
+  middleware,
+}: {
+  restoreRouteIndex: boolean;
+  middleware?: { path: string; handler: MiddlewareHandler };
+}): Hono {
   const app = new Hono();
   applyHonoPatches(app);
   app.use(createHonoRequestMiddleware({ runtime: 'node' }));
@@ -46,6 +52,10 @@ function createApp({ restoreRouteIndex }: { restoreRouteIndex: boolean }): Hono 
   app.use('/users/*', async (_c, next) => {
     await next();
   });
+  // Last in its method+path group, so that only its arity tells if it is a middleware.
+  if (middleware) {
+    app.use(middleware.path, middleware.handler);
+  }
   // A route handler from `.use()`, which also gets a middleware span wrapper.
   app.use('/users/via-use', async c => c.text('via use'));
   app.get('/users/me', c => c.text('me'));
@@ -114,6 +124,21 @@ const CASES: Array<[path: string, expected: string]> = [
   ['/posts/draft', 'GET /posts/*'],
 ];
 
+const noop = async (): Promise<void> => {};
+
+// Arity does not count rest parameters or a parameter with a default, so these look like route handlers.
+const MIDDLEWARE_WITHOUT_NEXT_ARITY: Array<{ description: string; path: string; handler: MiddlewareHandler }> = [
+  { description: 'rest parameters', path: '/*', handler: (_c, ...rest: [Next]) => rest[0]() },
+  {
+    description: 'a default `next`',
+    path: '/*',
+    handler: async (_c, next: Next = noop) => {
+      await next();
+    },
+  },
+  { description: 'rest parameters on a path', path: '/users/*', handler: (_c, ...rest: [Next]) => rest[0]() },
+];
+
 describe.each(SOURCES)('route name on $source', ({ hidden, restoreRouteIndex }) => {
   let restores: Array<() => void> = [];
 
@@ -134,6 +159,18 @@ describe.each(SOURCES)('route name on $source', ({ hidden, restoreRouteIndex }) 
 
     expect(mockSetTransactionName).toHaveBeenLastCalledWith(expected);
   });
+
+  it.each(MIDDLEWARE_WITHOUT_NEXT_ARITY)(
+    'names the route behind a middleware with $description',
+    async ({ path, handler }) => {
+      freshIsolationScope();
+      const app = createApp({ restoreRouteIndex, middleware: { path, handler } });
+
+      await app.request('/users/42');
+
+      expect(mockSetTransactionName).toHaveBeenLastCalledWith('GET /users/:id');
+    },
+  );
 
   it('does not name a request without a route', async () => {
     freshIsolationScope();

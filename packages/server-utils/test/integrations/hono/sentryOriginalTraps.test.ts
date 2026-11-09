@@ -32,8 +32,12 @@ describe('sentryOriginalTraps', () => {
     const handler = async (_c: unknown, next: () => Promise<void>): Promise<void> => {
       await next();
     };
-    const handlers: MatchedHandler[] = [[[handler, { method: 'GET', path: '/posts/:id', handler }], {}]];
-    wrapRouteHandlers(handlers, [false]);
+    const catchAll = (): string => 'fallback';
+    const handlers: MatchedHandler[] = [
+      [[handler, { method: 'GET', path: '/posts/:id', handler }], {}],
+      [[catchAll, { method: 'GET', path: '/posts/*', handler: catchAll }], {}],
+    ];
+    wrapRouteHandlers(handlers, [false, false]);
     const [[[wrapped]]] = handlers;
 
     expect(wrapped).not.toBe(handler);

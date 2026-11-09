@@ -20,10 +20,10 @@ function wrapperCount(c) {
   return count;
 }
 
-// No route handler declares `next`, so the SDK does not wrap.
+// Only one route handler matches, so the SDK does not wrap.
 app.get('/users/me', c => c.json({ wrappers: wrapperCount(c) }));
 
-// Declares `next`, so the SDK wraps the route handlers.
+// Two route handlers match, so the SDK wraps them.
 app.get('/posts/:id', async (c, next) => {
   if (c.req.param('id') === 'draft') {
     await next();

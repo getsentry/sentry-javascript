@@ -1,6 +1,5 @@
 import { addNonEnumerableProperty, isPlainObject } from '@sentry/core';
 import type { Context, HonoRoute, MatchedHandler } from './honoTypes';
-import { isMiddleware } from './isMiddleware';
 import { sentryOriginalTraps } from './sentryOriginalTraps';
 
 // `routeIndex` of the route handler that started last. `Symbol.for` shares it between SDK copies.
@@ -66,15 +65,15 @@ export function onRouteHandlerStart(context: Context, callback: () => void): voi
  * Wraps the route handlers so that each stores `c.req.routeIndex` when it starts. Hono 5 resets the
  * index after `next()` (https://github.com/honojs/hono/pull/4424).
  *
- * Wraps only if a route handler declares `next`. Otherwise the first route handler also responds.
+ * Wraps only if more than one route handler matched. A single one is the handler that responds. Arity
+ * cannot tell if a handler calls `next()`: it does not count rest parameters or a default `next`.
  * Returns `true` if it wrapped.
  *
  * Safe to call during the request: `compose` reads each handler only when it calls it.
  */
 export function wrapRouteHandlers(handlers: MatchedHandler[], middlewareFlags: boolean[]): boolean {
-  // For a route handler, `isMiddleware()` tells if it declares `next`.
-  const canPassOn = handlers.some(([[handler]], i) => !middlewareFlags[i] && isMiddleware(handler));
-  if (!canPassOn) {
+  const routeHandlerCount = middlewareFlags.filter(flag => !flag).length;
+  if (routeHandlerCount < 2) {
     return false;
   }
 

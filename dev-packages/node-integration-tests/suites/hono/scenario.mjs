@@ -120,10 +120,15 @@ app.get('/head-error/:id', () => {
   throw new Error('Test error from a HEAD request');
 });
 
-// A user span around the route handler. The SDK must rename the segment, not this span. The handler
-// declares `next`, so the SDK renames inside this span.
+// A user span around the route handler. The SDK must rename the segment, not this span. Two route
+// handlers match, so the SDK renames inside this span.
 app.use('/traced/*', (_c, next) => startSpan({ name: 'user span' }, () => next()));
-app.get('/traced/:id', (c, _next) => c.text('traced'));
+app.get('/traced/:id', c => c.text('traced'));
+app.get('/traced/*', c => c.text('traced catch-all'));
+
+// Arity does not count rest parameters, so this middleware looks like a route handler.
+app.use('/rest-args/*', (_c, ...rest) => rest[0]());
+app.get('/rest-args/:id', c => c.text('rest args'));
 
 // Passes `draft` on to the catch-all below, which then names the request.
 app.get('/posts/:id', async (c, next) => {

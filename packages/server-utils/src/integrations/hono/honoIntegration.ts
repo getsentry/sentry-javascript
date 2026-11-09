@@ -62,7 +62,7 @@ function wrapMatchedMiddleware(handlers: MatchedHandler[], middlewareFlags: bool
  * Per-request Context hook. `#dispatch` builds `new Context(req, { matchResult })` before its
  * single-handler fast-path check, so from the live `matchResult` we:
  *  1. wrap the matched middleware handlers for spans (route handlers are covered by the request span);
- *  2. wrap the matched route handlers if one can call `next()`, so the route name follows the handler
+ *  2. wrap the matched route handlers if more than one matched, so the route name follows the handler
  *     that responds;
  *  3. prepend the Sentry request/response middleware — it drives route naming, request data and error
  *     capture from inside the chain, and forces the ≥2-handler `compose` path so the fast-path is

@@ -24,6 +24,7 @@ const ROUTE_NAME_CASES: Array<{ method: 'get' | 'post'; path: string; name: stri
   { method: 'get', path: '/posts/1', name: 'GET /posts/:id', route: '/posts/:id' },
   { method: 'get', path: '/posts/draft', name: 'GET /posts/*', route: '/posts/*' },
   { method: 'get', path: '/mw-only/anything', name: 'GET /mw-only/*', route: '/mw-only/*' },
+  { method: 'get', path: '/rest-args/1', name: 'GET /rest-args/:id', route: '/rest-args/:id' },
   { method: 'get', path: '/sub/hello', name: 'GET /sub/hello', route: '/sub/hello' },
   {
     method: 'get',
@@ -410,7 +411,7 @@ describe('hono auto-instrumentation with honoMiddleware(app)', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-honoMiddleware.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('wraps route handlers only when one declares next, and only once', async () => {
+    test('wraps route handlers only when more than one matches, and only once', async () => {
       const runner = createRunner()
         .unordered()
         .expect(segmentNamed('GET /users/me', '/users/me'))
