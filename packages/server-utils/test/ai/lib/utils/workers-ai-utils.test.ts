@@ -414,7 +414,6 @@ describe('workers-ai utils', () => {
       );
 
       expect(attributes).toEqual({
-        [GEN_AI_RESPONSE_TOOL_CALLS]: JSON.stringify(toolCalls),
         [GEN_AI_RESPONSE_FINISH_REASONS]: JSON.stringify(['tool_calls']),
         [GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
           {

@@ -6,14 +6,15 @@ import type { SerializedStreamedSpan } from '@sentry/core';
 // stack (the OpenAI-compatible SSE shape, `choices[].delta.content`) from an Agent's `onRequest`.
 // Asserts the streaming response text is captured on the gen_ai span — the regression seen in
 // production where only input + usage survived. The model output is read from
-// `gen_ai.output.messages`, and this shape does not set the deprecated `gen_ai.response.text`.
+// `gen_ai.output.messages`, so the streaming instrumentation must emit it alongside the
+// deprecated `gen_ai.response.text`.
 function assertGenAiStreamingSpan(span: SerializedStreamedSpan): void {
   expect(getSpanOp(span)).toBe('gen_ai.chat');
   expect(span.attributes['sentry.origin']?.value).toBe('auto.ai.cloudflare.workers_ai');
   expect(span.attributes['gen_ai.operation.name']?.value).toBe('chat');
   expect(span.attributes['gen_ai.request.model']?.value).toBe('@cf/meta/llama-3.1-8b-instruct');
   expect(span.attributes['gen_ai.response.streaming']?.value).toBe(true);
-  expect(span.attributes['gen_ai.response.text']).toBeUndefined();
+  expect(span.attributes['gen_ai.response.text']?.value).toBe('The capital of France is Paris.');
   expect(span.attributes['gen_ai.output.messages']?.value).toBe(
     JSON.stringify([
       {

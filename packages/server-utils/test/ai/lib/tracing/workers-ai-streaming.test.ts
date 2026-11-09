@@ -122,7 +122,7 @@ describe('instrumentWorkersAiStream', () => {
     expect(attributes[GEN_AI_RESPONSE_STREAMING]).toBe(true);
     expect(attributes[GEN_AI_RESPONSE_ID]).toBe('chatcmpl-1');
     expect(attributes[GEN_AI_RESPONSE_MODEL]).toBe('@cf/google/gemma-4-26b-a4b-it');
-    expect(attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
+    expect(attributes[GEN_AI_RESPONSE_TEXT]).toBe('The capital of France is Paris.');
     expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
       {
         role: 'assistant',
