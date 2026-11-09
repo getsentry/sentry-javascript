@@ -192,6 +192,7 @@ export {
   mysql2Integration,
   mysqlIntegration,
   neonIntegration,
+  clickhouseIntegration,
   nitroIntegration,
   openAIIntegration,
   piAiIntegration,

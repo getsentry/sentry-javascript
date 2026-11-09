@@ -769,6 +769,41 @@ describe('sanitizeSqlQuery', () => {
     });
   });
 
+  describe("dialect: 'clickhouse'", () => {
+    it.each([
+      [String.raw`SELECT "a\"b", 'private@example.com' AS "c" FROM t`, String.raw`SELECT "a\"b", ? AS "c" FROM t`],
+      ["SELECT `a\\`b`, 'private@example.com' AS `c` FROM t", 'SELECT `a\\`b`, ? AS `c` FROM t'],
+      ['INSERT INTO events FORMAT CSV\n1,private@example.com', 'INSERT INTO events'],
+      [
+        '/* comment */ INSERT INTO events (id, name) FORMAT JSONEachRow\n{"id":1,"name":"private@example.com"}',
+        'INSERT INTO events (id, name)',
+      ],
+      ['INSERT INTO events FORMAT /* input */ CSV\n1,private@example.com', 'INSERT INTO events'],
+      ['INSERT INTO format (id) VALUES (1)', 'INSERT INTO format (id) VALUES (?)'],
+      ['INSERT INTO events SELECT format FROM source', 'INSERT INTO events SELECT format FROM source'],
+      ["INSERT INTO events (`format`) VALUES ('private@example.com')", 'INSERT INTO events (`format`) VALUES (?)'],
+      // `"..."` and backticks quote identifiers, as in `standard`
+      ['SELECT * FROM "events" WHERE `user` = \'jane@example.com\'', 'SELECT * FROM "events" WHERE `user` = ?'],
+      // `\` escapes the next character inside a string literal
+      [String.raw`SELECT * FROM t WHERE name = 'O\'Brien' AND b = 'x'`, 'SELECT * FROM t WHERE name = ? AND b = ?'],
+      [String.raw`SELECT * FROM t WHERE a = 'x\\' AND b = 'y'`, 'SELECT * FROM t WHERE a = ? AND b = ?'],
+      // `#` starts a line comment
+      ["SELECT * FROM t WHERE a = 'x' # trailing comment", 'SELECT * FROM t WHERE a = ?'],
+      // heredocs are dollar-quoted literals
+      ['SELECT $heredoc$secret$heredoc$ FROM t', 'SELECT ? FROM t'],
+      ['SELECT $1$private@example.com$1$ FROM t', 'SELECT ? FROM t'],
+      ['SELECT 10_000, 0b101010, 1_000.25, 0xDE_AD FROM events', 'SELECT ?, ?, ?, ? FROM events'],
+      ['SELECT .1_25, -10_000, 1_0e+2 FROM events', 'SELECT ?, ?, ? FROM events'],
+      // `{name:Type}` query parameters survive, including the digits in the type name
+      [
+        'SELECT * FROM t WHERE id = {id:UInt32} AND name = {name:String}',
+        'SELECT * FROM t WHERE id = {id:UInt32} AND name = {name:String}',
+      ],
+    ])('sanitizes %p', (input, expected) => {
+      expect(sanitizeSqlQuery(input, 'clickhouse')).toBe(expected);
+    });
+  });
+
   describe('unterminated literals swallow the rest of the statement', () => {
     it.each([
       ["SELECT * FROM t WHERE a = 'jane@example.com AND b = 2", 'standard' as const],
@@ -913,6 +948,7 @@ describe('toSqlDialect', () => {
     ['mssql', 'mssql'],
     ['sqlserver', 'mssql'],
     ['microsoft.sql_server', 'mssql'],
+    ['clickhouse', 'clickhouse'],
   ])('maps %j to %j', (system, expected) => {
     expect(toSqlDialect(system)).toBe(expected);
   });
