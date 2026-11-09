@@ -1,0 +1,21 @@
+{
+  "name": "new-module-registry",
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  // `new_module_registry` becomes the default for compatibility dates from 2026-11-17 on.
+  "compatibility_flags": ["nodejs_compat", "new_module_registry"],
+  "migrations": [
+    {
+      "new_sqlite_classes": ["TestDurableObject"],
+      "tag": "v1",
+    },
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "TestDurableObject",
+        "name": "TEST_DURABLE_OBJECT",
+      },
+    ],
+  },
+}
