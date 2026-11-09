@@ -139,7 +139,8 @@ export function cronExpressionToMonitorConfig(
 
   const [minute, hour, dayOfMonth, month, dayOfWeek] = fields as [string, string, string, string, string];
   const monthNumbers = replaceNames(month, MONTHS, 1, dialect);
-  const weekdayNumbers = endRangesOnSundayAsSeven(replaceNames(dayOfWeek, WEEKDAYS, 0, dialect));
+  const weekdayNames = replaceNames(dayOfWeek, WEEKDAYS, 0, dialect);
+  const weekdayNumbers = dialect === 'node-cron' ? endRangesOnSundayAsSeven(weekdayNames) : weekdayNames;
   const crontab = [minute, hour, dayOfMonth, monthNumbers, weekdayNumbers];
   if (
     crontab.some(field => /[a-z]/i.test(field) || hasReversedRange(field) || hasSteppedSingleValueRange(field)) ||
@@ -244,7 +245,8 @@ function replaceNames(field: string, names: string[], offset: number, dialect: C
   });
 }
 
-// `sat-sun` is `6-0`, which node-cron 4.6+ runs on Saturday and Sunday. Sentry only accepts it as `6-7`.
+// `sat-sun` is `6-0`, which node-cron 4.6+ runs on Saturday and Sunday. Sentry only accepts it as `6-7`. The other
+// schedulers reject it.
 function endRangesOnSundayAsSeven(field: string): string {
   return field.replace(/(\d+)-0(?!\d)/g, (range, start: string) => (Number(start) ? `${start}-7` : range));
 }
