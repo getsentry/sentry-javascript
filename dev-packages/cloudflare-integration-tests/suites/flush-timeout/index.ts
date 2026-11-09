@@ -18,7 +18,8 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
       await step.do(`step-${index}`, async () => index);
     }
 
-    // A step's I/O context cannot reliably wake a promise awaited by the run.
+    // The abort happens in the I/O context of a step. Resolving a promise of the run from there does not reliably
+    // wake the run, so the run polls with its own timer instead.
     while (!lastSend.aborted) {
       await new Promise(resolve => setTimeout(resolve, 50));
     }
