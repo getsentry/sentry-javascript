@@ -137,6 +137,29 @@ describe('Cloudflare Pages vs Workers detection', () => {
   });
 
   describe('Cloudflare Pages (with pages_build_output_dir)', () => {
+    it('imports the user server config at the Worker entry', async () => {
+      getWranglerConfig.mockReturnValue({
+        filename: 'wrangler.json',
+        content: JSON.stringify({
+          pages_build_output_dir: './dist',
+        }),
+      });
+
+      const integration = sentryAstro({ serverInitPath: 'sentry.server.config.js' });
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        config: {
+          // @ts-expect-error - we only need to pass what we actually use
+          adapter: { name: '@astrojs/cloudflare' },
+        },
+        command: 'build',
+      });
+
+      expect(sentryCloudflareVitePlugin).toHaveBeenCalledWith({ importServerInit: true });
+    });
+
     it('does not show warning for Pages project with wrangler.json', async () => {
       getWranglerConfig.mockReturnValue({
         filename: 'wrangler.json',

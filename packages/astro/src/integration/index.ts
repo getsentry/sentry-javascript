@@ -236,9 +236,14 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             updateConfig({
               vite: {
                 // A Pages build gets the same `withSentry` wrap as Workers, which answers managed tunnel requests.
+                // The user's server config has to run before that wrap here too, or the client with their tunnel
+                // and DSN never gets created.
                 plugins:
                   command !== 'dev'
-                    ? [sentryCloudflareNodeWarningPlugin(), sentryCloudflareVitePlugin()]
+                    ? [
+                        sentryCloudflareNodeWarningPlugin(),
+                        sentryCloudflareVitePlugin({ importServerInit: !!pathToServerInit }),
+                      ]
                     : [sentryCloudflareNodeWarningPlugin()],
                 ssr: {
                   // @sentry/node is required in case we have 2 different @sentry/node

@@ -7,7 +7,9 @@
     "build": "astro build",
     "preview": "wrangler pages dev ./dist --port 3030",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "TEST_ENV=production playwright test"
+    "test:assert": "TEST_ENV=production playwright test",
+    "test:build:tunnel": "pnpm install && PUBLIC_E2E_TEST_TUNNEL=1 PUBLIC_E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
+    "test:assert:tunnel": "PUBLIC_E2E_TEST_TUNNEL=1 TEST_ENV=production playwright test tunnel"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.12",
@@ -19,5 +21,14 @@
   },
   "devDependencies": {
     "wrangler": "^4.63.0"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build:tunnel",
+        "assert-command": "pnpm test:assert:tunnel",
+        "label": "astro-5-cf-pages (tunnel)"
+      }
+    ]
   }
 }
