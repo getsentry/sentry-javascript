@@ -720,6 +720,9 @@ importers:
       '@sentry/server-utils':
         specifier: 11.11.0
         version: link:../../packages/server-utils
+      '@smithy/core':
+        specifier: 3.38.1
+        version: 3.38.1
       '@smithy/node-http-handler':
         specifier: 4.12.1
         version: 4.12.1
