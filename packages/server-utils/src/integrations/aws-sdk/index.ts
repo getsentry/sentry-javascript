@@ -108,6 +108,7 @@ function instrumentAwsSdk(servicesExtensions: ServicesExtensions): void {
         command.input = {};
       }
       const normalizedRequest = normalizeV3Request(serviceName, commandName, command.input, undefined);
+      normalizedRequest.abortSignal = (data.arguments[1] as { abortSignal?: AbortSignal } | undefined)?.abortSignal;
       const requestMetadata = servicesExtensions.requestPreSpanHook(normalizedRequest);
 
       // `rpc` matches what the exporter infers from `rpc.service` for the OTel aws-sdk spans;

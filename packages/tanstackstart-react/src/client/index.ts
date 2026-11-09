@@ -62,3 +62,10 @@ export function createSentryTunnelRoute(_options: CreateSentryTunnelRouteOptions
  * can statically import it (the call is server-guarded and tree-shaken from the client bundle).
  */
 export function registerSentryServerTunnelRoute(_path: string): void {}
+
+/**
+ * No-op stub for client-side builds. The server entry that calls it only runs on the server.
+ *
+ * @internal
+ */
+export function _INTERNAL_setTunnelRoute(_tunnelRoute?: unknown, _basePath?: string): void {}

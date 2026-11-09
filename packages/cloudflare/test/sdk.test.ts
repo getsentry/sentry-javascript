@@ -6,7 +6,11 @@ import type { CloudflareOptions } from '../src/client';
 import { CloudflareClient } from '../src/client';
 import { getDefaultIntegrations, init } from '../src/sdk';
 import { resetSdk } from './testUtils';
-import { mysqlIntegration as exportedMysqlIntegration, spanStreamingIntegration } from '../src/';
+import {
+  mysqlIntegration as exportedMysqlIntegration,
+  spanStreamingIntegration,
+  serveTunnelIntegration,
+} from '../src/';
 
 describe('init', () => {
   beforeEach(() => {
@@ -21,6 +25,18 @@ describe('init', () => {
 
     expect(client).toBeDefined();
     expect(client).toBeInstanceOf(CloudflareClient);
+  });
+
+  test('serves the managed tunnel with `serveTunnelIntegration`', () => {
+    const browserDsn = 'https://browser@o1.ingest.sentry.io/42';
+    init({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      integrations: [serveTunnelIntegration({ allowedDsns: [browserDsn] })],
+    });
+
+    const options = getClient()?.getOptions();
+    expect(options?.tunnel).toBeUndefined();
+    expect(options?._managedTunnel).toEqual({ allowedDsns: [browserDsn] });
   });
 
   test('installs SpanStreaming integration by default', () => {

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/bundler-plugins",
-  "version": "11.9.0",
+  "version": "11.11.0",
   "description": "Sentry Bundler Plugins",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/main/packages/bundler-plugins",
@@ -115,12 +115,12 @@
     }
   },
   "dependencies": {
-    "@sentry/core": "11.9.0",
+    "@sentry/core": "11.11.0",
     "dotenv": "^17.4.2",
-    "glob": "^13.0.6",
+    "glob": "^14.0.3",
     "magic-string": "~0.30.8 || ^1.0.0",
     "oxc-parser": "^0.152.0",
-    "sentry": "^0.45.0",
+    "sentry": "^0.49.0",
     "supports-color": "^8.1.1"
   },
   "peerDependencies": {
@@ -137,19 +137,17 @@
   },
   "devDependencies": {
     "@babel/core": "^7.18.5",
-    "@babel/parser": "^7.29.8",
+    "@babel/parser": "^8.0.10",
     "@babel/preset-react": "^7.23.3",
-    "@sentry-internal/rollup-utils": "11.9.0",
-    "@sentry-internal/test-utils": "11.9.0",
+    "@sentry-internal/rollup-utils": "11.11.0",
+    "@sentry-internal/test-utils": "11.11.0",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^20.19.0",
     "premove": "^4.0.0",
     "rolldown": "^1.0.0",
+    "vite": "^8.3.1",
     "vitest": "^4.1.11",
-    "webpack": "5.104.1"
-  },
-  "volta": {
-    "extends": "../../package.json"
+    "webpack": "5.112.2"
   },
   "engines": {
     "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"

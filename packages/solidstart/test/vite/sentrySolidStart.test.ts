@@ -54,6 +54,7 @@ describe('sentrySolidStart()', () => {
       'code-transformer',
       'sentry-solidstart-files-to-delete-after-upload',
       'sentry-vite-plugin',
+      'sentry-vite-upload-staging',
       'sentry-solidstart-update-source-map-setting',
     ]);
   });
@@ -104,6 +105,20 @@ describe('sentrySolidStart()', () => {
         tracingChannel: true,
         modules: [expect.objectContaining({ name: 'sentry' })],
       });
+    });
+
+    it("serves the managed tunnel under Vite's `base` in the browser and on the server", () => {
+      const contributed = callConfigHook(getNitroPlugin(sentrySolidStart()), { base: '/app/' });
+
+      expect(contributed?.define).toEqual({ __SENTRY_SOLIDSTART_TUNNEL_BASE_PATH__: '"/app"' });
+      expect(contributed?.nitro?.runtimeConfig).toEqual({ sentryTunnelBasePath: '/app' });
+    });
+
+    it("leaves the server on Nitro's `baseURL` when the app has no base path", () => {
+      const contributed = callConfigHook(getNitroPlugin(sentrySolidStart()), { base: '/' });
+
+      expect(contributed?.define).toEqual({ __SENTRY_SOLIDSTART_TUNNEL_BASE_PATH__: '""' });
+      expect(contributed?.nitro?.runtimeConfig).toBeUndefined();
     });
 
     it('enables hidden source maps and opts out of nitro sourcemap minification', () => {

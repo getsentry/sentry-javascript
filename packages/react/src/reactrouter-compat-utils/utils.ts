@@ -369,7 +369,7 @@ export function resolveRouteNameAndSource(
   if (enableAsyncRouteHandlers && lazyRouteManifest && lazyRouteManifest.length > 0) {
     const manifestMatch = matchRouteManifest(location.pathname, lazyRouteManifest, basename);
     if (manifestMatch) {
-      return [(stripBasename ? '' : basename) + manifestMatch, 'route'];
+      return [(stripBasename ? '' : trimSlash(basename)) + manifestMatch, 'route'];
     }
   }
 

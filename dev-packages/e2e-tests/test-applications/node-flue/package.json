@@ -34,9 +34,6 @@
   "engines": {
     "node": "24.x"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "optional": true,
     "optionalVariants": [

@@ -37,6 +37,11 @@ function* walkFiles(outputDir: string, extensions?: string[]): Generator<string>
     if (extensions && !extensions.includes(path.extname(entry.name))) {
       continue;
     }
+    // Dependencies a server build traces into its output are not the app's bundles. Some ship debug
+    // IDs of their own, for example the `sentry` package.
+    if (path.relative(outputDir, entry.parentPath).split(path.sep).includes('node_modules')) {
+      continue;
+    }
     yield path.join(entry.parentPath, entry.name);
   }
 }
@@ -155,6 +160,28 @@ export function findInjectedDebugIds({ outputDir, extensions = JS_EXTENSIONS }: 
 
   for (const file of walkFiles(outputDir, extensions)) {
     readDebugIds(file).forEach(debugId => debugIds.add(debugId));
+  }
+
+  return [...debugIds];
+}
+
+/**
+ * Returns the debug IDs of emitted files whose path has glob characters, such as Nitro 3's
+ * `_libs/_sentry/node+[...].mjs`.
+ *
+ * TODO: The uploader passes the emitted file paths to `glob` as patterns, so it skips these files.
+ * Remove this when the uploader matches paths literally.
+ */
+export function findDebugIdsInFilesWithGlobCharacters({
+  outputDir,
+  extensions = JS_EXTENSIONS,
+}: OutputScanOptions): string[] {
+  const debugIds = new Set<string>();
+
+  for (const file of walkFiles(outputDir, extensions)) {
+    if (/[[\]{}()*?]/.test(path.relative(outputDir, file))) {
+      readDebugIds(file).forEach(debugId => debugIds.add(debugId));
+    }
   }
 
   return [...debugIds];

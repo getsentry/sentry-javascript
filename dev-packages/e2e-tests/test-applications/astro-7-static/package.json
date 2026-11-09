@@ -23,9 +23,6 @@
     "ioredis": "5.10.1",
     "mysql": "^2.18.1"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "optional": true
   }

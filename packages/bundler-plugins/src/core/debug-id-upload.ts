@@ -2,8 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import * as url from 'url';
 import * as util from 'util';
-import { promisify } from 'util';
-import type { SentryBuildPluginManager } from './build-plugin-manager';
+import type { SentryBuildPluginManager, UploadStaging } from './build-plugin-manager';
 import type { Logger } from './logger';
 import type { ResolveSourceMapHook, RewriteSourcesHook } from './types';
 import { stripQueryAndHashFromPath } from './utils';
@@ -13,11 +12,11 @@ interface DebugIdUploadPluginOptions {
 }
 
 export function createDebugIdUploadFunction({ sentryBuildPluginManager }: DebugIdUploadPluginOptions) {
-  return async (buildArtifactPaths: string[]) => {
+  return async (buildArtifactPaths: string[], opts?: { staging?: UploadStaging }) => {
     // Webpack and perhaps other bundlers allow you to append query strings to
     // filenames for cache busting purposes. We should strip these before upload.
     const cleanedPaths = buildArtifactPaths.map(stripQueryAndHashFromPath);
-    await sentryBuildPluginManager.uploadSourcemaps(cleanedPaths);
+    return sentryBuildPluginManager.uploadSourcemaps(cleanedPaths, opts);
   };
 }
 
@@ -29,25 +28,20 @@ export async function prepareBundleForDebugIdUpload(
   rewriteSourcesHook: RewriteSourcesHook,
   resolveSourceMapHook: ResolveSourceMapHook | undefined,
 ): Promise<void> {
-  let bundleContent;
+  let bundleContent: string;
   try {
-    bundleContent = await promisify(fs.readFile)(bundleFilePath, 'utf8');
+    bundleContent = await fs.promises.readFile(bundleFilePath, 'utf8');
   } catch (e) {
     logger.error(`Could not read bundle to determine debug ID and source map: ${bundleFilePath}`, e);
     return;
   }
 
-  const debugId = determineDebugIdFromBundleSource(bundleContent);
-  if (debugId === undefined) {
+  if (determineDebugIdFromBundleSource(bundleContent) === undefined) {
     logger.debug(
       `Could not determine debug ID from bundle. This can happen if you did not clean your output folder before installing the Sentry plugin. File will not be source mapped: ${bundleFilePath}`,
     );
     return;
   }
-
-  const uniqueUploadName = `${debugId}-${chunkIndex}`;
-
-  bundleContent = addDebugIdToBundleSource(bundleContent, debugId);
 
   const sourceMapPath = await determineSourceMapPathFromBundle(
     bundleFilePath,
@@ -56,35 +50,114 @@ export async function prepareBundleForDebugIdUpload(
     resolveSourceMapHook,
   );
 
-  // A chunk with a debug ID but no resolvable source map
-  // (e.g. framework-generated stub chunks that never emit one) can't be
-  // symbolicated, so uploading its minified source alone accomplishes
-  // nothing and only makes the uploader warn about a missing source map ref.
-  // Skip it, unless the source map is inlined into the bundle, in which case
-  // the source file carries the map itself and must still be uploaded.
-  if (!sourceMapPath && !bundleHasInlineSourceMap(bundleContent)) {
-    logger.debug(`Not uploading bundle without a source map: ${bundleFilePath}`);
+  let sourceMapSource: string | undefined;
+  if (sourceMapPath) {
+    try {
+      sourceMapSource = await fs.promises.readFile(sourceMapPath, 'utf8');
+    } catch (e) {
+      logger.error(`Failed to read source map for debug ID upload: ${sourceMapPath}`, e);
+      return;
+    }
+  }
+
+  const result = prepareArtifactForUpload({
+    code: bundleContent,
+    mapSource: sourceMapSource,
+    mapDir: path.dirname(sourceMapPath ?? bundleFilePath),
+    rewriteSourcesHook,
+  });
+
+  if (!result.ok) {
+    if (result.reason === 'invalid-source-map') {
+      logger.error(`Failed to parse source map for debug ID upload: ${sourceMapPath}`);
+    } else {
+      // A chunk with a debug ID but no resolvable source map
+      // (e.g. framework-generated stub chunks that never emit one) can't be
+      // symbolicated, so uploading its minified source alone accomplishes
+      // nothing and only makes the uploader warn about a missing source map ref.
+      logger.debug(`Not uploading bundle without a source map: ${bundleFilePath}`);
+    }
     return;
   }
 
-  const writeSourceFilePromise = fs.promises.writeFile(
-    path.join(uploadFolder, `${uniqueUploadName}.js`),
-    bundleContent,
-    'utf-8',
-  );
+  await writePreparedArtifact(uploadFolder, `${result.artifact.debugId}-${chunkIndex}`, result.artifact);
+}
 
-  const writeSourceMapFilePromise = sourceMapPath
-    ? prepareSourceMapForDebugIdUpload(
-        sourceMapPath,
-        path.join(uploadFolder, `${uniqueUploadName}.js.map`),
-        debugId,
-        rewriteSourcesHook,
-        logger,
-      )
-    : Promise.resolve();
+export type PreparedUploadArtifact = {
+  debugId: string;
+  bundleSource: string;
+  /** `undefined` when the bundle has no separate source map (i.e. the map is inlined). */
+  sourceMapSource: string | undefined;
+};
 
-  await writeSourceFilePromise;
-  await writeSourceMapFilePromise;
+export type PrepareArtifactResult =
+  | { ok: true; artifact: PreparedUploadArtifact }
+  | { ok: false; reason: 'no-debug-id' | 'no-source-map' | 'invalid-source-map' };
+
+/**
+ * Prepares a bundle and its source map for the debug ID upload: stamps the debug ID into both
+ * and runs the `rewriteSources` hook over the map's `sources`.
+ *
+ * Pass `mapSource: undefined` when the bundle has no separate source map. A bundle with an
+ * inlined map is still prepared; a bundle without any map is skipped because it cannot be
+ * symbolicated.
+ */
+export function prepareArtifactForUpload(input: {
+  code: string;
+  mapSource: string | undefined;
+  /** Directory the source map lives in, passed to the `rewriteSources` hook. */
+  mapDir: string;
+  rewriteSourcesHook: RewriteSourcesHook;
+}): PrepareArtifactResult {
+  const debugId = determineDebugIdFromBundleSource(input.code);
+  if (debugId === undefined) {
+    return { ok: false, reason: 'no-debug-id' };
+  }
+
+  const bundleSource = addDebugIdToBundleSource(input.code, debugId);
+
+  if (input.mapSource === undefined) {
+    if (!bundleHasInlineSourceMap(input.code)) {
+      return { ok: false, reason: 'no-source-map' };
+    }
+    return { ok: true, artifact: { debugId, bundleSource, sourceMapSource: undefined } };
+  }
+
+  const map = parseSourceMap(input.mapSource);
+  if (!map) {
+    return { ok: false, reason: 'invalid-source-map' };
+  }
+
+  setDebugIdOnSourceMap(map, debugId);
+
+  if (Array.isArray(map['sources'])) {
+    map['sources'] = map['sources'].map((source: string) =>
+      input.rewriteSourcesHook(source, map, { mapDir: input.mapDir }),
+    );
+  }
+
+  return { ok: true, artifact: { debugId, bundleSource, sourceMapSource: JSON.stringify(map) } };
+}
+
+/**
+ * Writes a prepared artifact as `<uniqueUploadName>.js` (and `.js.map`) into the upload folder.
+ */
+export async function writePreparedArtifact(
+  uploadFolder: string,
+  uniqueUploadName: string,
+  artifact: PreparedUploadArtifact,
+): Promise<void> {
+  const writes = [
+    fs.promises.writeFile(path.join(uploadFolder, `${uniqueUploadName}.js`), artifact.bundleSource, 'utf-8'),
+  ];
+
+  if (artifact.sourceMapSource !== undefined) {
+    writes.push(
+      fs.promises.writeFile(path.join(uploadFolder, `${uniqueUploadName}.js.map`), artifact.sourceMapSource, 'utf-8'),
+    );
+  }
+
+  await Promise.all(writes);
 }
 
 /**
@@ -319,50 +392,6 @@ export async function determineSourceMapPathFromBundle(
       ` (Attempted paths: ${searchLocations.map(e => `\`${e}\``).join(', ')})`,
   );
   return undefined;
-}
-
-/**
- * Reads a source map, injects debug ID fields, and writes the source map to the target path.
- */
-async function prepareSourceMapForDebugIdUpload(
-  sourceMapPath: string,
-  targetPath: string,
-  debugId: string,
-  rewriteSourcesHook: RewriteSourcesHook,
-  logger: Logger,
-): Promise<void> {
-  let sourceMapFileContent: string;
-  try {
-    sourceMapFileContent = await util.promisify(fs.readFile)(sourceMapPath, {
-      encoding: 'utf8',
-    });
-  } catch (e) {
-    logger.error(`Failed to read source map for debug ID upload: ${sourceMapPath}`, e);
-    return;
-  }
-
-  let map: Record<string, unknown>;
-  try {
-    map = JSON.parse(sourceMapFileContent) as { sources: unknown; [key: string]: unknown };
-    setDebugIdOnSourceMap(map, debugId);
-  } catch {
-    logger.error(`Failed to parse source map for debug ID upload: ${sourceMapPath}`);
-    return;
-  }
-
-  if (map['sources'] && Array.isArray(map['sources'])) {
-    const mapDir = path.dirname(sourceMapPath);
-    map['sources'] = map['sources'].map((source: string) => rewriteSourcesHook(source, map, { mapDir }));
-  }
-
-  try {
-    await util.promisify(fs.writeFile)(targetPath, JSON.stringify(map), {
-      encoding: 'utf8',
-    });
-  } catch (e) {
-    logger.error(`Failed to prepare source map for debug ID upload: ${sourceMapPath}`, e);
-    return;
-  }
 }
 
 const PROTOCOL_REGEX = /^[a-zA-Z][a-zA-Z0-9+\-.]*:\/\//;

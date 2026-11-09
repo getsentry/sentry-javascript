@@ -30,8 +30,5 @@
     "vite": "^8.1.5",
     "wrangler": "^4.114.0",
     "ws": "^8.21.1"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

@@ -1302,6 +1302,41 @@ describe('withSentryConfig', () => {
     });
   });
 
+  describe('applicationKeyExcludeDependencies warnings', () => {
+    beforeEach(() => {
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('warns without applicationKey', () => {
+      vi.spyOn(util, 'detectActiveBundler').mockReturnValue('turbopack');
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, { applicationKeyExcludeDependencies: true });
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[@sentry/nextjs] `applicationKeyExcludeDependencies` requires `applicationKey` and has no effect without it.',
+      );
+    });
+
+    it('warns on webpack when applicationKey is set', () => {
+      vi.spyOn(util, 'detectActiveBundler').mockReturnValue('webpack');
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, {
+        applicationKey: 'my-app',
+        applicationKeyExcludeDependencies: true,
+      });
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[@sentry/nextjs] `applicationKeyExcludeDependencies` only applies to Turbopack builds and has no effect on webpack builds.',
+      );
+    });
+  });
+
   describe('turbopack version compatibility warnings', () => {
     const originalTurbopack = process.env.TURBOPACK;
     const originalNodeEnv = process.env.NODE_ENV;

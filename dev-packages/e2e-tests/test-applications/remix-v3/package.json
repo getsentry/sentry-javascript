@@ -8,11 +8,13 @@
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install",
-    "test:assert": "pnpm test"
+    "test:assert": "pnpm test",
+    "test:assert:tunnel": "E2E_TEST_TUNNEL=1 E2E_TEST_DSN=http://public@localhost:3061/1337 playwright test tunnel",
+    "test:assert:tunnel-plain-server": "E2E_TEST_PLAIN_SERVER=1 pnpm test:assert:tunnel"
   },
   "dependencies": {
     "@sentry/remix": "file:../../packed/sentry-remix-packed.tgz",
-    "remix": "3.0.0"
+    "remix": "3.1.0"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
@@ -21,7 +23,18 @@
     "@types/node": "^24.6.0",
     "typescript": "~5.9.0"
   },
-  "volta": {
-    "extends": "../../package.json"
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build",
+        "assert-command": "pnpm test:assert:tunnel",
+        "label": "remix-v3 (tunnel)"
+      },
+      {
+        "build-command": "pnpm test:build",
+        "assert-command": "pnpm test:assert:tunnel-plain-server",
+        "label": "remix-v3 (tunnel, plain server)"
+      }
+    ]
   }
 }

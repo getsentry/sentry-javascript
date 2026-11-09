@@ -10,7 +10,7 @@ const startCommands = {
 
 const config = getPlaywrightConfig(
   {
-    startCommand: startCommands[getRuntime()],
+    startCommand: process.env.TEST_ENV === 'development' ? 'pnpm dev --port 3030' : startCommands[getRuntime()],
     port: 3030,
   },
   // Boot Redis before the tests run, outside the webServer startup-timeout window.

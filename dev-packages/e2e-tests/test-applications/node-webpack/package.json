@@ -17,8 +17,5 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "graphql": "16.9.0",
     "webpack": "5.107.2"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

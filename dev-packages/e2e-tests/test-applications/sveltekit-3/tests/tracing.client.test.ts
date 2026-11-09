@@ -77,3 +77,23 @@ test.describe('client-specific performance events', () => {
     );
   });
 });
+
+test('fetch instrumentation does not make effects re-run on navigation', async ({ page }) => {
+  const effectFetches: string[] = [];
+  page.on('request', request => {
+    if (new URL(request.url()).pathname === '/api/users') {
+      effectFetches.push(request.url());
+    }
+  });
+
+  await waitForInitialPageload(page, { route: '/effect-fetch' });
+  await expect(page.locator('#effect-fetch-responses')).toHaveText('responses: 1');
+
+  await page.getByText('Same route, new query').click();
+  await page.waitForURL('**/effect-fetch?q=1');
+
+  await page.getByText('Leave page').click();
+  await expect(page.getByText('Navigation 1')).toBeVisible();
+
+  expect(effectFetches).toHaveLength(1);
+});

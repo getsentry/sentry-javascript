@@ -25,14 +25,11 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz"
   },
   "sentryTest": {
-    "optionalVariants": [
+    "canaryVariants": [
       {
         "build-command": "pnpm test:build-canary",
         "label": "nuxt-3 (canary)"
       }
     ]
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

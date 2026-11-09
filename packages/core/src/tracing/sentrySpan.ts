@@ -37,6 +37,7 @@ import {
   getStreamedSpanLinks,
   INTERNAL_setSegmentNameSourceIfSegment,
   spanIsSegment,
+  otelTimeInputToSeconds,
   spanTimeInputToSeconds,
   spanToStaticSpanJSON,
   spanToTransactionTraceContext,
@@ -219,7 +220,7 @@ export class SentrySpan implements Span {
     if (this._frozen) {
       return;
     }
-    this._startTime = spanTimeInputToSeconds(timeInput);
+    this._startTime = timeInputToSeconds(this, timeInput);
     this._startPerformanceNow = undefined;
   }
 
@@ -253,7 +254,7 @@ export class SentrySpan implements Span {
       return;
     }
 
-    this._endTime = endTimestamp == null ? this._getEndTimeFromDuration() : spanTimeInputToSeconds(endTimestamp);
+    this._endTime = endTimestamp == null ? this._getEndTimeFromDuration() : timeInputToSeconds(this, endTimestamp);
     logSpanEnd(this);
 
     this._onSpanEnded();
@@ -336,12 +337,12 @@ export class SentrySpan implements Span {
     }
     DEBUG_BUILD && debug.log('[Tracing] Adding an event to span:', name);
 
-    const time = isSpanTimeInput(attributesOrStartTime) ? attributesOrStartTime : startTime || timestampInSeconds();
+    const time = isSpanTimeInput(attributesOrStartTime) ? attributesOrStartTime : startTime || undefined;
     const attributes = isSpanTimeInput(attributesOrStartTime) ? {} : attributesOrStartTime || {};
 
     const event: TimedEvent = {
       name,
-      time: spanTimeInputToSeconds(time),
+      time: timeInputToSeconds(this, time),
       attributes,
     };
 
@@ -537,6 +538,10 @@ export class SentrySpan implements Span {
 
     return transaction;
   }
+}
+
+function timeInputToSeconds(span: SentrySpan, input: SpanTimeInput | undefined): number {
+  return spanIsTracerProviderSpan(span) ? otelTimeInputToSeconds(input) : spanTimeInputToSeconds(input);
 }
 
 function isSpanTimeInput(value: undefined | SpanAttributes | SpanTimeInput): value is SpanTimeInput {

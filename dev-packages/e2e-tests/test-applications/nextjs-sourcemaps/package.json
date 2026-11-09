@@ -22,8 +22,5 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "ts-node": "10.9.1"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

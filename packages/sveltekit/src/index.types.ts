@@ -56,6 +56,7 @@ export declare const withStreamedSpan: typeof clientSdk.withStreamedSpan;
 
 // Different implementation in server and worker
 export declare const vercelAIIntegration: typeof serverSdk.vercelAIIntegration;
+export declare const serveTunnelIntegration: typeof serverSdk.serveTunnelIntegration;
 
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;

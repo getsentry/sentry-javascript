@@ -19,8 +19,5 @@
   },
   "devDependencies": {
     "wrangler": "^4.63.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

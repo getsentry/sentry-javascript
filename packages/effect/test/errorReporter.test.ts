@@ -140,10 +140,17 @@ describe.each([
       yield* flush;
 
       expect(events).toHaveLength(2);
-      expect(events[0]?.level).toBe('warning');
-      expect(events[0]?.exception?.values?.[0]?.type).toBe('RateLimitError');
-      expect(events[1]?.level).toBe('fatal');
-      expect(events[1]?.exception?.values?.[0]?.type).toBe('FatalError');
+      expect(
+        events.map(event => ({
+          type: event.exception?.values?.[0]?.type,
+          level: event.level,
+        })),
+      ).toEqual(
+        expect.arrayContaining([
+          { type: 'RateLimitError', level: 'warning' },
+          { type: 'FatalError', level: 'fatal' },
+        ]),
+      );
     }).pipe(Effect.provide(makeLayer())),
   );
 

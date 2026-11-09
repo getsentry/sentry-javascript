@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "vite build && cp instrument.server.mjs .output/server",
+    "build": "node start-mock-sentry-server.mjs & (vite build && cp instrument.server.mjs .output/server) > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; if [ $BUILD_EXIT -ne 0 ]; then cat .tmp_build_stdout; cat .tmp_build_stderr >&2; fi; exit $BUILD_EXIT",
     "dev": "vite dev",
     "start": "node --import ./.output/server/instrument.server.mjs .output/server/index.mjs",
     "test": "playwright test",
@@ -13,15 +13,16 @@
     "test:build:tunnel-generated": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
     "test:build:tunnel-static": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=static E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
     "test:build:tunnel-custom": "pnpm install && E2E_TEST_CUSTOM_TUNNEL_ROUTE=1 pnpm build",
-    "test:build:tunnel-object": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=object E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
     "test:build:hoisted": "pnpm install --config.node-linker=hoisted && pnpm build",
+    "test:build:tunnel-basepath": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_BASE_PATH=/app E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
     "test:build-latest": "pnpm add @tanstack/react-start@latest @tanstack/react-router@latest nitro@latest vite@latest @vitejs/plugin-react-swc@latest vite-tsconfig-paths@latest && pnpm install && pnpm build",
     "test:assert:proxy": "pnpm test && TEST_ENV=development pnpm playwright test db-drivers",
-    "test:assert": "pnpm test:assert:proxy",
+    "test:assert": "node assert-build.ts && pnpm test:assert:proxy",
     "test:assert:tunnel-generated": "E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test",
     "test:assert:tunnel-static": "E2E_TEST_TUNNEL_ROUTE_MODE=static E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test",
     "test:assert:tunnel-custom": "E2E_TEST_CUSTOM_TUNNEL_ROUTE=1 pnpm test",
-    "test:assert:tunnel-object": "E2E_TEST_TUNNEL_ROUTE_MODE=object E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test"
+    "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_BASE_PATH=/app E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test tunnel",
+    "test:assert:tunnel-basepath-dev": "E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_BASE_PATH=/app E2E_TEST_DSN=http://public@localhost:3031/1337 TEST_ENV=development pnpm test tunnel"
   },
   "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
   "dependencies": {
@@ -47,9 +48,6 @@
     "@playwright/test": "1.64.1",
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "variants": [
       {
@@ -72,9 +70,20 @@
         "assert-command": "pnpm test:assert:tunnel-custom"
       },
       {
-        "label": "tanstackstart-react (tunnel-object)",
-        "build-command": "pnpm test:build:tunnel-object",
-        "assert-command": "pnpm test:assert:tunnel-object"
+        "label": "tanstackstart-react (tunnel-basepath)",
+        "build-command": "pnpm test:build:tunnel-basepath",
+        "assert-command": "pnpm test:assert:tunnel-basepath"
+      },
+      {
+        "label": "tanstackstart-react (tunnel-basepath-dev)",
+        "build-command": "pnpm install",
+        "assert-command": "pnpm test:assert:tunnel-basepath-dev"
+      }
+    ],
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-latest",
+        "label": "tanstackstart-react (latest)"
       }
     ]
   }

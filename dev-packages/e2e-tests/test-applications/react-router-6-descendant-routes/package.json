@@ -47,8 +47,5 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "serve": "14.0.1",
     "npm-run-all2": "^6.2.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

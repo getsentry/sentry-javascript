@@ -1,13 +1,14 @@
 import type { Client, HandlerDataFetch } from '@sentry/core';
 import * as utils from '@sentry/core';
 import * as coreBrowser from '@sentry/core/browser';
+import { URL_DOMAIN } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchStreamPerformanceIntegration } from '../../src/integrations/fetchStreamPerformance';
 
 describe('fetchStreamPerformanceIntegration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal('location', { origin: 'https://app.example.com' });
+    vi.stubGlobal('location', { origin: 'https://app.example.com', href: 'https://app.example.com/' });
   });
 
   afterEach(() => {
@@ -48,16 +49,27 @@ describe('fetchStreamPerformanceIntegration', () => {
     expect(trackStreamedFetch('stream', 'https://api.example.com/v1/chat?stream=1')).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'GET api.example.com',
-        attributes: expect.objectContaining({ 'url.domain': 'api.example.com' }),
+        attributes: expect.objectContaining({ [URL_DOMAIN]: 'api.example.com' }),
       }),
     );
   });
 
-  it('resolves a relative URL against the page origin', () => {
+  it('resolves a relative URL against the page URL', () => {
     expect(trackStreamedFetch('stream', '/v1/chat')).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'GET app.example.com',
-        attributes: expect.objectContaining({ 'url.domain': 'app.example.com' }),
+        attributes: expect.objectContaining({ [URL_DOMAIN]: 'app.example.com' }),
+      }),
+    );
+  });
+
+  it('keeps the domain of an absolute URL on a page with an opaque origin', () => {
+    vi.stubGlobal('location', { origin: 'null', href: 'about:srcdoc' });
+
+    expect(trackStreamedFetch('stream', 'https://api.example.com/v1/chat')).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'GET api.example.com',
+        attributes: expect.objectContaining({ [URL_DOMAIN]: 'api.example.com' }),
       }),
     );
   });
@@ -66,7 +78,7 @@ describe('fetchStreamPerformanceIntegration', () => {
     expect(trackStreamedFetch('stream', 'data:text/event-stream,data: hi')).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'GET',
-        attributes: expect.objectContaining({ 'url.domain': undefined }),
+        attributes: expect.objectContaining({ [URL_DOMAIN]: undefined }),
       }),
     );
   });
@@ -75,7 +87,7 @@ describe('fetchStreamPerformanceIntegration', () => {
     expect(trackStreamedFetch('static', 'https://api.example.com/v1/chat?stream=1')).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'GET https://api.example.com/v1/chat',
-        attributes: expect.objectContaining({ 'url.domain': 'api.example.com' }),
+        attributes: expect.objectContaining({ [URL_DOMAIN]: 'api.example.com' }),
       }),
     );
   });

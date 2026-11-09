@@ -56,12 +56,8 @@ async function report(octokit, repo) {
     return;
   }
 
-  try {
-    const { data: workflowRun } = await octokit.rest.actions.getWorkflowRun({ ...repo, run_id: context.runId });
-    await reportInComment(octokit, repo, prNumber, workflowRun);
-  } catch (error) {
-    core.warning(`Could not report the optional E2E results in a PR comment: ${error.message}`);
-  }
+  const { data: workflowRun } = await octokit.rest.actions.getWorkflowRun({ ...repo, run_id: context.runId });
+  await reportInComment(octokit, repo, prNumber, workflowRun);
 }
 
 async function waitForRun(octokit, repo, workflowId, correlationId) {

@@ -26,6 +26,7 @@ interface EveInstrumentationProvider {
   events: {
     'turn.started': (event: { sessionId: string }) => void;
     'step.attempt.started': (event: { scope: { sessionId: string } }) => void;
+    'model.started': (event: { scope: { sessionId: string } }) => void;
   };
 }
 
@@ -46,8 +47,8 @@ interface EveInstrumentationProvider {
  * - runs `Sentry.init` with the given options at server startup (`setup`), adding
  *   {@link eveIntegration} so gen_ai inputs/outputs are recorded by default (eve stamps every AI SDK
  *   call with `recordInputs`/`recordOutputs: false`);
- * - tags each turn's AI spans with a Sentry conversation id via `turn.started` / `step.attempt.started`
- *   events — the instrumentation-provider equivalent of `eveConversationHook`. Provider event handlers
+ * - tags each turn's AI spans with a Sentry conversation id via `turn.started` and `step.attempt.started`
+ *   (eve < 0.84) / `model.started` (eve >= 0.84) events — the instrumentation-provider equivalent of `eveConversationHook`. Provider event handlers
  *   receive the session id on the event (`event.sessionId` / `event.scope.sessionId`), unlike hook
  *   handlers, which read it from their context.
  */
@@ -65,6 +66,7 @@ export function eveInstrumentation(options: EveInstrumentationOptions = {}): Eve
     events: {
       'turn.started': event => setConversationIdFromSession(event.sessionId),
       'step.attempt.started': event => setConversationIdFromSession(event.scope.sessionId),
+      'model.started': event => setConversationIdFromSession(event.scope.sessionId),
     },
   };
 }

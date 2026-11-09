@@ -1,8 +1,9 @@
 import type { InstrumentationConfig } from '../apmTypes';
 
 import { getModuleNames } from './module-names';
+import { registrationOnly } from './registration-only';
 
-// postgres.js (`postgres` npm package, v3.x). Named after the npm package;
+// postgres.js (`postgres` npm package). Named after the npm package;
 // `postgres` doesn't collide with `pg.ts` (that file instruments `pg`/`pg-pool`).
 //
 // The ESM build lives under `src/*`, the CJS build under `cjs/src/*` (the
@@ -47,7 +48,13 @@ const postgresJsInstrumentationConfig = (dir: string): InstrumentationConfig[] =
   },
 ];
 
-export const postgresJsConfig = ['src', 'cjs/src'].flatMap(postgresJsInstrumentationConfig);
+// Gated to `< 4`: from 4.0.0 postgres publishes `postgres:query` natively, which
+// `subscribePostgresJsDiagnosticChannels` instruments. The registration-only entry
+// lets bundler-only SDKs detect v4 and register the integration.
+export const postgresJsConfig = [
+  registrationOnly({ name: 'postgres', versionRange: '>=4.0.0', filePath: 'src/query.js' }),
+  ...['src', 'cjs/src'].flatMap(postgresJsInstrumentationConfig),
+];
 
 export const postgresJsModuleNames = getModuleNames(postgresJsConfig);
 

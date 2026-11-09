@@ -11,7 +11,9 @@
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:e2e": "playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test:e2e"
+    "test:assert": "pnpm test:e2e",
+    "test:build:tunnel": "pnpm install && E2E_TEST_TUNNEL=1 PUBLIC_E2E_TEST_TUNNEL=1 E2E_TEST_DSN=http://public@localhost:3031/1337 PUBLIC_E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
+    "test:assert:tunnel": "E2E_TEST_TUNNEL=1 PUBLIC_E2E_TEST_TUNNEL=1 E2E_TEST_DSN=http://public@localhost:3031/1337 PUBLIC_E2E_TEST_DSN=http://public@localhost:3031/1337 playwright test tunnel"
   },
   "dependencies": {
     "@sentry/sveltekit": "file:../../packed/sentry-sveltekit-packed.tgz"
@@ -28,7 +30,13 @@
     "vite": "^8.0.12",
     "wrangler": "^4.118.0"
   },
-  "volta": {
-    "extends": "../../package.json"
+  "sentryTest": {
+    "variants": [
+      {
+        "label": "sveltekit-3-cloudflare-workers (tunnel)",
+        "build-command": "pnpm test:build:tunnel",
+        "assert-command": "pnpm test:assert:tunnel"
+      }
+    ]
   }
 }

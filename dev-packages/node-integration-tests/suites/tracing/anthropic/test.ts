@@ -40,7 +40,7 @@ describe('Anthropic integration', () => {
           span: container => {
             expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
             const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
-            expect(spans).toHaveLength(6);
+            expect(spans).toHaveLength(5);
             const nonStreamingSpans = spans.filter(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_withresponse',
             );
@@ -60,7 +60,7 @@ describe('Anthropic integration', () => {
             expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
 
             const rawResponseSpans = spans.filter(span => span.attributes[GEN_AI_RESPONSE_ID] === undefined);
-            expect(rawResponseSpans).toHaveLength(4);
+            expect(rawResponseSpans).toHaveLength(3);
             for (const span of rawResponseSpans) {
               expect(span.name).toBe(`chat ${span.attributes[GEN_AI_REQUEST_MODEL].value}`);
               expect(span.status).toBe('ok');
@@ -70,7 +70,6 @@ describe('Anthropic integration', () => {
             expect(rawResponseSpans.map(span => span.attributes[GEN_AI_REQUEST_MODEL].value)).toEqual([
               'claude-3-haiku-20240307',
               'claude-3-haiku-20240307',
-              'claude-2',
               'claude-3-haiku-20240307',
             ]);
           },
@@ -453,18 +452,23 @@ describe('Anthropic integration', () => {
             expect(streamInitErrorSpan!.status).toBe('error');
 
             const createMidwayErrorSpan = spans.find(
-              span => span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-midway' && span.status === 'ok',
+              span =>
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-midway' &&
+                span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,
             );
             expect(createMidwayErrorSpan!.name).toBe('chat error-stream-midway');
-            expect(createMidwayErrorSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE].value).toBe(true);
+            expect(createMidwayErrorSpan!.status).toBe('error');
             expect(createMidwayErrorSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
             expect(createMidwayErrorSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('This stream will ');
 
             const streamMidwayErrorSpan = spans.find(
-              span => span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-midway' && span.status === 'error',
+              span =>
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-midway' &&
+                span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] === undefined,
             );
             expect(streamMidwayErrorSpan!.name).toBe('chat error-stream-midway');
-            expect(streamMidwayErrorSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
+            expect(streamMidwayErrorSpan!.status).toBe('error');
+            expect(streamMidwayErrorSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('This stream will ');
           },
         })
         .start()
