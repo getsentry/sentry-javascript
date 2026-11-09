@@ -13,6 +13,12 @@ required = ["E2E_TEST_DSN", "E2E_OPENROUTER_API_KEY"]
 name = "Assistant"
 class_name = "Assistant"
 
+# Lives in the `cloudflare-pi-durable-eager` Worker, see `wrangler.eager.toml`.
+[[durable_objects.bindings]]
+name = "EagerAssistant"
+class_name = "EagerAssistant"
+script_name = "cloudflare-pi-durable-eager"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Assistant"]

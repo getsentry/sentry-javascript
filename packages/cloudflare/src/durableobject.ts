@@ -9,6 +9,8 @@ import { getInstrumented, markAsInstrumented } from './instrument';
 import { instrumentDurableObjectHandlers } from './instrumentations/instrumentDurableObjectHandlers';
 import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { getFinalOptions } from './options';
+import { flushDeferredChannelEvents } from './orchestrion-deferred-channels';
+import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
 import { withConstructionIsolationScope } from './utils/invocationScope';
 import { hasRpcMeta } from './utils/rpcMeta';
@@ -68,9 +70,17 @@ export function constructInstrumentedDurableObject<E, T extends DurableObject<E>
   // Pass `newTarget` so that subclasses of the instrumented class (e.g. the wrapper classes
   // created by wrangler's local dev tooling or `@cloudflare/vitest-pool-workers`) keep their
   // own prototype — otherwise subclass methods disappear and `instanceof` checks break.
-  const obj = withConstructionIsolationScope(
-    () => Reflect.construct(target, [context, instrumentedEnv], newTarget) as T,
-  );
+  const obj = withConstructionIsolationScope(() => {
+    // The constructor can already use instrumented libraries, e.g. open a pi-durable Harness in
+    // `blockConcurrencyWhile`. Their channel integrations only subscribe in `init()`, and an isolate
+    // that runs only this Durable Object has no earlier handler that called it. A per-invocation
+    // client (`cacheClient: false`) would have no invocation to flush it, so it waits for one.
+    if (options.cacheClient !== false) {
+      init({ ...options });
+      flushDeferredChannelEvents();
+    }
+    return Reflect.construct(target, [context, instrumentedEnv], newTarget) as T;
+  });
 
   const frameworkManagedMethods = resolveFrameworkManagedMethods(
     prototype,
