@@ -30,7 +30,7 @@ import { isValidLcpMetric } from './lcp';
 import { getActivationStart, getNavigationEntry, getVisibilityWatcher } from './utils';
 
 // Treeshakable guard to always stream spans and drop the code paths that build and process transactions
-declare const __SENTRY_EXCLUDE_TRANSACTIONS__: boolean | undefined;
+declare const __SENTRY_EXCLUDE_STATIC_LIFECYCLE__: boolean | undefined;
 
 let _measurements: Measurements = {};
 let _lcpEntry: LargestContentfulPaint | undefined;
@@ -183,7 +183,7 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
 
   const { recordClsOnPageloadSpan, recordLcpOnPageloadSpan } = options;
   const spanStreamingEnabled =
-    (typeof __SENTRY_EXCLUDE_TRANSACTIONS__ === 'boolean' && __SENTRY_EXCLUDE_TRANSACTIONS__) ||
+    (typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' && __SENTRY_EXCLUDE_STATIC_LIFECYCLE__) ||
     options.spanStreamingEnabled;
   const timeOrigin = msToSec(origin);
 

@@ -17,7 +17,7 @@ import type { CloudflareTransportOptions } from './transport';
 import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
 
 declare const __SENTRY_TRACING__: boolean;
-declare const __SENTRY_EXCLUDE_TRANSACTIONS__: boolean | undefined;
+declare const __SENTRY_EXCLUDE_STATIC_LIFECYCLE__: boolean | undefined;
 
 const SPAN_STREAMING_INTEGRATION_NAME = 'SpanStreaming';
 
@@ -70,7 +70,7 @@ export class CloudflareClient extends ServerRuntimeClient {
     // flush and the eager drain already deliver streamed spans here.
     if (
       (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) &&
-      ((typeof __SENTRY_EXCLUDE_TRANSACTIONS__ === 'boolean' && __SENTRY_EXCLUDE_TRANSACTIONS__) ||
+      ((typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' && __SENTRY_EXCLUDE_STATIC_LIFECYCLE__) ||
         clientOptions.traceLifecycle !== 'static') &&
       !clientOptions.integrations.some(i => i.name === SPAN_STREAMING_INTEGRATION_NAME)
     ) {

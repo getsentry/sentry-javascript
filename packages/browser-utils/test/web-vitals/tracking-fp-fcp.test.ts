@@ -94,8 +94,8 @@ describe('startTrackingWebVitals', () => {
     expect(spanToJSON(pageloadSpan).attributes['browser.navigation.type']).toBe('navigate');
   });
 
-  it('reports web vitals as span attributes when transactions are excluded from the bundle', () => {
-    vi.stubGlobal('__SENTRY_EXCLUDE_TRANSACTIONS__', true);
+  it('reports web vitals as span attributes when the static lifecycle is excluded from the bundle', () => {
+    vi.stubGlobal('__SENTRY_EXCLUDE_STATIC_LIFECYCLE__', true);
     vi.stubGlobal('addEventListener', vi.fn());
     vi.stubGlobal('performance', {
       timeOrigin: realPerformance.timeOrigin,

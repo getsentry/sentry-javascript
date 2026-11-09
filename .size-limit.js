@@ -65,7 +65,7 @@ module.exports = [
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
-    name: '@sentry/browser (incl. Tracing) - with treeshaking flags excluding transactions',
+    name: '@sentry/browser (incl. Tracing) - with treeshaking flags excluding static lifecycle',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
@@ -76,7 +76,7 @@ module.exports = [
       config.plugins.push(
         new webpack.DefinePlugin({
           __SENTRY_DEBUG__: false,
-          __SENTRY_EXCLUDE_TRANSACTIONS__: true,
+          __SENTRY_EXCLUDE_STATIC_LIFECYCLE__: true,
         }),
       );
 

@@ -58,7 +58,7 @@ import { getCapturedScopesOnSpan, spanIsTracerProviderSpan } from './utils';
 const MAX_SPAN_COUNT = 1000;
 
 // Treeshakable guard to always stream spans and drop the code paths that build and process transactions
-declare const __SENTRY_EXCLUDE_TRANSACTIONS__: boolean | undefined;
+declare const __SENTRY_EXCLUDE_STATIC_LIFECYCLE__: boolean | undefined;
 
 /**
  * Span contains all data about a span
@@ -414,7 +414,7 @@ export class SentrySpan implements Span {
     }
 
     if (
-      (typeof __SENTRY_EXCLUDE_TRANSACTIONS__ === 'boolean' && __SENTRY_EXCLUDE_TRANSACTIONS__) ||
+      (typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' && __SENTRY_EXCLUDE_STATIC_LIFECYCLE__) ||
       (client && hasSpanStreamingEnabled(client))
     ) {
       client?.emit('afterSegmentSpanEnd', this);
@@ -440,7 +440,7 @@ export class SentrySpan implements Span {
    */
   private _convertSpanToTransaction(options: SegmentSpanCaptureConvertOptions = {}): TransactionEvent | undefined {
     // Class methods can't be tree-shaken, so we empty the body instead
-    if (typeof __SENTRY_EXCLUDE_TRANSACTIONS__ === 'boolean' && __SENTRY_EXCLUDE_TRANSACTIONS__) {
+    if (typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' && __SENTRY_EXCLUDE_STATIC_LIFECYCLE__) {
       return undefined;
     }
 
@@ -591,7 +591,7 @@ function sendStandaloneSpan(span: SentrySpan, client: Client): void {
   // gen_ai extraction path.
   // TODO(standalone): remove this branch once the static trace lifecycle is dropped.
   if (
-    !(typeof __SENTRY_EXCLUDE_TRANSACTIONS__ === 'boolean' && __SENTRY_EXCLUDE_TRANSACTIONS__) &&
+    !(typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' && __SENTRY_EXCLUDE_STATIC_LIFECYCLE__) &&
     traceLifecycle === 'static' &&
     isStaticBeforeSendSpanCallback(beforeSendSpan)
   ) {

@@ -60,7 +60,7 @@ import { resolveDataCollectionOptions } from './utils/data-collection/resolveDat
 import { applyBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 
 // Treeshakable guard to always stream spans and drop the code paths that build and process transactions
-declare const __SENTRY_EXCLUDE_TRANSACTIONS__: boolean | undefined;
+declare const __SENTRY_EXCLUDE_STATIC_LIFECYCLE__: boolean | undefined;
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
@@ -264,13 +264,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   protected constructor(options: O) {
     // Any value other than `'static'` normalizes to the `'stream'` default, so that `traceLifecycle`
     // is always one of the two known values for the rest of the SDK.
-    // With transactions excluded from the bundle, the SDK can only stream spans.
+    // With the static lifecycle excluded from the bundle, the SDK can only stream spans.
     this._options = {
       attachStacktrace: true,
       ...options,
       traceLifecycle:
         options.traceLifecycle === 'static' &&
-        !(typeof __SENTRY_EXCLUDE_TRANSACTIONS__ === 'boolean' && __SENTRY_EXCLUDE_TRANSACTIONS__)
+        !(typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' && __SENTRY_EXCLUDE_STATIC_LIFECYCLE__)
           ? 'static'
           : 'stream',
     };
@@ -616,7 +616,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // Extract gen_ai spans from transaction and convert to span v2 format.
     // This mutates event.spans to remove the extracted spans.
     const genAiSpanItem =
-      typeof __SENTRY_EXCLUDE_TRANSACTIONS__ === 'boolean' && __SENTRY_EXCLUDE_TRANSACTIONS__
+      typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' && __SENTRY_EXCLUDE_STATIC_LIFECYCLE__
         ? undefined
         : extractGenAiSpansFromEvent(event, this);
 
@@ -1810,7 +1810,7 @@ function processBeforeSend(
   }
 
   if (
-    !(typeof __SENTRY_EXCLUDE_TRANSACTIONS__ === 'boolean' && __SENTRY_EXCLUDE_TRANSACTIONS__) &&
+    !(typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' && __SENTRY_EXCLUDE_STATIC_LIFECYCLE__) &&
     isTransactionEvent(processedEvent)
   ) {
     // Avoid processing if we don't have to

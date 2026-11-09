@@ -99,8 +99,8 @@ describe('init', () => {
     }
   });
 
-  test('does not leave a timer pending when transactions are excluded from the bundle', () => {
-    vi.stubGlobal('__SENTRY_EXCLUDE_TRANSACTIONS__', true);
+  test('does not leave a timer pending when the static lifecycle is excluded from the bundle', () => {
+    vi.stubGlobal('__SENTRY_EXCLUDE_STATIC_LIFECYCLE__', true);
     vi.useFakeTimers();
     try {
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 0, traceLifecycle: 'static' });

@@ -7,9 +7,9 @@ import { createTransport } from '../../../src/transports/base';
 import type { TransactionEvent } from '../../../src/types/event';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
-describe('__SENTRY_EXCLUDE_TRANSACTIONS__', () => {
+describe('__SENTRY_EXCLUDE_STATIC_LIFECYCLE__', () => {
   beforeEach(() => {
-    vi.stubGlobal('__SENTRY_EXCLUDE_TRANSACTIONS__', true);
+    vi.stubGlobal('__SENTRY_EXCLUDE_STATIC_LIFECYCLE__', true);
   });
 
   afterEach(() => {
