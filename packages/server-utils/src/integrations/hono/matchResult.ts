@@ -1,6 +1,7 @@
 import { addNonEnumerableProperty, isPlainObject } from '@sentry/core';
 import type { Context, HonoRoute, MatchedHandler } from './honoTypes';
 import { isMiddleware } from './isMiddleware';
+import { sentryOriginalTraps } from './sentryOriginalTraps';
 
 // `routeIndex` of the route handler that started last. `Symbol.for` shares it between SDK copies.
 const ROUTE_HANDLER_INDEX = Symbol.for('sentry.hono.routeHandlerIndex');
@@ -90,6 +91,7 @@ function recordRouteHandlerIndex(handler: HonoRoute['handler']): HonoRoute['hand
     return handler;
   }
 
+  const originalTraps = sentryOriginalTraps<HonoRoute['handler']>(handler);
   return new Proxy(handler, {
     apply(target, thisArg, args: [Context, ...unknown[]]) {
       const [context] = args;
@@ -100,14 +102,12 @@ function recordRouteHandlerIndex(handler: HonoRoute['handler']): HonoRoute['hand
       }
       return Reflect.apply(target, thisArg, args);
     },
+    ...originalTraps,
     get(target, prop, receiver) {
       if (prop === RECORDS_ROUTE_HANDLER_INDEX) {
         return true;
       }
-      if (prop === '__sentry_original__') {
-        return handler;
-      }
-      return Reflect.get(target, prop, receiver);
+      return originalTraps.get?.(target, prop, receiver);
     },
   });
 }
