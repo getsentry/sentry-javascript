@@ -10,7 +10,8 @@ import {
   MESSAGING_SYSTEM,
 } from '@sentry/conventions/attributes';
 import { QUEUE_PUBLISH } from '@sentry/conventions/op';
-import { startSpan } from '@sentry/core';
+import { getTraceData, startSpan, type Span } from '@sentry/core';
+import { addQueueTraceContext } from '../../utils/queueTraceMeta';
 
 const ORIGIN = 'auto.faas.cloudflare.queue';
 
@@ -20,7 +21,7 @@ function startPublishSpan<T>(
     bodySize: number | undefined;
     messageCount?: number;
   },
-  callback: () => T,
+  callback: (span: Span) => T,
 ): T {
   const { bindingName, bodySize, messageCount } = options;
 
@@ -66,6 +67,16 @@ function getBodySize(body: unknown): number | undefined {
   }
 }
 
+function getBatchBodySize(messages: MessageSendRequest[]): number | undefined {
+  return messages.reduce<number | undefined>((acc, message) => {
+    const size = getBodySize(message.body);
+    if (size === undefined) {
+      return acc;
+    }
+    return (acc ?? 0) + size;
+  }, undefined);
+}
+
 /**
  * Wraps a Queue producer binding to create `queue.publish` spans on
  * `send` and `sendBatch` calls.
@@ -73,16 +84,30 @@ function getBodySize(body: unknown): number | undefined {
  * The queue's own name is not available on the binding object, so we use
  * the env binding key (e.g. `MY_QUEUE`) as `messaging.destination.name`.
  */
-export function instrumentQueueProducer<T extends Queue>(queue: T, bindingName: string): T {
+export function instrumentQueueProducer<T extends Queue>(
+  queue: T,
+  bindingName: string,
+  enableTracePropagation = false,
+): T {
   return new Proxy(queue, {
     get(target, prop, receiver) {
       if (prop === 'send') {
         const original = Reflect.get(target, prop, receiver) as Queue['send'];
 
         return function (this: unknown, message: unknown, options?: QueueSendOptions): ReturnType<Queue['send']> {
-          return startPublishSpan({ bindingName, bodySize: getBodySize(message) }, () =>
-            Reflect.apply(original, target, [message, options]),
-          );
+          if (!enableTracePropagation) {
+            return startPublishSpan({ bindingName, bodySize: getBodySize(message) }, () =>
+              Reflect.apply(original, target, [message, options]),
+            );
+          }
+
+          // The body size is only known once the trace context is injected, which must happen inside
+          // the span so the carrier points to queue.publish rather than its parent.
+          return startPublishSpan({ bindingName, bodySize: undefined }, span => {
+            const tracedMessage = addQueueTraceContext(message, getTraceData()['sentry-trace']);
+            span.setAttribute(MESSAGING_MESSAGE_BODY_SIZE, getBodySize(tracedMessage));
+            return Reflect.apply(original, target, [tracedMessage, options]);
+          });
         };
       }
 
@@ -94,17 +119,25 @@ export function instrumentQueueProducer<T extends Queue>(queue: T, bindingName: 
           options?: QueueSendBatchOptions,
         ): ReturnType<Queue['sendBatch']> {
           const messageArray = Array.from(messages);
-          const totalBodySize = messageArray.reduce<number | undefined>((acc, m) => {
-            const size = getBodySize(m.body);
-            if (size === undefined) {
-              return acc;
-            }
-            return (acc ?? 0) + size;
-          }, undefined);
+          const messageCount = messageArray.length;
 
-          return startPublishSpan({ bindingName, bodySize: totalBodySize, messageCount: messageArray.length }, () =>
-            Reflect.apply(original, target, [messageArray, options]),
-          );
+          if (!enableTracePropagation) {
+            return startPublishSpan({ bindingName, bodySize: getBatchBodySize(messageArray), messageCount }, () =>
+              Reflect.apply(original, target, [messageArray, options]),
+            );
+          }
+
+          return startPublishSpan({ bindingName, bodySize: undefined, messageCount }, span => {
+            // Every message is published by this one span, so they all share its trace context.
+            const sentryTrace = getTraceData()['sentry-trace'];
+            const tracedMessages = messageArray.map(message => ({
+              ...message,
+              body: addQueueTraceContext(message.body, sentryTrace),
+            }));
+
+            span.setAttribute(MESSAGING_MESSAGE_BODY_SIZE, getBatchBodySize(tracedMessages));
+            return Reflect.apply(original, target, [tracedMessages, options]);
+          });
         };
       }
 

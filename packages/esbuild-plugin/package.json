@@ -40,7 +40,7 @@
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:tarball": "npm pack",
+    "build:tarball": "pnpm pack",
     "clean": "rimraf build coverage sentry-esbuild-plugin-*.tgz",
     "lint": "oxlint . --type-aware",
     "lint:fix": "oxlint . --fix --type-aware",

@@ -122,7 +122,7 @@
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "run-p build:transpile:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:tarball": "npm pack",
+    "build:tarball": "pnpm pack",
     "clean": "rimraf build coverage sentry-server-utils-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
