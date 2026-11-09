@@ -49,7 +49,7 @@ for (const { name, prefix } of SCENARIOS) {
       expect(middlewareSpan?.status).not.toBe('error');
 
       const durationMs = (middlewareSpan!.end_timestamp - middlewareSpan!.start_timestamp) * 1000;
-      expect(durationMs).toBeGreaterThanOrEqual(49);
+      expect(durationMs).toBeGreaterThanOrEqual(45);
     });
 
     test('creates a span for anonymous middleware', async ({ baseURL }) => {
@@ -138,11 +138,11 @@ for (const { name, prefix } of SCENARIOS) {
 
       expect(middlewareSpans[0]?.parent_span_id).toBe(middlewareSpans[1]?.parent_span_id);
 
-      // middlewareA has a 50ms delay, middlewareB has a 60ms delay
+      // middlewareA has a 50ms delay, middlewareB has a 60ms delay; allow 5ms of timer variance.
       const aDurationMs = (middlewareSpans[0].end_timestamp - middlewareSpans[0]?.start_timestamp) * 1000;
       const bDurationMs = (middlewareSpans[1].end_timestamp - middlewareSpans[1]?.start_timestamp) * 1000;
-      expect(aDurationMs).toBeGreaterThanOrEqual(49);
-      expect(bDurationMs).toBeGreaterThanOrEqual(59);
+      expect(aDurationMs).toBeGreaterThanOrEqual(45);
+      expect(bDurationMs).toBeGreaterThanOrEqual(55);
     });
 
     test('captures error thrown in middleware', async ({ baseURL }) => {

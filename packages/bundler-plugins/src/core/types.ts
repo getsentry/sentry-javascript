@@ -204,6 +204,9 @@ export interface Options {
      * `sourcemaps.assets` or `sourcemaps.ignore` keep out of the upload. Source maps you enabled yourself are only
      * removed for the JavaScript chunks that were uploaded; excluded chunks keep theirs.
      *
+     * With webpack's array form of `devtool`, `true` replaces the array with one hidden source map setting for
+     * all asset types, because webpack hides the array from plugins.
+     *
      * With Rollup, Vite and webpack the removed source maps are never written to the output directory. With esbuild
      * they are deleted after the upload.
      */
