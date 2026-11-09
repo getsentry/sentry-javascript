@@ -200,9 +200,14 @@ const router = sentryCreateBrowserRouter(
 declare global {
   interface Window {
     __REACT_ROUTER__: typeof router;
+    __SENTRY_GET_ACTIVE_SPAN__: () => ReturnType<typeof Sentry.spanToJSON> | undefined;
   }
 }
 window.__REACT_ROUTER__ = router;
+window.__SENTRY_GET_ACTIVE_SPAN__ = () => {
+  const span = Sentry.getActiveSpan();
+  return span && Sentry.spanToJSON(span);
+};
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(<RouterProvider router={router} />);
