@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createRpcPropagationResolver } from '../../src/utils/rpcPropagation';
+import { createRpcPropagationResolver } from '../../src/utils/bindingPropagation';
 
 describe('createRpcPropagationResolver', () => {
   it('propagates to nothing when no options are available', () => {
