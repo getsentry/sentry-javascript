@@ -260,6 +260,9 @@ interface SourceMapsOptions {
    * When the plugin turned source maps on, none of them reach the build output, not even those of chunks that
    * `sourcemaps.assets` or `sourcemaps.ignore` keep out of the upload. Source maps you enabled yourself are only
    * removed for the JavaScript chunks that were uploaded; excluded chunks keep theirs.
+   *
+   * With webpack's array form of `devtool`, `true` replaces the array with one hidden source map setting for
+   * all asset types, because webpack hides the array from plugins.
    */
   deleteSourcemapsAfterUpload?: boolean;
 
