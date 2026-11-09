@@ -423,11 +423,7 @@ test('Updates pageload span name correctly when span is cancelled early (documen
 test('Updates navigation span name correctly when span is cancelled early (document.hidden simulation)', async ({
   page,
 }) => {
-  const pageloadPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment;
-  });
   await page.goto('/?idleTimeout=5000');
-  await pageloadPromise;
 
   const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
@@ -436,14 +432,9 @@ test('Updates navigation span name correctly when span is cancelled early (docum
   });
 
   await page.locator('id=navigation').click();
-  await page.waitForFunction(() => {
-    const getActiveSpan = (
-      window as unknown as {
-        __SENTRY_GET_ACTIVE_SPAN__: () => { attributes: Record<string, unknown> } | undefined;
-      }
-    ).__SENTRY_GET_ACTIVE_SPAN__;
-    return getActiveSpan()?.attributes['sentry.op'] === 'navigation';
-  });
+  await page.waitForFunction(() =>
+    (window as unknown as { __SENTRY_HAS_ACTIVE_NAVIGATION__: () => boolean }).__SENTRY_HAS_ACTIVE_NAVIGATION__(),
+  );
 
   await page.evaluate(() => {
     Object.defineProperty(document, 'hidden', { configurable: true, value: true });
