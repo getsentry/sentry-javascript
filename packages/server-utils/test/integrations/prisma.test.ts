@@ -30,9 +30,10 @@ class TestClient extends Client<any> {
   }
 }
 
-function initTestClient(): void {
+function initTestClient(options: { traceLifecycle?: 'stream' | 'static' } = {}): void {
   getCurrentScope().setClient(undefined);
   initAndBind(TestClient, {
+    ...options,
     dsn: 'https://username@domain/123',
     integrations: [],
     sendClientReports: false,
@@ -117,6 +118,41 @@ describe('instrumentPrisma', () => {
       });
 
       expect(spanToJSON(span).attributes[DB_QUERY_SUMMARY]).toBe('SELECT "public"."User"');
+    });
+  });
+
+  describe('span name', () => {
+    it('names a streamed db_query span after its summary', () => {
+      initTestClient({ traceLifecycle: 'stream' });
+      instrumentPrisma();
+
+      const span = runDbQuerySpan({
+        [DB_SYSTEM_NAME]: 'postgresql',
+        [DB_QUERY_TEXT]: 'SELECT * FROM "public"."User" WHERE "bio" = $1',
+      });
+
+      expect(spanToJSON(span).name).toBe('SELECT "public"."User"');
+    });
+
+    it('names a static db_query span after the sanitized statement, not the raw one', () => {
+      initTestClient({ traceLifecycle: 'static' });
+      instrumentPrisma();
+
+      const span = runDbQuerySpan({
+        [DB_SYSTEM]: 'postgresql',
+        [DB_STATEMENT]: 'SELECT * FROM "public"."User" WHERE "bio" = \'secret\'',
+      });
+
+      expect(spanToJSON(span).name).toBe('SELECT * FROM "public"."User" WHERE "bio" = ?');
+    });
+
+    it('keeps the Prisma span name for db_query spans without a statement', () => {
+      initTestClient({ traceLifecycle: 'static' });
+      instrumentPrisma();
+
+      const span = runDbQuerySpan({ [DB_SYSTEM_NAME]: 'postgresql' });
+
+      expect(spanToJSON(span).name).toBe('prisma:client:db_query');
     });
   });
 

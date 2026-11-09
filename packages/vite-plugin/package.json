@@ -1,6 +1,6 @@
 {
   "name": "@sentry/vite-plugin",
-  "version": "11.10.0",
+  "version": "11.11.0",
   "description": "Official Sentry Vite plugin",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/develop/packages/vite-plugin",
@@ -40,7 +40,7 @@
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:tarball": "npm pack",
+    "build:tarball": "pnpm pack",
     "clean": "rimraf build coverage sentry-vite-plugin-*.tgz",
     "lint": "oxlint . --type-aware",
     "lint:fix": "oxlint . --fix --type-aware",
@@ -48,9 +48,9 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "@sentry/bundler-plugins": "11.10.0"
+    "@sentry/bundler-plugins": "11.11.0"
   },
   "devDependencies": {
-    "@sentry-internal/rollup-utils": "11.10.0"
+    "@sentry-internal/rollup-utils": "11.11.0"
   }
 }

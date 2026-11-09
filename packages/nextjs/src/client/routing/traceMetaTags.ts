@@ -1,4 +1,4 @@
-import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
+import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import type { Span, SpanLink, StartSpanOptions } from '@sentry/core';
 import { extractTraceparentData, GLOBAL_OBJ } from '@sentry/core';
 import { CACHE_ORIGIN_META_TAG_NAME } from '../../common/traceMetaTags';
@@ -15,9 +15,6 @@ export interface TraceMetaTagValues {
   sentryTrace: string;
   baggage: string | undefined;
 }
-
-// Not in `@sentry/conventions` yet: https://github.com/getsentry/sentry-conventions/pull/740
-const PAGE_SERVER_RENDERING_TYPE = 'page.server_rendering.type';
 
 function getDocument(): Document | undefined {
   return WINDOW.document;

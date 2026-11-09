@@ -1,10 +1,12 @@
+/* oxlint-disable max-lines */
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
 import { getClient } from '../currentScopes';
 import { suppressTracing } from '../tracing/trace';
 import { debug } from './debug-logger';
 import { makeDsn } from './dsn';
 import type { ServerTunnelOptions } from '../types/options';
-import { matchesTunnel, resolveAllowedDsns, resolveTunnelMatch } from './tunnel';
+import { DEBUG_BUILD } from '../debug-build';
+import { getServedTunnelMatch, matchesTunnel, resolveAllowedDsns, resolveTunnelMatch } from './tunnel';
 
 /**
  * Options for {@link handleTunnelRequest}.
@@ -43,6 +45,7 @@ interface NodeTunnelRequest extends AsyncIterable<Uint8Array | string> {
 interface NodeTunnelResponse {
   writeHead(statusCode: number, headers?: Record<string, string>): unknown;
   end(chunk: Uint8Array): unknown;
+  headersSent?: boolean;
 }
 
 /**
@@ -128,6 +131,53 @@ export function handleTunnelRequestIfMatched(
 }
 
 /**
+ * Answers a tunnel request on a Node server ahead of the app, see {@link handleServedNodeTunnelRequest}.
+ */
+export type NodeTunnelHandler = (request: NodeTunnelRequest, response: NodeTunnelResponse) => boolean;
+
+/**
+ * Answers a request to the tunnel `serveTunnelIntegration` serves on a Node server, ahead of the app. Returns `true`
+ * when it claimed the request and answers it, `false` to hand the request to the app.
+ *
+ * It never throws, since it runs inside the server's `emit`, where a throw crashes the process. Until a request is
+ * claimed, a failure hands it to the app. Once claimed, its body may be read already, so a failure ends in a 502.
+ */
+export function handleServedNodeTunnelRequest(request: NodeTunnelRequest, response: NodeTunnelResponse): boolean {
+  let forward: () => Promise<Response>;
+  try {
+    const servedTunnel = getServedTunnelMatch(request);
+    if (!servedTunnel) {
+      return false;
+    }
+
+    const fetchRequest = toFetchRequest(request);
+    forward = () => servedTunnel.forward(fetchRequest, servedTunnel.allowedDsns);
+  } catch (error) {
+    DEBUG_BUILD && debug.error('Sentry tunnel: failed to match a request', error);
+
+    return false;
+  }
+
+  // Claimed from here on, so even a `forward` that throws right away ends in a 502.
+  Promise.resolve()
+    .then(forward)
+    .then(fetchResponse => writeNodeResponse(response, fetchResponse))
+    .catch(error => {
+      DEBUG_BUILD && debug.error('Sentry tunnel: failed to forward a request', error);
+      try {
+        if (!response.headersSent) {
+          response.writeHead(502);
+        }
+        response.end(new Uint8Array());
+      } catch {
+        // The connection is gone.
+      }
+    });
+
+  return true;
+}
+
+/**
  * `allowedDsns` plus the server's own DSN. Without `allowedDsns`, the DSNs `serveTunnelIntegration` allows, so its
  * options apply here too.
  */
@@ -143,6 +193,21 @@ function getAllowedDsns(options: TunnelForwardOptions | undefined): string[] {
  */
 const FORWARDED_RESPONSE_HEADERS = ['content-type', 'retry-after', 'x-sentry-rate-limits'];
 
+/**
+ * The headers of Sentry's answer to pass on to the browser, see `FORWARDED_RESPONSE_HEADERS`.
+ */
+export function pickForwardedHeaders(response: Response): Record<string, string> {
+  const headers: Record<string, string> = {};
+  for (const name of FORWARDED_RESPONSE_HEADERS) {
+    const value = response.headers.get(name);
+    if (value) {
+      headers[name] = value;
+    }
+  }
+
+  return headers;
+}
+
 function isNodeTunnelResponse(value: unknown): value is NodeTunnelResponse {
   return typeof (value as NodeTunnelResponse | undefined)?.writeHead === 'function';
 }
@@ -155,12 +220,14 @@ function toFetchRequest(request: NodeTunnelRequest): Request {
       headers.set(name, Array.isArray(value) ? value.join(', ') : value);
     }
   }
-  const iterator = request[Symbol.asyncIterator]();
+  // Created on the first read, so building the `Request` doesn't touch the body.
+  let iterator: AsyncIterator<Uint8Array | string> | undefined;
+  const getIterator = (): AsyncIterator<Uint8Array | string> => (iterator ??= request[Symbol.asyncIterator]());
   const encoder = new TextEncoder();
   // Not `ReadableStream.from`, which Bun 1.3 lacks.
   const body = new ReadableStream<Uint8Array>({
     async pull(controller) {
-      const { done, value } = await iterator.next();
+      const { done, value } = await getIterator().next();
       if (done) {
         controller.close();
         return;
@@ -170,7 +237,7 @@ function toFetchRequest(request: NodeTunnelRequest): Request {
     },
     // Node only reads the rest of a body nobody started reading, and unread bytes stall a keep-alive connection.
     async cancel() {
-      while (!(await iterator.next()).done) {
+      while (!(await getIterator().next()).done) {
         // Drain.
       }
     },
@@ -195,14 +262,7 @@ async function writeNodeResponse(response: NodeTunnelResponse, fetchResponse: Re
     return;
   }
 
-  const responseHeaders: Record<string, string> = {};
-  for (const name of FORWARDED_RESPONSE_HEADERS) {
-    const value = fetchResponse.headers.get(name);
-    if (value) {
-      responseHeaders[name] = value;
-    }
-  }
-  response.writeHead(fetchResponse.status, responseHeaders);
+  response.writeHead(fetchResponse.status, pickForwardedHeaders(fetchResponse));
   response.end(new Uint8Array(body));
 }
 
@@ -221,6 +281,11 @@ function withDecodedBodyHeaders(response: Response): Response {
 export async function forwardTunnelRequest(request: Request, allowedDsns: Array<string>): Promise<Response> {
   return withDecodedBodyHeaders(await forwardEnvelope(request, allowedDsns));
 }
+
+/**
+ * How long a forward waits on Sentry, so a hanging Sentry doesn't hold the browser's connection open.
+ */
+const FORWARD_TIMEOUT_MS = 30_000;
 
 async function forwardEnvelope(request: Request, allowedDsns: Array<string>): Promise<Response> {
   if (allowedDsns.length === 0) {
@@ -254,6 +319,9 @@ async function forwardEnvelope(request: Request, allowedDsns: Array<string>): Pr
         headers: forwardHeaders(request),
         body: prependToStream(head.read, reader),
         duplex: 'half',
+        // Not the browser's signal: once the envelope is here, it still goes to Sentry after the browser leaves. A
+        // browser that leaves mid-upload breaks the body, which fails the forward on its own.
+        signal: AbortSignal.timeout(FORWARD_TIMEOUT_MS),
       } as RequestInit),
     );
   } catch (error) {

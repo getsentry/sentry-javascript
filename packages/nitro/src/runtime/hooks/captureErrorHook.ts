@@ -1,4 +1,4 @@
-import { captureException, getClient, parseUrl } from '@sentry/core';
+import { captureException, getClient, isAlreadyCaptured, parseUrl } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
 import { HTTPError } from 'nitro/h3';
 import type { CapturedErrorContext } from 'nitro/types';
@@ -43,6 +43,12 @@ export async function captureErrorHook(error: Error, errorContext: CapturedError
 
   // Do not report HTTPErrors with 3xx or 4xx status codes
   if (HTTPError.isError(error) && error.status >= 300 && error.status < 500) {
+    return;
+  }
+
+  // Nitro wraps errors thrown in handlers in an `HTTPError`, so an error the SDK already captured (for example in a
+  // task) would be reported a second time through the wrapper.
+  if (HTTPError.isError(error) && isAlreadyCaptured(error.cause)) {
     return;
   }
 

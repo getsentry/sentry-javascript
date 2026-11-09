@@ -55,6 +55,7 @@ interface EsbuildInitialOptions {
   define?: Record<string, string>;
   write?: boolean;
   absWorkingDir?: string;
+  logOverride?: Record<string, string>;
 }
 
 interface EsbuildPluginBuild {
@@ -67,6 +68,7 @@ interface EsbuildPluginBuild {
     options: { filter: RegExp },
     callback: (args: EsbuildOnResolveArgs) => EsbuildOnResolveResult | undefined,
   ) => void;
+  onStart: (callback: () => void) => void;
   onEnd: (callback: (result: EsbuildOnEndArgs) => void | Promise<void>) => void;
 }
 
@@ -156,7 +158,7 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
 
   return {
     name: pluginName,
-    setup({ initialOptions, onLoad, onResolve, onEnd }: EsbuildPluginBuild) {
+    setup({ initialOptions, onLoad, onResolve, onStart, onEnd }: EsbuildPluginBuild) {
       // Release and/or metadata injection
       if (!staticInjectionCode.isEmpty()) {
         const virtualInjectionFilePath = path.resolve('_sentry-injection-stub');
@@ -194,8 +196,13 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
 
       // Debug ID injection - requires per-entry-point unique IDs
       if (sourcemapsEnabled) {
-        // Clear state from previous builds (important for watch mode and test suites)
-        debugIdWrappedPaths.clear();
+        // `setup` runs once per context, `onStart` once per build, so a
+        // rebuild wraps the entry points again.
+        onStart(() => debugIdWrappedPaths.clear());
+
+        // The proxy module re-exports `OriginalModule.default` statically so downstream bundlers can tree-shake it,
+        // but esbuild warns about that access when the entry point has no default export.
+        initialOptions.logOverride = { 'import-is-undefined': 'silent', ...initialOptions.logOverride };
 
         if (!initialOptions.bundle) {
           logger.warn(

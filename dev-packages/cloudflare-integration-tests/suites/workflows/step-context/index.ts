@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/cloudflare';
 import { WorkflowEntrypoint } from 'cloudflare:workers';
 import type { WorkflowEvent, WorkflowStep } from 'cloudflare:workers';
+import { NonRetryableError } from 'cloudflare:workflows';
 
 interface Env {
   SENTRY_DSN: string;
@@ -11,6 +12,7 @@ interface WorkflowParams {
   failCount: number;
   captureManual?: boolean;
   captureManualTwice?: boolean;
+  nonRetryable?: boolean;
 }
 class StepContextTestWorkflowBase extends WorkflowEntrypoint<Env, WorkflowParams> {
   async run(event: WorkflowEvent<WorkflowParams>, step: WorkflowStep): Promise<void> {
@@ -34,6 +36,10 @@ class StepContextTestWorkflowBase extends WorkflowEntrypoint<Env, WorkflowParams
         if (event.payload.captureManualTwice) {
           Sentry.captureException(new Error('Manual capture'));
           Sentry.captureException(new Error('Manual capture'));
+        }
+
+        if (event.payload.nonRetryable) {
+          throw new NonRetryableError('Intentional non-retryable failure');
         }
 
         if (remainingFailures > 0) {
@@ -66,10 +72,11 @@ export default Sentry.withSentry(
         const failCount = parseInt(url.searchParams.get('failCount') || '0', 10);
         const captureManual = url.searchParams.get('captureManual') === 'true';
         const captureManualTwice = url.searchParams.get('captureManualTwice') === 'true';
+        const nonRetryable = url.searchParams.get('nonRetryable') === 'true';
 
         try {
           const instance = await env.STEP_CONTEXT_WORKFLOW.create({
-            params: { failCount, captureManual, captureManualTwice },
+            params: { failCount, captureManual, captureManualTwice, nonRetryable },
           });
 
           return new Response(JSON.stringify({ id: instance.id }), { headers: { 'Content-Type': 'application/json' } });

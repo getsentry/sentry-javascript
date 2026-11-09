@@ -1,4 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  MESSAGING_BULLMQ_JOBS_COMPLETED,
+  MESSAGING_BULLMQ_JOBS_FAILED,
+  MESSAGING_BULLMQ_QUEUE_JOBS,
+  MESSAGING_PROCESS_DURATION,
+} from '@sentry/conventions/metrics';
 import * as SentryCore from '@sentry/core';
 import { BullMQTelemetry } from '../../../src/integrations/tracing/bullmq';
 
@@ -573,7 +579,7 @@ describe('SentryBullMQMeter', () => {
 
       counter.add(5, { 'queue.name': 'emails' });
 
-      expect(SentryCore.metrics.count).toHaveBeenCalledWith('messaging.bullmq.jobs.completed', 5, {
+      expect(SentryCore.metrics.count).toHaveBeenCalledWith(MESSAGING_BULLMQ_JOBS_COMPLETED, 5, {
         unit: 'none',
         attributes: { 'queue.name': 'emails' },
       });
@@ -585,7 +591,7 @@ describe('SentryBullMQMeter', () => {
 
       counter.add(1);
 
-      expect(SentryCore.metrics.count).toHaveBeenCalledWith('messaging.bullmq.jobs.failed', 1, {
+      expect(SentryCore.metrics.count).toHaveBeenCalledWith(MESSAGING_BULLMQ_JOBS_FAILED, 1, {
         unit: undefined,
         attributes: undefined,
       });
@@ -599,7 +605,7 @@ describe('SentryBullMQMeter', () => {
 
       histogram.record(1500, { 'bullmq.queue.name': 'notifications' });
 
-      expect(SentryCore.metrics.distribution).toHaveBeenCalledWith('messaging.process.duration', 1.5, {
+      expect(SentryCore.metrics.distribution).toHaveBeenCalledWith(MESSAGING_PROCESS_DURATION, 1.5, {
         unit: 'second',
         attributes: {
           'messaging.destination.name': 'notifications',
@@ -629,7 +635,7 @@ describe('SentryBullMQMeter', () => {
 
       gauge.record(37, { 'queue.name': 'reports' });
 
-      expect(SentryCore.metrics.gauge).toHaveBeenCalledWith('messaging.bullmq.queue.jobs', 37, {
+      expect(SentryCore.metrics.gauge).toHaveBeenCalledWith(MESSAGING_BULLMQ_QUEUE_JOBS, 37, {
         unit: 'none',
         attributes: { 'queue.name': 'reports' },
       });
@@ -643,7 +649,7 @@ describe('SentryBullMQMeter', () => {
 
       counter.add(1, { 'bullmq.queue.name': 'emails', 'bullmq.job.name': 'welcome-email' });
 
-      expect(SentryCore.metrics.count).toHaveBeenCalledWith('messaging.bullmq.jobs.completed', 1, {
+      expect(SentryCore.metrics.count).toHaveBeenCalledWith(MESSAGING_BULLMQ_JOBS_COMPLETED, 1, {
         unit: undefined,
         attributes: {
           'messaging.bullmq.job.name': 'welcome-email',
@@ -663,7 +669,7 @@ describe('SentryBullMQMeter', () => {
         enabled: true,
       });
 
-      expect(SentryCore.metrics.count).toHaveBeenCalledWith('messaging.bullmq.jobs.completed', 1, {
+      expect(SentryCore.metrics.count).toHaveBeenCalledWith(MESSAGING_BULLMQ_JOBS_COMPLETED, 1, {
         unit: undefined,
         attributes: {
           'queue.name': 'emails',
@@ -679,7 +685,7 @@ describe('SentryBullMQMeter', () => {
 
       counter.add(1, { tags: ['a', 'b'] });
 
-      expect(SentryCore.metrics.count).toHaveBeenCalledWith('messaging.bullmq.jobs.completed', 1, {
+      expect(SentryCore.metrics.count).toHaveBeenCalledWith(MESSAGING_BULLMQ_JOBS_COMPLETED, 1, {
         unit: undefined,
         attributes: {},
       });

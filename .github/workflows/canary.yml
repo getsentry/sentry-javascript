@@ -19,7 +19,7 @@ permissions:
 jobs:
   job_e2e_prepare:
     name: Prepare E2E Canary tests
-    runs-on: namespace-profile-sentry-javascript-large
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
@@ -72,10 +72,7 @@ jobs:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     needs: [job_e2e_prepare]
     if: needs.job_e2e_prepare.outputs.matrix != '{"include":[]}'
-    # Canary builds install prerelease dependencies, so they get their own cache volume.
-    runs-on:
-      ${{ matrix.runner || 'namespace-profile-sentry-javascript-small'
-      }};overrides.cache-tag=sentry-javascript-e2e-canary
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow

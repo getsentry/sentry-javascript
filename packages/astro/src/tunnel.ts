@@ -1,5 +1,5 @@
 import type { BrowserTunnelOptions, Options } from '@sentry/core';
-import { _INTERNAL_applyTunnelDefaults as applyTunnelDefaults, GLOBAL_OBJ } from '@sentry/core';
+import { _INTERNAL_applyBrowserTunnelDefaults as applyBrowserTunnelDefaults, GLOBAL_OBJ } from '@sentry/core';
 
 /** Set by the Sentry Astro integration from the `base` and `trailingSlash` config. */
 export const TUNNEL_OPTIONS_GLOBAL = '__sentry_astro_tunnel_options';
@@ -10,5 +10,5 @@ export const TUNNEL_OPTIONS_GLOBAL = '__sentry_astro_tunnel_options';
  */
 export function applyAstroTunnelOptions(options: Pick<Options, 'tunnel'>): void {
   const astroTunnelOptions = (GLOBAL_OBJ as { [TUNNEL_OPTIONS_GLOBAL]?: BrowserTunnelOptions })[TUNNEL_OPTIONS_GLOBAL];
-  options.tunnel = applyTunnelDefaults(options.tunnel, astroTunnelOptions);
+  options.tunnel = applyBrowserTunnelDefaults(options.tunnel, astroTunnelOptions);
 }

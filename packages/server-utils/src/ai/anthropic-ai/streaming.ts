@@ -247,6 +247,9 @@ export async function* instrumentAsyncIterableStream(
       processEvent(event, state, recordOutputs, span);
       yield event;
     }
+  } catch (error) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    throw error;
   } finally {
     endStreamSpan(span, state, recordOutputs);
   }
@@ -296,7 +299,7 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
 
     if (span.isRecording()) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-      span.end();
+      endStreamSpan(span, state, recordOutputs);
     }
   });
 

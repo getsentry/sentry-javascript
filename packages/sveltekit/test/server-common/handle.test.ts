@@ -3,9 +3,9 @@ import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE } from '@sentry/conventions/attr
 import { getCapturedScopesOnSpan, getRootSpan, getSpanDescendants, spanIsSampled, spanToJSON } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { NodeClient, serveTunnelIntegration, setCurrentClient } from '@sentry/node';
-import { _INTERNAL_resetManagedTunnelDefaults } from '@sentry/core/server';
+import { _INTERNAL_resetTunnelDefaults } from '@sentry/core/server';
 import { TUNNEL_BASE_PATH_GLOBAL } from '../../src/common/tunnel';
-import type { Handle } from '@sveltejs/kit';
+import type { Handle } from '../../src/server-common/handleTypes';
 import { redirect } from '@sveltejs/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -168,7 +168,7 @@ describe('sentryHandle with the managed tunnel', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    _INTERNAL_resetManagedTunnelDefaults();
+    _INTERNAL_resetTunnelDefaults();
   });
 
   it('answers tunnel requests without resolving the route', async () => {

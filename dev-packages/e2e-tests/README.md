@@ -296,10 +296,6 @@ of a test application.
 set its `assert-command` to run production tests and add a development variant to run both environments in parallel.
 The local `test:assert` script can still run both; select the base variant locally with `--variant <label>`.
 
-The required E2E jobs run on 2 vCPUs (`namespace-profile-sentry-javascript-small`). If an app's job takes longer than
-about 90 seconds, set `"sentryTest": { "runner": "namespace-profile-sentry-javascript" }` to run it and its variants on
-4 vCPUs.
-
 Variants that build against upstream prereleases (for example `canary`, `next` or nightly builds of a framework) go into
 `canaryVariants`. They do not run on PRs, only in the nightly `CI: Canary Tests` workflow (`.github/workflows/canary.yml`),
 so failures caused by an upstream prerelease do not show up on unrelated PRs. Run one locally with

@@ -8,6 +8,7 @@ import {
   UI_ELEMENT_URL,
   UI_ELEMENT_WIDTH,
 } from '@sentry/conventions/attributes';
+import { UI_ELEMENT_LOAD_TIME, UI_ELEMENT_RENDER_TIME } from '@sentry/conventions/metrics';
 import type { IntegrationFn } from '@sentry/core';
 import { browserPerformanceTimeOrigin, defineIntegration, filterCollectedUrl, metrics } from '@sentry/core';
 import { addPerformanceInstrumentationHandler } from '../instrumentation/performanceObserver';
@@ -80,14 +81,14 @@ const _elementTimingIntegration = (() => {
           }
 
           if (renderTime > 0) {
-            metrics.distribution(`ui.element.render_time`, renderTime, {
+            metrics.distribution(UI_ELEMENT_RENDER_TIME, renderTime, {
               unit: 'millisecond',
               attributes: metricAttributes,
             });
           }
 
           if (loadTime > 0) {
-            metrics.distribution(`ui.element.load_time`, loadTime, {
+            metrics.distribution(UI_ELEMENT_LOAD_TIME, loadTime, {
               unit: 'millisecond',
               attributes: metricAttributes,
             });
