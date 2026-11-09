@@ -13,18 +13,24 @@ interface ToolOutput {
   type: 'tool-result' | 'tool-error';
   toolCallId: string;
   output?: unknown;
+  error?: unknown;
 }
 
 /** The subset of `ai`'s `Telemetry` integration interface this uses. */
 interface TelemetryIntegration {
-  executeLanguageModelCall?<T>(options: { execute: () => PromiseLike<T> }): PromiseLike<T>;
+  executeLanguageModelCall?<T>(options: Record<string, unknown> & { execute: () => PromiseLike<T> }): PromiseLike<T>;
   executeTool?<T>(
     options: Record<string, unknown> & { toolCallId: string; execute: () => PromiseLike<T> },
   ): PromiseLike<T>;
   onToolExecutionEnd?(event: { toolOutput: ToolOutput }): void;
 }
 
-const openToolCalls = new Map<string, VercelAiChannelMessage>();
+const openToolCalls = new Map<string, { message: VercelAiChannelMessage; error?: unknown }>();
+
+// `ai` >= 7.0.163 publishes no channel `result` for these calls.
+function isRecordingOff(event: Record<string, unknown>): boolean {
+  return event.recordInputs === false || event.recordOutputs === false;
+}
 
 /**
  * Register a global `ai` (>= 7) telemetry integration that covers what the `ai:telemetry` channel misses.
@@ -38,8 +44,8 @@ export function registerVercelAiTelemetryIntegration(): void {
 
   (carrier.AI_SDK_TELEMETRY_INTEGRATIONS ??= []).push({
     // Runs inside the `languageModelCall` channel span, unless that span was ignored.
-    async executeLanguageModelCall({ execute }) {
-      const span = getActiveSpan();
+    async executeLanguageModelCall({ execute, ...event }) {
+      const span = isRecordingOff(event) ? getActiveSpan() : undefined;
       const result = await execute();
       if (span && spanToJSON(span).attributes?.[SENTRY_OP] === GEN_AI_GENERATE_CONTENT) {
         setFallbackChannelResult(span, result);
@@ -51,18 +57,21 @@ export function registerVercelAiTelemetryIntegration(): void {
       // `ai`'s own tool loop calls this inside its own `executeTool` channel span.
       const activeSpan = getActiveSpan();
       if (activeSpan && spanToJSON(activeSpan).attributes?.[GEN_AI_TOOL_CALL_ID_ATTRIBUTE] === event.toolCallId) {
-        return handleCallbackErrors(execute, error => {
-          setFallbackChannelResult(activeSpan, { output: { type: 'tool-error', error } });
-        });
+        return isRecordingOff(event)
+          ? handleCallbackErrors(execute, error => {
+              setFallbackChannelResult(activeSpan, { output: { type: 'tool-error', error } });
+            })
+          : execute();
       }
 
       // Also reached from `ai`'s own tool loop when its span is unsampled or ignored, where `toolOutput` is filtered.
-      const message: VercelAiChannelMessage = { type: 'executeTool', event };
-      openToolCalls.set(event.toolCallId, message);
+      const call: { message: VercelAiChannelMessage; error?: unknown } = { message: { type: 'executeTool', event } };
+      const { message } = call;
+      openToolCalls.set(event.toolCallId, call);
       try {
         return channel.start.runStores(message, () =>
           handleCallbackErrors(execute, error => {
-            message.result = { output: { type: 'tool-error', error } };
+            call.error = error;
           }),
         );
       } finally {
@@ -73,14 +82,19 @@ export function registerVercelAiTelemetryIntegration(): void {
 
     // The tool output only arrives here, after `execute` has settled.
     onToolExecutionEnd({ toolOutput }) {
-      const message = openToolCalls.get(toolOutput.toolCallId);
-      if (!message) {
+      const call = openToolCalls.get(toolOutput.toolCallId);
+      if (!call) {
         return;
       }
       openToolCalls.delete(toolOutput.toolCallId);
+      const { message, error } = call;
 
       // Same result shape as `ai`'s own `executeTool` events, so the subscriber records the output or captures the error.
-      message.result ??= { output: toolOutput.type === 'tool-error' ? toolOutput : toolOutput.output };
+      // `ai` >= 7.0.163 replaces `toolOutput.error` with a generic error when recording is off.
+      message.result = {
+        output:
+          toolOutput.type === 'tool-error' ? { ...toolOutput, error: error ?? toolOutput.error } : toolOutput.output,
+      };
       channel.asyncEnd.publish(message);
     },
   });

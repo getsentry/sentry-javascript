@@ -7,15 +7,13 @@ import { z } from 'zod';
 const telemetry = { isEnabled: true, recordInputs: false, recordOutputs: process.env.RECORD_OUTPUTS === '1' };
 
 // `ai` withholds results from channel subscribers for these calls, and Sentry must not hand them back.
+const settled = [];
 tracingChannel('ai:telemetry').subscribe({
   start() {},
   end() {},
   asyncStart() {},
   asyncEnd(message) {
-    // Unsampled tool spans go through Sentry's own `executeTool` message, which carries the tool error.
-    if (message.result !== undefined && !(process.env.UNSAMPLED === '1' && message.type === 'executeTool')) {
-      process.exit(42);
-    }
+    settled.push(message);
   },
   error() {},
 });
@@ -68,4 +66,13 @@ async function run() {
   });
 }
 
-run();
+run().then(() => {
+  // Checked after the run, since a streamed result could be written once the stream drains.
+  // Unsampled tool spans go through Sentry's own `executeTool` message, which carries the tool error.
+  const leaked = settled.filter(
+    message => message.result !== undefined && !(process.env.UNSAMPLED === '1' && message.type === 'executeTool'),
+  );
+  if (leaked.length) {
+    process.exit(42);
+  }
+});
