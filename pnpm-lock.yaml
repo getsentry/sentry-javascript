@@ -394,8 +394,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
       sentry:
-        specifier: ^0.45.0
-        version: 0.45.0
+        specifier: ^0.49.0
+        version: 0.49.0
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
@@ -720,6 +720,9 @@ importers:
       '@sentry/server-utils':
         specifier: 11.11.0
         version: link:../../packages/server-utils
+      '@smithy/core':
+        specifier: 3.38.1
+        version: 3.38.1
       '@smithy/node-http-handler':
         specifier: 4.12.1
         version: 4.12.1
@@ -1165,8 +1168,8 @@ importers:
         specifier: ^0.152.0
         version: 0.152.0
       sentry:
-        specifier: ^0.45.0
-        version: 0.45.0
+        specifier: ^0.49.0
+        version: 0.49.0
       supports-color:
         specifier: ^8.1.1
         version: 8.1.1
@@ -1974,8 +1977,8 @@ importers:
         specifier: 11.11.0
         version: link:../server-utils
       sentry:
-        specifier: ^0.44.0
-        version: 0.44.0
+        specifier: ^0.49.0
+        version: 0.49.0
     devDependencies:
       '@react-router/dev':
         specifier: ^7.18.4
@@ -2035,8 +2038,8 @@ importers:
         specifier: 11.11.0
         version: link:../server-utils
       sentry:
-        specifier: ^0.44.0
-        version: 0.44.0
+        specifier: ^0.49.0
+        version: 0.49.0
       yargs:
         specifier: ^18.2.0
         version: 18.2.0
@@ -17133,13 +17136,8 @@ packages:
     resolution: {integrity: sha512-1gnZf7DFcoIcajTjTwjwuDjzuz4PPcY2StKPlsGAQ1+YH20IRVrBaXSWmdjowTJ6u8Rc01PoYOGHXfP1mYcZNQ==}
     engines: {node: '>= 18'}
 
-  sentry@0.44.0:
-    resolution: {integrity: sha512-z9hagaB24WTZLKOuIdoi+XIJb2Db1k/TxPSmASvBD86H5/tqURxguLWecnraqWtDuf7ByEkUkMP7JP/mq8v89w==}
-    engines: {node: '>=20.0'}
-    hasBin: true
-
-  sentry@0.45.0:
-    resolution: {integrity: sha512-kgmEbLlC22lL7uneeUm9Sjz65rp5cvwYOMTxXbZCmBum4sbVre/lLT3zTV3kwXHJ9/BM8ZS0/GhZe9Cl1t6WyA==}
+  sentry@0.49.0:
+    resolution: {integrity: sha512-9tjS0jTx5FQzhwAGhpcnwvqE0MlQiwJtunsIUNqGkw6E9CBOMbijlamIDUqvZTDtJAveVwa9L5ziP44bOJUzcQ==}
     engines: {node: '>=20.0'}
     hasBin: true
 
@@ -38766,9 +38764,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  sentry@0.44.0: {}
-
-  sentry@0.45.0: {}
+  sentry@0.49.0: {}
 
   serialize-javascript@6.0.2:
     dependencies:

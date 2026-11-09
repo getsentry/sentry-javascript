@@ -84,7 +84,7 @@
     "@sentry/react": "11.11.0",
     "@sentry/server-runtime-injection": "11.11.0",
     "@sentry/server-utils": "11.11.0",
-    "sentry": "^0.44.0",
+    "sentry": "^0.49.0",
     "yargs": "^18.2.0"
   },
   "devDependencies": {
