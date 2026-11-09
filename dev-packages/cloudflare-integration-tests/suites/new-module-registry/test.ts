@@ -1,4 +1,5 @@
 import type { Event } from '@sentry/core';
+import { HTTP_SERVER, RPC } from '@sentry/conventions/op';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../runner';
 import { getSpanOp, getSpansFromEnvelope } from '../../spanUtils';
@@ -37,7 +38,7 @@ it('sends the spans of the fetch handler', async ({ signal }) => {
   const childSpan = spans.find(span => span.name === 'test-span');
 
   expect(segmentSpan?.name).toBe('GET /');
-  expect(getSpanOp(segmentSpan!)).toBe('http.server');
+  expect(getSpanOp(segmentSpan!)).toBe(HTTP_SERVER);
   expect(childSpan?.parent_span_id).toBe(segmentSpan?.span_id);
   expect(getSpanOp(childSpan!)).toBe('test');
 });
@@ -47,7 +48,7 @@ it('traces Durable Object RPC calls', async ({ signal }) => {
     .expect(envelope => {
       const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
       expect(segmentSpan?.name).toBe('sayHello');
-      expect(getSpanOp(segmentSpan!)).toBe('rpc');
+      expect(getSpanOp(segmentSpan!)).toBe(RPC);
     })
     .unordered()
     .start(signal);
