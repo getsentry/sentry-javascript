@@ -303,6 +303,25 @@ describe('sentryTanstackStart()', () => {
       expect(makeTunnelRoutePlugin).toHaveBeenCalledWith(options.tunnelRoute, undefined);
       expect(makeServerEntryTunnelPlugin).toHaveBeenCalledWith(options.tunnelRoute, expect.any(Function));
     });
+
+    it('warns once that `tunnelRoute` is deprecated', async () => {
+      // The warning is shown once per process, so this needs a module that hasn't warned yet.
+      vi.resetModules();
+      const { sentryTanstackStart: freshSentryTanstackStart } = await import('../../src/vite/sentryTanstackStart');
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      freshSentryTanstackStart({ sourcemaps: { disable: true } });
+      expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('`tunnelRoute` option is deprecated'));
+
+      freshSentryTanstackStart({ tunnelRoute: true, sourcemaps: { disable: true } });
+      freshSentryTanstackStart({ tunnelRoute: '/monitor', sourcemaps: { disable: true } });
+
+      expect(warnSpy).toHaveBeenCalledOnce();
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[@sentry/tanstackstart-react] The `tunnelRoute` option is deprecated. Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration()` to the server `Sentry.init` instead.',
+      );
+      warnSpy.mockRestore();
+    });
   });
 
   describe('orchestrion build-time instrumentation', () => {

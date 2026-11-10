@@ -12,7 +12,7 @@ export { sentryGlobalRequestMiddleware, sentryGlobalFunctionMiddleware } from '.
 export {
   createSentryTunnelRoute,
   registerSentryServerTunnelRoute,
-  wrapServerEntryWithSentryTunnel as _INTERNAL_wrapServerEntryWithSentryTunnel,
+  setTunnelRoute as _INTERNAL_setTunnelRoute,
 } from './tunnelRoute';
 
 /**

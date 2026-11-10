@@ -11,15 +11,15 @@ import { getScopesFromContext } from '@sentry/opentelemetry';
 import { ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 
 /**
- * Forks the isolation scope for `BaseServer.handleRequest` / `Middleware.execute` root spans so that request-scoped
- * data (e.g. `normalizedRequest`) stays isolated per request.
+ * Forks the isolation scope for `BaseServer.handleRequest` / `Middleware.execute` / `Next.request` root spans so that
+ * request-scoped data (e.g. `normalizedRequest`) stays isolated per request.
  */
 export function maybeForkIsolationScopeForRootSpan(
   span: Span,
   spanAttributes: RawAttributes<Record<string, unknown>> | undefined,
 ): void {
   const spanType = spanAttributes?.[ATTR_NEXT_SPAN_TYPE];
-  if (spanType !== 'BaseServer.handleRequest' && spanType !== 'Middleware.execute') {
+  if (spanType !== 'BaseServer.handleRequest' && spanType !== 'Middleware.execute' && spanType !== 'Next.request') {
     return;
   }
 

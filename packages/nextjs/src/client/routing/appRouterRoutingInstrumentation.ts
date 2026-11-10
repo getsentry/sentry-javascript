@@ -26,10 +26,20 @@ import {
 } from '@sentry/conventions/attributes';
 import { NAVIGATION } from '@sentry/conventions/op';
 
+/**
+ * Unlike `getAbsoluteUrl`, keeps a `//host/path` target protocol-relative: Next.js treats such an
+ * href as an external URL and navigates to that host.
+ */
+function getNavigationTargetUrl(href: string): string {
+  // `router.push()` arguments reach this untyped, so a non-string must not throw here.
+  const isProtocolRelative = typeof href === 'string' && href.startsWith('//');
+  return getAbsoluteUrl(isProtocolRelative ? `${WINDOW.location.protocol}${href}` : href);
+}
+
 function setNavigationSpanUrlAttributes(span: Span, urlPath: string, urlOrPath: string): void {
   span.setAttributes({
     [URL_PATH]: urlPath,
-    [URL_FULL]: filterCollectedUrl(getAbsoluteUrl(urlOrPath)),
+    [URL_FULL]: filterCollectedUrl(getNavigationTargetUrl(urlOrPath)),
   });
 }
 
@@ -170,7 +180,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
             [URL_TEMPLATE]: parameterizedPathname,
           },
         },
-        { url: getAbsoluteUrl(normalizedHref) },
+        { url: getNavigationTargetUrl(normalizedHref) },
       );
     }
   };
@@ -306,7 +316,7 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
                 [URL_TEMPLATE]: parameterizedPathname,
               },
             },
-            { url: getAbsoluteUrl(normalizedHref) },
+            { url: getNavigationTargetUrl(normalizedHref) },
           );
 
           return target.apply(thisArg, argArray);

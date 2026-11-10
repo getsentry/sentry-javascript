@@ -22,10 +22,10 @@ import {
 import {
   flushIfServerless,
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
-  _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
+  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
 } from '@sentry/core/server';
 import { getTunnelBasePath } from '../common/tunnel';
-import type { Handle, ResolveOptions } from '@sveltejs/kit';
+import type { Handle, ResolveOptions } from './handleTypes';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
 import {
@@ -292,7 +292,7 @@ async function instrumentHandle(
 export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   // The hooks file creates this after the `sentrySvelteKit()` base path module ran, however the SDK was started
   // (`--import`, a custom server), and later per-request clients (Cloudflare) start with it too.
-  setManagedTunnelDefaults({ basePath: getTunnelBasePath() });
+  setTunnelDefaults({ basePath: getTunnelBasePath() });
 
   const { handleUnknownRoutes, ...rest } = handlerOptions ?? {};
   const options = {

@@ -35,6 +35,11 @@ env:
   FIX_CAP_DEV: '3'
   # ⬇️ debatable but let's start off with this
   PR_REVIEWERS: 'getsentry/team-javascript-sdks-framework'
+  CACHED_DEPENDENCY_PATHS: |
+    ${{ github.workspace }}/node_modules
+    ${{ github.workspace }}/packages/*/node_modules
+    ${{ github.workspace }}/dev-packages/*/node_modules
+    ~/.cache/mongodb-binaries/
 
 concurrency:
   group: dependabot-auto-triage
@@ -43,7 +48,7 @@ concurrency:
 jobs:
   classify:
     name: Classify alerts & auto-dismiss noise
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     outputs:
       runtime_alerts: ${{ steps.select.outputs.runtime_alerts }}
@@ -124,7 +129,7 @@ jobs:
     if:
       (github.event_name == 'schedule' || github.event.inputs.mode == 'full') && needs.classify.outputs.runtime_alerts
       != ''
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     environment: ci-triage
     steps:
@@ -213,7 +218,7 @@ jobs:
     needs: classify
     if:
       (github.event_name == 'schedule' || github.event.inputs.mode == 'full') && needs.classify.outputs.dev_alerts != ''
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     environment: ci-triage
     steps:

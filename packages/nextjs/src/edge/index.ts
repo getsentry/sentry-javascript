@@ -148,7 +148,7 @@ export function init(options: VercelEdgeOptions = {}): void {
   // `normalizedRequest` on the isolation scope. Seed it from span attributes so `tracesSampler` has access.
   client.on('beforeSampling', ({ spanAttributes }) => {
     const spanType = spanAttributes[ATTR_NEXT_SPAN_TYPE];
-    if (spanType !== 'Middleware.execute' && spanType !== 'BaseServer.handleRequest') {
+    if (spanType !== 'Middleware.execute' && spanType !== 'BaseServer.handleRequest' && spanType !== 'Next.request') {
       return;
     }
 

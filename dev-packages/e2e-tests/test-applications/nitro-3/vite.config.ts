@@ -13,6 +13,7 @@ export default defineConfig({
       // @ts-expect-error
       withSentryConfig({
         serverDir: './server',
+        experimental: { tasks: true },
         ...(process.env.E2E_TEST_BASE_PATH && { baseURL: `${process.env.E2E_TEST_BASE_PATH}/` }),
       }),
     ),

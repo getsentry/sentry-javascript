@@ -186,11 +186,11 @@ export {
 export {
   handleTunnelRequestIfMatched,
   isTunnelRequest,
-  serveTunnelIntegration,
   trpcMiddleware,
   wrapMcpServerWithSentry,
 } from '@sentry/core/server';
 export type { TunnelRequestLike } from '@sentry/core/server';
+export { installTunnelHooks as _INTERNAL_installTunnelHooks, serveTunnelIntegration } from './integrations/serveTunnel';
 export { getTunnelPath, handleTunnelRequest } from '@sentry/core';
 export type { HandleTunnelRequestOptions, ServerTunnelOptions } from '@sentry/core';
 

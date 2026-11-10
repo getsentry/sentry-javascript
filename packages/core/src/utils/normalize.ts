@@ -57,7 +57,21 @@ export function normalize(input: unknown, depth: number = 100, maxProperties: nu
     // since we're at the outermost level, we don't provide a key
     return visit('', input, depth, maxProperties);
   } catch (err) {
-    return { ERROR: `**non-serializable** (${err})` };
+    return { ERROR: `**non-serializable** (${stringifyCaughtValue(err)})` };
+  }
+}
+
+/**
+ * Stringify a caught value for an error message. Template literals and other implicit
+ * conversions throw on symbols and on objects with no usable `toString`, which is how
+ * the values that end up here tend to be broken in the first place, so fall back to
+ * fixed text instead of throwing again.
+ */
+function stringifyCaughtValue(err: unknown): string {
+  try {
+    return String(err);
+  } catch {
+    return 'unknown error';
   }
 }
 
@@ -240,7 +254,7 @@ export function stringifyValue(
 
     return `[object ${objName}]`;
   } catch (err) {
-    return `**non-serializable** (${err})`;
+    return `**non-serializable** (${stringifyCaughtValue(err)})`;
   }
 }
 /* eslint-enable complexity */

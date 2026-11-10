@@ -34,6 +34,9 @@ vi.mock('@sentry/node', async () => {
       mockWithScope(fn);
       return fn(mockScope);
     },
+    withIsolationScope: (fn: (scope: unknown) => unknown) => {
+      return fn(mockScope);
+    },
     captureMessage: (...args: unknown[]) => {
       mockCaptureMessage(...args);
     },
@@ -118,7 +121,7 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler);
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      expect(mockWithScope).toBeCalledTimes(2);
+      expect(mockWithScope).toBeCalledTimes(1);
       expect(mockCaptureMessage).toBeCalled();
       expect(mockScope.setTag).toBeCalledWith('timeout', '1s');
     });
@@ -134,7 +137,7 @@ describe('AWSLambda', () => {
       });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      expect(mockWithScope).toBeCalledTimes(1);
+      expect(mockWithScope).not.toBeCalled();
       expect(mockCaptureMessage).not.toBeCalled();
       expect(mockScope.setTag).not.toBeCalledWith('timeout', '1s');
     });
@@ -524,7 +527,7 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(streamingHandler);
       await (wrappedHandler as any)(fakeEvent, mockResponseStream, fakeContext);
 
-      expect(mockWithScope).toBeCalledTimes(2);
+      expect(mockWithScope).toBeCalledTimes(1);
       expect(mockCaptureMessage).toBeCalled();
       expect(mockScope.setTag).toBeCalledWith('timeout', '1s');
     });

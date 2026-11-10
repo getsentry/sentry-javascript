@@ -20,6 +20,8 @@ const NODE_EXPORTS_IGNORE = [
   'initWithoutDefaultIntegrations',
   // Internal helper only needed within integrations (e.g. bunRuntimeMetricsIntegration)
   '_INTERNAL_normalizeCollectionInterval',
+  // Only needed by framework SDKs that enable the managed tunnel after `init`
+  '_INTERNAL_installTunnelHooks',
   // not exported by bun
   'nativeNodeFetchIntegration',
 ];

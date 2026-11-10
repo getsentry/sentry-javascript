@@ -8,6 +8,8 @@ import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourc
 import type { TunnelRouteOptions } from './tunnelRoute';
 import { makeServerEntryTunnelPlugin, makeTunnelBasePathPlugin, makeTunnelRoutePlugin } from './tunnelRoute';
 
+let showedDeprecatedTunnelRouteWarning = false;
+
 /**
  * Build-time options for the Sentry TanStack Start SDK.
  */
@@ -47,6 +49,9 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
    *
    * If you also pass `tunnel` to `Sentry.init()`, that explicit runtime option wins and a warning is emitted because
    * the managed tunnel route is being bypassed.
+   *
+   * @deprecated Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration()` to the server
+   * `Sentry.init` instead.
    */
   tunnelRoute?: TunnelRouteOptions;
 }
@@ -76,15 +81,25 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
  * @returns An array of Vite plugins
  */
 export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): Plugin[] {
+  // oxlint-disable-next-line typescript/no-deprecated -- reads the deprecated option to keep it working
+  const { tunnelRoute } = options;
+  if (tunnelRoute !== undefined && !showedDeprecatedTunnelRouteWarning) {
+    showedDeprecatedTunnelRouteWarning = true;
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/tanstackstart-react] The `tunnelRoute` option is deprecated. Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration()` to the server `Sentry.init` instead.',
+    );
+  }
+
   const tunnelBasePath = makeTunnelBasePathPlugin();
   const plugins: Plugin[] = [
     makeRoutePatternPlugin(),
     tunnelBasePath.plugin,
-    makeServerEntryTunnelPlugin(options.tunnelRoute, tunnelBasePath.getBasePath),
+    makeServerEntryTunnelPlugin(tunnelRoute, tunnelBasePath.getBasePath),
   ];
 
-  if (options.tunnelRoute) {
-    plugins.push(makeTunnelRoutePlugin(options.tunnelRoute, options.debug));
+  if (tunnelRoute) {
+    plugins.push(makeTunnelRoutePlugin(tunnelRoute, options.debug));
   }
 
   // only add build-time plugins in production builds

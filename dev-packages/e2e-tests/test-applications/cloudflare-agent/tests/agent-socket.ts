@@ -1,8 +1,8 @@
 import WebSocket from 'ws';
 
-type AgentReply = { type?: string; id?: string; done?: boolean };
+type AgentReply = { type?: string; id?: string; done?: boolean; success?: boolean; error?: string; result?: unknown };
 
-/** Sends a single frame over a WS to the given agent instance and resolves once `isDone` matches a reply. */
+/** Sends a single frame over a WS to the given agent instance and resolves with the first reply that `isDone` matches. */
 function driveAgentSocket(
   baseURL: string,
   binding: string,
@@ -10,10 +10,10 @@ function driveAgentSocket(
   frame: unknown,
   isDone: (reply: AgentReply) => boolean,
   timeoutLabel: string,
-): Promise<void> {
+): Promise<AgentReply> {
   const wsUrl = `${baseURL.replace(/^http/, 'ws')}/agents/${binding}/${instance}`;
 
-  return new Promise<void>((resolveSocket, rejectSocket) => {
+  return new Promise<AgentReply>((resolveSocket, rejectSocket) => {
     const socket = new WebSocket(wsUrl);
     const timeout = setTimeout(() => {
       socket.close();
@@ -30,7 +30,7 @@ function driveAgentSocket(
         if (isDone(parsed)) {
           clearTimeout(timeout);
           socket.close();
-          resolveSocket();
+          resolveSocket(parsed);
         }
       } catch {
         // Ignore non-JSON / unrelated frames.
@@ -45,7 +45,7 @@ function driveAgentSocket(
 }
 
 /** Opens a chat WebSocket to `/agents/<binding>/<instance>`, sends one `cf_agent_use_chat_request` frame. */
-export function sendChatMessage(
+export async function sendChatMessage(
   baseURL: string,
   options: { binding: string; instance: string; prompt: string },
 ): Promise<void> {
@@ -61,7 +61,7 @@ export function sendChatMessage(
     },
   };
 
-  return driveAgentSocket(
+  await driveAgentSocket(
     baseURL,
     options.binding,
     options.instance,
@@ -71,20 +71,29 @@ export function sendChatMessage(
   );
 }
 
-/** Opens a WebSocket to `/agents/<binding>/<instance>`, sends one RPC frame, resolves on the reply. */
-export function callRpc(
+/**
+ * Opens a WebSocket to `/agents/<binding>/<instance>`, sends one RPC frame, and resolves with the
+ * method's result. Rejects with the agent's error message when the RPC fails.
+ */
+export async function callRpc(
   baseURL: string,
   options: { binding: string; instance: string; method: string; args: unknown[] },
-): Promise<void> {
+): Promise<unknown> {
   const id = `rpc-${options.method}`;
   const frame = { type: 'rpc', id, method: options.method, args: options.args };
 
-  return driveAgentSocket(
+  const reply = await driveAgentSocket(
     baseURL,
     options.binding,
     options.instance,
     frame,
-    reply => reply.type === 'rpc' && reply.id === id && !!reply.done,
+    reply => reply.type === 'rpc' && reply.id === id && (!!reply.done || reply.success === false),
     `RPC reply to "${options.method}"`,
   );
+
+  if (!reply.success) {
+    throw new Error(`RPC "${options.method}" failed: ${reply.error}`);
+  }
+
+  return reply.result;
 }

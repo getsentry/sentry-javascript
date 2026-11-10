@@ -585,4 +585,39 @@ describe('Google GenAI integration', () => {
         .completed();
     });
   });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-stream-midway-error.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('marks the span as errored when the stream fails midway, but not when the caller breaks early', async () => {
+        await createRunner()
+          .unordered()
+          .expect({
+            span: container => {
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === EXPECTED_ORIGIN);
+              expect(spans).toHaveLength(4);
+
+              const midwaySpan = spans.find(span => span.name === 'generate_content midway-error');
+              expect(midwaySpan!.status).toBe('error');
+              expect(midwaySpan!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+              expect(midwaySpan!.attributes[GEN_AI_RESPONSE_ID]?.value).toBe('mock-midway-response-id');
+              expect(midwaySpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(8);
+              expect(midwaySpan!.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('This stream will be cut off');
+
+              const earlyBreakSpan = spans.find(span => span.name === 'generate_content early-break');
+              expect(earlyBreakSpan!.status).toBe('ok');
+              expect(earlyBreakSpan!.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('This stream will ');
+
+              // `cancelled` is sent as `ok` under span streaming, so a timeout must not be recorded as one.
+              expect(spans.find(span => span.name === 'generate_content caller-abort')!.status).toBe('ok');
+              expect(spans.find(span => span.name === 'generate_content timeout')!.status).toBe('error');
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });
