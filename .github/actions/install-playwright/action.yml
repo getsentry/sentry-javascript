@@ -109,6 +109,14 @@ runs:
           install -y --no-install-recommends "${packages[@]}"
       shell: bash
 
+    - name: Remove obsolete cached WebKit packages
+      if:
+        steps.webkit-dependencies.outputs.key != '' && steps.webkit-apt-cache.outputs.cache-hit != 'true' &&
+        github.event_name == 'push' && github.ref == 'refs/heads/develop'
+      # Fallback restores can carry obsolete installers into newer cache entries.
+      run: sudo apt-get -o Dir::Cache::archives=/var/tmp/webkit-apt-cache autoclean
+      shell: bash
+
     # Develop populates caches shared with PRs. Save after misses or fallback restores,
     # which may have downloaded packages absent from the restored cache.
     - name: Store cached WebKit system packages
