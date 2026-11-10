@@ -1,3 +1,4 @@
+import { SENTRY_SEGMENT_NAME } from '@sentry/conventions/attributes';
 import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
@@ -10,7 +11,7 @@ test('sends the final segment span name on child spans that ended before the seg
     .expect({
       span: container => {
         const segmentNames = Object.fromEntries(
-          container.items.map(span => [span.name, span.attributes?.['sentry.segment.name']?.value]),
+          container.items.map(span => [span.name, span.attributes?.[SENTRY_SEGMENT_NAME]?.value]),
         );
 
         expect(segmentNames).toEqual({
