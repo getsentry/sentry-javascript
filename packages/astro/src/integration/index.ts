@@ -246,8 +246,9 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                       ]
                     : [sentryCloudflareNodeWarningPlugin()],
                 ssr: {
-                  // @sentry/node is required in case we have 2 different @sentry/node
-                  // packages installed in the same project.
+                  // Only matters in dev: `@astrojs/cloudflare` sets `ssr.noExternal: true` for production builds.
+                  // Its dev server runs SSR in Node without the `workerd` condition, so `@sentry/astro` still
+                  // resolves to the Node SDK there. `@sentry/node` stays listed in case a project has two copies.
                   // Ref: https://github.com/getsentry/sentry-javascript/issues/10121
                   noExternal: ['@sentry/astro', '@sentry/node'],
                 },
