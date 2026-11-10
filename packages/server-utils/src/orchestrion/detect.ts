@@ -1,4 +1,5 @@
 import { consoleSandbox, debug, GLOBAL_OBJ } from '@sentry/core';
+import { isBun } from '../utils/runtime';
 
 /**
  * The module names (e.g. `mysql`, `@hapi/hapi`) orchestrion has already injected
@@ -36,7 +37,7 @@ export function detectOrchestrionSetup(): void {
   const { runtime, bundler, channelIntegrations } = marker;
 
   if (!runtime && !bundler) {
-    if (channelIntegrations && typeof (globalThis as { Bun?: unknown }).Bun !== 'undefined') {
+    if (channelIntegrations && isBun()) {
       if (!marker.warnedBunRunNotInjected) {
         marker.warnedBunRunNotInjected = true;
         consoleSandbox(() => {
