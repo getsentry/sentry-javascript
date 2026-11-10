@@ -19,7 +19,6 @@ import {
   getClient,
   getEventDescription,
   parseUrl,
-  stripUrlQueryAndFragment,
 } from '@sentry/core';
 import type { FetchHint, HandlerDataDom, HandlerDataHistory, HandlerDataXhr } from '@sentry/browser-utils';
 import {
@@ -325,9 +324,9 @@ function _getHistoryBreadcrumbHandler(client: Client): (handlerData: HandlerData
   };
 }
 
-function getBreadcrumbUrl(url: string): string {
-  const pageurl = url === '' ? WINDOW.location?.href : undefined;
-  return filterCollectedUrl(pageurl ? stripUrlQueryAndFragment(pageurl) : url);
+function getBreadcrumbUrl(url: string, client?: Client): string {
+  const pageUrl = url === '' ? WINDOW.location?.href : undefined;
+  return filterCollectedUrl(pageUrl ? pageUrl.split('#')[0]! : url, client);
 }
 
 function _isEvent(event: unknown): event is Event {

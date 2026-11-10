@@ -7,7 +7,8 @@ import { getDefaultBrowserClientOptions } from '../helper/browser-client-options
 describe('Breadcrumbs', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
-    vi.resetAllMocks();
+    vi.restoreAllMocks();
+    SentryCore.getCurrentScope().setClient(undefined);
   });
 
   it('Should add sentry breadcrumb', async () => {
@@ -25,8 +26,13 @@ describe('Breadcrumbs', () => {
     client.captureMessage('test');
     await flush(2000);
 
-    expect(addBreadcrumbSpy.mock.calls[0]?.[0]?.category).toEqual('sentry.event');
-    expect(addBreadcrumbSpy.mock.calls[0]?.[0]?.message).toEqual('test');
+    expect(addBreadcrumbSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: 'sentry.event',
+        message: 'test',
+      }),
+      expect.anything(),
+    );
   });
 
   describe('empty request URLs', () => {
@@ -54,9 +60,9 @@ describe('Breadcrumbs', () => {
     }
 
     const pageHref = 'https://app.example.com/users/42?token=secret#section';
-    const pagePath = 'https://app.example.com/users/42';
+    const expectedBreadcrumbUrl = 'https://app.example.com/users/42?token=[Filtered]';
 
-    it('shows the page URL without query or fragment in a fetch breadcrumb', () => {
+    it('resolves an empty fetch URL against location.href, drops fragment, and filters query params', () => {
       vi.stubGlobal('location', { href: pageHref });
       const { addBreadcrumbSpy, fetchHandler } = setup();
 
@@ -68,10 +74,15 @@ describe('Breadcrumbs', () => {
         response: { status: 200 } as Response,
       });
 
-      expect(addBreadcrumbSpy.mock.calls[0]?.[0]?.data?.url).toBe(pagePath);
+      expect(addBreadcrumbSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ url: expectedBreadcrumbUrl }),
+        }),
+        expect.anything(),
+      );
     });
 
-    it('shows the page URL without query or fragment in a failed fetch breadcrumb', () => {
+    it('resolves an empty failed fetch URL against location.href, drops fragment, and filters query params', () => {
       vi.stubGlobal('location', { href: pageHref });
       const { addBreadcrumbSpy, fetchHandler } = setup();
 
@@ -83,10 +94,15 @@ describe('Breadcrumbs', () => {
         error: new TypeError('Failed to fetch'),
       });
 
-      expect(addBreadcrumbSpy.mock.calls[0]?.[0]?.data?.url).toBe(pagePath);
+      expect(addBreadcrumbSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ url: expectedBreadcrumbUrl }),
+        }),
+        expect.anything(),
+      );
     });
 
-    it('shows the page URL without query or fragment in an XHR breadcrumb', () => {
+    it('resolves an empty XHR URL against location.href, drops fragment, and filters query params', () => {
       vi.stubGlobal('location', { href: pageHref });
       const { addBreadcrumbSpy, xhrHandler } = setup();
 
@@ -98,7 +114,12 @@ describe('Breadcrumbs', () => {
         endTimestamp: 2,
       } as browserUtils.HandlerDataXhr);
 
-      expect(addBreadcrumbSpy.mock.calls[0]?.[0]?.data?.url).toBe(pagePath);
+      expect(addBreadcrumbSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ url: expectedBreadcrumbUrl }),
+        }),
+        expect.anything(),
+      );
     });
 
     it('leaves non-empty URLs unchanged', () => {
@@ -113,7 +134,12 @@ describe('Breadcrumbs', () => {
         response: { status: 200 } as Response,
       });
 
-      expect(addBreadcrumbSpy.mock.calls[0]?.[0]?.data?.url).toBe('/api/users');
+      expect(addBreadcrumbSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ url: '/api/users' }),
+        }),
+        expect.anything(),
+      );
     });
   });
 });
