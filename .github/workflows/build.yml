@@ -1193,9 +1193,10 @@ jobs:
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
     if:
-      always() && needs.job_get_metadata.outputs.is_release != 'true' && needs.job_build_tarballs.result == 'success' &&
-      needs.job_build.outputs.e2e-matrix-optional != '{"include":[]}' && (github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
+      always() && !cancelled() && needs.job_get_metadata.outputs.is_release != 'true' && needs.job_build_tarballs.result
+      == 'success' && needs.job_build.outputs.e2e-matrix-optional != '{"include":[]}' && (github.event_name !=
+      'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.actor !=
+      'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_build_tarballs]
     # This job only waits for optional-e2e.yml, which can take most of an hour.
     runs-on: ubuntu-24.04
