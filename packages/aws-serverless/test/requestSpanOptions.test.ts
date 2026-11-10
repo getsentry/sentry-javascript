@@ -1,3 +1,4 @@
+import { URL_FULL } from '@sentry/conventions/attributes';
 import type { Context } from 'aws-lambda';
 import { describe, expect, test } from 'vitest';
 import { getRequestSpanOptions } from '../src/requestSpanOptions';
@@ -9,7 +10,7 @@ const context = {
 } as Context;
 
 function getUrlFull(headers: Record<string, string>): unknown {
-  return getRequestSpanOptions({ headers, rawPath: '/users' }, context, false).attributes?.['url.full'];
+  return getRequestSpanOptions({ headers, rawPath: '/users' }, context, false).attributes?.[URL_FULL];
 }
 
 describe('getRequestSpanOptions', () => {
