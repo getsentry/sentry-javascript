@@ -57,9 +57,9 @@ const chromeRegexNoFnName = /^\s*at (\S+?)(?::(\d+))(?::(\d+))\s*$/i;
 
 // This regex matches all the frames that have a function name.
 // The negative lookahead skips a `(` that belongs to the function name rather than the location,
-// e.g. `methodCaller< (emscripten::val) => void>`: there, a `)` closes before the next `(` opens.
+// e.g. `methodCaller< (emscripten::val) => void>`: there, a `) ` follows before the next `(` opens.
 const chromeRegex =
-  /^\s*at (?:(.+?\)(?: \[.+\])?|.*?) ?\((?![^()]*\)[^()]*\()(?:address at )?)?(?:async )?((?:<anonymous>|[-a-z]+:|.*bundle|\/)?.*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
+  /^\s*at (?:(.+?\)(?: \[.+\])?|.*?) ?\((?![^(]*\) )(?:address at )?)?(?:async )?((?:<anonymous>|[-a-z]+:|.*bundle|\/)?.*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
 
 const chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/;
 

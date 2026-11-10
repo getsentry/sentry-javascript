@@ -715,9 +715,9 @@ describe('Tracekit - Chrome Tests', () => {
             lineno: 2201,
           },
           {
-            filename: 'int) const, MyClass const*, int) (http://localhost:8001/main.wasm:wasm-function[152]:0x47df',
+            filename: 'http://localhost:8001/main.wasm:wasm-function[152]:0x47df',
             function:
-              'emscripten::internal::MethodInvoker<int (MyClass::*)(int) const, int, MyClass const*, int>::invoke(int (MyClass::* const&)',
+              'emscripten::internal::MethodInvoker<int (MyClass::*)(int) const, int, MyClass const*, int>::invoke(int (MyClass::* const&)(int) const, MyClass const*, int)',
             in_app: true,
           },
           {
