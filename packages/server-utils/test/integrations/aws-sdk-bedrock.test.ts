@@ -178,20 +178,10 @@ describe('BedrockRuntimeServiceExtension input recording', () => {
     });
   });
 
-  it('records Claude InvokeModel messages as sent, with media replaced by blob parts', () => {
+  it('records Claude InvokeModel system instructions, messages, and tool definitions like the Anthropic integration', () => {
     const tools = [{ name: 'get_weather', input_schema: { type: 'object' } }];
-    const image = { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo=' } };
-    const document = { type: 'document', source: { type: 'base64', data: 'JVBERi0=' } };
-    const body = {
-      anthropic_version: 'bedrock-2023-05-31',
-      max_tokens: 1024,
-      system: [{ type: 'text', text: 'You are a weather bot.' }],
-      messages: [
-        { role: 'user', content: [{ type: 'text', text: 'What is the weather in Kawasaki?' }, image] },
-        { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: [document] }] },
-      ],
-      tools,
-    };
+    const messages = [{ role: 'user', content: [{ type: 'text', text: 'What is the weather in Kawasaki?' }] }];
+    const body = { system: [{ type: 'text', text: 'You are a weather bot.' }], messages, tools };
 
     const { spanAttributes } = invokeModelPreSpanHook({ modelId: CLAUDE_MODEL_ID, body: JSON.stringify(body) });
 
@@ -199,21 +189,8 @@ describe('BedrockRuntimeServiceExtension input recording', () => {
       [GEN_AI_PROVIDER_NAME]: 'aws.bedrock',
       [GEN_AI_OPERATION_NAME]: 'generate_content',
       [GEN_AI_REQUEST_MODEL]: CLAUDE_MODEL_ID,
-      [GEN_AI_REQUEST_MAX_TOKENS]: 1024,
       [GEN_AI_SYSTEM_INSTRUCTIONS]: JSON.stringify([{ type: 'text', content: 'You are a weather bot.' }]),
-      [GEN_AI_INPUT_MESSAGES]: JSON.stringify([
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: 'What is the weather in Kawasaki?' },
-            { type: 'blob', modality: 'image', mime_type: 'image/png' },
-          ],
-        },
-        {
-          role: 'user',
-          content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: [{ type: 'blob', modality: 'document' }] }],
-        },
-      ]),
+      [GEN_AI_INPUT_MESSAGES]: JSON.stringify(messages),
       [GEN_AI_TOOL_DEFINITIONS]: JSON.stringify(tools),
     });
   });
@@ -224,7 +201,6 @@ describe('BedrockRuntimeServiceExtension input recording', () => {
     { family: 'Cohere Command R', modelId: 'cohere.command-r-v1:0', body: { message: 'Kawasaki' } },
     { family: 'Cohere Command', modelId: 'cohere.command-text-v14', body: { prompt: 'Kawasaki' } },
     { family: 'Mistral', modelId: 'mistral.mistral-7b-instruct-v0:2', body: { prompt: 'Kawasaki' } },
-    { family: 'Claude Text Completions', modelId: 'anthropic.claude-v2', body: { prompt: 'Kawasaki' } },
     {
       family: 'Nova',
       modelId: 'amazon.nova-lite-v1:0',

@@ -4,6 +4,7 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
 } from '@sentry/conventions/attributes';
+import { getMessagesAttributes, messagesFromParams } from '../../../ai/anthropic-ai/utils';
 
 /**
  * A message part as described in https://develop.sentry.dev/sdk/telemetry/traces/modules/ai-agents/.
@@ -154,66 +155,14 @@ export function getConverseInputAttributes(input: Record<string, unknown>): Reco
 }
 
 /**
- * Anthropic image and document blocks carry their file inline as base64 `source.data`, which must not be
- * recorded, so they are replaced with blob parts, also inside tool results.
- */
-function claudeContentWithoutMedia(content: unknown): unknown {
-  return Array.isArray(content) ? content.map(claudeBlockWithoutMedia) : content;
-}
-
-function claudeBlockWithoutMedia(block: unknown): unknown {
-  if (!isObjectLike(block)) {
-    return block;
-  }
-  if (block.type === 'image' || block.type === 'document') {
-    const mimeType = isObjectLike(block.source) ? block.source.media_type : undefined;
-    return typeof mimeType === 'string'
-      ? { type: 'blob', modality: block.type, mime_type: mimeType }
-      : { type: 'blob', modality: block.type };
-  }
-  if (block.type === 'tool_result') {
-    return { ...block, content: claudeContentWithoutMedia(block.content) };
-  }
-  return block;
-}
-
-/**
- * Input attributes of an Anthropic Messages `InvokeModel` body. Apart from media, the messages are
- * recorded as sent, like the Anthropic integration records the same payload, so both render alike.
+ * Claude `InvokeModel` bodies are Anthropic Messages API requests, so they are recorded like the Anthropic
+ * integration records them.
  */
 export function getClaudeInputAttributes(body: Record<string, unknown>): Record<string, unknown> {
-  const attributes: Record<string, unknown> = {};
-
-  const { system, messages, tools, prompt } = body;
-
-  const systemTexts =
-    typeof system === 'string'
-      ? [system]
-      : Array.isArray(system)
-        ? system
-            .map(block => (isObjectLike(block) && typeof block.text === 'string' ? block.text : undefined))
-            .filter((text): text is string => !!text)
-        : [];
-  const systemInstructions = systemInstructionsAttribute(systemTexts.map(content => ({ type: 'text', content })));
-  if (systemInstructions) {
-    attributes[GEN_AI_SYSTEM_INSTRUCTIONS] = systemInstructions;
+  const attributes = getMessagesAttributes(messagesFromParams(body));
+  if (Array.isArray(body.tools)) {
+    attributes[GEN_AI_TOOL_DEFINITIONS] = JSON.stringify(body.tools);
   }
-
-  if (Array.isArray(messages) && messages.length) {
-    attributes[GEN_AI_INPUT_MESSAGES] = stringify(
-      messages.map(message =>
-        isObjectLike(message) ? { ...message, content: claudeContentWithoutMedia(message.content) } : message,
-      ),
-    );
-  } else if (typeof prompt === 'string') {
-    // Claude 2's legacy Text Completions body.
-    Object.assign(attributes, getPromptInputAttributes(prompt));
-  }
-
-  if (Array.isArray(tools) && tools.length) {
-    attributes[GEN_AI_TOOL_DEFINITIONS] = JSON.stringify(tools);
-  }
-
   return attributes;
 }
 

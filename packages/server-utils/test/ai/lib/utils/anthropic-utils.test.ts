@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getMessagesAttributes,
   mapAnthropicErrorToStatusMessage,
   messagesFromParams,
-  setMessagesAttribute,
 } from '../../../../src/ai/anthropic-ai/utils';
-import type { Span } from '@sentry/core';
 
 describe('anthropic-ai-utils', () => {
   describe('mapAnthropicErrorToStatusMessage', () => {
@@ -98,32 +97,15 @@ describe('anthropic-ai-utils', () => {
     });
   });
 
-  describe('setMessagesAtribute', () => {
-    const mock = {
-      attributes: {} as Record<string, any>,
-      setAttributes(kv: Record<string, any>) {
-        for (const [key, val] of Object.entries(kv)) {
-          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-          if (val === undefined) delete this.attributes[key];
-          else this.attributes[key] = val;
-        }
-      },
-    };
-    const span = mock as unknown as Span;
-
-    it('sets the input messages attribute', () => {
-      setMessagesAttribute(span, [{ role: 'user', content: 'hello, world' }]);
-      expect(mock.attributes).toStrictEqual({
+  describe('getMessagesAttributes', () => {
+    it('returns the input messages attribute', () => {
+      expect(getMessagesAttributes([{ role: 'user', content: 'hello, world' }])).toStrictEqual({
         'gen_ai.input.messages': '[{"role":"user","content":"hello, world"}]',
       });
     });
 
     it('ignores empty array', () => {
-      setMessagesAttribute(span, [{ role: 'user', content: 'hello, world' }]);
-      const before = { ...mock.attributes };
-
-      setMessagesAttribute(span, []);
-      expect(mock.attributes).toStrictEqual(before);
+      expect(getMessagesAttributes([])).toStrictEqual({});
     });
   });
 });
