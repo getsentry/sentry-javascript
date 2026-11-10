@@ -113,6 +113,19 @@ describe.each(providers)('$name stream errors', ({ instrument, chunks }) => {
 });
 
 describe('anthropic message stream aborts', () => {
+  it('leaves the status alone and ends the span once when the stream completes', () => {
+    const { span, setStatus } = createMockSpan();
+    const end = vi.spyOn(span, 'end');
+    const stream = Object.assign(new EventEmitter(), { aborted: false });
+    instrumentMessageStream(stream, span, false);
+
+    stream.emit('message', {});
+    stream.emit('end');
+
+    expect(setStatus).not.toHaveBeenCalled();
+    expect(end).toHaveBeenCalledTimes(1);
+  });
+
   it('marks the span as cancelled and keeps the partial usage when the stream is aborted', () => {
     const { span, attributes, setStatus } = createMockSpan();
     const stream = Object.assign(new EventEmitter(), { aborted: false });

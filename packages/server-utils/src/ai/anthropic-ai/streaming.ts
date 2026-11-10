@@ -258,7 +258,7 @@ export async function* instrumentAsyncIterableStream(
 /**
  * Instruments a MessageStream by registering event handlers and preserving the original stream API.
  */
-export function instrumentMessageStream<R extends { on: (...args: unknown[]) => void }>(
+export function instrumentMessageStream<R extends { on: (...args: unknown[]) => void; aborted?: boolean }>(
   stream: R,
   span: Span,
   recordOutputs: boolean,
@@ -306,7 +306,7 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
   // An aborted stream emits only `abort` and `end`. We don't listen for `abort`: doing so would stop the SDK from
   // raising an unhandled rejection when the caller never awaits the aborted stream.
   stream.on('end', () => {
-    if ((stream as { aborted?: boolean }).aborted && span.isRecording()) {
+    if (stream.aborted && span.isRecording()) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
     }
     endStreamSpan(span, state, recordOutputs);
