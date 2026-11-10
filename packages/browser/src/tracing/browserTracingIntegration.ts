@@ -18,7 +18,6 @@ import {
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
-  GLOBAL_OBJ,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
@@ -36,11 +35,10 @@ import {
 import { _INTERNAL_ensureBrowserSpanStreaming, startIdleSpan, startInactiveSpan } from '@sentry/core/browser';
 import {
   addHistoryInstrumentationHandler,
+  longTasksIntegration,
   addPerformanceEntries,
   getLocationHref,
   isBotUserAgent,
-  startTrackingLongAnimationFrames,
-  startTrackingLongTasks,
 } from '@sentry/browser-utils';
 import { BROWSER_NAVIGATION_TYPE } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../debug-build';
@@ -286,7 +284,10 @@ export interface BrowserTracingOptions {
  * Options for `browserTracingCoreIntegration`: the options of `browserTracingIntegration`, minus the ones
  * for features that `browserTracingIntegration` registers as standalone integrations.
  */
-export type BrowserTracingCoreOptions = Omit<BrowserTracingOptions, 'enableInp' | 'webVitals' | 'enableElementTiming'>;
+export type BrowserTracingCoreOptions = Omit<
+  BrowserTracingOptions,
+  'enableInp' | 'webVitals' | 'enableElementTiming' | 'enableLongTask' | 'enableLongAnimationFrame'
+>;
 
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingCoreOptions = {
   ...TRACING_DEFAULTS,
@@ -294,8 +295,6 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingCoreOptions = {
   instrumentBfcacheRestore: true,
   instrumentPageLoad: true,
   markBackgroundSpan: true,
-  enableLongTask: true,
-  enableLongAnimationFrame: true,
   ignoreResourceSpans: [],
   detectRedirects: true,
   linkPreviousTrace: 'in-memory',
@@ -324,7 +323,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
   }
 
   // oxlint-disable-next-line typescript/no-deprecated -- still honoured until it is removed
-  const { enableInp = true, webVitals } = options;
+  const { enableInp = true, webVitals, enableLongTask = true, enableLongAnimationFrame = true } = options;
 
   return _browserTracingIntegration(options, client => {
     // Custom clients and test doubles may not implement it.
@@ -339,6 +338,10 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         ignore: enableInp || ignore.includes('inp') ? ignore : [...ignore, 'inp'],
       }),
     );
+
+    if (enableLongTask || enableLongAnimationFrame) {
+      client.addIntegration(longTasksIntegration({ enableLongTask, enableLongAnimationFrame }));
+    }
   });
 }) satisfies IntegrationFn;
 
@@ -363,8 +366,6 @@ function _browserTracingIntegration(
   const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
 
   const {
-    enableLongTask,
-    enableLongAnimationFrame,
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
@@ -474,16 +475,6 @@ function _browserTracingIntegration(
       }
 
       registerSpanErrorInstrumentation();
-
-      if (
-        enableLongAnimationFrame &&
-        GLOBAL_OBJ.PerformanceObserver &&
-        PerformanceObserver.supportedEntryTypes?.includes('long-animation-frame')
-      ) {
-        startTrackingLongAnimationFrames();
-      } else if (enableLongTask) {
-        startTrackingLongTasks();
-      }
 
       if (detectRedirects && optionalWindowDocument) {
         const interactionHandler = (): void => {
