@@ -28,6 +28,7 @@ export { getFeedback, sendFeedback } from '@sentry/feedback';
 
 export { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './tracing/request';
 export {
+  browserTracingCoreIntegration,
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
