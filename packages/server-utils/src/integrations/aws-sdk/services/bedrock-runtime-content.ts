@@ -53,28 +53,20 @@ function contentBlockToParts(block: unknown): GenAiMessagePart[] {
   }
 
   if (isObjectLike(guardContent)) {
-    if (isObjectLike(guardContent.text) && typeof guardContent.text.text === 'string') {
-      return [{ type: 'text', content: guardContent.text.text }];
-    }
-    return contentBlockToParts(guardContent);
+    // `guardContent.text` is a `{ text }` block, `guardContent.image` an image block.
+    return contentBlockToParts(isObjectLike(guardContent.text) ? guardContent.text : guardContent);
   }
 
   if (isObjectLike(citationsContent)) {
     return contentBlocksToParts(citationsContent.content);
   }
 
-  if (isObjectLike(block.image)) {
-    const format = block.image.format;
-    return [
-      typeof format === 'string'
-        ? { type: 'blob', modality: 'image', mime_type: `image/${format}` }
-        : { type: 'blob', modality: 'image' },
-    ];
-  }
-
-  for (const modality of ['video', 'audio', 'document']) {
-    if (isObjectLike(block[modality])) {
-      return [{ type: 'blob', modality }];
+  for (const modality of ['image', 'video', 'audio', 'document']) {
+    const media = block[modality];
+    if (isObjectLike(media)) {
+      // Only image formats (`png`, ...) map to a MIME type by prefix; `undefined` is left out of the JSON.
+      const format = modality === 'image' && typeof media.format === 'string' ? `image/${media.format}` : undefined;
+      return [{ type: 'blob', modality, mime_type: format }];
     }
   }
 
@@ -114,10 +106,6 @@ function converseMessagesToMessages(messages: unknown): Array<{ role: string; pa
     .filter(message => message.parts.length > 0);
 }
 
-function systemInstructionsAttribute(parts: GenAiMessagePart[]): string | undefined {
-  return parts.length ? JSON.stringify(parts) : undefined;
-}
-
 /**
  * Input attributes of a Converse-shaped request (`Converse`, `ConverseStream`, and Amazon Nova
  * `InvokeModel` bodies, which use the same `messages`/`system`/`toolConfig` shape).
@@ -125,9 +113,9 @@ function systemInstructionsAttribute(parts: GenAiMessagePart[]): string | undefi
 export function getConverseInputAttributes(input: Record<string, unknown>): Record<string, unknown> {
   const attributes: Record<string, unknown> = {};
 
-  const systemInstructions = systemInstructionsAttribute(contentBlocksToParts(input.system));
-  if (systemInstructions) {
-    attributes[GEN_AI_SYSTEM_INSTRUCTIONS] = systemInstructions;
+  const systemInstructions = contentBlocksToParts(input.system);
+  if (systemInstructions.length) {
+    attributes[GEN_AI_SYSTEM_INSTRUCTIONS] = JSON.stringify(systemInstructions);
   }
 
   const messages = converseMessagesToMessages(input.messages);
@@ -161,7 +149,7 @@ export function getClaudeInputAttributes(body: Record<string, unknown>): Record<
   return attributes;
 }
 
-/** Input attributes of the single-prompt `InvokeModel` bodies (Titan, Llama, Cohere, Mistral). */
+/** Input attributes of the single-prompt `InvokeModel` bodies (Titan, Llama, Cohere, Mistral, ...). */
 export function getPromptInputAttributes(prompt: unknown): Record<string, unknown> {
   if (typeof prompt !== 'string') {
     return {};

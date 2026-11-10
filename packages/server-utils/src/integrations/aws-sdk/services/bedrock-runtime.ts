@@ -412,14 +412,10 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
 }
 
 function getInvokeModelInputAttributes(modelId: string, requestBody: ParsedChunk): Record<string, unknown> {
-  if (modelId.includes('amazon.titan')) return getPromptInputAttributes(requestBody.inputText);
   if (modelId.includes('amazon.nova')) return getConverseInputAttributes(requestBody);
   if (modelId.includes('anthropic.claude')) return getClaudeInputAttributes(requestBody);
-  if (modelId.includes('meta.llama')) return getPromptInputAttributes(requestBody.prompt);
-  if (modelId.includes('cohere.command-r')) return getPromptInputAttributes(requestBody.message);
-  if (modelId.includes('cohere.command')) return getPromptInputAttributes(requestBody.prompt);
-  if (modelId.includes('mistral')) return getPromptInputAttributes(requestBody.prompt);
-  return {};
+  // The other families send one prompt string: Titan as `inputText`, Cohere Command R as `message`.
+  return getPromptInputAttributes(requestBody.inputText ?? requestBody.message ?? requestBody.prompt);
 }
 
 type StreamProcessor = (parsedChunk: ParsedChunk, state: StreamResponseState) => void;
