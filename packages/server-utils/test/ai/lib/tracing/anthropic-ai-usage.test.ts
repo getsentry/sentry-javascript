@@ -9,8 +9,9 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { EventEmitter } from 'node:events';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Span } from '@sentry/core';
+import { SPAN_STATUS_ERROR } from '@sentry/core';
 import { addResponseAttributes } from '../../../../src/ai/anthropic-ai';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from '../../../../src/ai/anthropic-ai/streaming';
 import type { AnthropicAiStreamingEvent } from '../../../../src/ai/anthropic-ai/types';
@@ -271,3 +272,57 @@ describe.each(['async iterable', 'message stream'] as const)(
     });
   },
 );
+
+describe('instrumentMessageStream', () => {
+  const messageStart = {
+    type: 'message_start',
+    message: {
+      id: 'msg_aborted',
+      type: 'message',
+      model: 'claude-sonnet-4-6',
+      role: 'assistant',
+      content: [],
+      stop_reason: null,
+      stop_sequence: null,
+      usage: { input_tokens: 42, output_tokens: 1 },
+    },
+  };
+
+  it('ends an aborted stream once, as cancelled, with the usage streamed so far', () => {
+    const { span, attributes } = createMockSpan();
+    const setStatus = vi.fn();
+    const endSpy = vi.spyOn(span, 'end');
+    Object.assign(span, { setStatus });
+    const stream = instrumentMessageStream(Object.assign(new EventEmitter(), { aborted: true }), span, false);
+
+    stream.emit('streamEvent', messageStart);
+    stream.emit('abort', new Error('Request was aborted.'));
+    stream.emit('end');
+    stream.emit('end');
+
+    expect(setStatus).toHaveBeenCalledTimes(1);
+    expect(setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
+    expect(endSpy).toHaveBeenCalledTimes(1);
+    expect(attributes).toEqual({
+      [GEN_AI_RESPONSE_STREAMING]: true,
+      [GEN_AI_RESPONSE_ID]: 'msg_aborted',
+      [GEN_AI_RESPONSE_MODEL]: 'claude-sonnet-4-6',
+      [GEN_AI_USAGE_INPUT_TOKENS]: 42,
+      [GEN_AI_USAGE_TOTAL_TOKENS]: 42,
+    });
+  });
+
+  it('leaves the status alone when the body closes early without an abort', () => {
+    const { span } = createMockSpan();
+    const setStatus = vi.fn();
+    const endSpy = vi.spyOn(span, 'end');
+    Object.assign(span, { setStatus });
+    const stream = instrumentMessageStream(Object.assign(new EventEmitter(), { aborted: false }), span, false);
+
+    stream.emit('streamEvent', messageStart);
+    stream.emit('end');
+
+    expect(setStatus).not.toHaveBeenCalled();
+    expect(endSpy).toHaveBeenCalledTimes(1);
+  });
+});
