@@ -1,4 +1,5 @@
 import { addNonEnumerableProperty, getTraceMetaTags } from '@sentry/core';
+import { injectHtmlIntoHeadStream } from '@sentry/server-utils';
 import type { ResponseMiddleware } from '@solidjs/start/middleware';
 import type { FetchEvent } from '@solidjs/start/server';
 
@@ -6,15 +7,12 @@ export type ResponseMiddlewareResponse = Parameters<ResponseMiddleware>[1] & {
   __sentry_wrapped__?: boolean;
 };
 
-function addMetaTagToHead(html: string): string {
-  const metaTags = getTraceMetaTags();
+// Brand that h3 v2 puts on the prototype of its `HTTPResponse` class. SolidStart 2 passes an
+// `HTTPResponse` as `response.body`, with the rendered HTML stream in its `body` field.
+const H3_HTTP_RESPONSE_BRAND = Symbol.for('h3.HTTPResponse');
 
-  if (!metaTags) {
-    return html;
-  }
-
-  const content = `<head>\n${metaTags}\n`;
-  return html.replace('<head>', content);
+function isH3HttpResponse(value: unknown): value is { body: unknown } {
+  return typeof value === 'object' && value !== null && H3_HTTP_RESPONSE_BRAND in value;
 }
 
 /**
@@ -38,17 +36,15 @@ export function sentryBeforeResponseMiddleware() {
       return;
     }
 
-    const body = response.body as NodeJS.ReadableStream;
-    const decoder = new TextDecoder();
-    response.body = new ReadableStream({
-      start: async controller => {
-        for await (const chunk of body) {
-          const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
-          const modifiedHtml = addMetaTagToHead(html);
-          controller.enqueue(new TextEncoder().encode(modifiedHtml));
-        }
-        controller.close();
-      },
-    });
+    // SolidStart 2 ignores a replaced `response.body` and sends the `HTTPResponse` it holds, so
+    // the stream is replaced on that object instead.
+    const target = isH3HttpResponse(response.body) ? response.body : response;
+
+    // Strings from the `sync` and `async` render modes are sent unchanged.
+    if (target.body instanceof ReadableStream) {
+      target.body = injectHtmlIntoHeadStream(target.body, getTraceMetaTags(), {
+        skipIfHeadContains: '"sentry-trace"',
+      });
+    }
   };
 }
