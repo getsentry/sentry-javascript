@@ -16,6 +16,7 @@
   "dependencies": {
     "@mastra/core": "~1.65.0",
     "@mastra/memory": "~1.28.3",
+    "@mastra/observability": "~1.17.6",
     "@openrouter/ai-sdk-provider": "~3.0.0",
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
     "ai": "~7.0.97",
