@@ -459,7 +459,7 @@ describe('createSentryBuildPluginManager', () => {
       vi.spyOn(fs.promises, 'stat').mockResolvedValue({ size: 10 } as fs.Stats);
       vi.spyOn(fs.promises, 'rm').mockResolvedValue(undefined as never);
 
-      mockPrepareBundleForDebugIdUpload.mockResolvedValue(undefined);
+      mockPrepareBundleForDebugIdUpload.mockResolvedValue({ sourceMapPath: '/app/dist/a.js.map' });
 
       const manager = createSentryBuildPluginManager(
         {
@@ -472,10 +472,11 @@ describe('createSentryBuildPluginManager', () => {
         { buildTool: 'webpack', loggerPrefix: '[sentry-webpack-plugin]' },
       );
 
-      await manager.uploadSourcemaps(['/unused']);
+      const result = await manager.uploadSourcemaps(['/unused']);
 
       // Should call prepare for each JS chunk discovered by glob
       expect(mockPrepareBundleForDebugIdUpload).toHaveBeenCalled();
+      expect(result).toEqual({ uploaded: true, uploadedSourceMapPaths: ['/app/dist/a.js.map'] });
       // Should upload from the temp folder, where debug IDs are already injected
       expect(mockSourcemapUpload).toHaveBeenCalledWith({
         directory: '/tmp/sentry-upload-xyz',
@@ -525,6 +526,46 @@ describe('createSentryBuildPluginManager', () => {
       expect(mockSourcemapUpload).not.toHaveBeenCalled();
 
       vi.restoreAllMocks();
+    });
+  });
+
+  describe('sourceMaps.deleteFromOutput', () => {
+    const managerOptions = {
+      authToken: 't',
+      org: 'o',
+      project: 'p',
+      release: { name: 'some-release-name' },
+      telemetry: false,
+      silent: true,
+    };
+    const meta = { buildTool: 'esbuild', loggerPrefix: '[sentry-esbuild-plugin]' };
+
+    it('deletes the source maps', async () => {
+      const rmSpy = vi.spyOn(fs.promises, 'rm').mockResolvedValue(undefined);
+      const manager = createSentryBuildPluginManager(managerOptions, meta);
+
+      await manager.sourceMaps.deleteFromOutput(['/app/dist/a.js.map', '/app/dist/b.js.map']);
+
+      expect(rmSpy).toHaveBeenCalledWith('/app/dist/a.js.map', { force: true });
+      expect(rmSpy).toHaveBeenCalledWith('/app/dist/b.js.map', { force: true });
+    });
+
+    it('throws when a source map cannot be deleted', async () => {
+      const error = new Error('EBUSY');
+      vi.spyOn(fs.promises, 'rm').mockRejectedValue(error);
+      const manager = createSentryBuildPluginManager(managerOptions, meta);
+
+      await expect(manager.sourceMaps.deleteFromOutput(['/app/dist/a.js.map'])).rejects.toBe(error);
+    });
+
+    it('passes a failed delete to the error handler', async () => {
+      const error = new Error('EBUSY');
+      vi.spyOn(fs.promises, 'rm').mockRejectedValue(error);
+      const errorHandler = vi.fn();
+      const manager = createSentryBuildPluginManager({ ...managerOptions, errorHandler }, meta);
+
+      await expect(manager.sourceMaps.deleteFromOutput(['/app/dist/a.js.map'])).resolves.toBeUndefined();
+      expect(errorHandler).toHaveBeenCalledWith(error);
     });
   });
 

@@ -20,6 +20,10 @@ export function createDebugIdUploadFunction({ sentryBuildPluginManager }: DebugI
   };
 }
 
+/** The source map of a prepared bundle. `sourceMapPath` is `undefined` for an inline map. */
+export type PreparedBundle = { sourceMapPath: string | undefined };
+
+/** Resolves to `undefined` when the bundle was skipped. */
 export async function prepareBundleForDebugIdUpload(
   bundleFilePath: string,
   uploadFolder: string,
@@ -27,7 +31,7 @@ export async function prepareBundleForDebugIdUpload(
   logger: Logger,
   rewriteSourcesHook: RewriteSourcesHook,
   resolveSourceMapHook: ResolveSourceMapHook | undefined,
-): Promise<void> {
+): Promise<PreparedBundle | undefined> {
   let bundleContent: string;
   try {
     bundleContent = await fs.promises.readFile(bundleFilePath, 'utf8');
@@ -81,6 +85,7 @@ export async function prepareBundleForDebugIdUpload(
   }
 
   await writePreparedArtifact(uploadFolder, `${result.artifact.debugId}-${chunkIndex}`, result.artifact);
+  return { sourceMapPath };
 }
 
 export type PreparedUploadArtifact = {
