@@ -50,9 +50,9 @@ export function makeServerInstrumentationPlugin({ debug }: { debug?: boolean }):
           return;
         }
 
-        // The Node SDK must not end up in a worker or other runtime without Node.js. On Cloudflare, the Cloudflare SDK
-        // sets itself up.
-        if (nitro.options.node === false || isCloudflarePreset(nitro.options.preset)) {
+        // The Node SDK must not end up in a worker or other runtime without Node.js, such as Cloudflare, where the
+        // Cloudflare SDK sets itself up.
+        if (nitro.options.node === false) {
           logDebug(
             debug,
             `Not loading \`instrument.server\` in the Nitro server build, as the \`${nitro.options.preset}\` preset does not run Node.js.`,
@@ -80,8 +80,4 @@ export function makeServerInstrumentationPlugin({ debug }: { debug?: boolean }):
       },
     },
   };
-}
-
-function isCloudflarePreset(preset: string | undefined): boolean {
-  return !!preset?.replace(/-/g, '_').startsWith('cloudflare');
 }

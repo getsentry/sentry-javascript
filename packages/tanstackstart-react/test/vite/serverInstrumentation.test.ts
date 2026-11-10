@@ -73,9 +73,8 @@ describe('server instrumentation', () => {
 
     it.each([
       { label: 'Nitro dev', nitro: { dev: true } },
-      { label: 'a Cloudflare preset', nitro: { preset: 'cloudflare-module' } },
-      { label: 'a Cloudflare preset with underscores', nitro: { preset: 'cloudflare_pages' } },
-      { label: 'a preset without Node.js', nitro: { node: false, preset: 'vercel-edge' } },
+      { label: 'a Cloudflare preset', nitro: { node: false, preset: 'cloudflare-module' } },
+      { label: 'another preset without Node.js', nitro: { node: false, preset: 'vercel-edge' } },
     ])('adds no plugin with $label', ({ nitro }) => {
       writeFile('instrument.server.mjs');
 
