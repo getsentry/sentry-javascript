@@ -27,7 +27,7 @@ interface HttpEventLike {
   rawQueryString?: string;
   resource?: string;
   routeKey?: string;
-  headers?: EventHeaders;
+  headers?: EventHeaders | null;
   queryStringParameters?: Record<string, string | undefined> | null;
   multiValueQueryStringParameters?: Record<string, string[] | undefined> | null;
   requestContext?: {
@@ -51,7 +51,8 @@ export function getHttpRequestAttributes(event: unknown, client: Client | undefi
 
   const httpEvent = event as HttpEventLike;
   const isV2 = format === '2.0';
-  const { requestContext = {}, headers = {} } = httpEvent;
+  const requestContext = httpEvent.requestContext || {};
+  const headers = httpEvent.headers || {};
   const { http, identity } = requestContext;
   const port = Number(getHeader(headers, 'x-forwarded-port'));
   const clientAddress = client?.getDataCollectionOptions().userInfo

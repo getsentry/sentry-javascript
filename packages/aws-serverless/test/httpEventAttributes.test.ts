@@ -1,3 +1,18 @@
+import {
+  CLIENT_ADDRESS,
+  FAAS_TRIGGER,
+  HTTP_REQUEST_METHOD,
+  HTTP_RESPONSE_STATUS_CODE,
+  HTTP_ROUTE,
+  NETWORK_PROTOCOL_NAME,
+  NETWORK_PROTOCOL_VERSION,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+  URL_PATH,
+  URL_QUERY,
+  URL_SCHEME,
+  USER_AGENT_ORIGINAL,
+} from '@sentry/conventions/attributes';
 import type { Client } from '@sentry/core';
 import { describe, expect, test } from 'vitest';
 import { getHttpRequestAttributes, getHttpResponseAttributes } from '../src/httpEventAttributes';
@@ -102,75 +117,84 @@ const albEvent = {
 describe('getHttpRequestAttributes', () => {
   test('sets HTTP attributes for a Function URL event', () => {
     expect(getHttpRequestAttributes(functionUrlEvent, makeClient(true))).toEqual({
-      'faas.trigger': 'http',
-      'http.request.method': 'GET',
-      'http.route': undefined,
-      'url.path': '/favicon.ico',
-      'url.query': 'size=32&theme=dark',
-      'url.scheme': 'https',
-      'server.address': 'abc123.lambda-url.us-east-1.on.aws',
-      'server.port': 443,
-      'client.address': '198.51.100.7',
-      'user_agent.original': 'Mozilla/5.0',
-      'network.protocol.name': 'http',
-      'network.protocol.version': '1.1',
+      [FAAS_TRIGGER]: 'http',
+      [HTTP_REQUEST_METHOD]: 'GET',
+      [HTTP_ROUTE]: undefined,
+      [URL_PATH]: '/favicon.ico',
+      [URL_QUERY]: 'size=32&theme=dark',
+      [URL_SCHEME]: 'https',
+      [SERVER_ADDRESS]: 'abc123.lambda-url.us-east-1.on.aws',
+      [SERVER_PORT]: 443,
+      [CLIENT_ADDRESS]: '198.51.100.7',
+      [USER_AGENT_ORIGINAL]: 'Mozilla/5.0',
+      [NETWORK_PROTOCOL_NAME]: 'http',
+      [NETWORK_PROTOCOL_VERSION]: '1.1',
     });
   });
 
+  test('handles null headers', () => {
+    expect(getHttpRequestAttributes({ ...restApiEvent, headers: null }, makeClient(true))).toMatchObject({
+      [HTTP_REQUEST_METHOD]: 'POST',
+      [URL_SCHEME]: undefined,
+      [CLIENT_ADDRESS]: '203.0.113.9',
+    });
+    expect(getHttpRequestAttributes({ ...albEvent, headers: null }, makeClient(true))[CLIENT_ADDRESS]).toBeUndefined();
+  });
+
   test('omits client.address when user info is not collected', () => {
-    expect(getHttpRequestAttributes(functionUrlEvent, makeClient(false))['client.address']).toBeUndefined();
-    expect(getHttpRequestAttributes(functionUrlEvent, undefined)['client.address']).toBeUndefined();
+    expect(getHttpRequestAttributes(functionUrlEvent, makeClient(false))[CLIENT_ADDRESS]).toBeUndefined();
+    expect(getHttpRequestAttributes(functionUrlEvent, undefined)[CLIENT_ADDRESS]).toBeUndefined();
   });
 
   test('takes the route template from an HTTP API route key', () => {
     expect(getHttpRequestAttributes(httpApiV2Event, makeClient(true))).toMatchObject({
-      'http.route': '/users/{id}',
-      'url.path': '/users/123',
-      'url.query': undefined,
-      'server.address': 'api.example.com',
+      [HTTP_ROUTE]: '/users/{id}',
+      [URL_PATH]: '/users/123',
+      [URL_QUERY]: undefined,
+      [SERVER_ADDRESS]: 'api.example.com',
     });
   });
 
   test('sets HTTP attributes for a REST API event', () => {
     expect(getHttpRequestAttributes(restApiEvent, makeClient(true))).toEqual({
-      'faas.trigger': 'http',
-      'http.request.method': 'POST',
-      'http.route': '/users/{id}',
-      'url.path': '/users/123',
-      'url.query': 'tag=a&tag=b&q=a%20b',
-      'url.scheme': 'https',
-      'server.address': 'abc123.execute-api.us-east-1.amazonaws.com',
-      'server.port': 443,
-      'client.address': '203.0.113.9',
-      'user_agent.original': 'curl/8.0',
-      'network.protocol.name': 'http',
-      'network.protocol.version': '1.1',
+      [FAAS_TRIGGER]: 'http',
+      [HTTP_REQUEST_METHOD]: 'POST',
+      [HTTP_ROUTE]: '/users/{id}',
+      [URL_PATH]: '/users/123',
+      [URL_QUERY]: 'tag=a&tag=b&q=a%20b',
+      [URL_SCHEME]: 'https',
+      [SERVER_ADDRESS]: 'abc123.execute-api.us-east-1.amazonaws.com',
+      [SERVER_PORT]: 443,
+      [CLIENT_ADDRESS]: '203.0.113.9',
+      [USER_AGENT_ORIGINAL]: 'curl/8.0',
+      [NETWORK_PROTOCOL_NAME]: 'http',
+      [NETWORK_PROTOCOL_VERSION]: '1.1',
     });
   });
 
   test('does not use the resource of an HTTP API payload format 1.0 event as route', () => {
     expect(getHttpRequestAttributes(httpApiV1Event, makeClient(true))).toMatchObject({
-      'faas.trigger': 'http',
-      'http.route': undefined,
-      'url.path': '/users/123',
-      'url.query': undefined,
+      [FAAS_TRIGGER]: 'http',
+      [HTTP_ROUTE]: undefined,
+      [URL_PATH]: '/users/123',
+      [URL_QUERY]: undefined,
     });
   });
 
   test('sets HTTP attributes for an ALB event without re-encoding the query', () => {
     expect(getHttpRequestAttributes(albEvent, makeClient(true))).toEqual({
-      'faas.trigger': 'http',
-      'http.request.method': 'GET',
-      'http.route': undefined,
-      'url.path': '/search',
-      'url.query': 'q=a%20b',
-      'url.scheme': 'http',
-      'server.address': 'my-alb-123.us-east-1.elb.amazonaws.com',
-      'server.port': 8080,
-      'client.address': '192.0.2.44',
-      'user_agent.original': 'curl/8.0',
-      'network.protocol.name': 'http',
-      'network.protocol.version': undefined,
+      [FAAS_TRIGGER]: 'http',
+      [HTTP_REQUEST_METHOD]: 'GET',
+      [HTTP_ROUTE]: undefined,
+      [URL_PATH]: '/search',
+      [URL_QUERY]: 'q=a%20b',
+      [URL_SCHEME]: 'http',
+      [SERVER_ADDRESS]: 'my-alb-123.us-east-1.elb.amazonaws.com',
+      [SERVER_PORT]: 8080,
+      [CLIENT_ADDRESS]: '192.0.2.44',
+      [USER_AGENT_ORIGINAL]: 'curl/8.0',
+      [NETWORK_PROTOCOL_NAME]: 'http',
+      [NETWORK_PROTOCOL_VERSION]: undefined,
     });
   });
 
@@ -187,17 +211,17 @@ describe('getHttpRequestAttributes', () => {
 describe('getHttpResponseAttributes', () => {
   test('uses the returned status code', () => {
     expect(getHttpResponseAttributes(functionUrlEvent, { statusCode: 404, body: '' })).toEqual({
-      'http.response.status_code': 404,
+      [HTTP_RESPONSE_STATUS_CODE]: 404,
     });
     expect(getHttpResponseAttributes(restApiEvent, { statusCode: 201 })).toEqual({
-      'http.response.status_code': 201,
+      [HTTP_RESPONSE_STATUS_CODE]: 201,
     });
   });
 
   test('infers a 200 for payload format 2.0 results without a status code', () => {
-    expect(getHttpResponseAttributes(functionUrlEvent, 'hello')).toEqual({ 'http.response.status_code': 200 });
+    expect(getHttpResponseAttributes(functionUrlEvent, 'hello')).toEqual({ [HTTP_RESPONSE_STATUS_CODE]: 200 });
     expect(getHttpResponseAttributes(functionUrlEvent, { message: 'hello' })).toEqual({
-      'http.response.status_code': 200,
+      [HTTP_RESPONSE_STATUS_CODE]: 200,
     });
   });
 
