@@ -781,6 +781,26 @@ describe('sanitizeSqlQuery', () => {
       ['INSERT INTO events FORMAT /* input */ CSV\n1,private@example.com', 'INSERT INTO events'],
       ['INSERT INTO format (id) VALUES (1)', 'INSERT INTO format (id) VALUES (?)'],
       ['INSERT INTO events SELECT format FROM source', 'INSERT INTO events SELECT format FROM source'],
+      // `input()` reads the rows that follow the `FORMAT` clause of an `INSERT ... SELECT`
+      [
+        "INSERT INTO events SELECT * FROM input('email String') FORMAT CSV\nprivate@example.com",
+        'INSERT INTO events SELECT * FROM input(?)',
+      ],
+      [
+        'INSERT INTO events SELECT lower(email) FROM input(\'email String\') WHERE email != \'\' FORMAT JSONEachRow\n{"email":"private@example.com"}',
+        'INSERT INTO events SELECT lower(email) FROM input(?) WHERE email != ?',
+      ],
+      [
+        "INSERT INTO events SELECT * FROM input('n UInt8') LIMIT 10 FORMAT TSV\nprivate@example.com",
+        'INSERT INTO events SELECT * FROM input(?) LIMIT ?',
+      ],
+      ['INSERT INTO events SELECT id, format FROM source', 'INSERT INTO events SELECT id, format FROM source'],
+      ['INSERT INTO events SELECT * FROM format', 'INSERT INTO events SELECT * FROM format'],
+      [
+        'INSERT INTO events SELECT * FROM source WHERE format = 1 ORDER BY format',
+        'INSERT INTO events SELECT * FROM source WHERE format = ? ORDER BY format',
+      ],
+      ['INSERT INTO TABLE format FORMAT CSV\nprivate@example.com', 'INSERT INTO TABLE format'],
       ["INSERT INTO events (`format`) VALUES ('private@example.com')", 'INSERT INTO events (`format`) VALUES (?)'],
       // `"..."` and backticks quote identifiers, as in `standard`
       ['SELECT * FROM "events" WHERE `user` = \'jane@example.com\'', 'SELECT * FROM "events" WHERE `user` = ?'],
