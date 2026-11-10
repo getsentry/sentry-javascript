@@ -82,7 +82,7 @@
     "cron": "^4.4.0",
     "dataloader": "2.2.3",
     "esbuild": "0.28.1",
-    "express": "^4.21.2",
+    "express": "^4.22.3",
     "fastify": "^5.12.7",
     "generic-pool": "^3.9.0",
     "graphql": "^16.11.0",

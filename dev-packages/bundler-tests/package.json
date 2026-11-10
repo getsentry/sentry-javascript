@@ -30,7 +30,7 @@
     "@vercel/nft": "^1.11.0",
     "rollup": "^4.60.3",
     "vite": "^8.3.5",
-    "vitest": "^4.1.11",
+    "vitest": "^4.1.12",
     "webpack": "^5.112.2"
   },
   "type": "module"

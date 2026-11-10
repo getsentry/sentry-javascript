@@ -215,7 +215,7 @@ importers:
         version: 20.19.43
       '@vitest/coverage-v8':
         specifier: ^4.1.11
-        version: 4.1.11(vitest@4.1.11)
+        version: 4.1.11(vitest@4.1.12)
       deepmerge:
         specifier: ^4.2.2
         version: 4.3.1
@@ -274,8 +274,8 @@ importers:
         specifier: ~7.0.2
         version: 7.0.2
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
+        specifier: ^4.1.12
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
       webpack:
         specifier: ^5.112.2
         version: 5.112.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(sharp@0.35.5(@types/node@20.19.43))(svgo@4.1.0)(uglify-js@3.13.3)
@@ -379,8 +379,8 @@ importers:
         specifier: 8.23.1
         version: 8.23.1
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
+        specifier: ^4.1.12
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
 
   dev-packages/bundler-plugin-integration-tests:
     devDependencies:
@@ -397,8 +397,8 @@ importers:
         specifier: ~6.0.3
         version: 6.0.3
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
+        specifier: ^4.1.12
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
 
   dev-packages/bundler-tests:
     devDependencies:
@@ -457,8 +457,8 @@ importers:
         specifier: ^8.3.5
         version: 8.3.5(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
+        specifier: ^4.1.12
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
       webpack:
         specifier: ^5.112.2
         version: 5.112.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(sharp@0.35.5(@types/node@20.19.43))(svgo@4.1.0)(uglify-js@3.13.3)
@@ -541,8 +541,8 @@ importers:
         specifier: ^8.3.5
         version: 8.3.5(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
+        specifier: ^4.1.12
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
       wrangler:
         specifier: 4.156.0
         version: 4.156.0(@cloudflare/workers-types@4.20260519.1)(@types/node@20.19.43)
@@ -568,8 +568,8 @@ importers:
         specifier: ^8.23.1
         version: 8.23.1
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
+        specifier: ^4.1.12
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
 
   dev-packages/e2e-tests:
     devDependencies:
@@ -757,8 +757,8 @@ importers:
         specifier: 0.28.1
         version: 0.28.1
       express:
-        specifier: ^4.21.2
-        version: 4.22.1(supports-color@10.0.0)
+        specifier: ^4.22.3
+        version: 4.22.3(supports-color@10.0.0)
       fastify:
         specifier: ^5.12.7
         version: 5.12.7
@@ -927,8 +927,8 @@ importers:
   dev-packages/test-utils:
     dependencies:
       express:
-        specifier: ^4.21.2
-        version: 4.22.1(supports-color@10.0.0)
+        specifier: ^4.22.3
+        version: 4.22.3(supports-color@10.0.0)
       ws:
         specifier: ^8.20.1
         version: 8.22.1
@@ -1193,8 +1193,8 @@ importers:
         specifier: ^8.3.1
         version: 8.3.5(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@8.1.1))(sass@1.72.0)(stylus@0.59.0(supports-color@8.1.1))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@8.1.1))(less@4.2.0(supports-color@8.1.1))(sass@1.72.0)(stylus@0.59.0(supports-color@8.1.1))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
+        specifier: ^4.1.12
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@8.1.1))(less@4.2.0(supports-color@8.1.1))(sass@1.72.0)(stylus@0.59.0(supports-color@8.1.1))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
       webpack:
         specifier: 5.112.2
         version: 5.112.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(sharp@0.35.5(@types/node@20.19.43))(svgo@4.1.0)(uglify-js@3.13.3)
@@ -1291,7 +1291,7 @@ importers:
     devDependencies:
       '@effect/vitest':
         specifier: ^4.0.0
-        version: 4.0.0(effect@4.0.0)(vitest@4.1.11)
+        version: 4.0.0(effect@4.0.0)(vitest@4.1.12)
       '@sentry-internal/rollup-utils':
         specifier: 11.11.0
         version: link:../../dev-packages/rollup-utils
@@ -3451,8 +3451,8 @@ packages:
     peerDependencies:
       '@babel/core': ^7.12.0
 
-  '@babel/plugin-proposal-decorators@7.24.7':
-    resolution: {integrity: sha512-RL9GR0pUG5Kc8BUWLNDm2T5OpYwSX15r98I0IkgmRQTXuELq/OynH8xtMTMvTJFjXbMWFVTKtYkTaYQsuAwQlQ==}
+  '@babel/plugin-proposal-decorators@7.29.7':
+    resolution: {integrity: sha512-EtU0Hi3GvrTqD56xKmZvV/uCXK2ZbwVNPNLAquVItcAZpUhkXwWlo3Fmj0c2LxgSf2I8IDULeAepwNP1OefLXg==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -3563,8 +3563,8 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
 
-  '@babel/plugin-syntax-decorators@7.25.9':
-    resolution: {integrity: sha512-ryzI0McXUPJnRCvMo4lumIKZUzhYUO/ScI+Mz4YVaTLt04DHNSjEUjKVvbzQjZFLuod/cYEc07mJWhzl6v4DPg==}
+  '@babel/plugin-syntax-decorators@7.29.7':
+    resolution: {integrity: sha512-9MTTLbF39X6sqM92JPEsoI7++26hjZvzkxKZy64aMhWLH2mPkJ/Q3AV4QLmls3R14FpSpkOwQQfUh962JGQxxg==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -4059,9 +4059,6 @@ packages:
   '@babel/runtime-corejs3@7.27.6':
     resolution: {integrity: sha512-vDVrlmRAY8z9Ul/HxT+8ceAru95LQgkSKiXkSYZvqtbkPSfhZJgpRp45Cldbh1GJ1kxzQkI70AqyrTI58KpaWQ==}
     engines: {node: '>=6.9.0'}
-
-  '@babel/runtime@7.12.18':
-    resolution: {integrity: sha512-BogPQ7ciE6SYAUPtlm9tWbgI9+2AgqSam6QivMgXgAT+fKbgppaj4ZX15MHeLC1PVF5sNk70huBu20XxWOs8Cg==}
 
   '@babel/runtime@7.18.9':
     resolution: {integrity: sha512-lkqXDcvlFT5rvEjiu6+QYO+1GXrEHRo2LOtS7E4GtX5ESIZOgepqsZBVIj6Pv+a6zqsya9VCgiK1KAK4BvJDAw==}
@@ -9225,11 +9222,11 @@ packages:
       '@vitest/browser':
         optional: true
 
-  '@vitest/expect@4.1.11':
-    resolution: {integrity: sha512-VX2x5vNJXET47KAFzwERI+KRMtTTCSWTfSMKsW7JsUsXV4psq++e3DvZpuTDOpHcxytiDs6p2nhVb2tVDiiUYw==}
+  '@vitest/expect@4.1.12':
+    resolution: {integrity: sha512-vFlTt+YEu9WBpNjdGayNmlMVzrWPi1+sv853/7t2FU7hpO5gAFBKHzQmkCq5Xjpr+evegF2994LQT3hF3mRlqQ==}
 
-  '@vitest/mocker@4.1.11':
-    resolution: {integrity: sha512-2XJVD55d1o5AZous5CCGKS74g/riOj9odEt2bQpCVZeblHyHdnMeFl4jl0XjU21stf4mbjUkew2eXQZt65g5CQ==}
+  '@vitest/mocker@4.1.12':
+    resolution: {integrity: sha512-fKShNpKZzupWZuY0z7egydvL0sqW4INEZBEExMBMAa6izlENEVHwoXgdaTCaBZ5fwlr4xf2o1wXC83n9RpO+NA==}
     peerDependencies:
       msw: ^2.4.9
       vite: ^6.0.0 || ^7.0.0 || ^8.0.0
@@ -9242,17 +9239,23 @@ packages:
   '@vitest/pretty-format@4.1.11':
     resolution: {integrity: sha512-yiZzPbGTS9Sr/JpFl8zHrcIkAofNbFV6k21vIgQN/cY/oxZeXhJv5sc/MBJ5jFKWmWs+oJHw0UXLZjmf931+Vw==}
 
-  '@vitest/runner@4.1.11':
-    resolution: {integrity: sha512-LztvUgdwMNJMIkj3hQnnxiC2Xy1zNxq928W/xhjCLaNCzqTZOudjwbQf6v9IntZGPw132i2Lq2rgTRZHD3JHNw==}
+  '@vitest/pretty-format@4.1.12':
+    resolution: {integrity: sha512-XW9O8+Mxx4VpCtkYdMJLZQQwsVryP9wk7cPKDxtXFfwSak6yRh5+2fep/Y0XF/ElBvJHq8bcYdi6aeuai0opZA==}
 
-  '@vitest/snapshot@4.1.11':
-    resolution: {integrity: sha512-pN7ikn1ON7h8ee4gIAp4AzyK+zBtJPzVbqOgu5LCEh4VaJVbPQcgYQYJIMGQPXVeJJq1fnfazis7a5pFNPahog==}
+  '@vitest/runner@4.1.12':
+    resolution: {integrity: sha512-NKlVKCr5QnCe8jijdMnmkpHHU+WTqiLFR6G0pHji9uRjXK9xJl1k1nTw6F3pOOj2PDcsDt2GKQMI7wIsaT491w==}
 
-  '@vitest/spy@4.1.11':
-    resolution: {integrity: sha512-apNa/prQy2qCeywhnixOHPRCgGNhvg7T4Dapfl1GahLp/R+uhBm5cPyFoNVyqsNd2h1nJxL6BqqdIjiABL60YA==}
+  '@vitest/snapshot@4.1.12':
+    resolution: {integrity: sha512-ko1y1Qgb/slzQ9mr+b89Cuqud8WG1TKtsPD8r7ZUBdvVOGt85Af2HwCqHujrhwJq95hs/9RM7fcAPg57o1vlzw==}
+
+  '@vitest/spy@4.1.12':
+    resolution: {integrity: sha512-RGq9x4JNGNTZHEJxvN0oSiJjeSCExm0n2gZKKJZHY9cX5AVA6M7VJILBT3ZJ/tJ/0J9uWT7fETV9/btoi//vSg==}
 
   '@vitest/utils@4.1.11':
     resolution: {integrity: sha512-zTCVGpyFsGWBhllOyKlTw/vnr6D9qxsfSDyfbyZmTyjHw5N/VuvzHpHoQjm2ZJzn4RJgx5w4r7V0er69CmLgPQ==}
+
+  '@vitest/utils@4.1.12':
+    resolution: {integrity: sha512-Q3awXrwOfEV+qc3WmO5ONyE0yO7Q1gQ9/oyHxGLZ/pl7N3NO/ZztqQwKLuwMkV+CA1JYSIeO3gkHnRDIo4AVaA==}
 
   '@volar/kit@2.4.28':
     resolution: {integrity: sha512-cKX4vK9dtZvDRaAzeoUdaAJEew6IdxHNCRrdp5Kvcl6zZOqb6jTOfk3kXkIkG3T7oTFXguEMt5+9ptyqYR84Pg==}
@@ -9812,6 +9815,9 @@ packages:
     engines: {node: ^18.17.1 || ^20.3.0 || >=21.0.0, npm: '>=9.6.5', pnpm: '>=7.1.0'}
     hasBin: true
 
+  async-disk-cache@1.3.5:
+    resolution: {integrity: sha512-VZpqfR0R7CEOJZ/0FOTgWq70lCrZyS1rkI8PXugDUkTKyyAUgZ2zQ09gLhMkEn+wN8LYeUTPxZdXtlX/kmbXKQ==}
+
   async-disk-cache@2.1.0:
     resolution: {integrity: sha512-iH+boep2xivfD9wMaZWkywYIURSmsL96d6MoqrC94BnGSvXE4Quf8hnJiHGFYhw/nLeIa1XyRaf4vvcvkwAefg==}
     engines: {node: 8.* || >= 10.*}
@@ -10140,6 +10146,9 @@ packages:
     resolution: {integrity: sha512-bQAtwjSrF4Nu0CK0JOy5OZqw9t5U0zzv2555EA/cF8/a8SLDTIetk9UgrtMVw7qKLKdSpOZ2liZNeZZDaKgayw==}
     engines: {node: 10.* || >= 12.*}
 
+  broccoli-persistent-filter@1.4.6:
+    resolution: {integrity: sha512-0RejLwoC95kv4kta8KAa+FmECJCK78Qgm8SRDEK7YyU0N9Cx6KpY3UCDy9WELl3mCXLN8TokNxc7/hp3lL4lfw==}
+
   broccoli-persistent-filter@3.1.3:
     resolution: {integrity: sha512-Q+8iezprZzL9voaBsDY3rQVl7c7H5h+bvv8SpzCZXPZgfBFCbx7KFQ2c3rZR6lW5k4Kwoqt7jG+rZMUg67Gwxw==}
     engines: {node: 10.* || >= 12.*}
@@ -10154,6 +10163,9 @@ packages:
   broccoli-source@3.0.1:
     resolution: {integrity: sha512-ZbGVQjivWi0k220fEeIUioN6Y68xjMy0xiLAc0LdieHI99gw+tafU8w0CggBDYVNsJMKUr006AZaM7gNEwCxEg==}
     engines: {node: 8.* || 10.* || >= 12.*}
+
+  broccoli-string-replace@0.1.2:
+    resolution: {integrity: sha512-QHESTrrrPlKuXQNWsvXawSQbV2g34wCZ5oKgd6bntdOuN8VHxbg1BCBHqVY5HxXJhWelimgGxj3vI7ECkyij8g==}
 
   browserslist-to-esbuild@2.1.1:
     resolution: {integrity: sha512-KN+mty6C3e9AN8Z5dI1xeN15ExcRNeISoC3g7V0Kax/MMF9MSoYA2G7lkTTcVUFntiEjkpI0HNgqJC1NjdyNUw==}
@@ -10627,8 +10639,8 @@ packages:
     resolution: {integrity: sha512-FveZTNuGw04cxlAiWbzi6zTAL/lhehaWbTtgluJh4/E95DqMwTmha3KZN1aAWA8cFIhHzMZUvLevkw5Rqk+tSQ==}
     engines: {node: '>= 0.6'}
 
-  content-disposition@1.0.1:
-    resolution: {integrity: sha512-oIXISMynqSqm241k6kcQ5UwttDILMK4BiurCfGEREw6+X9jkkpEe5T9FZaApyLGGOnFuyMWZpdolTXMtvEJ08Q==}
+  content-disposition@2.0.1:
+    resolution: {integrity: sha512-e+H0ZXHSWYrENhQzw1LPuP4oF5MzVKmDU6d3hxlvaPEYLLg62MxtQNPRx4SYSuYJSBUgnQIG4HIN2tEtNv7Dog==}
     engines: {node: '>=18'}
 
   content-tag@4.2.0:
@@ -11260,6 +11272,10 @@ packages:
   ecdsa-sig-formatter@1.0.11:
     resolution: {integrity: sha512-nagl3RYrbNv6kQkeJIpt6NJZy8twLB/2vtz6yN9Z4vRKHN4/QZJIEbqohALSgwKdnksuY3k5Addp5lg8sVoVcQ==}
 
+  editions@1.3.4:
+    resolution: {integrity: sha512-gzao+mxnYDzIysXKMQi/+M1mjy/rjestjg6OPoYTtI+3Izp23oiGZitsl9lPDPiTGXbcSIk1iJWhliSaglxnUg==}
+    engines: {node: '>=0.8'}
+
   editions@2.3.1:
     resolution: {integrity: sha512-ptGvkwTvGdGfC0hfhKg0MT+TRLRKGtUiWGBInxOm5pz7ssADezahjCUaYuZ8Dr+C05FW0AECIIPt4WBxVINEhA==}
     engines: {node: '>=0.8'}
@@ -11299,8 +11315,8 @@ packages:
     resolution: {integrity: sha512-sKvOiPNHr5F/60NLd7SFzMpYPte/nnGkq/tMIfXejfKHIhaiIkYFqX8Z9UFTKWLLn+V7NOaby6niNPZUdvKCRw==}
     engines: {node: 6.* || 8.* || >= 10.*}
 
-  ember-cli-babel@8.3.1:
-    resolution: {integrity: sha512-Pxm5JP0jQ6fCBlXuh1BFmhrg2/5YXjhf16JI/n8ReOR6Nl+fEbudMpdO69LlqZRsMmTgdjCRmfSxMh26Wsw/rw==}
+  ember-cli-babel@8.3.2:
+    resolution: {integrity: sha512-Thvqx+jwGYhimYbkkL0gwhwMlhghTIR3uQ9R0yNaTjBIttZIfSWJ/2W40kaJlwhnsElXq7zbFjZcff22p6nzCg==}
     engines: {node: 16.* || 18.* || >= 20}
     peerDependencies:
       '@babel/core': ^7.12.0
@@ -11991,12 +12007,12 @@ packages:
     peerDependencies:
       express: '>= 4.11'
 
-  express@4.22.1:
-    resolution: {integrity: sha512-F2X8g9P1X7uCPZMA3MVf9wcTqlyNp7IhH5qPCI0izhaOIYXaW9L535tGA3qmjRzpH+bZczqq7hVKxTR4NWnu+g==}
+  express@4.22.3:
+    resolution: {integrity: sha512-Bdcs4+3qlpVlx2NRn6fgX2Ue2/gGRaPeawebgclM0ERSCqDpA+owF1fdPwjJUTAJWMTuAaxjDf+hzb0/4eKvvw==}
     engines: {node: '>= 0.10.0'}
 
-  express@5.2.1:
-    resolution: {integrity: sha512-hIS4idWWai69NezIdRt2xFVofaF4j+6INOpJlVOLDO8zXGpUVEVzIYk12UUi2JzjEzWL3IOAxcTubgz9Po0yXw==}
+  express@5.3.0:
+    resolution: {integrity: sha512-qCqy1xSoaugxOD4IVHb1ZWdkvCF2W3aE2okKouWj8VwJ+ztskSiXoBnCSJqfKT+cVPJhuJqe9YLbY425+Zh00g==}
     engines: {node: '>= 18'}
 
   exsolve@1.2.0:
@@ -12078,11 +12094,11 @@ packages:
   fast-text-encoding@1.0.3:
     resolution: {integrity: sha512-dtm4QZH9nZtcDt8qJiOH9fcQd1NAgi+K1O2DbE6GG1PPCK/BWfOH3idCTRQ4ImXRUOyopDEgDEnVEE7Y/2Wrig==}
 
-  fast-uri@3.1.8:
-    resolution: {integrity: sha512-GZMtZUTNRpOVIECoXwLNZS5xUGE+mVNbTB8h/7Rwh2TFWcBQiPzTgyZi05BF9UMZKkLJv8XBRJTlU7zg8+ZfMg==}
+  fast-uri@3.1.9:
+    resolution: {integrity: sha512-hS/0Wt3Ya043oKXs0sIxrMpKQITXhMLIrVAKKXi4gozGC9v7YRWVnXIZzjNPTO02M9BdxLCWqK1yRXgNziVyJQ==}
 
-  fast-uri@4.2.1:
-    resolution: {integrity: sha512-TmHQgewjHtMq1E5QKA0tOE0yeYGQs25KZC/ziJpubRtWI15W92e6vPFydWOeZBVROSHBYw/QhD9d5OefdD6LDg==}
+  fast-uri@4.2.3:
+    resolution: {integrity: sha512-I1PXwP5eAhlNlcdpjt9CgB59op2ZvZfxw+BkqGFVIUOgNpCVTcTqp3HhTX7brxj5vsip+nSY4nTvff+eIA76hg==}
 
   fast-wrap-ansi@0.2.0:
     resolution: {integrity: sha512-rLV8JHxTyhVmFYhBJuMujcrHqOT2cnO5Zxj37qROj23CP39GXubJRBUFF0z8KFK77Uc0SukZUf7JZhsVEQ6n8w==}
@@ -12966,8 +12982,8 @@ packages:
     resolution: {integrity: sha512-f+Dtubxfpf6KYFq7WVXJoOLn0bk4TJrMrN9SzeE+jrWrCWj7XX3fA6vkryafhADX+GMymRxgDJDOI33COkJc0w==}
     engines: {node: '>=20.0.0'}
 
-  ip-address@10.7.2:
-    resolution: {integrity: sha512-7H/2gFSIitxc0hG3nOI1glS8QLo/EHBFFLk8vEUjXY/xu0AdL8jZ9U1IzO2PUm0d2D/ofQcAifb0g6OBkt8U7w==}
+  ip-address@10.7.6:
+    resolution: {integrity: sha512-00LYkM6byILa9eQIx6qoaXCM40xTLd56AZ4vyaPW3YTyb49VZYPo5xsiAq4tuQ54GH4R7gVdYScJ1B7B77PuTg==}
     engines: {node: '>= 12'}
 
   ipaddr.js@1.9.1:
@@ -13294,6 +13310,10 @@ packages:
   istanbul-reports@3.2.0:
     resolution: {integrity: sha512-HGYWWS/ehqTV3xN10i23tkPkpH46MLCIMFNCaaKNavAXTF1RkqxawEPtnjnGZ6XKSInBKkiOA5BKS+aZiY3AvA==}
     engines: {node: '>=8'}
+
+  istextorbinary@2.1.0:
+    resolution: {integrity: sha512-kT1g2zxZ5Tdabtpp9VSdOzW9lb6LXImyWbzbQeTxoRtHhurC9Ej9Wckngr2+uepPL09ky/mJHmN9jeJPML5t6A==}
+    engines: {node: '>=0.12'}
 
   istextorbinary@2.6.0:
     resolution: {integrity: sha512-+XRlFseT8B3L9KyjxxLjfXSLMuErKDsd8DBNrsaxoViABMEZlOSCstwmw0qpoFX3+U6yWU1yhLudAe6/lETGGA==}
@@ -15933,12 +15953,12 @@ packages:
     peerDependencies:
       postcss: ^8.2
 
-  postcss-selector-parser@6.1.4:
-    resolution: {integrity: sha512-bIoJLOmjCO1S9XdY/DcnR5hJxvrDir1PbGChrzXG3vw0/FOliy/fA3dmdhQ441kah4gKv+TwckGzex6wNS5cnQ==}
+  postcss-selector-parser@6.1.6:
+    resolution: {integrity: sha512-BK87/Qgti3DIcgS2PaCVoteFIkjIFvCJBizZDIVSjdlFNg4Jv+SRqbN2JONb/qQUH4ZFqfXYF+izg15W2HVRvA==}
     engines: {node: '>=4'}
 
-  postcss-selector-parser@7.1.5:
-    resolution: {integrity: sha512-KvvtD7SrlBP7dlgkBghEE3r84CABm5SmV2aNcG4oCA+qDnJ/tvKonFVvwWAyyWUEwxuNawdfEAZKP9zM3oZ2Uw==}
+  postcss-selector-parser@7.2.0:
+    resolution: {integrity: sha512-Khh/tERVBn0I1499dvBSHY0pWJloMJWUxDsOBM0CCDPAcVZ10Jl2L1qy1f19uEX22spa8Mv7DCdEQJc0cGwBhQ==}
     engines: {node: '>=4'}
 
   postcss-svgo@7.1.3:
@@ -16073,8 +16093,8 @@ packages:
       typescript:
         optional: true
 
-  prismjs@1.29.0:
-    resolution: {integrity: sha512-Kx/1w86q/epKcmte75LNrEoT+lX8pBpavuAbvJWRXar7Hz8jrtF+e3vY751p0R8H9HdArwaCTNDDzHg/ScJK1Q==}
+  prismjs@1.30.0:
+    resolution: {integrity: sha512-DEvV2ZF2r2/63V+tK8hQvrR2ZGn10srHbXviTlcv7Kpzw8jWiNTqbVgjO3IY8RxrrOUF8VPMQQFysYYYv0YZxw==}
     engines: {node: '>=6'}
 
   private@0.1.8:
@@ -16175,10 +16195,6 @@ packages:
 
   pure-rand@6.1.0:
     resolution: {integrity: sha512-bVWawvoZoBYpp6yIoQtQXHZjmz35RSVHnUOTefl8Vcjr8snTPY1wnpSPMWekcFwbxI6gtmT7rSYPFvz71ldiOA==}
-
-  qs@6.14.2:
-    resolution: {integrity: sha512-V/yCWTTF7VJ9hIh18Ugr2zhJMP01MY7c5kh4J870L7imm6/DIzBsNLTXzMwUA3yZ5b/KBqLx8Kp3uRvd7xSe3Q==}
-    engines: {node: '>=0.6'}
 
   qs@6.16.2:
     resolution: {integrity: sha512-VYdnB5S7/0IeXzBacUtwNAaM6d7Y/PgYnNC7bJCI6meqA/OgnsQbZMtVW8Dt2D1PHgbHGtYmhSoEIgvt7xZ2ZA==}
@@ -16413,9 +16429,6 @@ packages:
 
   regenerate@1.4.2:
     resolution: {integrity: sha512-zrceR/XhGYU/d/opr2EKO7aRHUeiBI8qjtfHqADTwZd6Szfy16la6kqD0MIUs5z5hx6AaKa+PixpPrR289+I0A==}
-
-  regenerator-runtime@0.13.10:
-    resolution: {integrity: sha512-KepLsg4dU12hryUO7bp/axHAKvwGOCV0sGloQtpagJ12ai+ojVDqkeGSiRX1zlq+kjIMZ1t7gpze+26QqtdGqw==}
 
   regenerator-runtime@0.13.9:
     resolution: {integrity: sha512-p3VT+cOEgxFsRRA9X4lkI1E+k2/CtnKtU4gcxyaCUreilL/vqI6CdZ3wxVUx3UOUg+gnUOQQcRI7BmSI656MYA==}
@@ -18662,20 +18675,20 @@ packages:
       vite:
         optional: true
 
-  vitest@4.1.11:
-    resolution: {integrity: sha512-fhACrNXUidIbGSBr5FlbuBkO7VWC1ZyLl0DO4CU2DrQoAPxX84Ysxs+HeGQpii5lZWV1Q4gBZTTu49mF+A6Edw==}
+  vitest@4.1.12:
+    resolution: {integrity: sha512-5eWdz2yb3ajxWF3C8C4TjkXl7FGm3n2E/VlazALrQHzK7nYMSGFnCZto0bbPNl77AwkOZVLk0YnBAejUu0NiWA==}
     engines: {node: ^20.0.0 || ^22.0.0 || >=24.0.0}
     hasBin: true
     peerDependencies:
       '@edge-runtime/vm': '*'
       '@opentelemetry/api': ^1.9.0
       '@types/node': ^20.0.0 || ^22.0.0 || >=24.0.0
-      '@vitest/browser-playwright': 4.1.11
-      '@vitest/browser-preview': 4.1.11
-      '@vitest/browser-webdriverio': 4.1.11
-      '@vitest/coverage-istanbul': 4.1.11
-      '@vitest/coverage-v8': 4.1.11
-      '@vitest/ui': 4.1.11
+      '@vitest/browser-playwright': 4.1.12
+      '@vitest/browser-preview': 4.1.12
+      '@vitest/browser-webdriverio': ^4.1.11
+      '@vitest/coverage-istanbul': 4.1.12
+      '@vitest/coverage-v8': 4.1.12
+      '@vitest/ui': 4.1.12
       happy-dom: '*'
       jsdom: '*'
     peerDependenciesMeta:
@@ -19778,7 +19791,7 @@ snapshots:
 
   '@astrojs/prism@3.1.0':
     dependencies:
-      prismjs: 1.29.0
+      prismjs: 1.30.0
 
   '@astrojs/telemetry@3.1.0(supports-color@10.0.0)':
     dependencies:
@@ -21181,21 +21194,21 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@babel/plugin-proposal-decorators@7.24.7(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)':
+  '@babel/plugin-proposal-decorators@7.29.7(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.0.0)
       '@babel/helper-create-class-features-plugin': 7.29.7(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)
       '@babel/helper-plugin-utils': 7.29.7
-      '@babel/plugin-syntax-decorators': 7.25.9(@babel/core@7.29.7(supports-color@10.0.0))
+      '@babel/plugin-syntax-decorators': 7.29.7(@babel/core@7.29.7(supports-color@10.0.0))
     transitivePeerDependencies:
       - supports-color
 
-  '@babel/plugin-proposal-decorators@7.24.7(@babel/core@8.1.0)(supports-color@10.0.0)':
+  '@babel/plugin-proposal-decorators@7.29.7(@babel/core@8.1.0)(supports-color@10.0.0)':
     dependencies:
       '@babel/core': 8.1.0
       '@babel/helper-create-class-features-plugin': 7.29.7(@babel/core@8.1.0)(supports-color@10.0.0)
       '@babel/helper-plugin-utils': 7.29.7
-      '@babel/plugin-syntax-decorators': 7.25.9(@babel/core@8.1.0)
+      '@babel/plugin-syntax-decorators': 7.29.7(@babel/core@8.1.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -21306,12 +21319,12 @@ snapshots:
       '@babel/core': 7.18.10(supports-color@10.0.0)
       '@babel/helper-plugin-utils': 7.29.7
 
-  '@babel/plugin-syntax-decorators@7.25.9(@babel/core@7.29.7(supports-color@10.0.0))':
+  '@babel/plugin-syntax-decorators@7.29.7(@babel/core@7.29.7(supports-color@10.0.0))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.0.0)
       '@babel/helper-plugin-utils': 7.29.7
 
-  '@babel/plugin-syntax-decorators@7.25.9(@babel/core@8.1.0)':
+  '@babel/plugin-syntax-decorators@7.29.7(@babel/core@8.1.0)':
     dependencies:
       '@babel/core': 8.1.0
       '@babel/helper-plugin-utils': 7.29.7
@@ -22704,10 +22717,6 @@ snapshots:
     dependencies:
       core-js-pure: 3.43.0
 
-  '@babel/runtime@7.12.18':
-    dependencies:
-      regenerator-runtime: 0.13.10
-
   '@babel/runtime@7.18.9':
     dependencies:
       regenerator-runtime: 0.13.9
@@ -22909,15 +22918,15 @@ snapshots:
 
   '@csstools/postcss-cascade-layers@1.1.1(postcss@8.4.31)':
     dependencies:
-      '@csstools/selector-specificity': 2.2.0(postcss-selector-parser@6.1.4)
+      '@csstools/selector-specificity': 2.2.0(postcss-selector-parser@6.1.6)
       postcss: 8.4.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   '@csstools/postcss-cascade-layers@1.1.1(postcss@8.5.31)':
     dependencies:
-      '@csstools/selector-specificity': 2.2.0(postcss-selector-parser@6.1.4)
+      '@csstools/selector-specificity': 2.2.0(postcss-selector-parser@6.1.6)
       postcss: 8.5.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   '@csstools/postcss-color-function@1.1.1(postcss@8.4.31)':
     dependencies:
@@ -22965,15 +22974,15 @@ snapshots:
 
   '@csstools/postcss-is-pseudo-class@2.0.7(postcss@8.4.31)':
     dependencies:
-      '@csstools/selector-specificity': 2.2.0(postcss-selector-parser@6.1.4)
+      '@csstools/selector-specificity': 2.2.0(postcss-selector-parser@6.1.6)
       postcss: 8.4.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   '@csstools/postcss-is-pseudo-class@2.0.7(postcss@8.5.31)':
     dependencies:
-      '@csstools/selector-specificity': 2.2.0(postcss-selector-parser@6.1.4)
+      '@csstools/selector-specificity': 2.2.0(postcss-selector-parser@6.1.6)
       postcss: 8.5.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   '@csstools/postcss-nested-calc@1.0.0(postcss@8.4.31)':
     dependencies:
@@ -23055,9 +23064,9 @@ snapshots:
     dependencies:
       postcss: 8.5.31
 
-  '@csstools/selector-specificity@2.2.0(postcss-selector-parser@6.1.4)':
+  '@csstools/selector-specificity@2.2.0(postcss-selector-parser@6.1.6)':
     dependencies:
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   '@dabh/diagnostics@2.0.8':
     dependencies:
@@ -23191,10 +23200,10 @@ snapshots:
     dependencies:
       '@edge-runtime/primitives': 6.0.0
 
-  '@effect/vitest@4.0.0(effect@4.0.0)(vitest@4.1.11)':
+  '@effect/vitest@4.0.0(effect@4.0.0)(vitest@4.1.12)':
     dependencies:
       effect: 4.0.0
-      vitest: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
+      vitest: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
 
   '@ember-data/rfc395-data@0.0.4': {}
 
@@ -23268,7 +23277,7 @@ snapshots:
       '@embroider/shared-internals': 3.1.1(supports-color@10.0.0)
       assert-never: 1.4.0
       babel-import-util: 3.0.1
-      ember-cli-babel: 8.3.1(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)
+      ember-cli-babel: 8.3.2(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)
       find-up: 5.0.0
       lodash: 4.18.1
       resolve: 1.22.12
@@ -23284,7 +23293,7 @@ snapshots:
       '@embroider/shared-internals': 3.1.1(supports-color@10.0.0)
       assert-never: 1.4.0
       babel-import-util: 3.0.1
-      ember-cli-babel: 8.3.1(@babel/core@8.1.0)(supports-color@10.0.0)
+      ember-cli-babel: 8.3.2(@babel/core@8.1.0)(supports-color@10.0.0)
       find-up: 5.0.0
       lodash: 4.18.1
       resolve: 1.22.12
@@ -23709,7 +23718,7 @@ snapshots:
     dependencies:
       ajv: 8.20.0
       ajv-formats: 3.0.1
-      fast-uri: 3.1.8
+      fast-uri: 3.1.9
 
   '@fastify/error@4.2.0': {}
 
@@ -24668,8 +24677,8 @@ snapshots:
       cross-spawn: 7.0.6
       eventsource: 3.0.7
       eventsource-parser: 3.1.1
-      express: 5.2.1(supports-color@10.0.0)
-      express-rate-limit: 8.7.1(express@5.2.1(supports-color@10.0.0))(supports-color@10.0.0)
+      express: 5.3.0(supports-color@10.0.0)
+      express-rate-limit: 8.7.1(express@5.3.0(supports-color@10.0.0))(supports-color@10.0.0)
       hono: 4.13.11
       jose: 6.2.10
       json-schema-typed: 8.0.2
@@ -28082,7 +28091,7 @@ snapshots:
       vite: 7.3.7(@types/node@20.19.43)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
       vue: 3.5.44(typescript@7.0.2)
 
-  '@vitest/coverage-v8@4.1.11(vitest@4.1.11)':
+  '@vitest/coverage-v8@4.1.11(vitest@4.1.12)':
     dependencies:
       '@bcoe/v8-coverage': 1.0.2
       '@vitest/utils': 4.1.11
@@ -28094,20 +28103,20 @@ snapshots:
       obug: 2.1.4
       std-env: 4.3.0
       tinyrainbow: 3.1.1
-      vitest: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
+      vitest: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
 
-  '@vitest/expect@4.1.11':
+  '@vitest/expect@4.1.12':
     dependencies:
       '@standard-schema/spec': 1.1.0
       '@types/chai': 5.2.2
-      '@vitest/spy': 4.1.11
-      '@vitest/utils': 4.1.11
+      '@vitest/spy': 4.1.12
+      '@vitest/utils': 4.1.12
       chai: 6.2.2
       tinyrainbow: 3.1.1
 
-  '@vitest/mocker@4.1.11(vite@8.3.5(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))':
+  '@vitest/mocker@4.1.12(vite@8.3.5(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))':
     dependencies:
-      '@vitest/spy': 4.1.11
+      '@vitest/spy': 4.1.12
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
@@ -28117,23 +28126,33 @@ snapshots:
     dependencies:
       tinyrainbow: 3.1.1
 
-  '@vitest/runner@4.1.11':
+  '@vitest/pretty-format@4.1.12':
     dependencies:
-      '@vitest/utils': 4.1.11
+      tinyrainbow: 3.1.1
+
+  '@vitest/runner@4.1.12':
+    dependencies:
+      '@vitest/utils': 4.1.12
       pathe: 2.0.3
 
-  '@vitest/snapshot@4.1.11':
+  '@vitest/snapshot@4.1.12':
     dependencies:
-      '@vitest/pretty-format': 4.1.11
-      '@vitest/utils': 4.1.11
+      '@vitest/pretty-format': 4.1.12
+      '@vitest/utils': 4.1.12
       magic-string: 0.30.21
       pathe: 2.0.3
 
-  '@vitest/spy@4.1.11': {}
+  '@vitest/spy@4.1.12': {}
 
   '@vitest/utils@4.1.11':
     dependencies:
       '@vitest/pretty-format': 4.1.11
+      convert-source-map: 2.0.0
+      tinyrainbow: 3.1.1
+
+  '@vitest/utils@4.1.12':
+    dependencies:
+      '@vitest/pretty-format': 4.1.12
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.1
 
@@ -28629,7 +28648,7 @@ snapshots:
   ajv@8.20.0:
     dependencies:
       fast-deep-equal: 3.1.3
-      fast-uri: 3.1.8
+      fast-uri: 3.1.9
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
@@ -28925,6 +28944,18 @@ snapshots:
       - supports-color
       - terser
       - typescript
+
+  async-disk-cache@1.3.5(supports-color@10.0.0):
+    dependencies:
+      debug: 2.6.9(supports-color@10.0.0)
+      heimdalljs: 0.2.6
+      istextorbinary: 2.1.0
+      mkdirp: 0.5.6
+      rimraf: 2.7.1
+      rsvp: 3.6.2
+      username-sync: 1.0.2
+    transitivePeerDependencies:
+      - supports-color
 
   async-disk-cache@2.1.0(supports-color@10.0.0):
     dependencies:
@@ -29411,6 +29442,24 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  broccoli-persistent-filter@1.4.6(supports-color@10.0.0):
+    dependencies:
+      async-disk-cache: 1.3.5(supports-color@10.0.0)
+      async-promise-queue: 1.0.5(supports-color@10.0.0)
+      broccoli-plugin: 1.3.1
+      fs-tree-diff: 0.5.9(supports-color@10.0.0)
+      hash-for-dep: 1.5.1(supports-color@10.0.0)
+      heimdalljs: 0.2.6
+      heimdalljs-logger: 0.1.10(supports-color@10.0.0)
+      mkdirp: 0.5.6
+      promise-map-series: 0.2.3
+      rimraf: 2.7.1
+      rsvp: 3.6.2
+      symlink-or-copy: 1.3.1
+      walk-sync: 0.3.4
+    transitivePeerDependencies:
+      - supports-color
+
   broccoli-persistent-filter@3.1.3(supports-color@10.0.0):
     dependencies:
       async-disk-cache: 2.1.0(supports-color@10.0.0)
@@ -29449,6 +29498,13 @@ snapshots:
   broccoli-source@3.0.1:
     dependencies:
       broccoli-node-api: 1.7.0
+
+  broccoli-string-replace@0.1.2(supports-color@10.0.0):
+    dependencies:
+      broccoli-persistent-filter: 1.4.6(supports-color@10.0.0)
+      minimatch: 3.1.5
+    transitivePeerDependencies:
+      - supports-color
 
   browserslist-to-esbuild@2.1.1(browserslist@4.29.0):
     dependencies:
@@ -29956,7 +30012,7 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
-  content-disposition@1.0.1: {}
+  content-disposition@2.0.1: {}
 
   content-tag@4.2.0: {}
 
@@ -30079,12 +30135,12 @@ snapshots:
   css-blank-pseudo@3.0.3(postcss@8.4.31):
     dependencies:
       postcss: 8.4.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   css-blank-pseudo@3.0.3(postcss@8.5.31):
     dependencies:
       postcss: 8.5.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   css-declaration-sorter@7.2.0(postcss@8.5.31):
     dependencies:
@@ -30093,12 +30149,12 @@ snapshots:
   css-has-pseudo@3.0.4(postcss@8.4.31):
     dependencies:
       postcss: 8.4.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   css-has-pseudo@3.0.4(postcss@8.5.31):
     dependencies:
       postcss: 8.5.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   css-loader@6.7.1(webpack@5.76.1(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.15.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.4.31)(uglify-js@3.13.3)):
     dependencies:
@@ -30613,6 +30669,8 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
+  editions@1.3.4: {}
+
   editions@2.3.1:
     dependencies:
       errlop: 2.2.0
@@ -30643,11 +30701,11 @@ snapshots:
 
   ember-cli-babel-plugin-helpers@1.1.1: {}
 
-  ember-cli-babel@8.3.1(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0):
+  ember-cli-babel@8.3.2(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0):
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.0.0)
       '@babel/helper-compilation-targets': 7.29.7
-      '@babel/plugin-proposal-decorators': 7.24.7(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)
+      '@babel/plugin-proposal-decorators': 7.29.7(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)
       '@babel/plugin-transform-class-properties': 7.29.7(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)
       '@babel/plugin-transform-class-static-block': 7.29.7(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)
       '@babel/plugin-transform-modules-amd': 7.29.7(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)
@@ -30656,7 +30714,7 @@ snapshots:
       '@babel/plugin-transform-runtime': 7.29.7(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)
       '@babel/plugin-transform-typescript': 7.29.7(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)
       '@babel/preset-env': 7.29.7(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)
-      '@babel/runtime': 7.12.18
+      '@babel/runtime': 7.29.7
       amd-name-resolver: 1.3.1
       babel-plugin-debug-macros: 0.3.4(@babel/core@7.29.7(supports-color@10.0.0))
       babel-plugin-ember-data-packages-polyfill: 0.1.2
@@ -30666,6 +30724,7 @@ snapshots:
       broccoli-debug: 0.6.5(supports-color@10.0.0)
       broccoli-funnel: 3.0.8(supports-color@10.0.0)
       broccoli-source: 3.0.1
+      broccoli-string-replace: 0.1.2(supports-color@10.0.0)
       calculate-cache-key-for-tree: 2.0.0
       clone: 2.1.2
       ember-cli-babel-plugin-helpers: 1.1.1
@@ -30676,11 +30735,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  ember-cli-babel@8.3.1(@babel/core@8.1.0)(supports-color@10.0.0):
+  ember-cli-babel@8.3.2(@babel/core@8.1.0)(supports-color@10.0.0):
     dependencies:
       '@babel/core': 8.1.0
       '@babel/helper-compilation-targets': 7.29.7
-      '@babel/plugin-proposal-decorators': 7.24.7(@babel/core@8.1.0)(supports-color@10.0.0)
+      '@babel/plugin-proposal-decorators': 7.29.7(@babel/core@8.1.0)(supports-color@10.0.0)
       '@babel/plugin-transform-class-properties': 7.29.7(@babel/core@8.1.0)(supports-color@10.0.0)
       '@babel/plugin-transform-class-static-block': 7.29.7(@babel/core@8.1.0)(supports-color@10.0.0)
       '@babel/plugin-transform-modules-amd': 7.29.7(@babel/core@8.1.0)(supports-color@10.0.0)
@@ -30689,7 +30748,7 @@ snapshots:
       '@babel/plugin-transform-runtime': 7.29.7(@babel/core@8.1.0)(supports-color@10.0.0)
       '@babel/plugin-transform-typescript': 7.29.7(@babel/core@8.1.0)(supports-color@10.0.0)
       '@babel/preset-env': 7.29.7(@babel/core@8.1.0)(supports-color@10.0.0)
-      '@babel/runtime': 7.12.18
+      '@babel/runtime': 7.29.7
       amd-name-resolver: 1.3.1
       babel-plugin-debug-macros: 0.3.4(@babel/core@8.1.0)
       babel-plugin-ember-data-packages-polyfill: 0.1.2
@@ -30699,6 +30758,7 @@ snapshots:
       broccoli-debug: 0.6.5(supports-color@10.0.0)
       broccoli-funnel: 3.0.8(supports-color@10.0.0)
       broccoli-source: 3.0.1
+      broccoli-string-replace: 0.1.2(supports-color@10.0.0)
       calculate-cache-key-for-tree: 2.0.0
       clone: 2.1.2
       ember-cli-babel-plugin-helpers: 1.1.1
@@ -30759,7 +30819,7 @@ snapshots:
       broccoli-funnel: 3.0.8(supports-color@10.0.0)
       broccoli-merge-trees: 4.2.0(supports-color@10.0.0)
       chalk: 4.1.2
-      ember-cli-babel: 8.3.1(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)
+      ember-cli-babel: 8.3.2(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)
       ember-cli-get-component-path-option: 1.0.0
       ember-cli-is-package-missing: 1.0.0
       ember-cli-normalize-entity-name: 1.0.0(supports-color@10.0.0)
@@ -31500,15 +31560,15 @@ snapshots:
 
   expect-type@1.4.0: {}
 
-  express-rate-limit@8.7.1(express@5.2.1(supports-color@10.0.0))(supports-color@10.0.0):
+  express-rate-limit@8.7.1(express@5.3.0(supports-color@10.0.0))(supports-color@10.0.0):
     dependencies:
       debug: 4.4.3(supports-color@10.0.0)
-      express: 5.2.1(supports-color@10.0.0)
-      ip-address: 10.7.2
+      express: 5.3.0(supports-color@10.0.0)
+      ip-address: 10.7.6
     transitivePeerDependencies:
       - supports-color
 
-  express@4.22.1(supports-color@10.0.0):
+  express@4.22.3(supports-color@10.0.0):
     dependencies:
       accepts: 1.3.8
       array-flatten: 1.1.1
@@ -31531,7 +31591,7 @@ snapshots:
       parseurl: 1.3.3
       path-to-regexp: 0.1.13
       proxy-addr: 2.0.8
-      qs: 6.14.2
+      qs: 6.16.2
       range-parser: 1.2.1
       safe-buffer: 5.2.1
       send: 0.19.2(supports-color@10.0.0)
@@ -31544,12 +31604,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  express@5.2.1(supports-color@10.0.0):
+  express@5.3.0(supports-color@10.0.0):
     dependencies:
       accepts: 2.0.0
       body-parser: 2.4.0(supports-color@10.0.0)
-      content-disposition: 1.0.1
-      content-type: 1.0.5
+      content-disposition: 2.0.1
+      content-type: 2.1.0
       cookie: 0.7.2
       cookie-signature: 1.2.2
       debug: 4.4.3(supports-color@10.0.0)
@@ -31627,7 +31687,7 @@ snapshots:
       '@fastify/merge-json-schemas': 0.2.1
       ajv: 8.20.0
       ajv-formats: 3.0.1
-      fast-uri: 3.1.8
+      fast-uri: 3.1.9
       json-schema-ref-resolver: 3.0.0
       rfdc: 1.4.1
 
@@ -31636,7 +31696,7 @@ snapshots:
       '@fastify/merge-json-schemas': 0.2.1
       ajv: 8.20.0
       ajv-formats: 3.0.1
-      fast-uri: 4.2.1
+      fast-uri: 4.2.3
       json-schema-ref-resolver: 3.0.0
       rfdc: 1.4.1
 
@@ -31674,9 +31734,9 @@ snapshots:
 
   fast-text-encoding@1.0.3: {}
 
-  fast-uri@3.1.8: {}
+  fast-uri@3.1.9: {}
 
-  fast-uri@4.2.1: {}
+  fast-uri@4.2.3: {}
 
   fast-wrap-ansi@0.2.0:
     dependencies:
@@ -32897,7 +32957,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  ip-address@10.7.2: {}
+  ip-address@10.7.6: {}
 
   ipaddr.js@1.9.1: {}
 
@@ -33168,6 +33228,12 @@ snapshots:
     dependencies:
       html-escaper: 2.0.2
       istanbul-lib-report: 3.0.1
+
+  istextorbinary@2.1.0:
+    dependencies:
+      binaryextensions: 2.3.0
+      editions: 1.3.4
+      textextensions: 2.6.0
 
   istextorbinary@2.6.0:
     dependencies:
@@ -36447,17 +36513,17 @@ snapshots:
   postcss-attribute-case-insensitive@5.0.2(postcss@8.4.31):
     dependencies:
       postcss: 8.4.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   postcss-attribute-case-insensitive@5.0.2(postcss@8.5.31):
     dependencies:
       postcss: 8.5.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   postcss-calc@10.1.1(postcss@8.5.31):
     dependencies:
       postcss: 8.5.31
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.2.0
       postcss-value-parser: 4.2.0
 
   postcss-clamp@4.1.0(postcss@8.4.31):
@@ -36537,27 +36603,27 @@ snapshots:
   postcss-custom-selectors@6.0.3(postcss@8.4.31):
     dependencies:
       postcss: 8.4.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   postcss-custom-selectors@6.0.3(postcss@8.5.31):
     dependencies:
       postcss: 8.5.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   postcss-dir-pseudo-class@6.0.5(postcss@8.4.31):
     dependencies:
       postcss: 8.4.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   postcss-dir-pseudo-class@6.0.5(postcss@8.5.31):
     dependencies:
       postcss: 8.5.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   postcss-discard-comments@7.0.8(postcss@8.5.31):
     dependencies:
       postcss: 8.5.31
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.2.0
 
   postcss-discard-duplicates@7.0.4(postcss@8.5.31):
     dependencies:
@@ -36596,22 +36662,22 @@ snapshots:
   postcss-focus-visible@6.0.4(postcss@8.4.31):
     dependencies:
       postcss: 8.4.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   postcss-focus-visible@6.0.4(postcss@8.5.31):
     dependencies:
       postcss: 8.5.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   postcss-focus-within@5.0.4(postcss@8.4.31):
     dependencies:
       postcss: 8.4.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   postcss-focus-within@5.0.4(postcss@8.5.31):
     dependencies:
       postcss: 8.5.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   postcss-font-variant@5.0.0(postcss@8.4.31):
     dependencies:
@@ -36702,7 +36768,7 @@ snapshots:
       caniuse-api: 3.0.0
       cssnano-utils: 5.0.3(postcss@8.5.31)
       postcss: 8.5.31
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.2.0
 
   postcss-minify-font-values@7.0.3(postcss@8.5.31):
     dependencies:
@@ -36729,7 +36795,7 @@ snapshots:
       caniuse-api: 3.0.0
       cssesc: 3.0.0
       postcss: 8.5.31
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.2.0
 
   postcss-modules-extract-imports@3.0.0(postcss@8.4.31):
     dependencies:
@@ -36739,13 +36805,13 @@ snapshots:
     dependencies:
       icss-utils: 5.1.0(postcss@8.4.31)
       postcss: 8.4.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
       postcss-value-parser: 4.2.0
 
   postcss-modules-scope@3.0.0(postcss@8.4.31):
     dependencies:
       postcss: 8.4.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   postcss-modules-values@4.0.0(postcss@8.4.31):
     dependencies:
@@ -36754,15 +36820,15 @@ snapshots:
 
   postcss-nesting@10.2.0(postcss@8.4.31):
     dependencies:
-      '@csstools/selector-specificity': 2.2.0(postcss-selector-parser@6.1.4)
+      '@csstools/selector-specificity': 2.2.0(postcss-selector-parser@6.1.6)
       postcss: 8.4.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   postcss-nesting@10.2.0(postcss@8.5.31):
     dependencies:
-      '@csstools/selector-specificity': 2.2.0(postcss-selector-parser@6.1.4)
+      '@csstools/selector-specificity': 2.2.0(postcss-selector-parser@6.1.6)
       postcss: 8.5.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   postcss-normalize-charset@7.0.3(postcss@8.5.31):
     dependencies:
@@ -36960,12 +37026,12 @@ snapshots:
   postcss-pseudo-class-any-link@7.1.6(postcss@8.4.31):
     dependencies:
       postcss: 8.4.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   postcss-pseudo-class-any-link@7.1.6(postcss@8.5.31):
     dependencies:
       postcss: 8.5.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   postcss-reduce-initial@7.0.9(postcss@8.5.31):
     dependencies:
@@ -36989,21 +37055,19 @@ snapshots:
   postcss-selector-not@6.0.1(postcss@8.4.31):
     dependencies:
       postcss: 8.4.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
   postcss-selector-not@6.0.1(postcss@8.5.31):
     dependencies:
       postcss: 8.5.31
-      postcss-selector-parser: 6.1.4
+      postcss-selector-parser: 6.1.6
 
-  postcss-selector-parser@6.1.4:
+  postcss-selector-parser@6.1.6:
     dependencies:
-      cssesc: 3.0.0
       util-deprecate: 1.0.2
 
-  postcss-selector-parser@7.1.5:
+  postcss-selector-parser@7.2.0:
     dependencies:
-      cssesc: 3.0.0
       util-deprecate: 1.0.2
 
   postcss-svgo@7.1.3(postcss@8.5.31):
@@ -37015,7 +37079,7 @@ snapshots:
   postcss-unique-selectors@7.0.7(postcss@8.5.31):
     dependencies:
       postcss: 8.5.31
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.2.0
 
   postcss-url@10.1.3(postcss@8.5.31):
     dependencies:
@@ -37133,7 +37197,7 @@ snapshots:
     transitivePeerDependencies:
       - magicast
 
-  prismjs@1.29.0: {}
+  prismjs@1.30.0: {}
 
   private@0.1.8: {}
 
@@ -37221,10 +37285,6 @@ snapshots:
   punycode@2.3.1: {}
 
   pure-rand@6.1.0: {}
-
-  qs@6.14.2:
-    dependencies:
-      side-channel: 1.1.1
 
   qs@6.16.2:
     dependencies:
@@ -37535,8 +37595,6 @@ snapshots:
 
   regenerate@1.4.2: {}
 
-  regenerator-runtime@0.13.10: {}
-
   regenerator-runtime@0.13.9: {}
 
   regex-parser@2.2.11: {}
@@ -37647,7 +37705,7 @@ snapshots:
   remove-types@1.0.0(supports-color@10.0.0):
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.0.0)
-      '@babel/plugin-syntax-decorators': 7.25.9(@babel/core@7.29.7(supports-color@10.0.0))
+      '@babel/plugin-syntax-decorators': 7.29.7(@babel/core@7.29.7(supports-color@10.0.0))
       '@babel/plugin-transform-typescript': 7.29.7(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)
       prettier: 2.8.8
     transitivePeerDependencies:
@@ -38459,7 +38517,7 @@ snapshots:
 
   socks@2.8.7:
     dependencies:
-      ip-address: 10.7.2
+      ip-address: 10.7.6
       smart-buffer: 4.2.0
 
   solid-js@1.9.18:
@@ -38783,7 +38841,7 @@ snapshots:
     dependencies:
       browserslist: 4.29.0
       postcss: 8.5.31
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.2.0
 
   stylus-loader@7.0.0(stylus@0.59.0(supports-color@10.0.0))(webpack@5.76.1(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.15.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.4.31)(uglify-js@3.13.3)):
     dependencies:
@@ -40111,15 +40169,15 @@ snapshots:
     optionalDependencies:
       vite: 8.3.5(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
 
-  vitest@4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0):
+  vitest@4.1.12(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0):
     dependencies:
-      '@vitest/expect': 4.1.11
-      '@vitest/mocker': 4.1.11(vite@8.3.5(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))
-      '@vitest/pretty-format': 4.1.11
-      '@vitest/runner': 4.1.11
-      '@vitest/snapshot': 4.1.11
-      '@vitest/spy': 4.1.11
-      '@vitest/utils': 4.1.11
+      '@vitest/expect': 4.1.12
+      '@vitest/mocker': 4.1.12(vite@8.3.5(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))
+      '@vitest/pretty-format': 4.1.12
+      '@vitest/runner': 4.1.12
+      '@vitest/snapshot': 4.1.12
+      '@vitest/spy': 4.1.12
+      '@vitest/utils': 4.1.12
       es-module-lexer: 2.1.0
       expect-type: 1.4.0
       magic-string: 0.30.21
@@ -40136,7 +40194,7 @@ snapshots:
     optionalDependencies:
       '@opentelemetry/api': 1.10.0
       '@types/node': 20.19.43
-      '@vitest/coverage-v8': 4.1.11(vitest@4.1.11)
+      '@vitest/coverage-v8': 4.1.11(vitest@4.1.12)
       jsdom: 21.1.2(supports-color@10.0.0)
     transitivePeerDependencies:
       - '@vitejs/devtools'
@@ -40152,15 +40210,15 @@ snapshots:
       - tsx
       - yaml
 
-  vitest@4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@8.1.1))(less@4.2.0(supports-color@8.1.1))(sass@1.72.0)(stylus@0.59.0(supports-color@8.1.1))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0):
+  vitest@4.1.12(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@8.1.1))(less@4.2.0(supports-color@8.1.1))(sass@1.72.0)(stylus@0.59.0(supports-color@8.1.1))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0):
     dependencies:
-      '@vitest/expect': 4.1.11
-      '@vitest/mocker': 4.1.11(vite@8.3.5(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))
-      '@vitest/pretty-format': 4.1.11
-      '@vitest/runner': 4.1.11
-      '@vitest/snapshot': 4.1.11
-      '@vitest/spy': 4.1.11
-      '@vitest/utils': 4.1.11
+      '@vitest/expect': 4.1.12
+      '@vitest/mocker': 4.1.12(vite@8.3.5(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))
+      '@vitest/pretty-format': 4.1.12
+      '@vitest/runner': 4.1.12
+      '@vitest/snapshot': 4.1.12
+      '@vitest/spy': 4.1.12
+      '@vitest/utils': 4.1.12
       es-module-lexer: 2.1.0
       expect-type: 1.4.0
       magic-string: 0.30.21
@@ -40177,7 +40235,7 @@ snapshots:
     optionalDependencies:
       '@opentelemetry/api': 1.10.0
       '@types/node': 20.19.43
-      '@vitest/coverage-v8': 4.1.11(vitest@4.1.11)
+      '@vitest/coverage-v8': 4.1.11(vitest@4.1.12)
       jsdom: 21.1.2(supports-color@8.1.1)
     transitivePeerDependencies:
       - '@vitejs/devtools'
@@ -40363,7 +40421,7 @@ snapshots:
       compression: 1.8.2(supports-color@10.0.0)
       connect-history-api-fallback: 2.0.0
       default-gateway: 6.0.3
-      express: 4.22.1(supports-color@10.0.0)
+      express: 4.22.3(supports-color@10.0.0)
       graceful-fs: 4.2.11
       html-entities: 2.5.2
       http-proxy-middleware: 2.0.10(@types/express@4.17.21)(debug@4.4.3(supports-color@10.0.0))
