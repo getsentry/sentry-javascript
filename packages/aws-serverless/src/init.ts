@@ -1,3 +1,5 @@
+import { HTTP_REQUEST_METHOD, URL_PATH } from '@sentry/conventions/attributes';
+import { FUNCTION_AWS } from '@sentry/conventions/op';
 import type { Integration, Options } from '@sentry/core';
 import { applySdkMetadata, debug, envToBool, getSDKSource } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
@@ -5,6 +7,20 @@ import { getDefaultIntegrationsWithoutPerformance, initWithoutDefaultIntegration
 import { awsIntegration } from '@sentry/server-utils';
 import { DEBUG_BUILD } from './debug-build';
 import { awsLambdaIntegration } from './integration/awslambda';
+
+// Invocations `http.server` spans skip by default: CORS preflights, HEAD requests, and GET requests for static assets
+// (see `isStaticAssetRequest` in `@sentry/core`), most commonly the browser's `/favicon.ico` fetch.
+const LOW_VALUE_HTTP_INVOCATIONS: NonNullable<Options['ignoreSpans']> = [
+  { op: FUNCTION_AWS, attributes: { [HTTP_REQUEST_METHOD]: /^(OPTIONS|HEAD)$/ } },
+  {
+    op: FUNCTION_AWS,
+    attributes: {
+      [HTTP_REQUEST_METHOD]: /^GET$/,
+      [URL_PATH]:
+        /(\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|eot|webp|avif)|^\/(robots\.txt|sitemap\.xml|manifest\.json|browserconfig\.xml))$/,
+    },
+  },
+];
 
 /**
  * Checks if proxy environment variables would interfere with the layer extension.
@@ -83,6 +99,7 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
     defaultIntegrations: getDefaultIntegrations(options),
     useLayerExtension,
     ...options,
+    ignoreSpans: [...(options.ignoreSpans || []), ...LOW_VALUE_HTTP_INVOCATIONS],
   };
 
   if (opts.useLayerExtension) {
