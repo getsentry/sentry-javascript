@@ -1,0 +1,45 @@
+name: 'Automation: Request fallback reviewers'
+on:
+  pull_request_target:
+    types:
+      - opened
+      - ready_for_review
+
+jobs:
+  request_fallback_reviewers:
+    name: Request fallback reviewers
+    runs-on: ubuntu-24.04
+    if: |
+      github.event.pull_request.draft == false
+      && (
+        github.event.pull_request.user.type == 'Bot'
+        || (
+          github.event.pull_request.author_association != 'COLLABORATOR'
+          && github.event.pull_request.author_association != 'MEMBER'
+          && github.event.pull_request.author_association != 'OWNER'
+        )
+      )
+    steps:
+      # GITHUB_TOKEN can't request reviews from teams.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.GITFLOW_APP_ID }}
+          private-key: ${{ secrets.GITFLOW_APP_PRIVATE_KEY }}
+
+      - name: Request team-javascript-sdks if no reviewers were requested
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # Read fresh state instead of the event payload so CODEOWNERS requests made at open time are included.
+          count=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/requested_reviewers" \
+            --jq '(.users | length) + (.teams | length)')
+          if [ "$count" -gt 0 ]; then
+            echo "PR already has $count requested reviewer(s), skipping."
+            exit 0
+          fi
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/requested_reviewers" \
+            -f 'team_reviewers[]=team-javascript-sdks' > /dev/null
+          echo "Requested review from team-javascript-sdks."
