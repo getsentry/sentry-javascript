@@ -27,6 +27,25 @@ function record(args) {
   fs.appendFileSync(out, `${JSON.stringify(args)},\n`);
 }
 
+/**
+ * Write the `sources` of every source map in the upload directory to `sentry-uploaded-sources.json`.
+ * The plugin renames uploaded files to `<debug-id>-<index>.js`, so only the `sources` tell which
+ * chunks were uploaded. Opt-in through `SENTRY_TEST_RECORD_UPLOADED_SOURCES` so other snapshots
+ * stay unchanged.
+ */
+function recordUploadedSources(directory) {
+  const outDir = process.env['SENTRY_TEST_OUT_DIR'];
+  if (!outDir || !process.env['SENTRY_TEST_RECORD_UPLOADED_SOURCES'] || !fs.existsSync(directory)) {
+    return;
+  }
+  const sources = fs
+    .readdirSync(directory)
+    .filter(file => file.endsWith('.map'))
+    .map(file => JSON.parse(fs.readFileSync(path.join(directory, file), 'utf8')).sources)
+    .sort((a, b) => String(a).localeCompare(String(b)));
+  fs.writeFileSync(path.join(outDir, 'sentry-uploaded-sources.json'), `${JSON.stringify(sources, null, 2)}\n`);
+}
+
 /** Append boolean flags (only when true) and value flags (only when set) to an args array. */
 function pushFlags(args, flags, spec) {
   for (const [key, flag] of Object.entries(spec)) {
@@ -83,6 +102,7 @@ function createSentrySDK(options = {}) {
         pushFlags(args, params, { release: '--release', dist: '--dist' });
         if (params.directory) {
           args.push(params.directory);
+          recordUploadedSources(params.directory);
         }
         pushFlags(args, params, {
           ext: '--ext',

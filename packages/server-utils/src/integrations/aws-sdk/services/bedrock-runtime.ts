@@ -9,10 +9,13 @@ import {
   GEN_AI_REQUEST_TEMPERATURE,
   GEN_AI_REQUEST_TOP_P,
   GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
+import { getTokenUsageAttributes } from '../../../ai/core/utils';
 import { DEBUG_BUILD } from '../../../debug-build';
 import {
   GEN_AI_OPERATION_NAME_VALUE_CHAT,
@@ -28,6 +31,8 @@ interface TokenUsage {
   inputTokens: number | undefined;
   outputTokens: number | undefined;
   totalTokens: number | undefined;
+  cacheReadInputTokens?: number;
+  cacheWriteInputTokens?: number;
 }
 
 interface ConverseStreamOutput {
@@ -254,7 +259,17 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     const { stopReason, usage } = response.data;
 
     setStopReason(span, stopReason);
-    setUsage(span, usage);
+    span.setAttributes(
+      getTokenUsageAttributes(
+        // With prompt caching, `inputTokens` leaves out cache reads and writes, which the conventions count as input.
+        typeof usage?.inputTokens === 'number'
+          ? usage.inputTokens + (usage.cacheReadInputTokens ?? 0) + (usage.cacheWriteInputTokens ?? 0)
+          : undefined,
+        usage?.outputTokens,
+        usage?.cacheWriteInputTokens,
+        usage?.cacheReadInputTokens,
+      ),
+    );
   }
 
   private _responseHookConverseStream(response: NormalizedResponse, span: Span): void {
@@ -281,7 +296,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
           span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, responseBody.results[0].tokenCount);
         }
         if (responseBody.results?.[0]?.completionReason !== undefined) {
-          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.results[0].completionReason]);
+          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([responseBody.results[0].completionReason]));
         }
       } else if (currentModelId.includes('amazon.nova')) {
         if (responseBody.usage !== undefined) {
@@ -293,17 +308,23 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
           }
         }
         if (responseBody.stopReason !== undefined) {
-          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.stopReason]);
+          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([responseBody.stopReason]));
         }
       } else if (currentModelId.includes('anthropic.claude')) {
-        if (responseBody.usage?.input_tokens !== undefined) {
-          span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, responseBody.usage.input_tokens);
-        }
-        if (responseBody.usage?.output_tokens !== undefined) {
-          span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, responseBody.usage.output_tokens);
-        }
+        const usage = responseBody.usage;
+        span.setAttributes(
+          getTokenUsageAttributes(
+            // Anthropic's `input_tokens` leaves out cache reads and writes, which the conventions count as input.
+            typeof usage?.input_tokens === 'number'
+              ? usage.input_tokens + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0)
+              : undefined,
+            usage?.output_tokens,
+            usage?.cache_creation_input_tokens,
+            usage?.cache_read_input_tokens,
+          ),
+        );
         if (responseBody.stop_reason !== undefined) {
-          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.stop_reason]);
+          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([responseBody.stop_reason]));
         }
       } else if (currentModelId.includes('meta.llama')) {
         if (responseBody.prompt_token_count !== undefined) {
@@ -313,28 +334,31 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
           span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, responseBody.generation_token_count);
         }
         if (responseBody.stop_reason !== undefined) {
-          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.stop_reason]);
+          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([responseBody.stop_reason]));
         }
       } else if (currentModelId.includes('cohere.command-r')) {
         if (responseBody.text !== undefined) {
           span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(responseBody.text.length / 6));
         }
         if (responseBody.finish_reason !== undefined) {
-          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.finish_reason]);
+          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([responseBody.finish_reason]));
         }
       } else if (currentModelId.includes('cohere.command')) {
         if (responseBody.generations?.[0]?.text !== undefined) {
           span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(responseBody.generations[0].text.length / 6));
         }
         if (responseBody.generations?.[0]?.finish_reason !== undefined) {
-          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.generations[0].finish_reason]);
+          span.setAttribute(
+            GEN_AI_RESPONSE_FINISH_REASONS,
+            JSON.stringify([responseBody.generations[0].finish_reason]),
+          );
         }
       } else if (currentModelId.includes('mistral')) {
         if (responseBody.outputs?.[0]?.text !== undefined) {
           span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(responseBody.outputs[0].text.length / 6));
         }
         if (responseBody.outputs?.[0]?.stop_reason !== undefined) {
-          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.outputs[0].stop_reason]);
+          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([responseBody.outputs[0].stop_reason]));
         }
       }
     }
@@ -399,7 +423,17 @@ async function* wrapConverseStreamResponse(
       usage = item.metadata?.usage;
       yield item;
     }
-    setUsage(span, usage);
+    span.setAttributes(
+      getTokenUsageAttributes(
+        // With prompt caching, `inputTokens` leaves out cache reads and writes, which the conventions count as input.
+        typeof usage?.inputTokens === 'number'
+          ? usage.inputTokens + (usage.cacheReadInputTokens ?? 0) + (usage.cacheWriteInputTokens ?? 0)
+          : undefined,
+        usage?.outputTokens,
+        usage?.cacheWriteInputTokens,
+        usage?.cacheReadInputTokens,
+      ),
+    );
   } catch (error) {
     setStreamErrorStatus(span, abortSignal);
     throw error;
@@ -414,19 +448,25 @@ function setStreamErrorStatus(span: Span, abortSignal: AbortSignal | undefined):
 
 function setStopReason(span: Span, stopReason: string | undefined): void {
   if (stopReason !== undefined) {
-    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [stopReason]);
+    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([stopReason]));
   }
 }
 
-function setUsage(span: Span, usage: TokenUsage | undefined): void {
-  if (usage) {
-    const { inputTokens, outputTokens } = usage;
-    if (inputTokens !== undefined) {
-      span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, inputTokens);
-    }
-    if (outputTokens !== undefined) {
-      span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, outputTokens);
-    }
+/**
+ * `getTokenUsageAttributes` is not used here: `message_start` carries only a placeholder output token count,
+ * so a total computed from it would be wrong.
+ */
+function setClaudeStreamInputTokens(span: Span, usage: ParsedChunk): void {
+  const cacheReadTokens = usage?.cache_read_input_tokens;
+  const cacheWriteTokens = usage?.cache_creation_input_tokens;
+  if (typeof usage?.input_tokens === 'number') {
+    span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, usage.input_tokens + (cacheReadTokens ?? 0) + (cacheWriteTokens ?? 0));
+  }
+  if (typeof cacheReadTokens === 'number') {
+    span.setAttribute(GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheReadTokens);
+  }
+  if (typeof cacheWriteTokens === 'number') {
+    span.setAttribute(GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheWriteTokens);
   }
 }
 
@@ -466,19 +506,18 @@ function recordNovaAttributes(parsedChunk: ParsedChunk, span: Span): void {
     }
   }
   if (parsedChunk.messageStop?.stopReason !== undefined) {
-    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.messageStop.stopReason]);
+    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([parsedChunk.messageStop.stopReason]));
   }
 }
 
 function recordClaudeAttributes(parsedChunk: ParsedChunk, span: Span): void {
-  if (parsedChunk.message?.usage?.input_tokens !== undefined) {
-    span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, parsedChunk.message.usage.input_tokens);
-  }
-  if (parsedChunk.message?.usage?.output_tokens !== undefined) {
-    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, parsedChunk.message.usage.output_tokens);
+  setClaudeStreamInputTokens(span, parsedChunk.message?.usage);
+  // `message_start` carries only a placeholder output count. The final count arrives in `message_delta`.
+  if (parsedChunk.usage?.output_tokens !== undefined) {
+    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, parsedChunk.usage.output_tokens);
   }
   if (parsedChunk.delta?.stop_reason !== undefined) {
-    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.delta.stop_reason]);
+    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([parsedChunk.delta.stop_reason]));
   }
 }
 
@@ -490,7 +529,7 @@ function recordTitanAttributes(parsedChunk: ParsedChunk, span: Span): void {
     span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, parsedChunk.totalOutputTextTokenCount);
   }
   if (parsedChunk.completionReason !== undefined) {
-    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.completionReason]);
+    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([parsedChunk.completionReason]));
   }
 }
 
@@ -502,33 +541,41 @@ function recordLlamaAttributes(parsedChunk: ParsedChunk, span: Span): void {
     span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, parsedChunk.generation_token_count);
   }
   if (parsedChunk.stop_reason !== undefined) {
-    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.stop_reason]);
+    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([parsedChunk.stop_reason]));
+  }
+}
+
+/**
+ * Bedrock adds the token counts to the last chunk of a stream. For models that send no counts of their own,
+ * this is the only real count.
+ */
+function recordInvocationMetrics(parsedChunk: ParsedChunk, span: Span): void {
+  const metrics = parsedChunk['amazon-bedrock-invocationMetrics'];
+  if (typeof metrics?.inputTokenCount === 'number') {
+    span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, metrics.inputTokenCount);
+  }
+  if (typeof metrics?.outputTokenCount === 'number') {
+    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, metrics.outputTokenCount);
   }
 }
 
 function recordMistralAttributes(parsedChunk: ParsedChunk, span: Span): void {
-  if (parsedChunk.outputs?.[0]?.text !== undefined) {
-    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(parsedChunk.outputs[0].text.length / 6));
-  }
+  recordInvocationMetrics(parsedChunk, span);
   if (parsedChunk.outputs?.[0]?.stop_reason !== undefined) {
-    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.outputs[0].stop_reason]);
+    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([parsedChunk.outputs[0].stop_reason]));
   }
 }
 
 function recordCohereAttributes(parsedChunk: ParsedChunk, span: Span): void {
-  if (parsedChunk.generations?.[0]?.text !== undefined) {
-    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(parsedChunk.generations[0].text.length / 6));
-  }
+  recordInvocationMetrics(parsedChunk, span);
   if (parsedChunk.generations?.[0]?.finish_reason !== undefined) {
-    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.generations[0].finish_reason]);
+    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([parsedChunk.generations[0].finish_reason]));
   }
 }
 
 function recordCohereRAttributes(parsedChunk: ParsedChunk, span: Span): void {
-  if (parsedChunk.text !== undefined) {
-    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(parsedChunk.text.length / 6));
-  }
+  recordInvocationMetrics(parsedChunk, span);
   if (parsedChunk.finish_reason !== undefined) {
-    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.finish_reason]);
+    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([parsedChunk.finish_reason]));
   }
 }

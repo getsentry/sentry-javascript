@@ -301,8 +301,8 @@ importers:
         specifier: 11.11.0
         version: link:../../packages/browser-utils
       '@sentry/conventions':
-        specifier: 0.30.0
-        version: 0.30.0
+        specifier: 0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../../packages/core
@@ -394,8 +394,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
       sentry:
-        specifier: ^0.45.0
-        version: 0.45.0
+        specifier: ^0.49.0
+        version: 0.49.0
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
@@ -520,8 +520,8 @@ importers:
         specifier: 11.11.0
         version: link:../../packages/cloudflare
       '@sentry/conventions':
-        specifier: 0.30.0
-        version: 0.30.0
+        specifier: 0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../../packages/core
@@ -559,8 +559,8 @@ importers:
         specifier: 11.11.0
         version: link:../node-integration-tests
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../../packages/core
@@ -700,8 +700,8 @@ importers:
         specifier: 11.11.0
         version: link:../../packages/aws-serverless
       '@sentry/conventions':
-        specifier: 0.30.0
-        version: 0.30.0
+        specifier: 0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../../packages/core
@@ -720,6 +720,9 @@ importers:
       '@sentry/server-utils':
         specifier: 11.11.0
         version: link:../../packages/server-utils
+      '@smithy/core':
+        specifier: 3.38.1
+        version: 3.38.1
       '@smithy/node-http-handler':
         specifier: 4.12.1
         version: 4.12.1
@@ -739,8 +742,8 @@ importers:
         specifier: ^0.10.9
         version: 0.10.9
       body-parser:
-        specifier: ^2.3.0
-        version: 2.3.0(supports-color@10.0.0)
+        specifier: ^2.4.0
+        version: 2.4.0(supports-color@10.0.0)
       bullmq:
         specifier: ^5.79.1
         version: 5.81.5(redis@5.12.1(@opentelemetry/api@1.9.0))(supports-color@10.0.0)
@@ -958,8 +961,8 @@ importers:
         specifier: 11.11.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1019,8 +1022,8 @@ importers:
         specifier: 11.11.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1047,8 +1050,8 @@ importers:
   packages/aws-serverless:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1081,8 +1084,8 @@ importers:
         specifier: 11.11.0
         version: link:../browser-utils
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1109,8 +1112,8 @@ importers:
   packages/browser-utils:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1128,8 +1131,8 @@ importers:
         specifier: 11.11.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1165,8 +1168,8 @@ importers:
         specifier: ^0.152.0
         version: 0.152.0
       sentry:
-        specifier: ^0.45.0
-        version: 0.45.0
+        specifier: ^0.49.0
+        version: 0.49.0
       supports-color:
         specifier: ^8.1.1
         version: 8.1.1
@@ -1198,6 +1201,9 @@ importers:
       rolldown:
         specifier: ^1.0.0
         version: 1.2.16
+      vite:
+        specifier: ^8.3.1
+        version: 8.3.5(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@8.1.1))(sass@1.72.0)(stylus@0.59.0(supports-color@8.1.1))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
       vitest:
         specifier: ^4.1.11
         version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@8.1.1))(less@4.2.0(supports-color@8.1.1))(sass@1.72.0)(stylus@0.59.0(supports-color@8.1.1))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
@@ -1211,8 +1217,8 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1248,8 +1254,8 @@ importers:
   packages/core:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
     devDependencies:
       '@sentry-internal/rollup-utils':
         specifier: 11.11.0
@@ -1264,8 +1270,8 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1286,8 +1292,8 @@ importers:
         specifier: 11.11.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1311,8 +1317,8 @@ importers:
         specifier: 11.11.0
         version: link:../bun
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1339,8 +1345,8 @@ importers:
         specifier: 11.11.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1488,8 +1494,8 @@ importers:
   packages/google-cloud-serverless:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1528,8 +1534,8 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1581,8 +1587,8 @@ importers:
   packages/nestjs:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1627,8 +1633,8 @@ importers:
         specifier: 11.11.0
         version: link:../cloudflare
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1679,8 +1685,8 @@ importers:
         specifier: 11.11.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1719,8 +1725,8 @@ importers:
         specifier: 11.11.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1775,8 +1781,8 @@ importers:
         specifier: 11.11.0
         version: link:../cloudflare
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1836,8 +1842,8 @@ importers:
   packages/opentelemetry:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1852,8 +1858,8 @@ importers:
   packages/profiling-node:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1877,8 +1883,8 @@ importers:
         specifier: 11.11.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1953,8 +1959,8 @@ importers:
         specifier: 11.11.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -1971,8 +1977,8 @@ importers:
         specifier: 11.11.0
         version: link:../server-utils
       sentry:
-        specifier: ^0.44.0
-        version: 0.44.0
+        specifier: ^0.49.0
+        version: 0.49.0
     devDependencies:
       '@react-router/dev':
         specifier: ^7.18.4
@@ -2014,8 +2020,8 @@ importers:
         specifier: 11.11.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -2032,8 +2038,8 @@ importers:
         specifier: 11.11.0
         version: link:../server-utils
       sentry:
-        specifier: ^0.44.0
-        version: 0.44.0
+        specifier: ^0.49.0
+        version: 0.49.0
       yargs:
         specifier: ^18.2.0
         version: 18.2.0
@@ -2110,8 +2116,8 @@ importers:
         specifier: 11.11.0
         version: link:../../dev-packages/rollup-utils
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/rrweb':
         specifier: 2.45.0
         version: 2.45.0
@@ -2178,8 +2184,8 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -2212,8 +2218,8 @@ importers:
         specifier: 11.11.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -2255,8 +2261,8 @@ importers:
         specifier: 11.11.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: 0.30.0
-        version: 0.30.0
+        specifier: 0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -2328,8 +2334,8 @@ importers:
         specifier: 11.11.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -2365,8 +2371,8 @@ importers:
         specifier: 11.11.0
         version: link:../cloudflare
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -2429,8 +2435,8 @@ importers:
         specifier: 11.11.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -2497,8 +2503,8 @@ importers:
         specifier: 11.11.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.31.0
+        version: 0.31.0
       '@sentry/core':
         specifier: 11.11.0
         version: link:../core
@@ -8136,8 +8142,8 @@ packages:
     resolution: {integrity: sha512-MLxTpTU3E8QACQ/5c0sENMR2gRiMXpGaKeD5IHY+3wyU2fUSJVB0QPU/l1WhoyZbX8N9ospBgf5UEG7taVF9rg==}
     engines: {node: ^14.15.0 || >=16.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
 
-  '@sentry/conventions@0.30.0':
-    resolution: {integrity: sha512-WTumd5A2iFmHTRubi6mc6gLHU8LswPQqoNaZu6T1cxiTUmy3WdEw0i8FAnVbcgxTlsumX5oh63/b4B9lY5wAPQ==}
+  '@sentry/conventions@0.31.0':
+    resolution: {integrity: sha512-TOXB7z08JPVop4eiYLhZhgWitUYUMX6T1SjLCthaa8YLnNyA3+gbT1ccUinf2EWvzFwBuYPShPB7oYSkKeCFIQ==}
     engines: {node: '>=14'}
 
   '@sentry/node-cpu-profiler@2.4.4':
@@ -10160,12 +10166,12 @@ packages:
   blake3-wasm@2.1.5:
     resolution: {integrity: sha512-F1+K8EbfOZE49dtoPtmxUQrpXaBIl3ICvasLh+nJta0xkz+9kF/7uet9fLnwKqhDrmj6g+6K3Tw9yQPUg2ka5g==}
 
-  body-parser@1.20.4:
-    resolution: {integrity: sha512-ZTgYYLMOXY9qKU/57FAo8F+HA2dGX7bqGc71txDRC1rS4frdFI5R7NhluHxH6M0YItAP0sHB4uqAOcYKxO6uGA==}
+  body-parser@1.20.9:
+    resolution: {integrity: sha512-FISIQxV5u91Y9gvuFq3q/tA/qTqLJn3AhRcEvyozyhJTh5OBFFtv827AdHU7Rbyct4r+Ba1/99oFa1Y3yuFsdw==}
     engines: {node: '>= 0.8', npm: 1.2.8000 || >= 1.4.16}
 
-  body-parser@2.3.0:
-    resolution: {integrity: sha512-2cGmJupaNgg+QUwVLAucDuWuoMZ6EX9iHDRswZ5lsNYEmwPaRknMPCLZz07yTzVq/83p4o/wzbDZbBrTvGGTIw==}
+  body-parser@2.4.0:
+    resolution: {integrity: sha512-Ifk1KcLrxaGt1occQagQNFNNOqRt1LFuehEnHHzB8Z6cRgIxRU1TBaiIsUiCdA+gy5PL7Y1IX31DNKkRmxtXjQ==}
     engines: {node: '>=18'}
 
   bonjour-service@1.2.1:
@@ -10761,8 +10767,8 @@ packages:
     resolution: {integrity: sha512-nTjqfcBFEipKdXCv4YDQWCfmcLZKm81ldF0pAopTvyrFGVbcR6P/VAAd5G7N+0tTr8QqiU0tFadD6FK4NtJwOA==}
     engines: {node: '>= 0.6'}
 
-  content-type@2.0.0:
-    resolution: {integrity: sha512-j/O/d7GcZCyNl7/hwZAb606rzqkyvaDctLmckbxLzHvFBzTJHuGEdodATcP3yIRoDrLHkIATJuvzbFlp/ki2cQ==}
+  content-type@2.1.0:
+    resolution: {integrity: sha512-mj7UPXE0jaqaOsukNZRUEfEi2AcL7C/vwmwcHV0O97eO1E1pxBZuyjlZrx5seTaNBg1U6+o35wpa35Qfcc+7ag==}
     engines: {node: '>=18'}
 
   convert-source-map@1.7.0:
@@ -13056,6 +13062,7 @@ packages:
   image-size@0.5.5:
     resolution: {integrity: sha512-6TDAlDPZxUFCv+fuOkIoXT/V/f3Qbq8e37p+YOiYrUv3v9cc3/6x78VdfPgFVaB9dZYeLUfKgHRebpkm/oP2VQ==}
     engines: {node: '>=0.10.0'}
+    deprecated: Please migrate to image-size@2.x
     hasBin: true
 
   immutable@4.3.9:
@@ -14762,8 +14769,8 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  nanoid@5.1.9:
-    resolution: {integrity: sha512-ZUvP7KeBLe3OZ1ypw6dI/TzYJuvHP77IM4Ry73waSQTLn8/g8rpdjfyVAh7t1/+FjBtG4lCP42MEbDxOsRpBMw==}
+  nanoid@5.1.16:
+    resolution: {integrity: sha512-kVrnsrJqMR8+oLJnGEmSWw9BivK5mt7H3FZatVRjrc5wGqFYuBxX1yG7+A7Gi5AefkX6t/oCkizcQgpu0cY1dQ==}
     engines: {node: ^18 || >=20}
     hasBin: true
 
@@ -15626,8 +15633,8 @@ packages:
     resolution: {integrity: sha512-1pTbQqH1wIwMi/eleQ5leFTTCkzFsPcgXNjwOA8YGGW/W4/kHT3dssE7Z6NH+zuqNLOzOB0uaD61yl7cAcVhgg==}
     engines: {node: 18 || 20 || >=22}
 
-  path-to-regexp@0.1.12:
-    resolution: {integrity: sha512-RA1GjUVMnvYFxuqovrEqZoxxW5NUZqbwKtYz/Tt7nXerk0LbLblQmrsgdeOxV5SFHf0UDggjS/bSeOZwt1pmEQ==}
+  path-to-regexp@0.1.13:
+    resolution: {integrity: sha512-A/AGNMFN3c8bOlvV9RreMdrv7jsmF9XIfDeCd87+I8RNg6s78BhJxMu69NEMHBSJFxKidViTEdruRwEk/WIKqA==}
 
   path-to-regexp@1.9.0:
     resolution: {integrity: sha512-xIp7/apCFJuUHdDLWe8O1HIkb0kQrOMb/0u6FXQjemHn/ii5LrIzU6bdECnsiTF/GjZkMEKg1xdiZwNqDYlZ6g==}
@@ -16411,8 +16418,12 @@ packages:
     resolution: {integrity: sha512-V/yCWTTF7VJ9hIh18Ugr2zhJMP01MY7c5kh4J870L7imm6/DIzBsNLTXzMwUA3yZ5b/KBqLx8Kp3uRvd7xSe3Q==}
     engines: {node: '>=0.6'}
 
-  qs@6.15.3:
-    resolution: {integrity: sha512-O9gl3zCl5h5blw1KGUzQKhA5oUXSl8rwUIM5o0S3nCXMliSvy5Dzx7/DJcI+SwgICv+IneSZwhBh1oSyEHA71A==}
+  qs@6.16.2:
+    resolution: {integrity: sha512-VYdnB5S7/0IeXzBacUtwNAaM6d7Y/PgYnNC7bJCI6meqA/OgnsQbZMtVW8Dt2D1PHgbHGtYmhSoEIgvt7xZ2ZA==}
+    engines: {node: '>=0.6'}
+
+  qs@6.17.1:
+    resolution: {integrity: sha512-jd3COkaKVgGUW+ZHyEHCG9bH7RoaaiWuMgzsIBjUMVjLAaWGWpoUAVwljVvBHxRu/2qEHnadLGZrkutYUBPQJA==}
     engines: {node: '>=0.6'}
 
   quansync@0.2.11:
@@ -17125,13 +17136,8 @@ packages:
     resolution: {integrity: sha512-1gnZf7DFcoIcajTjTwjwuDjzuz4PPcY2StKPlsGAQ1+YH20IRVrBaXSWmdjowTJ6u8Rc01PoYOGHXfP1mYcZNQ==}
     engines: {node: '>= 18'}
 
-  sentry@0.44.0:
-    resolution: {integrity: sha512-z9hagaB24WTZLKOuIdoi+XIJb2Db1k/TxPSmASvBD86H5/tqURxguLWecnraqWtDuf7ByEkUkMP7JP/mq8v89w==}
-    engines: {node: '>=20.0'}
-    hasBin: true
-
-  sentry@0.45.0:
-    resolution: {integrity: sha512-kgmEbLlC22lL7uneeUm9Sjz65rp5cvwYOMTxXbZCmBum4sbVre/lLT3zTV3kwXHJ9/BM8ZS0/GhZe9Cl1t6WyA==}
+  sentry@0.49.0:
+    resolution: {integrity: sha512-9tjS0jTx5FQzhwAGhpcnwvqE0MlQiwJtunsIUNqGkw6E9CBOMbijlamIDUqvZTDtJAveVwa9L5ziP44bOJUzcQ==}
     engines: {node: '>=20.0'}
     hasBin: true
 
@@ -19953,7 +19959,7 @@ snapshots:
       '@apollo/utils.withrequired': 3.0.0
       '@graphql-tools/schema': 10.1.3(graphql@16.12.0)
       async-retry: 1.3.3
-      body-parser: 2.3.0(supports-color@10.0.0)
+      body-parser: 2.4.0(supports-color@10.0.0)
       content-type: 1.0.5
       cors: 2.8.6
       finalhandler: 2.1.1(supports-color@10.0.0)
@@ -26926,7 +26932,7 @@ snapshots:
     transitivePeerDependencies:
       - chokidar
 
-  '@sentry/conventions@0.30.0': {}
+  '@sentry/conventions@0.31.0': {}
 
   '@sentry/node-cpu-profiler@2.4.4':
     dependencies:
@@ -27006,7 +27012,7 @@ snapshots:
   '@size-limit/esbuild@12.1.0(size-limit@12.1.0(jiti@2.7.0))':
     dependencies:
       esbuild: 0.28.1
-      nanoid: 5.1.9
+      nanoid: 5.1.16
       size-limit: 12.1.0(jiti@2.7.0)
 
   '@size-limit/file@12.1.0(size-limit@12.1.0(jiti@2.7.0))':
@@ -27015,7 +27021,7 @@ snapshots:
 
   '@size-limit/webpack@12.1.0(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(sharp@0.35.5(@types/node@20.19.43))(size-limit@12.1.0(jiti@2.7.0))(svgo@4.1.0)(uglify-js@3.13.3)':
     dependencies:
-      nanoid: 5.1.9
+      nanoid: 5.1.16
       size-limit: 12.1.0(jiti@2.7.0)
       webpack: 5.112.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(sharp@0.35.5(@types/node@20.19.43))(svgo@4.1.0)(uglify-js@3.13.3)
     transitivePeerDependencies:
@@ -29644,7 +29650,7 @@ snapshots:
 
   blake3-wasm@2.1.5: {}
 
-  body-parser@1.20.4(supports-color@10.0.0):
+  body-parser@1.20.9(supports-color@10.0.0):
     dependencies:
       bytes: 3.1.2
       content-type: 1.0.5
@@ -29654,22 +29660,22 @@ snapshots:
       http-errors: 2.0.1
       iconv-lite: 0.4.24
       on-finished: 2.4.1
-      qs: 6.14.2
+      qs: 6.16.2
       raw-body: 2.5.3
       type-is: 1.6.18
       unpipe: 1.0.0
     transitivePeerDependencies:
       - supports-color
 
-  body-parser@2.3.0(supports-color@10.0.0):
+  body-parser@2.4.0(supports-color@10.0.0):
     dependencies:
       bytes: 3.1.2
-      content-type: 2.0.0
+      content-type: 2.1.0
       debug: 4.4.3(supports-color@10.0.0)
       http-errors: 2.0.1
       iconv-lite: 0.7.3
       on-finished: 2.4.1
-      qs: 6.15.3
+      qs: 6.17.1
       raw-body: 3.0.2
       type-is: 2.1.0
     transitivePeerDependencies:
@@ -30414,7 +30420,7 @@ snapshots:
 
   content-type@1.0.5: {}
 
-  content-type@2.0.0: {}
+  content-type@2.1.0: {}
 
   convert-source-map@1.7.0:
     dependencies:
@@ -31984,7 +31990,7 @@ snapshots:
     dependencies:
       accepts: 1.3.8
       array-flatten: 1.1.1
-      body-parser: 1.20.4(supports-color@10.0.0)
+      body-parser: 1.20.9(supports-color@10.0.0)
       content-disposition: 0.5.4
       content-type: 1.0.5
       cookie: 0.7.2
@@ -32001,7 +32007,7 @@ snapshots:
       methods: 1.1.2
       on-finished: 2.4.1
       parseurl: 1.3.3
-      path-to-regexp: 0.1.12
+      path-to-regexp: 0.1.13
       proxy-addr: 2.0.8
       qs: 6.14.2
       range-parser: 1.2.1
@@ -32019,7 +32025,7 @@ snapshots:
   express@5.2.1(supports-color@10.0.0):
     dependencies:
       accepts: 2.0.0
-      body-parser: 2.3.0(supports-color@10.0.0)
+      body-parser: 2.4.0(supports-color@10.0.0)
       content-disposition: 1.0.1
       content-type: 1.0.5
       cookie: 0.7.2
@@ -32038,7 +32044,7 @@ snapshots:
       once: 1.4.0
       parseurl: 1.3.3
       proxy-addr: 2.0.8
-      qs: 6.15.3
+      qs: 6.17.1
       range-parser: 1.2.1
       router: 2.2.0(supports-color@10.0.0)
       send: 1.2.1(supports-color@10.0.0)
@@ -35280,7 +35286,7 @@ snapshots:
 
   nanoid@3.3.20: {}
 
-  nanoid@5.1.9: {}
+  nanoid@5.1.16: {}
 
   nanospinner@1.2.2:
     dependencies:
@@ -36871,7 +36877,7 @@ snapshots:
       lru-cache: 11.4.0
       minipass: 7.1.3
 
-  path-to-regexp@0.1.12: {}
+  path-to-regexp@0.1.13: {}
 
   path-to-regexp@1.9.0:
     dependencies:
@@ -37835,7 +37841,12 @@ snapshots:
     dependencies:
       side-channel: 1.1.1
 
-  qs@6.15.3:
+  qs@6.16.2:
+    dependencies:
+      es-define-property: 1.0.1
+      side-channel: 1.1.1
+
+  qs@6.17.1:
     dependencies:
       es-define-property: 1.0.1
       side-channel: 1.1.1
@@ -38753,9 +38764,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  sentry@0.44.0: {}
-
-  sentry@0.45.0: {}
+  sentry@0.49.0: {}
 
   serialize-javascript@6.0.2:
     dependencies:
@@ -39891,7 +39900,7 @@ snapshots:
 
   type-is@2.1.0:
     dependencies:
-      content-type: 2.0.0
+      content-type: 2.1.0
       media-typer: 1.1.0
       mime-types: 3.0.2
 

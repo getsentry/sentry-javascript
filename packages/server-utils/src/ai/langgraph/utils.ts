@@ -219,7 +219,7 @@ export function extractModelMetadata(span: Span, message: LangChainMessage): voi
     }
 
     if (metadata.finish_reason && typeof metadata.finish_reason === 'string') {
-      span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [metadata.finish_reason]);
+      span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([metadata.finish_reason]));
     }
   }
 }

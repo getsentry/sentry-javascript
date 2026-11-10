@@ -36,7 +36,7 @@ test('reports a hit on a genuine back/forward-cache restore', async ({ page }) =
 
   // Renderer-initiated history navigation restores the page from bfcache.
   // (Playwright's CDP `goBack` bypasses bfcache, so we trigger it from within the page.)
-  await page.evaluate(() => history.back());
+  await page.goBack({ waitUntil: 'commit' });
 
   // Fail fast with a clear signal if the environment did not actually restore from bfcache.
   await page.waitForFunction(() => (window as unknown as { __bfcacheRestored?: boolean }).__bfcacheRestored === true, {
@@ -71,7 +71,7 @@ test('reports a miss with notRestoredReasons when an unload listener blocks bfca
   await page.waitForTimeout(500);
 
   // The unload listener makes the page ineligible, so this back navigation is a fresh reload (a miss).
-  await page.evaluate(() => history.back());
+  await page.goBack({ waitUntil: 'commit' });
   await page.waitForFunction(
     () =>
       (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type ===
@@ -121,7 +121,7 @@ test('reports a miss for an open WebSocket on Chrome < 149 (a hit from 149 on)',
   await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
   await page.waitForTimeout(500);
 
-  await page.evaluate(() => history.back());
+  await page.goBack({ waitUntil: 'commit' });
 
   const outcome = await outcomePromise;
   expect(outcome.value).toBe(1);
@@ -152,7 +152,7 @@ test('reports a miss with an idbversionchangeevent reason when a connection bloc
   await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
   await page.waitForTimeout(500);
 
-  await page.evaluate(() => history.back());
+  await page.goBack({ waitUntil: 'commit' });
 
   const miss = await missPromise;
   expect(miss.value).toBe(1);
@@ -180,7 +180,7 @@ test('reports a miss with a response-cache-control-no-store reason when a CCNS p
   await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
   await page.waitForTimeout(500);
 
-  await page.evaluate(() => history.back());
+  await page.goBack({ waitUntil: 'commit' });
 
   const miss = await missPromise;
   expect(miss.value).toBe(1);
@@ -201,7 +201,7 @@ test('restores a page whose embedded iframe is bfcache-eligible', async ({ page 
   await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
   await page.waitForTimeout(500);
 
-  await page.evaluate(() => history.back());
+  await page.goBack({ waitUntil: 'commit' });
   await page.waitForFunction(() => (window as unknown as { __bfcacheRestored?: boolean }).__bfcacheRestored === true, {
     timeout: 5000,
   });
@@ -239,7 +239,7 @@ test('reports a child-frame reason when an ineligible iframe blocks the top page
   await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
   await page.waitForTimeout(500);
 
-  await page.evaluate(() => history.back());
+  await page.goBack({ waitUntil: 'commit' });
 
   const miss = await missPromise;
   expect(miss.value).toBe(1);
@@ -268,7 +268,7 @@ test('a hit carries the parameterized route that was on the scope before the fre
   await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
   await page.waitForTimeout(500);
 
-  await page.evaluate(() => history.back());
+  await page.goBack({ waitUntil: 'commit' });
   await page.waitForFunction(() => (window as unknown as { __bfcacheRestored?: boolean }).__bfcacheRestored === true, {
     timeout: 5000,
   });
@@ -295,7 +295,7 @@ test('a hit carries the route resolved by a registered route provider', async ({
   await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
   await page.waitForTimeout(500);
 
-  await page.evaluate(() => history.back());
+  await page.goBack({ waitUntil: 'commit' });
   await page.waitForFunction(() => (window as unknown as { __bfcacheRestored?: boolean }).__bfcacheRestored === true, {
     timeout: 5000,
   });
@@ -316,7 +316,7 @@ test('a hit falls back to the raw pathname when no route is on the scope', async
   await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
   await page.waitForTimeout(500);
 
-  await page.evaluate(() => history.back());
+  await page.goBack({ waitUntil: 'commit' });
   await page.waitForFunction(() => (window as unknown as { __bfcacheRestored?: boolean }).__bfcacheRestored === true, {
     timeout: 5000,
   });
@@ -343,7 +343,7 @@ test('a miss reload does not carry a pre-freeze route', async ({ page }) => {
   await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
   await page.waitForTimeout(500);
 
-  await page.evaluate(() => history.back());
+  await page.goBack({ waitUntil: 'commit' });
   await page.waitForFunction(
     () =>
       (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type ===
@@ -374,7 +374,7 @@ test.describe('the navigation span for a restore', () => {
     await page.waitForTimeout(500);
 
     // Renderer-initiated, because Playwright's CDP `goBack` bypasses bfcache.
-    await page.evaluate(() => history.back());
+    await page.goBack({ waitUntil: 'commit' });
     await page.waitForFunction(
       () => (window as unknown as { __bfcacheRestored?: boolean }).__bfcacheRestored === true,
       {

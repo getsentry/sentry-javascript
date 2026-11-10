@@ -23,7 +23,7 @@
   "dependencies": {
     "@sentry/browser": "11.11.0",
     "@sentry/core": "11.11.0",
-    "@sentry/conventions": "^0.30.0",
+    "@sentry/conventions": "^0.31.0",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
@@ -49,7 +49,7 @@
     "build:watch": "pnpm run build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "ng build --configuration production --watch",
-    "build:tarball": "npm pack ./build",
+    "build:tarball": "pnpm --dir build pack --pack-destination ..",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-angular-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",

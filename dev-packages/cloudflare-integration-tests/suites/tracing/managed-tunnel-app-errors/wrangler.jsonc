@@ -1,0 +1,6 @@
+{
+  "name": "managed-tunnel-app-errors",
+  "compatibility_date": "2025-06-17",
+  "main": "index.ts",
+  // No `nodejs_compat`, so no `AsyncLocalStorage`: all requests share one isolation scope.
+}

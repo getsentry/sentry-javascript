@@ -1,5 +1,5 @@
 import type { Options } from '@sentry/core';
-import { _INTERNAL_applyTunnelDefaults as applyTunnelDefaults, GLOBAL_OBJ } from '@sentry/core';
+import { _INTERNAL_applyBrowserTunnelDefaults as applyBrowserTunnelDefaults, GLOBAL_OBJ } from '@sentry/core';
 
 /** Set by the generated client config plugin to the app's runtime `app.baseURL`. */
 export const NUXT_TUNNEL_BASE_PATH_GLOBAL = '__sentry_nuxt_base_path';
@@ -11,5 +11,5 @@ export const NUXT_TUNNEL_BASE_PATH_GLOBAL = '__sentry_nuxt_base_path';
  */
 export function applyNuxtTunnelBasePath(options: Pick<Options, 'tunnel'>): void {
   const basePath = (GLOBAL_OBJ as { [NUXT_TUNNEL_BASE_PATH_GLOBAL]?: string })[NUXT_TUNNEL_BASE_PATH_GLOBAL];
-  options.tunnel = applyTunnelDefaults(options.tunnel, { basePath });
+  options.tunnel = applyBrowserTunnelDefaults(options.tunnel, { basePath });
 }
