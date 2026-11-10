@@ -15,15 +15,24 @@ export function serviceSourceMapsPlugin(buildDir: string): Plugin {
 
   return {
     name: 'sentry-nuxt-service-source-maps',
-    async load(id) {
-      const mapFile = `${id}.map`;
-      // Rolldown emits no map for a chunk without mappable source.
-      if (!isInDirectory(id, servicesDir) || !fs.existsSync(mapFile)) {
-        return null;
-      }
+    load: {
+      // Any other plugin that loads these files goes first, e.g. Nuxt's own once it covers this case.
+      order: 'post',
+      // Spares Rolldown a call into JS for every other module.
+      filter: { id: /[\\/]vite[\\/]services[\\/]/ },
+      async handler(id) {
+        const mapFile = `${id}.map`;
+        // Rolldown emits no map for a chunk without mappable source.
+        if (!isInDirectory(id, servicesDir) || !fs.existsSync(mapFile)) {
+          return null;
+        }
 
-      const [code, map] = await Promise.all([fs.promises.readFile(id, 'utf8'), fs.promises.readFile(mapFile, 'utf8')]);
-      return { code, map };
+        const [code, map] = await Promise.all([
+          fs.promises.readFile(id, 'utf8'),
+          fs.promises.readFile(mapFile, 'utf8'),
+        ]);
+        return { code, map };
+      },
     },
   };
 }

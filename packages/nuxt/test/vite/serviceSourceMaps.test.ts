@@ -16,12 +16,16 @@ function writeFile(file: string, content: string): string {
   return file;
 }
 
-function load(id: string): unknown {
+function getLoadHook() {
   const { load } = serviceSourceMapsPlugin(buildDir);
-  if (typeof load !== 'function') {
-    throw new Error('Expected `load` to be a function');
+  if (typeof load !== 'object') {
+    throw new Error('Expected `load` to be a hook object');
   }
-  return load.call({} as PluginContext, id);
+  return load;
+}
+
+function load(id: string): unknown {
+  return getLoadHook().handler.call({} as PluginContext, id);
 }
 
 describe('serviceSourceMapsPlugin', () => {
@@ -52,4 +56,15 @@ describe('serviceSourceMapsPlugin', () => {
 
     expect(await load(file)).toBeNull();
   });
+
+  // The bundler skips the handler for ids the filter rejects, so a too narrow filter disables the plugin silently.
+  it.each(['/app/.nuxt/vite/services/ssr/_nuxt/pages.js', 'C:\\app\\.nuxt\\vite\\services\\ssr\\_nuxt\\pages.js'])(
+    'lets the bundler call the handler for %s',
+    id => {
+      const filter = getLoadHook().filter?.id;
+
+      expect(filter).toBeInstanceOf(RegExp);
+      expect(id).toMatch(filter as RegExp);
+    },
+  );
 });
