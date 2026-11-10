@@ -87,7 +87,7 @@
     "@sentry/browser-utils": "11.11.0",
     "@sentry/bundler-plugins": "11.11.0",
     "@sentry/cloudflare": "11.11.0",
-    "@sentry/conventions": "^0.31.0",
+    "@sentry/conventions": "^0.32.0",
     "@sentry/core": "11.11.0",
     "@sentry/node": "11.11.0",
     "@sentry/opentelemetry": "11.11.0",

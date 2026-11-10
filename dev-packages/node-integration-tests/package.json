@@ -61,7 +61,7 @@
     "@sentry-internal/rollup-utils": "11.11.0",
     "@sentry-internal/test-utils": "11.11.0",
     "@sentry/aws-serverless": "11.11.0",
-    "@sentry/conventions": "0.31.0",
+    "@sentry/conventions": "0.32.0",
     "@sentry/core": "11.11.0",
     "@sentry/hono": "11.11.0",
     "@sentry/node": "11.11.0",
