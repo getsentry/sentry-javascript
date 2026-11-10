@@ -100,7 +100,6 @@
     "@testing-library/user-event": "^14.6.8",
     "@types/node": "^20.19.0",
     "nitropack": "^2.13.4",
-    "node-mock-http": "^1.0.4",
     "solid-js": "^1.9.18",
     "vinxi": "^0.5.11",
     "vite": "^8.3.5",
