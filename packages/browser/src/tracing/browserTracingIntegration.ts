@@ -47,7 +47,7 @@ import { getHttpRequestData, WINDOW } from '../helpers';
 import type { WebVitalsOptions } from '../integrations/webVitals';
 import { webVitalsIntegration } from '../integrations/webVitals';
 import { registerBackgroundTabDetection } from './backgroundtab';
-import { linkTraces } from './linkedTraces';
+import { linkedTracesIntegration } from '../integrations/linkedTraces';
 import { xhrTracingIntegration } from '../integrations/xhrTracing';
 import { defaultRequestInstrumentationOptions, instrumentFetchRequests } from './request';
 import {
@@ -287,7 +287,14 @@ export interface BrowserTracingOptions {
  */
 export type BrowserTracingCoreOptions = Omit<
   BrowserTracingOptions,
-  'enableInp' | 'webVitals' | 'enableElementTiming' | 'enableLongTask' | 'enableLongAnimationFrame' | 'traceXHR'
+  | 'enableInp'
+  | 'webVitals'
+  | 'enableElementTiming'
+  | 'enableLongTask'
+  | 'enableLongAnimationFrame'
+  | 'traceXHR'
+  | 'linkPreviousTrace'
+  | 'consistentTraceSampling'
 >;
 
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingCoreOptions = {
@@ -298,8 +305,6 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingCoreOptions = {
   markBackgroundSpan: true,
   ignoreResourceSpans: [],
   detectRedirects: true,
-  linkPreviousTrace: 'in-memory',
-  consistentTraceSampling: false,
   enableReportPageLoaded: false,
   ...defaultRequestInstrumentationOptions,
 };
@@ -334,6 +339,8 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     enableHTTPTimings,
     onRequestSpanStart,
     onRequestSpanEnd,
+    linkPreviousTrace = 'in-memory',
+    consistentTraceSampling,
   } = options;
 
   return _browserTracingIntegration(options, client => {
@@ -358,6 +365,10 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       client.addIntegration(
         xhrTracingIntegration({ shouldCreateSpanForRequest, enableHTTPTimings, onRequestSpanStart, onRequestSpanEnd }),
       );
+    }
+
+    if (linkPreviousTrace !== 'off') {
+      client.addIntegration(linkedTracesIntegration({ linkPreviousTrace, consistentTraceSampling }));
     }
   });
 }) satisfies IntegrationFn;
@@ -396,8 +407,6 @@ function _browserTracingIntegration(
     instrumentNavigation,
     instrumentBfcacheRestore,
     detectRedirects,
-    linkPreviousTrace,
-    consistentTraceSampling,
     enableReportPageLoaded,
     onRequestSpanStart,
     onRequestSpanEnd,
@@ -673,10 +682,6 @@ function _browserTracingIntegration(
       addDefaultIntegrations?.(client);
 
       let startingUrl: string | undefined = getLocationHref();
-
-      if (linkPreviousTrace !== 'off') {
-        linkTraces(client, { linkPreviousTrace, consistentTraceSampling });
-      }
 
       if (WINDOW.location) {
         if (instrumentPageLoad) {
