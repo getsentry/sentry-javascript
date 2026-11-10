@@ -1,6 +1,8 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 
 const usesManagedTunnelRoute =
   (process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off') !== 'off' || process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1';
@@ -43,13 +45,13 @@ test('Sends an http.server span for the first request of a server started withou
     'tanstackstart-react',
     span =>
       !!span.is_segment &&
-      getSpanOp(span) === 'http.server' &&
-      String(span.attributes['url.full']?.value ?? '').includes(`localhost:${PORT}/`),
+      getSpanOp(span) === HTTP_SERVER &&
+      String(span.attributes[URL_FULL]?.value ?? '').includes(`localhost:${PORT}/`),
   );
 
   const response = await fetch(`http://localhost:${PORT}/`);
   expect(response.status).toBe(200);
 
   const span = await spanPromise;
-  expect(span.attributes['url.path']?.value).toBe('/');
+  expect(span.attributes[URL_PATH]?.value).toBe('/');
 });

@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { Plugin } from 'vite';
+import { logDebug } from './nitroSourceMaps';
 
 const FILE_NAMES = ['instrument.server.ts', 'instrument.server.mts', 'instrument.server.js', 'instrument.server.mjs'];
 const DIRECTORIES = ['', 'src'];
@@ -9,7 +10,14 @@ const NITRO_PLUGIN_ID = '#sentry/tanstackstart-server-instrumentation';
 
 /** The parts of the Nitro instance that this plugin uses. */
 type Nitro = {
-  options: { dev: boolean; preset: string; rootDir: string; plugins: string[]; virtual: Record<string, string> };
+  options: {
+    dev: boolean;
+    node: boolean;
+    preset: string;
+    rootDir: string;
+    plugins: string[];
+    virtual: Record<string, string>;
+  };
 };
 
 /** Finds `instrument.server.{ts,mts,js,mjs}` in the project root or in `src/`. */
@@ -38,13 +46,26 @@ export function makeServerInstrumentationPlugin({ debug }: { debug?: boolean }):
     nitro: {
       name: 'sentry-tanstackstart-server-instrumentation',
       setup(nitro) {
-        // On Cloudflare, the Cloudflare SDK sets itself up, and the Node SDK must not end up in the worker.
-        if (nitro.options.dev || isCloudflarePreset(nitro.options.preset)) {
+        if (nitro.options.dev) {
+          return;
+        }
+
+        // The Node SDK must not end up in a worker or other runtime without Node.js. On Cloudflare, the Cloudflare SDK
+        // sets itself up.
+        if (nitro.options.node === false || isCloudflarePreset(nitro.options.preset)) {
+          logDebug(
+            debug,
+            `Not loading \`instrument.server\` in the Nitro server build, as the \`${nitro.options.preset}\` preset does not run Node.js.`,
+          );
           return;
         }
 
         const file = findServerInstrumentationFile(nitro.options.rootDir);
         if (!file) {
+          logDebug(
+            debug,
+            'Found no `instrument.server.{ts,mts,js,mjs}` in the project root or in `src/`, so the SDK does not initialize itself when the server starts.',
+          );
           return;
         }
 
@@ -52,12 +73,10 @@ export function makeServerInstrumentationPlugin({ debug }: { debug?: boolean }):
         // Before the plugins of the app, so they run with an initialized SDK.
         nitro.options.plugins.unshift(NITRO_PLUGIN_ID);
 
-        if (debug) {
-          // eslint-disable-next-line no-console
-          console.log(
-            `[Sentry] Bundled \`${path.relative(nitro.options.rootDir, file)}\` into the Nitro server build. The SDK initializes itself when the server starts, no \`node --import\` needed.`,
-          );
-        }
+        logDebug(
+          debug,
+          `Bundled \`${path.relative(nitro.options.rootDir, file)}\` into the Nitro server build. The SDK initializes itself when the server starts, no \`node --import\` needed.`,
+        );
       },
     },
   };

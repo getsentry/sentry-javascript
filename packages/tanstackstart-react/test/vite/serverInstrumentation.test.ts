@@ -27,8 +27,8 @@ describe('server instrumentation', () => {
   }
 
   /** Runs the Nitro module like `nitro/vite` does, and returns the Nitro options it changed. */
-  function setup({ dev = false, preset = 'node-server' } = {}) {
-    const nitro = { options: { dev, preset, rootDir: root, plugins: [APP_PLUGIN], virtual: {} } };
+  function setup({ dev = false, node = true, preset = 'node-server' } = {}) {
+    const nitro = { options: { dev, node, preset, rootDir: root, plugins: [APP_PLUGIN], virtual: {} } };
     makeServerInstrumentationPlugin({}).nitro.setup(nitro);
     return nitro.options;
   }
@@ -75,6 +75,7 @@ describe('server instrumentation', () => {
       { label: 'Nitro dev', nitro: { dev: true } },
       { label: 'a Cloudflare preset', nitro: { preset: 'cloudflare-module' } },
       { label: 'a Cloudflare preset with underscores', nitro: { preset: 'cloudflare_pages' } },
+      { label: 'a preset without Node.js', nitro: { node: false, preset: 'vercel-edge' } },
     ])('adds no plugin with $label', ({ nitro }) => {
       writeFile('instrument.server.mjs');
 

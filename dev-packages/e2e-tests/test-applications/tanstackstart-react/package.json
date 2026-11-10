@@ -36,6 +36,7 @@
     "mysql": "^2.18.1"
   },
   "devDependencies": {
+    "@sentry/conventions": "0.31.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@types/node": "^24.10.0",
