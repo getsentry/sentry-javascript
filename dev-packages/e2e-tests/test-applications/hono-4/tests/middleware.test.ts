@@ -1,5 +1,11 @@
+import { randomBytes } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { waitForError, getSpanOp, collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
+import {
+  waitForError,
+  getSpanOp,
+  collectStreamedSpans,
+  collectStreamedSpansUntilSegment,
+} from '@sentry-internal/test-utils';
 import { APP_NAME } from './constants';
 
 const SCENARIOS = [
@@ -170,18 +176,20 @@ for (const { name, prefix } of SCENARIOS) {
     });
 
     test('sets error status on middleware span when middleware throws', async ({ baseURL }) => {
-      const segmentPromise = collectStreamedSpansUntilSegment(
-        APP_NAME,
-        segment => getSpanOp(segment) === 'http.server' && !!segment.name?.includes(`${prefix}/error`),
+      // Other tests request the same route and only wait for the error event, so their segment can
+      // still arrive while this test listens. Pin the trace to tell this request's spans apart.
+      const traceId = randomBytes(16).toString('hex');
+      const segmentPromise = collectStreamedSpans(APP_NAME, spansOfTrace =>
+        spansOfTrace.some(span => span.is_segment && span.trace_id === traceId),
       );
 
-      await fetch(`${baseURL}${prefix}/error`);
+      await fetch(`${baseURL}${prefix}/error`, {
+        headers: { 'sentry-trace': `${traceId}-${randomBytes(8).toString('hex')}-1` },
+      });
 
       const segmentSpans = await segmentPromise;
-      const segment = segmentSpans.find(
-        segment =>
-          segment.is_segment && getSpanOp(segment) === 'http.server' && !!segment.name?.includes(`${prefix}/error`),
-      )!;
+      const segment = segmentSpans.find(span => span.is_segment)!;
+      expect(getSpanOp(segment)).toBe('http.server');
       expect(segment.name).toBe(`GET ${prefix}/error`);
 
       const spans = segmentSpans.filter(
