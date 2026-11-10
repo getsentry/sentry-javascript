@@ -59,33 +59,83 @@ const CLICKHOUSE_DOLLAR_QUOTE_RE = /\$\w*\$/y;
 const CLICKHOUSE_NUMBER_RE =
   /-?(?:0x[\dA-F_]+|0b[01_]+|(?:\d[\d_]*(?:\.[\d_]*)?|\.\d[\d_]*)(?:e[+-]?[\d_]+)?)(?![\w$])/iy;
 
+const CLICKHOUSE_WORD_RE = /[A-Za-z_][\w$]*/y;
+
+// A FORMAT clause follows a complete table name or expression. After one of these tokens `format`
+// is a table, column or alias name instead.
+const CLICKHOUSE_OPERAND_PREFIXES = new Set([
+  'INTO',
+  'TABLE',
+  'SELECT',
+  'DISTINCT',
+  'FROM',
+  'JOIN',
+  'USING',
+  'ON',
+  'WHERE',
+  'PREWHERE',
+  'HAVING',
+  'BY',
+  'AND',
+  'OR',
+  'NOT',
+  'AS',
+  'CASE',
+  'WHEN',
+  'THEN',
+  'ELSE',
+  'IN',
+  'IS',
+  'LIKE',
+  'ILIKE',
+  'BETWEEN',
+  ',',
+  '.',
+  '=',
+  '<',
+  '>',
+  '!',
+  '+',
+  '-',
+  '/',
+  '%',
+  '|',
+  '&',
+]);
+
 interface ClickhouseInsertState {
-  insert: boolean;
-  lastKeyword?: string;
+  /** Whether the statement is an INSERT, decided by its first word. */
+  insert?: boolean;
+  /** The last token: an upper-cased word, a punctuation character, or `''` for a literal or quoted identifier. */
+  previous?: string;
   depth: number;
 }
 
-function isClickhouseInsertData(sql: string, start: number, state: ClickhouseInsertState): boolean {
-  const char = sql[start]!;
+/**
+ * Whether `char` starts the inline data of an INSERT. Everything after the top-level FORMAT clause is
+ * input data, which cannot be sanitized as SQL. That includes `INSERT ... SELECT`, where the
+ * `input()` table function reads that data.
+ */
+function isClickhouseInsertData(sql: string, start: number, char: string, state: ClickhouseInsertState): boolean {
   if (char === '(') state.depth++;
   if (char === ')') state.depth--;
-  if (!/[A-Za-z_]/.test(char) || isIdentifierChar(sql[start - 1])) {
+  if (/\s/.test(char) || (isIdentifierChar(char) && isIdentifierChar(sql[start - 1]))) {
     return false;
   }
-  const keyword = /^[A-Za-z_][\w$]*/.exec(sql.slice(start))![0].toUpperCase();
-  if (state.lastKeyword === undefined) {
-    state.insert = keyword === 'INSERT';
+  CLICKHOUSE_WORD_RE.lastIndex = start;
+  const word = CLICKHOUSE_WORD_RE.exec(sql)?.[0].toUpperCase();
+  if (word) {
+    state.insert ??= word === 'INSERT';
   }
-  if (state.insert && state.depth === 0 && state.lastKeyword !== 'INTO' && sql[start - 1] !== '.') {
-    // FORMAT starts arbitrary input data, which cannot be sanitized as SQL.
-    if (keyword === 'FORMAT') {
-      return true;
-    }
-    if (keyword === 'SELECT') {
-      state.insert = false;
-    }
+  if (
+    state.insert &&
+    state.depth === 0 &&
+    word === 'FORMAT' &&
+    !CLICKHOUSE_OPERAND_PREFIXES.has(state.previous ?? '')
+  ) {
+    return true;
   }
-  state.lastKeyword = keyword;
+  state.previous = word ?? char;
   return false;
 }
 
@@ -136,7 +186,8 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
   const isClickhouse = dialect === 'clickhouse';
   const out: string[] = [];
   let i = 0;
-  const clickhouseInsert: ClickhouseInsertState = { insert: false, depth: 0 };
+  // A literal, number or quoted identifier completes an operand, so it resets `previous`.
+  const clickhouseInsert: ClickhouseInsertState = { depth: 0 };
 
   while (i < sql.length) {
     const char = sql[i]!;
@@ -165,6 +216,7 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
         const bodyEnd = sql.indexOf(tag, i + tag.length);
         i = bodyEnd === -1 ? sql.length : bodyEnd + tag.length;
         out.push('?');
+        clickhouseInsert.previous = '';
         continue;
       }
     }
@@ -176,7 +228,7 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
       // Copying would carry every literal in the rest of the statement through unlexed.
       out.push(runEnd === -1 ? '?' : sql.slice(i, runEnd));
       i = runEnd === -1 ? sql.length : runEnd;
-      clickhouseInsert.lastKeyword = '';
+      clickhouseInsert.previous = '';
       continue;
     }
 
@@ -190,6 +242,7 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
       const runEnd = findQuotedRunEnd(sql, i, char, isMysql || isClickhouse || prefix === 'E');
       i = runEnd === -1 ? sql.length : runEnd;
       out.push('?');
+      clickhouseInsert.previous = '';
       continue;
     }
 
@@ -197,9 +250,10 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
     if (number) {
       out.push('?');
       i += number.length;
+      clickhouseInsert.previous = '';
       continue;
     }
-    if (isClickhouse && isClickhouseInsertData(sql, i, clickhouseInsert)) {
+    if (isClickhouse && isClickhouseInsertData(sql, i, char, clickhouseInsert)) {
       break;
     }
     out.push(char);
