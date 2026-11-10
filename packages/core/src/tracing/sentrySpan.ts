@@ -413,6 +413,7 @@ export class SentrySpan implements Span {
       return;
     }
 
+    // Redundant at runtime (the constructor forces 'stream'); lets bundlers drop the static branch.
     if (
       (typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' && __SENTRY_EXCLUDE_STATIC_LIFECYCLE__) ||
       (client && hasSpanStreamingEnabled(client))
@@ -590,6 +591,7 @@ function sendStandaloneSpan(span: SentrySpan, client: Client): void {
   // callbacks), so scrub the span in its native v1 shape and convert it forward to v2, mirroring the
   // gen_ai extraction path.
   // TODO(standalone): remove this branch once the static trace lifecycle is dropped.
+  // Redundant at runtime (the constructor forces 'stream'); lets bundlers drop the static branch.
   if (
     !(typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' && __SENTRY_EXCLUDE_STATIC_LIFECYCLE__) &&
     traceLifecycle === 'static' &&

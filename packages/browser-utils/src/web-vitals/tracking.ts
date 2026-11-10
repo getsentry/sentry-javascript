@@ -182,6 +182,7 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
   }
 
   const { recordClsOnPageloadSpan, recordLcpOnPageloadSpan } = options;
+  // Redundant at runtime (the constructor forces 'stream'); lets bundlers drop the static branch.
   const spanStreamingEnabled =
     (typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' && __SENTRY_EXCLUDE_STATIC_LIFECYCLE__) ||
     options.spanStreamingEnabled;

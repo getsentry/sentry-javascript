@@ -17,10 +17,21 @@ describe('__SENTRY_EXCLUDE_STATIC_LIFECYCLE__', () => {
     vi.restoreAllMocks();
   });
 
-  it('ignores `traceLifecycle: "static"`', () => {
+  it('ignores `traceLifecycle: "static"` and warns about it', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
     const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'static' }));
 
     expect(client.getOptions().traceLifecycle).toBe('stream');
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("`traceLifecycle: 'static'` is not available"));
+  });
+
+  it('does not warn with `traceLifecycle: "stream"`', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'stream' }));
+
+    expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining("`traceLifecycle: 'static'` is not available"));
   });
 
   it('hands segment spans to span streaming instead of capturing a transaction', () => {
@@ -37,17 +48,19 @@ describe('__SENTRY_EXCLUDE_STATIC_LIFECYCLE__', () => {
     expect(captureEventSpy).not.toHaveBeenCalled();
   });
 
-  it('does not run transaction processing on transaction events', async () => {
-    const beforeSendTransaction = vi.fn(event => event);
+  it('still runs `beforeSendTransaction` on manually captured transaction events', async () => {
+    const beforeSendTransaction = vi.fn(event => ({ ...event, transaction: 'scrubbed' }));
     const client = new TestClient(
       getDefaultTestClientOptions({ dsn: 'https://username@domain/123', beforeSendTransaction }),
     );
+    const sendEventSpy = vi.spyOn(client, 'sendEvent');
     const event: TransactionEvent = { type: 'transaction', transaction: 'test', spans: [] };
 
     client.captureEvent(event);
     await client.flush();
 
-    expect(beforeSendTransaction).not.toHaveBeenCalled();
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
+    expect(sendEventSpy).toHaveBeenCalledWith(expect.objectContaining({ transaction: 'scrubbed' }), expect.anything());
   });
 
   it('adds the span streaming integration to server clients with `traceLifecycle: "static"`', () => {

@@ -269,11 +269,26 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       attachStacktrace: true,
       ...options,
       traceLifecycle:
-        options.traceLifecycle === 'static' &&
-        !(typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' && __SENTRY_EXCLUDE_STATIC_LIFECYCLE__)
-          ? 'static'
-          : 'stream',
+        (typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' && __SENTRY_EXCLUDE_STATIC_LIFECYCLE__) ||
+        options.traceLifecycle !== 'static'
+          ? 'stream'
+          : 'static',
     };
+
+    // Not debug-gated: builds that set the flag usually strip debug logging too, and the user's
+    // static callbacks (often PII scrubbers) would otherwise stop running without any message.
+    if (
+      typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' &&
+      __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ &&
+      options.traceLifecycle === 'static'
+    ) {
+      consoleSandbox(() => {
+        // oxlint-disable-next-line no-console
+        console.warn(
+          "[Sentry] `traceLifecycle: 'static'` is not available in this build (`__SENTRY_EXCLUDE_STATIC_LIFECYCLE__`). `beforeSendTransaction`, `ignoreTransactions` and `withStaticSpan` callbacks are ignored.",
+        );
+      });
+    }
     this._integrations = {};
     this._numProcessing = 0;
     this._outcomes = {};
@@ -615,6 +630,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     // Extract gen_ai spans from transaction and convert to span v2 format.
     // This mutates event.spans to remove the extracted spans.
+    // Manually captured transaction events keep their gen_ai spans inline under the flag.
     const genAiSpanItem =
       typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' && __SENTRY_EXCLUDE_STATIC_LIFECYCLE__
         ? undefined
@@ -1809,12 +1825,13 @@ function processBeforeSend(
     );
   }
 
-  if (
-    !(typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' && __SENTRY_EXCLUDE_STATIC_LIFECYCLE__) &&
-    isTransactionEvent(processedEvent)
-  ) {
-    // Avoid processing if we don't have to
-    if (beforeSendSpan || ignoreSpans) {
+  if (isTransactionEvent(processedEvent)) {
+    // Only manually captured transaction events get here under the flag. They skip span processing,
+    // but still run `beforeSendTransaction`, which users often rely on to scrub PII.
+    if (
+      !(typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' && __SENTRY_EXCLUDE_STATIC_LIFECYCLE__) &&
+      (beforeSendSpan || ignoreSpans)
+    ) {
       // 1. Process root span
       const rootSpanJson = convertTransactionEventToSpanJson(processedEvent);
 
