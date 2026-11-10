@@ -575,7 +575,7 @@ export function createSentryBuildPluginManager(
               })),
             );
 
-          await cliInstance.uploadSourcemaps(releaseName, uploadTargets);
+          warnAboutDirectoriesWithoutSourcemaps(logger, await cliInstance.uploadSourcemaps(releaseName, uploadTargets));
         }
 
         if (options.release.setCommits !== false) {
@@ -707,9 +707,9 @@ export function createSentryBuildPluginManager(
                 return;
               }
 
-              await startSpan({ name: 'upload', scope: sentryScope }, async () => {
+              const emptyDirectories = await startSpan({ name: 'upload', scope: sentryScope }, async () => {
                 const cliInstance = new SentryCliAdapter(options);
-                await cliInstance.uploadSourcemaps(
+                return cliInstance.uploadSourcemaps(
                   options.release.name ?? 'undefined',
                   pathsToUpload.map(directory => ({
                     directory,
@@ -719,8 +719,11 @@ export function createSentryBuildPluginManager(
                 );
               });
 
-              uploaded = true;
-              logger.info('Successfully uploaded source maps to Sentry');
+              warnAboutDirectoriesWithoutSourcemaps(logger, emptyDirectories);
+              if (emptyDirectories.length < pathsToUpload.length) {
+                uploaded = true;
+                logger.info('Successfully uploaded source maps to Sentry');
+              }
             } else {
               // Prepare artifacts in temp folder before uploading
               let globAssets: string | string[];
@@ -1059,4 +1062,16 @@ function canUploadSourceMaps(options: NormalizedOptions, logger: Logger, isDevMo
     default:
       return true;
   }
+}
+
+function warnAboutDirectoriesWithoutSourcemaps(logger: Logger, directories: string[]): void {
+  if (directories.length === 0) {
+    return;
+  }
+  const list = directories.map(directory => `  - ${directory}`).join('\n');
+  logger.warn(
+    `No source maps found in the following directories, so nothing was uploaded from them:\n${list}\n` +
+      'This usually means source map generation is not enabled for these build outputs. ' +
+      'Enable it so Sentry can un-minify stack traces from these files.',
+  );
 }
