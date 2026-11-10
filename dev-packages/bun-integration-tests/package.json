@@ -15,7 +15,6 @@
   },
   "devDependencies": {
     "@sentry-internal/node-integration-tests": "11.11.0",
-    "@sentry-internal/test-utils": "11.11.0",
     "@sentry/bun": "11.11.0",
     "@sentry/core": "11.11.0",
     "@sentry/hono": "11.11.0",
@@ -25,6 +24,6 @@
     "hono": "^4.13.7",
     "mysql": "^2.18.1",
     "pg": "8.23.1",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   }
 }

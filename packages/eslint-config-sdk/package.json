@@ -39,8 +39,8 @@
     "eslint": "8.57.0"
   },
   "scripts": {
-    "clean": "pnpm exec rimraf sentry-eslint-config-sdk-*.tgz",
-    "build:tarball": "npm pack",
+    "clean": "node ../../scripts/rm.mjs sentry-eslint-config-sdk-*.tgz",
+    "build:tarball": "pnpm pack",
     "circularDepCheck": "madge --circular src/index.js"
   }
 }

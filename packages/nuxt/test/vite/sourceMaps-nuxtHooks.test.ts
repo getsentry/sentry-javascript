@@ -247,6 +247,7 @@ describe('setupSourceMaps hooks', () => {
           assets: undefined,
           ignore: undefined,
           filesToDeleteAfterUpload: undefined,
+          deleteSourcemapsAfterUpload: false,
           rewriteSources: expect.any(Function),
         },
       });

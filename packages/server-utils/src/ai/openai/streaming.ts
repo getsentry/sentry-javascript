@@ -282,6 +282,9 @@ export async function* instrumentStream<T>(
       }
       yield event;
     }
+  } catch (error) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    throw error;
   } finally {
     const allToolCalls = [...state.chatCompletionToolCalls.values(), ...state.responsesApiToolCalls];
     endStreamSpan(span, { ...state, toolCalls: allToolCalls }, recordOutputs);

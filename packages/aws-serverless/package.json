@@ -66,7 +66,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/conventions": "^0.30.0",
+    "@sentry/conventions": "^0.32.0",
     "@sentry/core": "11.11.0",
     "@sentry/node": "11.11.0",
     "@sentry/server-runtime-injection": "11.11.0",
@@ -81,7 +81,7 @@
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:extension": "rollup -c rollup.lambda-extension.config.mjs && pnpm exec tsx scripts/buildLambdaExtension.ts",
-    "build:layer": "rimraf build/aws && pnpm exec tsx scripts/buildLambdaLayer.ts",
+    "build:layer": "node ../../scripts/rm.mjs build/aws && pnpm exec tsx scripts/buildLambdaLayer.ts",
     "build:dev": "run-p build:transpile build:types",
     "build:transpile": "run-s build:transpile:npm build:extension",
     "build:transpile:npm": "rollup -c rollup.npm.config.mjs",
@@ -89,9 +89,9 @@
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:tarball": "npm pack",
+    "build:tarball": "pnpm pack",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build dist-awslambda-layer coverage sentry-serverless-*.tgz",
+    "clean": "node ../../scripts/rm.mjs build dist-awslambda-layer coverage sentry-serverless-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",

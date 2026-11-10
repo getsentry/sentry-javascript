@@ -45,7 +45,7 @@
   "dependencies": {
     "@sentry/bundler-plugins": "11.11.0",
     "@sentry/core": "11.11.0",
-    "@sentry/conventions": "^0.30.0",
+    "@sentry/conventions": "^0.32.0",
     "@sentry/node": "11.11.0",
     "@sentry/server-utils": "11.11.0"
   },
@@ -61,9 +61,9 @@
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:tarball": "npm pack",
+    "build:tarball": "pnpm pack",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build coverage sentry-bun-*.tgz",
+    "clean": "node ../../scripts/rm.mjs build coverage sentry-bun-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",

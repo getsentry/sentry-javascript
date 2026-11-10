@@ -1,9 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client, StreamedSpanEnvelope } from '../../../../src';
-import { SentrySpan, setCurrentClient, SpanBuffer } from '../../../../src';
+import {
+  SentrySpan,
+  setCurrentClient,
+  SpanBuffer,
+  startInactiveSpan,
+  startSpan,
+  withStreamedSpan,
+} from '../../../../src';
 import type { SerializedStreamedSpanWithSegmentSpan } from '../../../../src/tracing/spans/captureSpan';
+import { captureSpan } from '../../../../src/tracing/spans/captureSpan';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
-import { HTTP_METHOD, URL_FULL } from '@sentry/conventions/attributes';
+import { HTTP_METHOD, SENTRY_SEGMENT_NAME, URL_FULL } from '@sentry/conventions/attributes';
 
 describe('SpanBuffer', () => {
   let client: TestClient;
@@ -368,6 +376,125 @@ describe('SpanBuffer', () => {
       );
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('segment name', () => {
+    function getSentSegmentNames(): Record<string, unknown> {
+      const items = sentEnvelopes[0]?.[1]?.[0]?.[1]?.items ?? [];
+      return Object.fromEntries(items.map(item => [item.name, item.attributes[SENTRY_SEGMENT_NAME]?.value]));
+    }
+
+    it('uses the final segment span name for spans that ended before the segment span was renamed', () => {
+      const buffer = new SpanBuffer(client);
+
+      startSpan({ name: 'GET' }, root => {
+        startSpan({ name: 'early child' }, span => {
+          span.end();
+          buffer.add(captureSpan(span, client));
+        });
+
+        root.updateName('GET /users/:id');
+
+        startSpan({ name: 'late child' }, span => {
+          span.end();
+          buffer.add(captureSpan(span, client));
+        });
+
+        root.end();
+        buffer.add(captureSpan(root, client));
+      });
+
+      buffer.drain();
+
+      expect(getSentSegmentNames()).toEqual({
+        'early child': 'GET /users/:id',
+        'late child': 'GET /users/:id',
+        'GET /users/:id': 'GET /users/:id',
+      });
+    });
+
+    it('uses the segment span name at flush time if the segment span has not ended yet', () => {
+      const buffer = new SpanBuffer(client);
+
+      const root = startInactiveSpan({ name: 'GET' });
+      const child = startInactiveSpan({ name: 'child', parentSpan: root });
+      child.end();
+      buffer.add(captureSpan(child, client));
+
+      root.updateName('GET /users/:id');
+      buffer.drain();
+
+      expect(getSentSegmentNames()).toEqual({ child: 'GET /users/:id' });
+    });
+
+    it('keeps a segment name that differs from the segment span name at capture time', () => {
+      const buffer = new SpanBuffer(client);
+
+      const root = startInactiveSpan({ name: 'GET' });
+      const child = startInactiveSpan({
+        name: 'child',
+        parentSpan: root,
+        attributes: { [SENTRY_SEGMENT_NAME]: 'custom segment name' },
+      });
+      child.end();
+      buffer.add(captureSpan(child, client));
+
+      root.updateName('GET /users/:id');
+      buffer.drain();
+
+      expect(getSentSegmentNames()).toEqual({ child: 'custom segment name' });
+    });
+
+    it('keeps a segment name set by beforeSendSpan', () => {
+      client.getOptions().traceLifecycle = 'stream';
+      client.getOptions().beforeSendSpan = withStreamedSpan(span => {
+        if (span.name === 'child') {
+          span.attributes = { ...span.attributes, [SENTRY_SEGMENT_NAME]: 'from beforeSendSpan' };
+        }
+        return span;
+      });
+      const buffer = new SpanBuffer(client);
+
+      const root = startInactiveSpan({ name: 'GET' });
+      const child = startInactiveSpan({ name: 'child', parentSpan: root });
+      child.end();
+      buffer.add(captureSpan(child, client));
+
+      root.updateName('GET /users/:id');
+      buffer.drain();
+
+      expect(getSentSegmentNames()).toEqual({ child: 'from beforeSendSpan' });
+    });
+
+    it("uses the name of each span's own segment span when a trace has several segment spans", () => {
+      const buffer = new SpanBuffer(client);
+
+      const root1 = startInactiveSpan({ name: 'root 1', forceTransaction: true });
+      const root2 = startInactiveSpan({ name: 'root 2', parentSpan: root1, forceTransaction: true });
+      const child1 = startInactiveSpan({ name: 'child 1', parentSpan: root1 });
+      const child2 = startInactiveSpan({ name: 'child 2', parentSpan: root2 });
+      child1.end();
+      child2.end();
+      buffer.add(captureSpan(child1, client));
+      buffer.add(captureSpan(child2, client));
+
+      root1.updateName('root 1 renamed');
+      root2.updateName('root 2 renamed');
+      buffer.drain();
+
+      expect(getSentSegmentNames()).toEqual({ 'child 1': 'root 1 renamed', 'child 2': 'root 2 renamed' });
+    });
+
+    it('does not send the internal segment name field', () => {
+      const buffer = new SpanBuffer(client);
+
+      const root = startInactiveSpan({ name: 'GET' });
+      root.end();
+      buffer.add(captureSpan(root, client));
+      buffer.drain();
+
+      expect(sentEnvelopes[0]?.[1]?.[0]?.[1]?.items[0]).not.toHaveProperty('_segmentNameAtCapture');
     });
   });
 });

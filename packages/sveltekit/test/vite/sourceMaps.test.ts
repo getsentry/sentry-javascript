@@ -1,4 +1,5 @@
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
+import * as childProcess from 'child_process';
 import type { Plugin } from 'vite';
 import * as vite from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,6 +10,8 @@ const mockedMainPlugin = {
   name: 'sentry-vite-plugin',
   writeBundle: vi.fn(),
 };
+
+vi.mock('child_process', { spy: true });
 
 vi.mock('@sentry/bundler-plugins/vite', async () => {
   const original = (await vi.importActual('@sentry/bundler-plugins/vite')) as any;
@@ -53,6 +56,22 @@ async function getSentryViteSubPlugin(name: string): Promise<Plugin | undefined>
 
   return plugins.find(plugin => plugin.name === name);
 }
+
+describe('release detection', () => {
+  it('hides the console when detecting the git revision', async () => {
+    vi.resetModules();
+    const execSpy = vi
+      .mocked(childProcess.execSync)
+      .mockReturnValueOnce(Buffer.from('4316c2634a5f3de43cbd63780117d9221a23e3cd\n'));
+
+    await import('../../src/vite/sourceMaps');
+
+    expect(execSpy).toHaveBeenCalledWith('git rev-parse HEAD', {
+      stdio: ['ignore', 'pipe', 'ignore'],
+      windowsHide: true,
+    });
+  });
+});
 
 describe('makeCustomSentryVitePlugins()', () => {
   beforeEach(() => {
@@ -385,6 +404,7 @@ describe('deleteFilesAfterUpload', () => {
       },
       sourcemaps: {
         filesToDeleteAfterUpload: expect.any(Promise),
+        deleteSourcemapsAfterUpload: false,
       },
     });
 
@@ -463,6 +483,7 @@ describe('deleteFilesAfterUpload', () => {
         },
         sourcemaps: {
           filesToDeleteAfterUpload: expect.any(Promise),
+          deleteSourcemapsAfterUpload: false,
         },
       });
 

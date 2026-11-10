@@ -104,7 +104,7 @@ export { parameterize, fmt } from './utils/parameterize';
 export type { HandleTunnelRequestOptions } from './utils/tunnelForward';
 export { handleTunnelRequest } from './utils/tunnelForward';
 export {
-  applyTunnelDefaults as _INTERNAL_applyTunnelDefaults,
+  applyBrowserTunnelDefaults as _INTERNAL_applyBrowserTunnelDefaults,
   getTunnelPath,
   normalizeTunnelBasePath as _INTERNAL_normalizeTunnelBasePath,
 } from './utils/tunnel';

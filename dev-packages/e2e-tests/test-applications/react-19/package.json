@@ -4,8 +4,6 @@
   "private": true,
   "dependencies": {
     "@sentry/react": "file:../../packed/sentry-react-packed.tgz",
-    "history": "4.9.0",
-    "@types/history": "4.7.11",
     "@types/node": "^18.19.1",
     "@types/react": "npm:types-react@rc",
     "@types/react-dom": "npm:types-react-dom@rc",

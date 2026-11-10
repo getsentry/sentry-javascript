@@ -1,12 +1,13 @@
 import type { Event, SerializedStreamedSpanContainer } from '@sentry/core';
 import {
+  GEN_AI_CONVERSATION_ID,
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_TOOL_NAME,
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
+import { GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
@@ -146,9 +147,23 @@ describe('Anthropic integration (1.x)', () => {
           'read',
           'weather',
         ]);
-        for (const toolSpan of toolSpans) {
-          expect(toolSpan.parent_span_id, toolSpan.name).toBe(main.span_id);
+        const agentSpans = receivedSpans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT);
+        expect(agentSpans).toHaveLength(2);
+        for (const sessionId of ['sesn_weather', 'sesn_direct']) {
+          const agent = agentSpans.find(span => span.attributes[GEN_AI_CONVERSATION_ID]?.value === sessionId)!;
+          expect(agent.parent_span_id, sessionId).toBe(main.span_id);
+          const sessionTools = toolSpans.filter(span => span.attributes[GEN_AI_CONVERSATION_ID]?.value === sessionId);
+          expect(sessionTools.map(span => span.parent_span_id)).toEqual(sessionTools.map(() => agent.span_id));
         }
+        expect(
+          toolSpans
+            .map(span => [span.attributes[GEN_AI_TOOL_NAME]?.value, span.attributes[GEN_AI_CONVERSATION_ID]?.value])
+            .sort(),
+        ).toEqual([
+          ['explode', 'sesn_weather'],
+          ['read', 'sesn_direct'],
+          ['weather', 'sesn_weather'],
+        ]);
         const weather = toolSpans.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'weather')!;
         expect(weather.attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE]).toEqual({ type: 'string', value: 'sevt_weather' });
         expect(receivedEvent?.exception?.values?.[0]?.value).toBe('Tool exploded');

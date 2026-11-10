@@ -46,6 +46,12 @@ describe('invokeOrchestrionInstrumentation', () => {
     delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
   });
 
+  it('records on the marker that a channel integration is installed', () => {
+    invokeOrchestrionInstrumentation(makeClient() as never, ['mysql'], vi.fn(), []);
+
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.channelIntegrations).toBe(true);
+  });
+
   it('subscribes immediately when a module is already injected', () => {
     GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { runtime: ['mysql'] };
     const client = makeClient();

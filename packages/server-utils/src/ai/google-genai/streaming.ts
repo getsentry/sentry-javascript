@@ -122,6 +122,7 @@ export async function* instrumentStream(
   stream: AsyncIterable<GoogleGenAIResponse>,
   span: Span,
   recordOutputs: boolean,
+  abortSignal?: AbortSignal,
 ): AsyncGenerator<GoogleGenAIResponse, void, unknown> {
   const state: StreamingState = {
     responseTexts: [],
@@ -135,6 +136,9 @@ export async function* instrumentStream(
       processChunk(chunk, state, recordOutputs, span);
       yield chunk;
     }
+  } catch (error) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: abortSignal?.aborted ? 'cancelled' : 'internal_error' });
+    throw error;
   } finally {
     if (recordOutputs) {
       setOutputMessagesAttribute(span, state.outputParts);

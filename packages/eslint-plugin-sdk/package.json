@@ -26,13 +26,13 @@
     "eslint": "^8.57.0"
   },
   "scripts": {
-    "clean": "pnpm exec rimraf sentry-eslint-plugin-sdk-*.tgz",
+    "clean": "node ../../scripts/rm.mjs sentry-eslint-plugin-sdk-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "build:tarball": "npm pack",
+    "build:tarball": "pnpm pack",
     "circularDepCheck": "madge --circular src/index.js"
   }
 }

@@ -28,10 +28,10 @@
   "scripts": {
     "build": "rollup --config",
     "build:dev": "pnpm run build",
-    "build:tarball": "npm pack",
+    "build:tarball": "pnpm pack",
     "build:watch": "rollup --config --watch",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf dist declarations *.tgz .turbo",
+    "clean": "node ../../scripts/rm.mjs dist declarations *.tgz .turbo",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
@@ -45,7 +45,7 @@
     "@embroider/addon-shim": "^1.11.0",
     "@embroider/macros": "^1.20.2",
     "@sentry/browser": "11.11.0",
-    "@sentry/conventions": "^0.30.0",
+    "@sentry/conventions": "^0.32.0",
     "@sentry/core": "11.11.0",
     "decorator-transforms": "^2.3.2"
   },
@@ -56,14 +56,13 @@
     "@ember/app-tsconfig": "^2.0.0",
     "@ember/library-tsconfig": "^2.0.0",
     "@embroider/addon-dev": "^8.3.0",
-    "@embroider/compat": "^4.1.17",
     "@embroider/core": "^4.4.7",
     "@embroider/vite": "^1.7.2",
     "@glint/ember-tsc": "^1.5.0",
     "@rollup/plugin-babel": "^7.0.0",
     "ember-source": "^6.12.0",
     "typescript": "~5.8.0",
-    "vite": "^8.3.5"
+    "vite": "^8.3.6"
   },
   "engines": {
     "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"

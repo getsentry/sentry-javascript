@@ -2,6 +2,7 @@ import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { Client } from '@sentry/core';
 import { addNonEnumerableProperty, debug, GLOBAL_OBJ, waitForTracingChannelBinding } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import { isBun, isCloudflareWorkers, isDeno } from '../utils/runtime';
 import { getOrchestrionInjectedModules } from './detect';
 
 // Marks an instrumentation callback as already run, so it subscribes at most once
@@ -12,10 +13,6 @@ const INSTRUMENTED = Symbol.for('SentryOrchestrionInstrumented');
 // generic function arguments can only be `any`
 // oxlint-disable-next-line typescript/no-explicit-any
 type InstrumentationFn = ((...args: any[]) => void) & { [INSTRUMENTED]?: boolean };
-
-const globalAny = globalThis as { Bun?: unknown; Deno?: unknown; navigator?: { userAgent?: string } };
-const isBun = typeof globalAny.Bun !== 'undefined';
-const isDeno = typeof globalAny.Deno !== 'undefined';
 
 // Labels already warned about, so a client per request does not repeat the warning.
 const warnedMissingCloudflarePlugin = new Set<string>();
@@ -58,6 +55,8 @@ export function invokeOrchestrionInstrumentation<Callback extends Instrumentatio
   // they pass `false` so a missing binding never blocks their subscription.
   { requiresTracingChannelBinding = true }: { requiresTracingChannelBinding?: boolean } = {},
 ): void {
+  (GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ??= {}).channelIntegrations = true;
+
   const label = moduleNames.join(', ');
 
   // `tracingChannel` is unavailable before Node 18.19; nothing to subscribe to.
@@ -102,7 +101,7 @@ export function invokeOrchestrionInstrumentation<Callback extends Instrumentatio
     }
   };
 
-  if (isBun || isDeno) {
+  if (isBun() || isDeno()) {
     DEBUG_BUILD && debug.log(`[instrumentation:${label}] Bun/Deno, subscribing eagerly`);
     run();
     return;
@@ -120,7 +119,7 @@ export function invokeOrchestrionInstrumentation<Callback extends Instrumentatio
   // from the plugin defines `bundler` at boot, so without it the channels never fire.
   if (
     DEBUG_BUILD &&
-    globalAny.navigator?.userAgent === 'Cloudflare-Workers' &&
+    isCloudflareWorkers() &&
     !GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler &&
     !warnedMissingCloudflarePlugin.has(label)
   ) {

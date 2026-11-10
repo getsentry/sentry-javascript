@@ -28,7 +28,7 @@
   ],
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/conventions": "^0.30.0",
+    "@sentry/conventions": "^0.32.0",
     "@sentry/core": "11.11.0",
     "@sentry/server-runtime-injection": "11.11.0",
     "@sentry/server-utils": "11.11.0"
@@ -42,9 +42,9 @@
     "build:dev": "pnpm run build",
     "build:transpile": "pnpm run deno-types && rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:tarball": "npm pack",
+    "build:tarball": "pnpm pack",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build build-types build-test coverage node_modules/.deno sentry-deno-*.tgz",
+    "clean": "node ../../scripts/rm.mjs build build-types build-test coverage node_modules/.deno sentry-deno-*.tgz",
     "prefix": "pnpm run deno-types",
     "prelint": "pnpm run deno-types",
     "lint": "oxlint . --type-aware",
