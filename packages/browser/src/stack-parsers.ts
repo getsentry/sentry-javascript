@@ -56,8 +56,10 @@ function createFrame(filename: string, func: string, lineno?: number, colno?: nu
 const chromeRegexNoFnName = /^\s*at (\S+?)(?::(\d+))(?::(\d+))\s*$/i;
 
 // This regex matches all the frames that have a function name.
+// The negative lookahead skips a `(` that belongs to the function name rather than the location,
+// e.g. `methodCaller< (emscripten::val) => void>`: there, a `)` closes before the next `(` opens.
 const chromeRegex =
-  /^\s*at (?:(.+?\)(?: \[.+\])?|.*?) ?\((?:address at )?)?(?:async )?((?:<anonymous>|[-a-z]+:|.*bundle|\/)?.*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
+  /^\s*at (?:(.+?\)(?: \[.+\])?|.*?) ?\((?![^()]*\)[^()]*\()(?:address at )?)?(?:async )?((?:<anonymous>|[-a-z]+:|.*bundle|\/)?.*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
 
 const chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/;
 
@@ -117,7 +119,7 @@ export const chromeStackLineParser: StackLineParser = [CHROME_PRIORITY, chromeSt
 // generates filenames without a prefix like `file://` the filenames in the stacktrace are just 42.js
 // We need this specific case for now because we want no other regex to match.
 const geckoREgex =
-  /^\s*(.*?)(?:\((.*?)\))?(?:^|@)?((?:[-a-z]+)?:\/.*?|\[native code\]|[^@]*(?:bundle|\d+\.js)|\/[\w\-. /=]+)(?::(\d+))?(?::(\d+))?\s*$/i;
+  /^\s*(.*?)(?:\(([^()]*)\))?(?:^|@)?((?:[-a-z]+)?:\/.*?|\[native code\]|[^@]*(?:bundle|\d+\.js)|\/[\w\-. /=]+)(?::(\d+))?(?::(\d+))?\s*$/i;
 const geckoEvalRegex = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i;
 
 const gecko: StackLineParserFn = line => {

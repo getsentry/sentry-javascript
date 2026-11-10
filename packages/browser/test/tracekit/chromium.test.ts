@@ -715,24 +715,24 @@ describe('Tracekit - Chrome Tests', () => {
             lineno: 2201,
           },
           {
-            filename:
-              'int) const, int, MyClass const*, int>::invoke(int (MyClass::* const&)(int) const, MyClass const*, int) (http://localhost:8001/main.wasm:wasm-function[152]:0x47df',
-            function: 'emscripten::internal::MethodInvoker<int (MyClass::*)',
+            filename: 'int) const, MyClass const*, int) (http://localhost:8001/main.wasm:wasm-function[152]:0x47df',
+            function:
+              'emscripten::internal::MethodInvoker<int (MyClass::*)(int) const, int, MyClass const*, int>::invoke(int (MyClass::* const&)',
             in_app: true,
           },
           {
-            filename: 'int) const (http://localhost:8001/main.wasm:wasm-function[182]:0x540b',
-            function: 'MyClass::getAt',
+            filename: 'http://localhost:8001/main.wasm:wasm-function[182]:0x540b',
+            function: 'MyClass::getAt(int) const',
             in_app: true,
           },
           {
-            filename: 'int) const (http://localhost:8001/main.wasm:wasm-function[186]:0x5637',
-            function: 'MyClass::foo',
+            filename: 'http://localhost:8001/main.wasm:wasm-function[186]:0x5637',
+            function: 'MyClass::foo(int) const',
             in_app: true,
           },
           {
-            filename: 'int) const (http://localhost:8001/main.wasm:wasm-function[190]:0x5aeb',
-            function: 'MyClass::bar',
+            filename: 'http://localhost:8001/main.wasm:wasm-function[190]:0x5aeb',
+            function: 'MyClass::bar(int) const',
             in_app: true,
           },
         ],
@@ -788,6 +788,49 @@ describe('Tracekit - Chrome Tests', () => {
       },
       type: 'Error',
       value: 'Error from data-uri module',
+    });
+  });
+
+  it('should parse function names containing parentheses', () => {
+    const EMSCRIPTEN_ERROR = {
+      message: "Cannot create property 'imageData' on boolean 'false'",
+      name: 'TypeError',
+      stack: `TypeError: Cannot create property 'imageData' on boolean 'false'
+    at Drawing.blitterFree (https://example.com/assets/main.js:273:13)
+    at methodCaller< (emscripten::val) => void> (https://example.com/assets/worker-BBxJRpa6.js:1:43074)
+    at wasmImports._emval_invoke (https://example.com/assets/emcc-runtime.js:1:52388)`,
+    };
+
+    const ex = exceptionFromError(parser, EMSCRIPTEN_ERROR);
+
+    expect(ex).toStrictEqual({
+      type: 'TypeError',
+      value: "Cannot create property 'imageData' on boolean 'false'",
+      stacktrace: {
+        frames: [
+          {
+            filename: 'https://example.com/assets/emcc-runtime.js',
+            function: 'wasmImports._emval_invoke',
+            in_app: true,
+            lineno: 1,
+            colno: 52388,
+          },
+          {
+            filename: 'https://example.com/assets/worker-BBxJRpa6.js',
+            function: 'methodCaller< (emscripten::val) => void>',
+            in_app: true,
+            lineno: 1,
+            colno: 43074,
+          },
+          {
+            filename: 'https://example.com/assets/main.js',
+            function: 'Drawing.blitterFree',
+            in_app: true,
+            lineno: 273,
+            colno: 13,
+          },
+        ],
+      },
     });
   });
 });
