@@ -166,8 +166,9 @@ describe('Anthropic integration (1.x)', () => {
         const spans = await getSpans();
 
         expect(spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT)).toHaveLength(
-          // Plus the failed request and the follow-up of `thread_stream_failed_signal_reuse`.
-          MODES.flatMap(({ turns }) => turns).length + STATUS_ONLY_MODES.length + 2,
+          // Plus the failed request and the follow-up of `thread_stream_failed_signal_reuse`, and the three requests
+          // of `thread_stream_recovered`.
+          MODES.flatMap(({ turns }) => turns).length + STATUS_ONLY_MODES.length + 2 + 3,
         );
         expect(spans.filter(span => span.name.startsWith('anthropic.'))).toEqual([]);
       });
@@ -208,6 +209,19 @@ describe('Anthropic integration (1.x)', () => {
 
         expect(chatSpans).toHaveLength(1);
         expect(chatSpans[0]!.status).toBe(status);
+      });
+
+      // Deliberate. The rejected attempt was a real request that failed, like an http.client span that a retry
+      // recovers from. Hiding it would mean copying the SDK's private recovery rules: they replay only some error codes,
+      // only on a `continue`, and may change in any release, so a copy would silently hide real errors.
+      test('keeps an error span for the attempt of a turn the thread recovered from', async () => {
+        const chatSpans = await chatSpansUnder('thread_stream_recovered');
+
+        expect(chatSpans.map(span => [span.attributes[GEN_AI_RESPONSE_ID]?.value, span.status])).toEqual([
+          ['msg_thread_stream_recovered_1', 'ok'],
+          [undefined, 'error'],
+          ['msg_thread_stream_recovered_2', 'ok'],
+        ]);
       });
 
       test("ends the span of a request sent with a failed stream's signal", async () => {

@@ -65,6 +65,8 @@ function streamEvents({ id, content, stop_reason, usage }) {
   return events;
 }
 
+let recoveredReplies = 0;
+
 function startMockAnthropicServer() {
   const app = express();
   app.use(express.json());
@@ -78,11 +80,22 @@ function startMockAnthropicServer() {
     const answersTool = req.body.messages.some(
       message => Array.isArray(message.content) && message.content.some(block => block.type === 'tool_result'),
     );
+    // The server lost the thread, so the SDK replays the turn that continues it.
+    if (mode === 'thread_stream_recovered' && req.body.thread?.type === 'continue') {
+      res.status(404).json({
+        type: 'error',
+        error: { type: 'not_found_error', message: 'Thread not found', details: { error_code: 'thread_not_found' } },
+      });
+      return;
+    }
     if (mode === 'thread_stream_failed_signal_reuse' && !answersTool) {
       res.status(400).json({ type: 'error', error: { type: 'invalid_request_error', message: 'Bad thread' } });
       return;
     }
-    const message = reply(mode, answersTool ? 'final' : 'tools');
+    const message =
+      mode === 'thread_stream_recovered'
+        ? { ...reply(mode, 'final'), id: `msg_${mode}_${(recoveredReplies += 1)}` }
+        : reply(mode, answersTool ? 'final' : 'tools');
 
     if (!req.body.stream) {
       res.json({ type: 'message', role: 'assistant', model: MODEL, stop_sequence: null, ...message });
@@ -190,6 +203,11 @@ const MODES = {
       .stream(params.messages)
       .finalMessage()
       .catch(() => {});
+  },
+  async thread_stream_recovered(client) {
+    const thread = client.beta.messages.thread({ model: MODEL, max_tokens: 100 });
+    await thread.stream(params.messages).finalMessage();
+    await thread.stream([{ role: 'user', content: 'And tomorrow?' }]).finalMessage();
   },
   async thread_stream_error(client) {
     await client.beta.messages
