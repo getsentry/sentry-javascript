@@ -303,5 +303,10 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
     }
   });
 
+  // An aborted stream emits only `abort` and `end`, never `message` or `error`.
+  stream.on('end', () => {
+    endStreamSpan(span, state, recordOutputs);
+  });
+
   return stream;
 }
