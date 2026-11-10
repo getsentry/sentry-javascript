@@ -45,7 +45,7 @@
     "@embroider/addon-shim": "^1.11.0",
     "@embroider/macros": "^1.20.2",
     "@sentry/browser": "11.11.0",
-    "@sentry/conventions": "^0.31.0",
+    "@sentry/conventions": "^0.32.0",
     "@sentry/core": "11.11.0",
     "decorator-transforms": "^2.3.2"
   },
@@ -56,7 +56,6 @@
     "@ember/app-tsconfig": "^2.0.0",
     "@ember/library-tsconfig": "^2.0.0",
     "@embroider/addon-dev": "^8.3.0",
-    "@embroider/compat": "^4.1.17",
     "@embroider/core": "^4.4.7",
     "@embroider/vite": "^1.7.2",
     "@glint/ember-tsc": "^1.5.0",
