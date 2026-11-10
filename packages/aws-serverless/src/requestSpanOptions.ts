@@ -39,6 +39,7 @@ import {
   filterCollectedUrl,
 } from '@sentry/core';
 import type { Context } from 'aws-lambda';
+import { getHttpRequestAttributes } from './httpEventAttributes';
 
 interface ApiGatewayLikeEvent {
   headers?: Record<string, string | undefined>;
@@ -73,6 +74,7 @@ export function getRequestSpanOptions(event: unknown, context: Context, requestI
       [CLOUD_PLATFORM]: 'aws_lambda',
       [FAAS_NAME]: functionName,
       [FAAS_COLDSTART]: requestIsColdStart,
+      ...getHttpRequestAttributes(event, client),
       ...extractOtherEventFields(event),
     },
   };

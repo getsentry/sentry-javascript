@@ -21,6 +21,7 @@ import { continueTrace, debug, SPAN_STATUS_ERROR, startSpanManual } from '@sentr
 import { captureException } from '@sentry/node';
 import type { Callback, Context, Handler, StreamifyHandler } from 'aws-lambda';
 import { DEBUG_BUILD } from './debug-build';
+import { getHttpResponseAttributes } from './httpEventAttributes';
 import { getRequestSpanOptions } from './requestSpanOptions';
 import { AWS_HANDLER_HIGHWATERMARK_SYMBOL, AWS_HANDLER_STREAMING_SYMBOL, isStreamingHandler, wrapHandler } from './sdk';
 import { getAwsTraceData, markEventUnhandled } from './utils';
@@ -122,7 +123,7 @@ function getPatchedHandler(original: Handler | StreamifyHandler, lambdaStartTime
         // the handler and see if the result is a Promise or not. In such a case, the callback is usually ignored. If
         // the handler happened to both call the callback and complete a returned Promise, whichever happens first will
         // win and the latter will be ignored.
-        const wrappedCallback = wrapCallback(callback, span);
+        const wrappedCallback = wrapCallback(callback, span, event);
 
         let maybePromise: Promise<unknown> | undefined;
         try {
@@ -139,7 +140,7 @@ function getPatchedHandler(original: Handler | StreamifyHandler, lambdaStartTime
           return maybePromise;
         }
 
-        return handlePromiseResult(span, maybePromise);
+        return handlePromiseResult(span, maybePromise, event);
       }),
     );
   };
@@ -149,10 +150,15 @@ function captureLambdaError(err: Error | string): void {
   captureException(err, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.otel'));
 }
 
-function handlePromiseResult(span: Span, maybePromise: Promise<unknown> | undefined): Promise<unknown> | undefined {
+function handlePromiseResult(
+  span: Span,
+  maybePromise: Promise<unknown> | undefined,
+  event?: LambdaEvent,
+): Promise<unknown> | undefined {
   if (typeof maybePromise?.then === 'function') {
     return maybePromise.then(
       value => {
+        span.setAttributes(getHttpResponseAttributes(event, value));
         endSpan(span, undefined);
         return value;
       },
@@ -165,15 +171,18 @@ function handlePromiseResult(span: Span, maybePromise: Promise<unknown> | undefi
   }
 
   // Handle synchronous return values by ending the span
+  span.setAttributes(getHttpResponseAttributes(event, maybePromise));
   endSpan(span, undefined);
   return maybePromise;
 }
 
-function wrapCallback(original: Callback, span: Span): Callback {
+function wrapCallback(original: Callback, span: Span, event: LambdaEvent): Callback {
   return function wrappedCallback(this: unknown, err, res) {
     DEBUG_BUILD && debug.log('executing wrapped lambda callback function');
     if (err) {
       captureLambdaError(err);
+    } else {
+      span.setAttributes(getHttpResponseAttributes(event, res));
     }
 
     endSpan(span, err);
