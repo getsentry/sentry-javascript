@@ -1065,11 +1065,13 @@ function canUploadSourceMaps(options: NormalizedOptions, logger: Logger, isDevMo
 }
 
 function warnAboutDirectoriesWithoutSourcemaps(logger: Logger, directories: string[]): void {
-  for (const directory of directories) {
-    logger.warn(
-      `No source maps found in "${directory}", so nothing was uploaded from it. ` +
-        'This usually means source map generation is not enabled for this build output. ' +
-        'Enable it so Sentry can un-minify stack traces from these files.',
-    );
+  if (directories.length === 0) {
+    return;
   }
+  const list = directories.map(directory => `  - ${directory}`).join('\n');
+  logger.warn(
+    `No source maps found in the following directories, so nothing was uploaded from them:\n${list}\n` +
+      'This usually means source map generation is not enabled for these build outputs. ' +
+      'Enable it so Sentry can un-minify stack traces from these files.',
+  );
 }

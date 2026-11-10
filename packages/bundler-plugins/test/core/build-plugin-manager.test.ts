@@ -365,9 +365,31 @@ describe('createSentryBuildPluginManager', () => {
         expect.objectContaining({ directory: '.next/server', allowEmpty: true }),
       );
       expect(warnSpy).toHaveBeenCalledOnce();
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('No source maps found in ".next/server"'));
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('  - .next/server\n'));
       expect(infoSpy).toHaveBeenCalledWith('Successfully uploaded source maps to Sentry');
       expect(result).toEqual({ uploaded: true });
+
+      vi.restoreAllMocks();
+    });
+
+    it('warns once and lists every directory without source maps', async () => {
+      mockSourcemapUpload
+        .mockResolvedValueOnce({ filesUploaded: 0 })
+        .mockResolvedValueOnce({ filesUploaded: 0 })
+        .mockResolvedValueOnce({ filesUploaded: 4 });
+
+      const manager = createSentryBuildPluginManager(
+        { authToken: 't', org: 'o', project: 'p', release: { name: 'some-release-name' } },
+        { buildTool: 'webpack', loggerPrefix: '[sentry-webpack-plugin]' },
+      );
+      const warnSpy = vi.spyOn(manager.logger, 'warn');
+
+      await manager.uploadSourcemaps(['.next/server', '.next/edge', '.next/static/chunks'], {
+        prepareArtifacts: false,
+      });
+
+      expect(warnSpy).toHaveBeenCalledOnce();
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('  - .next/server\n  - .next/edge\n'));
 
       vi.restoreAllMocks();
     });
