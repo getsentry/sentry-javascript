@@ -48,7 +48,8 @@ import type { WebVitalsOptions } from '../integrations/webVitals';
 import { webVitalsIntegration } from '../integrations/webVitals';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
-import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
+import { xhrTracingIntegration } from '../integrations/xhrTracing';
+import { defaultRequestInstrumentationOptions, instrumentFetchRequests } from './request';
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_OP,
@@ -286,7 +287,7 @@ export interface BrowserTracingOptions {
  */
 export type BrowserTracingCoreOptions = Omit<
   BrowserTracingOptions,
-  'enableInp' | 'webVitals' | 'enableElementTiming' | 'enableLongTask' | 'enableLongAnimationFrame'
+  'enableInp' | 'webVitals' | 'enableElementTiming' | 'enableLongTask' | 'enableLongAnimationFrame' | 'traceXHR'
 >;
 
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingCoreOptions = {
@@ -322,8 +323,18 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     });
   }
 
-  // oxlint-disable-next-line typescript/no-deprecated -- still honoured until it is removed
-  const { enableInp = true, webVitals, enableLongTask = true, enableLongAnimationFrame = true } = options;
+  const {
+    // oxlint-disable-next-line typescript/no-deprecated -- still honoured until it is removed
+    enableInp = true,
+    webVitals,
+    enableLongTask = true,
+    enableLongAnimationFrame = true,
+    traceXHR = true,
+    shouldCreateSpanForRequest,
+    enableHTTPTimings,
+    onRequestSpanStart,
+    onRequestSpanEnd,
+  } = options;
 
   return _browserTracingIntegration(options, client => {
     // Custom clients and test doubles may not implement it.
@@ -341,6 +352,12 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
     if (enableLongTask || enableLongAnimationFrame) {
       client.addIntegration(longTasksIntegration({ enableLongTask, enableLongAnimationFrame }));
+    }
+
+    if (traceXHR) {
+      client.addIntegration(
+        xhrTracingIntegration({ shouldCreateSpanForRequest, enableHTTPTimings, onRequestSpanStart, onRequestSpanEnd }),
+      );
     }
   });
 }) satisfies IntegrationFn;
@@ -372,7 +389,6 @@ function _browserTracingIntegration(
     childSpanTimeout,
     markBackgroundSpan,
     traceFetch,
-    traceXHR,
     shouldCreateSpanForRequest,
     enableHTTPTimings,
     ignoreResourceSpans,
@@ -761,15 +777,15 @@ function _browserTracingIntegration(
         registerBackgroundTabDetection();
       }
 
-      instrumentOutgoingRequests(client, {
-        traceFetch,
-        traceXHR,
-        tracePropagationTargets: client.getOptions().tracePropagationTargets,
-        shouldCreateSpanForRequest,
-        enableHTTPTimings,
-        onRequestSpanStart,
-        onRequestSpanEnd,
-      });
+      if (traceFetch) {
+        instrumentFetchRequests(client, {
+          tracePropagationTargets: client.getOptions().tracePropagationTargets,
+          shouldCreateSpanForRequest,
+          enableHTTPTimings,
+          onRequestSpanStart,
+          onRequestSpanEnd,
+        });
+      }
     },
   } satisfies Integration;
 }
