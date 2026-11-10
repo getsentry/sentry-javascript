@@ -1,11 +1,16 @@
 const { execSync } = require('child_process');
+const { globSync, rmSync } = require('fs');
+
+for (const path of globSync(['suites/**/node_modules', 'suites/**/tmp_*'])) {
+  rmSync(path, { recursive: true, force: true });
+}
 
 // The runner (utils/runner/createRunner.ts) starts each suite's docker compose
 // stack under a project name prefixed with `sentry-it-`, derived by hashing the
 // working directory. Some suites (e.g. the Prisma tests) run from a temporary
 // directory whose path — and therefore whose derived project name — isn't known
 // ahead of time and no longer exists on disk by the time this script runs (the
-// `clean` npm script removes `tmp_*` dirs first). Reconstructing project names
+// `tmp_*` dirs are removed above). Reconstructing project names
 // from compose file paths therefore misses those stacks and leaks containers.
 //
 // Instead, ask Docker for every `sentry-it-*` project it still knows about and

@@ -51,7 +51,7 @@
     "build:bundle:watch": "pnpm run build:bundle --watch",
     "build:tarball": "pnpm pack",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build sentry-feedback-*.tgz",
+    "clean": "node ../../scripts/rm.mjs build sentry-feedback-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",

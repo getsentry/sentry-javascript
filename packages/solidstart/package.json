@@ -117,7 +117,7 @@
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "pnpm pack",
     "circularDepCheck": "madge --circular src/index.client.ts src/index.server.ts src/index.types.ts src/solidrouter.client.ts src/solidrouter.server.ts src/solidrouter.ts",
-    "clean": "rimraf build coverage sentry-solidstart-*.tgz ./*.d.ts ./*.d.ts.map ./client ./server",
+    "clean": "node ../../scripts/rm.mjs build coverage sentry-solidstart-*.tgz ./*.d.ts ./*.d.ts.map ./client ./server",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",

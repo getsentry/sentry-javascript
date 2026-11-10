@@ -117,7 +117,7 @@
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "pnpm pack",
     "circularDepCheck": "madge --circular src/index.server.ts src/index.client.ts",
-    "clean": "rimraf build coverage sentry-remix-*.tgz",
+    "clean": "node ../../scripts/rm.mjs build coverage sentry-remix-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",

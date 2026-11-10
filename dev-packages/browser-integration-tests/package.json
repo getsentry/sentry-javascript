@@ -8,7 +8,7 @@
   },
   "private": true,
   "scripts": {
-    "clean": "rimraf -g suites/**/dist loader-suites/**/dist tmp",
+    "clean": "node scripts/clean.mjs",
     "install-browsers": "[[ -z \"$SKIP_PLAYWRIGHT_BROWSER_INSTALL\" ]] && npx playwright install --with-deps || echo 'Skipping browser installation'",
     "lint": "oxlint . --type-aware",
     "lint:fix": "oxlint . --fix --type-aware",
