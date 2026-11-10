@@ -262,6 +262,26 @@ describe('browserTracingIntegration', () => {
     expect(!!client.getIntegrationByName('XhrTracing')).toBe(registered);
   });
 
+  it.each([
+    ['registers linkedTracesIntegration by default', {}, true],
+    [
+      'does not register linkedTracesIntegration when linkPreviousTrace is off',
+      { linkPreviousTrace: 'off' as const },
+      false,
+    ],
+  ])('%s', (_name, options, registered) => {
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingIntegration(options)],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(!!client.getIntegrationByName('LinkedTraces')).toBe(registered);
+  });
+
   it('keeps the webVitalsIntegration the user supplies', () => {
     const userWebVitals = webVitalsModule.webVitalsIntegration({ softNavigations: false });
 
