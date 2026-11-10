@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 
 // Several requests hit the same isolate, so later ones run with the client the first one cached.
 test('captures an API route error with the Cloudflare-backed server SDK on every request', async ({ request }) => {
@@ -9,7 +10,7 @@ test('captures an API route error with the Cloudflare-backed server SDK on every
     });
 
     const spanPromise = waitForStreamedSpan('astro-5-cf-pages', span => {
-      return getSpanOp(span) === 'http.server' && span.is_segment && span.name === 'GET /api/request-error';
+      return getSpanOp(span) === HTTP_SERVER && span.is_segment && span.name === 'GET /api/request-error';
     });
 
     await request.get(`/api/request-error?request=${i}`);
