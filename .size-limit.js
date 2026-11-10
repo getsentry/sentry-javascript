@@ -65,6 +65,13 @@ module.exports = [
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
+    name: '@sentry/browser (incl. Tracing Core)',
+    path: 'packages/browser/build/npm/esm/prod/index.js',
+    import: createImport('init', 'browserTracingCoreIntegration'),
+    gzip: true,
+    disablePlugins: ['@size-limit/esbuild'],
+  },
+  {
     name: '@sentry/browser (incl. Tracing + Span Streaming)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'spanStreamingIntegration'),
