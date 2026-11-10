@@ -15,7 +15,8 @@
     "@earendil-works/pi-ai": "1.2.0",
     "@earendil-works/pi-durable": "1.2.0",
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
-    "agents": "0.26.0"
+    "agents": "0.26.0",
+    "typebox": "1.3.27"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.57.2",
