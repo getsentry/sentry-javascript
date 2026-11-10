@@ -324,17 +324,10 @@ describe('sentryTanstackStart()', () => {
   });
 
   describe('server instrumentation', () => {
-    it('passes the server instrumentation options through', () => {
-      sentryTanstackStart({
-        serverInstrumentationFile: 'sentry.server.ts',
-        debug: true,
-        sourcemaps: { disable: true },
-      });
+    it('passes debug through to the server instrumentation plugin', () => {
+      sentryTanstackStart({ debug: true, sourcemaps: { disable: true } });
 
-      expect(makeServerInstrumentationPlugin).toHaveBeenCalledWith({
-        serverInstrumentationFile: 'sentry.server.ts',
-        debug: true,
-      });
+      expect(makeServerInstrumentationPlugin).toHaveBeenCalledWith({ debug: true });
     });
 
     it('does not add the server instrumentation plugin in development mode', () => {

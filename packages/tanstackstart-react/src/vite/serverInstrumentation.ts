@@ -1,39 +1,24 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { consoleSandbox } from '@sentry/core';
 import type { Plugin } from 'vite';
 
-const DEFAULT_FILE_NAMES = [
-  'instrument.server.ts',
-  'instrument.server.mts',
-  'instrument.server.js',
-  'instrument.server.mjs',
-];
-const DEFAULT_DIRECTORIES = ['', 'src'];
+const FILE_NAMES = ['instrument.server.ts', 'instrument.server.mts', 'instrument.server.js', 'instrument.server.mjs'];
+const DIRECTORIES = ['', 'src'];
 
 const NITRO_PLUGIN_ID = '#sentry/tanstackstart-server-instrumentation';
 
 /** The parts of the Nitro instance that this plugin uses. */
 type Nitro = {
-  options: {
-    dev: boolean;
-    preset: string;
-    rootDir: string;
-    plugins: string[];
-    virtual: Record<string, string>;
-  };
+  options: { dev: boolean; preset: string; rootDir: string; plugins: string[]; virtual: Record<string, string> };
 };
 
-/**
- * Finds the file that calls `Sentry.init()` for the server: `instrument.server.{ts,mts,js,mjs}` in the root or in
- * `src/`.
- */
+/** Finds `instrument.server.{ts,mts,js,mjs}` in the project root or in `src/`. */
 export function findServerInstrumentationFile(root: string): string | undefined {
-  for (const directory of DEFAULT_DIRECTORIES) {
-    for (const fileName of DEFAULT_FILE_NAMES) {
-      const candidate = path.join(root, directory, fileName);
-      if (fs.existsSync(candidate)) {
-        return candidate;
+  for (const directory of DIRECTORIES) {
+    for (const fileName of FILE_NAMES) {
+      const file = path.join(root, directory, fileName);
+      if (fs.existsSync(file)) {
+        return file;
       }
     }
   }
@@ -41,44 +26,25 @@ export function findServerInstrumentationFile(root: string): string | undefined 
 }
 
 /**
- * Loads the server instrumentation file from a Nitro plugin.
- *
- * Nitro imports the server entry lazily, in the first request. Without `node --import`, a `Sentry.init()` imported
- * from the server entry runs too late to trace that request. Nitro plugins run when the server starts.
+ * Bundles the server instrumentation file into the Nitro build and loads it from a Nitro plugin, which runs when the
+ * server starts. Nitro only imports the server entry in the first request, which is too late to trace that request.
  */
-export function makeServerInstrumentationPlugin({
-  serverInstrumentationFile,
-  debug,
-}: {
-  serverInstrumentationFile?: string | false;
-  debug?: boolean;
-}): Plugin & { nitro: { name: string; setup: (nitro: Nitro) => void } } {
+export function makeServerInstrumentationPlugin({ debug }: { debug?: boolean }): Plugin & {
+  nitro: { name: string; setup: (nitro: Nitro) => void };
+} {
   return {
     name: 'sentry-tanstackstart-server-instrumentation',
     apply: 'build',
     nitro: {
       name: 'sentry-tanstackstart-server-instrumentation',
       setup(nitro) {
-        // The Cloudflare SDK sets itself up from the worker entry, so the Node SDK must not end up in the worker.
-        if (serverInstrumentationFile === false || nitro.options.dev || isCloudflarePreset(nitro.options.preset)) {
+        // On Cloudflare, the Cloudflare SDK sets itself up, and the Node SDK must not end up in the worker.
+        if (nitro.options.dev || isCloudflarePreset(nitro.options.preset)) {
           return;
         }
 
-        const file = serverInstrumentationFile
-          ? path.resolve(nitro.options.rootDir, serverInstrumentationFile)
-          : findServerInstrumentationFile(nitro.options.rootDir);
-
+        const file = findServerInstrumentationFile(nitro.options.rootDir);
         if (!file) {
-          return;
-        }
-
-        if (serverInstrumentationFile && !fs.existsSync(file)) {
-          consoleSandbox(() => {
-            // eslint-disable-next-line no-console
-            console.warn(
-              `[Sentry] Could not find the server instrumentation file \`${serverInstrumentationFile}\`, so the SDK is not initialized when the server starts.`,
-            );
-          });
           return;
         }
 
@@ -89,7 +55,7 @@ export function makeServerInstrumentationPlugin({
         if (debug) {
           // eslint-disable-next-line no-console
           console.log(
-            `[Sentry] Loading \`${path.relative(nitro.options.rootDir, file)}\` when the Nitro server starts.`,
+            `[Sentry] Bundled \`${path.relative(nitro.options.rootDir, file)}\` into the Nitro server build. The SDK initializes itself when the server starts, no \`node --import\` needed.`,
           );
         }
       },

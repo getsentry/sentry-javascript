@@ -1,4 +1,5 @@
 import * as SentryNode from '@sentry/node';
+import { originalConsoleMethods } from '@sentry/core';
 import { SDK_VERSION } from '@sentry/node';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/server';
@@ -40,22 +41,44 @@ describe('TanStack Start React Server SDK', () => {
       expect(init({})).not.toBeUndefined();
     });
 
-    it('keeps the first client when called again', () => {
-      const firstClient = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+    it('skips a second initialization and notifies that the `--import` preload is removable', () => {
+      // `consoleSandbox` calls the method recorded in `originalConsoleMethods`, so a spy on `console.log` misses it.
+      const logMock = vi.fn();
+      const originalLog = originalConsoleMethods.log;
+      originalConsoleMethods.log = logMock;
 
-      expect(init({ dsn: 'https://other@dsn.ingest.sentry.io/42' })).toBe(firstClient);
-      expect(nodeInit).toHaveBeenCalledTimes(1);
-      expect(SentryNode.getClient()).toBe(firstClient);
+      try {
+        const firstClient = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+        const secondClient = init({ dsn: 'https://other@dsn.ingest.sentry.io/42' });
+
+        expect(nodeInit).toHaveBeenCalledTimes(1);
+        expect(secondClient).toBe(firstClient);
+        expect(SentryNode.getClient()).toBe(firstClient);
+        expect(logMock).toHaveBeenCalledWith(expect.stringContaining('already initialized'));
+      } finally {
+        originalConsoleMethods.log = originalLog;
+      }
     });
 
-    it('initializes a new client after the first one is closed', async () => {
+    it('initializes again after close()', async () => {
       const firstClient = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
       await SentryNode.close();
 
       const secondClient = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-      expect(secondClient).not.toBe(firstClient);
       expect(nodeInit).toHaveBeenCalledTimes(2);
+      expect(secondClient).not.toBe(firstClient);
+    });
+
+    it('skips initialization while TanStack Start prerenders', () => {
+      vi.stubEnv('TSS_PRERENDERING', 'true');
+
+      try {
+        expect(init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' })).toBeUndefined();
+        expect(nodeInit).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllEnvs();
+      }
     });
 
     it('sets ignoreSpans to filter low-quality transactions', () => {

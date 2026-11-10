@@ -50,19 +50,6 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
    * the managed tunnel route is being bypassed.
    */
   tunnelRoute?: TunnelRouteOptions;
-
-  /**
-   * The file that calls `Sentry.init()` for the server, relative to the project root.
-   *
-   * With Nitro, the SDK bundles this file into the server build and loads it when the server starts, so the first
-   * request of each server instance is traced even without `node --import`. An existing `--import` of the same file
-   * keeps working: the first `Sentry.init()` wins.
-   *
-   * Set to `false` to load the file yourself.
-   *
-   * @default the first `instrument.server.{ts,mts,js,mjs}` in the project root or in `src/`
-   */
-  serverInstrumentationFile?: string | false;
 }
 
 /**
@@ -106,12 +93,7 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
     return plugins;
   }
 
-  plugins.push(
-    makeServerInstrumentationPlugin({
-      serverInstrumentationFile: options.serverInstrumentationFile,
-      debug: options.debug,
-    }),
-  );
+  plugins.push(makeServerInstrumentationPlugin({ debug: options.debug }));
 
   // Runs the orchestrion code transform over the server bundle so instrumented DB drivers get
   // `diagnostics_channel` publishers injected. Production-only: it force-bundles the instrumented
