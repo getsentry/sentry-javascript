@@ -15,8 +15,6 @@
   },
   "dependencies": {
     "@types/node": "^22.13.14",
-    "dotenv": "^16.4.5",
-    "tsconfig-paths": "^4.2.0",
     "typescript": "5.9.3"
   },
   "devDependencies": {

@@ -16,7 +16,6 @@
   "dependencies": {
     "@mastra/core": "~1.65.0",
     "@mastra/memory": "~1.28.3",
-    "@mastra/observability": "~1.17.6",
     "@openrouter/ai-sdk-provider": "~3.0.0",
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
     "ai": "~7.0.97",
@@ -30,8 +29,7 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "typescript": "^5.5.2",
     "vite": "7.3.5",
-    "wrangler": "^4.86.0",
-    "ws": "^8.18.3"
+    "wrangler": "^4.86.0"
   },
   "sentryTest": {
     "optional": true
