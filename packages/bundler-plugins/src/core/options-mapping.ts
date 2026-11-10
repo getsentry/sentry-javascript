@@ -1,7 +1,7 @@
 import { getVercelEnv } from '@sentry/core';
 import type { Logger } from './logger';
 import type {
-  Options as UserOptions,
+  InternalOptions as UserOptions,
   SetCommitsOptions,
   RewriteSourcesHook,
   ResolveSourceMapHook,
@@ -30,7 +30,7 @@ export type NormalizedOptions = {
         rewriteSources?: RewriteSourcesHook;
         resolveSourceMap?: ResolveSourceMapHook;
         filesToDeleteAfterUpload?: string | string[] | Promise<string | string[] | undefined>;
-        deleteSourcemapsAfterUpload?: boolean;
+        deleteSourcemapsAfterUpload?: boolean | (() => boolean | undefined);
       }
     | undefined;
   release: {
@@ -215,7 +215,7 @@ export function validateOptions(options: NormalizedOptions, logger: Logger): boo
     return false;
   }
 
-  if (options.sourcemaps?.deleteSourcemapsAfterUpload && options.sourcemaps.disable) {
+  if (options.sourcemaps?.deleteSourcemapsAfterUpload === true && options.sourcemaps.disable) {
     logger.warn(
       'The `sourcemaps.deleteSourcemapsAfterUpload` option is set but source map upload is disabled via `sourcemaps.disable`.',
       'Source maps will not be deleted.',

@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import type { SentryBuildPluginManager, SourceMapDecision, SourceMapKind } from '../core';
+import { getDeleteSourcemapsAfterUpload } from '../core';
 import type { OutputMatch, RollupSourceMapSetting, SourceMapHandling } from '../rollup/source-map-handling';
 import { getOutputMatch, sourceMapKindFromRollupSetting } from '../rollup/source-map-handling';
 
@@ -111,7 +112,7 @@ export function createViteSourceMapHooks(
       const environments = config.environments ?? { client: { build: config.build } };
 
       const { uploadPossible } = sentryBuildPluginManager.sourceMaps;
-      const deleteOption = sentryBuildPluginManager.normalizedOptions.sourcemaps?.deleteSourcemapsAfterUpload;
+      const deleteOption = getDeleteSourcemapsAfterUpload(sentryBuildPluginManager.normalizedOptions);
 
       for (const [name, environment] of Object.entries(environments)) {
         const { kind, decision } = decisions.get(name) ?? decisions.get('*') ?? { kind: 'unset', decision: NO_CHANGE };

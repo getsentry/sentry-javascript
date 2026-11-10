@@ -174,7 +174,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (webpack)', () => {
     expectUploadedPair(uploads[0]!, bundle);
   });
 
-  it('keeps hidden source maps the user enabled and uploads them from disk', async () => {
+  it('keeps hidden source maps the user enabled and uploads them', async () => {
     await build(config({}, { devtool: 'hidden-source-map' }));
 
     expect(fs.readdirSync(outDir).sort()).toEqual(['bundle.js', 'bundle.js.map']);
@@ -215,7 +215,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (webpack)', () => {
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Source maps are inlined'));
   });
 
-  it('leaves a manual SourceMapDevToolPlugin alone', async () => {
+  it('leaves the maps of a manual SourceMapDevToolPlugin in place', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const stats = await build({
       ...config({ silent: false }),
@@ -229,6 +229,92 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (webpack)', () => {
     expect(stats.compilation.options.devtool).toBe(false);
     expect(fs.readdirSync(outDir).sort()).toEqual(['bundle.js', 'bundle.js.map']);
     expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('Source map generation is turned off'));
+  });
+
+  describe('with kept source maps', () => {
+    // Changes the bundle on disk before the upload runs, so an upload from
+    // disk carries the marker and a staged one does not. Plugins listed
+    // before the Sentry plugin tap `afterEmit` first.
+    const ON_DISK_MARKER = '// changed on disk';
+    const markBundleOnDisk = {
+      apply(compiler: Compiler) {
+        compiler.hooks.afterEmit.tap('mark-bundle-on-disk', () => {
+          fs.appendFileSync(path.join(outDir, 'bundle.js'), `\n${ON_DISK_MARKER}\n`);
+        });
+      },
+    };
+
+    function withMarker(configuration: Configuration): Configuration {
+      return { ...configuration, plugins: [markBundleOnDisk, ...(configuration.plugins ?? [])] };
+    }
+
+    it.each(['hidden-source-map', 'source-map'])(
+      'stages bundles and keeps their maps for `devtool: %s`',
+      async devtool => {
+        const createdFolders = trackStagingFolders();
+        await build(withMarker(config({}, { devtool })));
+
+        expect(fs.readdirSync(outDir).sort()).toEqual(['bundle.js', 'bundle.js.map']);
+        expect(createdFolders).toHaveLength(1);
+        expect(uploads).toHaveLength(1);
+        expect(Object.keys(uploads[0]!.files)).toHaveLength(2);
+        const { stagedBundle } = expectUploadedPair(
+          uploads[0]!,
+          fs.readFileSync(path.join(outDir, 'bundle.js'), 'utf8'),
+        );
+        expect(stagedBundle).not.toContain(ON_DISK_MARKER);
+      },
+    );
+
+    it('stages bundles with inline source maps', async () => {
+      await build(withMarker(config({}, { devtool: 'inline-source-map' })));
+
+      expect(fs.readdirSync(outDir)).toEqual(['bundle.js']);
+      const debugId = fs.readFileSync(path.join(outDir, 'bundle.js'), 'utf8').match(DEBUG_ID_MARKER)?.[1];
+      expect(uploads).toHaveLength(1);
+      expect(Object.keys(uploads[0]!.files)).toEqual([`${debugId}-0.js`]);
+      expect(uploads[0]!.files[`${debugId}-0.js`]).toContain('sourceMappingURL=data:');
+      expect(uploads[0]!.files[`${debugId}-0.js`]).not.toContain(ON_DISK_MARKER);
+    });
+
+    it('stages the maps of a manual SourceMapDevToolPlugin', async () => {
+      await build(
+        withMarker({
+          ...config(),
+          devtool: false,
+          plugins: [new SourceMapDevToolPlugin({ filename: 'maps/[file].map' }), sentryWebpackPlugin(credentials)],
+        }),
+      );
+
+      expect(fs.readdirSync(path.join(outDir, 'maps'))).toEqual(['bundle.js.map']);
+      expect(uploads).toHaveLength(1);
+      expect(Object.keys(uploads[0]!.files)).toHaveLength(2);
+      const { stagedBundle } = expectUploadedPair(uploads[0]!, fs.readFileSync(path.join(outDir, 'bundle.js'), 'utf8'));
+      expect(stagedBundle).not.toContain(ON_DISK_MARKER);
+    });
+
+    it('uploads a bundle from disk and warns when staging it fails', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const writeFile = fs.promises.writeFile;
+      let stagingWrites = 0;
+      vi.spyOn(fs.promises, 'writeFile').mockImplementation(async (...args: Parameters<typeof writeFile>) => {
+        // The bundle and its map are the first two writes into the folder.
+        if (String(args[0]).includes('sentry-bundler-plugin-upload-') && stagingWrites++ < 2) {
+          throw new Error('disk full');
+        }
+        return writeFile(...args);
+      });
+      await build(withMarker(config({ silent: false }, { devtool: 'hidden-source-map' })));
+
+      expect(fs.readdirSync(outDir).sort()).toEqual(['bundle.js', 'bundle.js.map']);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Could not stage bundle.js for upload, so it is uploaded from the build output.'),
+        expect.any(Error),
+      );
+      expect(uploads).toHaveLength(1);
+      const { stagedBundle } = expectUploadedPair(uploads[0]!, fs.readFileSync(path.join(outDir, 'bundle.js'), 'utf8'));
+      expect(stagedBundle).toContain(ON_DISK_MARKER);
+    });
   });
 
   it('does not touch development builds', async () => {
@@ -428,7 +514,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (webpack)', () => {
     expect(uploads).toHaveLength(1);
   });
 
-  it('keeps the CSS source maps the user enabled', async () => {
+  it('removes the CSS source maps the user enabled when the option is true', async () => {
     fs.writeFileSync(path.join(tmpDir, 'style.css'), 'body { color: red; }\n');
     fs.writeFileSync(path.join(tmpDir, 'entry.js'), "import './style.css';\nconsole.log(42);\n");
     await build(
@@ -439,8 +525,19 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (webpack)', () => {
     );
 
     const files = fs.readdirSync(outDir);
+    expect(files.filter(file => file.endsWith('.css'))).toHaveLength(1);
+    expect(files.filter(file => file.endsWith('.map'))).toEqual([]);
+    expect(uploads).toHaveLength(1);
+  });
+
+  it('keeps the CSS source maps the user enabled when the option is unset', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'style.css'), 'body { color: red; }\n');
+    fs.writeFileSync(path.join(tmpDir, 'entry.js'), "import './style.css';\nconsole.log(42);\n");
+    await build(config({}, { devtool: 'hidden-source-map', experiments: { css: true } }));
+
+    const files = fs.readdirSync(outDir);
     expect(files.filter(file => file.endsWith('.css.map'))).toHaveLength(1);
-    expect(files.filter(file => file.endsWith('.js.map'))).toEqual([]);
+    expect(files.filter(file => file.endsWith('.js.map'))).toHaveLength(1);
     expect(uploads).toHaveLength(1);
   });
 

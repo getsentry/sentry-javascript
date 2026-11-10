@@ -324,7 +324,7 @@ export async function addDebugIdToEmittedArtifacts(
  * be uploaded even when no `.map` file is found, because the source file itself
  * contains the map.
  */
-function bundleHasInlineSourceMap(bundleSource: string): boolean {
+export function bundleHasInlineSourceMap(bundleSource: string): boolean {
   return /^\s*\/\/# sourceMappingURL=data:/m.test(bundleSource);
 }
 

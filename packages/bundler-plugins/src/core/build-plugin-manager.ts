@@ -11,7 +11,7 @@ import { normalizeUserOptions, validateOptions } from './options-mapping';
 import type { Logger } from './logger';
 import { createLogger } from './logger';
 import { allowedToSendTelemetry, createSentryInstance, safeFlushTelemetry } from './sentry/telemetry';
-import type { Options, SentrySDKBuildFlags } from './types';
+import type { InternalOptions, SentrySDKBuildFlags } from './types';
 import { arrayify, getProjects, getTurborepoEnvPassthroughWarning, stripQueryAndHashFromPath } from './utils';
 import {
   defaultRewriteSourcesHook,
@@ -59,19 +59,23 @@ export type UploadStaging = {
    * `mapSource` is `undefined` when the chunk has no separate source map. `mapDir` is the directory
    * the map would be written to and is passed to the `rewriteSources` hook. `chunkPath` is where
    * the chunk is written; `sourcemaps.assets` and `sourcemaps.ignore` are matched against it.
+   *
+   * `mapKept` tells that the bundler still writes the chunk's source map. A failed write then only
+   * warns, and the upload reads the chunk from the build output instead.
    */
   stage(input: {
     code: string;
     mapSource: string | undefined;
     mapDir: string;
     chunkPath: string;
+    mapKept: boolean;
   }): Promise<'staged' | 'skipped' | 'excluded' | 'failed'>;
   /** Removes the folder. Call this when no upload will consume it. */
   discard(): Promise<void>;
   /**
    * Keeps the folder and logs how to upload it by hand. Call this when the bundler already
    * dropped the staged source maps from its output but the upload did not run. Removes the
-   * folder instead when nothing was staged.
+   * folder instead when the build output still holds every staged source map.
    */
   keep(reason: string): Promise<void>;
 };
@@ -183,7 +187,7 @@ export type SentryBuildPluginManager = {
  * The build plugin manager's behavior strongly depends on the options that are passed in.
  */
 export function createSentryBuildPluginManager(
-  userOptions: Options,
+  userOptions: InternalOptions,
   bundlerPluginMetaContext: {
     /**
      * E.g. `webpack` or `nextjs` or `turbopack`
@@ -886,6 +890,7 @@ export function createSentryBuildPluginManager(
       const dir = await createTempUploadFolder();
       const rewriteSourcesHook = options.sourcemaps?.rewriteSources ?? defaultRewriteSourcesHook;
       let count = 0;
+      let removedMapCount = 0;
       let discarded = false;
       const stagedChunkPaths = new Set<string>();
 
@@ -934,13 +939,27 @@ export function createSentryBuildPluginManager(
             return 'skipped';
           }
 
-          const index = count++;
+          const uniqueUploadName = `${result.artifact.debugId}-${count++}`;
 
           try {
-            await writePreparedArtifact(dir, `${result.artifact.debugId}-${index}`, result.artifact);
+            await writePreparedArtifact(dir, uniqueUploadName, result.artifact);
             stagedChunkPaths.add(chunkPath);
+            if (!input.mapKept) {
+              removedMapCount++;
+            }
             return 'staged';
           } catch (e) {
+            if (input.mapKept) {
+              // The upload reads this chunk from disk, so a partial copy here
+              // would upload it twice.
+              await Promise.all(
+                ['js', 'js.map'].map(extension =>
+                  fs.promises.rm(path.join(dir, `${uniqueUploadName}.${extension}`), { force: true }),
+                ),
+              ).catch(rmError => logger.debug(`Failed to remove a partial copy of ${chunkName}:`, rmError));
+              logger.warn(`Could not stage ${chunkName} for upload, so it is uploaded from the build output.`, e);
+              return 'failed';
+            }
             sentryScope.captureException('Error staging build artifact for upload');
             // Throwing by default: the bundler drops the source map from its
             // output once staged, so a lost copy would leave no map at all.
@@ -950,7 +969,7 @@ export function createSentryBuildPluginManager(
         },
         discard,
         async keep(reason) {
-          if (count === 0) {
+          if (removedMapCount === 0) {
             await discard();
             return;
           }

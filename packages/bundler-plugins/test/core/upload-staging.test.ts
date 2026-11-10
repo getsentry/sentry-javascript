@@ -66,6 +66,7 @@ describe('createUploadStaging', () => {
         mapSource: MAP,
         mapDir: '/out',
         chunkPath: path.join('/out', 'index.js'),
+        mapKept: false,
       });
 
       expect(result).toBe('staged');
@@ -91,6 +92,7 @@ describe('createUploadStaging', () => {
         mapSource: MAP,
         mapDir: '/out/assets',
         chunkPath: path.join('/out/assets', 'a.js'),
+        mapKept: false,
       });
     } finally {
       await staging.discard();
@@ -110,6 +112,7 @@ describe('createUploadStaging', () => {
           mapSource: MAP,
           mapDir: '/out',
           chunkPath: path.join('/out', 'a.js'),
+          mapKept: false,
         }),
       ).toBe('skipped');
       expect(
@@ -118,6 +121,7 @@ describe('createUploadStaging', () => {
           mapSource: undefined,
           mapDir: '/out',
           chunkPath: path.join('/out', 'b.js'),
+          mapKept: false,
         }),
       ).toBe('skipped');
       expect(staging.count).toBe(0);
@@ -147,6 +151,7 @@ describe('createUploadStaging', () => {
         mapSource: MAP,
         mapDir: tmpDir,
         chunkPath: path.join(tmpDir, 'vendor.js'),
+        mapKept: false,
       }),
     ).resolves.toBe('excluded');
     await expect(
@@ -155,6 +160,7 @@ describe('createUploadStaging', () => {
         mapSource: MAP,
         mapDir: tmpDir,
         chunkPath: path.join(tmpDir, 'main.js'),
+        mapKept: false,
       }),
     ).resolves.toBe('staged');
 
@@ -173,6 +179,7 @@ describe('createUploadStaging', () => {
       mapSource: MAP,
       mapDir: '/out',
       chunkPath: path.join('/out', 'a.js'),
+      mapKept: false,
     });
     await staging.discard();
     await staging.discard();
@@ -200,6 +207,7 @@ describe('createUploadStaging', () => {
       mapSource: MAP,
       mapDir: '/out',
       chunkPath: path.join('/out', 'a.js'),
+      mapKept: false,
     });
 
     try {
@@ -228,6 +236,85 @@ describe('createUploadStaging', () => {
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
+  it('removes the folder on keep when every staged map stays in the build output', async () => {
+    const manager = createManager();
+    const errorSpy = vi.spyOn(manager.logger, 'error');
+    const staging = await manager.createUploadStaging();
+    await staging.stage({
+      code: chunk(DEBUG_ID),
+      mapSource: MAP,
+      mapDir: '/out',
+      chunkPath: path.join('/out', 'a.js'),
+      mapKept: true,
+    });
+
+    await staging.keep('The upload did not run.');
+
+    expect(fs.existsSync(staging.dir)).toBe(false);
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it('warns and leaves the chunk to the upload from disk when a write fails and the map is kept', async () => {
+    const manager = createManager();
+    const warnSpy = vi.spyOn(manager.logger, 'warn');
+    const staging = await manager.createUploadStaging();
+    const writeFile = fs.promises.writeFile;
+    vi.spyOn(fs.promises, 'writeFile').mockImplementation(async (...args: Parameters<typeof writeFile>) => {
+      if (String(args[0]).endsWith('.js.map')) {
+        throw new Error('disk full');
+      }
+      return writeFile(...args);
+    });
+
+    try {
+      const result = await staging.stage({
+        code: chunk(DEBUG_ID),
+        mapSource: MAP,
+        mapDir: '/out',
+        chunkPath: path.join('/out', 'a.js'),
+        mapKept: true,
+      });
+
+      expect(result).toBe('failed');
+      expect(staging.stagedChunkPaths.size).toBe(0);
+      expect(fs.readdirSync(staging.dir)).toEqual([]);
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Could not stage a.js for upload, so it is uploaded from the build output.',
+        expect.any(Error),
+      );
+    } finally {
+      vi.restoreAllMocks();
+      await staging.discard();
+    }
+  });
+
+  it('throws when a write fails and the map leaves the build output', async () => {
+    const manager = createManager();
+    const staging = await manager.createUploadStaging();
+    const writeFile = fs.promises.writeFile;
+    vi.spyOn(fs.promises, 'writeFile').mockImplementation(async (...args: Parameters<typeof writeFile>) => {
+      if (String(args[0]).startsWith(staging.dir)) {
+        throw new Error('disk full');
+      }
+      return writeFile(...args);
+    });
+
+    try {
+      await expect(
+        staging.stage({
+          code: chunk(DEBUG_ID),
+          mapSource: MAP,
+          mapDir: '/out',
+          chunkPath: path.join('/out', 'a.js'),
+          mapKept: false,
+        }),
+      ).rejects.toThrow('disk full');
+    } finally {
+      vi.restoreAllMocks();
+      await staging.discard();
+    }
+  });
+
   describe('uploadSourcemaps with a staging folder', () => {
     it('uploads the staging folder and removes it afterwards', async () => {
       const manager = createManager();
@@ -237,6 +324,7 @@ describe('createUploadStaging', () => {
         mapSource: MAP,
         mapDir: '/out',
         chunkPath: path.join('/out', 'a.js'),
+        mapKept: false,
       });
 
       const result = await manager.uploadSourcemaps([], { staging });
@@ -259,6 +347,7 @@ describe('createUploadStaging', () => {
         mapSource: MAP,
         mapDir: tmpDir,
         chunkPath: path.join(tmpDir, 'index.js'),
+        mapKept: false,
       });
 
       let uploadedFiles: string[] = [];
@@ -291,6 +380,7 @@ describe('createUploadStaging', () => {
         mapSource: MAP,
         mapDir: outDir,
         chunkPath: path.join(outDir, 'staged.js'),
+        mapKept: false,
       });
 
       let uploadedFiles: string[] = [];
@@ -317,6 +407,7 @@ describe('createUploadStaging', () => {
         mapSource: MAP,
         mapDir: '/out',
         chunkPath: path.join('/out', 'a.js'),
+        mapKept: false,
       });
 
       await manager.uploadSourcemaps([], { staging });
@@ -349,6 +440,7 @@ describe('createUploadStaging', () => {
         mapSource: MAP,
         mapDir: '/out',
         chunkPath: path.join('/out', 'a.js'),
+        mapKept: false,
       });
 
       const result = await manager.uploadSourcemaps([], { staging });
@@ -368,6 +460,7 @@ describe('createUploadStaging', () => {
         mapSource: MAP,
         mapDir: '/out',
         chunkPath: path.join('/out', 'a.js'),
+        mapKept: false,
       });
 
       try {
@@ -389,6 +482,7 @@ describe('createUploadStaging', () => {
         mapSource: MAP,
         mapDir: '/out',
         chunkPath: path.join('/out', 'a.js'),
+        mapKept: false,
       });
 
       const result = await manager.uploadSourcemaps(['.next/server'], { staging, prepareArtifacts: false });
@@ -475,7 +569,9 @@ describe('sourceMaps', () => {
     expect(manager.sourceMaps.decide('unset')).toEqual({ enableHidden: false, deleteAfterUpload: false });
 
     const staging = await manager.createUploadStaging();
-    expect(await staging.stage({ code: '', mapSource: undefined, mapDir: '', chunkPath: 'a.js' })).toBe('skipped');
+    expect(await staging.stage({ code: '', mapSource: undefined, mapDir: '', chunkPath: 'a.js', mapKept: false })).toBe(
+      'skipped',
+    );
     expect(await manager.uploadSourcemaps([], { staging })).toEqual({ uploaded: false, uploadedSourceMapPaths: [] });
   });
 });

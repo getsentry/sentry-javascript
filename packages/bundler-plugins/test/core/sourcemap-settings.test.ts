@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { normalizeUserOptions } from '../../src/core/options-mapping';
-import type { Options } from '../../src/core';
+import type { InternalOptions } from '../../src/core';
 import { decideSourceMapHandling } from '../../src/core/sourcemap-settings';
 import type { SourceMapKind } from '../../src/core/sourcemap-settings';
 
-function options(sourcemaps?: Options['sourcemaps']) {
+function options(sourcemaps?: InternalOptions['sourcemaps']) {
   return normalizeUserOptions({ org: 'o', project: 'p', authToken: 't', release: { name: 'r' }, sourcemaps });
 }
 
@@ -102,5 +102,25 @@ describe('decideSourceMapHandling', () => {
     expect(decideSourceMapHandling('unset', options({ disable, deleteSourcemapsAfterUpload: true }), true)).toEqual(
       NO_CHANGE,
     );
+  });
+
+  describe('with the internal function form', () => {
+    it('calls the function when it decides', () => {
+      let value: boolean | undefined;
+      const normalized = options({ deleteSourcemapsAfterUpload: () => value });
+
+      expect(decideSourceMapHandling('hidden', normalized, true)).toEqual(NO_CHANGE);
+      value = true;
+      expect(decideSourceMapHandling('hidden', normalized, true)).toEqual({
+        enableHidden: false,
+        deleteAfterUpload: true,
+      });
+    });
+
+    it('treats `undefined` from the function like an unset option', () => {
+      expect(decideSourceMapHandling('unset', options({ deleteSourcemapsAfterUpload: () => undefined }), true)).toEqual(
+        decideSourceMapHandling('unset', options(), true),
+      );
+    });
   });
 });

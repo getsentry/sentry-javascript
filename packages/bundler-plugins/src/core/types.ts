@@ -202,7 +202,8 @@ export interface Options {
      *
      * When the plugin turned source maps on, none of them reach the build output, not even those of chunks that
      * `sourcemaps.assets` or `sourcemaps.ignore` keep out of the upload. Source maps you enabled yourself are only
-     * removed for the JavaScript chunks that were uploaded; excluded chunks keep theirs.
+     * removed for the JavaScript chunks that were uploaded; excluded chunks keep theirs. When the plugin removes source
+     * maps from a Rollup, Vite or webpack build, it removes the CSS source maps of the build too.
      *
      * With webpack's array form of `devtool`, `true` replaces the array with one hidden source map setting for
      * all asset types, because webpack hides the array from plugins.
@@ -668,3 +669,16 @@ type DeployOptions = {
 };
 
 export type HandleRecoverableErrorFn = (error: unknown, throwByDefault: boolean) => void;
+
+/**
+ * @internal For Sentry SDK packages only. It can change in any release.
+ *
+ * Like `Options`, but `sourcemaps.deleteSourcemapsAfterUpload` can also be a function. The plugin
+ * calls it when it decides how to treat the bundler's source map setting, so an SDK can give a
+ * value that it only knows after it created the plugin.
+ */
+export type InternalOptions = Omit<Options, 'sourcemaps'> & {
+  sourcemaps?: Omit<NonNullable<Options['sourcemaps']>, 'deleteSourcemapsAfterUpload'> & {
+    deleteSourcemapsAfterUpload?: boolean | (() => boolean | undefined);
+  };
+};

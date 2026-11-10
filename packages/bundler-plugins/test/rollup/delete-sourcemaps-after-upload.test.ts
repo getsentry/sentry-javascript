@@ -124,7 +124,141 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (rollup / rolldown)', () => {
     });
   });
 
-  it('keeps hidden source maps the user enabled and uploads them from disk', async () => {
+  // Changes the chunks on disk before the upload runs, so an upload from
+  // disk carries the marker and a staged one does not.
+  const ON_DISK_MARKER = '// changed on disk';
+  function markChunksOnDisk(dir: string) {
+    return {
+      name: 'mark-chunks-on-disk',
+      writeBundle: {
+        order: 'pre' as const,
+        sequential: true,
+        handler: () => {
+          for (const file of fs.readdirSync(dir).filter(name => name.endsWith('.js'))) {
+            fs.appendFileSync(path.join(dir, file), `\n${ON_DISK_MARKER}\n`);
+          }
+        },
+      },
+    };
+  }
+
+  describe.each([
+    ['rollup', rollup],
+    ['rolldown', rolldown],
+  ])('%s with kept source maps', (_, bundle) => {
+    it.each([
+      ['true', true],
+      ['hidden', 'hidden'],
+    ] as const)('stages chunks and keeps their maps for `sourcemap: %s`', async (_label, sourcemap) => {
+      const createdFolders = trackStagingFolders();
+      const build = await bundle({
+        input: entry,
+        plugins: [sentryRollupPlugin(credentials), markChunksOnDisk(outDir)],
+      });
+      await build.write({ dir: outDir, sourcemap });
+
+      expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'entry.js.map']);
+      expect(createdFolders).toHaveLength(1);
+      expect(uploads).toHaveLength(1);
+      const chunk = fs.readFileSync(path.join(outDir, 'entry.js'), 'utf8');
+      expectUploadedPair(uploads[0]!, chunk);
+      expect(JSON.stringify(uploads[0]!.files)).not.toContain(ON_DISK_MARKER);
+    });
+
+    it('stages chunks with inline source maps', async () => {
+      const build = await bundle({
+        input: entry,
+        plugins: [sentryRollupPlugin(credentials), markChunksOnDisk(outDir)],
+      });
+      await build.write({ dir: outDir, sourcemap: 'inline' });
+
+      expect(fs.readdirSync(outDir)).toEqual(['entry.js']);
+      const debugId = fs.readFileSync(path.join(outDir, 'entry.js'), 'utf8').match(DEBUG_ID_MARKER)?.[1];
+      expect(uploads).toHaveLength(1);
+      expect(Object.keys(uploads[0]!.files)).toEqual([`${debugId}-0.js`]);
+      expect(uploads[0]!.files[`${debugId}-0.js`]).toContain('sourceMappingURL=data:');
+      expect(uploads[0]!.files[`${debugId}-0.js`]).not.toContain(ON_DISK_MARKER);
+    });
+
+    it('uploads a chunk from disk and warns when staging it fails', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const writeFile = fs.promises.writeFile;
+      let stagingWrites = 0;
+      vi.spyOn(fs.promises, 'writeFile').mockImplementation(async (...args: Parameters<typeof writeFile>) => {
+        // The chunk and its map are the first two writes into the folder.
+        if (String(args[0]).includes('sentry-bundler-plugin-upload-') && stagingWrites++ < 2) {
+          throw new Error('disk full');
+        }
+        return writeFile(...args);
+      });
+      const build = await bundle({
+        input: entry,
+        plugins: [sentryRollupPlugin({ ...credentials, silent: false }), markChunksOnDisk(outDir)],
+      });
+      await build.write({ dir: outDir, sourcemap: 'hidden' });
+
+      expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'entry.js.map']);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Could not stage entry.js for upload, so it is uploaded from the build output.'),
+        expect.any(Error),
+      );
+      expect(uploads).toHaveLength(1);
+      const debugId = fs.readFileSync(path.join(outDir, 'entry.js'), 'utf8').match(DEBUG_ID_MARKER)?.[1];
+      expect(Object.keys(uploads[0]!.files).sort()).toEqual([`${debugId}-1.js`, `${debugId}-1.js.map`]);
+      expect(uploads[0]!.files[`${debugId}-1.js`]).toContain(ON_DISK_MARKER);
+    });
+
+    it('removes the CSS source maps of the build when the option is true', async () => {
+      const cssPlugin = {
+        name: 'emit-css',
+        generateBundle(this: { emitFile: (file: unknown) => void }) {
+          this.emitFile({
+            type: 'asset',
+            fileName: 'style.css',
+            source: 'body{}\n/*# sourceMappingURL=style.css.map */',
+          });
+          this.emitFile({ type: 'asset', fileName: 'style.css.map', source: '{"version":3,"mappings":""}' });
+        },
+      };
+      const build = await bundle({
+        input: entry,
+        plugins: [cssPlugin, sentryRollupPlugin({ ...credentials, sourcemaps: { deleteSourcemapsAfterUpload: true } })],
+      });
+      await build.write({ dir: outDir, sourcemap: 'hidden' });
+
+      expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'style.css']);
+    });
+
+    it('keeps CSS source maps the user enabled when the option is unset', async () => {
+      const cssPlugin = {
+        name: 'emit-css',
+        generateBundle(this: { emitFile: (file: unknown) => void }) {
+          this.emitFile({ type: 'asset', fileName: 'style.css.map', source: '{"version":3,"mappings":""}' });
+        },
+      };
+      const build = await bundle({ input: entry, plugins: [cssPlugin, sentryRollupPlugin(credentials)] });
+      await build.write({ dir: outDir, sourcemap: 'hidden' });
+
+      expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'entry.js.map', 'style.css.map']);
+    });
+  });
+
+  it('reads maps from disk when `sourcemaps.resolveSourceMap` is set and the maps are kept', async () => {
+    const createdFolders = trackStagingFolders();
+    const resolveSourceMap = vi.fn((artifactPath: string) => `${artifactPath}.map`);
+    const build = await rollup({
+      input: entry,
+      plugins: [sentryRollupPlugin({ ...credentials, sourcemaps: { resolveSourceMap } })],
+    });
+    await build.write({ dir: outDir, sourcemap: 'hidden' });
+
+    expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'entry.js.map']);
+    expect(createdFolders).toHaveLength(1);
+    expect(resolveSourceMap).toHaveBeenCalledWith(path.join(outDir, 'entry.js'), undefined);
+    expect(uploads).toHaveLength(1);
+  });
+
+  it('keeps hidden source maps the user enabled and uploads them', async () => {
     const build = await rollup({ input: entry, plugins: [sentryRollupPlugin(credentials)] });
     await build.write({ dir: outDir, sourcemap: 'hidden' });
 

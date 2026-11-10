@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import type { SentryBuildPluginManager, SourceMapDecision, SourceMapKind, UploadStaging } from '../core';
-import { isJsFile } from '../core';
+import { bundleHasInlineSourceMap, isJsFile } from '../core';
 import type { OutputBundle } from './debug-id-stamping';
 
 export type RollupSourceMapSetting = boolean | 'inline' | 'hidden' | undefined;
@@ -114,6 +114,53 @@ function getSourceMapFileName(output: { fileName: string; sourcemapFileName?: st
   return output.sourcemapFileName ?? `${output.fileName}.map`;
 }
 
+function sourceToString(source: string | Uint8Array): string {
+  return typeof source === 'string' ? source : Buffer.from(source).toString('utf-8');
+}
+
+type StageableOutput = {
+  fileName: string;
+  code: string;
+  mapFileName: string;
+  mapSource: string | undefined;
+  isChunk: boolean;
+};
+
+/**
+ * The JS outputs of a bundle that have a source map: chunks with a map asset or an inline map,
+ * and JS assets with a map asset, such as the worker bundles Vite emits.
+ */
+function getStageableOutputs(bundle: OutputBundle): StageableOutput[] {
+  const outputs: StageableOutput[] = [];
+  for (const output of Object.values(bundle)) {
+    if (!isJsFile(output.fileName)) {
+      continue;
+    }
+
+    const isChunk = output.type === 'chunk';
+    const mapFileName = isChunk ? getSourceMapFileName(output) : `${output.fileName}.map`;
+    const mapAsset = bundle[mapFileName];
+    const code = isChunk ? output.code : sourceToString(output.source);
+
+    if (mapAsset?.type === 'asset') {
+      const mapSource = sourceToString(mapAsset.source);
+      outputs.push({ fileName: output.fileName, code, mapFileName, mapSource, isChunk });
+    } else if (isChunk && bundleHasInlineSourceMap(code)) {
+      outputs.push({ fileName: output.fileName, code, mapFileName, mapSource: undefined, isChunk });
+    }
+  }
+  return outputs;
+}
+
+function dropCssSourceMaps(bundle: OutputBundle): void {
+  for (const fileName of Object.keys(bundle)) {
+    if (fileName.endsWith('.css.map')) {
+      // oxlint-disable-next-line typescript/no-dynamic-delete -- Rollup drops an asset when its key is deleted from the bundle
+      delete bundle[fileName];
+    }
+  }
+}
+
 type PendingStaging = { staging: UploadStaging; signature: string; match: OutputMatch };
 
 export type DecisionRecord = { match: OutputMatch; kind: SourceMapKind; decision: SourceMapDecision };
@@ -124,8 +171,9 @@ export type SourceMapHandling = {
   /** Records the decision for an output, for bundlers that decide outside `outputOptions`. */
   setDecision: (destination: string, record: DecisionRecord) => void;
   /**
-   * `generateBundle` with `order: 'post'`: copies each chunk and its source map into a staging folder
-   * and drops the map asset from the bundle, so the bundler never writes it.
+   * `generateBundle` with `order: 'post'`: copies each chunk and its source map into a staging
+   * folder. When the maps are removed after upload, it drops the map assets from the bundle, so
+   * the bundler never writes them.
    */
   stageSourceMaps: (outputOptions: OutputOptions, bundle: OutputBundle, isWrite?: boolean) => Promise<void>;
   /**
@@ -206,30 +254,46 @@ export function createSourceMapHandling(sentryBuildPluginManager: SentryBuildPlu
       }
 
       sentryBuildPluginManager.sourceMaps.logDecision(record.decision);
-      if (!record.decision.deleteAfterUpload) {
+
+      const { deleteAfterUpload } = record.decision;
+      if (deleteAfterUpload) {
+        dropCssSourceMaps(bundle);
+      }
+
+      if (!sentryBuildPluginManager.sourceMaps.uploadPossible) {
+        return;
+      }
+      // The hook resolves maps on disk, so maps that stay there are read from there.
+      if (!deleteAfterUpload && sentryBuildPluginManager.normalizedOptions.sourcemaps?.resolveSourceMap) {
         return;
       }
 
       const staging = await sentryBuildPluginManager.createUploadStaging();
 
       try {
-        for (const output of Object.values(bundle)) {
-          if (output.type !== 'chunk' || !isJsFile(output.fileName)) {
-            continue;
-          }
-
-          const mapFileName = getSourceMapFileName(output);
-          const mapAsset = bundle[mapFileName];
-          if (mapAsset?.type !== 'asset' || typeof mapAsset.source !== 'string') {
-            continue;
-          }
-
+        for (const output of getStageableOutputs(bundle)) {
+          const { fileName, mapFileName } = output;
           const result = await staging.stage({
             code: output.code,
-            mapSource: mapAsset.source,
+            mapSource: output.mapSource,
             mapDir: path.join(destination, path.dirname(mapFileName)),
-            chunkPath: path.join(destination, output.fileName),
+            chunkPath: path.join(destination, fileName),
+            mapKept: !deleteAfterUpload,
           });
+
+          if (!deleteAfterUpload || output.mapSource === undefined) {
+            continue;
+          }
+
+          // JS assets come from other plugins, which may have written their
+          // maps themselves. Their maps only leave the output once staged.
+          if (!output.isChunk) {
+            if (result === 'staged') {
+              // oxlint-disable-next-line typescript/no-dynamic-delete -- Rollup drops an asset when its key is deleted from the bundle
+              delete bundle[mapFileName];
+            }
+            continue;
+          }
 
           // A map the plugin turned on never reaches the output, whether or
           // not the chunk is uploaded. A map the user enabled stays unless
@@ -241,8 +305,8 @@ export function createSourceMapHandling(sentryBuildPluginManager: SentryBuildPlu
           if (result === 'skipped' || result === 'failed') {
             sentryBuildPluginManager.logger.warn(
               record.kind === 'unset'
-                ? `Could not prepare ${output.fileName} for upload, so it is not uploaded and its source map ${mapFileName} was removed from the build output.`
-                : `Could not prepare ${output.fileName} for upload, so its source map ${mapFileName} stays in the build output.`,
+                ? `Could not prepare ${fileName} for upload, so it is not uploaded and its source map ${mapFileName} was removed from the build output.`
+                : `Could not prepare ${fileName} for upload, so its source map ${mapFileName} stays in the build output.`,
             );
           }
         }

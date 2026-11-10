@@ -2,6 +2,7 @@
 
 import type { Options, SourceMapDecision, SourceMapKind, UploadStaging } from '../core/index';
 import {
+  bundleHasInlineSourceMap,
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
   generateModuleMetadataInjectorCode,
@@ -220,19 +221,29 @@ function deleteSourceMapAssets(compilation: WebpackCompilation, sourceMapName: s
   }
 }
 
+type StagingPlan = {
+  /** Remove the source maps of uploaded assets from the compilation. */
+  deleteAfterUpload: boolean;
+  /** The plugin turned the source maps on. */
+  pluginEnabledMaps: boolean;
+  /** Stage JS assets that carry their source map inline. */
+  stageInline: boolean;
+};
+
 /**
- * Copies each JS asset and its source map into the upload staging folder and drops the source map
- * assets (and their compressed variants) from the compilation, so webpack never emits them.
+ * Copies each JS asset and its source map into the upload staging folder. With
+ * `deleteAfterUpload` it also drops the source map assets (and their compressed variants) from the
+ * compilation, so webpack never emits them.
  *
  * A map the plugin turned on (`pluginEnabledMaps`) never reaches the output, whether or not its
- * asset is uploaded. That covers CSS maps, which `devtool` turns on along with the JS ones. A map
- * the user enabled stays unless it was staged.
+ * asset is uploaded. With `deleteAfterUpload` the maps of non-JS assets (CSS) are dropped too. A
+ * JS map the user enabled stays unless it was staged.
  */
 async function stageSourceMaps(
   compilation: WebpackCompilation,
   staging: UploadStaging,
   logger: { warn: (message: string) => void },
-  pluginEnabledMaps: boolean,
+  plan: StagingPlan,
 ): Promise<void> {
   const outputPath = compilation.outputOptions.path ?? path.resolve();
 
@@ -240,12 +251,25 @@ async function stageSourceMaps(
     const relatedSourceMap = asset.info.related?.sourceMap;
     const sourceMapName = typeof relatedSourceMap === 'string' ? relatedSourceMap : `${asset.name}.map`;
     const sourceMapAsset = compilation.getAsset(sourceMapName);
+
     if (!sourceMapAsset) {
+      if (plan.stageInline && isJsFile(asset.name)) {
+        const code = asset.source.source().toString();
+        if (bundleHasInlineSourceMap(code)) {
+          await staging.stage({
+            code,
+            mapSource: undefined,
+            mapDir: path.join(outputPath, path.dirname(asset.name)),
+            chunkPath: path.join(outputPath, asset.name),
+            mapKept: true,
+          });
+        }
+      }
       continue;
     }
 
     if (!isJsFile(asset.name)) {
-      if (pluginEnabledMaps) {
+      if (plan.deleteAfterUpload) {
         deleteSourceMapAssets(compilation, sourceMapName);
       }
       continue;
@@ -256,16 +280,21 @@ async function stageSourceMaps(
       mapSource: sourceMapAsset.source.source().toString(),
       mapDir: path.join(outputPath, path.dirname(sourceMapName)),
       chunkPath: path.join(outputPath, asset.name),
+      mapKept: !plan.deleteAfterUpload,
     });
+
+    if (!plan.deleteAfterUpload) {
+      continue;
+    }
 
     if (result === 'skipped' || result === 'failed') {
       logger.warn(
-        pluginEnabledMaps
+        plan.pluginEnabledMaps
           ? `Could not prepare ${asset.name} for upload, so it is not uploaded and its source map ${sourceMapName} was removed from the build output.`
           : `Could not prepare ${asset.name} for upload, so its source map ${sourceMapName} stays in the build output.`,
       );
     }
-    if (result === 'staged' || pluginEnabledMaps) {
+    if (result === 'staged' || plan.pluginEnabledMaps) {
       deleteSourceMapAssets(compilation, sourceMapName);
     }
   }
@@ -331,19 +360,39 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
 
   const transformReplace = Object.keys(replacementValues).length > 0;
 
-  function decideSourceMaps(compiler: WebpackCompiler): { kind?: SourceMapKind; decision: SourceMapDecision } {
-    const kind = compiler.options.mode === 'development' ? undefined : sourceMapKindFromDevtool(compiler);
-    if (kind === undefined) {
-      return { decision: { enableHidden: false, deleteAfterUpload: false } };
+  /** Decides on the compiler's source map setting and returns how to stage its assets, if at all. */
+  function decideSourceMaps(compiler: WebpackCompiler): StagingPlan | undefined {
+    if (compiler.options.mode === 'development') {
+      return undefined;
     }
 
-    const decision = sentryBuildPluginManager.sourceMaps.decide(kind);
+    const devtool = compiler.options.devtool;
+    const kind = sourceMapKindFromDevtool(compiler);
+    const decision: SourceMapDecision =
+      kind === undefined
+        ? { enableHidden: false, deleteAfterUpload: false }
+        : sentryBuildPluginManager.sourceMaps.decide(kind);
 
     if (decision.enableHidden) {
-      compiler.options.devtool = kind === 'visible' ? `hidden-${compiler.options.devtool}` : 'hidden-source-map';
+      compiler.options.devtool = kind === 'visible' ? `hidden-${devtool}` : 'hidden-source-map';
     }
 
-    return { kind, decision };
+    const canStage =
+      sentryBuildPluginManager.sourceMaps.uploadPossible &&
+      kind !== 'off' &&
+      // `eval` devtools keep their maps inside the module code.
+      !(typeof devtool === 'string' && devtool.includes('eval')) &&
+      // The hook resolves maps on disk, so maps that stay there are read from there.
+      (decision.deleteAfterUpload || !options.sourcemaps?.resolveSourceMap);
+
+    if (!canStage) {
+      return undefined;
+    }
+    return {
+      deleteAfterUpload: decision.deleteAfterUpload,
+      pluginEnabledMaps: kind === 'unset',
+      stageInline: kind === 'inline',
+    };
   }
 
   function addCodeInjection(compiler: WebpackCompiler): void {
@@ -416,10 +465,10 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
 
       // One plugin instance can serve several compilers (`MultiCompiler`) and
       // a compiler several compilations (watch mode), so nothing is shared.
-      const { kind: sourceMapKind, decision: sourceMapDecision } = decideSourceMaps(compiler);
+      const stagingPlan = decideSourceMaps(compiler);
       const pendingStagings = new Map<WebpackCompilation, UploadStaging>();
 
-      if (sourceMapDecision.deleteAfterUpload) {
+      if (stagingPlan) {
         // After `RealContentHashPlugin` rewrote the hash placeholders, so the staged
         // JS equals the emitted file and `[contenthash]` names are final.
         const stage = (compiler.webpack?.Compilation?.PROCESS_ASSETS_STAGE_REPORT ?? 5000) + 1;
@@ -428,7 +477,7 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
           compilation.hooks.processAssets.tapPromise({ name: 'sentry-webpack-plugin', stage }, async () => {
             const staging = await sentryBuildPluginManager.createUploadStaging();
             pendingStagings.set(compilation, staging);
-            await stageSourceMaps(compilation, staging, logger, sourceMapKind === 'unset');
+            await stageSourceMaps(compilation, staging, logger, stagingPlan);
           });
         });
 
@@ -519,6 +568,8 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
               await sentryBuildPluginManager.createRelease();
               if (sourcemapsEnabled && options.sourcemaps?.disable !== 'disable-upload') {
                 const outputPath = compilation.outputOptions.path ?? path.resolve();
+                // TODO(v12): Upload only staged assets instead of reading these
+                // paths from disk.
                 const buildArtifacts = Object.keys(compilation.assets).map(asset => path.join(outputPath, asset));
                 stagingHandedOver = true;
                 await upload(buildArtifacts, { staging });

@@ -101,7 +101,7 @@ export function getDebugIdSnippet(debugId: string): CodeInjection {
 }
 
 export type { Logger } from './logger';
-export type { Options, SentrySDKBuildFlags } from './types';
+export type { InternalOptions, Options, SentrySDKBuildFlags } from './types';
 export {
   CodeInjection,
   replaceBooleanFlagsInCode,
@@ -111,7 +111,12 @@ export {
 } from './utils';
 export { createSentryBuildPluginManager } from './build-plugin-manager';
 export type { SentryBuildPluginManager, UploadResult, UploadStaging } from './build-plugin-manager';
-export { createDebugIdUploadFunction, addDebugIdToEmittedArtifacts, stampDebugId } from './debug-id-upload';
-export { decideSourceMapHandling } from './sourcemap-settings';
+export {
+  bundleHasInlineSourceMap,
+  createDebugIdUploadFunction,
+  addDebugIdToEmittedArtifacts,
+  stampDebugId,
+} from './debug-id-upload';
+export { decideSourceMapHandling, getDeleteSourcemapsAfterUpload } from './sourcemap-settings';
 export type { SourceMapDecision, SourceMapKind } from './sourcemap-settings';
 export type { UploadFilter } from './upload-filter';

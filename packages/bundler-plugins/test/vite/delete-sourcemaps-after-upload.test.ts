@@ -5,7 +5,7 @@ import { build, createBuilder } from 'vite';
 import type { Plugin, ResolvedConfig } from 'vite';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { sentryVitePlugin } from '../../src/vite';
-import type { Options } from '../../src/core';
+import type { InternalOptions, Options } from '../../src/core';
 
 const { mockSourcemapUpload } = vi.hoisted(() => ({ mockSourcemapUpload: vi.fn() }));
 
@@ -70,7 +70,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (vite)', () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
-  function viteConfig(pluginOptions: Options, plugins: Plugin[] = []) {
+  function viteConfig(pluginOptions: InternalOptions, plugins: Plugin[] = []) {
     return {
       configFile: false as const,
       logLevel: 'silent' as const,
@@ -161,7 +161,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (vite)', () => {
     expectUploadedPairs(uploads[0]!, readChunks(rollupOutDir));
   });
 
-  it('keeps source maps an output enables through rollupOptions and uploads them from disk', async () => {
+  it('keeps source maps an output enables through rollupOptions and uploads them', async () => {
     const config = viteConfig({});
     await build({
       ...config,
@@ -203,7 +203,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (vite)', () => {
     expectUploadedPairs(uploads[0]!, readChunks(outDir));
   });
 
-  it('keeps hidden source maps the user enabled and uploads them from disk', async () => {
+  it('keeps hidden source maps the user enabled and uploads them', async () => {
     const config = viteConfig({});
     await build({ ...config, build: { ...config.build, sourcemap: 'hidden' } });
 
@@ -326,6 +326,152 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (vite)', () => {
     expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toEqual([]);
     expect(listFiles(serverOutDir).filter(file => file.endsWith('.map'))).toHaveLength(2);
     expect(uploads).toHaveLength(2);
+  });
+
+  describe('with kept source maps', () => {
+    // Changes the chunks on disk before the upload runs, so an upload from
+    // disk carries the marker and a staged one does not.
+    const ON_DISK_MARKER = '// changed on disk';
+    const markChunksOnDisk: Plugin = {
+      name: 'mark-chunks-on-disk',
+      writeBundle: {
+        order: 'pre',
+        sequential: true,
+        handler: () => {
+          for (const file of listFiles(outDir).filter(name => name.endsWith('.js'))) {
+            fs.appendFileSync(path.join(outDir, file), `\n${ON_DISK_MARKER}\n`);
+          }
+        },
+      },
+    };
+
+    function uploadedChunks(upload: Upload): string[] {
+      return Object.entries(upload.files)
+        .filter(([name]) => name.endsWith('.js'))
+        .map(([, code]) => code);
+    }
+
+    it.each([true, 'hidden'] as const)('stages chunks and keeps their maps for `sourcemap: %s`', async sourcemap => {
+      const config = viteConfig({}, [markChunksOnDisk]);
+      await build({ ...config, build: { ...config.build, sourcemap } });
+
+      expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toHaveLength(2);
+      expect(uploads).toHaveLength(1);
+      expectUploadedPairs(uploads[0]!, readChunks(outDir));
+      expect(uploadedChunks(uploads[0]!).some(code => code.includes(ON_DISK_MARKER))).toBe(false);
+    });
+
+    it('stages chunks with inline source maps', async () => {
+      const config = viteConfig({}, [markChunksOnDisk]);
+      await build({ ...config, build: { ...config.build, sourcemap: 'inline' } });
+
+      expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toEqual([]);
+      expect(uploads).toHaveLength(1);
+      const chunks = uploadedChunks(uploads[0]!);
+      expect(Object.keys(uploads[0]!.files)).toHaveLength(2);
+      expect(chunks.every(code => code.includes('sourceMappingURL=data:'))).toBe(true);
+      expect(chunks.some(code => code.includes(ON_DISK_MARKER))).toBe(false);
+    });
+
+    it('uploads a chunk from disk and warns when staging it fails', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const writeFile = fs.promises.writeFile;
+      let stagingWrites = 0;
+      vi.spyOn(fs.promises, 'writeFile').mockImplementation(async (...args: Parameters<typeof writeFile>) => {
+        // The first chunk and its map are the first two writes into the folder.
+        if (String(args[0]).includes('sentry-bundler-plugin-upload-') && stagingWrites++ < 2) {
+          throw new Error('disk full');
+        }
+        return writeFile(...args);
+      });
+      const config = viteConfig({ silent: false }, [markChunksOnDisk]);
+      await build({ ...config, build: { ...config.build, sourcemap: 'hidden' } });
+
+      expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toHaveLength(2);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('for upload, so it is uploaded from the build output.'),
+        expect.any(Error),
+      );
+      expect(uploads).toHaveLength(1);
+      expectUploadedPairs(uploads[0]!, readChunks(outDir));
+      expect(uploadedChunks(uploads[0]!).filter(code => code.includes(ON_DISK_MARKER))).toHaveLength(1);
+    });
+
+    it.each([
+      ['unset', undefined, 0],
+      ['hidden', 'hidden', 2],
+    ] as const)('stages worker bundles with `sourcemap` %s', async (_label, sourcemap, mapCount) => {
+      fs.writeFileSync(entry, "new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });\n");
+      fs.writeFileSync(path.join(root, 'worker.js'), 'self.postMessage(42);\n');
+      const config = viteConfig({}, [markChunksOnDisk]);
+      await build({
+        ...config,
+        build: { ...config.build, sourcemap },
+        worker: { format: 'es', plugins: () => sentryVitePlugin(credentials) },
+      });
+
+      const chunks = readChunks(outDir);
+      expect(chunks).toHaveLength(2);
+      expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toHaveLength(mapCount);
+      expect(uploads).toHaveLength(1);
+      expectUploadedPairs(uploads[0]!, chunks);
+      expect(uploadedChunks(uploads[0]!).some(code => code.includes(ON_DISK_MARKER))).toBe(false);
+    });
+
+    // Vite itself writes no CSS maps in a build, but CSS plugins can.
+    it('removes the CSS source maps of the build when the option is true', async () => {
+      const cssPlugin: Plugin = {
+        name: 'emit-css-map',
+        generateBundle() {
+          this.emitFile({ type: 'asset', fileName: 'assets/style.css.map', source: '{"version":3,"mappings":""}' });
+        },
+      };
+      const config = viteConfig({ sourcemaps: { deleteSourcemapsAfterUpload: true } }, [cssPlugin]);
+      await build({ ...config, build: { ...config.build, sourcemap: 'hidden' } });
+
+      expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toEqual([]);
+    });
+  });
+
+  describe('with the internal function form of `deleteSourcemapsAfterUpload`', () => {
+    // Stands in for an SDK plugin that turns maps on in its own `config` hook.
+    function enableHiddenMaps(onEnable: () => void): Plugin {
+      return {
+        name: 'sdk-enable-hidden-maps',
+        config: () => {
+          onEnable();
+          return { build: { sourcemap: 'hidden' } };
+        },
+      };
+    }
+
+    it('reads the value the SDK sets after the plugin was created', async () => {
+      let sdkEnabledMaps = false;
+      const config = viteConfig({
+        sourcemaps: { deleteSourcemapsAfterUpload: () => (sdkEnabledMaps ? true : undefined) },
+      });
+      await build({
+        ...config,
+        plugins: [
+          enableHiddenMaps(() => {
+            sdkEnabledMaps = true;
+          }),
+          ...config.plugins,
+        ],
+      });
+
+      expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toEqual([]);
+      expect(uploads).toHaveLength(1);
+      expectUploadedPairs(uploads[0]!, readChunks(outDir));
+    });
+
+    it('keeps the maps when the function returns `undefined`', async () => {
+      const config = viteConfig({ sourcemaps: { deleteSourcemapsAfterUpload: () => undefined } });
+      await build({ ...config, plugins: [enableHiddenMaps(() => undefined), ...config.plugins] });
+
+      expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toHaveLength(2);
+      expect(uploads).toHaveLength(1);
+    });
   });
 
   it('still restores debug IDs for "disable-upload" builds', async () => {
