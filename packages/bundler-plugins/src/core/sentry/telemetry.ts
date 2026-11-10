@@ -137,7 +137,8 @@ export function setTelemetryDataOnScope(
 }
 
 export async function allowedToSendTelemetry(options: NormalizedOptions): Promise<boolean> {
-  const { telemetry, url } = options;
+  const { telemetry } = options;
+  const url = options.url ?? SENTRY_SAAS_URL;
 
   // `options.telemetry` defaults to true
   if (telemetry === false) {

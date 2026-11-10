@@ -52,7 +52,7 @@ export interface BuildTimeOptionsBase {
    *
    * This value can also be set via the `SENTRY_URL` environment variable.
    *
-   * @default "https://sentry.io"
+   * @default The server an `sntrys_` organization auth token was created on, otherwise "https://sentry.io"
    */
   sentryUrl?: string;
 

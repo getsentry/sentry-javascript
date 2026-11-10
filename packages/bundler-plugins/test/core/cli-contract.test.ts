@@ -22,6 +22,7 @@ import { startMockSentryServer } from '@sentry-internal/test-utils';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SentryCliAdapter } from '../../src/core/cli';
 import type { NormalizedOptions } from '../../src/core/options-mapping';
+import { normalizeUserOptions } from '../../src/core/options-mapping';
 
 const PORT = 3037;
 
@@ -121,6 +122,24 @@ describe('SentryCliAdapter against the real CLI', () => {
     expect(createRequest?.jsonBody).toEqual(
       expect.objectContaining({ version: '1.0.0', projects: ['test-project', 'other-project'] }),
     );
+  });
+
+  it('sends a self-hosted org token to its own server when no url is configured', async () => {
+    const claim = Buffer.from(
+      JSON.stringify({
+        iat: 1,
+        url: `http://localhost:${PORT}`,
+        region_url: `http://localhost:${PORT}`,
+        org: 'test-org',
+      }),
+    ).toString('base64');
+    const before = recordedRequests();
+
+    await new SentryCliAdapter(
+      normalizeUserOptions({ authToken: `sntrys_${claim}_secret`, org: 'test-org', project: 'test-project' }),
+    ).createRelease('1.0.0');
+
+    expect(requestsSince(before)).toContain('POST /api/0/organizations/test-org/releases/');
   });
 
   it('sends the configured headers with every request', async () => {
