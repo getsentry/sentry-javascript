@@ -22,7 +22,7 @@ import { getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
 import { getOrchestrionInjectedModules } from '../../orchestrion/detect';
 import { piAiModuleNames } from '../../orchestrion/config/pi-ai';
 import { setPiAiRecordingOptions } from '../pi-ai/recording';
-import { isCloudflareWorkers } from '../../utils/runtime';
+import { isBun, isCloudflareWorkers, isDeno } from '../../utils/runtime';
 import { withCleanScopes } from '../../utils/withCleanScopes';
 import { FLUE_INSTRUMENTATION_KEY, FLUE_OPERATION, FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
 import type { SpanTracker } from './utils';
@@ -63,11 +63,10 @@ function warnIfPiAiNotInstrumented(): void {
 }
 
 function getPiAiInstrumentationHint(): string {
-  const { Bun, Deno } = GLOBAL_OBJ as { Bun?: unknown; Deno?: unknown };
-  if (Bun) {
+  if (isBun()) {
     return 'Build your app with `sentryBunPlugin()` from `@sentry/bun/plugin`; `bun run` cannot instrument it.';
   }
-  if (Deno) {
+  if (isDeno()) {
     return 'Run your app with `deno run --preload=npm:@sentry/deno/import app.ts`.';
   }
   if (isCloudflareWorkers()) {
