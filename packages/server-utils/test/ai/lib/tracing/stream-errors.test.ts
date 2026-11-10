@@ -113,7 +113,7 @@ describe.each(providers)('$name stream errors', ({ instrument, chunks }) => {
 });
 
 describe('anthropic message stream aborts', () => {
-  it('ends the span with the partial usage when the stream is aborted', () => {
+  it('marks the span as cancelled and keeps the partial usage when the stream is aborted', () => {
     const { span, attributes, setStatus } = createMockSpan();
     const stream = instrumentMessageStream(new EventEmitter(), span, false);
 
@@ -124,7 +124,8 @@ describe('anthropic message stream aborts', () => {
     stream.emit('abort', new Error('Request was aborted.'));
     stream.emit('end');
 
-    expect(setStatus).not.toHaveBeenCalled();
+    expect(setStatus).toHaveBeenCalledTimes(1);
+    expect(setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
     expect(span.isRecording()).toBe(false);
     expect(attributes[GEN_AI_RESPONSE_STREAMING]).toBe(true);
     expect(attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBe(8);

@@ -303,6 +303,13 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
     }
   });
 
+  // Only the caller's `stream.abort()` or request `signal` emits `abort`; SDK timeouts emit `error`.
+  stream.on('abort', () => {
+    if (span.isRecording()) {
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
+    }
+  });
+
   // An aborted stream emits only `abort` and `end`, never `message` or `error`.
   stream.on('end', () => {
     endStreamSpan(span, state, recordOutputs);
