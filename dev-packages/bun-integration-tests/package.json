@@ -15,7 +15,6 @@
   },
   "devDependencies": {
     "@sentry-internal/node-integration-tests": "11.11.0",
-    "@sentry-internal/test-utils": "11.11.0",
     "@sentry/bun": "11.11.0",
     "@sentry/core": "11.11.0",
     "@sentry/hono": "11.11.0",

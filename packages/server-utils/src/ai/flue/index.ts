@@ -4,7 +4,6 @@ import {
   getActiveSpan,
   getDefaultIsolationScope,
   getIsolationScope,
-  GLOBAL_OBJ,
   LRUMap,
   startNewTrace,
   startSpan,
@@ -19,6 +18,7 @@ import {
 import type { GenAiOptions } from '../core/utils';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
 import { skipPiAiProviderIntegrations } from '../pi-ai/providers';
+import { isCloudflareWorkers } from '../../utils/runtime';
 import { withCleanScopes } from '../../utils/withCleanScopes';
 import { FLUE_INSTRUMENTATION_KEY, FLUE_OPERATION, FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
 import type { SpanTracker } from './utils';
@@ -46,6 +46,8 @@ interface Admission {
  * (https://github.com/withastro/flue/issues/813).
  */
 function runInAdmissionContext<T>(admission: Admission | undefined, next: () => T): T {
+  // Cloudflare runs each turn from a Durable Object alarm, which already starts a trace of its own, so
+  // there is no leaked context to undo there.
   if (isCloudflareWorkers()) {
     return next();
   }
@@ -57,14 +59,6 @@ function runInAdmissionContext<T>(admission: Admission | undefined, next: () => 
   return withCleanScopes(admission.isolationScope, () =>
     admission.span ? withActiveSpan(admission.span, next) : startNewTrace(next),
   );
-}
-
-/**
- * Cloudflare runs each turn from a Durable Object alarm, which already starts a trace of its own, so
- * there is no leaked context to undo there.
- */
-function isCloudflareWorkers(): boolean {
-  return GLOBAL_OBJ.navigator?.userAgent === 'Cloudflare-Workers';
 }
 
 /**

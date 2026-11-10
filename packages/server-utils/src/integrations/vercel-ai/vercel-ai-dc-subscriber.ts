@@ -72,6 +72,9 @@ const ORIGIN = 'auto.ai.vercelai';
 // `gen_ai.operation.name` values, keyed to the span op they map to.
 const GEN_AI_OPERATION_SPAN_OPS = {
   embeddings: GEN_AI_EMBEDDINGS,
+  // `GEN_AI_RERANK` is deprecated because the product doesn't support rerank spans, but we keep
+  // emitting it so existing rerank spans keep their op.
+  // oxlint-disable-next-line typescript/no-deprecated
   rerank: GEN_AI_RERANK,
   decide: GEN_AI_DECIDE,
   invoke_agent: GEN_AI_INVOKE_AGENT,

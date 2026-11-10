@@ -59,7 +59,7 @@
   "dependencies": {
     "@sentry/browser": "11.11.0",
     "@sentry/core": "11.11.0",
-    "@sentry/conventions": "^0.31.0"
+    "@sentry/conventions": "^0.32.0"
   },
   "peerDependencies": {
     "react": "17.x || 18.x || 19.x",
@@ -75,13 +75,10 @@
     "@testing-library/react": "^15.0.5",
     "@testing-library/react-hooks": "^7.0.2",
     "@types/history-4": "npm:@types/history@4.7.8",
-    "@types/history-5": "npm:@types/history@4.7.8",
-    "@types/node-fetch": "^2.6.11",
     "@types/react": "17.0.3",
     "@types/react-router-4": "npm:@types/react-router@4.0.25",
     "@types/react-router-5": "npm:@types/react-router@5.1.20",
     "history-4": "npm:history@4.6.0",
-    "history-5": "npm:history@4.9.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router": "^7.18.4",

@@ -3,10 +3,10 @@ import { HTTP_SERVER } from '@sentry/conventions/op';
 import { _INTERNAL_getActiveClient, applySdkMetadata, debug } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { init as initNodeSdk } from '@sentry/node';
+import { isDeno } from '@sentry/server-utils';
 import { DEBUG_BUILD } from '../debug-build';
 
 declare const EdgeRuntime: string | undefined;
-declare const Deno: unknown;
 declare const Netlify: unknown;
 
 /**
@@ -49,5 +49,5 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
 function isEdgeRuntime(): boolean {
   // Netlify also defines the `Netlify` global in its Node functions, so only Deno + Netlify is its edge.
-  return typeof EdgeRuntime === 'string' || (typeof Netlify !== 'undefined' && typeof Deno !== 'undefined');
+  return typeof EdgeRuntime === 'string' || (typeof Netlify !== 'undefined' && isDeno());
 }
