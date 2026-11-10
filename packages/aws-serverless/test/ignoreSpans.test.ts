@@ -1,3 +1,5 @@
+import { URL_PATH } from '@sentry/conventions/attributes';
+import { FUNCTION_AWS } from '@sentry/conventions/op';
 import type { Envelope } from '@sentry/core';
 import { createTransport, parseEnvelope, resolvedSyncPromise } from '@sentry/core';
 import type { Context, Handler } from 'aws-lambda';
@@ -10,7 +12,7 @@ const envelopes: Envelope[] = [];
 init({
   dsn: 'https://public@example.com/1',
   tracesSampleRate: 1,
-  ignoreSpans: [{ op: 'function.aws', attributes: { 'url.path': '/health' } }],
+  ignoreSpans: [{ op: FUNCTION_AWS, attributes: { [URL_PATH]: '/health' } }],
   transport: () =>
     createTransport({ recordDroppedEvent: () => undefined }, request => {
       envelopes.push(parseEnvelope(request.body));
@@ -42,7 +44,7 @@ async function invokeAndGetSentPaths(method: string, path: string): Promise<unkn
     items.flatMap(([header, payload]) =>
       header.type === 'span'
         ? (payload as { items: { attributes?: Record<string, { value: unknown }> }[] }).items.map(
-            span => span.attributes?.['url.path']?.value,
+            span => span.attributes?.[URL_PATH]?.value,
           )
         : [],
     ),
