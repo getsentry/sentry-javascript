@@ -1550,7 +1550,7 @@ describe('Vercel AI calls with recording off (v7)', () => {
               const spans = container.items.filter(
                 span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
               );
-              const modelCalls = spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content');
+              const modelCalls = spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_GENERATE_CONTENT);
               expect(modelCalls).toHaveLength(2);
               for (const modelCall of modelCalls) {
                 expect(modelCall.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
@@ -1566,7 +1566,7 @@ describe('Vercel AI calls with recording off (v7)', () => {
               expect(streamAgent.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
               expect(streamAgent.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(20);
 
-              const toolSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.execute_tool');
+              const toolSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXECUTE_TOOL);
               expect(toolSpans).toHaveLength(2);
               toolSpans.forEach(span => expect(span.status).toBe('error'));
             },
@@ -1590,7 +1590,7 @@ describe('Vercel AI calls with recording off (v7)', () => {
           .expect({
             span: container => {
               const modelCalls = container.items.filter(
-                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
+                span => span.attributes[SENTRY_OP]?.value === GEN_AI_GENERATE_CONTENT,
               );
               expect(modelCalls).toHaveLength(2);
               for (const modelCall of modelCalls) {
@@ -1640,9 +1640,7 @@ describe('Vercel AI calls with recording off (v7)', () => {
           .unordered()
           .expect({
             span: container => {
-              const toolSpan = container.items.find(
-                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.execute_tool',
-              );
+              const toolSpan = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXECUTE_TOOL);
               expect(toolSpan?.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toContain('"toolName":"getWeather"');
             },
           })

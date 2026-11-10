@@ -4,12 +4,14 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_REQUEST_MODEL,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_NAME,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_DECIDE, GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
+import { GEN_AI_DECIDE, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { collectStreamedSpans, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 import { runAgentTurn } from './utils';
 
@@ -70,16 +72,6 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
   expect(typeof invokeAgent?.attributes?.['gen_ai.output.messages']?.value).toBe('string');
   expect(String(invokeAgent?.attributes?.['gen_ai.output.messages']?.value ?? '')).not.toBe('');
 
-  if (process.env.USE_CONTENT_RECORDING === '1') {
-    expect(invokeAgent?.attributes?.['gen_ai.input.messages']?.value).toContain('What is the weather in Paris?');
-    expect(executeTool?.attributes?.['gen_ai.tool.call.arguments']?.value).toContain('Paris');
-    // The tool returns `{ city, condition: 'Sunny', temperatureC: 22 }`.
-    expect(executeTool?.attributes?.['gen_ai.tool.call.result']?.value).toContain('Sunny');
-  } else if (process.env.TEST_ENV === 'production') {
-    // By default `ai` >= 7.0.163 strips inputs from calls with eve's `recordInputs: false`.
-    expect(invokeAgent?.attributes?.['gen_ai.input.messages']).toBeUndefined();
-  }
-
   // `get_weather` wraps its work in a manual `Sentry.startSpan`. Because eve runs
   // the tool while the SDK's `execute_tool` span is active, that user span nests
   // directly under it — this is the manual-instrumentation-inside-a-tool case.
@@ -118,6 +110,42 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
       },
     });
   }
+});
+
+const recordsContent = process.env.USE_CONTENT_RECORDING === '1';
+
+async function runWeatherTurn(baseURL: string) {
+  const traceSpansPromise = collectStreamedSpans(APP, spansOfTrace =>
+    [GEN_AI_INVOKE_AGENT, GEN_AI_EXECUTE_TOOL].every(op => spansOfTrace.some(span => getSpanOp(span) === op)),
+  );
+  await runAgentTurn(baseURL, 'What is the weather in Paris?');
+  const traceSpans = await traceSpansPromise;
+
+  return {
+    invokeAgent: traceSpans.find(span => getSpanOp(span) === GEN_AI_INVOKE_AGENT),
+    executeTool: traceSpans.find(span => getSpanOp(span) === GEN_AI_EXECUTE_TOOL),
+  };
+}
+
+test('records input messages and tool data with the content recording setup', async ({ baseURL }) => {
+  test.skip(!recordsContent, 'needs the OTel destination and trace policy from USE_CONTENT_RECORDING=1');
+
+  const { invokeAgent, executeTool } = await runWeatherTurn(baseURL!);
+
+  expect(invokeAgent?.attributes?.[GEN_AI_INPUT_MESSAGES]?.value).toContain('What is the weather in Paris?');
+  expect(executeTool?.attributes?.[GEN_AI_TOOL_CALL_ARGUMENTS]?.value).toContain('Paris');
+  // The tool returns `{ city, condition: 'Sunny', temperatureC: 22 }`.
+  expect(executeTool?.attributes?.[GEN_AI_TOOL_CALL_RESULT]?.value).toContain('Sunny');
+});
+
+test('records no input messages by default in production', async ({ baseURL }) => {
+  // eve allows content in development, so only production shows the default.
+  test.skip(recordsContent || process.env.TEST_ENV !== 'production', 'only the default setup in production');
+
+  const { invokeAgent } = await runWeatherTurn(baseURL!);
+
+  // `ai` >= 7.0.163 strips inputs from calls with eve's `recordInputs: false`.
+  expect(invokeAgent?.attributes?.[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
 });
 
 test('captures errors thrown inside an eve tool', async ({ baseURL }) => {
