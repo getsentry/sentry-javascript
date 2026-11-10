@@ -39,50 +39,41 @@ interface HttpEventLike {
   };
 }
 
-interface HttpRequestInfo {
-  method: string;
-  path?: string;
-  query?: string;
-  route?: string;
-  protocol?: string;
-  sourceIp?: string;
-  userAgent?: string;
-  domainName?: string;
-}
-
 /**
  * Builds the request attributes `http.server` spans have for invocations triggered by an HTTP event
  * (Lambda Function URLs, API Gateway REST and HTTP APIs, ALB).
  */
 export function getHttpRequestAttributes(event: unknown, client: Client | undefined): SpanAttributes {
-  if (!isPlainObject(event)) {
+  const format = getPayloadFormat(event);
+  if (!format) {
     return {};
   }
 
-  const request = getHttpRequestInfo(event);
-  if (!request) {
-    return {};
-  }
-
-  const headers = (event as HttpEventLike).headers || {};
+  const httpEvent = event as HttpEventLike;
+  const isV2 = format === '2.0';
+  const { requestContext = {}, headers = {} } = httpEvent;
+  const { http, identity } = requestContext;
   const port = Number(getHeader(headers, 'x-forwarded-port'));
   const clientAddress = client?.getDataCollectionOptions().userInfo
-    ? request.sourceIp || getClientIPAddress(headers) || undefined
+    ? http?.sourceIp || identity?.sourceIp || getClientIPAddress(headers) || undefined
     : undefined;
 
   return {
     [FAAS_TRIGGER]: 'http',
-    [HTTP_REQUEST_METHOD]: request.method,
-    [HTTP_ROUTE]: request.route,
-    [URL_PATH]: request.path,
-    [URL_QUERY]: filterCollectedUrlQuery(request.query, client),
+    [HTTP_REQUEST_METHOD]: (http?.method || httpEvent.httpMethod)?.toUpperCase(),
+    [HTTP_ROUTE]: isV2 ? getPayloadFormatV2Route(httpEvent) : getPayloadFormatV1Route(httpEvent),
+    [URL_PATH]: isV2 ? httpEvent.rawPath || http?.path : httpEvent.path,
+    [URL_QUERY]: filterCollectedUrlQuery(
+      isV2 ? httpEvent.rawQueryString : getQueryFromParameters(httpEvent, !!requestContext.elb),
+      client,
+    ),
     [URL_SCHEME]: getHeader(headers, 'x-forwarded-proto'),
-    [SERVER_ADDRESS]: request.domainName || getHeader(headers, 'host')?.replace(/:\d+$/, ''),
+    [SERVER_ADDRESS]: requestContext.domainName || getHeader(headers, 'host')?.replace(/:\d+$/, ''),
     [SERVER_PORT]: Number.isInteger(port) && port > 0 ? port : undefined,
     [CLIENT_ADDRESS]: clientAddress,
-    [USER_AGENT_ORIGINAL]: request.userAgent || getHeader(headers, 'user-agent'),
+    [USER_AGENT_ORIGINAL]: http?.userAgent || identity?.userAgent || getHeader(headers, 'user-agent'),
     [NETWORK_PROTOCOL_NAME]: 'http',
-    [NETWORK_PROTOCOL_VERSION]: request.protocol?.match(/^HTTP\/(.+)$/i)?.[1],
+    [NETWORK_PROTOCOL_VERSION]: (http?.protocol || requestContext.protocol)?.match(/^HTTP\/(.+)$/i)?.[1],
   };
 }
 
@@ -90,7 +81,8 @@ export function getHttpRequestAttributes(event: unknown, client: Client | undefi
  * Builds the response attributes for an invocation triggered by an HTTP event, based on what the handler returned.
  */
 export function getHttpResponseAttributes(event: unknown, result: unknown): SpanAttributes {
-  if (!isPlainObject(event) || !getHttpRequestInfo(event)) {
+  const format = getPayloadFormat(event);
+  if (!format) {
     return {};
   }
 
@@ -102,44 +94,24 @@ export function getHttpResponseAttributes(event: unknown, result: unknown): Span
   // For payload format 2.0 (Function URLs, HTTP APIs), Lambda answers with a 200 when the handler
   // returns anything without a `statusCode`. Format 1.0 requires one, so we can't infer it there.
   // https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html#http-api-develop-integrations-lambda.response
-  return isPayloadFormatV2(event) && result !== undefined ? { [HTTP_RESPONSE_STATUS_CODE]: 200 } : {};
+  return format === '2.0' && result !== undefined ? { [HTTP_RESPONSE_STATUS_CODE]: 200 } : {};
 }
 
-function isPayloadFormatV2(event: HttpEventLike): boolean {
-  return event.version === '2.0' && typeof event.requestContext?.http?.method === 'string';
+// Payload format 1.0 is used by API Gateway REST APIs, HTTP APIs configured for it, and (in the same shape) ALB.
+function getPayloadFormat(event: unknown): '1.0' | '2.0' | undefined {
+  if (!isPlainObject(event)) {
+    return undefined;
+  }
+  const httpEvent = event as HttpEventLike;
+  if (httpEvent.version === '2.0' && typeof httpEvent.requestContext?.http?.method === 'string') {
+    return '2.0';
+  }
+  return typeof httpEvent.httpMethod === 'string' ? '1.0' : undefined;
 }
 
-function getHttpRequestInfo(event: HttpEventLike): HttpRequestInfo | undefined {
-  if (isPayloadFormatV2(event)) {
-    const http = event.requestContext?.http;
-    return {
-      method: http!.method!.toUpperCase(),
-      path: event.rawPath || http?.path,
-      query: event.rawQueryString,
-      // `$default` is the catch-all route that Function URLs and HTTP API default stages use, not a route template.
-      route: event.routeKey && event.routeKey !== '$default' ? event.routeKey.replace(/^\S+\s+/, '') : undefined,
-      protocol: http?.protocol,
-      sourceIp: http?.sourceIp,
-      userAgent: http?.userAgent,
-      domainName: event.requestContext?.domainName,
-    };
-  }
-
-  // Payload format 1.0 (API Gateway REST APIs and HTTP APIs) and ALB events.
-  if (typeof event.httpMethod === 'string') {
-    return {
-      method: event.httpMethod.toUpperCase(),
-      path: event.path,
-      query: getQueryFromParameters(event, !!event.requestContext?.elb),
-      route: getPayloadFormatV1Route(event),
-      protocol: event.requestContext?.protocol,
-      sourceIp: event.requestContext?.identity?.sourceIp,
-      userAgent: event.requestContext?.identity?.userAgent,
-      domainName: event.requestContext?.domainName,
-    };
-  }
-
-  return undefined;
+// `$default` is the catch-all route that Function URLs and HTTP API default stages use, not a route template.
+function getPayloadFormatV2Route(event: HttpEventLike): string | undefined {
+  return event.routeKey && event.routeKey !== '$default' ? event.routeKey.replace(/^\S+\s+/, '') : undefined;
 }
 
 // REST APIs send the route template (e.g. `/users/{id}`) as `resource`. HTTP APIs using payload format 1.0
