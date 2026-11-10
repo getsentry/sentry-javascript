@@ -1,0 +1,8 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-tail-stream-producer",
+  "main": "index-producer.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "streaming_tail_consumers": [{ "service": "cloudflare-tail-stream-consumer" }],
+}
