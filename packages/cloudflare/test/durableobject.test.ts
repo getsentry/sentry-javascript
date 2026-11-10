@@ -274,6 +274,27 @@ describe('instrumentDurableObjectWithSentry', () => {
 
   // The only scope that all later invocations share is the default isolation scope of the isolate, so
   // data set in the constructor stays in the constructor's own scope.
+  it.each([
+    [undefined, true],
+    [false, false],
+  ])('with cacheClient: %s, has a client in the constructor: %s', (cacheClient, hasClient) => {
+    let constructorClient: unknown;
+    const testClass = class {
+      constructor() {
+        constructorClient = SentryCore.getClient();
+      }
+    };
+    Reflect.construct(
+      instrumentDurableObjectWithSentry(
+        () => ({ dsn: 'https://public@dsn.ingest.sentry.io/1337', cacheClient }),
+        testClass as any,
+      ),
+      [{ waitUntil: vi.fn() }, {}],
+    );
+
+    expect(constructorClient !== undefined).toBe(hasClient);
+  });
+
   it('does not apply scope data set in the constructor to later invocations', async () => {
     const events: Event[] = [];
     const waits: Promise<unknown>[] = [];
