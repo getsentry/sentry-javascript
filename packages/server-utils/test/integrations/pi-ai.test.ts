@@ -447,8 +447,8 @@ describe('piAiIntegration', () => {
       });
       settle(message);
       await events.result();
-      await new Promise(resolve => setTimeout(resolve));
 
+      expect(endedSpans).toHaveLength(1);
       const recorded = endedSpans.flatMap(span => Object.keys(spanToJSON(span).attributes));
       for (const attribute of CONTENT_ATTRIBUTES) {
         expect(recorded).not.toContain(attribute);
