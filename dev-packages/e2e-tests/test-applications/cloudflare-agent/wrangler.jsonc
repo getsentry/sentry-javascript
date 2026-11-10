@@ -27,10 +27,13 @@
       { "name": "MyAgent", "class_name": "MyAgent" },
       { "name": "MyChatAgent", "class_name": "MyChatAgent" },
       { "name": "MyManualChatAgent", "class_name": "MyManualChatAgent" },
+      { "name": "MyRecoveringAgent", "class_name": "MyRecoveringAgent" },
     ],
   },
 
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MyAgent", "MyChatAgent", "MyManualChatAgent"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["MyAgent", "MyChatAgent", "MyManualChatAgent", "MyRecoveringAgent"] },
+  ],
 
   "version_metadata": {
     "binding": "CF_VERSION_METADATA",
