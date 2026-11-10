@@ -1,7 +1,7 @@
 // Note: These tests run the handler in Node.js, which has some differences to the cloudflare workers runtime.
 // Although this is not ideal, this is the best we can do until we have a better way to test cloudflare workers.
 
-import type { ExecutionContext, TraceItem } from '@cloudflare/workers-types';
+import type { ExecutionContext, TailStream, TraceItem } from '@cloudflare/workers-types';
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
@@ -273,5 +273,213 @@ describe('instrumentTail', () => {
     vi.advanceTimersToNextTimer().runAllTimers();
     await Promise.all(waits);
     expect(flush).toHaveBeenCalledOnce();
+  });
+});
+
+describe('tail handler detection', () => {
+  test('does not add tail handlers to a handler whose proxy returns functions for unknown properties', () => {
+    const target = { fetch: () => new Response('ok') };
+    const handler = new Proxy(target, {
+      get: (t, prop) => t[prop as keyof typeof t] ?? (() => undefined),
+    });
+
+    withSentry(() => ({}), handler);
+
+    expect(Object.keys(target)).toEqual(['fetch']);
+  });
+});
+
+describe('instrumentTrace', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetSdk();
+  });
+
+  test('creates a cloudflare client', async () => {
+    const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind');
+    const handler = {
+      trace(_traces, _env, _context) {
+        return;
+      },
+    } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+    const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN }), handler);
+    await wrappedHandler.trace?.(createMockTailEvent(), MOCK_ENV, createMockExecutionContext());
+
+    expect(initAndBindSpy).toHaveBeenCalledTimes(1);
+    expect(initAndBindSpy).toHaveBeenLastCalledWith(CloudflareClient, expect.any(Object));
+  });
+
+  test('captures and re-throws errors thrown by the handler', async () => {
+    const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+    const error = new Error('test');
+    const handler = {
+      trace(_traces, _env, _context) {
+        throw error;
+      },
+    } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+    const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN }), handler);
+
+    let thrownError: unknown;
+    try {
+      await wrappedHandler.trace?.(createMockTailEvent(), MOCK_ENV, createMockExecutionContext());
+    } catch (e) {
+      thrownError = e;
+    }
+
+    expect(thrownError).toBe(error);
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+    expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
+      mechanism: { handled: false, type: 'auto.faas.cloudflare.trace' },
+    });
+  });
+});
+
+describe('instrumentTailStream', () => {
+  const onsetEvent = {} as TailStream.TailEvent<TailStream.Onset>;
+  const outcomeEvent = {} as TailStream.TailEvent<TailStream.Outcome>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetSdk();
+  });
+
+  test('captures and re-throws errors thrown by the handler', async () => {
+    const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+    const error = new Error('test');
+    const handler = {
+      tailStream(_event, _env, _context) {
+        throw error;
+      },
+    } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+    const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN }), handler);
+
+    let thrownError: unknown;
+    try {
+      await wrappedHandler.tailStream?.(onsetEvent, MOCK_ENV, createMockExecutionContext());
+    } catch (e) {
+      thrownError = e;
+    }
+
+    expect(thrownError).toBe(error);
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+    expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
+      mechanism: { handled: false, type: 'auto.faas.cloudflare.tail_stream' },
+    });
+  });
+
+  test('passes events to the returned event handler with a client for each call', async () => {
+    const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind');
+    const eventHandler = vi.fn();
+    const handler = {
+      tailStream(_event, _env, _context) {
+        return eventHandler;
+      },
+    } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+    // A per-invocation client makes every instrumented call visible as its own init.
+    const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN, cacheClient: false }), handler);
+    const returned = (await wrappedHandler.tailStream?.(
+      onsetEvent,
+      MOCK_ENV,
+      createMockExecutionContext(),
+    )) as TailStream.TailEventHandler;
+    await returned(outcomeEvent);
+
+    expect(eventHandler).toHaveBeenCalledWith(outcomeEvent);
+    expect(initAndBindSpy).toHaveBeenCalledTimes(2);
+  });
+
+  test('captures and re-throws errors thrown by the returned event handler function', async () => {
+    const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+    const error = new Error('test');
+    const handler = {
+      tailStream(_event, _env, _context) {
+        return () => {
+          throw error;
+        };
+      },
+    } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+    const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN }), handler);
+    const returned = (await wrappedHandler.tailStream?.(
+      onsetEvent,
+      MOCK_ENV,
+      createMockExecutionContext(),
+    )) as TailStream.TailEventHandler;
+
+    let thrownError: unknown;
+    try {
+      await returned(outcomeEvent);
+    } catch (e) {
+      thrownError = e;
+    }
+
+    expect(thrownError).toBe(error);
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+    expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
+      mechanism: { handled: false, type: 'auto.faas.cloudflare.tail_stream' },
+    });
+  });
+
+  test('does not start a nested invocation when an event handler method calls another method', async () => {
+    const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind');
+    const handler = {
+      tailStream(_event, _env, _context) {
+        return {
+          outcome(this: { helper: () => void }) {
+            this.helper();
+          },
+          helper() {},
+        };
+      },
+    } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+    // A per-invocation client makes every instrumented call visible as its own init.
+    const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN, cacheClient: false }), handler);
+    const returned = (await wrappedHandler.tailStream?.(
+      onsetEvent,
+      MOCK_ENV,
+      createMockExecutionContext(),
+    )) as TailStream.TailEventHandlerObject;
+    await returned.outcome?.(outcomeEvent);
+
+    expect(initAndBindSpy).toHaveBeenCalledTimes(2);
+  });
+
+  test('captures and re-throws errors thrown by methods of the returned event handler object', async () => {
+    const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+    const error = new Error('test');
+    const handler = {
+      tailStream(_event, _env, _context) {
+        return {
+          outcome() {
+            throw error;
+          },
+        };
+      },
+    } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+    const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN }), handler);
+    const returned = (await wrappedHandler.tailStream?.(
+      onsetEvent,
+      MOCK_ENV,
+      createMockExecutionContext(),
+    )) as TailStream.TailEventHandlerObject;
+
+    let thrownError: unknown;
+    try {
+      await returned.outcome?.(outcomeEvent);
+    } catch (e) {
+      thrownError = e;
+    }
+
+    expect(thrownError).toBe(error);
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+    expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
+      mechanism: { handled: false, type: 'auto.faas.cloudflare.tail_stream' },
+    });
   });
 });
