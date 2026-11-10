@@ -52,7 +52,7 @@ interface InstrumentFetchRequestOptions {
   spanOrigin?: SpanOrigin;
   propagateTraceparent?: boolean;
   onRequestSpanEnd?: (span: Span, responseInformation: ResponseHookInfo) => void;
-  /** Base URL for relative request URLs. Browsers pass the page origin; server runtimes have none. */
+  /** Base URL for relative request URLs. Browsers pass the page URL; server runtimes have none. */
   urlBase?: string;
 }
 

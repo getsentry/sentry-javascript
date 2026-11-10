@@ -25,8 +25,9 @@ import {
   resolveAIRecordingOptions,
   wrapPromiseWithMethods,
 } from '../core/utils';
-import { ANTHROPIC_METHOD_REGISTRY } from './constants';
+import { ANTHROPIC_AI_ORIGIN, ANTHROPIC_METHOD_REGISTRY } from './constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
+import { instrumentSessionToolRunner, instrumentToolRunner, instrumentToolRunnerFactory } from './tool-runner';
 import type { AnthropicAiOptions, AnthropicAiResponse, AnthropicAiStreamingEvent, ContentBlock } from './types';
 import { handleResponseError, messagesFromParams, setMessagesAttribute } from './utils';
 
@@ -50,7 +51,7 @@ export function extractRequestAttributes(
   const attributes: Record<string, unknown> = {
     [GEN_AI_PROVIDER_NAME]: 'anthropic',
     [GEN_AI_OPERATION_NAME]: operationName,
-    [SENTRY_ORIGIN]: 'auto.ai.anthropic',
+    [SENTRY_ORIGIN]: ANTHROPIC_AI_ORIGIN,
   };
 
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
@@ -348,6 +349,14 @@ function instrumentClientInPlace<T extends object>(client: T, options: Anthropic
     );
     INSTRUMENTED_METHODS.add(instrumented);
     owner[methodName] = instrumented;
+  }
+
+  const beta = (client as { beta?: { messages?: object; sessions?: { events?: object } } }).beta;
+  if (beta?.messages) {
+    instrumentToolRunnerFactory(beta.messages, instrumentToolRunner, options);
+  }
+  if (beta?.sessions?.events) {
+    instrumentToolRunnerFactory(beta.sessions.events, instrumentSessionToolRunner, options);
   }
 
   return client;

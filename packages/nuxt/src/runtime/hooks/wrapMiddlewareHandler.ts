@@ -1,4 +1,10 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+} from '@sentry/conventions/attributes';
 import { MIDDLEWARE } from '@sentry/conventions/op';
 import {
   captureException,
@@ -183,11 +189,11 @@ function getSpanAttributes(
   const path = event.path ?? eventH3v2?.url?.pathname;
 
   if (method) {
-    attributes['http.request.method'] = method;
+    attributes[HTTP_REQUEST_METHOD] = method;
   }
 
   if (path) {
-    attributes['http.route'] = path;
+    attributes[HTTP_ROUTE] = path;
   }
 
   // h3 v1 (Nuxt 4): headers are on event.node.req.headers

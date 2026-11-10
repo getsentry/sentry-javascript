@@ -37,6 +37,8 @@
 import type * as Babel from '@babel/core';
 import type { PluginObj, PluginPass } from '@babel/core';
 
+import type { BabelApi, BabelPlugin } from './types';
+
 const REACT_NATIVE_ELEMENTS: string[] = [
   'Image',
   'Text',
@@ -92,7 +94,11 @@ interface JSXProcessingContext {
 }
 
 // We must export the plugin as default, otherwise the Babel loader will not be able to resolve it when configured using its string identifier
-export function experimentalComponentNameAnnotatePlugin({ types: t }: typeof Babel): AnnotationPlugin {
+export function experimentalComponentNameAnnotatePlugin(babel: BabelApi): BabelPlugin {
+  return createPlugin(babel as typeof Babel);
+}
+
+function createPlugin({ types: t }: typeof Babel): AnnotationPlugin {
   return {
     visitor: {
       Program: {

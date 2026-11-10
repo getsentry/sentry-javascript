@@ -20,6 +20,8 @@ const NODE_EXPORTS_IGNORE = [
   'initWithoutDefaultIntegrations',
   // Internal helper only needed within integrations (e.g. bunRuntimeMetricsIntegration)
   '_INTERNAL_normalizeCollectionInterval',
+  // Only needed by framework SDKs that enable the managed tunnel after `init`
+  '_INTERNAL_installTunnelHooks',
   // not exported by bun
   'nativeNodeFetchIntegration',
 ];
@@ -51,11 +53,11 @@ const DEPENDENTS: Dependent[] = [
     exports: Object.keys(SentryBun),
     ignoreExports: [
       // not supported in bun:
+      'awsLambdaWebIntegration',
       'NodeClient',
       'NODE_VERSION',
       'childProcessIntegration',
       'workerThreadsIntegration',
-      'systemErrorIntegration',
       'pinoIntegration',
       // Bun will get its own runtime metrics integration
       'nodeRuntimeMetricsIntegration',

@@ -29,15 +29,16 @@ export interface HonoRoute {
   handler: (...args: any[]) => any;
 }
 
+// One entry of Hono's `matchResult[0]`.
+export type MatchedHandler = [pair: [handler: HonoRoute['handler'], route: HonoRoute], paramIndexMap: unknown];
+
 export interface HonoRequest {
   raw: Request;
   method: string;
   path: string;
   routeIndex: number;
-  // These are public (though deprecated) getters on Hono's request. Reading them avoids a runtime
-  // import of the `hono/route` helpers, which are their non-deprecated replacements.
-  matchedRoutes: HonoRoute[];
-  routePath: string;
+  // Deprecated getter that Hono 5 removes.
+  matchedRoutes?: HonoRoute[];
   [key: string]: any;
 }
 
@@ -60,12 +61,3 @@ export interface Hono<E extends Env = Env> {
   routes: HonoRoute[];
   [key: string]: any;
 }
-
-export interface ConnInfoRemote {
-  address?: string;
-  port?: number;
-  transport?: string;
-  addressType?: string;
-}
-
-export type GetConnInfo = (context: any) => { remote?: ConnInfoRemote };

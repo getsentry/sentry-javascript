@@ -305,6 +305,33 @@ describe('generateValueInjectionRules', () => {
     });
   });
 
+  describe('with tunnel route values', () => {
+    it('injects the tunnel path and mode into the client and server bundles', () => {
+      const result = generateValueInjectionRules({
+        tunnelRouteValues: { _sentryRewritesTunnelPath: '/monitoring', _sentryTunnelRouteMode: 'handler' },
+      });
+
+      const injectedValues = result.map(({ matcher, rule }) => [
+        matcher,
+        (rule as { loaders: Array<{ options: { values: Record<string, unknown> } }> }).loaders[0]?.options.values,
+      ]);
+      expect(injectedValues).toEqual([
+        [
+          '**/instrumentation-client.*',
+          { _sentryRewritesTunnelPath: '/monitoring', _sentryTunnelRouteMode: 'handler' },
+        ],
+        [
+          '**/instrumentation.*',
+          {
+            _sentryRewritesTunnelPath: '/monitoring',
+            _sentryTunnelRouteMode: 'handler',
+            __SENTRY_SERVER_MODULES__: expect.any(Object),
+          },
+        ],
+      ]);
+    });
+  });
+
   describe('path resolution', () => {
     it('should call path.resolve with correct arguments', () => {
       const pathResolveSpy = vi.spyOn(path, 'resolve');

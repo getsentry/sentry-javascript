@@ -7,11 +7,11 @@ describe('eveInstrumentation', () => {
     vi.restoreAllMocks();
   });
 
-  test('exposes a setup and turn.started / step.attempt.started events', () => {
+  test('exposes a setup and turn.started / step.attempt.started / model.started events', () => {
     const provider = eveInstrumentation();
 
     expect(typeof provider.setup).toBe('function');
-    expect(Object.keys(provider.events).sort()).toEqual(['step.attempt.started', 'turn.started']);
+    expect(Object.keys(provider.events).sort()).toEqual(['model.started', 'step.attempt.started', 'turn.started']);
   });
 
   test('sets the session id as the conversation id from turn.started (event.sessionId)', () => {
@@ -28,6 +28,14 @@ describe('eveInstrumentation', () => {
     eveInstrumentation().events['step.attempt.started']({ scope: { sessionId: 'sess_resumed' } });
 
     expect(setConversationId).toHaveBeenCalledWith('sess_resumed');
+  });
+
+  test('sets it from model.started (event.scope.sessionId), which replaced step.attempt.started in eve 0.84', () => {
+    const setConversationId = vi.spyOn(SentryCore, 'setConversationId').mockImplementation(() => undefined);
+
+    eveInstrumentation().events['model.started']({ scope: { sessionId: 'sess_model' } });
+
+    expect(setConversationId).toHaveBeenCalledWith('sess_model');
   });
 
   test('honors a custom getConversationId', () => {

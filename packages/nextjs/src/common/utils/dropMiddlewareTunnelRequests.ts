@@ -1,12 +1,18 @@
 import { HTTP_TARGET, URL_FULL, URL_PATH, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
-import type { RawAttributes } from '@sentry/core';
-import { getClient, GLOBAL_OBJ, isSentryRequestUrl, type Span } from '@sentry/core';
-import { ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
-import { isPathnameUnderSentryTunnelRoute } from './tunnelPathnameMatch';
+import type { ClientOptions, RawAttributes } from '@sentry/core';
+import { escapeStringForRegex, getClient, GLOBAL_OBJ, isSentryRequestUrl, type Span } from '@sentry/core';
+import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
+import {
+  getTunnelRouteRequestPattern,
+  isPathnameUnderSentryTunnelRoute,
+  TUNNEL_ROUTE_HANDLER_PATH,
+  type TunnelRouteMode,
+} from './tunnelPathnameMatch';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewritesTunnelPath?: string;
+  _sentryTunnelRouteMode?: TunnelRouteMode;
 };
 
 /**
@@ -28,8 +34,10 @@ export function dropMiddlewareTunnelRequests(
     return;
   }
 
-  // Only filter middleware spans, HTTP fetch spans, or BaseServer.handleRequest spans
-  const isMiddleware = attrs?.[ATTR_NEXT_SPAN_TYPE] === 'Middleware.execute';
+  // Only filter middleware spans, HTTP fetch spans, or BaseServer.handleRequest spans. Since Next.js 16.4.3, a proxy
+  // invoked separately from the render runs under a `Next.request` root span, which has to be dropped too.
+  const isMiddleware =
+    attrs?.[ATTR_NEXT_SPAN_TYPE] === 'Middleware.execute' || attrs?.[ATTR_NEXT_SPAN_TYPE] === 'Next.request';
   // The fetch span could be originating from rewrites re-writing a tunnel request
   // So we want to filter it out
   const isFetchSpan = attrs?.[SENTRY_ORIGIN] === 'auto.http.node_fetch';
@@ -81,4 +89,53 @@ export function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): bool
   }
 
   return false;
+}
+
+/**
+ * Returns `ignoreSpans` entries for the spans of incoming tunnel requests.
+ *
+ * Span streaming checks `ignoreSpans` at span start, before `dropMiddlewareTunnelRequests` runs. The entries match only
+ * Next.js request spans, so other spans with the same path are kept.
+ */
+export function getTunnelRouteIgnoreSpans(): NonNullable<ClientOptions['ignoreSpans']> {
+  const tunnelPath = globalWithInjectedValues._sentryRewritesTunnelPath || process.env._sentryRewritesTunnelPath;
+  if (!tunnelPath) {
+    return [];
+  }
+
+  const tunnelRouteMode =
+    (globalWithInjectedValues._sentryTunnelRouteMode || process.env._sentryTunnelRouteMode) === 'handler'
+      ? 'handler'
+      : 'rewrite';
+  const tunnelRequestIgnoreSpan = {
+    attributes: {
+      [ATTR_NEXT_SPAN_TYPE]: /^(?:BaseServer\.handleRequest|Middleware\.execute)$/,
+      // Next.js sets only `http.target` at span start.
+      // eslint-disable-next-line typescript/no-deprecated
+      [HTTP_TARGET]: getTunnelRouteRequestPattern(tunnelPath, tunnelRouteMode),
+    },
+  };
+
+  // Since Next.js 16.4.3, a proxy invoked separately from the render runs under a `Next.request` root span. Its
+  // `http.target` is the pathname only, so the query of a rewrite-mode tunnel request can't be matched.
+  const proxyRootSpanIgnoreSpan = {
+    attributes: {
+      [ATTR_NEXT_SPAN_TYPE]: /^Next\.request$/,
+      // eslint-disable-next-line typescript/no-deprecated
+      [HTTP_TARGET]: new RegExp(`^${escapeStringForRegex(tunnelPath)}/?$`),
+    },
+  };
+
+  if (tunnelRouteMode !== 'handler') {
+    return [tunnelRequestIgnoreSpan, proxyRootSpanIgnoreSpan];
+  }
+
+  // On edge, the root span of a route handler has only `next.route`, with a `/route` suffix before Next.js 16.
+  const tunnelRouteHandlerIgnoreSpan = {
+    attributes: {
+      [ATTR_NEXT_SPAN_TYPE]: /^AppRouteRouteHandlers\.runHandler$/,
+      [ATTR_NEXT_ROUTE]: new RegExp(`^${escapeStringForRegex(TUNNEL_ROUTE_HANDLER_PATH)}(?:/route)?$`),
+    },
+  };
+  return [tunnelRequestIgnoreSpan, proxyRootSpanIgnoreSpan, tunnelRouteHandlerIgnoreSpan];
 }

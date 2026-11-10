@@ -80,6 +80,7 @@ vi.mock('../../src/reactrouter-compat-utils/utils', () => ({
     return name.includes('/*') || name === '*' || name.endsWith('*');
   }),
   getActiveRootSpan: vi.fn(() => undefined),
+  getRootRoutes: vi.fn((routes: unknown[]) => routes),
 }));
 
 vi.mock('../../src/reactrouter-compat-utils/lazy-routes', () => ({

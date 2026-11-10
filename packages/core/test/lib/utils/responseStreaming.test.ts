@@ -9,6 +9,7 @@ describe('classifyResponseStreaming', () => {
     ['application/stream+json', true],
     ['TEXT/EVENT-STREAM', true],
     ['text/plain', true],
+    ['text/x-component;charset=utf-8', true],
     ['text/html', false],
     ['application/json', false],
     ['application/octet-stream', false],
@@ -20,8 +21,8 @@ describe('classifyResponseStreaming', () => {
     expect(response.body?.locked).toBe(false);
   });
 
-  test('treats plain text with a known length as non-streaming', () => {
-    const response = new Response('ready', { headers: { 'content-type': 'text/plain', 'content-length': '5' } });
+  test.each(['text/plain', 'text/x-component'])('treats %s with a known length as non-streaming', contentType => {
+    const response = new Response('ready', { headers: { 'content-type': contentType, 'content-length': '5' } });
 
     expect(classifyResponseStreaming(response)).toEqual({ isStreaming: false });
   });

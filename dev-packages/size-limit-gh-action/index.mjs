@@ -1,87 +1,68 @@
-/* eslint-disable complexity */
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DefaultArtifactClient } from '@actions/artifact';
 import * as core from '@actions/core';
-import { exec } from '@actions/exec';
+import { getExecOutput } from '@actions/exec';
 import { context, getOctokit } from '@actions/github';
-import * as glob from '@actions/glob';
-import * as io from '@actions/io';
 import { markdownTable } from 'markdown-table';
+import sizeConfig from '../../.size-limit.js';
 import { getArtifactsForBranchAndWorkflow } from './utils/getArtifactsForBranchAndWorkflow.mjs';
-import { SizeLimitFormatter } from './utils/SizeLimitFormatter.mjs';
+import { MAX_INCREASE_BYTES, SizeLimitFormatter } from './utils/SizeLimitFormatter.mjs';
 
+const OVERRIDE_LABEL = 'Accept Bundlesize Increase';
+const RELEASE_BRANCH_PREFIX = 'prepare-release/';
 const SIZE_LIMIT_HEADING = '## size-limit report 📦 ';
 const ARTIFACT_NAME = 'size-limit-action';
-const RESULTS_FILE = 'size-limit-results.json';
-
-function getResultsFilePath() {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  return path.resolve(__dirname, RESULTS_FILE);
-}
+const ACTION_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
+const RESULTS_FILE_PATH = path.join(ACTION_DIRECTORY, 'size-limit-results.json');
 
 const { getInput, setFailed } = core;
 
-async function fetchPreviousComment(octokit, repo, pr) {
-  const { data: commentList } = await octokit.rest.issues.listComments({
-    ...repo,
-    issue_number: pr.number,
-  });
-
-  const sizeLimitComment = commentList.find(comment => comment.body.startsWith(SIZE_LIMIT_HEADING));
-  return !sizeLimitComment ? null : sizeLimitComment;
-}
-
-async function execSizeLimit() {
-  let output = '';
-
-  const status = await exec('yarn run --silent size-limit --json', [], {
-    windowsVerbatimArguments: false,
-    ignoreReturnCode: true,
-    cwd: process.cwd(),
-    listeners: {
-      stdout: data => {
-        output += data.toString();
-      },
-    },
-  });
-
-  return { status, output };
-}
-
 async function run() {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
   try {
     const { payload, repo } = context;
     const pr = payload.pull_request;
 
+    // The comparison branch is the base branch we are comparing against (in our case usually develop)
     const comparisonBranch = getInput('comparison_branch');
     const githubToken = getInput('github_token');
-    const threshold = getInput('threshold') || 0.05;
 
     if (comparisonBranch && !pr) {
       throw new Error('No PR found. Only pull_request workflows are supported.');
     }
 
     const octokit = getOctokit(githubToken);
-    const limit = new SizeLimitFormatter();
-    const resultsFilePath = getResultsFilePath();
+    let increaseAccepted = false;
 
-    // If we have no comparison branch, we just run size limit & store the result as artifact
-    if (!comparisonBranch) {
-      return await runSizeLimitOnComparisonBranch();
+    if (comparisonBranch) {
+      const { data: currentPr } = await octokit.rest.pulls.get({
+        ...repo,
+        pull_number: pr.number,
+      });
+      increaseAccepted = currentPr.labels.some(label => label.name === OVERRIDE_LABEL);
     }
 
-    // Else, we run size limit for the current branch, AND fetch it for the comparison branch
+    const limit = new SizeLimitFormatter();
+    const artifactClient = new DefaultArtifactClient();
+
+    // Build and measure each bundle defined in .size-limit.js for the current branch
+    const { stdout } = await getExecOutput('pnpm', ['exec', 'size-limit', '--json']);
+    const current = limit.parseResults(stdout);
+
+    // If we have no comparison branch, we only store the results as artifacts (likely running on develop)
+    if (!comparisonBranch) {
+      await fs.writeFile(RESULTS_FILE_PATH, JSON.stringify(current), 'utf8');
+      await artifactClient.uploadArtifact(ARTIFACT_NAME, [RESULTS_FILE_PATH], ACTION_DIRECTORY);
+      return;
+    }
+
+    // Else, we fetch the results for the comparison branch and compare them with the current branch (likely running on a PR)
     let base;
-    let current;
-    let baseIsNotLatest = false;
     let baseWorkflowRun;
 
     try {
-      const workflowName = `${process.env.GITHUB_WORKFLOW || ''}`;
+      const workflowName = process.env.GITHUB_WORKFLOW;
       core.startGroup(`getArtifactsForBranchAndWorkflow - workflow:"${workflowName}",  branch:"${comparisonBranch}"`);
       const artifacts = await getArtifactsForBranchAndWorkflow(octokit, {
         ...repo,
@@ -97,109 +78,129 @@ async function run() {
 
       baseWorkflowRun = artifacts.workflowRun;
 
-      await downloadOtherWorkflowArtifact(octokit, {
-        ...repo,
-        artifactName: ARTIFACT_NAME,
-        artifactId: artifacts.artifact.id,
-        downloadPath: __dirname,
+      await artifactClient.downloadArtifact(artifacts.artifact.id, {
+        path: ACTION_DIRECTORY,
+        findBy: {
+          token: githubToken,
+          workflowRunId: artifacts.workflowRun.id,
+          repositoryOwner: repo.owner,
+          repositoryName: repo.repo,
+        },
       });
 
-      base = JSON.parse(await fs.readFile(resultsFilePath, { encoding: 'utf8' }));
-
-      if (!artifacts.isLatest) {
-        baseIsNotLatest = true;
-        core.info('Base artifact is not the latest one. This may lead to incorrect results.');
-      }
+      base = JSON.parse(await fs.readFile(RESULTS_FILE_PATH, { encoding: 'utf8' }));
     } catch (error) {
       core.startGroup('Warning, unable to find base results');
       core.error(error);
       core.endGroup();
     }
 
-    const { status, output } = await execSizeLimit();
-    try {
-      current = limit.parseResults(output);
-    } catch (error) {
-      core.error('Error parsing size-limit output. The output should be a json.');
-      throw error;
-    }
+    const increases = base ? limit.getSizeIncreases(base, current, sizeConfig) : [];
+    const bodyParts = [SIZE_LIMIT_HEADING];
 
-    const thresholdNumber = Number(threshold);
+    // Check if our baseline build is up to date with the target branch (likely develop) and report any mismatches
+    if (base) {
+      const baselineSha = baseWorkflowRun.head_sha; // The commit SHA of the baseline build (where we pull the size-limit results from)
+      const repoUrl = `${context.serverUrl}/${repo.owner}/${repo.repo}`;
+      const commitLink = sha => `[${sha.slice(0, 7)}](${repoUrl}/commit/${sha})`;
 
-    const sizeLimitComment = await fetchPreviousComment(octokit, repo, pr);
+      try {
+        const { data: mergeCommit } = await octokit.rest.repos.getCommit({ ...repo, ref: context.sha });
+        const mergedBaseSha = mergeCommit.parents[0].sha; // The SHA of the target branch (likely develop) base commit that was used to test this PR
 
-    if (sizeLimitComment) {
-      core.debug('Found existing size limit comment, updating it instead of creating a new one...');
-    }
-
-    const shouldComment =
-      isNaN(thresholdNumber) || limit.hasSizeChanges(base, current, thresholdNumber) || sizeLimitComment;
-
-    if (shouldComment) {
-      const bodyParts = [SIZE_LIMIT_HEADING];
-
-      if (baseIsNotLatest) {
         bodyParts.push(
-          '⚠️ **Warning:** Base artifact is not the latest one, because the latest workflow run is not done yet. This may lead to incorrect results. Try to re-run all tests to get up to date results.',
+          `Compared: ${commitLink(context.sha)} (PR test merge using ${comparisonBranch} at ${commitLink(mergedBaseSha)})`,
+          `Against: ${commitLink(baselineSha)} (${comparisonBranch}) · [base run #${baseWorkflowRun.run_number}](${baseWorkflowRun.html_url})`,
         );
-      }
-      try {
-        bodyParts.push(markdownTable(limit.formatResults(base, current)));
-      } catch (error) {
-        core.error('Error generating markdown table');
-        core.error(error);
-      }
 
-      if (baseWorkflowRun) {
-        bodyParts.push('');
-        bodyParts.push(`[View base workflow run](${baseWorkflowRun.html_url})`);
-      }
-
-      const body = bodyParts.join('\r\n');
-
-      try {
-        if (!sizeLimitComment) {
-          await octokit.rest.issues.createComment({
-            ...repo,
-            issue_number: pr.number,
-            body,
-          });
+        if (baselineSha === mergedBaseSha) {
+          bodyParts.push("✅ Baseline matches: this diff contains only this PR's changes.");
         } else {
-          await octokit.rest.issues.updateComment({
+          const { data: comparison } = await octokit.rest.repos.compareCommitsWithBasehead({
             ...repo,
-            comment_id: sizeLimitComment.id,
-            body,
+            basehead: `${baselineSha}...${mergedBaseSha}`,
           });
+          const differences = [];
+          if (comparison.ahead_by > 0) {
+            differences.push(
+              `${comparison.ahead_by} ${comparisonBranch} commit(s) in the PR build are missing from the baseline`,
+            );
+          }
+          if (comparison.behind_by > 0) {
+            differences.push(
+              `${comparison.behind_by} ${comparisonBranch} commit(s) in the baseline are missing from the PR build`,
+            );
+          }
+          const guidance =
+            comparison.behind_by > 0
+              ? `Rebase your PR onto the latest ${comparisonBranch} to compare against an up-to-date baseline.`
+              : `Re-run once ${comparisonBranch}'s baseline build for ${commitLink(mergedBaseSha)} finishes.`;
+          bodyParts.push(
+            `⚠️ Baseline mismatch: ${differences.join('; ')}. Their size changes also affect this comparison. ` +
+              `[Compare commits](${comparison.html_url}). ${guidance}`,
+          );
         }
-      } catch {
-        core.error(
-          "Error updating comment. This can happen for PR's originating from a fork without write permissions.",
-        );
+      } catch (error) {
+        core.warning(`Unable to check baseline alignment: ${error.message}`);
+        bodyParts.push('⚠️ Unable to verify whether the baseline matches the PR build.');
       }
-    } else {
-      core.debug('Skipping comment because there are no changes.');
     }
 
-    if (status > 0) {
-      try {
-        const results = limit.parseResults(output);
-        const failedResults = results
-          .filter(result => result.passed || false)
-          .map(result => ({
-            name: result.name,
-            size: +result.size,
-            sizeLimit: +result.sizeLimit,
-          }));
+    let failure;
+    if (pr.head.ref.startsWith(RELEASE_BRANCH_PREFIX)) {
+      // Release PRs target master, which has no baseline and would include every change since the last release anyway
+      core.info('Release PR detected. Reporting bundle sizes without enforcing limits.');
+    } else if (!base) {
+      failure = 'No baseline size measurements found. Re-run after the base build completes.';
+      bodyParts.push(failure);
+    } else if (increases.length > 0 && !increaseAccepted) {
+      failure =
+        `One or more gzipped bundles increased by more than ${MAX_INCREASE_BYTES} bytes. ` +
+        `If this increase is intentional, add the **${OVERRIDE_LABEL}** label to this PR to rerun and accept the check.`;
+    }
 
-        if (failedResults.length > 0) {
-          // eslint-disable-next-line no-console
-          console.log('Exceeded size-limits:', failedResults);
-        }
-      } catch {
-        // noop
+    bodyParts.push(markdownTable(limit.formatResults(base, current)));
+    if (baseWorkflowRun) {
+      bodyParts.push(`[View base workflow run](${baseWorkflowRun.html_url})`);
+    }
+
+    const body = bodyParts.join('\n\n');
+    await core.summary.addRaw(body).write();
+
+    try {
+      const comments = await octokit.paginate(octokit.rest.issues.listComments, {
+        ...repo,
+        issue_number: pr.number,
+        per_page: 100,
+      });
+      const sizeLimitComment = comments.find(comment => comment.body.startsWith(SIZE_LIMIT_HEADING));
+      if (sizeLimitComment) {
+        await octokit.rest.issues.updateComment({
+          ...repo,
+          comment_id: sizeLimitComment.id,
+          body,
+        });
+      } else {
+        await octokit.rest.issues.createComment({
+          ...repo,
+          issue_number: pr.number,
+          body,
+        });
       }
 
-      setFailed('Size limit has been exceeded.');
+      if (failure && increases.length > 0 && !comments.some(comment => comment.body === failure)) {
+        await octokit.rest.issues.createComment({
+          ...repo,
+          issue_number: pr.number,
+          body: failure,
+        });
+      }
+    } catch {
+      core.warning('Unable to update PR comments. The size report is available in the job summary.');
+    }
+
+    if (failure) {
+      setFailed(failure);
     }
   } catch (error) {
     core.error(error);
@@ -207,68 +208,4 @@ async function run() {
   }
 }
 
-async function runSizeLimitOnComparisonBranch() {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const resultsFilePath = getResultsFilePath();
-
-  const limit = new SizeLimitFormatter();
-  const artifactClient = new DefaultArtifactClient();
-
-  const { output: baseOutput } = await execSizeLimit();
-
-  try {
-    const base = limit.parseResults(baseOutput);
-    await fs.writeFile(resultsFilePath, JSON.stringify(base), 'utf8');
-  } catch (error) {
-    core.error('Error parsing size-limit output. The output should be a json.');
-    throw error;
-  }
-
-  const globber = await glob.create(resultsFilePath, {
-    followSymbolicLinks: false,
-  });
-  const files = await globber.glob();
-
-  await artifactClient.uploadArtifact(ARTIFACT_NAME, files, __dirname);
-}
-
-run();
-
-/**
- * Use GitHub API to fetch artifact download url, then
- * download and extract artifact to `downloadPath`
- */
-async function downloadOtherWorkflowArtifact(octokit, { owner, repo, artifactId, artifactName, downloadPath }) {
-  const artifact = await octokit.rest.actions.downloadArtifact({
-    owner,
-    repo,
-    artifact_id: artifactId,
-    archive_format: 'zip',
-  });
-
-  // Make sure output path exists
-  try {
-    await io.mkdirP(downloadPath);
-  } catch {
-    // ignore errors
-  }
-
-  const downloadFile = path.resolve(downloadPath, `${artifactName}.zip`);
-
-  await exec('wget', [
-    '-nv',
-    '--retry-connrefused',
-    '--waitretry=1',
-    '--read-timeout=20',
-    '--timeout=15',
-    '-t',
-    '0',
-    '-O',
-    downloadFile,
-    artifact.url,
-  ]);
-
-  await exec('unzip', ['-q', '-d', downloadPath, downloadFile], {
-    silent: true,
-  });
-}
+await run();

@@ -5,33 +5,25 @@ inputs:
     description: 'What browsers to install.'
     default: 'chromium webkit firefox'
   cwd:
-    description: 'The working directory to run Playwright in.'
-    default: '.'
-  installed-version:
     description:
-      'A Playwright version that an earlier run of this action already installed. Skips the install if it matches.'
-    default: ''
-
-outputs:
-  version:
-    description: 'The resolved Playwright version, empty if Playwright is not installed or the install was skipped.'
-    value: ${{ steps.playwright-version.outputs.version }}
+      'The directory whose package.json declares the `@playwright/test` version to install. Nothing is installed if it
+      does not depend on `@playwright/test`.'
+    required: true
 
 runs:
   using: 'composite'
   steps:
-    # Resolve the app's @playwright/test version. Some apps (e.g. the node bundler apps) assert via a
-    # plain node script and don't depend on Playwright — emit an empty version instead of failing, so
-    # the steps below skip the (wasted) browser install rather than erroring on the missing package.
+    # Read from package.json rather than node_modules, so this can run before dependencies are installed.
     - name: Get Playwright version
       id: playwright-version
       run: |
-        version=$(node -e "let v = ''; try { v = require('@playwright/test/package.json').version; } catch {} process.stdout.write(String(v));")
-        if [ "$version" = "$INSTALLED_VERSION" ]; then version=''; fi
+        version=$(node -e "
+          const { dependencies, devDependencies } = require('./package.json');
+          const range = devDependencies?.['@playwright/test'] ?? dependencies?.['@playwright/test'] ?? '';
+          process.stdout.write(range.replace(/^[~^=]/, ''));
+        ")
         echo "version=$version" >> "$GITHUB_OUTPUT"
       shell: bash
-      env:
-        INSTALLED_VERSION: ${{ inputs.installed-version }}
       working-directory: ${{ inputs.cwd }}
 
     - name: Restore cached playwright binaries
@@ -45,19 +37,35 @@ runs:
         key: playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}
 
     # We always install all browsers, if uncached
-    - name: Install Playwright dependencies (uncached)
-      run: npx playwright install chromium webkit firefox --with-deps
+    # `npx` runs outside the repo, so it can't pick up a `playwright` that a parallel `pnpm install` is still linking.
+    - name: Install Playwright browsers (uncached)
+      env:
+        PLAYWRIGHT_VERSION: ${{ steps.playwright-version.outputs.version }}
+      run: npx -y "playwright@$PLAYWRIGHT_VERSION" install chromium webkit firefox
       if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit != 'true'
       shell: bash
-      working-directory: ${{ inputs.cwd }}
+      working-directory: ${{ runner.temp }}
 
-    - name: Install Playwright system dependencies only (cached)
-      env:
-        PLAYWRIGHT_BROWSERS: ${{ inputs.browsers || 'chromium webkit firefox' }}
-      run: npx playwright install-deps "$PLAYWRIGHT_BROWSERS"
-      if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit == 'true'
+    - name: Install headless WebKit system dependencies
+      if: steps.playwright-version.outputs.version != '' && contains(inputs.browsers, 'webkit')
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          gstreamer1.0-plugins-base \
+          gstreamer1.0-plugins-good \
+          libavif16 \
+          libevent-2.1-7t64 \
+          libflite1 \
+          libgles2 \
+          libgstreamer-gl1.0-0 \
+          libgstreamer-plugins-bad1.0-0 \
+          libgstreamer-plugins-base1.0-0 \
+          libharfbuzz-icu0 \
+          libhyphen0 \
+          libmanette-0.2-0 \
+          libopus0 \
+          libwayland-server0
       shell: bash
-      working-directory: ${{ inputs.cwd }}
 
     # Only store cache on develop branch
     - name: Store cached playwright binaries

@@ -5,12 +5,12 @@
  * @see https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
  */
 
+import { MCP_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
 import { getClient, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { withActiveSpan } from '../../tracing';
 import { startInactiveSpan } from '../../tracing/trace';
 import { isObjectLike } from '../../utils/is';
 import { fill } from '../../utils/object';
-import { MCP_PROTOCOL_VERSION_ATTRIBUTE } from './attributes';
 import { cleanupPendingSpansForTransport, completeSpanWithResults, storeSpanForRequest } from './correlation';
 import { captureError, isJsonRpcServerError } from './errorCapture';
 import { buildClientAttributesFromInfo, extractSessionDataFromInitializeRequest } from './sessionExtraction';
@@ -27,11 +27,15 @@ function resolveMcpOptions(options: McpServerWrapperOptions): ResolvedMcpOptions
     };
   }
 
-  const genAI = getClient()?.getDataCollectionOptions().genAI;
+  const client = getClient();
+  // TODO(v12): Drop the `genAI` fallback and read `client.getDataCollectionOptions().mcp`. Until then, the raw option
+  // is read because the resolved `mcp` always has defaults applied and would hide whether the user set it.
+  const userMcp = client?.getOptions().dataCollection?.mcp;
+  const genAI = client?.getDataCollectionOptions().genAI;
 
   return {
-    recordInputs: options.recordInputs ?? genAI?.inputs ?? true,
-    recordOutputs: options.recordOutputs ?? genAI?.outputs ?? true,
+    recordInputs: options.recordInputs ?? userMcp?.inputs ?? genAI?.inputs ?? true,
+    recordOutputs: options.recordOutputs ?? userMcp?.outputs ?? genAI?.outputs ?? true,
   };
 }
 
@@ -73,7 +77,7 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: McpServ
               span.setAttributes({
                 ...buildClientAttributesFromInfo(messageSessionData.clientInfo),
                 ...(messageSessionData.protocolVersion && {
-                  [MCP_PROTOCOL_VERSION_ATTRIBUTE]: messageSessionData.protocolVersion,
+                  [MCP_PROTOCOL_VERSION]: messageSessionData.protocolVersion,
                 }),
               });
             }

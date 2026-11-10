@@ -68,6 +68,37 @@ test('sends a navigation span for a link the runtime intercepts', async ({ page 
   expect(span.attributes?.['sentry.segment.name.source']?.value).toBe('route');
 });
 
+// The span is named by the navigation's own fetch, not the earlier prefetch.
+for (const mode of ['intent', 'viewport'] as const) {
+  test(`names a navigation to a link prefetched on ${mode} by the route`, async ({ page }) => {
+    const prefetchPromise = page.waitForRequest(
+      request => request.url().endsWith(`/users/${mode}`) && request.headers()['x-remix-frame'] === 'true',
+    );
+
+    await page.goto('/');
+    const link = page.locator(`#to-user-prefetch-${mode}`);
+    if (mode === 'intent') {
+      await link.hover();
+    }
+    await (await prefetchPromise).response();
+
+    const spanPromise = waitForStreamedSpan(
+      APP_NAME,
+      span =>
+        getSpanOp(span) === 'navigation' &&
+        span.attributes?.['sentry.origin']?.value === 'auto.navigation.remix_v3' &&
+        span.attributes?.['url.path']?.value === `/users/${mode}`,
+    );
+
+    await link.click();
+    await expect(page.locator('#user')).toBeVisible();
+
+    const span = await spanPromise;
+    expect(span.name).toBe('/users/:id');
+    expect(span.attributes?.['sentry.segment.name.source']?.value).toBe('route');
+  });
+}
+
 test('names a navigation to a route it loaded before right at the start', async ({ page }) => {
   await page.goto('/');
   await page.locator('#to-user').click();

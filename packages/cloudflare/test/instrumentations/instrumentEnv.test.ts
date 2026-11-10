@@ -1,3 +1,4 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentEnv } from '../../src/instrumentations/worker/instrumentEnv';
@@ -220,6 +221,88 @@ describe('instrumentEnv', () => {
     await wrapped.send('hello');
     expect(send).toHaveBeenCalledTimes(1);
     expect(send.mock.calls[0]?.[0]).toBe('hello');
+  });
+
+  it('propagates Queue trace context only to the configured bindings', async () => {
+    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+      'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+      baggage: 'sentry-release=1.0.0',
+    });
+    const billingSend = vi.fn().mockResolvedValue(undefined);
+    const otherSend = vi.fn().mockResolvedValue(undefined);
+    const instrumented = instrumentEnv(
+      {
+        BILLING_QUEUE: { send: billingSend, sendBatch: vi.fn() },
+        OTHER_QUEUE: { send: otherSend, sendBatch: vi.fn() },
+      },
+      { queueTracePropagationBindings: ['billing_queue'] },
+    );
+
+    await instrumented.BILLING_QUEUE.send({ invoiceId: 'inv_123' });
+    await instrumented.OTHER_QUEUE.send({ invoiceId: 'inv_456' });
+
+    expect(billingSend).toHaveBeenCalledExactlyOnceWith(
+      {
+        invoiceId: 'inv_123',
+        __sentry_queue_trace__: '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+      },
+      undefined,
+    );
+    expect(otherSend).toHaveBeenCalledExactlyOnceWith({ invoiceId: 'inv_456' }, undefined);
+  });
+
+  it('wraps Workers KV bindings in a proxy', async () => {
+    const get = vi.fn().mockResolvedValue('value');
+    const put = vi.fn().mockResolvedValue(undefined);
+    const list = vi.fn().mockResolvedValue({ keys: [], list_complete: true });
+    const getWithMetadata = vi.fn().mockResolvedValue({ value: 'value', metadata: null });
+    const kv = { get, put, list, getWithMetadata, delete: vi.fn() };
+    const env = { MY_KV: kv };
+    const instrumented = instrumentEnv(env);
+
+    const wrapped = instrumented.MY_KV;
+    expect(wrapped).not.toBe(kv);
+
+    await wrapped.get('test-key', 'json');
+    expect(get).toHaveBeenCalledWith('test-key', 'json');
+
+    await wrapped.put('test-key', 'value');
+    expect(put).toHaveBeenCalledWith('test-key', 'value');
+  });
+
+  it('caches the wrapped Workers KV binding across repeated access', () => {
+    const kv = { get: vi.fn(), put: vi.fn(), list: vi.fn(), getWithMetadata: vi.fn() };
+    const env = { MY_KV: kv };
+    const instrumented = instrumentEnv(env);
+
+    expect(instrumented.MY_KV).toBe(instrumented.MY_KV);
+  });
+
+  it('instruments Workers KV and R2 bindings as their own binding types', async () => {
+    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+    const kv = { get: vi.fn().mockResolvedValue(null), put: vi.fn(), list: vi.fn(), getWithMetadata: vi.fn() };
+    const r2 = {
+      head: vi.fn().mockResolvedValue(null),
+      get: vi.fn(),
+      put: vi.fn(),
+      list: vi.fn(),
+      createMultipartUpload: vi.fn(),
+    };
+    const instrumented = instrumentEnv({ MY_KV: kv, MY_BUCKET: r2 });
+
+    await instrumented.MY_KV.get('kv-key');
+    await instrumented.MY_BUCKET.head('r2-key');
+
+    expect(startSpanSpy).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ attributes: expect.objectContaining({ [SENTRY_ORIGIN]: 'auto.cache.cloudflare.kv' }) }),
+      expect.any(Function),
+    );
+    expect(startSpanSpy).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ attributes: expect.objectContaining({ [SENTRY_ORIGIN]: 'auto.faas.cloudflare.r2' }) }),
+      expect.any(Function),
+    );
   });
 
   it('caches the wrapped Queue binding across repeated access', () => {

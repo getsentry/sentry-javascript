@@ -183,10 +183,10 @@ export class ClickDetector implements ReplayClickDetector {
     const now = nowInSeconds();
 
     this._clicks.forEach(click => {
-      if (!click.mutationAfter && this._lastMutation) {
+      if (click.mutationAfter === undefined && this._lastMutation) {
         click.mutationAfter = click.timestamp <= this._lastMutation ? this._lastMutation - click.timestamp : undefined;
       }
-      if (!click.scrollAfter && this._lastScroll) {
+      if (click.scrollAfter === undefined && this._lastScroll) {
         click.scrollAfter = click.timestamp <= this._lastScroll ? this._lastScroll - click.timestamp : undefined;
       }
 
@@ -215,8 +215,9 @@ export class ClickDetector implements ReplayClickDetector {
   /** Generate matching breadcrumb(s) for the click. */
   private _generateBreadcrumbs(click: Click): void {
     const replay = this._replay;
-    const hadScroll = click.scrollAfter && click.scrollAfter <= this._scrollTimeout;
-    const hadMutation = click.mutationAfter && click.mutationAfter <= this._threshold;
+    // A mutation or scroll in the same millisecond as the click gives `0`, which still counts
+    const hadScroll = click.scrollAfter !== undefined && click.scrollAfter <= this._scrollTimeout;
+    const hadMutation = click.mutationAfter !== undefined && click.mutationAfter <= this._threshold;
 
     const isSlowClick = !hadScroll && !hadMutation;
     const { clickCount, clickBreadcrumb } = click;

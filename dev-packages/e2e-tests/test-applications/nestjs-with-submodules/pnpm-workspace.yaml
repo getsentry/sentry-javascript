@@ -1,0 +1,3 @@
+allowBuilds:
+  '@nestjs/core': false
+minimumReleaseAge: 0

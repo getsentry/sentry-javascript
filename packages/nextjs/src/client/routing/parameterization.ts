@@ -147,7 +147,6 @@ export function getManifest(): RouteManifest | null {
   let manifest: RouteManifest = {
     staticRoutes: [],
     dynamicRoutes: [],
-    isrRoutes: [],
   };
 
   // Shallow check if the manifest is actually what we expect it to be

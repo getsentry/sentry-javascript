@@ -36,7 +36,7 @@ const expectedProducerSpan = (routingKey: string) =>
       [URL_FULL]: { type: 'string', value: 'amqp://sentry:***@localhost:5672/' },
       [SENTRY_KIND]: { type: 'string', value: 'producer' },
       [SENTRY_OP]: { type: 'string', value: QUEUE_PUBLISH },
-      [SENTRY_ORIGIN]: { type: 'string', value: 'auto.amqplib.publisher' },
+      [SENTRY_ORIGIN]: { type: 'string', value: 'auto.queue.amqplib.publisher' },
     }),
     status: 'ok',
   });
@@ -51,7 +51,7 @@ const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
     [MESSAGING_OPERATION_TYPE]: { type: 'string', value: 'process' },
     [SENTRY_KIND]: { type: 'string', value: 'consumer' },
     [SENTRY_OP]: { type: 'string', value: QUEUE_PROCESS },
-    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.amqplib.consumer' },
+    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.queue.amqplib.consumer' },
   }),
   status: 'ok',
 });
@@ -77,7 +77,7 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
               span: container => {
                 const producer = container.items.find(span => span.is_segment && span.name === 'root span');
                 const consumer = container.items.find(
-                  t => t.attributes[SENTRY_ORIGIN]?.value === 'auto.amqplib.consumer',
+                  t => t.attributes[SENTRY_ORIGIN]?.value === 'auto.queue.amqplib.consumer',
                 );
 
                 expect(producer).toBeDefined();
@@ -87,7 +87,7 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
                 expect(consumer!.name).toBe('process queue1');
 
                 const producerSpan = container.items.find(
-                  s => s.attributes[SENTRY_ORIGIN]?.value === 'auto.amqplib.publisher',
+                  s => s.attributes[SENTRY_ORIGIN]?.value === 'auto.queue.amqplib.publisher',
                 );
                 expect(producerSpan?.name).toBe('send queue1');
                 expect(producerSpan).toMatchObject(expectedProducerSpan('queue1'));
@@ -112,7 +112,7 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
             .expect({
               span: container => {
                 const consumer = container.items.find(
-                  t => t.attributes[SENTRY_ORIGIN]?.value === 'auto.amqplib.consumer',
+                  t => t.attributes[SENTRY_ORIGIN]?.value === 'auto.queue.amqplib.consumer',
                 );
 
                 expect(consumer).toBeDefined();
@@ -124,7 +124,7 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
                       [MESSAGING_SYSTEM]: { type: 'string', value: 'rabbitmq' },
                       [SENTRY_KIND]: { type: 'string', value: 'consumer' },
                       [SENTRY_OP]: { type: 'string', value: QUEUE_PROCESS },
-                      [SENTRY_ORIGIN]: { type: 'string', value: 'auto.amqplib.consumer' },
+                      [SENTRY_ORIGIN]: { type: 'string', value: 'auto.queue.amqplib.consumer' },
                     }),
                   }),
                 );
@@ -152,7 +152,7 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
                   expect(container.items.find(span => span.is_segment)?.name).toBe('root span');
 
                   const producerSpans = container.items.filter(
-                    s => s.attributes[SENTRY_ORIGIN]?.value === 'auto.amqplib.publisher',
+                    s => s.attributes[SENTRY_ORIGIN]?.value === 'auto.queue.amqplib.publisher',
                   );
 
                   // The confirm channel internally calls the base publish; the instrumentation must not
@@ -179,7 +179,7 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
             .expect({
               span: container => {
                 const consumer = container.items.find(
-                  span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.amqplib.consumer',
+                  span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.queue.amqplib.consumer',
                 );
 
                 expect(consumer).toBeDefined();
@@ -205,12 +205,12 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
         .expect({
           span: container => {
             const producerSpan = container.items.find(
-              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.amqplib.publisher',
+              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.queue.amqplib.publisher',
             );
             expect(producerSpan?.name).toBe('send callback-queue');
 
             const consumerSpan = container.items.find(
-              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.amqplib.consumer',
+              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.queue.amqplib.consumer',
             );
             expect(consumerSpan?.name).toBe('process callback-queue');
             expect(consumerSpan?.status).toBe('ok');

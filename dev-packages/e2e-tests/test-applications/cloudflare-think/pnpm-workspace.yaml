@@ -1,0 +1,7 @@
+allowBuilds:
+  '@mongodb-js/zstd': true
+  core-js-pure: false
+  esbuild: true
+  node-liblzma: true
+  workerd: true
+minimumReleaseAge: 0

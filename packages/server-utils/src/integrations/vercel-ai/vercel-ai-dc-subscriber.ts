@@ -26,6 +26,8 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  VERCEL_AI_SETTINGS_CONTEXT_KEY_BASE,
+  VERCEL_AI_TOOL_CALL_CONTEXT_KEY_BASE,
 } from '@sentry/conventions/attributes';
 import {
   GEN_AI_DECIDE,
@@ -52,7 +54,7 @@ import {
 import type { TracingChannel } from 'node:diagnostics_channel';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../ai/core/gen-ai-attributes';
 import { isEveGenAiRecordingDefault } from './gen-ai-recording-mode';
-import type { GenAiOptions } from '../../ai/core/utils';
+import { getEvaluationOutputMessages, type GenAiOptions } from '../../ai/core/utils';
 import { getProviderMetadataAttributes, LAST_STEP_ONLY_USAGE_KEYS } from '../../ai/vercel-ai';
 import { WORKERS_AI_INTEGRATION_NAME } from '../../ai/workers-ai/constants';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
@@ -63,13 +65,16 @@ import { asNumber, asString, isReadableStream, type StreamedModelCallResult, sum
  * via `node:diagnostics_channel`. Events are discriminated by their `type` field.
  * @see https://github.com/vercel/ai/pull/15660
  */
-const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'ai:telemetry';
+export const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'ai:telemetry';
 
-const ORIGIN = 'auto.vercelai.channel';
+const ORIGIN = 'auto.ai.vercelai';
 
 // `gen_ai.operation.name` values, keyed to the span op they map to.
 const GEN_AI_OPERATION_SPAN_OPS = {
   embeddings: GEN_AI_EMBEDDINGS,
+  // `GEN_AI_RERANK` is deprecated because the product doesn't support rerank spans, but we keep
+  // emitting it so existing rerank spans keep their op.
+  // oxlint-disable-next-line typescript/no-deprecated
   rerank: GEN_AI_RERANK,
   decide: GEN_AI_DECIDE,
   invoke_agent: GEN_AI_INVOKE_AGENT,
@@ -108,6 +113,10 @@ const toolDescriptionsByCallId = new Map<string, Map<string, string>>();
 // before the operation's own span ends. The running token sum lives on the span's own attributes.
 const invokeAgentSpanByCallId = new Map<string, Span>();
 
+// Only an operation's start event carries `runtimeContext`; its model-call and tool events copy the
+// resulting attributes from here. Cleared with the operation.
+const runtimeContextAttributesByCallId = new Map<string, SpanAttributes>();
+
 // Only top-level operations own the `callId` → operationId mapping; `step`/`languageModelCall`/
 // `executeTool` share the parent's `callId`, so they must not clear it.
 const ROOT_OPERATION_TYPES = new Set<ChannelEventType>([
@@ -140,6 +149,7 @@ export function clearOperationCallId(callId: string): void {
   operationIdByCallId.delete(callId);
   toolDescriptionsByCallId.delete(callId);
   invokeAgentSpanByCallId.delete(callId);
+  runtimeContextAttributesByCallId.delete(callId);
 }
 
 /**
@@ -450,13 +460,22 @@ export function createSpanFromMessage(
     getOpenAiConversationId(event.providerOptions) ??
     (ROOT_OPERATION_TYPES.has(type) ? undefined : getActiveSpanConversationId());
 
+  const runtimeContextAttributes =
+    (callId ? runtimeContextAttributesByCallId.get(callId) : undefined) ??
+    contextAttributes(event, event.runtimeContext, VERCEL_AI_SETTINGS_CONTEXT_KEY_BASE);
+  if (callId && ROOT_OPERATION_TYPES.has(type)) {
+    runtimeContextAttributesByCallId.set(callId, runtimeContextAttributes);
+  }
+
   const baseAttributes: SpanAttributes = {
     [SENTRY_ORIGIN]: ORIGIN,
     ...telemetryMetadataAttributes(event.telemetryMetadata),
-    ...(provider ? { [GEN_AI_PROVIDER_NAME]: provider, [VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE]: provider } : {}),
-    ...(modelId ? { [GEN_AI_REQUEST_MODEL]: modelId } : {}),
-    ...(maxRetries !== undefined ? { [VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE]: maxRetries } : {}),
-    ...(conversationId ? { [GEN_AI_CONVERSATION_ID]: conversationId } : {}),
+    ...runtimeContextAttributes,
+    [GEN_AI_PROVIDER_NAME]: provider,
+    [VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE]: provider,
+    [GEN_AI_REQUEST_MODEL]: modelId,
+    [VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE]: maxRetries,
+    [GEN_AI_CONVERSATION_ID]: conversationId,
   };
 
   switch (type) {
@@ -472,7 +491,7 @@ export function createSpanFromMessage(
 
       return buildModelCallSpan(event, baseAttributes, recordInputs, callId, modelId);
     case 'executeTool':
-      return buildToolSpan(event, recordInputs, conversationId);
+      return buildToolSpan(event, recordInputs, conversationId, runtimeContextAttributes);
     case 'embed':
     case 'embedMany': {
       // `embed` carries a single `value`; `embedMany` a `values` array — both map to the embeddings input.
@@ -519,6 +538,26 @@ function telemetryMetadataAttributes(metadata: unknown): Record<string, string> 
   return attributes;
 }
 
+/**
+ * One string attribute per context key, as `<prefix><key>`. `ai` < 7.0.114 published the full context to the
+ * channel, ignoring `telemetry.includeRuntimeContext`/`includeToolsContext`, and a filtered context
+ * looks the same as an unfiltered one. `aiVersion` (added in 7.0.154) is the only reliable sign that
+ * the AI SDK filtered it, so without it we record nothing.
+ */
+function contextAttributes(event: Record<string, unknown>, context: unknown, keyBase: string): SpanAttributes {
+  const attributes: SpanAttributes = {};
+  if (typeof event.aiVersion !== 'string' || !isObjectLike(context)) {
+    return attributes;
+  }
+  for (const [key, value] of Object.entries(context)) {
+    const attributeValue = stringify(value);
+    if (value !== null && attributeValue !== undefined) {
+      attributes[`${keyBase}.${key}`] = attributeValue;
+    }
+  }
+  return attributes;
+}
+
 /** Start a `gen_ai.<operation>` span named `<operation> <suffix>` (or just `<operation>` when no suffix). */
 function startGenAiSpan(operation: GenAiOperation, suffix: string | undefined, attributes: SpanAttributes): Span {
   return startInactiveSpan({
@@ -547,7 +586,7 @@ function buildInvokeAgentSpan(
     ...baseAttributes,
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
     [GEN_AI_RESPONSE_STREAMING]: isStream,
-    ...(functionId ? { [GEN_AI_FUNCTION_ID]: functionId } : {}),
+    [GEN_AI_FUNCTION_ID]: functionId,
     ...(recordInputs ? buildInputMessageAttributes(event) : {}),
   });
   if (isStream && callId) {
@@ -580,6 +619,7 @@ function buildToolSpan(
   event: Record<string, unknown>,
   recordInputs: boolean,
   conversationId: string | undefined,
+  runtimeContextAttributes: SpanAttributes,
 ): Span {
   const toolCall = isObjectLike(event.toolCall) ? event.toolCall : {};
   const toolName = asString(toolCall.toolName);
@@ -591,11 +631,13 @@ function buildToolSpan(
     recordInputs && toolName ? resolveToolDescription(asString(event.callId), toolName, event.tools) : undefined;
   return startGenAiSpan('execute_tool', toolName, {
     [SENTRY_ORIGIN]: ORIGIN,
-    ...(toolName ? { [GEN_AI_TOOL_NAME]: toolName } : {}),
-    ...(toolCallId ? { [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId } : {}),
-    ...(description ? { [GEN_AI_TOOL_DESCRIPTION]: description } : {}),
+    ...runtimeContextAttributes,
+    ...contextAttributes(event, event.toolContext, VERCEL_AI_TOOL_CALL_CONTEXT_KEY_BASE),
+    [GEN_AI_TOOL_NAME]: toolName,
+    [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId,
+    [GEN_AI_TOOL_DESCRIPTION]: description,
     ...(recordInputs && toolInput !== undefined ? { [GEN_AI_TOOL_CALL_ARGUMENTS]: stringify(toolInput) } : {}),
-    ...(conversationId ? { [GEN_AI_CONVERSATION_ID]: conversationId } : {}),
+    [GEN_AI_CONVERSATION_ID]: conversationId,
   });
 }
 
@@ -689,7 +731,7 @@ function getOutputMessages(
   finishReason: string | undefined,
 ): string | undefined {
   if (type === 'experimental_evaluate' || type === 'experimental_decide') {
-    return stringify([{ type: 'evaluation', answers: withProviderConfidence(result) }]);
+    return getEvaluationOutputMessages(withProviderAnswerFields(result));
   }
   // `languageModelCall` exposes the response as a `content` parts array; top-level results expose
   // `text` + `toolCalls`. Both normalize into the OTel `gen_ai.output.messages` assistant message.
@@ -701,24 +743,36 @@ function getOutputMessages(
 }
 
 /**
- * The AI SDK TypeSafe provider moves each answer's `confidence` out of the answers into
- * `providerMetadata.typesafe.confidence` (keyed by question id). Put it back so decide answers keep it.
+ * Providers move answer fields into `providerMetadata`: TypeSafe and OpenAI as `<provider>.confidence[id]`,
+ * OpenRouter as `openrouter.answers[id].{confidence,legend}`. Put them back on the answers.
  */
-function withProviderConfidence(result: Record<string, unknown>): unknown {
+function withProviderAnswerFields(result: Record<string, unknown>): unknown {
   const { answers, providerMetadata } = result;
-  const typesafe = isObjectLike(providerMetadata) ? providerMetadata.typesafe : undefined;
-  const confidence = isObjectLike(typesafe) && isObjectLike(typesafe.confidence) ? typesafe.confidence : undefined;
-  if (!confidence || !isObjectLike(answers)) {
+  if (!isObjectLike(answers) || !isObjectLike(providerMetadata)) {
+    return answers;
+  }
+  const confidenceById = [providerMetadata.typesafe, providerMetadata.openai]
+    .map(metadata => (isObjectLike(metadata) ? metadata.confidence : undefined))
+    .find(isObjectLike);
+  const { openrouter } = providerMetadata;
+  const openrouterById = isObjectLike(openrouter) && isObjectLike(openrouter.answers) ? openrouter.answers : undefined;
+  if (!confidenceById && !openrouterById) {
     return answers;
   }
 
   return Object.fromEntries(
-    Object.entries(answers).map(([id, answer]) => [
-      id,
-      isObjectLike(answer) && typeof confidence[id] === 'number' && answer.confidence === undefined
-        ? { ...answer, confidence: confidence[id] }
-        : answer,
-    ]),
+    Object.entries(answers).map(([id, answer]) => {
+      if (!isObjectLike(answer)) {
+        return [id, answer];
+      }
+      const openrouterAnswer = openrouterById?.[id];
+      const fields = isObjectLike(openrouterAnswer) ? openrouterAnswer : {};
+      const {
+        confidence = asNumber(confidenceById?.[id]) ?? asNumber(fields.confidence),
+        legend = isObjectLike(fields.legend) ? fields.legend : undefined,
+      } = answer;
+      return [id, { ...answer, confidence, legend }];
+    }),
   );
 }
 
@@ -839,7 +893,7 @@ export function captureToolError(span: Span, data: VercelAiChannelMessage, error
     captureException(
       error instanceof Error ? error : new Error(typeof error === 'string' ? error : 'Tool execution failed'),
       {
-        mechanism: { type: 'auto.vercelai.channel', handled: false },
+        mechanism: { type: 'auto.ai.vercelai', handled: false },
       },
     );
   });
@@ -894,15 +948,24 @@ function resolveRecording(
   return globalDefault === true;
 }
 
+/** The `ai` SDK accepts the system prompt as `string | SystemModelMessage | SystemModelMessage[]`. */
+function getSystemInstructionParts(instructions: unknown): { type: 'text'; content: string }[] {
+  const messages = Array.isArray(instructions) ? instructions : [instructions];
+  return messages.flatMap(message => {
+    const content = asString(isObjectLike(message) ? message.content : message);
+    return content ? [{ type: 'text' as const, content }] : [];
+  });
+}
+
 function buildInputMessageAttributes(event: Record<string, unknown>): Record<string, string | number | undefined> {
   const attributes: Record<string, string | number | undefined> = {};
 
   // `ai` >= 7 forbids system messages in `messages`/`prompt` and exposes the system prompt as a
   // separate `instructions` field. The OTel path lifts the system message out of the prompt into
   // `gen_ai.system_instructions` as `[{ type: 'text', content }]`; mirror that shape here.
-  const instructions = asString(event.instructions);
-  if (instructions) {
-    attributes[GEN_AI_SYSTEM_INSTRUCTIONS] = stringify([{ type: 'text', content: instructions }]);
+  const instructions = getSystemInstructionParts(event.instructions);
+  if (instructions.length) {
+    attributes[GEN_AI_SYSTEM_INSTRUCTIONS] = stringify(instructions);
   }
 
   // The AI SDK start events extend `StandardizedPrompt`; messages live on `messages`, otherwise the

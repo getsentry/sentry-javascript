@@ -27,7 +27,6 @@ describe('remixIntegration (Orchestrion-based)', () => {
   beforeEach(() => {
     span = makeSpan();
     startInactiveSpanSpy = vi.spyOn(SentryCore, 'startInactiveSpan').mockReturnValue(span);
-    // A truthy active span by default, so the `requiresParentSpan` gate passes.
     getActiveSpanSpy = vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValue({} as Span);
   });
 
@@ -129,13 +128,13 @@ describe('remixIntegration (Orchestrion-based)', () => {
     expect(span.end).toHaveBeenCalledTimes(1);
   });
 
-  it('callRouteLoader: does not create a span without an active parent span', async () => {
+  it('callRouteLoader: does not create a recording span without an active parent span', async () => {
     getActiveSpanSpy.mockReturnValue(undefined);
     const ctx = { arguments: [{ routeId: 'x', request: makeRequest(), params: {} }] };
 
     await tracingChannel(remixChannels.REMIX_CALL_ROUTE_LOADER).tracePromise(async () => ({ status: 200 }), ctx);
 
-    expect(startInactiveSpanSpy).not.toHaveBeenCalled();
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(expect.objectContaining({ onlyIfParent: true }));
   });
 
   it('callRouteAction: builds an ACTION span and captures the configured form-data keys', async () => {

@@ -127,6 +127,7 @@ describe('captureSpan', () => {
         },
       },
       _segmentSpan: span,
+      _segmentNameAtCapture: 'my-span',
     });
   });
 
@@ -235,6 +236,7 @@ describe('captureSpan', () => {
         },
       },
       _segmentSpan: span,
+      _segmentNameAtCapture: 'my-span',
     });
   });
 
@@ -307,6 +309,7 @@ describe('captureSpan', () => {
         },
       },
       _segmentSpan: span,
+      _segmentNameAtCapture: 'my-span',
     });
   });
 
@@ -366,6 +369,7 @@ describe('captureSpan', () => {
         },
       },
       _segmentSpan: span,
+      _segmentNameAtCapture: 'my-span',
     });
   });
 

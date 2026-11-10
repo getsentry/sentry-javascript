@@ -1,7 +1,6 @@
 import { debug } from '@sentry/core';
 import type { DenoOptions } from '@sentry/deno';
 import { init } from './sdk';
-import { getConnInfo } from 'hono/deno';
 import {
   applyHonoPatches,
   createHonoRequestMiddleware,
@@ -21,5 +20,5 @@ export const sentry = <E extends Env>(app: Hono<E>, options: HonoDenoOptions): M
 
   applyHonoPatches(app);
 
-  return createHonoRequestMiddleware({ getConnInfo, shouldHandleError: options.shouldHandleError });
+  return createHonoRequestMiddleware({ runtime: 'deno', shouldHandleError: options.shouldHandleError });
 };

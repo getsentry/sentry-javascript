@@ -162,19 +162,11 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
   });
 
   test('should exit', async () => {
-    const runner = createRunner(__dirname, 'should-exit.js').start();
-
-    await new Promise(resolve => setTimeout(resolve, 5_000));
-
-    expect(runner.childHasExited()).toBe(true);
+    await createRunner(__dirname, 'should-exit.js').start().exited();
   });
 
   test('should exit forced', async () => {
-    const runner = createRunner(__dirname, 'should-exit-forced.js').start();
-
-    await new Promise(resolve => setTimeout(resolve, 5_000));
-
-    expect(runner.childHasExited()).toBe(true);
+    await createRunner(__dirname, 'should-exit-forced.js').start().exited();
   });
 
   test('can be disabled with disableBlockDetectionForCallback', async () => {

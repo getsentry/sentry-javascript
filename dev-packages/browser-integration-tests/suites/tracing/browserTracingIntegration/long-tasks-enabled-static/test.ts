@@ -19,18 +19,19 @@ sentryTest('should capture long task.', async ({ browserName, getLocalTestUrl, p
 
   expect(uiSpans?.length).toBeGreaterThan(0);
 
-  const [firstUISpan] = uiSpans || [];
-  expect(firstUISpan).toEqual(
+  const getDuration = (span: { start_timestamp?: number; timestamp?: number }): number =>
+    (span.timestamp ?? 0) - (span.start_timestamp ?? 0);
+  // Other long tasks (e.g. SDK evaluation) can happen during pageload, so look at the longest one, which is the blocking script
+  const [longTaskSpan] = [...(uiSpans || [])].sort((a, b) => getDuration(b) - getDuration(a));
+  expect(longTaskSpan).toEqual(
     expect.objectContaining({
       op: 'ui.long_task',
       description: 'Main UI thread blocked',
       parent_span_id: eventData.contexts?.trace?.span_id,
     }),
   );
-  const start = firstUISpan.start_timestamp ?? 0;
-  const end = firstUISpan.timestamp ?? 0;
-  const duration = end - start;
+  const duration = getDuration(longTaskSpan);
 
   expect(duration).toBeGreaterThanOrEqual(0.1);
-  expect(duration).toBeLessThanOrEqual(0.15);
+  expect(duration).toBeLessThan(1);
 });

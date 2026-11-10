@@ -2,7 +2,7 @@ import type { Plugin } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeAutoInstrumentMiddlewarePlugin } from '../../src/vite/autoInstrumentMiddleware';
 import { sentryTanstackStart, type SentryTanstackStartOptions } from '../../src/vite/sentryTanstackStart';
-import { makeTunnelRoutePlugin } from '../../src/vite/tunnelRoute';
+import { makeServerEntryTunnelPlugin, makeTunnelRoutePlugin } from '../../src/vite/tunnelRoute';
 
 const mockSourceMapsConfigPlugin: Plugin = {
   name: 'sentry-tanstackstart-files-to-delete-after-upload-plugin',
@@ -23,6 +23,17 @@ const mockEnableSourceMapsPlugin: Plugin = {
   config: vi.fn(),
 };
 
+const mockComposeNitroServiceSourceMapsPlugin: Plugin = {
+  name: 'sentry-tanstackstart-nitro-service-source-maps',
+  apply: 'build',
+  load: vi.fn(),
+};
+
+const mockEnableNitroSourceMapsPlugin: Plugin = {
+  name: 'sentry-tanstackstart-nitro-source-maps',
+  apply: 'build',
+};
+
 const mockMiddlewarePlugin: Plugin = {
   name: 'sentry-tanstack-middleware-auto-instrument',
   apply: 'build',
@@ -33,6 +44,16 @@ const mockTunnelRoutePlugin: Plugin = {
   name: 'sentry-tanstackstart-tunnel-route',
   enforce: 'pre',
   transform: vi.fn(),
+};
+
+const mockServerEntryTunnelPlugin: Plugin = {
+  name: 'sentry-tanstackstart-server-entry-tunnel',
+  enforce: 'pre',
+  load: vi.fn(),
+};
+
+const mockTunnelBasePathPlugin: Plugin = {
+  name: 'sentry-tanstackstart-tunnel-base-path',
 };
 
 const mockRoutePatternPlugin: Plugin = {
@@ -61,12 +82,19 @@ vi.mock('../../src/vite/sourceMaps', () => ({
   makeEnableSourceMapsVitePlugin: vi.fn(() => [mockEnableSourceMapsPlugin]),
 }));
 
+vi.mock('../../src/vite/nitroSourceMaps', () => ({
+  makeComposeNitroServiceSourceMapsPlugin: vi.fn(() => mockComposeNitroServiceSourceMapsPlugin),
+  makeEnableNitroSourceMapsPlugin: vi.fn(() => mockEnableNitroSourceMapsPlugin),
+}));
+
 vi.mock('../../src/vite/autoInstrumentMiddleware', () => ({
   makeAutoInstrumentMiddlewarePlugin: vi.fn(() => mockMiddlewarePlugin),
 }));
 
 vi.mock('../../src/vite/tunnelRoute', () => ({
   makeTunnelRoutePlugin: vi.fn(() => mockTunnelRoutePlugin),
+  makeServerEntryTunnelPlugin: vi.fn(() => mockServerEntryTunnelPlugin),
+  makeTunnelBasePathPlugin: vi.fn(() => ({ plugin: mockTunnelBasePathPlugin, getBasePath: () => '' })),
 }));
 
 describe('sentryTanstackStart()', () => {
@@ -85,10 +113,14 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
+        mockServerEntryTunnelPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
         mockEnableSourceMapsPlugin,
+        mockEnableNitroSourceMapsPlugin,
       ]);
     });
 
@@ -97,7 +129,7 @@ describe('sentryTanstackStart()', () => {
 
       const plugins = sentryTanstackStart({ autoInstrumentMiddleware: false });
 
-      expect(plugins).toEqual([mockRoutePatternPlugin]);
+      expect(plugins).toEqual([mockRoutePatternPlugin, mockTunnelBasePathPlugin, mockServerEntryTunnelPlugin]);
     });
 
     it('returns only the tunnel route plugin in development mode when tunnelRoute is configured', () => {
@@ -108,7 +140,12 @@ describe('sentryTanstackStart()', () => {
         tunnelRoute: { allowedDsns: ['https://public@o0.ingest.sentry.io/0'] },
       });
 
-      expect(plugins).toEqual([mockRoutePatternPlugin, mockTunnelRoutePlugin]);
+      expect(plugins).toEqual([
+        mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
+        mockServerEntryTunnelPlugin,
+        mockTunnelRoutePlugin,
+      ]);
     });
 
     it('returns Sentry Vite plugins but not enable source maps plugin when sourcemaps.disable is true', () => {
@@ -119,9 +156,12 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
+        mockServerEntryTunnelPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
       ]);
     });
 
@@ -133,9 +173,12 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
+        mockServerEntryTunnelPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
       ]);
     });
 
@@ -147,10 +190,14 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
+        mockServerEntryTunnelPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
         mockEnableSourceMapsPlugin,
+        mockEnableNitroSourceMapsPlugin,
       ]);
     });
   });
@@ -161,9 +208,12 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
+        mockServerEntryTunnelPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
         mockMiddlewarePlugin,
       ]);
     });
@@ -176,9 +226,12 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
+        mockServerEntryTunnelPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
         mockMiddlewarePlugin,
       ]);
     });
@@ -191,9 +244,12 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
+        mockServerEntryTunnelPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
       ]);
     });
 
@@ -222,10 +278,13 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
+        mockServerEntryTunnelPlugin,
         mockTunnelRoutePlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
         mockMiddlewarePlugin,
       ]);
     });
@@ -242,6 +301,7 @@ describe('sentryTanstackStart()', () => {
       sentryTanstackStart(options);
 
       expect(makeTunnelRoutePlugin).toHaveBeenCalledWith(options.tunnelRoute, undefined);
+      expect(makeServerEntryTunnelPlugin).toHaveBeenCalledWith(options.tunnelRoute, expect.any(Function));
     });
   });
 

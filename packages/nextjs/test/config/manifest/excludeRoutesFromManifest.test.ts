@@ -17,7 +17,6 @@ describe('routeManifestInjection.exclude', () => {
       { path: '/admin/users/:id', regex: '^/admin/users/([^/]+)$', paramNames: ['id'] },
       { path: '/secret-feature/:id', regex: '^/secret-feature/([^/]+)$', paramNames: ['id'] },
     ],
-    isrRoutes: ['/blog', '/admin/reports', '/internal/stats'],
   };
 
   describe('with no filter', () => {
@@ -34,7 +33,6 @@ describe('routeManifestInjection.exclude', () => {
       // All routes containing '/admin' are excluded
       expect(result.staticRoutes.map(r => r.path)).toEqual(['/', '/about', '/internal/secret', '/public/page']);
       expect(result.dynamicRoutes.map(r => r.path)).toEqual(['/users/:id', '/secret-feature/:id']);
-      expect(result.isrRoutes).toEqual(['/blog', '/internal/stats']);
     });
 
     it('should exclude routes matching multiple string patterns', () => {
@@ -47,7 +45,6 @@ describe('routeManifestInjection.exclude', () => {
         '/internal/secret',
         '/public/page',
       ]);
-      expect(result.isrRoutes).toEqual(['/admin/reports', '/internal/stats']);
     });
 
     it('should match substrings anywhere in the route', () => {
@@ -71,14 +68,12 @@ describe('routeManifestInjection.exclude', () => {
 
       expect(result.staticRoutes.map(r => r.path)).toEqual(['/', '/about', '/internal/secret', '/public/page']);
       expect(result.dynamicRoutes.map(r => r.path)).toEqual(['/users/:id', '/secret-feature/:id']);
-      expect(result.isrRoutes).toEqual(['/blog', '/internal/stats']);
     });
 
     it('should support multiple regex patterns', () => {
       const result = filterRouteManifest(mockManifest, [/^\/admin/, /^\/internal/]);
 
       expect(result.staticRoutes.map(r => r.path)).toEqual(['/', '/about', '/public/page']);
-      expect(result.isrRoutes).toEqual(['/blog']);
     });
 
     it('should support partial regex matches', () => {
@@ -116,7 +111,6 @@ describe('routeManifestInjection.exclude', () => {
 
       expect(result.staticRoutes.map(r => r.path)).toEqual(['/', '/about', '/internal/secret', '/public/page']);
       expect(result.dynamicRoutes.map(r => r.path)).toEqual(['/users/:id', '/secret-feature/:id']);
-      expect(result.isrRoutes).toEqual(['/blog', '/internal/stats']);
     });
 
     it('should support complex filter logic', () => {
@@ -127,7 +121,6 @@ describe('routeManifestInjection.exclude', () => {
 
       expect(result.staticRoutes.map(r => r.path)).toEqual(['/', '/about', '/public/page']);
       expect(result.dynamicRoutes.map(r => r.path)).toEqual(['/users/:id']);
-      expect(result.isrRoutes).toEqual(['/blog']);
     });
   });
 
@@ -136,7 +129,6 @@ describe('routeManifestInjection.exclude', () => {
       const emptyManifest: RouteManifest = {
         staticRoutes: [],
         dynamicRoutes: [],
-        isrRoutes: [],
       };
 
       const result = filterRouteManifest(emptyManifest, [/admin/]);
@@ -148,7 +140,6 @@ describe('routeManifestInjection.exclude', () => {
 
       expect(result.staticRoutes).toEqual([]);
       expect(result.dynamicRoutes).toEqual([]);
-      expect(result.isrRoutes).toEqual([]);
     });
 
     it('should handle filter that excludes nothing', () => {

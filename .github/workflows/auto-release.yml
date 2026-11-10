@@ -45,13 +45,17 @@ jobs:
           version=${version/'prepare-release/'/''}
           echo "version=$version" >> $GITHUB_OUTPUT
 
+      # scripts/craft-pre-release.sh installs dependencies with pnpm.
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
+
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
 
       - name: Prepare release
-        uses: getsentry/craft@25028d0646040cc0a669ae3314cbf884f4c4347a # v2.31.2
+        uses: getsentry/craft@3f1f02d50b08b8c509a28d2cc2abf594e9a28011 # v3.5.0
         if:
           github.event.pull_request.merged == true && steps.version-regex.outputs.match != '' &&
           steps.get_version.outputs.version != ''

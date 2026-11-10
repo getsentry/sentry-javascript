@@ -8,7 +8,7 @@ const app = new Hono();
 
 addRoutes(app);
 
-const port = Number(process.env.PORT || 38787);
+const port = Number(process.env.PORT || 8787);
 
 export default {
   port,

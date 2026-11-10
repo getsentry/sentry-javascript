@@ -44,7 +44,7 @@ async function assertParseSpan(channelName: string): Promise<void> {
   const parseSpan = parent.spans?.find(s => s.description === 'graphql.parse');
   assertExists(parseSpan, `expected a graphql.parse span, got: ${parent.spans?.map(s => s.description).join(', ')}`);
   assertEquals(parseSpan!.op, 'graphql');
-  assertEquals(parseSpan!.data?.['sentry.origin'], 'auto.graphql.diagnostic_channel');
+  assertEquals(parseSpan!.data?.['sentry.origin'], 'auto.graphql.graphql');
 }
 
 Deno.test('graphql instrumentation: included in default integrations (Deno 2.8.0+)', () => {

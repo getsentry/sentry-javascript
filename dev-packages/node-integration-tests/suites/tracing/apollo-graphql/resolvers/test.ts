@@ -24,7 +24,7 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
             expect(executeSpan?.attributes['graphql.processing.type']).toEqual({ value: 'execute', type: 'string' });
             expect(executeSpan?.attributes['graphql.document']).toEqual({ value: '{hello}', type: 'string' });
             expect(executeSpan?.attributes['sentry.origin']).toEqual({
-              value: 'auto.graphql.diagnostic_channel',
+              value: 'auto.graphql.graphql',
               type: 'string',
             });
             const parseSpan = children.find(span => span.attributes['graphql.processing.type']?.value === 'parse');

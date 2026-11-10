@@ -16,19 +16,14 @@
     "@sentry/solid": "file:../../packed/sentry-solid-packed.tgz",
     "@tailwindcss/vite": "^4.0.6",
     "@tanstack/solid-router": "^1.141.8",
-    "@tanstack/solid-router-devtools": "^1.132.25",
-    "@tanstack/solid-start": "^1.132.25",
     "solid-js": "^1.9.5",
     "tailwindcss": "^4.0.6"
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "typescript": "^5.7.2",
     "vite": "^7.3.2",
     "vite-plugin-solid": "^2.11.2"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

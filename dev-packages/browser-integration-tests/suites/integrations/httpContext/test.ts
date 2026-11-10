@@ -37,6 +37,40 @@ sentryTest('httpContextIntegration filters sensitive query params in the URL', a
   expect(errorEvent.request?.url).toBe(`${url}?jwt=[Filtered]&page=1`);
 });
 
+sentryTest(
+  'httpContextIntegration filters sensitive query params in the Referer header',
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    const errorEventPromise = waitForErrorRequest(page);
+
+    await page.goto(url, { referer: `${url}?jwt=sensitive-jwt-value&page=1` });
+
+    const errorEvent = envelopeRequestParser(await errorEventPromise);
+
+    expect(errorEvent.request?.headers?.Referer).toBe(`${url}?jwt=[Filtered]&page=1`);
+  },
+);
+
+sentryTest(
+  'httpContextIntegration filters sensitive query params in the referer span attribute',
+  async ({ getLocalTestUrl, page }) => {
+    sentryTest.skip(shouldSkipTracingTest());
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    const spanPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
+
+    await page.goto(url, { referer: `${url}?jwt=sensitive-jwt-value&page=1` });
+
+    const pageloadSpan = await spanPromise;
+
+    expect(pageloadSpan.attributes['http.request.header.referer']).toEqual({
+      type: 'array',
+      value: [`${url}?jwt=[Filtered]&page=1`],
+    });
+  },
+);
+
 sentryTest('httpContextIntegration captures url, user-agent, and referer', async ({ getLocalTestUrl, page }) => {
   sentryTest.skip(shouldSkipTracingTest());
   const url = await getLocalTestUrl({ testDir: __dirname });

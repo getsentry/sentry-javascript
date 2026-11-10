@@ -11,10 +11,10 @@ argument-hint: <package-name>
 ## Upgrade command
 
 ```bash
-npx yarn-update-dependency@latest [package-name]
+pnpm update -r --include-workspace-root --latest [package-name]
 ```
 
-If the dependency is not defined in any `package.json`, run the upgrade from the root workspace (the `yarn.lock` lives there).
+If the dependency is not defined in any `package.json`, run `pnpm update -r <package-name>` without `--latest`. It updates the transitive copies within their allowed ranges in `pnpm-lock.yaml`.
 
 Avoid upgrading top-level dependencies (especially test dependencies) without asking the user first.
 
@@ -30,7 +30,7 @@ Ensure updated `package.json` files end with a newline.
 Verify before upgrading:
 
 ```bash
-yarn info <package-name>@<version> dependencies
+npm view <package-name>@<version> dependencies
 ```
 
 ## E2E test dependencies
@@ -40,20 +40,22 @@ Do **not** upgrade the major version of a dependency in `dev-packages/e2e-tests/
 ## Post-upgrade verification
 
 ```bash
-yarn install
-yarn build:dev
-yarn dedupe-deps:fix
-yarn fix
-yarn circularDepCheck
+pnpm install
+pnpm run build:dev
+pnpm run dedupe-deps:fix
+pnpm run fix
+pnpm run circularDepCheck
 ```
 
 ## Useful commands
 
+Run them at the repo root. Without `-r`, `pnpm list`, `pnpm why` and `pnpm outdated` only check the root `package.json`.
+
 ```bash
-yarn list --depth=0          # Check dependency tree
-yarn why [package-name]      # Find why a package is installed
-yarn info <pkg> dependencies # Inspect package dependencies
-yarn info <pkg> versions     # Check available versions
-yarn outdated                # Check outdated dependencies
-yarn audit                   # Check for security vulnerabilities
+pnpm list -r --depth=0       # Check the direct dependencies of all workspace packages
+pnpm why -r [package-name]   # Find why a package is installed
+npm view <pkg> dependencies  # Inspect package dependencies
+npm view <pkg> versions      # Check available versions
+pnpm outdated -r             # Check outdated dependencies
+pnpm audit                   # Check for security vulnerabilities
 ```

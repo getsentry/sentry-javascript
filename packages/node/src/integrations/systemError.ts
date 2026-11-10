@@ -20,8 +20,7 @@ function isSystemError(error: unknown): error is SystemError {
     return false;
   }
 
-  // Workaround for Bun where getSystemErrorMap doesn't exist
-  // Can be removed once Bun supports getSystemErrorMap
+  // Older Bun versions don't implement getSystemErrorMap
   // https://github.com/oven-sh/bun/issues/22872
   if (typeof util.getSystemErrorMap !== 'function') {
     return false;

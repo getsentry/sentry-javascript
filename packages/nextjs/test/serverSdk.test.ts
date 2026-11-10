@@ -6,6 +6,13 @@ import * as SentryNode from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../src/common/span-attributes-with-logic-attached';
 import { init } from '../src/server';
+import type * as NextSentryPropagatorModule from '../src/server/nextSentryPropagator';
+import { registerNextSentryPropagator } from '../src/server/nextSentryPropagator';
+
+vi.mock('../src/server/nextSentryPropagator', async importOriginal => ({
+  ...(await importOriginal<typeof NextSentryPropagatorModule>()),
+  registerNextSentryPropagator: vi.fn(),
+}));
 
 // normally this is set as part of the build process, so mock it here
 (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRewriteFramesDistDir: string })._sentryRewriteFramesDistDir = '.next';
@@ -61,6 +68,33 @@ describe('Server init()', () => {
         defaultIntegrations: expect.any(Array),
       }),
     );
+  });
+
+  describe('trace propagator', () => {
+    it('replaces the propagator when the Node SDK set up OpenTelemetry itself', () => {
+      const traceProvider = {};
+      nodeInit.mockReturnValueOnce({
+        on: vi.fn(),
+        addEventProcessor: vi.fn(),
+        traceProvider,
+      } as unknown as ReturnType<typeof SentryNode.init>);
+
+      init({});
+
+      expect(registerNextSentryPropagator).toHaveBeenCalledWith(traceProvider);
+    });
+
+    it('leaves a foreign OpenTelemetry setup alone', () => {
+      nodeInit.mockReturnValueOnce({
+        on: vi.fn(),
+        addEventProcessor: vi.fn(),
+        traceProvider: undefined,
+      } as unknown as ReturnType<typeof SentryNode.init>);
+
+      init({});
+
+      expect(registerNextSentryPropagator).not.toHaveBeenCalled();
+    });
   });
 
   it("doesn't reinitialize the node SDK if already initialized", () => {

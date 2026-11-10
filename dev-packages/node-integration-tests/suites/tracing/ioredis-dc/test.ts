@@ -34,7 +34,7 @@ describeWithDockerCompose(
       cleanupChildProcesses();
     });
 
-    const ORIGIN = 'auto.db.redis.diagnostic_channel';
+    const ORIGIN = 'auto.db.redis.native_channel';
     const SEGMENT_NAME = 'Test Span IORedis DC';
     const HOST = '127.0.0.1';
     const PORT = 6382;

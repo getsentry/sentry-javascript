@@ -1,12 +1,12 @@
 {
   "name": "Sentry JavaScript SDK Development",
-  "install": "curl https://get.volta.sh | bash && export VOLTA_HOME=\"$HOME/.volta\" && export PATH=\"$VOLTA_HOME/bin:$PATH\" && export VOLTA_FEATURE_PNPM=1 && yarn install",
-  "start": "export VOLTA_HOME=\"$HOME/.volta\" && export PATH=\"$VOLTA_HOME/bin:$PATH\" && export VOLTA_FEATURE_PNPM=1",
+  "install": "curl -fsSL https://get.pnpm.io/install.sh | sh - && export PNPM_HOME=\"$HOME/.local/share/pnpm\" && export PATH=\"$PNPM_HOME/bin:$PATH\" && pnpm runtime set node 24 -g -y && pnpm install",
+  "start": "export PNPM_HOME=\"$HOME/.local/share/pnpm\" && export PATH=\"$PNPM_HOME/bin:$PATH\"",
   "terminals": [
     {
       "name": "Development",
-      "command": "export VOLTA_HOME=\"$HOME/.volta\" && export PATH=\"$VOLTA_HOME/bin:$PATH\" && export VOLTA_FEATURE_PNPM=1 && echo 'Volta setup complete. Node version:' && node --version && echo 'Yarn version:' && yarn --version",
-      "description": "Main development terminal with Volta environment configured"
+      "command": "export PNPM_HOME=\"$HOME/.local/share/pnpm\" && export PATH=\"$PNPM_HOME/bin:$PATH\" && echo 'pnpm setup complete. Node version:' && node --version && echo 'pnpm version:' && pnpm --version",
+      "description": "Main development terminal with pnpm-managed node"
     }
   ]
 }

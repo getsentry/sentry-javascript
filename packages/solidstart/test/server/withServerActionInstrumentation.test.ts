@@ -169,6 +169,28 @@ describe('withServerActionInstrumentation', () => {
     expect(mockSpanSetAttribute).to.toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'route');
   });
 
+  it('sets a server action name on the root span when the active span is a nested handler span', async () => {
+    const rootSpan = new SentryCore.SentrySpan({
+      attributes: {
+        'url.path': '/_server',
+        [SENTRY_OP]: 'http.server',
+      },
+    });
+    const handlerSpan = new SentryCore.SentrySpan({
+      attributes: {
+        [SENTRY_OP]: 'handler',
+      },
+    });
+    SentryCore.addChildSpanToSpan(rootSpan, handlerSpan);
+    mockGetActiveSpan.mockReturnValue(handlerSpan);
+    const mockRootSpanSetAttribute = vi.spyOn(rootSpan, 'setAttribute');
+
+    await serverActionGetPrefecture();
+
+    expect(mockRootSpanSetAttribute).toHaveBeenCalledWith('http.route', 'getPrefecture');
+    expect(mockRootSpanSetAttribute).toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'route');
+  });
+
   it('does not set a server action name if the active span had a non `/_server` `url.path`', async () => {
     const span = new SentryCore.SentrySpan();
     span.setAttribute('url.path', '/users/5');

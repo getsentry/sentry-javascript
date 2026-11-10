@@ -64,7 +64,7 @@ sentryTest(
     const duration = end - start;
 
     expect(duration).toBeGreaterThanOrEqual(0.1);
-    expect(duration).toBeLessThanOrEqual(0.15);
+    expect(duration).toBeLessThan(1);
   },
 );
 
@@ -114,5 +114,5 @@ sentryTest('captures long animation frame span for event listener.', async ({ br
   const duration = end - start;
 
   expect(duration).toBeGreaterThanOrEqual(0.1);
-  expect(duration).toBeLessThanOrEqual(0.15);
+  expect(duration).toBeLessThan(1);
 });

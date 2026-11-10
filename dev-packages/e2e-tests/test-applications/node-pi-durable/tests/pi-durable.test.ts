@@ -21,15 +21,13 @@ import { createConversation, sendMessage } from './utils';
 const APP = 'node-pi-durable';
 
 test('traces a run as invoke_agent with chat, execute_tool and provider spans', async ({ baseURL }) => {
-  const conversationId = await createConversation(baseURL!);
+  const { id: conversationId, sessionId } = await createConversation(baseURL!);
   // A run is its own trace, and its `invoke_agent` segment ends last.
   const spansPromise = collectStreamedSpans(
     APP,
     spansOfTrace =>
-      spansOfTrace.some(
-        span =>
-          span.is_segment && String(span.attributes[GEN_AI_CONVERSATION_ID]?.value).endsWith(`:${conversationId}`),
-      ) && spansOfTrace.some(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'get_weather'),
+      spansOfTrace.some(span => span.is_segment && span.attributes[GEN_AI_CONVERSATION_ID]?.value === sessionId) &&
+      spansOfTrace.some(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'get_weather'),
   );
 
   const settled = await sendMessage(
@@ -102,7 +100,7 @@ test('traces a run as invoke_agent with chat, execute_tool and provider spans', 
 });
 
 test('reports a throwing tool as an error on its execute_tool span', async ({ baseURL }) => {
-  const conversationId = await createConversation(baseURL!);
+  const { id: conversationId, sessionId } = await createConversation(baseURL!);
   const errorPromise = waitForError(
     APP,
     event => event.exception?.values?.[0]?.value === 'Intentional pi-durable tool failure',
@@ -110,10 +108,8 @@ test('reports a throwing tool as an error on its execute_tool span', async ({ ba
   const spansPromise = collectStreamedSpans(
     APP,
     spansOfTrace =>
-      spansOfTrace.some(
-        span =>
-          span.is_segment && String(span.attributes[GEN_AI_CONVERSATION_ID]?.value).endsWith(`:${conversationId}`),
-      ) && spansOfTrace.some(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'fail_now'),
+      spansOfTrace.some(span => span.is_segment && span.attributes[GEN_AI_CONVERSATION_ID]?.value === sessionId) &&
+      spansOfTrace.some(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'fail_now'),
   );
 
   const settled = await sendMessage(baseURL!, conversationId, 'Call the fail_now tool, then tell me what happened.');
@@ -130,14 +126,12 @@ test('reports a throwing tool as an error on its execute_tool span', async ({ ba
 });
 
 test('nests a subagent run under the tool call that delegated to it', async ({ baseURL }) => {
-  const conversationId = await createConversation(baseURL!);
+  const { id: conversationId, sessionId } = await createConversation(baseURL!);
   const spansPromise = collectStreamedSpans(
     APP,
     spansOfTrace =>
-      spansOfTrace.some(
-        span =>
-          span.is_segment && String(span.attributes[GEN_AI_CONVERSATION_ID]?.value).endsWith(`:${conversationId}`),
-      ) && spansOfTrace.some(span => !span.is_segment && getSpanOp(span) === GEN_AI_INVOKE_AGENT),
+      spansOfTrace.some(span => span.is_segment && span.attributes[GEN_AI_CONVERSATION_ID]?.value === sessionId) &&
+      spansOfTrace.some(span => !span.is_segment && getSpanOp(span) === GEN_AI_INVOKE_AGENT),
   );
 
   const settled = await sendMessage(
@@ -157,24 +151,20 @@ test('nests a subagent run under the tool call that delegated to it', async ({ b
   expect(subagent.parent_span_id).toBe(delegate.span_id);
   expect(subagentChat).toBeDefined();
 
-  // The subagent has a conversation of its own, in the same Harness.
-  const [agentHarness, agentConversation] = String(agent.attributes[GEN_AI_CONVERSATION_ID]?.value).split(':');
-  const [subagentHarness, subagentConversation] = String(subagent.attributes[GEN_AI_CONVERSATION_ID]?.value).split(':');
-  expect(subagentHarness).toBe(agentHarness);
-  expect(subagentConversation).not.toBe(agentConversation);
+  // The subagent has a conversation of its own.
+  expect(subagent.attributes[GEN_AI_CONVERSATION_ID]?.value).toEqual(expect.any(String));
+  expect(subagent.attributes[GEN_AI_CONVERSATION_ID]?.value).not.toBe(sessionId);
 });
 
 test('resumes a run in a new trace after the server crashes during a tool call', async ({ baseURL }) => {
-  const conversationId = await createConversation(baseURL!);
+  const { id: conversationId, sessionId } = await createConversation(baseURL!);
   // The tool span of the crashed process never ends, so a finished `crash_once` span can only come
   // from the rerun in the restarted server.
   const spansPromise = collectStreamedSpans(
     APP,
     spansOfTrace =>
-      spansOfTrace.some(
-        span =>
-          span.is_segment && String(span.attributes[GEN_AI_CONVERSATION_ID]?.value).endsWith(`:${conversationId}`),
-      ) && spansOfTrace.some(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'crash_once' && span.status === 'ok'),
+      spansOfTrace.some(span => span.is_segment && span.attributes[GEN_AI_CONVERSATION_ID]?.value === sessionId) &&
+      spansOfTrace.some(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'crash_once' && span.status === 'ok'),
   );
 
   const settled = await sendMessage(
@@ -193,6 +183,8 @@ test('resumes a run in a new trace after the server crashes during a tool call',
   expect(getSpanOp(agent)).toBe(GEN_AI_INVOKE_AGENT);
   expect(tool.parent_span_id).toBe(agent.span_id);
   expect(answer?.parent_span_id).toBe(agent.span_id);
+  // The restarted process reads the conversation id from storage, also when the run resumes with a tool call.
+  expect(tool.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe(sessionId);
   // The request that called the tool ran in the crashed process, so this trace starts with the rerun
   // of the tool. A run that never crashed would start with that request.
   expect(chats.every(chat => chat.start_timestamp >= tool.start_timestamp)).toBe(true);

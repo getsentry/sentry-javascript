@@ -1,6 +1,21 @@
-import { captureException, isObjectLike, isThenable, startSpan, withIsolationScope } from '@sentry/core';
+import {
+  captureException,
+  isObjectLike,
+  isThenable,
+  startNewTrace,
+  startSpan,
+  withIsolationScope,
+  withMonitor,
+} from '@sentry/core';
+import { resolveCronMonitor } from './cron-monitoring';
 import type { AnyFn, ReflectWithMetadata } from './helpers';
-import { getBullMQProcessSpanOptions, getEventSpanOptions, isWrapped, markWrapped } from './helpers';
+import {
+  getBullMQProcessSpanOptions,
+  getEventSpanOptions,
+  isSentryCronMethod,
+  isWrapped,
+  markWrapped,
+} from './helpers';
 
 /**
  * Span-emitting / error-capturing logic for the `@Cron`/`@Interval`/
@@ -54,6 +69,26 @@ export function wrapScheduleHandler(handler: AnyFn, mechanismType: string): AnyF
       return result;
     });
   };
+}
+
+/** Whether a `@Cron()` method sends check-ins when it runs, from `monitorCronJobs` or `@SentryCron()`. */
+export function sendsCronCheckIns(method: unknown): boolean {
+  return typeof method === 'function' && (isSentryCronMethod(method) || !!resolveCronMonitor(method));
+}
+
+/**
+ * Wrap a `@Cron` handler like {@link wrapScheduleHandler}, sending check-ins when `monitorCronJobs` is enabled.
+ */
+export function wrapCronHandler(handler: AnyFn): AnyFn {
+  const scheduleHandler = wrapScheduleHandler(handler, MECHANISM_CRON);
+  const wrapped = function (this: unknown, ...args: unknown[]): unknown {
+    const monitor = resolveCronMonitor(wrapped);
+    if (!monitor) {
+      return scheduleHandler.apply(this, args);
+    }
+    return startNewTrace(() => withMonitor(monitor.slug, () => scheduleHandler.apply(this, args), monitor.config));
+  };
+  return wrapped;
 }
 
 function eventNameFromEvent(event: unknown): string {
@@ -140,11 +175,11 @@ export function patchMethodDescriptor(
   target: { __SENTRY_INTERNAL__?: boolean } | undefined,
   propertyKey: string | symbol | undefined,
   descriptor: PropertyDescriptor | undefined,
-  wrapHandler: (handler: AnyFn) => AnyFn,
+  wrapHandler: (handler: AnyFn, target: unknown, propertyKey: string | symbol | undefined) => AnyFn,
 ): void {
   const handler = descriptor?.value as AnyFn | undefined;
   if (descriptor && handler && typeof handler === 'function' && !target?.__SENTRY_INTERNAL__ && !isWrapped(handler)) {
-    const wrapped = wrapHandler(handler);
+    const wrapped = wrapHandler(handler, target, propertyKey);
     Object.defineProperty(wrapped, 'name', {
       value: handler.name || String(propertyKey),
       configurable: true,

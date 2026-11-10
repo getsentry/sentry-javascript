@@ -13,6 +13,15 @@ vi.mock('@sentry/core', async importOriginal => ({
   consoleSandbox: (callback: () => unknown) => callback(),
 }));
 
+const TUNNEL_URL = 'http://localhost/fdv680';
+const tunnelResponse = new Response(null, { status: 200 });
+
+// Answers only `TUNNEL_URL`, like a server with the managed tunnel at that path.
+vi.mock('@sentry/core/server', () => ({
+  _INTERNAL_handleServedTunnelRequest: (request: Request) =>
+    request.url === TUNNEL_URL ? Promise.resolve(tunnelResponse) : undefined,
+}));
+
 const { instrumentRemixV3 } = await import('../../src/v3/server/instrument');
 
 const startChannel = channel(`tracing:${remixV3Channels.REMIX_V3_CREATE_ROUTER}:start`);

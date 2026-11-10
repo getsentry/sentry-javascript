@@ -10,10 +10,14 @@
  * Falls back to WeakMap by transport instance for stateless transports (no sessionId).
  */
 
-import { ERROR_TYPE, RPC_RESPONSE_STATUS_CODE } from '@sentry/conventions/attributes';
+import {
+  ERROR_TYPE,
+  MCP_PROTOCOL_VERSION,
+  MCP_TOOL_RESULT_IS_ERROR,
+  RPC_RESPONSE_STATUS_CODE,
+} from '@sentry/conventions/attributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types/span';
-import { MCP_PROTOCOL_VERSION_ATTRIBUTE, MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE } from './attributes';
 import { isJsonRpcServerError } from './errorCapture';
 import { extractPromptResultAttributes, extractToolResultAttributes } from './resultExtraction';
 import {
@@ -118,7 +122,7 @@ export function completeSpanWithResults(
       ...buildServerAttributesFromInfo(responseSessionData.serverInfo),
     };
     if (responseSessionData.protocolVersion) {
-      responseAttributes[MCP_PROTOCOL_VERSION_ATTRIBUTE] = responseSessionData.protocolVersion;
+      responseAttributes[MCP_PROTOCOL_VERSION] = responseSessionData.protocolVersion;
     }
     if (Object.keys(responseAttributes).length > 0) {
       span.setAttributes(responseAttributes);
@@ -133,7 +137,8 @@ export function completeSpanWithResults(
     } else if (method === 'tools/call') {
       const toolAttributes = extractToolResultAttributes(result, spanData.capturePolicy.recordOutputs);
       span.setAttributes(toolAttributes);
-      if (toolAttributes[MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE] === true) {
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve classification based on the existing tool result attribute.
+      if (toolAttributes[MCP_TOOL_RESULT_IS_ERROR] === true) {
         span.setAttributes({ [ERROR_TYPE]: 'tool_error' });
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       }

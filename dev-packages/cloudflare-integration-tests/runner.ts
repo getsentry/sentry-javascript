@@ -149,6 +149,8 @@ type StartResult = {
   completed(): Promise<void>;
   /** Every non-ignored envelope received so far, matched or not, for count assertions. */
   getReceivedEnvelopes(): Envelope[];
+  /** The port wrangler serves the worker on, once it is ready. */
+  getPort(): Promise<number>;
   makeRequest<T>(
     method: 'get' | 'post',
     path: string,
@@ -489,6 +491,8 @@ export function createRunner(...paths: string[]) {
                 'false',
                 '--var',
                 `SENTRY_DSN:http://public@localhost:${mockServerPort}/1337`,
+                '--ip',
+                '127.0.0.1',
                 '--port',
                 '0',
                 '--inspector-port',
@@ -521,6 +525,10 @@ export function createRunner(...paths: string[]) {
               `SENTRY_DSN:http://public@localhost:${mockServerPort}/1337`,
               '--var',
               `SERVER_URL:${serverUrl}`,
+              // Requests go to `localhost`, which can resolve to `::1`. The IPv4 listener keeps the
+              // client address at `127.0.0.1`, which the event expectations check.
+              '--ip',
+              '127.0.0.1',
               '--port',
               '0',
               '--inspector-port',
@@ -551,6 +559,9 @@ export function createRunner(...paths: string[]) {
         },
         getReceivedEnvelopes: function (): Envelope[] {
           return receivedEnvelopes;
+        },
+        getPort: function (): Promise<number> {
+          return workerPortPromise;
         },
         makeRequest: async function <T>(
           method: 'get' | 'post',

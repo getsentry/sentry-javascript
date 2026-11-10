@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { IMPORT_SURFACES } from './importSurfaces';
+import { isViteServer, NITRO_ONLY } from './isViteServer';
 
 test('sends a server root span on pageload', async ({ page }) => {
   const serverSpanPromise = waitForStreamedSpan('nuxt-4', span => {
@@ -41,6 +42,8 @@ test('does not send spans for build asset folder "_nuxt"', async ({ page }) => {
 
 IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
   test(`captures server API calls made with Nitro $fetch (${name})`, async ({ page }) => {
+    test.skip(isViteServer, NITRO_ONLY);
+
     // The server-side http.client span can flush before its segment. Accumulate until both arrived.
     const spansPromise = collectStreamedSpans('nuxt-4', spans => {
       return (

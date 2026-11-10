@@ -226,6 +226,21 @@ export type SentryBuildOptions = Omit<
   applicationKey?: string;
 
   /**
+   * Skip application key metadata injection for dependencies in Turbopack builds with Next.js 16+.
+   * Uses Turbopack's `foreign` condition, which includes `node_modules` and some Next.js internals.
+   * Requires `applicationKey`. Has no effect on webpack builds.
+   *
+   * This reduces per-module injection overhead, but chunks containing only dependencies may no
+   * longer be tagged as first-party. Only use with `*-exclusively-contains-third-party-frames`
+   * behaviours of `thirdPartyErrorFilterIntegration`, and accept that errors whose stacks are
+   * entirely in untagged chunks can be dropped or tagged as third-party. With `*-contains-*`
+   * behaviours, even one frame from an untagged chunk can cause this misclassification.
+   *
+   * @default false
+   */
+  applicationKeyExcludeDependencies?: boolean;
+
+  /**
    * Metadata that should be associated with the built application.
    *
    * The metadata is serialized and can be looked up at runtime from within the SDK (for example in
@@ -272,9 +287,24 @@ export type SentryBuildOptions = Omit<
    * - Pass `true` to auto-generate a random, ad-blocker-resistant route for each build
    * - Pass a string path (e.g., '/monitoring') to use a custom route
    *
+   * By default, the tunnel route proxies each request to Sentry with its headers. To forward only the event payload,
+   * create `app/sentry-tunnel/route.ts` (or `src/app/sentry-tunnel/route.ts`, not in a route
+   * group) with:
+   *
+   * ```ts
+   * export { POST } from '@sentry/nextjs/tunnel';
+   * ```
+   *
+   * This handler accepts the DSN of the server SDK, also a self-hosted one. For other DSNs, use
+   * `createSentryTunnelRoute` from the same import.
+   *
    * Tunnel requests go through your middleware (`proxy.ts` / `middleware.ts`) like any other request. If your
    * middleware redirects or blocks unauthenticated requests, exclude the tunnel route in its `matcher` so events
    * can reach Sentry. Matchers have to be static, so use a fixed string route in that case rather than `true`.
+   *
+   * Without the route handler, the browser sends tunnel requests with `credentials: 'omit'`, so without cookies or HTTP
+   * authentication. If a layer in front of your app needs them (for example Vercel Deployment Protection or HTTP Basic authentication), set
+   * `transportOptions: { fetchOptions: { credentials: 'same-origin' } }` in `Sentry.init` of `instrumentation-client.ts`.
    *
    * NOTE: This feature only works with Next.js 11+
    */

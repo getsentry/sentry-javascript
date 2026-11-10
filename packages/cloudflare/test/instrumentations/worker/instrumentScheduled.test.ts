@@ -2,7 +2,7 @@
 // Although this is not ideal, this is the best we can do until we have a better way to test cloudflare workers.
 
 import type { ExecutionContext, ScheduledController } from '@cloudflare/workers-types';
-import type { Event, Integration } from '@sentry/core';
+import type { Event, Integration, SerializedCheckIn } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { CloudflareClient } from '../../../src/client';
@@ -476,6 +476,59 @@ describe('instrumentScheduled', () => {
       await Promise.all(waits);
 
       expect(sentItemTypes.filter(type => type === 'check_in')).toHaveLength(2);
+    });
+
+    test('sends the in_progress check-in of withMonitor while its callback runs', async () => {
+      vi.useFakeTimers();
+      onTestFinished(() => {
+        vi.useRealTimers();
+      });
+      // Like the Cloudflare transport, this transport holds each envelope until it is drained.
+      const queued: string[] = [];
+      const delivered: string[] = [];
+      const waits: Promise<unknown>[] = [];
+      const wrappedHandler = withSentry(
+        env => ({
+          dsn: env.SENTRY_DSN,
+          transport: () => ({
+            send: async envelope => {
+              for (const [itemHeader, item] of envelope[1]) {
+                if (itemHeader.type === 'check_in') {
+                  queued.push((item as SerializedCheckIn).status);
+                }
+              }
+              return {};
+            },
+            flush: async () => {
+              delivered.push(...queued.splice(0));
+              return true;
+            },
+          }),
+        }),
+        {
+          async scheduled() {
+            await SentryCore.withMonitor('foo', () => new Promise(resolve => setTimeout(resolve, 5 * 60_000)), {
+              schedule: { type: 'crontab', value: '30 9 * * *' },
+              checkinMargin: 1,
+            });
+          },
+        } satisfies ExportedHandler<typeof MOCK_ENV>,
+      );
+
+      const run = wrappedHandler.scheduled?.(controllerFor('30 9 * * 1-5'), MOCK_ENV, {
+        waitUntil: vi.fn(promise => waits.push(promise)),
+        passThroughOnException: vi.fn(),
+      } as unknown as ExecutionContext);
+
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(delivered).toEqual(['in_progress']);
+      expect(waits).toHaveLength(1);
+
+      await vi.advanceTimersByTimeAsync(4 * 60_000);
+      await run;
+      await vi.runAllTimersAsync();
+      await Promise.all(waits);
+      expect(delivered).toEqual(['in_progress', 'ok']);
     });
 
     test('drains the transport for the in_progress check-in while the handler runs', async () => {

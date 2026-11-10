@@ -588,6 +588,40 @@ describe('normalize()', () => {
         someFunc: '**non-serializable** (Error: Nope)',
       });
     });
+
+    test('does not throw when a getter throws a symbol', () => {
+      const obj = {
+        get bad(): unknown {
+          throw Symbol('s');
+        },
+      };
+
+      expect(normalize({ bad: obj }, 3)).toEqual({
+        ERROR: '**non-serializable** (Symbol(s))',
+      });
+    });
+
+    test('does not throw when a getter throws a null-prototype object', () => {
+      const obj = {
+        get bad(): unknown {
+          throw Object.create(null);
+        },
+      };
+
+      expect(normalize({ bad: obj }, 3)).toEqual({
+        ERROR: '**non-serializable** (unknown error)',
+      });
+    });
+
+    test('does not throw when stringifying a value fails with a symbol', () => {
+      vi.spyOn(stacktraceModule, 'getFunctionName').mockImplementationOnce(() => {
+        throw Symbol('s');
+      });
+
+      expect(normalize({ someFunc: () => {} })).toEqual({
+        someFunc: '**non-serializable** (Symbol(s))',
+      });
+    });
   });
 
   test('runs registered stringifier for each visited value', () => {

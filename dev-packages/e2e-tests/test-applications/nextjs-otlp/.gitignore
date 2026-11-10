@@ -10,8 +10,6 @@
 !.yarn/releases
 !.yarn/versions
 
-event-dumps
-
 # testing
 /coverage
 

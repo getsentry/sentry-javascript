@@ -33,13 +33,13 @@ function getOperationSpans(container: SerializedStreamedSpanContainer): Serializ
 
 // Prisma 8 has no tracing surface: the operation spans come from the orchestrion channels the runtime hook
 // injects, and the `pg` spans underneath stand in for v7's `db_query` spans.
-describe('Prisma ORM v8 Tests', () => {
+describe.runIf(supports({ min: 22 }))('Prisma ORM v8 Tests', () => {
   describeWithDockerCompose('Prisma ORM v8', { workingDirectory: [__dirname] }, () => {
     createEsmAndCjsTests(
       __dirname,
       'scenario.mjs',
       'instrument.mjs',
-      (createRunner, test, mode) => {
+      (createRunner, test) => {
         const testInstrumentedOperations = (): void => {
           test('should instrument Prisma ORM operations and nest their queries', { timeout: 75_000 }, async () => {
             await createRunner()
@@ -96,38 +96,9 @@ describe('Prisma ORM v8 Tests', () => {
           });
         };
 
-        if (mode === 'esm') {
-          testInstrumentedOperations();
-          return;
-        }
-
-        // The CJS scenario loads the ESM-only package via `require(esm)`, which Node's module hooks only see
-        // from Node 22 on; on Node 20 the ORM terminals load uninstrumented.
-        describe.runIf(supports({ min: 22 }))(
-          'with require(esm) reaching the module hooks',
-          testInstrumentedOperations,
-        );
-
-        describe.runIf(supports({ max: 21 }))('with require(esm) bypassing the module hooks', () => {
-          test('should keep the pg spans on the transaction', { timeout: 75_000 }, async () => {
-            await createRunner()
-              .unordered()
-              .expect({
-                span: container => {
-                  const segment = getSegment(container);
-                  expect(getOperationSpans(container)).toEqual([]);
-                  getQuerySpans(container).forEach(span => expect(span.parent_span_id).toBe(segment.span_id));
-                },
-              })
-              .start()
-              .completed();
-          });
-        });
+        testInstrumentedOperations();
       },
       {
-        additionalDependencies: {
-          '@prisma/orm-postgres': '8.0.0-rc.17',
-        },
         copyPaths: ['prisma'],
       },
     );

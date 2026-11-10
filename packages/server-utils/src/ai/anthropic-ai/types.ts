@@ -96,6 +96,10 @@ export type AnthropicAiStreamingEvent = {
   };
   usage?: {
     output_tokens: number; // Final total output tokens; emitted on the last `message_delta` event
+    // Cumulative input counts, which can be larger than at `message_start`
+    input_tokens?: number | null;
+    cache_creation_input_tokens?: number | null;
+    cache_read_input_tokens?: number | null;
   };
   message?: AnthropicAiMessage;
   /** Present for fine-grained tool streaming */

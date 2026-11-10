@@ -6,7 +6,7 @@ argument-hint: '<span-op> [constraints]  # e.g. navigation, or "db.query --only 
 
 # Port a span op to low-cardinality span names
 
-Span names must be low cardinality, per the [Sentry span name conventions](https://getsentry.github.io/sentry-conventions/names/): a raw URL, id, or query must never end up in a span name. Where the SDK has no low-cardinality value for a span, it uses a **static fallback name** for that op instead.
+Span names must be low cardinality, per the [Sentry span name conventions](https://conventions.sentry.dev/names/): a raw URL, id, or query must never end up in a span name. Where the SDK has no low-cardinality value for a span, it uses a **static fallback name** for that op instead.
 
 This only applies when span streaming is enabled. With `traceLifecycle: 'static'` every span name must stay byte-identical to before.
 
@@ -37,13 +37,13 @@ These are non-negotiable. Every one of them was arrived at by rejecting the alte
 
 ## 1. Look up the convention
 
-Read <https://getsentry.github.io/sentry-conventions/names/> and find the op. Each op lists attribute templates in priority order, ending in a static fallback — that fallback is your name. Examples: `pageload` → `Pageload`, `navigation` → `Navigation`, database ops → `Database operation`.
+Read <https://conventions.sentry.dev/names/> and find the op. Each op lists attribute templates in priority order, ending in a static fallback — that fallback is your name. Examples: `pageload` → `Pageload`, `navigation` → `Navigation`, database ops → `Database operation`.
 
 Add it next to `PAGELOAD_SPAN_NAME_FALLBACK` in `packages/core/src/tracing/spans/spanNames.ts` and export it from `shared-exports.ts`. Every package imports it from `@sentry/core` directly — no re-export from `@sentry/browser` is needed.
 
 ### Then look up the description rules
 
-The name is only half the contract. Relay re-derives a span's **description** from its attributes using the [span description rules](https://getsentry.github.io/sentry-conventions/descriptions/) — a separate, much shorter set of templates from the name rules. `function`, for example, has exactly one (`{{code.function.name}}`) and no static fallback, so a `function` span with no `code.function.name` gets no inferred description at all.
+The name is only half the contract. Relay re-derives a span's **description** from its attributes using the [span description rules](https://conventions.sentry.dev/descriptions/) — a separate, much shorter set of templates from the name rules. `function`, for example, has exactly one (`{{code.function.name}}`) and no static fallback, so a `function` span with no `code.function.name` gets no inferred description at all.
 
 Renaming a span therefore drops information unless you check what the op's description template can still produce. For each site, in this order:
 
@@ -175,7 +175,7 @@ The scope is only a valid fallback for standalone spans, which are sent without 
 **Build first.** Framework packages and the Playwright suites resolve `@sentry/core` from `build/`, not `src/`. A stale build produces failures that look like your bug but aren't.
 
 ```bash
-yarn build:dev:filter @sentry/browser   # plus each package you touched
+pnpm run build:dev:filter @sentry/browser   # plus each package you touched
 npx vitest run --root packages/<pkg> --coverage.enabled=false
 cd dev-packages/browser-integration-tests && npx playwright test --project=chromium suites/tracing
 ```
@@ -190,7 +190,7 @@ Expect to update, and read each one to confirm the new value is _correct_ rather
 - `sentry.segment.name` / `sentry.transaction` on child spans of a renamed segment span
 - span mocks missing `spanContext`/`setAttribute` once code paths shift
 
-Finish with `yarn format` and `yarn lint`.
+Finish with `pnpm run format` and `pnpm run lint`.
 
 ## 8. Document it in MIGRATION.md
 

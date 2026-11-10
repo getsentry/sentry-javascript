@@ -21,7 +21,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_DECIDE } from '@sentry/conventions/op';
+import { GEN_AI_DECIDE, GEN_AI_EXTRACT } from '@sentry/conventions/op';
 import { SDK_VERSION } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
@@ -227,6 +227,60 @@ it('traces a Clef evaluation like a TypeSafe Jev evaluation', async ({ signal })
     })
     .start(signal);
   await runner.makeRequest('get', '/evaluate-clef');
+  await runner.completed();
+});
+
+it('traces a Clairic extraction', async ({ signal }) => {
+  const runner = createRunner(__dirname)
+    .ignore('event')
+    .expect(envelope => {
+      const spans = getSpansFromEnvelope(envelope);
+      const segmentSpan = spans.find(span => span.is_segment);
+
+      const genAiSpans = spans.filter(span => getSpanOp(span)?.startsWith('gen_ai.'));
+      expect(genAiSpans).toHaveLength(1);
+
+      expect(genAiSpans[0]).toEqual(
+        expect.objectContaining({
+          name: 'extract @cf/cloudflare/clairic',
+          status: 'ok',
+          is_segment: false,
+          attributes: {
+            [SENTRY_ORIGIN]: { value: 'auto.ai.cloudflare.workers_ai', type: 'string' },
+            [SENTRY_OP]: { value: GEN_AI_EXTRACT, type: 'string' },
+            [GEN_AI_PROVIDER_NAME]: { value: 'cloudflare.workers_ai', type: 'string' },
+            [GEN_AI_OPERATION_NAME]: { value: 'extract', type: 'string' },
+            [GEN_AI_REQUEST_MODEL]: { value: '@cf/cloudflare/clairic', type: 'string' },
+            [GEN_AI_RESPONSE_MODEL]: { value: 'clairic', type: 'string' },
+            [GEN_AI_USAGE_INPUT_TOKENS]: { value: 50, type: 'integer' },
+            [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 4, type: 'integer' },
+            [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 54, type: 'integer' },
+            // collect only output messages
+            [GEN_AI_OUTPUT_MESSAGES]: {
+              type: 'string',
+              value: JSON.stringify([
+                {
+                  answers: {
+                    invoice_number: { type: 'text', span: [8, 16], confidence: 1, value: 'INV-2291' },
+                    total: { type: 'number', confidence: 0.99, value: 1080 },
+                  },
+                  truncated: false,
+                },
+              ]),
+            },
+            [SENTRY_IS_LOCALHOST]: { value: true, type: 'boolean' },
+            [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
+            [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
+            [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
+            [SENTRY_SDK_NAME]: { value: 'sentry.javascript.cloudflare', type: 'string' },
+            [SENTRY_SDK_VERSION]: { value: SDK_VERSION, type: 'string' },
+            [SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
+          },
+        }),
+      );
+    })
+    .start(signal);
+  await runner.makeRequest('get', '/extract-clairic');
   await runner.completed();
 });
 

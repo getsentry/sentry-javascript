@@ -15,6 +15,7 @@ import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sent
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { dropReactControlFlowErrorsEventProcessor } from '../common/utils/dropReactControlFlowErrors';
+import { getTunnelRouteIgnoreSpans } from '../common/utils/dropMiddlewareTunnelRequests';
 import { isBuild } from '../common/utils/isBuild';
 import {
   isAsyncContextOwnedByCloudflare,
@@ -23,6 +24,7 @@ import {
   setCloudflareWorkerRelease,
 } from '../common/utils/responseEnd';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
+import { registerNextSentryPropagator } from './nextSentryPropagator';
 import { addNextjsServerSpanHooks, NEXTJS_SERVER_IGNORE_SPANS } from './serverSpanHooks';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
 import { nextjsUseCacheIntegration } from './useCacheInstrumentation';
@@ -155,7 +157,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     ...cloudflareConfig,
   };
 
-  opts.ignoreSpans = [...(opts.ignoreSpans || []), ...NEXTJS_SERVER_IGNORE_SPANS];
+  opts.ignoreSpans = [...(opts.ignoreSpans || []), ...NEXTJS_SERVER_IGNORE_SPANS, ...getTunnelRouteIgnoreSpans()];
 
   if (DEBUG_BUILD && opts.debug) {
     debug.enable();
@@ -181,6 +183,14 @@ export function init(options: NodeOptions): NodeClient | undefined {
     addNextjsServerSpanHooks(client);
   } else if (isOwnedByCloudflare) {
     setCloudflareWorkerRelease(opts.release);
+  }
+
+  // Next.js reads the trace meta tags of a document through the global propagator. Only the setup the
+  // Node SDK owns gets the Next.js-aware one here; `withSentry` of `@sentry/nextjs/cloudflare` applies it
+  // to its own setup, and another OpenTelemetry setup (for example `@vercel/otel`) keeps its own tracer
+  // provider and propagator.
+  if (client?.traceProvider) {
+    registerNextSentryPropagator(client.traceProvider);
   }
 
   // On the client, not the global scope, so a later `init()` after
@@ -230,3 +240,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
 export * from '../common';
 
 export { wrapApiHandlerWithSentry } from '../common/pages-router-instrumentation/wrapApiHandlerWithSentry';
+
+// For apps that set up OpenTelemetry themselves (`enableOpenTelemetrySetup: false`), which otherwise
+// write the trace meta tags of a prerendered shell with the propagator they registered.
+export { NextSentryPropagator } from './nextSentryPropagator';
+export { markPrerendersOnTracerProvider } from './prerenderContext';

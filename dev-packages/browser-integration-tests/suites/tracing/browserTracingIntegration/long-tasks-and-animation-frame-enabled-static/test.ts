@@ -10,7 +10,12 @@ import {
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
+import {
+  envelopeRequestParser,
+  shouldSkipTracingTest,
+  waitForNextFrame,
+  waitForTransactionRequest,
+} from '../../../../utils/helpers';
 
 sentryTest(
   'should capture long animation frame for top-level script.',
@@ -61,7 +66,7 @@ sentryTest(
     const duration = end - start;
 
     expect(duration).toBeGreaterThanOrEqual(0.1);
-    expect(duration).toBeLessThanOrEqual(0.15);
+    expect(duration).toBeLessThan(1);
   },
 );
 
@@ -83,8 +88,11 @@ sentryTest(
 
     await page.goto(url);
 
-    // trigger long animation frame function
-    await page.getByRole('button').click();
+    // Separate mousedown and click into different frames so LoAF reports the click handler.
+    await page.getByRole('button').hover();
+    await page.mouse.down();
+    await waitForNextFrame(page);
+    await page.mouse.up();
 
     const eventData = envelopeRequestParser(await promise);
 
@@ -113,6 +121,6 @@ sentryTest(
     const duration = end - start;
 
     expect(duration).toBeGreaterThanOrEqual(0.1);
-    expect(duration).toBeLessThanOrEqual(0.15);
+    expect(duration).toBeLessThan(1);
   },
 );

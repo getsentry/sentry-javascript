@@ -58,9 +58,9 @@ function subscribeToCreateRouter(): void {
 }
 
 /**
- * Report errors from any fetch handler, router or not. The middleware only sees failures inside a
- * router; this is the only hook that covers a plain handler. No abort guard is needed, because the
- * listener drops aborted requests before calling `onError`.
+ * Report errors from any fetch handler, router or not.
+ * The middleware only sees failures inside a router; this is the only hook that covers a plain handler.
+ * No abort guard is needed, because the listener drops aborted requests before calling `onError`.
  */
 function subscribeToCreateRequestListener(): void {
   diagnosticsChannel

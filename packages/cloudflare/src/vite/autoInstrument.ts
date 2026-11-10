@@ -1,4 +1,5 @@
-import { basename } from 'node:path';
+import { basename, dirname, isAbsolute } from 'node:path';
+import { createIdResolver, type ResolvedConfig } from 'vite';
 import { collectAgentCandidates, detectAgentClasses, type ModuleResolver } from './agentClass';
 import { buildOptionsImport, ENV_FALLBACK_OPTIONS_FN, resolveInstrumentFile } from './instrumentFile';
 import { applyAutoInstrumentTransforms, type ClassWrapperKind, type ProgramBody } from './transform';
@@ -30,13 +31,47 @@ async function resolvesNextjsCloudflare(resolver: ModuleResolver, importer: stri
   }
 }
 
+type TransformContext = ModuleResolver & {
+  warn?(msg: string): void;
+  environment?: Parameters<ReturnType<typeof createIdResolver>>[0];
+};
+
 export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPath?: string } = {}) {
   let wranglerConfig: WranglerConfig | undefined;
   let entryFilePath: string | undefined;
+  // A `main` that is not a file path (a package export or virtual module).
+  let entrySpecifier: string | undefined;
+  let wranglerConfigPath: string | undefined;
+  let resolveId: ReturnType<typeof createIdResolver> | undefined;
+  // Each environment resolves with its own conditions, so the entry may differ between them.
+  const resolvedEntries = new Map<string, Promise<string | undefined>>();
 
-  let optionsFn = ENV_FALLBACK_OPTIONS_FN;
-  let optionsImport: string | undefined;
+  let instrumentFilePath: string | undefined;
   let isVinext = false;
+
+  function resolveEntrySpecifier(ctx: TransformContext, specifier: string): Promise<string | undefined> {
+    const environment = ctx.environment;
+    if (!environment || !resolveId) return Promise.resolve(undefined);
+
+    let entry = resolvedEntries.get(environment.name);
+    if (!entry) {
+      // Resolved from the wrangler config, as wrangler does. Without an importer, Vite's resolver
+      // tries the specifier as a path below the root first.
+      entry = resolveId(environment, specifier, wranglerConfigPath)
+        .catch(() => undefined)
+        .then(id => {
+          if (!id) {
+            ctx.warn?.(
+              `[sentry] Could not resolve the wrangler \`main\` "${specifier}". Auto-instrumentation disabled.`,
+            );
+            return undefined;
+          }
+          return normalizePath(id.replace(/[?#].*$/, ''));
+        });
+      resolvedEntries.set(environment.name, entry);
+    }
+    return entry;
+  }
 
   return {
     name: 'sentry-cloudflare-auto-instrument',
@@ -64,40 +99,43 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
       }
 
       wranglerConfig = result.config;
-      if (wranglerConfig.main) {
-        // `main` is already absolute (wrangler resolves it); just normalize
-        // separators so the entry-module comparison holds on Windows.
-        entryFilePath = normalizePath(wranglerConfig.main);
-      }
-
-      if (entryFilePath) {
-        const instrumentFilePath = resolveInstrumentFile(entryFilePath);
-        if (instrumentFilePath) {
-          const built = buildOptionsImport(entryFilePath, instrumentFilePath);
-          optionsFn = built.optionsFn;
-          optionsImport = built.importStmt;
-        }
+      const main = wranglerConfig.main;
+      if (main && isAbsolute(main)) {
+        // Normalize separators so the entry-module comparison holds on Windows.
+        entryFilePath = normalizePath(main);
+        instrumentFilePath = resolveInstrumentFile(dirname(main));
+      } else if (main) {
+        entrySpecifier = main;
+        wranglerConfigPath = result.configPath;
+        // Not `this.resolve()`: Rollup's commonjs resolver loads the module it resolves, so a
+        // resolve of the entry from the entry's own `transform` never finishes.
+        resolveId = createIdResolver(config as ResolvedConfig);
+        // A package entry has no project directory of its own.
+        instrumentFilePath = resolveInstrumentFile(result.configDir);
       }
     },
 
     async transform(
-      this: ModuleResolver & { warn?(msg: string): void; environment?: { name?: string } },
+      this: TransformContext,
       code: string,
       id: string,
     ): Promise<{ code: string; map: unknown } | undefined> {
-      if (!wranglerConfig || !entryFilePath) return undefined;
+      if (!wranglerConfig || (!entryFilePath && !entrySpecifier)) return undefined;
 
       // The worker entry never belongs to the client (browser) environment.
       // Skipping it keeps a same-basename sibling (e.g. a `src/index.tsx`
       // client entry next to a `src/index.ts` worker) out of the browser bundle.
       if (this.environment?.name === 'client') return undefined;
 
+      const entryPath = entrySpecifier ? await resolveEntrySpecifier(this, entrySpecifier) : entryFilePath;
+      if (!entryPath) return undefined;
+
       // Vite may append query/hash params to the module ID.
       const normalizedId = normalizePath(id.replace(/[?#].*$/, ''));
-      if (normalizedId !== entryFilePath) {
+      if (normalizedId !== entryPath) {
         // Tolerate a differing JS-flavored extension (e.g. `.js` vs `.ts`).
-        if (!JS_EXTENSION_REGEX.test(normalizedId) || !JS_EXTENSION_REGEX.test(entryFilePath)) return undefined;
-        if (normalizedId.replace(JS_EXTENSION_REGEX, '') !== entryFilePath.replace(JS_EXTENSION_REGEX, '')) {
+        if (!JS_EXTENSION_REGEX.test(normalizedId) || !JS_EXTENSION_REGEX.test(entryPath)) return undefined;
+        if (normalizedId.replace(JS_EXTENSION_REGEX, '') !== entryPath.replace(JS_EXTENSION_REGEX, '')) {
           return undefined;
         }
       }
@@ -144,6 +182,10 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
       // A vinext app with `@sentry/nextjs` installed gets `withSentry` of `@sentry/nextjs/cloudflare`.
       const sentryModule =
         isVinext && (await resolvesNextjsCloudflare(this, normalizedId)) ? NEXTJS_CLOUDFLARE_MODULE : undefined;
+
+      const { optionsFn, importStmt: optionsImport } = instrumentFilePath
+        ? buildOptionsImport(entryPath, instrumentFilePath)
+        : { optionsFn: ENV_FALLBACK_OPTIONS_FN, importStmt: undefined };
 
       // No registration import is injected here: the orchestrion plugin's
       // subscribe-injection makes each bundled package self-register its channel

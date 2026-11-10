@@ -4,10 +4,14 @@ import { getModuleNames } from './module-names';
 import { openAiCompatibleConfig } from './openai-compatible';
 
 // `together-ai` is a Stainless-generated, OpenAI-compatible SDK — see `openAiCompatibleConfig`.
-export const togetherAiConfig = openAiCompatibleConfig({
-  name: 'together-ai',
-  versionRange: '>=0.6.0 <1',
-}) satisfies InstrumentationConfig[];
+export const togetherAiConfig = [
+  ...openAiCompatibleConfig({ name: 'together-ai', versionRange: '>=0.6.0 <1' }),
+  // 1.x defines `create` on `BaseCompletions`/`BaseEmbeddings`; `Completions`/`Embeddings` are empty subclasses.
+  ...openAiCompatibleConfig(
+    { name: 'together-ai', versionRange: '>=1.0.0 <2' },
+    { chat: 'BaseCompletions', embeddings: 'BaseEmbeddings' },
+  ),
+] satisfies InstrumentationConfig[];
 
 export const togetherAiModuleNames = getModuleNames(togetherAiConfig);
 

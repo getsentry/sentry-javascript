@@ -1,0 +1,4 @@
+allowBuilds:
+  supabase: true
+  unrs-resolver: true
+minimumReleaseAge: 0

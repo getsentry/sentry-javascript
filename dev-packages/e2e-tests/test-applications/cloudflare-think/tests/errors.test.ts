@@ -33,7 +33,7 @@ test('captures an error thrown inside a Think tool and marks its span errored', 
   const exception = error.exception?.values?.[0];
   expect(exception?.type).toBe('Error');
   expect(exception?.value).toBe('Think tool failed on purpose');
-  expect(exception?.mechanism?.type).toBe('auto.vercelai.channel');
+  expect(exception?.mechanism?.type).toBe('auto.ai.vercelai');
 
   const toolSpan = spans.find(span => span.attributes?.['gen_ai.tool.name']?.value === 'fail_now');
   expect(getSpanOp(toolSpan!)).toBe('gen_ai.execute_tool');

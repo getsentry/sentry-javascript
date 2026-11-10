@@ -89,6 +89,10 @@ beforeAll(() => {
   process.env['SENTRY_CONFIG_DIR'] = join(workDir, 'sentry-home');
   mkdirSync(process.env['SENTRY_CONFIG_DIR']);
 
+  // Every command otherwise waits up to ~3s to flush its own telemetry to sentry.io, which makes
+  // the suite depend on that endpoint being reachable and pushes slow CI runs past the timeout.
+  process.env['SENTRY_CLI_NO_TELEMETRY'] = '1';
+
   // The mock server writes its recording relative to cwd.
   previousCwd = process.cwd();
   process.chdir(workDir);
@@ -100,6 +104,7 @@ afterAll(() => {
   server.close();
   process.chdir(previousCwd);
   delete process.env['SENTRY_CONFIG_DIR'];
+  delete process.env['SENTRY_CLI_NO_TELEMETRY'];
   rmSync(workDir, { recursive: true, force: true });
 });
 

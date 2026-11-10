@@ -1,0 +1,11 @@
+---
+import { getServerGreeting } from '../lib/server';
+
+export const prerender = false;
+---
+
+<html lang="en">
+  <body>
+    <p>{getServerGreeting()}</p>
+  </body>
+</html>

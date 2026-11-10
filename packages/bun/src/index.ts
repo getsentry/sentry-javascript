@@ -10,6 +10,8 @@ export type {
   Exception,
   Session,
   SeverityLevel,
+  Log,
+  LogSeverityLevel,
   Span,
   StackFrame,
   Stacktrace,
@@ -25,6 +27,7 @@ export {
   addEventProcessor,
   addBreadcrumb,
   addIntegration,
+  moduleMetadataIntegration,
   captureException,
   captureEvent,
   captureMessage,
@@ -93,11 +96,13 @@ export {
   mcpServerIntegration,
   SentryMastraExporter,
   createFlueInstrumentation,
+  instrumentPostgresJsSql,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,
   localVariablesIntegration,
   requestDataIntegration,
+  systemErrorIntegration,
   fsIntegration,
   functionToStringIntegration,
   eventFiltersIntegration,
@@ -138,6 +143,9 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
   genericPoolIntegration,
+  cronJobIntegration,
+  nodeCronIntegration,
+  nodeScheduleIntegration,
   graphqlIntegration,
   knexIntegration,
   kafkaIntegration,
@@ -146,6 +154,7 @@ export {
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
+  nitroIntegration,
   redisIntegration,
   tediousIntegration,
   postgresIntegration,
@@ -165,6 +174,10 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
+  getTunnelPath,
+  handleTunnelRequest,
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
@@ -175,9 +188,12 @@ export {
   instrumentGoogleGenAIClient,
   instrumentStateGraph,
   instrumentStateGraphCompile,
+  instrumentCreateReactAgent,
+  awsIntegration,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  BullMQTelemetry,
   anthropicAIIntegration,
   googleGenAIIntegration,
   vercelAIIntegration,
@@ -205,6 +221,7 @@ export {
   eveIntegration,
   getInstrumentedModuleNames,
 } from '@sentry/node';
+export type { HandleTunnelRequestOptions, ServerTunnelOptions, TunnelRequestLike } from '@sentry/node';
 
 export {
   captureConsoleIntegration,
@@ -224,6 +241,7 @@ export {
   initWithoutDefaultIntegrations,
 } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';
+export { serveTunnelIntegration } from './integrations/serveTunnel';
 export type { BunServerIntegrationOptions } from './integrations/bunserver';
 export { bunHttpServerIntegration } from './integrations/bunHttpServer';
 export { fetchIntegration } from './integrations/fetch';

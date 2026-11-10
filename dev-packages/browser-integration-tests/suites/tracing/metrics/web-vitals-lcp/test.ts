@@ -52,7 +52,7 @@ sentryTest('captures LCP as a streamed span with element attributes', async ({ g
   const pageloadSpan = await pageloadSpanPromise;
 
   expect(lcpSpan.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'ui.webvital.lcp' });
-  expect(lcpSpan.attributes[SENTRY_ORIGIN]).toEqual({ type: 'string', value: 'auto.http.browser.lcp' });
+  expect(lcpSpan.attributes[SENTRY_ORIGIN]).toEqual({ type: 'string', value: 'auto.ui.browser.lcp' });
   expect(lcpSpan.attributes[SENTRY_EXCLUSIVE_TIME]).toEqual({ type: 'integer', value: 0 });
   expect(lcpSpan.attributes[USER_AGENT_ORIGINAL]?.value).toEqual(expect.stringContaining('Chrome'));
 

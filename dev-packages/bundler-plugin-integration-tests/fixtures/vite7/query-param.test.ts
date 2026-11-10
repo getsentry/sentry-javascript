@@ -12,7 +12,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles, ctx }) => {
     {
       "common.js?seP58q4g": "!(function() {
       try {
-        var e = "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : {};
+        var e = "undefined" != typeof globalThis ? globalThis : "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof self ? self : {};
         e.SENTRY_RELEASE = { id: "CURRENT_SHA" };
         var n = new e.Error().stack;
         n && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[n] = "00000000-0000-0000-0000-000000000000", e._sentryDebugIdIdentifier = "sentry-dbid-00000000-0000-0000-0000-000000000000");
@@ -28,7 +28,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles, ctx }) => {
     ",
       "entry1.js": "!(function() {
       try {
-        var e = "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : {};
+        var e = "undefined" != typeof globalThis ? globalThis : "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof self ? self : {};
         e.SENTRY_RELEASE = { id: "CURRENT_SHA" };
         var n = new e.Error().stack;
         n && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[n] = "00000000-0000-0000-0000-000000000000", e._sentryDebugIdIdentifier = "sentry-dbid-00000000-0000-0000-0000-000000000000");
@@ -40,7 +40,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles, ctx }) => {
     ",
       "entry2.js": "!(function() {
       try {
-        var e = "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : {};
+        var e = "undefined" != typeof globalThis ? globalThis : "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof self ? self : {};
         e.SENTRY_RELEASE = { id: "CURRENT_SHA" };
         var n = new e.Error().stack;
         n && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[n] = "00000000-0000-0000-0000-000000000000", e._sentryDebugIdIdentifier = "sentry-dbid-00000000-0000-0000-0000-000000000000");

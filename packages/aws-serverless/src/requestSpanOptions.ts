@@ -40,6 +40,8 @@ import {
 } from '@sentry/core';
 import type { Context } from 'aws-lambda';
 
+const DEFAULT_PORTS: Record<string, string | undefined> = { http: '80', https: '443' };
+
 interface ApiGatewayLikeEvent {
   headers?: Record<string, string | undefined>;
   path?: string;
@@ -63,7 +65,7 @@ export function getRequestSpanOptions(event: unknown, context: Context, requestI
         : context.functionName,
     attributes: {
       [SENTRY_OP]: FUNCTION_AWS,
-      [SENTRY_ORIGIN]: 'auto.aws_lambda',
+      [SENTRY_ORIGIN]: 'auto.function.aws_serverless',
       [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
       [SENTRY_KIND]: 'server',
       [FAAS_INVOCATION_ID]: context.awsRequestId,
@@ -122,7 +124,8 @@ function extractFullUrl(event: ApiGatewayLikeEvent): string | undefined {
     return undefined;
   }
   let answer = `${proto}://${host}`;
-  if (port) {
+  // Clients put non-default ports into the host header, which ALB passes through as is.
+  if (port && port !== DEFAULT_PORTS[proto] && !/:\d+$/.test(host)) {
     answer += `:${port}`;
   }
   answer += event.path ?? event.rawPath;

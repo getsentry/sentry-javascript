@@ -193,7 +193,6 @@ describe('Client init()', () => {
         globalWithManifest._sentryRouteManifest = JSON.stringify({
           staticRoutes: [{ path: '/' }],
           dynamicRoutes: [],
-          isrRoutes: [],
         });
 
         init({ dsn: TEST_DSN, tracesSampleRate: 1.0 });

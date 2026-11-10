@@ -118,14 +118,31 @@ export class LocalLambdaStack extends Stack {
 
 export async function getHostIp() {
   if (process.env.GITHUB_ACTIONS) {
-    const host = await dns.lookup(os.hostname());
-    return host.address;
+    return getExternalHostIp();
   }
 
   if (platform === 'darwin' || platform === 'win32') {
     return 'host.docker.internal';
   }
 
+  return getExternalHostIp();
+}
+
+/**
+ * The Lambda container reaches the event proxy on the host through an address of the host's network interface.
+ * Some runners (e.g. Namespace) map the hostname to a loopback address, which inside the container is the container
+ * itself, so fall back to the first external IPv4 address that is not a Docker bridge.
+ */
+async function getExternalHostIp(): Promise<string> {
   const host = await dns.lookup(os.hostname());
-  return host.address;
+  if (!host.address.startsWith('127.') && host.address !== '::1') {
+    return host.address;
+  }
+
+  const external = Object.entries(os.networkInterfaces())
+    .filter(([name]) => !name.startsWith('docker') && !name.startsWith('br-') && !name.startsWith('veth'))
+    .flatMap(([, addresses]) => addresses ?? [])
+    .find(address => address.family === 'IPv4' && !address.internal);
+
+  return external?.address ?? host.address;
 }

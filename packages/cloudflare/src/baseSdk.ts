@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { _INTERNAL_isClientClosed, debug, getCurrentScope, setCurrentClient } from '@sentry/core';
+import { _INTERNAL_isClientClosed, debug, getCurrentScope, safeCallback, setCurrentClient } from '@sentry/core';
 import {
   consoleIntegration,
   conversationIdIntegration,
@@ -41,14 +41,10 @@ function getRegisteredChannelIntegrations(): Integration[] {
 }
 
 /**
- * Get the default integrations that run on any Workers-compatible runtime, i.e. without the
- * `nodejs_compat` compatibility flag.
- *
- * `getDefaultIntegrations` in `sdk.ts` extends this set with the integrations that do depend on
- * Node.js APIs. Keeping the two apart is what allows `wrapRequestHandler` to stay usable on runtimes
- * that cannot enable `nodejs_compat`, such as Shopify Oxygen.
+ * Get the default integrations for the Cloudflare SDK.
+ * These also work on Workers-compatible runtimes without the `nodejs_compat` compatibility flag.
  */
-export function getBaseDefaultIntegrations(options: CloudflareOptions): Integration[] {
+export function getDefaultIntegrations(options: CloudflareOptions): Integration[] {
   return [
     // The Dedupe integration should not be used in workflows because we want to
     // capture all step failures, even if they are the same error.
@@ -72,12 +68,10 @@ export function getBaseDefaultIntegrations(options: CloudflareOptions): Integrat
 }
 
 /**
- * Initializes the Cloudflare SDK with the passed default integrations.
+ * Initializes the Cloudflare SDK without setting up an OpenTelemetry tracer provider.
  *
- * The default integrations are injected rather than imported so that this module stays free of
- * Node.js-only code. `request.ts` — which backs both `wrapRequestHandler` and the
- * `@sentry/cloudflare/request` entry point, and therefore has to work on runtimes without the
- * `nodejs_compat` compatibility flag — creates its client from here instead of from `sdk.ts`.
+ * Kept separate from `sdk.ts` so `@sentry/cloudflare/request` can load without Node.js-only
+ * dependencies on runtimes such as Shopify Oxygen.
  *
  * The client is cached and reused across invocations within the same isolate,
  * unless `cacheClient: false` is passed. This avoids the
@@ -87,10 +81,7 @@ export function getBaseDefaultIntegrations(options: CloudflareOptions): Integrat
  * boundary that reliably extends execution, so spans/events that end after
  * disposal would otherwise be lost.
  */
-export function initWithDefaultIntegrations(
-  options: CloudflareOptions,
-  getDefaultIntegrationsImpl: (options: CloudflareOptions) => Integration[],
-): CloudflareClient | undefined {
+export function initBaseSdk(options: CloudflareOptions): CloudflareClient | undefined {
   const cached = getCachedClient();
   const cacheEnabled = options.cacheClient !== false;
 
@@ -107,8 +98,11 @@ export function initWithDefaultIntegrations(
     return cached;
   }
 
+  // `false` or a custom list turns off the SDK defaults, late-loaded ones
+  // included, unless an SDK built the list from the defaults.
+  const usesSdkDefaults = options.defaultIntegrations === undefined || !!options._extendsDefaultIntegrations;
   if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrationsImpl(options);
+    options.defaultIntegrations = getDefaultIntegrations(options);
   }
 
   // A cached client outlives any single invocation, so binding it to one
@@ -153,23 +147,38 @@ export function initWithDefaultIntegrations(
   // lazily required on first use) stores its subscriber factory on the global
   // marker too late for the default-integrations snapshot above. Its injected
   // snippet emits this event right after storing the factory, so install the
-  // integration on the live client here. `addIntegration` dedupes by
-  // integration name, so already-installed integrations are no-ops.
+  // integration on the live client here, with the same rules as the defaults.
+  // `addIntegration` dedupes by integration name, so an integration the user
+  // configured stays in place.
+  const userIntegrations = options.integrations;
   client.on('orchestrion.module-injected', moduleName => {
     const factory = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get(moduleName);
-    if (factory) {
-      client.addIntegration(factory());
+    if (!usesSdkDefaults || !factory) {
+      return;
+    }
+
+    const integration = factory();
+    if (typeof userIntegrations !== 'function') {
+      client.addIntegration(integration);
+      return;
+    }
+
+    // Pass the late default through the user's `integrations` function, so a
+    // filter that removed it at init removes it here too. This calls the
+    // function again, once for each late module. If the function throws, skip
+    // the integration, so the module load that emitted the event still works.
+    const kept = safeCallback(
+      DEBUG_BUILD ? 'Error in the `integrations` function, skipping a late-loaded integration:' : '',
+      () =>
+        getIntegrationsToSetup({ defaultIntegrations: [integration], integrations: userIntegrations }).find(
+          ({ name }) => name === integration.name,
+        ),
+      () => undefined,
+    );
+    if (kept) {
+      client.addIntegration(kept);
     }
   });
 
   return client;
-}
-
-/**
- * Initializes the Cloudflare SDK with only the default integrations from
- * {@link getBaseDefaultIntegrations}, i.e. those that work without the `nodejs_compat`
- * compatibility flag.
- */
-export function initBaseSdk(options: CloudflareOptions): CloudflareClient | undefined {
-  return initWithDefaultIntegrations(options, getBaseDefaultIntegrations);
 }

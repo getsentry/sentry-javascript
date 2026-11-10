@@ -1,0 +1,23 @@
+name: 'optional-e2e-gh-action'
+description:
+  'Run the optional E2E tests in their own workflow and wait for them, or report their results in a PR comment'
+inputs:
+  github_token:
+    required: true
+    description: 'a github access token'
+  mode:
+    required: false
+    default: 'dispatch'
+    description: '`dispatch` to run the tests and wait for them, `report` to report the current run in a PR comment'
+  commit:
+    required: false
+    description: 'The commit that the tarballs were built from (dispatch mode)'
+  matrix:
+    required: false
+    description: 'The optional E2E test matrix as JSON (dispatch mode)'
+  pr_number:
+    required: false
+    description: 'The PR to report in (report mode)'
+runs:
+  using: 'node24'
+  main: 'index.mjs'

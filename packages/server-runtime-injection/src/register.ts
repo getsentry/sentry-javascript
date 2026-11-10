@@ -1,4 +1,5 @@
 import { consoleSandbox, debug, getClient, GLOBAL_OBJ, parseSemver } from '@sentry/core';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import * as Module from 'node:module';
 import { dirname, join } from 'node:path';
@@ -10,6 +11,11 @@ import { initialize, load, resolve, createDiagnosticsPort } from '@apm-js-collab
 import { setDiagnosticsHook } from '@apm-js-collab/tracing-hooks/lib/diagnostics.js';
 
 type NodeModule = {
+  Module: {
+    prototype: {
+      _compile: (this: unknown, content: string, filename: string, ...args: unknown[]) => unknown;
+    };
+  };
   registerHooks?: (options: { load: Function; resolve: Function }) => { deregister: () => void };
   register?: typeof register;
 };
@@ -192,7 +198,7 @@ export function registerDiagnosticsChannelInjection(): void {
 
   // `Module.registerHooks` / `Module.register` are newer than the @types/node
   // we build against, hence the cast.
-  const mod = Module as NodeModule;
+  const mod = Module as unknown as NodeModule;
 
   setDiagnosticsHook(({ url, moduleName, error }): void => {
     if (error) {
@@ -224,7 +230,42 @@ export function registerDiagnosticsChannelInjection(): void {
   try {
     if (typeof mod.registerHooks === 'function' && stableSyncHooks) {
       initialize({ instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS });
-      mod.registerHooks({ resolve, load: globalAny.Deno ? withDenoFormats(load) : load });
+      const filesLoadedByHook = new Map<string, string>();
+      const loadHook = globalAny.Deno ? withDenoFormats(load) : load;
+      mod.registerHooks({
+        resolve,
+        load: (url: string, context: { format?: string }, nextLoad: Function) => {
+          const result = loadHook(url, context, nextLoad) as
+            | { format?: string; source?: string | Uint8Array; shortCircuit?: boolean }
+            | undefined;
+          const format = result?.format ?? context.format;
+          if (
+            (format == null || format === 'commonjs') &&
+            result?.shortCircuit === true &&
+            result?.source != null &&
+            url.startsWith('file:')
+          ) {
+            const sourceHash = createHash('sha256').update(result.source).digest('hex');
+            filesLoadedByHook.set(pathToFileURL(fileURLToPath(url)).href, sourceHash);
+          }
+          return result;
+        },
+      });
+
+      // Custom require hooks bypass load. Avoid transforming files twice when load already handled them.
+      const prototype = mod.Module.prototype;
+      const originalCompile = prototype._compile;
+      new ModulePatch({ instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS }).patch();
+      const patchedCompile = prototype._compile;
+      prototype._compile = function (content, filename, ...args) {
+        const url = pathToFileURL(filename).href;
+        const loadedSourceHash = filesLoadedByHook.get(url);
+        filesLoadedByHook.delete(url);
+        const alreadyTransformed =
+          loadedSourceHash !== undefined && loadedSourceHash === createHash('sha256').update(content).digest('hex');
+        const compile = alreadyTransformed ? originalCompile : patchedCompile;
+        return compile.call(this, content, filename, ...args);
+      };
       debug.log('Registered diagnostics-channel injection via Module.registerHooks()');
     } else if (typeof mod.register === 'function' && !globalAny.Bun && !globalAny.Deno) {
       // `Module.register` + the `_compile` patch is Node 18.19–24.12 / 25.0
@@ -279,6 +320,25 @@ export function registerDiagnosticsChannelInjection(): void {
       }
 
       const hookSpecifier = hookFound ? pathToFileURL(hookPath).href : '@sentry/server-runtime-injection/hook';
+
+      if (hookFound) {
+        // Only `build/esm/package.json` marks the hook and its chunks as ESM. Deployments can drop
+        // that file, and Vercel disables syntax detection, so Node then parses the hook as CommonJS
+        // and fails on its `export`s.
+        //
+        // This registers a small loader hook before the real one. Its `load` sets
+        // `format: 'module'` for every URL inside our ESM build directory and passes all other URLs
+        // through unchanged. Hooks registered earlier also apply when Node loads hook modules
+        // registered later, so the real hook and its chunks load as ESM even without the marker.
+        // The loader is inlined as a `data:` URL because Node always loads those as ESM, so it
+        // cannot fail the same way and needs no file of its own.
+        const esmDirUrl = `${pathToFileURL(dirname(hookPath)).href}/`;
+        mod.register(
+          `data:text/javascript,${encodeURIComponent(
+            `const d=${JSON.stringify(esmDirUrl)};export async function load(u,c,n){return n(u,u.startsWith(d)?{...c,format:'module'}:c)}`,
+          )}`,
+        );
+      }
 
       mod.register(hookSpecifier, {
         parentURL,

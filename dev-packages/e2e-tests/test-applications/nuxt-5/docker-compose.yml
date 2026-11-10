@@ -1,6 +1,7 @@
 services:
   mongo:
-    image: mongo:8
+    # MongoDB 8 does not start on Linux kernel 6.19 to 7.0.13 (SERVER-121912), which GitHub-hosted runners use.
+    image: mongo:7.0
     restart: always
     container_name: e2e-tests-nuxt-5-mongo
     ports:
