@@ -102,7 +102,7 @@
     "nitropack": "^2.13.4",
     "solid-js": "^1.9.18",
     "vinxi": "^0.5.11",
-    "vite": "^8.3.5",
+    "vite": "^8.3.6",
     "vite-plugin-solid": "^2.11.6"
   },
   "scripts": {

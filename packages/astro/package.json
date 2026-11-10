@@ -68,7 +68,7 @@
   "devDependencies": {
     "@sentry-internal/rollup-utils": "11.11.0",
     "astro": "^4.16.19",
-    "vite": "^8.3.5"
+    "vite": "^8.3.6"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
