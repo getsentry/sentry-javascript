@@ -4,6 +4,7 @@ import {
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
@@ -217,6 +218,58 @@ describe('BedrockRuntimeServiceExtension stream spans', () => {
     expect({
       [GEN_AI_USAGE_INPUT_TOKENS]: attributes?.[GEN_AI_USAGE_INPUT_TOKENS],
       [GEN_AI_USAGE_OUTPUT_TOKENS]: attributes?.[GEN_AI_USAGE_OUTPUT_TOKENS],
+    }).toEqual(expected);
+  });
+
+  it.each([
+    {
+      family: 'Llama',
+      modelId: 'meta.llama3-8b-instruct-v1:0',
+      chunks: [
+        { generation: 'Kawasaki', prompt_token_count: 12, generation_token_count: 1, stop_reason: null },
+        { generation: '.', prompt_token_count: null, generation_token_count: 2, stop_reason: 'stop' },
+      ],
+      expected: { input: 12, output: 2, total: 14, finishReasons: '["stop"]' },
+    },
+    {
+      family: 'Titan',
+      modelId: 'amazon.titan-text-express-v1',
+      chunks: [
+        { outputText: 'Kawasaki', totalOutputTextTokenCount: null, completionReason: null, inputTextTokenCount: 5 },
+        { outputText: '.', totalOutputTextTokenCount: 2, completionReason: 'FINISH', inputTextTokenCount: null },
+      ],
+      expected: { input: 5, output: 2, total: 7, finishReasons: '["FINISH"]' },
+    },
+    {
+      family: 'Nova',
+      modelId: 'amazon.nova-lite-v1:0',
+      chunks: [
+        { contentBlockDelta: { delta: { text: 'Kawasaki' }, contentBlockIndex: 0 } },
+        { messageStop: { stopReason: 'end_turn' } },
+        { metadata: { usage: { inputTokens: 7, outputTokens: 2 }, metrics: {}, trace: {} } },
+      ],
+      expected: { input: 7, output: 2, total: 9, finishReasons: '["end_turn"]' },
+    },
+  ])('records token usage and finish reasons for a $family stream', async ({ modelId, chunks, expected }) => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const encoder = new TextEncoder();
+    const data = {
+      body: (async function* () {
+        for (const chunk of chunks) {
+          yield { chunk: { bytes: encoder.encode(JSON.stringify(chunk)) } };
+        }
+      })(),
+    };
+
+    respond(span, 'InvokeModelWithResponseStream', { modelId }, data);
+    await drain(data.body);
+
+    const attributes = spanToJSON(span).attributes;
+    expect({
+      input: attributes?.[GEN_AI_USAGE_INPUT_TOKENS],
+      output: attributes?.[GEN_AI_USAGE_OUTPUT_TOKENS],
+      total: attributes?.[GEN_AI_USAGE_TOTAL_TOKENS],
+      finishReasons: attributes?.[GEN_AI_RESPONSE_FINISH_REASONS],
     }).toEqual(expected);
   });
 
