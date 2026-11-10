@@ -5,6 +5,7 @@ import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server
 import type { McpServerWrapperOptions } from '../../../../src/integrations/mcp-server/types';
 import { SentrySpan } from '../../../../src/tracing/sentrySpan';
 import * as tracing from '../../../../src/tracing/trace';
+import { debug } from '../../../../src/utils/debug-logger';
 import { spanToJSON } from '../../../../src/utils/spanUtils';
 import { createMockClient, createMockMcpServer, createMockTransport } from './testUtils';
 
@@ -83,6 +84,26 @@ describe('MCP OAuth client attribution', () => {
     expect(spanToJSON(inactiveSpan!).attributes).not.toHaveProperty(MCP_AUTH_CLIENT_NAME);
   });
 
+  it('logs rejected resolvers without interrupting request dispatch', async () => {
+    const error = new Error('test resolver failure');
+    const debugErrorSpy = vi.spyOn(debug, 'error').mockImplementation(() => undefined);
+    const onmessage = transport.onmessage;
+    const result = { result: 'dispatch completed' };
+    onmessage.mockReturnValue(result);
+    await connect({
+      getOAuthClientName: (() => Promise.reject(error)) as unknown as McpServerWrapperOptions['getOAuthClientName'],
+    });
+    const message = { jsonrpc: '2.0', id: 1, method: 'resources/list' };
+    const extra = { authInfo };
+
+    expect(transport.onmessage(message, extra)).toBe(result);
+    expect(onmessage).toHaveBeenCalledExactlyOnceWith(message, extra);
+    expect(spanToJSON(inactiveSpan!).attributes).not.toHaveProperty(MCP_AUTH_CLIENT_NAME);
+    await vi.waitFor(() => {
+      expect(debugErrorSpy).toHaveBeenCalledExactlyOnceWith('The `getOAuthClientName` callback threw an error:', error);
+    });
+  });
+
   it.each([
     [
       'throws',
@@ -96,7 +117,7 @@ describe('MCP OAuth client attribution', () => {
     const result = { result: 'dispatch completed' };
     onmessage.mockReturnValue(result);
     await wrapMcpServerWithSentry(createMockMcpServer(), {
-      getOAuthClientName: resolver as McpServerWrapperOptions['getOAuthClientName'],
+      getOAuthClientName: resolver as unknown as McpServerWrapperOptions['getOAuthClientName'],
     }).connect(transport);
     const message = { jsonrpc: '2.0', id: 1, method: 'resources/list' };
     const extra = { authInfo };

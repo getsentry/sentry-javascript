@@ -7,10 +7,12 @@
 
 import { MCP_AUTH_CLIENT_NAME, MCP_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
 import { getClient, getIsolationScope, withIsolationScope } from '../../currentScopes';
+import { DEBUG_BUILD } from '../../debug-build';
 import { withActiveSpan } from '../../tracing';
 import { startInactiveSpan } from '../../tracing/trace';
 import { isObjectLike } from '../../utils/is';
 import { fill } from '../../utils/object';
+import { safeCallback } from '../../utils/safeCallback';
 import { cleanupPendingSpansForTransport, completeSpanWithResults, storeSpanForRequest } from './correlation';
 import { captureError, isJsonRpcServerError } from './errorCapture';
 import { buildClientAttributesFromInfo, extractSessionDataFromInitializeRequest } from './sessionExtraction';
@@ -45,15 +47,17 @@ function resolveOAuthClientName(options: McpServerWrapperOptions, extra?: ExtraH
     return undefined;
   }
 
-  try {
-    const authInfo = extra?.authInfo;
-    const name = options.getOAuthClientName(
-      authInfo ? { clientId: authInfo.clientId, extra: authInfo.extra } : undefined,
-    );
-    return typeof name === 'string' && name ? name : undefined;
-  } catch {
-    return undefined;
-  }
+  const name = safeCallback(
+    DEBUG_BUILD ? 'The `getOAuthClientName` callback threw an error:' : '',
+    () => {
+      const authInfo = extra?.authInfo;
+      return options.getOAuthClientName?.(
+        authInfo ? { clientId: authInfo.clientId, extra: authInfo.extra } : undefined,
+      );
+    },
+    () => undefined,
+  );
+  return typeof name === 'string' && name ? name : undefined;
 }
 
 /**
