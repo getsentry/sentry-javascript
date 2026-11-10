@@ -1,4 +1,4 @@
-import { applySdkMetadata } from '@sentry/core';
+import { _INTERNAL_getActiveClient as getActiveClient, applySdkMetadata, debug } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   _INTERNAL_installTunnelHooks as installTunnelHooks,
@@ -10,6 +10,14 @@ import {
  * Initializes the server side of the TanStack Start React SDK
  */
 export function init(options: NodeOptions): NodeClient | undefined {
+  // With Nitro, the Vite plugin loads the server config when the server starts, so a `node --import` preload or an
+  // import in the server entry runs it a second time. The first init wins.
+  const activeClient = getActiveClient<NodeClient>();
+  if (activeClient) {
+    debug.log('The Sentry server SDK is already initialized, skipping a second initialization.');
+    return activeClient;
+  }
+
   const sentryOptions: NodeOptions = {
     defaultIntegrations: [...getDefaultNodeIntegrations(options)],
     ...options,

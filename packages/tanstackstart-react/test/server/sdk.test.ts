@@ -40,6 +40,24 @@ describe('TanStack Start React Server SDK', () => {
       expect(init({})).not.toBeUndefined();
     });
 
+    it('keeps the first client when called again', () => {
+      const firstClient = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      expect(init({ dsn: 'https://other@dsn.ingest.sentry.io/42' })).toBe(firstClient);
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      expect(SentryNode.getClient()).toBe(firstClient);
+    });
+
+    it('initializes a new client after the first one is closed', async () => {
+      const firstClient = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+      await SentryNode.close();
+
+      const secondClient = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      expect(secondClient).not.toBe(firstClient);
+      expect(nodeInit).toHaveBeenCalledTimes(2);
+    });
+
     it('sets ignoreSpans to filter low-quality transactions', () => {
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 

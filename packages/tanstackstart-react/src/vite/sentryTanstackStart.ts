@@ -4,6 +4,7 @@ import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
 import { makeComposeNitroServiceSourceMapsPlugin, makeEnableNitroSourceMapsPlugin } from './nitroSourceMaps';
 import { makeRoutePatternPlugin } from './routePatterns';
+import { makeServerInstrumentationPlugin } from './serverInstrumentation';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 import type { TunnelRouteOptions } from './tunnelRoute';
 import { makeServerEntryTunnelPlugin, makeTunnelBasePathPlugin, makeTunnelRoutePlugin } from './tunnelRoute';
@@ -49,6 +50,19 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
    * the managed tunnel route is being bypassed.
    */
   tunnelRoute?: TunnelRouteOptions;
+
+  /**
+   * The file that calls `Sentry.init()` for the server, relative to the project root.
+   *
+   * With Nitro, the SDK bundles this file into the server build and loads it when the server starts, so the first
+   * request of each server instance is traced even without `node --import`. An existing `--import` of the same file
+   * keeps working: the first `Sentry.init()` wins.
+   *
+   * Set to `false` to load the file yourself.
+   *
+   * @default the first `instrument.server.{ts,mts,js,mjs}` in the project root or in `src/`
+   */
+  serverInstrumentationFile?: string | false;
 }
 
 /**
@@ -91,6 +105,13 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   if (process.env.NODE_ENV === 'development') {
     return plugins;
   }
+
+  plugins.push(
+    makeServerInstrumentationPlugin({
+      serverInstrumentationFile: options.serverInstrumentationFile,
+      debug: options.debug,
+    }),
+  );
 
   // Runs the orchestrion code transform over the server bundle so instrumented DB drivers get
   // `diagnostics_channel` publishers injected. Production-only: it force-bundles the instrumented
