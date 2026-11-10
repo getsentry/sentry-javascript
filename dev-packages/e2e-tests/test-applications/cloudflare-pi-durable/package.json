@@ -8,10 +8,11 @@
     "preview": "vite preview --port 38789",
     "typecheck": "tsc --noEmit",
     "test:build": "pnpm install && pnpm build",
-    "test:build-latest": "pnpm install && pnpm add agents@latest @earendil-works/pi-durable@latest @earendil-works/pi-ai@latest && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add agents@latest @earendil-works/pi-durable@latest @earendil-works/pi-ai@latest @earendil-works/chord@latest && pnpm build",
     "test:assert": "playwright test"
   },
   "dependencies": {
+    "@earendil-works/chord": "1.2.0",
     "@earendil-works/pi-ai": "1.2.0",
     "@earendil-works/pi-durable": "1.2.0",
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
