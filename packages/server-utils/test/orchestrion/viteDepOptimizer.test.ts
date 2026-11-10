@@ -58,3 +58,39 @@ describe('sentryOrchestrionPlugin (vite) in the Rolldown dependency optimizer', 
     expect(map.sources).toEqual(['../../fake-db/index.js']);
   });
 });
+
+describe('sentryOrchestrionPlugin (vite) on a dependency excluded from the dependency optimizer', () => {
+  let root: string;
+  let server: ViteDevServer;
+
+  beforeAll(async () => {
+    root = mkdtempSync(join(tmpdir(), 'orchestrion-dep-excluded-'));
+    const packageDir = join(root, 'node_modules', 'fake-db');
+    mkdirSync(packageDir, { recursive: true });
+    writeFileSync(
+      join(packageDir, 'package.json'),
+      JSON.stringify({ name: 'fake-db', version: '1.0.0', type: 'module' }),
+    );
+    writeFileSync(join(packageDir, 'index.js'), 'export function query(sql) {\n  return sql;\n}\n');
+
+    server = await createServer({
+      root,
+      configFile: false,
+      logLevel: 'silent',
+      plugins: [sentryOrchestrionPlugin({ instrumentations, transformOptimizedDeps: true })],
+      server: { middlewareMode: true, ws: false, watch: null },
+      environments: { ssr: { optimizeDeps: { exclude: ['fake-db'] } } },
+    });
+  });
+
+  afterAll(async () => {
+    await server.close();
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('transforms the module when its id has the ?v=<hash> query of vite dev', async () => {
+    const result = await server.environments.ssr.transformRequest('/node_modules/fake-db/index.js?v=0123abcd');
+
+    expect(result?.code).toContain('orchestrion:fake-db:query');
+  });
+});
