@@ -5,26 +5,21 @@ import {
   GEN_AI_TOOL_DEFINITIONS,
 } from '@sentry/conventions/attributes';
 import { getMessagesAttributes, messagesFromParams } from '../../../ai/anthropic-ai/utils';
-
-/**
- * A message part as described in https://develop.sentry.dev/sdk/telemetry/traces/modules/ai-agents/.
- * Bedrock's own content blocks (`{ text }`, `{ toolUse }`, ...) carry no `type`, and parts Sentry
- * cannot type are dropped when a message is rendered, so they are translated into this shape.
- */
-type MessagePart = Record<string, unknown> & { type: string };
+import type { GenAiMessagePart } from '../../../ai/types';
 
 /**
  * Translate Converse `ContentBlock`s (also used by Amazon Nova `InvokeModel` bodies) into message parts.
+ * Bedrock's blocks (`{ text }`, `{ toolUse }`, ...) carry no `type`, and Sentry drops parts it cannot type.
  *
  * Media is reported by modality only: inline media is raw bytes, which the conventions require to be
  * dropped rather than recorded. Blocks without content worth recording (`cachePoint`, redacted
  * reasoning, unknown members) are left out rather than serialized, so no binary payload slips through.
  */
-function contentBlocksToParts(content: unknown): MessagePart[] {
+function contentBlocksToParts(content: unknown): GenAiMessagePart[] {
   return Array.isArray(content) ? content.flatMap(contentBlockToParts) : [];
 }
 
-function contentBlockToParts(block: unknown): MessagePart[] {
+function contentBlockToParts(block: unknown): GenAiMessagePart[] {
   if (!isObjectLike(block)) {
     return [];
   }
@@ -105,7 +100,7 @@ function toolResultToString(content: unknown): string {
     .join('\n');
 }
 
-function converseMessagesToMessages(messages: unknown): Array<{ role: string; parts: MessagePart[] }> {
+function converseMessagesToMessages(messages: unknown): Array<{ role: string; parts: GenAiMessagePart[] }> {
   if (!Array.isArray(messages)) {
     return [];
   }
@@ -119,7 +114,7 @@ function converseMessagesToMessages(messages: unknown): Array<{ role: string; pa
     .filter(message => message.parts.length > 0);
 }
 
-function systemInstructionsAttribute(parts: MessagePart[]): string | undefined {
+function systemInstructionsAttribute(parts: GenAiMessagePart[]): string | undefined {
   return parts.length ? JSON.stringify(parts) : undefined;
 }
 
