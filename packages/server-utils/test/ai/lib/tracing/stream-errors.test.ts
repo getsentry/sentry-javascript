@@ -115,12 +115,14 @@ describe.each(providers)('$name stream errors', ({ instrument, chunks }) => {
 describe('anthropic message stream aborts', () => {
   it('marks the span as cancelled and keeps the partial usage when the stream is aborted', () => {
     const { span, attributes, setStatus } = createMockSpan();
-    const stream = instrumentMessageStream(new EventEmitter(), span, false);
+    const stream = Object.assign(new EventEmitter(), { aborted: false });
+    instrumentMessageStream(stream, span, false);
 
     stream.emit('streamEvent', {
       type: 'message_start',
       message: { id: 'msg_1', model: 'claude-sonnet-4-5', usage: { input_tokens: 8 } },
     });
+    stream.aborted = true;
     stream.emit('abort', new Error('Request was aborted.'));
     stream.emit('end');
 
@@ -129,6 +131,14 @@ describe('anthropic message stream aborts', () => {
     expect(span.isRecording()).toBe(false);
     expect(attributes[GEN_AI_RESPONSE_STREAMING]).toBe(true);
     expect(attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBe(8);
+  });
+
+  it('does not listen for abort, so an unobserved abort still raises an unhandled rejection', () => {
+    const { span } = createMockSpan();
+    const stream = new EventEmitter();
+    instrumentMessageStream(stream, span, false);
+
+    expect(stream.listenerCount('abort')).toBe(0);
   });
 });
 
