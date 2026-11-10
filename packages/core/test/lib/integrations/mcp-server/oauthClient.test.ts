@@ -9,8 +9,8 @@ import { spanToJSON } from '../../../../src/utils/spanUtils';
 import { createMockClient, createMockMcpServer, createMockTransport } from './testUtils';
 
 describe('MCP OAuth client attribution', () => {
-  const spans: SentrySpan[] = [];
-  const transports: ReturnType<typeof createMockTransport>[] = [];
+  let inactiveSpan: SentrySpan | undefined;
+  let transport: ReturnType<typeof createMockTransport>;
   const authInfo = {
     token: 'test-access-token',
     clientId: 'test-client-id',
@@ -19,34 +19,28 @@ describe('MCP OAuth client attribution', () => {
   };
 
   beforeEach(() => {
+    inactiveSpan = undefined;
+    transport = createMockTransport();
     getCurrentScope().setClient(createMockClient(false));
     vi.spyOn(tracing, 'startInactiveSpan').mockImplementation(options => {
-      const span = new SentrySpan(options);
-      spans.push(span);
-      return span;
+      inactiveSpan = new SentrySpan(options);
+      return inactiveSpan;
     });
   });
 
   afterEach(() => {
-    for (const transport of transports) {
-      transport.onclose();
-    }
-    transports.length = 0;
-    spans.length = 0;
+    transport.onclose();
     getCurrentScope().setClient(undefined);
     vi.restoreAllMocks();
   });
 
   async function connect(options?: McpServerWrapperOptions) {
-    const transport = createMockTransport();
-    transports.push(transport);
     await wrapMcpServerWithSentry(createMockMcpServer(), options).connect(transport);
-    return transport;
   }
 
   it('passes only client metadata to the resolver and records only its returned name', async () => {
     const getOAuthClientName = vi.fn(() => 'Example Desktop');
-    const transport = await connect({ getOAuthClientName });
+    await connect({ getOAuthClientName });
     transport.onmessage({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, { authInfo });
     await transport.send({ jsonrpc: '2.0', id: 1, result: { tools: [] } });
 
@@ -54,7 +48,7 @@ describe('MCP OAuth client attribution', () => {
       clientId: 'test-client-id',
       extra: { clientName: 'Example Desktop' },
     });
-    const attributes = spanToJSON(spans[0]!).attributes;
+    const attributes = spanToJSON(inactiveSpan!).attributes;
     expect(attributes[MCP_AUTH_CLIENT_NAME]).toBe('Example Desktop');
     expect(attributes).not.toHaveProperty(MCP_CLIENT_NAME);
     expect(JSON.stringify(attributes)).not.toContain('test-access-token');
@@ -64,8 +58,6 @@ describe('MCP OAuth client attribution', () => {
 
   it('accepts a resolver after auto-wrapping and preserves the first explicit resolver', async () => {
     const server = wrapMcpServerWithSentry(createMockMcpServer());
-    const transport = createMockTransport();
-    transports.push(transport);
     await server.connect(transport);
 
     const firstResolver = vi.fn(() => 'First Registered Client');
@@ -82,13 +74,13 @@ describe('MCP OAuth client attribution', () => {
       extra: { clientName: 'Example Desktop' },
     });
     expect(laterResolver).not.toHaveBeenCalled();
-    expect(spanToJSON(spans[0]!).attributes[MCP_AUTH_CLIENT_NAME]).toBe('First Registered Client');
+    expect(spanToJSON(inactiveSpan!).attributes[MCP_AUTH_CLIENT_NAME]).toBe('First Registered Client');
   });
 
   it('does not infer OAuth names from provider-specific metadata without a resolver', async () => {
-    const transport = await connect();
+    await connect();
     transport.onmessage({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, { authInfo });
-    expect(spanToJSON(spans[0]!).attributes).not.toHaveProperty(MCP_AUTH_CLIENT_NAME);
+    expect(spanToJSON(inactiveSpan!).attributes).not.toHaveProperty(MCP_AUTH_CLIENT_NAME);
   });
 
   it.each([
@@ -100,11 +92,9 @@ describe('MCP OAuth client attribution', () => {
     ],
     ['returns a non-string from JavaScript', () => ({ token: 'test-access-token' })],
   ])('preserves request dispatch when the resolver %s', async (_description, resolver) => {
-    const transport = createMockTransport();
     const onmessage = transport.onmessage;
     const result = { result: 'dispatch completed' };
     onmessage.mockReturnValue(result);
-    transports.push(transport);
     await wrapMcpServerWithSentry(createMockMcpServer(), {
       getOAuthClientName: resolver as McpServerWrapperOptions['getOAuthClientName'],
     }).connect(transport);
@@ -113,6 +103,6 @@ describe('MCP OAuth client attribution', () => {
 
     expect(transport.onmessage(message, extra)).toBe(result);
     expect(onmessage).toHaveBeenCalledExactlyOnceWith(message, extra);
-    expect(spanToJSON(spans[0]!).attributes).not.toHaveProperty(MCP_AUTH_CLIENT_NAME);
+    expect(spanToJSON(inactiveSpan!).attributes).not.toHaveProperty(MCP_AUTH_CLIENT_NAME);
   });
 });

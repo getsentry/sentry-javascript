@@ -160,7 +160,7 @@ function interceptTransportStart(transport: MCPTransport, beforeStart: () => voi
  * ```
  *
  * @param mcpServerInstance - MCP server instance to instrument
- * @param options - Optional capture and OAuth client attribution configuration
+ * @param options - Optional configuration for recording inputs/outputs and OAuth client attribution
  * @returns Instrumented server instance (same reference)
  */
 export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, options?: McpServerWrapperOptions): S {
