@@ -127,81 +127,107 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
 
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(client: Client, _options?: Partial<RequestInstrumentationOptions>): void {
-  const {
-    traceFetch,
-    traceXHR,
-    shouldCreateSpanForRequest,
-    enableHTTPTimings,
-    tracePropagationTargets,
-    onRequestSpanStart,
-    onRequestSpanEnd,
-  } = {
+  const options = {
     ...defaultRequestInstrumentationOptions,
     ..._options,
   };
 
-  const shouldCreateSpan =
-    typeof shouldCreateSpanForRequest === 'function' ? shouldCreateSpanForRequest : (_: string) => true;
+  if (options.traceFetch) {
+    instrumentFetchRequests(client, options);
+  }
 
-  const shouldAttachHeadersWithTargets = (url: string): boolean => shouldAttachHeaders(url, tracePropagationTargets);
+  if (options.traceXHR) {
+    instrumentXhrRequests(client, options);
+  }
+}
 
-  const spans: Record<string, Span> = {};
+/**
+ * Registers the span creator for fetch requests.
+ */
+export function instrumentFetchRequests(client: Client, options: Partial<RequestInstrumentationOptions>): void {
+  const { enableHTTPTimings = true, onRequestSpanStart, onRequestSpanEnd } = options;
+  const { shouldCreateSpan, shouldAttachHeadersWithTargets, spans, propagateTraceparent } = getRequestSpanContext(
+    client,
+    options,
+  );
 
-  const propagateTraceparent = (client as BrowserClient).getOptions().propagateTraceparent;
+  addFetchInstrumentationHandler(handlerData => {
+    const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans, {
+      propagateTraceparent,
+      onRequestSpanEnd,
+      // The generic fetch instrumentation has no page origin to resolve relative URLs against.
+      urlBase: WINDOW.location?.href,
+    });
 
-  if (traceFetch) {
-    addFetchInstrumentationHandler(handlerData => {
-      const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans, {
-        propagateTraceparent,
-        onRequestSpanEnd,
-        // The generic fetch instrumentation has no page origin to resolve relative URLs against.
-        urlBase: WINDOW.location?.href,
+    // We cannot use `window.location` in the generic fetch instrumentation,
+    // but we need it for reliable `server.address` attribute.
+    // so we extend this in here
+    if (createdSpan) {
+      const fullUrl = getFullURL(handlerData.fetchData.url);
+      // `parseUrl` returns the raw authority — userinfo credentials must never reach an attribute.
+      const host = fullUrl ? parseUrl(fullUrl).host?.replace(/^.*@/, '') : undefined;
+      const sanitizedFullUrl = fullUrl ? stripDataUrlContent(fullUrl) : undefined;
+      createdSpan.setAttributes({
+        [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
+        [SERVER_ADDRESS]: host,
       });
 
-      // We cannot use `window.location` in the generic fetch instrumentation,
-      // but we need it for reliable `server.address` attribute.
-      // so we extend this in here
-      if (createdSpan) {
-        const fullUrl = getFullURL(handlerData.fetchData.url);
-        // `parseUrl` returns the raw authority — userinfo credentials must never reach an attribute.
-        const host = fullUrl ? parseUrl(fullUrl).host?.replace(/^.*@/, '') : undefined;
-        const sanitizedFullUrl = fullUrl ? stripDataUrlContent(fullUrl) : undefined;
-        createdSpan.setAttributes({
-          [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
-          [SERVER_ADDRESS]: host,
-        });
-
-        if (enableHTTPTimings) {
-          addHTTPTimings(createdSpan, client);
-        }
-
-        onRequestSpanStart?.(createdSpan, { headers: handlerData.headers });
+      if (enableHTTPTimings) {
+        addHTTPTimings(createdSpan, client);
       }
-    });
-  }
 
-  if (traceXHR) {
-    addXhrInstrumentationHandler(handlerData => {
-      const createdSpan = xhrCallback(
-        handlerData,
-        shouldCreateSpan,
-        shouldAttachHeadersWithTargets,
-        spans,
-        propagateTraceparent,
-        onRequestSpanEnd,
-      );
+      onRequestSpanStart?.(createdSpan, { headers: handlerData.headers });
+    }
+  });
+}
 
-      if (createdSpan) {
-        if (enableHTTPTimings) {
-          addHTTPTimings(createdSpan, client);
-        }
+/**
+ * Registers the span creator for XHR requests.
+ */
+export function instrumentXhrRequests(client: Client, options: Partial<RequestInstrumentationOptions>): void {
+  const { enableHTTPTimings = true, onRequestSpanStart, onRequestSpanEnd } = options;
+  const { shouldCreateSpan, shouldAttachHeadersWithTargets, spans, propagateTraceparent } = getRequestSpanContext(
+    client,
+    options,
+  );
 
-        onRequestSpanStart?.(createdSpan, {
-          headers: createHeadersSafely(handlerData.xhr.__sentry_xhr_v3__?.request_headers),
-        });
+  addXhrInstrumentationHandler(handlerData => {
+    const createdSpan = xhrCallback(
+      handlerData,
+      shouldCreateSpan,
+      shouldAttachHeadersWithTargets,
+      spans,
+      propagateTraceparent,
+      onRequestSpanEnd,
+    );
+
+    if (createdSpan) {
+      if (enableHTTPTimings) {
+        addHTTPTimings(createdSpan, client);
       }
-    });
-  }
+
+      onRequestSpanStart?.(createdSpan, {
+        headers: createHeadersSafely(handlerData.xhr.__sentry_xhr_v3__?.request_headers),
+      });
+    }
+  });
+}
+
+function getRequestSpanContext(
+  client: Client,
+  { shouldCreateSpanForRequest, tracePropagationTargets }: Partial<RequestInstrumentationOptions>,
+): {
+  shouldCreateSpan: (url: string) => boolean;
+  shouldAttachHeadersWithTargets: (url: string) => boolean;
+  spans: Record<string, Span>;
+  propagateTraceparent: boolean | undefined;
+} {
+  return {
+    shouldCreateSpan: typeof shouldCreateSpanForRequest === 'function' ? shouldCreateSpanForRequest : () => true,
+    shouldAttachHeadersWithTargets: url => shouldAttachHeaders(url, tracePropagationTargets),
+    spans: {},
+    propagateTraceparent: (client as BrowserClient).getOptions().propagateTraceparent,
+  };
 }
 
 /**

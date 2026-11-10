@@ -246,6 +246,22 @@ describe('browserTracingIntegration', () => {
     expect(!!client.getIntegrationByName('LongTasks')).toBe(registered);
   });
 
+  it.each([
+    ['registers xhrTracingIntegration by default', {}, true],
+    ['does not register xhrTracingIntegration when traceXHR is off', { traceXHR: false }, false],
+  ])('%s', (_name, options, registered) => {
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingIntegration(options)],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(!!client.getIntegrationByName('XhrTracing')).toBe(registered);
+  });
+
   it('keeps the webVitalsIntegration the user supplies', () => {
     const userWebVitals = webVitalsModule.webVitalsIntegration({ softNavigations: false });
 
