@@ -71,7 +71,6 @@
   },
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
-    "@babel/core": "^7.29.6",
     "@sentry-internal/replay-worker": "11.11.0",
     "@sentry-internal/rollup-utils": "11.11.0",
     "@sentry/conventions": "^0.31.0",

@@ -111,8 +111,7 @@
     "@sentry/node": "11.11.0",
     "@types/node": "^20.19.0",
     "hono": "4.13.11",
-    "hono-5": "npm:hono@5.0.0-rc.1",
-    "wrangler": "4.156.0"
+    "hono-5": "npm:hono@5.0.0-rc.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
