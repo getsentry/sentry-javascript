@@ -14,7 +14,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
 import type { StreamResponseState } from '../../../ai/core/utils';
-import { endStreamSpan, getTokenUsageAttributes } from '../../../ai/core/utils';
+import { endStreamSpan, getTokenUsageAttributes, resolveAIRecordingOptions } from '../../../ai/core/utils';
 import { DEBUG_BUILD } from '../../../debug-build';
 import {
   GEN_AI_OPERATION_NAME_VALUE_CHAT,
@@ -22,6 +22,11 @@ import {
   GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
 } from '../constants';
 import type { NormalizedRequest, NormalizedResponse } from '../types';
+import {
+  getClaudeInputAttributes,
+  getConverseInputAttributes,
+  getPromptInputAttributes,
+} from './bedrock-runtime-content';
 import type { RequestMetadata, ServiceExtension } from './ServiceExtension';
 
 // Simplified types inlined from @aws-sdk/client-bedrock-runtime
@@ -118,6 +123,10 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       if (stopSequences !== undefined) {
         spanAttributes[ATTR_GEN_AI_REQUEST_STOP_SEQUENCES] = stopSequences;
       }
+    }
+
+    if (resolveAIRecordingOptions().recordInputs) {
+      Object.assign(spanAttributes, getConverseInputAttributes(request.commandInput));
     }
 
     return {
@@ -243,6 +252,10 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
         if (requestBody.stop !== undefined) {
           spanAttributes[ATTR_GEN_AI_REQUEST_STOP_SEQUENCES] = requestBody.stop;
         }
+      }
+
+      if (resolveAIRecordingOptions().recordInputs) {
+        Object.assign(spanAttributes, getInvokeModelInputAttributes(modelId, requestBody));
       }
     }
 
@@ -396,6 +409,17 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       },
     );
   }
+}
+
+function getInvokeModelInputAttributes(modelId: string, requestBody: ParsedChunk): Record<string, unknown> {
+  if (modelId.includes('amazon.titan')) return getPromptInputAttributes(requestBody.inputText);
+  if (modelId.includes('amazon.nova')) return getConverseInputAttributes(requestBody);
+  if (modelId.includes('anthropic.claude')) return getClaudeInputAttributes(requestBody);
+  if (modelId.includes('meta.llama')) return getPromptInputAttributes(requestBody.prompt);
+  if (modelId.includes('cohere.command-r')) return getPromptInputAttributes(requestBody.message);
+  if (modelId.includes('cohere.command')) return getPromptInputAttributes(requestBody.prompt);
+  if (modelId.includes('mistral')) return getPromptInputAttributes(requestBody.prompt);
+  return {};
 }
 
 type StreamProcessor = (parsedChunk: ParsedChunk, state: StreamResponseState) => void;

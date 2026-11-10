@@ -1,10 +1,13 @@
 import {
+  GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
   GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
@@ -28,12 +31,16 @@ const CLAUDE_REQUEST_BODY = {
   messages: [{ role: 'user', content: 'What is the capital of France?' }],
 };
 
-function invokeModelPreSpanHook(commandInput: Record<string, unknown>): RequestMetadata {
+function preSpanHook(commandName: string, commandInput: Record<string, unknown>): RequestMetadata {
   return new BedrockRuntimeServiceExtension().requestPreSpanHook({
     serviceName: 'BedrockRuntime',
-    commandName: 'InvokeModel',
+    commandName,
     commandInput,
   });
+}
+
+function invokeModelPreSpanHook(commandInput: Record<string, unknown>): RequestMetadata {
+  return preSpanHook('InvokeModel', commandInput);
 }
 
 describe('BedrockRuntimeServiceExtension InvokeModel request', () => {
@@ -48,6 +55,7 @@ describe('BedrockRuntimeServiceExtension InvokeModel request', () => {
       [GEN_AI_REQUEST_MODEL]: CLAUDE_MODEL_ID,
       [GEN_AI_REQUEST_MAX_TOKENS]: 1024,
       [GEN_AI_REQUEST_TEMPERATURE]: 0.5,
+      [GEN_AI_INPUT_MESSAGES]: JSON.stringify(CLAUDE_REQUEST_BODY.messages),
     });
   });
 
@@ -78,6 +86,172 @@ describe('BedrockRuntimeServiceExtension InvokeModel request', () => {
         [GEN_AI_OPERATION_NAME]: 'generate_content',
       },
     });
+  });
+});
+
+const WEATHER_TOOL_SPEC = {
+  name: 'get_weather',
+  description: 'Get the weather for a city',
+  inputSchema: { json: { type: 'object', properties: { city: { type: 'string' } } } },
+};
+
+describe('BedrockRuntimeServiceExtension input recording', () => {
+  afterEach(() => {
+    setCurrentClient(undefined as never);
+  });
+
+  it('records Converse system instructions, messages, and tool definitions as message parts', () => {
+    const { spanAttributes } = preSpanHook('Converse', {
+      modelId: 'amazon.nova-pro-v1:0',
+      system: [{ text: 'You are a weather bot.' }, { cachePoint: { type: 'default' } }],
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { text: 'What is the weather in Kawasaki?' },
+            { image: { format: 'png', source: { bytes: new Uint8Array([1, 2, 3]) } } },
+            { image: { source: { bytes: new Uint8Array([1]) } } },
+            { document: { name: 'forecast', source: { bytes: new Uint8Array([1]) } } },
+            { guardContent: { text: { text: 'Guarded text' } } },
+            { guardContent: { image: { format: 'jpeg', source: { bytes: new Uint8Array([1]) } } } },
+            { cachePoint: { type: 'default' } },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            { reasoningContent: { reasoningText: { text: 'I need the weather tool.' } } },
+            { reasoningContent: { redactedContent: new Uint8Array([1]) } },
+            { toolUse: { toolUseId: 'tooluse_1', name: 'get_weather', input: { city: 'Kawasaki' } } },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              toolResult: {
+                toolUseId: 'tooluse_1',
+                content: [{ text: 'Sunny' }, { json: { celsius: 21 } }, { image: { format: 'png' } }],
+              },
+            },
+            { citationsContent: { content: [{ text: 'Cited text' }] } },
+          ],
+        },
+        { role: 'user', content: [{ cachePoint: { type: 'default' } }] },
+      ],
+      toolConfig: { tools: [{ toolSpec: WEATHER_TOOL_SPEC }, { cachePoint: { type: 'default' } }] },
+    });
+
+    expect(spanAttributes).toEqual({
+      [GEN_AI_PROVIDER_NAME]: 'aws.bedrock',
+      [GEN_AI_OPERATION_NAME]: 'chat',
+      [GEN_AI_REQUEST_MODEL]: 'amazon.nova-pro-v1:0',
+      [GEN_AI_SYSTEM_INSTRUCTIONS]: JSON.stringify([{ type: 'text', content: 'You are a weather bot.' }]),
+      [GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+        {
+          role: 'user',
+          parts: [
+            { type: 'text', content: 'What is the weather in Kawasaki?' },
+            { type: 'blob', modality: 'image', mime_type: 'image/png' },
+            { type: 'blob', modality: 'image' },
+            { type: 'blob', modality: 'document' },
+            { type: 'text', content: 'Guarded text' },
+            { type: 'blob', modality: 'image', mime_type: 'image/jpeg' },
+          ],
+        },
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'reasoning', content: 'I need the weather tool.' },
+            { type: 'tool_call', id: 'tooluse_1', name: 'get_weather', arguments: '{"city":"Kawasaki"}' },
+          ],
+        },
+        {
+          role: 'user',
+          parts: [
+            { type: 'tool_call_response', id: 'tooluse_1', result: 'Sunny\n{"celsius":21}' },
+            { type: 'text', content: 'Cited text' },
+          ],
+        },
+      ]),
+      [GEN_AI_TOOL_DEFINITIONS]: JSON.stringify([WEATHER_TOOL_SPEC]),
+    });
+  });
+
+  it('records Claude InvokeModel messages as sent, with media replaced by blob parts', () => {
+    const tools = [{ name: 'get_weather', input_schema: { type: 'object' } }];
+    const image = { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo=' } };
+    const document = { type: 'document', source: { type: 'base64', data: 'JVBERi0=' } };
+    const body = {
+      anthropic_version: 'bedrock-2023-05-31',
+      max_tokens: 1024,
+      system: [{ type: 'text', text: 'You are a weather bot.' }],
+      messages: [
+        { role: 'user', content: [{ type: 'text', text: 'What is the weather in Kawasaki?' }, image] },
+        { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: [document] }] },
+      ],
+      tools,
+    };
+
+    const { spanAttributes } = invokeModelPreSpanHook({ modelId: CLAUDE_MODEL_ID, body: JSON.stringify(body) });
+
+    expect(spanAttributes).toEqual({
+      [GEN_AI_PROVIDER_NAME]: 'aws.bedrock',
+      [GEN_AI_OPERATION_NAME]: 'generate_content',
+      [GEN_AI_REQUEST_MODEL]: CLAUDE_MODEL_ID,
+      [GEN_AI_REQUEST_MAX_TOKENS]: 1024,
+      [GEN_AI_SYSTEM_INSTRUCTIONS]: JSON.stringify([{ type: 'text', content: 'You are a weather bot.' }]),
+      [GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'What is the weather in Kawasaki?' },
+            { type: 'blob', modality: 'image', mime_type: 'image/png' },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: [{ type: 'blob', modality: 'document' }] }],
+        },
+      ]),
+      [GEN_AI_TOOL_DEFINITIONS]: JSON.stringify(tools),
+    });
+  });
+
+  it.each([
+    { family: 'Titan', modelId: 'amazon.titan-text-express-v1', body: { inputText: 'Kawasaki' } },
+    { family: 'Llama', modelId: 'meta.llama3-8b-instruct-v1:0', body: { prompt: 'Kawasaki' } },
+    { family: 'Cohere Command R', modelId: 'cohere.command-r-v1:0', body: { message: 'Kawasaki' } },
+    { family: 'Cohere Command', modelId: 'cohere.command-text-v14', body: { prompt: 'Kawasaki' } },
+    { family: 'Mistral', modelId: 'mistral.mistral-7b-instruct-v0:2', body: { prompt: 'Kawasaki' } },
+    { family: 'Claude Text Completions', modelId: 'anthropic.claude-v2', body: { prompt: 'Kawasaki' } },
+    {
+      family: 'Nova',
+      modelId: 'amazon.nova-lite-v1:0',
+      body: { messages: [{ role: 'user', content: [{ text: 'Kawasaki' }] }] },
+    },
+  ])('records the $family InvokeModel prompt as a user message', ({ modelId, body }) => {
+    const { spanAttributes } = invokeModelPreSpanHook({ modelId, body: JSON.stringify(body) });
+
+    expect(spanAttributes?.[GEN_AI_INPUT_MESSAGES]).toBe(
+      JSON.stringify([{ role: 'user', parts: [{ type: 'text', content: 'Kawasaki' }] }]),
+    );
+  });
+
+  it.each([
+    { commandName: 'Converse', commandInput: { messages: [{ role: 'user', content: [{ text: 'Kawasaki' }] }] } },
+    {
+      commandName: 'InvokeModel',
+      commandInput: { modelId: CLAUDE_MODEL_ID, body: JSON.stringify(CLAUDE_REQUEST_BODY) },
+    },
+  ])('records no $commandName input when dataCollection.genAI.inputs is off', ({ commandName, commandInput }) => {
+    const client = new TestClient(getDefaultTestClientOptions({ dataCollection: { genAI: { inputs: false } } }));
+    setCurrentClient(client);
+    client.init();
+
+    const { spanAttributes } = preSpanHook(commandName, commandInput);
+
+    expect(spanAttributes).not.toHaveProperty(GEN_AI_INPUT_MESSAGES);
   });
 });
 
