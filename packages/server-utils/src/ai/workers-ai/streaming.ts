@@ -1,5 +1,6 @@
 import { SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
+import { getToolCallKey } from '../core/streaming-tool-calls';
 import { endStreamSpan, type StreamResponseState } from '../core/utils';
 import type { WorkersAiUsage } from './types';
 import { setOutputMessagesAttribute } from './utils';
@@ -40,47 +41,6 @@ interface ToolCallAccumulator {
 }
 
 /**
- * Find the key of the call a tool call delta belongs to. A numeric `index` groups deltas, except that a different
- * non-empty `id` arriving on an index that is already taken opens a new call (a known `id` continues its own call).
- * Some providers omit the index and send each parallel call whole: a known `id` continues that call, a new `id` (or
- * a name without an id) starts a new call, and anything else continues the latest one.
- */
-function getToolCallKey(
-  toolCall: WorkersAiStreamingToolCall,
-  name: string | undefined,
-  accumulator: ToolCallAccumulator,
-): string {
-  const { calls } = accumulator;
-  const findById = (id: string): string | undefined => {
-    for (const [key, call] of calls) {
-      if (call.id === id) return key;
-    }
-    return undefined;
-  };
-
-  if (typeof toolCall.index === 'number') {
-    const key = accumulator.keyByIndex.get(toolCall.index) ?? `index-${toolCall.index}`;
-    const existingId = calls.get(key)?.id;
-    if (existingId && toolCall.id && existingId !== toolCall.id) {
-      const next = findById(toolCall.id) ?? `index-${toolCall.index}-${calls.size}`;
-      accumulator.keyByIndex.set(toolCall.index, next);
-      return next;
-    }
-    return key;
-  }
-  if (toolCall.id) {
-    const known = findById(toolCall.id);
-    if (known !== undefined) {
-      return known;
-    }
-  }
-  if (toolCall.id || name || accumulator.lastKey === undefined) {
-    return `no-index-${calls.size}`;
-  }
-  return accumulator.lastKey;
-}
-
-/**
  * Accumulate a fragmented OpenAI-compatible tool call (delivered across multiple
  * `choices[].delta.tool_calls` chunks) into the accumulator.
  */
@@ -100,7 +60,7 @@ function accumulateStreamingToolCalls(toolCalls: WorkersAiStreamingToolCall[], a
 
     if (!existing) {
       accumulator.calls.set(key, {
-        index: toolCall.index ?? accumulator.calls.size,
+        index: toolCall.index,
         id: toolCall.id,
         type: toolCall.type,
         function: {

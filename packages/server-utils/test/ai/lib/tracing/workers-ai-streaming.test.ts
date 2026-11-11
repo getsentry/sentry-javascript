@@ -175,8 +175,8 @@ describe('instrumentWorkersAiStream', () => {
 
     const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
     expect(toolCalls).toEqual([
-      { index: 0, id: 'call_1', type: 'function', function: { name: 'getWeather', arguments: '{"city":"Paris"}' } },
-      { index: 1, id: 'call_2', type: 'function', function: { name: 'getTime', arguments: '{"tz":"CET"}' } },
+      { id: 'call_1', type: 'function', function: { name: 'getWeather', arguments: '{"city":"Paris"}' } },
+      { id: 'call_2', type: 'function', function: { name: 'getTime', arguments: '{"tz":"CET"}' } },
     ]);
   });
 
@@ -194,11 +194,49 @@ describe('instrumentWorkersAiStream', () => {
     const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
     expect(toolCalls).toEqual([
       {
-        index: 0,
         id: 'call_1',
         type: 'function',
         function: { name: 'getRepoInfo', arguments: '{"owner":"cloudflare"}' },
       },
+    ]);
+  });
+
+  it.each([undefined, null])('continues a known id when its index changes from %s to numeric', async index => {
+    const { span, attributes } = createMockSpan();
+    const deltas = [
+      { index, id: 'call_1', function: { name: 'getWeather', arguments: '{"city":' } },
+      { index: 0, id: 'call_1', function: { arguments: '"Paris"}' } },
+      { index: 0, function: { arguments: ' ' } },
+    ];
+    const chunks = deltas.map(
+      delta => `data: ${JSON.stringify({ choices: [{ delta: { tool_calls: [delta] } }] })}\n\n`,
+    );
+    await new Response(instrumentWorkersAiStream(streamFromChunks(chunks), span, true)).text();
+    expect(JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string)).toEqual([
+      { index, id: 'call_1', function: { name: 'getWeather', arguments: '{"city":"Paris"} ' } },
+    ]);
+    expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+      {
+        role: 'assistant',
+        parts: [{ type: 'tool_call', id: 'call_1', name: 'getWeather', arguments: '{"city":"Paris"} ' }],
+      },
+    ]);
+  });
+
+  it('continues an unindexed call by id after another call opens', async () => {
+    const { span, attributes } = createMockSpan();
+    const deltas = [
+      { index: null, id: 'call_1', function: { name: 'first', arguments: '{' } },
+      { index: 0, id: 'call_2', function: { name: 'second', arguments: '{}' } },
+      { id: 'call_1', function: { arguments: '}' } },
+    ];
+    const chunks = deltas.map(
+      delta => `data: ${JSON.stringify({ choices: [{ delta: { tool_calls: [delta] } }] })}\n\n`,
+    );
+    await new Response(instrumentWorkersAiStream(streamFromChunks(chunks), span, true)).text();
+    expect(JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string)).toEqual([
+      { index: null, id: 'call_1', function: { name: 'first', arguments: '{}' } },
+      { index: 0, id: 'call_2', function: { name: 'second', arguments: '{}' } },
     ]);
   });
 
