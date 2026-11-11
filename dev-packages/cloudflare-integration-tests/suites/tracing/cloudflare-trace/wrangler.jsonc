@@ -4,6 +4,6 @@
   "main": "index.ts",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
-    "TRACES_SAMPLE_RATE": "1",
+    "TRACES_SAMPLE_RATE": "",
   },
 }

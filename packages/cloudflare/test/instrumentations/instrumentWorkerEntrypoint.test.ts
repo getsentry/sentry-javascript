@@ -621,7 +621,7 @@ describe('instrumentWorkerEntrypoint', () => {
         expect(events[0]?.contexts?.trace?.parent_span_id).toBe(CLOUDFLARE_SPAN_ID);
       });
 
-      it('makes the RPC span a child of the Cloudflare span when the SDK does not continue the RPC trace', () => {
+      it('does not make the RPC span a child of the Cloudflare span when tracing is set up', () => {
         let rpcSpan: ReturnType<typeof SentryCore.spanToJSON> | undefined;
         const TestClass = class extends WorkerEntrypoint {
           read() {
@@ -643,8 +643,9 @@ describe('instrumentWorkerEntrypoint', () => {
           },
         });
 
-        expect(rpcSpan?.trace_id).toBe(CLOUDFLARE_TRACE_ID);
-        expect(rpcSpan?.parent_span_id).toBe(CLOUDFLARE_SPAN_ID);
+        expect(rpcSpan?.trace_id).not.toBe(CLOUDFLARE_TRACE_ID);
+        expect(rpcSpan?.trace_id).not.toBe(INCOMING_TRACE_ID);
+        expect(rpcSpan?.parent_span_id).toBeUndefined();
       });
 
       it('prefers the Sentry trace of the RPC metadata', () => {

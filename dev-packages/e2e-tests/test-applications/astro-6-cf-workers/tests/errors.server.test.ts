@@ -24,8 +24,7 @@ test.describe('server-side errors', () => {
 
     expect(traceId).toMatch(/[a-f0-9]{32}/);
     expect(spanId).toMatch(/[a-f0-9]{16}/);
-    // The parent is the Cloudflare span of the request.
-    expect(span.parent_span_id).toMatch(/^[a-f0-9]{16}$/);
+    expect(span.parent_span_id).toBeUndefined();
 
     expect(errorEvent).toMatchObject({
       contexts: {

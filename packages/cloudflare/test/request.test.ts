@@ -714,7 +714,32 @@ describe('withSentry', () => {
         }),
       };
 
-      test.each([0, undefined])('attaches errors to the Cloudflare trace with tracesSampleRate %s', async rate => {
+      test('attaches errors to the Cloudflare trace when tracing is not set up', async () => {
+        let sentryEvent: Event = {};
+        await wrapRequestHandler(
+          {
+            options: {
+              dsn: MOCK_OPTIONS.dsn,
+              cacheClient: false,
+              beforeSend(event) {
+                sentryEvent = event;
+                return null;
+              },
+            },
+            request: new Request('https://example.com'),
+            context: { ...createMockExecutionContext(), tracing: CLOUDFLARE_TRACING } as unknown as ExecutionContext,
+          },
+          () => {
+            SentryCore.captureException(new Error('test'));
+            return new Response('test');
+          },
+        );
+
+        expect(sentryEvent.contexts?.trace?.trace_id).toBe(CLOUDFLARE_TRACE_ID);
+        expect(sentryEvent.contexts?.trace?.parent_span_id).toBe(CLOUDFLARE_SPAN_ID);
+      });
+
+      test.each([0, 1])('starts its own trace with tracesSampleRate %s', async rate => {
         let sentryEvent: Event = {};
         await wrapRequestHandler(
           {
@@ -736,10 +761,12 @@ describe('withSentry', () => {
           },
         );
 
-        expect(sentryEvent.contexts?.trace?.trace_id).toBe(CLOUDFLARE_TRACE_ID);
+        expect(sentryEvent.contexts?.trace?.trace_id).toMatch(/^[a-f0-9]{32}$/);
+        expect(sentryEvent.contexts?.trace?.trace_id).not.toBe(CLOUDFLARE_TRACE_ID);
+        expect(sentryEvent.contexts?.trace?.parent_span_id).toBeUndefined();
       });
 
-      test('makes the request span a child of the Cloudflare span', async () => {
+      test('does not make the request span a child of the Cloudflare span', async () => {
         let rootSpan: ReturnType<typeof SentryCore.spanToJSON> | undefined;
         await wrapRequestHandler(
           {
@@ -753,8 +780,8 @@ describe('withSentry', () => {
           },
         );
 
-        expect(rootSpan?.trace_id).toBe(CLOUDFLARE_TRACE_ID);
-        expect(rootSpan?.parent_span_id).toBe(CLOUDFLARE_SPAN_ID);
+        expect(rootSpan?.trace_id).not.toBe(CLOUDFLARE_TRACE_ID);
+        expect(rootSpan?.parent_span_id).toBeUndefined();
       });
 
       test('prefers an incoming sentry-trace header', async () => {

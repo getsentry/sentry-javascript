@@ -1,7 +1,5 @@
 import { expect, it } from 'vitest';
-import { SHORT_UUID_MATCHER } from '../../../expect';
 import { createRunner } from '../../../runner';
-import { supports } from '../../../runtime';
 import { getSpanOp } from '../../../spanUtils';
 
 // The Durable Object is wrapped by hand with `instrumentDurableObjectWithSentry`
@@ -24,18 +22,14 @@ it('leaves a manually wrapped Durable Object untouched and still auto-wraps a Wo
   await runner.makeRequest('get', '/increment');
 
   const spans = await durableObjectSpansPromise;
-  // The worker segment has no parent in this trace. On runtimes with `Span.spanContext()`, its parent is the Cloudflare span.
-  const durableObjectSpan = spans.find(
-    span => span.is_segment && spans.some(parent => parent.span_id === span.parent_span_id),
-  );
-  const workerSpan = spans.find(span => span.is_segment && span !== durableObjectSpan);
+  const workerSpan = spans.find(span => span.is_segment && !span.parent_span_id);
+  const durableObjectSpan = spans.find(span => span.is_segment && span.parent_span_id);
 
   expect(getSpanOp(workerSpan!)).toBe('http.server');
   expect(workerSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
 
   expect(getSpanOp(durableObjectSpan!)).toBe('http.server');
   expect(durableObjectSpan?.parent_span_id).toBe(workerSpan?.span_id);
-  expect(workerSpan?.parent_span_id).toEqual(supports({ minWorkerd: '1.20261009.1' }) ? SHORT_UUID_MATCHER : undefined);
 
   // The `auto.db.cloudflare.durable_object` storage pair (`get` + `put`) is the fingerprint of an
   // instrumented Durable Object. Exactly two of them also rules out a double-wrap.

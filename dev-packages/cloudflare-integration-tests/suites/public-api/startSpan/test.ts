@@ -15,7 +15,6 @@ import {
 } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
-import { supports } from '../../../runtime';
 import { getSpansFromEnvelope } from '../../../spanUtils';
 
 const CLOUDFLARE_SDK = 'sentry.javascript.cloudflare';
@@ -294,7 +293,6 @@ it('sends a streamed span envelope with correct spans for a manually started spa
       },
     },
     is_segment: true,
-    parent_span_id: supports({ minWorkerd: '1.20261009.1' }) ? expect.stringMatching(/^[\da-f]{16}$/) : undefined,
     trace_id: traceId,
     span_id: segmentSpanId,
     start_timestamp: expect.any(Number),

@@ -1,7 +1,6 @@
 import { expect, it } from 'vitest';
 import { eventEnvelope, SHORT_UUID_MATCHER, UUID_MATCHER } from '../../../expect';
 import { createRunner } from '../../../runner';
-import { supports } from '../../../runtime';
 import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
 
 it('omits the span name from the DSC for url-source spans when tracing is enabled', async ({ signal }) => {
@@ -34,7 +33,6 @@ it('omits the span name from the DSC for url-source spans when tracing is enable
             trace: {
               trace_id: UUID_MATCHER,
               span_id: SHORT_UUID_MATCHER,
-              parent_span_id: supports({ minWorkerd: '1.20261009.1' }) ? SHORT_UUID_MATCHER : undefined,
             },
           },
         },

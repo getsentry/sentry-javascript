@@ -1,3 +1,4 @@
+import type { Client } from '@sentry/core';
 import { getCurrentScope, withScope } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { continueCloudflareTrace } from '../../src/utils/cloudflareTrace';
@@ -24,6 +25,30 @@ describe('continueCloudflareTrace()', () => {
         parentSpanId: CLOUDFLARE_SPAN_ID,
         sampleRand: expect.any(Number),
       });
+    });
+  });
+
+  it.each([
+    ['tracesSampleRate', { tracesSampleRate: 1 }],
+    ['tracesSampleRate 0', { tracesSampleRate: 0 }],
+    ['tracesSampler', { tracesSampler: () => 1 }],
+  ])('keeps the propagation context when tracing is set up with %s', (_, options) => {
+    const context = {
+      tracing: {
+        getActiveSpan: () => ({
+          isTraced: true,
+          spanContext: () => ({ traceId: CLOUDFLARE_TRACE_ID, spanId: CLOUDFLARE_SPAN_ID, traceFlags: 1 }),
+        }),
+      },
+    };
+
+    withScope(scope => {
+      scope.setClient({ getOptions: () => options } as unknown as Client);
+      const propagationContext = scope.getPropagationContext();
+
+      continueCloudflareTrace(context);
+
+      expect(scope.getPropagationContext()).toBe(propagationContext);
     });
   });
 

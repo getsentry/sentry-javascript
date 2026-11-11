@@ -1,4 +1,4 @@
-import { _INTERNAL_safeMathRandom, getCurrentScope, isContinuingTrace } from '@sentry/core';
+import { _INTERNAL_safeMathRandom, getCurrentScope, hasSpansEnabled, isContinuingTrace } from '@sentry/core';
 
 interface CloudflareSpanContext {
   traceId: string;
@@ -23,12 +23,15 @@ const SPAN_ID_REGEXP = /^(?!0{16})[0-9a-f]{16}$/;
  * Sets the propagation context of the current scope to the Cloudflare trace of the invocation, so
  * errors, logs and spans get the trace id of the spans that Cloudflare exports.
  *
+ * Only runs when Sentry tracing is not set up (no `tracesSampleRate` or `tracesSampler`), so a trace
+ * has one source: either the SDK or Cloudflare, never a mix of both.
+ *
  * Does nothing when the current scope already continues a trace, for example an incoming Sentry
  * trace, when Cloudflare does not trace the invocation, or when the runtime does not expose
- * `Span.spanContext()`. The sampling decision is left to the SDK.
+ * `Span.spanContext()`.
  */
 export function continueCloudflareTrace(context: unknown): void {
-  if (isContinuingTrace(getCurrentScope().getPropagationContext())) {
+  if (hasSpansEnabled() || isContinuingTrace(getCurrentScope().getPropagationContext())) {
     return;
   }
 
@@ -45,8 +48,8 @@ export function continueCloudflareTrace(context: unknown): void {
     return;
   }
 
-  // No `dsc` and no `sampled`: the SDK is the head of the Sentry trace, so it samples and builds
-  // the dynamic sampling context itself.
+  // No `dsc` and no `sampled`: the SDK is the head of the Sentry trace, so it builds the dynamic
+  // sampling context itself.
   getCurrentScope().setPropagationContext({
     traceId: spanContext.traceId,
     parentSpanId: spanContext.spanId,
