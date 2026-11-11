@@ -30,6 +30,10 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./build/types/index.types.d.ts",
+      "sentry-solidstart-runtime": {
+        "import": "./build/esm/server/index.js",
+        "require": "./build/cjs/server/index.js"
+      },
       "browser": {
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
