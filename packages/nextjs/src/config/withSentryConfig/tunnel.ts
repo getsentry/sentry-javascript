@@ -220,16 +220,27 @@ export function getTunnelRouteInjectedValues(
 /**
  * Makes the managed tunnel (`tunnel: true`) reachable on Vercel, which serves unknown paths without running the app.
  * Writes the tunnel route handler if the app has none, and rewrites envelope requests to its DSN-derived paths there.
- * Vercel's build checkout is thrown away afterwards.
+ *
+ * Only runs in `next build` on Vercel, whose build checkout is thrown away afterwards. `vercel dev` sets `VERCEL`
+ * locally too, so `next dev` and development builds skip it to keep the file out of the repo.
+ *
+ * Returns true if it set up the route.
  */
 export function setUpManagedTunnelVercelRoute(
   userNextConfig: NextConfigObject,
   projectDir: string = process.cwd(),
-): void {
+): boolean {
+  // Next.js sets `NEXT_PHASE` only after it loads the config.
+  const isVercelBuild =
+    !!process.env.VERCEL && process.env.VERCEL_ENV !== 'development' && process.argv.includes('build');
+  if (!isVercelBuild || userNextConfig.output === 'export') {
+    return false;
+  }
+
   const pageExtensions = userNextConfig.pageExtensions ?? DEFAULT_PAGE_EXTENSIONS;
   // A route handler next to a page at the same path fails the build.
   if (hasTunnelRoutePage(pageExtensions, projectDir)) {
-    return;
+    return false;
   }
 
   if (!findTunnelRouteHandlerFile(pageExtensions, projectDir)) {
@@ -239,7 +250,7 @@ export function setUpManagedTunnelVercelRoute(
       (getStats(path.join(projectDir, 'src/pages'))?.isDirectory() ? 'src/app' : 'app');
     const extension = ['js', 'ts'].find(ext => pageExtensions.includes(ext));
     if (!extension) {
-      return;
+      return false;
     }
 
     const routeDir = path.join(projectDir, appDir, TUNNEL_ROUTE_HANDLER_PATH);
@@ -271,4 +282,6 @@ export function setUpManagedTunnelVercelRoute(
       afterFiles: [...(originalRewritesResult.afterFiles || []), managedTunnelRewrite],
     };
   };
+
+  return true;
 }

@@ -50,12 +50,10 @@ export function maybeSetUpTunnelRouteRewriteRules(
   // oxlint-disable-next-line typescript/no-deprecated -- reads the deprecated option to keep it working
   const tunnelRoute = userSentryOptions.tunnelRoute;
   if (tunnelRoute === undefined) {
-    if (process.env.VERCEL && incomingUserNextConfigObject.output !== 'export') {
-      setUpManagedTunnelVercelRoute(incomingUserNextConfigObject);
-      return;
+    if (!setUpManagedTunnelVercelRoute(incomingUserNextConfigObject)) {
+      maybeWarnAboutUnusedTunnelRouteHandler(incomingUserNextConfigObject, userSentryOptions.silent);
     }
 
-    maybeWarnAboutUnusedTunnelRouteHandler(incomingUserNextConfigObject, userSentryOptions.silent);
     return;
   }
 

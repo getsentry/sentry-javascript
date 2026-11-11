@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NextConfigObject } from '../../../src/config/types';
 import {
   findTunnelRouteHandlerFile,
@@ -138,11 +138,28 @@ describe('setUpTunnelHandlerRewrite', () => {
 });
 
 describe('setUpManagedTunnelVercelRoute', () => {
+  const originalArgv = process.argv;
+
+  beforeEach(() => {
+    vi.stubEnv('VERCEL', '1');
+    vi.stubEnv('VERCEL_ENV', 'production');
+    process.argv = [...originalArgv.slice(0, 2), 'build'];
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    process.argv = originalArgv;
+  });
+
+  function hasRouteFile(projectDir: string): boolean {
+    return fs.readdirSync(projectDir, { recursive: true }).some(entry => String(entry).includes('route'));
+  }
+
   it('writes the tunnel route handler and rewrites envelope requests to it', async () => {
     const projectDir = makeProject(['app/page.tsx']);
     const nextConfig: NextConfigObject = {};
 
-    setUpManagedTunnelVercelRoute(nextConfig, projectDir);
+    expect(setUpManagedTunnelVercelRoute(nextConfig, projectDir)).toBe(true);
 
     expect(fs.readFileSync(path.join(projectDir, 'app/sentry-tunnel/route.js'), 'utf8')).toContain(
       "export { POST } from '@sentry/nextjs/tunnel';",
@@ -161,11 +178,29 @@ describe('setUpManagedTunnelVercelRoute', () => {
     const projectDir = makeProject([file]);
     const nextConfig: NextConfigObject = {};
 
-    setUpManagedTunnelVercelRoute(nextConfig, projectDir);
-
-    expect(fs.readdirSync(projectDir, { recursive: true }).filter(entry => String(entry).includes('route'))).toEqual(
-      [],
-    );
+    expect(setUpManagedTunnelVercelRoute(nextConfig, projectDir)).toBe(false);
+    expect(hasRouteFile(projectDir)).toBe(false);
     expect(nextConfig.rewrites).toBeUndefined();
+  });
+
+  it.each([
+    ['outside of Vercel', () => vi.stubEnv('VERCEL', '')],
+    ['in a Vercel development build', () => vi.stubEnv('VERCEL_ENV', 'development')],
+    ['outside of `next build`', () => (process.argv = [...originalArgv.slice(0, 2), 'dev'])],
+  ])('does nothing %s', (_description, setUp) => {
+    setUp();
+    const projectDir = makeProject(['app/page.tsx']);
+    const nextConfig: NextConfigObject = {};
+
+    expect(setUpManagedTunnelVercelRoute(nextConfig, projectDir)).toBe(false);
+    expect(hasRouteFile(projectDir)).toBe(false);
+    expect(nextConfig.rewrites).toBeUndefined();
+  });
+
+  it('does nothing for a static export', () => {
+    const projectDir = makeProject(['app/page.tsx']);
+
+    expect(setUpManagedTunnelVercelRoute({ output: 'export' }, projectDir)).toBe(false);
+    expect(hasRouteFile(projectDir)).toBe(false);
   });
 });
