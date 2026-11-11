@@ -10,7 +10,7 @@ Work in this release was contributed by @kunal649. Thank you for your contributi
 
 - **ref(server-utils): Share one cron converter across cron integrations ([#25918](https://github.com/getsentry/sentry-javascript/pull/25918))**
 
-  `Sentry.cron.instrumentCron`, `instrumentNodeCron` and `instrumentNodeSchedule` read schedules the same way as `@SentryCron` and the cron integrations. Without a time zone, they send the server's time zone, where the scheduler runs the job, instead of letting Sentry assume UTC. For expressions Sentry would read differently than the scheduler, like per-second schedules, they send no monitor config, so existing monitors keep their schedule. They send names and nicknames like `MON` or `@daily` as numbers, and drop a fixed seconds field. `instrumentNodeSchedule` also sends `L` and `#`, where Sentry reads them the same way.
+  `Sentry.cron.instrumentCron`, `instrumentNodeCron` and `instrumentNodeSchedule` read schedules the same way as `@SentryCron` and the cron integrations. Without a time zone, they send the server's time zone, where the scheduler runs the job, instead of letting Sentry assume UTC. For expressions Sentry would read differently than the scheduler, like per-second schedules, they send no monitor config, so existing monitors keep their schedule. They send names and nicknames like `MON` or `@daily` as numbers, and drop a fixed seconds field, with a 2-minute check-in margin when the seconds aren't 0. `instrumentNodeSchedule` also sends `L` and `#`, where Sentry reads them the same way.
 
 - **feat(node): Add `bullmqJobSchedulerIntegration` to monitor BullMQ job schedulers ([#25472](https://github.com/getsentry/sentry-javascript/pull/25472))**
 

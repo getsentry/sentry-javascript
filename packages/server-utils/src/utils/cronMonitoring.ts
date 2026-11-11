@@ -83,7 +83,7 @@ export function shouldMonitorJob(
 
 /**
  * The library that parses a scheduler's cron expressions: `node-cron`, `cron` (also behind `@nestjs/schedule`), or
- * `cron-parser` (behind `node-schedule`).
+ * `cron-parser` 4 or 5 (behind `node-schedule` and BullMQ).
  */
 export type CronDialect = 'node-cron' | 'cron' | 'cron-parser';
 
@@ -130,9 +130,7 @@ export function cronExpressionToMonitorConfig(
   const fields = (NICKNAMES[dialect][trimmed.toLowerCase()] || trimmed).split(/\s+/);
 
   // Sentry schedules have minute granularity, so only a fixed second can be dropped.
-  if (fields.length === 6 && /^\d+$/.test(fields[0] as string)) {
-    fields.shift();
-  }
+  const droppedSecond = fields.length === 6 && /^\d+$/.test(fields[0] as string) ? Number(fields.shift()) : 0;
   if (fields.length !== 5 || !fields.every(field => /^[\d*,/a-z#-]+$/i.test(field))) {
     return undefined;
   }
@@ -149,7 +147,8 @@ export function cronExpressionToMonitorConfig(
         hasReversedRange(field) ||
         hasSteppedSingleValueRange(field),
     ) ||
-    !isSameDayMatching(dayOfMonth, weekdayNumbers, dialect)
+    !isSameDayMatching(dayOfMonth, weekdayNumbers, dialect) ||
+    !hasDayInSelectedMonths(dayOfMonth, monthNumbers)
   ) {
     return undefined;
   }
@@ -159,7 +158,12 @@ export function cronExpressionToMonitorConfig(
     return undefined;
   }
 
-  return { schedule: { type: 'crontab', value: crontab.join(' ') }, timezone: sentryTimezone };
+  return {
+    schedule: { type: 'crontab', value: crontab.join(' ') },
+    timezone: sentryTimezone,
+    // The job runs up to 59 seconds after the minute Sentry expects, which nearly uses up its default 1-minute margin.
+    ...(droppedSecond > 0 && { checkinMargin: 2 }),
+  };
 }
 
 // `cron-parser` reads these like Sentry: `L` is the last day of the month, `5L` the last Friday, `5#2` the second Friday.
@@ -209,7 +213,21 @@ function isSameDayMatchingInCronParser(
   return !sentryNeedsBoth && monthDays.cronParserValues < 29 && weekdays.cronParserValues !== 8;
 }
 
+const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+// Sentry rejects a day of month that none of the months have, like `31` in `0 9 31 2,4 *`. The schedulers run these on
+// the day of week or not at all.
+function hasDayInSelectedMonths(dayOfMonth: string, month: string): boolean {
+  const days = parseDayField(dayOfMonth, 1, 31)?.values;
+  const months = parseDayField(month, 1, 12)?.values;
+  if (!days || !months) {
+    return false;
+  }
+  return !days.size || Math.min(...days) <= Math.max(...[...months].map(m => DAYS_IN_MONTH[m - 1] as number));
+}
+
 interface DayField {
+  values: Set<number>;
   days: number;
   cronParserValues: number;
   cronParserAddsSunday: boolean;
@@ -247,6 +265,7 @@ function parseDayField(field: string, low: number, high: number): DayField | und
     }
   }
   return {
+    values: days,
     days: days.size,
     cronParserValues,
     cronParserAddsSunday: cronParserListsSunday && !days.has(0),

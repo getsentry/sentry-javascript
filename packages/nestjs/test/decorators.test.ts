@@ -504,6 +504,22 @@ describe('SentryCron decorator with @Cron', () => {
     });
   });
 
+  it.each([
+    [undefined, 2],
+    [1, 2],
+    [5, 5],
+  ])('sends a checkinMargin of at least 2 for a dropped seconds value, given %s', async (configured, expected) => {
+    const withMonitorSpy = vi.spyOn(core, 'withMonitor');
+    const service = decorate(SentryCron('my-job', { checkinMargin: configured }), Cron('59 0 9 * * *'));
+
+    await service.job();
+    expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), {
+      schedule: { type: 'crontab', value: '0 9 * * *' },
+      timezone: 'Asia/Tokyo',
+      checkinMargin: expected,
+    });
+  });
+
   it('uses an explicit monitor config as is', async () => {
     const withMonitorSpy = vi.spyOn(core, 'withMonitor');
     const monitorConfig: core.MonitorConfig = { schedule: { type: 'interval', value: 1, unit: 'hour' } };
