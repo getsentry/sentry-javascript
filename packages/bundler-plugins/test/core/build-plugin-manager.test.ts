@@ -367,7 +367,7 @@ describe('createSentryBuildPluginManager', () => {
       expect(warnSpy).toHaveBeenCalledOnce();
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('  - .next/server\n'));
       expect(infoSpy).toHaveBeenCalledWith('Successfully uploaded source maps to Sentry');
-      expect(result).toEqual({ uploaded: true });
+      expect(result).toEqual({ uploaded: true, uploadedSourceMapPaths: [] });
 
       vi.restoreAllMocks();
     });
@@ -406,7 +406,7 @@ describe('createSentryBuildPluginManager', () => {
       const result = await manager.uploadSourcemaps(['.next/server'], { prepareArtifacts: false });
 
       expect(infoSpy).not.toHaveBeenCalledWith('Successfully uploaded source maps to Sentry');
-      expect(result).toEqual({ uploaded: false });
+      expect(result).toEqual({ uploaded: false, uploadedSourceMapPaths: [] });
 
       vi.restoreAllMocks();
     });
