@@ -9,7 +9,6 @@ import { isPlainObject } from '../utils/is';
 import { timestampInSeconds } from '../utils/time';
 import { safeUnref } from '../utils/timer';
 
-const HASH_EXCLUSIONS = new Set(['server_name', 'release', 'timestamp', 'environment', 'dist']);
 const OPTION_EXCLUSIONS = new Set(['integrations', 'defaultIntegrations', '_metadata']);
 
 const _experimentalSdkConfigIntegration = (() => ({
@@ -108,18 +107,24 @@ async function buildConfigAttributes(client: Client): Promise<Record<string, str
     integrations: client.getIntegrationNames().map(name => ({ name })),
   };
 
-  // Hash the full config, excluding deployment metadata from options.
-  const hashInput = {
-    ...config,
-    options: Object.fromEntries(Object.entries(config.options).filter(([key]) => !HASH_EXCLUSIONS.has(key))),
-  };
-
-  const payload = {
-    ...config,
+  const metadata = {
     timestamp: timestampInSeconds(),
     release: options.release,
     environment: options.environment,
     dist: options.dist,
+  };
+
+  // Top-level reporting metadata must not affect config identity.
+  const hashExclusions = new Set(['server_name', ...Object.keys(metadata)]);
+
+  const hashInput = {
+    ...config,
+    options: Object.fromEntries(Object.entries(config.options).filter(([key]) => !hashExclusions.has(key))),
+  };
+
+  const payload = {
+    ...config,
+    ...metadata,
   };
 
   return {
