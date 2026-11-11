@@ -1,10 +1,13 @@
+import { dirname, join } from 'node:path';
 import { Queue, Worker } from 'bullmq';
 
 const connection = { host: 'localhost', port: 6385 };
 
 async function run() {
   const queue = new Queue('crons', { connection });
+  const sandboxedQueue = new Queue('crons-sandboxed', { connection });
   await queue.obliterate({ force: true });
+  await sandboxedQueue.obliterate({ force: true });
 
   const worker = new Worker(
     'crons',
@@ -15,8 +18,27 @@ async function run() {
     },
     { connection },
   );
+  const sandboxedWorker = new Worker('crons-sandboxed', join(dirname(process.argv[1]), 'processor.cjs'), {
+    connection,
+  });
+
+  // Runs delayed scheduler jobs now. The loop below and the `completed` listener can race to promote the same job.
+  const promote = job => job?.promote().catch(() => {});
+
+  // Runs the iteration the worker created after the first run, instead of waiting 5 minutes.
+  let promoted = false;
+  worker.on('completed', async job => {
+    if (job.name !== 'every' || promoted) {
+      return;
+    }
+    promoted = true;
+    const delayed = await queue.getDelayed();
+    await promote(delayed.find(next => next.repeatJobKey === 'every-scheduler'));
+  });
 
   await queue.add('plain', {});
+  await queue.add('legacy', {}, { repeat: { every: 300_000, immediately: true } });
+  await queue.add('legacy-key', {}, { repeat: { every: 300_000, key: 'custom-key', immediately: true } });
   await queue.upsertJobScheduler('excluded-scheduler', { every: 300_000 }, { name: 'excluded' });
   await queue.upsertJobScheduler('every-scheduler', { every: 300_000 }, { name: 'every' });
   await queue.upsertJobScheduler(
@@ -25,13 +47,24 @@ async function run() {
     { name: 'failing' },
   );
   await queue.upsertJobScheduler('retry-scheduler', { every: 600_000 }, { name: 'flaky', opts: { attempts: 2 } });
+  await sandboxedQueue.upsertJobScheduler('sandboxed-scheduler', { every: 300_000 }, { name: 'sandboxed' });
+
+  // BullMQ 5.16 starts an `every` scheduler at its next full interval, so run the first jobs now.
+  for (const job of [...(await queue.getDelayed()), ...(await sandboxedQueue.getDelayed())]) {
+    if (job.opts.repeat?.count === 1) {
+      await promote(job);
+    }
+  }
 
   setTimeout(async () => {
     await worker.close();
+    await sandboxedWorker.close();
     await queue.obliterate({ force: true });
+    await sandboxedQueue.obliterate({ force: true });
     await queue.close();
+    await sandboxedQueue.close();
     process.exit();
-  }, 5_000);
+  }, 8_000);
 }
 
 void run();

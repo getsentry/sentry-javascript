@@ -1,5 +1,5 @@
 import type { Event, SerializedCheckIn } from '@sentry/core';
-import { afterAll, expect } from 'vitest';
+import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('bullmq job scheduler check-ins', { workingDirectory: [__dirname] }, () => {
@@ -7,51 +7,89 @@ describeWithDockerCompose('bullmq job scheduler check-ins', { workingDirectory: 
     cleanupChildProcesses();
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('sends check-ins with the job scheduler schedule', { timeout: 60_000 }, async () => {
-      const checkIns: SerializedCheckIn[] = [];
-      await createRunner()
-        .unordered()
-        .expectN(7, { check_in: checkIn => void checkIns.push(checkIn) })
-        .start()
-        .completed();
+  // The workspace has the latest BullMQ 5. Also run the oldest version with job schedulers and BullMQ 6.
+  describe.each([
+    ['BullMQ 5', undefined],
+    ['BullMQ 5.16.0', { bullmq: '5.16.0' }],
+    ['BullMQ 6', { bullmq: '6.7.5' }],
+  ])('%s', (_, additionalDependencies) => {
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario.mjs',
+      'instrument.mjs',
+      (createRunner, test) => {
+        test('sends check-ins with the job scheduler schedule', { timeout: 90_000 }, async () => {
+          const checkIns: SerializedCheckIn[] = [];
+          await createRunner()
+            .unordered()
+            .expectN(11, { check_in: checkIn => void checkIns.push(checkIn) })
+            .start()
+            .completed();
 
-      const bySlug = (slug: string): SerializedCheckIn[] => checkIns.filter(checkIn => checkIn.monitor_slug === slug);
-      const everyCheckIns = bySlug('crons-every-scheduler');
-      const patternCheckIns = bySlug('crons-pattern-scheduler');
-      const retryCheckIns = bySlug('crons-retry-scheduler');
-      const everyConfig = { schedule: { type: 'interval', value: 5, unit: 'minute' } };
-      const patternConfig = { schedule: { type: 'crontab', value: '0 9 * * 1-5' }, timezone: 'Europe/Vienna' };
-      const retryConfig = { schedule: { type: 'interval', value: 10, unit: 'minute' } };
+          const bySlug = (slug: string): SerializedCheckIn[] =>
+            checkIns.filter(checkIn => checkIn.monitor_slug === slug);
+          const everyCheckIns = bySlug('crons-every-scheduler');
+          const patternCheckIns = bySlug('crons-pattern-scheduler');
+          const retryCheckIns = bySlug('crons-retry-scheduler');
+          const sandboxedCheckIns = bySlug('crons-sandboxed-sandboxed-scheduler');
+          const everyConfig = { schedule: { type: 'interval', value: 5, unit: 'minute' } };
+          const patternConfig = { schedule: { type: 'crontab', value: '0 9 * * 1-5' }, timezone: 'Europe/Vienna' };
+          const retryConfig = { schedule: { type: 'interval', value: 10, unit: 'minute' } };
 
-      expect(everyCheckIns).toEqual([
-        expect.objectContaining({ status: 'in_progress', release: '1.0', monitor_config: everyConfig }),
-        expect.objectContaining({
-          status: 'ok',
-          check_in_id: everyCheckIns[0]?.check_in_id,
-          duration: expect.any(Number),
-          monitor_config: everyConfig,
-        }),
-      ]);
-      expect(patternCheckIns).toEqual([
-        expect.objectContaining({ status: 'in_progress', release: '1.0', monitor_config: patternConfig }),
-        expect.objectContaining({
-          status: 'error',
-          check_in_id: patternCheckIns[0]?.check_in_id,
-          duration: expect.any(Number),
-          monitor_config: patternConfig,
-        }),
-      ]);
-      // The retry updates the first attempt's check-in, and Sentry measures its duration.
-      const retryCheckInId = retryCheckIns[0]?.check_in_id;
-      expect(retryCheckIns).toEqual([
-        expect.objectContaining({ status: 'in_progress', check_in_id: retryCheckInId, monitor_config: retryConfig }),
-        expect.objectContaining({ status: 'in_progress', check_in_id: retryCheckInId, monitor_config: retryConfig }),
-        expect.objectContaining({ status: 'ok', check_in_id: retryCheckInId, monitor_config: retryConfig }),
-      ]);
-      expect(retryCheckIns[2]).not.toHaveProperty('duration');
-      expect(bySlug('crons-excluded-scheduler')).toEqual([]);
-    });
+          expect(new Set(checkIns.map(checkIn => checkIn.monitor_slug))).toEqual(
+            new Set([
+              'crons-every-scheduler',
+              'crons-pattern-scheduler',
+              'crons-retry-scheduler',
+              'crons-sandboxed-sandboxed-scheduler',
+            ]),
+          );
+          // The second run is the iteration the worker created after the first.
+          expect(everyCheckIns).toEqual([
+            expect.objectContaining({ status: 'in_progress', release: '1.0', monitor_config: everyConfig }),
+            expect.objectContaining({
+              status: 'ok',
+              check_in_id: everyCheckIns[0]?.check_in_id,
+              duration: expect.any(Number),
+              monitor_config: everyConfig,
+            }),
+            expect.objectContaining({ status: 'in_progress', monitor_config: everyConfig }),
+            expect.objectContaining({ status: 'ok', check_in_id: everyCheckIns[2]?.check_in_id }),
+          ]);
+          expect(everyCheckIns[2]?.check_in_id).not.toBe(everyCheckIns[0]?.check_in_id);
+          expect(patternCheckIns).toEqual([
+            expect.objectContaining({ status: 'in_progress', release: '1.0', monitor_config: patternConfig }),
+            expect.objectContaining({
+              status: 'error',
+              check_in_id: patternCheckIns[0]?.check_in_id,
+              duration: expect.any(Number),
+              monitor_config: patternConfig,
+            }),
+          ]);
+          // The retry updates the first attempt's check-in, and Sentry measures its duration.
+          const retryCheckInId = retryCheckIns[0]?.check_in_id;
+          expect(retryCheckIns).toEqual([
+            expect.objectContaining({
+              status: 'in_progress',
+              check_in_id: retryCheckInId,
+              monitor_config: retryConfig,
+            }),
+            expect.objectContaining({
+              status: 'in_progress',
+              check_in_id: retryCheckInId,
+              monitor_config: retryConfig,
+            }),
+            expect.objectContaining({ status: 'ok', check_in_id: retryCheckInId, monitor_config: retryConfig }),
+          ]);
+          expect(retryCheckIns[2]).not.toHaveProperty('duration');
+          expect(sandboxedCheckIns).toEqual([
+            expect.objectContaining({ status: 'in_progress', monitor_config: everyConfig }),
+            expect.objectContaining({ status: 'ok', check_in_id: sandboxedCheckIns[0]?.check_in_id }),
+          ]);
+        });
+      },
+      { additionalDependencies, copyPaths: ['processor.cjs'] },
+    );
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-telemetry.mjs', 'instrument-tracing.mjs', (createRunner, test) => {

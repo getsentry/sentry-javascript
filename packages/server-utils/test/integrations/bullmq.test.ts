@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, type MockInstance, test, vi } from 'vitest';
@@ -43,8 +44,13 @@ describe('bullmqJobSchedulerIntegration', () => {
     });
   }
 
-  function runJob(job: object, outcome: 'completed' | 'failed' = 'completed', worker = createWorker()): void {
-    instrumentWorker(worker, {});
+  function runJob(
+    job: object,
+    outcome: 'completed' | 'failed' = 'completed',
+    worker = createWorker(),
+    major: 5 | 6 = 5,
+  ): void {
+    instrumentWorker(worker, {}, major);
     worker.processFn(job);
     if (outcome === 'failed') {
       worker.emit('failed', finalFailure(job), new Error('boom'), 'active');
@@ -53,15 +59,15 @@ describe('bullmqJobSchedulerIntegration', () => {
     }
   }
 
-  function sentConfig(repeat: Record<string, unknown>): unknown {
-    runJob(schedulerJob('my-scheduler', repeat));
+  function sentConfig(repeat: Record<string, unknown>, major: 5 | 6 = 5): unknown {
+    runJob(schedulerJob('my-scheduler', repeat), 'completed', createWorker(), major);
     return captureCheckInSpy.mock.calls[0]?.[1];
   }
 
-  function expectSkipped(repeat: Record<string, unknown>): void {
-    runJob(schedulerJob('my-scheduler', repeat), 'failed');
+  function expectSkipped(repeat: Record<string, unknown>, major: 5 | 6 = 5): void {
+    runJob(schedulerJob('my-scheduler', repeat), 'failed', createWorker(), major);
     const worker = createWorker();
-    instrumentWorker(worker, {});
+    instrumentWorker(worker, {}, major);
     worker.emit('failed', finalFailure(schedulerJob('my-scheduler', repeat)), new Error('stalled'), 'active');
     expect(captureCheckInSpy).not.toHaveBeenCalled();
   }
@@ -126,11 +132,62 @@ describe('bullmqJobSchedulerIntegration', () => {
     });
   });
 
-  test('uses UTC with utc: true', () => {
-    expect(sentConfig({ pattern: '0 * * * *', tz: 'Europe/Vienna', utc: true })).toEqual({
+  test.each([true, 1])('uses UTC with utc: %j', utc => {
+    expect(sentConfig({ pattern: '0 * * * *', tz: 'Europe/Vienna', utc })).toEqual({
       schedule: { type: 'crontab', value: '0 * * * *' },
       timezone: 'UTC',
     });
+  });
+
+  test('ignores utc on BullMQ 6', () => {
+    expect(sentConfig({ pattern: '0 * * * *', tz: 'Europe/Vienna', utc: true }, 6)).toEqual({
+      schedule: { type: 'crontab', value: '0 * * * *' },
+      timezone: 'Europe/Vienna',
+    });
+  });
+
+  test.each([
+    ['0 9 * * 1', '0 9 * * 1#2'],
+    ['0 0 9 * * mon', '0 9 * * 1#2'],
+  ])('reads nthDayOfWeek with %j as %j', (pattern, crontab) => {
+    expect(sentConfig({ pattern, nthDayOfWeek: 2, tz: 'UTC' })).toEqual({
+      schedule: { type: 'crontab', value: crontab },
+      timezone: 'UTC',
+    });
+  });
+
+  test.each([
+    ['0 9 * * *', 2],
+    ['0 9 * * 1-5', 2],
+    ['0 9 * * 1,3', 2],
+    ['0 9 * * 5L', 2],
+    ['0 9 * * 1#3', 2],
+    ['0 9 1 * 1', 2],
+    ['0 9 * * 1', 6],
+    ['0 9 * * 1', '2'],
+  ])('skips %j with nthDayOfWeek %j', (pattern, nthDayOfWeek) => {
+    expectSkipped({ pattern, nthDayOfWeek, tz: 'UTC' });
+  });
+
+  test('ignores nthDayOfWeek on BullMQ 6', () => {
+    expect(sentConfig({ pattern: '0 9 * * 1', nthDayOfWeek: 2, tz: 'UTC' }, 6)).toEqual({
+      schedule: { type: 'crontab', value: '0 9 * * 1' },
+      timezone: 'UTC',
+    });
+  });
+
+  test('logs why a scheduler is not monitored once', () => {
+    const logSpy = vi.spyOn(SentryCore.debug, 'log').mockImplementation(() => undefined);
+    const worker = createWorker();
+    instrumentWorker(worker, {}, 5);
+    for (let run = 0; run < 2; run++) {
+      const job = schedulerJob('limited', { every: 60_000, limit: 3 });
+      worker.processFn(job);
+      worker.emit('completed', job, 'result', 'active');
+    }
+
+    expect(logSpy).toHaveBeenCalledTimes(1);
+    expect(logSpy).toHaveBeenCalledWith('[BullMQJobScheduler] Not monitoring reports-limited: it sets a limit.');
   });
 
   test('skips a fixed UTC offset', () => {
@@ -155,22 +212,44 @@ describe('bullmqJobSchedulerIntegration', () => {
 
   test.each([
     ['a job that is not from a scheduler', { name: 'job', opts: {} }],
-    ['a legacy repeatable job', schedulerJob('ef2e05b7df2d56840b735ad4ee3a6937', { every: 60_000 })],
+    [
+      'a legacy repeatable job',
+      schedulerJob(createHash('md5').update('job::::60000').digest('hex'), { every: 60_000, offset: 1000 }),
+    ],
+    [
+      'a legacy repeatable job with a jobId and tz',
+      schedulerJob(createHash('md5').update('job:my-id::UTC:0 * * * *').digest('hex'), {
+        pattern: '0 * * * *',
+        tz: 'UTC',
+        jobId: 'my-id',
+      }),
+    ],
+    ['a legacy repeatable job with an unhashed key', schedulerJob('job::::60000', { every: 60_000 })],
+    ['a legacy repeatable job with a custom key', schedulerJob('custom-key', { every: 60_000, key: 'custom-key' })],
     ['an excluded scheduler', schedulerJob('cache-warmup', { every: 60_000 })],
     ['a scheduler matching an excluded pattern', schedulerJob('tmp-cleanup', { every: 60_000 })],
   ])('ignores %s', (_, job) => {
     const worker = createWorker();
-    instrumentWorker(worker, { excludeJobSchedulers: ['cache-warmup', /^tmp-/] });
+    instrumentWorker(worker, { excludeJobSchedulers: ['cache-warmup', /^tmp-/] }, 5);
     worker.processFn(job);
     worker.emit('failed', finalFailure(job));
 
     expect(captureCheckInSpy).not.toHaveBeenCalled();
   });
 
+  test.each(['0123456789abcdef0123456789abcdef', 'a:b:c:d:e'])('monitors a scheduler with the id %j', id => {
+    runJob(schedulerJob(id, { every: 60_000 }));
+
+    expect(captureCheckInSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ monitorSlug: `reports-${id}`, status: 'ok' }),
+      expect.anything(),
+    );
+  });
+
   test('calls the processor with the worker and its arguments', () => {
     const worker = createWorker();
     const processor = worker.processFn;
-    instrumentWorker(worker, {});
+    instrumentWorker(worker, {}, 5);
     const job = schedulerJob('my-scheduler', { every: 60_000 });
 
     expect(worker.processFn.call(worker, job, 'token')).toBe('result');
@@ -180,7 +259,7 @@ describe('bullmqJobSchedulerIntegration', () => {
 
   test('sends an error check-in for a job that fails without running the processor', () => {
     const worker = createWorker();
-    instrumentWorker(worker, {});
+    instrumentWorker(worker, {}, 5);
     const job = finalFailure(schedulerJob('my-scheduler', { every: 60_000 }, { attemptsStarted: 3 }));
     worker.emit('failed', job, new Error('job started more than allowable limit'), 'active');
 
@@ -194,13 +273,13 @@ describe('bullmqJobSchedulerIntegration', () => {
   test('keeps one check-in open across retries, on any worker', () => {
     const repeat = { every: 60_000 };
     const firstWorker = createWorker();
-    instrumentWorker(firstWorker, {});
+    instrumentWorker(firstWorker, {}, 5);
     const firstAttempt = schedulerJob('my-scheduler', repeat);
     firstWorker.processFn(firstAttempt);
     firstWorker.emit('failed', Object.assign(firstAttempt, { attemptsMade: 1 }), new Error('boom'), 'active');
 
     const secondWorker = createWorker();
-    instrumentWorker(secondWorker, {});
+    instrumentWorker(secondWorker, {}, 5);
     const retry = schedulerJob('my-scheduler', repeat, { attemptsStarted: 2, attemptsMade: 1 });
     secondWorker.processFn(retry);
     secondWorker.emit('completed', retry, 'result', 'active');
@@ -225,7 +304,7 @@ describe('bullmqJobSchedulerIntegration', () => {
 
   test('sends an ok check-in for a job that completes without running the processor', () => {
     const worker = createWorker();
-    instrumentWorker(worker, {});
+    instrumentWorker(worker, {}, 5);
     worker.emit('completed', schedulerJob('my-scheduler', { every: 60_000 }), 'result', 'active');
 
     expect(captureCheckInSpy).toHaveBeenCalledWith(
@@ -236,7 +315,7 @@ describe('bullmqJobSchedulerIntegration', () => {
 
   test('skips patterns with a custom repeat strategy', () => {
     const worker = createWorker({ settings: { repeatStrategy: () => Date.now() } });
-    instrumentWorker(worker, {});
+    instrumentWorker(worker, {}, 5);
     for (const repeat of [{ pattern: '0 * * * *', tz: 'UTC' }, { every: 60_000 }]) {
       const job = schedulerJob('my-scheduler', repeat);
       worker.processFn(job);
@@ -251,7 +330,7 @@ describe('bullmqJobSchedulerIntegration', () => {
 
   test('instruments a worker only once', () => {
     const worker = createWorker();
-    instrumentWorker(worker, {});
+    instrumentWorker(worker, {}, 5);
     runJob(schedulerJob('my-scheduler', { every: 60_000 }), 'completed', worker);
 
     expect(captureCheckInSpy).toHaveBeenCalledTimes(2);

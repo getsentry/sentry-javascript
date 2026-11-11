@@ -34,20 +34,27 @@ const _bullmqJobSchedulerIntegration = ((options: BullMQJobSchedulerIntegrationO
 }) satisfies IntegrationFn;
 
 /**
- * Sends Crons check-ins for every job a BullMQ (5.16+) worker runs from a job scheduler, with the scheduler's `pattern`
- * or `every` as the monitor config. The monitor slug is `<queue>-<job scheduler id>`. Schedulers with a schedule Crons
- * can't express, or that set `limit` or `endDate`, are not monitored.
+ * Sends Crons check-ins for the jobs a BullMQ 5.16 to 6.x worker runs from job schedulers, with `<queue>-<job scheduler id>`
+ * as the monitor slug. Schedulers that end or whose schedule Crons can't express are not monitored.
  */
 export const bullmqJobSchedulerIntegration = defineIntegration(_bullmqJobSchedulerIntegration);
 
+type BullMQMajor = 5 | 6;
+
 function subscribe(options: BullMQJobSchedulerIntegrationOptions): void {
-  diagnosticsChannel.tracingChannel<{ self?: unknown }>(CHANNELS.BULLMQ_WORKER_CONSTRUCTOR).end.subscribe(message => {
-    try {
-      instrumentWorker((message as { self?: unknown }).self, options);
-    } catch (e) {
-      DEBUG_BUILD && debug.error(`[${INTEGRATION_NAME}] Failed to set up the cron monitor:`, e);
-    }
-  });
+  const channels = [
+    [CHANNELS.BULLMQ_WORKER_CONSTRUCTOR, 5],
+    [CHANNELS.BULLMQ_6_WORKER_CONSTRUCTOR, 6],
+  ] as const;
+  for (const [channel, major] of channels) {
+    diagnosticsChannel.tracingChannel<{ self?: unknown }>(channel).end.subscribe(message => {
+      try {
+        instrumentWorker((message as { self?: unknown }).self, options, major);
+      } catch (e) {
+        DEBUG_BUILD && debug.error(`[${INTEGRATION_NAME}] Failed to set up the cron monitor:`, e);
+      }
+    });
+  }
 }
 
 interface BullMQRepeatOptions {
@@ -55,12 +62,16 @@ interface BullMQRepeatOptions {
   every?: unknown;
   tz?: unknown;
   utc?: unknown;
+  nthDayOfWeek?: unknown;
   limit?: unknown;
   endDate?: unknown;
+  key?: unknown;
+  jobId?: unknown;
 }
 
 interface BullMQJob {
   id?: unknown;
+  name?: unknown;
   queueQualifiedName?: unknown;
   timestamp?: unknown;
   repeatJobKey?: unknown;
@@ -73,12 +84,9 @@ interface BullMQJob {
 interface BullMQWorker {
   name?: unknown;
   processFn?: (job: BullMQJob, ...args: unknown[]) => unknown;
-  opts?: { settings?: { repeatStrategy?: unknown } };
+  opts?: { settings?: { repeatStrategy?: unknown; repeatKeyHashAlgorithm?: unknown } };
   on?: (event: string, listener: (job?: BullMQJob) => void) => unknown;
 }
-
-// Legacy repeatable jobs (`queue.add` with `repeat`) are keyed by a hash or `name:id:endDate:tz:pattern`.
-const LEGACY_REPEAT_KEY = /^[\da-f]{32,}$|^(?:[^:]*:){4}/;
 
 interface Monitor {
   monitorSlug: string;
@@ -86,13 +94,25 @@ interface Monitor {
   config: MonitorConfig;
 }
 
+interface WorkerSettings {
+  major: BullMQMajor;
+  hasCustomRepeatStrategy: boolean;
+  repeatKeyHashAlgorithm: string;
+  exclude: Array<string | RegExp> | undefined;
+}
+
 const instrumentedWorkers = new WeakSet<object>();
+const loggedSchedulers = new Set<string>();
 
 // `captureCheckIn` keeps a given `checkInId` for `in_progress` check-ins too.
 type InProgressCheckInWithId = InProgressCheckIn & { checkInId: string };
 
 /** Sends check-ins for the jobs a new BullMQ worker runs from job schedulers. */
-export function instrumentWorker(worker: unknown, options: BullMQJobSchedulerIntegrationOptions): void {
+export function instrumentWorker(
+  worker: unknown,
+  options: BullMQJobSchedulerIntegrationOptions,
+  major: BullMQMajor,
+): void {
   const target = worker as BullMQWorker | undefined;
   const queueName = target?.name;
   const processFn = target?.processFn;
@@ -106,10 +126,15 @@ export function instrumentWorker(worker: unknown, options: BullMQJobSchedulerInt
     return;
   }
   instrumentedWorkers.add(target);
-  // A custom repeat strategy decides what `pattern` means.
-  const hasCustomRepeatStrategy = !!target.opts?.settings?.repeatStrategy;
-  const monitorFor = (job: BullMQJob | undefined): Monitor | undefined =>
-    getMonitor(job, queueName, options.excludeJobSchedulers, hasCustomRepeatStrategy);
+  const settings = target.opts?.settings;
+  const workerSettings: WorkerSettings = {
+    major,
+    hasCustomRepeatStrategy: !!settings?.repeatStrategy,
+    repeatKeyHashAlgorithm:
+      typeof settings?.repeatKeyHashAlgorithm === 'string' ? settings.repeatKeyHashAlgorithm : 'md5',
+    exclude: options.excludeJobSchedulers,
+  };
+  const monitorFor = (job: BullMQJob | undefined): Monitor | undefined => getMonitor(job, queueName, workerSettings);
 
   const startTimes = new WeakMap<object, number>();
 
@@ -159,22 +184,19 @@ export function instrumentWorker(worker: unknown, options: BullMQJobSchedulerInt
   target.on('failed', finish('error'));
 }
 
-function getMonitor(
-  job: BullMQJob | undefined,
-  queueName: string,
-  exclude: Array<string | RegExp> | undefined,
-  hasCustomRepeatStrategy: boolean,
-): Monitor | undefined {
-  const schedulerId = getJobSchedulerId(job, exclude);
+function getMonitor(job: BullMQJob | undefined, queueName: string, settings: WorkerSettings): Monitor | undefined {
+  const schedulerId = job && getJobSchedulerId(job, settings);
   if (!job || !schedulerId) {
     return undefined;
   }
   // Scheduler ids are only unique within a queue.
   const monitorSlug = `${queueName}-${schedulerId}`;
-  const repeat = job.opts?.repeat;
-  const config = hasCustomRepeatStrategy && repeat?.pattern != null ? undefined : getMonitorConfig(repeat);
-  if (!config) {
-    DEBUG_BUILD && debug.log(`[${INTEGRATION_NAME}] Not monitoring ${monitorSlug}: Crons can't express its schedule.`);
+  const config = getMonitorConfig(job.opts?.repeat, settings);
+  if (typeof config === 'string') {
+    if (DEBUG_BUILD && !loggedSchedulers.has(monitorSlug)) {
+      loggedSchedulers.add(monitorSlug);
+      debug.log(`[${INTEGRATION_NAME}] Not monitoring ${monitorSlug}: ${config}.`);
+    }
     return undefined;
   }
   return { monitorSlug, checkInId: getCheckInId(job), config };
@@ -193,27 +215,44 @@ function isFirstAttempt(job: BullMQJob): boolean {
   return !job.attemptsMade && (typeof job.attemptsStarted !== 'number' || job.attemptsStarted <= 1);
 }
 
-function getJobSchedulerId(
-  job: BullMQJob | undefined,
-  exclude: Array<string | RegExp> | undefined,
-): string | undefined {
-  const id = job?.repeatJobKey;
-  if (typeof id !== 'string' || !id || LEGACY_REPEAT_KEY.test(id)) {
+function getJobSchedulerId(job: BullMQJob, settings: WorkerSettings): string | undefined {
+  const id = job.repeatJobKey;
+  if (typeof id !== 'string' || !id || isLegacyRepeatableJob(job, id, settings.repeatKeyHashAlgorithm)) {
     return undefined;
   }
-  return stringMatchesSomePattern(id, exclude, true) ? undefined : id;
+  return stringMatchesSomePattern(id, settings.exclude, true) ? undefined : id;
 }
 
-function getMonitorConfig(repeat: BullMQRepeatOptions | undefined): MonitorConfig | undefined {
-  // A scheduler that stops after `limit` runs or `endDate` would show up as missed.
-  if (!repeat || repeat.limit != null || repeat.endDate != null) {
-    return undefined;
+// BullMQ 5 keys repeatable jobs from `queue.add` by `repeat.key`, or by their name and repeat options or a hash of them.
+// Job schedulers don't take a `key`.
+function isLegacyRepeatableJob(job: BullMQJob, id: string, hashAlgorithm: string): boolean {
+  const repeat = job.opts?.repeat;
+  if (!repeat) {
+    return false;
+  }
+  if (repeat.key != null) {
+    return true;
+  }
+  const endDate = repeat.endDate ? new Date(repeat.endDate as string).getTime() : '';
+  const suffix = repeat.pattern || String(repeat.every);
+  const key = `${job.name}:${repeat.jobId || ''}:${endDate}:${repeat.tz || ''}:${suffix}`;
+  return id === key || id === createHash(hashAlgorithm).update(key).digest('hex');
+}
+
+/** The monitor config for a job scheduler's repeat options, or why it isn't monitored. */
+function getMonitorConfig(repeat: BullMQRepeatOptions | undefined, settings: WorkerSettings): MonitorConfig | string {
+  // A scheduler that stops would show up as missed.
+  if (repeat?.limit != null) {
+    return 'it sets a limit';
+  }
+  if (repeat?.endDate != null) {
+    return 'it sets an endDate';
   }
 
-  if (typeof repeat.every === 'number') {
+  if (typeof repeat?.every === 'number') {
     const minutes = repeat.every / 60_000;
     if (!Number.isInteger(minutes) || minutes <= 0) {
-      return undefined;
+      return "Crons can't express its schedule";
     }
     if (minutes % 1440 === 0) {
       return { schedule: { type: 'interval', value: minutes / 1440, unit: 'day' } };
@@ -224,9 +263,39 @@ function getMonitorConfig(repeat: BullMQRepeatOptions | undefined): MonitorConfi
     return { schedule: { type: 'interval', value: minutes, unit: 'minute' } };
   }
 
-  if (typeof repeat.pattern !== 'string') {
+  if (typeof repeat?.pattern !== 'string') {
+    return "Crons can't express its schedule";
+  }
+  if (settings.hasCustomRepeatStrategy) {
+    return 'the worker has a custom repeatStrategy';
+  }
+  // BullMQ 6's cron-parser ignores `utc` and `nthDayOfWeek`.
+  const pattern = settings.major === 6 ? repeat.pattern : withNthDayOfWeek(repeat.pattern, repeat.nthDayOfWeek);
+  if (!pattern) {
+    return "Crons can't express its nthDayOfWeek";
+  }
+  const timezone = settings.major === 5 && repeat.utc ? 'UTC' : repeat.tz;
+  return cronExpressionToMonitorConfig(pattern, timezone, 'cron-parser') || "Crons can't express its schedule";
+}
+
+// cron-parser 4 reads `{ pattern: '0 9 * * 1', nthDayOfWeek: 2 }` like `0 9 * * 1#2`, and applies `nthDayOfWeek` to
+// any other day of week too.
+function withNthDayOfWeek(pattern: string, nthDayOfWeek: unknown): string | undefined {
+  if (!nthDayOfWeek) {
+    return pattern;
+  }
+  const fields = pattern.trim().split(/\s+/);
+  const dayOfWeek = fields[fields.length - 1] as string;
+  if (
+    (fields.length !== 5 && fields.length !== 6) ||
+    !/^(?:[0-7]|[a-z]+)$/i.test(dayOfWeek) ||
+    typeof nthDayOfWeek !== 'number' ||
+    !Number.isInteger(nthDayOfWeek) ||
+    nthDayOfWeek < 1 ||
+    nthDayOfWeek > 5
+  ) {
     return undefined;
   }
-  // BullMQ 5's cron-parser prefers `utc` over `tz`.
-  return cronExpressionToMonitorConfig(repeat.pattern, repeat.utc === true ? 'UTC' : repeat.tz, 'cron-parser');
+  fields[fields.length - 1] = `${dayOfWeek}#${nthDayOfWeek}`;
+  return fields.join(' ');
 }
