@@ -1,3 +1,5 @@
+import { HTTP_REQUEST_METHOD, URL_PATH } from '@sentry/conventions/attributes';
+import { FUNCTION_AWS } from '@sentry/conventions/op';
 import type { Integration, Options } from '@sentry/core';
 import { applySdkMetadata, debug, envToBool, getSDKSource } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
@@ -5,6 +7,23 @@ import { getDefaultIntegrationsWithoutPerformance, initWithoutDefaultIntegration
 import { awsIntegration } from '@sentry/server-utils';
 import { DEBUG_BUILD } from './debug-build';
 import { awsLambdaIntegration } from './integration/awslambda';
+
+// Invocations `http.server` spans skip by default: CORS preflights and HEAD requests always, and GET requests for
+// static assets (see `isStaticAssetRequest` in `@sentry/core`) unless `ignoreStaticAssets` is `false`.
+const PREFLIGHT_AND_HEAD_INVOCATIONS: NonNullable<Options['ignoreSpans']> = [
+  { op: FUNCTION_AWS, attributes: { [HTTP_REQUEST_METHOD]: /^(OPTIONS|HEAD)$/ } },
+];
+
+const STATIC_ASSET_INVOCATIONS: NonNullable<Options['ignoreSpans']> = [
+  {
+    op: FUNCTION_AWS,
+    attributes: {
+      [HTTP_REQUEST_METHOD]: /^GET$/,
+      [URL_PATH]:
+        /(\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|eot|webp|avif)|^\/(robots\.txt|sitemap\.xml|manifest\.json|browserconfig\.xml))$/,
+    },
+  },
+];
 
 /**
  * Checks if proxy environment variables would interfere with the layer extension.
@@ -60,6 +79,25 @@ export interface AwsServerlessOptions extends NodeOptions {
    * Can also be configured via the `SENTRY_LAYER_EXTENSION` environment variable.
    */
   useLayerExtension?: boolean;
+
+  /**
+   * Whether to skip spans for GET invocations of common static assets (favicon.ico, robots.txt, `.js`, images, etc.).
+   * CORS preflight (`OPTIONS`) and `HEAD` invocations are always skipped.
+   *
+   * @default `true`
+   */
+  ignoreStaticAssets?: boolean;
+}
+
+/**
+ * The `ignoreSpans` the SDK is initialized with: the user's own entries plus the default HTTP invocation filters.
+ */
+export function getIgnoreSpans(options: AwsServerlessOptions): NonNullable<Options['ignoreSpans']> {
+  return [
+    ...(options.ignoreSpans || []),
+    ...PREFLIGHT_AND_HEAD_INVOCATIONS,
+    ...(options.ignoreStaticAssets === false ? [] : STATIC_ASSET_INVOCATIONS),
+  ];
 }
 
 /**
@@ -83,6 +121,7 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
     defaultIntegrations: getDefaultIntegrations(options),
     useLayerExtension,
     ...options,
+    ignoreSpans: getIgnoreSpans(options),
   };
 
   if (opts.useLayerExtension) {

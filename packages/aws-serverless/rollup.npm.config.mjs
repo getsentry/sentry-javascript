@@ -9,7 +9,7 @@ function makeHandlerShimConfig() {
   const baseConfig = makeBaseNPMConfig({
     entrypoints: ['src/run-lambda-handler.ts'],
     // Top-level await requires es2022.
-    esbuild: { target: 'es2022' },
+    packageSpecificConfig: { transform: { target: 'es2022' } },
   });
 
   return {

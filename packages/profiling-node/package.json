@@ -1,6 +1,6 @@
 {
   "name": "@sentry/profiling-node",
-  "version": "11.11.0",
+  "version": "11.12.0",
   "description": "Official Sentry SDK for Node.js Profiling",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/profiling-node",
@@ -39,10 +39,10 @@
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "lint:fix": "oxlint . --fix --type-aware",
     "build": "pnpm run build:types && pnpm run build:transpile",
-    "build:transpile": "pnpm exec rollup -c rollup.npm.config.mjs",
+    "build:transpile": "pnpm exec rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:dev": "pnpm clean && pnpm run build",
-    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
+    "build:transpile:watch": "rolldown -c rollup.npm.config.mjs --watch",
     "build:watch": "run-p build:transpile:watch",
     "build:tarball": "pnpm pack",
     "test:bundle": "node test-binaries.esbuild.js",
@@ -50,13 +50,13 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
-    "@sentry/conventions": "^0.31.0",
+    "@sentry/conventions": "^0.32.0",
     "@sentry/node-cpu-profiler": "^2.4.4",
-    "@sentry/core": "11.11.0",
-    "@sentry/node": "11.11.0"
+    "@sentry/core": "11.12.0",
+    "@sentry/node": "11.12.0"
   },
   "devDependencies": {
-    "@sentry-internal/rollup-utils": "11.11.0",
+    "@sentry-internal/rollup-utils": "11.12.0",
     "@types/node": "^20.19.0"
   },
   "sideEffects": false,

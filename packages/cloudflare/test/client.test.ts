@@ -497,6 +497,34 @@ describe('CloudflareClient', () => {
       expect(flushMock).toHaveBeenCalledTimes(1);
     });
 
+    // The transport's drain hands its queued requests off and doesn't track them, so the transport drain inside
+    // `flush()` finds an empty queue while the eager drain's request is still in flight.
+    it('waits in flush() for a request an eager drain started outside any invocation', async () => {
+      let respond: () => void = () => undefined;
+      const fetch = vi.fn(() => new Promise<Response>(resolve => (respond = () => resolve(new Response('')))));
+      const client = new CloudflareClient({
+        ...MOCK_CLIENT_OPTIONS,
+        cacheClient: true,
+        transport: makeCloudflareTransport,
+        transportOptions: { fetch },
+      });
+      client.init();
+
+      client.captureMessage('foo');
+      await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+
+      const flushPromise = client.flush(2000);
+      const settled = await Promise.race([
+        flushPromise.then(() => 'flushed'),
+        new Promise(resolve => setTimeout(() => resolve('pending'), 100)),
+      ]);
+      expect(settled).toBe('pending');
+
+      respond();
+      await expect(flushPromise).resolves.toBe(true);
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
     it('does not register a waitUntil when no context is known', () => {
       const flushMock = vi.fn().mockResolvedValue(true);
       const client = makeEagerFlushClient(flushMock);
