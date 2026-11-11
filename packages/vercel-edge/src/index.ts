@@ -76,6 +76,7 @@ export {
   linkedErrorsIntegration,
   requestDataIntegration,
   extraErrorDataIntegration,
+  experimentalSdkConfigIntegration,
   dedupeIntegration,
   rewriteFramesIntegration,
   captureConsoleIntegration,
