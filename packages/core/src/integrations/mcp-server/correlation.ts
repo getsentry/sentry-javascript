@@ -95,6 +95,58 @@ export function storeSpanForRequest(
 }
 
 /**
+ * Records a request's response on its span: session metadata from `initialize`, the JSON-RPC
+ * error, and tool or prompt results. Does not end the span.
+ * @param transport - MCP transport instance
+ * @param span - The request span
+ * @param method - MCP method name
+ * @param result - Execution result for attribute extraction
+ * @param error - The JSON-RPC error response, if any
+ * @param capturePolicy - Capture policy resolved when the request began
+ */
+export function applyResponseToSpan(
+  transport: MCPTransport,
+  span: Span,
+  method: string,
+  result: unknown,
+  error: JsonRpcError | undefined,
+  capturePolicy: ResolvedMcpOptions,
+): void {
+  const responseSessionData =
+    method === 'initialize' ? extractSessionDataFromInitializeResponse(result) : extractSessionDataFromResponse(result);
+  if (method === 'initialize' && (responseSessionData.protocolVersion || responseSessionData.serverInfo)) {
+    updateSessionDataForTransport(transport, responseSessionData);
+  }
+  const responseAttributes: Record<string, string | number> = {
+    ...buildServerAttributesFromInfo(responseSessionData.serverInfo),
+  };
+  if (responseSessionData.protocolVersion) {
+    responseAttributes[MCP_PROTOCOL_VERSION] = responseSessionData.protocolVersion;
+  }
+  if (Object.keys(responseAttributes).length > 0) {
+    span.setAttributes(responseAttributes);
+  }
+
+  if (error) {
+    span.setAttributes({ [RPC_RESPONSE_STATUS_CODE]: String(error.code) });
+    if (isJsonRpcServerError(error.code)) {
+      span.setAttributes({ [ERROR_TYPE]: String(error.code) });
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: error.message });
+    }
+  } else if (method === 'tools/call') {
+    const toolAttributes = extractToolResultAttributes(result, capturePolicy.recordOutputs);
+    span.setAttributes(toolAttributes);
+    // oxlint-disable-next-line typescript/no-deprecated -- Preserve classification based on the existing tool result attribute.
+    if (toolAttributes[MCP_TOOL_RESULT_IS_ERROR] === true) {
+      span.setAttributes({ [ERROR_TYPE]: 'tool_error' });
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    }
+  } else if (method === 'prompts/get') {
+    span.setAttributes(extractPromptResultAttributes(result, capturePolicy.recordOutputs));
+  }
+}
+
+/**
  * Completes span with results and cleans up correlation
  * @param transport - MCP transport instance
  * @param requestId - Request identifier
@@ -110,44 +162,8 @@ export function completeSpanWithResults(
   const spanMap = getOrCreateSpanMap(transport);
   const spanData = spanMap.get(requestId);
   if (spanData) {
-    const { span, method } = spanData;
-    const responseSessionData =
-      method === 'initialize'
-        ? extractSessionDataFromInitializeResponse(result)
-        : extractSessionDataFromResponse(result);
-    if (method === 'initialize' && (responseSessionData.protocolVersion || responseSessionData.serverInfo)) {
-      updateSessionDataForTransport(transport, responseSessionData);
-    }
-    const responseAttributes: Record<string, string | number> = {
-      ...buildServerAttributesFromInfo(responseSessionData.serverInfo),
-    };
-    if (responseSessionData.protocolVersion) {
-      responseAttributes[MCP_PROTOCOL_VERSION] = responseSessionData.protocolVersion;
-    }
-    if (Object.keys(responseAttributes).length > 0) {
-      span.setAttributes(responseAttributes);
-    }
-
-    if (error) {
-      span.setAttributes({ [RPC_RESPONSE_STATUS_CODE]: String(error.code) });
-      if (isJsonRpcServerError(error.code)) {
-        span.setAttributes({ [ERROR_TYPE]: String(error.code) });
-        span.setStatus({ code: SPAN_STATUS_ERROR, message: error.message });
-      }
-    } else if (method === 'tools/call') {
-      const toolAttributes = extractToolResultAttributes(result, spanData.capturePolicy.recordOutputs);
-      span.setAttributes(toolAttributes);
-      // oxlint-disable-next-line typescript/no-deprecated -- Preserve classification based on the existing tool result attribute.
-      if (toolAttributes[MCP_TOOL_RESULT_IS_ERROR] === true) {
-        span.setAttributes({ [ERROR_TYPE]: 'tool_error' });
-        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-      }
-    } else if (method === 'prompts/get') {
-      const promptAttributes = extractPromptResultAttributes(result, spanData.capturePolicy.recordOutputs);
-      span.setAttributes(promptAttributes);
-    }
-
-    span.end();
+    applyResponseToSpan(transport, spanData.span, spanData.method, result, error, spanData.capturePolicy);
+    spanData.span.end();
     spanMap.delete(requestId);
   }
 }
