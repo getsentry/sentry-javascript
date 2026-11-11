@@ -266,7 +266,10 @@ function replaceNames(field: string, names: string[], offset: number, dialect: C
 // `sat-sun` is `6-0`, which node-cron 4.6+ runs on Saturday and Sunday. Sentry only accepts it as `6-7`. The other
 // schedulers reject it.
 function endRangesOnSundayAsSeven(field: string): string {
-  return field.replace(/(\d+)-0(?!\d)/g, (range, start: string) => (Number(start) ? `${start}-7` : range));
+  return field
+    .split(',')
+    .map(part => part.replace(/^(\d+)-0(?!\d)/, (range, start: string) => (Number(start) ? `${start}-7` : range)))
+    .join(',');
 }
 
 // node-cron 4.6+ wraps these around (`22-2` hours), earlier versions swap them, the other schedulers reject them,
