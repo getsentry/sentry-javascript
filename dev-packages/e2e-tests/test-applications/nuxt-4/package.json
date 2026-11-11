@@ -68,9 +68,7 @@
         "build-command": "pnpm install",
         "assert-command": "pnpm test:assert:tunnel-basepath-dev",
         "label": "nuxt-4 (tunnel-basepath-dev)"
-      }
-    ],
-    "optionalVariants": [
+      },
       {
         "runtime": "bun",
         "assert-command": "pnpm test:prod",
@@ -86,7 +84,9 @@
         "runtime": "cloudflare",
         "assert-command": "pnpm test:prod",
         "label": "nuxt-4 (cloudflare)"
-      },
+      }
+    ],
+    "optionalVariants": [
       {
         "runtime": "cloudflare",
         "build-command": "pnpm test:build:tunnel-basepath",
