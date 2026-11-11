@@ -61,8 +61,7 @@ test('Should report an error with a parameterized span name for a throwing route
 
   // Error should carry the parameterized transaction name
   expect(errorEvent.transaction).toBe('GET /route-handler/[xoxo]/error');
-  // `@sentry/nextjs` has no Deno entry, so Deno runs the Node.js entry.
-  expect(errorEvent.contexts?.runtime?.name).toBe(getRuntime() === 'deno' ? 'node' : getRuntime());
+  expect(errorEvent.contexts?.runtime?.name).toBe(getRuntime());
 
   // Span should have parameterized name and an error status
   expect(span.name).toBe('GET /route-handler/[xoxo]/error');

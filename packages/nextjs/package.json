@@ -47,6 +47,10 @@
         "import": "./build/esm/index.bun.js",
         "require": "./build/cjs/index.bun.js"
       },
+      "deno": {
+        "import": "./build/esm/index.deno.js",
+        "require": "./build/cjs/index.deno.js"
+      },
       "node": "./build/cjs/index.server.js",
       "import": "./build/esm/index.server.js"
     },
@@ -105,6 +109,7 @@
   "devDependencies": {
     "@sentry-internal/rollup-utils": "11.12.0",
     "@sentry/bun": "11.12.0",
+    "@sentry/deno": "11.12.0",
     "cjs-module-lexer": "^2.2.0",
     "next": "15.5.28",
     "react": "^18.3.1",
@@ -112,10 +117,14 @@
   },
   "peerDependencies": {
     "@sentry/bun": "11.12.0",
+    "@sentry/deno": "11.12.0",
     "next": "^14.0 || ^15.0.0-rc.0 || ^16.0.0-0"
   },
   "peerDependenciesMeta": {
     "@sentry/bun": {
+      "optional": true
+    },
+    "@sentry/deno": {
       "optional": true
     }
   },

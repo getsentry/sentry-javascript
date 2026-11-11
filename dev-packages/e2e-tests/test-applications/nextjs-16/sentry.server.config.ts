@@ -1,4 +1,3 @@
-import { fetchIntegration as denoFetchIntegration } from '@sentry/deno';
 import * as Sentry from '@sentry/nextjs';
 import { Log } from '@sentry/nextjs';
 
@@ -13,8 +12,6 @@ Sentry.init({
   integrations: [
     Sentry.vercelAIIntegration(),
     Sentry.nodeRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 }),
-    // The `fetch` of Deno is not undici, so the Node SDK does not see outgoing requests.
-    ...(process.versions.deno ? [denoFetchIntegration()] : []),
   ],
   // Verify Log type is available
   beforeSendLog(log: Log) {
