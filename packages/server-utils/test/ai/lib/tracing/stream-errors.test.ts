@@ -176,6 +176,18 @@ describe('google-genai stream aborts', () => {
     expect(setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
   });
 
+  it("marks the span as errored when the caller's own timeout fired", async () => {
+    const { span, setStatus } = createMockSpan();
+    const timeoutSignal = AbortSignal.abort(new DOMException('The operation timed out', 'TimeoutError'));
+
+    await expect(drain(instrumentGoogleGenAIStream(abortedStream(), span, false, timeoutSignal))).rejects.toBe(
+      abortError,
+    );
+
+    expect(setStatus).toHaveBeenCalledTimes(1);
+    expect(setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+  });
+
   it("marks the span as errored when an abort didn't come from the caller's signal", async () => {
     const { span, setStatus } = createMockSpan();
 

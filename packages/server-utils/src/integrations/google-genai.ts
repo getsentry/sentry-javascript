@@ -10,11 +10,12 @@ import {
   spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
-import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
+import { getGenAiSpanOp, markCancelledIfAborted, resolveAIRecordingOptions } from '../ai/core/utils';
 import {
   addPrivateRequestAttributes,
   addResponseAttributes,
   extractRequestAttributes,
+  getAbortSignal,
   resolveChatParams,
 } from '../ai/google-genai';
 import { instrumentStream } from '../ai/google-genai/streaming';
@@ -54,6 +55,14 @@ function instrumentGoogleGenai(options: GoogleGenAIOptions): void {
       data => createGenAiSpan(data, operation, options),
       {
         beforeSpanEnd: (span, data) => {
+          if ('error' in data) {
+            const params = resolveChatParams(
+              operation,
+              data.arguments?.[0] as Record<string, unknown> | undefined,
+              data.self,
+            );
+            markCancelledIfAborted(span, getAbortSignal(params));
+          }
           // Embeddings responses carry no content attributes.
           if (operation !== 'embeddings') {
             addResponseAttributes(
@@ -154,7 +163,7 @@ function wrapStreamResult(
     { [Symbol.asyncIterator]: iterate },
     span,
     recordOutputs ?? false,
-    (params?.config as { abortSignal?: AbortSignal } | undefined)?.abortSignal,
+    getAbortSignal(params),
   );
   result[Symbol.asyncIterator] = () => instrumented;
 

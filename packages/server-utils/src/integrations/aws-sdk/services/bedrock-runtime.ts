@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { debug, SPAN_STATUS_ERROR } from '@sentry/core';
+import { debug } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
@@ -14,7 +14,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
 import type { StreamResponseState } from '../../../ai/core/utils';
-import { endStreamSpan, getTokenUsageAttributes } from '../../../ai/core/utils';
+import { endStreamSpan, getErrorStatus, getTokenUsageAttributes } from '../../../ai/core/utils';
 import { DEBUG_BUILD } from '../../../debug-build';
 import {
   GEN_AI_OPERATION_NAME_VALUE_CHAT,
@@ -425,7 +425,7 @@ async function* instrumentStream<T>(
       yield item;
     }
   } catch (error) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: abortSignal?.aborted ? 'cancelled' : 'internal_error' });
+    span.setStatus(getErrorStatus(abortSignal));
     throw error;
   } finally {
     endStreamSpan(span, state, false);

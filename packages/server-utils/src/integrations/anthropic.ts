@@ -9,7 +9,7 @@ import {
   hasSpanStreamingEnabled,
   startInactiveSpan,
 } from '@sentry/core';
-import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
+import { getGenAiSpanOp, getRequestSignal, markCancelledIfAborted, resolveAIRecordingOptions } from '../ai/core/utils';
 import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../ai/anthropic-ai';
 import { ANTHROPIC_AI_ORIGIN } from '../ai/anthropic-ai/constants';
@@ -66,6 +66,9 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
       data => createGenAiSpan(data, operation, options, stream),
       {
         beforeSpanEnd: (span, data) => {
+          if ('error' in data) {
+            markCancelledIfAborted(span, getRequestSignal(data.arguments?.[1]));
+          }
           addResponseAttributes(
             span,
             data.result as AnthropicAiResponse,

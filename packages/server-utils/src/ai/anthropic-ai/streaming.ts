@@ -312,14 +312,5 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
     }
   });
 
-  // An aborted stream emits only `abort` and `end`. We don't listen for `abort`: doing so would stop the SDK from
-  // raising an unhandled rejection when the caller never awaits the aborted stream.
-  stream.on('end', () => {
-    if (stream.aborted && span.isRecording()) {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
-    }
-    endStreamSpan(span, state, recordOutputs);
-  });
-
   return stream;
 }
