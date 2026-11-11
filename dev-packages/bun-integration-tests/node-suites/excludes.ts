@@ -4,13 +4,15 @@
 // `supports({ bunMin })`. Neither is listed here.
 
 // Node-only features: ANR and native thread watchdogs, child processes, the AWS Lambda Node runtime,
-// `node:sqlite`, which `flue` needs, and the Vercel keep-alive, which needs `http.server.response.finish`.
+// `node:sqlite`, which `flue` needs, the Vercel keep-alive, which needs `http.server.response.finish`, and
+// `bullmqJobSchedulerIntegration`, which `bun run` can't inject and the bundler plugins don't instrument.
 const NODE_ONLY = [
   'suites/anr/test.ts',
   'suites/aws-lambda-web/**',
   'suites/aws-serverless/**',
   'suites/breadcrumbs/**',
   'suites/child-process/test.ts',
+  'suites/cron/bullmq/test.ts',
   'suites/thread-blocked-native/test.ts',
   'suites/tracing/flue/test.ts',
   'suites/vercel/keep-alive/test.ts',
@@ -66,7 +68,6 @@ const NO_FETCH_INSTRUMENTATION = [
 // instrumentation creates no spans. Apps must be built with `@sentry/bun/plugin`.
 // See https://github.com/getsentry/sentry-javascript/issues/23882
 export const NO_AUTO_INSTRUMENTATION = [
-  'suites/cron/bullmq/test.ts',
   'suites/cron/cron-integration/test.ts',
   'suites/cron/node-cron/integration/test.ts',
   'suites/cron/node-schedule-integration/test.ts',
@@ -226,9 +227,6 @@ const BUN_BUILD_EAGER_SUBSCRIPTION = ['suites/tracing/orchestrion-lazy-registrat
 // `http.server.request.start`.
 const BUN_BUILD_NO_HTTP_SERVER_INTEGRATION = ['suites/express/multiple-init/test.ts'];
 
-// The bundler plugins don't instrument BullMQ, since it can't start sandboxed processors when bundled.
-const BUN_BUILD_RUNTIME_ONLY_INSTRUMENTATION = ['suites/cron/bullmq/test.ts'];
-
 // `@mistralai/mistralai` v3 statically imports its optional peer `@livekit/rtc-node`, so Bun cannot
 // bundle the scenarios. `mistral-v2` still covers Mistral here.
 const BUN_BUILD_UNBUNDLEABLE_DEPENDENCY = ['suites/tracing/mistral/test.ts'];
@@ -272,7 +270,6 @@ export const BUN_BUILD_EXCLUDE = [
   'suites/tracing/tedious/test.ts',
   ...BUN_BUILD_EAGER_SUBSCRIPTION,
   ...BUN_BUILD_NO_HTTP_SERVER_INTEGRATION,
-  ...BUN_BUILD_RUNTIME_ONLY_INSTRUMENTATION,
   ...BUN_BUILD_UNBUNDLEABLE_DEPENDENCY,
   ...BUN_BUILD_NOT_TRIAGED,
 ];
