@@ -2,6 +2,7 @@ import * as fs from 'fs';
 
 const REQUIRED_REVIEWERS = 3;
 const TEAM_SLUG = 'team-javascript-sdks';
+// Managers who are members (and code owners) of the SDK teams, but should never be auto-requested for review.
 const NEVER_REQUEST = ['mydea', 'stephanie-anderson'];
 const CODEOWNERS_PATH = '.github/CODEOWNERS';
 
