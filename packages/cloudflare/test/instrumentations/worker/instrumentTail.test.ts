@@ -424,6 +424,31 @@ describe('instrumentTailStream', () => {
     });
   });
 
+  test('supports getters that read private fields on the returned event handler object', async () => {
+    class Collector {
+      #count = 0;
+
+      get outcome(): () => number {
+        return () => ++this.#count;
+      }
+    }
+
+    const handler = {
+      tailStream(_event, _env, _context) {
+        return new Collector();
+      },
+    } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+    const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN }), handler);
+    const returned = (await wrappedHandler.tailStream?.(
+      onsetEvent,
+      MOCK_ENV,
+      createMockExecutionContext(),
+    )) as unknown as Collector;
+
+    await expect(returned.outcome.call(returned)).resolves.toBe(1);
+  });
+
   test('does not start a nested invocation when an event handler method calls another method', async () => {
     const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind');
     const handler = {

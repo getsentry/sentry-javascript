@@ -76,10 +76,11 @@ function wrapTailStreamEventHandler(
 
   if (eventHandler && typeof eventHandler === 'object') {
     const proxy: object = new Proxy(eventHandler, {
-      get(target, prop, receiver) {
-        const value = Reflect.get(target, prop, receiver);
-        // workerd calls each method with the proxy as `this`. Rebinding
-        // to the raw object keeps `this.helper()` in this invocation.
+      get(target, prop) {
+        // Getters and methods run with the raw object as `this`, so private
+        // fields work. workerd calls each method with the proxy as `this`.
+        // Rebinding it also keeps `this.helper()` in this invocation.
+        const value = Reflect.get(target, prop, target);
         return typeof value === 'function'
           ? wrap(value as UncheckedMethod, thisArg => (thisArg === proxy ? target : thisArg))
           : value;
