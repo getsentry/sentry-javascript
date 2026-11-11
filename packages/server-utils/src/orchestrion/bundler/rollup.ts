@@ -45,7 +45,7 @@ export interface CommonJSInteropOptions {
  * `@rollup/plugin-commonjs` options for builds that bundle CommonJS packages while their
  * dependencies stay external. Builtin `require()`s unwrap to the module (a namespace breaks
  * direct calls) and convert inside `try` blocks (a bare `require` throws in ESM output).
- * Externals keep `'auto'`, which {@link sentryCommonJSInteropPlugin} fixes for Node >= 23.
+ * Externals keep `'auto'`, which {@link sentryCommonJSInteropPlugin} fixes for Node >= 23, Deno and Bun.
  */
 export function commonJSInteropOptions(): CommonJSInteropOptions {
   return {
@@ -57,14 +57,18 @@ export function commonJSInteropOptions(): CommonJSInteropOptions {
 const COMMONJS_HELPERS_ID = '\0commonjsHelpers.js';
 
 // The plugin's `'auto'` helper unwraps a required external module only when `default` is the
-// sole key on its namespace. Node >= 23 adds a `'module.exports'` key to every CommonJS
-// namespace (nodejs/node#53848), so the check never passes. Ignoring that key restores it.
+// sole key on its namespace. Node >= 23 and Deno add a `'module.exports'` key to every CommonJS
+// namespace (nodejs/node#53848), so ignoring that key restores the check there. Bun adds a key
+// for each own property of `module.exports`, which for a function includes the non-enumerable
+// `length` and `name`. No ES module namespace mirrors a non-enumerable property of its default
+// export, so such a key marks a CommonJS function export on Bun.
 const BROKEN_NAMESPACE_CHECK = 'Object.keys(n).length === 1';
-const FIXED_NAMESPACE_CHECK = "Object.keys(n).filter(k => k !== 'module.exports').length === 1";
+const FIXED_NAMESPACE_CHECK =
+  "(Object.keys(n).filter(k => k !== 'module.exports').length === 1 || (typeof n['default'] === 'function' && Object.keys(n).some(k => Object.getOwnPropertyDescriptor(n['default'], k)?.enumerable === false)))";
 
 /**
- * Fixes `@rollup/plugin-commonjs`' `'auto'` interop for Node >= 23 by patching the broken
- * namespace check in its helpers module. The patch applies only while the exact broken
+ * Fixes `@rollup/plugin-commonjs`' `'auto'` interop for Node >= 23, Deno and Bun by patching the
+ * broken namespace check in its helpers module. The patch applies only while the exact broken
  * expression exists, so it retires itself once the plugin is fixed upstream.
  */
 export function sentryCommonJSInteropPlugin(): Plugin {

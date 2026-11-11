@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { IMPORT_SURFACES } from './importSurfaces';
 import { isViteServer, NITRO_ONLY, NO_META_TAGS } from './isViteServer';
+import { RUNTIME, SERVER_ORIGIN } from './runtime';
 
 test.describe('distributed tracing', () => {
   const PARAM = 's0me-param';
@@ -27,8 +28,14 @@ test.describe('distributed tracing', () => {
     await expect(page.locator('meta[name="baggage"]')).toHaveCount(1);
     const baggageMetaTagContent = await page.locator('meta[name="baggage"]').getAttribute('content');
 
-    // URL-encoded for parametrized 'GET /test-param/s0me-param' -> `GET /test-param/:param`
-    expect(baggageMetaTagContent).toContain(`sentry-transaction=GET%20%2Ftest-param%2F%3Aparam`);
+    if (RUNTIME === 'cloudflare') {
+      // `sentryCloudflareNitroPlugin` takes the trace data of the meta tags when the request starts, before the
+      // route names the segment.
+      expect(baggageMetaTagContent).not.toContain('sentry-transaction=');
+    } else {
+      // URL-encoded for parametrized 'GET /test-param/s0me-param' -> `GET /test-param/:param`
+      expect(baggageMetaTagContent).toContain(`sentry-transaction=GET%20%2Ftest-param%2F%3Aparam`);
+    }
     expect(baggageMetaTagContent).toContain(`sentry-trace_id=${serverSpan.trace_id}`);
     expect(baggageMetaTagContent).toContain('sentry-sampled=true');
     expect(baggageMetaTagContent).toContain('sentry-sample_rate=1');
@@ -55,7 +62,7 @@ test.describe('distributed tracing', () => {
       is_segment: true,
       attributes: expect.objectContaining({
         'sentry.op': { type: 'string', value: 'http.server' },
-        'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
+        'sentry.origin': { type: 'string', value: SERVER_ORIGIN },
         'sentry.segment.name.source': { type: 'string', value: 'route' },
       }),
     });
@@ -135,7 +142,7 @@ test.describe('distributed tracing', () => {
         is_segment: true,
         attributes: expect.objectContaining({
           'sentry.op': { type: 'string', value: 'http.server' },
-          'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
+          'sentry.origin': { type: 'string', value: SERVER_ORIGIN },
           'sentry.segment.name.source': { type: 'string', value: 'route' },
         }),
       });
@@ -146,7 +153,7 @@ test.describe('distributed tracing', () => {
         parent_span_id: httpClientSpan?.span_id, // http.client span is parent
         attributes: expect.objectContaining({
           'sentry.op': { type: 'string', value: 'http.server' },
-          'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
+          'sentry.origin': { type: 'string', value: SERVER_ORIGIN },
         }),
       });
 

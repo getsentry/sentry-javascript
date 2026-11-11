@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 import { isViteServer, NITRO_ONLY } from './isViteServer';
+import { dbNamespaceAttribute } from './runtime';
 
 test.skip(isViteServer, NITRO_ONLY);
 
@@ -29,7 +30,7 @@ test.describe('multiple database instances', () => {
       'db.query.summary': { type: 'string', value: 'SELECT default_table' },
       'db.query.text': { type: 'string', value: 'SELECT * FROM default_table WHERE id = ?' },
       'db.system.name': { type: 'string', value: 'sqlite' },
-      'db.namespace': { type: 'string', value: 'db.sqlite' },
+      ...dbNamespaceAttribute('db'),
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
     });
   });
@@ -48,7 +49,7 @@ test.describe('multiple database instances', () => {
       'db.query.summary': { type: 'string', value: 'SELECT user_profiles' },
       'db.query.text': { type: 'string', value: 'SELECT * FROM user_profiles WHERE id = ?' },
       'db.system.name': { type: 'string', value: 'sqlite' },
-      'db.namespace': { type: 'string', value: 'users_db.sqlite' },
+      ...dbNamespaceAttribute('users_db'),
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
     });
   });
@@ -67,7 +68,7 @@ test.describe('multiple database instances', () => {
       'db.query.summary': { type: 'string', value: 'SELECT events' },
       'db.query.text': { type: 'string', value: 'SELECT * FROM events WHERE id = ?' },
       'db.system.name': { type: 'string', value: 'sqlite' },
-      'db.namespace': { type: 'string', value: 'analytics_db.sqlite' },
+      ...dbNamespaceAttribute('analytics_db'),
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
     });
   });
@@ -88,21 +89,21 @@ test.describe('multiple database instances', () => {
     expect(sessionSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'SELECT sessions' },
       'db.query.text': { type: 'string', value: 'SELECT * FROM sessions WHERE id = ?' },
-      'db.namespace': { type: 'string', value: 'db.sqlite' },
+      ...dbNamespaceAttribute('db'),
       'db.system.name': { type: 'string', value: 'sqlite' },
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
     });
     expect(accountSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'SELECT accounts' },
       'db.query.text': { type: 'string', value: 'SELECT * FROM accounts WHERE id = ?' },
-      'db.namespace': { type: 'string', value: 'users_db.sqlite' },
+      ...dbNamespaceAttribute('users_db'),
       'db.system.name': { type: 'string', value: 'sqlite' },
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
     });
     expect(metricSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'SELECT metrics' },
       'db.query.text': { type: 'string', value: 'SELECT * FROM metrics WHERE id = ?' },
-      'db.namespace': { type: 'string', value: 'analytics_db.sqlite' },
+      ...dbNamespaceAttribute('analytics_db'),
       'db.system.name': { type: 'string', value: 'sqlite' },
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
     });
@@ -128,7 +129,7 @@ test.describe('multiple database instances', () => {
       'db.query.summary': { type: 'string', value: 'INSERT logs' },
       'db.query.text': { type: 'string', value: 'INSERT INTO logs (message) VALUES (?)' },
       'db.system.name': { type: 'string', value: 'sqlite' },
-      'db.namespace': { type: 'string', value: 'db.sqlite' },
+      ...dbNamespaceAttribute('db'),
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
     });
 
@@ -137,7 +138,7 @@ test.describe('multiple database instances', () => {
       'db.query.summary': { type: 'string', value: 'INSERT audit_logs' },
       'db.query.text': { type: 'string', value: 'INSERT INTO audit_logs (action) VALUES (?)' },
       'db.system.name': { type: 'string', value: 'sqlite' },
-      'db.namespace': { type: 'string', value: 'users_db.sqlite' },
+      ...dbNamespaceAttribute('users_db'),
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
     });
   });
