@@ -142,7 +142,7 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
 
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining(
-        "a file they load is missing from the deployed output (Cannot find module '/var/task/hook.js')",
+        "your deployment is missing a file from `@sentry/server-runtime-injection` (Cannot find module '/var/task/hook.js')",
       ),
     );
     expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtimeUnavailable).toBe(true);

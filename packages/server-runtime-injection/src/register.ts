@@ -348,7 +348,9 @@ export function registerDiagnosticsChannelInjection(): void {
     const missingFile = (error as { code?: unknown } | null)?.code === 'ERR_MODULE_NOT_FOUND';
     warnRuntimeUnavailable(
       missingFile
-        ? `Failed to register diagnostics-channel injection hooks because a file they load is missing from the deployed output (${reason}). The build did not ship all of @sentry/server-runtime-injection, so channel-based integrations will not record spans.`
+        ? 'Channel-based integrations will not record spans: your deployment is missing a file from ' +
+            `\`@sentry/server-runtime-injection\` (${reason}). Your build's file tracing left it out. Deploy the ` +
+            'whole `@sentry/server-runtime-injection` package directory with your server.'
         : `Failed to register diagnostics-channel injection hooks (${reason}), so channel-based integrations will not record spans.`,
     );
     debug.warn('Diagnostics-channel injection registration error:', error);
