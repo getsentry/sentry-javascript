@@ -10,9 +10,7 @@
 
 import { MCP_METHOD_NAME } from '@sentry/conventions/attributes';
 import { getClient } from '../../currentScopes';
-import { DEBUG_BUILD } from '../../debug-build';
 import type { Span } from '../../types/span';
-import { debug } from '../../utils/debug-logger';
 import { isObjectLike } from '../../utils/is';
 import { spanToJSON } from '../../utils/spanUtils';
 import { GLOBAL_OBJ } from '../../utils/worldwide';
@@ -85,17 +83,11 @@ export function decorateUpstreamInstrumentation(serverInstance: object): void {
   }
 
   const original = protocol._instrumentation as UpstreamInstrumentation;
-  const decorated: UpstreamInstrumentation = {
+  protocol._instrumentation = {
     ...original,
-    receive: operation => receiveWithHandoff(original, operation),
+    receive: (operation: UpstreamOperation) => receiveWithHandoff(original, operation),
   };
-
-  try {
-    protocol._instrumentation = decorated;
-    decoratedProtocols.add(protocol);
-  } catch {
-    DEBUG_BUILD && debug.warn('Could not hand off MCP spans to the MCP SDK instrumentation.');
-  }
+  decoratedProtocols.add(protocol);
 }
 
 /**
@@ -124,34 +116,15 @@ export function withInboundHandoff<T>(handoff: InboundHandoff, callback: () => T
   }
 }
 
-/**
- * The span the MCP SDK started for an outbound notification. The SDK sends the notification inside
- * its scope, so the span is the active one at `transport.send`.
- */
-export function getUpstreamSpanForOutboundNotification(activeSpan: Span | undefined, method: string): Span | undefined {
-  if (!activeSpan) {
-    return undefined;
-  }
-  return spanToJSON(activeSpan).attributes[MCP_METHOD_NAME] === method ? activeSpan : undefined;
-}
-
-function takeHandoff(operation: UpstreamOperation): InboundHandoff | undefined {
-  const handoff = pendingHandoff;
-  if (!handoff || handoff.method !== operation.method || handoff.id !== operation.id) {
-    return undefined;
-  }
-  pendingHandoff = undefined;
-  return handoff;
-}
-
 function receiveWithHandoff(
   original: UpstreamInstrumentation,
   operation: UpstreamOperation,
 ): UpstreamScope | undefined {
-  const handoff = takeHandoff(operation);
-  if (!handoff) {
+  const handoff = pendingHandoff;
+  if (!handoff || handoff.method !== operation.method || handoff.id !== operation.id) {
     return original.receive?.(operation);
   }
+  pendingHandoff = undefined;
 
   const { scope, span } = captureStartedSpan(() => original.receive?.(operation));
 
