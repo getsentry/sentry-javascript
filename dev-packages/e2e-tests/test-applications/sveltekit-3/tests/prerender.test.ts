@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
+import { PAGELOAD } from '@sentry/conventions/op';
 
 function sentryMetaTagNames(html: string): string[] {
   return [...html.matchAll(/<meta name="(sentry-[\w-]+|baggage)"/g)].map(match => match[1] ?? '');
@@ -22,38 +24,38 @@ const VERCEL_ISR_HEADERS = { 'x-vercel-isr': '1' };
 
 test('marks the pageload of a prerendered page as statically rendered, without a link', async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('sveltekit-3', span => {
-    return span.name === '/prerendered' && getSpanOp(span) === 'pageload' && span.is_segment;
+    return span.name === '/prerendered' && getSpanOp(span) === PAGELOAD && span.is_segment;
   });
 
   await page.goto('/prerendered');
   const pageloadSpan = await pageloadSpanPromise;
 
-  expect(pageloadSpan.attributes?.['page.server_rendering.type']).toEqual({ type: 'string', value: 'static' });
+  expect(pageloadSpan.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toEqual({ type: 'string', value: 'static' });
   expect(pageloadSpan.links).toBeUndefined();
   expect(pageloadSpan.parent_span_id).toBeUndefined();
 });
 
 test("doesn't mark the pageload of a prerendered client-side shell", async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('sveltekit-3', span => {
-    return span.name === '/prerendered-shell' && getSpanOp(span) === 'pageload' && span.is_segment;
+    return span.name === '/prerendered-shell' && getSpanOp(span) === PAGELOAD && span.is_segment;
   });
 
   await page.goto('/prerendered-shell');
   const pageloadSpan = await pageloadSpanPromise;
 
-  expect(pageloadSpan.attributes?.['page.server_rendering.type']).toBeUndefined();
+  expect(pageloadSpan.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toBeUndefined();
   expect(pageloadSpan.parent_span_id).toBeUndefined();
 });
 
 test("doesn't mark the pageload of a server-rendered page, which continues the server trace", async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('sveltekit-3', span => {
-    return span.name === '/' && getSpanOp(span) === 'pageload' && span.is_segment;
+    return span.name === '/' && getSpanOp(span) === PAGELOAD && span.is_segment;
   });
 
   await page.goto('/');
   const pageloadSpan = await pageloadSpanPromise;
 
-  expect(pageloadSpan.attributes?.['page.server_rendering.type']).toBeUndefined();
+  expect(pageloadSpan.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toBeUndefined();
   expect(pageloadSpan.parent_span_id).toMatch(/^[a-f0-9]{16}$/);
 });
 
@@ -63,7 +65,7 @@ test('marks the pageload of a Vercel ISR page as statically rendered and links t
   const [seconds, nanoseconds] = process.hrtime();
   const requestStart = seconds * 1e9 + nanoseconds;
   const pageloadSpanPromise = waitForStreamedSpan('sveltekit-3', span => {
-    return span.name === '/' && getSpanOp(span) === 'pageload' && span.is_segment;
+    return span.name === '/' && getSpanOp(span) === PAGELOAD && span.is_segment;
   });
 
   // Only on the document: on the SDK's cross-origin envelope requests, the header would need a preflight.
@@ -80,7 +82,7 @@ test('marks the pageload of a Vercel ISR page as statically rendered and links t
   ]);
 
   expect(originSpan.trace_id).toBe(originTraceId);
-  expect(pageloadSpan.attributes?.['page.server_rendering.type']).toEqual({ type: 'string', value: 'static' });
+  expect(pageloadSpan.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toEqual({ type: 'string', value: 'static' });
   expect(pageloadSpan.parent_span_id).toBeUndefined();
   expect(pageloadSpan.trace_id).not.toBe(originTraceId);
   expect(pageloadSpan.links).toEqual([
@@ -88,7 +90,7 @@ test('marks the pageload of a Vercel ISR page as statically rendered and links t
       trace_id: originTraceId,
       span_id: originSpanId,
       sampled: true,
-      attributes: { 'sentry.link.type': { type: 'string', value: 'cache_origin' } },
+      attributes: { [SENTRY_LINK_TYPE]: { type: 'string', value: 'cache_origin' } },
     },
   ]);
 });

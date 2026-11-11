@@ -12,6 +12,7 @@ import {
   URL_TEMPLATE,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { PAGELOAD } from '@sentry/conventions/op';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentSvelteKitTracing } from '../../src/client/svelte5BrowserTracing';
 import { CACHE_ORIGIN_META_TAG_NAME } from '../../src/common/traceMetaTags';
@@ -116,7 +117,7 @@ describe('svelte5 browser tracing', () => {
       expect(startPageLoadSpanSpy).toHaveBeenCalledWith(client, {
         name: '/',
         attributes: {
-          [SENTRY_OP]: 'pageload',
+          [SENTRY_OP]: PAGELOAD,
           [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
           [PAGE_SERVER_RENDERING_TYPE]: 'static',

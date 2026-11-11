@@ -2,11 +2,12 @@
  * @vitest-environment jsdom
  */
 
-import { PAGE_SERVER_RENDERING_TYPE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { PAGELOAD } from '@sentry/conventions/op';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { withCacheOrigin } from '../../src/client/traceMetaTags';
 
-const spanOptions = { name: '/pricing', attributes: { [SENTRY_OP]: 'pageload' } };
+const spanOptions = { name: '/pricing', attributes: { [SENTRY_OP]: PAGELOAD } };
 
 function addCacheOriginTag(content: string): void {
   const tag = document.createElement('meta');
@@ -29,11 +30,11 @@ describe('withCacheOrigin', () => {
 
     expect(withCacheOrigin(spanOptions)).toEqual({
       name: '/pricing',
-      attributes: { [SENTRY_OP]: 'pageload', [PAGE_SERVER_RENDERING_TYPE]: 'static' },
+      attributes: { [SENTRY_OP]: PAGELOAD, [PAGE_SERVER_RENDERING_TYPE]: 'static' },
       links: [
         {
           context: { traceId: '0b37aaf4f0d74c0e80875099e7d7ca68', spanId: 'bc3a52360214dcf3', traceFlags: 1 },
-          attributes: { 'sentry.link.type': 'cache_origin' },
+          attributes: { [SENTRY_LINK_TYPE]: 'cache_origin' },
         },
       ],
     });
@@ -49,7 +50,7 @@ describe('withCacheOrigin', () => {
 
     expect(withCacheOrigin(spanOptions)).toEqual({
       name: '/pricing',
-      attributes: { [SENTRY_OP]: 'pageload', [PAGE_SERVER_RENDERING_TYPE]: 'static' },
+      attributes: { [SENTRY_OP]: PAGELOAD, [PAGE_SERVER_RENDERING_TYPE]: 'static' },
     });
   });
 });

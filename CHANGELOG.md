@@ -23,7 +23,7 @@ Work in this release was contributed by @lazerg, @rjmcgee53192, @adityankale1908
 
   Builds in development mode or without an auth token, org and project do not change.
 
-- **feat(sveltekit): Mark pageloads of prerendered and Vercel ISR pages ([#26301](https://github.com/getsentry/sentry-javascript/pull/26301), [#26306](https://github.com/getsentry/sentry-javascript/pull/26306))**
+- **feat(sveltekit): Mark pageloads of prerendered and Vercel ISR pages ([#26301](https://github.com/getsentry/sentry-javascript/pull/26301), [#26307](https://github.com/getsentry/sentry-javascript/pull/26307))**
 
   When SvelteKit serves a page that it rendered earlier, the pageload now has the `page.server_rendering.type: static` attribute. This covers pages prerendered during `vite build` and pages that Vercel caches with ISR (`config.isr`). For an ISR page, the pageload also links to the request that rendered the page, if that request was sampled.
 
