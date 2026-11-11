@@ -1,5 +1,6 @@
 import type { AstroConfig } from 'astro';
 import { builtinModules } from 'module';
+import { SERVER_INIT_IMPORT } from './serverInit';
 
 // Derived from Astro's own config type rather than imported from `vite` directly: Astro bundles its
 // own Vite version, which differs across the Astro majors we support. A plugin typed against any
@@ -42,20 +43,17 @@ export function sentryCloudflareNodeWarningPlugin(): VitePlugin {
 export const WORKER_ENTRY_IDS = ['astrojs-ssr-virtual-entry', 'virtual:cloudflare/worker-entry'];
 
 /**
- * A Vite plugin that ensures the Sentry server config is loaded at the
- * top level of the Cloudflare Worker entry module, rather than only being
- * injected into SSR page modules via `injectScript('page-ssr', ...)`.
- *
- * Without this, Astro actions and API routes never call `Sentry.init()`,
- * because `injectScript('page-ssr')` only adds the import to page components.
- *
- * Additionally, this plugin wraps the Worker's default export handler with
- * `@sentry/cloudflare`'s `withSentry` to provide:
+ * A Vite plugin that wraps the Worker's default export handler with `@sentry/cloudflare`'s `withSentry` to provide:
  * - `setAsyncLocalStorageAsyncContextStrategy()` for proper async context
  * - Per-request isolation scopes via `wrapRequestHandler`
  * - Trace context propagation
+ *
+ * With `importServerInit`, it also imports the server init at the top of the Worker entry. The wrap inits a client
+ * from the Wrangler bindings on each request, and the isolate keeps the first client it gets. So the user's
+ * `Sentry.init()` has to run before that, or it gets back the bindings-only client and its options are ignored.
+ * This also runs the init for actions and API routes, which `injectScript('page-ssr')` doesn't reach.
  */
-export function sentryCloudflareVitePlugin(): VitePlugin {
+export function sentryCloudflareVitePlugin({ importServerInit = false } = {}): VitePlugin {
   return {
     name: 'sentry-astro-cloudflare',
     enforce: 'post',
@@ -77,6 +75,7 @@ export function sentryCloudflareVitePlugin(): VitePlugin {
       const originalExpr = defaultExportMatch[1];
       const wrappedExport = `export default withSentry(() => undefined, ${originalExpr});`;
       const transformedCode = [
+        ...(importServerInit ? [SERVER_INIT_IMPORT.trim()] : []),
         "import { withSentry } from '@sentry/cloudflare';",
         code.replace(defaultExportMatch[0], wrappedExport),
       ].join('\n');

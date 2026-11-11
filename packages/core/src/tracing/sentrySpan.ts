@@ -588,7 +588,7 @@ function sendStandaloneSpan(span: SentrySpan, client: Client): void {
     return;
   }
 
-  const { _segmentSpan, ...serializedSpan } = captureSpan(span, client);
+  const { _segmentSpan, _segmentNameAtCapture, ...serializedSpan } = captureSpan(span, client);
   const dsc = getDynamicSamplingContextFromSpan(_segmentSpan);
   // sendEnvelope should not throw
   // eslint-disable-next-line @typescript-eslint/no-floating-promises

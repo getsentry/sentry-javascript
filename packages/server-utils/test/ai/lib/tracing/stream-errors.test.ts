@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Span } from '@sentry/core';
 import { SPAN_STATUS_ERROR } from '@sentry/core';
 import { GEN_AI_RESPONSE_STREAMING, GEN_AI_USAGE_INPUT_TOKENS } from '@sentry/conventions/attributes';
-import { instrumentAsyncIterableStream } from '../../../../src/ai/anthropic-ai/streaming';
+import { EventEmitter } from 'node:events';
+import { instrumentAsyncIterableStream, instrumentMessageStream } from '../../../../src/ai/anthropic-ai/streaming';
 import { instrumentStream as instrumentGoogleGenAIStream } from '../../../../src/ai/google-genai/streaming';
 import type { GoogleGenAIResponse } from '../../../../src/ai/google-genai/types';
 import { instrumentStream as instrumentOpenAIStream } from '../../../../src/ai/openai/streaming';
@@ -108,6 +109,49 @@ describe.each(providers)('$name stream errors', ({ instrument, chunks }) => {
     expect(setStatus).not.toHaveBeenCalled();
     expect(span.isRecording()).toBe(false);
     expect(attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBe(8);
+  });
+});
+
+describe('anthropic message stream aborts', () => {
+  it('leaves the status alone and ends the span once when the stream completes', () => {
+    const { span, setStatus } = createMockSpan();
+    const end = vi.spyOn(span, 'end');
+    const stream = Object.assign(new EventEmitter(), { aborted: false });
+    instrumentMessageStream(stream, span, false);
+
+    stream.emit('message', {});
+    stream.emit('end');
+
+    expect(setStatus).not.toHaveBeenCalled();
+    expect(end).toHaveBeenCalledTimes(1);
+  });
+
+  it('marks the span as cancelled and keeps the partial usage when the stream is aborted', () => {
+    const { span, attributes, setStatus } = createMockSpan();
+    const stream = Object.assign(new EventEmitter(), { aborted: false });
+    instrumentMessageStream(stream, span, false);
+
+    stream.emit('streamEvent', {
+      type: 'message_start',
+      message: { id: 'msg_1', model: 'claude-sonnet-4-5', usage: { input_tokens: 8 } },
+    });
+    stream.aborted = true;
+    stream.emit('abort', new Error('Request was aborted.'));
+    stream.emit('end');
+
+    expect(setStatus).toHaveBeenCalledTimes(1);
+    expect(setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
+    expect(span.isRecording()).toBe(false);
+    expect(attributes[GEN_AI_RESPONSE_STREAMING]).toBe(true);
+    expect(attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBe(8);
+  });
+
+  it('does not listen for abort, so an unobserved abort still raises an unhandled rejection', () => {
+    const { span } = createMockSpan();
+    const stream = new EventEmitter();
+    instrumentMessageStream(stream, span, false);
+
+    expect(stream.listenerCount('abort')).toBe(0);
   });
 });
 

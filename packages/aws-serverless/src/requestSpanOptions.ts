@@ -41,6 +41,8 @@ import {
 import type { Context } from 'aws-lambda';
 import { getHttpRequestAttributes } from './httpEventAttributes';
 
+const DEFAULT_PORTS: Record<string, string | undefined> = { http: '80', https: '443' };
+
 interface ApiGatewayLikeEvent {
   headers?: Record<string, string | undefined>;
   path?: string;
@@ -124,7 +126,8 @@ function extractFullUrl(event: ApiGatewayLikeEvent): string | undefined {
     return undefined;
   }
   let answer = `${proto}://${host}`;
-  if (port) {
+  // Clients put non-default ports into the host header, which ALB passes through as is.
+  if (port && port !== DEFAULT_PORTS[proto] && !/:\d+$/.test(host)) {
     answer += `:${port}`;
   }
   answer += event.path ?? event.rawPath;

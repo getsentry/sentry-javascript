@@ -51,7 +51,7 @@ export function instrumentXHR(): void {
       const method = isString(xhrOpenArgArray[0]) ? xhrOpenArgArray[0].toUpperCase() : undefined;
       const url = parseXhrUrlArg(xhrOpenArgArray[1]);
 
-      if (!method || !url) {
+      if (!method || url === undefined) {
         return originalOpen.apply(xhrOpenThisArg, xhrOpenArgArray);
       }
 

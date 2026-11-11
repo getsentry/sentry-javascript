@@ -1,6 +1,6 @@
 {
   "name": "@sentry/replay-canvas",
-  "version": "11.11.0",
+  "version": "11.12.0",
   "description": "Replay canvas integration",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
@@ -35,7 +35,7 @@
     "build:bundle:watch": "pnpm run build:bundle --watch",
     "build:tarball": "pnpm pack",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build sentry-replay-*.tgz",
+    "clean": "node ../../scripts/rm.mjs build sentry-replay-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
@@ -58,12 +58,12 @@
   },
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
-    "@sentry-internal/rollup-utils": "11.11.0",
-    "@sentry/rrweb": "2.45.0"
+    "@sentry-internal/rollup-utils": "11.12.0",
+    "@sentry/rrweb": "2.46.0"
   },
   "dependencies": {
-    "@sentry/replay": "11.11.0",
-    "@sentry/core": "11.11.0"
+    "@sentry/replay": "11.12.0",
+    "@sentry/core": "11.12.0"
   },
   "engines": {
     "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"

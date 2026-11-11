@@ -27,7 +27,6 @@
     "@types/express": "^4.17.17",
     "@types/node": "^18.19.1",
     "ts-loader": "^9.4.3",
-    "tsconfig-paths": "^4.2.0",
     "typescript": "~5.0.0"
   }
 }

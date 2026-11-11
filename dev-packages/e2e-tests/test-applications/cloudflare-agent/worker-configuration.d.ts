@@ -6,11 +6,12 @@ interface __BaseEnv_Env {
   MyAgent: DurableObjectNamespace<import('./worker/index').MyAgent>;
   MyChatAgent: DurableObjectNamespace<import('./worker/index').MyChatAgent>;
   MyManualChatAgent: DurableObjectNamespace<import('./worker/index').MyManualChatAgent>;
+  MyRecoveringAgent: DurableObjectNamespace<import('./worker/index').MyRecoveringAgent>;
 }
 declare namespace Cloudflare {
   interface GlobalProps {
     mainModule: typeof import('./worker/index');
-    durableNamespaces: 'MyAgent' | 'MyChatAgent' | 'MyManualChatAgent';
+    durableNamespaces: 'MyAgent' | 'MyChatAgent' | 'MyManualChatAgent' | 'MyRecoveringAgent';
   }
   interface Env extends __BaseEnv_Env {}
 }

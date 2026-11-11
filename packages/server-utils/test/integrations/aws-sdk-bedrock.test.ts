@@ -4,6 +4,7 @@ import {
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
@@ -220,6 +221,58 @@ describe('BedrockRuntimeServiceExtension stream spans', () => {
     }).toEqual(expected);
   });
 
+  it.each([
+    {
+      family: 'Llama',
+      modelId: 'meta.llama3-8b-instruct-v1:0',
+      chunks: [
+        { generation: 'Kawasaki', prompt_token_count: 12, generation_token_count: 1, stop_reason: null },
+        { generation: '.', prompt_token_count: null, generation_token_count: 2, stop_reason: 'stop' },
+      ],
+      expected: { input: 12, output: 2, total: 14, finishReasons: '["stop"]' },
+    },
+    {
+      family: 'Titan',
+      modelId: 'amazon.titan-text-express-v1',
+      chunks: [
+        { outputText: 'Kawasaki', totalOutputTextTokenCount: null, completionReason: null, inputTextTokenCount: 5 },
+        { outputText: '.', totalOutputTextTokenCount: 2, completionReason: 'FINISH', inputTextTokenCount: null },
+      ],
+      expected: { input: 5, output: 2, total: 7, finishReasons: '["FINISH"]' },
+    },
+    {
+      family: 'Nova',
+      modelId: 'amazon.nova-lite-v1:0',
+      chunks: [
+        { contentBlockDelta: { delta: { text: 'Kawasaki' }, contentBlockIndex: 0 } },
+        { messageStop: { stopReason: 'end_turn' } },
+        { metadata: { usage: { inputTokens: 7, outputTokens: 2 }, metrics: {}, trace: {} } },
+      ],
+      expected: { input: 7, output: 2, total: 9, finishReasons: '["end_turn"]' },
+    },
+  ])('records token usage and finish reasons for a $family stream', async ({ modelId, chunks, expected }) => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const encoder = new TextEncoder();
+    const data = {
+      body: (async function* () {
+        for (const chunk of chunks) {
+          yield { chunk: { bytes: encoder.encode(JSON.stringify(chunk)) } };
+        }
+      })(),
+    };
+
+    respond(span, 'InvokeModelWithResponseStream', { modelId }, data);
+    await drain(data.body);
+
+    const attributes = spanToJSON(span).attributes;
+    expect({
+      input: attributes?.[GEN_AI_USAGE_INPUT_TOKENS],
+      output: attributes?.[GEN_AI_USAGE_OUTPUT_TOKENS],
+      total: attributes?.[GEN_AI_USAGE_TOTAL_TOKENS],
+      finishReasons: attributes?.[GEN_AI_RESPONSE_FINISH_REASONS],
+    }).toEqual(expected);
+  });
+
   it('ends an InvokeModelWithResponseStream span without a modelId when the stream is drained', async () => {
     const span = startInactiveSpan({ name: 'bedrock' });
     const data = { body: (async function* () {})() };
@@ -291,6 +344,31 @@ describe('BedrockRuntimeServiceExtension token usage with prompt caching', () =>
     expect(usageAttributes(span, EXPECTED_USAGE)).toEqual(EXPECTED_USAGE);
   });
 
+  it('counts cache reads and writes in the total tokens for ConverseStream', async () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const data = {
+      stream: (async function* () {
+        yield {
+          metadata: {
+            // The total comes from the cache-adjusted input, like for Converse, not from `totalTokens`.
+            usage: {
+              inputTokens: 20,
+              outputTokens: 50,
+              totalTokens: 70,
+              cacheReadInputTokens: 1800,
+              cacheWriteInputTokens: 300,
+            },
+          },
+        };
+      })(),
+    };
+
+    respond(span, 'ConverseStream', { modelId: CLAUDE_MODEL_ID }, data);
+    await drain(data.stream);
+
+    expect(usageAttributes(span, EXPECTED_USAGE)).toEqual(EXPECTED_USAGE);
+  });
+
   it('counts cache reads and writes as input tokens for Claude InvokeModel', () => {
     const span = startInactiveSpan({ name: 'bedrock' });
     const body = encoder.encode(
@@ -315,17 +393,17 @@ describe('BedrockRuntimeServiceExtension token usage with prompt caching', () =>
       type: 'message_start',
       message: { id: 'msg_bdrk_01Fv2yWBqLQ8Pp4q9kJbDxXz', role: 'assistant', usage: CLAUDE_USAGE },
     };
+    const messageDelta = { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 50 } };
     const data = {
       body: (async function* () {
         yield { chunk: { bytes: encoder.encode(JSON.stringify(messageStart)) } };
+        yield { chunk: { bytes: encoder.encode(JSON.stringify(messageDelta)) } };
       })(),
     };
 
     respond(span, 'InvokeModelWithResponseStream', { modelId: CLAUDE_MODEL_ID }, data);
     await drain(data.body);
 
-    // The total waits for the final output count, which `message_start` does not carry.
-    const expected = { ...EXPECTED_INPUT_USAGE, [GEN_AI_USAGE_TOTAL_TOKENS]: undefined };
-    expect(usageAttributes(span, expected)).toEqual(expected);
+    expect(usageAttributes(span, EXPECTED_USAGE)).toEqual(EXPECTED_USAGE);
   });
 });

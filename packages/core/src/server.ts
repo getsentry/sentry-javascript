@@ -39,7 +39,10 @@ export {
   getReleaseFromCommitEnv as _INTERNAL_getReleaseFromCommitEnv,
   readCommitEnvVar as _INTERNAL_readCommitEnvVar,
 } from './utils/commitEnv';
-export { flushIfServerless } from './utils/flushIfServerless';
+export {
+  flushIfServerless,
+  setScopeFlushedByRuntime as _INTERNAL_setScopeFlushedByRuntime,
+} from './utils/flushIfServerless';
 export { callFrameToStackFrame, watchdogTimer } from './utils/anr';
 export { safeUnref as _INTERNAL_safeUnref } from './utils/timer';
 export { patchHttpModuleClient } from './integrations/http/client-patch';
