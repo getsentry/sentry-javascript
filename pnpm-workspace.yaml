@@ -120,10 +120,6 @@ allowBuilds:
   vue-demi: true
   workerd: true
 minimumReleaseAgeExclude:
-  - '@opentelemetry/api@1.10.0'
-  - '@sentry/conventions@0.32.0'
-  - '@sentry/rrdom@2.46.0'
-  - '@sentry/rrweb-snapshot@2.46.0'
-  - '@sentry/rrweb-types@2.46.0'
-  - '@sentry/rrweb@2.46.0'
-  - sentry@0.49.0
+  - '@sentry/*'
+  - sentry
+  - '@apm-js-collab/code-transformer-bundler-plugins@0.7.6'
