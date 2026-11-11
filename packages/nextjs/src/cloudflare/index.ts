@@ -6,8 +6,14 @@ import { withSentry as withSentryCloudflare } from '@sentry/cloudflare';
 import type { Integration } from '@sentry/core';
 import { applySdkMetadata, extractTraceparentData, getRootSpan, GLOBAL_OBJ, spanToJSON } from '@sentry/core';
 import { registerPrepareSpanScope, setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
+import {
+  _INTERNAL_forwardTunnelRequest as forwardTunnelRequest,
+  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
+} from '@sentry/core/server';
 import { ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
+import { getInjectedBasePath } from '../common/utils/basePath';
 import { isTunnelRouteSpan } from '../common/utils/dropMiddlewareTunnelRequests';
+import { getTunnelRouteServerOptions } from '../common/utils/tunnelPathnameMatch';
 import { dropReactControlFlowErrorsEventProcessor } from '../common/utils/dropReactControlFlowErrors';
 import { markAsyncContextOwnedByNextjsCloudflare } from '../common/utils/responseEnd';
 import { NextSentryPropagator } from '../server/nextSentryPropagator';
@@ -57,7 +63,7 @@ const nextjsIntegration = (): Integration => ({
     registerPrepareSpanScope(client);
     // `dropMiddlewareTunnelRequests` only marks spans of Next.js, which are children of the root span of `withSentry`.
     client.on('beforeSampling', samplingData => {
-      if (isTunnelRouteSpan(samplingData.spanAttributes)) {
+      if (isTunnelRouteSpan(samplingData.spanAttributes, client)) {
         samplingData.parentSampled = false;
       }
     });
@@ -74,6 +80,12 @@ export const withSentry: typeof withSentryCloudflare = (optionsCallback, handler
 
   return withSentryCloudflare(env => {
     const options: CloudflareOptions = { enableOpenTelemetrySetup: true, ...optionsCallback(env) };
+    // Read per request: the global is set once `instrumentation` loads, which can be after the Worker entry.
+    setTunnelDefaults({
+      basePath: getInjectedBasePath(),
+      tunnel: getTunnelRouteServerOptions(),
+      forward: forwardTunnelRequest,
+    });
     options.ignoreSpans = [
       ...(options.ignoreSpans || []),
       ...NEXTJS_SERVER_IGNORE_SPANS,

@@ -28,26 +28,12 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
   SENTRY_SEGMENT_NAME_SOURCE,
-  URL_FULL,
 } from '@sentry/conventions/attributes';
 import { FUNCTION_AWS } from '@sentry/conventions/op';
-import type { SpanAttributes, StartSpanOptions } from '@sentry/core';
-import {
-  getClient,
-  hasSpanStreamingEnabled,
-  SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK,
-  filterCollectedUrl,
-} from '@sentry/core';
+import type { StartSpanOptions } from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK } from '@sentry/core';
 import type { Context } from 'aws-lambda';
-
-const DEFAULT_PORTS: Record<string, string | undefined> = { http: '80', https: '443' };
-
-interface ApiGatewayLikeEvent {
-  headers?: Record<string, string | undefined>;
-  path?: string;
-  rawPath?: string;
-  queryStringParameters?: Record<string, string | undefined>;
-}
+import { getHttpRequestAttributes } from './httpEventAttributes';
 
 /**
  * Builds the options for the `function.aws` transaction started for each invocation.
@@ -75,7 +61,7 @@ export function getRequestSpanOptions(event: unknown, context: Context, requestI
       [CLOUD_PLATFORM]: 'aws_lambda',
       [FAAS_NAME]: functionName,
       [FAAS_COLDSTART]: requestIsColdStart,
-      ...extractOtherEventFields(event),
+      ...getHttpRequestAttributes(event, client),
     },
   };
 }
@@ -96,48 +82,4 @@ function extractAccountId(arn: string): string | undefined {
     return parts[4];
   }
   return undefined;
-}
-
-function extractOtherEventFields(event: unknown): SpanAttributes {
-  const answer: SpanAttributes = {};
-  const fullUrl = extractFullUrl(event as ApiGatewayLikeEvent);
-  if (fullUrl) {
-    answer[URL_FULL] = filterCollectedUrl(fullUrl);
-  }
-  return answer;
-}
-
-function extractFullUrl(event: ApiGatewayLikeEvent): string | undefined {
-  // API gateway encodes a lot of url information in various places to recompute this
-  const headers = event.headers;
-  if (!headers) {
-    return undefined;
-  }
-  // Helper function to deal with case variations (instead of making a tolower() copy of the headers)
-  function findAny(key1: string, key2: string): string | undefined {
-    return headers?.[key1] ?? headers?.[key2];
-  }
-  const host = findAny('host', 'Host');
-  const proto = findAny('x-forwarded-proto', 'X-Forwarded-Proto');
-  const port = findAny('x-forwarded-port', 'X-Forwarded-Port');
-  if (!(proto && host && (event.path || event.rawPath))) {
-    return undefined;
-  }
-  let answer = `${proto}://${host}`;
-  // Clients put non-default ports into the host header, which ALB passes through as is.
-  if (port && port !== DEFAULT_PORTS[proto] && !/:\d+$/.test(host)) {
-    answer += `:${port}`;
-  }
-  answer += event.path ?? event.rawPath;
-  if (event.queryStringParameters) {
-    let first = true;
-    for (const [key, value] of Object.entries(event.queryStringParameters)) {
-      answer += first ? '?' : '&';
-      answer += encodeURIComponent(key);
-      answer += '=';
-      answer += encodeURIComponent(value ?? '');
-      first = false;
-    }
-  }
-  return answer;
 }

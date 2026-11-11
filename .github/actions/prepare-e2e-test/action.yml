@@ -28,9 +28,7 @@ runs:
     # Uses the repo's root node pin for the steps before the app is copied (installing pnpm, `test:prepare`,
     # `test:validate`, `ci:copy-to-temp`). The app's own node version is set up after the copy below.
     - name: Set up Node
-      uses: actions/setup-node@v7
-      with:
-        node-version-file: 'package.json'
+      uses: ./.github/actions/setup-node
     - name: Set up Bun
       if:
         inputs.test-application == 'node-exports-test-app' || contains(inputs.test-application, 'bun') || inputs.runtime
