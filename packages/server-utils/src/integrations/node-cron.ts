@@ -70,18 +70,22 @@ export function getMonitorConfig(
 ): MonitorConfig | undefined {
   return isReadAlike && !isReadAlike(expression)
     ? undefined
-    : cronExpressionToMonitorConfig(expression, timezone, 'and');
+    : cronExpressionToMonitorConfig(expression, timezone, 'node-cron');
 }
 
 const NODE_CRON_3_FIELD_MINIMUMS = [0, 0, 1, 1, 0];
 
 /**
  * node-cron before 4.6 reads `7` as `0` and swaps reversed ranges, so it runs `sat-sun`, `6-0` and `6-7` every day.
- * Returns `false` for weekday ranges that could hit that.
+ * It also reads a step without a range, like `5/10`, as its start. Returns `false` where that could differ.
  */
 export function isReadAlikeByNodeCron4(expression: string): boolean {
-  const weekday = expression.trim().split(/\s+/).pop() || '';
-  return !(weekday.includes('-') && (weekday.includes('7') || /-(?:0|sun)/i.test(weekday)));
+  const fields = expression.trim().split(/\s+/);
+  const weekday = fields[fields.length - 1] || '';
+  return (
+    !(weekday.includes('-') && (weekday.includes('7') || /-(?:0|sun)/i.test(weekday))) &&
+    !fields.some(field => field.split(',').some(part => /^[a-z\d]+\//i.test(part)))
+  );
 }
 
 /**
