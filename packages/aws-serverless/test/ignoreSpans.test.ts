@@ -1,10 +1,10 @@
-import { URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, URL_PATH } from '@sentry/conventions/attributes';
 import { FUNCTION_AWS } from '@sentry/conventions/op';
 import type { Envelope } from '@sentry/core';
-import { createTransport, parseEnvelope, resolvedSyncPromise } from '@sentry/core';
+import { createTransport, parseEnvelope, resolvedSyncPromise, shouldIgnoreSpan } from '@sentry/core';
 import type { Context, Handler } from 'aws-lambda';
 import { beforeEach, describe, expect, test } from 'vitest';
-import { init } from '../src/init';
+import { getIgnoreSpans, init } from '../src/init';
 import { instrumentHandler } from '../src/instrumentHandler';
 
 const envelopes: Envelope[] = [];
@@ -71,5 +71,20 @@ describe('default ignoreSpans', () => {
 
   test('keeps the ignoreSpans the user passed', async () => {
     expect(await invokeAndGetSentPaths('GET', '/health')).toEqual([]);
+  });
+});
+
+describe('getIgnoreSpans', () => {
+  const invocation = (method: string, path: string) => ({
+    op: FUNCTION_AWS,
+    description: 'functionName',
+    attributes: { [HTTP_REQUEST_METHOD]: method, [URL_PATH]: path },
+  });
+
+  test('keeps static asset invocations when ignoreStaticAssets is false', () => {
+    const ignoreSpans = getIgnoreSpans({ ignoreStaticAssets: false });
+
+    expect(shouldIgnoreSpan(invocation('GET', '/favicon.ico'), ignoreSpans)).toBe(false);
+    expect(shouldIgnoreSpan(invocation('OPTIONS', '/users'), ignoreSpans)).toBe(true);
   });
 });
