@@ -67,6 +67,12 @@ const CASES: Case[] = [
   { specifier: '@sentry/nuxt', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/nuxt/module/plugins', conditions: NODE, formats: ESM },
 
+  { specifier: '@sentry/nestjs', conditions: NODE, formats: BOTH },
+  { specifier: '@sentry/nestjs/setup', conditions: NODE, formats: BOTH },
+  { specifier: '@sentry/nestjs/bun', conditions: ['bun', 'node'], formats: BOTH },
+  { specifier: '@sentry/nestjs/deno', conditions: ['deno', 'node'], formats: ESM },
+  { specifier: '@sentry/nestjs/cloudflare', conditions: WORKERD, formats: BOTH },
+
   { specifier: '@sentry/sveltekit', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/sveltekit', conditions: WORKERD, formats: BOTH },
   { specifier: '@sentry/sveltekit', conditions: ['worker'], formats: BOTH },
@@ -114,6 +120,7 @@ const BUILD_TIME_CASES: Case[] = [
   { specifier: '@sentry/cloudflare/vite', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/nextjs/config', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/nuxt/module', conditions: NODE, formats: ESM },
+  { specifier: '@sentry/nestjs/webpack', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/sveltekit/vite', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/astro/integration', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/react-router/vite', conditions: NODE, formats: BOTH },

@@ -414,6 +414,9 @@ importers:
       '@sentry/deno':
         specifier: 11.12.0
         version: link:../../packages/deno
+      '@sentry/nestjs':
+        specifier: 11.12.0
+        version: link:../../packages/nestjs
       '@sentry/nextjs':
         specifier: 11.12.0
         version: link:../../packages/nextjs
