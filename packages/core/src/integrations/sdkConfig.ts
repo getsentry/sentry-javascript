@@ -108,6 +108,7 @@ async function buildConfigAttributes(client: Client): Promise<Record<string, str
     integrations: client.getIntegrationNames().map(name => ({ name })),
   };
 
+  // Hash the full config, excluding deployment metadata from options.
   const hashInput = {
     ...config,
     options: Object.fromEntries(Object.entries(config.options).filter(([key]) => !HASH_EXCLUSIONS.has(key))),
