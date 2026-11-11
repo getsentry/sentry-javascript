@@ -6,6 +6,26 @@
 
 Work in this release was contributed by @kunal649. Thank you for your contribution!
 
+### Important Changes
+
+- **feat(nestjs): Add Bun, Deno and Cloudflare entry points (#PR_NUMBER)**
+
+  `@sentry/nestjs` now has `@sentry/nestjs/bun`, `@sentry/nestjs/deno` and `@sentry/nestjs/cloudflare` entry points for Nest apps that run on those runtimes. Each one wraps the runtime's SDK, adds the Nest integration to its default integrations, and reports the SDK as `sentry.javascript.nestjs`, the same as on Node. Install the runtime SDK (`@sentry/bun`, `@sentry/deno` or `@sentry/cloudflare`) next to `@sentry/nestjs`:
+
+  ```ts
+  // Bun (use `@sentry/nestjs/deno` on Deno)
+  import * as Sentry from '@sentry/nestjs/bun';
+
+  Sentry.init({ dsn: '__DSN__' });
+  ```
+
+  ```ts
+  // Cloudflare: instrument.server.ts, picked up by `sentryCloudflareVitePlugin()`
+  import { defineCloudflareOptions } from '@sentry/nestjs/cloudflare';
+
+  export default defineCloudflareOptions(env => ({ dsn: env.SENTRY_DSN }));
+  ```
+
 ## 11.12.0
 
 ### Important Changes
