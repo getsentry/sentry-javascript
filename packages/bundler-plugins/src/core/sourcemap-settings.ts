@@ -21,6 +21,12 @@ export type SourceMapDecision = {
 
 const NO_CHANGE: SourceMapDecision = { enableHidden: false, deleteAfterUpload: false };
 
+/** Reads `sourcemaps.deleteSourcemapsAfterUpload`, calling the internal function form if given. */
+export function getDeleteSourcemapsAfterUpload(options: NormalizedOptions): boolean | undefined {
+  const value = options.sourcemaps?.deleteSourcemapsAfterUpload;
+  return typeof value === 'function' ? value() : value;
+}
+
 /**
  * Decides whether the plugin turns hidden source maps on and whether it removes the maps from the
  * build output after the upload. The plugin only turns maps on when an upload can run, and only
@@ -31,10 +37,21 @@ export function decideSourceMapHandling(
   options: NormalizedOptions,
   uploadPossible: boolean,
 ): SourceMapDecision {
-  const deleteOption = options.sourcemaps?.deleteSourcemapsAfterUpload;
+  const deleteOption = getDeleteSourcemapsAfterUpload(options);
 
   if (!uploadPossible || options.sourcemaps?.disable) {
-    return NO_CHANGE;
+    if (deleteOption !== true || (kind !== 'hidden' && kind !== 'visible')) {
+      return NO_CHANGE;
+    }
+    return {
+      enableHidden: kind === 'visible',
+      deleteAfterUpload: true,
+      log: {
+        level: 'info',
+        message:
+          'Source maps are not uploaded, but they are removed from the build output because `sourcemaps.deleteSourcemapsAfterUpload` is set.',
+      },
+    };
   }
 
   switch (kind) {

@@ -203,6 +203,37 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (vite)', () => {
     expectUploadedPairs(uploads[0]!, readChunks(outDir));
   });
 
+  it('removes hidden source maps when the option is true and no upload runs', async () => {
+    const config = viteConfig({ authToken: undefined, sourcemaps: { deleteSourcemapsAfterUpload: true } });
+    await build({ ...config, build: { ...config.build, sourcemap: 'hidden' } });
+
+    expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toEqual([]);
+    expect(uploads).toHaveLength(0);
+  });
+
+  it('reads the option from the internal function form when it decides', async () => {
+    let deleteMaps: boolean | undefined;
+    const sdkPlugin: Plugin = {
+      name: 'sdk',
+      config() {
+        deleteMaps = true;
+        return { build: { sourcemap: 'hidden' } };
+      },
+    };
+    const config = viteConfig({});
+    await build({
+      ...config,
+      plugins: [
+        sdkPlugin,
+        ...sentryVitePlugin({ ...credentials, sourcemaps: { deleteSourcemapsAfterUpload: () => deleteMaps } }),
+      ],
+    });
+
+    expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toEqual([]);
+    expect(uploads).toHaveLength(1);
+    expectUploadedPairs(uploads[0]!, readChunks(outDir));
+  });
+
   it('keeps hidden source maps the user enabled and uploads them from disk', async () => {
     const config = viteConfig({});
     await build({ ...config, build: { ...config.build, sourcemap: 'hidden' } });

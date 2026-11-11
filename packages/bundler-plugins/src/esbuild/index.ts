@@ -326,13 +326,21 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
         try {
           await sentryBuildPluginManager.createRelease();
 
-          if (sourcemapsEnabled) {
-            // The metafile lists outputs relative to `absWorkingDir`, not to the process.
-            const outputDir = initialOptions.absWorkingDir ?? process.cwd();
-            const buildArtifacts = result.metafile
-              ? Object.keys(result.metafile.outputs).map(output => path.resolve(outputDir, output))
-              : [];
+          // The metafile lists outputs relative to `absWorkingDir`, not to the process.
+          const outputDir = initialOptions.absWorkingDir ?? process.cwd();
+          const buildArtifacts = result.metafile
+            ? Object.keys(result.metafile.outputs).map(output => path.resolve(outputDir, output))
+            : [];
 
+          const { sourceMaps } = sentryBuildPluginManager;
+          if (sourceMapDecision.deleteAfterUpload && !sourceMaps.uploadPossible) {
+            const bundleOf = (map: string): string => map.slice(0, -'.map'.length);
+            await sourceMaps.deleteFromOutput(
+              buildArtifacts.filter(
+                file => file.endsWith('.map') && isJsFile(bundleOf(file)) && sourceMaps.shouldUpload(bundleOf(file)),
+              ),
+            );
+          } else if (sourcemapsEnabled) {
             if (options.sourcemaps?.disable !== 'disable-upload') {
               // The upload globs the paths, and glob reads backslashes as escapes.
               const { uploaded, uploadedSourceMapPaths } = await upload(

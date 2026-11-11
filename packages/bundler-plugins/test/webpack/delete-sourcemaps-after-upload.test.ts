@@ -248,6 +248,20 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (webpack)', () => {
     expect(mkdtempSpy).not.toHaveBeenCalled();
   });
 
+  it('removes hidden source maps when the option is true and no upload runs', async () => {
+    const mkdtempSpy = vi.spyOn(fs.promises, 'mkdtemp');
+    await build(
+      config(
+        { authToken: undefined, sourcemaps: { deleteSourcemapsAfterUpload: true } },
+        { devtool: 'hidden-source-map' },
+      ),
+    );
+
+    expect(fs.readdirSync(outDir)).toEqual(['bundle.js']);
+    expect(uploads).toHaveLength(0);
+    expect(mkdtempSpy).not.toHaveBeenCalled();
+  });
+
   it('stages the final content of content-hashed bundles', async () => {
     const output = { path: outDir, filename: '[name].[contenthash].js' };
     await build(config({}, { output }));

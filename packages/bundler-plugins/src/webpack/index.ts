@@ -1,6 +1,6 @@
 /* oxlint-disable max-lines */
 
-import type { Options, SourceMapDecision, SourceMapKind, UploadStaging } from '../core/index';
+import type { Options, SourceMapDecision, SourceMapKind, UploadFilter, UploadStaging } from '../core/index';
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
@@ -220,6 +220,22 @@ function deleteSourceMapAssets(compilation: WebpackCompilation, sourceMapName: s
   }
 }
 
+/** Drops the source maps of the JS assets that an upload would include. */
+function dropSourceMaps(compilation: WebpackCompilation, shouldUpload: UploadFilter): void {
+  const outputPath = compilation.outputOptions.path ?? path.resolve();
+
+  for (const asset of compilation.getAssets()) {
+    if (!isJsFile(asset.name) || !shouldUpload(path.join(outputPath, asset.name))) {
+      continue;
+    }
+    const relatedSourceMap = asset.info.related?.sourceMap;
+    const sourceMapName = typeof relatedSourceMap === 'string' ? relatedSourceMap : `${asset.name}.map`;
+    if (compilation.getAsset(sourceMapName)) {
+      deleteSourceMapAssets(compilation, sourceMapName);
+    }
+  }
+}
+
 /**
  * Copies each JS asset and its source map into the upload staging folder and drops the source map
  * assets (and their compressed variants) from the compilation, so webpack never emits them.
@@ -419,17 +435,26 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
       const { kind: sourceMapKind, decision: sourceMapDecision } = decideSourceMaps(compiler);
       const pendingStagings = new Map<WebpackCompilation, UploadStaging>();
 
-      if (sourceMapDecision.deleteAfterUpload) {
-        // After `RealContentHashPlugin` rewrote the hash placeholders, so the staged
-        // JS equals the emitted file and `[contenthash]` names are final.
-        const stage = (compiler.webpack?.Compilation?.PROCESS_ASSETS_STAGE_REPORT ?? 5000) + 1;
+      // After `RealContentHashPlugin` rewrote the hash placeholders, so the staged
+      // JS equals the emitted file and `[contenthash]` names are final.
+      const deleteStage = (compiler.webpack?.Compilation?.PROCESS_ASSETS_STAGE_REPORT ?? 5000) + 1;
 
+      if (sourceMapDecision.deleteAfterUpload && !sentryBuildPluginManager.sourceMaps.uploadPossible) {
         compiler.hooks.thisCompilation.tap('sentry-webpack-plugin', compilation => {
-          compilation.hooks.processAssets.tapPromise({ name: 'sentry-webpack-plugin', stage }, async () => {
-            const staging = await sentryBuildPluginManager.createUploadStaging();
-            pendingStagings.set(compilation, staging);
-            await stageSourceMaps(compilation, staging, logger, sourceMapKind === 'unset');
+          compilation.hooks.processAssets.tap({ name: 'sentry-webpack-plugin', stage: deleteStage }, () => {
+            dropSourceMaps(compilation, sentryBuildPluginManager.sourceMaps.shouldUpload);
           });
+        });
+      } else if (sourceMapDecision.deleteAfterUpload) {
+        compiler.hooks.thisCompilation.tap('sentry-webpack-plugin', compilation => {
+          compilation.hooks.processAssets.tapPromise(
+            { name: 'sentry-webpack-plugin', stage: deleteStage },
+            async () => {
+              const staging = await sentryBuildPluginManager.createUploadStaging();
+              pendingStagings.set(compilation, staging);
+              await stageSourceMaps(compilation, staging, logger, sourceMapKind === 'unset');
+            },
+          );
         });
 
         // A staging that `afterEmit` never took belongs to a compilation that

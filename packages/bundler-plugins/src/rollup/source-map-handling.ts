@@ -165,9 +165,9 @@ export function createSourceMapHandling(sentryBuildPluginManager: SentryBuildPlu
     return candidates.sort((a, b) => countMatchFields(b.match) - countMatchFields(a.match))[0];
   }
 
-  function dropSourceMaps(bundle: OutputBundle): void {
+  function dropSourceMaps(bundle: OutputBundle, shouldDrop: (fileName: string) => boolean = () => true): void {
     for (const output of Object.values(bundle)) {
-      if (output.type === 'chunk' && isJsFile(output.fileName)) {
+      if (output.type === 'chunk' && isJsFile(output.fileName) && shouldDrop(output.fileName)) {
         // oxlint-disable-next-line typescript/no-dynamic-delete -- Rollup drops an asset when its key is deleted from the bundle
         delete bundle[getSourceMapFileName(output)];
       }
@@ -207,6 +207,13 @@ export function createSourceMapHandling(sentryBuildPluginManager: SentryBuildPlu
 
       sentryBuildPluginManager.sourceMaps.logDecision(record.decision);
       if (!record.decision.deleteAfterUpload) {
+        return;
+      }
+
+      if (!sentryBuildPluginManager.sourceMaps.uploadPossible) {
+        dropSourceMaps(bundle, fileName =>
+          sentryBuildPluginManager.sourceMaps.shouldUpload(path.join(destination, fileName)),
+        );
         return;
       }
 

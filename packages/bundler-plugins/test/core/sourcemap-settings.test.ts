@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { normalizeUserOptions } from '../../src/core/options-mapping';
-import type { Options } from '../../src/core';
+import type { InternalOptions } from '../../src/core';
 import { decideSourceMapHandling } from '../../src/core/sourcemap-settings';
 import type { SourceMapKind } from '../../src/core/sourcemap-settings';
 
-function options(sourcemaps?: Options['sourcemaps']) {
+function options(sourcemaps?: InternalOptions['sourcemaps']) {
   return normalizeUserOptions({ org: 'o', project: 'p', authToken: 't', release: { name: 'r' }, sourcemaps });
 }
 
@@ -91,16 +91,71 @@ describe('decideSourceMapHandling', () => {
     });
   });
 
-  it.each<SourceMapKind>(['unset', 'off', 'visible', 'hidden', 'inline'])(
-    'does nothing for a `%s` setting when no upload can run',
-    kind => {
-      expect(decideSourceMapHandling(kind, options({ deleteSourcemapsAfterUpload: true }), false)).toEqual(NO_CHANGE);
-    },
-  );
-
-  it.each([true, 'disable-upload'] as const)('does nothing when `sourcemaps.disable` is `%s`', disable => {
-    expect(decideSourceMapHandling('unset', options({ disable, deleteSourcemapsAfterUpload: true }), true)).toEqual(
-      NO_CHANGE,
+  describe('when no upload can run', () => {
+    it.each<SourceMapKind>(['unset', 'off', 'visible', 'hidden', 'inline'])(
+      'does nothing for a `%s` setting with the option unset',
+      kind => {
+        expect(decideSourceMapHandling(kind, options(), false)).toEqual(NO_CHANGE);
+      },
     );
+
+    it.each<SourceMapKind>(['unset', 'off', 'inline'])(
+      'does not turn source maps on for a `%s` setting with the option set to true',
+      kind => {
+        expect(decideSourceMapHandling(kind, options({ deleteSourcemapsAfterUpload: true }), false)).toEqual(NO_CHANGE);
+      },
+    );
+
+    it('deletes hidden source maps with the option set to true', () => {
+      const decision = decideSourceMapHandling('hidden', options({ deleteSourcemapsAfterUpload: true }), false);
+
+      expect(decision).toMatchObject({ enableHidden: false, deleteAfterUpload: true });
+      expect(decision.log?.message).toMatch(/not uploaded/);
+    });
+
+    it('switches visible source maps to hidden and deletes them with the option set to true', () => {
+      expect(decideSourceMapHandling('visible', options({ deleteSourcemapsAfterUpload: true }), false)).toMatchObject({
+        enableHidden: true,
+        deleteAfterUpload: true,
+      });
+    });
+
+    it.each([true, 'disable-upload'] as const)(
+      'deletes hidden source maps when `sourcemaps.disable` is `%s` and the option is true',
+      disable => {
+        expect(
+          decideSourceMapHandling('hidden', options({ disable, deleteSourcemapsAfterUpload: true }), true),
+        ).toMatchObject({ enableHidden: false, deleteAfterUpload: true });
+      },
+    );
+
+    it.each([true, 'disable-upload'] as const)(
+      'does not turn source maps on when `sourcemaps.disable` is `%s`',
+      disable => {
+        expect(decideSourceMapHandling('unset', options({ disable, deleteSourcemapsAfterUpload: true }), true)).toEqual(
+          NO_CHANGE,
+        );
+      },
+    );
+  });
+
+  describe('with the internal function form', () => {
+    it('calls the function when it decides', () => {
+      let value: boolean | undefined;
+      const normalized = options({ deleteSourcemapsAfterUpload: () => value });
+
+      expect(decideSourceMapHandling('hidden', normalized, true)).toEqual(NO_CHANGE);
+      value = true;
+      expect(decideSourceMapHandling('hidden', normalized, true)).toEqual({
+        enableHidden: false,
+        deleteAfterUpload: true,
+      });
+    });
+
+    it('treats `undefined` from the function like an unset option', () => {
+      expect(decideSourceMapHandling('unset', options({ deleteSourcemapsAfterUpload: () => undefined }), true)).toEqual(
+        decideSourceMapHandling('unset', options(), true),
+      );
+    });
   });
 });

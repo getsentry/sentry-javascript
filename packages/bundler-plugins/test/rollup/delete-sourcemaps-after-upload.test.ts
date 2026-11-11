@@ -250,6 +250,55 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (rollup / rolldown)', () => {
     expect(mkdtempSpy).not.toHaveBeenCalled();
   });
 
+  it.each<[string, Options]>([
+    ['without an auth token', { authToken: undefined }],
+    ['with "disable-upload"', { sourcemaps: { disable: 'disable-upload' } }],
+    ['with `disable: true`', { sourcemaps: { disable: true } }],
+  ])('removes hidden source maps when the option is true and no upload runs (%s)', async (_label, overrides) => {
+    const mkdtempSpy = vi.spyOn(fs.promises, 'mkdtemp');
+    const build = await rollup({
+      input: entry,
+      plugins: [
+        sentryRollupPlugin({
+          ...credentials,
+          ...overrides,
+          sourcemaps: { ...overrides.sourcemaps, deleteSourcemapsAfterUpload: true },
+        }),
+      ],
+    });
+    await build.write({ dir: outDir, sourcemap: 'hidden' });
+
+    expect(fs.readdirSync(outDir)).toEqual(['entry.js']);
+    expect(uploads).toHaveLength(0);
+    expect(mkdtempSpy).not.toHaveBeenCalled();
+  });
+
+  it('keeps hidden source maps without an upload when the option is unset', async () => {
+    const build = await rollup({
+      input: entry,
+      plugins: [sentryRollupPlugin({ ...credentials, authToken: undefined })],
+    });
+    await build.write({ dir: outDir, sourcemap: 'hidden' });
+
+    expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'entry.js.map']);
+  });
+
+  it('keeps the maps of chunks matched by `sourcemaps.ignore` when no upload runs', async () => {
+    const build = await rollup({
+      input: entry,
+      plugins: [
+        sentryRollupPlugin({
+          ...credentials,
+          authToken: undefined,
+          sourcemaps: { ignore: ['**/entry.js'], deleteSourcemapsAfterUpload: true },
+        }),
+      ],
+    });
+    await build.write({ dir: outDir, sourcemap: 'hidden' });
+
+    expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'entry.js.map']);
+  });
+
   it('returns no source maps from generate() and does not log or stage', async () => {
     const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
     const mkdtempSpy = vi.spyOn(fs.promises, 'mkdtemp');
