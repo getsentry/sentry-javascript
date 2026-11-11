@@ -207,6 +207,20 @@ describe('cronExpressionToMonitorConfig with cron-parser day matching', () => {
   });
 });
 
+describe('cronExpressionToMonitorConfig with a dropped seconds value', () => {
+  it.each(['node-cron', 'cron', 'cron-parser'] as const)('sends a 2-minute checkinMargin with %s', dialect => {
+    expect(cronExpressionToMonitorConfig('59 0 9 * * *', 'UTC', dialect)).toEqual({
+      schedule: { type: 'crontab', value: '0 9 * * *' },
+      timezone: 'UTC',
+      checkinMargin: 2,
+    });
+    expect(cronExpressionToMonitorConfig('0 0 9 * * *', 'UTC', dialect)).toEqual({
+      schedule: { type: 'crontab', value: '0 9 * * *' },
+      timezone: 'UTC',
+    });
+  });
+});
+
 describe('shouldMonitorJob', () => {
   const job = (): void => {};
 
