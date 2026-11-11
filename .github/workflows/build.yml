@@ -514,7 +514,7 @@ jobs:
       fail-fast: false
       matrix:
         # 1.3.14 is the oldest supported Bun version
-        bun: ['1.3.14', '1.4']
+        bun: ['1.3.14', '1.4.4']
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -957,7 +957,7 @@ jobs:
       fail-fast: false
       matrix:
         # 1.3.14 is the oldest supported Bun version
-        bun: ['1.3.14', '1.4']
+        bun: ['1.3.14', '1.4.4']
         shard: [1, 2]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
