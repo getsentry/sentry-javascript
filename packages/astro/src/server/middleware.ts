@@ -14,15 +14,26 @@ import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
+  captureException,
+  continueTrace,
+  getActiveSpan,
+  getClient,
+  getCurrentScope,
   getIsolationScope,
   getRootSpan,
+  getTraceMetaTags,
   getUrlFragment,
   getUrlQuery,
   hasSpanStreamingEnabled,
   HTTP_SPAN_NAME_FALLBACK,
+  httpHeadersToSpanAttributes,
   objectify,
+  setHttpStatus,
   spanToJSON,
+  startSpan,
+  winterCGHeadersToDict,
   winterCGRequestToRequestData,
+  withIsolationScope,
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
@@ -30,19 +41,6 @@ import {
   flushIfServerless,
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
 } from '@sentry/core/server';
-import {
-  captureException,
-  continueTrace,
-  getActiveSpan,
-  getClient,
-  getCurrentScope,
-  getTraceMetaTags,
-  httpHeadersToSpanAttributes,
-  setHttpStatus,
-  startSpan,
-  winterCGHeadersToDict,
-  withIsolationScope,
-} from '@sentry/node';
 import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
 import type { APIContext, MiddlewareHandler, MiddlewareNext, RoutePart } from 'astro';
 
