@@ -5,13 +5,13 @@
  * @see https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
  */
 
-import { MCP_AUTH_CLIENT_NAME, MCP_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
+import { MCP_AUTH_CLIENT_NAME, MCP_METHOD_NAME, MCP_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
 import { getClient, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { withActiveSpan } from '../../tracing';
 import { startInactiveSpan } from '../../tracing/trace';
 import type { Span } from '../../types/span';
-import { getActiveSpan } from '../../utils/spanUtils';
+import { getActiveSpan, spanToJSON } from '../../utils/spanUtils';
 import { isObjectLike } from '../../utils/is';
 import { fill } from '../../utils/object';
 import { safeCallback } from '../../utils/safeCallback';
@@ -39,11 +39,7 @@ import type {
   SessionData,
 } from './types';
 import type { UpstreamOutcome } from './upstreamInstrumentation';
-import {
-  getUpstreamSpanForOutboundNotification,
-  shouldHandOffToUpstream,
-  withInboundHandoff,
-} from './upstreamInstrumentation';
+import { shouldHandOffToUpstream, withInboundHandoff } from './upstreamInstrumentation';
 import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse } from './validation';
 
 function resolveMcpOptions(options: McpServerWrapperOptions): ResolvedMcpOptions {
@@ -250,10 +246,9 @@ export function wrapTransportSend(
 
         if (isJsonRpcNotification(message)) {
           const resolvedOptions = resolveMcpOptions(options);
-          const upstreamSpan =
-            shouldHandOffToUpstream(serverInstance) &&
-            getUpstreamSpanForOutboundNotification(getActiveSpan(), message.method);
-          if (upstreamSpan) {
+          // The MCP SDK sends a notification inside its own scope, so its span is the active one.
+          const upstreamSpan = shouldHandOffToUpstream(serverInstance) ? getActiveSpan() : undefined;
+          if (upstreamSpan && spanToJSON(upstreamSpan).attributes[MCP_METHOD_NAME] === message.method) {
             upstreamSpan.setAttributes(
               buildMcpNotificationSpanConfig('notification-outgoing', message, transport, resolvedOptions).attributes,
             );
