@@ -38,20 +38,16 @@ export function createSentryTunnelRoute(options: CreateSentryTunnelRouteOptions 
 }
 
 /**
- * Route handler for the `tunnelRoute` of `withSentryConfig`. It forwards Sentry envelopes to Sentry, but not the
- * request headers (such as cookies).
+ * Route handler of the managed tunnel on Vercel, which `withSentryConfig` writes to `app/sentry-tunnel/route.js` in
+ * Vercel builds. It forwards Sentry envelopes to Sentry, but not the request headers (such as cookies).
  *
- * It accepts envelopes for the DSN of the server SDK, and the DSNs `serveTunnelIntegration` allows. For other DSNs,
- * use `createSentryTunnelRoute`.
+ * It accepts envelopes for the DSN of the server SDK, and the DSNs `serveTunnelIntegration` allows. Your own
+ * `app/sentry-tunnel/route.ts` with it is used instead of the generated one.
  *
  * @example
  * ```ts
  * // app/sentry-tunnel/route.ts
  * export { POST } from '@sentry/nextjs/tunnel';
  * ```
- *
- * @deprecated Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration()` to the server
- * `Sentry.init` instead.
  */
-// oxlint-disable-next-line typescript/no-deprecated -- the deprecated default of the deprecated factory
-export const POST: TunnelRouteHandler = createSentryTunnelRoute().POST;
+export const POST: TunnelRouteHandler = request => handleTunnelRequest(request);
