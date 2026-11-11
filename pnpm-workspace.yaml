@@ -120,7 +120,4 @@ allowBuilds:
   vue-demi: true
   workerd: true
 minimumReleaseAgeExclude:
-  - '@sentry/rrdom@2.46.0'
-  - '@sentry/rrweb-snapshot@2.46.0'
-  - '@sentry/rrweb-types@2.46.0'
-  - '@sentry/rrweb@2.46.0'
+  - '@sentry/*'
