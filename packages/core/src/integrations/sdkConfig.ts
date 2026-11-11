@@ -41,20 +41,16 @@ const _experimentalSdkConfigIntegration = (() => ({
  */
 export const experimentalSdkConfigIntegration = defineIntegration(_experimentalSdkConfigIntegration);
 
-function hash(value: string): string {
-  return fnv1a32(value).toString(36);
-}
-
 // Sort object keys recursively, preserving array order. Replace functions
 // and unsupported values with fingerprints before hashing the config.
 function serialize(value: unknown, ancestors = new Set<object>()): unknown {
   if (typeof value === 'function') {
-    return `[Function:${hash(Function.prototype.toString.call(value))}]`;
+    return `[Function:${fnv1a32(Function.prototype.toString.call(value)).toString(36)}]`;
   }
 
   // initialScope extras can contain bigints or symbols; JSON throws on bigints and omits symbols.
   if (typeof value === 'bigint' || typeof value === 'symbol') {
-    return `[${typeof value}:${hash(String(value))}]`;
+    return `[${typeof value}:${fnv1a32(String(value)).toString(36)}]`;
   }
 
   // Pass through primitives and null unchanged.
@@ -73,7 +69,7 @@ function serialize(value: unknown, ancestors = new Set<object>()): unknown {
 
   if (!Array.isArray(value) && !isPlainObject(value)) {
     const type = String(Object.prototype.toString.call(value)).slice(8, -1);
-    return `[${type}:${hash(String(value))}]`;
+    return `[${type}:${fnv1a32(String(value)).toString(36)}]`;
   }
 
   const nextAncestors = new Set(ancestors).add(value);
@@ -127,7 +123,7 @@ function buildConfigAttributes(client: Client): Record<string, string> {
   };
 
   return {
-    'sentry.sdk_config.hash': hash(JSON.stringify(hashInput)),
+    'sentry.sdk_config.hash': fnv1a32(JSON.stringify(hashInput)).toString(36),
     'sentry.sdk_config.payload': JSON.stringify(payload),
   };
 }
