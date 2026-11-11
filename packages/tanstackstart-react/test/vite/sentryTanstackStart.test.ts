@@ -2,6 +2,7 @@ import type { Plugin } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeAutoInstrumentMiddlewarePlugin } from '../../src/vite/autoInstrumentMiddleware';
 import { sentryTanstackStart, type SentryTanstackStartOptions } from '../../src/vite/sentryTanstackStart';
+import { makeServerInstrumentationPlugin } from '../../src/vite/serverInstrumentation';
 import { makeServerEntryTunnelPlugin, makeTunnelRoutePlugin } from '../../src/vite/tunnelRoute';
 
 const mockSourceMapsConfigPlugin: Plugin = {
@@ -31,6 +32,11 @@ const mockComposeNitroServiceSourceMapsPlugin: Plugin = {
 
 const mockEnableNitroSourceMapsPlugin: Plugin = {
   name: 'sentry-tanstackstart-nitro-source-maps',
+  apply: 'build',
+};
+
+const mockServerInstrumentationPlugin: Plugin = {
+  name: 'sentry-tanstackstart-server-instrumentation',
   apply: 'build',
 };
 
@@ -87,6 +93,10 @@ vi.mock('../../src/vite/nitroSourceMaps', () => ({
   makeEnableNitroSourceMapsPlugin: vi.fn(() => mockEnableNitroSourceMapsPlugin),
 }));
 
+vi.mock('../../src/vite/serverInstrumentation', () => ({
+  makeServerInstrumentationPlugin: vi.fn(() => mockServerInstrumentationPlugin),
+}));
+
 vi.mock('../../src/vite/autoInstrumentMiddleware', () => ({
   makeAutoInstrumentMiddlewarePlugin: vi.fn(() => mockMiddlewarePlugin),
 }));
@@ -115,6 +125,7 @@ describe('sentryTanstackStart()', () => {
         mockRoutePatternPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
+        mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
@@ -158,6 +169,7 @@ describe('sentryTanstackStart()', () => {
         mockRoutePatternPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
+        mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
@@ -175,6 +187,7 @@ describe('sentryTanstackStart()', () => {
         mockRoutePatternPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
+        mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
@@ -192,6 +205,7 @@ describe('sentryTanstackStart()', () => {
         mockRoutePatternPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
+        mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
@@ -210,6 +224,7 @@ describe('sentryTanstackStart()', () => {
         mockRoutePatternPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
+        mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
@@ -228,6 +243,7 @@ describe('sentryTanstackStart()', () => {
         mockRoutePatternPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
+        mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
@@ -246,6 +262,7 @@ describe('sentryTanstackStart()', () => {
         mockRoutePatternPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
+        mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
@@ -281,6 +298,7 @@ describe('sentryTanstackStart()', () => {
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockTunnelRoutePlugin,
+        mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
@@ -321,6 +339,22 @@ describe('sentryTanstackStart()', () => {
         '[@sentry/tanstackstart-react] The `tunnelRoute` option is deprecated. Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration()` to the server `Sentry.init` instead.',
       );
       warnSpy.mockRestore();
+    });
+  });
+
+  describe('server instrumentation', () => {
+    it('passes debug through to the server instrumentation plugin', () => {
+      sentryTanstackStart({ debug: true, sourcemaps: { disable: true } });
+
+      expect(makeServerInstrumentationPlugin).toHaveBeenCalledWith({ debug: true });
+    });
+
+    it('does not add the server instrumentation plugin in development mode', () => {
+      process.env.NODE_ENV = 'development';
+
+      sentryTanstackStart({ sourcemaps: { disable: true } });
+
+      expect(makeServerInstrumentationPlugin).not.toHaveBeenCalled();
     });
   });
 

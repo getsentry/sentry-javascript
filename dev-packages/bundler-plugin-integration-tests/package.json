@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/bundler-plugin-integration-tests",
-  "version": "11.11.0",
+  "version": "11.12.0",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -12,7 +12,7 @@
     "clean:deps": "node ../../scripts/rm.mjs node_modules"
   },
   "devDependencies": {
-    "@sentry/bundler-plugins": "11.11.0",
+    "@sentry/bundler-plugins": "11.12.0",
     "sentry": "^0.49.0",
     "typescript": "~6.0.3",
     "vitest": "^4.1.12"
