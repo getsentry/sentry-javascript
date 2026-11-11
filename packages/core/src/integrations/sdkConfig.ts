@@ -9,8 +9,6 @@ import { isPlainObject } from '../utils/is';
 import { timestampInSeconds } from '../utils/time';
 import { safeUnref } from '../utils/timer';
 
-const OPTION_EXCLUSIONS = new Set(['integrations', 'defaultIntegrations', '_metadata']);
-
 const _experimentalSdkConfigIntegration = (() => ({
   name: 'ExperimentalSdkConfig',
   afterAllSetup(client: Client) {
@@ -97,7 +95,9 @@ async function serialize(value: unknown, ancestors = new Set<object>()): Promise
 async function buildConfigAttributes(client: Client): Promise<Record<string, string>> {
   // Integrations are reported separately; SDK metadata lives under `sdk`.
   const options = Object.fromEntries(
-    Object.entries(client.getOptions()).filter(([key]) => !OPTION_EXCLUSIONS.has(key)),
+    Object.entries(client.getOptions()).filter(
+      ([key]) => !['integrations', 'defaultIntegrations', '_metadata'].includes(key),
+    ),
   );
 
   const config = {
