@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { IMPORT_SURFACES } from './importSurfaces';
 import { isViteServer, NITRO_ONLY } from './isViteServer';
+import { SERVER_ORIGIN } from './runtime';
 
 test('sends a server root span on pageload', async ({ page }) => {
   const serverSpanPromise = waitForStreamedSpan('nuxt-4', span => {
@@ -13,7 +14,7 @@ test('sends a server root span on pageload', async ({ page }) => {
   const serverSpan = await serverSpanPromise;
 
   expect(getSpanOp(serverSpan)).toBe('http.server');
-  expect(serverSpan.attributes['sentry.origin']?.value).toBe('auto.http.http_server');
+  expect(serverSpan.attributes['sentry.origin']?.value).toBe(SERVER_ORIGIN);
 });
 
 test('does not send spans for build asset folder "_nuxt"', async ({ page }) => {

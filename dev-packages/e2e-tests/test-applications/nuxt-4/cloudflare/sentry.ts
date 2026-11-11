@@ -6,10 +6,14 @@ declare const __E2E_TEST_TUNNEL__: boolean;
 
 export default defineNitroPlugin(
   sentryCloudflareNitroPlugin({
-    // The tunnel forwards to the DSN host, which is the event proxy in the tunnel variant.
     dsn: __E2E_TEST_TUNNEL__ ? 'http://public@localhost:3031/1337' : 'https://public@dsn.ingest.sentry.io/1337',
     tracesSampleRate: 1.0,
+    enableLogs: true,
     tunnel: 'http://localhost:3031/', // proxy server
-    integrations: __E2E_TEST_TUNNEL__ ? [serveTunnelIntegration()] : [],
+    // Several tests trigger the same server error one after another, which Dedupe would drop.
+    integrations: integrations => [
+      ...integrations.filter(integration => integration.name !== 'Dedupe'),
+      ...(__E2E_TEST_TUNNEL__ ? [serveTunnelIntegration()] : []),
+    ],
   }),
 );

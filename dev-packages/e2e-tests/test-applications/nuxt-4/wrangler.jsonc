@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nuxt-4",
+  "main": "./.output/server/index.mjs",
+  "compatibility_date": "2026-06-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./.output/public",
+    "binding": "ASSETS",
+    // Like Nitro on Node, serve pre-rendered pages at their path instead of redirecting to a trailing slash.
+    "html_handling": "drop-trailing-slash",
+  },
+  // `wrangler dev` keeps these in a local SQLite file, so they need no real database.
+  "d1_databases": [
+    { "binding": "DB", "database_name": "db", "database_id": "00000000-0000-0000-0000-000000000001" },
+    { "binding": "USERS_DB", "database_name": "users_db", "database_id": "00000000-0000-0000-0000-000000000002" },
+    {
+      "binding": "ANALYTICS_DB",
+      "database_name": "analytics_db",
+      "database_id": "00000000-0000-0000-0000-000000000003",
+    },
+  ],
+}

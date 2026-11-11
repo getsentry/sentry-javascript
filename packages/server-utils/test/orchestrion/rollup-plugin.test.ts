@@ -86,8 +86,43 @@ describe('sentryCommonJSInteropPlugin', () => {
   it('patches the namespace check in the commonjs helpers module', () => {
     const result = transform(brokenHelper, '\0commonjsHelpers.js');
 
-    expect(result?.code).toContain("Object.keys(n).filter(k => k !== 'module.exports').length === 1");
     expect(result?.code).not.toContain('Object.keys(n).length === 1');
+  });
+
+  describe('patched helper', () => {
+    const patched = transform(brokenHelper, '\0commonjsHelpers.js')!.code.replace('export function', 'function');
+    // oxlint-disable-next-line typescript/no-implied-eval -- evaluates the patched helper source
+    const getDefault = new Function(`${patched}; return getDefaultExportFromNamespaceIfNotNamed;`)() as (
+      n: Record<string, unknown>,
+    ) => unknown;
+
+    const cjsExports = Object.assign(function defaults() {}, { helper: 1 });
+
+    it('unwraps a CommonJS namespace on Node < 23', () => {
+      expect(getDefault({ default: cjsExports })).toBe(cjsExports);
+    });
+
+    it('unwraps a CommonJS namespace on Node >= 23 and Deno', () => {
+      expect(getDefault({ default: cjsExports, 'module.exports': cjsExports })).toBe(cjsExports);
+    });
+
+    it('unwraps the namespace of a CommonJS function export on Bun', () => {
+      const namespace = {
+        default: cjsExports,
+        helper: cjsExports.helper,
+        length: cjsExports.length,
+        name: cjsExports.name,
+        prototype: cjsExports.prototype,
+      };
+
+      expect(getDefault(namespace)).toBe(cjsExports);
+    });
+
+    it('keeps the namespace of an ES module with named exports', () => {
+      const namespace = { default: cjsExports, helper: cjsExports.helper };
+
+      expect(getDefault(namespace)).toBe(namespace);
+    });
   });
 
   it('ignores other modules', () => {
@@ -95,10 +130,7 @@ describe('sentryCommonJSInteropPlugin', () => {
   });
 
   it('leaves an already-fixed helpers module unchanged', () => {
-    const fixedHelper = brokenHelper.replace(
-      'Object.keys(n).length === 1',
-      "Object.keys(n).filter(k => k !== 'module.exports').length === 1",
-    );
+    const fixedHelper = transform(brokenHelper, '\0commonjsHelpers.js')!.code;
 
     expect(transform(fixedHelper, '\0commonjsHelpers.js')).toBeNull();
   });

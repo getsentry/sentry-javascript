@@ -1,8 +1,10 @@
 import { createError, defineEventHandler, getHeader, setHeader, getQuery } from '#imports';
 
+declare const __E2E_TEST_TUNNEL__: boolean;
+
 export default defineEventHandler(async event => {
   // The tunnel variant checks that the managed tunnel answers before an auth middleware like this one.
-  if (process.env.E2E_TEST_TUNNEL && event.method === 'POST' && getHeader(event, 'x-auth') !== 'ok') {
+  if (__E2E_TEST_TUNNEL__ && event.method === 'POST' && getHeader(event, 'x-auth') !== 'ok') {
     throw createError({ statusCode: 401, statusMessage: 'blocked by user auth' });
   }
 

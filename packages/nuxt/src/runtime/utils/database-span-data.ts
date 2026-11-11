@@ -45,7 +45,11 @@ export function getDatabaseSpanData(config?: DatabaseConnectionConfig): Partial<
       };
     }
 
-    if ((['better-sqlite3', 'bun', 'sqlite', 'sqlite3'] as ConnectorName[]).includes(config.connector)) {
+    if (
+      (['better-sqlite3', 'bun', 'bun-sqlite', 'node-sqlite', 'sqlite', 'sqlite3'] as ConnectorName[]).includes(
+        config.connector,
+      )
+    ) {
       return {
         // DB is the default file name in nitro for sqlite-like connectors
         [DB_NAMESPACE]: `${config.options?.name ?? 'db'}.sqlite`,
