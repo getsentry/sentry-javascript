@@ -2,7 +2,7 @@ import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import { getDefaultIntegrations, setAsyncLocalStorageAsyncContextStrategy } from '@sentry/cloudflare';
 import { wrapRequestHandler } from '@sentry/cloudflare/request';
-import { debug, getDefaultIsolationScope, getIsolationScope, getTraceData } from '@sentry/core';
+import { applySdkMetadata, debug, getDefaultIsolationScope, getIsolationScope, getTraceData } from '@sentry/core';
 import { _INTERNAL_isServedTunnelRequest as isServedTunnelRequest } from '@sentry/core/server';
 import type { H3Event } from 'h3';
 import type { NitroApp, NitroAppPlugin } from 'nitropack';
@@ -11,6 +11,18 @@ import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
 import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
 import { addSentryTracingMetaTags } from '../utils';
 import { getCfProperties, getCloudflareProperties, hasCfProperty, isEventType } from '../utils/event-type-check';
+
+function getRequestHandlerOptions(cloudflareOptions: CloudflareOptions): CloudflareOptions {
+  const options: CloudflareOptions = {
+    // `wrapRequestHandler` only sets up the integrations that work without `nodejs_compat`.
+    // Nitro's Cloudflare presets require the flag anyway, so opt into the full set.
+    defaultIntegrations: getDefaultIntegrations(cloudflareOptions),
+    _extendsDefaultIntegrations: cloudflareOptions.defaultIntegrations === undefined,
+    ...cloudflareOptions,
+  };
+  applySdkMetadata(options, 'nuxt', ['nuxt', 'cloudflare']);
+  return options;
+}
 
 /**
  * Sentry Cloudflare Nitro plugin for when using the "cloudflare-pages" preset in Nuxt.
@@ -67,11 +79,7 @@ export const sentryCloudflareNitroPlugin =
 
         return wrapRequestHandler(
           {
-            options: {
-              defaultIntegrations: getDefaultIntegrations(cloudflareOptions),
-              _extendsDefaultIntegrations: cloudflareOptions.defaultIntegrations === undefined,
-              ...cloudflareOptions,
-            },
+            options: getRequestHandlerOptions(cloudflareOptions),
             request,
             context: runtime.cloudflare.context,
           },
@@ -108,13 +116,7 @@ export const sentryCloudflareNitroPlugin =
           });
 
           const requestHandlerOptions = {
-            // `wrapRequestHandler` only sets up the integrations that work without `nodejs_compat`.
-            // Nitro's Cloudflare presets require the flag anyway, so opt into the full set.
-            options: {
-              defaultIntegrations: getDefaultIntegrations(cloudflareOptions),
-              _extendsDefaultIntegrations: cloudflareOptions.defaultIntegrations === undefined,
-              ...cloudflareOptions,
-            },
+            options: getRequestHandlerOptions(cloudflareOptions),
             request,
             context: getCloudflareProperties(event).context,
           };

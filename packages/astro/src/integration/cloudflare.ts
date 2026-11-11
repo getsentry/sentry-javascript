@@ -1,3 +1,5 @@
+import type { Options } from '@sentry/core';
+import { applySdkMetadata, stringifyForCodeInjection } from '@sentry/core';
 import type { AstroConfig } from 'astro';
 import { builtinModules } from 'module';
 import { SERVER_INIT_IMPORT } from './serverInit';
@@ -73,7 +75,10 @@ export function sentryCloudflareVitePlugin({ importServerInit = false } = {}): V
       }
 
       const originalExpr = defaultExportMatch[1];
-      const wrappedExport = `export default withSentry(() => undefined, ${originalExpr});`;
+      // A client inited from the bindings alone gets the Astro SDK name too.
+      const sdkOptions: Options = {};
+      applySdkMetadata(sdkOptions, 'astro', ['astro', 'cloudflare']);
+      const wrappedExport = `export default withSentry(() => (${stringifyForCodeInjection(sdkOptions)}), ${originalExpr});`;
       const transformedCode = [
         ...(importServerInit ? [SERVER_INIT_IMPORT.trim()] : []),
         "import { withSentry } from '@sentry/cloudflare';",

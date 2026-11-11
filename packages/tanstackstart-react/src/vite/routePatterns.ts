@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { uniq } from '@sentry/core';
+import { stringifyForCodeInjection, uniq } from '@sentry/core';
 import type { Plugin } from 'vite';
 
 const ROUTE_TREE_FILE_NAME = 'routeTree.gen.ts';
@@ -51,7 +51,7 @@ export function makeRoutePatternPlugin(): Plugin {
       }
 
       return {
-        code: code.replace(/__SENTRY_ROUTE_PATTERNS__/g, JSON.stringify(patterns)),
+        code: code.replace(/__SENTRY_ROUTE_PATTERNS__/g, stringifyForCodeInjection(patterns)),
         map: null,
       };
     },

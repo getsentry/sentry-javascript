@@ -16,6 +16,12 @@ test('a real mysql query emits a db span with orchestrion-channel attributes', a
   expect(res.status).toBe(200);
 
   const traceSpans = await traceSpansPromise;
+  const serverSpan = traceSpans.find(span => getSpanOp(span) === 'http.server' && span.is_segment);
+  expect(serverSpan?.attributes['sentry.sdk.name']).toEqual({
+    type: 'string',
+    value: 'sentry.javascript.sveltekit',
+  });
+
   const dbSpans = traceSpans.filter(span => getSpanOp(span) === 'db');
 
   const firstQuery = dbSpans.find(span => span.attributes['db.query.text']?.value === 'SELECT ? + ? AS solution');
