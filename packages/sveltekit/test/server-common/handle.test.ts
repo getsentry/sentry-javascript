@@ -540,6 +540,36 @@ describe('sentryHandle', () => {
   });
 });
 
+describe('sentryHandle on Vercel ISR', () => {
+  it('writes the trace of the request span as the cache origin of a request that Vercel marks as an ISR render', async () => {
+    const event = mockEvent({
+      request: new Request('https://shop.example.com/pricing', { headers: { 'x-vercel-isr': '1' } }),
+      url: new URL('https://shop.example.com/pricing'),
+      route: { id: '/pricing' },
+    });
+    let html: string | undefined;
+    let requestSpan: Span | undefined;
+
+    await sentryHandle({ injectFetchProxyScript: false })({
+      event,
+      resolve: async (_event, opts) => {
+        requestSpan = SentryCore.getActiveSpan();
+        html =
+          (await opts?.transformPageChunk?.({
+            html: '<html><head></head><body><script>kit.start(app, element, { node_ids: [0, 1] })</script></body></html>',
+            done: true,
+          })) ?? undefined;
+        return mockResponse;
+      },
+    });
+
+    const { traceId, spanId } = requestSpan!.spanContext();
+    expect(html).toBe(
+      `<html><head>\n<meta name="sentry-cache-origin" content="${traceId}-${spanId}-1"/></head><body><script>kit.start(app, element, { node_ids: [0, 1] })</script></body></html>`,
+    );
+  });
+});
+
 describe('addSentryCodeToPage', () => {
   const html = `<!DOCTYPE html>
   <html lang="en">
@@ -648,6 +678,32 @@ describe('addSentryCodeToPage', () => {
       const transformed = transformPageChunk({ html: clientShellHtml, done: true });
 
       expect(transformed).toContain(`<script>${FETCH_PROXY_SCRIPT}</script>`);
+    });
+  });
+
+  describe('while Vercel renders a page for its ISR cache', () => {
+    it('replaces the trace meta tags of a server-rendered page with the cache origin of this render', () => {
+      const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false, isVercelIsrRender: true });
+
+      const transformed = SentryCore.startSpan({ name: 'GET /pricing' }, span => {
+        const { traceId, spanId } = span.spanContext();
+        return { html: transformPageChunk({ html: serverRenderedHtml, done: true }), traceId, spanId };
+      });
+
+      expect(transformed.html).toBe(
+        serverRenderedHtml.replace(
+          '<head>',
+          `<head>\n<meta name="sentry-cache-origin" content="${transformed.traceId}-${transformed.spanId}-1"/>`,
+        ),
+      );
+    });
+
+    it('adds no meta tags to a client-side shell', () => {
+      const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false, isVercelIsrRender: true });
+
+      const transformed = transformPageChunk({ html: clientShellHtml, done: true });
+
+      expect(transformed).toBe(clientShellHtml);
     });
   });
 });

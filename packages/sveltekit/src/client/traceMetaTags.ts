@@ -1,10 +1,39 @@
-import { PAGE_SERVER_RENDERING_TYPE } from '@sentry/conventions/attributes';
-import type { SpanAttributes } from '@sentry/core';
+import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
+import type { SpanLink, StartSpanOptions } from '@sentry/core';
+import { extractTraceparentData } from '@sentry/core';
 import { WINDOW } from '@sentry/svelte';
 import { CACHE_ORIGIN_META_TAG_NAME } from '../common/traceMetaTags';
 
-/** Set at span start, so `tracesSampler` sees it. */
-export function getServerRenderingAttributes(): SpanAttributes {
-  const isPrerendered = !!WINDOW.document?.querySelector(`meta[name="${CACHE_ORIGIN_META_TAG_NAME}"]`);
-  return isPrerendered ? { [PAGE_SERVER_RENDERING_TYPE]: 'static' } : {};
+// `@opentelemetry/api` `TraceFlags.SAMPLED`, inlined because core does not export its copy.
+const TRACE_FLAG_SAMPLED = 0x1;
+
+/**
+ * Marks the pageload of a reused page as `static`, and links the render that the page reuses. Set at
+ * span start, so `tracesSampler` sees the attribute. Like a `use cache` hit, links only a sampled render.
+ */
+export function withCacheOrigin(spanOptions: StartSpanOptions): StartSpanOptions {
+  const cacheOrigin = WINDOW.document
+    ?.querySelector(`meta[name="${CACHE_ORIGIN_META_TAG_NAME}"]`)
+    ?.getAttribute('content');
+  if (cacheOrigin == null) {
+    return spanOptions;
+  }
+
+  const link = getSampledCacheOriginLink(cacheOrigin);
+  return {
+    ...spanOptions,
+    attributes: { ...spanOptions.attributes, [PAGE_SERVER_RENDERING_TYPE]: 'static' },
+    ...(link && { links: [link] }),
+  };
+}
+
+function getSampledCacheOriginLink(sentryTrace: string): SpanLink | undefined {
+  const traceparent = extractTraceparentData(sentryTrace);
+  if (!traceparent?.traceId || !traceparent.parentSpanId || !traceparent.parentSampled) {
+    return undefined;
+  }
+  return {
+    context: { traceId: traceparent.traceId, spanId: traceparent.parentSpanId, traceFlags: TRACE_FLAG_SAMPLED },
+    attributes: { [SENTRY_LINK_TYPE]: 'cache_origin' },
+  };
 }

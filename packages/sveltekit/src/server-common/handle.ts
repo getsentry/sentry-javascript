@@ -6,6 +6,7 @@ import {
   getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
+  getTraceData,
   getTraceMetaTags,
   hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
@@ -82,9 +83,10 @@ export const FETCH_PROXY_SCRIPT = `
  */
 export function addSentryCodeToPage(options: {
   injectFetchProxyScript: boolean;
+  isVercelIsrRender?: boolean;
 }): NonNullable<ResolveOptions['transformPageChunk']> {
   return ({ html }) => {
-    const metaTags = getPageMetaTags(html);
+    const metaTags = getPageMetaTags(html, !!options.isVercelIsrRender);
     const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
 
     const headWithFetchScript = options.injectFetchProxyScript ? `\n<script>${FETCH_PROXY_SCRIPT}</script>` : '';
@@ -95,12 +97,24 @@ export function addSentryCodeToPage(options: {
   };
 }
 
-/** Trace meta tags written during the build would put one trace into the HTML of every visitor. */
-function getPageMetaTags(html: string): string {
-  if (!isSvelteKitBuilding()) {
+/** Trace meta tags in a page that other visitors get too would put one trace into all of their pageloads. */
+function getPageMetaTags(html: string, isVercelIsrRender: boolean): string {
+  const cacheOrigin = getCacheOrigin(isVercelIsrRender);
+  if (cacheOrigin === undefined) {
     return getTraceMetaTags();
   }
-  return isServerRenderedPage(html) ? `<meta name="${CACHE_ORIGIN_META_TAG_NAME}" content=""/>` : '';
+  return isServerRenderedPage(html) ? `<meta name="${CACHE_ORIGIN_META_TAG_NAME}" content="${cacheOrigin}"/>` : '';
+}
+
+/**
+ * The `sentry-trace` of the render that other visitors reuse, empty for the build (its spans are not
+ * reliably sent), or `undefined` if the page is rendered for this request only.
+ */
+function getCacheOrigin(isVercelIsrRender: boolean): string | undefined {
+  if (isVercelIsrRender) {
+    return getTraceData()['sentry-trace'] ?? '';
+  }
+  return isSvelteKitBuilding() ? '' : undefined;
 }
 
 /** Kit writes `node_ids` only for server-rendered pages, not for shells (`ssr = false`, SPA fallback). */
@@ -240,6 +254,8 @@ async function instrumentHandle(
       const res = await resolve(event, {
         transformPageChunk: addSentryCodeToPage({
           injectFetchProxyScript: options.injectFetchProxyScript ?? true,
+          // Vercel sets this on every invocation of an ISR function, also for background revalidations
+          isVercelIsrRender: event.request.headers.has('x-vercel-isr'),
         }),
       });
 
