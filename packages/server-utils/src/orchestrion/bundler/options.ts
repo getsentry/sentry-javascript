@@ -46,6 +46,7 @@ export type PluginOptions = {
   /**
    * Packages that publish their own namespace on `providedModules`, for integrations that register
    * with a package instead of patching it. Opt-in, as apps that register it themselves would clash.
+   * Only for packages with a single ESM entry file, matched by a string `filePath`.
    */
   selfProvidedModules?: string[];
 };

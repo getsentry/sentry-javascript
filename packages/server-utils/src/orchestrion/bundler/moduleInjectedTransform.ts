@@ -141,7 +141,7 @@ export function moduleInjectedTransforms(
   const spliceModuleInjected = (state: unknown, program: unknown): void => {
     const { moduleType, module } = state as {
       moduleType?: string;
-      module?: { name?: string; filePath?: string };
+      module?: { name?: string; filePath?: string | RegExp };
     };
 
     const node = program as ProgramNode;
@@ -161,7 +161,7 @@ export function moduleInjectedTransforms(
     const exportName = subscriberExportForModule(moduleName);
     const esm = moduleType === 'esm';
     const selfProvided =
-      esm && module?.filePath && selfProvidedModules.includes(moduleName)
+      esm && typeof module?.filePath === 'string' && selfProvidedModules.includes(moduleName)
         ? `${selfProvidedSnippet(moduleName, module.filePath)}\n`
         : '';
     const statements = parse(selfProvided + moduleInjectedSnippet(moduleName, exportName, esm, specifier), {

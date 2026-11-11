@@ -208,6 +208,7 @@ describe('self-provided modules', () => {
     makePackage(root, '@flue/runtime', '2.0.3', 'module', 'dist');
     makePackage(root, 'pg', '8.11.0', 'module');
     makePackage(root, 'ioredis', '5.11.0', 'commonjs', 'built');
+    makePackage(root, '@mastra/core', '1.63.2', 'module', 'dist');
   });
 
   afterAll(() => {
@@ -258,5 +259,16 @@ describe('self-provided modules', () => {
     )!.code;
 
     expect(code.match(/import \* as __SENTRY_SELF_PROVIDED__ from "\.\/client\.js";/g)).toHaveLength(1);
+  });
+
+  it('publishes nothing from a module matched by a RegExp `filePath`, but still instruments it', () => {
+    const t = createCodeTransformer(orchestrionTransformOptions({ selfProvidedModules: ['@mastra/core'] }));
+    const code = t.transform(
+      'export class Mastra { constructor() {} }\n',
+      join(root, 'node_modules/@mastra/core/dist/mastra-abc123.js'),
+    )!.code;
+
+    expect(code).toContain('orchestrionModuleInjected("@mastra/core"');
+    expect(code).not.toContain('__SENTRY_SELF_PROVIDED__');
   });
 });
