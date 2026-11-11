@@ -121,4 +121,5 @@ allowBuilds:
   workerd: true
 minimumReleaseAgeExclude:
   - '@sentry/*'
+  - sentry
   - '@apm-js-collab/code-transformer-bundler-plugins@0.7.6'
