@@ -56,7 +56,7 @@ describe('pickReviewers', () => {
 
   it('picks from the whole team when no codeowners match', () => {
     const picked = pickReviewers({ existing: [], codeownerPool: [], teamPool: ['a', 'b', 'c'], exclude: [] });
-    expect(picked.sort()).toEqual(['a', 'b', 'c']);
+    expect(picked.sort((a, b) => a.localeCompare(b))).toEqual(['a', 'b', 'c']);
   });
 
   it('never picks the author, excluded people, or existing reviewers, case-insensitively', () => {
@@ -66,7 +66,7 @@ describe('pickReviewers', () => {
       teamPool: ['a', 'c', 'd'],
       exclude: ['a', 'mydea'],
     });
-    expect(picked.sort()).toEqual(['c', 'd']);
+    expect(picked.sort((a, b) => a.localeCompare(b))).toEqual(['c', 'd']);
   });
 
   it('only tops up to the required number of reviewers', () => {
