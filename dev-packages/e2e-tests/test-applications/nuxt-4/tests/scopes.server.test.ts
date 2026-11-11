@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
+import { isViteServer, NITRO_ONLY } from './isViteServer';
+
+test.skip(isViteServer, NITRO_ONLY);
 
 test('isolates the scope data and trace of concurrent requests', async ({ request }) => {
   const tags = ['alpha', 'beta', 'gamma'];
