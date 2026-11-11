@@ -36,7 +36,7 @@
     "dedupe-deps:fix": "pnpm dedupe",
     "postpublish": "nx run-many -t postpublish --parallel=1",
     "test": "nx run-many -t test --exclude=@sentry-internal/browser-integration-tests --exclude=@sentry-internal/bun-integration-tests --exclude=@sentry-internal/deno-integration-tests --exclude=@sentry-internal/e2e-tests --exclude=@sentry-internal/integration-shims --exclude=@sentry-internal/node-integration-tests --exclude=@sentry-internal/cloudflare-integration-tests --exclude=@sentry-internal/bundler-plugin-integration-tests",
-    "test:scripts": "vitest run scripts/*.test.ts",
+    "test:scripts": "vitest run scripts/*.test.ts scripts/*.test.mjs",
     "test:unit": "nx run-many -t test:unit --exclude=@sentry-internal/browser-integration-tests --exclude=@sentry-internal/bun-integration-tests --exclude=@sentry-internal/deno-integration-tests --exclude=@sentry-internal/e2e-tests --exclude=@sentry-internal/integration-shims --exclude=@sentry-internal/node-integration-tests --exclude=@sentry-internal/cloudflare-integration-tests --exclude=@sentry-internal/bundler-plugin-integration-tests",
     "test:update-snapshots": "nx run-many -t test:update-snapshots",
     "test:pr": "nx affected -t test --exclude=@sentry-internal/browser-integration-tests --exclude=@sentry-internal/bun-integration-tests --exclude=@sentry-internal/deno-integration-tests --exclude=@sentry-internal/e2e-tests --exclude=@sentry-internal/integration-shims --exclude=@sentry-internal/node-integration-tests --exclude=@sentry-internal/cloudflare-integration-tests --exclude=@sentry-internal/bundler-plugin-integration-tests",

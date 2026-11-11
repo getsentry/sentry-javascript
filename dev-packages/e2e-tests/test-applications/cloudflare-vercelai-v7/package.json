@@ -3,12 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "vite dev",
+    "dev": "CLOUDFLARE_INCLUDE_PROCESS_ENV=true vite dev",
     "build": "vite build",
     "preview": "vite preview --port 8787",
     "typecheck": "tsc --noEmit",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test:prod",
+    "test:assert": "pnpm test:prod && pnpm test:dev",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test"
   },

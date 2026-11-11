@@ -356,4 +356,47 @@ describe('Tracekit - Safari Tests', () => {
       },
     });
   });
+
+  it('should parse function names containing parentheses', () => {
+    const EMSCRIPTEN_ERROR = {
+      message: 'test error',
+      name: 'Error',
+      stack:
+        'methodCaller< (emscripten::val) => void>@https://example.com/assets/worker.js:1:43074\n' +
+        'MyClass::bar(int) const@https://example.com/assets/main.js:2:10\n' +
+        'emscripten::internal::MethodInvoker<int (MyClass::*)(int) const, int>::invoke(int)@https://example.com/assets/main.js:3:20',
+    };
+
+    const ex = exceptionFromError(parser, EMSCRIPTEN_ERROR);
+
+    expect(ex).toStrictEqual({
+      type: 'Error',
+      value: 'test error',
+      stacktrace: {
+        frames: [
+          {
+            filename: 'https://example.com/assets/main.js',
+            function: 'emscripten::internal::MethodInvoker<int (MyClass::*)(int) const, int>::invoke',
+            in_app: true,
+            lineno: 3,
+            colno: 20,
+          },
+          {
+            filename: 'https://example.com/assets/main.js',
+            function: 'MyClass::bar(int) const',
+            in_app: true,
+            lineno: 2,
+            colno: 10,
+          },
+          {
+            filename: 'https://example.com/assets/worker.js',
+            function: 'methodCaller< (emscripten::val) => void>',
+            in_app: true,
+            lineno: 1,
+            colno: 43074,
+          },
+        ],
+      },
+    });
+  });
 });
