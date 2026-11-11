@@ -18,6 +18,7 @@ const _experimentalSdkConfigIntegration = (() => ({
     const scope = new Scope();
     scope.setClient(client);
 
+    // Allow configuration to settle before capturing it.
     const timer = safeUnref(
       setTimeout(() => {
         void buildConfigAttributes(client)
@@ -51,6 +52,8 @@ async function hash(value: string): Promise<string> {
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
+// Sort object keys recursively, preserving array order. Replace functions
+// and unsupported values with fingerprints before hashing the config.
 async function serialize(value: unknown, ancestors = new Set<object>()): Promise<unknown> {
   if (typeof value === 'function') {
     return `[Function:${await hash(Function.prototype.toString.call(value))}]`;
@@ -92,6 +95,7 @@ async function serialize(value: unknown, ancestors = new Set<object>()): Promise
 }
 
 async function buildConfigAttributes(client: Client): Promise<Record<string, string>> {
+  // Integrations are reported separately; SDK metadata lives under `sdk`.
   const options = Object.fromEntries(
     Object.entries(client.getOptions()).filter(
       ([key]) => key !== 'integrations' && key !== 'defaultIntegrations' && key !== '_metadata',
