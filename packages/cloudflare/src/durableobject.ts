@@ -9,6 +9,8 @@ import { getInstrumented, markAsInstrumented } from './instrument';
 import { instrumentDurableObjectHandlers } from './instrumentations/instrumentDurableObjectHandlers';
 import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { getFinalOptions } from './options';
+import { flushDeferredChannelEvents } from './orchestrion-deferred-channels';
+import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
 import { withConstructionIsolationScope } from './utils/invocationScope';
 import { hasRpcMeta } from './utils/rpcMeta';
@@ -63,14 +65,24 @@ export function constructInstrumentedDurableObject<E, T extends DurableObject<E>
 
   const prototype = (newTarget as unknown as { prototype?: object }).prototype ?? target.prototype;
   const cachedFrameworkManagedMethods = frameworkManagedMethodsCache.get(prototype);
-  const methodsBeforeConstruction = cachedFrameworkManagedMethods ? undefined : resolvePrototypeMethods(prototype);
+  const methodsBeforeConstruction = cachedFrameworkManagedMethods
+    ? undefined
+    : resolveMethodsBeforeFirstConstruction(prototype);
 
   // Pass `newTarget` so that subclasses of the instrumented class (e.g. the wrapper classes
   // created by wrangler's local dev tooling or `@cloudflare/vitest-pool-workers`) keep their
   // own prototype — otherwise subclass methods disappear and `instanceof` checks break.
-  const obj = withConstructionIsolationScope(
-    () => Reflect.construct(target, [context, instrumentedEnv], newTarget) as T,
-  );
+  const obj = withConstructionIsolationScope(() => {
+    // The constructor can already use instrumented libraries, e.g. open a pi-durable Harness in
+    // `blockConcurrencyWhile`. Their channel integrations only subscribe in `init()`, and an isolate
+    // that runs only this Durable Object has no earlier handler that called it. A per-invocation
+    // client (`cacheClient: false`) would have no invocation to flush it, so it waits for one.
+    if (options.cacheClient !== false) {
+      init({ ...options });
+      flushDeferredChannelEvents();
+    }
+    return Reflect.construct(target, [context, instrumentedEnv], newTarget) as T;
+  });
 
   const frameworkManagedMethods = resolveFrameworkManagedMethods(
     prototype,
@@ -85,6 +97,26 @@ export function constructInstrumentedDurableObject<E, T extends DurableObject<E>
 }
 
 const frameworkManagedMethodsCache = new WeakMap<object, ReadonlySet<string>>();
+const methodsBeforeFirstConstructionCache = new WeakMap<object, Map<string, unknown>>();
+
+/**
+ * Collects the prototype's methods as they were before any instance was constructed.
+ *
+ * A constructor can throw after a framework has already installed its wrappers (the `agents` SDK
+ * wraps `@callable()` methods before storage initialization, which can fail). The next construction
+ * would then see those wrappers as the originals and treat the methods as unmanaged, so the methods
+ * collected on the first attempt are kept until a construction succeeds.
+ */
+function resolveMethodsBeforeFirstConstruction(prototype: object): Map<string, unknown> {
+  let methods = methodsBeforeFirstConstructionCache.get(prototype);
+
+  if (!methods) {
+    methods = resolvePrototypeMethods(prototype);
+    methodsBeforeFirstConstructionCache.set(prototype, methods);
+  }
+
+  return methods;
+}
 
 /**
  * Collects the methods visible from a prototype, using normal property lookup precedence.
@@ -140,6 +172,7 @@ function resolveFrameworkManagedMethods(
   }
 
   frameworkManagedMethodsCache.set(prototype, managed);
+  methodsBeforeFirstConstructionCache.delete(prototype);
 
   return managed;
 }

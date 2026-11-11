@@ -616,6 +616,111 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
     });
   });
 
+  describe('NonRetryableError before the final attempt', () => {
+    class NonRetryableError extends Error {
+      constructor(message: string, name = 'NonRetryableError') {
+        super(message);
+        this.name = name;
+      }
+    }
+
+    async function runFailingWorkflow(createError: () => Error): Promise<{ errorEvents: any[]; attempts: number }> {
+      const retryLimit = 2;
+      let attempts = 0;
+      const step: WorkflowStep = {
+        do: vi
+          .fn()
+          .mockImplementation(
+            async (
+              _name: string,
+              configOrCallback: WorkflowStepConfig | ((...args: unknown[]) => Promise<any>),
+              maybeCallback?: (...args: unknown[]) => Promise<any>,
+            ) => {
+              const callback = (typeof configOrCallback === 'function' ? configOrCallback : maybeCallback)!;
+              let lastError: unknown;
+              for (let attempt = 1; attempt <= retryLimit + 1; attempt++) {
+                attempts = attempt;
+                try {
+                  return await callback({ attempt, config: { retries: { limit: retryLimit }, timeout: 60000 } });
+                } catch (err) {
+                  lastError = err;
+                  // The engine's rule for ending a step without further retries
+                  const { name, message } = err as Error;
+                  if (name === 'NonRetryableError' || message.startsWith('NonRetryableError')) {
+                    break;
+                  }
+                }
+              }
+              throw lastError;
+            },
+          ),
+        sleep: vi.fn(),
+        sleepUntil: vi.fn(),
+        waitForEvent: vi.fn(),
+      };
+
+      class FailingWorkflow {
+        constructor(_ctx: ExecutionContext, _env: unknown) {}
+
+        async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+          await step.do('failing step', async () => {
+            throw createError();
+          });
+        }
+      }
+
+      const TestWorkflowInstrumented = instrumentWorkflowWithSentry(() => getSentryOptions(), FailingWorkflow as any);
+      const workflow = new TestWorkflowInstrumented(mockContext, {}) as FailingWorkflow;
+      const event = { payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID };
+      await expect(workflow.run(event, step)).rejects.toThrow('permanent failure');
+
+      const errorEvents = mockTransport.send.mock.calls
+        .map(call => (call[0] as any)[1] as any[])
+        .flatMap(items => items.filter(i => i[0].type === 'event').map(i => i[1]));
+
+      return { errorEvents, attempts };
+    }
+
+    test('captures a NonRetryableError thrown on the first attempt', async () => {
+      const { errorEvents, attempts } = await runFailingWorkflow(() => new NonRetryableError('permanent failure'));
+
+      expect(attempts).toBe(1);
+      expect(errorEvents).toHaveLength(1);
+      expect(errorEvents[0]).toMatchObject({
+        exception: {
+          values: [
+            expect.objectContaining({
+              type: 'NonRetryableError',
+              value: 'permanent failure',
+              mechanism: { type: 'auto.faas.cloudflare.workflow', handled: true },
+            }),
+          ],
+        },
+      });
+    });
+
+    test('captures an error whose message starts with "NonRetryableError" on the first attempt', async () => {
+      const { errorEvents, attempts } = await runFailingWorkflow(
+        () => new Error('NonRetryableError: permanent failure'),
+      );
+
+      expect(attempts).toBe(1);
+      expect(errorEvents).toHaveLength(1);
+    });
+
+    test('captures a NonRetryableError with a custom name only on the final attempt, as the engine retries it', async () => {
+      const { errorEvents, attempts } = await runFailingWorkflow(
+        () => new NonRetryableError('permanent failure', 'MyError'),
+      );
+
+      expect(attempts).toBe(3);
+      expect(errorEvents).toHaveLength(1);
+      expect(errorEvents[0]).toMatchObject({
+        exception: { values: [expect.objectContaining({ type: 'MyError', value: 'permanent failure' })] },
+      });
+    });
+  });
+
   test('emits error per attempt on older Cloudflare without step context', async () => {
     // Mock that always throws — simulates a step that fails through every retry
     // Does NOT pass step context (simulates older Cloudflare versions)

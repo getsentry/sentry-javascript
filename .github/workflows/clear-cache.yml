@@ -21,7 +21,7 @@ on:
 jobs:
   clear-caches:
     name: Delete all caches
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 

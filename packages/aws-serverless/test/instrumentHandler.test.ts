@@ -1,9 +1,11 @@
+import { HTTP_RESPONSE_STATUS_CODE } from '@sentry/conventions/attributes';
 import type { Context, Handler } from 'aws-lambda';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentHandler } from '../src/instrumentHandler';
 
 const mockSpan = {
   setStatus: vi.fn(),
+  setAttributes: vi.fn(),
   end: vi.fn(),
 };
 
@@ -80,5 +82,23 @@ describe('instrumentHandler', () => {
     await expect(instrumentHandler(handler)({}, fakeContext, () => {})).resolves.toBe(42);
     expect(mockSpan.end).toHaveBeenCalledTimes(1);
     expect(mockSpan.setStatus).not.toHaveBeenCalled();
+  });
+
+  test('sets the HTTP response status code for HTTP events', async () => {
+    const event = { version: '2.0', rawPath: '/', requestContext: { http: { method: 'GET' } } };
+    const handler: Handler = async () => ({ statusCode: 404 });
+
+    await instrumentHandler(handler)(event, fakeContext, () => {});
+    expect(mockSpan.setAttributes).toHaveBeenCalledWith({ [HTTP_RESPONSE_STATUS_CODE]: 404 });
+  });
+
+  test('sets the HTTP response status code when a callback-style handler calls back', async () => {
+    const event = { httpMethod: 'GET', path: '/' };
+    const handler: Handler = (_event, _context, callback) => {
+      setTimeout(() => callback(null, { statusCode: 302 }), 10);
+    };
+
+    await instrumentHandler(handler)(event, fakeContext, () => {});
+    expect(mockSpan.setAttributes).toHaveBeenCalledWith({ [HTTP_RESPONSE_STATUS_CODE]: 302 });
   });
 });

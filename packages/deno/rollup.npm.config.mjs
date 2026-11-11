@@ -1,4 +1,4 @@
-import { defineConfig } from 'rollup';
+import { defineConfig } from 'rolldown';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
 const orchestrionRuntimeHooks = [

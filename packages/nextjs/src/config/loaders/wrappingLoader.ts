@@ -161,7 +161,9 @@ export default function wrappingLoader(
     if (wrappingTargetKind === 'server-component') {
       templateCode = serverComponentWrapperTemplateCode;
     } else {
-      templateCode = routeHandlerWrapperTemplateCode;
+      // Added here rather than in the template because the SDK build rewrites `export { default } from` in it,
+      // which would stop `wrapUserCode` from dropping the default for routes that don't have one.
+      templateCode = `${routeHandlerWrapperTemplateCode}\nexport { default } from '__SENTRY_WRAPPING_TARGET_FILE__';\n`;
     }
 
     if (nextjsRequestAsyncStorageModulePath !== undefined) {

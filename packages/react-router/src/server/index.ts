@@ -9,7 +9,7 @@ export { createSentryHandleRequest, type SentryHandleRequestOptions } from './cr
 export type { SentryWebStreamHandleRequestOptions } from './handleRequestTypes';
 export { createSentryHandleError, type SentryHandleErrorOptions } from './createSentryHandleError';
 export { getMetaTagTransformer } from './getMetaTagTransformer';
-export { createSentryTunnelRoutes } from './tunnelRoute';
+export { setTunnelBasePath as _INTERNAL_setTunnelBasePath } from './tunnelRoute';
 
 // React Router instrumentation API support
 export {
