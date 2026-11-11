@@ -143,6 +143,14 @@ describe('getHttpRequestAttributes', () => {
     expect(getHttpRequestAttributes({ ...albEvent, headers: null }, makeClient(true))[CLIENT_ADDRESS]).toBeUndefined();
   });
 
+  test('reads multi-value headers of an ALB event', () => {
+    const { headers, ...event } = albEvent;
+    const multiValueHeaders = Object.fromEntries(Object.entries(headers).map(([name, value]) => [name, [value]]));
+    expect(getHttpRequestAttributes({ ...event, multiValueHeaders }, makeClient(true))).toEqual(
+      getHttpRequestAttributes(albEvent, makeClient(true)),
+    );
+  });
+
   test('prefers a forwarded client address over the source IP', () => {
     const event = {
       ...restApiEvent,
@@ -229,6 +237,11 @@ describe('getHttpResponseAttributes', () => {
     expect(getHttpResponseAttributes(restApiEvent, { statusCode: 201 })).toEqual({
       [HTTP_RESPONSE_STATUS_CODE]: 201,
     });
+  });
+
+  test('accepts a string status code', () => {
+    expect(getHttpResponseAttributes(albEvent, { statusCode: '404' })).toEqual({ [HTTP_RESPONSE_STATUS_CODE]: 404 });
+    expect(getHttpResponseAttributes(functionUrlEvent, { statusCode: 'oops' })).toEqual({});
   });
 
   test('infers a 200 for payload format 2.0 results without a status code', () => {

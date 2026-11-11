@@ -31,6 +31,7 @@ interface HttpEventLike {
   resource?: string;
   routeKey?: string;
   headers?: EventHeaders | null;
+  multiValueHeaders?: Record<string, string[] | undefined> | null;
   queryStringParameters?: Record<string, string | undefined> | null;
   multiValueQueryStringParameters?: Record<string, string[] | undefined> | null;
   requestContext?: {
@@ -55,7 +56,7 @@ export function getHttpRequestAttributes(event: unknown, client: Client | undefi
   const httpEvent = event as HttpEventLike;
   const isV2 = format === '2.0';
   const requestContext = httpEvent.requestContext || {};
-  const headers = httpEvent.headers || {};
+  const headers = getHeaders(httpEvent);
   const { http, identity } = requestContext;
   const scheme = getHeader(headers, 'x-forwarded-proto');
   const forwardedPort = getHeader(headers, 'x-forwarded-port');
@@ -95,8 +96,10 @@ export function getHttpResponseAttributes(event: unknown, result: unknown): Span
   }
 
   const statusCode = isPlainObject(result) ? result.statusCode : undefined;
-  if (typeof statusCode === 'number') {
-    return { [HTTP_RESPONSE_STATUS_CODE]: statusCode };
+  if (statusCode != null) {
+    // ALB also accepts the status code as a string.
+    const code = Number(statusCode);
+    return Number.isInteger(code) && code > 0 ? { [HTTP_RESPONSE_STATUS_CODE]: code } : {};
   }
 
   // For payload format 2.0 (Function URLs, HTTP APIs), Lambda answers with a 200 when the handler
@@ -162,6 +165,17 @@ function getFullUrl(
   // Clients put non-default ports into the host header, which ALB passes through as is.
   const portSuffix = port && port !== DEFAULT_PORTS[scheme] && !/:\d+$/.test(host) ? `:${port}` : '';
   return `${scheme}://${host}${portSuffix}${path}${query ? `?${query}` : ''}`;
+}
+
+// ALB target groups with multi-value headers enabled send only `multiValueHeaders`.
+function getHeaders(event: HttpEventLike): EventHeaders {
+  const headers: EventHeaders = { ...event.headers };
+  for (const [name, values] of Object.entries(event.multiValueHeaders || {})) {
+    if (values?.length && getHeader(headers, name.toLowerCase()) === undefined) {
+      headers[name] = values.join(', ');
+    }
+  }
+  return headers;
 }
 
 function getHeader(headers: EventHeaders, name: string): string | undefined {
