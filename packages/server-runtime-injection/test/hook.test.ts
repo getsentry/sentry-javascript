@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
-import { cpSync, mkdtempSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
 /**
@@ -19,6 +19,37 @@ cpSync(join(packageDir, 'build', 'cjs'), join(copyDir, 'build', 'cjs'), { recurs
 
 afterAll(() => {
   rmSync(copyDir, { recursive: true, force: true });
+});
+
+/** Every file that `entry` reaches through relative `require()` calls. */
+function relativeRequireGraph(entry: string): Set<string> {
+  const seen = new Set<string>();
+  const visit = (file: string): void => {
+    if (seen.has(file)) {
+      return;
+    }
+    seen.add(file);
+    for (const [, request] of readFileSync(file, 'utf8').matchAll(/require\(['"](\.[^'"]+)['"]\)/g)) {
+      visit(resolve(dirname(file), request!));
+    }
+  };
+  visit(entry);
+  return seen;
+}
+
+describe('the CJS loader hook', () => {
+  // A tracer that copies the hook without following its imports still ships what `register.js`
+  // requires. So the hook must need nothing else.
+  it('requires only files that register.js requires too', () => {
+    const cjsDir = join(packageDir, 'build', 'cjs');
+    const registerGraph = relativeRequireGraph(join(cjsDir, 'register.js'));
+    const hookGraph = relativeRequireGraph(join(cjsDir, 'hook.js'));
+
+    const hookOnly = [...hookGraph].filter(file => !registerGraph.has(file)).map(file => relative(cjsDir, file));
+
+    expect(hookGraph.size).toBeGreaterThan(1);
+    expect(hookOnly).toEqual(['hook.js']);
+  });
 });
 
 describe('when a deployment ships only the CJS build', () => {
