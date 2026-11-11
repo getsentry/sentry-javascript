@@ -53,6 +53,7 @@ export type { CachedRouteProvider, RouteProvider } from '@sentry/browser-utils';
 export { interactionsIntegration } from './integrations/interactions';
 export { linkedTracesIntegration } from './integrations/linkedTraces';
 export { longTasksIntegration } from './integrations/longTasks';
+export { fetchTracingIntegration } from './integrations/fetchTracing';
 export { xhrTracingIntegration } from './integrations/xhrTracing';
 
 export type { RequestInstrumentationOptions } from './tracing/request';
