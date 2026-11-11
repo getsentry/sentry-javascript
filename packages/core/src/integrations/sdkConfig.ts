@@ -58,6 +58,7 @@ async function serialize(value: unknown, ancestors = new Set<object>()): Promise
   }
 
   if (value === null || typeof value !== 'object') {
+    // initialScope extras can contain bigints or symbols; JSON throws on bigints and omits symbols.
     if (typeof value === 'bigint' || typeof value === 'symbol') {
       return `[${typeof value}:${await hash(String(value))}]`;
     }
@@ -68,6 +69,7 @@ async function serialize(value: unknown, ancestors = new Set<object>()): Promise
     return value.toString();
   }
 
+  // Stop recursion if an object references itself or an ancestor.
   if (ancestors.has(value)) {
     return '[Circular]';
   }
