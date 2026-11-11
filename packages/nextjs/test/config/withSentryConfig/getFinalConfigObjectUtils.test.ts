@@ -3,7 +3,11 @@ import type { NextConfigObject } from '../../../src/config/types';
 import { warnIfMissingInstrumentationFile } from '../../../src/config/withSentryConfig/getFinalConfigObjectUtils';
 import { makeProject, removeProjects } from './projectFixture';
 
-const FIXED_PATH_REWRITE = { source: '/monitoring', destination: '/sentry-tunnel' };
+const TUNNEL_REWRITE = {
+  source: '/:path*',
+  has: [{ type: 'header', key: 'content-type', value: 'application/x-sentry-envelope' }],
+  destination: '/sentry-tunnel',
+};
 
 afterEach(() => {
   removeProjects();
@@ -58,30 +62,22 @@ describe('maybeSetUpTunnelRouteRewriteRules', () => {
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('The `tunnelRoute` option is deprecated'));
   });
 
-  it('rewrites the `tunnelRoute` path to the tunnel route handler on Vercel', async () => {
-    stubVercelBuild();
-    const { maybeSetUpTunnelRouteRewriteRules } = await setUp(['app/page.tsx']);
-    const nextConfig: NextConfigObject = {};
-
-    maybeSetUpTunnelRouteRewriteRules(nextConfig, { tunnelRoute: '/monitoring' });
-
-    await expect(nextConfig.rewrites?.()).resolves.toEqual({ beforeFiles: [FIXED_PATH_REWRITE], afterFiles: [] });
-  });
-
   it.each([
     ['`tunnelRoute` is not set', {}],
     ['`tunnelRoute` is `true`', { tunnelRoute: true }],
-  ])('rewrites the paths derived from a DSN on Vercel when %s', async (_description, sentryOptions) => {
-    stubVercelBuild();
-    const { maybeSetUpTunnelRouteRewriteRules } = await setUp(['app/page.tsx']);
-    const nextConfig: NextConfigObject = {};
+    ['`tunnelRoute` is a path', { tunnelRoute: '/monitoring' }],
+  ])(
+    'rewrites envelope requests to the tunnel route handler on Vercel when %s',
+    async (_description, sentryOptions) => {
+      stubVercelBuild();
+      const { maybeSetUpTunnelRouteRewriteRules } = await setUp(['app/page.tsx']);
+      const nextConfig: NextConfigObject = {};
 
-    maybeSetUpTunnelRouteRewriteRules(nextConfig, sentryOptions);
+      maybeSetUpTunnelRouteRewriteRules(nextConfig, sentryOptions);
 
-    await expect(nextConfig.rewrites?.()).resolves.toEqual({
-      afterFiles: [expect.objectContaining({ source: '/:sentryTunnel([a-z0-9]{1,7})', destination: '/sentry-tunnel' })],
-    });
-  });
+      await expect(nextConfig.rewrites?.()).resolves.toEqual({ afterFiles: [TUNNEL_REWRITE] });
+    },
+  );
 
   it('does not warn about the deprecated option when `tunnelRoute` is not set', async () => {
     const { maybeSetUpTunnelRouteRewriteRules, warnSpy } = await setUp(['app/page.tsx']);

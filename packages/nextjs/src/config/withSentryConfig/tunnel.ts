@@ -73,15 +73,14 @@ export function getTunnelRouteInjectedValues(
 
 /**
  * Makes the managed tunnel reachable on Vercel, which serves unknown paths without running the app. Writes the tunnel
- * route handler if the app has none, and rewrites envelope requests to it: from the `tunnelRoute` path, or else from
- * the paths derived from a DSN.
+ * route handler if the app has none, and rewrites envelope requests on paths the app doesn't serve to it, so the
+ * derived path and a fixed one both reach it.
  *
  * Only runs in `next build` on Vercel, whose build checkout is thrown away afterwards. `vercel dev` sets `VERCEL`
  * locally too, so `next dev` and development builds skip it to keep the file out of the repo.
  */
 export function setUpManagedTunnelVercelRoute(
   userNextConfig: NextConfigObject,
-  tunnelPath?: string,
   projectDir: string = process.cwd(),
 ): void {
   // Next.js sets `NEXT_PHASE` only after it loads the config.
@@ -116,26 +115,25 @@ export function setUpManagedTunnelVercelRoute(
   }
 
   const originalRewrites = userNextConfig.rewrites;
-  // Next.js adds the `basePath` and an optional trailing slash to the source.
-  const tunnelRewrite = tunnelPath
-    ? { source: tunnelPath, destination: TUNNEL_ROUTE_HANDLER_PATH }
-    : {
-        // The paths `getTunnelPath` derives from a DSN.
-        source: '/:sentryTunnel([a-z0-9]{1,7})',
-        has: [{ type: 'header', key: 'content-type', value: 'application/x-sentry-envelope' }],
-        destination: TUNNEL_ROUTE_HANDLER_PATH,
-      };
+  const tunnelRewrite = {
+    // Next.js adds the `basePath`. The content type keeps other requests out, and the handler forwards only envelopes
+    // for allowed DSNs.
+    source: '/:path*',
+    has: [{ type: 'header', key: 'content-type', value: 'application/x-sentry-envelope' }],
+    destination: TUNNEL_ROUTE_HANDLER_PATH,
+  };
 
+  // `afterFiles`: the app's own routes win.
   userNextConfig.rewrites = async () => {
     const originalRewritesResult = typeof originalRewrites === 'function' ? await originalRewrites() : [];
-    const rewrites = Array.isArray(originalRewritesResult)
-      ? { afterFiles: originalRewritesResult }
-      : originalRewritesResult;
 
-    // The path the user picked wins over a `public/` file or a page at it. The derived paths come after the app's own
-    // routes, since one of them could take such a short path.
-    return tunnelPath
-      ? { ...rewrites, beforeFiles: [tunnelRewrite, ...(rewrites.beforeFiles || [])] }
-      : { ...rewrites, afterFiles: [...(rewrites.afterFiles || []), tunnelRewrite] };
+    if (Array.isArray(originalRewritesResult)) {
+      return { afterFiles: [...originalRewritesResult, tunnelRewrite] };
+    }
+
+    return {
+      ...originalRewritesResult,
+      afterFiles: [...(originalRewritesResult.afterFiles || []), tunnelRewrite],
+    };
   };
 }

@@ -60,10 +60,7 @@ export function maybeSetUpTunnelRouteRewriteRules(
     );
   }
 
-  setUpManagedTunnelVercelRoute(
-    incomingUserNextConfigObject,
-    typeof tunnelRoute === 'string' ? tunnelRoute : undefined,
-  );
+  setUpManagedTunnelVercelRoute(incomingUserNextConfigObject);
 }
 
 /**
