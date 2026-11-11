@@ -20,7 +20,8 @@ jobs:
   assign-reviewers:
     name: Assign reviewers
     runs-on: ubuntu-24.04
-    if: github.event.pull_request.draft == false
+    # Junior opens its PRs as drafts, and they should be assigned to the requester right away.
+    if: github.event.pull_request.draft == false || github.event.pull_request.user.login == 'sentry-junior[bot]'
     steps:
       # Listing team members needs org `members: read`, which GITHUB_TOKEN can't have.
       - name: Generate GitHub App token
