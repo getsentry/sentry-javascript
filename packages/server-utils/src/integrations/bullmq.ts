@@ -47,9 +47,9 @@ function subscribe(options: BullMQJobSchedulerIntegrationOptions): void {
     [CHANNELS.BULLMQ_6_WORKER_CONSTRUCTOR, 6],
   ] as const;
   for (const [channel, major] of channels) {
-    diagnosticsChannel.tracingChannel<{ self?: unknown }>(channel).end.subscribe(message => {
+    diagnosticsChannel.tracingChannel(channel).end.subscribe(message => {
       try {
-        instrumentWorker(message.self, options, major);
+        instrumentWorker((message as { self?: unknown }).self, options, major);
       } catch (e) {
         DEBUG_BUILD && debug.error(`[${INTEGRATION_NAME}] Failed to set up the cron monitor:`, e);
       }
