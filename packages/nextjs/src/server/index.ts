@@ -168,7 +168,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     ...cloudflareConfig,
   };
 
-  opts.ignoreSpans = [...(opts.ignoreSpans || []), ...NEXTJS_SERVER_IGNORE_SPANS, ...getTunnelRouteIgnoreSpans()];
+  opts.ignoreSpans = [...(opts.ignoreSpans || []), ...NEXTJS_SERVER_IGNORE_SPANS];
 
   // Before `init`, which applies it to the managed tunnel of `serveTunnelIntegration` or `tunnelRoute`.
   const tunnelRoute = getTunnelRouteServerOptions();
@@ -199,6 +199,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   if (client) {
     addNextjsServerSpanHooks(client);
+    const clientOptions = client.getOptions();
+    clientOptions.ignoreSpans = [...(clientOptions.ignoreSpans || []), ...getTunnelRouteIgnoreSpans(client)];
   } else if (isOwnedByCloudflare) {
     setCloudflareWorkerRelease(opts.release);
   }

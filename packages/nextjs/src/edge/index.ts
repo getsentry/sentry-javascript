@@ -115,7 +115,6 @@ export function init(options: VercelEdgeOptions = {}): void {
   const nextjsIgnoreSpans: NonNullable<VercelEdgeOptions['ignoreSpans']> = [
     // (set in `dropMiddlewareTunnelRequests` during `spanStart`)
     { attributes: { [TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]: true } },
-    ...getTunnelRouteIgnoreSpans(),
   ];
   opts.ignoreSpans = [...(opts.ignoreSpans || []), ...nextjsIgnoreSpans];
 
@@ -155,6 +154,8 @@ export function init(options: VercelEdgeOptions = {}): void {
   }
 
   const client = vercelEdgeInit(opts);
+  const clientOptions = client.getOptions();
+  clientOptions.ignoreSpans = [...(clientOptions.ignoreSpans || []), ...getTunnelRouteIgnoreSpans(client)];
 
   // Next.js's OTel instrumentation samples root spans before the Sentry middleware wrapper can set
   // `normalizedRequest` on the isolation scope. Seed it from span attributes so `tracesSampler` has access.

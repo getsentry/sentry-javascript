@@ -1,5 +1,12 @@
 import type { Integration } from '@sentry/core';
-import { GLOBAL_OBJ, getMainCarrier, getTunnelPath, withIsolationScope } from '@sentry/core';
+import {
+  GLOBAL_OBJ,
+  getClient,
+  getMainCarrier,
+  getTunnelPath,
+  shouldIgnoreSpan,
+  withIsolationScope,
+} from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import { close, getCurrentScope, getGlobalScope } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
@@ -83,6 +90,7 @@ describe('Server init()', () => {
       nodeInit.mockReturnValueOnce({
         on: vi.fn(),
         addEventProcessor: vi.fn(),
+        getOptions: () => ({}),
         traceProvider,
       } as unknown as ReturnType<typeof SentryNode.init>);
 
@@ -95,6 +103,7 @@ describe('Server init()', () => {
       nodeInit.mockReturnValueOnce({
         on: vi.fn(),
         addEventProcessor: vi.fn(),
+        getOptions: () => ({}),
         traceProvider: undefined,
       } as unknown as ReturnType<typeof SentryNode.init>);
 
@@ -139,6 +148,34 @@ describe('Server init()', () => {
 
       expect(handleTunnelRequestIfMatched(post(`/docs${getTunnelPath(TEST_DSN)}`))).toBeInstanceOf(Promise);
       fetchSpy.mockRestore();
+    });
+
+    it.each([
+      ['`tunnelRoute: true`', () => ({ tunnelRoute: 'true', integrations: [] })],
+      ['`serveTunnelIntegration`', () => ({ tunnelRoute: undefined, integrations: [serveTunnelIntegration()] })],
+    ])('ignores the Next.js request spans of the tunnel path derived from the DSN with %s', (_description, setUp) => {
+      const { tunnelRoute, integrations } = setUp();
+      globalWithInjectedValues._sentryBasePath = '/docs';
+      globalWithInjectedValues._sentryTunnelRoute = tunnelRoute;
+
+      init({ dsn: TEST_DSN, integrations });
+
+      const ignoreSpans = getClient()?.getOptions().ignoreSpans;
+      // Next.js sets only `http.target` at span start, e.g. for a proxy that runs outside of the server on Vercel.
+      const isIgnored = (spanType: string, target: string): boolean =>
+        shouldIgnoreSpan(
+          {
+            description: 'middleware POST',
+            op: 'http.server',
+            attributes: { 'next.span_type': spanType, 'http.target': target },
+          },
+          ignoreSpans,
+        );
+      const tunnelPath = `/docs${getTunnelPath(TEST_DSN)}`;
+      expect(isIgnored('Middleware.execute', tunnelPath)).toBe(true);
+      expect(isIgnored('Next.request', `${tunnelPath}/`)).toBe(true);
+      expect(isIgnored('BaseServer.handleRequest', tunnelPath)).toBe(true);
+      expect(isIgnored('Next.request', '/docs/pricing')).toBe(false);
     });
 
     it("serves the tunnel of `serveTunnelIntegration` under the app's `basePath`", () => {

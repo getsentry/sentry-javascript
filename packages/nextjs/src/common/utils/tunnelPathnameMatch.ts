@@ -48,9 +48,9 @@ export function isPathnameUnderSentryTunnelRoute(pathname: string, tunnelPath: s
 }
 
 /**
- * Returns a pattern for the request targets (path and query) of the tunnel path: the path, with an optional trailing
- * slash and any query. It must never match more than the tunnel path, see GHSA-mchm-gjx6-7h55.
+ * Returns a pattern for the request targets (path and query) of the tunnel paths: a path, with an optional trailing
+ * slash and any query. It must never match more than the tunnel paths, see GHSA-mchm-gjx6-7h55.
  */
-export function getTunnelRouteRequestPattern(tunnelPath: string): RegExp {
-  return new RegExp(`^${escapeStringForRegex(tunnelPath)}/?(?:\\?|$)`);
+export function getTunnelRouteRequestPattern(tunnelPaths: string[]): RegExp {
+  return new RegExp(`^(?:${tunnelPaths.map(escapeStringForRegex).join('|')})/?(?:\\?|$)`);
 }

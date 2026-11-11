@@ -1,9 +1,15 @@
 import { HTTP_TARGET, URL_FULL, URL_PATH, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
-import type { ClientOptions, RawAttributes } from '@sentry/core';
-import { escapeStringForRegex, getClient, isSentryRequestUrl, type Span } from '@sentry/core';
+import type { Client, ClientOptions, RawAttributes } from '@sentry/core';
+import {
+  _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath,
+  escapeStringForRegex,
+  getClient,
+  isSentryRequestUrl,
+  type Span,
+} from '@sentry/core';
+import { _INTERNAL_getServedTunnel as getServedTunnel } from '@sentry/core/server';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 import {
-  getInjectedTunnelRoute,
   getTunnelRouteRequestPattern,
   isPathnameUnderSentryTunnelRoute,
   TUNNEL_ROUTE_HANDLER_PATH,
@@ -11,12 +17,18 @@ import {
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 
 /**
- * The fixed path of the `tunnelRoute`. The path derived from the DSN isn't known here.
+ * The paths of the managed tunnel the client serves, with the `basePath`: the ones derived from the DSNs, or the fixed
+ * one.
  */
-function getFixedTunnelPath(): string | undefined {
-  const tunnelRoute = getInjectedTunnelRoute();
+function getServedTunnelPaths(client: Client | undefined = getClient()): string[] {
+  const servedTunnel = getServedTunnel(client);
+  if (!servedTunnel) {
+    return [];
+  }
 
-  return typeof tunnelRoute === 'string' ? tunnelRoute : undefined;
+  const basePath = normalizeTunnelBasePath(servedTunnel.basePath);
+
+  return servedTunnel.paths.map(path => `${basePath}${path}`);
 }
 
 /**
@@ -75,8 +87,8 @@ function isSentryRequestSpan(attrs: RawAttributes<Record<string, unknown>>): boo
  * Checks if a span's HTTP target matches the tunnel route.
  */
 export function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): boolean {
-  const tunnelPath = getFixedTunnelPath();
-  if (!tunnelPath) {
+  const tunnelPaths = getServedTunnelPaths();
+  if (!tunnelPaths.length) {
     return false;
   }
 
@@ -89,21 +101,23 @@ export function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): bool
     // Extract pathname from the target (e.g., "/tunnel?o=123&p=456" -> "/tunnel")
     const pathname = target.split('?')[0] || '';
 
-    return isPathnameUnderSentryTunnelRoute(pathname, tunnelPath);
+    return tunnelPaths.some(tunnelPath => isPathnameUnderSentryTunnelRoute(pathname, tunnelPath));
   }
 
   return false;
 }
 
 /**
- * Returns `ignoreSpans` entries for the spans of incoming tunnel requests.
+ * Returns `ignoreSpans` entries for the spans of incoming requests to the tunnel the client serves. Call it after
+ * `init`, which sets up the served tunnel.
  *
- * Span streaming checks `ignoreSpans` at span start, before `dropMiddlewareTunnelRequests` runs. The entries match only
- * Next.js request spans, so other spans with the same path are kept.
+ * Span streaming checks `ignoreSpans` at span start, before `dropMiddlewareTunnelRequests` runs. Next.js sets only
+ * `http.target` then, which the `url.path` filters of the managed tunnel don't read. The entries match only Next.js
+ * request spans, so other spans with the same path are kept.
  */
-export function getTunnelRouteIgnoreSpans(): NonNullable<ClientOptions['ignoreSpans']> {
-  const tunnelPath = getFixedTunnelPath();
-  if (!tunnelPath) {
+export function getTunnelRouteIgnoreSpans(client: Client | undefined): NonNullable<ClientOptions['ignoreSpans']> {
+  const tunnelPaths = getServedTunnelPaths(client);
+  if (!tunnelPaths.length) {
     return [];
   }
 
@@ -114,7 +128,7 @@ export function getTunnelRouteIgnoreSpans(): NonNullable<ClientOptions['ignoreSp
         [ATTR_NEXT_SPAN_TYPE]: /^(?:BaseServer\.handleRequest|Middleware\.execute|Next\.request)$/,
         // Next.js sets only `http.target` at span start.
         // eslint-disable-next-line typescript/no-deprecated
-        [HTTP_TARGET]: getTunnelRouteRequestPattern(tunnelPath),
+        [HTTP_TARGET]: getTunnelRouteRequestPattern(tunnelPaths),
       },
     },
     {
