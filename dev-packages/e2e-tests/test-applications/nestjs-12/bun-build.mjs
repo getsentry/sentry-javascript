@@ -7,8 +7,9 @@ await Bun.build({
   entrypoints: [join(import.meta.dir, 'dist/main.js')],
   target: 'bun',
   outdir: join(import.meta.dir, 'dist-bun'),
-  // Nest loads these optional packages only when they are installed, but the bundler resolves the
-  // `require` calls at build time. The app uses `@nestjs/microservices` only for `RpcException`.
+  // The bundler resolves Nest's optional `require` calls at build time. `@nestjs/websockets`,
+  // `class-transformer`, `class-validator` and `cache-manager` are not installed. `@nestjs/microservices`
+  // is installed for `RpcException`, but it loads transports (`kafkajs`, `@grpc/grpc-js`, ...) that are not.
   external: [
     '@nestjs/microservices',
     '@nestjs/microservices/*',

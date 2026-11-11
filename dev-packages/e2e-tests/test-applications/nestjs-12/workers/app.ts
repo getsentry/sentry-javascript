@@ -16,7 +16,10 @@ const handler = httpServerHandler({ port: PORT });
 
 export default {
   async fetch(request, env, ctx) {
-    listening ??= bootstrap();
+    listening ??= bootstrap().catch(err => {
+      listening = undefined;
+      throw err;
+    });
     await listening;
     return handler.fetch(request, env, ctx);
   },

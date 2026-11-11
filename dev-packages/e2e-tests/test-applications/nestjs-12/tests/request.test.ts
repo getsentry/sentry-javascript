@@ -87,7 +87,7 @@ test('Propagates the trace to an outgoing fetch request', async ({ baseURL }) =>
     expect(fetchSpan!.trace_id).toBe(segmentSpan.trace_id);
     expect(fetchSpan!.attributes['http.request.method']).toEqual({ type: 'string', value: 'GET' });
 
-    expect(receivedHeaders?.['sentry-trace']).toMatch(new RegExp(`^${segmentSpan.trace_id}-${fetchSpan!.span_id}-1$`));
+    expect(receivedHeaders?.['sentry-trace']).toBe(`${segmentSpan.trace_id}-${fetchSpan!.span_id}-1`);
     expect(receivedHeaders?.baggage).toContain(`sentry-trace_id=${segmentSpan.trace_id}`);
     expect(receivedHeaders?.baggage).toContain('sentry-environment=qa');
   } finally {
