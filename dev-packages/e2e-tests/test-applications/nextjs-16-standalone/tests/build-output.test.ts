@@ -1,7 +1,19 @@
 import { expect, test } from '@playwright/test';
 import { findAbsolutePathImports } from '@sentry-internal/test-utils';
+import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+
+const runtimeInjectionBuildDir = path.join('@sentry', 'server-runtime-injection', 'build');
+
+function findStandaloneFile(suffix: string): string | undefined {
+  const standaloneDir = path.join(process.cwd(), '.next', 'standalone');
+  return fs
+    .readdirSync(standaloneDir, { recursive: true, withFileTypes: true })
+    .filter(entry => entry.isFile())
+    .map(entry => path.join(entry.parentPath, entry.name))
+    .find(file => file.endsWith(suffix));
+}
 
 // `output: 'standalone'` is the mode where a baked-in absolute specifier actually bites: the server
 // chunks are copied to `.next/standalone` and run from there, so anything resolving against the
@@ -21,12 +33,23 @@ test('emits no absolute-path imports into the relocated standalone output', () =
 // telemetry, because Next.js records its server spans through its own wrapping either way, so the
 // tests in `standalone.test.ts` stay green even when channel injection is dead.
 test('traces the orchestrion ESM loader hook into the standalone output', () => {
-  const standaloneDir = path.join(process.cwd(), '.next', 'standalone');
-  const hookSuffix = path.join('@sentry', 'server-runtime-injection', 'build', 'esm', 'hook.js');
+  expect(findStandaloneFile(path.join(runtimeInjectionBuildDir, 'esm', 'hook.js'))).toBeDefined();
+});
 
-  const found = fs
-    .readdirSync(standaloneDir, { recursive: true, withFileTypes: true })
-    .some(entry => entry.isFile() && path.join(entry.parentPath, entry.name).endsWith(hookSuffix));
+// Regression test for JS-4067: Turbopack ships the hook without following its imports, so the
+// standalone output must hold everything the hook needs. The runner's Node takes the
+// `Module.registerHooks` path, which never loads the hook, so force the `Module.register()` path
+// that Node < 24.13 takes.
+test('registers the orchestrion ESM loader hook from the standalone output', () => {
+  const registerPath = findStandaloneFile(path.join(runtimeInjectionBuildDir, 'cjs', 'register.js'));
+  expect(registerPath).toBeDefined();
 
-  expect(found).toBe(true);
+  const script = `
+    require('node:module').registerHooks = undefined;
+    require(${JSON.stringify(registerPath)}).registerDiagnosticsChannelInjection();
+  `;
+  const { stderr, status } = spawnSync(process.execPath, ['-e', script], { encoding: 'utf8' });
+
+  expect(stderr).not.toContain('Failed to register diagnostics-channel injection hooks');
+  expect(status).toBe(0);
 });

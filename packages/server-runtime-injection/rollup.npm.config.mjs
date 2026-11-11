@@ -35,7 +35,6 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 // (Turbopack renames it, producing `.require is not a function` crashes in Next.js on Cloudflare). Hoisting is safe here: the vendored graph is closed (nothing
 // optional/missing) and has no require cycles that depend on lazy evaluation.
 const commonJSOptions = { transformMixedEsModules: true, requireReturnsDefault: 'auto', strictRequires: false };
-const commonJSPlugin = commonjs(commonJSOptions);
 
 // Replace `debug` with `src/debug.ts`, which logs through the Sentry logger. `debug` and the
 // `supports-color` it loads read `process.env` at import time, which throws on Deno without env
@@ -48,6 +47,24 @@ const debugShim = {
     handler(source) {
       return source === 'debug' ? path.join(import.meta.dirname, 'src/debug.ts') : null;
     },
+  },
+};
+
+// The ESM loader hook runs on Node's loader thread, which has its own `globalThis`, so the Sentry
+// logger there is never enabled by `debug: true` and `src/debug.ts` would never print. Importing it
+// would only pull `@sentry/core`'s ESM build into the hook, and build tracers that only see the CJS
+// build in use (Turbopack on Next.js) don't ship that.
+const HOOK_DEBUG_ID = '\0hook-debug';
+const hookDebugShim = {
+  name: 'hook-debug-shim',
+  resolveId: {
+    order: 'pre',
+    handler(source) {
+      return source === 'debug' ? HOOK_DEBUG_ID : null;
+    },
+  },
+  load(id) {
+    return id === HOOK_DEBUG_ID ? 'export default function createDebug() { return function () {}; }' : null;
   },
 };
 
@@ -70,6 +87,15 @@ const guardTracingDump = {
     };
   },
 };
+
+// The commonjs-converted vendored dependencies import Node builtins as default imports
+// (`require('path')` → default import of `path`), and builtins have no `.default` in CJS — so
+// builtins need `'default'` interop (the module itself is the default export).
+const builtinInterop = id => (id && (id.startsWith('node:') || builtinModules.includes(id)) ? 'default' : 'esModule');
+
+// The vendored dependencies import builtins unprefixed (`import … from 'tty'`), which Deno rejects
+// and vite-node (Node 26) misresolves as a relative path. Emit them `node:`-prefixed.
+const builtinPaths = Object.fromEntries(builtinModules.map(m => [m, `node:${m}`]));
 
 // Bundling files from the repo-root `node_modules` moves rollup's common source ancestor up to the
 // repo root, so `preserveModules` names our own files `packages/server-runtime-injection/src/...` —
@@ -107,29 +133,40 @@ const orchestrionRuntimeHooks = [
 
 export default [
   ...orchestrionRuntimeHooks,
+  // `register.ts` backs `./register` (the Node SDK `require`s it synchronously from `Sentry.init()`).
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      // `register.ts` backs `./register` (the Node SDK `require`s it synchronously from
-      // `Sentry.init()`); `hook.mjs` backs `./hook` (the async `Module.register()` target, loaded on
-      // Node's ESM loader thread, which cannot resolve bare specifiers into the vendored chunks — but
-      // relative imports work, so it shares the ESM build's vendored chunks). `./hook` only maps its
-      // `import` condition, so the `build/cjs` copy is unused.
-      entrypoints: ['src/register.ts', 'src/hook.mjs'],
+      entrypoints: ['src/register.ts'],
       packageSpecificConfig: {
-        plugins: [debugShim, guardTracingDump, commonJSPlugin, thirdPartyLicensePlugin],
+        plugins: [debugShim, guardTracingDump, commonjs(commonJSOptions), thirdPartyLicensePlugin],
         output: {
           exports: 'named',
           preserveModules: true,
           entryFileNames: sanitizedFileNames,
-          // The commonjs-converted vendored dependencies import Node builtins as default imports
-          // (`require('path')` → default import of `path`), and builtins have no `.default` in CJS —
-          // so builtins need `'default'` interop (the module itself is the default export).
-          interop: id => (id && (id.startsWith('node:') || builtinModules.includes(id)) ? 'default' : 'esModule'),
-          // The vendored dependencies import builtins unprefixed (`import … from 'tty'`), which Deno
-          // rejects and vite-node (Node 26) misresolves as a relative path. Emit them `node:`-prefixed.
-          paths: Object.fromEntries(builtinModules.map(m => [m, `node:${m}`])),
+          interop: builtinInterop,
+          paths: builtinPaths,
         },
       },
     }),
+  ),
+  // `hook.mjs` backs `./hook`, the async `Module.register()` target. `register.ts` hands it over by
+  // runtime path, so build tracers ship `build/esm/hook.js` but may treat it as an opaque asset
+  // and skip its imports (Turbopack does). It is therefore one file that imports only Node builtins.
+  // Its vendored dependencies duplicate the ones in the preserved-modules build above.
+  ...makeNPMConfigVariants(
+    makeBaseNPMConfig({
+      entrypoints: ['src/hook.mjs'],
+      packageSpecificConfig: {
+        plugins: [hookDebugShim, guardTracingDump, commonjs(commonJSOptions)],
+        output: {
+          exports: 'named',
+          preserveModules: false,
+          entryFileNames: 'hook.js',
+          interop: builtinInterop,
+          paths: builtinPaths,
+        },
+      },
+    }),
+    { emitCjs: false },
   ),
 ];

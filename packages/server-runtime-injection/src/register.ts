@@ -301,8 +301,7 @@ export function registerDiagnosticsChannelInjection(): void {
       // own imports are missing.
       let hookPath: string;
       /*! rollup-include-cjs-only */
-      // This file is `build/cjs/register.js`; the loader thread needs the ESM build, which shares
-      // the vendored dependency chunks.
+      // This file is `build/cjs/register.js`; the loader thread needs the ESM build.
       hookPath = join(__dirname, '../esm/hook.js');
       /*! rollup-include-cjs-only-end */
       /*! rollup-include-esm-only */
@@ -329,7 +328,7 @@ export function registerDiagnosticsChannelInjection(): void {
         // This registers a small loader hook before the real one. Its `load` sets
         // `format: 'module'` for every URL inside our ESM build directory and passes all other URLs
         // through unchanged. Hooks registered earlier also apply when Node loads hook modules
-        // registered later, so the real hook and its chunks load as ESM even without the marker.
+        // registered later, so the real hook loads as ESM even without the marker.
         // The loader is inlined as a `data:` URL because Node always loads those as ESM, so it
         // cannot fail the same way and needs no file of its own.
         const esmDirUrl = `${pathToFileURL(dirname(hookPath)).href}/`;

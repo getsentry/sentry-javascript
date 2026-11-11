@@ -3,8 +3,7 @@
 // `Module.registerHooks` API isn't available).
 //
 // `Module.register()` loads its target on Node's ESM loader thread, so the target must be a real,
-// on-disk ES module graph — the loader thread cannot resolve bare specifiers into the dependency
-// graph this package bundles away, but it can follow relative imports. This shim is therefore an
-// entrypoint of the regular ESM build (sharing the vendored dependency chunks) and exposed via the
-// `@sentry/server-runtime-injection/hook` subpath.
+// on-disk ES module. It is built into a single file that imports only Node builtins (see
+// `rollup.npm.config.mjs`), because build tracers ship it without following its imports, and is
+// exposed via the `@sentry/server-runtime-injection/hook` subpath.
 export * from '@apm-js-collab/tracing-hooks/hook.mjs';
