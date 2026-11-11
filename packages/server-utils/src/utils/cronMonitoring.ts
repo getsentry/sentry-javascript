@@ -133,7 +133,7 @@ export function cronExpressionToMonitorConfig(
   if (fields.length === 6 && /^\d+$/.test(fields[0] as string)) {
     fields.shift();
   }
-  if (fields.length !== 5 || !fields.every(field => /^[\d*,/a-z-]+$/i.test(field))) {
+  if (fields.length !== 5 || !fields.every(field => /^[\d*,/a-z#-]+$/i.test(field))) {
     return undefined;
   }
 
@@ -143,7 +143,12 @@ export function cronExpressionToMonitorConfig(
   const weekdayNumbers = dialect === 'node-cron' ? endRangesOnSundayAsSeven(weekdayNames) : weekdayNames;
   const crontab = [minute, hour, dayOfMonth, monthNumbers, weekdayNumbers];
   if (
-    crontab.some(field => /[a-z]/i.test(field) || hasReversedRange(field) || hasSteppedSingleValueRange(field)) ||
+    crontab.some(
+      (field, index) =>
+        hasUnsupportedCharacter(field, dialect === 'cron-parser' ? CRON_PARSER_DAY_TOKENS[index] : undefined) ||
+        hasReversedRange(field) ||
+        hasSteppedSingleValueRange(field),
+    ) ||
     !isSameDayMatching(dayOfMonth, weekdayNumbers, dialect)
   ) {
     return undefined;
@@ -155,6 +160,13 @@ export function cronExpressionToMonitorConfig(
   }
 
   return { schedule: { type: 'crontab', value: crontab.join(' ') }, timezone: sentryTimezone };
+}
+
+// `cron-parser` reads these like Sentry: `L` is the last day of the month, `5L` the last Friday, `5#2` the second Friday.
+const CRON_PARSER_DAY_TOKENS = [undefined, undefined, /^L$/, undefined, /^[0-7](?:L|#[1-5])$/];
+
+function hasUnsupportedCharacter(field: string, dayToken: RegExp | undefined): boolean {
+  return field.split(',').some(part => /[a-z#]/i.test(part) && !dayToken?.test(part));
 }
 
 // Sentry needs both day fields to match when one starts with `*`, and either otherwise.
@@ -184,7 +196,8 @@ function isSameDayMatchingInCronParser(
   weekdays: DayField,
   sentryNeedsBoth: boolean,
 ): boolean {
-  if (weekdays.cronParserAddsSunday) {
+  // `cron-parser` 4 ignores a restricted day of month when the day of week has a `#`.
+  if (weekdays.cronParserAddsSunday || (dayOfWeek.includes('#') && (dayOfMonth !== '*' || dayOfWeek.includes(',')))) {
     return false;
   }
   if (dayOfWeek === '*') {
@@ -207,6 +220,11 @@ function parseDayField(field: string, low: number, high: number): DayField | und
   let cronParserValues = 0;
   let cronParserListsSunday = false;
   for (const part of field.split(',')) {
+    // `L`, `5L` and `5#2` stand for one day each. Only the `cron-parser` dialect lets them through.
+    if (/^(?:L|[0-7](?:L|#[1-5]))$/.test(part)) {
+      cronParserValues++;
+      continue;
+    }
     const match = /^(?:(\*)|(\d+)(?:-(\d+))?)(?:\/(\d+))?$/.exec(part);
     if (!match) {
       return undefined;
