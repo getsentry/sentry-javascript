@@ -303,6 +303,7 @@ export {
   generateSentryTraceHeader,
   isContinuingTrace,
   propagationContextFromHeaders,
+  sentryTraceFromTraceparent,
   shouldContinueTrace,
   generateTraceparentHeader,
 } from './utils/tracing';
