@@ -23,7 +23,7 @@ import type {
   ExtraHandlerData,
   JsonRpcNotification,
   JsonRpcRequest,
-  McpSpanConfig,
+  McpSpanType,
   MCPTransport,
   ResolvedMcpOptions,
 } from './types';
@@ -45,7 +45,7 @@ function createSpanName(method: string, target?: string): string {
  * @param type - Span type configuration
  * @returns Sentry-specific attributes
  */
-function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, string> {
+function buildSentryAttributes(type: McpSpanType): Record<string, string> {
   let op: string;
   let origin: string;
 
@@ -72,43 +72,51 @@ function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, stri
 }
 
 /**
- * Unified builder for creating MCP spans
+ * Builds the name and attributes of an MCP notification span
  * @internal
- * @param config - Span configuration
- * @returns Created span
  */
-function createMcpSpan(config: McpSpanConfig): unknown {
-  const { type, message, transport, extra, callback, options } = config;
+export function buildMcpNotificationSpanConfig(
+  type: 'notification-incoming' | 'notification-outgoing',
+  message: JsonRpcNotification,
+  transport: MCPTransport,
+  options: ResolvedMcpOptions,
+  extra?: ExtraHandlerData,
+): { name: string; attributes: Record<string, string | number> } {
   const { method } = message;
   const params = message.params;
   const client = getClient();
   const spanStreamingEnabled = !!client && hasSpanStreamingEnabled(client);
 
-  // Determine span name based on type and OTEL conventions
-  let spanName: string;
-  if (type === 'request') {
-    const targetInfo = extractTargetInfo(method, params || {});
-    const target = spanStreamingEnabled && !targetInfo.targetIsLowCardinality ? undefined : targetInfo.target;
-    spanName = method ? createSpanName(method, target) : MCP_SERVER_SPAN_NAME_FALLBACK;
-  } else {
-    // For notifications, use method name directly per OpenTelemetry conventions.
-    // With span streaming, span names have to be low cardinality, so a message without a method name gets a static name.
-    spanName = method || (spanStreamingEnabled ? MCP_NOTIFICATION_SPAN_NAME_FALLBACK : method);
-  }
+  // For notifications, use method name directly per OpenTelemetry conventions.
+  // With span streaming, span names have to be low cardinality, so a message without a method name gets a static name.
+  const name = method || (spanStreamingEnabled ? MCP_NOTIFICATION_SPAN_NAME_FALLBACK : method);
 
   const rawAttributes: Record<string, string | number> = {
     ...buildTransportAttributes(transport, extra, message),
     [MCP_METHOD_NAME]: method,
-    ...buildTypeSpecificAttributes(type, message, params, options?.recordInputs),
+    ...buildTypeSpecificAttributes(type, message, params, options.recordInputs),
     ...buildSentryAttributes(type),
   };
 
   const userInfo = Boolean(client?.getDataCollectionOptions().userInfo);
   const attributes = filterMcpPiiFromSpanData(rawAttributes, userInfo) as Record<string, string | number>;
 
+  return { name, attributes };
+}
+
+function createMcpNotificationSpanWithCallback(
+  type: 'notification-incoming' | 'notification-outgoing',
+  message: JsonRpcNotification,
+  transport: MCPTransport,
+  options: ResolvedMcpOptions,
+  callback: () => unknown,
+  extra?: ExtraHandlerData,
+): unknown {
+  const { name, attributes } = buildMcpNotificationSpanConfig(type, message, transport, options, extra);
+
   return startSpan(
     {
-      name: spanName,
+      name,
       // oxlint-disable-next-line typescript/no-deprecated
       forceTransaction: true,
       attributes,
@@ -133,14 +141,14 @@ export function createMcpNotificationSpan(
   options: ResolvedMcpOptions,
   callback: () => unknown,
 ): unknown {
-  return createMcpSpan({
-    type: 'notification-incoming',
-    message: jsonRpcMessage,
+  return createMcpNotificationSpanWithCallback(
+    'notification-incoming',
+    jsonRpcMessage,
     transport,
-    extra,
-    callback,
     options,
-  });
+    callback,
+    extra,
+  );
 }
 
 /**
@@ -157,13 +165,7 @@ export function createMcpOutgoingNotificationSpan(
   options: ResolvedMcpOptions,
   callback: () => unknown,
 ): unknown {
-  return createMcpSpan({
-    type: 'notification-outgoing',
-    message: jsonRpcMessage,
-    transport,
-    options,
-    callback,
-  });
+  return createMcpNotificationSpanWithCallback('notification-outgoing', jsonRpcMessage, transport, options, callback);
 }
 
 /**

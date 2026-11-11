@@ -159,19 +159,6 @@ export interface ExtraHandlerData {
 /** Types of MCP spans */
 export type McpSpanType = 'request' | 'notification-incoming' | 'notification-outgoing';
 
-/**
- * Configuration for creating MCP spans
- * @internal
- */
-export interface McpSpanConfig {
-  type: McpSpanType;
-  message: JsonRpcRequest | JsonRpcNotification;
-  transport: MCPTransport;
-  extra?: ExtraHandlerData;
-  callback: () => unknown;
-  options?: ResolvedMcpOptions;
-}
-
 export type SessionId = string;
 export type RequestId = string | number;
 

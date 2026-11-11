@@ -10,15 +10,40 @@ import { getClient, getIsolationScope, withIsolationScope } from '../../currentS
 import { DEBUG_BUILD } from '../../debug-build';
 import { withActiveSpan } from '../../tracing';
 import { startInactiveSpan } from '../../tracing/trace';
+import type { Span } from '../../types/span';
+import { getActiveSpan } from '../../utils/spanUtils';
 import { isObjectLike } from '../../utils/is';
 import { fill } from '../../utils/object';
 import { safeCallback } from '../../utils/safeCallback';
-import { cleanupPendingSpansForTransport, completeSpanWithResults, storeSpanForRequest } from './correlation';
+import {
+  applyResponseToSpan,
+  cleanupPendingSpansForTransport,
+  completeSpanWithResults,
+  storeSpanForRequest,
+} from './correlation';
 import { captureError, isJsonRpcServerError } from './errorCapture';
 import { buildClientAttributesFromInfo, extractSessionDataFromInitializeRequest } from './sessionExtraction';
 import { cleanupSessionDataForTransport, updateSessionDataForTransport } from './sessionManagement';
-import { buildMcpServerSpanConfig, createMcpNotificationSpan, createMcpOutgoingNotificationSpan } from './spans';
-import type { ExtraHandlerData, McpServerWrapperOptions, MCPTransport, ResolvedMcpOptions, SessionData } from './types';
+import {
+  buildMcpNotificationSpanConfig,
+  buildMcpServerSpanConfig,
+  createMcpNotificationSpan,
+  createMcpOutgoingNotificationSpan,
+} from './spans';
+import type {
+  ExtraHandlerData,
+  JsonRpcRequest,
+  McpServerWrapperOptions,
+  MCPTransport,
+  ResolvedMcpOptions,
+  SessionData,
+} from './types';
+import type { UpstreamOutcome } from './upstreamInstrumentation';
+import {
+  getUpstreamSpanForOutboundNotification,
+  shouldHandOffToUpstream,
+  withInboundHandoff,
+} from './upstreamInstrumentation';
 import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse } from './validation';
 
 function resolveMcpOptions(options: McpServerWrapperOptions): ResolvedMcpOptions {
@@ -66,8 +91,13 @@ function resolveOAuthClientName(options: McpServerWrapperOptions, extra?: ExtraH
  * Modern request metadata is read directly when building each message's span.
  * @param transport - MCP transport instance to wrap
  * @param options - MCP instrumentation options
+ * @param serverInstance - The MCP server the transport is connected to
  */
-export function wrapTransportOnMessage(transport: MCPTransport, options: McpServerWrapperOptions): void {
+export function wrapTransportOnMessage(
+  transport: MCPTransport,
+  options: McpServerWrapperOptions,
+  serverInstance?: object,
+): void {
   if (transport.onmessage) {
     fill(transport, 'onmessage', originalOnMessage => {
       return function (this: MCPTransport, message: unknown, extra?: unknown) {
@@ -96,35 +126,107 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: McpServ
             if (oauthClientName) {
               spanConfig.attributes[MCP_AUTH_CLIENT_NAME] = oauthClientName;
             }
-            const span = startInactiveSpan(spanConfig);
+            const sessionAttributes =
+              request.method === 'initialize' && messageSessionData
+                ? {
+                    ...buildClientAttributesFromInfo(messageSessionData.clientInfo),
+                    ...(messageSessionData.protocolVersion && {
+                      [MCP_PROTOCOL_VERSION]: messageSessionData.protocolVersion,
+                    }),
+                  }
+                : undefined;
 
-            if (request.method === 'initialize' && messageSessionData) {
-              span.setAttributes({
-                ...buildClientAttributesFromInfo(messageSessionData.clientInfo),
-                ...(messageSessionData.protocolVersion && {
-                  [MCP_PROTOCOL_VERSION]: messageSessionData.protocolVersion,
-                }),
-              });
+            const startRequestSpan = (): Span => {
+              const span = startInactiveSpan(spanConfig);
+              if (sessionAttributes) {
+                span.setAttributes(sessionAttributes);
+              }
+              storeSpanForRequest(transport, request.id, span, request.method, resolvedOptions);
+              return span;
+            };
+
+            const callOriginal = (): unknown =>
+              (originalOnMessage as (...args: unknown[]) => unknown).call(this, request, extra);
+
+            if (shouldHandOffToUpstream(serverInstance)) {
+              return withInboundHandoff(
+                {
+                  method: request.method,
+                  id: request.id,
+                  adopt: span => {
+                    span.setAttributes({ ...spanConfig.attributes, ...sessionAttributes });
+                    return outcome => applyUpstreamOutcome(transport, span, request, outcome, resolvedOptions);
+                  },
+                  runInOwnSpan: fn => withActiveSpan(startRequestSpan(), fn),
+                },
+                callOriginal,
+              );
             }
 
-            storeSpanForRequest(transport, request.id, span, request.method, resolvedOptions);
-
-            return withActiveSpan(span, () => {
-              return (originalOnMessage as (...args: unknown[]) => unknown).call(this, request, extra);
-            });
+            return withActiveSpan(startRequestSpan(), callOriginal);
           });
         }
 
         if (notification) {
           const resolvedOptions = resolveMcpOptions(options);
-          return createMcpNotificationSpan(notification, transport, extra as ExtraHandlerData, resolvedOptions, () => {
-            return (originalOnMessage as (...args: unknown[]) => unknown).call(this, notification, extra);
-          });
+          const callOriginal = (): unknown =>
+            (originalOnMessage as (...args: unknown[]) => unknown).call(this, notification, extra);
+
+          if (shouldHandOffToUpstream(serverInstance)) {
+            return withInboundHandoff(
+              {
+                method: notification.method,
+                adopt: span => {
+                  span.setAttributes(
+                    buildMcpNotificationSpanConfig(
+                      'notification-incoming',
+                      notification,
+                      transport,
+                      resolvedOptions,
+                      extra as ExtraHandlerData,
+                    ).attributes,
+                  );
+                },
+                runInOwnSpan: fn =>
+                  createMcpNotificationSpan(
+                    notification,
+                    transport,
+                    extra as ExtraHandlerData,
+                    resolvedOptions,
+                    fn,
+                  ) as ReturnType<typeof fn>,
+              },
+              callOriginal,
+            );
+          }
+
+          return createMcpNotificationSpan(
+            notification,
+            transport,
+            extra as ExtraHandlerData,
+            resolvedOptions,
+            callOriginal,
+          );
         }
 
         return (originalOnMessage as (...args: unknown[]) => unknown).call(this, message, extra);
       };
     });
+  }
+}
+
+/** Records the response on the MCP SDK's span before the SDK ends it. */
+function applyUpstreamOutcome(
+  transport: MCPTransport,
+  span: Span,
+  request: JsonRpcRequest,
+  outcome: UpstreamOutcome,
+  capturePolicy: ResolvedMcpOptions,
+): void {
+  if (outcome.type === 'result' && 'result' in outcome) {
+    applyResponseToSpan(transport, span, request.method, outcome.result, undefined, capturePolicy);
+  } else if (outcome.type === 'error' && 'error' in outcome) {
+    applyResponseToSpan(transport, span, request.method, undefined, outcome.error, capturePolicy);
   }
 }
 
@@ -134,8 +236,13 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: McpServ
  * the corresponding request span.
  * @param transport - MCP transport instance to wrap
  * @param options - MCP capture overrides
+ * @param serverInstance - The MCP server the transport is connected to
  */
-export function wrapTransportSend(transport: MCPTransport, options: McpServerWrapperOptions): void {
+export function wrapTransportSend(
+  transport: MCPTransport,
+  options: McpServerWrapperOptions,
+  serverInstance?: object,
+): void {
   if (transport.send) {
     fill(transport, 'send', originalSend => {
       return async function (this: MCPTransport, ...args: unknown[]) {
@@ -143,6 +250,15 @@ export function wrapTransportSend(transport: MCPTransport, options: McpServerWra
 
         if (isJsonRpcNotification(message)) {
           const resolvedOptions = resolveMcpOptions(options);
+          const upstreamSpan =
+            shouldHandOffToUpstream(serverInstance) &&
+            getUpstreamSpanForOutboundNotification(getActiveSpan(), message.method);
+          if (upstreamSpan) {
+            upstreamSpan.setAttributes(
+              buildMcpNotificationSpanConfig('notification-outgoing', message, transport, resolvedOptions).attributes,
+            );
+            return (originalSend as (...args: unknown[]) => unknown).call(this, ...args);
+          }
           return createMcpOutgoingNotificationSpan(message, transport, resolvedOptions, () => {
             return (originalSend as (...args: unknown[]) => unknown).call(this, ...args);
           });
