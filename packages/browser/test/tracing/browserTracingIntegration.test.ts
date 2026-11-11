@@ -246,6 +246,19 @@ describe('browserTracingIntegration', () => {
     expect(!!client.getIntegrationByName('LongTasks')).toBe(registered);
   });
 
+  it('registers resourcesIntegration', () => {
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingIntegration()],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(client.getIntegrationByName('Resources')).toBeDefined();
+  });
+
   it.each([
     ['registers fetchTracingIntegration by default', {}, true],
     ['does not register fetchTracingIntegration when traceFetch is off', { traceFetch: false }, false],
