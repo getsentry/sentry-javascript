@@ -10,6 +10,7 @@ import { timestampInSeconds } from '../utils/time';
 import { safeUnref } from '../utils/timer';
 
 const HASH_EXCLUSIONS = new Set(['server_name', 'release', 'timestamp', 'environment', 'dist']);
+const OPTION_EXCLUSIONS = new Set(['integrations', 'defaultIntegrations', '_metadata']);
 
 const _experimentalSdkConfigIntegration = (() => ({
   name: 'ExperimentalSdkConfig',
@@ -97,9 +98,7 @@ async function serialize(value: unknown, ancestors = new Set<object>()): Promise
 async function buildConfigAttributes(client: Client): Promise<Record<string, string>> {
   // Integrations are reported separately; SDK metadata lives under `sdk`.
   const options = Object.fromEntries(
-    Object.entries(client.getOptions()).filter(
-      ([key]) => key !== 'integrations' && key !== 'defaultIntegrations' && key !== '_metadata',
-    ),
+    Object.entries(client.getOptions()).filter(([key]) => !OPTION_EXCLUSIONS.has(key)),
   );
 
   const config = {
