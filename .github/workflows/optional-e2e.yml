@@ -79,6 +79,7 @@ jobs:
         with:
           test-application: ${{ matrix.test-application }}
           runtime: ${{ matrix.runtime }}
+          bun-version: ${{ matrix.bun-version }}
           deno-version: ${{ matrix.deno-version }}
           artifacts-run-id: ${{ inputs.build_run_id }}
           github-token: ${{ github.token }}

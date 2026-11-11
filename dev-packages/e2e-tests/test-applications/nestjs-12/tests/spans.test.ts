@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
+import { RUNTIME, SDK_NAME } from './constants';
 
 const APP_NAME = 'nestjs-12';
 
@@ -23,7 +24,7 @@ function commonAttributes(segmentSpan: SerializedStreamedSpan): Record<string, u
     'sentry.is_localhost': segmentSpan.attributes['sentry.is_localhost'],
     'sentry.segment.name': { type: 'string', value: segmentSpan.name },
     'sentry.segment.id': { type: 'string', value: segmentSpan.span_id },
-    'sentry.sdk.name': { type: 'string', value: 'sentry.javascript.nestjs' },
+    'sentry.sdk.name': { type: 'string', value: SDK_NAME },
     'sentry.sdk.version': { type: 'string', value: expect.any(String) },
     'sentry.environment': { type: 'string', value: 'qa' },
     // CI builds the apps with a release, local runs have none. It comes from the client
@@ -112,21 +113,31 @@ test('Sends streamed spans for an API route', async ({ baseURL }) => {
     status: 'ok',
     attributes: expect.objectContaining({
       ...commonAttributes(segmentSpan),
-      'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
       'sentry.op': { type: 'string', value: 'http.server' },
       'sentry.segment.name.source': { type: 'string', value: 'route' },
       'sentry.sample_rate': { type: 'integer', value: 1 },
-      'sentry.kind': { type: 'string', value: 'server' },
       'http.request.method': { type: 'string', value: 'GET' },
       'http.route': { type: 'string', value: '/test-transaction' },
       'http.response.status_code': { type: 'integer', value: 200 },
-      'http.response.status_text': { type: 'string', value: 'OK' },
       'url.full': { type: 'string', value: 'http://localhost:3030/test-transaction' },
       'url.path': { type: 'string', value: '/test-transaction' },
-      'url.scheme': { type: 'string', value: 'http' },
       'server.address': { type: 'string', value: 'localhost' },
-      'server.port': { type: 'integer', value: 3030 },
       'user_agent.original': { type: 'string', value: 'node' },
+      // On Cloudflare, `withSentry` creates the `http.server` span from the worker's `Request`, not from `node:http`.
+      ...(RUNTIME === 'cloudflare'
+        ? {
+            'sentry.origin': { type: 'string', value: 'auto.http.cloudflare' },
+            'url.scheme': { type: 'string', value: 'http:' },
+            'url.port': { type: 'string', value: '3030' },
+          }
+        : {
+            'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
+            'sentry.kind': { type: 'string', value: 'server' },
+            'url.scheme': { type: 'string', value: 'http' },
+            'server.port': { type: 'integer', value: 3030 },
+            // Bun's `node:http` leaves `statusMessage` unset when the app does not set it.
+            ...(RUNTIME === 'bun' ? {} : { 'http.response.status_text': { type: 'string', value: 'OK' } }),
+          }),
     }),
   });
 
