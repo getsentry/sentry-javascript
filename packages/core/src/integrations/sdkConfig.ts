@@ -62,6 +62,7 @@ async function serialize(value: unknown, ancestors = new Set<object>()): Promise
     return `[${typeof value}:${await hash(String(value))}]`;
   }
 
+  // Pass through primitives and null unchanged.
   if (value === null || typeof value !== 'object') {
     return value;
   }
