@@ -37,6 +37,7 @@ describe('cron.instrumentBullMQWorker', () => {
     opts: object = {},
   ): EventEmitter & { processFn: (job: object, ...args: unknown[]) => unknown; opts: object } {
     return Object.assign(new EventEmitter(), {
+      name: 'reports',
       processFn: vi.fn((_job: object, ..._args: unknown[]) => 'result'),
       opts,
     });
@@ -71,13 +72,13 @@ describe('cron.instrumentBullMQWorker', () => {
     const config = { schedule: { type: 'crontab', value: '0 9 * * 1-5' }, timezone: 'Europe/Vienna' };
     expect(captureCheckInSpy).toHaveBeenNthCalledWith(
       1,
-      { monitorSlug: 'daily-report', status: 'in_progress', checkInId: expect.stringMatching(/^[\da-f]{32}$/) },
+      { monitorSlug: 'reports-daily-report', status: 'in_progress', checkInId: expect.stringMatching(/^[\da-f]{32}$/) },
       config,
     );
     const checkInId = captureCheckInSpy.mock.calls[0]?.[0].checkInId;
     expect(captureCheckInSpy).toHaveBeenNthCalledWith(
       2,
-      { monitorSlug: 'daily-report', status: 'ok', checkInId, duration: expect.any(Number) },
+      { monitorSlug: 'reports-daily-report', status: 'ok', checkInId, duration: expect.any(Number) },
       config,
     );
   });
@@ -96,6 +97,7 @@ describe('cron.instrumentBullMQWorker', () => {
     ['0 0 * * 5L', '0 0 * * 5L'],
     ['0 0 * * 1#2', '0 0 * * 1#2'],
     ['0 0 1 * 1', '0 0 1 * 1'],
+    ['0 0 1 * 0-6', '0 0 1 * 0-6'],
     ['@daily', '0 0 * * *'],
   ])('converts pattern %j to crontab %j', (pattern, crontab) => {
     expect(sentConfig({ pattern, tz: 'UTC' })).toEqual({
@@ -111,7 +113,6 @@ describe('cron.instrumentBullMQWorker', () => {
     '0 0 */2 * 1',
     '0 0 1 * */2',
     '0 0 1-31 * 1',
-    '0 0 1 * 0-6',
     '0 0 * * * * 2026',
   ])('skips pattern %j', pattern => {
     expectSkipped({ pattern, tz: 'UTC' });
@@ -185,7 +186,7 @@ describe('cron.instrumentBullMQWorker', () => {
 
     expect(captureCheckInSpy).toHaveBeenCalledTimes(1);
     expect(captureCheckInSpy).toHaveBeenCalledWith(
-      { monitorSlug: 'my-scheduler', status: 'error', checkInId: expect.any(String) },
+      { monitorSlug: 'reports-my-scheduler', status: 'error', checkInId: expect.any(String) },
       { schedule: { type: 'interval', value: 1, unit: 'minute' } },
     );
   });
@@ -208,9 +209,9 @@ describe('cron.instrumentBullMQWorker', () => {
     const checkInId = checkIns[0].checkInId;
     // Without a duration, Sentry measures from the first attempt's `in_progress` check-in.
     expect(checkIns).toEqual([
-      { monitorSlug: 'my-scheduler', status: 'in_progress', checkInId },
-      { monitorSlug: 'my-scheduler', status: 'in_progress', checkInId },
-      { monitorSlug: 'my-scheduler', status: 'ok', checkInId },
+      { monitorSlug: 'reports-my-scheduler', status: 'in_progress', checkInId },
+      { monitorSlug: 'reports-my-scheduler', status: 'in_progress', checkInId },
+      { monitorSlug: 'reports-my-scheduler', status: 'ok', checkInId },
     ]);
   });
 
@@ -228,7 +229,7 @@ describe('cron.instrumentBullMQWorker', () => {
     worker.emit('completed', schedulerJob('my-scheduler', { every: 60_000 }), 'result', 'active');
 
     expect(captureCheckInSpy).toHaveBeenCalledWith(
-      { monitorSlug: 'my-scheduler', status: 'ok', checkInId: expect.any(String) },
+      { monitorSlug: 'reports-my-scheduler', status: 'ok', checkInId: expect.any(String) },
       { schedule: { type: 'interval', value: 1, unit: 'minute' } },
     );
   });

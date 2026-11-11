@@ -16,9 +16,9 @@ describeWithDockerCompose('bullmq job scheduler check-ins', { workingDirectory: 
       .completed();
 
     const bySlug = (slug: string): SerializedCheckIn[] => checkIns.filter(checkIn => checkIn.monitor_slug === slug);
-    const everyCheckIns = bySlug('every-scheduler');
-    const patternCheckIns = bySlug('pattern-scheduler');
-    const retryCheckIns = bySlug('retry-scheduler');
+    const everyCheckIns = bySlug('crons-every-scheduler');
+    const patternCheckIns = bySlug('crons-pattern-scheduler');
+    const retryCheckIns = bySlug('crons-retry-scheduler');
     const everyConfig = { schedule: { type: 'interval', value: 5, unit: 'minute' } };
     const patternConfig = { schedule: { type: 'crontab', value: '0 9 * * 1-5' }, timezone: 'Europe/Vienna' };
     const retryConfig = { schedule: { type: 'interval', value: 10, unit: 'minute' } };
@@ -99,14 +99,18 @@ describeWithDockerCompose('bullmq job scheduler check-ins', { workingDirectory: 
             check_in_id: checkIn.check_in_id,
             trace_id: checkIn.contexts?.trace?.trace_id,
           }));
-      const okCheckInId = checkIns.find(checkIn => checkIn.monitor_slug === 'ok-scheduler')?.check_in_id;
-      const failingCheckInId = checkIns.find(checkIn => checkIn.monitor_slug === 'failing-scheduler')?.check_in_id;
+      const okCheckInId = checkIns.find(
+        checkIn => checkIn.monitor_slug === 'crons-telemetry-ok-scheduler',
+      )?.check_in_id;
+      const failingCheckInId = checkIns.find(
+        checkIn => checkIn.monitor_slug === 'crons-telemetry-failing-scheduler',
+      )?.check_in_id;
 
-      expect(summary('ok-scheduler')).toEqual([
+      expect(summary('crons-telemetry-ok-scheduler')).toEqual([
         { status: 'in_progress', check_in_id: okCheckInId, trace_id: okSegment.trace_id },
         { status: 'ok', check_in_id: okCheckInId, trace_id: okSegment.trace_id },
       ]);
-      expect(summary('failing-scheduler')).toEqual([
+      expect(summary('crons-telemetry-failing-scheduler')).toEqual([
         { status: 'in_progress', check_in_id: failingCheckInId, trace_id: failingSegment.trace_id },
         { status: 'error', check_in_id: failingCheckInId, trace_id: failingSegment.trace_id },
       ]);

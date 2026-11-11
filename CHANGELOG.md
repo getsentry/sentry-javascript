@@ -14,7 +14,7 @@ Work in this release was contributed by @kunal649. Thank you for your contributi
 
 - **feat(node): Add Crons monitoring for BullMQ job schedulers ([#25472](https://github.com/getsentry/sentry-javascript/pull/25472))**
 
-  Call `Sentry.cron.instrumentBullMQWorker(worker)` to send check-ins for every job the worker runs from a job scheduler, with the scheduler id as the monitor slug and its `pattern` or `every` as the schedule. Each monitored scheduler creates a monitor in Sentry, and monitors are billed. Use `excludeJobSchedulers` to skip schedulers by id. A retried job keeps one check-in.
+  Call `Sentry.cron.instrumentBullMQWorker(worker)` to send check-ins for every job the worker runs from a job scheduler, with `<queue>-<scheduler id>` as the monitor slug and the scheduler's `pattern` or `every` as the schedule. Each monitored scheduler creates a monitor in Sentry, and monitors are billed. Use `excludeJobSchedulers` to skip schedulers by id. A retried job keeps one check-in.
 
 ## 11.12.0
 
