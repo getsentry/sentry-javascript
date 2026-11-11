@@ -36,6 +36,7 @@ import { _INTERNAL_ensureBrowserSpanStreaming, startIdleSpan, startInactiveSpan 
 import {
   addHistoryInstrumentationHandler,
   longTasksIntegration,
+  resourcesIntegration,
   addPerformanceEntries,
   getLocationHref,
   isBotUserAgent,
@@ -292,6 +293,7 @@ export type BrowserTracingCoreOptions = Omit<
   | 'enableElementTiming'
   | 'enableLongTask'
   | 'enableLongAnimationFrame'
+  | 'ignoreResourceSpans'
   | 'traceFetch'
   | 'traceXHR'
   | 'shouldCreateSpanForRequest'
@@ -308,7 +310,6 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingCoreOptions = {
   instrumentBfcacheRestore: true,
   instrumentPageLoad: true,
   markBackgroundSpan: true,
-  ignoreResourceSpans: [],
   detectRedirects: true,
   enableReportPageLoaded: false,
 };
@@ -352,6 +353,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     webVitals,
     enableLongTask,
     enableLongAnimationFrame,
+    ignoreResourceSpans,
     traceFetch,
     traceXHR,
     shouldCreateSpanForRequest,
@@ -379,6 +381,8 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     if (enableLongTask || enableLongAnimationFrame) {
       client.addIntegration(longTasksIntegration({ enableLongTask, enableLongAnimationFrame }));
     }
+
+    client.addIntegration(resourcesIntegration({ ignoreResourceSpans }));
 
     const requestOptions = { shouldCreateSpanForRequest, enableHTTPTimings, onRequestSpanStart, onRequestSpanEnd };
 
@@ -422,7 +426,6 @@ function _browserTracingIntegration(
     finalTimeout,
     childSpanTimeout,
     markBackgroundSpan,
-    ignoreResourceSpans,
     instrumentPageLoad,
     instrumentNavigation,
     instrumentBfcacheRestore,
@@ -549,10 +552,7 @@ function _browserTracingIntegration(
           return;
         }
 
-        addPerformanceEntries(span, {
-          ignoreResourceSpans,
-          spanStreamingEnabled: hasSpanStreamingEnabled(client),
-        });
+        addPerformanceEntries(span, { spanStreamingEnabled: hasSpanStreamingEnabled(client) });
         setActiveIdleSpan(client, undefined);
 
         // A trace should stay consistent over the entire timespan of one route - even after the pageload/navigation ended.

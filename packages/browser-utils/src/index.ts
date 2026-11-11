@@ -25,6 +25,7 @@ export { elementTimingIntegration, startTrackingElementTiming } from './performa
 
 export { interactionsIntegration } from './performance/interactions';
 export { longTasksIntegration } from './performance/longTasks';
+export { resourcesIntegration } from './performance/resources';
 
 export { isBotUserAgent } from './isBotUserAgent';
 
