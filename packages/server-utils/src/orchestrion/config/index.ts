@@ -182,7 +182,7 @@ export const INSTRUMENTED_MODULE_NAMES: string[] = instrumentedModuleNames();
  * additions — those force a helper package to be *bundled*, the opposite of keeping it external.
  */
 export function getInstrumentedModuleNames(): string[] {
-  return uniq(SENTRY_INSTRUMENTATIONS.map(instrumentation => instrumentation.module.name));
+  return uniq([...SENTRY_INSTRUMENTATIONS, ...bullmqConfig].map(instrumentation => instrumentation.module.name));
 }
 
 /**

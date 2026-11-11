@@ -46,7 +46,7 @@ describe('getInstrumentedModuleNames', () => {
     expect(getInstrumentedModuleNames()).not.toContain('@remix-run/node');
     expect(INSTRUMENTED_MODULE_NAMES).toContain('@remix-run/node');
     expect(new Set(getInstrumentedModuleNames())).toEqual(
-      new Set(SENTRY_INSTRUMENTATIONS.map(instrumentation => instrumentation.module.name)),
+      new Set([...SENTRY_INSTRUMENTATIONS.map(instrumentation => instrumentation.module.name), 'bullmq']),
     );
   });
 });
@@ -89,6 +89,10 @@ describe('orchestrion config — BullMQ', () => {
   it('is not force-bundled', () => {
     expect(SENTRY_INSTRUMENTATIONS.map(i => i.module.name)).not.toContain('bullmq');
     expect(INSTRUMENTED_MODULE_NAMES).not.toContain('bullmq');
+  });
+
+  it('is kept external, so the runtime loader can transform it', () => {
+    expect(getInstrumentedModuleNames()).toContain('bullmq');
   });
 });
 
