@@ -26,23 +26,14 @@ const BUILD_TIME_PATTERNS: RegExp[] = [
   /\.wasm$/,
 ];
 
-const KNOWN_VIOLATIONS = new Set([
-  // These root entries also re-export config-time code (`sentryAstro`,
-  // `withSentry`). They must keep it until v12 for backwards compatibility.
-  '@sentry/astro',
-  '@sentry/solidstart',
-  // Remix 3 has no bundler. Its asset server runs the orchestrion
-  // transform on browser modules at request time.
-  '@sentry/remix/v3',
-  '@sentry/remix/v3/node',
-]);
-
 type Format = 'esm' | 'cjs';
 
 interface Case {
   specifier: string;
   conditions: string[];
   formats: Format[];
+  /** The entry reaches build-time tooling on purpose. Drop this when the test fails. */
+  knownViolation?: true;
 }
 
 const NODE = ['node'];
@@ -81,7 +72,11 @@ const CASES: Case[] = [
   { specifier: '@sentry/sveltekit', conditions: ['worker'], formats: BOTH },
   { specifier: '@sentry/sveltekit/opentelemetry-api', conditions: NODE, formats: BOTH },
 
-  { specifier: '@sentry/astro', conditions: NODE, formats: BOTH },
+  // The Node root entry also re-exports config-time code (`sentryAstro`). It must keep it until v12
+  // for backwards compatibility.
+  { specifier: '@sentry/astro', conditions: NODE, formats: BOTH, knownViolation: true },
+  { specifier: '@sentry/astro', conditions: WORKERD, formats: BOTH },
+  { specifier: '@sentry/astro', conditions: ['worker'], formats: BOTH },
   { specifier: '@sentry/astro/middleware', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/astro/import', conditions: NODE, formats: ESM },
 
@@ -93,10 +88,14 @@ const CASES: Case[] = [
   { specifier: '@sentry/remix', conditions: ['worker'], formats: BOTH },
   { specifier: '@sentry/remix/cloudflare', conditions: WORKERD, formats: BOTH },
   { specifier: '@sentry/remix/import', conditions: NODE, formats: ESM },
-  { specifier: '@sentry/remix/v3', conditions: NODE, formats: ESM },
-  { specifier: '@sentry/remix/v3/node', conditions: NODE, formats: ESM },
+  // Remix 3 has no bundler. Its asset server runs the orchestrion transform on browser modules at
+  // request time.
+  { specifier: '@sentry/remix/v3', conditions: NODE, formats: ESM, knownViolation: true },
+  { specifier: '@sentry/remix/v3/node', conditions: NODE, formats: ESM, knownViolation: true },
 
-  { specifier: '@sentry/solidstart', conditions: NODE, formats: BOTH },
+  // The root entry also re-exports config-time code (`withSentry`). It must keep it until v12 for
+  // backwards compatibility.
+  { specifier: '@sentry/solidstart', conditions: NODE, formats: BOTH, knownViolation: true },
 
   { specifier: '@sentry/tanstackstart-react', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/tanstackstart-react/import', conditions: NODE, formats: ESM },
@@ -217,14 +216,13 @@ async function findBuildTimeImports(fixture: string, conditions: string[]): Prom
 }
 
 describe('server runtime entries do not reach build-time tooling', () => {
-  for (const { specifier, conditions, formats } of CASES) {
+  for (const { specifier, conditions, formats, knownViolation } of CASES) {
     for (const format of formats) {
       const name = `${specifier} (${format}, conditions: ${conditions.join(', ')})`;
 
-      if (KNOWN_VIOLATIONS.has(specifier)) {
+      if (knownViolation) {
         test(`${name} is a known violation`, async () => {
           const violations = await findBuildTimeImports(writeFixture(specifier, conditions, format), conditions);
-          // Remove the entry from KNOWN_VIOLATIONS when this fails.
           expect(violations).not.toEqual([]);
         });
       } else {

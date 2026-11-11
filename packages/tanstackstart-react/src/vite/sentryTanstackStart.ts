@@ -4,6 +4,7 @@ import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
 import { makeComposeNitroServiceSourceMapsPlugin, makeEnableNitroSourceMapsPlugin } from './nitroSourceMaps';
 import { makeRoutePatternPlugin } from './routePatterns';
+import { makeServerInstrumentationPlugin } from './serverInstrumentation';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 import type { TunnelRouteOptions } from './tunnelRoute';
 import { makeServerEntryTunnelPlugin, makeTunnelBasePathPlugin, makeTunnelRoutePlugin } from './tunnelRoute';
@@ -106,6 +107,8 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   if (process.env.NODE_ENV === 'development') {
     return plugins;
   }
+
+  plugins.push(makeServerInstrumentationPlugin({ debug: options.debug }));
 
   // Runs the orchestrion code transform over the server bundle so instrumented DB drivers get
   // `diagnostics_channel` publishers injected. Production-only: it force-bundles the instrumented

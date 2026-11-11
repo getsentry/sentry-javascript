@@ -2,7 +2,10 @@ import type { CfProperties, IncomingRequestCfProperties } from '@cloudflare/work
 import { NETWORK_PROTOCOL_NAME, NETWORK_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
 import { getIsolationScope, safeCallback } from '@sentry/core';
-import { _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest } from '@sentry/core/server';
+import {
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+  _INTERNAL_setScopeFlushedByRuntime as setScopeFlushedByRuntime,
+} from '@sentry/core/server';
 import { wrapServerRequestHandler } from '@sentry/server-utils/request-handler';
 import { DEBUG_BUILD } from './debug-build';
 import { getHttpServerRequestOptions } from './integrations/httpServer';
@@ -71,6 +74,12 @@ export function wrapRequestHandlerWithInit(
 
     const client = initSdk({ ...options, ctx: context });
     isolationScope.setClient(client);
+
+    // This wrap flushes through `waitUntil` once the response is sent, so a framework's own `flushIfServerless()`
+    // (e.g. the Astro middleware on Pages) would only hold the response for a flush that is coming anyway.
+    if (waitUntil) {
+      setScopeFlushedByRuntime(isolationScope);
+    }
 
     // Emit any orchestrion channel events deferred at module scope (e.g. a top-level
     // `const app = new Hono()` wrapped by build-time instrumentation): we're now in a
