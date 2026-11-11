@@ -1,13 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import {
-  assignReviewers,
-  getOwnersForFiles,
-  parseCodeowners,
-  parseJuniorRequesters,
-  pickReviewers,
-  resolveLoginByName,
-} from './assign-reviewers.mjs';
+import { assignReviewers, getOwnersForFiles, parseCodeowners, pickReviewers } from './assign-reviewers.mjs';
+import { attribution, junior, setup } from './github-test-utils.mjs';
 
 const CODEOWNERS = `
 # comment
@@ -86,121 +80,12 @@ describe('pickReviewers', () => {
   });
 });
 
-const attribution = labels =>
-  `Body\n\n<!-- junior-request-attribution:start -->\nvia ${labels}.\n<!-- junior-request-attribution:end -->\n`;
-
-describe('parseJuniorRequesters', () => {
-  it('reads linked logins and Slack names', () => {
-    expect(parseJuniorRequesters(attribution('**Jan Peer Stöcklmair**, @BYK'))).toEqual([
-      { name: 'Jan Peer Stöcklmair' },
-      { login: 'BYK' },
-    ]);
-  });
-
-  it('skips automation runs', () => {
-    expect(
-      parseJuniorRequesters(
-        attribution('[automation `sched_1`](https://junior-prod.sentry.dev/automations/sched_1) · Run ID `sched_1:1`'),
-      ),
-    ).toEqual([]);
-  });
-
-  it('returns nothing without an attribution block', () => {
-    expect(parseJuniorRequesters('Some body')).toEqual([]);
-    expect(parseJuniorRequesters(null)).toEqual([]);
-  });
-});
-
-describe('resolveLoginByName', () => {
-  const members = [
-    { login: 'mydea', name: 'Francesco Gringl-Novy' },
-    { login: 'JPeer264', name: 'Jan Peer Stöcklmair' },
-    { login: 's1gr1d', name: 'Sigrid' },
-    { login: 'isaacs', name: 'isaacs' },
-    { login: 'noname', name: null },
-  ];
-
-  it('matches the full profile name, ignoring case and accents', () => {
-    expect(resolveLoginByName('francesco gringl-novy', members)).toBe('mydea');
-    expect(resolveLoginByName('Jan Peer Stocklmair', members)).toBe('JPeer264');
-  });
-
-  it('matches a single-word profile name to the first name', () => {
-    expect(resolveLoginByName('Sigrid Someone', members)).toBe('s1gr1d');
-  });
-
-  it('does not match a first name that is ambiguous', () => {
-    expect(resolveLoginByName('Sigrid Someone', [...members, { login: 'other', name: 'Sigrid' }])).toBeUndefined();
-  });
-
-  it('uses the manual mapping for names that cannot be matched', () => {
-    expect(resolveLoginByName('Isaac Schlueter', members)).toBe('isaacs');
-  });
-
-  it('does not match unknown people', () => {
-    expect(resolveLoginByName('Francesco Someone', members)).toBeUndefined();
-  });
-});
-
 describe('assignReviewers', () => {
-  const profiles = {
-    a: { login: 'a', name: 'Alice Example' },
-    b: { login: 'b', name: 'Bob Example' },
-    c: { login: 'c', name: 'Carol Example' },
-    d: { login: 'd', name: 'Dan Example' },
-  };
-
-  function setup(pr) {
-    const github = {
-      paginate: vi.fn(async method => (method === github.rest.teams.listMembersInOrg ? Object.values(profiles) : [])),
-      rest: {
-        pulls: {
-          get: vi.fn(async () => ({
-            data: { state: 'open', draft: false, assignees: [], requested_reviewers: [], ...pr },
-          })),
-          listReviews: vi.fn(),
-          listFiles: vi.fn(),
-          requestReviewers: vi.fn(),
-        },
-        teams: { listMembersInOrg: vi.fn() },
-        users: { getByUsername: vi.fn(async ({ username }) => ({ data: profiles[username] })) },
-        issues: { addAssignees: vi.fn() },
-      },
-    };
-    const context = {
-      repo: { owner: 'getsentry', repo: 'sentry-javascript' },
-      payload: { pull_request: { number: 1 } },
-    };
-    const core = { info: vi.fn() };
-    return { github, run: () => assignReviewers({ github, context, core }) };
-  }
-
-  const junior = { login: 'sentry-junior[bot]', type: 'Bot' };
-
-  it('assigns a draft Junior PR to its requester without requesting reviews', async () => {
-    const { github, run } = setup({ user: junior, draft: true, body: attribution('**Alice Example**') });
-    await run();
-    expect(github.rest.issues.addAssignees).toHaveBeenCalledWith(expect.objectContaining({ assignees: ['a'] }));
-    expect(github.rest.pulls.requestReviewers).not.toHaveBeenCalled();
-  });
-
   it('does not request a review from the requester of a Junior PR', async () => {
-    const { github, run } = setup({ user: junior, body: attribution('@a') });
+    const { github, run } = setup(assignReviewers, { user: junior, body: attribution('**Alice Example**') });
     await run();
     expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
       expect.objectContaining({ reviewers: expect.arrayContaining(['b', 'c', 'd']) }),
     );
-  });
-
-  it('keeps existing assignees', async () => {
-    const { github, run } = setup({ user: junior, assignees: [{ login: 'b' }], body: attribution('@a') });
-    await run();
-    expect(github.rest.issues.addAssignees).not.toHaveBeenCalled();
-  });
-
-  it('does not assign PRs opened by people', async () => {
-    const { github, run } = setup({ user: { login: 'b', type: 'User' }, body: attribution('@a') });
-    await run();
-    expect(github.rest.issues.addAssignees).not.toHaveBeenCalled();
   });
 });
