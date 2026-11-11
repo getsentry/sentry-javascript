@@ -50,26 +50,6 @@ const debugShim = {
   },
 };
 
-// The hook build's stand-in for `debug`, which `@apm-js-collab/tracing-hooks/hook.mjs` imports: a
-// no-op virtual module (the `\0` prefix keeps other plugins from resolving or loading the ID). The
-// hook runs on Node's loader thread, which has its own `globalThis`, so the Sentry logger there is
-// never enabled by `debug: true` and `src/debug.ts` would never print. Importing it would only pull
-// `@sentry/core`'s ESM build into the hook, and build tracers that only see the CJS build in use
-// (Turbopack on Next.js) don't ship that.
-const HOOK_DEBUG_ID = '\0hook-debug';
-const hookDebugShim = {
-  name: 'hook-debug-shim',
-  resolveId: {
-    order: 'pre',
-    handler(source) {
-      return source === 'debug' ? HOOK_DEBUG_ID : null;
-    },
-  },
-  load(id) {
-    return id === HOOK_DEBUG_ID ? 'export default function createDebug() { return function () {}; }' : null;
-  },
-};
-
 // `ModulePatch` reads `process.env.TRACING_DUMP` after each module it transforms. On Deno without
 // env permission that read throws, and the module counts as failed. Treat the throw as unset.
 const guardTracingDump = {
@@ -154,12 +134,14 @@ export default [
   // `hook.mjs` backs `./hook`, the async `Module.register()` target. `register.ts` hands it over by
   // runtime path, so build tracers ship `build/esm/hook.js` but may treat it as an opaque asset
   // and skip its imports (Turbopack does). It is therefore one file that imports only Node builtins.
-  // Its vendored dependencies duplicate the ones in the preserved-modules build above.
+  // Its vendored dependencies duplicate the ones in the preserved-modules build above. It keeps the
+  // real `debug` rather than `debugShim`: `Module.register()` never runs on Deno, and `src/debug.ts`
+  // would pull in `@sentry/core`'s ESM build.
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
       entrypoints: ['src/hook.mjs'],
       packageSpecificConfig: {
-        plugins: [hookDebugShim, guardTracingDump, commonjs(commonJSOptions)],
+        plugins: [guardTracingDump, commonjs(commonJSOptions), thirdPartyLicensePlugin],
         output: {
           exports: 'named',
           preserveModules: false,
