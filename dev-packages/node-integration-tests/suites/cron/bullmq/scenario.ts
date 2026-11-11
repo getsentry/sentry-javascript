@@ -17,7 +17,7 @@ async function run(): Promise<void> {
   const worker = new Worker(
     'crons',
     async job => {
-      if (job.name === 'failing') {
+      if (job.name === 'failing' || (job.name === 'flaky' && job.attemptsMade === 0)) {
         throw new Error('Error in scheduled job');
       }
     },
@@ -32,6 +32,7 @@ async function run(): Promise<void> {
     { pattern: '0 0 9 * * 1-5', tz: 'Europe/Vienna', immediately: true },
     { name: 'failing' },
   );
+  await queue.upsertJobScheduler('retry-scheduler', { every: 600_000 }, { name: 'flaky', opts: { attempts: 2 } });
 
   setTimeout(async () => {
     await worker.close();

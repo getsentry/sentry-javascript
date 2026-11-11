@@ -30,6 +30,10 @@ Work in this release was contributed by @lazerg, @chiliec, @61465, @jpdefo, and 
 
   Add `Sentry.cronJobIntegration()` to `integrations` to send check-ins for every named `CronJob` of the `cron` package (4.3+), with the job name as the monitor slug. It's off by default. Each monitored job creates a monitor in Sentry, and monitors are billed. Use `excludeJobs` to skip jobs by name. `Sentry.cron.instrumentCron` is deprecated; use `cronJobIntegration` instead.
 
+- **feat(node): Add Crons monitoring for BullMQ job schedulers ([#25472](https://github.com/getsentry/sentry-javascript/pull/25472))**
+
+  Call `Sentry.cron.instrumentBullMQWorker(worker)` to send check-ins for every job the worker runs from a job scheduler, with the scheduler id as the monitor slug and its `pattern` or `every` as the schedule. Each monitored scheduler creates a monitor in Sentry, and monitors are billed. Use `excludeJobSchedulers` to skip schedulers by id. A retried job keeps one check-in.
+
 - **feat(nextjs): Mark pageloads of cached pages ([#25318](https://github.com/getsentry/sentry-javascript/pull/25318))**
 
   When Next.js serves a page from its cache, for example an ISR page or a `cacheComponents` shell, the pageload now has the `page.server_rendering.type` attribute. It is `static` if the whole page came from the cache, and `partially_static` if parts of it rendered for this request. Then the pageload stays connected to this request, as before. If the request that rendered the cached page was sampled, the pageload also links to it. So in Sentry, a cached page no longer looks like missing server instrumentation.

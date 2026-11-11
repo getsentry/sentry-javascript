@@ -8,46 +8,47 @@ describeWithDockerCompose('bullmq job scheduler check-ins', { workingDirectory: 
   });
 
   test('sends check-ins with the job scheduler schedule', { timeout: 60_000 }, async () => {
+    const checkIns: SerializedCheckIn[] = [];
     await createRunner(__dirname, 'scenario.ts')
       .unordered()
-      .expect({
-        check_in: {
-          check_in_id: expect.any(String),
-          monitor_slug: 'every-scheduler',
-          status: 'in_progress',
-          release: '1.0',
-          monitor_config: { schedule: { type: 'interval', value: 5, unit: 'minute' } },
-        },
-      })
-      .expect({
-        check_in: {
-          check_in_id: expect.any(String),
-          monitor_slug: 'every-scheduler',
-          status: 'ok',
-          release: '1.0',
-          duration: expect.any(Number),
-        },
-      })
-      .expect({
-        check_in: {
-          check_in_id: expect.any(String),
-          monitor_slug: 'pattern-scheduler',
-          status: 'in_progress',
-          release: '1.0',
-          monitor_config: { schedule: { type: 'crontab', value: '0 9 * * 1-5' }, timezone: 'Europe/Vienna' },
-        },
-      })
-      .expect({
-        check_in: {
-          check_in_id: expect.any(String),
-          monitor_slug: 'pattern-scheduler',
-          status: 'error',
-          release: '1.0',
-          duration: expect.any(Number),
-        },
-      })
+      .expectN(7, { check_in: checkIn => void checkIns.push(checkIn) })
       .start()
       .completed();
+
+    const bySlug = (slug: string): SerializedCheckIn[] => checkIns.filter(checkIn => checkIn.monitor_slug === slug);
+    const everyCheckIns = bySlug('every-scheduler');
+    const patternCheckIns = bySlug('pattern-scheduler');
+    const retryCheckIns = bySlug('retry-scheduler');
+    const everyConfig = { schedule: { type: 'interval', value: 5, unit: 'minute' } };
+    const patternConfig = { schedule: { type: 'crontab', value: '0 9 * * 1-5' }, timezone: 'Europe/Vienna' };
+    const retryConfig = { schedule: { type: 'interval', value: 10, unit: 'minute' } };
+
+    expect(everyCheckIns).toEqual([
+      expect.objectContaining({ status: 'in_progress', release: '1.0', monitor_config: everyConfig }),
+      expect.objectContaining({
+        status: 'ok',
+        check_in_id: everyCheckIns[0]?.check_in_id,
+        duration: expect.any(Number),
+        monitor_config: everyConfig,
+      }),
+    ]);
+    expect(patternCheckIns).toEqual([
+      expect.objectContaining({ status: 'in_progress', release: '1.0', monitor_config: patternConfig }),
+      expect.objectContaining({
+        status: 'error',
+        check_in_id: patternCheckIns[0]?.check_in_id,
+        duration: expect.any(Number),
+        monitor_config: patternConfig,
+      }),
+    ]);
+    // The retry updates the first attempt's check-in, and Sentry measures its duration.
+    const retryCheckInId = retryCheckIns[0]?.check_in_id;
+    expect(retryCheckIns).toEqual([
+      expect.objectContaining({ status: 'in_progress', check_in_id: retryCheckInId, monitor_config: retryConfig }),
+      expect.objectContaining({ status: 'in_progress', check_in_id: retryCheckInId, monitor_config: retryConfig }),
+      expect.objectContaining({ status: 'ok', check_in_id: retryCheckInId, monitor_config: retryConfig }),
+    ]);
+    expect(retryCheckIns[2]).not.toHaveProperty('duration');
   });
 
   test.each([

@@ -1,4 +1,13 @@
-import { captureCheckIn, debug, type MonitorConfig, timestampInSeconds } from '@sentry/core';
+import { createHash } from 'node:crypto';
+import {
+  captureCheckIn,
+  debug,
+  getClient,
+  type InProgressCheckIn,
+  type MonitorConfig,
+  stringMatchesSomePattern,
+  timestampInSeconds,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { replaceCronNames } from './common';
 
@@ -12,7 +21,13 @@ interface BullMQRepeatOptions {
 }
 
 interface BullMQJob {
+  id?: unknown;
+  queueQualifiedName?: unknown;
+  timestamp?: unknown;
   repeatJobKey?: unknown;
+  attemptsStarted?: unknown;
+  attemptsMade?: unknown;
+  finishedOn?: unknown;
   opts?: { repeat?: BullMQRepeatOptions };
 }
 
@@ -36,6 +51,15 @@ const FULL_DAY_OF_WEEK_RANGES = new Set(['0-6', '0-7', '1-7']);
 const LEGACY_REPEAT_KEY = /^[\da-f]{32,}$|^(?:[^:]*:){4}/;
 
 const instrumentedWorkers = new WeakSet<object>();
+
+interface Monitor {
+  monitorSlug: string;
+  checkInId: string;
+  config: MonitorConfig;
+}
+
+// `captureCheckIn` keeps a given `checkInId` for `in_progress` check-ins too.
+type InProgressCheckInWithId = InProgressCheckIn & { checkInId: string };
 
 /**
  * Sends check-ins to Sentry for every job a BullMQ worker runs from a job scheduler.
@@ -61,21 +85,31 @@ export function instrumentBullMQWorker<T extends { on: (...args: never[]) => unk
 
   // Sentry keeps the trace of the `in_progress` check-in. BullMQ emits `active` before the job's trace starts,
   // often inside the previous job's, so send it from the processor instead.
-  const target = worker as unknown as { processFn?: (job: BullMQJob, ...args: unknown[]) => unknown };
+  const target = worker as unknown as {
+    processFn?: (job: BullMQJob, ...args: unknown[]) => unknown;
+    opts?: { settings?: { repeatStrategy?: unknown } };
+  };
   const processFn = target.processFn;
   if (typeof processFn !== 'function') {
     return worker;
   }
+  // A custom repeat strategy decides what `pattern` means.
+  const hasCustomRepeatStrategy = !!target.opts?.settings?.repeatStrategy;
+  const monitorFor = (job: BullMQJob | undefined): Monitor | undefined =>
+    getMonitor(job, options.excludeJobSchedulers, hasCustomRepeatStrategy);
 
-  const running = new WeakMap<object, { monitorSlug: string; checkInId: string; start: number }>();
+  const startTimes = new WeakMap<object, number>();
 
   target.processFn = function (this: unknown, job: BullMQJob, ...args: unknown[]): unknown {
     try {
-      const monitor = getMonitor(job, options.excludeJobSchedulers);
+      const monitor = monitorFor(job);
       if (job && monitor) {
-        const { monitorSlug, config } = monitor;
-        const checkInId = captureCheckIn({ monitorSlug, status: 'in_progress' }, config);
-        running.set(job, { monitorSlug, checkInId, start: timestampInSeconds() });
+        const { monitorSlug, checkInId, config } = monitor;
+        // Retries and reruns of stalled jobs update the first attempt's check-in, which may be on another worker.
+        captureCheckIn({ monitorSlug, status: 'in_progress', checkInId } as InProgressCheckInWithId, config);
+        if (isFirstAttempt(job)) {
+          startTimes.set(job, timestampInSeconds());
+        }
       }
     } catch (e) {
       DEBUG_BUILD && debug.error('[BullMQ] Failed to send check-in:', e);
@@ -87,18 +121,21 @@ export function instrumentBullMQWorker<T extends { on: (...args: never[]) => unk
     (status: 'ok' | 'error') =>
     (job?: BullMQJob): void => {
       try {
-        const run = job && running.get(job);
-        if (job && run) {
-          running.delete(job);
-          const { monitorSlug, checkInId, start } = run;
-          captureCheckIn({ monitorSlug, status, checkInId, duration: timestampInSeconds() - start });
+        // BullMQ emits `failed` for every attempt, and only sets `finishedOn` once it stops retrying.
+        if (!job || (status === 'error' && !job.finishedOn)) {
           return;
         }
-        // BullMQ fails some jobs, such as ones that stalled too often, without running the processor.
-        const monitor = status === 'error' && getMonitor(job, options.excludeJobSchedulers);
-        if (monitor) {
-          captureCheckIn({ monitorSlug: monitor.monitorSlug, status }, monitor.config);
+        const monitor = monitorFor(job);
+        if (!monitor) {
+          return;
         }
+        const { monitorSlug, checkInId, config } = monitor;
+        const start = startTimes.get(job);
+        // Without a start time, Sentry measures the duration from the first `in_progress` check-in.
+        const duration = start === undefined ? undefined : timestampInSeconds() - start;
+        // BullMQ fails some jobs, such as ones that started too often, without running the processor, so send the
+        // config in case the check-in doesn't exist yet.
+        captureCheckIn({ monitorSlug, status, checkInId, ...(duration !== undefined && { duration }) }, config);
       } catch (e) {
         DEBUG_BUILD && debug.error('[BullMQ] Failed to send check-in:', e);
       }
@@ -113,25 +150,43 @@ export function instrumentBullMQWorker<T extends { on: (...args: never[]) => unk
 function getMonitor(
   job: BullMQJob | undefined,
   exclude: Array<string | RegExp> | undefined,
-): { monitorSlug: string; config: MonitorConfig } | undefined {
+  hasCustomRepeatStrategy: boolean,
+): Monitor | undefined {
   const monitorSlug = getJobSchedulerId(job, exclude);
-  if (!monitorSlug) {
+  if (!job || !monitorSlug) {
     return undefined;
   }
-  const config = getMonitorConfig(job?.opts?.repeat);
+  const repeat = job.opts?.repeat;
+  const config = hasCustomRepeatStrategy && repeat?.pattern != null ? undefined : getMonitorConfig(repeat);
   if (!config) {
     DEBUG_BUILD && debug.log(`[BullMQ] Not monitoring ${monitorSlug}: Sentry can't represent its schedule.`);
     return undefined;
   }
-  return { monitorSlug, config };
+  return { monitorSlug, checkInId: getCheckInId(job), config };
 }
 
-function getJobSchedulerId(job: BullMQJob | undefined, exclude: Array<string | RegExp> = []): string | undefined {
+// Check-in ids are global in Sentry, so mix in the DSN and environment, not just the job.
+function getCheckInId(job: BullMQJob): string {
+  const options = getClient()?.getOptions();
+  return createHash('sha256')
+    .update(JSON.stringify([options?.dsn, options?.environment, job.queueQualifiedName, job.id, job.timestamp]))
+    .digest('hex')
+    .slice(0, 32);
+}
+
+function isFirstAttempt(job: BullMQJob): boolean {
+  return !job.attemptsMade && (typeof job.attemptsStarted !== 'number' || job.attemptsStarted <= 1);
+}
+
+function getJobSchedulerId(
+  job: BullMQJob | undefined,
+  exclude: Array<string | RegExp> | undefined,
+): string | undefined {
   const id = job?.repeatJobKey;
   if (typeof id !== 'string' || !id || LEGACY_REPEAT_KEY.test(id)) {
     return undefined;
   }
-  return exclude.some(pattern => (typeof pattern === 'string' ? pattern === id : pattern.test(id))) ? undefined : id;
+  return stringMatchesSomePattern(id, exclude, true) ? undefined : id;
 }
 
 function getMonitorConfig(repeat: BullMQRepeatOptions | undefined): MonitorConfig | undefined {

@@ -3,8 +3,23 @@ import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, type MockInstance, test, vi } from 'vitest';
 import { cron } from '../../src';
 
-function schedulerJob(id: string, repeat: Record<string, unknown>): object {
-  return { name: 'job', repeatJobKey: id, opts: { repeat: { count: 1, ...repeat } } };
+function schedulerJob(id: string, repeat: Record<string, unknown>, attempt: Record<string, unknown> = {}): object {
+  return {
+    id: `repeat:${id}:1767225600000`,
+    queueQualifiedName: 'bull:reports',
+    timestamp: 1767225500000,
+    name: 'job',
+    repeatJobKey: id,
+    attemptsStarted: 1,
+    attemptsMade: 0,
+    opts: { repeat: { count: 1, ...repeat } },
+    ...attempt,
+  };
+}
+
+// BullMQ sets `finishedOn` when a job fails for the last time.
+function finalFailure(job: object): object {
+  return Object.assign(job, { finishedOn: Date.now() });
 }
 
 describe('cron.instrumentBullMQWorker', () => {
@@ -18,14 +33,23 @@ describe('cron.instrumentBullMQWorker', () => {
     vi.restoreAllMocks();
   });
 
-  function createWorker(): EventEmitter & { processFn: (job: object) => unknown } {
-    return Object.assign(new EventEmitter(), { processFn: vi.fn((_job: object) => 'result') });
+  function createWorker(
+    opts: object = {},
+  ): EventEmitter & { processFn: (job: object, ...args: unknown[]) => unknown; opts: object } {
+    return Object.assign(new EventEmitter(), {
+      processFn: vi.fn((_job: object, ..._args: unknown[]) => 'result'),
+      opts,
+    });
   }
 
   function runJob(job: object, outcome: 'completed' | 'failed' = 'completed', worker = createWorker()): void {
     cron.instrumentBullMQWorker(worker);
     worker.processFn(job);
-    worker.emit(outcome, job, outcome === 'failed' ? new Error('boom') : 'result', 'active');
+    if (outcome === 'failed') {
+      worker.emit('failed', finalFailure(job), new Error('boom'), 'active');
+    } else {
+      worker.emit('completed', job, 'result', 'active');
+    }
   }
 
   function sentConfig(repeat: Record<string, unknown>): unknown {
@@ -37,30 +61,31 @@ describe('cron.instrumentBullMQWorker', () => {
     runJob(schedulerJob('my-scheduler', repeat), 'failed');
     const worker = createWorker();
     cron.instrumentBullMQWorker(worker);
-    worker.emit('failed', schedulerJob('my-scheduler', repeat), new Error('stalled'), 'active');
+    worker.emit('failed', finalFailure(schedulerJob('my-scheduler', repeat)), new Error('stalled'), 'active');
     expect(captureCheckInSpy).not.toHaveBeenCalled();
   }
 
   test('sends in_progress and ok check-ins with the scheduler id as slug', () => {
     runJob(schedulerJob('daily-report', { pattern: '0 9 * * 1-5', tz: 'Europe/Vienna' }));
 
+    const config = { schedule: { type: 'crontab', value: '0 9 * * 1-5' }, timezone: 'Europe/Vienna' };
     expect(captureCheckInSpy).toHaveBeenNthCalledWith(
       1,
-      { monitorSlug: 'daily-report', status: 'in_progress' },
-      { schedule: { type: 'crontab', value: '0 9 * * 1-5' }, timezone: 'Europe/Vienna' },
+      { monitorSlug: 'daily-report', status: 'in_progress', checkInId: expect.stringMatching(/^[\da-f]{32}$/) },
+      config,
     );
-    expect(captureCheckInSpy).toHaveBeenNthCalledWith(2, {
-      monitorSlug: 'daily-report',
-      status: 'ok',
-      checkInId: 'check-in-id',
-      duration: expect.any(Number),
-    });
+    const checkInId = captureCheckInSpy.mock.calls[0]?.[0].checkInId;
+    expect(captureCheckInSpy).toHaveBeenNthCalledWith(
+      2,
+      { monitorSlug: 'daily-report', status: 'ok', checkInId, duration: expect.any(Number) },
+      config,
+    );
   });
 
   test('sends an error check-in when the job fails', () => {
     runJob(schedulerJob('daily-report', { every: 60_000 }), 'failed');
 
-    expect(captureCheckInSpy).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'error' }));
+    expect(captureCheckInSpy).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'error' }), expect.anything());
   });
 
   test.each([
@@ -136,7 +161,7 @@ describe('cron.instrumentBullMQWorker', () => {
     const worker = createWorker();
     cron.instrumentBullMQWorker(worker, { excludeJobSchedulers: ['cache-warmup', /^tmp-/] });
     worker.processFn(job);
-    worker.emit('failed', job);
+    worker.emit('failed', finalFailure(job));
 
     expect(captureCheckInSpy).not.toHaveBeenCalled();
   });
@@ -155,21 +180,72 @@ describe('cron.instrumentBullMQWorker', () => {
   test('sends an error check-in for a job that fails without running the processor', () => {
     const worker = createWorker();
     cron.instrumentBullMQWorker(worker);
-    worker.emit('failed', schedulerJob('my-scheduler', { every: 60_000 }), new Error('stalled'), 'active');
+    const job = finalFailure(schedulerJob('my-scheduler', { every: 60_000 }, { attemptsStarted: 3 }));
+    worker.emit('failed', job, new Error('job started more than allowable limit'), 'active');
 
     expect(captureCheckInSpy).toHaveBeenCalledTimes(1);
     expect(captureCheckInSpy).toHaveBeenCalledWith(
-      { monitorSlug: 'my-scheduler', status: 'error' },
+      { monitorSlug: 'my-scheduler', status: 'error', checkInId: expect.any(String) },
       { schedule: { type: 'interval', value: 1, unit: 'minute' } },
     );
   });
 
-  test('sends no check-in for a job that completes without running the processor', () => {
+  test('keeps one check-in open across retries, on any worker', () => {
+    const repeat = { every: 60_000 };
+    const firstWorker = createWorker();
+    cron.instrumentBullMQWorker(firstWorker);
+    const firstAttempt = schedulerJob('my-scheduler', repeat);
+    firstWorker.processFn(firstAttempt);
+    firstWorker.emit('failed', Object.assign(firstAttempt, { attemptsMade: 1 }), new Error('boom'), 'active');
+
+    const secondWorker = createWorker();
+    cron.instrumentBullMQWorker(secondWorker);
+    const retry = schedulerJob('my-scheduler', repeat, { attemptsStarted: 2, attemptsMade: 1 });
+    secondWorker.processFn(retry);
+    secondWorker.emit('completed', retry, 'result', 'active');
+
+    const checkIns = captureCheckInSpy.mock.calls.map(([checkIn]) => checkIn);
+    const checkInId = checkIns[0].checkInId;
+    // Without a duration, Sentry measures from the first attempt's `in_progress` check-in.
+    expect(checkIns).toEqual([
+      { monitorSlug: 'my-scheduler', status: 'in_progress', checkInId },
+      { monitorSlug: 'my-scheduler', status: 'in_progress', checkInId },
+      { monitorSlug: 'my-scheduler', status: 'ok', checkInId },
+    ]);
+  });
+
+  test('uses a different check-in id for each run', () => {
+    runJob(schedulerJob('my-scheduler', { every: 60_000 }));
+    runJob(schedulerJob('my-scheduler', { every: 60_000 }, { id: 'repeat:my-scheduler:1767225660000' }));
+
+    const [first, , second] = captureCheckInSpy.mock.calls.map(([checkIn]) => checkIn.checkInId);
+    expect(first).not.toBe(second);
+  });
+
+  test('sends an ok check-in for a job that completes without running the processor', () => {
     const worker = createWorker();
     cron.instrumentBullMQWorker(worker);
     worker.emit('completed', schedulerJob('my-scheduler', { every: 60_000 }), 'result', 'active');
 
-    expect(captureCheckInSpy).not.toHaveBeenCalled();
+    expect(captureCheckInSpy).toHaveBeenCalledWith(
+      { monitorSlug: 'my-scheduler', status: 'ok', checkInId: expect.any(String) },
+      { schedule: { type: 'interval', value: 1, unit: 'minute' } },
+    );
+  });
+
+  test('skips patterns with a custom repeat strategy', () => {
+    const worker = createWorker({ settings: { repeatStrategy: () => Date.now() } });
+    cron.instrumentBullMQWorker(worker);
+    for (const repeat of [{ pattern: '0 * * * *', tz: 'UTC' }, { every: 60_000 }]) {
+      const job = schedulerJob('my-scheduler', repeat);
+      worker.processFn(job);
+      worker.emit('completed', job, 'result', 'active');
+    }
+
+    expect(captureCheckInSpy.mock.calls.map(([, config]) => config)).toEqual([
+      { schedule: { type: 'interval', value: 1, unit: 'minute' } },
+      { schedule: { type: 'interval', value: 1, unit: 'minute' } },
+    ]);
   });
 
   test('instruments a worker only once', () => {
