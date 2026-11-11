@@ -86,6 +86,8 @@ test('forwards events without the cookies of the browser', async ({ page, contex
   const proxyRequest = await proxyRequestPromise;
 
   expect(isTunnelPath(new URL(tunnelRequest.url()).pathname)).toBe(true);
+  // The Vercel rewrite only matches envelope requests.
+  expect((await tunnelRequest.allHeaders())['content-type']).toBe('application/x-sentry-envelope');
   expect((await tunnelRequest.allHeaders()).cookie).toBe('session=8f2c1d');
   expect(proxyRequest.rawProxyRequestHeaders.cookie).toBeUndefined();
   expect(proxyRequest.rawProxyRequestHeaders['content-type']).toBe('application/x-sentry-envelope');

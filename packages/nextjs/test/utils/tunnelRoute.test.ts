@@ -23,7 +23,7 @@ describe('applyTunnelRouteOption()', () => {
 
     applyTunnelRouteOption(options);
 
-    expect(options.tunnel).toBe('/docs/monitoring');
+    expect(options.tunnel).toEqual({ path: '/docs/monitoring', trailingSlash: false });
   });
 
   it('sends events to the path derived from the DSN for `tunnelRoute: true`', () => {
@@ -42,7 +42,7 @@ describe('applyTunnelRouteOption()', () => {
 
     applyTunnelRouteOption(options);
 
-    expect(options.tunnel).toBe('/monitoring/');
+    expect(options.tunnel).toEqual({ path: '/monitoring', trailingSlash: true });
   });
 
   it('keeps the `tunnel` the user set', () => {

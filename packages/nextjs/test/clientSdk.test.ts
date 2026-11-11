@@ -274,6 +274,10 @@ describe('Client init()', () => {
       const client = init({ dsn: TEST_DSN });
 
       expect(client?.getOptions().tunnel).toBe('/docs/monitoring');
+      // The Vercel rewrite only matches envelope requests.
+      expect(client?.getOptions().transportOptions?.headers).toEqual({
+        'Content-Type': 'application/x-sentry-envelope',
+      });
     });
 
     it("sends events to the path derived from the DSN under the app's `basePath` for `tunnelRoute: true`", () => {
