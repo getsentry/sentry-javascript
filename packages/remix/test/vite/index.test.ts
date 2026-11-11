@@ -31,23 +31,32 @@ vi.mock('@sentry/server-utils/orchestrion/vite', () => ({
 type CapturedSentryOptions = {
   applicationKey?: string;
   bundleSizeOptimizations?: { excludeTracing?: boolean };
-  sourcemaps?: { filesToDeleteAfterUpload?: Promise<unknown> };
+  sourcemaps?: { deleteSourcemapsAfterUpload?: boolean | (() => boolean | undefined) };
 };
 
 let capturedSentryOptions: CapturedSentryOptions | undefined;
+let deleteOptionInConfigHook: boolean | undefined | 'not called';
+
+function getDeleteOption(): boolean | undefined {
+  const value = capturedSentryOptions?.sourcemaps?.deleteSourcemapsAfterUpload;
+  return typeof value === 'function' ? value() : value;
+}
 
 vi.mock('@sentry/bundler-plugins/vite', () => ({
   sentryVitePlugin: (options: CapturedSentryOptions) => {
     capturedSentryOptions = options;
-    return [{ name: 'sentry-vite-plugin' }];
+    return [
+      {
+        name: 'sentry-vite-plugin',
+        config: () => {
+          deleteOptionInConfigHook = getDeleteOption();
+        },
+      },
+    ];
   },
 }));
 
-const SOURCE_MAP_PLUGINS = [
-  'sentry-remix-files-to-delete-after-upload',
-  'sentry-vite-plugin',
-  'sentry-remix-update-source-map-setting',
-];
+const SOURCE_MAP_PLUGINS = ['sentry-remix-update-source-map-setting', 'sentry-vite-plugin'];
 
 const NODE_CONFIG = { ssr: { target: 'node' } } as UserConfig;
 const WORKER_CONFIG = { ssr: { target: 'webworker' } } as UserConfig;
@@ -73,15 +82,10 @@ describe('sentryRemixVitePlugin', () => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
     capturedSentryOptions = undefined;
+    deleteOptionInConfigHook = 'not called';
   });
 
-  // Vite hands every `config` hook the already-merged config, so the deletion plugin has to read
-  // `build.sourcemap` before `makeEnableSourceMapsPlugin` sets it. Running the hooks in isolation
-  // hides that, which is why this drives them in plugin order over one shared config.
-  it('still deletes the generated source maps once the hooks run in plugin order', async () => {
-    const plugins = sentryRemixVitePlugin();
-    const config: UserConfig = {};
-
+  function runConfigHooks(plugins: ReturnType<typeof sentryRemixVitePlugin>, config: UserConfig): UserConfig {
     for (const plugin of plugins) {
       if (!plugin.config) {
         continue;
@@ -94,8 +98,22 @@ describe('sentryRemixVitePlugin', () => {
         config.build = { ...config.build, sourcemap };
       }
     }
+    return config;
+  }
 
-    await expect(capturedSentryOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toEqual(['./build/**/*.map']);
+  // The bundler plugin reads the option when its own `config` hook runs, which comes after ours.
+  it('enables hidden source maps and asks the bundler plugin to delete them', () => {
+    const config = runConfigHooks(sentryRemixVitePlugin(), {});
+
+    expect(config.build?.sourcemap).toBe('hidden');
+    expect(deleteOptionInConfigHook).toBe(true);
+  });
+
+  it('keeps source maps the user enabled', () => {
+    const config = runConfigHooks(sentryRemixVitePlugin(), { build: { sourcemap: 'hidden' } });
+
+    expect(config.build?.sourcemap).toBe('hidden');
+    expect(deleteOptionInConfigHook).toBeUndefined();
   });
 
   it('returns the route manifest, orchestrion and source map plugins', () => {
@@ -127,7 +145,6 @@ describe('sentryRemixVitePlugin', () => {
     expect(plugins.map(plugin => plugin.name)).toEqual([
       'sentry-remix-route-manifest',
       'code-transformer',
-      'sentry-remix-files-to-delete-after-upload',
       'sentry-vite-plugin',
     ]);
   });
