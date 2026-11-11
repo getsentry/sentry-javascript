@@ -105,18 +105,18 @@ async function buildConfigAttributes(client: Client): Promise<Record<string, str
     integrations: client.getIntegrationNames().map(name => ({ name })),
   };
 
-  const hashInput = await serialize({
+  const hashInput = {
     ...config,
     options: Object.fromEntries(Object.entries(config.options).filter(([key]) => !HASH_EXCLUSIONS.has(key))),
-  });
+  };
 
-  const payload = await serialize({
+  const payload = {
     ...config,
     timestamp: timestampInSeconds(),
     release: options.release,
     environment: options.environment,
     dist: options.dist,
-  });
+  };
 
   return {
     'sentry.sdk_config.hash': await hash(JSON.stringify(hashInput)),
