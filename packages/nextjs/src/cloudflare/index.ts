@@ -63,7 +63,7 @@ const nextjsIntegration = (): Integration => ({
     registerPrepareSpanScope(client);
     // `dropMiddlewareTunnelRequests` only marks spans of Next.js, which are children of the root span of `withSentry`.
     client.on('beforeSampling', samplingData => {
-      if (isTunnelRouteSpan(samplingData.spanAttributes)) {
+      if (isTunnelRouteSpan(samplingData.spanAttributes, client)) {
         samplingData.parentSampled = false;
       }
     });

@@ -182,7 +182,7 @@ export function init(options: VercelEdgeOptions = {}): void {
     const rootSpan = getRootSpan(span);
     const isRootSpan = span === rootSpan;
 
-    dropMiddlewareTunnelRequests(span, spanAttributes);
+    dropMiddlewareTunnelRequests(span, spanAttributes, client);
 
     // Next.js names the incoming-request span after the raw URL. With span streaming, span names have to
     // be low cardinality, so we replace it here at span start; the `next.route` hoisting below renames it

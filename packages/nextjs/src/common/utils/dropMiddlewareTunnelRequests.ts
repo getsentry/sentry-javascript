@@ -20,7 +20,7 @@ import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-wit
  * The paths of the managed tunnel the client serves, with the `basePath`: the ones derived from the DSNs, or the fixed
  * one.
  */
-function getServedTunnelPaths(client: Client | undefined = getClient()): string[] {
+function getServedTunnelPaths(client: Client | undefined): string[] {
   const servedTunnel = getServedTunnel(client);
   if (!servedTunnel) {
     return [];
@@ -40,12 +40,12 @@ function getServedTunnelPaths(client: Client | undefined = getClient()): string[
 export function dropMiddlewareTunnelRequests(
   span: Span,
   attrs: RawAttributes<Record<string, unknown>> | undefined,
+  client: Client | undefined = getClient(),
 ): void {
   // When the user brings their own OTel setup (enableOpenTelemetrySetup: false), we should not
   // mutate their spans with Sentry-internal attributes as it pollutes their tracing backends.
   if (
-    (getClient()?.getOptions() as { enableOpenTelemetrySetup?: boolean } | undefined)?.enableOpenTelemetrySetup ===
-    false
+    (client?.getOptions() as { enableOpenTelemetrySetup?: boolean } | undefined)?.enableOpenTelemetrySetup === false
   ) {
     return;
   }
@@ -65,8 +65,8 @@ export function dropMiddlewareTunnelRequests(
   }
 
   // Check if this is either a tunnel route request or a Sentry ingest request
-  const isTunnel = isTunnelRouteSpan(attrs || {});
-  const isSentry = isSentryRequestSpan(attrs || {});
+  const isTunnel = isTunnelRouteSpan(attrs || {}, client);
+  const isSentry = isSentryRequestSpan(attrs || {}, client);
 
   if (isTunnel || isSentry) {
     // Mark the span to be dropped
@@ -74,20 +74,23 @@ export function dropMiddlewareTunnelRequests(
   }
 }
 
-function isSentryRequestSpan(attrs: RawAttributes<Record<string, unknown>>): boolean {
+function isSentryRequestSpan(attrs: RawAttributes<Record<string, unknown>>, client: Client | undefined): boolean {
   const httpUrl = attrs[URL_FULL];
 
   if (!httpUrl) {
     return false;
   }
 
-  return isSentryRequestUrl(httpUrl.toString(), getClient());
+  return isSentryRequestUrl(httpUrl.toString(), client);
 }
 /**
  * Checks if a span's HTTP target matches the tunnel route.
  */
-export function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): boolean {
-  const tunnelPaths = getServedTunnelPaths();
+export function isTunnelRouteSpan(
+  spanAttributes: Record<string, unknown>,
+  client: Client | undefined = getClient(),
+): boolean {
+  const tunnelPaths = getServedTunnelPaths(client);
   if (!tunnelPaths.length) {
     return false;
   }
