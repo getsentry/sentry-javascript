@@ -3,7 +3,7 @@ import type { NextConfigObject } from '../../../src/config/types';
 import { warnIfMissingInstrumentationFile } from '../../../src/config/withSentryConfig/getFinalConfigObjectUtils';
 import { makeProject, removeProjects } from './projectFixture';
 
-const HANDLER_REWRITE = { source: '/monitoring', destination: '/sentry-tunnel' };
+const FIXED_PATH_REWRITE = { source: '/monitoring', destination: '/sentry-tunnel' };
 
 afterEach(() => {
   removeProjects();
@@ -18,11 +18,17 @@ describe('maybeSetUpTunnelRouteRewriteRules', () => {
     await import('../../../src/config/withSentryConfig/getFinalConfigObjectUtils');
   });
 
+  const originalArgv = process.argv;
+
   beforeEach(() => {
     vi.restoreAllMocks();
     // A fresh module per test, because the function logs each message only once.
     vi.resetModules();
-    delete process.env.__SENTRY_TUNNEL_ROUTE__;
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    process.argv = originalArgv;
   });
 
   async function setUp(files: string[]) {
@@ -34,101 +40,80 @@ describe('maybeSetUpTunnelRouteRewriteRules', () => {
     return { maybeSetUpTunnelRouteRewriteRules, logSpy, warnSpy };
   }
 
-  it('sets up the handler rewrite when the project has a tunnel route handler', async () => {
-    const { maybeSetUpTunnelRouteRewriteRules } = await setUp(['app/sentry-tunnel/route.ts']);
+  function stubVercelBuild(): void {
+    vi.stubEnv('VERCEL', '1');
+    vi.stubEnv('VERCEL_ENV', 'production');
+    process.argv = [...originalArgv.slice(0, 2), 'build'];
+  }
+
+  it('sets up no rewrite outside of Vercel and warns once about the deprecated option', async () => {
+    const { maybeSetUpTunnelRouteRewriteRules, warnSpy } = await setUp(['app/page.tsx']);
     const nextConfig: NextConfigObject = {};
 
     maybeSetUpTunnelRouteRewriteRules(nextConfig, { tunnelRoute: '/monitoring' });
-
-    await expect(nextConfig.rewrites?.()).resolves.toEqual({ beforeFiles: [HANDLER_REWRITE], afterFiles: [] });
-  });
-
-  it('logs the tunnel route handler file once', async () => {
-    const { maybeSetUpTunnelRouteRewriteRules, logSpy } = await setUp(['app/sentry-tunnel/route.ts']);
-
     maybeSetUpTunnelRouteRewriteRules({}, { tunnelRoute: '/monitoring' });
-    maybeSetUpTunnelRouteRewriteRules({}, { tunnelRoute: '/monitoring' });
-
-    expect(logSpy).toHaveBeenCalledTimes(1);
-    expect(logSpy).toHaveBeenCalledWith(
-      '[@sentry/nextjs] The tunnel route sends events through app/sentry-tunnel/route.ts. Only the event payload goes to Sentry.',
-    );
-  });
-
-  it('sets up the external rewrite when the project has no tunnel route handler', async () => {
-    const { maybeSetUpTunnelRouteRewriteRules, logSpy } = await setUp(['app/page.tsx']);
-    const nextConfig: NextConfigObject = {};
-
-    maybeSetUpTunnelRouteRewriteRules(nextConfig, { tunnelRoute: '/monitoring' });
-
-    await expect(nextConfig.rewrites?.()).resolves.toEqual([
-      {
-        source: '/monitoring(/?)',
-        has: [
-          { type: 'query', key: 'o', value: '(?<orgid>\\d*)' },
-          { type: 'query', key: 'p', value: '(?<projectid>\\d*)' },
-          { type: 'query', key: 'r', value: '(?<region>[a-z]{2})' },
-        ],
-        destination: 'https://o:orgid.ingest.:region.sentry.io/api/:projectid/envelope/?hsts=0',
-      },
-      {
-        source: '/monitoring(/?)',
-        has: [
-          { type: 'query', key: 'o', value: '(?<orgid>\\d*)' },
-          { type: 'query', key: 'p', value: '(?<projectid>\\d*)' },
-        ],
-        destination: 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0',
-      },
-    ]);
-    expect(logSpy).not.toHaveBeenCalled();
-  });
-
-  it('does not log with `silent`', async () => {
-    const { maybeSetUpTunnelRouteRewriteRules, logSpy } = await setUp(['app/sentry-tunnel/route.ts']);
-
-    maybeSetUpTunnelRouteRewriteRules({}, { tunnelRoute: '/monitoring', silent: true });
-
-    expect(logSpy).not.toHaveBeenCalled();
-  });
-
-  it('warns once when the project has a tunnel route handler but `tunnelRoute` is not set', async () => {
-    const { maybeSetUpTunnelRouteRewriteRules, warnSpy } = await setUp(['src/app/sentry-tunnel/route.tsx']);
-    const nextConfig: NextConfigObject = {};
-
-    maybeSetUpTunnelRouteRewriteRules(nextConfig, {});
-    maybeSetUpTunnelRouteRewriteRules({}, {});
 
     expect(nextConfig.rewrites).toBeUndefined();
     expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(warnSpy).toHaveBeenCalledWith(
-      '[@sentry/nextjs] Found src/app/sentry-tunnel/route.tsx, but the `tunnelRoute` option is not set. Set `tunnelRoute` in `withSentryConfig` to send events through this route.',
-    );
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('The `tunnelRoute` option is deprecated'));
   });
 
-  it('sets up no rewrite for a static export with a tunnel route handler', async () => {
-    const { maybeSetUpTunnelRouteRewriteRules, logSpy, warnSpy } = await setUp(['app/sentry-tunnel/route.ts']);
+  it('rewrites the `tunnelRoute` path to the tunnel route handler on Vercel', async () => {
+    stubVercelBuild();
+    const { maybeSetUpTunnelRouteRewriteRules } = await setUp(['app/page.tsx']);
+    const nextConfig: NextConfigObject = {};
+
+    maybeSetUpTunnelRouteRewriteRules(nextConfig, { tunnelRoute: '/monitoring' });
+
+    await expect(nextConfig.rewrites?.()).resolves.toEqual({ beforeFiles: [FIXED_PATH_REWRITE], afterFiles: [] });
+  });
+
+  it.each([
+    ['`tunnelRoute` is not set', {}],
+    ['`tunnelRoute` is `true`', { tunnelRoute: true }],
+  ])('rewrites the paths derived from a DSN on Vercel when %s', async (_description, sentryOptions) => {
+    stubVercelBuild();
+    const { maybeSetUpTunnelRouteRewriteRules } = await setUp(['app/page.tsx']);
+    const nextConfig: NextConfigObject = {};
+
+    maybeSetUpTunnelRouteRewriteRules(nextConfig, sentryOptions);
+
+    await expect(nextConfig.rewrites?.()).resolves.toEqual({
+      afterFiles: [expect.objectContaining({ source: '/:sentryTunnel([a-z0-9]{1,7})', destination: '/sentry-tunnel' })],
+    });
+  });
+
+  it('does not warn about the deprecated option when `tunnelRoute` is not set', async () => {
+    const { maybeSetUpTunnelRouteRewriteRules, warnSpy } = await setUp(['app/page.tsx']);
+
+    maybeSetUpTunnelRouteRewriteRules({}, {});
+
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('sets up no rewrite on Vercel when `tunnelRoute` is `false`', async () => {
+    stubVercelBuild();
+    const { maybeSetUpTunnelRouteRewriteRules } = await setUp(['app/page.tsx']);
+    const nextConfig: NextConfigObject = {};
+
+    maybeSetUpTunnelRouteRewriteRules(nextConfig, { tunnelRoute: false });
+
+    expect(nextConfig.rewrites).toBeUndefined();
+  });
+
+  it('sets up no rewrite for a static export and warns that `tunnelRoute` does not work there', async () => {
+    stubVercelBuild();
+    const { maybeSetUpTunnelRouteRewriteRules, warnSpy } = await setUp(['app/page.tsx']);
     const nextConfig: NextConfigObject = { output: 'export' };
 
     maybeSetUpTunnelRouteRewriteRules(nextConfig, { tunnelRoute: '/monitoring' });
 
     expect(nextConfig.rewrites).toBeUndefined();
-    expect(logSpy).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalledTimes(2);
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('The `tunnelRoute` option is deprecated'));
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining('will not work in combination with Next.js static exports'),
     );
-  });
-
-  it.each([
-    ['`tunnelRoute` is `false`', {}, { tunnelRoute: false }],
-    ['`tunnelRoute` is not set in a static export', { output: 'export' }, {}],
-  ])('does not warn about the tunnel route handler when %s', async (_description, nextConfig, sentryOptions) => {
-    const { maybeSetUpTunnelRouteRewriteRules, warnSpy } = await setUp(['app/sentry-tunnel/route.ts']);
-
-    maybeSetUpTunnelRouteRewriteRules(nextConfig, sentryOptions);
-
-    expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('but the `tunnelRoute` option is not set'));
   });
 });
 

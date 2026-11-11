@@ -15,7 +15,10 @@ import {
 } from '@sentry/core';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
-import { _INTERNAL_setTunnelDefaults as setTunnelDefaults } from '@sentry/core/server';
+import {
+  _INTERNAL_forwardTunnelRequest as forwardTunnelRequest,
+  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
+} from '@sentry/core/server';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getInjectedBasePath } from '../common/utils/basePath';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
@@ -28,6 +31,7 @@ import { backfillHttpResponseStatusCode } from '../common/utils/backfillHttpResp
 import { backfillHttpServerStatus } from '../common/utils/backfillHttpServerStatus';
 import { createLiveRootSpanAdapter } from '../common/utils/liveRootSpanAdapter';
 import { dropMiddlewareTunnelRequests, getTunnelRouteIgnoreSpans } from '../common/utils/dropMiddlewareTunnelRequests';
+import { getTunnelRouteServerOptions } from '../common/utils/tunnelPathnameMatch';
 import { maybeForkIsolationScopeForRootSpan } from '../common/utils/forkIsolationScopeForRootSpan';
 import { getNormalizedRequestFromAttributes } from '../common/utils/getNormalizedRequestFromAttributes';
 import { isBuild } from '../common/utils/isBuild';
@@ -68,7 +72,6 @@ export type EdgeOptions = VercelEdgeOptions;
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
   _sentryRelease?: string;
-  _sentryRewritesTunnelPath?: string;
 };
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
@@ -116,8 +119,12 @@ export function init(options: VercelEdgeOptions = {}): void {
   ];
   opts.ignoreSpans = [...(opts.ignoreSpans || []), ...nextjsIgnoreSpans];
 
-  // Before `init`, which applies it to the managed tunnel of `serveTunnelIntegration`.
-  setTunnelDefaults({ basePath: getInjectedBasePath() });
+  // Before `init`, which applies it to the managed tunnel of `serveTunnelIntegration` or `tunnelRoute`.
+  setTunnelDefaults({
+    basePath: getInjectedBasePath(),
+    tunnel: getTunnelRouteServerOptions(),
+    forward: forwardTunnelRequest,
+  });
 
   // Before the Cloudflare check, so that the events of the client of `withSentry` get the tag too.
   try {

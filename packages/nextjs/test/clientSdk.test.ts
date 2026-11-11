@@ -266,6 +266,24 @@ describe('Client init()', () => {
 
       expect(client?.getOptions().tunnel).toBe('/monitoring');
     });
+
+    it('sends events to the fixed path of the `tunnelRoute`', () => {
+      vi.stubEnv('_sentryBasePath', '/docs');
+      vi.stubEnv('_sentryTunnelRoute', '/docs/monitoring');
+
+      const client = init({ dsn: TEST_DSN });
+
+      expect(client?.getOptions().tunnel).toBe('/docs/monitoring');
+    });
+
+    it("sends events to the path derived from the DSN under the app's `basePath` for `tunnelRoute: true`", () => {
+      vi.stubEnv('_sentryBasePath', '/docs');
+      vi.stubEnv('_sentryTunnelRoute', 'true');
+
+      const client = init({ dsn: TEST_DSN });
+
+      expect(client?.getOptions().tunnel).toBe(`/docs${getTunnelPath(TEST_DSN)}`);
+    });
   });
 
   it('returns client from init', () => {

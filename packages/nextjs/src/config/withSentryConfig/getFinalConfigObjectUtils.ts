@@ -10,18 +10,10 @@ import type { RouteManifest } from '../manifest/types';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
 import { DEFAULT_PAGE_EXTENSIONS, requiresInstrumentationHook } from '../util';
 import { getGitRevision, getInstrumentationClientFileContents } from './buildTime';
-import {
-  findTunnelRouteHandlerFile,
-  resolveTunnelRoute,
-  setUpManagedTunnelVercelRoute,
-  setUpTunnelHandlerRewrite,
-  setUpTunnelRewriteRules,
-} from './tunnel';
+import { setUpManagedTunnelVercelRoute } from './tunnel';
 
 let showedExportModeTunnelWarning = false;
 let showedDeprecatedTunnelRouteWarning = false;
-let showedUnusedTunnelRouteHandlerWarning = false;
-let showedTunnelRouteHandlerModeLog = false;
 let showedExperimentalBuildModeWarning = false;
 
 const MISSING_INSTRUMENTATION_FILE_WARNING_SHOWN = '__SENTRY_MISSING_INSTRUMENTATION_FILE_WARNING_SHOWN__';
@@ -39,9 +31,10 @@ export function resolveReleaseName(userSentryOptions: SentryBuildOptions): strin
 }
 
 /**
- * Applies tunnel-route rewrites, if configured. Uses handler mode if the project has a tunnel route handler file.
+ * Sets up the route of the managed tunnel on Vercel. A `tunnelRoute` turns on the managed tunnel at its path, or at
+ * the path derived from the DSN for `true`, which the client, server and edge SDKs read from the injected values.
  *
- * Note: this mutates `userSentryOptions` (to store the resolved tunnel route) and `incomingUserNextConfigObject`.
+ * Note: this mutates `incomingUserNextConfigObject`.
  */
 export function maybeSetUpTunnelRouteRewriteRules(
   incomingUserNextConfigObject: NextConfigObject,
@@ -49,72 +42,27 @@ export function maybeSetUpTunnelRouteRewriteRules(
 ): void {
   // oxlint-disable-next-line typescript/no-deprecated -- reads the deprecated option to keep it working
   const tunnelRoute = userSentryOptions.tunnelRoute;
-  if (tunnelRoute === undefined) {
-    if (!setUpManagedTunnelVercelRoute(incomingUserNextConfigObject)) {
-      maybeWarnAboutUnusedTunnelRouteHandler(incomingUserNextConfigObject, userSentryOptions.silent);
-    }
-
-    return;
-  }
-
-  if (!showedDeprecatedTunnelRouteWarning) {
+  if (tunnelRoute !== undefined && !showedDeprecatedTunnelRouteWarning) {
     showedDeprecatedTunnelRouteWarning = true;
     getBuildLogger(userSentryOptions.silent).warn(
       '[@sentry/nextjs] The `tunnelRoute` option is deprecated. Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration()` to the server `Sentry.init` instead.',
     );
   }
 
-  if (!tunnelRoute) {
+  if (tunnelRoute === false || tunnelRoute === '') {
     return;
   }
 
-  if (incomingUserNextConfigObject.output === 'export') {
-    if (!showedExportModeTunnelWarning) {
-      showedExportModeTunnelWarning = true;
-      getBuildLogger(userSentryOptions.silent).warn(
-        '[@sentry/nextjs] The Sentry Next.js SDK `tunnelRoute` option will not work in combination with Next.js static exports. The `tunnelRoute` option uses server-side features that cannot be accessed in export mode. If you still want to tunnel Sentry events, set up your own tunnel: https://docs.sentry.io/platforms/javascript/troubleshooting/#using-the-tunnel-option',
-      );
-    }
-    return;
-  }
-
-  // Update the global options object to use the resolved value everywhere
-  const resolvedTunnelRoute = resolveTunnelRoute(tunnelRoute);
-  // oxlint-disable-next-line typescript/no-deprecated -- reads the deprecated option to keep it working
-  userSentryOptions.tunnelRoute = resolvedTunnelRoute || undefined;
-
-  const tunnelRouteHandlerFile = findTunnelRouteHandlerFile(incomingUserNextConfigObject.pageExtensions);
-  if (!tunnelRouteHandlerFile) {
-    setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
-    return;
-  }
-
-  setUpTunnelHandlerRewrite(incomingUserNextConfigObject, resolvedTunnelRoute);
-
-  if (!showedTunnelRouteHandlerModeLog) {
-    showedTunnelRouteHandlerModeLog = true;
-    getBuildLogger(userSentryOptions.silent).log(
-      `[@sentry/nextjs] The tunnel route sends events through ${tunnelRouteHandlerFile}. Only the event payload goes to Sentry.`,
+  if (tunnelRoute && incomingUserNextConfigObject.output === 'export' && !showedExportModeTunnelWarning) {
+    showedExportModeTunnelWarning = true;
+    getBuildLogger(userSentryOptions.silent).warn(
+      '[@sentry/nextjs] The Sentry Next.js SDK `tunnelRoute` option will not work in combination with Next.js static exports. The `tunnelRoute` option uses server-side features that cannot be accessed in export mode. If you still want to tunnel Sentry events, set up your own tunnel: https://docs.sentry.io/platforms/javascript/troubleshooting/#using-the-tunnel-option',
     );
   }
-}
 
-function maybeWarnAboutUnusedTunnelRouteHandler(
-  incomingUserNextConfigObject: NextConfigObject,
-  silent: boolean | undefined,
-): void {
-  if (showedUnusedTunnelRouteHandlerWarning || incomingUserNextConfigObject.output === 'export') {
-    return;
-  }
-
-  const tunnelRouteHandlerFile = findTunnelRouteHandlerFile(incomingUserNextConfigObject.pageExtensions);
-  if (!tunnelRouteHandlerFile) {
-    return;
-  }
-
-  showedUnusedTunnelRouteHandlerWarning = true;
-  getBuildLogger(silent).warn(
-    `[@sentry/nextjs] Found ${tunnelRouteHandlerFile}, but the \`tunnelRoute\` option is not set. Set \`tunnelRoute\` in \`withSentryConfig\` to send events through this route.`,
+  setUpManagedTunnelVercelRoute(
+    incomingUserNextConfigObject,
+    typeof tunnelRoute === 'string' ? tunnelRoute : undefined,
   );
 }
 

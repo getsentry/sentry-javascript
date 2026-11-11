@@ -18,7 +18,9 @@ test('drops the `Next.request` root span of tunnel requests through the proxy', 
     );
   });
 
-  const tunnelResponse = await request.post('/monitoring?o=123&p=456', { data: '{}' });
+  // The SDK answers only a POST before the proxy. A GET reaches the proxy, like a tunnel request on Vercel, where the
+  // proxy runs outside of the server the SDK hooks into.
+  const tunnelResponse = await request.get('/monitoring');
   expect(tunnelResponse.headers()['x-middleware-next']).toBe('1');
 
   await request.get('/api/proxy-ok');

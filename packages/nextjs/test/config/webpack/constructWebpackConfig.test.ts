@@ -859,7 +859,7 @@ describe('constructWebpackConfigFunction()', () => {
         .flatMap(rule => rule.use ?? [])
         .find(loader => String(loader.loader).endsWith('valueInjectionLoader.js'));
       expect(valueInjectionLoader?.options).toMatchObject({
-        values: { _sentryRewritesTunnelPath: '/monitoring', _sentryTunnelRouteMode: 'handler' },
+        values: { _sentryTunnelRoute: '/monitoring' },
       });
     });
   });

@@ -97,20 +97,49 @@ describe('Edge init()', () => {
   });
 
   describe('managed tunnel', () => {
+    const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+      _sentryBasePath?: string;
+      _sentryTunnelRoute?: string;
+    };
+    const post = (path: string): Request =>
+      new Request(`https://example.com${path}`, { method: 'POST', body: '{}', headers: { 'content-length': '2' } });
+
     afterEach(() => {
-      delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryBasePath?: string })._sentryBasePath;
+      delete globalWithInjectedValues._sentryBasePath;
+      delete globalWithInjectedValues._sentryTunnelRoute;
       _INTERNAL_resetTunnelDefaults();
     });
 
+    it('serves the fixed path of the `tunnelRoute` without `serveTunnelIntegration`', () => {
+      globalWithInjectedValues._sentryBasePath = '/docs';
+      globalWithInjectedValues._sentryTunnelRoute = '/docs/monitoring';
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'));
+
+      init({ dsn: TEST_DSN });
+
+      expect(handleTunnelRequestIfMatched(post('/docs/monitoring'))).toBeInstanceOf(Promise);
+      expect(handleTunnelRequestIfMatched(post(`/docs${getTunnelPath(TEST_DSN)}`))).toBeUndefined();
+      fetchSpy.mockRestore();
+    });
+
+    it("serves the path derived from the DSN under the app's `basePath` for `tunnelRoute: true`", () => {
+      globalWithInjectedValues._sentryBasePath = '/docs';
+      globalWithInjectedValues._sentryTunnelRoute = 'true';
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'));
+
+      init({ dsn: TEST_DSN });
+
+      expect(handleTunnelRequestIfMatched(post(`/docs${getTunnelPath(TEST_DSN)}`))).toBeInstanceOf(Promise);
+      fetchSpy.mockRestore();
+    });
+
     it("serves the tunnel of `serveTunnelIntegration` under the app's `basePath`", () => {
-      (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryBasePath?: string })._sentryBasePath = '/docs';
+      globalWithInjectedValues._sentryBasePath = '/docs';
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'));
 
       init({ dsn: TEST_DSN, integrations: [serveTunnelIntegration()] });
 
       const tunnelPath = getTunnelPath(TEST_DSN);
-      const post = (path: string): Request =>
-        new Request(`https://example.com${path}`, { method: 'POST', body: '{}', headers: { 'content-length': '2' } });
       expect(handleTunnelRequestIfMatched(post(`/docs${tunnelPath}`))).toBeInstanceOf(Promise);
       expect(handleTunnelRequestIfMatched(post(`${tunnelPath}`))).toBeUndefined();
       fetchSpy.mockRestore();

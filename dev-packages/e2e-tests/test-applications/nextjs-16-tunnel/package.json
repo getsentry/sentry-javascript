@@ -4,19 +4,17 @@
   "private": true,
   "scripts": {
     "dev": " next dev",
-    "build": "_SENTRY_TUNNEL_DESTINATION_OVERRIDE=http://localhost:3031/ next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
+    "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
-    "dev:webpack": "_SENTRY_TUNNEL_DESTINATION_OVERRIDE=http://localhost:3031/ next dev --webpack",
-    "build-webpack": "_SENTRY_TUNNEL_DESTINATION_OVERRIDE=http://localhost:3031/ next build --webpack > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
-    "start": "_SENTRY_TUNNEL_DESTINATION_OVERRIDE=http://localhost:3031/ next start",
+    "dev:webpack": "next dev --webpack",
+    "build-webpack": "next build --webpack > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
+    "start": "next start",
     "lint": "eslint",
     "test:prod": "TEST_ENV=production playwright test",
-    "test:dev": "TEST_ENV=development _SENTRY_TUNNEL_DESTINATION_OVERRIDE=http://localhost:3031/ playwright test",
-    "test:dev-webpack": "TEST_ENV=development-webpack _SENTRY_TUNNEL_DESTINATION_OVERRIDE=http://localhost:3031/ playwright test",
+    "test:dev": "TEST_ENV=development playwright test",
+    "test:dev-webpack": "TEST_ENV=development-webpack playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:build-webpack": "pnpm install && pnpm build-webpack",
-    "test:build-handler": "pnpm install && cp -R tunnel-handler/node/sentry-tunnel app/ && pnpm build",
-    "test:build-handler-webpack": "pnpm install && cp -R tunnel-handler/edge/sentry-tunnel app/ && pnpm build-webpack",
     "test:build-middleware-webpack": "pnpm install && rm proxy.ts && cp tunnel-middleware/middleware.ts middleware.ts && pnpm build-webpack",
     "test:build-canary": "pnpm install && pnpm add next@canary && pnpm build",
     "test:build-latest": "pnpm install && pnpm add next@latest && pnpm build",
@@ -24,7 +22,7 @@
     "test:build-canary-webpack": "pnpm install && pnpm add next@canary && pnpm build-webpack",
     "test:assert": "pnpm test:prod && pnpm test:dev",
     "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack",
-    "test:build:cloudflare": "pnpm install && _SENTRY_TUNNEL_DESTINATION_OVERRIDE=http://localhost:3031/ opennextjs-cloudflare build",
+    "test:build:cloudflare": "pnpm install && opennextjs-cloudflare build",
     "start:cloudflare": "opennextjs-cloudflare preview"
   },
   "dependencies": {
@@ -55,23 +53,18 @@
     "variants": [
       {
         "build-command": "pnpm test:build-webpack",
-        "label": "nextjs-16-tunnel (webpack)",
+        "label": "nextjs-16-tunnel (tunnelRoute: true, webpack)",
         "assert-command": "pnpm test:assert-webpack"
       },
       {
         "build-command": "pnpm test:build",
-        "label": "nextjs-16-tunnel (turbopack)",
+        "label": "nextjs-16-tunnel (tunnelRoute: true, turbopack)",
         "assert-command": "pnpm test:assert"
       },
       {
-        "build-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=handler pnpm test:build-handler",
-        "label": "nextjs-16-tunnel (handler, turbopack)",
-        "assert-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=handler pnpm test:assert"
-      },
-      {
-        "build-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=handler pnpm test:build-handler-webpack",
-        "label": "nextjs-16-tunnel (handler, webpack, edge)",
-        "assert-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=handler pnpm test:assert-webpack"
+        "build-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=path pnpm test:build",
+        "label": "nextjs-16-tunnel (tunnelRoute path, turbopack)",
+        "assert-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=path pnpm test:assert"
       },
       {
         "build-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=managed pnpm test:build",

@@ -6,11 +6,10 @@ import {
   findTunnelRouteHandlerFile,
   getTunnelRouteInjectedValues,
   setUpManagedTunnelVercelRoute,
-  setUpTunnelHandlerRewrite,
 } from '../../../src/config/withSentryConfig/tunnel';
 import { makeProject, removeProjects } from './projectFixture';
 
-const HANDLER_REWRITE = { source: '/monitoring', destination: '/sentry-tunnel' };
+const FIXED_PATH_REWRITE = { source: '/monitoring', destination: '/sentry-tunnel' };
 
 afterEach(() => {
   removeProjects();
@@ -61,79 +60,25 @@ describe('findTunnelRouteHandlerFile', () => {
 });
 
 describe('getTunnelRouteInjectedValues', () => {
-  it('returns the handler mode when the project has a tunnel route handler', () => {
-    const projectDir = makeProject(['app/sentry-tunnel/route.ts']);
-
-    expect(getTunnelRouteInjectedValues({}, { tunnelRoute: '/monitoring' }, projectDir)).toEqual({
-      _sentryRewritesTunnelPath: '/monitoring',
-      _sentryTunnelRouteMode: 'handler',
+  it('returns the fixed path with the basePath', () => {
+    expect(getTunnelRouteInjectedValues({ basePath: '/docs' }, { tunnelRoute: '/monitoring' })).toEqual({
+      _sentryTunnelRoute: '/docs/monitoring',
     });
   });
 
-  it('returns the rewrite mode when the project has no tunnel route handler', () => {
-    const projectDir = makeProject(['app/page.tsx']);
-
-    expect(getTunnelRouteInjectedValues({}, { tunnelRoute: '/monitoring' }, projectDir)).toEqual({
-      _sentryRewritesTunnelPath: '/monitoring',
-      _sentryTunnelRouteMode: 'rewrite',
-    });
-  });
-
-  it('adds the basePath to the tunnel path', () => {
-    const projectDir = makeProject(['app/sentry-tunnel/route.ts']);
-
-    expect(getTunnelRouteInjectedValues({ basePath: '/docs' }, { tunnelRoute: '/monitoring' }, projectDir)).toEqual({
-      _sentryRewritesTunnelPath: '/docs/monitoring',
-      _sentryTunnelRouteMode: 'handler',
+  it('returns `true` for the path derived from the DSN', () => {
+    expect(getTunnelRouteInjectedValues({ basePath: '/docs' }, { tunnelRoute: true })).toEqual({
+      _sentryTunnelRoute: 'true',
     });
   });
 
   it.each([
     ['`tunnelRoute` is not set', {}, {}],
+    ['`tunnelRoute` is `false`', {}, { tunnelRoute: false }],
     ['`tunnelRoute` is an empty string', { basePath: '/docs' }, { tunnelRoute: '' }],
-    ['`tunnelRoute` is still `true`', {}, { tunnelRoute: true }],
     ['the app is a static export', { output: 'export' }, { tunnelRoute: '/monitoring' }],
-  ])('returns no values when %s', (_description, nextConfig, sentryOptions) => {
-    const projectDir = makeProject(['app/sentry-tunnel/route.ts']);
-
-    expect(getTunnelRouteInjectedValues(nextConfig, sentryOptions, projectDir)).toEqual({});
-  });
-});
-
-describe('setUpTunnelHandlerRewrite', () => {
-  it('adds the handler rewrite to `beforeFiles` when there are no user rewrites', async () => {
-    const nextConfig: NextConfigObject = {};
-
-    setUpTunnelHandlerRewrite(nextConfig, '/monitoring');
-
-    await expect(nextConfig.rewrites?.()).resolves.toEqual({ beforeFiles: [HANDLER_REWRITE], afterFiles: [] });
-  });
-
-  it('keeps user rewrites in array form as `afterFiles`', async () => {
-    const userRewrite = { source: '/blog/:slug', destination: '/news/:slug' };
-    const nextConfig: NextConfigObject = { rewrites: async () => [userRewrite] };
-
-    setUpTunnelHandlerRewrite(nextConfig, '/monitoring');
-
-    await expect(nextConfig.rewrites?.()).resolves.toEqual({
-      beforeFiles: [HANDLER_REWRITE],
-      afterFiles: [userRewrite],
-    });
-  });
-
-  it('puts the handler rewrite before the user `beforeFiles` rewrites', async () => {
-    const userBeforeFilesRewrite = { source: '/old', destination: '/new' };
-    const userFallbackRewrite = { source: '/:path*', destination: 'https://legacy.example.com/:path*' };
-    const nextConfig: NextConfigObject = {
-      rewrites: async () => ({ beforeFiles: [userBeforeFilesRewrite], fallback: [userFallbackRewrite] }),
-    };
-
-    setUpTunnelHandlerRewrite(nextConfig, '/monitoring');
-
-    await expect(nextConfig.rewrites?.()).resolves.toEqual({
-      beforeFiles: [HANDLER_REWRITE, userBeforeFilesRewrite],
-      fallback: [userFallbackRewrite],
-    });
+  ] as const)('returns no values when %s', (_description, nextConfig, sentryOptions) => {
+    expect(getTunnelRouteInjectedValues(nextConfig, sentryOptions)).toEqual({});
   });
 });
 
@@ -159,7 +104,7 @@ describe('setUpManagedTunnelVercelRoute', () => {
     const projectDir = makeProject(['app/page.tsx']);
     const nextConfig: NextConfigObject = {};
 
-    expect(setUpManagedTunnelVercelRoute(nextConfig, projectDir)).toBe(true);
+    setUpManagedTunnelVercelRoute(nextConfig, undefined, projectDir);
 
     expect(fs.readFileSync(path.join(projectDir, 'app/sentry-tunnel/route.js'), 'utf8')).toContain(
       "export { POST } from '@sentry/nextjs/tunnel';",
@@ -178,7 +123,8 @@ describe('setUpManagedTunnelVercelRoute', () => {
     const projectDir = makeProject([file]);
     const nextConfig: NextConfigObject = {};
 
-    expect(setUpManagedTunnelVercelRoute(nextConfig, projectDir)).toBe(false);
+    setUpManagedTunnelVercelRoute(nextConfig, undefined, projectDir);
+
     expect(hasRouteFile(projectDir)).toBe(false);
     expect(nextConfig.rewrites).toBeUndefined();
   });
@@ -192,15 +138,65 @@ describe('setUpManagedTunnelVercelRoute', () => {
     const projectDir = makeProject(['app/page.tsx']);
     const nextConfig: NextConfigObject = {};
 
-    expect(setUpManagedTunnelVercelRoute(nextConfig, projectDir)).toBe(false);
+    setUpManagedTunnelVercelRoute(nextConfig, undefined, projectDir);
+
     expect(hasRouteFile(projectDir)).toBe(false);
     expect(nextConfig.rewrites).toBeUndefined();
   });
 
   it('does nothing for a static export', () => {
     const projectDir = makeProject(['app/page.tsx']);
+    const nextConfig: NextConfigObject = { output: 'export' };
 
-    expect(setUpManagedTunnelVercelRoute({ output: 'export' }, projectDir)).toBe(false);
+    setUpManagedTunnelVercelRoute(nextConfig, undefined, projectDir);
+
     expect(hasRouteFile(projectDir)).toBe(false);
+    expect(nextConfig.rewrites).toBeUndefined();
+  });
+
+  it('rewrites the `tunnelRoute` path to the tunnel route handler before files', async () => {
+    const projectDir = makeProject(['app/page.tsx']);
+    const nextConfig: NextConfigObject = {};
+
+    setUpManagedTunnelVercelRoute(nextConfig, '/monitoring', projectDir);
+
+    expect(fs.existsSync(path.join(projectDir, 'app/sentry-tunnel/route.js'))).toBe(true);
+    await expect(nextConfig.rewrites?.()).resolves.toEqual({ beforeFiles: [FIXED_PATH_REWRITE], afterFiles: [] });
+  });
+
+  it('keeps the user rewrites in array form as `afterFiles`', async () => {
+    const userRewrite = { source: '/blog/:slug', destination: '/news/:slug' };
+    const nextConfig: NextConfigObject = { rewrites: async () => [userRewrite] };
+
+    setUpManagedTunnelVercelRoute(nextConfig, '/monitoring', makeProject(['app/page.tsx']));
+
+    await expect(nextConfig.rewrites?.()).resolves.toEqual({
+      beforeFiles: [FIXED_PATH_REWRITE],
+      afterFiles: [userRewrite],
+    });
+  });
+
+  it('puts the `tunnelRoute` rewrite before the user `beforeFiles` rewrites', async () => {
+    const userBeforeFilesRewrite = { source: '/old', destination: '/new' };
+    const userFallbackRewrite = { source: '/:path*', destination: 'https://legacy.example.com/:path*' };
+    const nextConfig: NextConfigObject = {
+      rewrites: async () => ({ beforeFiles: [userBeforeFilesRewrite], fallback: [userFallbackRewrite] }),
+    };
+
+    setUpManagedTunnelVercelRoute(nextConfig, '/monitoring', makeProject(['app/page.tsx']));
+
+    await expect(nextConfig.rewrites?.()).resolves.toEqual({
+      beforeFiles: [FIXED_PATH_REWRITE, userBeforeFilesRewrite],
+      fallback: [userFallbackRewrite],
+    });
+  });
+
+  it('keeps the tunnel route handler of the app', () => {
+    const projectDir = makeProject(['app/page.tsx', 'app/sentry-tunnel/route.ts']);
+
+    setUpManagedTunnelVercelRoute({}, '/monitoring', projectDir);
+
+    expect(fs.readFileSync(path.join(projectDir, 'app/sentry-tunnel/route.ts'), 'utf8')).toBe('');
+    expect(fs.existsSync(path.join(projectDir, 'app/sentry-tunnel/route.js'))).toBe(false);
   });
 });

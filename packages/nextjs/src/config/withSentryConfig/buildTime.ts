@@ -33,7 +33,7 @@ export function setUpBuildTimeVariables(
     _sentryRewriteFramesAssetPrefixPath: assetPrefix
       ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
       : '',
-    ...getTunnelRouteInjectedValues(userNextConfig, userSentryOptions, projectDir),
+    ...getTunnelRouteInjectedValues(userNextConfig, userSentryOptions),
   };
 
   if (userNextConfig.assetPrefix) {
