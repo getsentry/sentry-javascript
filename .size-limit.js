@@ -379,7 +379,9 @@ module.exports = [
   },
   {
     name: '@sentry/node/import (ESM hook with diagnostics-channel injection)',
-    path: ['packages/server-runtime-injection/build/esm/hook.js', 'packages/node/build/import-hook.mjs'],
+    // `@sentry/server-runtime-injection/hook` is left out: it runs on the separate `Module.register()`
+    // loader thread (Node < 24.13 only), not in the app's thread, so it isn't part of what this loads.
+    path: 'packages/node/build/import-hook.mjs',
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
     disablePlugins: ['@size-limit/esbuild'],
