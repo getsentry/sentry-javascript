@@ -50,10 +50,12 @@ const debugShim = {
   },
 };
 
-// The ESM loader hook runs on Node's loader thread, which has its own `globalThis`, so the Sentry
-// logger there is never enabled by `debug: true` and `src/debug.ts` would never print. Importing it
-// would only pull `@sentry/core`'s ESM build into the hook, and build tracers that only see the CJS
-// build in use (Turbopack on Next.js) don't ship that.
+// The hook build's stand-in for `debug`, which `@apm-js-collab/tracing-hooks/hook.mjs` imports: a
+// no-op virtual module (the `\0` prefix keeps other plugins from resolving or loading the ID). The
+// hook runs on Node's loader thread, which has its own `globalThis`, so the Sentry logger there is
+// never enabled by `debug: true` and `src/debug.ts` would never print. Importing it would only pull
+// `@sentry/core`'s ESM build into the hook, and build tracers that only see the CJS build in use
+// (Turbopack on Next.js) don't ship that.
 const HOOK_DEBUG_ID = '\0hook-debug';
 const hookDebugShim = {
   name: 'hook-debug-shim',
