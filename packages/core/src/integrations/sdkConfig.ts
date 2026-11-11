@@ -45,12 +45,12 @@ export const experimentalSdkConfigIntegration = defineIntegration(_experimentalS
 // and unsupported values with fingerprints before hashing the config.
 function serialize(value: unknown, ancestors = new Set<object>()): unknown {
   if (typeof value === 'function') {
-    return `[Function:${fnv1a32(Function.prototype.toString.call(value)).toString(36)}]`;
+    return `[Function:${fnv1a32(Function.prototype.toString.call(value))}]`;
   }
 
   // initialScope extras can contain bigints or symbols; JSON throws on bigints and omits symbols.
   if (typeof value === 'bigint' || typeof value === 'symbol') {
-    return `[${typeof value}:${fnv1a32(String(value)).toString(36)}]`;
+    return `[${typeof value}:${fnv1a32(String(value))}]`;
   }
 
   // Pass through primitives and null unchanged.
@@ -69,7 +69,7 @@ function serialize(value: unknown, ancestors = new Set<object>()): unknown {
 
   if (!Array.isArray(value) && !isPlainObject(value)) {
     const type = String(Object.prototype.toString.call(value)).slice(8, -1);
-    return `[${type}:${fnv1a32(String(value)).toString(36)}]`;
+    return `[${type}:${fnv1a32(String(value))}]`;
   }
 
   const nextAncestors = new Set(ancestors).add(value);
@@ -123,7 +123,7 @@ function buildConfigAttributes(client: Client): Record<string, string> {
   };
 
   return {
-    'sentry.sdk_config.hash': fnv1a32(JSON.stringify(hashInput)).toString(36),
+    'sentry.sdk_config.hash': fnv1a32(JSON.stringify(hashInput)),
     'sentry.sdk_config.payload': JSON.stringify(payload),
   };
 }

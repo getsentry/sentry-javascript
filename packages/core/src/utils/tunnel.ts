@@ -84,7 +84,7 @@ export function applyBrowserTunnelDefaults(
 export function getTunnelPath(dsn?: DsnLike): string | undefined {
   const components = dsn ? makeDsn(dsn) : getClient()?.getDsn();
 
-  return components ? `/${fnv1a32(dsnToString(components)).toString(36)}` : undefined;
+  return components ? `/${fnv1a32(dsnToString(components))}` : undefined;
 }
 
 /**
