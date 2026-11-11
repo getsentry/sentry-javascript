@@ -5,6 +5,7 @@ import { count } from '../metrics/public-api';
 import { Scope } from '../scope';
 import type { IntegrationFn } from '../types/integration';
 import { debug } from '../utils/debug-logger';
+import { fnv1a32 } from '../utils/hash';
 import { isPlainObject } from '../utils/is';
 import { timestampInSeconds } from '../utils/time';
 import { safeUnref } from '../utils/timer';
@@ -12,27 +13,22 @@ import { safeUnref } from '../utils/timer';
 const _experimentalSdkConfigIntegration = (() => ({
   name: 'ExperimentalSdkConfig',
   afterAllSetup(client: Client) {
-    let closed = false;
     const scope = new Scope();
     scope.setClient(client);
 
     // Allow configuration to settle before capturing it.
     const timer = safeUnref(
       setTimeout(() => {
-        void buildConfigAttributes(client)
-          .then(attributes => {
-            if (!closed) {
-              count('sdk.config', 1, { attributes, scope });
-            }
-          })
-          .catch((error: unknown) => {
-            DEBUG_BUILD && debug.warn('Failed to report SDK configuration', error);
-          });
+        try {
+          const attributes = buildConfigAttributes(client);
+          count('sdk.config', 1, { attributes, scope });
+        } catch (error) {
+          DEBUG_BUILD && debug.warn('Failed to report SDK configuration', error);
+        }
       }, 5000),
     );
 
     client.on('close', () => {
-      closed = true;
       clearTimeout(timer);
     });
   },
@@ -45,21 +41,20 @@ const _experimentalSdkConfigIntegration = (() => ({
  */
 export const experimentalSdkConfigIntegration = defineIntegration(_experimentalSdkConfigIntegration);
 
-async function hash(value: string): Promise<string> {
-  const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
-  return btoa(String.fromCharCode(...new Uint8Array(digest)));
+function hash(value: string): string {
+  return fnv1a32(value).toString(36);
 }
 
 // Sort object keys recursively, preserving array order. Replace functions
 // and unsupported values with fingerprints before hashing the config.
-async function serialize(value: unknown, ancestors = new Set<object>()): Promise<unknown> {
+function serialize(value: unknown, ancestors = new Set<object>()): unknown {
   if (typeof value === 'function') {
-    return `[Function:${await hash(Function.prototype.toString.call(value))}]`;
+    return `[Function:${hash(Function.prototype.toString.call(value))}]`;
   }
 
   // initialScope extras can contain bigints or symbols; JSON throws on bigints and omits symbols.
   if (typeof value === 'bigint' || typeof value === 'symbol') {
-    return `[${typeof value}:${await hash(String(value))}]`;
+    return `[${typeof value}:${hash(String(value))}]`;
   }
 
   // Pass through primitives and null unchanged.
@@ -78,25 +73,25 @@ async function serialize(value: unknown, ancestors = new Set<object>()): Promise
 
   if (!Array.isArray(value) && !isPlainObject(value)) {
     const type = String(Object.prototype.toString.call(value)).slice(8, -1);
-    return `[${type}:${await hash(String(value))}]`;
+    return `[${type}:${hash(String(value))}]`;
   }
 
   const nextAncestors = new Set(ancestors).add(value);
   if (Array.isArray(value)) {
-    return Promise.all(value.map(async item => (await serialize(item, nextAncestors)) ?? null));
+    return value.map(item => serialize(item, nextAncestors) ?? null);
   }
 
   const result: Record<string, unknown> = {};
   for (const key of Object.keys(value).sort()) {
     const item: unknown = value[key];
     if (item !== undefined) {
-      result[key] = await serialize(item, nextAncestors);
+      result[key] = serialize(item, nextAncestors);
     }
   }
   return result;
 }
 
-async function buildConfigAttributes(client: Client): Promise<Record<string, string>> {
+function buildConfigAttributes(client: Client): Record<string, string> {
   // Integrations are reported separately; SDK metadata lives under `sdk`.
   const options = Object.fromEntries(
     Object.entries(client.getOptions()).filter(
@@ -107,7 +102,7 @@ async function buildConfigAttributes(client: Client): Promise<Record<string, str
   const config = {
     version: 1,
     sdk: client.getSdkMetadata()?.sdk,
-    options: (await serialize(options)) as Record<string, unknown>,
+    options: serialize(options) as Record<string, unknown>,
     integrations: client.getIntegrationNames().map(name => ({ name })),
   };
 
@@ -132,7 +127,7 @@ async function buildConfigAttributes(client: Client): Promise<Record<string, str
   };
 
   return {
-    'sentry.sdk_config.hash': await hash(JSON.stringify(hashInput)),
+    'sentry.sdk_config.hash': hash(JSON.stringify(hashInput)),
     'sentry.sdk_config.payload': JSON.stringify(payload),
   };
 }
