@@ -35,7 +35,7 @@ jobs:
         with:
           sparse-checkout: |
             .github/CODEOWNERS
-            scripts/assign-reviewers.js
+            scripts/assign-reviewers.mjs
           sparse-checkout-cone-mode: false
 
       - name: Assign reviewers
@@ -43,5 +43,5 @@ jobs:
         with:
           github-token: ${{ steps.app-token.outputs.token }}
           script: |
-            const { assignReviewers } = require('./scripts/assign-reviewers.js');
+            const { assignReviewers } = await import('${{ github.workspace }}/scripts/assign-reviewers.mjs');
             await assignReviewers({ github, context, core });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-const { getOwnersForFiles, parseCodeowners, pickReviewers } = require('./assign-reviewers');
+import { getOwnersForFiles, parseCodeowners, pickReviewers } from './assign-reviewers.mjs';
 
 const CODEOWNERS = `
 # comment
@@ -44,7 +44,7 @@ describe('pickReviewers', () => {
       exclude: [],
     });
     expect(picked).toHaveLength(3);
-    picked.forEach((login: string) => expect(['x1', 'x2', 'x3', 'y1', 'y2', 'y3']).toContain(login));
+    picked.forEach(login => expect(['x1', 'x2', 'x3', 'y1', 'y2', 'y3']).toContain(login));
   });
 
   it('fills up from the team when the codeowner pool is too small', () => {

@@ -1,4 +1,4 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
 const REQUIRED_REVIEWERS = 3;
 const TEAM_SLUG = 'team-javascript-sdks';
@@ -31,7 +31,7 @@ function patternToRegExp(pattern) {
   return new RegExp(prefix + body + suffix);
 }
 
-function parseCodeowners(content) {
+export function parseCodeowners(content) {
   return content
     .split('\n')
     .map(line => line.trim())
@@ -43,7 +43,7 @@ function parseCodeowners(content) {
 }
 
 /** CODEOWNERS semantics: the last matching rule wins for each file. */
-function getOwnersForFiles(rules, files) {
+export function getOwnersForFiles(rules, files) {
   const owners = new Set();
   for (const file of files) {
     const rule = rules.findLast(r => r.regexp.test(file));
@@ -65,7 +65,7 @@ function shuffle(items) {
  * Picks reviewers to top the PR up to `REQUIRED_REVIEWERS`, preferring the codeowner pool and falling back
  * to the whole team. Logins are compared case-insensitively, as GitHub does.
  */
-function pickReviewers({ existing, codeownerPool, teamPool, exclude }) {
+export function pickReviewers({ existing, codeownerPool, teamPool, exclude }) {
   const taken = new Set([...existing, ...exclude].map(login => login.toLowerCase()));
   const picked = [];
 
@@ -84,7 +84,7 @@ function pickReviewers({ existing, codeownerPool, teamPool, exclude }) {
   return picked;
 }
 
-async function assignReviewers({ github, context, core }) {
+export async function assignReviewers({ github, context, core }) {
   const { owner, repo } = context.repo;
   const pull_number = context.payload.pull_request.number;
 
@@ -146,5 +146,3 @@ async function assignReviewers({ github, context, core }) {
   core.info(`Requesting reviews from: ${reviewers.join(', ')}`);
   await github.rest.pulls.requestReviewers({ owner, repo, pull_number, reviewers });
 }
-
-module.exports = { assignReviewers, getOwnersForFiles, parseCodeowners, pickReviewers };
