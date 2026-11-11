@@ -9,7 +9,7 @@ import type { GenAiMessagePart } from '../../../ai/types';
 
 /**
  * Translate Converse `ContentBlock`s (also used by Amazon Nova `InvokeModel` bodies) into message parts.
- * Bedrock's blocks (`{ text }`, `{ toolUse }`, ...) carry no `type`, and Sentry drops parts it cannot type.
+ * The conventions require a `type` on each part, and Bedrock's blocks (`{ text }`, `{ toolUse }`, ...) have none.
  *
  * Media is reported by modality only: inline media is raw bytes, which the conventions require to be
  * dropped rather than recorded. Blocks without content worth recording (`cachePoint`, redacted
