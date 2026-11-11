@@ -1,6 +1,3 @@
-# CODEOWNERS syntax, but intentionally not named CODEOWNERS so GitHub does not auto-request
-# whole teams. `.github/workflows/assign-reviewers.yml` uses it to pick 3 reviewers per PR.
-
 # Browser, replay, feedback, and related packages
 /packages/browser/                  @getsentry/team-javascript-sdks-browser
 /packages/browser-utils/            @getsentry/team-javascript-sdks-browser
