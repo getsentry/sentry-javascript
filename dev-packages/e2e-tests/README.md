@@ -213,7 +213,7 @@ is the reference setup.
   example Express behind `react-router-serve`), so those produce no spans on Bun. Where a test depends on them, branch
   on `RUNTIME` and say why in a comment. An app that starts its own server can instead bundle it with
   `@sentry/bun/plugin`, as `nestjs-12/bun-build.mjs` does. Bun 1.3 renames classes in bundles (`class Foo2`), which
-  changes span names taken from class names, so `nestjs-12` pins Bun 1.4.
+  changes span names taken from class names, so `nestjs-12` pins Bun 1.4 (see #26289).
 
 ```json
 "sentryTest": {
