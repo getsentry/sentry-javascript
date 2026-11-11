@@ -9,10 +9,7 @@ Sentry.init({
   _flushInterval: 100,
   tracePropagationTargets: ['http://localhost:3030/propagation/test-outgoing-fetch/check'],
   // debug: true,
-  integrations: [
-    Sentry.vercelAIIntegration(),
-    Sentry.nodeRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 }),
-  ],
+  integrations: [Sentry.vercelAIIntegration(), Sentry.nodeRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 })],
   // Verify Log type is available
   beforeSendLog(log: Log) {
     return log;
