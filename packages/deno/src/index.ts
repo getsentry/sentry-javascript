@@ -82,7 +82,6 @@ export {
   consoleIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
-  experimentalSdkConfigIntegration,
   rewriteFramesIntegration,
   moduleMetadataIntegration,
   supabaseIntegration,

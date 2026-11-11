@@ -208,7 +208,6 @@ export {
   captureConsoleIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
-  experimentalSdkConfigIntegration,
   rewriteFramesIntegration,
 } from '@sentry/core';
 
