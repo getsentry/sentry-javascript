@@ -1,0 +1,47 @@
+name: 'PR: Assign reviewers'
+
+on:
+  # pull_request_target so this also runs for fork PRs. It only checks out the base branch,
+  # never the PR's code.
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - ready_for_review
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  assign-reviewers:
+    name: Assign reviewers
+    runs-on: ubuntu-24.04
+    if: github.event.pull_request.draft == false
+    steps:
+      # Listing team members needs org `members: read`, which GITHUB_TOKEN can't have.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.GITFLOW_APP_ID }}
+          private-key: ${{ secrets.GITFLOW_APP_PRIVATE_KEY }}
+
+      - name: Checkout base branch
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github/CODEOWNERS
+            scripts/assign-reviewers.mjs
+          sparse-checkout-cone-mode: false
+
+      - name: Assign reviewers
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const { assignReviewers } = await import('${{ github.workspace }}/scripts/assign-reviewers.mjs');
+            await assignReviewers({ github, context, core });

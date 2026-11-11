@@ -42,7 +42,7 @@ export interface Options {
    *
    * This value can also be set via the `SENTRY_URL` environment variable.
    *
-   * @default "https://sentry.io" (correct value for SaaS customers)
+   * @default The server that a `sntrys_` organization auth token was created on, otherwise "https://sentry.io"
    */
   url?: string;
 

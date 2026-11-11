@@ -127,3 +127,4 @@ minimumReleaseAgeExclude:
   - '@sentry/rrweb-types@2.46.0'
   - '@sentry/rrweb@2.46.0'
   - sentry@0.49.0
+  - '@apm-js-collab/code-transformer-bundler-plugins@0.7.6'
