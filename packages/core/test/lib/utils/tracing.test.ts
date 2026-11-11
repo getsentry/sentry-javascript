@@ -3,6 +3,7 @@ import {
   extractTraceparentData,
   generateTraceparentHeader,
   propagationContextFromHeaders,
+  sentryTraceFromTraceparent,
   shouldContinueTrace,
 } from '../../../src/utils/tracing';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
@@ -198,4 +199,21 @@ describe('generateTraceparentHeader', () => {
     const traceparent = generateTraceparentHeader('12345678901234567890123456789012', '1234567890123456');
     expect(traceparent).toBe('00-12345678901234567890123456789012-1234567890123456-00');
   });
+});
+
+describe('sentryTraceFromTraceparent', () => {
+  test.each([
+    ['00-12345678901234567890123456789012-1234567890123456-01', '12345678901234567890123456789012-1234567890123456-1'],
+    ['00-12345678901234567890123456789012-1234567890123456-00', '12345678901234567890123456789012-1234567890123456-0'],
+    ['00-12345678901234567890123456789012-1234567890123456-03', '12345678901234567890123456789012-1234567890123456-1'],
+  ])('converts %s', (traceparent, expected) => {
+    expect(sentryTraceFromTraceparent(traceparent)).toBe(expected);
+  });
+
+  test.each([['01-12345678901234567890123456789012-1234567890123456-01'], ['00-1234-01'], ['']])(
+    'returns undefined for %s',
+    traceparent => {
+      expect(sentryTraceFromTraceparent(traceparent)).toBeUndefined();
+    },
+  );
 });

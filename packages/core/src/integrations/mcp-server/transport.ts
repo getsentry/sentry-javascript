@@ -18,6 +18,7 @@ import { captureError, isJsonRpcServerError } from './errorCapture';
 import { buildClientAttributesFromInfo, extractSessionDataFromInitializeRequest } from './sessionExtraction';
 import { cleanupSessionDataForTransport, updateSessionDataForTransport } from './sessionManagement';
 import { buildMcpServerSpanConfig, createMcpNotificationSpan, createMcpOutgoingNotificationSpan } from './spans';
+import { continueMcpTrace } from './tracePropagation';
 import type { ExtraHandlerData, McpServerWrapperOptions, MCPTransport, ResolvedMcpOptions, SessionData } from './types';
 import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse } from './validation';
 
@@ -90,36 +91,52 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: McpServ
           const resolvedOptions = resolveMcpOptions(options);
           const isolationScope = getIsolationScope().clone();
 
-          return withIsolationScope(isolationScope, () => {
-            const spanConfig = buildMcpServerSpanConfig(request, transport, extra as ExtraHandlerData, resolvedOptions);
-            const oauthClientName = resolveOAuthClientName(options, extra as ExtraHandlerData);
-            if (oauthClientName) {
-              spanConfig.attributes[MCP_AUTH_CLIENT_NAME] = oauthClientName;
-            }
-            const span = startInactiveSpan(spanConfig);
+          return withIsolationScope(isolationScope, () =>
+            continueMcpTrace(request.params, links => {
+              const spanConfig = buildMcpServerSpanConfig(
+                request,
+                transport,
+                extra as ExtraHandlerData,
+                resolvedOptions,
+              );
+              const oauthClientName = resolveOAuthClientName(options, extra as ExtraHandlerData);
+              if (oauthClientName) {
+                spanConfig.attributes[MCP_AUTH_CLIENT_NAME] = oauthClientName;
+              }
+              const span = startInactiveSpan({ ...spanConfig, links });
 
-            if (request.method === 'initialize' && messageSessionData) {
-              span.setAttributes({
-                ...buildClientAttributesFromInfo(messageSessionData.clientInfo),
-                ...(messageSessionData.protocolVersion && {
-                  [MCP_PROTOCOL_VERSION]: messageSessionData.protocolVersion,
-                }),
+              if (request.method === 'initialize' && messageSessionData) {
+                span.setAttributes({
+                  ...buildClientAttributesFromInfo(messageSessionData.clientInfo),
+                  ...(messageSessionData.protocolVersion && {
+                    [MCP_PROTOCOL_VERSION]: messageSessionData.protocolVersion,
+                  }),
+                });
+              }
+
+              storeSpanForRequest(transport, request.id, span, request.method, resolvedOptions);
+
+              return withActiveSpan(span, () => {
+                return (originalOnMessage as (...args: unknown[]) => unknown).call(this, request, extra);
               });
-            }
-
-            storeSpanForRequest(transport, request.id, span, request.method, resolvedOptions);
-
-            return withActiveSpan(span, () => {
-              return (originalOnMessage as (...args: unknown[]) => unknown).call(this, request, extra);
-            });
-          });
+            }),
+          );
         }
 
         if (notification) {
           const resolvedOptions = resolveMcpOptions(options);
-          return createMcpNotificationSpan(notification, transport, extra as ExtraHandlerData, resolvedOptions, () => {
-            return (originalOnMessage as (...args: unknown[]) => unknown).call(this, notification, extra);
-          });
+          return continueMcpTrace(notification.params, links =>
+            createMcpNotificationSpan(
+              notification,
+              transport,
+              extra as ExtraHandlerData,
+              resolvedOptions,
+              () => {
+                return (originalOnMessage as (...args: unknown[]) => unknown).call(this, notification, extra);
+              },
+              links,
+            ),
+          );
         }
 
         return (originalOnMessage as (...args: unknown[]) => unknown).call(this, message, extra);
