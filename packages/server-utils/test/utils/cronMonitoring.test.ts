@@ -207,6 +207,28 @@ describe('cronExpressionToMonitorConfig with cron-parser day matching', () => {
   });
 });
 
+describe('cronExpressionToMonitorConfig with days the months lack', () => {
+  it.each(['node-cron', 'cron', 'cron-parser'] as const)('sends no config with %s', dialect => {
+    expect(cronExpressionToMonitorConfig('0 9 31 2,4 *', 'UTC', dialect)).toBeUndefined();
+    expect(cronExpressionToMonitorConfig('0 9 30 2 1', 'UTC', dialect)).toBeUndefined();
+    expect(cronExpressionToMonitorConfig('0 9 31 feb,apr *', 'UTC', dialect)).toBeUndefined();
+  });
+
+  it.each(['node-cron', 'cron', 'cron-parser'] as const)(
+    'sends a config if one of the months has the day, with %s',
+    dialect => {
+      expect(cronExpressionToMonitorConfig('0 9 31 2,3 *', 'UTC', dialect)?.schedule).toEqual({
+        type: 'crontab',
+        value: '0 9 31 2,3 *',
+      });
+      expect(cronExpressionToMonitorConfig('0 9 29 2 *', 'UTC', dialect)?.schedule).toEqual({
+        type: 'crontab',
+        value: '0 9 29 2 *',
+      });
+    },
+  );
+});
+
 describe('cronExpressionToMonitorConfig with a dropped seconds value', () => {
   it.each(['node-cron', 'cron', 'cron-parser'] as const)('sends a 2-minute checkinMargin with %s', dialect => {
     expect(cronExpressionToMonitorConfig('59 0 9 * * *', 'UTC', dialect)).toEqual({
