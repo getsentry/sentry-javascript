@@ -22,14 +22,16 @@ const EMPTY_CACHE_ORIGIN_META_TAG = '<meta name="sentry-cache-origin" content=""
 
 const PATH = '/rendering-modes/swr-cached-page';
 
-// h3 v1 (Nitro v2): Node request, also behind the deprecated `req` getter. The Nuxt renderer resolves
-// the route rules.
+// h3 v1 (Nitro v2): Node request, with web `Headers` built from it. The Nuxt renderer resolves the
+// route rules.
 function h3v1Event(routeRules: Record<string, unknown> = {}, headers: Record<string, string> = {}): H3Event {
   const nodeReq = { url: PATH, headers };
   return {
     path: PATH,
     node: { req: nodeReq },
-    req: nodeReq,
+    get headers() {
+      return new Headers(nodeReq.headers);
+    },
     context: { _nitro: { routeRules } },
   } as unknown as H3Event;
 }
@@ -37,9 +39,13 @@ function h3v1Event(routeRules: Record<string, unknown> = {}, headers: Record<str
 // h3 v2 (Nitro v3): web `Request`, route rules stored by name.
 function h3v2Event(routeRules: Record<string, unknown> = {}, headers: Record<string, string> = {}): H3Event {
   const url = `https://shop.example.com${PATH}`;
+  const req = new Request(url, { headers });
   return {
-    req: new Request(url, { headers }),
+    req,
     url: new URL(url),
+    get headers() {
+      return req.headers;
+    },
     context: { routeRules },
   } as unknown as H3Event;
 }

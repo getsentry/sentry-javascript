@@ -55,17 +55,10 @@ function getCacheOrigin(event: H3Event, traceData: SerializedTraceData | undefin
   return (traceData ?? getTraceData())['sentry-trace'] ?? '';
 }
 
-// The Nitro prerenderer sends this header with each route it renders (Nitro v2 and v3).
+// The Nitro prerenderer sends this header with each route it renders (Nitro v2 and v3). `event.headers`
+// exists in h3 v1 (1.8+) and h3 v2, where it is a deprecated alias of `event.req.headers`.
 function isPrerenderRequest(event: H3Event): boolean {
-  const { node, req } = event as unknown as {
-    node?: { req?: { headers?: Record<string, unknown> } };
-    req?: { headers?: Headers };
-  };
-  // Check `node` first: in h3 v1, `req` is a deprecated alias of the Node request, not a web `Request`.
-  if (node?.req) {
-    return !!node.req.headers?.['x-nitro-prerender'];
-  }
-  return !!req?.headers?.get('x-nitro-prerender');
+  return event.headers.has('x-nitro-prerender');
 }
 
 // Nitro changes `swr` rules into `cache` rules, so `cache` covers both.
