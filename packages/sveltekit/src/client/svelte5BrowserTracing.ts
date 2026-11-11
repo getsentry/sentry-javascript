@@ -24,6 +24,7 @@ import {
 import { NAVIGATION, PAGELOAD, ROUTER } from '@sentry/conventions/op';
 import type { Navigation } from '@sveltejs/kit';
 import { getCurrentNavigation, onNavigationChange, onPageRouteChange } from './navigationState.svelte';
+import { getServerRenderingAttributes } from './traceMetaTags';
 
 /**
  * SvelteKit 3 / Svelte 5 browser tracing (`$app/state` runes). Selected at build time, so it's only
@@ -54,6 +55,7 @@ function _instrumentPageLoad(client: Client): void {
       [SENTRY_OP]: PAGELOAD,
       [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
       [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+      ...getServerRenderingAttributes(),
     },
   });
 
