@@ -588,13 +588,13 @@ describe('Anthropic integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-abort.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('ends a call the caller aborts as cancelled, but an SDK timeout as an error', async () => {
+    test('ends a call the caller aborts as cancelled, but a timeout as an error', async () => {
       await createRunner()
         .unordered()
         .expect({
           span: container => {
             const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
-            expect(spans).toHaveLength(4);
+            expect(spans).toHaveLength(6);
             const statusByModel = Object.fromEntries(
               spans.map(span => [span.attributes[GEN_AI_REQUEST_MODEL]?.value, span.status]),
             );
@@ -604,6 +604,8 @@ describe('Anthropic integration', () => {
               'abort-non-streaming': 'ok',
               'timeout-before-stream': 'error',
               'timeout-non-streaming': 'error',
+              'stream-helper-abort': 'ok',
+              'stream-helper-signal-timeout': 'error',
             });
           },
         })

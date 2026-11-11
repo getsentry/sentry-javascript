@@ -225,7 +225,7 @@ function handleStreamingRequest<T extends unknown[], R>(
         suppressDelegatedCreate = true;
         const messageStream = target.apply(invocationThis, args);
         suppressDelegatedCreate = false;
-        return instrumentMessageStream(messageStream, span, options.recordOutputs ?? false);
+        return instrumentMessageStream(messageStream, span, options.recordOutputs ?? false, abortSignal);
       } catch (error) {
         suppressDelegatedCreate = false;
         return handleStreamingError(error, span, abortSignal);

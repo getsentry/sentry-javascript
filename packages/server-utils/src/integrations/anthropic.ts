@@ -285,7 +285,7 @@ function wrapStreamResult(
   }
 
   if (stream === 'message-stream' && isMessageStream(result)) {
-    instrumentMessageStream(result, span, recordOutputs);
+    instrumentMessageStream(result, span, recordOutputs, getRequestSignal(data.arguments?.[1]));
     return true;
   }
 
