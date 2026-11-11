@@ -110,10 +110,8 @@ export default [
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
       // `register.ts` backs `./register` (the Node SDK `require`s it synchronously from
-      // `Sentry.init()`); `hook.mjs` backs `./hook` (the async `Module.register()` target, loaded on
-      // Node's ESM loader thread, which cannot resolve bare specifiers into the vendored chunks — but
-      // relative imports work, so it shares the ESM build's vendored chunks). `./hook` only maps its
-      // `import` condition, so the `build/cjs` copy is unused.
+      // `Sentry.init()`); `hook.mjs` is the async `Module.register()` target, loaded on Node's
+      // loader thread. Each build registers its own copy, which shares that build's vendored chunks.
       entrypoints: ['src/register.ts', 'src/hook.mjs'],
       packageSpecificConfig: {
         plugins: [debugShim, guardTracingDump, commonJSPlugin, thirdPartyLicensePlugin],

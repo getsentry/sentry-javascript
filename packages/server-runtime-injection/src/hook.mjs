@@ -2,9 +2,9 @@
 // `registerDiagnosticsChannelInjection()` (Node 18.19–24.12, where the stable sync
 // `Module.registerHooks` API isn't available).
 //
-// `Module.register()` loads its target on Node's ESM loader thread, so the target must be a real,
-// on-disk ES module graph — the loader thread cannot resolve bare specifiers into the dependency
-// graph this package bundles away, but it can follow relative imports. This shim is therefore an
-// entrypoint of the regular ESM build (sharing the vendored dependency chunks) and exposed via the
-// `@sentry/server-runtime-injection/hook` subpath.
+// `Module.register()` loads its target on Node's loader thread, which
+// cannot resolve bare specifiers into the dependencies this package
+// bundles. This shim is therefore an entrypoint of both builds and shares
+// their vendored chunks. The CJS build registers the CJS copy by path. The
+// ESM copy is also exposed as `@sentry/server-runtime-injection/hook`.
 export * from '@apm-js-collab/tracing-hooks/hook.mjs';

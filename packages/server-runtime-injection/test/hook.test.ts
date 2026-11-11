@@ -4,22 +4,25 @@ import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
 /**
- * Deployments can drop `build/esm/package.json` (the only `"type": "module"` marker for the hook),
- * and Vercel runs Node with syntax detection disabled, so the loader thread then parses the hook as
- * CommonJS. Runs against the built files, so it needs the package built.
+ * Build tracers can ship the loader hook without the files it imports (Turbopack does), and
+ * deployments can drop `build/esm/package.json`. The CJS build must therefore register a hook that
+ * needs nothing from `build/esm`. Runs against the built files, so it needs the package built.
  *
- * The copy sits inside this package so `@sentry/*` still resolves from its `node_modules`.
+ * The copy sits inside this package so `@sentry/*` still resolves from its `node_modules`. It has
+ * its own `package.json` so the `@sentry/server-runtime-injection/hook` fallback resolves to the
+ * copy and not to the real build.
  */
-const copyDir = mkdtempSync(join(__dirname, '.esm-marker-'));
-cpSync(join(__dirname, '..', 'build'), join(copyDir, 'build'), { recursive: true });
-rmSync(join(copyDir, 'build', 'esm', 'package.json'));
+const packageDir = join(__dirname, '..');
+const copyDir = mkdtempSync(join(__dirname, '.cjs-only-'));
+cpSync(join(packageDir, 'package.json'), join(copyDir, 'package.json'));
+cpSync(join(packageDir, 'build', 'cjs'), join(copyDir, 'build', 'cjs'), { recursive: true });
 
 afterAll(() => {
   rmSync(copyDir, { recursive: true, force: true });
 });
 
-describe('without the build/esm package.json marker', () => {
-  it('registers the ESM loader hook', { timeout: 30_000 }, () => {
+describe('when a deployment ships only the CJS build', () => {
+  it('registers the loader hook', { timeout: 30_000 }, () => {
     // Removing `registerHooks` forces the `Module.register()` path, the one that loads the hook on
     // Node < 24.13, whatever Node version runs the test.
     const script = `
