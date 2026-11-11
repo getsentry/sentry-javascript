@@ -106,7 +106,7 @@
     "@sentry/core": "11.12.0"
   },
   "devDependencies": {
-    "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.5",
+    "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.6",
     "@neondatabase/serverless": "1.2.0",
     "@sentry-internal/rollup-utils": "11.12.0",
     "@types/node": "^20.19.0",

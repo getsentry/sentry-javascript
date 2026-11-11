@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as assert from 'assert/strict';
+import { findSourceMapFiles } from '@sentry-internal/test-utils';
 
 const nextPackageJson = require('next/package.json');
 const nextjsVersion = nextPackageJson.version;
@@ -41,12 +42,9 @@ const getLatestNextVersion = async () => {
   assert.match(buildStdout, /(λ|ƒ) \/server-component\/parameter\/\[\.\.\.parameters\]/);
   assert.match(buildStdout, /(λ|ƒ) \/server-component\/parameter\/\[parameter\]/);
 
-  // Read the contents of the directory
-  const files = fs.readdirSync(path.join(process.cwd(), '.next', 'static'));
-  const mapFiles = files.filter(file => path.extname(file) === '.map');
-  if (mapFiles.length > 0) {
-    throw new Error(
-      'Client bundle .map files found even though `sourcemaps.deleteSourcemapsAfterUpload` option is set!',
-    );
-  }
+  assert.deepEqual(
+    findSourceMapFiles({ outputDir: path.join('.next', 'static') }),
+    [],
+    'Client bundle .map files found even though `sourcemaps.deleteSourcemapsAfterUpload` option is set!',
+  );
 })();
