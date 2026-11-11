@@ -114,7 +114,7 @@ async function buildConfigAttributes(client: Client): Promise<Record<string, str
     dist: options.dist,
   };
 
-  // Top-level reporting metadata must not affect config identity.
+  // Exclude reporting metadata and instance-specific defaults from config identity.
   const hashExclusions = new Set(['server_name', ...Object.keys(metadata)]);
 
   const hashInput = {
