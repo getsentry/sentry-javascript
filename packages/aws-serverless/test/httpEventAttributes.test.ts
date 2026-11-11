@@ -151,6 +151,17 @@ describe('getHttpRequestAttributes', () => {
     );
   });
 
+  test.each([
+    ['80', 'http://example.com/search?q=a%20b'],
+    ['8443', 'http://example.com:8443/search?q=a%20b'],
+  ])('adds x-forwarded-port %s to url.full only when it is not the default', (port, expected) => {
+    const event = {
+      ...albEvent,
+      headers: { ...albEvent.headers, host: 'example.com', 'x-forwarded-port': port },
+    };
+    expect(getHttpRequestAttributes(event, makeClient(true))[URL_FULL]).toBe(expected);
+  });
+
   test('prefers a forwarded client address over the source IP', () => {
     const event = {
       ...restApiEvent,
