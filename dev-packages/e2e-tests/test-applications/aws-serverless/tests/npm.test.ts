@@ -117,6 +117,7 @@ test.describe('NPM package', () => {
     expect(segmentSpan?.attributes).toMatchObject({
       'faas.trigger': { value: 'http', type: 'string' },
       'http.request.method': { value: 'GET', type: 'string' },
+      'url.full': { value: 'https://abc123.lambda-url.us-east-1.on.aws/users/123?page=2', type: 'string' },
       'url.path': { value: '/users/123', type: 'string' },
       'url.query': { value: 'page=2', type: 'string' },
       'url.scheme': { value: 'https', type: 'string' },

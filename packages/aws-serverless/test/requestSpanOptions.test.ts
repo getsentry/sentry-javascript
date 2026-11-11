@@ -10,7 +10,8 @@ const context = {
 } as Context;
 
 function getUrlFull(headers: Record<string, string>): unknown {
-  return getRequestSpanOptions({ headers, rawPath: '/users' }, context, false).attributes?.[URL_FULL];
+  const event = { version: '2.0', rawPath: '/users', headers, requestContext: { http: { method: 'GET' } } };
+  return getRequestSpanOptions(event, context, false).attributes?.[URL_FULL];
 }
 
 describe('getRequestSpanOptions', () => {

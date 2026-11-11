@@ -8,6 +8,7 @@ import {
   NETWORK_PROTOCOL_VERSION,
   SERVER_ADDRESS,
   SERVER_PORT,
+  URL_FULL,
   URL_PATH,
   URL_QUERY,
   URL_SCHEME,
@@ -126,6 +127,7 @@ describe('getHttpRequestAttributes', () => {
       [SERVER_ADDRESS]: 'abc123.lambda-url.us-east-1.on.aws',
       [SERVER_PORT]: 443,
       [CLIENT_ADDRESS]: '198.51.100.7',
+      [URL_FULL]: 'https://abc123.lambda-url.us-east-1.on.aws/favicon.ico?size=32&theme=dark',
       [USER_AGENT_ORIGINAL]: 'Mozilla/5.0',
       [NETWORK_PROTOCOL_NAME]: 'http',
       [NETWORK_PROTOCOL_VERSION]: '1.1',
@@ -139,6 +141,15 @@ describe('getHttpRequestAttributes', () => {
       [CLIENT_ADDRESS]: '203.0.113.9',
     });
     expect(getHttpRequestAttributes({ ...albEvent, headers: null }, makeClient(true))[CLIENT_ADDRESS]).toBeUndefined();
+  });
+
+  test('prefers a forwarded client address over the source IP', () => {
+    const event = {
+      ...restApiEvent,
+      headers: { ...restApiEvent.headers, 'X-Forwarded-For': '198.51.100.20, 130.176.0.1' },
+      requestContext: { ...restApiEvent.requestContext, identity: { sourceIp: '130.176.0.1' } },
+    };
+    expect(getHttpRequestAttributes(event, makeClient(true))[CLIENT_ADDRESS]).toBe('198.51.100.20');
   });
 
   test('omits client.address when user info is not collected', () => {
@@ -166,6 +177,7 @@ describe('getHttpRequestAttributes', () => {
       [SERVER_ADDRESS]: 'abc123.execute-api.us-east-1.amazonaws.com',
       [SERVER_PORT]: 443,
       [CLIENT_ADDRESS]: '203.0.113.9',
+      [URL_FULL]: 'https://abc123.execute-api.us-east-1.amazonaws.com/users/123?tag=a&tag=b&q=a%20b',
       [USER_AGENT_ORIGINAL]: 'curl/8.0',
       [NETWORK_PROTOCOL_NAME]: 'http',
       [NETWORK_PROTOCOL_VERSION]: '1.1',
@@ -192,6 +204,7 @@ describe('getHttpRequestAttributes', () => {
       [SERVER_ADDRESS]: 'my-alb-123.us-east-1.elb.amazonaws.com',
       [SERVER_PORT]: 8080,
       [CLIENT_ADDRESS]: '192.0.2.44',
+      [URL_FULL]: 'http://my-alb-123.us-east-1.elb.amazonaws.com:8080/search?q=a%20b',
       [USER_AGENT_ORIGINAL]: 'curl/8.0',
       [NETWORK_PROTOCOL_NAME]: 'http',
       [NETWORK_PROTOCOL_VERSION]: undefined,

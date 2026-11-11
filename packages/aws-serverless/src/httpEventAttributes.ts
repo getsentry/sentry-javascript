@@ -8,16 +8,19 @@ import {
   NETWORK_PROTOCOL_VERSION,
   SERVER_ADDRESS,
   SERVER_PORT,
+  URL_FULL,
   URL_PATH,
   URL_QUERY,
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import type { Client, SpanAttributes } from '@sentry/core';
-import { filterCollectedUrlQuery, isPlainObject } from '@sentry/core';
+import { filterCollectedUrl, filterCollectedUrlQuery, isPlainObject } from '@sentry/core';
 import { getClientIPAddress } from '@sentry/core/server';
 
 type EventHeaders = Record<string, string | undefined>;
+
+const DEFAULT_PORTS: Record<string, string | undefined> = { http: '80', https: '443' };
 
 interface HttpEventLike {
   version?: string;
@@ -54,21 +57,25 @@ export function getHttpRequestAttributes(event: unknown, client: Client | undefi
   const requestContext = httpEvent.requestContext || {};
   const headers = httpEvent.headers || {};
   const { http, identity } = requestContext;
-  const port = Number(getHeader(headers, 'x-forwarded-port'));
+  const scheme = getHeader(headers, 'x-forwarded-proto');
+  const forwardedPort = getHeader(headers, 'x-forwarded-port');
+  const port = Number(forwardedPort);
+  const path = isV2 ? httpEvent.rawPath || http?.path : httpEvent.path;
+  const query = isV2 ? httpEvent.rawQueryString : getQueryFromParameters(httpEvent, !!requestContext.elb);
+  // Like on `http.server` spans, a forwarding header wins: `sourceIp` is the address of whatever connected
+  // to AWS, which is a proxy such as CloudFront when there is one in front.
   const clientAddress = client?.getDataCollectionOptions().userInfo
-    ? http?.sourceIp || identity?.sourceIp || getClientIPAddress(headers) || undefined
+    ? getClientIPAddress(headers) || http?.sourceIp || identity?.sourceIp || undefined
     : undefined;
 
   return {
     [FAAS_TRIGGER]: 'http',
     [HTTP_REQUEST_METHOD]: (http?.method || httpEvent.httpMethod)?.toUpperCase(),
     [HTTP_ROUTE]: isV2 ? getPayloadFormatV2Route(httpEvent) : getPayloadFormatV1Route(httpEvent),
-    [URL_PATH]: isV2 ? httpEvent.rawPath || http?.path : httpEvent.path,
-    [URL_QUERY]: filterCollectedUrlQuery(
-      isV2 ? httpEvent.rawQueryString : getQueryFromParameters(httpEvent, !!requestContext.elb),
-      client,
-    ),
-    [URL_SCHEME]: getHeader(headers, 'x-forwarded-proto'),
+    [URL_FULL]: filterCollectedUrl(getFullUrl(scheme, getHeader(headers, 'host'), forwardedPort, path, query), client),
+    [URL_PATH]: path,
+    [URL_QUERY]: filterCollectedUrlQuery(query, client),
+    [URL_SCHEME]: scheme,
     [SERVER_ADDRESS]: requestContext.domainName || getHeader(headers, 'host')?.replace(/:\d+$/, ''),
     [SERVER_PORT]: Number.isInteger(port) && port > 0 ? port : undefined,
     [CLIENT_ADDRESS]: clientAddress,
@@ -140,6 +147,21 @@ function getQueryFromParameters(event: HttpEventLike, isEncoded: boolean): strin
   }
 
   return pairs.length ? pairs.join('&') : undefined;
+}
+
+function getFullUrl(
+  scheme: string | undefined,
+  host: string | undefined,
+  port: string | undefined,
+  path: string | undefined,
+  query: string | undefined,
+): string | undefined {
+  if (!scheme || !host || !path) {
+    return undefined;
+  }
+  // Clients put non-default ports into the host header, which ALB passes through as is.
+  const portSuffix = port && port !== DEFAULT_PORTS[scheme] && !/:\d+$/.test(host) ? `:${port}` : '';
+  return `${scheme}://${host}${portSuffix}${path}${query ? `?${query}` : ''}`;
 }
 
 function getHeader(headers: EventHeaders, name: string): string | undefined {
