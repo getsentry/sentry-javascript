@@ -8,6 +8,7 @@ import {
   SENTRY_RUNTIME_INSTRUMENTATIONS,
   withoutInstrumentedExternals,
 } from '../../src/orchestrion/config';
+import { bullmqConfig } from '../../src/orchestrion/config/bullmq';
 import { CHANNEL_INTEGRATION_DEFINITIONS } from '../../src/orchestrion/config/channel-integration-definitions';
 import { MODULE_REGISTRATION_TRANSFORM } from '../../src/orchestrion/config/registration-only';
 
@@ -79,6 +80,18 @@ describe('orchestrion config — Flue', () => {
   });
 });
 
+describe('orchestrion config — BullMQ', () => {
+  it('transforms bullmq at runtime', () => {
+    expect(SENTRY_RUNTIME_INSTRUMENTATIONS.map(i => i.module.name)).toContain('bullmq');
+  });
+
+  // Bundled, BullMQ can't find the files it starts sandboxed processors from.
+  it('is not force-bundled', () => {
+    expect(SENTRY_INSTRUMENTATIONS.map(i => i.module.name)).not.toContain('bullmq');
+    expect(INSTRUMENTED_MODULE_NAMES).not.toContain('bullmq');
+  });
+});
+
 describe('orchestrion config — custom instrumentations', () => {
   const customInstrumentation = { module: { name: 'my-lib' } } as InstrumentationConfig;
 
@@ -118,11 +131,13 @@ describe('orchestrion config — SENTRY_RUNTIME_INSTRUMENTATIONS', () => {
 
   it('keeps every transform-less config, dropping only the ones with a custom transform', () => {
     // Nothing the runtime can apply is lost: each transform-less config from the full
-    // set survives (by reference), and the runtime set adds nothing extra.
+    // set survives (by reference), and the runtime set only adds the runtime-only BullMQ configs.
     for (const config of SENTRY_INSTRUMENTATIONS.filter(c => !c.transform)) {
       expect(SENTRY_RUNTIME_INSTRUMENTATIONS).toContain(config);
     }
-    expect(SENTRY_RUNTIME_INSTRUMENTATIONS).toHaveLength(SENTRY_INSTRUMENTATIONS.filter(c => !c.transform).length);
+    expect(SENTRY_RUNTIME_INSTRUMENTATIONS).toHaveLength(
+      SENTRY_INSTRUMENTATIONS.filter(c => !c.transform).length + bullmqConfig.length,
+    );
   });
 
   it('excludes only the native-channel modules, and only via their registration-only config', () => {

@@ -13,6 +13,8 @@ export {
   type ExpressIntegrationOptions,
   firebaseIntegration,
   genericPoolIntegration,
+  bullmqJobSchedulerIntegration,
+  type BullMQJobSchedulerIntegrationOptions,
   cronJobIntegration,
   type CronJobIntegrationOptions,
   nodeCronIntegration,

@@ -1,17 +1,9 @@
 import * as Sentry from '@sentry/node';
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import { Queue, Worker } from 'bullmq';
-
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  transport: loggingTransport,
-});
 
 const connection = { host: 'localhost', port: 6385 };
 const telemetry = new Sentry.BullMQTelemetry();
-const instrumentBeforeRun = process.env.INSTRUMENT_BEFORE_RUN === 'true';
+const autorun = process.env.AUTORUN === 'true';
 
 async function run() {
   const queue = new Queue('crons-telemetry', { connection, telemetry });
@@ -34,9 +26,8 @@ async function run() {
         throw new Error('Error in scheduled job');
       }
     },
-    { connection, telemetry, autorun: !instrumentBeforeRun },
+    { connection, telemetry, autorun },
   );
-  Sentry.cron.instrumentBullMQWorker(worker);
 
   const finished = new Promise(resolve => {
     let count = 0;
@@ -49,7 +40,7 @@ async function run() {
     worker.on('failed', done);
   });
 
-  if (instrumentBeforeRun) {
+  if (!autorun) {
     void worker.run();
   }
 

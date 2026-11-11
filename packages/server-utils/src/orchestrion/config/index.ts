@@ -3,6 +3,7 @@ import type { InstrumentationConfig } from '../apmTypes';
 import { uniq } from '@sentry/core';
 
 import { awsSdkConfig } from './aws-sdk';
+import { bullmqConfig } from './bullmq';
 import { amqplibConfig } from './amqplib';
 import { anthropicAiConfig } from './anthropic-ai';
 import { cronConfig } from './cron';
@@ -112,9 +113,9 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
 ];
 
 /**
- * The subset of {@link SENTRY_INSTRUMENTATIONS} the RUNTIME loader
- * (`@sentry/server-runtime-injection`'s `register`, reached via `--import` or
- * `Sentry.init()`) can actually apply.
+ * The configs the RUNTIME loader (`@sentry/server-runtime-injection`'s
+ * `register`, reached via `--import` or `Sentry.init()`) applies: the ones in
+ * {@link SENTRY_INSTRUMENTATIONS} it can apply, plus the runtime-only ones.
  *
  * Registration-only configs (native-channel libraries such as `ai` v7,
  * `ioredis`, `@redis/client`, `mysql2`, `mongoose`) carry the custom
@@ -139,9 +140,12 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
  * instantiate its integration factory. `@sentry/node` registers its
  * integrations statically, so it does not need it.
  */
-export const SENTRY_RUNTIME_INSTRUMENTATIONS: InstrumentationConfig[] = SENTRY_INSTRUMENTATIONS.filter(
-  config => !config.transform,
-);
+export const SENTRY_RUNTIME_INSTRUMENTATIONS: InstrumentationConfig[] = [
+  ...SENTRY_INSTRUMENTATIONS.filter(config => !config.transform),
+  // Not in `SENTRY_INSTRUMENTATIONS`, so bundler plugins don't force BullMQ into the bundle. Bundled, it can't find
+  // the files it starts sandboxed processors from.
+  ...bullmqConfig,
+];
 
 /**
  * The unique set of package names instrumented by `SENTRY_INSTRUMENTATIONS`

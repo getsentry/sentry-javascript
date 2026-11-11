@@ -1,15 +1,54 @@
 import { createHash } from 'node:crypto';
+import type { InProgressCheckIn, IntegrationFn, MonitorConfig } from '@sentry/core';
 import {
   captureCheckIn,
   debug,
+  defineIntegration,
   getClient,
-  type InProgressCheckIn,
-  type MonitorConfig,
   stringMatchesSomePattern,
   timestampInSeconds,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { getCronMonitorConfig } from './common';
+import { CHANNELS } from '../orchestrion/channels';
+import { bullmqModuleNames } from '../orchestrion/config/bullmq';
+import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
+import { cronExpressionToMonitorConfig } from '../utils/cronMonitoring';
+import * as diagnosticsChannel from '../utils/diagnosticsChannel';
+
+const INTEGRATION_NAME = 'BullMQJobScheduler' as const;
+
+export interface BullMQJobSchedulerIntegrationOptions {
+  /** Job scheduler ids not to monitor. Strings must match the id exactly. */
+  excludeJobSchedulers?: Array<string | RegExp>;
+}
+
+const _bullmqJobSchedulerIntegration = ((options: BullMQJobSchedulerIntegrationOptions = {}) => {
+  return {
+    name: INTEGRATION_NAME,
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, bullmqModuleNames, subscribe, [options], {
+        requiresTracingChannelBinding: false,
+      });
+    },
+  };
+}) satisfies IntegrationFn;
+
+/**
+ * Sends Crons check-ins for every job a BullMQ (5.16+) worker runs from a job scheduler, with the scheduler's `pattern`
+ * or `every` as the monitor config. The monitor slug is `<queue>-<job scheduler id>`. Schedulers with a schedule Crons
+ * can't express, or that set `limit` or `endDate`, are not monitored.
+ */
+export const bullmqJobSchedulerIntegration = defineIntegration(_bullmqJobSchedulerIntegration);
+
+function subscribe(options: BullMQJobSchedulerIntegrationOptions): void {
+  diagnosticsChannel.tracingChannel<{ self?: unknown }>(CHANNELS.BULLMQ_WORKER_CONSTRUCTOR).end.subscribe(message => {
+    try {
+      instrumentWorker((message as { self?: unknown }).self, options);
+    } catch (e) {
+      DEBUG_BUILD && debug.error(`[${INTEGRATION_NAME}] Failed to set up the cron monitor:`, e);
+    }
+  });
+}
 
 interface BullMQRepeatOptions {
   pattern?: unknown;
@@ -31,15 +70,15 @@ interface BullMQJob {
   opts?: { repeat?: BullMQRepeatOptions };
 }
 
-export interface InstrumentBullMQWorkerOptions {
-  /** Job scheduler ids to not monitor. Strings match the id exactly. */
-  excludeJobSchedulers?: Array<string | RegExp>;
+interface BullMQWorker {
+  name?: unknown;
+  processFn?: (job: BullMQJob, ...args: unknown[]) => unknown;
+  opts?: { settings?: { repeatStrategy?: unknown } };
+  on?: (event: string, listener: (job?: BullMQJob) => void) => unknown;
 }
 
 // Legacy repeatable jobs (`queue.add` with `repeat`) are keyed by a hash or `name:id:endDate:tz:pattern`.
 const LEGACY_REPEAT_KEY = /^[\da-f]{32,}$|^(?:[^:]*:){4}/;
-
-const instrumentedWorkers = new WeakSet<object>();
 
 interface Monitor {
   monitorSlug: string;
@@ -47,42 +86,26 @@ interface Monitor {
   config: MonitorConfig;
 }
 
+const instrumentedWorkers = new WeakSet<object>();
+
 // `captureCheckIn` keeps a given `checkInId` for `in_progress` check-ins too.
 type InProgressCheckInWithId = InProgressCheckIn & { checkInId: string };
 
-/**
- * Sends check-ins to Sentry for every job a BullMQ worker runs from a job scheduler.
- * The monitor slug is `<queue>-<job scheduler id>`, and the scheduler's `pattern` or `every` is the monitor schedule.
- * Schedulers whose schedule Sentry can't represent, or that set `limit` or `endDate`, are not monitored.
- *
- * ```ts
- * import * as Sentry from '@sentry/node';
- * import { Worker } from 'bullmq';
- *
- * const worker = new Worker('reports', processor, { connection });
- * Sentry.cron.instrumentBullMQWorker(worker, { excludeJobSchedulers: ['cache-warmup'] });
- * ```
- */
-export function instrumentBullMQWorker<T extends { on: (...args: never[]) => unknown }>(
-  worker: T,
-  options: InstrumentBullMQWorkerOptions = {},
-): T {
-  if (instrumentedWorkers.has(worker)) {
-    return worker;
+/** Sends check-ins for the jobs a new BullMQ worker runs from job schedulers. */
+export function instrumentWorker(worker: unknown, options: BullMQJobSchedulerIntegrationOptions): void {
+  const target = worker as BullMQWorker | undefined;
+  const queueName = target?.name;
+  const processFn = target?.processFn;
+  if (
+    !target ||
+    instrumentedWorkers.has(target) ||
+    typeof processFn !== 'function' ||
+    typeof queueName !== 'string' ||
+    typeof target.on !== 'function'
+  ) {
+    return;
   }
-  instrumentedWorkers.add(worker);
-
-  // Sentry keeps the trace of the `in_progress` check-in. BullMQ emits `active` before the job's trace starts,
-  // often inside the previous job's, so send it from the processor instead.
-  const target = worker as unknown as {
-    name?: unknown;
-    processFn?: (job: BullMQJob, ...args: unknown[]) => unknown;
-    opts?: { settings?: { repeatStrategy?: unknown } };
-  };
-  const { name: queueName, processFn } = target;
-  if (typeof processFn !== 'function' || typeof queueName !== 'string') {
-    return worker;
-  }
+  instrumentedWorkers.add(target);
   // A custom repeat strategy decides what `pattern` means.
   const hasCustomRepeatStrategy = !!target.opts?.settings?.repeatStrategy;
   const monitorFor = (job: BullMQJob | undefined): Monitor | undefined =>
@@ -90,6 +113,8 @@ export function instrumentBullMQWorker<T extends { on: (...args: never[]) => unk
 
   const startTimes = new WeakMap<object, number>();
 
+  // Sentry keeps the trace of the `in_progress` check-in. BullMQ emits `active` before the job's trace starts,
+  // often inside the previous job's, so send it from the processor instead.
   target.processFn = function (this: unknown, job: BullMQJob, ...args: unknown[]): unknown {
     try {
       const monitor = monitorFor(job);
@@ -102,7 +127,7 @@ export function instrumentBullMQWorker<T extends { on: (...args: never[]) => unk
         }
       }
     } catch (e) {
-      DEBUG_BUILD && debug.error('[BullMQ] Failed to send check-in:', e);
+      DEBUG_BUILD && debug.error(`[${INTEGRATION_NAME}] Failed to send check-in:`, e);
     }
     return processFn.call(this, job, ...args);
   };
@@ -127,14 +152,11 @@ export function instrumentBullMQWorker<T extends { on: (...args: never[]) => unk
         // config in case the check-in doesn't exist yet.
         captureCheckIn({ monitorSlug, status, checkInId, ...(duration !== undefined && { duration }) }, config);
       } catch (e) {
-        DEBUG_BUILD && debug.error('[BullMQ] Failed to send check-in:', e);
+        DEBUG_BUILD && debug.error(`[${INTEGRATION_NAME}] Failed to send check-in:`, e);
       }
     };
-  const on = worker.on as unknown as (event: string, listener: (job?: BullMQJob) => void) => unknown;
-  on.call(worker, 'completed', finish('ok'));
-  on.call(worker, 'failed', finish('error'));
-
-  return worker;
+  target.on('completed', finish('ok'));
+  target.on('failed', finish('error'));
 }
 
 function getMonitor(
@@ -152,7 +174,7 @@ function getMonitor(
   const repeat = job.opts?.repeat;
   const config = hasCustomRepeatStrategy && repeat?.pattern != null ? undefined : getMonitorConfig(repeat);
   if (!config) {
-    DEBUG_BUILD && debug.log(`[BullMQ] Not monitoring ${monitorSlug}: Sentry can't represent its schedule.`);
+    DEBUG_BUILD && debug.log(`[${INTEGRATION_NAME}] Not monitoring ${monitorSlug}: Crons can't express its schedule.`);
     return undefined;
   }
   return { monitorSlug, checkInId: getCheckInId(job), config };
@@ -206,5 +228,5 @@ function getMonitorConfig(repeat: BullMQRepeatOptions | undefined): MonitorConfi
     return undefined;
   }
   // BullMQ 5's cron-parser prefers `utc` over `tz`.
-  return getCronMonitorConfig(repeat.pattern, repeat.utc === true ? 'UTC' : repeat.tz, 'cron-parser');
+  return cronExpressionToMonitorConfig(repeat.pattern, repeat.utc === true ? 'UTC' : repeat.tz, 'cron-parser');
 }

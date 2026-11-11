@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, type MockInstance, test, vi } from 'vitest';
-import { cron } from '../../src';
+import { instrumentWorker } from '../../src/integrations/bullmq';
 
 function schedulerJob(id: string, repeat: Record<string, unknown>, attempt: Record<string, unknown> = {}): object {
   return {
@@ -22,7 +22,7 @@ function finalFailure(job: object): object {
   return Object.assign(job, { finishedOn: Date.now() });
 }
 
-describe('cron.instrumentBullMQWorker', () => {
+describe('bullmqJobSchedulerIntegration', () => {
   let captureCheckInSpy: MockInstance;
 
   beforeEach(() => {
@@ -44,7 +44,7 @@ describe('cron.instrumentBullMQWorker', () => {
   }
 
   function runJob(job: object, outcome: 'completed' | 'failed' = 'completed', worker = createWorker()): void {
-    cron.instrumentBullMQWorker(worker);
+    instrumentWorker(worker, {});
     worker.processFn(job);
     if (outcome === 'failed') {
       worker.emit('failed', finalFailure(job), new Error('boom'), 'active');
@@ -61,7 +61,7 @@ describe('cron.instrumentBullMQWorker', () => {
   function expectSkipped(repeat: Record<string, unknown>): void {
     runJob(schedulerJob('my-scheduler', repeat), 'failed');
     const worker = createWorker();
-    cron.instrumentBullMQWorker(worker);
+    instrumentWorker(worker, {});
     worker.emit('failed', finalFailure(schedulerJob('my-scheduler', repeat)), new Error('stalled'), 'active');
     expect(captureCheckInSpy).not.toHaveBeenCalled();
   }
@@ -160,7 +160,7 @@ describe('cron.instrumentBullMQWorker', () => {
     ['a scheduler matching an excluded pattern', schedulerJob('tmp-cleanup', { every: 60_000 })],
   ])('ignores %s', (_, job) => {
     const worker = createWorker();
-    cron.instrumentBullMQWorker(worker, { excludeJobSchedulers: ['cache-warmup', /^tmp-/] });
+    instrumentWorker(worker, { excludeJobSchedulers: ['cache-warmup', /^tmp-/] });
     worker.processFn(job);
     worker.emit('failed', finalFailure(job));
 
@@ -170,7 +170,7 @@ describe('cron.instrumentBullMQWorker', () => {
   test('calls the processor with the worker and its arguments', () => {
     const worker = createWorker();
     const processor = worker.processFn;
-    cron.instrumentBullMQWorker(worker);
+    instrumentWorker(worker, {});
     const job = schedulerJob('my-scheduler', { every: 60_000 });
 
     expect(worker.processFn.call(worker, job, 'token')).toBe('result');
@@ -180,7 +180,7 @@ describe('cron.instrumentBullMQWorker', () => {
 
   test('sends an error check-in for a job that fails without running the processor', () => {
     const worker = createWorker();
-    cron.instrumentBullMQWorker(worker);
+    instrumentWorker(worker, {});
     const job = finalFailure(schedulerJob('my-scheduler', { every: 60_000 }, { attemptsStarted: 3 }));
     worker.emit('failed', job, new Error('job started more than allowable limit'), 'active');
 
@@ -194,13 +194,13 @@ describe('cron.instrumentBullMQWorker', () => {
   test('keeps one check-in open across retries, on any worker', () => {
     const repeat = { every: 60_000 };
     const firstWorker = createWorker();
-    cron.instrumentBullMQWorker(firstWorker);
+    instrumentWorker(firstWorker, {});
     const firstAttempt = schedulerJob('my-scheduler', repeat);
     firstWorker.processFn(firstAttempt);
     firstWorker.emit('failed', Object.assign(firstAttempt, { attemptsMade: 1 }), new Error('boom'), 'active');
 
     const secondWorker = createWorker();
-    cron.instrumentBullMQWorker(secondWorker);
+    instrumentWorker(secondWorker, {});
     const retry = schedulerJob('my-scheduler', repeat, { attemptsStarted: 2, attemptsMade: 1 });
     secondWorker.processFn(retry);
     secondWorker.emit('completed', retry, 'result', 'active');
@@ -225,7 +225,7 @@ describe('cron.instrumentBullMQWorker', () => {
 
   test('sends an ok check-in for a job that completes without running the processor', () => {
     const worker = createWorker();
-    cron.instrumentBullMQWorker(worker);
+    instrumentWorker(worker, {});
     worker.emit('completed', schedulerJob('my-scheduler', { every: 60_000 }), 'result', 'active');
 
     expect(captureCheckInSpy).toHaveBeenCalledWith(
@@ -236,7 +236,7 @@ describe('cron.instrumentBullMQWorker', () => {
 
   test('skips patterns with a custom repeat strategy', () => {
     const worker = createWorker({ settings: { repeatStrategy: () => Date.now() } });
-    cron.instrumentBullMQWorker(worker);
+    instrumentWorker(worker, {});
     for (const repeat of [{ pattern: '0 * * * *', tz: 'UTC' }, { every: 60_000 }]) {
       const job = schedulerJob('my-scheduler', repeat);
       worker.processFn(job);
@@ -251,7 +251,7 @@ describe('cron.instrumentBullMQWorker', () => {
 
   test('instruments a worker only once', () => {
     const worker = createWorker();
-    cron.instrumentBullMQWorker(worker);
+    instrumentWorker(worker, {});
     runJob(schedulerJob('my-scheduler', { every: 60_000 }), 'completed', worker);
 
     expect(captureCheckInSpy).toHaveBeenCalledTimes(2);
