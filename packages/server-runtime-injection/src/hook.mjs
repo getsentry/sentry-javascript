@@ -1,5 +1,5 @@
 // The async module hooks handed to `Module.register()` by
-// `registerDiagnosticsChannelInjection()` (Node Node 20.19–24.12 and 25.0, where the stable sync
+// `registerDiagnosticsChannelInjection()` (Node 20.19–24.12 and 25.0, where the stable sync
 // `Module.registerHooks` API isn't available).
 //
 // `Module.register()` loads its target on Node's loader thread, which
