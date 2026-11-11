@@ -1084,6 +1084,7 @@ jobs:
         with:
           test-application: ${{ matrix.test-application }}
           runtime: ${{ matrix.runtime }}
+          bun-version: ${{ matrix.bun-version }}
           deno-version: ${{ matrix.deno-version }}
 
       # Installs Playwright while the app builds. Keep it right before the build: the runner sets up a background
