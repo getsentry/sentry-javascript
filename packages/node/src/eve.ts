@@ -46,9 +46,9 @@ interface EveInstrumentationProvider {
  *
  * It:
  * - runs `Sentry.init` with the given options at server startup (`setup`), adding {@link eveIntegration};
- * - allows gen_ai content as far as Sentry records it ({@link eveTracePolicy}). On eve >= 1.0.0-rc.10 this also
- *   sets the AI SDK's `recordInputs`/`recordOutputs` flags, which apply to every AI SDK telemetry integration
- *   in the app;
+ * - asks eve for full gen_ai results ({@link eveTracePolicy}); Sentry filters content by `dataCollection.genAI`
+ *   when it builds spans. On eve >= 1.0.0-rc.10 this also sets the AI SDK's `recordInputs`/`recordOutputs` flags,
+ *   which apply to every AI SDK telemetry integration in the app;
  * - tags each turn's AI spans with a Sentry conversation id via `turn.started` and `step.attempt.started`
  *   (eve < 0.84) / `model.started` (eve >= 0.84) events — the instrumentation-provider equivalent of `eveConversationHook`. Provider event handlers
  *   receive the session id on the event (`event.sessionId` / `event.scope.sessionId`), unlike hook

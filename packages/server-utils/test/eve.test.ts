@@ -1,7 +1,6 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { eveConversationHook, eveIntegration, eveTracePolicy } from '../src/eve';
-import { vercelAIIntegration } from '../src/integrations/vercel-ai';
 import { isEveGenAiRecordingDefault } from '../src/integrations/vercel-ai/gen-ai-recording-mode';
 import { getDefaultTestClientOptions, TestClient } from './mocks/client';
 
@@ -90,19 +89,10 @@ describe('eveTracePolicy', () => {
     client.init();
   }
 
-  test('allows the content dataCollection.genAI allows', () => {
-    setupClient({ dataCollection: { genAI: { inputs: false } } });
+  test('asks for full results even when dataCollection.genAI turns content off, since Sentry filters spans itself', () => {
+    setupClient({ dataCollection: { genAI: { inputs: false, outputs: false } } });
 
-    expect(eveTracePolicy()).toEqual({ emit: true, recordInputs: false, recordOutputs: true });
-  });
-
-  test('lets a vercelAIIntegration option win over dataCollection.genAI, like the other AI integrations', () => {
-    setupClient({
-      dataCollection: { genAI: { inputs: true } },
-      integrations: [vercelAIIntegration({ recordInputs: false })],
-    });
-
-    expect(eveTracePolicy()).toEqual({ emit: true, recordInputs: false, recordOutputs: true });
+    expect(eveTracePolicy()).toEqual({ emit: true, recordInputs: true, recordOutputs: true });
   });
 
   test('allows no content without a client', () => {
