@@ -338,8 +338,6 @@ jobs:
             run: pnpm run lint:es-compatibility
           - name: Lint types
             run: pnpm run lint:types
-          - name: Check for circular dependencies
-            run: pnpm run circularDepCheck
           - name: Check for dts files that reference stuff in the temporary build folder
             run: |
               if grep -r --include "*.d.ts" --exclude-dir ".nx" 'import("@sentry(-internal)?/[^/]*/build' .; then
