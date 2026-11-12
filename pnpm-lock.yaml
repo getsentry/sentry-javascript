@@ -201,12 +201,12 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^4.1.11
         version: 4.1.11(vitest@4.1.12)
+      acorn:
+        specifier: ^8.14.0
+        version: 8.18.0
       deepmerge:
         specifier: ^4.2.2
         version: 4.3.1
-      es-check:
-        specifier: ^9.8.1
-        version: 9.8.1
       esbuild:
         specifier: ^0.28.1
         version: 0.28.1
@@ -11557,11 +11557,6 @@ packages:
   es-abstract@1.24.0:
     resolution: {integrity: sha512-WSzPgsdLtTcQwm4CROfS5ju2Wa1QQcVeT37jFjYzdFz1r9ahadC8B8/a4qxJxM+09F18iumCdRmlr96ZYkQvEg==}
     engines: {node: '>= 0.4'}
-
-  es-check@9.8.1:
-    resolution: {integrity: sha512-F6bumjRmN+OWpEUh3ewhE/S1ey6cHKGMNXPn0iE2tBnict3O855Uij6UYbuHnLS1E3eILvg61KdH6kHbGi9www==}
-    engines: {node: '>=18.0.0'}
-    hasBin: true
 
   es-define-property@1.0.1:
     resolution: {integrity: sha512-e3nRfgfUZ4rNGL232gUgX06QNyyez04KdjFrF+LTRoOXmrOgFKDg4BCdsjW8EnT69eqdYGmRpJwiPVYNrCaW3g==}
@@ -31106,12 +31101,6 @@ snapshots:
       typed-array-length: 1.0.7
       unbox-primitive: 1.1.0
       which-typed-array: 1.1.19
-
-  es-check@9.8.1:
-    dependencies:
-      acorn: 8.18.0
-      browserslist: 4.29.0
-      fast-glob: 3.3.3
 
   es-define-property@1.0.1: {}
 

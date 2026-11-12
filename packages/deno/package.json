@@ -50,7 +50,7 @@
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
     "lint:fix": "oxlint . --fix --type-aware",
-    "lint:es-compatibility": "es-check es2022 ./build/esm/*.js --module",
+    "lint:es-compatibility": "node ../../scripts/es-check.mjs es2022",
     "install:deno": "node ./scripts/install-deno.mjs",
     "test": "run-s install:deno deno-types test:types test:unit",
     "test:types": "deno check --unstable-sloppy-imports test",
