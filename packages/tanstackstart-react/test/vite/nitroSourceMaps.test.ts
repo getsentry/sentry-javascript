@@ -10,6 +10,7 @@ import {
   makeEnableNitroSourceMapsPlugin,
   type PluginEnvironment,
 } from '../../src/vite/nitroSourceMaps';
+import { createSourceMapState } from '../../src/vite/sourceMaps';
 
 const SSR_OUT_DIR = 'node_modules/.nitro/vite/services/ssr';
 
@@ -69,31 +70,31 @@ describe('Nitro source map config', () => {
     layers: NitroConfig[] | undefined,
     { debug, viteConfig = {} }: { debug?: boolean; viteConfig?: UserConfig } = {},
   ) {
-    const plugin = makeEnableNitroSourceMapsPlugin({ debug });
+    const state = createSourceMapState();
+    const plugin = makeEnableNitroSourceMapsPlugin({ debug }, state);
     (plugin.config as (config: UserConfig) => void)(viteConfig);
     const nitro = {
       options: { sourcemap: false, experimental: {}, _c12: layers && { layers: layers.map(config => ({ config })) } },
     };
     plugin.nitro.setup(nitro);
 
-    return { plugin, nitroOptions: { sourcemap: nitro.options.sourcemap, experimental: nitro.options.experimental } };
+    return { state, nitroOptions: { sourcemap: nitro.options.sourcemap, experimental: nitro.options.experimental } };
   }
 
   it('enables hidden source maps with their sources when no config source sets them', () => {
-    const { plugin, nitroOptions } = setup([{}, {}]);
+    const { state, nitroOptions } = setup([{}, {}]);
 
     expect(nitroOptions).toEqual({ sourcemap: 'hidden', experimental: { sourcemapMinify: false } });
-    expect(plugin.api.hasSentryEnabledSourceMaps('nitro')).toBe(true);
-    expect(plugin.api.hasSentryEnabledSourceMaps('client')).toBe(false);
+    expect(state.sdkEnabledNitroSourceMaps).toBe(true);
   });
 
   it.each([false, true, 'hidden'])(
     'keeps the setting `sourcemap: %s` of a config source, with the sources',
     sourcemap => {
-      const { plugin, nitroOptions } = setup([{}, { sourcemap }]);
+      const { state, nitroOptions } = setup([{}, { sourcemap }]);
 
       expect(nitroOptions).toEqual({ sourcemap: false, experimental: { sourcemapMinify: false } });
-      expect(plugin.api.hasSentryEnabledSourceMaps('nitro')).toBe(false);
+      expect(state.sdkEnabledNitroSourceMaps).toBe(false);
     },
   );
 
@@ -101,34 +102,34 @@ describe('Nitro source map config', () => {
     { label: '`rollupConfig.output.sourcemap`', layer: { rollupConfig: { output: { sourcemap: true } } } },
     { label: '`rolldownConfig.output.sourcemap`', layer: { rolldownConfig: { output: { sourcemap: false } } } },
   ])('keeps the source maps when a config source sets $label', ({ layer }) => {
-    const { plugin, nitroOptions } = setup([{}, layer]);
+    const { state, nitroOptions } = setup([{}, layer]);
 
     expect(nitroOptions).toEqual({ sourcemap: false, experimental: { sourcemapMinify: false } });
-    expect(plugin.api.hasSentryEnabledSourceMaps('nitro')).toBe(false);
+    expect(state.sdkEnabledNitroSourceMaps).toBe(false);
   });
 
   it.each([
     { label: '`build.sourcemap: false`', build: { sourcemap: false } },
     { label: '`build.rolldownOptions.output.sourcemap`', build: { rolldownOptions: { output: { sourcemap: true } } } },
   ])('keeps the source maps when the Vite config sets $label', ({ build }) => {
-    const { plugin, nitroOptions } = setup([{}], { viteConfig: { build } });
+    const { state, nitroOptions } = setup([{}], { viteConfig: { build } });
 
     expect(nitroOptions).toEqual({ sourcemap: false, experimental: { sourcemapMinify: false } });
-    expect(plugin.api.hasSentryEnabledSourceMaps('nitro')).toBe(false);
+    expect(state.sdkEnabledNitroSourceMaps).toBe(false);
   });
 
   it('enables source maps when the Vite config sets `build.sourcemap: true`, which Nitro overrides', () => {
-    const { plugin, nitroOptions } = setup([{}], { viteConfig: { build: { sourcemap: true } } });
+    const { state, nitroOptions } = setup([{}], { viteConfig: { build: { sourcemap: true } } });
 
     expect(nitroOptions).toEqual({ sourcemap: 'hidden', experimental: { sourcemapMinify: false } });
-    expect(plugin.api.hasSentryEnabledSourceMaps('nitro')).toBe(true);
+    expect(state.sdkEnabledNitroSourceMaps).toBe(true);
   });
 
   it('does not enable source maps when Nitro does not expose its config sources', () => {
-    const { plugin, nitroOptions } = setup(undefined);
+    const { state, nitroOptions } = setup(undefined);
 
     expect(nitroOptions).toEqual({ sourcemap: false, experimental: { sourcemapMinify: false } });
-    expect(plugin.api.hasSentryEnabledSourceMaps('nitro')).toBe(false);
+    expect(state.sdkEnabledNitroSourceMaps).toBe(false);
   });
 
   it('logs that it enabled source maps in debug mode', () => {

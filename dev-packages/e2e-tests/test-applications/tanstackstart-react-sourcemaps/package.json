@@ -7,7 +7,9 @@
     "build": "node start-mock-sentry-server.mjs & vite build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; if [ $BUILD_EXIT -ne 0 ]; then cat .tmp_build_stdout; cat .tmp_build_stderr >&2; fi; exit $BUILD_EXIT",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .output",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm ts-node --script-mode assert-build.ts"
+    "test:build:no-upload": "pnpm install && E2E_NO_UPLOAD=1 pnpm build",
+    "test:assert": "pnpm ts-node --script-mode assert-build.ts",
+    "test:assert:no-upload": "pnpm ts-node --script-mode assert-no-upload.ts"
   },
   "dependencies": {
     "@sentry/tanstackstart-react": "file:../../packed/sentry-tanstackstart-react-packed.tgz",
@@ -29,6 +31,13 @@
     "vite": "^8.3.0"
   },
   "sentryTest": {
-    "optional": true
+    "optional": true,
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build:no-upload",
+        "assert-command": "pnpm test:assert:no-upload",
+        "label": "tanstackstart-react-sourcemaps (no upload)"
+      }
+    ]
   }
 }

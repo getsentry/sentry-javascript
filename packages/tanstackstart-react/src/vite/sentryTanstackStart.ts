@@ -5,7 +5,7 @@ import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
 import { makeComposeNitroServiceSourceMapsPlugin, makeEnableNitroSourceMapsPlugin } from './nitroSourceMaps';
 import { makeRoutePatternPlugin } from './routePatterns';
 import { makeServerInstrumentationPlugin } from './serverInstrumentation';
-import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
+import { createSourceMapState, makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 import type { TunnelRouteOptions } from './tunnelRoute';
 import { makeServerEntryTunnelPlugin, makeTunnelBasePathPlugin, makeTunnelRoutePlugin } from './tunnelRoute';
 
@@ -115,17 +115,22 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   // (CommonJS) deps via `ssr.noExternal`, which the `vite dev` SSR module runner can't evaluate.
   plugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: options.buildTimeInstrumentation }));
 
-  plugins.push(...makeAddSentryVitePlugin(options), makeComposeNitroServiceSourceMapsPlugin());
+  // The bundler plugin decides on the source map setting in its own `config` hook, so the plugins that enable source
+  // maps come first.
+  const sourceMapState = createSourceMapState();
+  const sourceMapsDisabled = options.sourcemaps?.disable === true || options.sourcemaps?.disable === 'disable-upload';
+  if (!sourceMapsDisabled) {
+    plugins.push(
+      ...makeEnableSourceMapsVitePlugin(options, sourceMapState),
+      makeEnableNitroSourceMapsPlugin(options, sourceMapState),
+    );
+  }
+
+  plugins.push(...makeAddSentryVitePlugin(options, sourceMapState), makeComposeNitroServiceSourceMapsPlugin());
 
   // middleware auto-instrumentation
   if (options.autoInstrumentMiddleware !== false) {
     plugins.push(makeAutoInstrumentMiddlewarePlugin({ enabled: true, debug: options.debug }));
-  }
-
-  // source maps
-  const sourceMapsDisabled = options.sourcemaps?.disable === true || options.sourcemaps?.disable === 'disable-upload';
-  if (!sourceMapsDisabled) {
-    plugins.push(...makeEnableSourceMapsVitePlugin(options), makeEnableNitroSourceMapsPlugin(options));
   }
 
   return plugins;
