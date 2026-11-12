@@ -8,21 +8,28 @@ on:
 jobs:
   profiles:
     name: Namespace ${{ matrix.size }} profile
-    runs-on: ${{ matrix.profile }};overrides.cache-tag=benchmark-ns-profile-smoke-v1-${{ matrix.size }}
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
         include:
           - size: small
-            profile: namespace-profile-sentry-javascript-small
+            runner: namespace-profile-sentry-javascript-small;overrides.cache-tag=benchmark-ns-profile-smoke-v1-small
             cores: 2
           - size: medium
-            profile: namespace-profile-sentry-javascript
+            runner: namespace-profile-sentry-javascript;overrides.cache-tag=benchmark-ns-profile-smoke-v1-medium
             cores: 4
           - size: large
-            profile: namespace-profile-sentry-javascript-large
+            runner: namespace-profile-sentry-javascript-large;overrides.cache-tag=benchmark-ns-profile-smoke-v1-large
             cores: 8
+          - size: explicit-labels
+            runner:
+              - nscloud-ubuntu-24.04-amd64-2x4-with-cache
+              - nscloud-cache-tag-benchmark-sentry-js-ns-explicit-smoke-v1
+              - nscloud-cache-size-50gb
+              - nscloud-cache-allow-commit-from-feat/namespace-ci-smoke
+            cores: 2
     steps:
       - uses: actions/checkout@v7
       - name: Check runner hardware and image
@@ -51,3 +58,9 @@ jobs:
           fi
           echo "$GITHUB_RUN_ID/$GITHUB_RUN_ATTEMPT" > "$probe"
           findmnt -T "$probe"
+      - name: Inspect cache command options
+        run: |
+          /nsc/powertoys/spacectl cache --help
+          if command -v nsc >/dev/null; then
+            nsc describe --help
+          fi

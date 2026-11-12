@@ -74,6 +74,9 @@ runs:
           libopus0
           libwayland-server0
         )
+        if [[ "$CI_BENCHMARK_PROVIDER" == namespace ]]; then
+          packages+=(libgtk-4-1 libgraphene-1.0-0 libsecret-1-0 libx264-164)
+        fi
         # Resolve now and install after restoring the cache; share the package list across both steps.
         printf '%s\n' "${packages[@]}" > "$RUNNER_TEMP/webkit-apt-packages"
         # runner.temp is private, so keep installers where apt's sandbox user can access them.
