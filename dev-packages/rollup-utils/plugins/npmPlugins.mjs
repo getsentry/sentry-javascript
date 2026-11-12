@@ -74,6 +74,30 @@ export function makeDebugBuildStatementReplacePlugin() {
   );
 }
 
+// Leaves the newline in place: no line moves, so `map: null` keeps the existing mappings right.
+const DEBUG_BUILD_IMPORT = /^import \{ DEBUG_BUILD \} from '[^']*debug[-_]build';$/m;
+
+/**
+ * Drops `import { DEBUG_BUILD } from './debug-build'`, so that `DEBUG_BUILD` is left as a free
+ * identifier that the `DEBUG_BUILD` define in `makeBaseNPMConfig` replaces at every use site.
+ *
+ * esbuild inlines an imported constant only after it has removed dead code, and won't inline a
+ * module-local const in a module with imports at all. So with `__SENTRY_DEBUG__: false` defined,
+ * only the inlined expression lets it drop the guarded code.
+ */
+export function makeDebugBuildInlinePlugin() {
+  return {
+    name: 'inline-debug-build',
+    transform(code) {
+      if (!code.includes('DEBUG_BUILD')) return null;
+
+      const replaced = code.replace(DEBUG_BUILD_IMPORT, '');
+
+      return replaced === code ? null : { code: replaced, map: null };
+    },
+  };
+}
+
 // Markers use the `/*! ... */` legal-comment syntax so rolldown's transpile preserves them.
 // We run as a `transform` (per-module) hook rather than `renderChunk`: the block typically uses
 // imports declared at the module top, and stripping it before the module graph is analysed lets
