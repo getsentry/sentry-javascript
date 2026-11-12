@@ -1,5 +1,5 @@
 import type { Nuxt, ResolvedNuxtTemplate } from '@nuxt/schema';
-import { consoleSandbox } from '@sentry/core';
+import { consoleSandbox, stringifyForCodeInjection } from '@sentry/core';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'node:url';
@@ -185,7 +185,7 @@ export function constructFunctionReExport(pathWithQuery: string, entryId: string
       (functionsCode, currFunctionName) =>
         functionsCode.concat(
           `async function ${currFunctionName}_sentryWrapped(...args) {\n` +
-            `  const res = await import(${JSON.stringify(entryId)});\n` +
+            `  const res = await import(${stringifyForCodeInjection(entryId)});\n` +
             `  return res.${currFunctionName}.call(this, ...args);\n` +
             '}\n' +
             `export { ${currFunctionName}_sentryWrapped as ${currFunctionName} };\n`,
@@ -195,7 +195,7 @@ export function constructFunctionReExport(pathWithQuery: string, entryId: string
     .concat(
       reexportFunctions.reduce(
         (functionsCode, currFunctionName) =>
-          functionsCode.concat(`export { ${currFunctionName} } from ${JSON.stringify(entryId)};`),
+          functionsCode.concat(`export { ${currFunctionName} } from ${stringifyForCodeInjection(entryId)};`),
         '',
       ),
     );

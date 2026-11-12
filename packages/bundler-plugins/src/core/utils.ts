@@ -10,6 +10,7 @@ import {
   _INTERNAL_getReleaseFromCommitEnv as getReleaseFromCommitEnv,
   _INTERNAL_readCommitEnvVar as readCoreCommitEnvVar,
 } from '@sentry/core/server';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 /**
  * Checks whether the given input is already an array, and if it isn't, wraps it in one.
@@ -245,11 +246,6 @@ function warnAboutPlaceholderCommitEnvVar(name: string): void {
  */
 export function readCommitEnvVar(name: string): string | undefined {
   return readCoreCommitEnvVar(name, warnAboutPlaceholderCommitEnvVar);
-}
-
-function stringifyForCodeInjection(value: unknown): string | undefined {
-  // Bundles may be inlined in HTML, where JSON quoting does not escape script tags or HTML comments.
-  return JSON.stringify(value)?.replace(/</g, '\\u003c');
 }
 
 /**

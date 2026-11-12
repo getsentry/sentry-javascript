@@ -1,6 +1,7 @@
 import { addNitroPlugin, createResolver } from '@nuxt/kit';
 import type { Nuxt } from '@nuxt/schema';
 import { addServerTemplate } from '../vendor/server-template';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 /**
  * Prepares the storage config export to be used in the runtime storage instrumentation.
@@ -13,7 +14,7 @@ export function addStorageInstrumentation(nuxt: Nuxt, isLegacyNitro: boolean): v
   addServerTemplate({
     filename: '#sentry/storage-config.mjs',
     getContents: () => {
-      return `export const userStorageMounts = ${JSON.stringify(userStorageMounts)};`;
+      return `export const userStorageMounts = ${stringifyForCodeInjection(userStorageMounts)};`;
     },
   });
 

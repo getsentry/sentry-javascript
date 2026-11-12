@@ -3,6 +3,7 @@ import type { Plugin } from 'vite';
 import { TUNNEL_BASE_PATH_GLOBAL } from '../common/tunnel';
 import type { ResolvedKitConfig } from './kitConfig';
 import { getHooksFileName, makeEntryFileMatcher } from './svelteConfig';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 const VIRTUAL_BASE_PATH_FILE = '\0sentry-sveltekit-tunnel-base-path';
 
@@ -32,7 +33,7 @@ export function makeTunnelBasePathPlugin(getKitConfig: () => Promise<ResolvedKit
 
     load: id =>
       id === VIRTUAL_BASE_PATH_FILE
-        ? `globalThis[${JSON.stringify(TUNNEL_BASE_PATH_GLOBAL)}] = ${JSON.stringify(basePath)};`
+        ? `globalThis[${stringifyForCodeInjection(TUNNEL_BASE_PATH_GLOBAL)}] = ${stringifyForCodeInjection(basePath)};`
         : null,
 
     transform: (code, id) => {
@@ -41,7 +42,7 @@ export function makeTunnelBasePathPlugin(getKitConfig: () => Promise<ResolvedKit
       }
 
       const ms = new MagicString(code);
-      ms.prepend(`import ${JSON.stringify(VIRTUAL_BASE_PATH_FILE)};\n`);
+      ms.prepend(`import ${stringifyForCodeInjection(VIRTUAL_BASE_PATH_FILE)};\n`);
 
       return { code: ms.toString(), map: ms.generateMap({ hires: true }) };
     },

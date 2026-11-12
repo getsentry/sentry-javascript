@@ -12,6 +12,7 @@ import {
 import * as path from 'node:path';
 import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 interface EsbuildOnResolveArgs {
   path: string;
@@ -281,9 +282,9 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
             pluginName,
             contents: `
               import "_sentry-debug-id-injection-stub";
-              import * as OriginalModule from ${JSON.stringify(originalPath)};
+              import * as OriginalModule from ${stringifyForCodeInjection(originalPath)};
               export default OriginalModule.default;
-              export * from ${JSON.stringify(originalPath)};`,
+              export * from ${stringifyForCodeInjection(originalPath)};`,
             resolveDir: originalResolveDir,
           };
         });

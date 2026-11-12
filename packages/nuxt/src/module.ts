@@ -10,6 +10,7 @@ import { setupOrchestrion } from './vite/orchestrion';
 import { setupSourceMaps } from './vite/sourceMaps';
 import { findDefaultSdkInitFile, resolveServerApi } from './vite/utils';
 import { setupViteServer } from './vite/viteServer';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 type NuxtPageSubset = { file?: string; path: string };
@@ -126,13 +127,15 @@ export default defineNuxtModule<ModuleOptions>({
         name: 'sentry-nuxt-pages-data-virtual',
         resolveId: (id: string) => (id === pagesDataVirtualModuleId ? `\0${pagesDataVirtualModuleId}` : null),
         load: (id: string) =>
-          id === `\0${pagesDataVirtualModuleId}` ? `export default ${JSON.stringify(pagesData, null, 2)};` : undefined,
+          id === `\0${pagesDataVirtualModuleId}`
+            ? `export default ${stringifyForCodeInjection(pagesData, null, 2)};`
+            : undefined,
       });
     } else {
       // Nuxt v3: register as a build template (accessible via #build/)
       addTemplate({
         filename: 'sentry--nuxt-pages-data.mjs',
-        getContents: () => `export default ${JSON.stringify(pagesData, null, 2)};`,
+        getContents: () => `export default ${stringifyForCodeInjection(pagesData, null, 2)};`,
       });
     }
 

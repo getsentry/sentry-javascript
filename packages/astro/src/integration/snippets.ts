@@ -1,5 +1,6 @@
 import * as path from 'path';
 import type { SentryOptions } from './types';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 /**
  * Creates a snippet that imports a Sentry.init file.
@@ -39,7 +40,9 @@ const buildCommonInitOptions = (options: SentryOptions): string => `dsn: import.
   debug: ${options.debug ? true : false},
   environment: import.meta.env.PUBLIC_VERCEL_ENV,
   release: ${
-    options.release?.name ? JSON.stringify(options.release.name) : 'import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA'
+    options.release?.name
+      ? stringifyForCodeInjection(options.release.name)
+      : 'import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA'
   },
   tracesSampleRate: 1.0,`;
 

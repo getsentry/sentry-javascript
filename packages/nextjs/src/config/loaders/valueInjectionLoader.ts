@@ -1,5 +1,6 @@
 import { getCodeInjectionPosition } from '@sentry/bundler-plugins/loader-utils';
 import type { LoaderThis } from './types';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 export type ValueInjectionLoaderOptions = {
   values: Record<string, unknown>;
@@ -24,7 +25,7 @@ export default function valueInjectionLoader(this: LoaderThis<ValueInjectionLoad
     // eslint-disable-next-line prefer-template
     ';' +
     Object.entries(values)
-      .map(([key, value]) => `globalThis["${key}"] = ${JSON.stringify(value)};`)
+      .map(([key, value]) => `globalThis["${key}"] = ${stringifyForCodeInjection(value)};`)
       .join('');
 
   const injectionIndex = getCodeInjectionPosition(userCode);

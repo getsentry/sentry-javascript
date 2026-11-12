@@ -1,4 +1,4 @@
-import { type InternalGlobal } from '@sentry/core';
+import { type InternalGlobal, stringifyForCodeInjection } from '@sentry/core';
 import MagicString from 'magic-string';
 import type { Plugin } from 'vite';
 import type { ResolvedKitConfig } from './kitConfig';
@@ -26,7 +26,7 @@ export function getGlobalValueInjectionCode(globalSentryValues: GlobalSentryValu
   }
 
   const injectedValuesCode = Object.entries(globalSentryValues)
-    .map(([key, value]) => `globalThis["${key}"] = ${JSON.stringify(value)};`)
+    .map(([key, value]) => `globalThis["${key}"] = ${stringifyForCodeInjection(value)};`)
     .join('\n');
 
   return `${injectedValuesCode}\n`;
