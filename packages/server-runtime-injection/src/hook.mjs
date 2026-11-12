@@ -7,4 +7,4 @@
 // bundles. This shim is therefore an entrypoint of both builds and shares
 // their vendored chunks. The CJS build registers the CJS copy by path. The
 // ESM copy is also exposed as `@sentry/server-runtime-injection/hook`.
-export * from '@apm-js-collab/tracing-hooks/hook.mjs';
+export { initialize, load, resolve } from '@apm-js-collab/tracing-hooks/hook.mjs';
