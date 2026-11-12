@@ -73,6 +73,10 @@ function startMockAnthropicServer() {
 
   app.post('/anthropic/v1/messages', (req, res) => {
     const mode = req.headers['x-mode'];
+    // Never responds, so the request only ends when the caller's signal fires.
+    if (mode === 'thread_stream_signal_abort' || mode === 'thread_stream_signal_timeout') {
+      return;
+    }
     if (mode === 'thread_stream_error') {
       res.status(400).json({ type: 'error', error: { type: 'invalid_request_error', message: 'Bad thread' } });
       return;
@@ -196,6 +200,22 @@ const MODES = {
     const stream = client.beta.messages.thread({ model: MODEL, max_tokens: 100 }).stream(params.messages);
     stream.abort();
     await stream.finalMessage().catch(() => {});
+  },
+  async thread_stream_signal_abort(client) {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 50);
+    await client.beta.messages
+      .thread({ model: MODEL, max_tokens: 100 })
+      .stream(params.messages, {}, { signal: controller.signal })
+      .finalMessage()
+      .catch(() => {});
+  },
+  async thread_stream_signal_timeout(client) {
+    await client.beta.messages
+      .thread({ model: MODEL, max_tokens: 100 })
+      .stream(params.messages, {}, { signal: AbortSignal.timeout(50) })
+      .finalMessage()
+      .catch(() => {});
   },
   async thread_stream_truncated(client) {
     await client.beta.messages

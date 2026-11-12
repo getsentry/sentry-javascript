@@ -100,9 +100,12 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
   diagnosticsChannel
     .tracingChannel<OrchestrionChannelContext>(CHANNELS.ANTHROPIC_THREAD_STREAM)
     .start.subscribe(message => {
-      const stream = (message as OrchestrionChannelContext).self as ThreadStream | undefined;
+      const data = message as OrchestrionChannelContext;
+      const stream = data.self as ThreadStream | undefined;
       if (isMessageStream(stream) && stream.controller?.signal) {
-        threadStreams.set(stream.controller.signal, stream);
+        // `_start(create, params, options)`: each `create()` gets only the stream's own signal, which doesn't carry
+        // the reason a caller's signal fired with.
+        threadStreams.set(stream.controller.signal, { stream, callerSignal: getRequestSignal(data.arguments?.[2]) });
       }
     });
 }
@@ -212,7 +215,7 @@ type ThreadStream = MessageStreamEmitter & { ended?: boolean; controller?: { sig
  * The streams of threads and tool runners on 1.2+, by the signal they send each `create()` call with. Such a
  * stream parses the response itself, so the `create()` result is never parsed and never ends its span.
  */
-const threadStreams = new WeakMap<AbortSignal, ThreadStream>();
+const threadStreams = new WeakMap<AbortSignal, { stream: ThreadStream; callerSignal: AbortSignal | undefined }>();
 
 /**
  * End the span of a thread stream's `create()` call from the stream once the response arrives. A thread may
@@ -225,12 +228,13 @@ function wrapThreadStreamRequest(
   options: AnthropicAiOptions,
 ): boolean {
   const signal = (data.arguments?.[1] as { signal?: AbortSignal } | undefined)?.signal;
-  const stream = signal && threadStreams.get(signal);
+  const threadStream = signal && threadStreams.get(signal);
   const request = data.result as { _responseProps?: () => Promise<unknown> } | undefined;
   // A finished stream sends no more requests, so a later call with its signal is the caller's own.
-  if (!stream || stream.ended || typeof request?._responseProps !== 'function') {
+  if (!threadStream || threadStream.stream.ended || typeof request?._responseProps !== 'function') {
     return false;
   }
+  const { stream, callerSignal } = threadStream;
 
   const { recordOutputs } = resolveAIRecordingOptions(options);
   // Not `asResponse()`, which on 1.x also ends the SDK's own span when the user turned its tracing on.
@@ -238,12 +242,12 @@ function wrapThreadStreamRequest(
     () => {
       // Only a rejected attempt is retried, so nothing else may claim this stream.
       threadStreams.delete(signal);
-      instrumentMessageStream(stream, span, recordOutputs);
+      instrumentMessageStream(stream, span, recordOutputs, callerSignal);
     },
     error => {
       // A caller abort is not a failed request. The stream still emits 'end', which ends the span as cancelled.
       if (signal.aborted) {
-        instrumentMessageStream(stream, span, recordOutputs);
+        instrumentMessageStream(stream, span, recordOutputs, callerSignal);
       } else {
         end(error);
       }

@@ -137,6 +137,8 @@ describe('Anthropic integration (1.x)', () => {
     const STATUS_ONLY_MODES = [
       { mode: 'thread_stream_abort', status: 'ok' },
       { mode: 'thread_stream_abort_early', status: 'ok' },
+      { mode: 'thread_stream_signal_abort', status: 'ok' },
+      { mode: 'thread_stream_signal_timeout', status: 'error' },
       { mode: 'thread_stream_truncated', status: 'ok' },
       { mode: 'thread_stream_error', status: 'error' },
     ];
