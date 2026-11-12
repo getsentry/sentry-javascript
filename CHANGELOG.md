@@ -10,7 +10,7 @@ Work in this release was contributed by @kunal649. Thank you for your contributi
 
 - **ref(server-utils): Share one cron converter across cron integrations ([#25918](https://github.com/getsentry/sentry-javascript/pull/25918))**
 
-  `Sentry.cron.instrumentCron`, `instrumentNodeCron` and `instrumentNodeSchedule` now send the server's time zone when the job has none, instead of letting Sentry assume UTC. Schedules Sentry would read differently than the scheduler, like per-second schedules, send no monitor config, so the monitor keeps the schedule it has in Sentry.
+  `Sentry.cron.instrumentCron`, `instrumentNodeCron` and `instrumentNodeSchedule` send the server's time zone when a job has none, so monitors don't report false misses on servers that aren't on UTC. Schedules Sentry can't express exactly, such as per-second schedules, send no monitor config, so the monitor keeps the schedule set in Sentry.
 
 ## 11.12.0
 
