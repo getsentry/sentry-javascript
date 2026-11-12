@@ -9,7 +9,7 @@ import type {
   ModuleMetadata,
   ModuleMetadataCallback,
 } from './types';
-import { determineReleaseName, readCommitEnvVar } from './utils';
+import { determineReleaseName, hasGitOriginRemote, readCommitEnvVar } from './utils';
 
 export type NormalizedOptions = {
   org: string | undefined;
@@ -141,16 +141,15 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
 
   if (options.release.setCommits === undefined) {
     const vercelCommitSha = readCommitEnvVar('VERCEL_GIT_COMMIT_SHA');
-    if (process.env['VERCEL'] && vercelEnv !== 'production') {
-      // We only want to set commits for the production env because Sentry becomes extremely noisy (eg on slack) for
-      // preview environments because the previous commit is always the "stem" commit of the preview/PR causing Sentry
-      // to notify you for other people creating PRs.
-      options.release.setCommits = false;
-    } else if (
+    if (
       process.env['VERCEL'] &&
       vercelCommitSha &&
       process.env['VERCEL_GIT_REPO_SLUG'] &&
-      process.env['VERCEL_GIT_REPO_OWNER']
+      process.env['VERCEL_GIT_REPO_OWNER'] &&
+      // We only want to set commits for the production env because Sentry becomes extremely noisy (eg on slack) for
+      // preview environments because the previous commit is always the "stem" commit of the preview/PR causing Sentry
+      // to notify you for other people creating PRs.
+      vercelEnv === 'production'
     ) {
       options.release.setCommits = {
         shouldNotThrowOnFailure: true,
@@ -160,6 +159,10 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
         ignoreEmpty: true,
         ignoreMissing: true,
       };
+    } else if (process.env['VERCEL'] && vercelEnv !== 'production' && !hasGitOriginRemote()) {
+      // Vercel's own builders have no git remote, so `--auto` can only fail there. Builds with a remote, such as
+      // `vercel build` in GitHub Actions, keep `--auto` below.
+      options.release.setCommits = false;
     } else {
       options.release.setCommits = {
         shouldNotThrowOnFailure: true,

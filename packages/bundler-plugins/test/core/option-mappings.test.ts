@@ -1,3 +1,4 @@
+import childProcess from 'child_process';
 import type { Options } from '../../src/core';
 import type { NormalizedOptions } from '../../src/core/options-mapping';
 import { normalizeUserOptions, validateOptions } from '../../src/core/options-mapping';
@@ -210,8 +211,11 @@ describe('normalizeUserOptions()', () => {
     });
 
     test.each(['preview', 'development', 'staging'])(
-      'should skip commit association on %s Vercel builds',
+      'should skip commit association on %s Vercel builds without a git remote',
       targetEnv => {
+        vi.spyOn(childProcess, 'execSync').mockImplementation(() => {
+          throw new Error('fatal: not a git repository');
+        });
         process.env['VERCEL'] = '1';
         process.env['VERCEL_TARGET_ENV'] = targetEnv;
         process.env['VERCEL_GIT_COMMIT_SHA'] = 'abc123';
@@ -221,8 +225,24 @@ describe('normalizeUserOptions()', () => {
         const normalizedOptions = normalizeUserOptions({ release: { name: 'my-release' } });
 
         expect(normalizedOptions.release.setCommits).toBe(false);
+        vi.restoreAllMocks();
       },
     );
+
+    test('should keep automatic commit association on preview Vercel builds that have a git remote', () => {
+      vi.spyOn(childProcess, 'execSync').mockReturnValue(Buffer.from('https://github.com/my-owner/my-repo.git'));
+      process.env['VERCEL'] = '1';
+      process.env['VERCEL_TARGET_ENV'] = 'preview';
+      process.env['VERCEL_GIT_COMMIT_SHA'] = 'abc123';
+      process.env['VERCEL_GIT_REPO_OWNER'] = 'my-owner';
+      process.env['VERCEL_GIT_REPO_SLUG'] = 'my-repo';
+
+      const normalizedOptions = normalizeUserOptions({ release: { name: 'my-release' } });
+
+      expect(normalizedOptions.release.setCommits).toEqual(expect.objectContaining({ auto: true }));
+      expect(normalizedOptions.release.setCommits).not.toHaveProperty('commit');
+      vi.restoreAllMocks();
+    });
 
     test('should associate commits from Vercel env vars when only VERCEL_ENV is production', () => {
       process.env['VERCEL'] = '1';

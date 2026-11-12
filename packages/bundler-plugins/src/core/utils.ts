@@ -217,6 +217,18 @@ function gitRevision(): string | undefined {
 }
 
 /**
+ * Whether the current directory is in a git checkout with an `origin` remote, which `set-commits --auto` reads.
+ */
+export function hasGitOriginRemote(): boolean {
+  try {
+    childProcess.execSync('git remote get-url origin', { stdio: 'ignore', windowsHide: true });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Tries to guess a release name based on environmental data.
  */
 export function determineReleaseName(): string | undefined {
