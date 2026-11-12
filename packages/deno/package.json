@@ -43,7 +43,6 @@
     "build:transpile": "pnpm run deno-types && rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:tarball": "pnpm pack",
-    "circularDepCheck": "madge --circular src/index.ts",
     "clean": "node ../../scripts/rm.mjs build build-types build-test coverage node_modules/.deno sentry-deno-*.tgz",
     "prefix": "pnpm run deno-types",
     "prelint": "pnpm run deno-types",

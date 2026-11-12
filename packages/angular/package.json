@@ -50,7 +50,6 @@
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "ng build --configuration production --watch",
     "build:tarball": "pnpm --dir build pack --pack-destination ..",
-    "circularDepCheck": "madge --circular src/index.ts",
     "clean": "node ../../scripts/rm.mjs build coverage sentry-angular-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",

@@ -51,7 +51,6 @@
     "build:tarball": "pnpm pack",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "circularDepCheck": "madge --circular src/index.ts",
     "clean": "node ../../scripts/rm.mjs build coverage sentry-wasm-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
