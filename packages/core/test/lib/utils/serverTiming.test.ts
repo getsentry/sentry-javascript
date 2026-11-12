@@ -18,6 +18,17 @@ describe('getTraceServerTimingHeader', () => {
     );
   });
 
+  it('leaves out baggage when the trace data has none', () => {
+    vi.spyOn(TraceDataModule, 'getTraceData').mockReturnValueOnce({
+      'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+      baggage: undefined,
+    });
+
+    expect(getTraceServerTimingHeader()).toBe(
+      'sentry-trace;desc="12345678901234567890123456789012-1234567890123456-1"',
+    );
+  });
+
   it('renders just the sentry-trace entry', () => {
     vi.spyOn(TraceDataModule, 'getTraceData').mockReturnValueOnce({
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
