@@ -1,5 +1,5 @@
-import { getClient, type Integration, setConversationId } from '@sentry/core';
-import { eveIntegration } from '@sentry/server-utils';
+import { type Integration, setConversationId } from '@sentry/core';
+import { eveIntegration, eveTracePolicy } from '@sentry/server-utils';
 import { init } from './sdk';
 import type { NodeOptions } from './types';
 
@@ -46,9 +46,9 @@ interface EveInstrumentationProvider {
  *
  * It:
  * - runs `Sentry.init` with the given options at server startup (`setup`), adding {@link eveIntegration};
- * - allows gen_ai content as far as `dataCollection.genAI` does (`tracePolicy`). On eve >= 1.0.0-rc.10 this also
- *   sets the AI SDK's `recordInputs`/`recordOutputs` flags, which `ai` >= 7.0.163 enforces. Those flags apply to
- *   every AI SDK telemetry integration in the app, not just Sentry;
+ * - allows gen_ai content as far as Sentry records it ({@link eveTracePolicy}). On eve >= 1.0.0-rc.10 this also
+ *   sets the AI SDK's `recordInputs`/`recordOutputs` flags, which apply to every AI SDK telemetry integration
+ *   in the app;
  * - tags each turn's AI spans with a Sentry conversation id via `turn.started` and `step.attempt.started`
  *   (eve < 0.84) / `model.started` (eve >= 0.84) events — the instrumentation-provider equivalent of `eveConversationHook`. Provider event handlers
  *   receive the session id on the event (`event.sessionId` / `event.scope.sessionId`), unlike hook
@@ -65,11 +65,7 @@ export function eveInstrumentation(options: EveInstrumentationOptions = {}): Eve
     setup() {
       init({ ...initOptions, integrations: withEveIntegration(initOptions.integrations) });
     },
-    tracePolicy() {
-      // Without a client nothing reaches Sentry, so don't widen content for the app's other integrations.
-      const genAI = getClient()?.getDataCollectionOptions().genAI;
-      return { emit: true, recordInputs: genAI?.inputs ?? false, recordOutputs: genAI?.outputs ?? false };
-    },
+    tracePolicy: eveTracePolicy,
     events: {
       'turn.started': event => setConversationIdFromSession(event.sessionId),
       'step.attempt.started': event => setConversationIdFromSession(event.scope.sessionId),

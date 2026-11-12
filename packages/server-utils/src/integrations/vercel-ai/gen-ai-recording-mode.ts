@@ -1,6 +1,8 @@
 import type { Client } from '@sentry/core';
+import type { GenAiOptions } from '../../ai/core/utils';
 
 const eveRecordingClients = new WeakSet<Client>();
+const vercelAiOptionsByClient = new WeakMap<Client, GenAiOptions>();
 
 /**
  * Mark this client as running under eve, so the Vercel AI channel subscriber records gen_ai
@@ -23,4 +25,12 @@ export function markEveGenAiRecordingDefault(client: Client): void {
 
 export function isEveGenAiRecordingDefault(client: Client): boolean {
   return eveRecordingClients.has(client);
+}
+
+export function setVercelAiRecordingOptions(client: Client, options: GenAiOptions): void {
+  vercelAiOptionsByClient.set(client, options);
+}
+
+export function getVercelAiRecordingOptions(client: Client): GenAiOptions | undefined {
+  return vercelAiOptionsByClient.get(client);
 }

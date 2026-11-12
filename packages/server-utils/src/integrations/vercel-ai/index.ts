@@ -1,5 +1,6 @@
 import { defineIntegration, waitForTracingChannelBinding, type IntegrationFn } from '@sentry/core';
 import type { GenAiOptions } from '../../ai/core/utils';
+import { setVercelAiRecordingOptions } from './gen-ai-recording-mode';
 import { subscribeVercelAiTracingChannel } from './vercel-ai-dc-subscriber';
 import { registerVercelAiTelemetryIntegration } from './vercel-ai-telemetry-integration';
 import * as dc from '../../utils/diagnosticsChannel';
@@ -27,6 +28,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
       registerVercelAiTelemetryIntegration();
     },
     setup(client) {
+      setVercelAiRecordingOptions(client, options);
       invokeOrchestrionInstrumentation(client, vercelAiModuleNames, instrumentVercelAiOrchestrion, [options]);
     },
   };

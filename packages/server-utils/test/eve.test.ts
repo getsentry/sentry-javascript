@@ -1,7 +1,9 @@
 import * as SentryCore from '@sentry/core';
-import { afterEach, describe, expect, test, vi } from 'vitest';
-import { eveConversationHook, eveIntegration } from '../src/eve';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { eveConversationHook, eveIntegration, eveTracePolicy } from '../src/eve';
+import { vercelAIIntegration } from '../src/integrations/vercel-ai';
 import { isEveGenAiRecordingDefault } from '../src/integrations/vercel-ai/gen-ai-recording-mode';
+import { getDefaultTestClientOptions, TestClient } from './mocks/client';
 
 describe('eveConversationHook', () => {
   afterEach(() => {
@@ -68,5 +70,42 @@ describe('eveIntegration', () => {
     eveIntegration().setup?.(client);
 
     expect(isEveGenAiRecordingDefault(client)).toBe(true);
+  });
+});
+
+describe('eveTracePolicy', () => {
+  beforeEach(() => {
+    SentryCore.getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  afterEach(() => {
+    SentryCore.getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  function setupClient(options: Partial<SentryCore.ClientOptions>): void {
+    const client = new TestClient(
+      getDefaultTestClientOptions({ dsn: 'https://public@dsn.ingest.sentry.io/1337', ...options }),
+    );
+    SentryCore.setCurrentClient(client);
+    client.init();
+  }
+
+  test('allows the content dataCollection.genAI allows', () => {
+    setupClient({ dataCollection: { genAI: { inputs: false } } });
+
+    expect(eveTracePolicy()).toEqual({ emit: true, recordInputs: false, recordOutputs: true });
+  });
+
+  test('lets a vercelAIIntegration option win over dataCollection.genAI, like the other AI integrations', () => {
+    setupClient({
+      dataCollection: { genAI: { inputs: true } },
+      integrations: [vercelAIIntegration({ recordInputs: false })],
+    });
+
+    expect(eveTracePolicy()).toEqual({ emit: true, recordInputs: false, recordOutputs: true });
+  });
+
+  test('allows no content without a client', () => {
+    expect(eveTracePolicy()).toEqual({ emit: true, recordInputs: false, recordOutputs: false });
   });
 });
