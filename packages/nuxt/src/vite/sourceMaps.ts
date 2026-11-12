@@ -10,6 +10,9 @@ import {
   deleteSourceMapsAfterBuild,
   type DeletionFallback,
   getFallbackFilesToDelete,
+  isViteBuilder,
+  logSentryEnabledSourceMaps,
+  withClientSourceMapDeletion,
   withoutSourceMapDeletion,
 } from './sourceMapDeletion';
 import { validateSourceMapsOptionsPlugin } from './sentryVitePlugin';
@@ -57,25 +60,8 @@ export function setupSourceMaps(
       shouldDeleteFilesFallback.client = previousSourceMapSettings.client === 'unset';
       shouldDeleteFilesFallback.server = previousSourceMapSettings.server === 'unset';
 
-      if (isDebug && (shouldDeleteFilesFallback.client || shouldDeleteFilesFallback.server)) {
-        const enabledDeleteFallbacks =
-          shouldDeleteFilesFallback.client && shouldDeleteFilesFallback.server
-            ? 'client-side and server-side'
-            : shouldDeleteFilesFallback.server
-              ? 'server-side'
-              : 'client-side';
-
-        if (!moduleOptions.sourcemaps?.filesToDeleteAfterUpload) {
-          // eslint-disable-next-line no-console
-          console.log(
-            `[Sentry] We enabled \`'hidden'\` source maps for your ${enabledDeleteFallbacks} build. Source map files will be automatically deleted after uploading them to Sentry.`,
-          );
-        } else {
-          // eslint-disable-next-line no-console
-          console.log(
-            `[Sentry] We enabled \`'hidden'\` source maps for your ${enabledDeleteFallbacks} build. Source map files will be deleted according to your \`sourcemaps.filesToDeleteAfterUpload\` configuration. To use automatic deletion instead, leave \`filesToDeleteAfterUpload\` empty.`,
-          );
-        }
+      if (isDebug) {
+        logSentryEnabledSourceMaps(shouldDeleteFilesFallback, isViteBuilder(nuxt));
       }
     }
   });
@@ -88,7 +74,13 @@ export function setupSourceMaps(
     });
 
     addVitePlugin(
-      sentryVitePlugin(withoutSourceMapDeletion(getPluginOptions(moduleOptions, shouldDeleteFilesFallback))),
+      sentryVitePlugin(
+        withClientSourceMapDeletion(
+          getPluginOptions(moduleOptions),
+          moduleOptions.sourcemaps,
+          shouldDeleteFilesFallback,
+        ),
+      ),
       // Nitro bundles the SSR output again, so debug IDs from the SSR build would point to the wrong maps.
       { dev: false, build: true, server: false },
     );
@@ -126,7 +118,10 @@ export function setupSourceMaps(
   nuxt.hook('nitro:init', nitro => {
     if (sourceMapsEnabled && !nitro.options.dev && !nuxt.options?._prepare) {
       const publicDir = nitro.options.output.publicDir;
-      shouldDeleteFilesFallback.outputDirs = { publicDir, serverDir: nitro.options.output.serverDir };
+      shouldDeleteFilesFallback.serverDir = nitro.options.output.serverDir;
+      if (!isViteBuilder(nuxt)) {
+        shouldDeleteFilesFallback.publicDir = publicDir;
+      }
       const rollupConfig = (nitro.options.rollupConfig ??= { output: {} });
 
       rollupConfig.plugins = [
@@ -207,12 +202,11 @@ export function getPluginOptions(
 }
 
 /**
- * Determines which files to delete after upload. If the user set `filesToDeleteAfterUpload`, we use
- * that. Otherwise we only delete the source maps Sentry generated itself — i.e. the sides
- * (client/server) whose `sourcemap` setting resolved to `undefined`, where Sentry stepped in and
- * enabled `'hidden'`. Given Nuxt's default of `{ server: true, client: false }`, this isn't the
- * default case: it only kicks in when a side is left `undefined` (whole config or a single sub-key).
- * Sentry deletes them in Nitro's output directories, which are only known once Nitro is set up.
+ * Determines which files to delete after the build. If the user set `filesToDeleteAfterUpload`, we use
+ * that. Otherwise we only delete the source maps Sentry generated itself, i.e. when the `sourcemap` setting
+ * of a side resolved to `undefined` and Sentry enabled `'hidden'`. This covers the server maps, and the
+ * client maps with a builder other than Vite. Sentry deletes them in Nitro's output directories, which are
+ * only known once Nitro is set up.
  * @see https://nuxt.com/docs/4.x/api/nuxt-config#sourcemap
  */
 function resolveFilesToDeleteAfterUpload(
@@ -234,7 +228,7 @@ function resolveFilesToDeleteAfterUpload(
     );
   }
 
-  return filesToDeleteAfterUpload
+  return filesToDeleteAfterUpload !== undefined
     ? filesToDeleteAfterUpload
     : shouldDeleteFilesAfterUpload
       ? fallbackFilesToDelete
@@ -249,7 +243,9 @@ function resolveFilesToDeleteAfterUpload(
       - keep this setting (don't do anything - like deletion - besides uploading)
     3. users did not set source maps generation
       - we enable 'hidden' source maps generation
-      - configure `filesToDeleteAfterUpload` to delete all .map files (we emit a log about this)
+      - client with the Vite builder: pass `deleteSourcemapsAfterUpload: true`, so the maps never reach the build output
+      - client with another builder: configure `filesToDeleteAfterUpload` for the .map files in Nitro's public dir
+      - server: configure `filesToDeleteAfterUpload` to delete the .map files after the build (we emit a log about this)
 
     Users only have to explicitly enable client source maps. Sentry only overwrites the base Nuxt source map settings as they propagate.
  */

@@ -10,6 +10,8 @@
     "test:assert": "pnpm ts-node --script-mode assert-build.ts",
     "test:build:keep-client-sourcemaps": "E2E_KEEP_CLIENT_SOURCEMAPS=true pnpm test:build",
     "test:assert:keep-client-sourcemaps": "E2E_KEEP_CLIENT_SOURCEMAPS=true pnpm test:assert",
+    "test:build:no-upload": "E2E_NO_UPLOAD=true pnpm test:build",
+    "test:assert:no-upload": "E2E_NO_UPLOAD=true pnpm test:assert",
     "test:build:static": "NUXT_COMMAND=generate pnpm test:build",
     "test:assert:static": "NUXT_COMMAND=generate pnpm test:assert",
     "test:build:netlify": "NITRO_PRESET=netlify pnpm test:build",
@@ -34,6 +36,11 @@
         "build-command": "pnpm test:build:keep-client-sourcemaps",
         "assert-command": "pnpm test:assert:keep-client-sourcemaps",
         "label": "nuxt-4-sourcemaps (client source maps kept)"
+      },
+      {
+        "build-command": "pnpm test:build:no-upload",
+        "assert-command": "pnpm test:assert:no-upload",
+        "label": "nuxt-4-sourcemaps (no upload)"
       },
       {
         "build-command": "pnpm test:build:static",

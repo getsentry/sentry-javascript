@@ -17,6 +17,9 @@ import {
 /** This variant omits `sourcemaps.filesToDeleteAfterUpload`, so Sentry must upload but not delete. */
 const keepClientSourceMaps = process.env.E2E_KEEP_CLIENT_SOURCEMAPS === 'true';
 
+/** This variant has no auth token, so Sentry uploads nothing but still removes the client maps it enabled. */
+const noUpload = process.env.E2E_NO_UPLOAD === 'true';
+
 /** `nuxt generate` emits no `.output/server`. Keyed on the command so a missing one under `nuxt build` still fails. */
 const isStaticBuild = process.env.NUXT_COMMAND === 'generate';
 
@@ -33,8 +36,6 @@ const outputDirs = OUTPUT_DIRS[nitroPreset];
 assert.ok(outputDirs, `Expected output directories for the Nitro preset ${nitroPreset}`);
 
 const CLIENT_OUTPUT = outputDirs.client;
-/** Vite's own output directory. Nitro copies it to `CLIENT_OUTPUT`, and Sentry deletes no maps here. */
-const CLIENT_BUILD_OUTPUT = path.join('.nuxt', 'dist', 'client');
 const SERVER_OUTPUT = outputDirs.server;
 
 /** Both markers sit in comments, so bundlers strip them from the code but keep them in `sourcesContent`. */
@@ -57,124 +58,106 @@ function filesContaining(dir: string, needle: string): string[] {
     .filter(file => fs.readFileSync(file, 'utf8').includes(needle));
 }
 
-/**
- * Rolldown emits no source map for a chunk without mappable source, such as Vue's export helper.
- * Such a chunk still gets a debug ID, but there is no map to upload for it.
- */
-function debugIdsOfChunksWithoutSourceMap(dir: string): Set<string> {
-  const debugIds = new Set<string>();
-
-  for (const file of filesContaining(dir, 'sentry-dbid-')) {
-    if (file.endsWith('.map') || fs.existsSync(`${file}.map`)) {
-      continue;
-    }
-
-    for (const match of fs.readFileSync(file, 'utf8').matchAll(/sentry-dbid-([\da-f-]{36})/gi)) {
-      debugIds.add((match[1] as string).toLowerCase());
-    }
-  }
-
-  return debugIds;
-}
-
 console.log(
   `Variant: ${isStaticBuild ? 'nuxt generate' : 'nuxt build'}, Nitro preset ${nitroPreset}, ` +
-    `client source maps ${keepClientSourceMaps ? 'kept' : 'deleted'}\n`,
+    `client source maps ${keepClientSourceMaps ? 'kept' : 'deleted'}${noUpload ? ', no upload' : ''}\n`,
 );
 
-const { requests, bundles, sourcemaps, uploadedDebugIds } = assertSourceMapUpload({
-  outputDirs: isStaticBuild ? [CLIENT_OUTPUT] : [CLIENT_OUTPUT, SERVER_OUTPUT],
-  // The client output is checked below, because the "kept" variant expects its maps to stay and some presets
-  // write the server into it.
-  strippedDirs: [],
-  // Vite builds the client and Nitro's Rollup builds the server. Counting bundles would still pass
-  // with either plugin dropped, so each side is pinned to a marker only that side's source supplies.
-  // Nitro defaults to `sourcemapExcludeSources: true`; the module flips it to `false`, which is the
-  // only reason the server marker survives into `sourcesContent`.
-  markers: { 'client source (Vite plugin)': CLIENT_MARKER, 'server source (Rollup plugin)': SERVER_MARKER },
-  // Nitro copies Vite's client output to `CLIENT_OUTPUT`, and Sentry deletes no maps in Vite's own directory.
-  debugIdsWithoutSourceMap: debugIdsOfChunksWithoutSourceMap(CLIENT_BUILD_OUTPUT),
-});
-console.log(`Found ${bundles.length} artifact bundle(s)\n`);
+if (!noUpload) {
+  const { requests, bundles, sourcemaps, uploadedDebugIds } = assertSourceMapUpload({
+    outputDirs: isStaticBuild ? [CLIENT_OUTPUT] : [CLIENT_OUTPUT, SERVER_OUTPUT],
+    // The client output is checked below, because the "kept" variant expects its maps to stay and some presets
+    // write the server into it.
+    strippedDirs: [],
+    // Vite builds the client and Nitro's Rollup builds the server. Counting bundles would still pass
+    // with either plugin dropped, so each side is pinned to a marker only that side's source supplies.
+    // Nitro defaults to `sourcemapExcludeSources: true`; the module flips it to `false`, which is the
+    // only reason the server marker survives into `sourcesContent`.
+    markers: { 'client source (Vite plugin)': CLIENT_MARKER, 'server source (Rollup plugin)': SERVER_MARKER },
+    // Written by a plugin in `nuxt.config.ts`, because Sentry removes the client maps it enabled from the bundle.
+    debugIdsWithoutSourceMap: '.tmp_debug_ids_without_source_map',
+  });
+  console.log(`Found ${bundles.length} artifact bundle(s)\n`);
 
-// --- Nuxt-specific checks on the upload ---
+  // --- Nuxt-specific checks on the upload ---
 
-// Sentry rejects a release that names no project with a 400, and the mock server accepts anything,
-// so assert on the body rather than on the call alone.
-const releaseCreates = requests.filter(r => r.url?.includes('/releases') && r.method === 'POST');
-assert.ok(releaseCreates.length > 0, 'Expected a POST to create the release');
-for (const request of releaseCreates) {
-  const body = request.jsonBody as { version?: string; projects?: string[] } | undefined;
-  assert.equal(
-    body?.version,
-    'test-release',
-    `Expected the release create body to carry the version, got ${JSON.stringify(body)}`,
-  );
-  assert.deepEqual(
-    body?.projects,
-    ['test-project'],
-    `Expected the release create body to name the project, got ${JSON.stringify(body)}`,
-  );
-}
-
-assert.ok(
-  requests.some(r => r.url?.includes('/releases/') && r.method === 'PUT'),
-  'Expected a PUT to finalize the release',
-);
-
-assert.ok(
-  requests.some(r => r.url?.includes('/chunk-upload/') && r.method === 'GET'),
-  'Expected a GET for the chunk-upload options',
-);
-
-for (const request of getAssembleRequests(requests)) {
-  assert.ok((request.assembleBody?.chunks?.length ?? 0) > 0, 'Expected assemble request to have chunk checksums');
-  for (const chunk of request.assembleBody?.chunks ?? []) {
-    assert.match(chunk, /^[\da-f]{40}$/i, `Expected a SHA-1 chunk checksum, got: ${chunk}`);
+  // Sentry rejects a release that names no project with a 400, and the mock server accepts anything,
+  // so assert on the body rather than on the call alone.
+  const releaseCreates = requests.filter(r => r.url?.includes('/releases') && r.method === 'POST');
+  assert.ok(releaseCreates.length > 0, 'Expected a POST to create the release');
+  for (const request of releaseCreates) {
+    const body = request.jsonBody as { version?: string; projects?: string[] } | undefined;
+    assert.equal(
+      body?.version,
+      'test-release',
+      `Expected the release create body to carry the version, got ${JSON.stringify(body)}`,
+    );
+    assert.deepEqual(
+      body?.projects,
+      ['test-project'],
+      `Expected the release create body to name the project, got ${JSON.stringify(body)}`,
+    );
   }
-}
 
-// `rewriteSources` normalizes `../../../foo` to `./foo` so paths stay resolvable in Sentry.
-const unnormalizedSources = [...new Set(sourcemaps.flatMap(map => map.sourcemap.sources ?? []))].filter(
-  source => source.startsWith('../') || path.isAbsolute(source),
-);
-assert.deepEqual(unnormalizedSources, [], `Expected every uploaded source to be normalized to './…'`);
-
-const malformedDebugIds = [...uploadedDebugIds].filter(debugId => !UUID_REGEX.test(debugId));
-assert.deepEqual(malformedDebugIds, [], 'Expected every uploaded debug ID to be a UUID');
-
-for (const outputDir of isStaticBuild ? [CLIENT_OUTPUT] : [CLIENT_OUTPUT, SERVER_OUTPUT]) {
-  // Nitro bundles the SSR build again, so its debug IDs can end up next to Nitro's own.
-  // Reference issue: https://github.com/getsentry/sentry-javascript/issues/18519
-  const filesWithMultipleDebugIds = findFilesWithMultipleDebugIds({ outputDir });
-  assert.deepEqual(filesWithMultipleDebugIds, [], `Expected at most one debug ID per file in ${outputDir}`);
-
-  // A server file can borrow the debug ID of its SSR build chunk. Then the upload check above passes on
-  // Vite's map even if Nitro uploaded nothing.
-  const filesWithForeignSourcemaps = findFilesWithForeignSourcemaps({ outputDir }, sourcemaps);
-  assert.deepEqual(
-    filesWithForeignSourcemaps,
-    [],
-    `Expected the source map uploaded for each file in ${outputDir} to be generated for that file`,
-  );
-}
-
-// If both builds upload a map under a borrowed debug ID, Sentry can resolve with the wrong one.
-const conflictingDebugIds = findDebugIdsWithConflictingSourcemaps(sourcemaps);
-assert.deepEqual(conflictingDebugIds, [], 'Expected every uploaded debug ID to resolve to exactly one source map');
-
-if (!isStaticBuild) {
-  // Nitro bundles Vite's SSR output, so server frames reach `.vue` files only through the maps of that build.
-  const serverDebugIds = new Set(findInjectedDebugIds({ outputDir: SERVER_OUTPUT }));
-  const serverSources = sourcemaps
-    .filter(map => map.debugId && serverDebugIds.has(map.debugId))
-    .flatMap(map => getSourcemapSources(map.sourcemap));
   assert.ok(
-    serverSources.some(source => source.endsWith('app/pages/index.vue')),
-    `Expected the server source maps to resolve to app/pages/index.vue, got: ${serverSources.join(', ')}`,
+    requests.some(r => r.url?.includes('/releases/') && r.method === 'PUT'),
+    'Expected a PUT to finalize the release',
   );
+
+  assert.ok(
+    requests.some(r => r.url?.includes('/chunk-upload/') && r.method === 'GET'),
+    'Expected a GET for the chunk-upload options',
+  );
+
+  for (const request of getAssembleRequests(requests)) {
+    assert.ok((request.assembleBody?.chunks?.length ?? 0) > 0, 'Expected assemble request to have chunk checksums');
+    for (const chunk of request.assembleBody?.chunks ?? []) {
+      assert.match(chunk, /^[\da-f]{40}$/i, `Expected a SHA-1 chunk checksum, got: ${chunk}`);
+    }
+  }
+
+  // `rewriteSources` normalizes `../../../foo` to `./foo` so paths stay resolvable in Sentry.
+  const unnormalizedSources = [...new Set(sourcemaps.flatMap(map => map.sourcemap.sources ?? []))].filter(
+    source => source.startsWith('../') || path.isAbsolute(source),
+  );
+  assert.deepEqual(unnormalizedSources, [], `Expected every uploaded source to be normalized to './…'`);
+
+  const malformedDebugIds = [...uploadedDebugIds].filter(debugId => !UUID_REGEX.test(debugId));
+  assert.deepEqual(malformedDebugIds, [], 'Expected every uploaded debug ID to be a UUID');
+
+  for (const outputDir of isStaticBuild ? [CLIENT_OUTPUT] : [CLIENT_OUTPUT, SERVER_OUTPUT]) {
+    // Nitro bundles the SSR build again, so its debug IDs can end up next to Nitro's own.
+    // Reference issue: https://github.com/getsentry/sentry-javascript/issues/18519
+    const filesWithMultipleDebugIds = findFilesWithMultipleDebugIds({ outputDir });
+    assert.deepEqual(filesWithMultipleDebugIds, [], `Expected at most one debug ID per file in ${outputDir}`);
+
+    // A server file can borrow the debug ID of its SSR build chunk. Then the upload check above passes on
+    // Vite's map even if Nitro uploaded nothing.
+    const filesWithForeignSourcemaps = findFilesWithForeignSourcemaps({ outputDir }, sourcemaps);
+    assert.deepEqual(
+      filesWithForeignSourcemaps,
+      [],
+      `Expected the source map uploaded for each file in ${outputDir} to be generated for that file`,
+    );
+  }
+
+  // If both builds upload a map under a borrowed debug ID, Sentry can resolve with the wrong one.
+  const conflictingDebugIds = findDebugIdsWithConflictingSourcemaps(sourcemaps);
+  assert.deepEqual(conflictingDebugIds, [], 'Expected every uploaded debug ID to resolve to exactly one source map');
+
+  if (!isStaticBuild) {
+    // Nitro bundles Vite's SSR output, so server frames reach `.vue` files only through the maps of that build.
+    const serverDebugIds = new Set(findInjectedDebugIds({ outputDir: SERVER_OUTPUT }));
+    const serverSources = sourcemaps
+      .filter(map => map.debugId && serverDebugIds.has(map.debugId))
+      .flatMap(map => getSourcemapSources(map.sourcemap));
+    assert.ok(
+      serverSources.some(source => source.endsWith('app/pages/index.vue')),
+      `Expected the server source maps to resolve to app/pages/index.vue, got: ${serverSources.join(', ')}`,
+    );
+  }
+  console.log('');
 }
-console.log('');
 
 // --- What the build leaves behind in the client output ---
 

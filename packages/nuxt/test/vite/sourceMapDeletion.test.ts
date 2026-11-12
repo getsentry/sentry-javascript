@@ -151,56 +151,60 @@ describe('getFallbackFilesToDelete', () => {
   async function matchFallbackFiles(
     preset: Preset,
     sides: { client: boolean; server: boolean },
-    nuxtRoot = projectDir,
+    { nuxtRoot = projectDir, viteBuilder = true }: { nuxtRoot?: string; viteBuilder?: boolean } = {},
   ): Promise<string[]> {
     const { outputDirs, clientMaps, serverMaps } = PRESETS[preset];
     writeFiles([...clientMaps, ...serverMaps, ...UNDEPLOYED_MAPS], nuxtRoot);
 
     const globs = getFallbackFilesToDelete({
       ...sides,
-      outputDirs: {
-        publicDir: path.join(nuxtRoot, outputDirs.publicDir),
-        serverDir: path.join(nuxtRoot, outputDirs.serverDir),
-      },
+      serverDir: path.join(nuxtRoot, outputDirs.serverDir),
+      publicDir: viteBuilder ? undefined : path.join(nuxtRoot, outputDirs.publicDir),
     });
     const files = globs.length > 0 ? await globFiles(globs) : [];
     return files.map(file => path.relative(nuxtRoot, file).split(path.sep).join('/')).sort();
   }
 
+  it.each(Object.keys(PRESETS) as Preset[])('matches only the server source maps of the %s preset', async preset => {
+    await expect(matchFallbackFiles(preset, { client: true, server: true })).resolves.toEqual(
+      PRESETS[preset].serverMaps,
+    );
+  });
+
+  // The Vite plugin removes the client maps Sentry enabled before they reach the public dir.
   it.each(Object.keys(PRESETS) as Preset[])(
-    'matches the client and server source maps in the output of the %s preset',
+    'matches nothing in the %s preset when Sentry enabled only the client source maps',
+    async preset => {
+      await expect(matchFallbackFiles(preset, { client: true, server: false })).resolves.toEqual([]);
+    },
+  );
+
+  // No Vite plugin runs with webpack or rspack, so the public dir still holds the client maps.
+  it.each(Object.keys(PRESETS) as Preset[])(
+    'matches the client and server source maps of the %s preset with a builder other than Vite',
     async preset => {
       const { clientMaps, serverMaps } = PRESETS[preset];
 
-      await expect(matchFallbackFiles(preset, { client: true, server: true })).resolves.toEqual(
+      await expect(matchFallbackFiles(preset, { client: true, server: true }, { viteBuilder: false })).resolves.toEqual(
         [...clientMaps, ...serverMaps].sort(),
       );
     },
   );
 
   it.each(Object.keys(PRESETS) as Preset[])(
-    'matches only the client source maps of the %s preset when Sentry enabled only those',
+    'matches only the client source maps of the %s preset with a builder other than Vite when Sentry enabled only those',
     async preset => {
-      await expect(matchFallbackFiles(preset, { client: true, server: false })).resolves.toEqual(
-        [...PRESETS[preset].clientMaps].sort(),
-      );
-    },
-  );
-
-  it.each(Object.keys(PRESETS) as Preset[])(
-    'matches only the server source maps of the %s preset when Sentry enabled only those',
-    async preset => {
-      await expect(matchFallbackFiles(preset, { client: false, server: true })).resolves.toEqual(
-        PRESETS[preset].serverMaps,
-      );
+      await expect(
+        matchFallbackFiles(preset, { client: true, server: false }, { viteBuilder: false }),
+      ).resolves.toEqual([...PRESETS[preset].clientMaps].sort());
     },
   );
 
   it('matches the output of a Nuxt app in a subdirectory of the working directory', async () => {
     const nuxtRoot = path.join(projectDir, 'apps', 'shop');
 
-    await expect(matchFallbackFiles('node-server', { client: true, server: false }, nuxtRoot)).resolves.toEqual(
-      PRESETS['node-server'].clientMaps,
+    await expect(matchFallbackFiles('node-server', { client: false, server: true }, { nuxtRoot })).resolves.toEqual(
+      PRESETS['node-server'].serverMaps,
     );
   });
 
