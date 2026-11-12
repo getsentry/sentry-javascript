@@ -254,6 +254,31 @@ describe('MCP server trace injection into outgoing params._meta', () => {
     });
   });
 
+  it('merges existing third-party baggage entries with the Sentry entries', async () => {
+    const { send, originalSend } = wrappedSend();
+
+    await startSpan({ name: 'tools/call get-weather' }, () =>
+      send({
+        jsonrpc: '2.0',
+        method: 'ping',
+        id: 1,
+        params: { _meta: { baggage: 'vendor=abc,sentry-release=stale' } },
+      }),
+    );
+
+    expect(originalSend).toHaveBeenCalledWith({
+      jsonrpc: '2.0',
+      method: 'ping',
+      id: 1,
+      params: {
+        _meta: expect.objectContaining({
+          // The stale Sentry entry is replaced, third-party entries are kept.
+          baggage: expect.stringMatching(/^vendor=abc,(?!.*stale).*sentry-trace_id=/),
+        }),
+      },
+    });
+  });
+
   it.each([
     ['a traceparent', { traceparent: `00-${TRACE_ID}-${PARENT_SPAN_ID}-01` }],
     ['a sentry-trace', { 'sentry-trace': `${TRACE_ID}-${PARENT_SPAN_ID}-1` }],

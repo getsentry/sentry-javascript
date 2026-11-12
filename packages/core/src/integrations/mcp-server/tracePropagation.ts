@@ -6,6 +6,7 @@
 import { getClient } from '../../currentScopes';
 import { continueTrace } from '../../tracing/trace';
 import type { SpanLink } from '../../types/link';
+import { mergeBaggageHeaders } from '../../utils/baggage';
 import { isObjectLike } from '../../utils/is';
 import { getActiveSpan } from '../../utils/spanUtils';
 import { getTraceData } from '../../utils/traceData';
@@ -73,6 +74,8 @@ export function injectMcpTraceContext<M extends JsonRpcRequest | JsonRpcNotifica
     return message;
   }
 
+  const existingBaggage = isObjectLike(meta) && typeof meta.baggage === 'string' ? meta.baggage : undefined;
+
   return {
     ...message,
     params: {
@@ -81,7 +84,7 @@ export function injectMcpTraceContext<M extends JsonRpcRequest | JsonRpcNotifica
         ...meta,
         'sentry-trace': sentryTrace,
         ...(traceparent && { traceparent }),
-        ...(baggage && { baggage }),
+        ...(baggage && { baggage: mergeBaggageHeaders(existingBaggage, baggage) }),
       },
     },
   };
