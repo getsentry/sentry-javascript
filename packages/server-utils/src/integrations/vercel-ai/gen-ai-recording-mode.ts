@@ -13,9 +13,9 @@ const eveRecordingClients = new WeakSet<Client>();
  * treated as eve's default rather than an end-user decision: an explicit `recordInputs`/`recordOutputs`
  * on the integration or a `dataCollection.genAI` setting still takes precedence.
  *
- * `ai` >= 7.0.163 strips input messages from these calls, and tool arguments and results in its own tool loop,
- * unless the eve app has an OTel destination and a `tracePolicy` that allows content. eve doesn't document an
- * empty destination for this, so that setup may change.
+ * `ai` >= 7.0.163 strips content from calls with these flags set to false and publishes no channel result. The
+ * subscriber then reads the result itself and honors the per-call flags, so this mode only applies to results
+ * `ai` publishes. eve >= 1.0.0-rc.10 sets the flags from `Sentry.eveInstrumentation()`'s `tracePolicy`.
  */
 export function markEveGenAiRecordingDefault(client: Client): void {
   eveRecordingClients.add(client);

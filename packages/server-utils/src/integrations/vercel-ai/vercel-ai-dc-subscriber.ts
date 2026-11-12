@@ -344,7 +344,7 @@ function deferStreamedModelCallEnd(
   }
 
   const callId = asString(data.event.callId);
-  const { recordOutputs } = getRecordingOptions(data.event, options);
+  const { recordOutputs } = getRecordingOptions(data.event, options, data.result === undefined);
   result.stream = tapModelCallStream(
     stream,
     final => {
@@ -666,7 +666,7 @@ export function enrichSpanOnEnd(
     return;
   }
 
-  const { recordOutputs } = getRecordingOptions(data.event, channelOptions);
+  const { recordOutputs } = getRecordingOptions(data.event, channelOptions, data.result === undefined);
 
   if (type === 'executeTool') {
     if (recordOutputs) {
@@ -912,13 +912,16 @@ export function captureToolError(span: Span, data: VercelAiChannelMessage, error
 function getRecordingOptions(
   event: Record<string, unknown>,
   channelOptions: VercelAiChannelOptions,
+  channelWithheldResult = false,
 ): {
   recordInputs: boolean;
   recordOutputs: boolean;
 } {
   const client = getClient();
   const genAI = client?.getDataCollectionOptions().genAI;
-  const eveMode = client ? isEveGenAiRecordingDefault(client) : false;
+  // `ai` withheld the result because of the per-call flag, which eve >= 1.0.0-rc.10 sets from trace policies, so
+  // the flag is a content decision there rather than eve's blanket default.
+  const eveMode = client && !channelWithheldResult ? isEveGenAiRecordingDefault(client) : false;
 
   return {
     recordInputs: resolveRecording(channelOptions.recordInputs, event.recordInputs, genAI?.inputs, eveMode),

@@ -1609,6 +1609,44 @@ describe('Vercel AI calls with recording off (v7)', () => {
   createEsmTests(
     __dirname,
     'scenario-no-recording.mjs',
+    'instrument-eve.mjs',
+    (createRunner, test) => {
+      test('records usage but no output messages under eve when ai withheld the result', async () => {
+        await createRunner()
+          .unordered()
+          .expect({
+            span: container => {
+              const modelCalls = container.items.filter(
+                span => span.attributes[SENTRY_OP]?.value === GEN_AI_GENERATE_CONTENT,
+              );
+              expect(modelCalls).toHaveLength(2);
+              for (const modelCall of modelCalls) {
+                expect(modelCall.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
+                expect(modelCall.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+              }
+
+              const streamAgent = container.items.find(
+                span => span.attributes['vercel.ai.operationId']?.value === 'ai.streamText',
+              )!;
+              expect(streamAgent.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
+              expect(streamAgent.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+
+              const toolSpans = container.items.filter(
+                span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXECUTE_TOOL,
+              );
+              toolSpans.forEach(span => expect(span.attributes[GEN_AI_TOOL_CALL_RESULT]).toBeUndefined());
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { additionalDependencies: { ai: '^7.0.163' } },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-no-recording.mjs',
     'instrument-unsampled.mjs',
     (createRunner, test) => {
       test('captures the real tool error in an unsampled trace with recordInputs/recordOutputs: false', async () => {
