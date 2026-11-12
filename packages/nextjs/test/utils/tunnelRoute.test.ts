@@ -1,193 +1,61 @@
 import type { BrowserOptions } from '@sentry/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyTunnelRouteOption } from '../../src/client/tunnelRoute';
 
+const DSN = 'https://11111111111111111111111111111111@o2222222.ingest.sentry.io/3333333';
+
 const globalWithInjectedValues = global as typeof global & {
-  _sentryRewritesTunnelPath?: string;
-  _sentryTunnelRouteMode?: string;
+  _sentryTunnelRoute?: string;
 };
 
 beforeEach(() => {
-  vi.restoreAllMocks();
-  globalWithInjectedValues._sentryRewritesTunnelPath = undefined;
-  globalWithInjectedValues._sentryTunnelRouteMode = undefined;
+  globalWithInjectedValues._sentryTunnelRoute = undefined;
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe('applyTunnelRouteOption()', () => {
-  it('Correctly applies `tunnelRoute` option when conditions are met', () => {
-    globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
-    const options: any = {
-      dsn: 'https://11111111111111111111111111111111@o2222222.ingest.sentry.io/3333333',
-    } as BrowserOptions;
+  it('sends events to the fixed path of the `tunnelRoute`', () => {
+    globalWithInjectedValues._sentryTunnelRoute = '/docs/monitoring';
+    const options: BrowserOptions = { dsn: DSN };
 
     applyTunnelRouteOption(options);
 
-    expect(options.tunnel).toBe('/my-error-monitoring-route?o=2222222&p=3333333');
+    expect(options.tunnel).toEqual({ path: '/docs/monitoring', trailingSlash: false });
   });
 
-  it("Doesn't apply `tunnelRoute` when DSN is missing", () => {
-    globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
-    const options: any = {
-      // no dsn
-    } as BrowserOptions;
+  it('sends events to the path derived from the DSN for `tunnelRoute: true`', () => {
+    globalWithInjectedValues._sentryTunnelRoute = 'true';
+    const options: BrowserOptions = { dsn: DSN };
 
     applyTunnelRouteOption(options);
 
-    expect(options.tunnel).toBeUndefined();
+    expect(options.tunnel).toBe(true);
   });
 
-  it("Doesn't apply `tunnelRoute` when DSN is invalid", () => {
-    // Avoid polluting the test output with error messages
-    const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
-    const options: any = {
-      dsn: 'invalidDsn',
-    } as BrowserOptions;
+  it('adds the trailing slash Next.js redirects to', () => {
+    vi.stubEnv('_sentryTrailingSlash', 'true');
+    globalWithInjectedValues._sentryTunnelRoute = '/monitoring';
+    const options: BrowserOptions = { dsn: DSN };
 
     applyTunnelRouteOption(options);
 
-    expect(options.tunnel).toBeUndefined();
-
-    mockConsoleError.mockRestore();
+    expect(options.tunnel).toEqual({ path: '/monitoring', trailingSlash: true });
   });
 
-  it("Doesn't apply `tunnelRoute` option when `tunnelRoute` option wasn't injected", () => {
-    const options: any = {
-      dsn: 'https://11111111111111111111111111111111@o2222222.ingest.sentry.io/3333333',
-    } as BrowserOptions;
+  it('keeps the `tunnel` the user set', () => {
+    globalWithInjectedValues._sentryTunnelRoute = '/monitoring';
+    const options: BrowserOptions = { dsn: DSN, tunnel: 'https://tunnel.example.com' };
 
     applyTunnelRouteOption(options);
 
-    expect(options.tunnel).toBeUndefined();
+    expect(options.tunnel).toBe('https://tunnel.example.com');
   });
 
-  it("Doesn't `tunnelRoute` option when DSN is not a SaaS DSN", () => {
-    globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
-    const options: any = {
-      dsn: 'https://11111111111111111111111111111111@example.com/3333333',
-    } as BrowserOptions;
-
-    applyTunnelRouteOption(options);
-
-    expect(options.tunnel).toBeUndefined();
-  });
-
-  it('Correctly applies `tunnelRoute` option to region DSNs', () => {
-    globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
-    const options: any = {
-      dsn: 'https://11111111111111111111111111111111@o2222222.ingest.us.sentry.io/3333333',
-    } as BrowserOptions;
-
-    applyTunnelRouteOption(options);
-
-    expect(options.tunnel).toBe('/my-error-monitoring-route?o=2222222&p=3333333&r=us');
-  });
-});
-
-describe('Random tunnel route generation', () => {
-  it('Works when tunnelRoute is true and generates random-looking paths', () => {
-    globalWithInjectedValues._sentryRewritesTunnelPath = '/abc123def'; // Simulated random path
-    const options: any = {
-      dsn: 'https://11111111111111111111111111111111@o2222222.ingest.sentry.io/3333333',
-    } as BrowserOptions;
-
-    applyTunnelRouteOption(options);
-
-    expect(options.tunnel).toBe('/abc123def?o=2222222&p=3333333');
-    expect(options.tunnel).toMatch(/^\/[a-z0-9]+\?o=2222222&p=3333333$/);
-  });
-
-  it('Works with region DSNs when tunnelRoute is true', () => {
-    globalWithInjectedValues._sentryRewritesTunnelPath = '/x7h9k2m'; // Simulated random path
-    const options: any = {
-      dsn: 'https://11111111111111111111111111111111@o2222222.ingest.eu.sentry.io/3333333',
-    } as BrowserOptions;
-
-    applyTunnelRouteOption(options);
-
-    expect(options.tunnel).toBe('/x7h9k2m?o=2222222&p=3333333&r=eu');
-    expect(options.tunnel).toMatch(/^\/[a-z0-9]+\?o=2222222&p=3333333&r=eu$/);
-  });
-
-  it('Does not apply tunnel when tunnelRoute is false', () => {
-    globalWithInjectedValues._sentryRewritesTunnelPath = undefined;
-    const options: any = {
-      dsn: 'https://11111111111111111111111111111111@o2222222.ingest.sentry.io/3333333',
-    } as BrowserOptions;
-
-    applyTunnelRouteOption(options);
-
-    expect(options.tunnel).toBeUndefined();
-  });
-});
-
-describe('applyTunnelRouteOption() credentials', () => {
-  const SAAS_DSN = 'https://11111111111111111111111111111111@o2222222.ingest.sentry.io/3333333';
-
-  beforeEach(() => {
-    globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
-  });
-
-  it("sends tunnel requests with `credentials: 'omit'`", () => {
-    const options: BrowserOptions = { dsn: SAAS_DSN };
-
-    applyTunnelRouteOption(options);
-
-    expect(options.transportOptions).toEqual({ fetchOptions: { credentials: 'omit' } });
-  });
-
-  it('keeps the fetch options of the user', () => {
-    const options: BrowserOptions = {
-      dsn: SAAS_DSN,
-      transportOptions: { bufferSize: 10, fetchOptions: { credentials: 'same-origin', priority: 'low' } },
-    };
-
-    applyTunnelRouteOption(options);
-
-    expect(options.transportOptions).toEqual({
-      bufferSize: 10,
-      fetchOptions: { credentials: 'same-origin', priority: 'low' },
-    });
-  });
-
-  it('does not change the transport options when the events are not tunneled', () => {
-    const options: BrowserOptions = { dsn: 'https://11111111111111111111111111111111@example.com/3333333' };
-
-    applyTunnelRouteOption(options);
-
-    expect(options.transportOptions).toBeUndefined();
-  });
-
-  it('does not change the transport options in handler mode', () => {
-    globalWithInjectedValues._sentryTunnelRouteMode = 'handler';
-    const options: BrowserOptions = { dsn: SAAS_DSN };
-
-    applyTunnelRouteOption(options);
-
-    expect(options.transportOptions).toBeUndefined();
-  });
-});
-
-describe('applyTunnelRouteOption() in handler mode', () => {
-  it.each([
-    ['a SaaS DSN', 'https://11111111111111111111111111111111@o2222222.ingest.us.sentry.io/3333333'],
-    ['a self-hosted DSN', 'https://11111111111111111111111111111111@sentry.example.com/3333333'],
-  ])('tunnels %s to the tunnel path with no query', (_description, dsn) => {
-    globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
-    globalWithInjectedValues._sentryTunnelRouteMode = 'handler';
-    const options: BrowserOptions = { dsn };
-
-    applyTunnelRouteOption(options);
-
-    expect(options.tunnel).toBe('/my-error-monitoring-route');
-  });
-
-  it("Doesn't apply `tunnelRoute` when DSN is invalid", () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
-    globalWithInjectedValues._sentryTunnelRouteMode = 'handler';
-    const options: BrowserOptions = { dsn: 'invalidDsn' };
+  it('does not set a `tunnel` without a `tunnelRoute`', () => {
+    const options: BrowserOptions = { dsn: DSN };
 
     applyTunnelRouteOption(options);
 

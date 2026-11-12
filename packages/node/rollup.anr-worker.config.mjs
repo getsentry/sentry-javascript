@@ -17,8 +17,10 @@ export function createWorkerCodeBuilder(entry, outDir) {
         plugins: [
           {
             name: 'output-base64-worker-script',
-            renderChunk(code) {
-              base64Code = Buffer.from(code).toString('base64');
+            // `output.minify` runs after `renderChunk`, so only `generateBundle` sees the minified code.
+            generateBundle(_options, bundle) {
+              const chunk = Object.values(bundle).find(output => output.type === 'chunk');
+              base64Code = Buffer.from(chunk.code).toString('base64');
             },
           },
         ],

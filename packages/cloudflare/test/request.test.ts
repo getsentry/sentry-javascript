@@ -686,7 +686,7 @@ describe('withSentry', () => {
           'server.address': 'example.com',
           'network.protocol.name': 'http',
           'network.protocol.version': '1.1',
-          'url.scheme': 'https:',
+          'url.scheme': 'https',
           'url.path': '/',
           'sentry.sample_rate': 1,
           'http.response.status_code': 200,

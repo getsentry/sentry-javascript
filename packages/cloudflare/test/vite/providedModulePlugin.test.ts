@@ -2,13 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ProvidedModulePluginOptions } from '../../src/vite/providedModulePlugin';
 import { createIntegrationModuleMatcher, createProvidedModulePlugin } from '../../src/vite/providedModulePlugin';
 
-const TARGET = '/app/node_modules/@sentry/server-utils/build/esm/integrations/flue.js';
+const TARGET = '/app/node_modules/@sentry/server-utils/build/esm/integrations/mastra.js';
 
 const OPTIONS: ProvidedModulePluginOptions = {
   name: 'sentry-test-provider',
   moduleName: '@scope/pkg',
   identifier: '__SENTRY_TEST_PKG__',
-  integrationModule: 'flue',
+  integrationModule: 'mastra',
 };
 
 /** A Rollup plugin context whose `resolve` answers however the test wants. */
@@ -39,37 +39,36 @@ async function start(
 }
 
 describe('createIntegrationModuleMatcher', () => {
-  const isFlueIntegrationModuleId = createIntegrationModuleMatcher('flue');
+  const isMastraIntegrationModuleId = createIntegrationModuleMatcher('mastra');
 
   it('matches the ESM integration module', () => {
-    expect(isFlueIntegrationModuleId(TARGET)).toBe(true);
+    expect(isMastraIntegrationModuleId(TARGET)).toBe(true);
   });
 
   it('ignores a trailing query/hash Vite may append', () => {
-    expect(isFlueIntegrationModuleId(`${TARGET}?v=abc`)).toBe(true);
+    expect(isMastraIntegrationModuleId(`${TARGET}?v=abc`)).toBe(true);
   });
 
   it('normalizes Windows separators', () => {
     expect(
-      isFlueIntegrationModuleId('C:\\app\\node_modules\\@sentry\\server-utils\\build\\esm\\integrations\\flue.js'),
+      isMastraIntegrationModuleId('C:\\app\\node_modules\\@sentry\\server-utils\\build\\esm\\integrations\\mastra.js'),
     ).toBe(true);
   });
 
   it('does not match the CJS build (workers load ESM)', () => {
-    expect(isFlueIntegrationModuleId('/app/node_modules/@sentry/server-utils/build/cjs/integrations/flue.js')).toBe(
+    expect(isMastraIntegrationModuleId('/app/node_modules/@sentry/server-utils/build/cjs/integrations/mastra.js')).toBe(
       false,
     );
   });
 
   it('does not match another integration module', () => {
-    expect(isFlueIntegrationModuleId('/app/node_modules/@sentry/server-utils/build/esm/integrations/mastra.js')).toBe(
+    expect(isMastraIntegrationModuleId('/app/node_modules/@sentry/server-utils/build/esm/integrations/flue.js')).toBe(
       false,
     );
   });
 
   it('does not match the instrumented package itself', () => {
-    expect(isFlueIntegrationModuleId('/app/node_modules/@flue/runtime/dist/index.mjs')).toBe(false);
-    expect(createIntegrationModuleMatcher('mastra')('/app/node_modules/@mastra/core/dist/index.js')).toBe(false);
+    expect(isMastraIntegrationModuleId('/app/node_modules/@mastra/core/dist/index.js')).toBe(false);
   });
 });
 

@@ -917,7 +917,7 @@ describe('withSentryConfig', () => {
 
         expect(finalConfig.productionBrowserSourceMaps).toBe(true);
         expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
-        expect(finalConfig.rewrites).toBeInstanceOf(Function);
+        expect(finalConfig.env).toHaveProperty('_sentryTunnelRoute', '/custom-tunnel');
       });
 
       it('works correctly with custom release configuration', () => {
@@ -1786,8 +1786,8 @@ describe('withSentryConfig', () => {
         '[@sentry/nextjs] The configured `useRunAfterProductionCompileHook` option is not compatible with your current Next.js version. This option is only supported on Next.js version 15.4.1 or later. Will not run source map and release management logic.',
       );
 
-      // Ensure other functionality still works (tunnel route creates rewrites function)
-      expect(finalConfig.rewrites).toBeInstanceOf(Function);
+      // Ensure other functionality still works
+      expect(finalConfig.env).toHaveProperty('_sentryTunnelRoute', '/tunnel');
       // Release name should be set (from git or environment)
       expect(finalConfig.env).toHaveProperty('_sentryRelease');
 

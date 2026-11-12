@@ -1,14 +1,7 @@
 import { GEN_AI_REQUEST_MODEL, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
-import {
-  _INTERNAL_shouldSkipAiProviderWrapping,
-  defineIntegration,
-  getActiveSpan,
-  getClient,
-  hasSpanStreamingEnabled,
-  startInactiveSpan,
-} from '@sentry/core';
+import { defineIntegration, getActiveSpan, getClient, hasSpanStreamingEnabled, startInactiveSpan } from '@sentry/core';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
 import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../ai/anthropic-ai';
@@ -16,6 +9,7 @@ import { ANTHROPIC_AI_ORIGIN } from '../ai/anthropic-ai/constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from '../ai/anthropic-ai/streaming';
 import { instrumentSessionToolRunner, instrumentToolRunner } from '../ai/anthropic-ai/tool-runner';
 import type { AnthropicAiOptions, AnthropicAiResponse } from '../ai/anthropic-ai/types';
+import { shouldSkipAiProviderSpan } from '../ai/pi-ai/providers';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -122,9 +116,7 @@ function createGenAiSpan(
 ): Span | undefined {
   const args = data.arguments ?? [];
 
-  // When LangChain (or another provider) is driving the SDK, it records the spans itself and marks this
-  // provider as skipped — mirror the OTel integration and don't double-instrument.
-  if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME)) {
+  if (shouldSkipAiProviderSpan(INTEGRATION_NAME)) {
     return undefined;
   }
 
