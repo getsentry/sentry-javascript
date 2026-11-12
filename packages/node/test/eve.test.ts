@@ -38,6 +38,20 @@ describe('eveInstrumentation', () => {
     expect(setConversationId).toHaveBeenCalledWith('sess_model');
   });
 
+  test('allows the content dataCollection.genAI allows', () => {
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+      getDataCollectionOptions: () => ({ genAI: { inputs: false, outputs: true } }),
+    } as unknown as SentryCore.Client);
+
+    expect(eveInstrumentation().tracePolicy()).toEqual({ emit: true, recordInputs: false, recordOutputs: true });
+  });
+
+  test('allows no content without a client', () => {
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
+
+    expect(eveInstrumentation().tracePolicy()).toEqual({ emit: true, recordInputs: false, recordOutputs: false });
+  });
+
   test('honors a custom getConversationId', () => {
     const setConversationId = vi.spyOn(SentryCore, 'setConversationId').mockImplementation(() => undefined);
 
