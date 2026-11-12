@@ -30,7 +30,6 @@
     "build:dev": "pnpm run build",
     "build:tarball": "pnpm pack",
     "build:watch": "rollup --config --watch",
-    "circularDepCheck": "madge --circular src/index.ts",
     "clean": "node ../../scripts/rm.mjs dist declarations *.tgz .turbo",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",

@@ -77,7 +77,6 @@
     "build:dev:watch": "pnpm run build:transpile:watch",
     "build:transpile:watch": "rolldown -c rollup.npm.config.mjs --watch",
     "build:tarball": "pnpm pack",
-    "circularDepCheck": "madge --circular src/index.ts src/tanstackrouter.ts",
     "clean": "node ../../scripts/rm.mjs build coverage sentry-vue-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",

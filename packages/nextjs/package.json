@@ -117,7 +117,6 @@
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "nodemon --ext ts --watch src scripts/buildRollup.ts",
     "build:tarball": "pnpm pack",
-    "circularDepCheck": "madge --circular src/index.client.ts src/edge/index.ts src/index.server.ts src/index.types.ts",
     "clean": "node ../../scripts/rm.mjs build coverage sentry-nextjs-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
