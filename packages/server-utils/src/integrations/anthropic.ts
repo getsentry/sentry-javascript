@@ -245,7 +245,7 @@ function wrapThreadStreamRequest(
       instrumentMessageStream(stream, span, recordOutputs, callerSignal);
     },
     error => {
-      // A caller abort is not a failed request. The stream still emits 'end', which ends the span as cancelled.
+      // An abort is not a failed request. The stream still emits 'end', which sets the status from the caller's signal.
       if (signal.aborted) {
         instrumentMessageStream(stream, span, recordOutputs, callerSignal);
       } else {
