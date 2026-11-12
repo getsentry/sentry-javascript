@@ -891,7 +891,7 @@ jobs:
 
   job_bundler_plugin_integration_tests:
     env:
-      SENTRY_RELEASE: ${{ env.HEAD_COMMIT }}
+      SENTRY_RELEASE: ${{ github.event.inputs.commit || github.event.pull_request.head.sha || github.sha }}
     name: Bundler Plugin Integration Tests (Node ${{ matrix.node }})
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bundler_plugin_integration == 'true' || github.event_name != 'pull_request'
