@@ -15,7 +15,7 @@ export default defineConfig(
     },
     {
       sentryUrl: 'http://localhost:3032',
-      authToken: 'fake-auth-token',
+      authToken: process.env.E2E_NO_UPLOAD ? undefined : 'fake-auth-token',
       org: 'test-org',
       project: 'test-project',
       release: { name: 'test-release' },
