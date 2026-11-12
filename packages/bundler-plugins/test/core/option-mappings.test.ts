@@ -216,11 +216,14 @@ describe('normalizeUserOptions()', () => {
         vi.spyOn(childProcess, 'execSync').mockImplementation(() => {
           throw new Error('fatal: not a git repository');
         });
-        process.env['VERCEL'] = '1';
-        process.env['VERCEL_TARGET_ENV'] = targetEnv;
-        process.env['VERCEL_GIT_COMMIT_SHA'] = 'abc123';
-        process.env['VERCEL_GIT_REPO_OWNER'] = 'my-owner';
-        process.env['VERCEL_GIT_REPO_SLUG'] = 'my-repo';
+        // Only Vercel's variables, so CI variables from the machine running the tests don't leak in.
+        process.env = {
+          VERCEL: '1',
+          VERCEL_TARGET_ENV: targetEnv,
+          VERCEL_GIT_COMMIT_SHA: 'abc123',
+          VERCEL_GIT_REPO_OWNER: 'my-owner',
+          VERCEL_GIT_REPO_SLUG: 'my-repo',
+        };
 
         const normalizedOptions = normalizeUserOptions({ release: { name: 'my-release' } });
 
@@ -241,6 +244,20 @@ describe('normalizeUserOptions()', () => {
 
       expect(normalizedOptions.release.setCommits).toEqual(expect.objectContaining({ auto: true }));
       expect(normalizedOptions.release.setCommits).not.toHaveProperty('commit');
+      vi.restoreAllMocks();
+    });
+
+    test('should keep automatic commit association on preview Vercel builds in another CI without a git remote', () => {
+      vi.spyOn(childProcess, 'execSync').mockImplementation(() => {
+        throw new Error('fatal: not a git repository');
+      });
+      process.env['VERCEL'] = '1';
+      process.env['VERCEL_TARGET_ENV'] = 'preview';
+      process.env['GITHUB_REPOSITORY'] = 'my-owner/my-repo';
+
+      const normalizedOptions = normalizeUserOptions({ release: { name: 'my-release' } });
+
+      expect(normalizedOptions.release.setCommits).toEqual(expect.objectContaining({ auto: true }));
       vi.restoreAllMocks();
     });
 

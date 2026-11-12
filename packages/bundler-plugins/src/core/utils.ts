@@ -216,10 +216,29 @@ function gitRevision(): string | undefined {
   return gitRevision;
 }
 
+// Mirrors the CLI's `set-commits --auto` fallback for builds without an `origin` remote. Vercel is left out
+// because the CLI only reads `VERCEL_GIT_*` on production builds.
+const CI_REPOSITORY_ENV_VARS = [
+  'GITHUB_REPOSITORY',
+  'CI_PROJECT_PATH',
+  'BITBUCKET_REPO_FULL_NAME',
+  'RENDER_GIT_REPO_SLUG',
+  'RAILWAY_GIT_REPO_NAME',
+  'CIRCLE_PROJECT_REPONAME',
+  'BUILDKITE_REPO',
+  'BUILD_REPOSITORY_URI',
+] as const;
+
 /**
- * Whether the current directory is in a git checkout with an `origin` remote, which `set-commits --auto` reads.
+ * Whether `set-commits --auto` can find the repository: from the `origin` git remote, or from CI variables.
  */
-export function hasGitOriginRemote(): boolean {
+export function canAutoDetectRepository(): boolean {
+  if (
+    CI_REPOSITORY_ENV_VARS.some(name => process.env[name]) ||
+    (process.env['NETLIFY'] && process.env['REPOSITORY_URL'])
+  ) {
+    return true;
+  }
   try {
     childProcess.execSync('git remote get-url origin', { stdio: 'ignore', windowsHide: true });
     return true;
