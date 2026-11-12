@@ -224,6 +224,10 @@ describe('bullmqJobSchedulerIntegration', () => {
         jobId: 'my-id',
       }),
     ],
+    [
+      'a legacy repeatable job from a queue that hashes keys with sha1',
+      schedulerJob(createHash('sha1').update('job::::60000').digest('hex'), { every: 60_000 }),
+    ],
     ['a legacy repeatable job with an unhashed key', schedulerJob('job::::60000', { every: 60_000 })],
     ['a legacy repeatable job with a custom key', schedulerJob('custom-key', { every: 60_000, key: 'custom-key' })],
     ['an excluded scheduler', schedulerJob('cache-warmup', { every: 60_000 })],
@@ -235,6 +239,33 @@ describe('bullmqJobSchedulerIntegration', () => {
     worker.emit('failed', finalFailure(job));
 
     expect(captureCheckInSpy).not.toHaveBeenCalled();
+  });
+
+  test("ignores a legacy repeatable job hashed with the worker's repeatKeyHashAlgorithm", () => {
+    const worker = createWorker({ settings: { repeatKeyHashAlgorithm: 'sha384' } });
+    const job = schedulerJob(createHash('sha384').update('job::::60000').digest('hex'), { every: 60_000 });
+    runJob(job, 'completed', worker);
+
+    expect(captureCheckInSpy).not.toHaveBeenCalled();
+  });
+
+  test('logs that a legacy repeatable job with an endDate is not monitored once', () => {
+    const logSpy = vi.spyOn(SentryCore.debug, 'log').mockImplementation(() => undefined);
+    const endDate = Date.UTC(2030, 0, 1);
+    const id = createHash('md5').update(`job::${endDate}::60000`).digest('hex');
+    const worker = createWorker();
+    instrumentWorker(worker, {}, 5);
+    for (let run = 0; run < 2; run++) {
+      const job = schedulerJob(id, { every: 60_000, endDate: new Date(endDate).toISOString() });
+      worker.processFn(job);
+      worker.emit('completed', job, 'result', 'active');
+    }
+
+    expect(captureCheckInSpy).not.toHaveBeenCalled();
+    expect(logSpy).toHaveBeenCalledTimes(1);
+    expect(logSpy).toHaveBeenCalledWith(
+      `[BullMQJobScheduler] Not monitoring reports-${id}: it is a repeatable job added with queue.add, not a job scheduler.`,
+    );
   });
 
   test.each(['0123456789abcdef0123456789abcdef', 'a:b:c:d:e'])('monitors a scheduler with the id %j', id => {

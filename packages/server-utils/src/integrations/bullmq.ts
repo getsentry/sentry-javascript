@@ -185,13 +185,20 @@ export function instrumentWorker(
 }
 
 function getMonitor(job: BullMQJob | undefined, queueName: string, settings: WorkerSettings): Monitor | undefined {
-  const schedulerId = job && getJobSchedulerId(job, settings);
-  if (!job || !schedulerId) {
+  const schedulerId = job?.repeatJobKey;
+  if (
+    !job ||
+    typeof schedulerId !== 'string' ||
+    !schedulerId ||
+    stringMatchesSomePattern(schedulerId, settings.exclude, true)
+  ) {
     return undefined;
   }
   // Scheduler ids are only unique within a queue.
   const monitorSlug = `${queueName}-${schedulerId}`;
-  const config = getMonitorConfig(job.opts?.repeat, settings);
+  const config = isLegacyRepeatableJob(job, schedulerId, settings.repeatKeyHashAlgorithm)
+    ? 'it is a repeatable job added with queue.add, not a job scheduler'
+    : getMonitorConfig(job.opts?.repeat, settings);
   if (typeof config === 'string') {
     if (DEBUG_BUILD && !loggedSchedulers.has(monitorSlug)) {
       loggedSchedulers.add(monitorSlug);
@@ -215,13 +222,8 @@ function isFirstAttempt(job: BullMQJob): boolean {
   return !job.attemptsMade && (typeof job.attemptsStarted !== 'number' || job.attemptsStarted <= 1);
 }
 
-function getJobSchedulerId(job: BullMQJob, settings: WorkerSettings): string | undefined {
-  const id = job.repeatJobKey;
-  if (typeof id !== 'string' || !id || isLegacyRepeatableJob(job, id, settings.repeatKeyHashAlgorithm)) {
-    return undefined;
-  }
-  return stringMatchesSomePattern(id, settings.exclude, true) ? undefined : id;
-}
+// The queue's `repeatKeyHashAlgorithm` isn't reachable from a worker, so also try the common ones.
+const LEGACY_KEY_HASH_ALGORITHMS = ['md5', 'sha1', 'sha256', 'sha512'];
 
 // BullMQ 5 keys repeatable jobs from `queue.add` by `repeat.key`, or by their name and repeat options or a hash of them.
 // Job schedulers don't take a `key`.
@@ -236,7 +238,15 @@ function isLegacyRepeatableJob(job: BullMQJob, id: string, hashAlgorithm: string
   const endDate = repeat.endDate ? new Date(repeat.endDate as string).getTime() : '';
   const suffix = repeat.pattern || String(repeat.every);
   const key = `${job.name}:${repeat.jobId || ''}:${endDate}:${repeat.tz || ''}:${suffix}`;
-  return id === key || id === createHash(hashAlgorithm).update(key).digest('hex');
+  if (id === key) {
+    return true;
+  }
+  return (
+    /^[\da-f]+$/.test(id) &&
+    [hashAlgorithm, ...LEGACY_KEY_HASH_ALGORITHMS].some(
+      algorithm => createHash(algorithm).update(key).digest('hex') === id,
+    )
+  );
 }
 
 /** The monitor config for a job scheduler's repeat options, or why it isn't monitored. */
