@@ -1,31 +1,31 @@
 // @vitest-environment node
-import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
-import type { Plugin, ResolvedConfig, UserConfig } from 'vite';
+import type { SentryVitePluginInternalOptions } from '@sentry/bundler-plugins/vite';
+import type { UserConfig } from 'vite';
 import { mergeConfig } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as path from 'path';
 import {
+  createSourceMapState,
   getUpdatedSourceMapSettings,
   makeAddSentryVitePlugin,
   makeEnableSourceMapsVitePlugin,
   rewriteTanstackStartSource,
 } from '../../src/vite/sourceMaps';
-import type { SentryTanstackStartOptions } from '../../src/vite/sentryTanstackStart';
 
 const mockedSentryVitePlugin = {
   name: 'sentry-vite-debug-id-upload-plugin',
   writeBundle: vi.fn(),
 };
 
-let sentryVitePluginOptions: SentryVitePluginOptions | undefined;
+let sentryVitePluginOptions: SentryVitePluginInternalOptions | undefined;
 
-const sentryVitePluginSpy = vi.fn((options: SentryVitePluginOptions) => {
+const sentryVitePluginSpy = vi.fn((options: SentryVitePluginInternalOptions) => {
   sentryVitePluginOptions = options;
   return [mockedSentryVitePlugin];
 });
 
 vi.mock('@sentry/bundler-plugins/vite', () => ({
-  sentryVitePlugin: (options: SentryVitePluginOptions) => sentryVitePluginSpy(options),
+  sentryVitePlugin: (options: SentryVitePluginInternalOptions) => sentryVitePluginSpy(options),
 }));
 
 beforeEach(() => {
@@ -47,34 +47,32 @@ describe('makeEnableSourceMapsVitePlugin()', () => {
   });
 
   it.each([
-    { label: 'the user set no source maps', userConfig: {}, expected: { client: true, ssr: true } },
-    {
-      label: 'the user set `build.sourcemap`',
-      userConfig: { build: { sourcemap: true } },
-      expected: { client: false, ssr: false },
-    },
-    {
-      label: 'the user set the source maps of an environment',
-      userConfig: { environments: { client: { build: { sourcemap: true } } } },
-      expected: { client: false, ssr: true },
-    },
+    { label: 'the user set no source maps', userConfig: {}, expected: true },
+    { label: 'the user set `build.sourcemap`', userConfig: { build: { sourcemap: true } }, expected: false },
+    { label: 'the user set `build.sourcemap: false`', userConfig: { build: { sourcemap: false } }, expected: false },
     {
       label: 'the user set `build.rolldownOptions.output.sourcemap`',
       userConfig: { build: { rolldownOptions: { output: { sourcemap: true } } } },
-      expected: { client: false, ssr: false },
+      expected: false,
     },
-  ] as const)(
-    'tells which environments only have source maps because of Sentry when $label',
-    ({ userConfig, expected }) => {
-      const plugin = makeEnableSourceMapsVitePlugin({})[0]!;
-      (plugin.config as (config: UserConfig) => UserConfig)(structuredClone(userConfig) as UserConfig);
+    {
+      label: "an environment output sets `sourcemap: 'hidden'`",
+      userConfig: { environments: { client: { build: { rolldownOptions: { output: { sourcemap: 'hidden' } } } } } },
+      expected: true,
+    },
+    {
+      label: 'an environment output sets `sourcemap: true`',
+      userConfig: { environments: { client: { build: { rollupOptions: { output: { sourcemap: true } } } } } },
+      expected: true,
+    },
+  ] as const)('records whether it enabled the source maps when $label', ({ userConfig, expected }) => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const state = { ...createSourceMapState(), sdkEnabledSourceMaps: !expected };
+    const plugin = makeEnableSourceMapsVitePlugin({}, state)[0]!;
+    (plugin.config as (config: UserConfig) => UserConfig)(structuredClone(userConfig) as UserConfig);
 
-      expect({
-        client: plugin.api.hasSentryEnabledSourceMaps('client'),
-        ssr: plugin.api.hasSentryEnabledSourceMaps('ssr'),
-      }).toEqual(expected);
-    },
-  );
+    expect(state.sdkEnabledSourceMaps).toBe(expected);
+  });
 
   it.each([undefined, false, true, 'hidden', 'inline'] as const)(
     'preserves user config without duplicating arrays when sourcemap is %s',
@@ -106,9 +104,9 @@ describe('makeEnableSourceMapsVitePlugin()', () => {
 });
 
 describe('makeAddSentryVitePlugin()', () => {
-  it('passes user-specified vite plugin options to vite plugin', async () => {
+  it('passes user-specified vite plugin options to vite plugin', () => {
     const errorHandler = vi.fn();
-    const plugins = makeAddSentryVitePlugin({
+    makeAddSentryVitePlugin({
       org: 'my-org',
       authToken: 'my-token',
       sentryUrl: 'https://custom.sentry.io',
@@ -133,16 +131,7 @@ describe('makeAddSentryVitePlugin()', () => {
       },
     });
 
-    // The filesToDeleteAfterUpload is now a Promise that resolves when the config hook runs
-    expect(sentryVitePluginOptions?.sourcemaps?.filesToDeleteAfterUpload).toBeInstanceOf(Promise);
-
-    // Trigger the configResolved hook to resolve the Promise
-    const configPlugin = plugins.find(p => p.name === 'sentry-tanstackstart-files-to-delete-after-upload-plugin');
-    (configPlugin?.configResolved as (config: ResolvedConfig) => void)({} as ResolvedConfig);
-
-    // Verify the Promise resolves to the user-specified value
-    const resolvedFilesToDelete = await sentryVitePluginOptions?.sourcemaps?.filesToDeleteAfterUpload;
-    expect(resolvedFilesToDelete).toEqual(['baz/*.js']);
+    expect(sentryVitePluginOptions?.sourcemaps?.filesToDeleteAfterUpload).toEqual(['baz/*.js']);
 
     expect(sentryVitePluginSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -195,21 +184,6 @@ describe('makeAddSentryVitePlugin()', () => {
     );
   });
 
-  it('returns Sentry Vite plugins and config plugin', () => {
-    const plugins = makeAddSentryVitePlugin({
-      org: 'my-org',
-      authToken: 'my-token',
-    });
-
-    expect(plugins.length).toBeGreaterThanOrEqual(2);
-
-    const configPlugin = plugins.find(p => p.name === 'sentry-tanstackstart-files-to-delete-after-upload-plugin');
-    expect(configPlugin).toBeDefined();
-    expect(configPlugin?.apply).toBe('build');
-    expect(configPlugin?.enforce).toBe('post');
-    expect(typeof configPlugin?.configResolved).toBe('function');
-  });
-
   it.each([
     { name: 'client', consumer: 'client', expected: true },
     { name: 'ssr', consumer: 'server', expected: false },
@@ -227,160 +201,85 @@ describe('makeAddSentryVitePlugin()', () => {
     },
   );
 
-  describe('default filesToDeleteAfterUpload', () => {
-    type TestEnvironment = {
-      consumer: 'client' | 'server';
-      outDir: string;
-      outputDir?: string;
-      outputSourceMap?: boolean;
-    };
-
-    const NITRO_ENVIRONMENTS: Record<string, TestEnvironment> = {
-      client: { consumer: 'client', outDir: '.output/public' },
-      ssr: { consumer: 'server', outDir: 'node_modules/.nitro/vite/services/ssr' },
-      // Nitro sets the output directory of its server build with `output.dir` only.
-      nitro: { consumer: 'server', outDir: 'dist', outputDir: '.output/server' },
-    };
-
-    /** A plugin that enabled the source maps of the given environments, like the Sentry plugins that enable them. */
-    function sourceMapsEnabler(environmentNames: string[]): Plugin {
+  describe('deleteSourcemapsAfterUpload', () => {
+    /** Calls the function options like the bundler plugin, which passes an environment with its own setting. */
+    function decide(environment?: string) {
+      const { deleteSourcemapsAfterUpload, sdkEnabledSourceMaps } = sentryVitePluginOptions?.sourcemaps ?? {};
       return {
-        name: 'source-maps-enabler',
-        api: { hasSentryEnabledSourceMaps: (environmentName: string) => environmentNames.includes(environmentName) },
+        delete:
+          typeof deleteSourcemapsAfterUpload === 'function'
+            ? deleteSourcemapsAfterUpload(environment)
+            : deleteSourcemapsAfterUpload,
+        sdkEnabled:
+          typeof sdkEnabledSourceMaps === 'function' ? sdkEnabledSourceMaps(environment) : sdkEnabledSourceMaps,
       };
     }
 
-    function resolveFilesToDelete(
-      environments: Record<string, TestEnvironment>,
-      {
-        sentryEnabledEnvironments = Object.keys(environments),
-        options = {},
-        viteVersion = '8.3.1',
-      }: { sentryEnabledEnvironments?: string[]; options?: SentryTanstackStartOptions; viteVersion?: string } = {},
-    ): Promise<unknown> {
-      const isVite7 = viteVersion.startsWith('7.');
-      const plugins = makeAddSentryVitePlugin(options);
-      const config = {
-        root: process.cwd(),
-        plugins: [...plugins, sourceMapsEnabler(sentryEnabledEnvironments)],
-        environments: Object.fromEntries(
-          Object.entries(environments).map(([name, { consumer, outDir, outputDir, outputSourceMap }]) => [
-            name,
-            {
-              consumer,
-              build: {
-                outDir,
-                ...(!isVite7 && { rolldownOptions: { output: { dir: outputDir, sourcemap: outputSourceMap } } }),
-              },
-            },
-          ]),
-        ),
-      } as unknown as ResolvedConfig;
+    it('reads the state when the bundler plugin decides, not when the plugin is created', () => {
+      const state = createSourceMapState();
+      makeAddSentryVitePlugin({}, state);
 
-      const configPlugin = plugins.find(p => p.name === 'sentry-tanstackstart-files-to-delete-after-upload-plugin');
-      (configPlugin?.configResolved as (this: unknown, config: ResolvedConfig) => void).call(
-        { meta: { viteVersion } },
-        config,
-      );
-
-      return Promise.resolve(sentryVitePluginOptions?.sourcemaps?.filesToDeleteAfterUpload);
-    }
-
-    it.each([
-      {
-        label: 'a Nitro build, but not in the Nitro service output',
-        environments: NITRO_ENVIRONMENTS,
-        expected: ['.output/public/**/*.map', '.output/server/**/*.map'],
-      },
-      {
-        label: 'a build without Nitro',
-        environments: {
-          client: { consumer: 'client', outDir: 'dist/client' },
-          ssr: { consumer: 'server', outDir: 'dist/server' },
-        },
-        expected: ['dist/client/**/*.map', 'dist/server/**/*.map'],
-      },
-      {
-        label: 'environments that share an output directory once',
-        environments: {
-          client: { consumer: 'client', outDir: 'dist' },
-          ssr: { consumer: 'server', outDir: 'dist' },
-        },
-        expected: ['dist/**/*.map'],
-      },
-    ] as const)('deletes the source maps in each output directory of $label', async ({ environments, expected }) => {
-      await expect(resolveFilesToDelete(environments)).resolves.toEqual(expected);
+      expect(decide()).toEqual({ delete: undefined, sdkEnabled: false });
+      state.sdkEnabledSourceMaps = true;
+      expect(decide()).toEqual({ delete: true, sdkEnabled: true });
     });
 
     it.each([
-      { label: 'the client', sentryEnabledEnvironments: ['nitro'], expected: ['.output/server/**/*.map'] },
-      { label: 'the Nitro server', sentryEnabledEnvironments: ['client'], expected: ['.output/public/**/*.map'] },
-      { label: 'any environment', sentryEnabledEnvironments: [], expected: [] },
-    ])(
-      'keeps the source maps of $label when Sentry did not enable them',
-      async ({ sentryEnabledEnvironments, expected }) => {
-        await expect(resolveFilesToDelete(NITRO_ENVIRONMENTS, { sentryEnabledEnvironments })).resolves.toEqual(
-          expected,
-        );
+      {
+        label: 'the SDK enabled the top-level source maps',
+        state: { sdkEnabledSourceMaps: true, sdkEnabledNitroSourceMaps: false },
+        expected: { top: true, ssr: undefined, nitro: undefined },
       },
-    );
-
-    it.each([true, false])(
-      'keeps the source maps of an environment that sets `output.sourcemap: %s`',
-      async outputSourceMap => {
-        const environments = {
-          ...NITRO_ENVIRONMENTS,
-          client: { ...NITRO_ENVIRONMENTS.client!, outputSourceMap },
-        };
-
-        await expect(resolveFilesToDelete(environments)).resolves.toEqual(['.output/server/**/*.map']);
+      {
+        label: 'the SDK enabled the Nitro source maps',
+        state: { sdkEnabledSourceMaps: false, sdkEnabledNitroSourceMaps: true },
+        expected: { top: undefined, ssr: undefined, nitro: true },
       },
-    );
+      {
+        label: 'the SDK enabled both',
+        state: { sdkEnabledSourceMaps: true, sdkEnabledNitroSourceMaps: true },
+        expected: { top: true, ssr: undefined, nitro: true },
+      },
+      {
+        label: 'the user enabled all source maps',
+        state: { sdkEnabledSourceMaps: false, sdkEnabledNitroSourceMaps: false },
+        expected: { top: undefined, ssr: undefined, nitro: undefined },
+      },
+    ])('asks for deletion of the source maps the SDK enabled when $label', ({ state, expected }) => {
+      makeAddSentryVitePlugin({}, state);
 
-    it('warns and deletes the source maps in `build.outDir` with Vite 7', async () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      const environments = {
-        client: { consumer: 'client', outDir: 'dist/client' },
-        ssr: { consumer: 'server', outDir: 'dist/server' },
-      } as const;
-
-      await expect(resolveFilesToDelete(environments, { viteVersion: '7.3.2' })).resolves.toEqual([
-        'dist/client/**/*.map',
-        'dist/server/**/*.map',
-      ]);
-      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('TanStack Start requires Vite 8 or later.'));
-      consoleWarnSpy.mockRestore();
+      expect({ top: decide().delete, ssr: decide('ssr').delete, nitro: decide('nitro').delete }).toEqual(expected);
+      expect({
+        top: decide().sdkEnabled,
+        ssr: decide('ssr').sdkEnabled,
+        nitro: decide('nitro').sdkEnabled,
+      }).toEqual({ top: expected.top === true, ssr: false, nitro: expected.nitro === true });
     });
 
-    it('does not warn with Vite 8', async () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // A client environment with its own setting was set by the user, because the SDK sets only the top level.
+    it('keeps the source maps of an environment that the user configured', () => {
+      makeAddSentryVitePlugin({}, { sdkEnabledSourceMaps: true, sdkEnabledNitroSourceMaps: true });
 
-      await resolveFilesToDelete(NITRO_ENVIRONMENTS);
-
-      expect(consoleWarnSpy).not.toHaveBeenCalled();
-      consoleWarnSpy.mockRestore();
+      expect(decide('client')).toEqual({ delete: undefined, sdkEnabled: false });
     });
 
-    it('logs the default in debug mode', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-
-      await resolveFilesToDelete(NITRO_ENVIRONMENTS, { options: { debug: true } });
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[Sentry] Automatically setting `sourcemaps.filesToDeleteAfterUpload: [".output/public/**/*.map",".output/server/**/*.map"]` to delete generated source maps after they were uploaded to Sentry.',
+    it.each([true, false])('passes a user-set `deleteSourcemapsAfterUpload: %s` through', value => {
+      makeAddSentryVitePlugin(
+        { sourcemaps: { deleteSourcemapsAfterUpload: value } },
+        { sdkEnabledSourceMaps: !value, sdkEnabledNitroSourceMaps: !value },
       );
-      consoleSpy.mockRestore();
+
+      expect([decide().delete, decide('ssr').delete, decide('nitro').delete]).toEqual([value, value, value]);
     });
 
-    it('logs that it deletes no source maps when Sentry enabled none', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-
-      await resolveFilesToDelete(NITRO_ENVIRONMENTS, { sentryEnabledEnvironments: [], options: { debug: true } });
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[Sentry] No source maps are deleted after the upload, because Sentry did not enable source map generation for this build.',
+    it('passes a user-set filesToDeleteAfterUpload through and keeps its own deletion', () => {
+      makeAddSentryVitePlugin(
+        { sourcemaps: { filesToDeleteAfterUpload: ['dist/**/*.map'] } },
+        { sdkEnabledSourceMaps: true, sdkEnabledNitroSourceMaps: true },
       );
-      consoleSpy.mockRestore();
+
+      expect(sentryVitePluginOptions?.sourcemaps?.filesToDeleteAfterUpload).toEqual(['dist/**/*.map']);
+      expect([decide().delete, decide('ssr').delete, decide('nitro').delete]).toEqual([true, undefined, true]);
     });
   });
 

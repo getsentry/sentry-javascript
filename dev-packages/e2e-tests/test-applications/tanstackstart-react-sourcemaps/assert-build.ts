@@ -24,12 +24,6 @@ const SERVER_OUTPUT = path.join('.output', 'server');
 const CLIENT_MARKER = 'SOURCEMAP_MARKER_CLIENT';
 const SERVER_MARKER = 'SOURCEMAP_MARKER_SERVER';
 
-const DEBUG_ID_PATTERN = /sentry-dbid-([\da-f-]{36})/gi;
-
-function readDebugIds(file: string): string[] {
-  return [...fs.readFileSync(file, 'utf8').matchAll(DEBUG_ID_PATTERN)].map(match => (match[1] as string).toLowerCase());
-}
-
 function emittedJsFiles(dir: string): string[] {
   return fs
     .readdirSync(dir, { recursive: true, withFileTypes: true })
@@ -37,21 +31,12 @@ function emittedJsFiles(dir: string): string[] {
     .map(entry => path.join(entry.parentPath, entry.name));
 }
 
-/** In debug mode, the Sentry plugin logs each file it deletes after the upload. */
-const deletedFiles = new Set(
-  [...fs.readFileSync('.tmp_build_stdout', 'utf8').matchAll(/Deleting asset after upload: (.+)$/gm)].map(match =>
-    path.relative(fs.realpathSync('.'), match[1] as string),
-  ),
+/** Written by the build, see `recordChunksWithoutSourceMap` in `vite.config.ts`. */
+const debugIdsWithoutSourceMap = new Set(
+  fs.existsSync('.tmp_debug_ids_without_source_map')
+    ? fs.readFileSync('.tmp_debug_ids_without_source_map', 'utf8').split('\n').filter(Boolean)
+    : [],
 );
-
-/** A chunk without mappable source, such as Nitro's runtime, gets a debug ID but no source map to upload. */
-function debugIdsOfChunksWithoutSourceMap(dir: string): Set<string> {
-  return new Set(
-    emittedJsFiles(dir)
-      .filter(file => !fs.existsSync(`${file}.map`) && !deletedFiles.has(`${file}.map`))
-      .flatMap(readDebugIds),
-  );
-}
 
 function sourceMapsIn(dir: string): string[] {
   return fs
@@ -116,8 +101,9 @@ for (const outputDir of [CLIENT_OUTPUT, SERVER_OUTPUT]) {
   const injectedDebugIds = findInjectedDebugIds({ outputDir });
   assert.ok(injectedDebugIds.length > 0, `Expected debug IDs to be injected into ${outputDir}`);
 
-  const exemptDebugIds = debugIdsOfChunksWithoutSourceMap(outputDir);
-  const unuploaded = injectedDebugIds.filter(debugId => !uploadedDebugIds.has(debugId) && !exemptDebugIds.has(debugId));
+  const unuploaded = injectedDebugIds.filter(
+    debugId => !uploadedDebugIds.has(debugId) && !debugIdsWithoutSourceMap.has(debugId),
+  );
   assert.deepEqual(unuploaded, [], `Expected every debug ID in ${outputDir} to have an uploaded source map`);
 
   // A file of Nitro's output can carry the debug ID of the SSR chunk it was built from.
