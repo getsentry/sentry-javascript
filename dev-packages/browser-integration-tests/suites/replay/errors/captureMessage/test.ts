@@ -16,7 +16,7 @@ sentryTest(
     await waitForReplayRunning(page);
 
     const errorRequestPromise = waitForErrorRequest(page);
-    await page.evaluate(() => (window as any).Sentry.captureMessage('Some message'));
+    await page.evaluate(() => (window as any).captureTestMessage());
     const event = envelopeRequestParser(await errorRequestPromise);
     await forceFlushReplay();
 

@@ -6,7 +6,7 @@ import {
   SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY,
   SENTRY_FORK_SET_SCOPE_CONTEXT_KEY,
 } from '../constants';
-import { getScopesFromContext, setContextOnScope, setScopesOnContext } from './contextData';
+import { getContextFromScope, getScopesFromContext, setContextOnScope, setScopesOnContext } from './contextData';
 
 /**
  * Merge Sentry scopes into an OpenTelemetry {@link Context} and apply trace-context adjustments
@@ -38,7 +38,12 @@ export function buildContextWithSentryScopes(context: Context): Context {
     .deleteValue(SENTRY_FORK_SET_SCOPE_CONTEXT_KEY)
     .deleteValue(SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY);
 
-  setContextOnScope(newCurrentScope, ctx2);
+  // `withSetScope` derives `context` from the scope's linked context when that link is still alive,
+  // so it carries the same active span. Overwriting the link with the short-lived `ctx2` would make
+  // `getActiveSpan(scope)` lose the span once `ctx2` is garbage collected.
+  if (!scope || !getContextFromScope(scope)) {
+    setContextOnScope(newCurrentScope, ctx2);
+  }
 
   return ctx2;
 }

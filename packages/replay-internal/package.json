@@ -39,8 +39,8 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
-    "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:bundle": "rollup -c rollup.bundle.config.mjs",
+    "build:transpile": "rolldown -c rollup.npm.config.mjs",
+    "build:bundle": "rolldown -c rollup.bundle.config.mjs",
     "build:dev": "run-p build:transpile build:types",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch build:bundle:watch",
@@ -48,7 +48,6 @@
     "build:transpile:watch": "pnpm run build:transpile --watch",
     "build:bundle:watch": "pnpm run build:bundle --watch",
     "build:tarball": "pnpm pack",
-    "circularDepCheck": "madge --circular src/index.ts",
     "clean": "node ../../scripts/rm.mjs build sentry-replay-*.tgz",
     "format": "oxfmt \"src/**/*.ts\" \"test/**/*.ts\" --write",
     "format:check": "oxfmt \"src/**/*.ts\" \"test/**/*.ts\" --check",
@@ -58,7 +57,7 @@
     "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs}/*.js && es-check es2020 ./build/npm/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
   "repository": {
     "type": "git",

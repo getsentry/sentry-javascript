@@ -60,10 +60,12 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
             const agent = spans.find(span => span.is_segment)!;
             expect(agent.name).toBe('invoke_agent');
             expect(spans.filter(span => span.name === 'chat faux-model')).toHaveLength(2);
-            // One span per run, request and tool call: a tool wrapped twice would add a span.
+            // One span per run and tool call, and one per request from the pi-ai integration: a tool
+            // wrapped twice, or a request reported by a provider SDK too, would add a span.
             expect(spans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.pi_durable')).toHaveLength(
-              5,
+              3,
             );
+            expect(spans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.pi_ai')).toHaveLength(2);
 
             expect(agent.attributes[SENTRY_OP]?.value).toBe(GEN_AI_INVOKE_AGENT);
             expect(agent.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.pi_durable');
@@ -77,7 +79,7 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
             for (const chat of chats) {
               expect(chat.parent_span_id).toBe(agent.span_id);
               expect(chat.attributes[SENTRY_OP]?.value).toBe(GEN_AI_CHAT);
-              expect(chat.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.pi_durable');
+              expect(chat.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.pi_ai');
               expect(chat.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('faux');
               expect(chat.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('faux-model');
               expect(chat.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe(conversationId);
@@ -188,50 +190,55 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
       expect(errorSpanId).toBe(brokenToolSpanId);
     });
 
-    test('records no message content when the client turns gen_ai recording off', async () => {
-      await createRunner()
-        .withEnv({ PI_DURABLE_RECORDING: 'off' })
-        .unordered()
-        .expect({
-          span: container => {
-            const spans = container.items;
-            expect(spans).toHaveLength(5);
-            for (const span of spans) {
-              for (const attribute of CONTENT_ATTRIBUTES) {
-                expect(span.attributes[attribute]).toBeUndefined();
+    for (const [setting, recording] of [
+      ['the client', 'off'],
+      ['`piDurableIntegration`', 'integration-off'],
+    ]) {
+      test(`records no message content when ${setting} turns gen_ai recording off`, async () => {
+        await createRunner()
+          .withEnv({ PI_DURABLE_RECORDING: recording })
+          .unordered()
+          .expect({
+            span: container => {
+              const spans = container.items;
+              expect(spans).toHaveLength(5);
+              for (const span of spans) {
+                for (const attribute of CONTENT_ATTRIBUTES) {
+                  expect(span.attributes[attribute]).toBeUndefined();
+                }
               }
-            }
-            const weather = spans.find(span => span.name === 'execute_tool get_weather')!;
-            expect(weather.attributes[GEN_AI_TOOL_DESCRIPTION]?.value).toBe('Get the current weather for a city.');
-            expect(
-              spans.find(span => span.name === 'chat faux-model')!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value,
-            ).toBeGreaterThan(0);
-          },
-        })
-        .expect({
-          span: container => {
-            expect(container.items).toHaveLength(2);
-            for (const span of container.items) {
-              for (const attribute of CONTENT_ATTRIBUTES) {
-                expect(span.attributes[attribute]).toBeUndefined();
+              const weather = spans.find(span => span.name === 'execute_tool get_weather')!;
+              expect(weather.attributes[GEN_AI_TOOL_DESCRIPTION]?.value).toBe('Get the current weather for a city.');
+              expect(
+                spans.find(span => span.name === 'chat faux-model')!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value,
+              ).toBeGreaterThan(0);
+            },
+          })
+          .expect({
+            span: container => {
+              expect(container.items).toHaveLength(2);
+              for (const span of container.items) {
+                for (const attribute of CONTENT_ATTRIBUTES) {
+                  expect(span.attributes[attribute]).toBeUndefined();
+                }
               }
-            }
-          },
-        })
-        .expect({
-          span: container => {
-            expect(container.items).toHaveLength(1);
-            expect(container.items[0]!.name).toBe('pi-durable-request');
-          },
-        })
-        .expect({
-          event: event => {
-            expect(event.exception?.values?.[0]?.value).toBe('broken tool');
-          },
-        })
-        .start()
-        .completed();
-    });
+            },
+          })
+          .expect({
+            span: container => {
+              expect(container.items).toHaveLength(1);
+              expect(container.items[0]!.name).toBe('pi-durable-request');
+            },
+          })
+          .expect({
+            event: event => {
+              expect(event.exception?.values?.[0]?.value).toBe('broken tool');
+            },
+          })
+          .start()
+          .completed();
+      });
+    }
   });
 
   createEsmTests(__dirname, 'scenario-tools.mjs', 'instrument.mjs', (createRunner, test) => {
@@ -491,10 +498,8 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
         })
         .expect({
           span: container => {
-            // 2. The provider threw: the generation faulted.
-            const chat = container.items.find(span => span.name === 'chat faux-model')!;
-            expect(chat.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toBeUndefined();
-            expect(chat.attributes[SENTRY_STATUS_MESSAGE]?.value).toBe('internal_error');
+            // 2. The provider threw in front of pi-ai, so there is no request to report.
+            expect(container.items.find(span => span.name === 'chat faux-model')).toBeUndefined();
             const agent = container.items.find(span => span.is_segment)!;
             expect(agent.attributes[SENTRY_STATUS_MESSAGE]?.value).toBe('internal_error');
           },

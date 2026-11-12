@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import { getTunnelPath } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getClient, getCurrentScope, init } from '../../src';
@@ -43,14 +47,34 @@ describe('resolveBrowserTunnelOption', () => {
     expect(resolveBrowserTunnelOption({ dsn: DSN, tunnel: { path: '/monitor' } }).tunnel).toBe('/monitor');
   });
 
-  it.each(['https://proxy.example.com/tunnel', '/monitor'])(
-    'keeps the string tunnel %s and its transport options untouched',
+  it.each(['/monitor', 'monitor', `${location.origin}/monitor`])(
+    'sends to the same-origin string tunnel %s as application/x-sentry-envelope too',
+    tunnel => {
+      expect(
+        resolveBrowserTunnelOption({ dsn: DSN, tunnel, transportOptions: { headers: { 'X-Custom': '1' } } }),
+      ).toEqual({
+        tunnel,
+        transportOptions: { headers: { 'Content-Type': 'application/x-sentry-envelope', 'X-Custom': '1' } },
+      });
+    },
+  );
+
+  it.each(['https://proxy.example.com/tunnel', '//proxy.example.com/tunnel'])(
+    'keeps the cross-origin string tunnel %s and its transport options untouched, so it needs no CORS preflight',
     tunnel => {
       const transportOptions = { headers: { 'x-custom': '1' } };
 
       expect(resolveBrowserTunnelOption({ dsn: DSN, tunnel, transportOptions })).toEqual({ tunnel, transportOptions });
     },
   );
+
+  it('lets a user content type override the envelope one', () => {
+    const transportOptions = { headers: { 'Content-Type': 'text/plain' } };
+
+    expect(resolveBrowserTunnelOption({ dsn: DSN, tunnel: '/monitor', transportOptions }).transportOptions).toEqual(
+      transportOptions,
+    );
+  });
 
   it('turns the tunnel off without a valid DSN', () => {
     expect(resolveBrowserTunnelOption({ tunnel: true }).tunnel).toBeUndefined();
@@ -69,7 +93,7 @@ describe('init with `tunnel: true`', () => {
     expect(getClient()?.getOptions().tunnel).toBe(getTunnelPath(DSN));
   });
 
-  it('only sets the envelope content type for a managed tunnel', () => {
+  it('only sets the envelope content type for a same-origin tunnel', () => {
     const transport = vi.fn(makeFetchTransport);
 
     init({ dsn: DSN, tunnel: true, transport });

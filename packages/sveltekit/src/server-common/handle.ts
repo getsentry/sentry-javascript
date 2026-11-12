@@ -25,6 +25,7 @@ import {
   _INTERNAL_setTunnelDefaults as setTunnelDefaults,
 } from '@sentry/core/server';
 import { getTunnelBasePath } from '../common/tunnel';
+import { CACHE_ORIGIN_META_TAG_NAME } from '../common/traceMetaTags';
 import type { Handle, ResolveOptions } from './handleTypes';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
@@ -83,7 +84,7 @@ export function addSentryCodeToPage(options: {
   injectFetchProxyScript: boolean;
 }): NonNullable<ResolveOptions['transformPageChunk']> {
   return ({ html }) => {
-    const metaTags = isSvelteKitBuilding() ? '' : getTraceMetaTags();
+    const metaTags = getPageMetaTags(html);
     const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
 
     const headWithFetchScript = options.injectFetchProxyScript ? `\n<script>${FETCH_PROXY_SCRIPT}</script>` : '';
@@ -94,9 +95,20 @@ export function addSentryCodeToPage(options: {
   };
 }
 
+/** Trace meta tags written during the build would put one trace into the HTML of every visitor. */
+function getPageMetaTags(html: string): string {
+  if (!isSvelteKitBuilding()) {
+    return getTraceMetaTags();
+  }
+  return isServerRenderedPage(html) ? `<meta name="${CACHE_ORIGIN_META_TAG_NAME}" content=""/>` : '';
+}
+
+/** Kit writes `node_ids` only for server-rendered pages, not for shells (`ssr = false`, SPA fallback). */
+function isServerRenderedPage(html: string): boolean {
+  return html.includes('node_ids:');
+}
+
 /**
- * Prerendered pages would bake one trace id and sampling decision into the HTML for every visitor.
- *
  * `building` from `$app/environment` isn't available here (the SDK is loaded from node_modules at
  * runtime), so we rely on `_SENTRY_SVELTEKIT_BUILDING`, which our Vite plugin sets during `vite build`
  * and SvelteKit copies into the worker it prerenders in.

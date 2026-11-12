@@ -36,6 +36,7 @@ jobs:
           sparse-checkout: |
             .github/CODEOWNERS
             scripts/assign-reviewers.mjs
+            scripts/junior-requesters.mjs
           sparse-checkout-cone-mode: false
 
       - name: Assign reviewers
