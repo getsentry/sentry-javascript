@@ -26,15 +26,23 @@ runs:
       shell: bash
       working-directory: ${{ inputs.cwd }}
 
+    - name: Mount Playwright browser cache
+      if: steps.playwright-version.outputs.version != '' && env.CI_BENCHMARK_PROVIDER == 'namespace'
+      uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+      with:
+        path: ~/.cache/ms-playwright
+
     - name: Restore cached playwright binaries
       uses: actions/cache/restore@v6.1.0
       id: playwright-cache
-      if: steps.playwright-version.outputs.version != ''
+      if: steps.playwright-version.outputs.version != '' && env.CI_BENCHMARK_PROVIDER != 'namespace'
       with:
         path: |
           ~/.cache/ms-playwright
         # Bump the iteration when bumping runner images to use a new cache
-        key: playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}
+        key:
+          ${{ env.CI_BENCHMARK_CACHE_PREFIX }}playwright-${{ runner.os }}-${{ runner.arch }}-iteration-1-${{
+          steps.playwright-version.outputs.version }}
 
     # We always install all browsers, if uncached
     # `npx` runs outside the repo, so it can't pick up a `playwright` that a parallel `pnpm install` is still linking.
@@ -83,14 +91,20 @@ runs:
 
         # Separate Ubuntu versions and architectures, while allowing older package sets as fallbacks.
         . /etc/os-release
-        prefix="webkit-apt-$ID-$VERSION_ID-${{ runner.arch }}-v1-"
+        prefix="${CI_BENCHMARK_CACHE_PREFIX:-}webkit-apt-$ID-$VERSION_ID-${{ runner.arch }}-v1-"
         echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
         echo "key=$prefix$hash" >> "$GITHUB_OUTPUT"
       shell: bash
 
+    - name: Mount WebKit package archives
+      if: steps.webkit-dependencies.outputs.key != '' && env.CI_BENCHMARK_PROVIDER == 'namespace'
+      uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+      with:
+        path: /var/tmp/webkit-apt-cache
+
     - name: Restore cached WebKit system packages
       id: webkit-apt-cache
-      if: steps.webkit-dependencies.outputs.key != ''
+      if: steps.webkit-dependencies.outputs.key != '' && env.CI_BENCHMARK_PROVIDER != 'namespace'
       uses: actions/cache/restore@v6.1.0
       with:
         path: /var/tmp/webkit-apt-cache/*.deb
@@ -111,8 +125,9 @@ runs:
 
     - name: Remove obsolete cached WebKit packages
       if:
-        steps.webkit-dependencies.outputs.key != '' && steps.webkit-apt-cache.outputs.cache-hit != 'true' &&
-        github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        steps.webkit-dependencies.outputs.key != '' && steps.webkit-apt-cache.outputs.cache-hit != 'true' && (github.ref
+        == 'refs/heads/develop' || (env.CI_BENCHMARK_CACHE_PREFIX != '' && (github.head_ref == 'feat/namespace-ci-smoke'
+        || github.ref == 'refs/heads/feat/namespace-ci-smoke')))
       # Fallback restores can carry obsolete installers into newer cache entries.
       run: sudo apt-get -o Dir::Cache::archives=/var/tmp/webkit-apt-cache autoclean
       shell: bash
@@ -121,21 +136,26 @@ runs:
     # which may have downloaded packages absent from the restored cache.
     - name: Store cached WebKit system packages
       if:
-        steps.webkit-dependencies.outputs.key != '' && steps.webkit-apt-cache.outputs.cache-hit != 'true' &&
-        github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        env.CI_BENCHMARK_PROVIDER != 'namespace' && steps.webkit-dependencies.outputs.key != '' &&
+        steps.webkit-apt-cache.outputs.cache-hit != 'true' && (github.ref == 'refs/heads/develop' ||
+        (env.CI_BENCHMARK_CACHE_PREFIX != '' && (github.head_ref == 'feat/namespace-ci-smoke' || github.ref ==
+        'refs/heads/feat/namespace-ci-smoke')))
       uses: actions/cache/save@v6.1.0
       with:
         path: /var/tmp/webkit-apt-cache/*.deb
         key: ${{ steps.webkit-dependencies.outputs.key }}
 
-    # Only store cache on develop branch
+    # The benchmark branch also saves isolated entries so warm runs can be verified.
     - name: Store cached playwright binaries
       uses: actions/cache/save@v6.1.0
       if:
-        steps.playwright-version.outputs.version != '' && github.event_name == 'push' && github.ref ==
-        'refs/heads/develop'
+        steps.playwright-version.outputs.version != '' && env.CI_BENCHMARK_PROVIDER != 'namespace' && (github.ref ==
+        'refs/heads/develop' || (env.CI_BENCHMARK_CACHE_PREFIX != '' && (github.head_ref == 'feat/namespace-ci-smoke' ||
+        github.ref == 'refs/heads/feat/namespace-ci-smoke')))
       with:
         path: |
           ~/.cache/ms-playwright
         # Bump the iteration when bumping runner images to use a new cache
-        key: playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}
+        key:
+          ${{ env.CI_BENCHMARK_CACHE_PREFIX }}playwright-${{ runner.os }}-${{ runner.arch }}-iteration-1-${{
+          steps.playwright-version.outputs.version }}

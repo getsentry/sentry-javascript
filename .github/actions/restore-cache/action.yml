@@ -10,14 +10,16 @@ runs:
   using: 'composite'
   steps:
     - name: Install pnpm
+      if: env.CI_BENCHMARK_PROVIDER != 'namespace'
       uses: ./.github/actions/install-pnpm
 
     - name: Check dependency cache
       id: dep-cache
+      if: env.CI_BENCHMARK_PROVIDER != 'namespace'
       uses: actions/cache/restore@v6.1.0
       with:
         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-        key: ${{ inputs.dependency_cache_key }}-${{ runner.arch }}
+        key: ${{ env.CI_BENCHMARK_CACHE_PREFIX }}${{ inputs.dependency_cache_key }}-${{ runner.arch }}
 
     - name: Restore build artifacts
       uses: actions/download-artifact@v7
@@ -25,6 +27,10 @@ runs:
         name: build-output
 
     - name: Install dependencies
-      if: steps.dep-cache.outputs.cache-hit != 'true'
+      if: env.CI_BENCHMARK_PROVIDER != 'namespace' && steps.dep-cache.outputs.cache-hit != 'true'
       run: pnpm install --frozen-lockfile
       shell: bash
+
+    - name: Install dependencies from Namespace volume
+      if: env.CI_BENCHMARK_PROVIDER == 'namespace'
+      uses: ./.github/actions/install-namespace-dependencies

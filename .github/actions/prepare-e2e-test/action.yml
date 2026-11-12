@@ -47,6 +47,10 @@ runs:
       uses: denoland/setup-deno@v2.0.5
       with:
         deno-version: ${{ inputs.deno-version || 'v2.8.3' }}
+    - name: Mount E2E package stores
+      if: env.CI_BENCHMARK_PROVIDER == 'namespace'
+      uses: ./.github/actions/mount-pnpm-store
+
     - name: Install pnpm
       uses: ./.github/actions/install-pnpm
 

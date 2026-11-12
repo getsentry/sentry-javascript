@@ -23,9 +23,12 @@ runs:
       with:
         node-version: ${{ steps.node.outputs.version }}
 
-    # Only `develop` saves, so PRs share one entry per architecture instead of each creating their own.
+    # The benchmark branch also saves isolated entries so warm runs can be verified.
     - name: Save Node.js install
-      if: steps.node-cache.outputs.cache-hit != 'true' && github.ref == 'refs/heads/develop'
+      if:
+        steps.node-cache.outputs.cache-hit != 'true' && (github.ref == 'refs/heads/develop' ||
+        (env.CI_BENCHMARK_CACHE_PREFIX != '' && (github.head_ref == 'feat/namespace-ci-smoke' || github.ref ==
+        'refs/heads/feat/namespace-ci-smoke')))
       uses: actions/cache/save@v6.1.0
       with:
         path: ${{ steps.node.outputs.cache-path }}

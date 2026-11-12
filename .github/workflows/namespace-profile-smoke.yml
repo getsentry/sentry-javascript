@@ -1,0 +1,53 @@
+name: 'CI: Namespace profile smoke test'
+on:
+  pull_request:
+    paths:
+      - '.github/**'
+  workflow_dispatch:
+
+jobs:
+  profiles:
+    name: Namespace ${{ matrix.size }} profile
+    runs-on: ${{ matrix.profile }};overrides.cache-tag=benchmark-ns-profile-smoke-v1-${{ matrix.size }}
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - size: small
+            profile: namespace-profile-sentry-javascript-small
+            cores: 2
+          - size: medium
+            profile: namespace-profile-sentry-javascript
+            cores: 4
+          - size: large
+            profile: namespace-profile-sentry-javascript-large
+            cores: 8
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check runner hardware and image
+        env:
+          EXPECTED_CORES: ${{ matrix.cores }}
+        run: |
+          uname -m
+          cat /etc/os-release
+          lscpu | head -25
+          free -h
+          test "$(nproc)" -eq "$EXPECTED_CORES"
+          . /etc/os-release
+          test "$VERSION_ID" = 24.04
+      - name: Mount smoke-test cache
+        uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        with:
+          path: ~/.cache/namespace-benchmark-probe
+      - name: Check persistent cache state
+        run: |
+          probe="$HOME/.cache/namespace-benchmark-probe/marker"
+          if test -f "$probe"; then
+            echo 'Smoke-test cache restored'
+            cat "$probe"
+          else
+            echo 'Smoke-test cache is empty'
+          fi
+          echo "$GITHUB_RUN_ID/$GITHUB_RUN_ATTEMPT" > "$probe"
+          findmnt -T "$probe"

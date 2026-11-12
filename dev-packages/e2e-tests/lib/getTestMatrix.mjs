@@ -115,7 +115,13 @@ function addIncludesForTestApp(testApp, includes, { variant }) {
   const shouldSkip = packageJson.sentryTest?.skip || false;
   const isOptional = packageJson.sentryTest?.optional || false;
   const variants = packageJson.sentryTest?.[VARIANT_FIELDS[variant]] || [];
-  const baseInclude = { 'test-application': testApp };
+  const runner =
+    process.env.CI_BENCHMARK_PROVIDER === 'namespace'
+      ? JSON.parse(
+          fs.readFileSync(path.join(__dirname, '../../../.github/namespace-benchmark-e2e-runners.json'), 'utf8'),
+        )[testApp]
+      : undefined;
+  const baseInclude = { 'test-application': testApp, ...(runner ? { runner } : {}) };
 
   if (shouldSkip) {
     return;

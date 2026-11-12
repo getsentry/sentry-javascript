@@ -1,0 +1,23 @@
+{
+  "aws-serverless-layer": "namespace-profile-sentry-javascript",
+  "browser-bfcache": "namespace-profile-sentry-javascript",
+  "nextjs-15-basepath": "namespace-profile-sentry-javascript",
+  "nextjs-15-intl": "namespace-profile-sentry-javascript",
+  "nextjs-15-t3": "namespace-profile-sentry-javascript",
+  "nextjs-15": "namespace-profile-sentry-javascript",
+  "nextjs-16-adapter": "namespace-profile-sentry-javascript",
+  "nextjs-16-cacheComponents": "namespace-profile-sentry-javascript",
+  "nextjs-16-static": "namespace-profile-sentry-javascript",
+  "nextjs-16-streaming-cacheComponents": "namespace-profile-sentry-javascript",
+  "nextjs-16-streaming": "namespace-profile-sentry-javascript",
+  "nextjs-16-tunnel": "namespace-profile-sentry-javascript",
+  "nextjs-16": "namespace-profile-sentry-javascript",
+  "nextjs-app-dir": "namespace-profile-sentry-javascript",
+  "nextjs-pages-dir": "namespace-profile-sentry-javascript",
+  "nuxt-3-min": "namespace-profile-sentry-javascript",
+  "nuxt-4-static": "namespace-profile-sentry-javascript",
+  "nuxt-4": "namespace-profile-sentry-javascript",
+  "react-router-6": "namespace-profile-sentry-javascript",
+  "react-router-7-lazy-routes": "namespace-profile-sentry-javascript",
+  "react-router-8-framework": "namespace-profile-sentry-javascript"
+}
