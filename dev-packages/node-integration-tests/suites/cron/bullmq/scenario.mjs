@@ -22,6 +22,38 @@ async function run() {
     connection,
   });
 
+  // Waits for every job to finish, including the ones that send no check-ins.
+  const pending = new Map([
+    ['plain', 1],
+    ['legacy', 1],
+    ['legacy-key', 1],
+    ['excluded', 1],
+    ['every', 2],
+    ['failing', 1],
+    ['flaky', 1],
+    ['sandboxed', 1],
+  ]);
+  const finished = new Promise(resolve => {
+    const done = job => {
+      const left = pending.get(job?.name);
+      if (left === undefined) {
+        return;
+      }
+      if (left > 1) {
+        pending.set(job.name, left - 1);
+      } else {
+        pending.delete(job.name);
+      }
+      if (!pending.size) {
+        resolve();
+      }
+    };
+    for (const w of [worker, sandboxedWorker]) {
+      w.on('completed', done);
+      w.on('failed', job => job?.finishedOn && done(job));
+    }
+  });
+
   // Runs delayed scheduler jobs now. The loop below and the `completed` listener can race to promote the same job.
   const promote = job => job?.promote().catch(() => {});
 
@@ -56,15 +88,14 @@ async function run() {
     }
   }
 
-  setTimeout(async () => {
-    await worker.close();
-    await sandboxedWorker.close();
-    await queue.obliterate({ force: true });
-    await sandboxedQueue.obliterate({ force: true });
-    await queue.close();
-    await sandboxedQueue.close();
-    process.exit();
-  }, 8_000);
+  await finished;
+  await worker.close();
+  await sandboxedWorker.close();
+  await queue.obliterate({ force: true });
+  await sandboxedQueue.obliterate({ force: true });
+  await queue.close();
+  await sandboxedQueue.close();
+  process.exit();
 }
 
 void run();
