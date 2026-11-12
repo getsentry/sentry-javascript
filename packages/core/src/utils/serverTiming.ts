@@ -17,6 +17,7 @@ import { getTraceData } from './traceData';
  */
 export function getTraceServerTimingHeader(traceData?: SerializedTraceData): string {
   return Object.entries(traceData || getTraceData())
+    .filter(([, value]) => value)
     .map(([key, value]) => `${key};desc="${value}"`)
     .join(', ');
 }
