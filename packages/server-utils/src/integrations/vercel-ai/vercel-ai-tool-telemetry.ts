@@ -38,7 +38,7 @@ function isRecordingOff(event: Record<string, unknown>): boolean {
  * and `ai` >= 7.0.163 publishes no results for calls with `recordInputs`/`recordOutputs: false`.
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry
  */
-export function registerVercelAiTelemetryIntegration(): void {
+export function registerVercelAiToolTelemetry(): void {
   const channel = dc.tracingChannel<VercelAiChannelMessage>(AI_SDK_TELEMETRY_TRACING_CHANNEL);
   const carrier = globalThis as { AI_SDK_TELEMETRY_INTEGRATIONS?: TelemetryIntegration[] };
 
