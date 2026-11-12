@@ -483,93 +483,121 @@ describe('getBuildPluginOptions', () => {
       ]);
     });
 
-    it('configures file deletion when deleteSourcemapsAfterUpload is enabled for webpack-client without useRunAfterProductionCompileHook', () => {
-      const sentryBuildOptions: SentryBuildOptions = {
-        org: 'test-org',
-        project: 'test-project',
-        sourcemaps: {
-          deleteSourcemapsAfterUpload: true,
-        },
-      };
-
+    it('has the webpack plugin delete the client source maps instead of a glob', () => {
       const result = getBuildPluginOptions({
-        sentryBuildOptions,
+        sentryBuildOptions: {
+          org: 'test-org',
+          project: 'test-project',
+          sourcemaps: { deleteSourcemapsAfterUpload: true },
+        },
         releaseName: mockReleaseName,
         distDirAbsPath: mockDistDirAbsPath,
         buildTool: 'webpack-client',
         useRunAfterProductionCompileHook: false,
       });
 
-      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual([
-        '/path/to/.next/static/**/*.js.map',
-        '/path/to/.next/static/**/*.mjs.map',
-        '/path/to/.next/static/**/*.cjs.map',
-        '/path/to/.next/static/**/*.css.map',
-      ]);
+      expect(result.sourcemaps).toMatchObject({
+        filesToDeleteAfterUpload: undefined,
+        deleteSourcemapsAfterUpload: true,
+      });
     });
 
-    it('does not configure file deletion when deleteSourcemapsAfterUpload is enabled for webpack-client with useRunAfterProductionCompileHook', () => {
-      const sentryBuildOptions: SentryBuildOptions = {
-        org: 'test-org',
-        project: 'test-project',
-        sourcemaps: {
-          deleteSourcemapsAfterUpload: true,
-        },
-      };
-
+    it.each([false, undefined])('has the webpack plugin keep the client source maps when the option is %s', option => {
       const result = getBuildPluginOptions({
-        sentryBuildOptions,
+        sentryBuildOptions: {
+          org: 'test-org',
+          project: 'test-project',
+          sourcemaps: { deleteSourcemapsAfterUpload: option },
+        },
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+      });
+
+      expect(result.sourcemaps).toMatchObject({
+        filesToDeleteAfterUpload: undefined,
+        deleteSourcemapsAfterUpload: false,
+      });
+    });
+
+    it('does not delete client source maps in the webpack plugin with useRunAfterProductionCompileHook', () => {
+      const result = getBuildPluginOptions({
+        sentryBuildOptions: {
+          org: 'test-org',
+          project: 'test-project',
+          sourcemaps: { deleteSourcemapsAfterUpload: true },
+        },
         releaseName: mockReleaseName,
         distDirAbsPath: mockDistDirAbsPath,
         buildTool: 'webpack-client',
         useRunAfterProductionCompileHook: true,
       });
 
-      // File deletion should be undefined when using the hook
-      expect(result.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
+      // The upload runs after the compile, and the after-production-compile options delete the maps.
+      expect(result.sourcemaps).toMatchObject({
+        filesToDeleteAfterUpload: undefined,
+        deleteSourcemapsAfterUpload: false,
+      });
     });
 
-    it('does not configure file deletion for server builds even when deleteSourcemapsAfterUpload is enabled', () => {
-      const sentryBuildOptions: SentryBuildOptions = {
-        org: 'test-org',
-        project: 'test-project',
-        sourcemaps: {
-          deleteSourcemapsAfterUpload: true,
-        },
-      };
-
-      const serverBuildTools = ['webpack-nodejs', 'webpack-edge'] as const;
-
-      serverBuildTools.forEach(buildTool => {
+    it.each(['webpack-nodejs', 'webpack-edge'] as const)(
+      'does not delete source maps of %s builds even when deleteSourcemapsAfterUpload is enabled',
+      buildTool => {
         const result = getBuildPluginOptions({
-          sentryBuildOptions,
+          sentryBuildOptions: {
+            org: 'test-org',
+            project: 'test-project',
+            sourcemaps: { deleteSourcemapsAfterUpload: true },
+          },
           releaseName: mockReleaseName,
           distDirAbsPath: mockDistDirAbsPath,
           buildTool,
         });
 
-        expect(result.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
-      });
-    });
-
-    it('does not configure file deletion when deleteSourcemapsAfterUpload is disabled', () => {
-      const sentryBuildOptions: SentryBuildOptions = {
-        org: 'test-org',
-        project: 'test-project',
-        sourcemaps: {
+        expect(result.sourcemaps).toMatchObject({
+          filesToDeleteAfterUpload: undefined,
           deleteSourcemapsAfterUpload: false,
-        },
-      };
+          sdkEnabledSourceMaps: false,
+        });
+      },
+    );
 
-      const result = getBuildPluginOptions({
-        sentryBuildOptions,
-        releaseName: mockReleaseName,
-        distDirAbsPath: mockDistDirAbsPath,
-        buildTool: 'webpack-client',
-      });
+    it.each(['after-production-compile-webpack', 'after-production-compile-turbopack'] as const)(
+      'leaves deleteSourcemapsAfterUpload unset for %s builds',
+      buildTool => {
+        const result = getBuildPluginOptions({
+          sentryBuildOptions: {
+            org: 'test-org',
+            project: 'test-project',
+            sourcemaps: { deleteSourcemapsAfterUpload: true },
+          },
+          releaseName: mockReleaseName,
+          distDirAbsPath: mockDistDirAbsPath,
+          buildTool,
+        });
 
-      expect(result.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
-    });
+        expect(result.sourcemaps?.deleteSourcemapsAfterUpload).toBeUndefined();
+        expect(result.sourcemaps?.sdkEnabledSourceMaps).toBeUndefined();
+      },
+    );
+
+    it.each([true, false])(
+      'sets sdkEnabledSourceMaps to the client delete option (deleteSourcemapsAfterUpload: %s)',
+      option => {
+        const result = getBuildPluginOptions({
+          sentryBuildOptions: {
+            org: 'test-org',
+            project: 'test-project',
+            sourcemaps: { deleteSourcemapsAfterUpload: option },
+          },
+          releaseName: mockReleaseName,
+          distDirAbsPath: mockDistDirAbsPath,
+          buildTool: 'webpack-client',
+        });
+
+        expect(result.sourcemaps).toMatchObject({ deleteSourcemapsAfterUpload: option, sdkEnabledSourceMaps: option });
+      },
+    );
 
     it('uses custom filesToDeleteAfterUpload string when provided', () => {
       const sentryBuildOptions: SentryBuildOptions = {
@@ -588,6 +616,7 @@ describe('getBuildPluginOptions', () => {
       });
 
       expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['.next/static/**/*.map']);
+      expect(result.sourcemaps?.deleteSourcemapsAfterUpload).toBe(false);
     });
 
     it('uses custom filesToDeleteAfterUpload array when provided', () => {
@@ -627,6 +656,7 @@ describe('getBuildPluginOptions', () => {
       });
 
       expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['custom/**/*.map']);
+      expect(result.sourcemaps?.deleteSourcemapsAfterUpload).toBe(false);
     });
 
     it('filesToDeleteAfterUpload bypasses server build guard', () => {
