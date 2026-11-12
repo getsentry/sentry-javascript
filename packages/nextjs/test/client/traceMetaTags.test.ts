@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
-import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
+import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addTraceMetaTagLink,
   canWaitForTraceMetaTag,
   getServerRenderingType,
+  observeLateTraceMetaTag,
   readTraceMetaTags,
   waitForTraceMetaTag,
 } from '../../src/client/routing/traceMetaTags';
@@ -19,6 +20,12 @@ function appendMeta(parent: HTMLElement, name: string, content: string): HTMLMet
   meta.setAttribute('content', content);
   parent.appendChild(meta);
   return meta;
+}
+
+function setServerTimingTrace(sentryTrace: string): void {
+  vi.spyOn(performance, 'getEntriesByType').mockReturnValue([
+    { serverTiming: [{ name: 'sentry-trace', description: sentryTrace, duration: 0 }] } as unknown as PerformanceEntry,
+  ]);
 }
 
 const originalReadyState = Object.getOwnPropertyDescriptor(Document.prototype, 'readyState');
@@ -236,5 +243,96 @@ describe('getServerRenderingType', () => {
     vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
 
     expect(getServerRenderingType(undefined)).toBeUndefined();
+  });
+
+  it('is unset while a resumed part can still bring a tag after a Server-Timing header', () => {
+    setReadyState('loading');
+    setServerTimingTrace(BODY_TRACE);
+
+    expect(getServerRenderingType(undefined)).toBeUndefined();
+  });
+});
+
+describe('observeLateTraceMetaTag', () => {
+  const SERVER_REQUEST_LINK = {
+    context: { traceId: '22222222222222222222222222222222', spanId: '2222222222222222', traceFlags: 1 },
+    attributes: { [SENTRY_LINK_TYPE]: 'server_request' },
+  };
+
+  function createSpan(): Span & { setAttribute: ReturnType<typeof vi.fn>; addLink: ReturnType<typeof vi.fn> } {
+    return { isRecording: () => true, setAttribute: vi.fn(), addLink: vi.fn() } as unknown as Span & {
+      setAttribute: ReturnType<typeof vi.fn>;
+      addLink: ReturnType<typeof vi.fn>;
+    };
+  }
+
+  beforeEach(() => {
+    setReadyState('loading');
+  });
+
+  it('marks a page as partially static when the tag arrives after a Server-Timing header connected the pageload', async () => {
+    appendMeta(document.head, 'sentry-cache-origin', HEAD_TRACE);
+    setServerTimingTrace(BODY_TRACE);
+    const span = createSpan();
+
+    observeLateTraceMetaTag(span);
+    appendMeta(document.body, 'sentry-trace', BODY_TRACE);
+    // MutationObserver callbacks run as microtasks.
+    await Promise.resolve();
+
+    expect(span.setAttribute).toHaveBeenCalledWith(PAGE_SERVER_RENDERING_TYPE, 'partially_static');
+    expect(span.addLink).not.toHaveBeenCalled();
+  });
+
+  it('marks a page as static when the document finishes without a tag', () => {
+    appendMeta(document.head, 'sentry-cache-origin', HEAD_TRACE);
+    setServerTimingTrace(BODY_TRACE);
+    const span = createSpan();
+
+    observeLateTraceMetaTag(span);
+    setReadyState('interactive');
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+
+    expect(span.setAttribute).toHaveBeenCalledWith(PAGE_SERVER_RENDERING_TYPE, 'static');
+    expect(span.addLink).not.toHaveBeenCalled();
+  });
+
+  it('links the server request when nothing else connected the pageload', async () => {
+    appendMeta(document.head, 'sentry-cache-origin', HEAD_TRACE);
+    vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
+    const span = createSpan();
+
+    observeLateTraceMetaTag(span);
+    appendMeta(document.body, 'sentry-trace', BODY_TRACE);
+    await Promise.resolve();
+
+    expect(span.addLink).toHaveBeenCalledWith(SERVER_REQUEST_LINK);
+    expect(span.setAttribute).toHaveBeenCalledWith(PAGE_SERVER_RENDERING_TYPE, 'partially_static');
+  });
+
+  it('only links the server request for a document without a sentry-cache-origin tag', async () => {
+    vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
+    const span = createSpan();
+
+    observeLateTraceMetaTag(span);
+    appendMeta(document.body, 'sentry-trace', BODY_TRACE);
+    await Promise.resolve();
+    setReadyState('interactive');
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+
+    expect(span.addLink).toHaveBeenCalledWith(SERVER_REQUEST_LINK);
+    expect(span.setAttribute).not.toHaveBeenCalled();
+  });
+
+  it('does nothing once the document finished parsing', () => {
+    appendMeta(document.head, 'sentry-cache-origin', HEAD_TRACE);
+    setReadyState('interactive');
+    const span = createSpan();
+
+    observeLateTraceMetaTag(span);
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+
+    expect(span.setAttribute).not.toHaveBeenCalled();
+    expect(span.addLink).not.toHaveBeenCalled();
   });
 });
