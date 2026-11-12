@@ -1,7 +1,8 @@
 import * as fs from 'fs';
 
+import { getJuniorRequesters, TEAM_SLUG } from './junior-requesters.mjs';
+
 const REQUIRED_REVIEWERS = 3;
-const TEAM_SLUG = 'team-javascript-sdks';
 // Managers who are members (and code owners) of the SDK teams, but should never be auto-requested for review.
 const NEVER_REQUEST = ['mydea', 'stephanie-anderson'];
 const CODEOWNERS_PATH = '.github/CODEOWNERS';
@@ -96,6 +97,9 @@ export async function assignReviewers({ github, context, core }) {
   }
 
   const author = currentPr.user.login;
+  // Whoever asked Junior for the PR is its de facto author.
+  const requesters = await getJuniorRequesters({ github, core, pr: currentPr });
+
   const reviews = await github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number });
   // Requested reviewers drop off `requested_reviewers` once they submit a review, so count both.
   // Bots (AI reviewers) don't count towards the required reviewers.
@@ -133,7 +137,7 @@ export async function assignReviewers({ github, context, core }) {
     existing,
     codeownerPool,
     teamPool: await listTeamMembers(TEAM_SLUG),
-    exclude: [author, ...NEVER_REQUEST],
+    exclude: [author, ...requesters, ...NEVER_REQUEST],
   });
 
   core.info(`Codeowners: ${codeowners.join(', ') || '(none)'}`);
