@@ -1,9 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { waitForEnvelopeItem, waitForError } from '@sentry-internal/test-utils';
-import { RUNTIME } from './constants';
+import { getRuntime, waitForEnvelopeItem, waitForError } from '@sentry-internal/test-utils';
 
 // workerd runs no timers outside a request, so `@nestjs/schedule` jobs never fire. Workers use Cron Triggers instead.
-test.skip(RUNTIME === 'cloudflare', 'Nest cron jobs do not run on Cloudflare Workers.');
+test.skip(getRuntime() === 'cloudflare', 'Nest cron jobs do not run on Cloudflare Workers.');
 
 test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
   const inProgressEnvelopePromise = waitForEnvelopeItem('nestjs-12', envelope => {

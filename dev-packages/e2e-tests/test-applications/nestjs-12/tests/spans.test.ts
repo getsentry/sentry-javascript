@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
-import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
-import { RUNTIME } from './constants';
+import { collectStreamedSpansUntilSegment, getRuntime } from '@sentry-internal/test-utils';
 
 const APP_NAME = 'nestjs-12';
 
@@ -126,7 +125,7 @@ test('Sends streamed spans for an API route', async ({ baseURL }) => {
       'url.scheme': { type: 'string', value: 'http' },
       // On Cloudflare, `withSentry` creates the `http.server` span from the worker's `Request`, not from `node:http`.
       // Known defect: the span has no `sentry.kind` or `http.response.status_text`.
-      ...(RUNTIME === 'cloudflare'
+      ...(getRuntime() === 'cloudflare'
         ? {
             'sentry.origin': { type: 'string', value: 'auto.http.cloudflare' },
             'url.port': { type: 'integer', value: 3030 },
@@ -137,7 +136,7 @@ test('Sends streamed spans for an API route', async ({ baseURL }) => {
             'server.port': { type: 'integer', value: 3030 },
             // Known defect: Bun's `node:http` leaves `statusMessage` unset when the app does not set it, and the SDK
             // does not fall back to the standard reason phrase.
-            ...(RUNTIME === 'bun' ? {} : { 'http.response.status_text': { type: 'string', value: 'OK' } }),
+            ...(getRuntime() === 'bun' ? {} : { 'http.response.status_text': { type: 'string', value: 'OK' } }),
           }),
     }),
   });
