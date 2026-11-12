@@ -110,11 +110,9 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
   }
 });
 
-// Content reaches `ai`'s channel through the OTel destination setup, or on eve >= 1.0.0-rc.10 through
-// `Sentry.eveInstrumentation()`'s own trace policy, unless Sentry's `dataCollection.genAI` turns it off.
-const contentOff = process.env.SENTRY_GENAI_CONTENT === 'off';
-const recordsContent =
-  !contentOff && (process.env.USE_CONTENT_RECORDING === '1' || process.env.EVE_PROVIDER_POLICY === '1');
+// `on`: eve >= 1.0.0-rc.10 takes `Sentry.eveInstrumentation()`'s trace policy, so content reaches `ai`'s channel.
+// `off`: Sentry's `dataCollection.genAI` turns content off.
+const genAIContent = process.env.SENTRY_GENAI_CONTENT;
 
 async function runWeatherTurn(baseURL: string) {
   const traceSpansPromise = collectStreamedSpans(APP, spansOfTrace =>
@@ -130,7 +128,7 @@ async function runWeatherTurn(baseURL: string) {
 }
 
 test('records input and output messages and tool data when content is allowed', async ({ baseURL }) => {
-  test.skip(!recordsContent, 'needs USE_CONTENT_RECORDING=1 or EVE_PROVIDER_POLICY=1');
+  test.skip(genAIContent !== 'on', 'needs SENTRY_GENAI_CONTENT=on');
 
   const { invokeAgent, executeTool } = await runWeatherTurn(baseURL!);
 
@@ -143,7 +141,10 @@ test('records input and output messages and tool data when content is allowed', 
 
 test('records usage but no messages when content is not allowed', async ({ baseURL }) => {
   // eve allows content in development, so without Sentry's opt-out only production shows the default.
-  test.skip(recordsContent || (!contentOff && process.env.TEST_ENV !== 'production'), 'only without content');
+  test.skip(
+    genAIContent === 'on' || (genAIContent !== 'off' && process.env.TEST_ENV !== 'production'),
+    'only without content',
+  );
 
   const { invokeAgent } = await runWeatherTurn(baseURL!);
 
@@ -184,7 +185,7 @@ test('captures errors thrown inside an eve tool', async ({ baseURL }) => {
 
 test('captures a gen_ai.decide span for a Jev call inside an eve tool', async ({ baseURL }) => {
   // `ai` keeps no usage or input on decide spans for calls with recording off.
-  test.skip(contentOff, 'needs gen_ai content');
+  test.skip(genAIContent === 'off', 'needs gen_ai content');
 
   const traceSpansPromise = collectStreamedSpans(APP, spansOfTrace =>
     [GEN_AI_EXECUTE_TOOL, GEN_AI_DECIDE].every(op => spansOfTrace.some(span => getSpanOp(span) === op)),

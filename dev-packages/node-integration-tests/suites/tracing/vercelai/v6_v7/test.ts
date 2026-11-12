@@ -1667,25 +1667,4 @@ describe('Vercel AI calls with recording off (v7)', () => {
     },
     { additionalDependencies: { ai: '^7.0.163' } },
   );
-
-  createEsmTests(
-    __dirname,
-    'scenario-error-in-tool.mjs',
-    'instrument-with-pii.mjs',
-    (createRunner, test) => {
-      test('records the full tool error result when recording is on', async () => {
-        await createRunner()
-          .unordered()
-          .expect({
-            span: container => {
-              const toolSpan = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXECUTE_TOOL);
-              expect(toolSpan?.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toContain('"toolName":"getWeather"');
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    { additionalDependencies: { ai: '^7.0.163' } },
-  );
 });

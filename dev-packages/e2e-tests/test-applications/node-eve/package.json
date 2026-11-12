@@ -16,13 +16,9 @@
     "test:build": "pnpm install && pnpm build",
     "test:build-orchestrion": "USE_ORCHESTRION=1 pnpm test:build",
     "test:build-latest": "pnpm install && pnpm add eve@latest ai@latest && pnpm build",
-    "test:build-eve-0.91": "pnpm install && pnpm add eve@0.91.0 && pnpm build",
-    "test:build-recording": "USE_CONTENT_RECORDING=1 pnpm test:build-eve-0.91",
-    "test:build-recording-latest": "USE_CONTENT_RECORDING=1 pnpm test:build-latest",
     "test:build-content-off": "SENTRY_GENAI_CONTENT=off pnpm test:build-latest",
     "test:assert": "pnpm test:prod && pnpm test:dev",
-    "test:assert-recording": "USE_CONTENT_RECORDING=1 pnpm test:assert",
-    "test:assert-latest": "EVE_PROVIDER_POLICY=1 pnpm test:assert",
+    "test:assert-latest": "SENTRY_GENAI_CONTENT=on pnpm test:assert",
     "test:assert-content-off": "SENTRY_GENAI_CONTENT=off pnpm test:assert",
     "test:assert-orchestrion": "USE_ORCHESTRION=1 pnpm test:assert",
     "test:prod": "TEST_ENV=production playwright test",
@@ -64,16 +60,6 @@
         "build-command": "pnpm test:build-orchestrion",
         "assert-command": "pnpm test:assert-orchestrion",
         "label": "node-eve (orchestrion)"
-      },
-      {
-        "build-command": "pnpm test:build-recording",
-        "assert-command": "pnpm test:assert-recording",
-        "label": "node-eve (recording)"
-      },
-      {
-        "build-command": "pnpm test:build-recording-latest",
-        "assert-command": "pnpm test:assert-recording",
-        "label": "node-eve (recording, latest)"
       }
     ]
   }

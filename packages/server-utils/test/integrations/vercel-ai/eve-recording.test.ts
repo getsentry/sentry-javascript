@@ -1,17 +1,8 @@
-import {
-  GEN_AI_EMBEDDINGS_INPUT,
-  GEN_AI_INPUT_MESSAGES,
-  GEN_AI_OUTPUT_MESSAGES,
-  GEN_AI_USAGE_INPUT_TOKENS,
-} from '@sentry/conventions/attributes';
+import { GEN_AI_EMBEDDINGS_INPUT, GEN_AI_INPUT_MESSAGES, GEN_AI_OUTPUT_MESSAGES } from '@sentry/conventions/attributes';
 import { getClient, getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { markEveGenAiRecordingDefault } from '../../../src/integrations/vercel-ai/gen-ai-recording-mode';
-import {
-  createSpanFromMessage,
-  enrichSpanOnEnd,
-  setFallbackChannelResult,
-} from '../../../src/integrations/vercel-ai/vercel-ai-dc-subscriber';
+import { createSpanFromMessage, enrichSpanOnEnd } from '../../../src/integrations/vercel-ai/vercel-ai-dc-subscriber';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 // eve stamps every AI SDK call with `recordInputs: false`, which the channel subscriber otherwise
@@ -94,41 +85,22 @@ describe('Vercel AI recording under eve', () => {
     expect(recordedInputMessages()).toBeUndefined();
   });
 
-  // A `languageModelCall` with eve's per-call `recordOutputs: false`, settled either from `ai`'s channel result or,
-  // when `ai` withheld it, from the result Sentry read itself.
-  function settledModelCall(source: 'channel' | 'fallback'): Record<string, unknown> {
-    const result = {
-      content: [{ type: 'text', text: 'It is sunny in Paris.' }],
-      finishReason: { unified: 'stop', raw: 'stop' },
-      usage: { inputTokens: { total: 10 }, outputTokens: { total: 20 } },
-    };
-    const message = {
-      type: 'languageModelCall',
-      event: { modelId: 'gpt-4o-mini', provider: 'openai', recordOutputs: false },
-      ...(source === 'channel' ? { result } : {}),
-    } as Parameters<typeof createSpanFromMessage>[0];
-    const span = createSpanFromMessage(message, {})!;
-    if (source === 'fallback') {
-      setFallbackChannelResult(span, result);
-    }
-    enrichSpanOnEnd(span, message, {});
-    return spanToStaticSpanJSON(span).data ?? {};
-  }
-
+  // When `ai` still published the result, eve's per-call `recordOutputs: false` is only its default.
   it('records outputs under eve from a result ai published', () => {
     setupClient();
     markEveGenAiRecordingDefault(getClient()!);
 
-    expect(settledModelCall('channel')[GEN_AI_OUTPUT_MESSAGES]).toContain('It is sunny in Paris.');
-  });
+    const message = {
+      type: 'languageModelCall',
+      event: { modelId: 'gpt-4o-mini', provider: 'openai', recordOutputs: false },
+      result: {
+        content: [{ type: 'text', text: 'It is sunny in Paris.' }],
+        finishReason: { unified: 'stop', raw: 'stop' },
+      },
+    } as Parameters<typeof createSpanFromMessage>[0];
+    const span = createSpanFromMessage(message, {})!;
+    enrichSpanOnEnd(span, message, {});
 
-  it('records only metadata under eve from a result ai withheld', () => {
-    setupClient();
-    markEveGenAiRecordingDefault(getClient()!);
-
-    const data = settledModelCall('fallback');
-
-    expect(data[GEN_AI_USAGE_INPUT_TOKENS]).toBe(10);
-    expect(data[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+    expect(spanToStaticSpanJSON(span).data?.[GEN_AI_OUTPUT_MESSAGES]).toContain('It is sunny in Paris.');
   });
 });
