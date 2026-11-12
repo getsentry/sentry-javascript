@@ -30,7 +30,7 @@ concurrency:
 
 env:
   CI_BENCHMARK_PROVIDER: github
-  CI_BENCHMARK_CACHE_PREFIX: bench-sentry-js-20261112-github-a-
+  CI_BENCHMARK_CACHE_PREFIX: bench-sentry-js-20261112-github-b-
   HEAD_COMMIT: ${{ inputs.commit }}
 
   # See build.yml

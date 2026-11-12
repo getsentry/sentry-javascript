@@ -29,7 +29,7 @@ concurrency:
 
 env:
   CI_BENCHMARK_PROVIDER: github
-  CI_BENCHMARK_CACHE_PREFIX: bench-sentry-js-20261112-github-a-
+  CI_BENCHMARK_CACHE_PREFIX: bench-sentry-js-20261112-github-b-
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.event.pull_request.head.sha || github.sha }}
 
   CACHED_DEPENDENCY_PATHS: |
@@ -54,7 +54,7 @@ env:
   BUNDLE_ARTIFACT_GLOB: packages/*/build/bundles
   BUNDLE_ARTIFACT_DOWNLOAD_PATH: ${{ github.workspace }}/packages
 
-  NX_CACHE_KEY: bench-sentry-js-20261112-github-a-nx-Linux-${{ github.head_ref || github.ref }}-${{ github.run_id }}
+  NX_CACHE_KEY: bench-sentry-js-20261112-github-b-nx-Linux-${{ github.head_ref || github.ref }}-${{ github.run_id }}
 
   # https://bsky.app/profile/joyeecheung.bsky.social/post/3lhy6o54fo22h
   # Apparently some of our CI failures are attributable to a corrupt v8 cache, causing v8 failures with: "Check failed: current == end_slot_index.".
@@ -890,6 +890,8 @@ jobs:
     steps: *cloudflare_integration_tests_steps
 
   job_bundler_plugin_integration_tests:
+    env:
+      SENTRY_RELEASE: ${{ env.HEAD_COMMIT }}
     name: Bundler Plugin Integration Tests (Node ${{ matrix.node }})
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bundler_plugin_integration == 'true' || github.event_name != 'pull_request'
