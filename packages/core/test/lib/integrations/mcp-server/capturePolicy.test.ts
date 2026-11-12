@@ -121,8 +121,7 @@ describe('MCP Server Capture Policy', () => {
   }
 
   function expectToolResult(span: MockSpan, content?: string): void {
-    expect(span.setAttributes).toHaveBeenCalledOnce();
-    expect(span.setAttributes).toHaveBeenCalledWith({
+    expect(span.setAttributes).toHaveBeenLastCalledWith({
       'mcp.tool.result.content_count': 1,
       'mcp.tool.result.content_type': 'text',
       ...(content !== undefined && { 'mcp.tool.result.content': content }),

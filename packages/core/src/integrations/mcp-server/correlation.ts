@@ -117,20 +117,15 @@ export function applyResponseToSpan(
   if (method === 'initialize' && (responseSessionData.protocolVersion || responseSessionData.serverInfo)) {
     updateSessionDataForTransport(transport, responseSessionData);
   }
-  const responseAttributes: Record<string, string | number> = {
-    ...buildServerAttributesFromInfo(responseSessionData.serverInfo),
-  };
+  span.setAttributes(buildServerAttributesFromInfo(responseSessionData.serverInfo));
   if (responseSessionData.protocolVersion) {
-    responseAttributes[MCP_PROTOCOL_VERSION] = responseSessionData.protocolVersion;
-  }
-  if (Object.keys(responseAttributes).length > 0) {
-    span.setAttributes(responseAttributes);
+    span.setAttribute(MCP_PROTOCOL_VERSION, responseSessionData.protocolVersion);
   }
 
   if (error) {
-    span.setAttributes({ [RPC_RESPONSE_STATUS_CODE]: String(error.code) });
+    span.setAttribute(RPC_RESPONSE_STATUS_CODE, String(error.code));
     if (isJsonRpcServerError(error.code)) {
-      span.setAttributes({ [ERROR_TYPE]: String(error.code) });
+      span.setAttribute(ERROR_TYPE, String(error.code));
       span.setStatus({ code: SPAN_STATUS_ERROR, message: error.message });
     }
   } else if (method === 'tools/call') {
@@ -138,7 +133,7 @@ export function applyResponseToSpan(
     span.setAttributes(toolAttributes);
     // oxlint-disable-next-line typescript/no-deprecated -- Preserve classification based on the existing tool result attribute.
     if (toolAttributes[MCP_TOOL_RESULT_IS_ERROR] === true) {
-      span.setAttributes({ [ERROR_TYPE]: 'tool_error' });
+      span.setAttribute(ERROR_TYPE, 'tool_error');
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
     }
   } else if (method === 'prompts/get') {
