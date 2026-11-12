@@ -8,7 +8,7 @@
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
-    "test:build-mcp-sdk-otel": "pnpm install && pnpm add --config.block-exotic-subdeps=false https://pkg.pr.new/modelcontextprotocol/typescript-sdk/@modelcontextprotocol/server@919bb8e https://pkg.pr.new/modelcontextprotocol/typescript-sdk/@modelcontextprotocol/node@919bb8e @opentelemetry/api@^1.9.0 && pnpm add --config.block-exotic-subdeps=false -D https://pkg.pr.new/modelcontextprotocol/typescript-sdk/@modelcontextprotocol/client@919bb8e && pnpm build",
+    "test:build-mcp-sdk-otel": "pnpm install && pnpm add --config.block-exotic-subdeps=false https://pkg.pr.new/@modelcontextprotocol/server@919bb8e https://pkg.pr.new/@modelcontextprotocol/node@919bb8e https://pkg.pr.new/@modelcontextprotocol/client@919bb8e && pnpm build",
     "test:assert": "pnpm test",
     "test:assert-mcp-sdk-otel": "MCP_SDK_OTEL=1 pnpm test"
   },
