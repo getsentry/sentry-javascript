@@ -174,6 +174,16 @@ export function createSourceMapHandling(sentryBuildPluginManager: SentryBuildPlu
     }
   }
 
+  // CSS maps are assets that other plugins emit next to their CSS asset.
+  function dropCssSourceMaps(bundle: OutputBundle): void {
+    for (const [fileName, output] of Object.entries(bundle)) {
+      if (output.type === 'asset' && fileName.endsWith('.css.map')) {
+        // oxlint-disable-next-line typescript/no-dynamic-delete -- Rollup drops an asset when its key is deleted from the bundle
+        delete bundle[fileName];
+      }
+    }
+  }
+
   return {
     outputOptions: rawOutputOptions => {
       const kind = sourceMapKindFromRollupSetting(rawOutputOptions.sourcemap);
@@ -210,9 +220,17 @@ export function createSourceMapHandling(sentryBuildPluginManager: SentryBuildPlu
         return;
       }
 
+      const removeAll = record.decision.removeAllSourceMaps === true;
+      if (removeAll) {
+        dropCssSourceMaps(bundle);
+      }
+
       if (!sentryBuildPluginManager.sourceMaps.uploadPossible) {
-        dropSourceMaps(bundle, fileName =>
-          sentryBuildPluginManager.sourceMaps.shouldUpload(path.join(destination, fileName)),
+        dropSourceMaps(
+          bundle,
+          removeAll
+            ? undefined
+            : fileName => sentryBuildPluginManager.sourceMaps.shouldUpload(path.join(destination, fileName)),
         );
         return;
       }
@@ -238,16 +256,16 @@ export function createSourceMapHandling(sentryBuildPluginManager: SentryBuildPlu
             chunkPath: path.join(destination, output.fileName),
           });
 
-          // A map the plugin turned on never reaches the output, whether or
-          // not the chunk is uploaded. A map the user enabled stays unless
-          // it was staged.
-          if (result === 'staged' || record.kind === 'unset') {
+          // A map the plugin or the SDK turned on never reaches the output,
+          // whether or not the chunk is uploaded. A map the user enabled
+          // stays unless it was staged.
+          if (result === 'staged' || removeAll) {
             // oxlint-disable-next-line typescript/no-dynamic-delete -- Rollup drops an asset when its key is deleted from the bundle
             delete bundle[mapFileName];
           }
           if (result === 'skipped' || result === 'failed') {
             sentryBuildPluginManager.logger.warn(
-              record.kind === 'unset'
+              removeAll
                 ? `Could not prepare ${output.fileName} for upload, so it is not uploaded and its source map ${mapFileName} was removed from the build output.`
                 : `Could not prepare ${output.fileName} for upload, so its source map ${mapFileName} stays in the build output.`,
             );

@@ -16,6 +16,11 @@ export type SourceMapDecision = {
   enableHidden: boolean;
   /** Remove the source maps from the build output once they are uploaded. */
   deleteAfterUpload: boolean;
+  /**
+   * With `deleteAfterUpload`, remove every source map of the build, also those of CSS and of chunks
+   * the upload leaves out. Set when the plugin or the SDK turned the source maps on.
+   */
+  removeAllSourceMaps?: boolean;
   log?: { level: 'info' | 'warn'; message: string };
 };
 
@@ -25,6 +30,12 @@ const NO_CHANGE: SourceMapDecision = { enableHidden: false, deleteAfterUpload: f
 export function getDeleteSourcemapsAfterUpload(options: NormalizedOptions): boolean | undefined {
   const value = options.sourcemaps?.deleteSourcemapsAfterUpload;
   return typeof value === 'function' ? value() : value;
+}
+
+/** Reads the internal `sourcemaps.sdkEnabledSourceMaps` option, calling its function form if given. */
+export function getSdkEnabledSourceMaps(options: NormalizedOptions): boolean {
+  const value = options.sourcemaps?.sdkEnabledSourceMaps;
+  return (typeof value === 'function' ? value() : value) === true;
 }
 
 /**
@@ -38,6 +49,7 @@ export function decideSourceMapHandling(
   uploadPossible: boolean,
 ): SourceMapDecision {
   const deleteOption = getDeleteSourcemapsAfterUpload(options);
+  const sdkEnabledSourceMaps = getSdkEnabledSourceMaps(options);
 
   if (!uploadPossible || options.sourcemaps?.disable) {
     if (deleteOption !== true || (kind !== 'hidden' && kind !== 'visible')) {
@@ -46,6 +58,7 @@ export function decideSourceMapHandling(
     return {
       enableHidden: kind === 'visible',
       deleteAfterUpload: true,
+      removeAllSourceMaps: sdkEnabledSourceMaps,
       log: {
         level: 'info',
         message:
@@ -91,6 +104,7 @@ export function decideSourceMapHandling(
       return {
         enableHidden: true,
         deleteAfterUpload: true,
+        removeAllSourceMaps: true,
         log: {
           level: 'info',
           message:
@@ -100,7 +114,10 @@ export function decideSourceMapHandling(
       };
 
     case 'hidden':
-      return { enableHidden: false, deleteAfterUpload: deleteOption === true };
+      if (deleteOption !== true) {
+        return NO_CHANGE;
+      }
+      return { enableHidden: false, deleteAfterUpload: true, removeAllSourceMaps: sdkEnabledSourceMaps };
 
     case 'visible':
       if (deleteOption !== true) {
@@ -109,6 +126,7 @@ export function decideSourceMapHandling(
       return {
         enableHidden: true,
         deleteAfterUpload: true,
+        removeAllSourceMaps: sdkEnabledSourceMaps,
         log: {
           level: 'info',
           message:

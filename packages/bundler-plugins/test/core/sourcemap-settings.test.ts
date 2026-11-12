@@ -52,6 +52,7 @@ describe('decideSourceMapHandling', () => {
       expect(decideSourceMapHandling('hidden', options({ deleteSourcemapsAfterUpload: true }), true)).toEqual({
         enableHidden: false,
         deleteAfterUpload: true,
+        removeAllSourceMaps: false,
       });
     });
 
@@ -139,6 +140,45 @@ describe('decideSourceMapHandling', () => {
     );
   });
 
+  describe('with source maps the SDK turned on', () => {
+    const sdkOptions = { deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: true };
+
+    it.each<SourceMapKind>(['hidden', 'visible'])('removes all `%s` source maps', kind => {
+      expect(decideSourceMapHandling(kind, options(sdkOptions), true)).toMatchObject({
+        enableHidden: kind === 'visible',
+        deleteAfterUpload: true,
+        removeAllSourceMaps: true,
+      });
+    });
+
+    it.each<SourceMapKind>(['hidden', 'visible'])('removes all `%s` source maps when no upload can run', kind => {
+      expect(decideSourceMapHandling(kind, options(sdkOptions), false)).toMatchObject({
+        enableHidden: kind === 'visible',
+        deleteAfterUpload: true,
+        removeAllSourceMaps: true,
+      });
+    });
+
+    it.each<SourceMapKind>(['unset', 'off', 'inline'])('does not turn `%s` source maps on without an upload', kind => {
+      expect(decideSourceMapHandling(kind, options(sdkOptions), false)).toEqual(NO_CHANGE);
+    });
+
+    it.each([undefined, false])('keeps them when `deleteSourcemapsAfterUpload` is %s', deleteSourcemapsAfterUpload => {
+      expect(
+        decideSourceMapHandling('hidden', options({ deleteSourcemapsAfterUpload, sdkEnabledSourceMaps: true }), true),
+      ).toEqual(NO_CHANGE);
+    });
+
+    it('calls the function form when it decides', () => {
+      let value: boolean | undefined;
+      const normalized = options({ deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: () => value });
+
+      expect(decideSourceMapHandling('hidden', normalized, true)).toMatchObject({ removeAllSourceMaps: false });
+      value = true;
+      expect(decideSourceMapHandling('hidden', normalized, true)).toMatchObject({ removeAllSourceMaps: true });
+    });
+  });
+
   describe('with the internal function form', () => {
     it('calls the function when it decides', () => {
       let value: boolean | undefined;
@@ -149,6 +189,7 @@ describe('decideSourceMapHandling', () => {
       expect(decideSourceMapHandling('hidden', normalized, true)).toEqual({
         enableHidden: false,
         deleteAfterUpload: true,
+        removeAllSourceMaps: false,
       });
     });
 

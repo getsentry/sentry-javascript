@@ -1,4 +1,4 @@
-import type { Options, SourceMapDecision, SourceMapKind } from '../core';
+import type { InternalOptions, SourceMapDecision, SourceMapKind } from '../core';
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
@@ -110,7 +110,7 @@ function getEsbuildMajorVersion(): string | undefined {
 const pluginName = 'sentry-esbuild-plugin';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function sentryEsbuildPlugin(userOptions: Options = {}): any {
+export function sentryEsbuildPlugin(userOptions: InternalOptions = {}): any {
   const sentryBuildPluginManager = createSentryBuildPluginManager(userOptions, {
     loggerPrefix: userOptions._metaOptions?.loggerPrefixOverride ?? `[${pluginName}]`,
     buildTool: 'esbuild',
@@ -333,6 +333,7 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
             : [];
 
           const { sourceMaps } = sentryBuildPluginManager;
+          const allMaps = buildArtifacts.filter(artifact => artifact.endsWith('.map'));
           const deleteWithoutUpload = sourceMapDecision.deleteAfterUpload && !sourceMaps.uploadPossible;
           if (sourcemapsEnabled && options.sourcemaps?.disable === 'disable-upload') {
             if (initialOptions.write === false) {
@@ -358,10 +359,7 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
             // A map the plugin turned on never stays in the output. A map the user
             // enabled is only deleted once it was uploaded.
             if (sourceMapDecision.deleteAfterUpload) {
-              const mapsToDelete =
-                sourceMapKind === 'unset'
-                  ? buildArtifacts.filter(artifact => artifact.endsWith('.map'))
-                  : uploadedSourceMapPaths;
+              const mapsToDelete = sourceMapDecision.removeAllSourceMaps ? allMaps : uploadedSourceMapPaths;
 
               if (uploaded) {
                 await sourceMaps.deleteFromOutput(mapsToDelete);
@@ -373,8 +371,11 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
 
           if (deleteWithoutUpload) {
             const bundleOf = (map: string): string => map.slice(0, -'.map'.length);
-            const maps = buildArtifacts.filter(file => file.endsWith('.map') && isJsFile(bundleOf(file)));
-            await sourceMaps.deleteFromOutput(maps.filter(map => sourceMaps.shouldUpload(bundleOf(map))));
+            const isUploaded = (map: string): boolean =>
+              isJsFile(bundleOf(map)) && sourceMaps.shouldUpload(bundleOf(map));
+            await sourceMaps.deleteFromOutput(
+              sourceMapDecision.removeAllSourceMaps ? allMaps : allMaps.filter(isUploaded),
+            );
           }
         } finally {
           freeGlobalDependencyOnBuildArtifacts();

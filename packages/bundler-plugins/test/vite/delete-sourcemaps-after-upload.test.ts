@@ -5,7 +5,7 @@ import { build, createBuilder } from 'vite';
 import type { Plugin, ResolvedConfig } from 'vite';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { sentryVitePlugin } from '../../src/vite';
-import type { Options } from '../../src/core';
+import type { InternalOptions, Options } from '../../src/core';
 
 const { mockSourcemapUpload } = vi.hoisted(() => ({ mockSourcemapUpload: vi.fn() }));
 
@@ -70,7 +70,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (vite)', () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
-  function viteConfig(pluginOptions: Options, plugins: Plugin[] = []) {
+  function viteConfig(pluginOptions: InternalOptions, plugins: Plugin[] = []) {
     return {
       configFile: false as const,
       logLevel: 'silent' as const,
@@ -232,6 +232,35 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (vite)', () => {
     expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toEqual([]);
     expect(uploads).toHaveLength(1);
     expectUploadedPairs(uploads[0]!, readChunks(outDir));
+  });
+
+  it('removes the maps of ignored chunks and of CSS when the SDK turned the maps on', async () => {
+    let sdkEnabled: boolean | undefined;
+    const sdkPlugin: Plugin = {
+      name: 'sdk',
+      config() {
+        sdkEnabled = true;
+        return { build: { sourcemap: 'hidden' } };
+      },
+      generateBundle() {
+        this.emitFile({ type: 'asset', fileName: 'assets/style.css.map', source: '{"version":3,"mappings":""}' });
+      },
+    };
+    const config = viteConfig(
+      {
+        sourcemaps: {
+          deleteSourcemapsAfterUpload: true,
+          sdkEnabledSourceMaps: () => sdkEnabled,
+          ignore: ['**/lazy-*'],
+        },
+      },
+      [sdkPlugin],
+    );
+    await build(config);
+
+    expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toEqual([]);
+    expect(uploads).toHaveLength(1);
+    expect(Object.keys(uploads[0]!.files).filter(file => file.endsWith('.js'))).toHaveLength(1);
   });
 
   it('keeps hidden source maps the user enabled and uploads them from disk', async () => {

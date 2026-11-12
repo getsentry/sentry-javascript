@@ -5,7 +5,7 @@ import * as esbuild from 'esbuild';
 import type { BuildOptions } from 'esbuild';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { sentryEsbuildPlugin } from '../../src/esbuild';
-import type { Options } from '../../src/core';
+import type { InternalOptions, Options } from '../../src/core';
 
 const { mockSourcemapUpload } = vi.hoisted(() => ({ mockSourcemapUpload: vi.fn() }));
 
@@ -58,7 +58,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (esbuild)', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  function build(pluginOptions: Options = {}, overrides: BuildOptions = {}) {
+  function build(pluginOptions: InternalOptions = {}, overrides: BuildOptions = {}) {
     return esbuild.build({
       entryPoints: [entry],
       bundle: true,
@@ -173,6 +173,23 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (esbuild)', () => {
     expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'vendor.js', 'vendor.js.map']);
     expect(uploads).toHaveLength(1);
   });
+
+  it.each<[string, InternalOptions]>([
+    ['after the upload', {}],
+    ['when no upload runs', { authToken: undefined }],
+  ])(
+    'deletes every map the SDK turned on, also those of chunks and CSS that were not uploaded (%s)',
+    async (_, options) => {
+      await build(
+        { ...options, sourcemaps: { deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: true } },
+        { ...writeSplitBuild(), sourcemap: 'external' },
+      );
+
+      const files = fs.readdirSync(outDir);
+      expect(files.filter(file => file.endsWith('.map'))).toEqual([]);
+      expect(files).toContain('entry.css');
+    },
+  );
 
   it('warns when source maps are turned off', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
