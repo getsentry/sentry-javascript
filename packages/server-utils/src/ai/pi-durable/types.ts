@@ -1,25 +1,8 @@
 /**
- * Structural subsets of the `@earendil-works/pi-durable` and `@earendil-works/pi-ai` types the
- * instrumentation reads. The SDK does not depend on either package, so only the fields used here
- * are declared, and every one of them is treated as possibly absent at runtime.
+ * Structural subsets of the `@earendil-works/pi-durable` types the instrumentation reads. The SDK
+ * does not depend on the package, so only the fields used here are declared, and every one of them
+ * is treated as possibly absent at runtime.
  */
-
-import type { PiAiContext } from '../pi-ai/messages';
-import type { PiAssistantMessage, PiEventStream, PiModel, PiStreamOptions } from '../pi-ai/types';
-
-/**
- * The `Models` methods that send a model request. Everything else passes through untouched. The
- * deferred methods fetch the answer of a request the provider parked, so they take a handle in
- * place of the request context.
- */
-export interface PiModels {
-  stream?(model: PiModel, context: PiAiContext, options?: PiStreamOptions): PiEventStream;
-  streamSimple?(model: PiModel, context: PiAiContext, options?: PiStreamOptions): PiEventStream;
-  complete?(model: PiModel, context: PiAiContext, options?: PiStreamOptions): Promise<PiAssistantMessage>;
-  completeSimple?(model: PiModel, context: PiAiContext, options?: PiStreamOptions): Promise<PiAssistantMessage>;
-  streamDeferred?(model: PiModel, handle: unknown, options?: unknown): PiEventStream;
-  fetchDeferred?(model: PiModel, handle: unknown, options?: unknown): Promise<PiAssistantMessage>;
-}
 
 export interface PiToolExecutionResult {
   /** The content blocks the tool returns for the model, in pi-durable 1.2.0 and later. */
@@ -111,7 +94,6 @@ export interface PiRegistryReader {
 }
 
 export interface PiHarnessOptions {
-  models?: PiModels;
   registry?: PiRegistryReader;
   onReport?: (error: unknown) => void;
 }

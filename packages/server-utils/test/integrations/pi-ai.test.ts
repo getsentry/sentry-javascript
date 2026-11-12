@@ -1,9 +1,6 @@
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { Span } from '@sentry/core';
 import {
-  _INTERNAL_clearAiProviderSkips,
-  _INTERNAL_shouldSkipAiProviderWrapping,
-  _INTERNAL_skipAiProviderWrapping,
   GLOBAL_OBJ,
   setAsyncContextStrategy,
   setCurrentClient,
@@ -39,14 +36,15 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT } from '@sentry/conventions/op';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { ANTHROPIC_AI_INTEGRATION_NAME } from '../../src/ai/anthropic-ai/constants';
-import { GOOGLE_GENAI_INTEGRATION_NAME } from '../../src/ai/google-genai/constants';
-import { OPENAI_INTEGRATION_NAME } from '../../src/ai/openai/constants';
 import { getPiAiChatSpanOptions, setPiAiResponseAttributes } from '../../src/ai/pi-ai/chat';
-import { PI_AI_ORIGIN } from '../../src/ai/pi-ai/constants';
+import { resolvePiAiRecordingOptions, setPiAiRecordingOptions } from '../../src/ai/pi-ai/recording';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../../src/async-context';
 import type { PiEventStream } from '../../src/ai/pi-ai/types';
 import { instrumentWorkersAiClient } from '../../src/ai/workers-ai';
+import { anthropicAIIntegration } from '../../src/integrations/anthropic';
+import { googleGenAIIntegration } from '../../src/integrations/google-genai';
+import { mistralAIIntegration } from '../../src/integrations/mistral';
+import { openAIIntegration } from '../../src/integrations/openai';
 import { piAiIntegration } from '../../src/integrations/pi-ai';
 import { CHANNELS } from '../../src/orchestrion/channels';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
@@ -85,9 +83,19 @@ describe('piAiIntegration', () => {
 
   beforeAll(() => {
     setAsyncLocalStorageAsyncContextStrategy();
-    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { runtime: ['@earendil-works/pi-ai'] };
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = {
+      runtime: ['@earendil-works/pi-ai', 'openai', '@anthropic-ai/sdk', '@google/genai', '@mistralai/mistralai'],
+    };
     useClient();
-    piAiIntegration().setup!(client);
+    for (const integration of [
+      piAiIntegration(),
+      openAIIntegration(),
+      anthropicAIIntegration(),
+      googleGenAIIntegration(),
+      mistralAIIntegration(),
+    ]) {
+      integration.setup!(client);
+    }
   });
 
   afterAll(() => {
@@ -96,7 +104,6 @@ describe('piAiIntegration', () => {
   });
 
   beforeEach(() => {
-    _INTERNAL_clearAiProviderSkips();
     endedSpans = [];
     useClient();
   });
@@ -171,6 +178,19 @@ describe('piAiIntegration', () => {
     await stream(() => stream(settlesWith(ANSWER), MODEL, { messages: [] }), MODEL, { messages: [] }).result();
 
     expect(endedSpans.map(span => spanToJSON(span).attributes[GEN_AI_RESPONSE_STREAMING])).toEqual([undefined, true]);
+  });
+
+  it('traces a call that makes another traced call after an await as one request', async () => {
+    await complete(
+      async () => {
+        await Promise.resolve();
+        return stream(settlesWith(ANSWER), MODEL, { messages: [] }).result();
+      },
+      MODEL,
+      { messages: [] },
+    );
+
+    expect(endedSpans).toHaveLength(1);
   });
 
   it('traces requests after a nested one, and after one that threw', async () => {
@@ -282,55 +302,95 @@ describe('piAiIntegration', () => {
     expect(endedSpans.map(span => spanToJSON(span).attributes[SENTRY_OP])).toEqual([GEN_AI_CHAT]);
   });
 
-  describe('provider skip', () => {
-    it('skips the provider integrations on the first request, not at setup', async () => {
-      expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(false);
+  describe('provider SDK integrations', () => {
+    const spanNames = (): string[] => endedSpans.map(span => spanToJSON(span).name);
 
-      await complete(async () => ANSWER, MODEL, { messages: [] });
+    describe.each([
+      ['openai', CHANNELS.OPENAI_CHAT],
+      ['@anthropic-ai/sdk', CHANNELS.ANTHROPIC_CHAT],
+      ['@google/genai', CHANNELS.GOOGLE_GENAI_GENERATE_CONTENT],
+      ['@mistralai/mistralai', CHANNELS.MISTRAL_CHAT],
+    ])('%s', (_module, channel) => {
+      const callSdk = (): Promise<unknown> =>
+        tracingChannel(channel).tracePromise(async () => ({}), {
+          arguments: [{ model: 'sdk-model', messages: [] }],
+        });
 
-      expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
-      expect(_INTERNAL_shouldSkipAiProviderWrapping(ANTHROPIC_AI_INTEGRATION_NAME)).toBe(true);
-      expect(_INTERNAL_shouldSkipAiProviderWrapping(GOOGLE_GENAI_INTEGRATION_NAME)).toBe(true);
-    });
+      it('does not report a request pi-ai sends with `complete`', async () => {
+        await complete(
+          async () => {
+            await callSdk();
+            return ANSWER;
+          },
+          MODEL,
+          { messages: [] },
+        );
 
-    // The registry is reset per client, so a one-shot call would be undone by the next `init()`.
-    it('applies the skip again after the registry is cleared', async () => {
-      await complete(async () => ANSWER, MODEL, { messages: [] });
-      _INTERNAL_clearAiProviderSkips();
-      expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(false);
+        expect(spanNames()).toEqual(['chat faux-model']);
+      });
 
-      await complete(async () => ANSWER, MODEL, { messages: [] });
+      it('does not report a request pi-ai sends with `stream`', async () => {
+        const sent = { result: async () => ANSWER };
+        await stream(
+          () => {
+            void callSdk();
+            return sent as PiEventStream;
+          },
+          MODEL,
+          { messages: [] },
+        ).result();
 
-      expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
-    });
+        expect(spanNames()).toEqual(['chat faux-model']);
+      });
 
-    it('applies the skip to every provider when only some are already registered', async () => {
-      _INTERNAL_skipAiProviderWrapping([OPENAI_INTEGRATION_NAME]);
+      it('reports a direct call made after a pi-ai request', async () => {
+        await complete(async () => ANSWER, MODEL, { messages: [] });
+        await callSdk();
 
-      await complete(async () => ANSWER, MODEL, { messages: [] });
+        expect(spanNames()).toEqual(['chat faux-model', expect.stringContaining('sdk-model')]);
+      });
 
-      expect(_INTERNAL_shouldSkipAiProviderWrapping(ANTHROPIC_AI_INTEGRATION_NAME)).toBe(true);
-      expect(_INTERNAL_shouldSkipAiProviderWrapping(GOOGLE_GENAI_INTEGRATION_NAME)).toBe(true);
+      it('reports a direct call made while a pi-ai request is in flight', async () => {
+        let settle!: (message: unknown) => void;
+        const request = complete(() => new Promise(resolve => (settle = resolve)), MODEL, { messages: [] });
+
+        await callSdk();
+        expect(spanNames()).toEqual([expect.stringContaining('sdk-model')]);
+
+        settle(ANSWER);
+        await request;
+      });
     });
 
     // `createAI()` of `agents/models/pi-ai` sends pi-ai requests through the Workers AI binding.
-    it('reports a request sent through the Workers AI binding once', async () => {
+    describe('Workers AI binding', () => {
       const ai = instrumentWorkersAiClient({
         run: async (_model: string, _inputs: unknown, _options: unknown) => new Response('{}'),
         gateway: () => ({}),
         toMarkdown: async () => [],
       });
+      const callBinding = (): Promise<unknown> =>
+        ai.run('@cf/moonshotai/kimi-k2.7-code', { messages: [] }, { returnRawResponse: true });
 
-      await complete(
-        async () => {
-          await ai.run('@cf/moonshotai/kimi-k2.7-code', { messages: [] }, { returnRawResponse: true });
-          return ANSWER;
-        },
-        MODEL,
-        { messages: [] },
-      );
+      it('does not report a request pi-ai sends', async () => {
+        await complete(
+          async () => {
+            await callBinding();
+            return ANSWER;
+          },
+          MODEL,
+          { messages: [] },
+        );
 
-      expect(endedSpans.map(span => spanToJSON(span).name)).toEqual(['chat faux-model']);
+        expect(spanNames()).toEqual(['chat faux-model']);
+      });
+
+      it('reports a direct call made after a pi-ai request', async () => {
+        await complete(async () => ANSWER, MODEL, { messages: [] });
+        await callBinding();
+
+        expect(spanNames()).toEqual(['chat faux-model', expect.stringContaining('kimi-k2.7-code')]);
+      });
     });
   });
 
@@ -355,7 +415,7 @@ describe('piAiIntegration', () => {
 
     it('records nothing when inputs and outputs are off', () => {
       const span = startInactiveSpan(
-        getPiAiChatSpanOptions({ model: MODEL, context, streaming: false, origin: PI_AI_ORIGIN, recordInputs: false }),
+        getPiAiChatSpanOptions({ model: MODEL, context, streaming: false, recordInputs: false }),
       );
       setPiAiResponseAttributes(span, message, false);
       span.end();
@@ -375,6 +435,45 @@ describe('piAiIntegration', () => {
       for (const attribute of CONTENT_ATTRIBUTES) {
         expect(recorded).not.toContain(attribute);
       }
+    });
+
+    it('follows the options set on the scope, also for a response that settles outside of it', async () => {
+      let settle!: (answer: unknown) => void;
+      const result = new Promise(resolve => (settle = resolve));
+
+      const events = withScope(scope => {
+        setPiAiRecordingOptions(scope, { recordInputs: false, recordOutputs: false });
+        return stream(() => ({ result: () => result }), MODEL, context);
+      });
+      settle(message);
+      await events.result();
+
+      expect(endedSpans).toHaveLength(1);
+      const recorded = endedSpans.flatMap(span => Object.keys(spanToJSON(span).attributes));
+      for (const attribute of CONTENT_ATTRIBUTES) {
+        expect(recorded).not.toContain(attribute);
+      }
+    });
+
+    it.each([
+      // driver, piAiIntegration, dataCollection.genAI, expected
+      [undefined, undefined, undefined, true],
+      [undefined, undefined, false, false],
+      [undefined, true, false, true],
+      [undefined, false, true, false],
+      [true, undefined, false, true],
+      [false, undefined, true, false],
+      [false, true, true, false],
+      [true, false, true, false],
+    ])('resolves driver %s, pi-ai %s and client %s to %s', (driver, piAi, genAI, expected) => {
+      useClient({ dataCollection: { genAI: { inputs: genAI, outputs: genAI } } });
+
+      const resolved = withScope(scope => {
+        setPiAiRecordingOptions(scope, { recordInputs: driver, recordOutputs: driver });
+        return resolvePiAiRecordingOptions({ recordInputs: piAi, recordOutputs: piAi });
+      });
+
+      expect(resolved).toEqual({ recordInputs: expected, recordOutputs: expected });
     });
   });
 });

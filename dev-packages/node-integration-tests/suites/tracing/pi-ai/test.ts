@@ -88,6 +88,50 @@ describe.runIf(supports({ min: 22 }))('pi-ai integration', () => {
     });
   });
 
+  createEsmTests(__dirname, 'scenario-provider-sdk.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('reports requests through a provider SDK once, and leaves direct calls to it alone', async () => {
+      await createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const spans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT);
+            const namesFrom = (origin: string): (string | undefined)[] =>
+              spans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === origin).map(span => span.name);
+
+            expect(namesFrom('auto.ai.pi_ai')).toEqual(['chat pi-model', 'chat pi-model']);
+            expect(namesFrom('auto.ai.openai')).toEqual(['chat direct-model', 'chat direct-model']);
+            expect(spans).toHaveLength(4);
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmTests(__dirname, 'scenario-bedrock.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('reports a Bedrock request once, as the chat span of pi-ai', async () => {
+      await createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const chats = container.items.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT);
+            expect(chats.map(span => [span.name, span.attributes[SENTRY_ORIGIN]?.value])).toEqual([
+              ['chat pi-bedrock-model', 'auto.ai.pi_ai'],
+            ]);
+
+            // The AWS SDK call that pi-ai makes keeps its plain client span, under the chat span.
+            const awsCall = container.items.find(span => span.name === 'BedrockRuntime.ConverseStream');
+            expect(awsCall?.attributes[SENTRY_OP]?.value).toBe('rpc');
+            expect(awsCall?.attributes[SENTRY_ORIGIN]?.value).toBe('auto.rpc.aws_sdk');
+            expect(awsCall?.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBeUndefined();
+            expect(awsCall?.parent_span_id).toBe(chats[0]?.span_id);
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
   createEsmTests(__dirname, 'scenario-compat.mjs', 'instrument.mjs', (createRunner, test) => {
     // `compat` loads pi-ai's model catalog with `import ... with { type: 'json' }`. Deno 2.8 drops
     // the import attributes once any module hook is registered and compiles the JSON as JavaScript,

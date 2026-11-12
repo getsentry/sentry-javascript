@@ -1,13 +1,14 @@
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
-import { _INTERNAL_shouldSkipAiProviderWrapping, defineIntegration, startInactiveSpan } from '@sentry/core';
+import { defineIntegration, startInactiveSpan } from '@sentry/core';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/mistral';
 import { MISTRAL_INTEGRATION_NAME, MISTRAL_ORIGIN } from '../ai/mistral/constants';
 import { instrumentEventStream } from '../ai/mistral/streaming';
 import type { MistralOptions } from '../ai/mistral/types';
 import { addResponseAttributes, getSpanName } from '../ai/mistral/utils';
+import { shouldSkipAiProviderSpan } from '../ai/pi-ai/providers';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { mistralModuleNames } from '../orchestrion/config/mistral';
@@ -62,9 +63,7 @@ function createGenAiSpan(
   streaming: boolean,
   options: MistralOptions,
 ): Span | undefined {
-  // When another provider (e.g. LangChain) is driving the SDK, it records the spans itself and marks
-  // this provider as skipped; skip here to avoid double spans.
-  if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME)) {
+  if (shouldSkipAiProviderSpan(INTEGRATION_NAME)) {
     return undefined;
   }
 
