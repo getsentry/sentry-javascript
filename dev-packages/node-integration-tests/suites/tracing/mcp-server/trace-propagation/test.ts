@@ -1,3 +1,5 @@
+import { MCP_METHOD_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import { MCP_SERVER } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
@@ -14,8 +16,8 @@ describe('MCP server trace propagation via params._meta', () => {
           span: container => {
             const tool = container.items.find(
               item =>
-                item.attributes['sentry.op']?.value === 'mcp.server' &&
-                item.attributes['mcp.method.name']?.value === 'tools/call',
+                item.attributes[SENTRY_OP]?.value === MCP_SERVER &&
+                item.attributes[MCP_METHOD_NAME]?.value === 'tools/call',
             );
             expect(tool, 'expected an mcp.server span for tools/call').toBeDefined();
             expect(tool!.name).toBe('tools/call echo');
