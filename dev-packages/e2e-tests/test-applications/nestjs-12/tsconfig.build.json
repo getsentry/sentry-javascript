@@ -1,4 +1,13 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["node_modules", "test", "tests", "dist"]
+  "exclude": [
+    "node_modules",
+    "test",
+    "tests",
+    "dist",
+    "workers",
+    "vite.config.ts",
+    "src/**/*.bun.ts",
+    "src/**/*.deno.ts"
+  ]
 }
