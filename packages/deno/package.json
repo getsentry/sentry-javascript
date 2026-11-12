@@ -56,7 +56,7 @@
     "test:types": "deno check --unstable-sloppy-imports test",
     "test:unit": "deno test --allow-net --allow-read --allow-run --allow-env --no-check",
     "test:unit:update": "deno test --allow-net --allow-read --allow-run --allow-env --no-check --allow-write -- --update",
-    "yalc:publish": "pnpm dlx yalc@1.0.0-pre.53 publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
   "sideEffects": [
     "./build/import.mjs"

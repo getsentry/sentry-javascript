@@ -131,7 +131,7 @@
     "test:unit": "vitest run",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "yalc:publish": "pnpm dlx yalc@1.0.0-pre.53 publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
   "sideEffects": false,
   "nx": {
