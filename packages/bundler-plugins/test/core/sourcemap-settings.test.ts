@@ -193,6 +193,20 @@ describe('decideSourceMapHandling', () => {
       });
     });
 
+    it('passes the environment to both functions', () => {
+      const normalized = options({
+        deleteSourcemapsAfterUpload: environment => environment === 'client',
+        sdkEnabledSourceMaps: environment => environment === 'client',
+      });
+
+      expect(decideSourceMapHandling('hidden', normalized, true, 'client')).toMatchObject({
+        deleteAfterUpload: true,
+        removeAllSourceMaps: true,
+      });
+      expect(decideSourceMapHandling('hidden', normalized, true, 'nitro')).toEqual(NO_CHANGE);
+      expect(decideSourceMapHandling('hidden', normalized, true)).toEqual(NO_CHANGE);
+    });
+
     it('treats `undefined` from the function like an unset option', () => {
       expect(decideSourceMapHandling('unset', options({ deleteSourcemapsAfterUpload: () => undefined }), true)).toEqual(
         decideSourceMapHandling('unset', options(), true),

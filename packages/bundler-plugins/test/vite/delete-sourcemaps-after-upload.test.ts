@@ -388,6 +388,34 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (vite)', () => {
     expect(uploads).toHaveLength(2);
   });
 
+  it('asks the function form per environment with its own setting', async () => {
+    const serverOutDir = path.join(root, 'dist-server');
+    const askedFor: Array<string | undefined> = [];
+    const builder = await createBuilder({
+      ...viteConfig({
+        sourcemaps: {
+          deleteSourcemapsAfterUpload: environment => {
+            askedFor.push(environment);
+            return environment === undefined ? true : undefined;
+          },
+        },
+      }),
+      build: { outDir, minify: false, sourcemap: 'hidden', rollupOptions: { input: entry } },
+      environments: {
+        ssr: {
+          build: { outDir: serverOutDir, minify: false, sourcemap: 'hidden', rollupOptions: { input: entry } },
+        },
+      },
+      builder: {},
+    });
+    await builder.buildApp();
+
+    expect(askedFor).toContain(undefined);
+    expect(askedFor).toContain('ssr');
+    expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toEqual([]);
+    expect(listFiles(serverOutDir).filter(file => file.endsWith('.map'))).toHaveLength(2);
+  });
+
   it('still restores debug IDs for "disable-upload" builds', async () => {
     const config = viteConfig({ sourcemaps: { disable: 'disable-upload' } });
     await build({ ...config, build: { ...config.build, sourcemap: true } });

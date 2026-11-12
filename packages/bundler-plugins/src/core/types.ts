@@ -678,16 +678,17 @@ export type HandleRecoverableErrorFn = (error: unknown, throwByDefault: boolean)
  * Like `Options`, but `sourcemaps.deleteSourcemapsAfterUpload` can also be a function, and
  * `sourcemaps.sdkEnabledSourceMaps` is added. The plugin calls the functions when it decides how
  * to treat the bundler's source map setting, so an SDK can give a value that it only knows after it
- * created the plugin.
+ * created the plugin. Vite passes the name of an environment with its own `build.sourcemap`, and
+ * `undefined` for the top-level `build.sourcemap`.
  */
 export type InternalOptions = Omit<Options, 'sourcemaps'> & {
   sourcemaps?: Omit<NonNullable<Options['sourcemaps']>, 'deleteSourcemapsAfterUpload'> & {
-    deleteSourcemapsAfterUpload?: boolean | (() => boolean | undefined);
+    deleteSourcemapsAfterUpload?: boolean | ((environment?: string) => boolean | undefined);
     /**
      * The SDK turned on the bundler's source maps. With `deleteSourcemapsAfterUpload: true` the
      * plugin then removes them like source maps it turned on itself: all of them, also those of CSS
      * and of chunks that the upload leaves out.
      */
-    sdkEnabledSourceMaps?: boolean | (() => boolean | undefined);
+    sdkEnabledSourceMaps?: boolean | ((environment?: string) => boolean | undefined);
   };
 };

@@ -30,8 +30,8 @@ export type NormalizedOptions = {
         rewriteSources?: RewriteSourcesHook;
         resolveSourceMap?: ResolveSourceMapHook;
         filesToDeleteAfterUpload?: string | string[] | Promise<string | string[] | undefined>;
-        deleteSourcemapsAfterUpload?: boolean | (() => boolean | undefined);
-        sdkEnabledSourceMaps?: boolean | (() => boolean | undefined);
+        deleteSourcemapsAfterUpload?: boolean | ((environment?: string) => boolean | undefined);
+        sdkEnabledSourceMaps?: boolean | ((environment?: string) => boolean | undefined);
       }
     | undefined;
   release: {

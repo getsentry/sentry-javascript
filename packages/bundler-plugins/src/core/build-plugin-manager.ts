@@ -153,7 +153,7 @@ export type SentryBuildPluginManager = {
      * Decides how the plugin treats the user's source map setting (see `decideSourceMapHandling`).
      * Logs the decision's message once per message, unless `log` is `false`.
      */
-    decide(kind: SourceMapKind, options?: { log?: boolean }): SourceMapDecision;
+    decide(kind: SourceMapKind, options?: { log?: boolean; environment?: string }): SourceMapDecision;
     /** Logs the decision's message, once per message. */
     logDecision(decision: SourceMapDecision): void;
     /**
@@ -970,8 +970,8 @@ export function createSentryBuildPluginManager(
 
     sourceMaps: {
       uploadPossible: sourceMapUploadPossible,
-      decide(kind, { log = true } = {}) {
-        const decision = decideSourceMapHandling(kind, options, sourceMapUploadPossible);
+      decide(kind, { log = true, environment } = {}) {
+        const decision = decideSourceMapHandling(kind, options, sourceMapUploadPossible, environment);
         if (log) {
           logDecision(decision);
         }

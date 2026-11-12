@@ -27,15 +27,15 @@ export type SourceMapDecision = {
 const NO_CHANGE: SourceMapDecision = { enableHidden: false, deleteAfterUpload: false };
 
 /** Reads `sourcemaps.deleteSourcemapsAfterUpload`, calling the internal function form if given. */
-export function getDeleteSourcemapsAfterUpload(options: NormalizedOptions): boolean | undefined {
+export function getDeleteSourcemapsAfterUpload(options: NormalizedOptions, environment?: string): boolean | undefined {
   const value = options.sourcemaps?.deleteSourcemapsAfterUpload;
-  return typeof value === 'function' ? value() : value;
+  return typeof value === 'function' ? value(environment) : value;
 }
 
 /** Reads the internal `sourcemaps.sdkEnabledSourceMaps` option, calling its function form if given. */
-export function getSdkEnabledSourceMaps(options: NormalizedOptions): boolean {
+export function getSdkEnabledSourceMaps(options: NormalizedOptions, environment?: string): boolean {
   const value = options.sourcemaps?.sdkEnabledSourceMaps;
-  return (typeof value === 'function' ? value() : value) === true;
+  return (typeof value === 'function' ? value(environment) : value) === true;
 }
 
 /**
@@ -47,9 +47,10 @@ export function decideSourceMapHandling(
   kind: SourceMapKind,
   options: NormalizedOptions,
   uploadPossible: boolean,
+  environment?: string,
 ): SourceMapDecision {
-  const deleteOption = getDeleteSourcemapsAfterUpload(options);
-  const sdkEnabledSourceMaps = getSdkEnabledSourceMaps(options);
+  const deleteOption = getDeleteSourcemapsAfterUpload(options, environment);
+  const sdkEnabledSourceMaps = getSdkEnabledSourceMaps(options, environment);
 
   if (!uploadPossible || options.sourcemaps?.disable) {
     if (deleteOption !== true || (kind !== 'hidden' && kind !== 'visible')) {

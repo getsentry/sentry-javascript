@@ -97,7 +97,10 @@ export function createViteSourceMapHooks(
         }
 
         const environmentKind = sourceMapKindFromRollupSetting(setting);
-        const environmentDecision = sentryBuildPluginManager.sourceMaps.decide(environmentKind, { log: false });
+        const environmentDecision = sentryBuildPluginManager.sourceMaps.decide(environmentKind, {
+          log: false,
+          environment: name,
+        });
         decisions.set(name, { kind: environmentKind, decision: environmentDecision });
 
         if (environmentDecision.enableHidden) {
@@ -111,10 +114,12 @@ export function createViteSourceMapHooks(
     configResolved: config => {
       const environments = config.environments ?? { client: { build: config.build } };
 
-      const deleteOption = getDeleteSourcemapsAfterUpload(sentryBuildPluginManager.normalizedOptions);
-
       for (const [name, environment] of Object.entries(environments)) {
         const { kind, decision } = decisions.get(name) ?? decisions.get('*') ?? { kind: 'unset', decision: NO_CHANGE };
+        const deleteOption = getDeleteSourcemapsAfterUpload(
+          sentryBuildPluginManager.normalizedOptions,
+          decisions.has(name) ? name : undefined,
+        );
 
         for (const output of getOutputs(config.root, environment.build)) {
           // The plugin never changes an output's own setting, so the user enabled
