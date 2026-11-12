@@ -62,7 +62,7 @@ jobs:
         run: |
           /nsc/powertoys/spacectl cache mount --help
           if command -v nsc >/dev/null; then
-            nsc describe -o json > "$RUNNER_TEMP/namespace-instance.json"
+            nsc describe "${RUNNER_NAME#nsc-runner-}" -o json > "$RUNNER_TEMP/namespace-instance.json"
             jq 'paths(scalars) as $p | ($p | map(tostring) | join(".")) as $name |
               select($name | test("cache|volume|branch|commit"; "i")) |
               select($name | test("token|auth|secret|credential|key|url"; "i") | not) |
