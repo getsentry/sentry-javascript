@@ -104,7 +104,7 @@ export { parameterize, fmt } from './utils/parameterize';
 export type { HandleTunnelRequestOptions } from './utils/tunnelForward';
 export { handleTunnelRequest } from './utils/tunnelForward';
 export {
-  applyTunnelDefaults as _INTERNAL_applyTunnelDefaults,
+  applyBrowserTunnelDefaults as _INTERNAL_applyBrowserTunnelDefaults,
   getTunnelPath,
   normalizeTunnelBasePath as _INTERNAL_normalizeTunnelBasePath,
 } from './utils/tunnel';
@@ -185,14 +185,14 @@ export { instrumentFetchRequest, _INTERNAL_getTracingHeadersForFetchRequest } fr
 export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';
 export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/internal';
-export * as logger from './logs/public-api';
+export { logger } from './logs/public-api';
 export { consoleLoggingIntegration } from './logs/console-integration';
 export {
   _INTERNAL_captureMetric,
   _INTERNAL_flushMetricsBuffer,
   _INTERNAL_captureSerializedMetric,
 } from './metrics/internal';
-export * as metrics from './metrics/public-api';
+export { metrics } from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
 export { SpanBuffer } from './tracing/spans/spanBuffer';

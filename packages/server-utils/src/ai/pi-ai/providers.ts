@@ -1,30 +1,21 @@
-import { _INTERNAL_shouldSkipAiProviderWrapping, _INTERNAL_skipAiProviderWrapping } from '@sentry/core';
-import { ANTHROPIC_AI_INTEGRATION_NAME } from '../anthropic-ai/constants';
-import { GOOGLE_GENAI_INTEGRATION_NAME } from '../google-genai/constants';
-import { OPENAI_INTEGRATION_NAME } from '../openai/constants';
-import { WORKERS_AI_INTEGRATION_NAME } from '../workers-ai/constants';
-
-// pi-ai sends its requests through the `openai`, `@anthropic-ai/sdk` and `@google/genai` clients, and
-// on Cloudflare through the Workers AI binding (`createAI()` of `agents/models/pi-ai`). Left alone,
-// those integrations report the same request a second time beside the `chat` span of the framework
-// that sent it. Bedrock requests go through `@aws-sdk/client-bedrock-runtime`, which `awsIntegration`
-// still reports; that one has no skip yet.
-const PI_AI_PROVIDER_INTEGRATIONS = [
-  OPENAI_INTEGRATION_NAME,
-  ANTHROPIC_AI_INTEGRATION_NAME,
-  GOOGLE_GENAI_INTEGRATION_NAME,
-  WORKERS_AI_INTEGRATION_NAME,
-];
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { _INTERNAL_shouldSkipAiProviderWrapping, getActiveSpan, spanToJSON } from '@sentry/core';
+import { PI_AI_ORIGIN } from './constants';
 
 /**
- * Stop the provider SDK integrations from reporting the requests pi-ai sends. The skip is
- * process-wide: the provider SDKs do not know which of their calls pi-ai made.
- *
- * The registry is reset per client, so callers apply this on the first request instead of once at
- * setup, or the next `init()` would undo it.
+ * Whether the active span is a pi-ai `chat` span, which means a provider SDK call being made is pi-ai
+ * sending its request.
  */
-export function skipPiAiProviderIntegrations(): void {
-  if (!PI_AI_PROVIDER_INTEGRATIONS.every(provider => _INTERNAL_shouldSkipAiProviderWrapping(provider))) {
-    _INTERNAL_skipAiProviderWrapping(PI_AI_PROVIDER_INTEGRATIONS);
-  }
+export function isInsidePiAiSpan(): boolean {
+  const span = getActiveSpan();
+  return !!span && spanToJSON(span).attributes[SENTRY_ORIGIN] === PI_AI_ORIGIN;
+}
+
+/**
+ * Whether a provider integration should leave a call alone, because the integration driving the SDK
+ * reports it. LangChain and Vercel AI mark the providers they drive as skipped; pi-ai is detected per
+ * request, by its active span.
+ */
+export function shouldSkipAiProviderSpan(integrationName: string): boolean {
+  return _INTERNAL_shouldSkipAiProviderWrapping(integrationName) || isInsidePiAiSpan();
 }

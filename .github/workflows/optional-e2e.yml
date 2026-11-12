@@ -79,6 +79,7 @@ jobs:
         with:
           test-application: ${{ matrix.test-application }}
           runtime: ${{ matrix.runtime }}
+          bun-version: ${{ matrix.bun-version }}
           deno-version: ${{ matrix.deno-version }}
           artifacts-run-id: ${{ inputs.build_run_id }}
           github-token: ${{ github.token }}
@@ -125,9 +126,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
       - name: Install pnpm
         uses: ./.github/actions/install-pnpm
       - name: Install action dependencies

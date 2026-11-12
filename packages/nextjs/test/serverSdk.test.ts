@@ -1,9 +1,21 @@
 import type { Integration } from '@sentry/core';
-import { GLOBAL_OBJ, getMainCarrier, withIsolationScope } from '@sentry/core';
+import {
+  GLOBAL_OBJ,
+  getClient,
+  getMainCarrier,
+  getTunnelPath,
+  shouldIgnoreSpan,
+  withIsolationScope,
+} from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import { close, getCurrentScope, getGlobalScope } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  _INTERNAL_resetTunnelDefaults,
+  handleTunnelRequestIfMatched,
+  serveTunnelIntegration,
+} from '@sentry/core/server';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../src/common/span-attributes-with-logic-attached';
 import { init } from '../src/server';
 import type * as NextSentryPropagatorModule from '../src/server/nextSentryPropagator';
@@ -18,6 +30,8 @@ vi.mock('../src/server/nextSentryPropagator', async importOriginal => ({
 (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRewriteFramesDistDir: string })._sentryRewriteFramesDistDir = '.next';
 
 const nodeInit = vi.spyOn(SentryNode, 'init');
+
+const TEST_DSN = 'https://public@dsn.ingest.sentry.io/1337';
 
 function findIntegrationByName(integrations: Integration[] = [], name: string): Integration | undefined {
   return integrations.find(integration => integration.name === name);
@@ -76,6 +90,7 @@ describe('Server init()', () => {
       nodeInit.mockReturnValueOnce({
         on: vi.fn(),
         addEventProcessor: vi.fn(),
+        getOptions: () => ({}),
         traceProvider,
       } as unknown as ReturnType<typeof SentryNode.init>);
 
@@ -88,12 +103,91 @@ describe('Server init()', () => {
       nodeInit.mockReturnValueOnce({
         on: vi.fn(),
         addEventProcessor: vi.fn(),
+        getOptions: () => ({}),
         traceProvider: undefined,
       } as unknown as ReturnType<typeof SentryNode.init>);
 
       init({});
 
       expect(registerNextSentryPropagator).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('managed tunnel', () => {
+    const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+      _sentryBasePath?: string;
+      _sentryTunnelRoute?: string;
+    };
+    const post = (path: string): Request =>
+      new Request(`https://example.com${path}`, { method: 'POST', body: '{}', headers: { 'content-length': '2' } });
+
+    afterEach(() => {
+      delete globalWithInjectedValues._sentryBasePath;
+      delete globalWithInjectedValues._sentryTunnelRoute;
+      _INTERNAL_resetTunnelDefaults();
+    });
+
+    it('serves the fixed path of the `tunnelRoute` without `serveTunnelIntegration`', () => {
+      globalWithInjectedValues._sentryBasePath = '/docs';
+      globalWithInjectedValues._sentryTunnelRoute = '/docs/monitoring';
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'));
+
+      init({ dsn: TEST_DSN });
+
+      expect(handleTunnelRequestIfMatched(post('/docs/monitoring'))).toBeInstanceOf(Promise);
+      expect(handleTunnelRequestIfMatched(post(`/docs${getTunnelPath(TEST_DSN)}`))).toBeUndefined();
+      fetchSpy.mockRestore();
+    });
+
+    it("serves the path derived from the DSN under the app's `basePath` for `tunnelRoute: true`", () => {
+      globalWithInjectedValues._sentryBasePath = '/docs';
+      globalWithInjectedValues._sentryTunnelRoute = 'true';
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'));
+
+      init({ dsn: TEST_DSN });
+
+      expect(handleTunnelRequestIfMatched(post(`/docs${getTunnelPath(TEST_DSN)}`))).toBeInstanceOf(Promise);
+      fetchSpy.mockRestore();
+    });
+
+    it.each([
+      ['`tunnelRoute: true`', () => ({ tunnelRoute: 'true', integrations: [] })],
+      ['`serveTunnelIntegration`', () => ({ tunnelRoute: undefined, integrations: [serveTunnelIntegration()] })],
+    ])('ignores the Next.js request spans of the tunnel path derived from the DSN with %s', (_description, setUp) => {
+      const { tunnelRoute, integrations } = setUp();
+      globalWithInjectedValues._sentryBasePath = '/docs';
+      globalWithInjectedValues._sentryTunnelRoute = tunnelRoute;
+
+      init({ dsn: TEST_DSN, integrations });
+
+      const ignoreSpans = getClient()?.getOptions().ignoreSpans;
+      // Next.js sets only `http.target` at span start, e.g. for a proxy that runs outside of the server on Vercel.
+      const isIgnored = (spanType: string, target: string): boolean =>
+        shouldIgnoreSpan(
+          {
+            description: 'middleware POST',
+            op: 'http.server',
+            attributes: { 'next.span_type': spanType, 'http.target': target },
+          },
+          ignoreSpans,
+        );
+      const tunnelPath = `/docs${getTunnelPath(TEST_DSN)}`;
+      expect(isIgnored('Middleware.execute', tunnelPath)).toBe(true);
+      expect(isIgnored('Next.request', `${tunnelPath}/`)).toBe(true);
+      expect(isIgnored('BaseServer.handleRequest', tunnelPath)).toBe(true);
+      expect(isIgnored('Next.request', '/docs/pricing')).toBe(false);
+    });
+
+    it("serves the tunnel of `serveTunnelIntegration` under the app's `basePath`", () => {
+      globalWithInjectedValues._sentryBasePath = '/docs';
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'));
+
+      init({ dsn: TEST_DSN, integrations: [serveTunnelIntegration()] });
+
+      const tunnelPath = getTunnelPath(TEST_DSN);
+      expect(handleTunnelRequestIfMatched(post(`/docs${tunnelPath}`))).toBeInstanceOf(Promise);
+      expect(handleTunnelRequestIfMatched(post(`${tunnelPath}`))).toBeUndefined();
+      fetchSpy.mockRestore();
     });
   });
 

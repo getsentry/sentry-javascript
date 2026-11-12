@@ -9,7 +9,8 @@ const APP_PORT = 8787;
 
 const config = getPlaywrightConfig(
   {
-    startCommand: `pnpm preview`,
+    // `vite dev` pre-bundles `ai` with the esbuild dependency optimizer of Vite 7.
+    startCommand: testEnv === 'development' ? `pnpm dev --port ${APP_PORT} --strictPort` : `pnpm preview`,
     port: APP_PORT,
   },
   {

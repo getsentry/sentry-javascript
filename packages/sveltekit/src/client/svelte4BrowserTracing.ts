@@ -26,6 +26,7 @@ import type { Navigation, Page } from '@sveltejs/kit';
 // eslint-disable-next-line typescript/no-deprecated
 import { navigating, page } from '$app/stores';
 import type { Readable } from 'svelte/store';
+import { getServerRenderingAttributes } from './traceMetaTags';
 
 /**
  * SvelteKit 2 / Svelte 4 browser tracing (`$app/stores`). Selected at build time, so it's only
@@ -58,6 +59,7 @@ function _instrumentPageload(client: Client, pageStore: Readable<Page>): void {
       [SENTRY_OP]: PAGELOAD,
       [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
       [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+      ...getServerRenderingAttributes(),
     },
   });
   if (!pageloadSpan) {

@@ -3,7 +3,7 @@ import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE } from '@sentry/conventions/attr
 import { getCapturedScopesOnSpan, getRootSpan, getSpanDescendants, spanIsSampled, spanToJSON } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { NodeClient, serveTunnelIntegration, setCurrentClient } from '@sentry/node';
-import { _INTERNAL_resetManagedTunnelDefaults } from '@sentry/core/server';
+import { _INTERNAL_resetTunnelDefaults } from '@sentry/core/server';
 import { TUNNEL_BASE_PATH_GLOBAL } from '../../src/common/tunnel';
 import type { Handle } from '../../src/server-common/handleTypes';
 import { redirect } from '@sveltejs/kit';
@@ -168,7 +168,7 @@ describe('sentryHandle with the managed tunnel', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    _INTERNAL_resetManagedTunnelDefaults();
+    _INTERNAL_resetTunnelDefaults();
   });
 
   it('answers tunnel requests without resolving the route', async () => {
@@ -553,6 +553,28 @@ describe('addSentryCodeToPage', () => {
     </body>
   </html>`;
 
+  const withBootScript = (startArgs: string): string =>
+    html.replace(
+      '%sveltekit.body%',
+      `<h1>Pricing</h1>
+        <script>
+          {
+            __sveltekit_1x2y3z = { base: new URL(".", location).pathname.slice(0, -1) };
+            const element = document.currentScript.parentElement;
+            Promise.all([import("./_app/immutable/entry/start.B1c2D3e4.js"), import("./_app/immutable/entry/app.F5g6H7i8.js")]).then(([kit, app]) => {
+              kit.start(${startArgs});
+            });
+          }
+        </script>`,
+    );
+  const serverRenderedHtml = withBootScript(`app, element, {
+                node_ids: [0, 4],
+                data: [null,{type:"data",data:{plans:3},uses:{}}],
+                form: null,
+                error: null
+              }`);
+  const clientShellHtml = withBootScript('app, element');
+
   it("Adds add meta tags and fetch proxy script if there's no active transaction", () => {
     const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: true });
     const transformed = transformPageChunk({ html, done: true });
@@ -575,6 +597,15 @@ describe('addSentryCodeToPage', () => {
     });
   });
 
+  it('does not add the cache origin marker to a page rendered for a request', () => {
+    const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false });
+
+    const transformed = transformPageChunk({ html: serverRenderedHtml, done: true });
+
+    expect(transformed).toContain('<meta name="sentry-trace"');
+    expect(transformed).not.toContain('sentry-cache-origin');
+  });
+
   it('does not add the fetch proxy script if the `injectFetchProxyScript` option is false', () => {
     const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false });
     const transformed = transformPageChunk({ html, done: true }) as string;
@@ -585,18 +616,37 @@ describe('addSentryCodeToPage', () => {
   });
 
   describe('while SvelteKit builds the app', () => {
+    beforeEach(() => {
+      vi.stubEnv('_SENTRY_SVELTEKIT_BUILDING', 'true');
+    });
+
     afterEach(() => {
       vi.unstubAllEnvs();
     });
 
-    it("doesn't add meta tags but still adds the fetch proxy script if _SENTRY_SVELTEKIT_BUILDING is set", () => {
-      vi.stubEnv('_SENTRY_SVELTEKIT_BUILDING', 'true');
+    it('replaces the trace meta tags of a server-rendered page with an empty cache origin marker', () => {
+      const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false });
 
+      const transformed = transformPageChunk({ html: serverRenderedHtml, done: true });
+
+      expect(transformed).toBe(
+        serverRenderedHtml.replace('<head>', '<head>\n<meta name="sentry-cache-origin" content=""/>'),
+      );
+    });
+
+    it('adds no meta tags to a client-side shell, such as an `ssr = false` page or the fallback page', () => {
+      const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false });
+
+      const transformed = transformPageChunk({ html: clientShellHtml, done: true });
+
+      expect(transformed).toBe(clientShellHtml);
+    });
+
+    it('still adds the fetch proxy script', () => {
       const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: true });
-      const transformed = transformPageChunk({ html, done: true }) as string;
 
-      expect(transformed).not.toContain('<meta name="sentry-trace"');
-      expect(transformed).not.toContain('<meta name="baggage"');
+      const transformed = transformPageChunk({ html: clientShellHtml, done: true });
+
       expect(transformed).toContain(`<script>${FETCH_PROXY_SCRIPT}</script>`);
     });
   });

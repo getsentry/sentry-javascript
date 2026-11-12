@@ -1,7 +1,14 @@
-import { getPlaywrightConfig } from '@sentry-internal/test-utils';
+import { getPlaywrightConfig, getRuntime } from '@sentry-internal/test-utils';
+
+const startCommands = {
+  node: 'pnpm start',
+  bun: 'pnpm start:bun',
+  deno: 'pnpm start:deno',
+  cloudflare: 'pnpm start:cloudflare',
+};
 
 const config = getPlaywrightConfig({
-  startCommand: `pnpm start`,
+  startCommand: startCommands[getRuntime()],
 });
 
 export default config;

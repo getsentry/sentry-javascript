@@ -130,7 +130,8 @@ export { _INTERNAL_wrapUnlessInstrumented } from './instrument';
 export { sentryPagesPlugin } from './pages-plugin';
 
 export { CloudflareClient } from './client';
-export { _INTERNAL_wrapRequestHandler, getDefaultIntegrations } from './sdk';
+export { _INTERNAL_wrapRequestHandler, getDefaultIntegrations, init as _INTERNAL_init } from './sdk';
+export { getFinalOptions as _INTERNAL_getFinalOptions } from './options';
 
 export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
@@ -193,6 +194,7 @@ export {
   neonIntegration,
   nitroIntegration,
   openAIIntegration,
+  piAiIntegration,
   piDurableIntegration,
   postgresIntegration,
   postgresJsIntegration,

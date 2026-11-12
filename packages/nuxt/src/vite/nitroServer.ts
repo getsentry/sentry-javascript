@@ -120,7 +120,7 @@ function setupDeprecatedInjectMode(
 }
 
 /**
- * Adds the plugin that answers the managed tunnel. The Cloudflare setup has no server config file, so it skips
+ * Adds the plugin that sets the managed tunnel's base path. The Cloudflare setup has no server config file, so it skips
  * `setupNitroServer` and adds this on its own.
  */
 export function addTunnelPlugin(serverApi: ServerApi): void {

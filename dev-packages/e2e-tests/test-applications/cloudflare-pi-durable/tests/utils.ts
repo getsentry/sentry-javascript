@@ -36,3 +36,28 @@ export async function waitForOperation(baseURL: string, agentId: string, operati
   expect(res.status).toBe(200);
   return (await res.json()) as Operation;
 }
+
+/** Create a conversation in a new `EagerAssistant`, which opens its Harness in the constructor. */
+export async function createEagerConversation(
+  baseURL: string,
+  objectId: string,
+): Promise<{ id: number; sessionId: string }> {
+  const res = await fetch(`${baseURL}/eager/${objectId}`, { method: 'POST' });
+  expect(res.status).toBe(200);
+  return (await res.json()) as { id: number; sessionId: string };
+}
+
+export async function promptEager(
+  baseURL: string,
+  objectId: string,
+  conversationId: number,
+  message: string,
+): Promise<Operation> {
+  const res = await fetch(`${baseURL}/eager/${objectId}?conversation=${conversationId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+  });
+  expect(res.status).toBe(200);
+  return (await res.json()) as Operation;
+}
