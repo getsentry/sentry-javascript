@@ -214,8 +214,9 @@ class WrappedWorkflowStep implements WorkflowStep {
     }
 
     return stepResult.catch(error => {
-      // The engine rejects with a copy of the error the callback threw, so the copy has to be marked
-      // as captured too. Otherwise `run` would report the same failure a second time.
+      // The engine rejects with a copy of the error the callback threw. `checkOrSetAlreadyCaught` is used
+      // only to mark that copy as captured, so `run` does not report the same failure a second time.
+      // Rejections the callback did not capture (step timeout, engine failure) stay unmarked.
       if (capturedByCallback) {
         checkOrSetAlreadyCaught(error);
       }
