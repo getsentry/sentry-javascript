@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import type { Nuxt } from '@nuxt/schema';
 import { sentryRollupPlugin, type SentryRollupPluginOptions } from '@sentry/bundler-plugins/rollup';
 import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
@@ -13,6 +14,7 @@ import {
   withoutSourceMapDeletion,
 } from './sourceMapDeletion';
 import { validateSourceMapsOptionsPlugin } from './sentryVitePlugin';
+import { serviceSourceMapsPlugin } from './serviceSourceMaps';
 
 /**
  * Whether the user enabled (true, 'hidden', 'inline') or disabled (false) source maps
@@ -116,6 +118,7 @@ export function setupSourceMaps(
       // Add Sentry plugin
       // Runs only on server-side (Nitro)
       nitroConfig.rollupConfig.plugins.push(
+        serviceSourceMapsPlugin(nuxt.options.buildDir),
         sentryRollupPlugin(withoutSourceMapDeletion(getPluginOptions(moduleOptions, shouldDeleteFilesFallback))),
       );
     }
