@@ -1,5 +1,5 @@
 name: 'CI: Build & Test'
-run-name: 'CI benchmark: namespace-warm-1'
+run-name: 'CI benchmark: github-warm-1'
 on:
   push:
     branches:
@@ -28,8 +28,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CI_BENCHMARK_PROVIDER: namespace
-  CI_BENCHMARK_CACHE_PREFIX: bench-sentry-js-20261112-namespace-b-
+  CI_BENCHMARK_PROVIDER: github
+  CI_BENCHMARK_CACHE_PREFIX: bench-sentry-js-20261112-github-c-
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.event.pull_request.head.sha || github.sha }}
 
   CACHED_DEPENDENCY_PATHS: |
@@ -54,7 +54,7 @@ env:
   BUNDLE_ARTIFACT_GLOB: packages/*/build/bundles
   BUNDLE_ARTIFACT_DOWNLOAD_PATH: ${{ github.workspace }}/packages
 
-  NX_CACHE_KEY: bench-sentry-js-20261112-namespace-b-nx-Linux-${{ github.head_ref || github.ref }}-${{ github.run_id }}
+  NX_CACHE_KEY: bench-sentry-js-20261112-github-c-nx-Linux-${{ github.head_ref || github.ref }}-${{ github.run_id }}
 
   # https://bsky.app/profile/joyeecheung.bsky.social/post/3lhy6o54fo22h
   # Apparently some of our CI failures are attributable to a corrupt v8 cache, causing v8 failures with: "Check failed: current == end_slot_index.".
@@ -74,7 +74,7 @@ jobs:
   job_build:
     name: Build
     needs: job_get_metadata
-    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     if: |
       needs.job_get_metadata.outputs.changed_any_code == 'true' ||
@@ -199,7 +199,7 @@ jobs:
       needs.job_build.outputs.changed_aws_serverless == 'true' || contains(needs.job_build.outputs.e2e-matrix-aws-layer,
       'aws-serverless-layer') || github.event_name != 'pull_request'
     timeout-minutes: 10
-    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -236,7 +236,7 @@ jobs:
     name: Build bundles
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -272,7 +272,7 @@ jobs:
   job_check_branches:
     name: Check PR branches
     needs: job_get_metadata
-    runs-on: namespace-profile-sentry-javascript-small
+    runs-on: ubuntu-24.04
     if: github.event_name == 'pull_request'
     permissions:
       pull-requests: write
@@ -288,7 +288,7 @@ jobs:
     name: Size Check
     needs: [job_get_metadata, job_build, job_build_bundles]
     timeout-minutes: 15
-    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04-arm
     if:
       github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_base_branch == 'true' ||
       needs.job_get_metadata.outputs.is_release == 'true'
@@ -321,7 +321,7 @@ jobs:
     # inter-package dependencies resolve cleanly.
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -359,7 +359,7 @@ jobs:
     needs: [job_get_metadata]
     # `pnpm dedupe --check` fetches metadata for every package from npm, so this job can take 8+ min on PRs.
     timeout-minutes: 20
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: ubuntu-24.04
     if: |
       needs.job_get_metadata.outputs.changed_deps == 'true' ||
       needs.job_get_metadata.outputs.is_base_branch == 'true' ||
@@ -388,7 +388,7 @@ jobs:
     name: Check file formatting
     needs: [job_get_metadata]
     timeout-minutes: 10
-    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -407,7 +407,7 @@ jobs:
   job_artifacts:
     name: Upload Artifacts
     needs: [job_get_metadata, job_build, job_build_layer, job_build_bundles, job_build_tarballs]
-    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04
     # Build artifacts are only needed for releasing workflow.
     if: needs.job_get_metadata.outputs.is_release == 'true'
     steps:
@@ -459,7 +459,7 @@ jobs:
     name: Browser Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v7
@@ -491,7 +491,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
-    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
       matrix:
@@ -521,7 +521,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
-    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -547,7 +547,7 @@ jobs:
     name: Node (${{ matrix.node }}) Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04-arm
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
     continue-on-error: ${{ matrix.node == '^27.0.0-0' }}
     strategy:
@@ -596,7 +596,7 @@ jobs:
       matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
     needs: [job_get_metadata, job_build, job_build_bundles]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04-large-js
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -693,7 +693,7 @@ jobs:
     name: PW ${{ matrix.bundle }} Tests
     needs: [job_get_metadata, job_build, job_build_bundles]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -751,7 +751,7 @@ jobs:
     name: Node (${{ matrix.node }}) Integration Tests (${{ matrix.shard }}/${{ matrix.shards }})
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 20
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
     continue-on-error: ${{ matrix.node == '^27.0.0-0' }}
@@ -814,7 +814,7 @@ jobs:
     if: >-
       needs.job_build.outputs.changed_node_integration == 'true' || needs.job_build.outputs.changed_bun_integration ==
       'true' || needs.job_build.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -838,7 +838,7 @@ jobs:
     name: Cloudflare Integration Tests (${{ matrix.shard }}/${{ matrix.shards }})
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -879,7 +879,7 @@ jobs:
     if:
       needs.job_get_metadata.outputs.is_release != 'true' && (needs.job_build.outputs.changed_cloudflare_integration ==
       'true' || github.event_name != 'pull_request')
-    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-latest-wrangler-x64
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -895,7 +895,7 @@ jobs:
     name: Bundler Plugin Integration Tests (Node ${{ matrix.node }})
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bundler_plugin_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
     continue-on-error: ${{ matrix.node == '^27.0.0-0' }}
@@ -925,7 +925,7 @@ jobs:
     name: Bun (${{ matrix.bun }}) Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -957,7 +957,7 @@ jobs:
     name: Deno Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -1001,7 +1001,7 @@ jobs:
       always() &&
       needs.job_build.result == 'success'
     needs: [job_get_metadata, job_build]
-    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=bench-sentry-js-20261112-namespace-b-monorepo-x64
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -1058,9 +1058,7 @@ jobs:
       always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix-1 !=
       '{"include":[]}'
     needs: [job_get_metadata, job_build, job_build_tarballs]
-    runs-on:
-      ${{ matrix.runner || 'namespace-profile-sentry-javascript-small'
-      }};overrides.cache-tag=bench-sentry-js-20261112-namespace-b-e2e-x64
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     # We just use a dummy DSN here, only send to the tunnel anyhow
     env: &e2e-env
@@ -1133,9 +1131,7 @@ jobs:
       always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix-2 !=
       '{"include":[]}'
     needs: [job_get_metadata, job_build, job_build_tarballs]
-    runs-on:
-      ${{ matrix.runner || 'namespace-profile-sentry-javascript-small'
-      }};overrides.cache-tag=bench-sentry-js-20261112-namespace-b-e2e-x64
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env: *e2e-env
     strategy:
@@ -1149,9 +1145,7 @@ jobs:
     if: >-
       always() && needs.job_build_tarballs.result == 'success' && needs.job_build_layer.result == 'success' &&
       needs.job_build.outputs.e2e-matrix-aws-layer != '{"include":[]}'
-    runs-on:
-      ${{ matrix.runner || 'namespace-profile-sentry-javascript-small'
-      }};overrides.cache-tag=bench-sentry-js-20261112-namespace-b-e2e-x64
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env: *e2e-env
     strategy:
@@ -1228,7 +1222,7 @@ jobs:
       ]
     # Always run this, even if a dependent job failed
     if: always()
-    runs-on: namespace-profile-sentry-javascript-small
+    runs-on: ubuntu-24.04
     permissions: {}
     steps:
       - name: Check for failures
