@@ -333,37 +333,9 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
             : [];
 
           const { sourceMaps } = sentryBuildPluginManager;
-          if (sourceMapDecision.deleteAfterUpload && !sourceMaps.uploadPossible) {
-            const bundleOf = (map: string): string => map.slice(0, -'.map'.length);
-            await sourceMaps.deleteFromOutput(
-              buildArtifacts.filter(
-                file => file.endsWith('.map') && isJsFile(bundleOf(file)) && sourceMaps.shouldUpload(bundleOf(file)),
-              ),
-            );
-          } else if (sourcemapsEnabled) {
-            if (options.sourcemaps?.disable !== 'disable-upload') {
-              // The upload globs the paths, and glob reads backslashes as escapes.
-              const { uploaded, uploadedSourceMapPaths } = await upload(
-                buildArtifacts.map(artifact => artifact.split(path.sep).join('/')),
-              );
-
-              // esbuild writes before `onEnd` runs, so the maps are deleted from disk
-              // afterwards instead of being dropped from the output like in other bundlers.
-              // A map the plugin turned on never stays in the output. A map the user
-              // enabled is only deleted once it was uploaded.
-              if (sourceMapDecision.deleteAfterUpload) {
-                const sourceMaps =
-                  sourceMapKind === 'unset'
-                    ? buildArtifacts.filter(artifact => artifact.endsWith('.map'))
-                    : uploadedSourceMapPaths;
-
-                if (uploaded) {
-                  await sentryBuildPluginManager.sourceMaps.deleteFromOutput(sourceMaps);
-                } else if (sourceMaps.length > 0) {
-                  logger.error('The source maps were not uploaded, so they stay in the build output.');
-                }
-              }
-            } else if (initialOptions.write === false) {
+          const deleteWithoutUpload = sourceMapDecision.deleteAfterUpload && !sourceMaps.uploadPossible;
+          if (sourcemapsEnabled && options.sourcemaps?.disable === 'disable-upload') {
+            if (initialOptions.write === false) {
               logger.debug('Build output is not written to disk. Skipping debug ID injection into build artifacts.');
             } else {
               // The upload routine (which stamps debug IDs into temp copies of the artifacts) is
@@ -375,6 +347,34 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
                   .map(bundle => addDebugIdToEmittedArtifacts(bundle, logger, options.sourcemaps?.resolveSourceMap)),
               );
             }
+          } else if (sourcemapsEnabled && !deleteWithoutUpload) {
+            // The upload globs the paths, and glob reads backslashes as escapes.
+            const { uploaded, uploadedSourceMapPaths } = await upload(
+              buildArtifacts.map(artifact => artifact.split(path.sep).join('/')),
+            );
+
+            // esbuild writes before `onEnd` runs, so the maps are deleted from disk
+            // afterwards instead of being dropped from the output like in other bundlers.
+            // A map the plugin turned on never stays in the output. A map the user
+            // enabled is only deleted once it was uploaded.
+            if (sourceMapDecision.deleteAfterUpload) {
+              const mapsToDelete =
+                sourceMapKind === 'unset'
+                  ? buildArtifacts.filter(artifact => artifact.endsWith('.map'))
+                  : uploadedSourceMapPaths;
+
+              if (uploaded) {
+                await sourceMaps.deleteFromOutput(mapsToDelete);
+              } else if (mapsToDelete.length > 0) {
+                logger.error('The source maps were not uploaded, so they stay in the build output.');
+              }
+            }
+          }
+
+          if (deleteWithoutUpload) {
+            const bundleOf = (map: string): string => map.slice(0, -'.map'.length);
+            const maps = buildArtifacts.filter(file => file.endsWith('.map') && isJsFile(bundleOf(file)));
+            await sourceMaps.deleteFromOutput(maps.filter(map => sourceMaps.shouldUpload(bundleOf(map))));
           }
         } finally {
           freeGlobalDependencyOnBuildArtifacts();
