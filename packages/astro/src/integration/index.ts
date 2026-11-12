@@ -67,29 +67,15 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         if (shouldUploadSourcemaps && command !== 'dev') {
           const computedSourceMapSettings = _getUpdatedSourceMapSettings(config, options, logger);
 
-          let updatedFilesToDeleteAfterUpload: string[] | undefined = undefined;
-
-          if (
-            typeof sourcemaps?.filesToDeleteAfterUpload === 'undefined' &&
-            computedSourceMapSettings.previousUserSourceMapSetting === 'unset'
-          ) {
-            // This also works for adapters, as the source maps are also copied to e.g. the .vercel folder.
-            // Static output has no client folder and writes client assets to `<outDir>/<build.assets>` instead.
-            // Astro removes the hidden `.prerender` folder itself, but we don't want to rely on that.
-            updatedFilesToDeleteAfterUpload = [
-              './dist/**/client/**/*.map',
-              './dist/**/server/**/*.map',
-              `./dist/**/${config.build?.assets ?? '_astro'}/**/*.map`,
-              './dist/**/.prerender/**/*.map',
-            ];
-
-            debug &&
-              logger.info(
-                `Automatically setting \`sourcemaps.filesToDeleteAfterUpload: ${JSON.stringify(
-                  updatedFilesToDeleteAfterUpload,
-                )}\` to delete generated source maps after they were uploaded to Sentry.`,
-              );
-          }
+          const sdkEnabledSourceMaps = computedSourceMapSettings.previousUserSourceMapSetting === 'unset';
+          const buildState: ViteBuildState = { writesCloudflareWorker: false };
+          // A user's own glob replaces the SDK's deletion. Maps in a Cloudflare `_worker.js` folder
+          // stay, so that wrangler can read them for `upload_source_maps`.
+          const deleteSourcemapsAfterUpload =
+            sourcemaps?.deleteSourcemapsAfterUpload ??
+            (sdkEnabledSourceMaps && sourcemaps?.filesToDeleteAfterUpload === undefined
+              ? () => (buildState.writesCloudflareWorker ? undefined : true)
+              : undefined);
 
           updateConfig({
             vite: {
@@ -97,6 +83,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                 sourcemap: computedSourceMapSettings.updatedSourceMapSetting,
               },
               plugins: [
+                makeViteBuildStatePlugin(buildState),
                 sentryVitePlugin({
                   applicationKey,
                   moduleMetadata,
@@ -119,7 +106,8 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                   sourcemaps: {
                     ...sourcemaps,
                     assets: sourcemaps?.assets ?? getSourcemapsAssetsGlobs(config),
-                    filesToDeleteAfterUpload: sourcemaps?.filesToDeleteAfterUpload ?? updatedFilesToDeleteAfterUpload,
+                    deleteSourcemapsAfterUpload,
+                    sdkEnabledSourceMaps,
                   },
                   bundleSizeOptimizations: {
                     ...bundleSizeOptimizations,
@@ -274,6 +262,26 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
   };
 };
 
+type ViteBuildState = {
+  /** The current Vite build writes the Worker of an older Cloudflare adapter to `_worker.js`. */
+  writesCloudflareWorker: boolean;
+};
+
+/**
+ * Records what the SDK needs to know about each Vite build. Its `config` hook runs before the one
+ * of the Sentry plugin, which reads `buildState` there.
+ */
+function makeViteBuildStatePlugin(buildState: ViteBuildState): VitePlugin {
+  return {
+    name: 'sentry-astro-vite-build-state',
+    apply: 'build',
+    enforce: 'post',
+    config(viteConfig) {
+      buildState.writesCloudflareWorker = /(?:^|[\\/])_worker\.js[\\/]*$/.test(viteConfig.build?.outDir ?? '');
+    },
+  };
+}
+
 // Every sub-plugin of `sentryCloudflareVitePlugin()` but its orchestrion transform has this prefix,
 // and some are added whatever its options are.
 const CLOUDFLARE_VITE_PLUGIN_NAME_PREFIX = 'sentry-cloudflare-';
@@ -390,7 +398,7 @@ export type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
  *
  *     3. Users didn't set source maps generation
  *       - we enable 'hidden' source maps generation
- *       - configure `filesToDeleteAfterUpload` to delete all .map files (we emit a log about this)
+ *       - remove the maps from the build output, except in a Cloudflare `_worker.js` folder
  *
  * --> only exported for testing
  */

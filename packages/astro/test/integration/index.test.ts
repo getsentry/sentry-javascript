@@ -4,11 +4,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { _getUpdatedSourceMapSettings, sentryAstro } from '../../src/integration';
 import type { SentryOptions } from '../../src/integration/types';
 
-const sentryVitePluginSpy = vi.fn(() => 'sentryVitePlugin');
+type CapturedSourcemapsOptions = { deleteSourcemapsAfterUpload?: boolean | (() => boolean | undefined) };
+
+let capturedSourcemapsOptions: CapturedSourcemapsOptions | undefined;
+
+const sentryVitePluginSpy = vi.fn((options: { sourcemaps?: CapturedSourcemapsOptions }) => {
+  capturedSourcemapsOptions = options.sourcemaps;
+  return 'sentryVitePlugin';
+});
 
 vi.mock('@sentry/bundler-plugins/vite', () => ({
-  // @ts-expect-error - just mocking around
-  sentryVitePlugin: vi.fn(args => sentryVitePluginSpy(args)),
+  sentryVitePlugin: vi.fn((args: { sourcemaps?: CapturedSourcemapsOptions }) => sentryVitePluginSpy(args)),
 }));
 
 // Stub the orchestrion plugin so these stay pure wiring tests (no apm code transformer pulled in).
@@ -83,7 +89,7 @@ describe('sentryAstro integration', () => {
     expect(integration.name).toBe('@sentry/astro');
   });
 
-  it('enables "hidden" source maps, adds filesToDeleteAfterUpload and adds the sentry vite plugin if an auth token is detected', async () => {
+  it('enables "hidden" source maps, asks for their deletion and adds the sentry vite plugin if an auth token is detected', async () => {
     const integration = sentryAstro({
       org: 'my-org',
       project: 'my-project',
@@ -101,7 +107,7 @@ describe('sentryAstro integration', () => {
         build: {
           sourcemap: 'hidden',
         },
-        plugins: ['sentryVitePlugin'],
+        plugins: [expect.objectContaining({ name: 'sentry-astro-vite-build-state' }), 'sentryVitePlugin'],
       },
     });
     expect(updateConfig).toHaveBeenCalledWith({
@@ -121,12 +127,8 @@ describe('sentryAstro integration', () => {
         bundleSizeOptimizations: {},
         sourcemaps: {
           assets: ['out/**/*', 'out/**/.prerender/**/*'],
-          filesToDeleteAfterUpload: [
-            './dist/**/client/**/*.map',
-            './dist/**/server/**/*.map',
-            './dist/**/_astro/**/*.map',
-            './dist/**/.prerender/**/*.map',
-          ],
+          deleteSourcemapsAfterUpload: expect.any(Function),
+          sdkEnabledSourceMaps: true,
         },
         _metaOptions: {
           telemetry: {
@@ -157,12 +159,8 @@ describe('sentryAstro integration', () => {
         bundleSizeOptimizations: {},
         sourcemaps: {
           assets: ['dist/**/*', 'dist/**/.prerender/**/*'],
-          filesToDeleteAfterUpload: [
-            './dist/**/client/**/*.map',
-            './dist/**/server/**/*.map',
-            './dist/**/_astro/**/*.map',
-            './dist/**/.prerender/**/*.map',
-          ],
+          deleteSourcemapsAfterUpload: expect.any(Function),
+          sdkEnabledSourceMaps: true,
         },
         _metaOptions: {
           telemetry: {
@@ -201,12 +199,8 @@ describe('sentryAstro integration', () => {
         bundleSizeOptimizations: {},
         sourcemaps: {
           assets: ['{.vercel,dist}/**/*', '{.vercel,dist}/**/.prerender/**/*'],
-          filesToDeleteAfterUpload: [
-            './dist/**/client/**/*.map',
-            './dist/**/server/**/*.map',
-            './dist/**/_astro/**/*.map',
-            './dist/**/.prerender/**/*.map',
-          ],
+          deleteSourcemapsAfterUpload: expect.any(Function),
+          sdkEnabledSourceMaps: true,
         },
         _metaOptions: {
           telemetry: {
@@ -245,12 +239,8 @@ describe('sentryAstro integration', () => {
         bundleSizeOptimizations: {},
         sourcemaps: {
           assets: ['dist/server/**/*, dist/client/**/*'],
-          filesToDeleteAfterUpload: [
-            './dist/**/client/**/*.map',
-            './dist/**/server/**/*.map',
-            './dist/**/_astro/**/*.map',
-            './dist/**/.prerender/**/*.map',
-          ],
+          deleteSourcemapsAfterUpload: expect.any(Function),
+          sdkEnabledSourceMaps: true,
         },
         _metaOptions: {
           telemetry: {
@@ -261,7 +251,7 @@ describe('sentryAstro integration', () => {
     );
   });
 
-  it('prefers user-specified filesToDeleteAfterUpload over the default values', async () => {
+  it('lets user-specified filesToDeleteAfterUpload replace the SDK deletion', async () => {
     const integration = sentryAstro({
       org: 'my-org',
       project: 'my-project',
@@ -283,9 +273,131 @@ describe('sentryAstro integration', () => {
       expect.objectContaining({
         sourcemaps: expect.objectContaining({
           filesToDeleteAfterUpload: ['./custom/path/**/*'],
+          deleteSourcemapsAfterUpload: undefined,
         }),
       }),
     );
+  });
+
+  describe('deleteSourcemapsAfterUpload', () => {
+    async function runSetup(options: SentryOptions, astroConfig: Partial<AstroConfig> = {}): Promise<void> {
+      const integration = sentryAstro({ org: 'my-org', project: 'my-project', ...options });
+      // @ts-expect-error - the hook exists, and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        updateConfig,
+        injectScript,
+        config: astroConfig as AstroConfig,
+      });
+    }
+
+    function expectSourcemapsOptions(sourcemaps: Record<string, unknown>): void {
+      expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
+      expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ sourcemaps: expect.objectContaining(sourcemaps) }),
+      );
+    }
+
+    // The bundler plugin calls the function form in its `config` hook, after the build state
+    // plugin ran.
+    function runBuildStatePlugin(viteConfig: { build?: { outDir?: string } }): void {
+      const plugin = updateConfig.mock.calls
+        .flatMap(([astroConfigUpdate]) => astroConfigUpdate.vite?.plugins ?? [])
+        .find(plugin => plugin?.name === 'sentry-astro-vite-build-state');
+      plugin.config(viteConfig);
+    }
+
+    function expectDeleteOption(value: boolean | undefined): void {
+      expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
+      const option = capturedSourcemapsOptions?.deleteSourcemapsAfterUpload;
+      expect(typeof option === 'function' ? option() : option).toBe(value);
+    }
+
+    it('is `true` when the SDK enabled the source maps', async () => {
+      await runSetup({});
+      runBuildStatePlugin({ build: { outDir: 'dist/' } });
+      expectDeleteOption(true);
+    });
+
+    // Older Cloudflare adapters write the Worker there, and wrangler reads its maps.
+    it.each(['dist/_worker.js/', '/path/to/project/dist/_worker.js', 'C:\\project\\dist\\_worker.js\\'])(
+      'is not set for a build into `%s`',
+      async outDir => {
+        await runSetup({});
+        runBuildStatePlugin({ build: { outDir } });
+        expectDeleteOption(undefined);
+
+        runBuildStatePlugin({ build: { outDir: 'dist/' } });
+        expectDeleteOption(true);
+      },
+    );
+
+    it('lets a user-set `true` remove the maps of a Cloudflare `_worker.js` build', async () => {
+      await runSetup({ sourcemaps: { deleteSourcemapsAfterUpload: true } });
+      runBuildStatePlugin({ build: { outDir: 'dist/_worker.js/' } });
+      expectDeleteOption(true);
+    });
+
+    it.each(['hidden', true] as const)('is not set when the user set `vite.build.sourcemap: %s`', async sourcemap => {
+      await runSetup({}, { vite: { build: { sourcemap } } });
+      expectDeleteOption(undefined);
+    });
+
+    it.each([
+      [true, undefined],
+      [false, undefined],
+      [true, 'hidden'],
+      [false, 'hidden'],
+    ] as const)('passes a user-set `%s` through when `vite.build.sourcemap` is `%s`', async (value, sourcemap) => {
+      await runSetup({ sourcemaps: { deleteSourcemapsAfterUpload: value } }, { vite: { build: { sourcemap } } });
+      expectDeleteOption(value);
+    });
+
+    it('is not set when the user set `filesToDeleteAfterUpload`', async () => {
+      await runSetup({ sourcemaps: { filesToDeleteAfterUpload: ['./dist/**/*.map'] } });
+      expectDeleteOption(undefined);
+    });
+
+    it('lets a user-set `true` win over the user glob', async () => {
+      await runSetup({
+        sourcemaps: { deleteSourcemapsAfterUpload: true, filesToDeleteAfterUpload: ['./dist/**/*.map'] },
+      });
+      expectDeleteOption(true);
+    });
+
+    // Then the plugin removes all of these maps, also those of chunks outside the user's
+    // `assets` or `ignore`.
+    it('marks the source maps as SDK-enabled when the user narrowed the upload', async () => {
+      await runSetup({ sourcemaps: { assets: ['./dist/client/**/*'], ignore: ['**/vendor/**'] } });
+      expectSourcemapsOptions({
+        assets: ['./dist/client/**/*'],
+        ignore: ['**/vendor/**'],
+        sdkEnabledSourceMaps: true,
+      });
+      expectDeleteOption(true);
+    });
+
+    // The bundler plugin then also removes the maps of an output that sets `sourcemap` itself.
+    it('marks the source maps as SDK-enabled when only `rollupOptions.output.sourcemap` is set', async () => {
+      await runSetup({}, { vite: { build: { rollupOptions: { output: { sourcemap: true } } } } });
+      expectSourcemapsOptions({ sdkEnabledSourceMaps: true });
+      expectDeleteOption(true);
+    });
+
+    it.each(['hidden', true, false] as const)(
+      'does not mark source maps as SDK-enabled when the user set `vite.build.sourcemap: %s`',
+      async sourcemap => {
+        await runSetup({}, { vite: { build: { sourcemap } } });
+        expectSourcemapsOptions({ sdkEnabledSourceMaps: false });
+      },
+    );
+
+    // The maps are removed in this mode too, after the plugin stamps the debug IDs.
+    it("is `true` with `disable: 'disable-upload'`", async () => {
+      await runSetup({ sourcemaps: { disable: 'disable-upload' } });
+      expectSourcemapsOptions({ disable: 'disable-upload', sdkEnabledSourceMaps: true });
+      expectDeleteOption(true);
+    });
   });
 
   it('ignores the removed `sourceMapsUploadOptions` when computing the vite plugin options', async () => {
