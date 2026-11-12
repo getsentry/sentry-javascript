@@ -10,7 +10,6 @@ import { getClient, getIsolationScope, withIsolationScope } from '../../currentS
 import { DEBUG_BUILD } from '../../debug-build';
 import { withActiveSpan } from '../../tracing';
 import { startInactiveSpan } from '../../tracing/trace';
-import type { Span } from '../../types/span';
 import { getActiveSpan, spanToJSON } from '../../utils/spanUtils';
 import { isObjectLike } from '../../utils/is';
 import { fill } from '../../utils/object';
@@ -30,16 +29,8 @@ import {
   createMcpNotificationSpan,
   createMcpOutgoingNotificationSpan,
 } from './spans';
-import type {
-  ExtraHandlerData,
-  JsonRpcRequest,
-  McpServerWrapperOptions,
-  MCPTransport,
-  ResolvedMcpOptions,
-  SessionData,
-} from './types';
-import type { UpstreamOutcome } from './upstreamInstrumentation';
-import { shouldHandOffToUpstream, withInboundHandoff } from './upstreamInstrumentation';
+import type { ExtraHandlerData, McpServerWrapperOptions, MCPTransport, ResolvedMcpOptions, SessionData } from './types';
+import { hasGlobalTracerProvider, withInboundHandoff } from './upstreamInstrumentation';
 import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse } from './validation';
 
 function resolveMcpOptions(options: McpServerWrapperOptions): ResolvedMcpOptions {
@@ -87,12 +78,12 @@ function resolveOAuthClientName(options: McpServerWrapperOptions, extra?: ExtraH
  * Modern request metadata is read directly when building each message's span.
  * @param transport - MCP transport instance to wrap
  * @param options - MCP instrumentation options
- * @param serverInstance - The MCP server the transport is connected to
+ * @param upstreamInstrumented - Whether the server has the MCP SDK's built-in instrumentation
  */
 export function wrapTransportOnMessage(
   transport: MCPTransport,
   options: McpServerWrapperOptions,
-  serverInstance?: object,
+  upstreamInstrumented = false,
 ): void {
   if (transport.onmessage) {
     fill(transport, 'onmessage', originalOnMessage => {
@@ -131,35 +122,32 @@ export function wrapTransportOnMessage(
                     }),
                   }
                 : undefined;
-
-            const startRequestSpan = (): Span => {
+            const callOriginal = (): unknown =>
+              (originalOnMessage as (...args: unknown[]) => unknown).call(this, request, extra);
+            const startOwnSpan = (fn: () => unknown): unknown => {
               const span = startInactiveSpan(spanConfig);
               if (sessionAttributes) {
                 span.setAttributes(sessionAttributes);
               }
               storeSpanForRequest(transport, request.id, span, request.method, resolvedOptions);
-              return span;
+              return withActiveSpan(span, fn);
             };
 
-            const callOriginal = (): unknown =>
-              (originalOnMessage as (...args: unknown[]) => unknown).call(this, request, extra);
-
-            if (shouldHandOffToUpstream(serverInstance)) {
+            if (upstreamInstrumented && hasGlobalTracerProvider()) {
               return withInboundHandoff(
                 {
                   method: request.method,
                   id: request.id,
-                  adopt: span => {
-                    span.setAttributes({ ...spanConfig.attributes, ...sessionAttributes });
-                    return outcome => applyUpstreamOutcome(transport, span, request, outcome, resolvedOptions);
-                  },
-                  runInOwnSpan: fn => withActiveSpan(startRequestSpan(), fn),
+                  attributes: { ...spanConfig.attributes, ...sessionAttributes },
+                  onResponse: (span, result, error) =>
+                    applyResponseToSpan(transport, span, request.method, result, error, resolvedOptions),
+                  startOwnSpan,
                 },
                 callOriginal,
               );
             }
 
-            return withActiveSpan(startRequestSpan(), callOriginal);
+            return startOwnSpan(callOriginal);
           });
         }
 
@@ -167,62 +155,32 @@ export function wrapTransportOnMessage(
           const resolvedOptions = resolveMcpOptions(options);
           const callOriginal = (): unknown =>
             (originalOnMessage as (...args: unknown[]) => unknown).call(this, notification, extra);
+          const startOwnSpan = (fn: () => unknown): unknown =>
+            createMcpNotificationSpan(notification, transport, extra as ExtraHandlerData, resolvedOptions, fn);
 
-          if (shouldHandOffToUpstream(serverInstance)) {
+          if (upstreamInstrumented && hasGlobalTracerProvider()) {
             return withInboundHandoff(
               {
                 method: notification.method,
-                adopt: span => {
-                  span.setAttributes(
-                    buildMcpNotificationSpanConfig(
-                      'notification-incoming',
-                      notification,
-                      transport,
-                      resolvedOptions,
-                      extra as ExtraHandlerData,
-                    ).attributes,
-                  );
-                },
-                runInOwnSpan: fn =>
-                  createMcpNotificationSpan(
-                    notification,
-                    transport,
-                    extra as ExtraHandlerData,
-                    resolvedOptions,
-                    fn,
-                  ) as ReturnType<typeof fn>,
+                attributes: buildMcpNotificationSpanConfig(
+                  'notification-incoming',
+                  notification,
+                  transport,
+                  resolvedOptions,
+                  extra as ExtraHandlerData,
+                ).attributes,
+                startOwnSpan,
               },
               callOriginal,
             );
           }
 
-          return createMcpNotificationSpan(
-            notification,
-            transport,
-            extra as ExtraHandlerData,
-            resolvedOptions,
-            callOriginal,
-          );
+          return startOwnSpan(callOriginal);
         }
 
         return (originalOnMessage as (...args: unknown[]) => unknown).call(this, message, extra);
       };
     });
-  }
-}
-
-/** Records the response on the MCP SDK's span before the SDK ends it. */
-function applyUpstreamOutcome(
-  transport: MCPTransport,
-  span: Span,
-  request: JsonRpcRequest,
-  outcome: UpstreamOutcome,
-  capturePolicy: ResolvedMcpOptions,
-): void {
-  if (outcome.type === 'result' && 'result' in outcome) {
-    applyResponseToSpan(transport, span, request.method, outcome.result, undefined, capturePolicy);
-  } else if (outcome.type === 'error' && 'error' in outcome) {
-    applyResponseToSpan(transport, span, request.method, undefined, outcome.error, capturePolicy);
   }
 }
 
@@ -232,12 +190,12 @@ function applyUpstreamOutcome(
  * the corresponding request span.
  * @param transport - MCP transport instance to wrap
  * @param options - MCP capture overrides
- * @param serverInstance - The MCP server the transport is connected to
+ * @param upstreamInstrumented - Whether the server has the MCP SDK's built-in instrumentation
  */
 export function wrapTransportSend(
   transport: MCPTransport,
   options: McpServerWrapperOptions,
-  serverInstance?: object,
+  upstreamInstrumented = false,
 ): void {
   if (transport.send) {
     fill(transport, 'send', originalSend => {
@@ -247,7 +205,7 @@ export function wrapTransportSend(
         if (isJsonRpcNotification(message)) {
           const resolvedOptions = resolveMcpOptions(options);
           // The MCP SDK sends a notification inside its own scope, so its span is the active one.
-          const upstreamSpan = shouldHandOffToUpstream(serverInstance) ? getActiveSpan() : undefined;
+          const upstreamSpan = upstreamInstrumented && hasGlobalTracerProvider() ? getActiveSpan() : undefined;
           if (upstreamSpan && spanToJSON(upstreamSpan).attributes[MCP_METHOD_NAME] === message.method) {
             upstreamSpan.setAttributes(
               buildMcpNotificationSpanConfig('notification-outgoing', message, transport, resolvedOptions).attributes,
