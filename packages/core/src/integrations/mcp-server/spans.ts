@@ -104,16 +104,10 @@ export function buildMcpNotificationSpanConfig(
   return { name, attributes };
 }
 
-function createMcpNotificationSpanWithCallback(
-  type: 'notification-incoming' | 'notification-outgoing',
-  message: JsonRpcNotification,
-  transport: MCPTransport,
-  options: ResolvedMcpOptions,
+function startMcpNotificationSpan(
+  { name, attributes }: { name: string; attributes: Record<string, string | number> },
   callback: () => unknown,
-  extra?: ExtraHandlerData,
 ): unknown {
-  const { name, attributes } = buildMcpNotificationSpanConfig(type, message, transport, options, extra);
-
   return startSpan(
     {
       name,
@@ -141,13 +135,9 @@ export function createMcpNotificationSpan(
   options: ResolvedMcpOptions,
   callback: () => unknown,
 ): unknown {
-  return createMcpNotificationSpanWithCallback(
-    'notification-incoming',
-    jsonRpcMessage,
-    transport,
-    options,
+  return startMcpNotificationSpan(
+    buildMcpNotificationSpanConfig('notification-incoming', jsonRpcMessage, transport, options, extra),
     callback,
-    extra,
   );
 }
 
@@ -165,7 +155,10 @@ export function createMcpOutgoingNotificationSpan(
   options: ResolvedMcpOptions,
   callback: () => unknown,
 ): unknown {
-  return createMcpNotificationSpanWithCallback('notification-outgoing', jsonRpcMessage, transport, options, callback);
+  return startMcpNotificationSpan(
+    buildMcpNotificationSpanConfig('notification-outgoing', jsonRpcMessage, transport, options),
+    callback,
+  );
 }
 
 /**

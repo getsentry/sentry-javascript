@@ -38,10 +38,10 @@ function applyMissingMcpOptions(target: McpServerWrapperOptions, source: McpServ
 function instrumentTransport(
   transport: MCPTransport,
   options: McpServerWrapperOptions,
-  serverInstance: MCPServerInstance,
+  upstreamInstrumented: boolean,
 ): void {
-  wrapTransportOnMessage(transport, options, serverInstance);
-  wrapTransportSend(transport, options, serverInstance);
+  wrapTransportOnMessage(transport, options, upstreamInstrumented);
+  wrapTransportSend(transport, options, upstreamInstrumented);
   wrapTransportOnClose(transport);
   wrapTransportError(transport);
 }
@@ -182,6 +182,7 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
   const serverInstance = mcpServerInstance as MCPServerInstance;
   const wrapperOptions: McpServerWrapperOptions = { ...options };
   wrappedMcpServerOptions.set(mcpServerInstance, wrapperOptions);
+  const upstreamInstrumented = decorateUpstreamInstrumentation(serverInstance);
 
   fill(serverInstance, 'connect', originalConnect => {
     return async function (this: MCPServerInstance, transport: MCPTransport, ...restArgs: unknown[]) {
@@ -192,7 +193,7 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
         }
 
         isTransportInstrumented = true;
-        instrumentTransport(transport, wrapperOptions, serverInstance);
+        instrumentTransport(transport, wrapperOptions, upstreamInstrumented);
       };
       const restoreStart = interceptTransportStart(transport, instrumentTransportOnce);
 
@@ -211,8 +212,6 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
       }
     };
   });
-
-  decorateUpstreamInstrumentation(serverInstance);
 
   wrapAllMCPHandlers(serverInstance);
 

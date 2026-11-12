@@ -28,10 +28,8 @@ interface Instrumentation {
   receive?: (operation: Operation) => Scope | undefined;
 }
 
-/**
- * The MCP SDK's built-in instrumentation as the `SentryTracerProvider` turns it into Sentry spans:
- * a span per operation, active while the handler runs, ended before the response is sent.
- */
+// Mirrors the MCP SDK instrumentation under the Sentry tracer provider: one span per operation,
+// ended before the response is sent.
 function sentryTracedInstrumentation(): Instrumentation {
   const start = (operation: Operation, kind: 'client' | 'server'): Scope => {
     const span = startInactiveSpan({
@@ -43,7 +41,6 @@ function sentryTracedInstrumentation(): Instrumentation {
   return { send: operation => start(operation, 'client'), receive: operation => start(operation, 'server') };
 }
 
-/** The instrumentation when the registered tracer provider is not Sentry's: no Sentry span is started. */
 function foreignTracedInstrumentation(): Instrumentation {
   const scope: Scope = { run: fn => fn(), end: () => undefined };
   return { send: () => scope, receive: () => scope };
@@ -64,11 +61,8 @@ class InMemoryTransport {
 
 type ToolHandler = (args: Record<string, unknown>) => Promise<unknown>;
 
-/**
- * Minimal stand-in for `McpServer` with the dispatch order of `@modelcontextprotocol/server`'s
- * `Protocol`: the instrumentation scope is started synchronously in `transport.onmessage`, the handler
- * runs inside it, and the scope ends before the response goes out.
- */
+// Follows the dispatch order of the MCP SDK's `Protocol`: the scope starts synchronously in
+// `transport.onmessage`, the handler runs inside it, and the scope ends before the response is sent.
 function createServer(instrumentation: Instrumentation | undefined) {
   const tools: Record<string, ToolHandler> = {};
   const protocol: { _instrumentation?: Instrumentation; transport?: InMemoryTransport } = {
@@ -264,22 +258,14 @@ describe('MCP server hand-off to the MCP SDK instrumentation', () => {
     expect(spanToJSON(handlerSpan!).span_id).toBe(spans[0]!.span_id);
   });
 
-  it('keeps starting its own spans when no tracer provider is registered', async () => {
-    const server = wrapMcpServerWithSentry(createServer(foreignTracedInstrumentation()));
-    server.registerTool('echo', {}, async () => ({ content: [{ type: 'text', text: 'echo' }] }));
-
-    const transport = new InMemoryTransport();
-    await server.connect(transport);
-    await callTool(transport, 'echo', {});
-
-    const spans = mcpSpans();
-    expect(spans).toHaveLength(1);
-    expect(spans[0]!.attributes).toMatchObject({ 'sentry.op': 'mcp.server', 'mcp.tool.result.content_count': 1 });
-  });
-
-  it('keeps starting its own spans when the MCP SDK has no instrumentation', async () => {
-    registerTracerProvider();
-    const server = wrapMcpServerWithSentry(createServer(undefined));
+  it.each([
+    ['no tracer provider is registered', false, foreignTracedInstrumentation()],
+    ['the MCP SDK has no instrumentation', true, undefined],
+  ])('keeps starting its own spans when %s', async (_, withTracerProvider, instrumentation) => {
+    if (withTracerProvider) {
+      registerTracerProvider();
+    }
+    const server = wrapMcpServerWithSentry(createServer(instrumentation));
     server.registerTool('echo', {}, async () => ({ content: [{ type: 'text', text: 'echo' }] }));
 
     const transport = new InMemoryTransport();
