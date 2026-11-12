@@ -3,6 +3,7 @@
  * @see https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/mcp.md#context-propagation
  */
 
+import { getClient } from '../../currentScopes';
 import { continueTrace } from '../../tracing/trace';
 import type { SpanLink } from '../../types/link';
 import { isObjectLike } from '../../utils/is';
@@ -14,8 +15,11 @@ function getSentryTraceFromMeta(meta: Record<PropertyKey, unknown>): string | un
   if (typeof sentryTrace === 'string') {
     return sentryTrace;
   }
+  // W3C Trace Context is opt-in, the same way `propagateTraceparent` gates sending `traceparent` on HTTP requests.
   const traceparent = meta.traceparent;
-  return typeof traceparent === 'string' ? sentryTraceFromTraceparent(traceparent) : undefined;
+  return getClient()?.getOptions().propagateTraceparent && typeof traceparent === 'string'
+    ? sentryTraceFromTraceparent(traceparent)
+    : undefined;
 }
 
 /**
