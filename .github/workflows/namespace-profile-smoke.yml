@@ -68,3 +68,21 @@ jobs:
               select($name | test("token|auth|secret|credential|key|url"; "i") | not) |
               {path: $name, value: getpath($p)}' "$RUNNER_TEMP/namespace-instance.json"
           fi
+
+  dependencies:
+    name: Validate mounted monorepo dependencies
+    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=benchmark-sentry-js-ns-smoke-v2-monorepo-x64
+    timeout-minutes: 5
+    env:
+      CI_BENCHMARK_PROVIDER: namespace
+      CI_BENCHMARK_CACHE_PREFIX: benchmark-sentry-js-ns-smoke-v2-
+      pnpm_config_verify_deps_before_run: 'false'
+      SKIP_PLAYWRIGHT_BROWSER_INSTALL: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node
+      - uses: ./.github/actions/install-dependencies
+      - name: Check native modules and bin shims
+        run: |
+          pnpm exec nx --version
+          node --input-type=module -e "await import('rolldown'); console.log('Native Rolldown loaded')"
