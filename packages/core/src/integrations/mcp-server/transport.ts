@@ -113,22 +113,16 @@ export function wrapTransportOnMessage(
             if (oauthClientName) {
               spanConfig.attributes[MCP_AUTH_CLIENT_NAME] = oauthClientName;
             }
-            const sessionAttributes =
-              request.method === 'initialize' && messageSessionData
-                ? {
-                    ...buildClientAttributesFromInfo(messageSessionData.clientInfo),
-                    ...(messageSessionData.protocolVersion && {
-                      [MCP_PROTOCOL_VERSION]: messageSessionData.protocolVersion,
-                    }),
-                  }
-                : undefined;
+            if (request.method === 'initialize' && messageSessionData) {
+              Object.assign(spanConfig.attributes, buildClientAttributesFromInfo(messageSessionData.clientInfo));
+              if (messageSessionData.protocolVersion) {
+                spanConfig.attributes[MCP_PROTOCOL_VERSION] = messageSessionData.protocolVersion;
+              }
+            }
             const callOriginal = (): unknown =>
               (originalOnMessage as (...args: unknown[]) => unknown).call(this, request, extra);
             const startOwnSpan = (fn: () => unknown): unknown => {
               const span = startInactiveSpan(spanConfig);
-              if (sessionAttributes) {
-                span.setAttributes(sessionAttributes);
-              }
               storeSpanForRequest(transport, request.id, span, request.method, resolvedOptions);
               return withActiveSpan(span, fn);
             };
@@ -138,7 +132,7 @@ export function wrapTransportOnMessage(
                 {
                   method: request.method,
                   id: request.id,
-                  attributes: { ...spanConfig.attributes, ...sessionAttributes },
+                  attributes: spanConfig.attributes,
                   onResponse: (span, result, error) =>
                     applyResponseToSpan(transport, span, request.method, result, error, resolvedOptions),
                   startOwnSpan,

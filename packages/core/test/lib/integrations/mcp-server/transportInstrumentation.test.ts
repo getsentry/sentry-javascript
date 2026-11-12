@@ -889,11 +889,13 @@ describe('MCP Server Transport Instrumentation', () => {
         {},
       );
 
-      expect(mockSpan.setAttributes).toHaveBeenCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          'mcp.client.name': 'test-client',
-          'mcp.client.version': '1.0.0',
-          'mcp.protocol.version': '2025-06-18',
+          attributes: expect.objectContaining({
+            'mcp.client.name': 'test-client',
+            'mcp.client.version': '1.0.0',
+            'mcp.protocol.version': '2025-06-18',
+          }),
         }),
       );
     });
@@ -1365,10 +1367,12 @@ describe('MCP Server Transport Instrumentation', () => {
       });
 
       // Span should have client and server info attributes
-      expect(mockSpan.setAttributes).toHaveBeenCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          'mcp.client.name': 'test-client',
-          'mcp.client.version': '1.0.0',
+          attributes: expect.objectContaining({
+            'mcp.client.name': 'test-client',
+            'mcp.client.version': '1.0.0',
+          }),
         }),
       );
       expect(mockSpan.setAttributes).toHaveBeenCalledWith(
