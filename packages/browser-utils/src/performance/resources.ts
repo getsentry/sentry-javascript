@@ -1,6 +1,7 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, hasSpanStreamingEnabled, spanToJSON } from '@sentry/core';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 import { addResourceSpans } from './entries';
 
 interface ResourcesOptions {
@@ -22,7 +23,7 @@ const _resourcesIntegration = ((options: ResourcesOptions = {}) => {
         // Interaction idle spans also end through this hook. We match the route span by op, since
         // `browserTracingIntegration` may already have cleared its active idle span at this point.
         const op = spanToJSON(span).attributes?.[SENTRY_OP];
-        if (op !== 'pageload' && op !== 'navigation') {
+        if (op !== PAGELOAD && op !== NAVIGATION) {
           return;
         }
 

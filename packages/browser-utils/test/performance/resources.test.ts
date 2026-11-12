@@ -1,4 +1,5 @@
 import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { NAVIGATION, PAGELOAD, UI_ACTION_CLICK } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import { getMainCarrier, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -40,9 +41,9 @@ describe('resourcesIntegration', () => {
   });
 
   it.each([
-    ['adds resource spans to pageload spans', 'pageload', 1],
-    ['adds resource spans to navigation spans', 'navigation', 1],
-    ['skips interaction idle spans', 'ui.action.click', 0],
+    ['adds resource spans to pageload spans', PAGELOAD, 1],
+    ['adds resource spans to navigation spans', NAVIGATION, 1],
+    ['skips interaction idle spans', UI_ACTION_CLICK, 0],
   ])('%s', (_name, op, count) => {
     const span = new SentrySpan({ op, name: '/', sampled: true, startTimestamp: 1 });
 
