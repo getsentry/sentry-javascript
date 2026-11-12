@@ -203,6 +203,31 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (vite)', () => {
     expectUploadedPairs(uploads[0]!, readChunks(outDir));
   });
 
+  it('keeps visible source maps an output enables when the option is true', async () => {
+    const config = viteConfig({ sourcemaps: { deleteSourcemapsAfterUpload: true } });
+    await build({
+      ...config,
+      build: { ...config.build, rollupOptions: { input: entry, output: { sourcemap: true } } },
+    });
+
+    expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toHaveLength(2);
+  });
+
+  it.each([true, 'hidden'] as const)(
+    'removes `%s` source maps an output enables when the SDK turned source maps on',
+    async sourcemap => {
+      const config = viteConfig({ sourcemaps: { deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: true } });
+      await build({
+        ...config,
+        build: { ...config.build, rollupOptions: { input: entry, output: { sourcemap } } },
+      });
+
+      expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toEqual([]);
+      expect(uploads).toHaveLength(1);
+      expectUploadedPairs(uploads[0]!, readChunks(outDir));
+    },
+  );
+
   it('removes hidden source maps when the option is true and no upload runs', async () => {
     const config = viteConfig({ authToken: undefined, sourcemaps: { deleteSourcemapsAfterUpload: true } });
     await build({ ...config, build: { ...config.build, sourcemap: 'hidden' } });

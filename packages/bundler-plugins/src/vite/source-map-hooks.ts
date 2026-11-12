@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import type { SentryBuildPluginManager, SourceMapDecision, SourceMapKind } from '../core';
-import { getDeleteSourcemapsAfterUpload } from '../core';
+import { getDeleteSourcemapsAfterUpload, getSdkEnabledSourceMaps } from '../core';
 import type { OutputMatch, RollupSourceMapSetting, SourceMapHandling } from '../rollup/source-map-handling';
 import { getOutputMatch, sourceMapKindFromRollupSetting } from '../rollup/source-map-handling';
 
@@ -116,21 +116,25 @@ export function createViteSourceMapHooks(
 
       for (const [name, environment] of Object.entries(environments)) {
         const { kind, decision } = decisions.get(name) ?? decisions.get('*') ?? { kind: 'unset', decision: NO_CHANGE };
-        const deleteOption = getDeleteSourcemapsAfterUpload(
-          sentryBuildPluginManager.normalizedOptions,
-          decisions.has(name) ? name : undefined,
-        );
+        const environmentName = decisions.has(name) ? name : undefined;
+        const { normalizedOptions } = sentryBuildPluginManager;
+        const deleteOption = getDeleteSourcemapsAfterUpload(normalizedOptions, environmentName);
+        const sdkEnabledSourceMaps = getSdkEnabledSourceMaps(normalizedOptions, environmentName);
 
         for (const output of getOutputs(config.root, environment.build)) {
-          // The plugin never changes an output's own setting, so the user enabled
-          // these maps: only hidden ones the user asked to delete are removed.
+          // The plugin never changes an output's own setting. Hidden maps are
+          // removed when the user asks for it, visible ones only when the SDK
+          // turned source maps on.
           if (output.ownSetting) {
+            const outputKind = sourceMapKindFromRollupSetting(output.sourcemap);
+            const removeAllSourceMaps = sdkEnabledSourceMaps && (outputKind === 'hidden' || outputKind === 'visible');
             sourceMapHandling.setDecision(output.destination, {
               match: output.match,
-              kind: sourceMapKindFromRollupSetting(output.sourcemap),
+              kind: outputKind,
               decision: {
                 enableHidden: false,
-                deleteAfterUpload: deleteOption === true && output.sourcemap === 'hidden',
+                deleteAfterUpload: deleteOption === true && (outputKind === 'hidden' || removeAllSourceMaps),
+                removeAllSourceMaps,
               },
             });
             continue;
