@@ -12,6 +12,17 @@ Work in this release was contributed by @kunal649. Thank you for your contributi
 
   `Sentry.cron.instrumentCron`, `instrumentNodeCron` and `instrumentNodeSchedule` send the server's time zone when a job has none, so monitors don't report false misses on servers that aren't on UTC. Schedules Sentry can't express exactly, such as per-second schedules, send no monitor config, so the monitor keeps the schedule set in Sentry.
 
+- **feat(node): Add `bullmqJobSchedulerIntegration` to monitor BullMQ job schedulers ([#25472](https://github.com/getsentry/sentry-javascript/pull/25472))**
+
+  Add `Sentry.bullmqJobSchedulerIntegration()` to send check-ins for every job a BullMQ worker (5.16.0 to 6.x) runs from a job scheduler, with `<queue>-<scheduler id>` as the monitor slug and the scheduler's `pattern` or `every` as the schedule. Each monitored scheduler creates a monitor in Sentry, and monitors are billed. Use `excludeJobSchedulers` to skip schedulers by id. A retried job keeps one check-in.
+
+  ```js
+  Sentry.init({
+    dsn: '__DSN__',
+    integrations: [Sentry.bullmqJobSchedulerIntegration({ excludeJobSchedulers: ['cache-warmup'] })],
+  });
+  ```
+
 ## 11.12.0
 
 ### Important Changes

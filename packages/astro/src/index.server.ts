@@ -49,6 +49,7 @@ export {
   fsIntegration,
   functionToStringIntegration,
   genericPoolIntegration,
+  bullmqJobSchedulerIntegration,
   cronJobIntegration,
   nodeCronIntegration,
   nodeScheduleIntegration,

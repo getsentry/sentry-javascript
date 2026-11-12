@@ -4,13 +4,15 @@
 // `supports({ bunMin })`. Neither is listed here.
 
 // Node-only features: ANR and native thread watchdogs, child processes, the AWS Lambda Node runtime,
-// `node:sqlite`, which `flue` needs, and the Vercel keep-alive, which needs `http.server.response.finish`.
+// `node:sqlite`, which `flue` needs, the Vercel keep-alive, which needs `http.server.response.finish`, and
+// `bullmqJobSchedulerIntegration`, which `bun run` can't inject and the bundler plugins don't instrument.
 const NODE_ONLY = [
   'suites/anr/test.ts',
   'suites/aws-lambda-web/**',
   'suites/aws-serverless/**',
   'suites/breadcrumbs/**',
   'suites/child-process/test.ts',
+  'suites/cron/bullmq/test.ts',
   'suites/thread-blocked-native/test.ts',
   'suites/tracing/flue/test.ts',
   'suites/vercel/keep-alive/test.ts',
