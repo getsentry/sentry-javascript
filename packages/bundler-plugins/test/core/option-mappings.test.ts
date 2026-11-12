@@ -209,6 +209,36 @@ describe('normalizeUserOptions()', () => {
       vi.restoreAllMocks();
     });
 
+    test.each(['preview', 'development', 'staging'])(
+      'should skip commit association on %s Vercel builds',
+      targetEnv => {
+        process.env['VERCEL'] = '1';
+        process.env['VERCEL_TARGET_ENV'] = targetEnv;
+        process.env['VERCEL_GIT_COMMIT_SHA'] = 'abc123';
+        process.env['VERCEL_GIT_REPO_OWNER'] = 'my-owner';
+        process.env['VERCEL_GIT_REPO_SLUG'] = 'my-repo';
+
+        const normalizedOptions = normalizeUserOptions({ release: { name: 'my-release' } });
+
+        expect(normalizedOptions.release.setCommits).toBe(false);
+      },
+    );
+
+    test('should associate commits from Vercel env vars when only VERCEL_ENV is production', () => {
+      process.env['VERCEL'] = '1';
+      delete process.env['VERCEL_TARGET_ENV'];
+      process.env['VERCEL_ENV'] = 'production';
+      process.env['VERCEL_GIT_COMMIT_SHA'] = 'abc123';
+      process.env['VERCEL_GIT_REPO_OWNER'] = 'my-owner';
+      process.env['VERCEL_GIT_REPO_SLUG'] = 'my-repo';
+
+      const normalizedOptions = normalizeUserOptions({ release: { name: 'my-release' } });
+
+      expect(normalizedOptions.release.setCommits).toEqual(
+        expect.objectContaining({ commit: 'abc123', repo: 'my-owner/my-repo' }),
+      );
+    });
+
     test('should not create deploy config when Vercel env vars are missing', () => {
       const userOptions: Options = {
         org: 'my-org',
