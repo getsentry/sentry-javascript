@@ -233,15 +233,21 @@ describe('normalizeUserOptions()', () => {
     );
 
     test('should keep automatic commit association on preview Vercel builds that have a git remote', () => {
-      vi.spyOn(childProcess, 'execSync').mockReturnValue(Buffer.from('https://github.com/my-owner/my-repo.git'));
-      process.env['VERCEL'] = '1';
-      process.env['VERCEL_TARGET_ENV'] = 'preview';
-      process.env['VERCEL_GIT_COMMIT_SHA'] = 'abc123';
-      process.env['VERCEL_GIT_REPO_OWNER'] = 'my-owner';
-      process.env['VERCEL_GIT_REPO_SLUG'] = 'my-repo';
+      const execSyncSpy = vi
+        .spyOn(childProcess, 'execSync')
+        .mockReturnValue(Buffer.from('https://github.com/my-owner/my-repo.git'));
+      // Only Vercel's variables, so the git remote is what keeps `--auto`, not CI variables from the test machine.
+      process.env = {
+        VERCEL: '1',
+        VERCEL_TARGET_ENV: 'preview',
+        VERCEL_GIT_COMMIT_SHA: 'abc123',
+        VERCEL_GIT_REPO_OWNER: 'my-owner',
+        VERCEL_GIT_REPO_SLUG: 'my-repo',
+      };
 
       const normalizedOptions = normalizeUserOptions({ release: { name: 'my-release' } });
 
+      expect(execSyncSpy).toHaveBeenCalledWith('git remote get-url origin', expect.anything());
       expect(normalizedOptions.release.setCommits).toEqual(expect.objectContaining({ auto: true }));
       expect(normalizedOptions.release.setCommits).not.toHaveProperty('commit');
       vi.restoreAllMocks();
