@@ -10,15 +10,12 @@ vi.spyOn(console, 'warn').mockImplementation(() => {
 });
 
 function getSentrySolidStartVitePlugins(options?: Parameters<typeof sentrySolidStartVite>[0]): Plugin[] {
-  return sentrySolidStartVite(
-    {
-      project: 'project',
-      org: 'org',
-      authToken: 'token',
-      ...options,
-    },
-    {},
-  );
+  return sentrySolidStartVite({
+    project: 'project',
+    org: 'org',
+    authToken: 'token',
+    ...options,
+  });
 }
 
 describe('sentrySolidStartVite()', () => {
@@ -28,9 +25,9 @@ describe('sentrySolidStartVite()', () => {
     expect(names).toEqual([
       'sentry-solidstart-tunnel-base-path',
       'sentry-solidstart-build-instrumentation-file',
+      'sentry-solidstart-update-source-map-setting',
       'sentry-vite-plugin',
       'sentry-vite-upload-staging',
-      'sentry-solidstart-update-source-map-setting',
     ]);
   });
 

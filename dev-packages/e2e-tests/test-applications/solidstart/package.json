@@ -10,7 +10,9 @@
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "node assert-build.ts && pnpm test:prod && pnpm test:dev",
-    "test:dev": "TEST_ENV=development playwright test db"
+    "test:dev": "TEST_ENV=development playwright test db",
+    "test:build:no-upload": "pnpm install && E2E_NO_UPLOAD=1 pnpm build",
+    "test:assert:no-upload": "E2E_NO_UPLOAD=1 node assert-build.ts"
   },
   "type": "module",
   "dependencies": {
@@ -29,5 +31,14 @@
     "typescript": "^5.4.5",
     "vinxi": "^0.5.11",
     "vite": "^6.4.4"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build:no-upload",
+        "assert-command": "pnpm test:assert:no-upload",
+        "label": "solidstart (no upload)"
+      }
+    ]
   }
 }

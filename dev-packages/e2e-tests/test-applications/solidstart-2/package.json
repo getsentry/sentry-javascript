@@ -9,7 +9,9 @@
     "start": "HOST=localhost PORT=3030 node .output/server/index.mjs",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "node assert-build.ts && pnpm test:prod"
+    "test:assert": "node assert-build.ts && pnpm test:prod",
+    "test:build:no-upload": "pnpm install && E2E_NO_UPLOAD=1 pnpm build",
+    "test:assert:no-upload": "E2E_NO_UPLOAD=1 node assert-build.ts"
   },
   "type": "module",
   "dependencies": {
@@ -31,6 +33,13 @@
     "node": ">=24"
   },
   "sentryTest": {
-    "optional": true
+    "optional": true,
+    "variants": [
+      {
+        "build-command": "pnpm test:build:no-upload",
+        "assert-command": "pnpm test:assert:no-upload",
+        "label": "solidstart-2 (no upload)"
+      }
+    ]
   }
 }
