@@ -4,7 +4,7 @@ import { PI_AI_ORIGIN } from './constants';
 
 /**
  * Whether the active span is a pi-ai `chat` span, which means a provider SDK call being made is pi-ai
- * sending its request. Bedrock requests are the exception: `awsIntegration` still reports them.
+ * sending its request.
  */
 export function isInsidePiAiSpan(): boolean {
   const span = getActiveSpan();

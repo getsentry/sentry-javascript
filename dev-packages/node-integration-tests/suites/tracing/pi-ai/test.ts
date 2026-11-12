@@ -108,6 +108,34 @@ describe.runIf(supports({ min: 22 }))('pi-ai integration', () => {
     });
   });
 
+  createEsmTests(__dirname, 'scenario-bedrock.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('reports Bedrock requests once, and leaves direct Bedrock calls alone', async () => {
+      await createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const chats = container.items.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT);
+            const namesFrom = (origin: string): (string | undefined)[] =>
+              chats.filter(span => span.attributes[SENTRY_ORIGIN]?.value === origin).map(span => span.name);
+
+            expect(namesFrom('auto.ai.pi_ai')).toEqual(['chat pi-bedrock-model']);
+            expect(namesFrom('auto.ai.aws_sdk')).toEqual(['chat direct-model']);
+            expect(chats).toHaveLength(2);
+
+            // pi-ai's own call still gets the plain AWS client span, under its chat span.
+            const piAiChat = chats.find(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.pi_ai');
+            const awsCall = container.items.find(span => span.name === 'BedrockRuntime.ConverseStream');
+            expect(awsCall?.attributes[SENTRY_OP]?.value).toBe('rpc');
+            expect(awsCall?.attributes[SENTRY_ORIGIN]?.value).toBe('auto.rpc.aws_sdk');
+            expect(awsCall?.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBeUndefined();
+            expect(awsCall?.parent_span_id).toBe(piAiChat?.span_id);
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
   createEsmTests(__dirname, 'scenario-compat.mjs', 'instrument.mjs', (createRunner, test) => {
     // `compat` loads pi-ai's model catalog with `import ... with { type: 'json' }`. Deno 2.8 drops
     // the import attributes once any module hook is registered and compiles the JSON as JavaScript,
