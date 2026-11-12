@@ -16,7 +16,7 @@ import { WINDOW } from '../helpers';
  * written, so a tunnel the app serves itself keeps its URL.
  */
 export function resolveBrowserTunnelOption(
-  options: BrowserOptions,
+  options: Pick<BrowserOptions, 'tunnel' | 'dsn' | 'transportOptions'>,
 ): Pick<BrowserOptions, 'transportOptions'> & { tunnel: string | undefined } {
   const { tunnel, dsn, transportOptions } = options;
   if (!tunnel) {

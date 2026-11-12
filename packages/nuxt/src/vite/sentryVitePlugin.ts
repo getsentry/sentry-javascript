@@ -1,7 +1,7 @@
 import type { Nuxt } from '@nuxt/schema';
 import type { ConfigEnv, Plugin, UserConfig } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
-import { extractNuxtSourceMapSetting, validateDifferentSourceMapSettings } from './sourceMaps';
+import { extractNuxtSourceMapSetting, validateDifferentSourceMapSettings } from './sourceMapSettings';
 
 /**
  * Creates a Vite plugin that adds the Sentry Vite plugin and validates source map settings.

@@ -2,14 +2,16 @@ import type { Nuxt } from '@nuxt/schema';
 import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SentryNuxtModuleOptions } from '../../src/common/types';
-import type { SourceMapSetting } from '../../src/vite/sourceMaps';
 import {
   changeNuxtSourceMapSettings,
-  extractNuxtSourceMapSetting,
   getPluginOptions,
-  validateDifferentSourceMapSettings,
   validateNitroSourceMapSettings,
 } from '../../src/vite/sourceMaps';
+import {
+  extractNuxtSourceMapSetting,
+  type SourceMapSetting,
+  validateDifferentSourceMapSettings,
+} from '../../src/vite/sourceMapSettings';
 
 vi.mock('@sentry/core', async importOriginal => {
   const actual = await importOriginal();
