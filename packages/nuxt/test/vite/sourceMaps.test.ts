@@ -22,10 +22,7 @@ vi.mock('@sentry/core', async importOriginal => {
   };
 });
 
-const NODE_SERVER_OUTPUT_DIRS = {
-  publicDir: path.join(process.cwd(), '.output', 'public'),
-  serverDir: path.join(process.cwd(), '.output', 'server'),
-};
+const NODE_SERVER_DIR = path.join(process.cwd(), '.output', 'server');
 
 describe('getPluginOptions', () => {
   beforeEach(() => {
@@ -221,13 +218,13 @@ describe('getPluginOptions', () => {
       name: 'both client and server fallback are true',
       clientFallback: true,
       serverFallback: true,
-      expected: ['.output/public/**/*.map', '.output/server/**/*.map'],
+      expected: ['.output/server/**/*.map'],
     },
     {
       name: 'only client fallback is true',
       clientFallback: true,
       serverFallback: false,
-      expected: ['.output/public/**/*.map'],
+      expected: undefined,
     },
     {
       name: 'only server fallback is true',
@@ -239,7 +236,7 @@ describe('getPluginOptions', () => {
       name: 'both fallbacks are true, but Nitro is not set up yet',
       clientFallback: true,
       serverFallback: true,
-      outputDirs: null,
+      serverDir: null,
       expected: undefined,
     },
     {
@@ -260,11 +257,11 @@ describe('getPluginOptions', () => {
     },
   ])(
     'sets filesToDeleteAfterUpload correctly when $name',
-    ({ clientFallback, serverFallback, customOptions = {}, outputDirs = NODE_SERVER_OUTPUT_DIRS, expected }) => {
+    ({ clientFallback, serverFallback, customOptions = {}, serverDir = NODE_SERVER_DIR, expected }) => {
       const options = getPluginOptions(customOptions as SentryNuxtModuleOptions, {
         client: clientFallback,
         server: serverFallback,
-        outputDirs: outputDirs ?? undefined,
+        serverDir: serverDir ?? undefined,
       });
 
       expect(options?.sourcemaps?.filesToDeleteAfterUpload).toEqual(expected);
