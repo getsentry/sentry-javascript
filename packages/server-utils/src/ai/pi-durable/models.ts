@@ -1,48 +1,11 @@
-import type { Span } from '@sentry/core';
-import {
-  getCurrentScope,
-  getIsolationScope,
-  isThenable,
-  isURLObjectRelative,
-  parseStringToURLObject,
-  SPAN_STATUS_ERROR,
-  startSpanManual,
-  stringify,
-} from '@sentry/core';
-import {
-  GEN_AI_CONVERSATION_ID,
-  GEN_AI_INPUT_MESSAGES,
-  GEN_AI_OPERATION_NAME,
-  GEN_AI_OUTPUT_MESSAGES,
-  GEN_AI_PROVIDER_NAME,
-  GEN_AI_REQUEST_MAX_TOKENS,
-  GEN_AI_REQUEST_MODEL,
-  GEN_AI_REQUEST_REASONING_LEVEL,
-  GEN_AI_REQUEST_TEMPERATURE,
-  GEN_AI_RESPONSE_FINISH_REASONS,
-  GEN_AI_RESPONSE_ID,
-  GEN_AI_RESPONSE_MODEL,
-  GEN_AI_RESPONSE_STREAMING,
-  GEN_AI_SYSTEM_INSTRUCTIONS,
-  GEN_AI_TOOL_DEFINITIONS,
-  SENTRY_ORIGIN,
-  SERVER_ADDRESS,
-  SERVER_PORT,
-} from '@sentry/conventions/attributes';
-import { GEN_AI_CHAT } from '@sentry/conventions/op';
+import { isThenable, SPAN_STATUS_ERROR, startSpanManual } from '@sentry/core';
 import type { GenAiOptions } from '../core/utils';
 import { resolveAIRecordingOptions } from '../core/utils';
+import { getPiAiChatSpanOptions, setPiAiResponseAttributes } from '../pi-ai/chat';
 import type { PiAiContext } from '../pi-ai/messages';
-import {
-  piAiAssistantMessageToGenAiMessage,
-  piAiFinishReason,
-  piAiMessagesToGenAiMessages,
-  piAiSystemInstructions,
-  piAiToolDefinitions,
-} from '../pi-ai/messages';
-import { setPiAiUsageAttributes } from '../pi-ai/usage';
+import type { PiAssistantMessage, PiEventStream, PiModel, PiStreamOptions } from '../pi-ai/types';
 import { PI_DURABLE_ORIGIN } from './constants';
-import type { PiAssistantMessage, PiEventStream, PiModel, PiModels, PiStreamOptions } from './types';
+import type { PiModels } from './types';
 
 type ModelCall = (model: PiModel, request: unknown, options?: unknown) => unknown;
 
@@ -107,27 +70,9 @@ function traceModelRequest(
 ): unknown {
   // Read per request: `dataCollection.genAI` belongs to the current client, which can change.
   const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
-  const conversationId =
-    getCurrentScope().getScopeData().conversationId ?? getIsolationScope().getScopeData().conversationId;
 
   return startSpanManual(
-    {
-      name: model.id ? `chat ${model.id}` : 'chat',
-      op: GEN_AI_CHAT,
-      attributes: {
-        [SENTRY_ORIGIN]: PI_DURABLE_ORIGIN,
-        [GEN_AI_OPERATION_NAME]: 'chat',
-        [GEN_AI_PROVIDER_NAME]: model.provider,
-        [GEN_AI_REQUEST_MODEL]: model.id,
-        [GEN_AI_CONVERSATION_ID]: conversationId,
-        ...getServerAttributes(model),
-        ...(streaming ? { [GEN_AI_RESPONSE_STREAMING]: true } : {}),
-        [GEN_AI_REQUEST_TEMPERATURE]: callOptions?.temperature,
-        [GEN_AI_REQUEST_MAX_TOKENS]: callOptions?.maxTokens,
-        [GEN_AI_REQUEST_REASONING_LEVEL]: callOptions?.reasoning,
-        ...(recordInputs && context ? getRequestContentAttributes(context) : {}),
-      },
-    },
+    getPiAiChatSpanOptions({ model, context, callOptions, streaming, origin: PI_DURABLE_ORIGIN, recordInputs }),
     span => {
       let result: unknown;
       try {
@@ -152,7 +97,10 @@ function traceModelRequest(
         return result;
       }
       (settled as Promise<PiAssistantMessage>).then(
-        message => endChatSpan(span, message, recordOutputs),
+        message => {
+          setPiAiResponseAttributes(span, message, recordOutputs);
+          span.end();
+        },
         () => {
           span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
           span.end();
@@ -162,52 +110,4 @@ function traceModelRequest(
       return result;
     },
   );
-}
-
-function getServerAttributes(model: PiModel): Record<string, string | number> {
-  const url = model.baseUrl ? parseStringToURLObject(model.baseUrl) : undefined;
-  if (!url || isURLObjectRelative(url) || !url.hostname) {
-    return {};
-  }
-  return { [SERVER_ADDRESS]: url.hostname, ...(url.port ? { [SERVER_PORT]: Number(url.port) } : {}) };
-}
-
-function getRequestContentAttributes(context: PiAiContext): Record<string, string | undefined> {
-  const messages = piAiMessagesToGenAiMessages(context.messages);
-  const tools = piAiToolDefinitions(context);
-  return {
-    [GEN_AI_SYSTEM_INSTRUCTIONS]: piAiSystemInstructions(context),
-    [GEN_AI_INPUT_MESSAGES]: messages.length ? stringify(messages) : undefined,
-    [GEN_AI_TOOL_DEFINITIONS]: tools.length ? stringify(tools) : undefined,
-  };
-}
-
-function endChatSpan(span: Span, message: PiAssistantMessage, recordOutputs: boolean): void {
-  const responseModel = message.responseModel ?? message.model;
-  if (responseModel) {
-    span.setAttribute(GEN_AI_RESPONSE_MODEL, responseModel);
-  }
-  if (message.responseId) {
-    span.setAttribute(GEN_AI_RESPONSE_ID, message.responseId);
-  }
-
-  const finishReason = piAiFinishReason(message.stopReason);
-  if (finishReason) {
-    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, stringify([finishReason]));
-  }
-
-  const failed = message.stopReason === 'error';
-  setPiAiUsageAttributes(span, message.usage, failed || message.stopReason === 'deferred');
-
-  const output = recordOutputs ? piAiAssistantMessageToGenAiMessage(message, finishReason) : undefined;
-  if (output) {
-    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, stringify([output], String));
-  }
-
-  if (failed) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-  } else if (message.stopReason === 'aborted') {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
-  }
-  span.end();
 }
