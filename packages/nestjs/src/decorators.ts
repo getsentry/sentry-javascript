@@ -3,7 +3,7 @@ import { CODE_FUNCTION_NAME, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/convention
 import { captureException, debug } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import { startSpan } from '@sentry/node';
-import { cronExpressionToMonitorConfig } from '@sentry/server-utils';
+import { _INTERNAL_cronExpressionToMonitorConfig as cronExpressionToMonitorConfig } from '@sentry/server-utils';
 import { DEBUG_BUILD } from './debug-build';
 import { isExpectedError } from './helpers';
 import type { ReflectWithMetadata } from './integrations/helpers';
@@ -94,8 +94,7 @@ function resolveMonitorConfig(
     return undefined;
   }
 
-  const checkinMargin = Math.max(monitorSettings.checkinMargin ?? 0, cronConfig.checkinMargin ?? 0);
-  return { ...monitorSettings, ...cronConfig, ...(checkinMargin > 0 && { checkinMargin }) };
+  return { ...monitorSettings, ...cronConfig };
 }
 
 const SCHEDULE_CRON_OPTIONS = 'SCHEDULE_CRON_OPTIONS';

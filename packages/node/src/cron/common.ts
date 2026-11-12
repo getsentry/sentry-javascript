@@ -1,7 +1,7 @@
 import type { MonitorConfig } from '@sentry/core';
 import { debug } from '@sentry/core';
-import type { CronDialect } from '@sentry/server-utils';
-import { cronExpressionToMonitorConfig } from '@sentry/server-utils';
+import type { _INTERNAL_CronDialect as CronDialect } from '@sentry/server-utils';
+import { _INTERNAL_cronExpressionToMonitorConfig as cronExpressionToMonitorConfig } from '@sentry/server-utils';
 import { DEBUG_BUILD } from '../debug-build';
 
 /**

@@ -130,7 +130,9 @@ export function cronExpressionToMonitorConfig(
   const fields = (NICKNAMES[dialect][trimmed.toLowerCase()] || trimmed).split(/\s+/);
 
   // Sentry schedules have minute granularity, so only a fixed second can be dropped.
-  const droppedSecond = fields.length === 6 && /^\d+$/.test(fields[0] as string) ? Number(fields.shift()) : 0;
+  if (fields.length === 6 && /^\d+$/.test(fields[0] as string)) {
+    fields.shift();
+  }
   if (fields.length !== 5 || !fields.every(field => /^[\d*,/a-z#-]+$/i.test(field))) {
     return undefined;
   }
@@ -158,12 +160,7 @@ export function cronExpressionToMonitorConfig(
     return undefined;
   }
 
-  return {
-    schedule: { type: 'crontab', value: crontab.join(' ') },
-    timezone: sentryTimezone,
-    // The job runs up to 59 seconds after the minute Sentry expects, which nearly uses up its default 1-minute margin.
-    ...(droppedSecond > 0 && { checkinMargin: 2 }),
-  };
+  return { schedule: { type: 'crontab', value: crontab.join(' ') }, timezone: sentryTimezone };
 }
 
 // `cron-parser` reads these like Sentry: `L` is the last day of the month, `5L` the last Friday, `5#2` the second Friday.
