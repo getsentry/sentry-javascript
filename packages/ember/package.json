@@ -39,7 +39,7 @@
     "test": "pnpm run test:unit",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest --watch",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc@1.0.0-pre.53 publish --push --sig"
   },
   "dependencies": {
     "@embroider/addon-shim": "^1.11.0",

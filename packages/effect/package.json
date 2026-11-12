@@ -78,7 +78,7 @@
     "lint:types": "oxlint src --type-aware --type-check",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc@1.0.0-pre.53 publish --push --sig"
   },
   "sideEffects": false
 }

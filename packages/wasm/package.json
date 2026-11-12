@@ -57,7 +57,7 @@
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs}/*.js && es-check es2020 ./build/npm/esm/*.js --module",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc@1.0.0-pre.53 publish --push --sig"
   },
   "sideEffects": false
 }

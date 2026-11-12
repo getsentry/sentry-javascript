@@ -8,15 +8,8 @@ Here's how to set up and use yalc:
 
 ## Installing `yalc`
 
-Either install yalc globally,
-
-```sh
-npm install -g yalc
-
-pnpm add -g yalc
-```
-
-or add it to your desired test projects (same command without the `-g` flag)
+You don't need to install yalc. The `yalc:publish` scripts run it with `pnpm dlx`, and you can do the same in your test
+projects. If you prefer, install it globally with `pnpm add -g yalc` and drop the `pnpm dlx` prefix below.
 
 ## Registering/Updating packages
 
@@ -35,7 +28,7 @@ project. Already linked test projects will be update automatically.
 In your test project, run
 
 ```sh
-yalc add @sentry/browser #or any other SDK package
+pnpm dlx yalc add @sentry/browser #or any other SDK package
 ```
 
 to add the local SDK package to your project.

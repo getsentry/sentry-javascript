@@ -129,7 +129,7 @@
     "test:watch": "vitest --watch",
     "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",
     "vercel:project": "source vercel/make-project-use-current-branch.sh",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc@1.0.0-pre.53 publish --push --sig"
   },
   "nx": {
     "targets": {
