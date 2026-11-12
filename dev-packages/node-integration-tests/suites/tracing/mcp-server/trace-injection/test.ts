@@ -1,3 +1,5 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { MCP_NOTIFICATION_SERVER_TO_CLIENT } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
@@ -13,9 +15,9 @@ describe('MCP server trace injection into outgoing params._meta', () => {
         .expect({
           span: container => {
             const notification = container.items.find(
-              item => item.attributes['sentry.op']?.value === 'mcp.notification.server_to_client',
+              item => item.attributes[SENTRY_OP]?.value === MCP_NOTIFICATION_SERVER_TO_CLIENT,
             );
-            const clientSpan = container.items.find(item => item.attributes['sentry.op']?.value === 'test.client');
+            const clientSpan = container.items.find(item => item.attributes[SENTRY_OP]?.value === 'test.client');
             expect(notification, 'expected the outgoing notification span').toBeDefined();
             expect(clientSpan, 'expected the client span').toBeDefined();
             expect(clientSpan!.trace_id).toBe(notification!.trace_id);
