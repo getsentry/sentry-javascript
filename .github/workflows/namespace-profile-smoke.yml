@@ -14,21 +14,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - size: small
-            runner: namespace-profile-sentry-javascript-small;overrides.cache-tag=benchmark-ns-profile-smoke-v1-small
+          - size: profile-override
+            runner: namespace-profile-sentry-javascript-small;overrides.cache-tag=benchmark-sentry-js-ns-policy-profile-v1
             cores: 2
-          - size: medium
-            runner: namespace-profile-sentry-javascript;overrides.cache-tag=benchmark-ns-profile-smoke-v1-medium
-            cores: 4
-          - size: large
-            runner: namespace-profile-sentry-javascript-large;overrides.cache-tag=benchmark-ns-profile-smoke-v1-large
-            cores: 8
-          - size: explicit-labels
+          - size: unrestricted
             runner:
               - nscloud-ubuntu-24.04-amd64-2x4-with-cache
-              - nscloud-cache-tag-benchmark-sentry-js-ns-explicit-smoke-v1
+              - nscloud-cache-tag-benchmark-sentry-js-ns-policy-unrestricted-v1
               - nscloud-cache-size-50gb
-              - nscloud-cache-allow-commit-from-feat/namespace-ci-smoke
+            cores: 2
+          - size: allowed-branch
+            runner:
+              - nscloud-ubuntu-24.04-amd64-2x4-with-cache
+              - nscloud-cache-tag-benchmark-sentry-js-ns-policy-allowed-v1
+              - nscloud-cache-size-50gb
+              - nscloud-cache-allow-commit-from-feat/namespace-cache-probe
             cores: 2
     steps:
       - uses: actions/checkout@v7
@@ -60,7 +60,7 @@ jobs:
           findmnt -T "$probe"
       - name: Inspect cache command options
         run: |
-          /nsc/powertoys/spacectl cache --help
+          /nsc/powertoys/spacectl cache mount --help
           if command -v nsc >/dev/null; then
             nsc describe --help
           fi
