@@ -27,6 +27,7 @@ runs:
       working-directory: ${{ inputs.cwd }}
 
     - name: Mount Playwright browser cache
+      id: playwright-volume
       if: steps.playwright-version.outputs.version != '' && env.CI_BENCHMARK_PROVIDER == 'namespace'
       uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
       with:
@@ -43,6 +44,14 @@ runs:
         key:
           ${{ env.CI_BENCHMARK_CACHE_PREFIX }}playwright-${{ runner.os }}-${{ runner.arch }}-iteration-1-${{
           steps.playwright-version.outputs.version }}
+
+    - name: Report benchmark browser cache
+      if: env.CI_BENCHMARK_CACHE_PREFIX != '' && steps.playwright-version.outputs.version != ''
+      run:
+        echo "BENCHMARK_CACHE provider=${{ env.CI_BENCHMARK_PROVIDER }} kind=playwright hit=${{
+        env.CI_BENCHMARK_PROVIDER == 'namespace' && steps.playwright-volume.outputs.cache-hit ||
+        steps.playwright-cache.outputs.cache-hit }}"
+      shell: bash
 
     # We always install all browsers, if uncached
     # `npx` runs outside the repo, so it can't pick up a `playwright` that a parallel `pnpm install` is still linking.
@@ -100,6 +109,7 @@ runs:
       shell: bash
 
     - name: Mount WebKit package archives
+      id: webkit-volume
       if: steps.webkit-dependencies.outputs.key != '' && env.CI_BENCHMARK_PROVIDER == 'namespace'
       uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
       with:
@@ -114,6 +124,14 @@ runs:
         key: ${{ steps.webkit-dependencies.outputs.key }}
         # If this exact package set isn't cached, reuse an older set; apt downloads only what's missing.
         restore-keys: ${{ steps.webkit-dependencies.outputs.prefix }}
+
+    - name: Report benchmark WebKit cache
+      if: env.CI_BENCHMARK_CACHE_PREFIX != '' && steps.webkit-dependencies.outputs.key != ''
+      run:
+        echo "BENCHMARK_CACHE provider=${{ env.CI_BENCHMARK_PROVIDER }} kind=webkit-apt hit=${{
+        env.CI_BENCHMARK_PROVIDER == 'namespace' && steps.webkit-volume.outputs.cache-hit ||
+        steps.webkit-apt-cache.outputs.cache-hit }}"
+      shell: bash
 
     - name: Install headless WebKit system dependencies
       if: steps.webkit-dependencies.outputs.key != ''

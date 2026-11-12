@@ -24,6 +24,7 @@ runs:
 
     # The `npm` mode keeps the npm cache of the `npm ci` in `pnpm/action-setup`, which installs the bootstrap pnpm
     - name: Mount cache paths
+      id: volume
       uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
       with:
         cache: npm
@@ -31,3 +32,12 @@ runs:
           ~/.cache/pnpm-store
           ~/.cache/pnpm
           ${{ inputs.path }}
+
+    - name: Report benchmark package cache
+      if: env.CI_BENCHMARK_CACHE_PREFIX != ''
+      run: |
+        echo "BENCHMARK_CACHE provider=namespace kind=package-store hit=${{ steps.volume.outputs.cache-hit }}"
+        if test -f "$GITHUB_WORKSPACE/node_modules/.modules.yaml"; then
+          echo 'BENCHMARK_CACHE provider=namespace kind=workspace-node-modules present=true'
+        fi
+      shell: bash

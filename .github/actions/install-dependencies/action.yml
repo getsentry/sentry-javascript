@@ -34,3 +34,10 @@ runs:
       if: env.CI_BENCHMARK_PROVIDER != 'namespace' && steps.cache_dependencies.outputs.cache-hit != 'true'
       run: pnpm install --frozen-lockfile
       shell: bash
+
+    - name: Report benchmark dependency cache
+      if: env.CI_BENCHMARK_CACHE_PREFIX != '' && env.CI_BENCHMARK_PROVIDER != 'namespace'
+      run:
+        echo "BENCHMARK_CACHE provider=github kind=workspace-node-modules hit=${{
+        steps.cache_dependencies.outputs.cache-hit }}"
+      shell: bash

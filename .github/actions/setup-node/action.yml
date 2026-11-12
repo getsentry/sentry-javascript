@@ -33,3 +33,10 @@ runs:
       with:
         path: ${{ steps.node.outputs.cache-path }}
         key: ${{ steps.node.outputs.cache-key }}
+
+    - name: Report benchmark Node cache
+      if: env.CI_BENCHMARK_CACHE_PREFIX != ''
+      run:
+        echo "BENCHMARK_CACHE provider=${{ env.CI_BENCHMARK_PROVIDER }} kind=node-toolcache hit=${{
+        steps.node-cache.outputs.cache-hit }}"
+      shell: bash
