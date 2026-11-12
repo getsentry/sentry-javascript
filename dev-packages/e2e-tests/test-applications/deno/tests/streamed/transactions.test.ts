@@ -139,12 +139,12 @@ const SEGMENT_SPAN = {
       value: '/test-sentry-span',
     },
     'url.port': {
-      type: 'string',
-      value: expect.any(String),
+      type: 'integer',
+      value: expect.any(Number),
     },
     'url.scheme': {
       type: 'string',
-      value: 'http:',
+      value: 'http',
     },
     'user.ip_address': {
       type: 'string',

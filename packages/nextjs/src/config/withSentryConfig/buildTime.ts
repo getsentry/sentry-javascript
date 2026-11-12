@@ -33,7 +33,7 @@ export function setUpBuildTimeVariables(
     _sentryRewriteFramesAssetPrefixPath: assetPrefix
       ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
       : '',
-    ...getTunnelRouteInjectedValues(userNextConfig, userSentryOptions, projectDir),
+    ...getTunnelRouteInjectedValues(userNextConfig, userSentryOptions),
   };
 
   if (userNextConfig.assetPrefix) {
@@ -46,6 +46,11 @@ export function setUpBuildTimeVariables(
 
   if (basePath) {
     buildTimeVariables._sentryBasePath = basePath;
+  }
+
+  // Next redirects a POST to the tunnel path without the slash, so the browser posts to the one with it.
+  if (userNextConfig.trailingSlash) {
+    buildTimeVariables._sentryTrailingSlash = 'true';
   }
 
   if (userNextConfig.assetPrefix) {
