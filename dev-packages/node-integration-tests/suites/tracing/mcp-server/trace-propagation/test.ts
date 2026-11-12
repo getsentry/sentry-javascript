@@ -7,7 +7,7 @@ describe('MCP server trace propagation via params._meta', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
-    test('continues the trace from the traceparent in params._meta', async () => {
+    test('continues the trace from the sentry-trace in params._meta', async () => {
       await createTestRunner()
         .unordered()
         .expect({

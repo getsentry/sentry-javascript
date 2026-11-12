@@ -28,11 +28,15 @@ function toolCall(meta?: Record<string, unknown>) {
   };
 }
 
+function initClient(options: Parameters<typeof getDefaultTestClientOptions>[0]): void {
+  const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1, ...options }));
+  setCurrentClient(client);
+  client.init();
+}
+
 describe('MCP server trace propagation via params._meta', () => {
   beforeEach(() => {
-    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
-    setCurrentClient(client);
-    client.init();
+    initClient({ propagateTraceparent: true });
   });
 
   afterEach(() => {
@@ -79,6 +83,28 @@ describe('MCP server trace propagation via params._meta', () => {
     expect(json.links).toEqual([
       expect.objectContaining({ trace_id: ambientContext.traceId, span_id: ambientContext.spanId }),
     ]);
+  });
+
+  it('ignores traceparent unless propagateTraceparent is enabled', () => {
+    initClient({});
+    let httpServerSpan: Span | undefined;
+    const span = startSpan({ name: 'POST /mcp', op: 'http.server' }, ambient => {
+      httpServerSpan = ambient;
+      return deliver(createMockTransport(), toolCall({ traceparent: `00-${TRACE_ID}-${PARENT_SPAN_ID}-01` }));
+    });
+
+    const json = spanToJSON(span!);
+    expect(json.trace_id).toBe(httpServerSpan!.spanContext().traceId);
+    expect(json.parent_span_id).toBe(httpServerSpan!.spanContext().spanId);
+  });
+
+  it('continues from sentry-trace without propagateTraceparent', () => {
+    initClient({});
+    const span = deliver(createMockStdioTransport(), toolCall({ 'sentry-trace': `${TRACE_ID}-${PARENT_SPAN_ID}-1` }));
+
+    const json = spanToJSON(span!);
+    expect(json.trace_id).toBe(TRACE_ID);
+    expect(json.parent_span_id).toBe(PARENT_SPAN_ID);
   });
 
   it('continues the trace for incoming notifications', () => {
