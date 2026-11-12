@@ -343,6 +343,7 @@ describe('MCP Server Transport Instrumentation', () => {
 
     it('should set span status to error when JSON-RPC error response is sent', async () => {
       const mockSpan = {
+        setAttribute: vi.fn(),
         setAttributes: vi.fn(),
         setStatus: vi.fn(),
         end: vi.fn(),
@@ -375,6 +376,7 @@ describe('MCP Server Transport Instrumentation', () => {
 
     it('should not set error span status for successful JSON-RPC responses', async () => {
       const mockSpan = {
+        setAttribute: vi.fn(),
         setAttributes: vi.fn(),
         setStatus: vi.fn(),
         end: vi.fn(),
@@ -874,7 +876,7 @@ describe('MCP Server Transport Instrumentation', () => {
 
       await wrappedMcpServer.connect(transport);
 
-      const mockSpan = { setAttributes: vi.fn(), end: vi.fn() };
+      const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn() };
       startInactiveSpanSpy.mockReturnValue(mockSpan);
 
       transport.onmessage?.(
@@ -903,7 +905,7 @@ describe('MCP Server Transport Instrumentation', () => {
 
       await wrappedMcpServer.connect(transport);
 
-      const mockSpan = { setAttributes: vi.fn(), end: vi.fn() };
+      const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn() };
       startInactiveSpanSpy.mockReturnValue(mockSpan as any);
 
       transport.onmessage?.(
@@ -975,7 +977,7 @@ describe('MCP Server Transport Instrumentation', () => {
       const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
       const transport = createMockTransport();
       transport.sessionId = '';
-      const mockSpan = { setAttributes: vi.fn(), end: vi.fn() };
+      const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn() };
       startInactiveSpanSpy.mockReturnValue(mockSpan as any);
 
       await wrappedMcpServer.connect(transport);
@@ -1002,7 +1004,10 @@ describe('MCP Server Transport Instrumentation', () => {
       });
 
       expect(getSessionDataForTransport(transport)).toBeUndefined();
-      expect(mockSpan.setAttributes).not.toHaveBeenCalled();
+      expect(mockSpan.setAttributes).not.toHaveBeenCalledWith(
+        expect.objectContaining({ 'mcp.server.name': 'application-server' }),
+      );
+      expect(mockSpan.setAttribute).not.toHaveBeenCalled();
       expect(mockSpan.end).toHaveBeenCalledOnce();
     });
 
@@ -1054,7 +1059,7 @@ describe('MCP Server Transport Instrumentation', () => {
       const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
       const transport = createMockTransport();
       transport.sessionId = '';
-      const mockSpan = { setAttributes: vi.fn(), end: vi.fn() };
+      const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn() };
       startInactiveSpanSpy.mockReturnValue(mockSpan as any);
 
       await wrappedMcpServer.connect(transport);
@@ -1202,7 +1207,7 @@ describe('MCP Server Transport Instrumentation', () => {
       // Connect using the wrapper transport (what users do)
       await wrappedMcpServer.connect(wrapper);
 
-      const mockSpan = { setAttributes: vi.fn(), end: vi.fn() };
+      const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn() };
       startInactiveSpanSpy.mockReturnValue(mockSpan as any);
 
       // Simulate incoming request - due to getter/setter, onmessage runs on inner transport
@@ -1244,7 +1249,7 @@ describe('MCP Server Transport Instrumentation', () => {
 
       await wrappedMcpServer.connect(wrapper);
 
-      const mockSpan = { setAttributes: vi.fn(), end: vi.fn() };
+      const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn() };
       startInactiveSpanSpy.mockReturnValue(mockSpan as any);
 
       inner.onmessage?.call(
@@ -1331,7 +1336,7 @@ describe('MCP Server Transport Instrumentation', () => {
 
       await wrappedMcpServer.connect(wrapper);
 
-      const mockSpan = { setAttributes: vi.fn(), end: vi.fn() };
+      const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn() };
       startInactiveSpanSpy.mockReturnValue(mockSpan as any);
 
       // Initialize request
@@ -1382,7 +1387,7 @@ describe('MCP Server Transport Instrumentation', () => {
 
       await wrappedMcpServer.connect(wrapper);
 
-      const mockSpan = { setAttributes: vi.fn(), end: vi.fn(), setStatus: vi.fn() };
+      const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn(), setStatus: vi.fn() };
       startInactiveSpanSpy.mockReturnValue(mockSpan as any);
 
       // Start a request but don't complete it
