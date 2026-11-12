@@ -62,7 +62,12 @@ export function getFinalConfigObject(
   warnIfMissingInstrumentationFile(incomingUserNextConfigObject, userSentryOptions);
 
   const bundlerInfo = getBundlerInfo(nextJsVersion);
-  maybeSetTurbopackPluginRuntimeStrategyOption(incomingUserNextConfigObject, nextJsVersion, bundlerInfo.isTurbopack);
+  maybeSetTurbopackPluginRuntimeStrategyOption(
+    incomingUserNextConfigObject,
+    nextJsVersion,
+    bundlerInfo.isTurbopack,
+    userSentryOptions.silent,
+  );
   maybeWarnAboutUnsupportedTurbopack(nextJsVersion, bundlerInfo, userSentryOptions.silent);
   maybeWarnAboutTurbopackModuleMetadata(userSentryOptions, bundlerInfo);
   maybeWarnAboutApplicationKeyExcludeDependencies(userSentryOptions, bundlerInfo);

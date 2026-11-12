@@ -29,6 +29,7 @@ export function maybeSetTurbopackPluginRuntimeStrategyOption(
   incomingUserNextConfigObject: NextConfigObject,
   nextJsVersion: string | undefined,
   isTurbopack: boolean,
+  silent?: boolean,
 ): void {
   if (!process.versions.bun || !isTurbopack || !nextJsVersion) {
     return;
@@ -36,6 +37,13 @@ export function maybeSetTurbopackPluginRuntimeStrategyOption(
 
   const { major, minor } = parseSemver(nextJsVersion);
   if (major === undefined || minor === undefined || major < 16 || (major === 16 && minor < 2)) {
+    return;
+  }
+
+  if (incomingUserNextConfigObject.experimental?.turbopackPluginRuntimeStrategy === 'childProcesses') {
+    getBuildLogger(silent).warn(
+      '[@sentry/nextjs] `experimental.turbopackPluginRuntimeStrategy` is set to `childProcesses`. Turbopack builds on Bun fail or hang with this strategy. Remove the option, or set it to `workerThreads`.',
+    );
     return;
   }
 
