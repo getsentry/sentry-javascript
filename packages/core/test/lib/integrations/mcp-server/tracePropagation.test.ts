@@ -1,6 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { getCurrentScope, getDynamicSamplingContextFromSpan, setCurrentClient, startSpan } from '../../../../src';
-import { wrapTransportOnMessage } from '../../../../src/integrations/mcp-server/transport';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  getClient,
+  getCurrentScope,
+  getDynamicSamplingContextFromSpan,
+  setCurrentClient,
+  startSpan,
+} from '../../../../src';
+import { wrapTransportOnMessage, wrapTransportSend } from '../../../../src/integrations/mcp-server/transport';
 import type { Span } from '../../../../src/types/span';
 import { getActiveSpan, spanToJSON } from '../../../../src/utils/spanUtils';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
@@ -136,5 +142,127 @@ describe('MCP server trace propagation via params._meta', () => {
     expect(json.trace_id).toBe(httpServerSpan!.spanContext().traceId);
     expect(json.parent_span_id).toBe(httpServerSpan!.spanContext().spanId);
     expect(json.links).toBeUndefined();
+  });
+});
+
+describe('MCP server trace injection into outgoing params._meta', () => {
+  beforeEach(() => {
+    const client = new TestClient(
+      getDefaultTestClientOptions({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 }),
+    );
+    setCurrentClient(client);
+    client.init();
+  });
+
+  afterEach(() => {
+    getCurrentScope().setClient(undefined);
+  });
+
+  function wrappedSend() {
+    const transport = createMockStdioTransport();
+    const originalSend = vi.fn().mockResolvedValue(undefined);
+    transport.send = originalSend;
+    wrapTransportSend(transport, {});
+    return { send: transport.send, originalSend };
+  }
+
+  it('injects the active span into outgoing requests', async () => {
+    const { send, originalSend } = wrappedSend();
+    const request = { jsonrpc: '2.0', method: 'sampling/createMessage', id: 7, params: { maxTokens: 10 } };
+
+    let toolSpan: Span | undefined;
+    await startSpan({ name: 'tools/call get-weather' }, async span => {
+      toolSpan = span;
+      await send(request, { relatedRequestId: 1 });
+    });
+
+    const { traceId, spanId } = toolSpan!.spanContext();
+    expect(originalSend).toHaveBeenCalledWith(
+      {
+        ...request,
+        params: {
+          maxTokens: 10,
+          _meta: {
+            'sentry-trace': `${traceId}-${spanId}-1`,
+            traceparent: `00-${traceId}-${spanId}-01`,
+            baggage: expect.stringContaining(`sentry-trace_id=${traceId}`),
+          },
+        },
+      },
+      { relatedRequestId: 1 },
+    );
+    expect(request.params).toEqual({ maxTokens: 10 });
+  });
+
+  it('parents outgoing notifications to their own notification span', async () => {
+    const { send, originalSend } = wrappedSend();
+    let notificationSpan: Span | undefined;
+    getClient()!.on('spanStart', span => {
+      if (spanToJSON(span).name === 'notifications/progress') {
+        notificationSpan = span;
+      }
+    });
+
+    await startSpan({ name: 'tools/call get-weather' }, () =>
+      send({ jsonrpc: '2.0', method: 'notifications/progress', params: { progressToken: 1, progress: 50 } }),
+    );
+
+    const { traceId, spanId } = notificationSpan!.spanContext();
+    expect(originalSend).toHaveBeenCalledWith({
+      jsonrpc: '2.0',
+      method: 'notifications/progress',
+      params: {
+        progressToken: 1,
+        progress: 50,
+        _meta: expect.objectContaining({
+          'sentry-trace': `${traceId}-${spanId}-1`,
+          traceparent: `00-${traceId}-${spanId}-01`,
+        }),
+      },
+    });
+  });
+
+  it('keeps existing _meta entries and adds params when there are none', async () => {
+    const { send, originalSend } = wrappedSend();
+
+    await startSpan({ name: 'tools/call get-weather' }, async () => {
+      await send({ jsonrpc: '2.0', method: 'ping', id: 1 });
+      await send({ jsonrpc: '2.0', method: 'roots/list', id: 2, params: { _meta: { 'com.example/key': 'value' } } });
+    });
+
+    expect(originalSend).toHaveBeenCalledWith({
+      jsonrpc: '2.0',
+      method: 'ping',
+      id: 1,
+      params: { _meta: expect.objectContaining({ 'sentry-trace': expect.any(String) }) },
+    });
+    expect(originalSend).toHaveBeenCalledWith({
+      jsonrpc: '2.0',
+      method: 'roots/list',
+      id: 2,
+      params: { _meta: expect.objectContaining({ 'com.example/key': 'value', 'sentry-trace': expect.any(String) }) },
+    });
+  });
+
+  it.each([
+    ['a traceparent', { traceparent: `00-${TRACE_ID}-${PARENT_SPAN_ID}-01` }],
+    ['a sentry-trace', { 'sentry-trace': `${TRACE_ID}-${PARENT_SPAN_ID}-1` }],
+    ['a non-object _meta', 'not-an-object'],
+  ])('leaves requests that already carry %s unchanged', async (_, meta) => {
+    const { send, originalSend } = wrappedSend();
+    const request = { jsonrpc: '2.0', method: 'elicitation/create', id: 3, params: { _meta: meta } };
+
+    await startSpan({ name: 'tools/call get-weather' }, () => send(request));
+
+    expect(originalSend).toHaveBeenCalledWith(request);
+  });
+
+  it('does not touch responses', async () => {
+    const { send, originalSend } = wrappedSend();
+    const response = { jsonrpc: '2.0', id: 1, result: { content: [] } };
+
+    await startSpan({ name: 'tools/call get-weather' }, () => send(response));
+
+    expect(originalSend).toHaveBeenCalledWith(response);
   });
 });

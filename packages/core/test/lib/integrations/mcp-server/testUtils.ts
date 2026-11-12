@@ -31,6 +31,7 @@ export function createMockClient(
       frameContextLines: 5,
     }),
     getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
+    getTransport: () => undefined,
     emit: vi.fn(),
   } as unknown as Client;
 }
@@ -43,6 +44,7 @@ export function createMockClientWithDataCollection(dataCollection: DataCollectio
     getOptions: () => ({ traceLifecycle: 'static', dataCollection }),
     getDataCollectionOptions: () => resolveDataCollectionOptions({ dataCollection }),
     getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
+    getTransport: () => undefined,
     emit: vi.fn(),
   } as unknown as Client;
 }
