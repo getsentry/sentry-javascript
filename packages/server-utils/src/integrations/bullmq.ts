@@ -103,6 +103,7 @@ interface WorkerSettings {
 
 const instrumentedWorkers = new WeakSet<object>();
 const loggedSchedulers = new Set<string>();
+const MAX_LOGGED_SCHEDULERS = 100;
 
 // `captureCheckIn` keeps a given `checkInId` for `in_progress` check-ins too.
 type InProgressCheckInWithId = InProgressCheckIn & { checkInId: string };
@@ -201,6 +202,9 @@ function getMonitor(job: BullMQJob | undefined, queueName: string, settings: Wor
     : getMonitorConfig(job.opts?.repeat, settings);
   if (typeof config === 'string') {
     if (DEBUG_BUILD && !loggedSchedulers.has(monitorSlug)) {
+      if (loggedSchedulers.size >= MAX_LOGGED_SCHEDULERS) {
+        loggedSchedulers.clear();
+      }
       loggedSchedulers.add(monitorSlug);
       debug.log(`[${INTEGRATION_NAME}] Not monitoring ${monitorSlug}: ${config}.`);
     }

@@ -190,6 +190,17 @@ describe('bullmqJobSchedulerIntegration', () => {
     expect(logSpy).toHaveBeenCalledWith('[BullMQJobScheduler] Not monitoring reports-limited: it sets a limit.');
   });
 
+  test('remembers only the last 100 schedulers it logged', () => {
+    const logSpy = vi.spyOn(SentryCore.debug, 'log').mockImplementation(() => undefined);
+    const worker = createWorker();
+    instrumentWorker(worker, {}, 5);
+    for (const id of ['first', ...Array.from({ length: 100 }, (_, i) => `other-${i}`), 'first']) {
+      worker.emit('completed', schedulerJob(id, { every: 60_000, limit: 3 }), 'result', 'active');
+    }
+
+    expect(logSpy.mock.calls.filter(([message]) => String(message).includes('reports-first:'))).toHaveLength(2);
+  });
+
   test('skips a fixed UTC offset', () => {
     expectSkipped({ pattern: '0 * * * *', tz: 'UTC+5' });
   });
