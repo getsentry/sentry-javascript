@@ -80,12 +80,12 @@
     "vue": "^3.5.41"
   },
   "scripts": {
-    "build": "run-s build:types build:transpile",
+    "build": "pnpm run build:types && pnpm run build:transpile",
     "build:dev": "pnpm run build",
     "build:nuxt-module": "rolldown -c rollup.module.config.mjs && tsc -p tsconfig.module.json && node scripts/build-module-meta.mjs",
     "build:transpile": "rolldown -c rollup.npm.config.mjs && pnpm run build:nuxt-module",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:transpile:watch",
+    "build:watch": "pnpm run build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rolldown -c rollup.npm.config.mjs --watch",
     "build:tarball": "pnpm pack",

@@ -38,7 +38,7 @@
   },
   "scripts": {
     "deno-types": "node ./scripts/download-deno-types.mjs",
-    "build": "run-s build:transpile build:types",
+    "build": "pnpm run build:transpile && pnpm run build:types",
     "build:dev": "pnpm run build",
     "build:transpile": "pnpm run deno-types && rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
@@ -52,7 +52,7 @@
     "lint:fix": "oxlint . --fix --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/esm/*.js --module",
     "install:deno": "node ./scripts/install-deno.mjs",
-    "test": "run-s install:deno deno-types test:types test:unit",
+    "test": "pnpm run install:deno && pnpm run deno-types && pnpm run test:types && pnpm run test:unit",
     "test:types": "deno check --unstable-sloppy-imports test",
     "test:unit": "deno test --allow-net --allow-read --allow-run --allow-env --no-check",
     "test:unit:update": "deno test --allow-net --allow-read --allow-run --allow-env --no-check --allow-write -- --update",
