@@ -147,11 +147,7 @@ describe('MCP server trace propagation via params._meta', () => {
 
 describe('MCP server trace injection into outgoing params._meta', () => {
   beforeEach(() => {
-    const client = new TestClient(
-      getDefaultTestClientOptions({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 }),
-    );
-    setCurrentClient(client);
-    client.init();
+    initClient({ dsn: 'https://public@dsn.ingest.sentry.io/1337', propagateTraceparent: true });
   });
 
   afterEach(() => {
@@ -219,6 +215,20 @@ describe('MCP server trace injection into outgoing params._meta', () => {
           traceparent: `00-${traceId}-${spanId}-01`,
         }),
       },
+    });
+  });
+
+  it('only injects traceparent when propagateTraceparent is enabled', async () => {
+    initClient({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+    const { send, originalSend } = wrappedSend();
+
+    await startSpan({ name: 'tools/call get-weather' }, () => send({ jsonrpc: '2.0', method: 'ping', id: 1 }));
+
+    expect(originalSend).toHaveBeenCalledWith({
+      jsonrpc: '2.0',
+      method: 'ping',
+      id: 1,
+      params: { _meta: { 'sentry-trace': expect.any(String), baggage: expect.any(String) } },
     });
   });
 

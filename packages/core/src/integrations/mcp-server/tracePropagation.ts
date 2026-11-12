@@ -52,9 +52,6 @@ export function continueMcpTrace<T>(params: unknown, callback: (links: SpanLink[
 /**
  * Returns a copy of an outgoing request or notification with the active trace context added to `params._meta`, so the
  * receiving side can continue the trace. Messages that already carry trace context are returned unchanged.
- *
- * `traceparent` is always added, independent of the `propagateTraceparent` option: that option guards HTTP requests
- * against CORS failures, which do not apply here, and W3C Trace Context is what non-Sentry MCP peers read.
  */
 export function injectMcpTraceContext<M extends JsonRpcRequest | JsonRpcNotification>(message: M): M {
   const meta = message.params?._meta;
@@ -65,7 +62,13 @@ export function injectMcpTraceContext<M extends JsonRpcRequest | JsonRpcNotifica
     return message;
   }
 
-  const { 'sentry-trace': sentryTrace, baggage, traceparent } = getTraceData({ propagateTraceparent: true });
+  const {
+    'sentry-trace': sentryTrace,
+    baggage,
+    traceparent,
+  } = getTraceData({
+    propagateTraceparent: getClient()?.getOptions().propagateTraceparent,
+  });
   if (!sentryTrace) {
     return message;
   }
