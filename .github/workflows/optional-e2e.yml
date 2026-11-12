@@ -29,8 +29,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CI_BENCHMARK_PROVIDER: namespace
-  CI_BENCHMARK_CACHE_PREFIX: bench-sentry-js-20261112-namespace-b-
+  CI_BENCHMARK_PROVIDER: github
+  CI_BENCHMARK_CACHE_PREFIX: bench-sentry-js-20261112-github-c-
   HEAD_COMMIT: ${{ inputs.commit }}
 
   # See build.yml
@@ -39,9 +39,7 @@ env:
 jobs:
   job_optional_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test (optional)
-    runs-on:
-      ${{ matrix.runner || 'namespace-profile-sentry-javascript-small'
-      }};overrides.cache-tag=bench-sentry-js-20261112-namespace-b-e2e-x64
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
