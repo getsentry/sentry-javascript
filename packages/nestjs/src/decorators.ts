@@ -94,8 +94,7 @@ function resolveMonitorConfig(
     return undefined;
   }
 
-  const checkinMargin = Math.max(monitorSettings.checkinMargin ?? 0, cronConfig.checkinMargin ?? 0);
-  return { ...monitorSettings, ...cronConfig, ...(checkinMargin > 0 && { checkinMargin }) };
+  return { ...monitorSettings, ...cronConfig };
 }
 
 const SCHEDULE_CRON_OPTIONS = 'SCHEDULE_CRON_OPTIONS';
