@@ -446,6 +446,33 @@ describe('appRouterInstrumentPageLoad', () => {
     expect(spanJson.links).toEqual([PRERENDER_LINK]);
   });
 
+  it('continues the trace of a Server-Timing header at once and settles the type when the resumed part arrives', async () => {
+    const { core, pageload } = await setup('static');
+    vi.spyOn(performance, 'getEntriesByType').mockReturnValue([
+      {
+        serverTiming: [
+          { name: 'sentry-trace', description: '33333333333333333333333333333333-3333333333333333-1', duration: 0 },
+        ],
+      } as unknown as PerformanceEntry,
+    ]);
+    appendMeta(document.head, 'sentry-cache-origin', PRERENDER_SENTRY_TRACE);
+
+    pageload.appRouterInstrumentPageLoad(core.getClient()!);
+
+    const span = core.getActiveSpan()!;
+    expect(core.spanToJSON(span).trace_id).toBe('33333333333333333333333333333333');
+    expect(core.spanToJSON(span).parent_span_id).toBe('3333333333333333');
+    expect(core.spanToJSON(span).attributes).not.toHaveProperty(PAGE_SERVER_RENDERING_TYPE);
+
+    appendMeta(document.body, 'sentry-trace', '33333333333333333333333333333333-4444444444444444-1');
+    // MutationObserver callbacks run as microtasks.
+    await Promise.resolve();
+
+    const spanJson = core.spanToJSON(span);
+    expect(spanJson.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toBe('partially_static');
+    expect(spanJson.links).toEqual([PRERENDER_LINK]);
+  });
+
   it('links the server request when its trace meta tag arrives after the wait gave up', async () => {
     const { core, pageload } = await setup('static');
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
