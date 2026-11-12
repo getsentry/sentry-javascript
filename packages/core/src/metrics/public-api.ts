@@ -139,3 +139,10 @@ export function gauge(name: string, value: number, options?: MetricOptions): voi
 export function distribution(name: string, value: number, options?: MetricOptions): void {
   captureMetric('distribution', name, value, options);
 }
+
+/**
+ * The public metrics API.
+ *
+ * A plain object rather than a module namespace so its methods can be spied on in tests.
+ */
+export const metrics = { count, gauge, distribution };

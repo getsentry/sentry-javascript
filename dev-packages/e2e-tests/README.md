@@ -207,10 +207,13 @@ is the reference setup.
   replaces `vite.config.ts`. For a variant with `runtime`, the runner copies these files over the others in the
   temporary copy of the app, before the build. This needs no framework or bundler config. A build in the app folder
   itself does not get these files, so run a variant with `pnpm run test:run <app> --variant <runtime>`.
-- **Deno version**: a variant can pin the Deno version, for example `"deno-version": "v2.9.0"`.
+- **Bun and Deno versions**: a variant can pin the Bun or Deno version, for example `"bun-version": "1.4.4"` or
+  `"deno-version": "v2.9.0"`.
 - **Bun**: under `bun run` the SDK cannot inject diagnostics channels into packages that stay outside the build (for
   example Express behind `react-router-serve`), so those produce no spans on Bun. Where a test depends on them, branch
-  on `RUNTIME` and say why in a comment.
+  on `RUNTIME` and say why in a comment. An app that starts its own server can instead bundle it with
+  `@sentry/bun/plugin`, as `nestjs-12/bun-build.mjs` does. Bun 1.3 renames classes in bundles (`class Foo2`), which
+  changes span names taken from class names, so `nestjs-12` pins Bun 1.4 (see #26289).
 
 ```json
 "sentryTest": {

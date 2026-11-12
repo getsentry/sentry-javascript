@@ -134,6 +134,8 @@ function _init(options: DenoOptions, getDefaultIntegrationsImpl: (options: Optio
 
   // Set up OpenTelemetry compatibility to capture spans from libraries using @opentelemetry/api
   // Note: This is separate from Deno's native OTEL support and doesn't capture auto-instrumented spans
+  // TODO(v12): Default this to `false` (opt-in, like Cloudflare). Defaulting to `true` was an oversight from #17445,
+  // not a deliberate choice, but flipping it is a breaking change.
   if (options.enableOpenTelemetrySetup ?? true) {
     setupOpenTelemetryTracer();
   }
