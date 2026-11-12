@@ -103,16 +103,13 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: McpServ
               if (oauthClientName) {
                 spanConfig.attributes[MCP_AUTH_CLIENT_NAME] = oauthClientName;
               }
-              const span = startInactiveSpan({ ...spanConfig, links });
-
               if (request.method === 'initialize' && messageSessionData) {
-                span.setAttributes({
-                  ...buildClientAttributesFromInfo(messageSessionData.clientInfo),
-                  ...(messageSessionData.protocolVersion && {
-                    [MCP_PROTOCOL_VERSION]: messageSessionData.protocolVersion,
-                  }),
-                });
+                Object.assign(spanConfig.attributes, buildClientAttributesFromInfo(messageSessionData.clientInfo));
+                if (messageSessionData.protocolVersion) {
+                  spanConfig.attributes[MCP_PROTOCOL_VERSION] = messageSessionData.protocolVersion;
+                }
               }
+              const span = startInactiveSpan({ ...spanConfig, links });
 
               storeSpanForRequest(transport, request.id, span, request.method, resolvedOptions);
 
