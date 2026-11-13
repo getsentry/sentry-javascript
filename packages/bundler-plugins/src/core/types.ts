@@ -111,6 +111,9 @@ export interface Options {
    * Options related to source maps upload and processing.
    */
   sourcemaps?: {
+    // TODO(v12): Replace `disable` with separate options, for example
+    // `upload`, `debugIds` and `deleteSourcemapsAfterUpload`, so that one
+    // option no longer controls several features.
     /**
      * Disables all functionality related to sourcemaps if set to `true`.
      *

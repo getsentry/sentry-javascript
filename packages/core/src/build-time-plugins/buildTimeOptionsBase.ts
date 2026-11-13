@@ -208,6 +208,9 @@ export interface ReactComponentAnnotationOptions {
 }
 
 interface SourceMapsOptions {
+  // TODO(v12): Replace `disable` with separate options, for example
+  // `upload`, `debugIds` and `deleteSourcemapsAfterUpload`, so that one
+  // option no longer controls several features.
   /**
    * If this flag is `true`, any functionality related to source maps will be disabled. This includes the automatic upload of source maps.
    *
