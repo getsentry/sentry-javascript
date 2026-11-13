@@ -8,6 +8,12 @@ Work in this release was contributed by @kunal649 and @bardrop. Thank you for yo
 
 ### Important Changes
 
+- **feat(sveltekit): Mark pageloads of prerendered and Vercel ISR pages ([#26301](https://github.com/getsentry/sentry-javascript/pull/26301), [#26307](https://github.com/getsentry/sentry-javascript/pull/26307))**
+
+  When SvelteKit serves a page that it rendered earlier, the pageload now has the `page.server_rendering.type: static` attribute. This covers pages prerendered during `vite build` and pages that Vercel caches with ISR (`config.isr`). For an ISR page, the pageload also links to the request that rendered the page, if that request was sampled.
+
+  Before, every visitor of a cached ISR page continued the trace of that one request. Now each pageload starts its own trace. Pages with `ssr = false` get no attribute, because the server rendered none of their content.
+
 - **fix(core): Set `url.scheme` without colon and `url.port` as a number ([#26284](https://github.com/getsentry/sentry-javascript/pull/26284))**
 
   HTTP spans that the SDK builds from a `URL` now send `url.scheme` without the trailing colon (`https` instead of `https:`) and `url.port` as a number instead of a string, as the Sentry conventions define them and as Node `http.server` spans already do. This changes `http.server` spans from `@sentry/cloudflare`, `Bun.serve`, Deno and Nitro, and outgoing `node:http` client spans. Update saved queries, alerts and dashboards that filter on `url.scheme:"https:"` or on `url.port` as a string.
