@@ -23,4 +23,7 @@ test('does not instrument the internal `$fetch` of a server-rendered page as its
   const serverSpanPaths = spans.filter(span => getSpanOp(span) === 'http.server').map(getUrlPath);
   expect(serverSpanPaths).toContain('/');
   expect(serverSpanPaths).not.toContain('/api/internal');
+
+  const rootSpan = spans.find(span => span.is_segment && getUrlPath(span) === '/');
+  expect(rootSpan?.attributes['sentry.sdk.name']).toEqual({ type: 'string', value: 'sentry.javascript.nuxt' });
 });

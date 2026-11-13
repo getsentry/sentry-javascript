@@ -23,6 +23,7 @@ test('a real mysql query emits a db span with orchestrion-channel attributes', a
   const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/db-mysql');
   expect(rootSpan).toBeDefined();
   expect(getSpanOp(rootSpan!)).toBe('http.server');
+  expect(rootSpan!.attributes['sentry.sdk.name']).toEqual({ type: 'string', value: 'sentry.javascript.nuxt' });
 
   const dbSpans = spans.filter(span => getSpanOp(span) === 'db' && span.trace_id === rootSpan!.trace_id);
 

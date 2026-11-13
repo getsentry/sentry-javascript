@@ -1,5 +1,6 @@
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import { wrapRequestHandler } from '@sentry/cloudflare/request';
+import { SDK_VERSION } from '@sentry/core';
 import type { NitroApp } from 'nitropack';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentryCloudflareNitroPlugin } from '../../../src/runtime/plugins/sentry-cloudflare.server';
@@ -9,6 +10,17 @@ vi.mock('@sentry/cloudflare/request', () => ({
 }));
 
 const DSN = 'https://public@dsn.ingest.sentry.io/1337';
+
+const NUXT_SDK_METADATA = {
+  sdk: {
+    name: 'sentry.javascript.nuxt',
+    packages: [
+      { name: 'npm:@sentry/nuxt', version: SDK_VERSION },
+      { name: 'npm:@sentry/cloudflare', version: SDK_VERSION },
+    ],
+    version: SDK_VERSION,
+  },
+};
 
 async function handleRequest(options: CloudflareOptions): Promise<void> {
   const nitroApp = { localFetch: vi.fn(), hooks: { hook: vi.fn() } } as unknown as NitroApp;
@@ -50,6 +62,30 @@ describe('sentryCloudflareNitroPlugin', () => {
       expect.objectContaining({
         options: expect.objectContaining({ defaultIntegrations: [], _extendsDefaultIntegrations: false }),
       }),
+      expect.any(Function),
+    );
+  });
+
+  it('sets the Nuxt SDK metadata', async () => {
+    await handleRequest({ dsn: DSN });
+
+    expect(wrapRequestHandler).toHaveBeenCalledWith(
+      expect.objectContaining({ options: expect.objectContaining({ _metadata: NUXT_SDK_METADATA }) }),
+      expect.any(Function),
+    );
+  });
+
+  it('sets the Nuxt SDK metadata on Nitro v3', async () => {
+    const nitroApp = { fetch: vi.fn(), hooks: { hook: vi.fn() } } as unknown as NitroApp & {
+      fetch: (request: Request) => Promise<Response>;
+    };
+    sentryCloudflareNitroPlugin({ dsn: DSN })(nitroApp);
+
+    const request = Object.assign(new Request('https://example.com/'), { runtime: { cloudflare: { context: {} } } });
+    await nitroApp.fetch(request);
+
+    expect(wrapRequestHandler).toHaveBeenCalledWith(
+      expect.objectContaining({ options: expect.objectContaining({ _metadata: NUXT_SDK_METADATA }) }),
       expect.any(Function),
     );
   });

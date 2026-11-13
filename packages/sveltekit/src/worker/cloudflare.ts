@@ -4,7 +4,7 @@ import {
   getDefaultIntegrations as getDefaultCloudflareIntegrations,
   setAsyncLocalStorageAsyncContextStrategy,
 } from '@sentry/cloudflare';
-import { addNonEnumerableProperty } from '@sentry/core';
+import { addNonEnumerableProperty, applySdkMetadata } from '@sentry/core';
 import type { Handle } from '../server-common/handleTypes';
 import { rewriteFramesIntegration } from '../server-common/integrations/rewriteFramesIntegration';
 import { svelteKitSpansIntegration } from '../server-common/integrations/svelteKitSpans';
@@ -31,6 +31,8 @@ export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
     enableOpenTelemetrySetup: true,
     ...options,
   };
+
+  applySdkMetadata(opts, 'sveltekit', ['sveltekit', 'cloudflare']);
 
   setAsyncLocalStorageAsyncContextStrategy();
 
