@@ -135,7 +135,7 @@
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
-    "build:transpile:watch": "nodemon --ext ts --watch src scripts/buildRollup.ts",
+    "build:transpile:watch": "tsx watch --tsconfig tsconfig.tsnode.json --include src --clear-screen=false scripts/buildRollup.ts",
     "build:tarball": "pnpm pack",
     "clean": "node ../../scripts/rm.mjs build coverage sentry-nextjs-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
