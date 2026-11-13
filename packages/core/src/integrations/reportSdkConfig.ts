@@ -132,7 +132,7 @@ function buildConfigAttributes(client: Client): Record<string, string> {
   };
 
   // Exclude reporting metadata and instance-specific defaults from config identity.
-  const hashExclusions = new Set(['server_name', ...Object.keys(metadata)]);
+  const hashExclusions = new Set(['serverName', ...Object.keys(metadata)]);
 
   const hashInput = {
     ...config,
