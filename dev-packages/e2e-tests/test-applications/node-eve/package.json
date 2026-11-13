@@ -16,7 +16,10 @@
     "test:build": "pnpm install && pnpm build",
     "test:build-orchestrion": "USE_ORCHESTRION=1 pnpm test:build",
     "test:build-latest": "pnpm install && pnpm add eve@latest ai@latest && pnpm build",
+    "test:build-content-off": "SENTRY_GENAI_CONTENT=off pnpm test:build-latest",
     "test:assert": "pnpm test:prod && pnpm test:dev",
+    "test:assert-latest": "SENTRY_GENAI_CONTENT=on pnpm test:assert",
+    "test:assert-content-off": "SENTRY_GENAI_CONTENT=off pnpm test:assert",
     "test:assert-orchestrion": "USE_ORCHESTRION=1 pnpm test:assert",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test"
@@ -44,7 +47,13 @@
     "optionalVariants": [
       {
         "build-command": "pnpm test:build-latest",
+        "assert-command": "pnpm test:assert-latest",
         "label": "node-eve (latest)"
+      },
+      {
+        "build-command": "pnpm test:build-content-off",
+        "assert-command": "pnpm test:assert-content-off",
+        "label": "node-eve (content off, latest)"
       },
       {
         "build-command": "pnpm test:build-orchestrion",

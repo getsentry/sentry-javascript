@@ -1,4 +1,4 @@
-import { defineIntegration, setConversationId } from '@sentry/core';
+import { defineIntegration, getClient, setConversationId } from '@sentry/core';
 import { markEveGenAiRecordingDefault } from './integrations/vercel-ai/gen-ai-recording-mode';
 
 /**
@@ -73,3 +73,17 @@ export const eveIntegration = defineIntegration(() => {
     },
   };
 });
+
+/**
+ * The eve `tracePolicy` for Sentry's instrumentation file. It always asks for full results, and Sentry filters content
+ * when it builds spans, like the other AI integrations do.
+ *
+ * On eve >= 1.0.0-rc.10 this also sets the AI SDK's `recordInputs`/`recordOutputs` flags, which `ai` >= 7.0.163
+ * enforces. They apply to every AI SDK telemetry integration in the app, so those filter content with their own
+ * settings, as eve documents.
+ */
+export function eveTracePolicy(): { emit: true; recordInputs: boolean; recordOutputs: boolean } {
+  // Without a client nothing reaches Sentry, so don't widen content for the app's other integrations.
+  const record = !!getClient();
+  return { emit: true, recordInputs: record, recordOutputs: record };
+}
