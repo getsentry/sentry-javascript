@@ -25,7 +25,8 @@
     "test:build-latest:cloudflare": "pnpm install && pnpm add next@latest && opennextjs-cloudflare build --config wrangler.opennext.jsonc",
     "start:cloudflare": "opennextjs-cloudflare preview --config wrangler.opennext.jsonc --var \"E2E_TEST_DSN:$E2E_TEST_DSN\"",
     "test:build:vinext": "pnpm install && pnpm add react@19.3.1 react-dom@19.3.1 && npm pkg set type=module && vinext build",
-    "test:assert:vinext": "VINEXT=1 pnpm test:prod"
+    "test:assert:vinext": "VINEXT=1 pnpm test:prod",
+    "test:build:bun": "pnpm install && bun --bun ./node_modules/next/dist/bin/next build"
   },
   "//": "Pin `ioredis` to 5.10.1: it's the last version before the driver publishes its own native diagnostics channels; orchestrion's config covers `ioredis <5.11.0`.",
   "dependencies": {
@@ -111,6 +112,7 @@
       },
       {
         "runtime": "bun",
+        "build-command": "pnpm test:build:bun",
         "assert-command": "pnpm test:prod",
         "label": "nextjs-16 (bun)"
       },

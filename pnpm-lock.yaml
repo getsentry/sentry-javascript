@@ -1617,6 +1617,9 @@ importers:
       '@sentry-internal/rollup-utils':
         specifier: 11.12.0
         version: link:../../dev-packages/rollup-utils
+      '@sentry/bun':
+        specifier: 11.12.0
+        version: link:../bun
       cjs-module-lexer:
         specifier: ^2.2.0
         version: 2.2.0

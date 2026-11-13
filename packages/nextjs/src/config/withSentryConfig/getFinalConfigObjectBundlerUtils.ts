@@ -299,6 +299,11 @@ export function getServerExternalPackagesPatch(
       ...(userProvided || []),
       ...defaults,
       ...(buildTimeInstrumentation ? ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES : []),
+      // Next.js resolves bundled packages without the `bun` export condition. When it is external, Bun resolves
+      // `@sentry/nextjs` at run time and loads its Bun entry.
+      ...(process.versions.bun && !incomingUserNextConfigObject.transpilePackages?.includes('@sentry/nextjs')
+        ? ['@sentry/nextjs']
+        : []),
     ];
   };
 

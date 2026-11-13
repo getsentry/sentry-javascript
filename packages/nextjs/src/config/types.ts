@@ -49,6 +49,8 @@ export type NextConfigObject = {
       }
   >;
   cacheComponents?: boolean;
+  // Packages that Next.js compiles, also in `node_modules`
+  transpilePackages?: string[];
   // Next.js experimental options
   experimental?: {
     instrumentationHook?: boolean;
