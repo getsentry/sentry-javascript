@@ -1,11 +1,14 @@
 // Fails if any built file (default: everything in `build/`) uses syntax newer than the given ES version.
+// Globs starting with `!` exclude files from the other globs.
 /* eslint-disable no-console */
 import { globSync, readFileSync } from 'node:fs';
 import { parse } from 'acorn';
 
 const [target, ...args] = process.argv.slice(2);
 const ecmaVersion = Number(target?.replace(/^es/, ''));
-const patterns = args.length ? args : ['build/**/*.{js,mjs,cjs}'];
+const excludes = ['**/node_modules/**', ...args.filter(arg => arg.startsWith('!')).map(arg => arg.slice(1))];
+const includes = args.filter(arg => !arg.startsWith('!'));
+const patterns = includes.length ? includes : ['build/**/*.{js,mjs,cjs}'];
 
 if (!ecmaVersion) {
   console.error('Usage: node es-check.mjs <es20XX> [glob...]');
@@ -16,7 +19,7 @@ let fileCount = 0;
 let failed = false;
 
 for (const pattern of patterns) {
-  const files = globSync(pattern, { exclude: ['**/node_modules/**'] });
+  const files = globSync(pattern, { exclude: excludes });
 
   if (!files.length) {
     console.error(`es-check: no files match ${pattern}`);
