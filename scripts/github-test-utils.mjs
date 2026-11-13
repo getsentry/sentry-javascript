@@ -25,7 +25,6 @@ export function setup(run, pr) {
         listReviews: vi.fn(),
         listFiles: vi.fn(),
         requestReviewers: vi.fn(),
-        removeRequestedReviewers: vi.fn(),
       },
       teams: { listMembersInOrg: vi.fn() },
       users: { getByUsername: vi.fn(async ({ username }) => ({ data: profiles[username] })) },

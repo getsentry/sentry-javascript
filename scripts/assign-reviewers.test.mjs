@@ -89,7 +89,7 @@ describe('assignReviewers', () => {
     );
   });
 
-  it('removes review requests from managers and requests someone else instead', async () => {
+  it('does not count pending review requests from managers towards the required reviewers', async () => {
     const { github, run } = setup(assignReviewers, {
       user: { login: 'author', type: 'User' },
       requested_reviewers: [
@@ -98,9 +98,6 @@ describe('assignReviewers', () => {
       ],
     });
     await run();
-    expect(github.rest.pulls.removeRequestedReviewers).toHaveBeenCalledWith(
-      expect.objectContaining({ reviewers: ['Mydea'] }),
-    );
     expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
       expect.objectContaining({ reviewers: [expect.any(String), expect.any(String)] }),
     );
@@ -110,14 +107,5 @@ describe('assignReviewers', () => {
     expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
       expect.objectContaining({ reviewers: expect.not.arrayContaining(['Mydea']) }),
     );
-  });
-
-  it('does not remove any review requests when no manager is requested', async () => {
-    const { github, run } = setup(assignReviewers, {
-      user: { login: 'author', type: 'User' },
-      requested_reviewers: [{ login: 'a', type: 'User' }],
-    });
-    await run();
-    expect(github.rest.pulls.removeRequestedReviewers).not.toHaveBeenCalled();
   });
 });
