@@ -122,11 +122,28 @@ describe('decideSourceMapHandling', () => {
     });
 
     it.each([true, 'disable-upload'] as const)(
-      'deletes hidden source maps when `sourcemaps.disable` is `%s` and the option is true',
+      'keeps source maps and warns when `sourcemaps.disable` is `%s` and the option is true',
+      disable => {
+        for (const kind of ['hidden', 'visible'] as const) {
+          const decision = decideSourceMapHandling(kind, options({ disable, deleteSourcemapsAfterUpload: true }), true);
+
+          expect(decision).toMatchObject(NO_CHANGE);
+          expect(decision.log?.level).toBe('warn');
+          expect(decision.log?.message).toMatch(/sourcemaps\.disable/);
+        }
+      },
+    );
+
+    it.each([true, 'disable-upload'] as const)(
+      'removes source maps the SDK turned on when `sourcemaps.disable` is `%s`',
       disable => {
         expect(
-          decideSourceMapHandling('hidden', options({ disable, deleteSourcemapsAfterUpload: true }), true),
-        ).toMatchObject({ enableHidden: false, deleteAfterUpload: true });
+          decideSourceMapHandling(
+            'hidden',
+            options({ disable, deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: true }),
+            true,
+          ),
+        ).toMatchObject({ enableHidden: false, deleteAfterUpload: true, removeAllSourceMaps: true });
       },
     );
 

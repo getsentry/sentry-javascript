@@ -56,6 +56,18 @@ export function decideSourceMapHandling(
     if (deleteOption !== true || (kind !== 'hidden' && kind !== 'visible')) {
       return NO_CHANGE;
     }
+    // Users set `sourcemaps.disable` to upload the maps themselves. Maps the
+    // SDK turned on are still removed, as the SDKs' own globs did.
+    if (options.sourcemaps?.disable && !sdkEnabledSourceMaps) {
+      return {
+        ...NO_CHANGE,
+        log: {
+          level: 'warn',
+          message:
+            '`sourcemaps.deleteSourcemapsAfterUpload` is set, but source map upload is disabled with `sourcemaps.disable`, so the source maps are not removed.',
+        },
+      };
+    }
     return {
       enableHidden: kind === 'visible',
       deleteAfterUpload: true,

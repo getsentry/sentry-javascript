@@ -204,8 +204,9 @@ export interface Options {
      * `sourcemaps.assets` or `sourcemaps.ignore` keep out of the upload. Source maps you enabled yourself are only
      * removed for the JavaScript chunks that were uploaded; excluded chunks keep theirs.
      *
-     * `true` removes source maps you enabled yourself even when no upload runs, for example without an auth token or
-     * with `sourcemaps.disable`. The plugin does not turn source maps on when it cannot upload them.
+     * `true` removes source maps you enabled yourself even when no upload runs, for example without an auth token.
+     * With `sourcemaps.disable` set, the plugin keeps them for a manual upload and warns. The plugin does not turn
+     * source maps on when it cannot upload them.
      *
      * With webpack's array form of `devtool`, `true` replaces the array with one hidden source map setting for
      * all asset types, because webpack hides the array from plugins.
