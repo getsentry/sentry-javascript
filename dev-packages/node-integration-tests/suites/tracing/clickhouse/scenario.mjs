@@ -33,6 +33,12 @@ async function run() {
       });
       await literal.json();
 
+      const nestedComment = await client.query({
+        query: 'SELECT 1 /* outer /* inner */ private@example.com */',
+        format: 'JSONEachRow',
+      });
+      await nestedComment.json();
+
       const parameterized = await client.query({
         query: 'SELECT name FROM events WHERE id = {id:UInt32}',
         query_params: { id: 1 },

@@ -40,6 +40,8 @@ const EXPECTED_SPANS = [
   { name: 'INSERT events', status: 'ok', operation: 'INSERT', text: 'INSERT INTO events' },
   // the string literal is sanitized out of the statement
   { name: 'SELECT events', status: 'ok', operation: 'SELECT', text: 'SELECT name FROM events WHERE name = ?' },
+  // nested comments are removed before the query reaches the span
+  { name: 'SELECT', status: 'ok', operation: 'SELECT', text: 'SELECT ?' },
   // `{name:Type}` query parameters are kept as written
   { name: 'SELECT events', status: 'ok', operation: 'SELECT', text: 'SELECT name FROM events WHERE id = {id:UInt32}' },
   { name: 'SELECT events', status: 'ok', operation: 'SELECT', text: 'SELECT count() FROM events FORMAT JSONEachRow' },

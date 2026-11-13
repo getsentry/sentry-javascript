@@ -170,6 +170,24 @@ function findQuotedRunEnd(sql: string, start: number, delimiter: string, backsla
   return -1;
 }
 
+// An unterminated comment consumes the rest of the query.
+function findBlockCommentEnd(sql: string, start: number, nested: boolean): number {
+  let depth = 1;
+  let i = start + 2;
+  while (i < sql.length && depth > 0) {
+    if (sql[i] === '*' && sql[i + 1] === '/') {
+      depth--;
+      i += 2;
+    } else if (nested && sql[i] === '/' && sql[i + 1] === '*') {
+      depth++;
+      i += 2;
+    } else {
+      i++;
+    }
+  }
+  return i;
+}
+
 /**
  * Replaces every string literal with `?` and drops every comment, in one pass.
  *
@@ -200,8 +218,7 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
     }
 
     if (char === '/' && next === '*') {
-      const commentEnd = sql.indexOf('*/', i + 2);
-      i = commentEnd === -1 ? sql.length : commentEnd + 2;
+      i = findBlockCommentEnd(sql, i, isClickhouse);
       continue;
     }
 
