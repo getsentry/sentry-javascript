@@ -122,6 +122,9 @@ describe('assignReviewers', () => {
     expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
       expect.objectContaining({ reviewers: expect.arrayContaining(['b', 'c', 'd']) }),
     );
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.not.arrayContaining(['a']) }),
+    );
   });
 
   it('does not request a review from the requester of a Junior PR', async () => {
