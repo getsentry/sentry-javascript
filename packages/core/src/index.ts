@@ -147,6 +147,7 @@ export {
   httpRequestToRequestData,
   extractQueryParamsFromUrl,
   headersToDict,
+  getHostFromHeaders,
   httpHeadersToSpanAttributes,
   getContentLengthFromHeaders,
   getMaxBodyByteLength,
