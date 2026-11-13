@@ -123,6 +123,12 @@ export function makeBaseBundleConfig(options) {
     },
     plugins: [productionReplacePlugin],
     treeshake: treeShakePreset('smallest'),
+    optimization: {
+      // The default `'smart'` mode inlines constants only in conditions, leaving both a variable and
+      // literal copies of the same string. Inlining everywhere grows the raw output but shrinks it
+      // after gzip, since repeated literals compress better than variable references.
+      inlineConst: { mode: 'all' },
+    },
   };
 
   const bundleTypeConfigMap = {
