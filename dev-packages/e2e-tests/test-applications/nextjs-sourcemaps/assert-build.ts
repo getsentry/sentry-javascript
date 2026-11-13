@@ -90,7 +90,7 @@ if (process.env.E2E_DELETE_SOURCEMAPS) {
   const staticDir = '.next/static';
   assert.deepEqual(findSourceMapFiles({ outputDir: staticDir }), [], `Expected no source maps in ${staticDir}`);
   assert.deepEqual(
-    findSourceMappingUrlComments({ outputDir: staticDir }),
+    findSourceMappingUrlComments({ outputDir: staticDir, extensions: ['.js', '.mjs', '.cjs', '.css'] }),
     [],
     `Expected no sourceMappingURL comments in ${staticDir}`,
   );

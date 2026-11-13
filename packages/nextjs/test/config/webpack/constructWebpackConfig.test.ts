@@ -99,6 +99,49 @@ describe('constructWebpackConfigFunction()', () => {
     getBuildPluginOptionsSpy.mockRestore();
   });
 
+  // Each row: the client `devtool` that Next.js hands over (`source-map` with
+  // `productionBrowserSourceMaps`), the user's `sourcemaps` options, and
+  // whether the plugin removes every client map.
+  it.each([
+    ['the SDK turns the maps on', undefined, {}, true],
+    ['`productionBrowserSourceMaps` is set', 'source-map', {}, true],
+    ['the user set `deleteSourcemapsAfterUpload: false`', 'source-map', { deleteSourcemapsAfterUpload: false }, false],
+    ['the user set `filesToDeleteAfterUpload`', undefined, { filesToDeleteAfterUpload: ['custom/**/*.map'] }, false],
+    ['`disable` is true', 'source-map', { disable: true }, false],
+    ['`disable` is "disable-upload"', 'source-map', { disable: 'disable-upload' }, false],
+    [
+      '`disable` is true and the user deletes',
+      'source-map',
+      { disable: true, deleteSourcemapsAfterUpload: true },
+      true,
+    ],
+    [
+      '`disable` is "disable-upload" and the user deletes',
+      'source-map',
+      { disable: 'disable-upload', deleteSourcemapsAfterUpload: true },
+      true,
+    ],
+  ] as const)('client source map deletion when %s', async (_, devtool, sourcemaps, deletesAll) => {
+    const sentryWebpackPlugin = vi.fn(() => ({ _name: 'sentry-webpack-plugin' }));
+    vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({ sentryWebpackPlugin }));
+
+    await materializeFinalWebpackConfig({
+      exportedNextConfig,
+      incomingWebpackConfig: { ...clientWebpackConfig, devtool },
+      incomingWebpackBuildContext: clientBuildContext,
+      sentryBuildTimeOptions: { sourcemaps: { ...sourcemaps } },
+    });
+
+    expect(sentryWebpackPlugin).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourcemaps: expect.objectContaining({
+          deleteSourcemapsAfterUpload: deletesAll,
+          sdkEnabledSourceMaps: deletesAll,
+        }),
+      }),
+    );
+  });
+
   it('does not auto-enable source map generation when `disable` is "disable-upload"', () => {
     const finalNextConfig = materializeFinalNextConfig(
       {
