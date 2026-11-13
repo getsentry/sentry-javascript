@@ -1,4 +1,4 @@
-import { transformAsync, traverse, types as t } from '@babel/core';
+import { parseSync, transformAsync, traverse, types as t } from '@babel/core';
 import { parse } from '@babel/parser';
 import MagicString from 'magic-string';
 import { describe, expect, it, vi } from 'vitest';
@@ -26,9 +26,11 @@ async function parseAstAsync(code: string, options: { lang: 'jsx' | 'tsx' }): Pr
 }
 
 function collectAnnotations(code: string, id: string): Annotation[] {
-  const ast = parse(code, {
+  const ast = parseSync(code, {
+    babelrc: false,
+    configFile: false,
     sourceType: 'module',
-    plugins: id.endsWith('.tsx') ? ['jsx', 'typescript'] : ['jsx'],
+    parserOpts: { plugins: id.endsWith('.tsx') ? ['jsx', 'typescript'] : ['jsx'] },
   });
   const annotations: Annotation[] = [];
 
