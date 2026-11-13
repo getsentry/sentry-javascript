@@ -14,8 +14,11 @@ import { HttpsProxyAgent } from '../proxy';
 import type { HTTPModule } from './http-module';
 
 export interface NodeTransportOptions extends BaseTransportOptions {
-  /** Set a proxy that should be used for outbound requests. */
-  proxy?: string;
+  /**
+   * Set a proxy that should be used for outbound requests.
+   * Set to `false` to never use a proxy, even when `http_proxy` or `https_proxy` are set.
+   */
+  proxy?: string | false;
   /** HTTPS proxy CA certificates */
   caCerts?: string | Buffer | Array<string | Buffer>;
   /** Custom HTTP module. Defaults to the native 'http' and 'https' modules. */
@@ -62,9 +65,8 @@ export function makeNodeTransport(options: NodeTransportOptions): Transport {
 
   const nativeHttpModule = isHttps ? https : http;
   const keepAlive = options.keepAlive ?? true;
-  const agent =
-    getProxyAgent(urlSegments, options.proxy) ??
-    new nativeHttpModule.Agent({ keepAlive, maxSockets: 30, timeout: 2000 });
+  const proxyAgent = options.proxy === false ? undefined : getProxyAgent(urlSegments, options.proxy);
+  const agent = proxyAgent ?? new nativeHttpModule.Agent({ keepAlive, maxSockets: 30, timeout: 2000 });
 
   const requestExecutor = createRequestExecutor(options, options.httpModule ?? nativeHttpModule, agent);
   return createTransport(options, requestExecutor);
