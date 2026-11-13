@@ -771,6 +771,22 @@ describe('sanitizeSqlQuery', () => {
 
   describe("dialect: 'clickhouse'", () => {
     it.each([
+      ['SELECT 1 /* outer /* inner */ private@example.com */', 'SELECT ?'],
+      ['SELECT /* outer /* inner */ private@example.com */ 1', 'SELECT ?'],
+      ['SELECT 1 /* outer /* middle /* inner */ private@example.com */ outer */ + 2', 'SELECT ? + ?'],
+      ["SELECT 1 /* outer ' /* inner */ private@example.com */ + 2", 'SELECT ? + ?'],
+      ['SELECT 1 /* outer /* inner */ private@example.com', 'SELECT ?'],
+      ['SELECT 1 /* outer /* inner private@example.com', 'SELECT ?'],
+      ['SELECT 1 /* outer /* inner */ private@example.com */ /* other /* inner */ secret */', 'SELECT ?'],
+      [
+        'INSERT INTO events /* outer /* inner */ private@example.com */ FORMAT CSV\n1,private@example.com',
+        'INSERT INTO events',
+      ],
+    ])('removes the entire nested comment in %p', (input, expected) => {
+      expect(sanitizeSqlQuery(input, 'clickhouse')).toBe(expected);
+    });
+
+    it.each([
       [String.raw`SELECT "a\"b", 'private@example.com' AS "c" FROM t`, String.raw`SELECT "a\"b", ? AS "c" FROM t`],
       ["SELECT `a\\`b`, 'private@example.com' AS `c` FROM t", 'SELECT `a\\`b`, ? AS `c` FROM t'],
       ['INSERT INTO events FORMAT CSV\n1,private@example.com', 'INSERT INTO events'],
