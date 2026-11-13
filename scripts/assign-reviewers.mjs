@@ -5,7 +5,7 @@ import { getJuniorRequesters, TEAM_SLUG } from './junior-requesters.mjs';
 const REQUIRED_REVIEWERS = 3;
 // Managers who are members (and code owners) of the SDK teams, but should never be auto-requested for review.
 const NEVER_REQUEST = ['mydea', 'stephanie-anderson'];
-const CODEOWNERS_PATH = '.github/CODEOWNERS';
+const REVIEWERS_PATH = '.github/REVIEWERS';
 
 function patternToRegExp(pattern) {
   let p = pattern;
@@ -120,7 +120,7 @@ export async function assignReviewers({ github, context, core }) {
     (await github.paginate(github.rest.teams.listMembersInOrg, { org: owner, team_slug })).map(m => m.login);
 
   const files = (await github.paginate(github.rest.pulls.listFiles, { owner, repo, pull_number })).map(f => f.filename);
-  const codeowners = getOwnersForFiles(parseCodeowners(fs.readFileSync(CODEOWNERS_PATH, 'utf8')), files);
+  const codeowners = getOwnersForFiles(parseCodeowners(fs.readFileSync(REVIEWERS_PATH, 'utf8')), files);
 
   const codeownerPool = [];
   for (const codeowner of codeowners) {
