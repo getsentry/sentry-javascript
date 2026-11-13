@@ -1620,6 +1620,9 @@ importers:
       '@sentry/bun':
         specifier: 11.12.0
         version: link:../bun
+      '@sentry/deno':
+        specifier: 11.12.0
+        version: link:../deno
       cjs-module-lexer:
         specifier: ^2.2.0
         version: 2.2.0

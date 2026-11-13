@@ -8,6 +8,7 @@ export default [
       entrypoints: [
         'src/index.server.ts',
         'src/index.bun.ts',
+        'src/index.deno.ts',
         'src/index.client.ts',
         'src/client/index.ts',
         'src/server/index.ts',

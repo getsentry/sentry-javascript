@@ -58,7 +58,7 @@ describe('getServerExternalPackagesPatch (build-time instrumentation)', () => {
   });
 });
 
-describe('getServerExternalPackagesPatch (Bun)', () => {
+describe('getServerExternalPackagesPatch (Bun and Deno)', () => {
   const originalVersions = Object.getOwnPropertyDescriptor(process, 'versions')!;
 
   afterEach(() => {
@@ -67,6 +67,14 @@ describe('getServerExternalPackagesPatch (Bun)', () => {
 
   it('makes @sentry/nextjs external when the build runs on Bun', () => {
     Object.defineProperty(process, 'versions', { ...originalVersions, value: { ...process.versions, bun: '1.4.2' } });
+
+    const patch = getServerExternalPackagesPatch({}, 16, false);
+
+    expect(patch.serverExternalPackages).toContain('@sentry/nextjs');
+  });
+
+  it('makes @sentry/nextjs external when the build runs on Deno', () => {
+    Object.defineProperty(process, 'versions', { ...originalVersions, value: { ...process.versions, deno: '2.9.0' } });
 
     const patch = getServerExternalPackagesPatch({}, 16, false);
 

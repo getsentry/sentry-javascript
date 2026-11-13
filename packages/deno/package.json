@@ -14,7 +14,8 @@
       "import": {
         "types": "./build/esm/index.d.ts",
         "default": "./build/esm/index.js"
-      }
+      },
+      "default": "./build/esm/index.js"
     },
     "./import": {
       "import": "./build/import.mjs"
