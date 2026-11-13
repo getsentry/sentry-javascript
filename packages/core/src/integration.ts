@@ -170,7 +170,11 @@ export function addIntegration(integration: Integration): void {
 export function defineIntegration<Fn extends IntegrationFn>(
   fn: Fn,
 ): (...args: Parameters<Fn>) => Integration & { name: ReturnType<Fn>['name'] } {
-  return fn;
+  return (...args: Parameters<Fn>) => {
+    const integration = fn(...args) as ReturnType<Fn>;
+    integration._options = args[0];
+    return integration;
+  };
 }
 
 // When  extending an integration, we allow other properties to be passed-through

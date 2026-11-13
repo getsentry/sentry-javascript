@@ -100,7 +100,10 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     sdk: client.getSdkMetadata()?.sdk,
     options: serialize(options) as Record<string, unknown>,
     options_set_by_user: client.getSdkMetadata()?.optionsSetByUser,
-    integrations: client.getIntegrationNames().map(name => ({ name })),
+    integrations: client.getIntegrationNames().map(name => ({
+      name,
+      options: serialize(client.getIntegrationByName(name)?._options),
+    })),
   };
 
   const metadata = {

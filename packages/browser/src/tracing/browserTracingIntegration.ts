@@ -425,6 +425,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
   return {
     name: BROWSER_TRACING_INTEGRATION_ID,
+    _options: options,
     setup(client) {
       if (_isBot) {
         DEBUG_BUILD && debug.log('[Tracing] Skipping browserTracingIntegration setup for bot user agent.');
