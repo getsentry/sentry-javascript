@@ -10,6 +10,7 @@ const profiles = {
 export function setup(run, pr) {
   const github = {
     paginate: vi.fn(async method => (method === github.rest.teams.listMembersInOrg ? Object.values(profiles) : [])),
+    graphql: vi.fn(async () => ({})),
     rest: {
       pulls: {
         get: vi.fn(async () => ({
@@ -35,7 +36,7 @@ export function setup(run, pr) {
     repo: { owner: 'getsentry', repo: 'sentry-javascript' },
     payload: { pull_request: { number: 1 } },
   };
-  const core = { info: vi.fn() };
+  const core = { info: vi.fn(), warning: vi.fn() };
   return { github, run: () => run({ github, context, core }) };
 }
 
