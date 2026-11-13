@@ -610,7 +610,7 @@ importers:
         version: 21.3.10
       '@hono/node-server':
         specifier: ^2.1.5
-        version: 2.1.5(hono@4.13.11)
+        version: 2.1.7(hono@4.13.11)
       '@koa/router':
         specifier: ^12.0.1
         version: 12.0.2(supports-color@10.0.0)
@@ -5340,8 +5340,8 @@ packages:
   '@hapi/wreck@18.1.2':
     resolution: {integrity: sha512-3dMnV2pfhQiyEqu8DL3VBmxkdLiRDiiUDuG79Dp+UK1gL9ZxAfDOUhB6k3D5MLqcgJJ1IARyGFhwoc1NITr/pg==}
 
-  '@hono/node-server@2.1.5':
-    resolution: {integrity: sha512-MgP/I06GdvsilDspMk/qmRzpk8LOUStP6jFAbSRi40W09DhoyUn+Mj7eyKICPqeYKybOjVFLVIAQzvu1bfIa7Q==}
+  '@hono/node-server@2.1.7':
+    resolution: {integrity: sha512-Wr0E6S+v2Bw9FkpGNP5BQ5QbJvclUa06UVehd65WFZe6XeJwbrKQQ5wPDevc0IC+QyzbO7v3Llh5uo45IZcSnA==}
     engines: {node: '>=20'}
     peerDependencies:
       hono: ^4 || ^5.0.0-0
@@ -23513,7 +23513,7 @@ snapshots:
     dependencies:
       '@earendil-works/pi-agent-core': 1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7)
       '@earendil-works/pi-ai': 1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7)
-      '@hono/node-server': 2.1.5(hono@4.13.11)
+      '@hono/node-server': 2.1.7(hono@4.13.11)
       '@modelcontextprotocol/client': 2.0.0
       '@valibot/to-json-schema': 1.8.0(valibot@1.5.0(typescript@7.0.2))
       hono: 4.13.11
@@ -23846,7 +23846,7 @@ snapshots:
       '@hapi/bourne': 3.0.0
       '@hapi/hoek': 11.0.4
 
-  '@hono/node-server@2.1.5(hono@4.13.11)':
+  '@hono/node-server@2.1.7(hono@4.13.11)':
     dependencies:
       hono: 4.13.11
 
@@ -24441,7 +24441,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7)':
     dependencies:
-      '@hono/node-server': 2.1.5(hono@4.13.11)
+      '@hono/node-server': 2.1.7(hono@4.13.11)
       ajv: 8.20.0
       ajv-formats: 3.0.1
       content-type: 1.0.5
