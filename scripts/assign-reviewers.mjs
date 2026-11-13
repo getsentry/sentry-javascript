@@ -5,7 +5,7 @@ import { getJuniorRequesters, TEAM_SLUG } from './junior-requesters.mjs';
 const REQUIRED_REVIEWERS = 3;
 // Managers who are members of the SDK teams, but should never be auto-requested for review.
 // GitHub's team auto-assignment can still pick them, so their pending requests don't count towards the required reviewers.
-const NEVER_REQUEST = ['mydea', 'stephanie-anderson'];
+const NEVER_REQUEST = ['mydea', 'stephanie-anderson', 'HazAT'];
 const REVIEWERS_PATH = '.github/REVIEWERS';
 
 function patternToRegExp(pattern) {
