@@ -28,6 +28,8 @@ const KNOWN_PROBLEMS = {
     'The package has "type": "module", so its declaration files are ESM, and their relative imports have no file extension.',
   '@sentry/astro/integration node16-esm InternalResolutionError':
     'The package has "type": "module", so its declaration files are ESM, and their relative imports have no file extension.',
+  '@sentry/deno node16-cjs InternalResolutionError':
+    'The declaration files are in the ESM build folder, and their relative imports have no file extension.',
   '@sentry/deno node16-esm InternalResolutionError':
     'The declaration files are in the ESM build folder, and their relative imports have no file extension.',
   '@sentry/ember node16-cjs UnexpectedModuleSyntax':
