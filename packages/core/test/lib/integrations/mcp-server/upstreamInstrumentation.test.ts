@@ -1,6 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  MCP_CLIENT_NAME,
+  MCP_METHOD_NAME,
+  MCP_PROTOCOL_VERSION,
+  MCP_REQUEST_ARGUMENT_KEY_BASE,
+  MCP_SERVER_NAME,
+  MCP_TOOL_NAME,
+  MCP_TOOL_RESULT_CONTENT_COUNT,
+  SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import {
+  MCP_NOTIFICATION_CLIENT_TO_SERVER,
+  MCP_NOTIFICATION_SERVER_TO_CLIENT,
+  MCP_SERVER,
+} from '@sentry/conventions/op';
 import { setCurrentClient } from '../../../../src';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
+import { MCP_FUNCTION_ORIGIN_VALUE } from '../../../../src/integrations/mcp-server/attributes';
 import { withActiveSpan } from '../../../../src/tracing';
 import { startInactiveSpan, startSpan } from '../../../../src/tracing/trace';
 import type { Span, StreamedSpanJSON } from '../../../../src/types/span';
@@ -34,7 +52,7 @@ function sentryTracedInstrumentation(): Instrumentation {
   const start = (operation: Operation, kind: 'client' | 'server'): Scope => {
     const span = startInactiveSpan({
       name: operation.method,
-      attributes: { 'mcp.method.name': operation.method, 'sentry.kind': kind },
+      attributes: { [MCP_METHOD_NAME]: operation.method, [SENTRY_KIND]: kind },
     });
     return { run: fn => withActiveSpan(span, fn), end: () => span.end() };
   };
@@ -128,8 +146,7 @@ describe('MCP server hand-off to the MCP SDK instrumentation', () => {
   let endedSpans: StreamedSpanJSON[];
   let originalOtelRegistry: unknown;
 
-  const mcpSpans = (): StreamedSpanJSON[] =>
-    endedSpans.filter(span => span.attributes['mcp.method.name'] !== undefined);
+  const mcpSpans = (): StreamedSpanJSON[] => endedSpans.filter(span => span.attributes[MCP_METHOD_NAME] !== undefined);
   const registerTracerProvider = (): void => {
     (GLOBAL_OBJ as unknown as Record<symbol, unknown>)[OTEL_API_GLOBAL_KEY] = { version: '1.9.0', trace: {} };
   };
@@ -168,12 +185,12 @@ describe('MCP server hand-off to the MCP SDK instrumentation', () => {
     expect(spans).toHaveLength(1);
     const [toolSpan] = spans;
     expect(toolSpan!.attributes).toMatchObject({
-      'sentry.kind': 'server',
-      'sentry.op': 'mcp.server',
-      'sentry.origin': 'auto.function.mcp_server',
-      'mcp.tool.name': 'echo',
-      'mcp.request.argument.message': '"hi"',
-      'mcp.tool.result.content_count': 1,
+      [SENTRY_KIND]: 'server',
+      [SENTRY_OP]: MCP_SERVER,
+      [SENTRY_ORIGIN]: MCP_FUNCTION_ORIGIN_VALUE,
+      [MCP_TOOL_NAME]: 'echo',
+      [`${MCP_REQUEST_ARGUMENT_KEY_BASE}.message`]: '"hi"',
+      [MCP_TOOL_RESULT_CONTENT_COUNT]: 1,
     });
     expect(spanToJSON(handlerParent!).span_id).toBe(toolSpan!.span_id);
     expect(endedSpans.find(span => span.name === 'inside-tool')!.parent_span_id).toBe(toolSpan!.span_id);
@@ -199,10 +216,10 @@ describe('MCP server hand-off to the MCP SDK instrumentation', () => {
     const spans = mcpSpans();
     expect(spans).toHaveLength(1);
     expect(spans[0]!.attributes).toMatchObject({
-      'sentry.op': 'mcp.server',
-      'mcp.client.name': 'test-client',
-      'mcp.server.name': 'test-server',
-      'mcp.protocol.version': '2025-06-18',
+      [SENTRY_OP]: MCP_SERVER,
+      [MCP_CLIENT_NAME]: 'test-client',
+      [MCP_SERVER_NAME]: 'test-server',
+      [MCP_PROTOCOL_VERSION]: '2025-06-18',
     });
   });
 
@@ -217,8 +234,8 @@ describe('MCP server hand-off to the MCP SDK instrumentation', () => {
     const spans = mcpSpans();
     expect(spans).toHaveLength(1);
     expect(spans[0]!.attributes).toMatchObject({
-      'sentry.kind': 'server',
-      'sentry.op': 'mcp.notification.client_to_server',
+      [SENTRY_KIND]: 'server',
+      [SENTRY_OP]: MCP_NOTIFICATION_CLIENT_TO_SERVER,
     });
   });
 
@@ -233,8 +250,8 @@ describe('MCP server hand-off to the MCP SDK instrumentation', () => {
     const spans = mcpSpans();
     expect(spans).toHaveLength(1);
     expect(spans[0]!.attributes).toMatchObject({
-      'sentry.kind': 'client',
-      'sentry.op': 'mcp.notification.server_to_client',
+      [SENTRY_KIND]: 'client',
+      [SENTRY_OP]: MCP_NOTIFICATION_SERVER_TO_CLIENT,
     });
   });
 
@@ -253,8 +270,8 @@ describe('MCP server hand-off to the MCP SDK instrumentation', () => {
 
     const spans = mcpSpans();
     expect(spans).toHaveLength(1);
-    expect(spans[0]!.attributes).toMatchObject({ 'sentry.op': 'mcp.server', 'mcp.tool.result.content_count': 1 });
-    expect(spans[0]!.attributes['sentry.kind']).toBeUndefined();
+    expect(spans[0]!.attributes).toMatchObject({ [SENTRY_OP]: MCP_SERVER, [MCP_TOOL_RESULT_CONTENT_COUNT]: 1 });
+    expect(spans[0]!.attributes[SENTRY_KIND]).toBeUndefined();
     expect(spanToJSON(handlerSpan!).span_id).toBe(spans[0]!.span_id);
   });
 
@@ -274,6 +291,6 @@ describe('MCP server hand-off to the MCP SDK instrumentation', () => {
 
     const spans = mcpSpans();
     expect(spans).toHaveLength(1);
-    expect(spans[0]!.attributes).toMatchObject({ 'sentry.op': 'mcp.server', 'mcp.tool.result.content_count': 1 });
+    expect(spans[0]!.attributes).toMatchObject({ [SENTRY_OP]: MCP_SERVER, [MCP_TOOL_RESULT_CONTENT_COUNT]: 1 });
   });
 });
