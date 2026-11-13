@@ -63,7 +63,7 @@
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
-    "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
+    "lint:es-compatibility": "node ../../scripts/es-check.mjs es2022",
     "install:bun": "node ./scripts/install-bun.js",
     "test": "pnpm run install:bun && pnpm run test:bun",
     "test:bun": "bun test",

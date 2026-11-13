@@ -61,7 +61,7 @@
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
-    "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs/prod}/*.js && es-check es2020 ./build/npm/esm/prod/*.js --module",
+    "lint:es-compatibility": "node ../../scripts/es-check.mjs es2020",
     "size:check": "cat build/bundles/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES2017: \",$1,\"kB\";}'",
     "test": "vitest run",
     "test:watch": "vitest --watch",
