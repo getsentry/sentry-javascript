@@ -1,6 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { assignReviewers, getOwnersForFiles, parseCodeowners, pickReviewers } from './assign-reviewers.mjs';
+import {
+  assignReviewers,
+  getBusyLogins,
+  getOwnersForFiles,
+  parseCodeowners,
+  pickReviewers,
+} from './assign-reviewers.mjs';
 import { attribution, junior, setup } from './github-test-utils.mjs';
 
 const CODEOWNERS = `
@@ -80,7 +86,44 @@ describe('pickReviewers', () => {
   });
 });
 
+describe('getBusyLogins', () => {
+  const core = { warning: vi.fn() };
+
+  it('returns users whose status indicates limited availability', async () => {
+    const github = {
+      graphql: vi.fn(async () => ({
+        u0: { login: 'a', status: { indicatesLimitedAvailability: true } },
+        u1: { login: 'b', status: { indicatesLimitedAvailability: false } },
+        u2: { login: 'c', status: null },
+      })),
+    };
+    expect(await getBusyLogins({ github, core, logins: ['a', 'b', 'c', 'A'] })).toEqual(['a']);
+    expect(github.graphql).toHaveBeenCalledWith(expect.any(String), { l0: 'A', l1: 'b', l2: 'c' });
+  });
+
+  it('skips the query when there are no logins', async () => {
+    const github = { graphql: vi.fn() };
+    expect(await getBusyLogins({ github, core, logins: [] })).toEqual([]);
+    expect(github.graphql).not.toHaveBeenCalled();
+  });
+
+  it('treats nobody as busy when the query fails', async () => {
+    const github = { graphql: vi.fn(async () => Promise.reject(new Error('boom'))) };
+    expect(await getBusyLogins({ github, core, logins: ['a'] })).toEqual([]);
+    expect(core.warning).toHaveBeenCalledWith(expect.stringContaining('boom'));
+  });
+});
+
 describe('assignReviewers', () => {
+  it('does not request a review from busy users', async () => {
+    const { github, run } = setup(assignReviewers, { user: { login: 'author', type: 'User' } });
+    github.graphql.mockResolvedValue({ u0: { login: 'a', status: { indicatesLimitedAvailability: true } } });
+    await run();
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.arrayContaining(['b', 'c', 'd']) }),
+    );
+  });
+
   it('does not request a review from the requester of a Junior PR', async () => {
     const { github, run } = setup(assignReviewers, { user: junior, body: attribution('**Alice Example**') });
     await run();

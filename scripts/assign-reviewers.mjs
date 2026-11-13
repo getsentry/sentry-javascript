@@ -87,6 +87,32 @@ export function pickReviewers({ existing, codeownerPool, teamPool, exclude }) {
   return picked;
 }
 
+/**
+ * Returns the logins that set their GitHub status to busy ("limited availability"). GitHub's own team review
+ * assignment skips these users too. User status is only exposed via GraphQL.
+ */
+export async function getBusyLogins({ github, core, logins }) {
+  const unique = [...new Map(logins.map(login => [login.toLowerCase(), login])).values()];
+  if (!unique.length) {
+    return [];
+  }
+
+  const query = `query(${unique.map((_, i) => `$l${i}: String!`).join(', ')}) {
+    ${unique.map((_, i) => `u${i}: user(login: $l${i}) { login status { indicatesLimitedAvailability } }`).join('\n    ')}
+  }`;
+  const variables = Object.fromEntries(unique.map((login, i) => [`l${i}`, login]));
+
+  try {
+    const data = await github.graphql(query, variables);
+    return Object.values(data)
+      .filter(user => user?.status?.indicatesLimitedAvailability)
+      .map(user => user.login);
+  } catch (error) {
+    core.warning(`Could not read reviewer availability, not skipping busy users: ${error.message}`);
+    return [];
+  }
+}
+
 export async function assignReviewers({ github, context, core }) {
   const { owner, repo } = context.repo;
   const pull_number = context.payload.pull_request.number;
@@ -137,15 +163,19 @@ export async function assignReviewers({ github, context, core }) {
     }
   }
 
+  const teamPool = await listTeamMembers(TEAM_SLUG);
+  const busy = await getBusyLogins({ github, core, logins: [...codeownerPool, ...teamPool] });
+
   const reviewers = pickReviewers({
     existing,
     codeownerPool,
-    teamPool: await listTeamMembers(TEAM_SLUG),
-    exclude: [author, ...requesters, ...NEVER_REQUEST],
+    teamPool,
+    exclude: [author, ...requesters, ...NEVER_REQUEST, ...busy],
   });
 
   core.info(`Codeowners: ${codeowners.join(', ') || '(none)'}`);
   core.info(`Existing reviewers: ${existing.join(', ') || '(none)'}`);
+  core.info(`Busy, skipped: ${busy.join(', ') || '(none)'}`);
 
   if (!reviewers.length) {
     core.info('No eligible reviewers left to request.');
