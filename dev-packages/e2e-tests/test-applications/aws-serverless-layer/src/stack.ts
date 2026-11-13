@@ -12,6 +12,7 @@ const LAMBDA_FUNCTION_TIMEOUT = 10;
 const LAYER_DIR = './node_modules/@sentry/aws-serverless/';
 // SAM allocates runtime container ports in [5000, 9000) before binding its own endpoint.
 export const SAM_PORT = Number(process.env.SAM_PORT) || 17120;
+export const HTTP_PROXY_PORT = 3032;
 
 /** Match SAM / Docker to this machine so Apple Silicon does not mix arm64 images with an x86_64 template default. */
 function samLambdaArchitecture(): 'arm64' | 'x86_64' {
@@ -48,10 +49,10 @@ export class LocalLambdaStack extends Stack {
     const dsn = `http://public@${hostIp}:3031/1337`;
     console.log(`[LocalLambdaStack] Using Sentry DSN: ${dsn}`);
 
-    this.addLambdaFunctions(dsn);
+    this.addLambdaFunctions(dsn, hostIp);
   }
 
-  private addLambdaFunctions(dsn: string) {
+  private addLambdaFunctions(dsn: string, hostIp: string) {
     console.log(`[LocalLambdaStack] Add all Lambda functions defined in ${LAMBDA_FUNCTIONS_DIR} to the SAM stack`);
 
     const lambdaDirs = fs
@@ -84,6 +85,7 @@ export class LocalLambdaStack extends Stack {
               // we want to test that the extension tunnel forwards requests when SENTRY_DSN is missing.
               TUNNEL_TEST_DSN: dsn,
               ...(lambdaDir !== 'TunnelNoDsn' ? { SENTRY_DSN: dsn } : {}),
+              ...(lambdaDir === 'HttpProxy' ? { http_proxy: `http://${hostIp}:${HTTP_PROXY_PORT}` } : {}),
             },
           },
         },
