@@ -16,6 +16,10 @@ Work in this release was contributed by @kunal649 and @bardrop. Thank you for yo
 
 ### Important Changes
 
+- **feat(nuxt): Mark pageloads of cached pages ([#26305](https://github.com/getsentry/sentry-javascript/pull/26305))**
+
+  When Nuxt serves a cached or prerendered page, for example with a `swr` or `isr` route rule, the pageload now has the `page.server_rendering.type: static` attribute and starts its own trace. If the request that rendered the cached page was sampled, the pageload also links to it. So visitors of a cached page no longer continue the trace of the request that rendered it.
+
 - **feat(bundler-plugins): Enable hidden source maps and remove them after upload ([#25637](https://github.com/getsentry/sentry-javascript/pull/25637), [#25645](https://github.com/getsentry/sentry-javascript/pull/25645), [#25646](https://github.com/getsentry/sentry-javascript/pull/25646), [#25647](https://github.com/getsentry/sentry-javascript/pull/25647), [#25648](https://github.com/getsentry/sentry-javascript/pull/25648))**
 
   The Sentry Rollup, Vite, webpack and esbuild plugins now turn on hidden source maps when your bundler has no source maps enabled and the plugin can upload them. They upload the maps to Sentry and remove them from the build output. You no longer need to set `sourcemap: 'hidden'` or `filesToDeleteAfterUpload` globs:
