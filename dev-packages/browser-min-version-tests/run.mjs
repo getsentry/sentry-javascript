@@ -3,6 +3,7 @@
 // this talks to the browser over the DevTools protocol directly and needs no dependencies. Run it after
 // `pnpm build:bundle` in `packages/browser`.
 import { execFileSync, spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -11,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 
 // Chromium 80.0.3987.0, the minimum Chrome version in our supported browsers docs.
 const CHROMIUM_REVISION = '722234';
+const CHROMIUM_ZIP_SHA256 = '2a7f1d1cf4fd933f4090739667f86b52187431a5a22e5f33a4a2be158d4574dc';
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const CHROMIUM_DIR = path.join(DIR, '.chromium', CHROMIUM_REVISION);
 const CHROME = path.join(CHROMIUM_DIR, 'chrome-linux', 'chrome');
@@ -36,9 +38,14 @@ async function ensureChromium() {
   if (!response.ok) {
     throw new Error(`Downloading Chromium failed: ${response.status} ${url}`);
   }
-  const zip = path.join(tmpdir(), `chromium-${CHROMIUM_REVISION}.zip`);
-  writeFileSync(zip, Buffer.from(await response.arrayBuffer()));
+  const data = Buffer.from(await response.arrayBuffer());
+  const sha256 = createHash('sha256').update(data).digest('hex');
+  if (sha256 !== CHROMIUM_ZIP_SHA256) {
+    throw new Error(`Chromium download has SHA-256 ${sha256}, expected ${CHROMIUM_ZIP_SHA256}`);
+  }
   mkdirSync(CHROMIUM_DIR, { recursive: true });
+  const zip = `${CHROMIUM_DIR}.zip`;
+  writeFileSync(zip, data);
   execFileSync('unzip', ['-q', zip, '-d', CHROMIUM_DIR]);
   rmSync(zip);
 }
