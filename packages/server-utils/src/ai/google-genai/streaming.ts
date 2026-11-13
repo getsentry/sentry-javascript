@@ -3,7 +3,7 @@ import type { Span } from '@sentry/core';
 import { endStreamSpan } from '../core/utils';
 import type { GoogleGenAIResponse } from './types';
 import type { MessagePart } from './utils';
-import { candidatesToMessageParts, setOutputMessagesAttribute } from './utils';
+import { candidatesToMessageParts, getInputTokens, setOutputMessagesAttribute } from './utils';
 
 /**
  * State object used to accumulate information from a stream of Google GenAI events.
@@ -17,8 +17,10 @@ interface StreamingState {
   responseId?: string;
   /** The model name. */
   responseModel?: string;
-  /** Number of prompt/input tokens used. */
+  /** Number of prompt/input tokens used, including the tool-use prompt tokens. */
   promptTokens?: number;
+  promptTokenCount?: number;
+  toolUsePromptTokenCount?: number;
   /** Number of completion/output tokens used. */
   completionTokens?: number;
   candidateTokens?: number;
@@ -62,7 +64,11 @@ function handleResponseMetadata(chunk: GoogleGenAIResponse, state: StreamingStat
 
   const usage = chunk.usageMetadata;
   if (usage) {
-    if (typeof usage.promptTokenCount === 'number') state.promptTokens = usage.promptTokenCount;
+    if (typeof usage.promptTokenCount === 'number') state.promptTokenCount = usage.promptTokenCount;
+    if (typeof usage.toolUsePromptTokenCount === 'number') {
+      state.toolUsePromptTokenCount = usage.toolUsePromptTokenCount;
+    }
+    state.promptTokens = getInputTokens(state.promptTokenCount, state.toolUsePromptTokenCount);
     if (typeof usage.candidatesTokenCount === 'number') state.candidateTokens = usage.candidatesTokenCount;
     if (typeof usage.thoughtsTokenCount === 'number') state.reasoningOutputTokens = usage.thoughtsTokenCount;
     if (state.candidateTokens !== undefined || state.reasoningOutputTokens !== undefined) {

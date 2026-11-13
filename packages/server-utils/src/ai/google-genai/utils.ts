@@ -205,3 +205,16 @@ export function systemInstructionToText(systemInstruction: unknown): string | un
 
   return texts.length ? texts.join('\n') : undefined;
 }
+
+/**
+ * Input tokens of a Gemini response. `toolUsePromptTokenCount` (results of built-in tools such as Google Search,
+ * URL context or code execution, fed back to the model) is reported apart from `promptTokenCount`, but
+ * `totalTokenCount` includes it, so it is part of the input.
+ */
+export function getInputTokens(promptTokenCount?: number, toolUsePromptTokenCount?: number): number | undefined {
+  if (typeof promptTokenCount !== 'number' && typeof toolUsePromptTokenCount !== 'number') return undefined;
+  return (
+    (typeof promptTokenCount === 'number' ? promptTokenCount : 0) +
+    (typeof toolUsePromptTokenCount === 'number' ? toolUsePromptTokenCount : 0)
+  );
+}
