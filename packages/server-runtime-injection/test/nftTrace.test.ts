@@ -20,9 +20,18 @@ async function traceFrom(entry: string): Promise<Set<string>> {
   return fileList;
 }
 
-describe.each(['cjs', 'esm'])('the %s build', variant => {
+describe('the cjs build', () => {
+  it('traces the CJS loader hook and the chunks it requires', { timeout: 60_000 }, async () => {
+    const traced = await traceFrom(`${buildDir}/cjs/register.js`);
+
+    expect(traced).toContain(`${buildDir}/cjs/hook.js`);
+    expect(traced).toContain(`${buildDir}/cjs/chunks/hook.js`);
+  });
+});
+
+describe('the esm build', () => {
   it('traces the ESM loader hook and the chunks it imports', { timeout: 60_000 }, async () => {
-    const traced = await traceFrom(`${buildDir}/${variant}/register.js`);
+    const traced = await traceFrom(`${buildDir}/esm/register.js`);
 
     expect(traced).toContain(`${buildDir}/esm/hook.js`);
     // The hook is ESM. Without this marker the loader thread parses it as CommonJS and fails.

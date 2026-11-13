@@ -19,6 +19,7 @@ import type { SdkSource } from './env';
 /** Internal global with common properties and Sentry extensions  */
 export type InternalGlobal = {
   navigator?: { userAgent?: string; maxTouchPoints?: number };
+  location?: { href?: string };
   console: Console;
   PerformanceObserver?: any;
   Sentry?: any;
@@ -94,6 +95,16 @@ export type InternalGlobal = {
      * Dedupes the one-time warning and short-circuits repeat calls.
      */
     runtimeUnavailable?: boolean;
+    /**
+     * Set when an integration asks to subscribe to orchestrion-injected
+     * channels, so a missing injection is only reported when it loses data.
+     */
+    channelIntegrations?: boolean;
+    /**
+     * Set once the Bun warning for missing channel injection has been shown.
+     * Lives on the marker so that duplicate SDK copies warn only once.
+     */
+    warnedBunRunNotInjected?: boolean;
     /**
      * Module namespaces stashed by build-time provider imports, keyed by module
      * name (e.g. `@mastra/observability`). A bundler plugin can splice a static

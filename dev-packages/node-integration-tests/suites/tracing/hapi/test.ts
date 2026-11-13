@@ -1,3 +1,11 @@
+import {
+  HAPI_EXT_TYPE,
+  HAPI_TYPE,
+  HTTP_REQUEST_METHOD,
+  SENTRY_OP,
+  SERVER_EXT_TYPE,
+} from '@sentry/conventions/attributes';
+import { ROUTER } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -19,7 +27,36 @@ describe('hapi auto-instrumentation', () => {
     },
   };
 
+  const MULTI_METHOD_REQUESTS = [
+    { method: 'get', path: '/multi' },
+    { method: 'post', path: '/multi' },
+    { method: 'put', path: '/wildcard' },
+  ] as const;
+
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('should record the request method for multi-method and wildcard routes.', async () => {
+      const runner = createRunner().unordered();
+      for (const { method, path } of MULTI_METHOD_REQUESTS) {
+        const httpMethod = method.toUpperCase();
+        runner.expect({
+          span: container => {
+            expect(container.items.find(item => item.is_segment)?.name).toBe(`${httpMethod} ${path}`);
+
+            const routerSpans = container.items.filter(item => item.attributes[SENTRY_OP]?.value === ROUTER);
+            expect(routerSpans).toHaveLength(1);
+            expect(routerSpans[0]?.name).toBe(path);
+            expect(routerSpans[0]?.attributes[HTTP_REQUEST_METHOD]).toEqual({ type: 'string', value: httpMethod });
+          },
+        });
+      }
+
+      const started = runner.start();
+      for (const { method, path } of MULTI_METHOD_REQUESTS) {
+        await started.makeRequest(method, path);
+      }
+      await started.completed();
+    });
+
     test('should auto-instrument `@hapi/hapi` package.', async () => {
       const runner = createRunner()
         .expect({
@@ -72,8 +109,10 @@ describe('hapi auto-instrumentation', () => {
               expect.objectContaining({
                 name: 'ext - onPreResponse',
                 attributes: expect.objectContaining({
-                  'hapi.type': { type: 'string', value: 'server.ext' },
-                  'server.ext.type': { type: 'string', value: 'onPreResponse' },
+                  [HAPI_TYPE]: { type: 'string', value: 'server.ext' },
+                  [HAPI_EXT_TYPE]: { type: 'string', value: 'onPreResponse' },
+                  // oxlint-disable-next-line typescript/no-deprecated
+                  [SERVER_EXT_TYPE]: { type: 'string', value: 'onPreResponse' },
                   'sentry.op': { type: 'string', value: 'middleware' },
                   'sentry.origin': { type: 'string', value: origin },
                 }),
@@ -114,6 +153,20 @@ describe('hapi auto-instrumentation', () => {
       await runner.completed();
     });
 
+    test('should assign the request method to the transactionName of errors in wildcard routes.', async () => {
+      const runner = createRunner()
+        .expect({
+          event: {
+            ...EXPECTED_ERROR_EVENT,
+            transaction: 'PUT /wildcard-error',
+          },
+        })
+        .ignore('span')
+        .start();
+      runner.makeRequest('put', '/wildcard-error', { expectError: true });
+      await runner.completed();
+    });
+
     test('should handle returned Boom errors in routes.', async () => {
       const runner = createRunner()
         .unordered()
@@ -140,6 +193,33 @@ describe('hapi auto-instrumentation', () => {
         .start();
       runner.makeRequest('get', '/promise-error', { expectError: true });
       await runner.completed();
+    });
+  });
+
+  // Only static spans put the method into the router span name, which crashed for multi-method routes.
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-static.mjs', (createRunner, test) => {
+    test('should name router spans after the request method for multi-method and wildcard routes.', async () => {
+      const runner = createRunner().unordered();
+      for (const { method, path } of MULTI_METHOD_REQUESTS) {
+        const httpMethod = method.toUpperCase();
+        const spanName = `${httpMethod} ${path}`;
+        runner.expect({
+          transaction: transaction => {
+            expect(transaction.transaction).toBe(spanName);
+
+            const routerSpans = transaction.spans?.filter(span => span.op === ROUTER) ?? [];
+            expect(routerSpans).toHaveLength(1);
+            expect(routerSpans[0]?.description).toBe(spanName);
+            expect(routerSpans[0]?.data[HTTP_REQUEST_METHOD]).toBe(httpMethod);
+          },
+        });
+      }
+
+      const started = runner.start();
+      for (const { method, path } of MULTI_METHOD_REQUESTS) {
+        await started.makeRequest(method, path);
+      }
+      await started.completed();
     });
   });
 

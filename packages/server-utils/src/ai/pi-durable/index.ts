@@ -8,12 +8,12 @@ import {
   startNewTrace,
   withActiveSpan,
 } from '@sentry/core';
+import { GEN_AI_CONVERSATION_ID } from '@sentry/conventions/attributes';
 import type { GenAiOptions } from '../core/utils';
-import { skipPiAiProviderIntegrations } from '../pi-ai/providers';
+import { setPiAiRecordingOptions } from '../pi-ai/recording';
 import { PI_DURABLE_ORIGIN, PI_TASK } from './constants';
-import { instrumentPiModels } from './models';
 import type { PiRuns } from './runs';
-import { createRuns, endRun, observeRunControl, startRun, toSentryConversationId } from './runs';
+import { createRuns, endRun, observeRunControl, readProviderSessionId, startRun, toSentryConversationId } from './runs';
 import { instrumentTool, instrumentToolPhase } from './tools';
 import type {
   PiHarness,
@@ -34,15 +34,15 @@ const INSTRUMENTED = Symbol.for('sentry.pi-durable.instrumented');
 const RUNS = Symbol.for('sentry.pi-durable.runs');
 
 /**
- * Return pi-durable `HarnessOptions` whose model requests, task phases and tool calls are traced.
- * The caller's `models` and `registry` objects are wrapped, never modified. The result has the
- * caller's options as prototype: pi-durable reads `settings`, `env` and `conversationCreated` at
- * every use, so they stay live, getters included.
+ * Return pi-durable `HarnessOptions` whose task phases and tool calls are traced. The caller's
+ * `registry` object is wrapped, never modified. The result has the caller's options as prototype:
+ * pi-durable reads `settings`, `env` and `conversationCreated` at every use, so they stay live,
+ * getters included.
  *
  * Spans:
  * - `gen_ai.invoke_agent` for each run, a new trace per run, or a child of the tool call that
  *   created the conversation for a subagent;
- * - `gen_ai.chat` for each model request, under its run;
+ * - `gen_ai.chat` for each model request, under its run, from `piAiIntegration`;
  * - `gen_ai.execute_tool` for each tool call, under its run.
  *
  * The scheduler starts task phases from whichever async context last woke it, often an unrelated
@@ -60,9 +60,6 @@ export function instrumentPiDurableHarnessOptions<T extends PiHarnessOptions>(
   const runs = createRuns();
   const own = (value: unknown): PropertyDescriptor => ({ value, enumerable: true, configurable: true, writable: true });
   const instrumented: T = Object.create(harnessOptions, {
-    ...(harnessOptions.models
-      ? { models: own(instrumentPiModels(harnessOptions.models, options, skipPiAiProviderIntegrations)) }
-      : {}),
     ...(harnessOptions.registry ? { registry: own(instrumentRegistry(harnessOptions.registry, options, runs)) } : {}),
     // pi-durable passes failures of extension code here, such as a throwing hook, and keeps going.
     // Only an app that passed its own `onReport` gets a chance to handle them.
@@ -137,9 +134,11 @@ function instrumentRegistry(registry: PiRegistryReader, options: PiDurableOption
             definition.name,
             observed => phase.call(receiver, taskRecord, observed, context),
             runtime,
+            context,
             runs,
             wrapTool,
             isAbort,
+            options,
           );
       const phases: Record<string, PiPhaseHandler> = {};
       for (const [name, phase] of Object.entries(definition.phases)) {
@@ -191,9 +190,11 @@ function runPhase(
   kind: string,
   phase: (runtime: PiTaskRuntime) => Promise<unknown>,
   runtime: PiTaskRuntime,
+  context: unknown,
   runs: PiRuns,
   wrapTool: (tool: PiTool) => PiTool,
   isAbort: boolean,
+  options: PiDurableOptions,
 ): Promise<unknown> {
   const { conversationId } = runtime;
   const isRunWork = kind === PI_TASK.GENERATION || kind === PI_TASK.TOOL;
@@ -216,7 +217,18 @@ function runPhase(
   }
 
   const runInScope = async (scope: Scope): Promise<unknown> => {
-    scope.setConversationId(toSentryConversationId(runs, conversationId));
+    // Read at the first phase of a run, which is a `pi.tool` phase when a restarted Harness reruns a
+    // tool call, and at each phase outside a run, such as an idle compaction or a task of an extension.
+    let sessionId = run?.sessionId;
+    if (!sessionId) {
+      sessionId = await readProviderSessionId(runtime, context);
+      if (run && sessionId) {
+        run.sessionId = sessionId;
+        run.span.setAttribute(GEN_AI_CONVERSATION_ID, sessionId);
+      }
+    }
+    scope.setConversationId(sessionId ?? toSentryConversationId(runs, conversationId));
+    setPiAiRecordingOptions(scope, options);
     try {
       return await phase(observed);
     } catch (error) {

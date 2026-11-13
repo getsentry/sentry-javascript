@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { findAbsolutePathImports } from '@sentry-internal/test-utils';
+import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -14,19 +15,29 @@ test('emits no absolute-path imports into the relocated standalone output', () =
   expect(leaks).toEqual([]);
 });
 
-// Regression test for the bug this app surfaced (JS-3451): `register.ts` reaches the ESM loader
-// hook through `Module.register(...)`, a runtime call `@vercel/nft` cannot trace. The hook was
-// therefore never copied into the standalone output, and channel-based instrumentation failed to
-// register, silently, behind `debug: true`. Asserting on the traced output rather than on emitted
-// telemetry, because Next.js records its server spans through its own wrapping either way, so the
-// tests in `standalone.test.ts` stay green even when channel injection is dead.
-test('traces the orchestrion ESM loader hook into the standalone output', () => {
-  const standaloneDir = path.join(process.cwd(), '.next', 'standalone');
-  const hookSuffix = path.join('@sentry', 'server-runtime-injection', 'build', 'esm', 'hook.js');
+// Regression test for JS-3451 and JS-4067. `register.ts` hands the loader hook to
+// `Module.register()` by runtime path, so the standalone output must ship the hook and everything it
+// loads: first `@vercel/nft` didn't trace the hook at all, then Turbopack shipped it without its
+// imports. Either way channel injection failed to register, silently, behind `debug: true`. This
+// checks the registration marker rather than emitted telemetry, because Next.js records its server
+// spans through its own wrapping either way. The runner's Node takes the `Module.registerHooks` path,
+// which never loads the hook, so force the `Module.register()` path that Node < 24.13 takes.
+test('registers the orchestrion loader hook from the standalone output', () => {
+  const registerSuffix = path.join('@sentry', 'server-runtime-injection', 'build', 'cjs', 'register.js');
+  const registerPath = fs
+    .readdirSync(path.join(process.cwd(), '.next', 'standalone'), { recursive: true, withFileTypes: true })
+    .map(entry => path.join(entry.parentPath, entry.name))
+    .find(file => file.endsWith(registerSuffix));
+  expect(registerPath).toBeDefined();
 
-  const found = fs
-    .readdirSync(standaloneDir, { recursive: true, withFileTypes: true })
-    .some(entry => entry.isFile() && path.join(entry.parentPath, entry.name).endsWith(hookSuffix));
+  const script = `
+    require('node:module').registerHooks = undefined;
+    require(${JSON.stringify(registerPath)}).registerDiagnosticsChannelInjection();
+    const marker = globalThis.__SENTRY__?.__SENTRY_ORCHESTRION__ ?? globalThis.__SENTRY_ORCHESTRION__;
+    process.stdout.write(JSON.stringify(marker));
+  `;
+  const { stdout, stderr } = spawnSync(process.execPath, ['-e', script], { encoding: 'utf8' });
 
-  expect(found).toBe(true);
+  expect(stderr).not.toContain('Failed to register diagnostics-channel injection hooks');
+  expect(JSON.parse(stdout)).toEqual({ runtime: [] });
 });

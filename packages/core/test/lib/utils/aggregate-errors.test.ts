@@ -273,6 +273,50 @@ describe('applyAggregateErrorsToEvent()', () => {
     });
   });
 
+  test('limits AggregateError children', () => {
+    const error = new FakeAggregateError(
+      Array.from({ length: 20 }, (_, i) => new Error(`child-${i}`)),
+      'group',
+    );
+    const event: Event = { exception: { values: [exceptionFromError(stackParser, error)] } };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 5, event, { originalException: error });
+
+    expect(event.exception?.values?.map(exception => exception.value)).toEqual([
+      'child-4',
+      'child-3',
+      'child-2',
+      'child-1',
+      'child-0',
+      'group',
+    ]);
+  });
+
+  test('limits SuppressedError siblings after traversing a nested error', () => {
+    const inner = new FakeSuppressedError(new Error('dispose failed'), new Error('original'), 'inner');
+    const error = new FakeSuppressedError(inner, new Error('outer suppressed'), 'outer');
+    const event: Event = { exception: { values: [exceptionFromError(stackParser, error)] } };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 2, event, { originalException: error });
+
+    expect(event.exception?.values?.map(exception => exception.value)).toEqual(['dispose failed', 'inner', 'outer']);
+  });
+
+  test('shares the limit across causes, SuppressedErrors, and AggregateErrors', () => {
+    const cause = new FakeSuppressedError(new Error('dispose failed'), new Error('original'), 'cause');
+    const error = new CustomAggregateError([new Error('child')], 'group', cause);
+    const event: Event = { exception: { values: [exceptionFromError(stackParser, error)] } };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 3, event, { originalException: error });
+
+    expect(event.exception?.values?.map(exception => exception.value)).toEqual([
+      'original',
+      'dispose failed',
+      'cause',
+      'group',
+    ]);
+  });
+
   test('should keep the original mechanism type for the root exception', () => {
     const fakeAggregateError = new FakeAggregateError(
       [new Error('Nested Error 1'), new Error('Nested Error 2')],

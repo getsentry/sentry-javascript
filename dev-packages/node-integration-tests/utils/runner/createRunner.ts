@@ -103,7 +103,7 @@ type StartResult = {
   getPort(): number | undefined;
   sendSignal(signal: NodeJS.Signals): void;
   makeRequest<T>(
-    method: 'get' | 'post' | 'put' | 'delete' | 'patch',
+    method: 'get' | 'head' | 'post' | 'put' | 'delete' | 'patch',
     path: string,
     options?: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean; timeout?: number },
   ): Promise<T | undefined>;
@@ -180,6 +180,7 @@ export function createRunner(...paths: string[]) {
   let withEnv: Record<string, string | undefined> = {};
   let withSentryServer = false;
   let ensureNoErrorOutput = false;
+  let autoFlush = true;
   // When set, the test using this runner expects `completed()` to reject (e.g. `test.fails` variants
   // created via `createEsmAndCjsTests` with `failsOnEsm`/`failsOnCjs`). We suppress the captured-log
   // dump in that case, since the failure is expected and the output would just be noise.
@@ -328,6 +329,11 @@ export function createRunner(...paths: string[]) {
     },
     unordered: function () {
       unordered = true;
+      return this;
+    },
+    /** Skip the injected `beforeExit` flush, so the test sees only what the SDK sends on its own. */
+    withoutAutoFlush: function () {
+      autoFlush = false;
       return this;
     },
     ensureNoErrorOutput: function () {
@@ -630,7 +636,7 @@ export function createRunner(...paths: string[]) {
           // `should-exit`, `ensureNoErrorOutput`) verify the child exits
           // naturally and auto-flush would delay that with retrying HTTP
           // requests to the fake DSN.
-          const wantsAutoFlush = !ensureNoErrorOutput && hasExpectations;
+          const wantsAutoFlush = autoFlush && !ensureNoErrorOutput && hasExpectations;
           const runtime = getRuntime();
           const childFlags = wantsAutoFlush ? [...buildAutoFlushFlags(flags, testPath, runtime), ...flags] : flags;
           const entryPath = buildScenario(runtime, testPath);
@@ -659,8 +665,18 @@ export function createRunner(...paths: string[]) {
 
             if (process.env.DEBUG) log('stderr line', output);
 
+            // Bun runs these scenarios without the Bun build plugin, so the SDK warns that channel
+            // injection is missing. That warning is expected here and is not an error.
+            const unexpectedOutput =
+              process.env.RUNTIME === 'bun'
+                ? output
+                    .split('\n')
+                    .filter(line => !line.includes('[Sentry] No diagnostics-channel injection detected.'))
+                    .join('\n')
+                : output;
+
             // Ignore deprecation warnings for this purpose
-            if (ensureNoErrorOutput && !`${output}`.includes('DeprecationWarning:')) {
+            if (ensureNoErrorOutput && unexpectedOutput.trim() && !unexpectedOutput.includes('DeprecationWarning:')) {
               complete(new Error(`Expected no error output but got: '${output}'`));
             }
           });
@@ -775,7 +791,7 @@ export function createRunner(...paths: string[]) {
           child?.kill(signal);
         },
         makeRequest: async function <T>(
-          method: 'get' | 'post' | 'put' | 'delete' | 'patch',
+          method: 'get' | 'head' | 'post' | 'put' | 'delete' | 'patch',
           path: string,
           options: {
             headers?: Record<string, string>;

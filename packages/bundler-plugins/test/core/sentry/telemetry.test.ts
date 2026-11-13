@@ -21,12 +21,21 @@ describe('shouldSendTelemetry', () => {
 
   it('should return false if CLI returns a URL other than sentry.io', async () => {
     mockRun.mockResolvedValue({ config: { url: 'https://selfhostedSentry.io' } });
-    expect(await allowedToSendTelemetry({ release: {} } as NormalizedOptions)).toBe(false);
+    expect(await allowedToSendTelemetry({ url: 'https://sentry.example.com', release: {} } as NormalizedOptions)).toBe(
+      false,
+    );
+  });
+
+  it('should not ask the CLI when no url is configured', async () => {
+    expect(await allowedToSendTelemetry({ release: {} } as NormalizedOptions)).toBe(true);
+    expect(mockRun).not.toHaveBeenCalled();
   });
 
   it('should return true if CLI returns sentry.io as a URL', async () => {
     mockRun.mockResolvedValue({ config: { url: 'https://sentry.io' } });
-    expect(await allowedToSendTelemetry({ release: {} } as NormalizedOptions)).toBe(true);
+    expect(await allowedToSendTelemetry({ url: 'https://sentry.example.com', release: {} } as NormalizedOptions)).toBe(
+      true,
+    );
   });
 });
 
@@ -66,6 +75,19 @@ describe('addPluginOptionTagsToScope', () => {
       'rollup',
     );
     expect(mockedScope.setTag).toHaveBeenCalledWith('deploy-options', true);
+  });
+
+  it.each([
+    [undefined, 'auto'],
+    [true, 'true'],
+    [false, 'false'],
+  ])('should set the delete-sourcemaps-after-upload tag for `%s` to `%s`', (option, tag) => {
+    setTelemetryDataOnScope(
+      normalizeUserOptions({ ...defaultOptions, sourcemaps: { deleteSourcemapsAfterUpload: option } }),
+      mockedScope as unknown as Scope,
+      'rollup',
+    );
+    expect(mockedScope.setTag).toHaveBeenCalledWith('delete-sourcemaps-after-upload', tag);
   });
 
   it('should set errorHandler tag to `custom` if the errorHandler option is specified', () => {

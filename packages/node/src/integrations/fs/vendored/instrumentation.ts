@@ -12,6 +12,10 @@
  * - Completely reworked to no longer reference OpenTelemetry.
  * - The upstream `fs_error` span attribute (the error message) was replaced with the conventions-backed
  *   `error.type` (the syscall error code, e.g. `ENOENT`).
+ * - `fs` is default-imported rather than namespace-imported. A namespace import is read-only in native ESM
+ *   and compiles to a copied, getter-only namespace object in CJS, so patching it either throws or
+ *   leaves the real module untouched. The default export is the module itself in both output
+ *   formats, so patching it reaches every other consumer of `require('fs')` / `import 'fs'`.
  */
 
 import { ERROR_TYPE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
@@ -25,11 +29,17 @@ import {
   suppressTracing,
   withActiveSpan,
 } from '@sentry/core';
-import * as fs from 'fs';
+import fs from 'fs';
+import * as moduleNamespace from 'module';
 import { promisify } from 'util';
 import { CALLBACK_FUNCTIONS, PROMISE_FUNCTIONS, SYNC_FUNCTIONS } from './constants';
 import type { FMember, FPMember, FsInstrumentationConfig, GenericFunction } from './types';
 import { indexFs } from './utils';
+
+// Deno before 2.8.2 has `syncBuiltinESMExports` only on the default export of `node:module`, so a named import fails to link.
+type SyncBuiltinESMExports = { syncBuiltinESMExports?: () => void };
+const moduleExports = moduleNamespace as unknown as SyncBuiltinESMExports & { default?: SyncBuiltinESMExports };
+const syncBuiltinESMExports = moduleExports.default?.syncBuiltinESMExports ?? moduleExports.syncBuiltinESMExports;
 
 const SPAN_ORIGIN = 'auto.file.fs';
 const SPAN_OP = FILE;
@@ -303,6 +313,13 @@ export function enableFsInstrumentation(config: FsInstrumentationConfig = {}): v
   const fsPromises = fs.promises as unknown as Record<string, GenericFunction>;
   for (const fName of PROMISE_FUNCTIONS) {
     _patchMethod(fsPromises, fName, original => _patchPromiseFunction(fName, original, config));
+  }
+
+  // Named ESM imports (`import { readFile } from 'fs'`) are snapshots of the CJS exports until synced.
+  try {
+    syncBuiltinESMExports?.();
+  } catch {
+    // Cloudflare workerd exports `syncBuiltinESMExports` but throws `ERR_METHOD_NOT_IMPLEMENTED` when it is called.
   }
 }
 

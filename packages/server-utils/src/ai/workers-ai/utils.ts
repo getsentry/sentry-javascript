@@ -18,10 +18,10 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS, GEN_AI_DECIDE } from '@sentry/conventions/op';
+import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS, GEN_AI_DECIDE, GEN_AI_EXTRACT } from '@sentry/conventions/op';
 import { isObjectLike, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
-import { GEN_AI_EXTRACT_OP, GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 import {
   extractSystemInstructions,
   getEvaluationInputMessages,
@@ -40,7 +40,7 @@ export const WORKERS_AI_OPERATION_SPAN_OPS: Record<WorkersAiOperationName, strin
   chat: GEN_AI_CHAT,
   embeddings: GEN_AI_EMBEDDINGS,
   decide: GEN_AI_DECIDE,
-  extract: GEN_AI_EXTRACT_OP,
+  extract: GEN_AI_EXTRACT,
 };
 
 /**

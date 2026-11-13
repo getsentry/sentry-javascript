@@ -12,10 +12,19 @@ import {
   startInactiveSpan,
   WINDOW,
 } from '@sentry/svelte';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  URL_TEMPLATE,
+  SENTRY_ORIGIN,
+  SENTRY_SVELTEKIT_NAVIGATION_FROM,
+  SENTRY_SVELTEKIT_NAVIGATION_TO,
+  SENTRY_SVELTEKIT_NAVIGATION_TYPE,
+} from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD, ROUTER } from '@sentry/conventions/op';
 import type { Navigation } from '@sveltejs/kit';
 import { getCurrentNavigation, onNavigationChange, onPageRouteChange } from './navigationState.svelte';
+import { withCacheOrigin } from './traceMetaTags';
 
 /**
  * SvelteKit 3 / Svelte 5 browser tracing (`$app/state` runes). Selected at build time, so it's only
@@ -38,16 +47,19 @@ export function instrumentSvelteKitTracing(
 function _instrumentPageLoad(client: Client): void {
   const initialPath = WINDOW.location?.pathname;
 
-  const pageLoadSpan = startBrowserTracingPageLoadSpan(client, {
-    // With span streaming, span names have to be low cardinality. The route id is only available
-    // asynchronously, which updates the span name then.
-    name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : initialPath,
-    attributes: {
-      [SENTRY_OP]: PAGELOAD,
-      [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
-      [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    },
-  });
+  const pageLoadSpan = startBrowserTracingPageLoadSpan(
+    client,
+    withCacheOrigin({
+      // With span streaming, span names have to be low cardinality. The route id is only available
+      // asynchronously, which updates the span name then.
+      name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : initialPath,
+      attributes: {
+        [SENTRY_OP]: PAGELOAD,
+        [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+      },
+    }),
+  );
 
   if (!pageLoadSpan) {
     return;
@@ -92,9 +104,12 @@ function _instrumentNavigations(client: Client): void {
     routingSpan?.end();
 
     const navigationInfo = {
-      'sentry.sveltekit.navigation.type': navigation.type,
-      'sentry.sveltekit.navigation.from': parameterizedRouteOrigin || undefined,
-      'sentry.sveltekit.navigation.to': parameterizedRouteDestination || undefined,
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      [SENTRY_SVELTEKIT_NAVIGATION_TYPE]: navigation.type,
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      [SENTRY_SVELTEKIT_NAVIGATION_FROM]: parameterizedRouteOrigin || undefined,
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      [SENTRY_SVELTEKIT_NAVIGATION_TO]: parameterizedRouteDestination || undefined,
     };
 
     startBrowserTracingNavigationSpan(

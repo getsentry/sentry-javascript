@@ -1,6 +1,6 @@
 {
   "name": "@sentry/rollup-plugin",
-  "version": "11.8.0",
+  "version": "11.12.0",
   "description": "Official Sentry Rollup plugin",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/develop/packages/rollup-plugin",
@@ -34,25 +34,22 @@
     }
   },
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:dev": "pnpm run build",
-    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:transpile": "rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "pnpm run build:watch",
-    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:tarball": "npm pack",
-    "clean": "rimraf build coverage sentry-rollup-plugin-*.tgz",
+    "build:tarball": "pnpm pack",
+    "clean": "node ../../scripts/rm.mjs build coverage sentry-rollup-plugin-*.tgz",
     "lint": "oxlint . --type-aware",
     "lint:fix": "oxlint . --fix --type-aware",
     "test": "vitest run",
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "@sentry/bundler-plugins": "11.8.0"
+    "@sentry/bundler-plugins": "11.12.0"
   },
   "devDependencies": {
-    "@sentry-internal/rollup-utils": "11.8.0"
+    "@sentry-internal/rollup-utils": "11.12.0"
   },
   "peerDependencies": {
     "rollup": ">=3.2.0"
@@ -61,8 +58,5 @@
     "rollup": {
       "optional": true
     }
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

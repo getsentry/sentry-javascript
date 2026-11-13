@@ -11,6 +11,8 @@ export type {
   FeatureFlagsIntegration,
   Session,
   SeverityLevel,
+  Log,
+  LogSeverityLevel,
   Span,
   StackFrame,
   Stacktrace,
@@ -30,6 +32,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  parameterize,
   captureFeedback,
   close,
   createTransport,
@@ -107,7 +110,16 @@ export {
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export {
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
+  serveTunnelIntegration,
+  trpcMiddleware,
+  wrapMcpServerWithSentry,
+} from '@sentry/core/server';
+export type { TunnelRequestLike } from '@sentry/core/server';
+export { getTunnelPath, handleTunnelRequest } from '@sentry/core';
+export type { HandleTunnelRequestOptions, ServerTunnelOptions } from '@sentry/core';
 export { createFlueInstrumentation, instrumentPostgresJsSql } from '@sentry/server-utils';
 export type { FlueOptions } from '@sentry/server-utils';
 
@@ -118,7 +130,8 @@ export { _INTERNAL_wrapUnlessInstrumented } from './instrument';
 export { sentryPagesPlugin } from './pages-plugin';
 
 export { CloudflareClient } from './client';
-export { _INTERNAL_wrapRequestHandler, getDefaultIntegrations } from './sdk';
+export { _INTERNAL_wrapRequestHandler, getDefaultIntegrations, init as _INTERNAL_init } from './sdk';
+export { getFinalOptions as _INTERNAL_getFinalOptions } from './options';
 
 export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
@@ -139,6 +152,7 @@ export {
   createLangChainCallbackHandler,
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
+  instrumentStateGraphCompile,
   instrumentCreateReactAgent,
   vercelAIIntegration,
   honoIntegration,
@@ -146,6 +160,49 @@ export {
   eveConversationHook,
   eveIntegration,
   getInstrumentedModuleNames,
+} from '@sentry/server-utils';
+
+// The orchestrion channel integrations. When the `@sentry/cloudflare/vite`
+// plugin bundles an instrumented package, the SDK adds the matching
+// integration with its default options. Pass one in `integrations` to set
+// options. Without the plugin, these integrations record nothing.
+export {
+  amqplibIntegration,
+  anthropicAIIntegration,
+  awsIntegration,
+  dataloaderIntegration,
+  expressIntegration,
+  firebaseIntegration,
+  genericPoolIntegration,
+  googleGenAIIntegration,
+  graphqlIntegration,
+  groqIntegration,
+  hapiIntegration,
+  kafkaIntegration,
+  knexIntegration,
+  koaIntegration,
+  langChainIntegration,
+  langGraphIntegration,
+  lruMemoizerIntegration,
+  mastraIntegration,
+  mcpServerIntegration,
+  mistralAIIntegration,
+  mongoIntegration,
+  mongooseIntegration,
+  mysql2Integration,
+  mysqlIntegration,
+  neonIntegration,
+  nitroIntegration,
+  openAIIntegration,
+  piAiIntegration,
+  piDurableIntegration,
+  postgresIntegration,
+  postgresJsIntegration,
+  redisIntegration,
+  SentryMastraExporter,
+  tediousIntegration,
+  togetherAIIntegration,
+  typesafeIntegration,
 } from '@sentry/server-utils';
 
 export { instrumentWorkflowWithSentry } from './workflows';

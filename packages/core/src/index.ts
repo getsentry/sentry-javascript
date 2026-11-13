@@ -101,8 +101,13 @@ export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { safeCallback } from './utils/safeCallback';
 export { parameterize, fmt } from './utils/parameterize';
-export type { HandleTunnelRequestOptions } from './utils/tunnel';
-export { handleTunnelRequest } from './utils/tunnel';
+export type { HandleTunnelRequestOptions } from './utils/tunnelForward';
+export { handleTunnelRequest } from './utils/tunnelForward';
+export {
+  applyBrowserTunnelDefaults as _INTERNAL_applyBrowserTunnelDefaults,
+  getTunnelPath,
+  normalizeTunnelBasePath as _INTERNAL_normalizeTunnelBasePath,
+} from './utils/tunnel';
 export { addAutoIpAddressToSession } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,
@@ -119,6 +124,7 @@ export {
   getActiveSpan,
   addChildSpanToSpan,
   spanTimeInputToSeconds,
+  otelTimeInputToSeconds,
   updateSpanName,
   INTERNAL_setSegmentNameSourceIfSegment,
 } from './utils/spanUtils';
@@ -178,14 +184,14 @@ export { instrumentFetchRequest, _INTERNAL_getTracingHeadersForFetchRequest } fr
 export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';
 export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/internal';
-export * as logger from './logs/public-api';
+export { logger } from './logs/public-api';
 export { consoleLoggingIntegration } from './logs/console-integration';
 export {
   _INTERNAL_captureMetric,
   _INTERNAL_flushMetricsBuffer,
   _INTERNAL_captureSerializedMetric,
 } from './metrics/internal';
-export * as metrics from './metrics/public-api';
+export { metrics } from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
 export { SpanBuffer } from './tracing/spans/spanBuffer';
@@ -415,7 +421,14 @@ export type {
   HttpHeadersCollection,
   ResolvedDataCollection,
 } from './types/datacollection';
-export type { ClientOptions, CoreOptions as Options } from './types/options';
+export type {
+  BrowserTunnelOptions,
+  ClientOptions,
+  CoreOptions as Options,
+  ServerTunnelOptions,
+  TunnelInit,
+  TunnelOptions,
+} from './types/options';
 export type { Package } from './types/package';
 export type { PolymorphicEvent, PolymorphicRequest } from './types/polymorphics';
 export type {

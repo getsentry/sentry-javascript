@@ -176,7 +176,7 @@ interface ResponseOutputItemDoneEvent {
  * Tool call object for Chat Completion streaming
  */
 export interface ChatCompletionToolCall {
-  index?: number; // Present for streaming responses
+  index?: number | null; // Present for streaming responses; some compatible providers send null
   id: string;
   type?: string; // Could be missing for streaming responses
   function?: {

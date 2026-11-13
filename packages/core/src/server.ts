@@ -6,6 +6,29 @@
 
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export { ServerRuntimeClient } from './server-runtime-client';
+export type { TunnelRequestLike } from './utils/tunnel';
+export {
+  getServedTunnel as _INTERNAL_getServedTunnel,
+  getTunnelPaths as _INTERNAL_getTunnelPaths,
+  handleServedTunnelRequest as _INTERNAL_handleServedTunnelRequest,
+  isServedTunnelRequest as _INTERNAL_isServedTunnelRequest,
+  isTunnelRequest,
+} from './utils/tunnel';
+export {
+  httpServerHandlesTunnel as _INTERNAL_httpServerHandlesTunnel,
+  setNodeTunnelHandler as _INTERNAL_setNodeTunnelHandler,
+} from './utils/tunnelStore';
+export {
+  forwardTunnelRequest as _INTERNAL_forwardTunnelRequest,
+  handleServedNodeTunnelRequest as _INTERNAL_handleServedNodeTunnelRequest,
+  pickForwardedHeaders as _INTERNAL_pickForwardedHeaders,
+  handleTunnelRequestIfMatched,
+} from './utils/tunnelForward';
+export { serveTunnelIntegration } from './integrations/serveTunnel';
+export {
+  _INTERNAL_resetTunnelDefaults,
+  setTunnelDefaults as _INTERNAL_setTunnelDefaults,
+} from './utils/tunnelDefaults';
 export type { ServerRuntimeOptions } from './types/options';
 export { trpcMiddleware } from './trpc';
 export { wrapMcpServerWithSentry } from './integrations/mcp-server';
@@ -16,7 +39,10 @@ export {
   getReleaseFromCommitEnv as _INTERNAL_getReleaseFromCommitEnv,
   readCommitEnvVar as _INTERNAL_readCommitEnvVar,
 } from './utils/commitEnv';
-export { flushIfServerless } from './utils/flushIfServerless';
+export {
+  flushIfServerless,
+  setScopeFlushedByRuntime as _INTERNAL_setScopeFlushedByRuntime,
+} from './utils/flushIfServerless';
 export { callFrameToStackFrame, watchdogTimer } from './utils/anr';
 export { safeUnref as _INTERNAL_safeUnref } from './utils/timer';
 export { patchHttpModuleClient } from './integrations/http/client-patch';
@@ -43,6 +69,11 @@ export type {
   HttpServerResponse,
   HttpModuleExport,
 } from './integrations/http/types';
+export type {
+  AssertTrue,
+  CheckServerRequestOptions,
+  ServerRequestOptions,
+} from './integrations/http/server-request-options';
 export { createFetchIntegration } from './integrations/fetch';
 export type { FetchIntegrationOptions } from './integrations/fetch';
 export { classifyResponseStreaming } from './utils/responseStreaming';

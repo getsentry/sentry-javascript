@@ -18,7 +18,16 @@ import {
   ROUTER_SPAN_NAME_FALLBACK,
   startSpan,
 } from '@sentry/core';
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  HAPI_EXT_TYPE,
+  HAPI_PLUGIN_NAME,
+  HAPI_TYPE,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SERVER_EXT_TYPE,
+} from '@sentry/conventions/attributes';
 import { HANDLER, MIDDLEWARE, ROUTER } from '@sentry/conventions/op';
 import type {
   HapiRequest,
@@ -29,11 +38,9 @@ import type {
   ServerExtEventsObject,
   ServerExtEventsRequestObject,
   ServerRequestExtType,
-  ServerRoute,
   ServerRouteOptions,
 } from './hapi-types';
-import { HTTP_REQUEST_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
-import { AttributeNames, handlerPatched, HapiLayerType, HapiLifecycleMethodNames } from './hapi-types';
+import { handlerPatched, HapiLayerType, HapiLifecycleMethodNames } from './hapi-types';
 import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
 
 /**
@@ -108,17 +115,25 @@ const isPatchableExtMethod = (
 };
 
 /** Build the span name and attributes for a Hapi route. */
-export const getRouteMetadata = (route: ServerRoute, pluginName?: string): SpanMetadata => {
+export const getRouteMetadata = ({
+  path,
+  method,
+  pluginName,
+}: {
+  path: string;
+  method?: string;
+  pluginName?: string;
+}): SpanMetadata => {
   const attributes: SpanAttributes = {
-    [HTTP_ROUTE]: route.path,
-    [HTTP_REQUEST_METHOD]: route.method,
+    [HTTP_ROUTE]: path,
+    [HTTP_REQUEST_METHOD]: method,
   };
 
   if (pluginName) {
-    attributes[AttributeNames.HAPI_TYPE] = HapiLayerType.PLUGIN;
-    attributes[AttributeNames.PLUGIN_NAME] = pluginName;
+    attributes[HAPI_TYPE] = HapiLayerType.PLUGIN;
+    attributes[HAPI_PLUGIN_NAME] = pluginName;
   } else {
-    attributes[AttributeNames.HAPI_TYPE] = HapiLayerType.ROUTER;
+    attributes[HAPI_TYPE] = HapiLayerType.ROUTER;
   }
 
   const client = getClient();
@@ -126,10 +141,11 @@ export const getRouteMetadata = (route: ServerRoute, pluginName?: string): SpanM
   // handler spans are named after their route alone, without the method prefix.
   const isStreamedSpan = !!client && hasSpanStreamingEnabled(client);
   const fallbackName = pluginName ? REQUEST_HANDLER_SPAN_NAME_FALLBACK : ROUTER_SPAN_NAME_FALLBACK;
+  const staticName = method ? `${method} ${path}` : path;
 
   return {
     attributes,
-    name: isStreamedSpan ? route.path || fallbackName : `${route.method.toUpperCase()} ${route.path}`,
+    name: isStreamedSpan ? path || fallbackName : staticName,
   };
 };
 
@@ -144,23 +160,20 @@ export const getExtMetadata = (
     // `method` is the default name for the extension in the ServerExtEventsObject format.
     baseName = `ext - ${extPoint} - ${methodName}`;
   }
+  const attributes: SpanAttributes = {
+    [HAPI_EXT_TYPE]: extPoint,
+    // TODO(v12): Remove `server.ext.type`, which `hapi.ext.type` replaces.
+    // oxlint-disable-next-line typescript/no-deprecated
+    [SERVER_EXT_TYPE]: extPoint,
+    [HAPI_TYPE]: HapiLayerType.EXT,
+  };
   if (pluginName) {
     return {
-      attributes: {
-        [AttributeNames.EXT_TYPE]: extPoint,
-        [AttributeNames.HAPI_TYPE]: HapiLayerType.EXT,
-        [AttributeNames.PLUGIN_NAME]: pluginName,
-      },
+      attributes: { ...attributes, [HAPI_PLUGIN_NAME]: pluginName },
       name: `${pluginName}: ${baseName}`,
     };
   }
-  return {
-    attributes: {
-      [AttributeNames.EXT_TYPE]: extPoint,
-      [AttributeNames.HAPI_TYPE]: HapiLayerType.EXT,
-    },
-    name: baseName,
-  };
+  return { attributes, name: baseName };
 };
 
 const HAPI_TYPE_TO_SPAN_OP: Record<string, string> = {
@@ -170,7 +183,7 @@ const HAPI_TYPE_TO_SPAN_OP: Record<string, string> = {
 };
 
 function startMetadataSpan(metadata: SpanMetadata, original: () => unknown): unknown {
-  const hapiType = metadata.attributes[AttributeNames.HAPI_TYPE];
+  const hapiType = metadata.attributes[HAPI_TYPE];
   const op = hapiType ? HAPI_TYPE_TO_SPAN_OP[hapiType] : undefined;
   return startSpan(
     {
@@ -183,6 +196,12 @@ function startMetadataSpan(metadata: SpanMetadata, original: () => unknown): unk
     },
     original,
   );
+}
+
+// The route config can register several methods (or `'*'`), so read the method
+// Hapi resolved for this request instead.
+function getRequestMethod(request: unknown): string | undefined {
+  return isObjectLike(request) && typeof request.method === 'string' ? request.method.toUpperCase() : undefined;
 }
 
 /**
@@ -199,7 +218,7 @@ function wrapRouteHandler(route: PatchableServerRoute, pluginName?: string): Pat
         return oldHandler.call(this, ...params);
       }
       setHttpServerSpanRouteAttribute(route.path);
-      const metadata = getRouteMetadata(route, pluginName);
+      const metadata = getRouteMetadata({ path: route.path, method: getRequestMethod(params[0]), pluginName });
       return startMetadataSpan(metadata, () => oldHandler.call(this, ...params));
     };
   };

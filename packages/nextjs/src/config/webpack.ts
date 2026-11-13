@@ -11,8 +11,6 @@ import { getBuildLogger } from './buildLogger';
 import { externalizeOrchestrionRuntimePackages } from './diagnosticsChannelInjection';
 import { getBuildPluginOptions, normalizePathForGlob } from './getBuildPluginOptions';
 import type { RouteManifest } from './manifest/types';
-// Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
-// circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
 import type {
   BuildContext,
   EntryPropertyObject,
@@ -515,19 +513,8 @@ function getInstrumentationFile(projectDir: string, dotPrefixedExtensions: strin
  * Make sure the instrumentation file has a `onRequestError` Handler
  */
 function warnAboutMissingOnRequestErrorHandler(instrumentationFile: string | null, silent?: boolean): void {
-  const logger = getBuildLogger(silent);
-
-  if (!instrumentationFile) {
-    if (!process.env.SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING) {
-      logger.warn(
-        '[@sentry/nextjs] Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)',
-      );
-    }
-    return;
-  }
-
-  if (!instrumentationFile.includes('onRequestError')) {
-    logger.warn(
+  if (instrumentationFile && !instrumentationFile.includes('onRequestError')) {
+    getBuildLogger(silent).warn(
       '[@sentry/nextjs] Could not find `onRequestError` hook in instrumentation file. This indicates outdated configuration of the Sentry SDK. Use `Sentry.captureRequestError` to instrument the `onRequestError` hook: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#errors-from-nested-react-server-components',
     );
   }
@@ -725,7 +712,8 @@ function addValueInjectionLoader({
     // Having a release defined in dev-mode spams releases in Sentry so we only set one in non-dev mode
     // Only inject if release creation is not explicitly disabled (to maintain build determinism)
     SENTRY_RELEASE: releaseToInject && !buildContext.dev ? { id: releaseToInject } : undefined,
-    _sentryBasePath: buildContext.dev ? userNextConfig.basePath : undefined,
+    // The server reads it to serve the managed tunnel under the base path, dev symbolication to reach the dev server.
+    _sentryBasePath: userNextConfig.basePath,
     // This is used to determine version-based dev-symbolication behavior
     _sentryNextJsVersion: nextJsVersion,
   };

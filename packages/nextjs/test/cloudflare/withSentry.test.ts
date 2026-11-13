@@ -28,7 +28,7 @@ describe('withSentry', () => {
     getMainCarrier().__SENTRY__ = undefined;
     (GLOBAL_OBJ as typeof GLOBAL_OBJ & { __SENTRY_CLOUDFLARE_CLIENT__?: unknown }).__SENTRY_CLOUDFLARE_CLIENT__ =
       undefined;
-    delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRewritesTunnelPath?: string })._sentryRewritesTunnelPath;
+    delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryTunnelRoute?: string })._sentryTunnelRoute;
     delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRelease?: string })._sentryRelease;
     vi.restoreAllMocks();
     trace.disable();
@@ -186,8 +186,7 @@ describe('withSentry', () => {
   });
 
   it('does not sample the request span of a request to the tunnel route', async () => {
-    (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRewritesTunnelPath?: string })._sentryRewritesTunnelPath =
-      '/monitoring';
+    (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryTunnelRoute?: string })._sentryTunnelRoute = '/monitoring';
     const sampledByPath: Record<string, boolean> = {};
     const handler = withSentry(() => ({ dsn: DSN, tracesSampleRate: 1 }), {
       fetch: (request: Request) => {
@@ -212,8 +211,7 @@ describe('withSentry', () => {
   });
 
   it('does not sample the request span of a request to the tunnel route when a `tracesSampler` samples every span', async () => {
-    (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRewritesTunnelPath?: string })._sentryRewritesTunnelPath =
-      '/monitoring';
+    (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryTunnelRoute?: string })._sentryTunnelRoute = '/monitoring';
     const sampledByPath: Record<string, boolean> = {};
     const handler = withSentry(() => ({ dsn: DSN, tracesSampler: () => 1 }), {
       fetch: (request: Request) => {
@@ -287,7 +285,7 @@ describe('withSentry', () => {
       props: {},
     } as never);
 
-    expect(carrier).toEqual([]);
+    expect(carrier).toEqual([{ key: 'sentry-cache-origin', value: expect.stringMatching(/-1$/) }]);
     expect(requestCarrier['sentry-trace']).toMatch(/^[0-9a-f]{32}-[0-9a-f]{16}-1$/);
   });
 

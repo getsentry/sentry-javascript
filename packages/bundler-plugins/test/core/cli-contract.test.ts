@@ -22,6 +22,7 @@ import { startMockSentryServer } from '@sentry-internal/test-utils';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SentryCliAdapter } from '../../src/core/cli';
 import type { NormalizedOptions } from '../../src/core/options-mapping';
+import { normalizeUserOptions } from '../../src/core/options-mapping';
 
 const PORT = 3037;
 
@@ -34,6 +35,7 @@ interface RecordedRequest {
   method: string;
   url: string;
   jsonBody?: unknown;
+  requestHeaders: Record<string, string>;
 }
 
 function recordedRequestRecords(): RecordedRequest[] {
@@ -123,6 +125,24 @@ describe('SentryCliAdapter against the real CLI', () => {
     );
   });
 
+  it('sends a self-hosted org token to its own server when no url is configured', async () => {
+    const claim = Buffer.from(
+      JSON.stringify({
+        iat: 1,
+        url: `http://localhost:${PORT}`,
+        region_url: `http://localhost:${PORT}`,
+        org: 'test-org',
+      }),
+    ).toString('base64');
+    const before = recordedRequests();
+
+    await new SentryCliAdapter(
+      normalizeUserOptions({ authToken: `sntrys_${claim}_secret`, org: 'test-org', project: 'test-project' }),
+    ).createRelease('1.0.0');
+
+    expect(requestsSince(before)).toContain('POST /api/0/organizations/test-org/releases/');
+  });
+
   it('sends the configured headers with every request', async () => {
     const before = recordedRequestRecords();
 
@@ -192,6 +212,21 @@ describe('SentryCliAdapter against the real CLI', () => {
       },
     ]);
 
+    expect(requestsSince(before)).toContain('POST /api/0/organizations/test-org/artifactbundle/assemble/');
+  });
+
+  it('skips a directory without source maps and still uploads the next one', async () => {
+    const emptyDir = join(workDir, 'server');
+    mkdirSync(emptyDir);
+    writeFileSync(join(emptyDir, 'page.js'), 'console.log("no map");\n');
+    const before = recordedRequests();
+
+    const emptyDirectories = await createAdapter().uploadSourcemaps('1.0.0', [
+      { directory: emptyDir },
+      { directory: buildDir },
+    ]);
+
+    expect(emptyDirectories).toEqual([emptyDir]);
     expect(requestsSince(before)).toContain('POST /api/0/organizations/test-org/artifactbundle/assemble/');
   });
 

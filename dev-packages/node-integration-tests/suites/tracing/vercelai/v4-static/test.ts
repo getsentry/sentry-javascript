@@ -25,7 +25,7 @@ import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { getStringAttributeValue } from '../../../../utils';
 
-const expectedOrigin = 'auto.vercelai.channel';
+const expectedOrigin = 'auto.ai.vercelai';
 const toolCallArgs = '{\\"location\\":\\"San Francisco\\"}';
 
 describe('Vercel AI integration (v4)', () => {

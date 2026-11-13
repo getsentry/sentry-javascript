@@ -175,7 +175,7 @@ test('sends a pageload span with web vital attributes and a standalone LCP span'
 
   expect(lcpSpan.attributes).toMatchObject({
     'sentry.op': { value: 'ui.webvital.lcp', type: 'string' },
-    'sentry.origin': { value: 'auto.http.browser.lcp', type: 'string' },
+    'sentry.origin': { value: 'auto.ui.browser.lcp', type: 'string' },
     'sentry.pageload.span_id': { value: pageloadSpan.span_id, type: 'string' },
     'browser.web_vital.lcp.value': webVitalNumber,
   });

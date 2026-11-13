@@ -1,7 +1,7 @@
 import { getVercelEnv } from '@sentry/core';
 import type { Logger } from './logger';
 import type {
-  Options as UserOptions,
+  InternalOptions as UserOptions,
   SetCommitsOptions,
   RewriteSourcesHook,
   ResolveSourceMapHook,
@@ -15,7 +15,7 @@ export type NormalizedOptions = {
   org: string | undefined;
   project: string | string[] | undefined;
   authToken: string | undefined;
-  url: string;
+  url: string | undefined;
   headers: Record<string, string> | undefined;
   debug: boolean;
   silent: boolean;
@@ -30,6 +30,8 @@ export type NormalizedOptions = {
         rewriteSources?: RewriteSourcesHook;
         resolveSourceMap?: ResolveSourceMapHook;
         filesToDeleteAfterUpload?: string | string[] | Promise<string | string[] | undefined>;
+        deleteSourcemapsAfterUpload?: boolean | ((environment?: string) => boolean | undefined);
+        sdkEnabledSourceMaps?: boolean | ((environment?: string) => boolean | undefined);
       }
     | undefined;
   release: {
@@ -100,7 +102,9 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
         ? process.env['SENTRY_PROJECT'].split(',').map(p => p.trim())
         : process.env['SENTRY_PROJECT']),
     authToken: userOptions.authToken ?? process.env['SENTRY_AUTH_TOKEN'],
-    url: userOptions.url ?? process.env['SENTRY_URL'] ?? SENTRY_SAAS_URL,
+    // No sentry.io default: the CLI then uses the server an `sntrys_` org token was issued for, and
+    // sentry.io otherwise. A default here would send self-hosted tokens to sentry.io.
+    url: userOptions.url ?? process.env['SENTRY_URL'],
     headers: userOptions.headers,
     debug: userOptions.debug ?? false,
     silent: userOptions.silent ?? false,

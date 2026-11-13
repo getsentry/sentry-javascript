@@ -54,6 +54,38 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
+                  },
+                },
+              },
+            ],
+          },
+        },
+      });
+    });
+
+    it('injects the release and dist dir into the server instrumentation file', () => {
+      const userNextConfig: NextConfigObject = { distDir: 'build' };
+
+      const result = constructTurbopackConfig({
+        userNextConfig,
+        userSentryOptions: mockSentryOptions,
+        releaseName: 'my-app@1.2.3',
+      });
+
+      expect(result).toEqual({
+        rules: {
+          '**/instrumentation.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  values: {
+                    __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRelease: 'my-app@1.2.3',
+                    _sentryRewriteFramesDistDir: 'build',
                   },
                 },
               },
@@ -92,6 +124,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -178,6 +212,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -229,6 +265,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -312,6 +350,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -357,6 +397,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -399,6 +441,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -439,6 +483,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: '15.0.0',
                   },
                 },
@@ -495,6 +541,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: '14.0.0',
                   },
                 },
@@ -538,6 +586,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -604,6 +654,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: nextJsVersion,
                   },
                 },
@@ -646,6 +698,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: nextJsVersion,
                   },
                 },
@@ -699,6 +753,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: nextJsVersion,
                   },
                 },
@@ -746,6 +802,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -772,6 +830,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -869,6 +929,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: nextJsVersion,
                   },
                 },
@@ -990,20 +1052,40 @@ describe('moduleMetadataInjection with applicationKey', () => {
     expect(rule.loaders[0]!.options.applicationKey).toBe('my-top-level-key');
   });
 
-  it('should only tag browser modules and exclude Next.js polyfills, not all foreign modules', () => {
-    const userNextConfig: NextConfigObject = {};
+  it.each([undefined, false])(
+    'includes dependencies when applicationKeyExcludeDependencies is %s',
+    applicationKeyExcludeDependencies => {
+      const userNextConfig: NextConfigObject = {};
 
+      const result = constructTurbopackConfig({
+        userNextConfig,
+        userSentryOptions: { applicationKey: 'my-app', applicationKeyExcludeDependencies },
+        nextJsVersion: '16.0.0',
+      });
+
+      const rule = result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}'] as { condition?: unknown; loaders: unknown[] };
+      expect(rule.condition).toEqual({ all: ['browser', { not: { path: /next\/dist\/build\/polyfills/ } }] });
+    },
+  );
+
+  it('excludes dependencies from browser metadata injection when opted in', () => {
     const result = constructTurbopackConfig({
-      userNextConfig,
-      userSentryOptions: { applicationKey: 'my-app' },
+      userNextConfig: {},
+      userSentryOptions: { applicationKey: 'my-app', applicationKeyExcludeDependencies: true },
       nextJsVersion: '16.0.0',
     });
 
-    const rule = result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}'] as { condition?: unknown; loaders: unknown[] };
-    // Unlike component annotation (which uses { not: 'foreign' }), metadata injection
-    // must cover node_modules to match the webpack plugin's BannerPlugin behavior.
-    // Only Next.js build polyfills are excluded because they have non-standard syntax.
-    expect(rule.condition).toEqual({ all: ['browser', { not: { path: /next\/dist\/build\/polyfills/ } }] });
+    expect(result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}']).toEqual({
+      condition: {
+        all: ['browser', { not: { path: /next\/dist\/build\/polyfills/ } }, { not: 'foreign' }],
+      },
+      loaders: [
+        {
+          loader: '/mocked/path/to/moduleMetadataInjectionLoader.js',
+          options: { applicationKey: 'my-app' },
+        },
+      ],
+    });
   });
 
   it('should NOT add metadata loader rule when Next.js < 16', () => {
@@ -1018,17 +1100,20 @@ describe('moduleMetadataInjection with applicationKey', () => {
     expect(result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}']).toBeUndefined();
   });
 
-  it('should NOT add metadata loader rule when applicationKey is not set', () => {
-    const userNextConfig: NextConfigObject = {};
+  it.each([undefined, true])(
+    'does not inject metadata without applicationKey when exclusion is %s',
+    applicationKeyExcludeDependencies => {
+      const userNextConfig: NextConfigObject = {};
 
-    const result = constructTurbopackConfig({
-      userNextConfig,
-      userSentryOptions: {},
-      nextJsVersion: '16.0.0',
-    });
+      const result = constructTurbopackConfig({
+        userNextConfig,
+        userSentryOptions: { applicationKeyExcludeDependencies },
+        nextJsVersion: '16.0.0',
+      });
 
-    expect(result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}']).toBeUndefined();
-  });
+      expect(result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}']).toBeUndefined();
+    },
+  );
 
   it('should NOT add metadata loader rule when nextJsVersion is undefined', () => {
     const userNextConfig: NextConfigObject = {};

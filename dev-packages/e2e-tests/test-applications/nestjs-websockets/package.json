@@ -26,8 +26,5 @@
     "@types/node": "^18.19.1",
     "socket.io-client": "^4.0.0",
     "typescript": "~5.0.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

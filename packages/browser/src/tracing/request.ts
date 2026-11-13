@@ -155,7 +155,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         propagateTraceparent,
         onRequestSpanEnd,
         // The generic fetch instrumentation has no page origin to resolve relative URLs against.
-        urlBase: WINDOW.location?.origin,
+        urlBase: WINDOW.location?.href,
       });
 
       // We cannot use `window.location` in the generic fetch instrumentation,
@@ -376,7 +376,7 @@ function xhrCallback(
 
   // `parseUrl` returns the raw authority — userinfo credentials must never reach an attribute.
   const host = parsedUrl?.host?.replace(/^.*@/, '');
-  // `getFullURL` already resolved relative URLs against the page origin; only data URLs have no domain.
+  // `getFullURL` already resolved relative URLs against the page URL; only data URLs have no domain.
   const domain = getUrlDomain(fullUrl || url);
 
   // With span streaming, span names have to be low cardinality, so only the domain is kept.

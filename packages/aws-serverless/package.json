@@ -1,6 +1,6 @@
 {
   "name": "@sentry/aws-serverless",
-  "version": "11.8.0",
+  "version": "11.12.0",
   "description": "Official Sentry SDK for AWS Lambda and AWS Serverless Environments",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/aws-serverless",
@@ -50,48 +50,51 @@
       "require": {
         "default": "./build/npm/cjs/awslambda-auto.js"
       }
+    },
+    "./esbuild": {
+      "import": {
+        "types": "./build/npm/types/bundler-plugin/esbuild.d.ts",
+        "default": "./build/npm/esm/bundler-plugin/esbuild.js"
+      },
+      "require": {
+        "types": "./build/npm/types/bundler-plugin/esbuild.d.ts",
+        "default": "./build/npm/cjs/bundler-plugin/esbuild.js"
+      }
     }
   },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry/conventions": "^0.27.0",
-    "@sentry/core": "11.8.0",
-    "@sentry/node": "11.8.0",
-    "@sentry/server-runtime-injection": "11.8.0",
-    "@sentry/server-utils": "11.8.0",
-    "@types/aws-lambda": "^8.10.161"
+    "@sentry/conventions": "^0.32.0",
+    "@sentry/core": "11.12.0",
+    "@sentry/node": "11.12.0",
+    "@sentry/server-runtime-injection": "11.12.0",
+    "@sentry/server-utils": "11.12.0",
+    "@types/aws-lambda": "^8.10.164"
   },
   "devDependencies": {
-    "@sentry-internal/rollup-utils": "11.8.0",
+    "@sentry-internal/rollup-utils": "11.12.0",
     "@types/node": "^20.19.0",
     "@vercel/nft": "^1.11.0"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types",
-    "build:extension": "rollup -c rollup.lambda-extension.config.mjs && pnpm exec tsx scripts/buildLambdaExtension.ts",
-    "build:layer": "rimraf build/aws && pnpm exec tsx scripts/buildLambdaLayer.ts",
-    "build:dev": "run-p build:transpile build:types",
-    "build:transpile": "run-s build:transpile:npm build:extension",
-    "build:transpile:npm": "rollup -c rollup.npm.config.mjs",
+    "build": "pnpm run \"/^build:(transpile|types)$/\"",
+    "build:extension": "rolldown -c rollup.lambda-extension.config.mjs && pnpm exec tsx scripts/buildLambdaExtension.ts",
+    "build:layer": "node ../../scripts/rm.mjs build/aws && pnpm exec tsx scripts/buildLambdaLayer.ts",
+    "build:dev": "pnpm run \"/^build:(transpile|types)$/\"",
+    "build:transpile": "pnpm run build:transpile:npm && pnpm run build:extension",
+    "build:transpile:npm": "rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "pnpm run build:watch",
-    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:tarball": "npm pack",
-    "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build dist-awslambda-layer coverage sentry-serverless-*.tgz",
+    "build:tarball": "pnpm pack",
+    "clean": "node ../../scripts/rm.mjs build dist-awslambda-layer coverage sentry-serverless-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
-    "lint:es-compatibility": "es-check es2022 ./build/npm/cjs/*.js && es-check es2022 ./build/npm/esm/*.js --module",
+    "lint:es-compatibility": "node ../../scripts/es-check.mjs es2022",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
+    "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
   "sideEffects": false,
   "nx": {

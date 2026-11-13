@@ -52,7 +52,7 @@ export function filenameIsInApp(filename: string, isNative: boolean = false): bo
 /** Node Stack line parser */
 export function node(getModule?: GetModuleFn): StackLineParserFn {
   const FILENAME_MATCH = /^\s*[-]{4,}$/;
-  const FULL_MATCH = /at (?:async )?(?:(.+?)\s+\()?(?:(.+):(\d+):(\d+)?|([^)]+))\)?/;
+  const FULL_MATCH = /at (?:async )?(?:(?=.*\)\s*$)(.+?)\s+\()?(?:(.+):(\d+):(\d+)?|([^)]+))\)?/;
   const DATA_URI_MATCH = /at (?:async )?(.+?) \(data:(.*?),/;
 
   return (line: string) => {

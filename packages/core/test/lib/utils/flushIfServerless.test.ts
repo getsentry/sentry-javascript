@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import * as flushModule from '../../../src/exports';
-import { flushIfServerless } from '../../../src/utils/flushIfServerless';
+import * as currentScopesModule from '../../../src/currentScopes';
+import { getDefaultIsolationScope } from '../../../src/defaultScopes';
+import { Scope } from '../../../src/scope';
+import { flushIfServerless, setScopeFlushedByRuntime } from '../../../src/utils/flushIfServerless';
 import * as vercelWaitUntilModule from '../../../src/utils/vercelWaitUntil';
 import { GLOBAL_OBJ } from '../../../src/utils/worldwide';
 
@@ -124,5 +127,46 @@ describe('flushIfServerless', () => {
     await flushIfServerless({ timeout: 0 });
 
     expect(flushMock).toHaveBeenCalledWith(0);
+  });
+
+  test('skips the flush for a request whose scope a runtime wrapper flushes', async () => {
+    const flushMock = vi.spyOn(flushModule, 'flush').mockResolvedValue(true);
+    const cloudflareWaitUntil = vi.fn();
+
+    global.process = {
+      ...originalProcess,
+      env: {
+        ...originalProcess.env,
+        CF_PAGES: '1',
+      },
+    };
+
+    // The default async context strategy never forks the isolation scope, so the request's scope is mocked.
+    const requestScope = new Scope();
+    setScopeFlushedByRuntime(requestScope);
+    vi.spyOn(currentScopesModule, 'getIsolationScope').mockReturnValue(requestScope.clone());
+
+    await flushIfServerless();
+    await flushIfServerless({ cloudflareWaitUntil });
+
+    expect(cloudflareWaitUntil).not.toHaveBeenCalled();
+    expect(flushMock).not.toHaveBeenCalled();
+  });
+
+  test('does not mark the default isolation scope, which every request shares', async () => {
+    const flushMock = vi.spyOn(flushModule, 'flush').mockResolvedValue(true);
+
+    global.process = {
+      ...originalProcess,
+      env: {
+        ...originalProcess.env,
+        CF_PAGES: '1',
+      },
+    };
+
+    setScopeFlushedByRuntime(getDefaultIsolationScope());
+    await flushIfServerless();
+
+    expect(flushMock).toHaveBeenCalledWith(2000);
   });
 });

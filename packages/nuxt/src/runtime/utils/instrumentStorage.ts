@@ -1,14 +1,22 @@
-import { CACHE_HIT, CACHE_KEY, CACHE_OPERATION, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  CACHE_HIT,
+  CACHE_KEY,
+  CACHE_OPERATION,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  DB_COLLECTION_NAME,
+  DB_OPERATION_NAME,
+  DB_SYSTEM_NAME,
+} from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import {
   CACHE_OPERATION_NAMES,
   captureException,
   debug,
   getClient,
+  handleCallbackErrors,
   hasSpanStreamingEnabled,
   isObjectLike,
-  SPAN_STATUS_ERROR,
-  SPAN_STATUS_OK,
   type SpanAttributes,
   startSpan,
   type StartSpanOptions,
@@ -23,6 +31,7 @@ import type { Driver, Storage } from 'unstorage';
 interface CacheEntry<T = unknown> {
   value?: T;
   expires?: number;
+  stale?: boolean;
 }
 
 /**
@@ -80,7 +89,7 @@ const METHOD_SPAN_OPS = {
  * The `useStorage` parameter is typed as `() => unknown` because nitropack (Nitro v2) and nitro (Nitro v3+) define `StorageValue` differently.
  * Cast to `NitroStorage` is safe since all Nitro versions expose `getMounts()` at runtime.
  */
-export async function createStoragePlugin(useStorage: () => unknown, userStorageMounts: string[]): Promise<void> {
+export function createStoragePlugin(useStorage: () => unknown, userStorageMounts: string[]): void {
   // This runs at runtime when the Nitro server starts
   const storage = useStorage() as NitroStorage;
   // Mounts are suffixed with a colon, so we need to add it to the set items
@@ -171,33 +180,119 @@ function createMethodWrapper(
 
       debug.log(`[storage] Running method: "${methodName}" on driver: "${driver.name ?? 'unknown'}"`);
 
-      return startSpan(options, async span => {
-        try {
-          const result = await target.apply(thisArg, args);
-          span.setStatus({ code: SPAN_STATUS_OK });
-
-          if (CACHE_HIT_METHODS.has(methodName)) {
-            span.setAttribute(CACHE_HIT, resolveCacheHit(methodName, args[0], result));
-          }
-
-          return result;
-        } catch (error) {
-          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-          captureException(error, {
-            mechanism: {
-              handled: false,
-              type: options.attributes?.[SENTRY_ORIGIN],
-            },
-          });
-
-          // Re-throw the error to be handled by the caller
-          throw error;
-        } finally {
-          await flushIfServerless();
-        }
-      });
+      return traceCacheOperation(
+        options,
+        () => target.apply(thisArg, args),
+        CACHE_HIT_METHODS.has(methodName) ? result => resolveCacheHit(methodName, args[0], result) : undefined,
+      );
     },
   });
+}
+
+/**
+ * Runs a cache operation in a span, optionally recording whether the result was a cache hit.
+ */
+function traceCacheOperation(
+  options: StartSpanOptions,
+  operation: () => unknown,
+  getCacheHit?: (result: unknown) => boolean,
+): Promise<unknown> {
+  return handleCallbackErrors(
+    () =>
+      startSpan(options, async span => {
+        const result = await operation();
+
+        if (getCacheHit) {
+          span.setAttribute(CACHE_HIT, getCacheHit(result));
+        }
+
+        return result;
+      }),
+    error => {
+      captureException(error, {
+        mechanism: {
+          handled: false,
+          type: 'auto.cache.nuxt',
+        },
+      });
+    },
+    () => {
+      void flushIfServerless();
+    },
+  );
+}
+
+/**
+ * The storage behind Nitro v3's `defineCachedFunction` and `defineCachedHandler` (an `ocache` storage).
+ */
+interface NitroCacheStorage {
+  get(key: string): unknown;
+  set(key: string, value: unknown, opts?: { ttl?: number }): unknown;
+}
+
+/**
+ * Instruments the storage that Nitro v3 caches functions and handlers in.
+ *
+ * Unlike Nitro v2, Nitro v3 only writes its cache to KV storage with the `kv` cache driver, so the KV
+ * driver instrumentation doesn't see the default `memory` or the `fs` cache driver.
+ * The storage is patched in place because `ocache` reads other properties, like `binary`, from it.
+ */
+export function instrumentCacheStorage<T extends NitroCacheStorage>(
+  storage: MaybeInstrumented<T>,
+  driverName: string,
+): T {
+  if (storage.__sentry_instrumented__) {
+    return storage;
+  }
+
+  const originalGet = storage.get.bind(storage);
+  const originalSet = storage.set.bind(storage);
+
+  storage.get = (key: string) =>
+    traceCacheOperation(
+      createCacheStorageSpanStartOptions('get', CACHE_GET, key, driverName),
+      () => originalGet(key),
+      isCacheEntryHit,
+    );
+
+  storage.set = (key: string, value: unknown, opts?: { ttl?: number }) =>
+    // `ocache` deletes an entry by setting it to `null`
+    traceCacheOperation(
+      createCacheStorageSpanStartOptions('set', value == null ? CACHE_REMOVE : CACHE_PUT, key, driverName),
+      () => originalSet(key, value, opts),
+    );
+
+  storage.__sentry_instrumented__ = true;
+
+  return storage;
+}
+
+function createCacheStorageSpanStartOptions(
+  methodName: keyof NitroCacheStorage,
+  cacheOperation: typeof CACHE_GET | typeof CACHE_PUT | typeof CACHE_REMOVE,
+  key: string,
+  driverName: string,
+): StartSpanOptions {
+  const client = getClient();
+  return {
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the cache key.
+    name: client && hasSpanStreamingEnabled(client) ? cacheOperation : key,
+    attributes: {
+      [SENTRY_OP]: cacheOperation,
+      [CACHE_OPERATION]: CACHE_OPERATION_NAMES[cacheOperation],
+      [SENTRY_ORIGIN]: 'auto.cache.nuxt',
+      [CACHE_KEY]: key,
+      [DB_OPERATION_NAME]: methodName,
+      [DB_SYSTEM_NAME]: driverName,
+    },
+  };
+}
+
+/**
+ * `ocache` storage holds full cache entries, so a stored but expired or stale entry is a miss.
+ */
+function isCacheEntryHit(entry: unknown): boolean {
+  return isObjectLike(entry) && !(entry as CacheEntry).stale && isFreshCacheEntry(entry);
 }
 
 /**
@@ -240,9 +335,9 @@ function createSpanStartOptions(
     [CACHE_OPERATION]: cacheOperationName,
     [SENTRY_ORIGIN]: 'auto.cache.nuxt',
     [CACHE_KEY]: keys.length > 1 ? keys : keys[0],
-    'db.operation.name': methodName,
-    'db.collection.name': mountBase.replace(/:$/, ''),
-    'db.system.name': driver.name ?? 'unknown',
+    [DB_OPERATION_NAME]: methodName,
+    [DB_COLLECTION_NAME]: mountBase.replace(/:$/, ''),
+    [DB_SYSTEM_NAME]: driver.name ?? 'unknown',
   };
 
   const client = getClient();
@@ -329,13 +424,7 @@ function validateCacheEntry(
   key: string,
   entry: CacheEntry | CacheEntry<ResponseCacheEntry & { status: number }>,
 ): boolean {
-  if (entry.value == null) {
-    return false;
-  }
-
-  // Date.now is used by Nitro internally, so safe to use here.
-  // https://github.com/nitrojs/nitro/blob/5508f71b77730e967fb131de817725f5aa7c4862/src/runtime/internal/cache.ts#L78
-  if (Date.now() > (entry.expires || 0)) {
+  if (!isFreshCacheEntry(entry)) {
     return false;
   }
 
@@ -358,6 +447,12 @@ function validateCacheEntry(
   }
 
   return true;
+}
+
+function isFreshCacheEntry<T>(entry: CacheEntry<T>): entry is CacheEntry<T> & { value: NonNullable<T> } {
+  // Date.now is used by Nitro internally, so safe to use here.
+  // https://github.com/nitrojs/nitro/blob/5508f71b77730e967fb131de817725f5aa7c4862/src/runtime/internal/cache.ts#L78
+  return entry.value != null && Date.now() <= (entry.expires || 0);
 }
 
 /**

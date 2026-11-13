@@ -40,7 +40,7 @@ describe('normalizeUserOptions()', () => {
           metaFramework: undefined,
         },
       },
-      url: 'https://sentry.io',
+      url: undefined,
     });
   });
 
@@ -97,7 +97,7 @@ describe('normalizeUserOptions()', () => {
           metaFramework: undefined,
         },
       },
-      url: 'https://sentry.io',
+      url: undefined,
     });
   });
 
@@ -350,6 +350,16 @@ describe('validateOptions', () => {
     expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(true);
     expect(mockedLogger.error).not.toHaveBeenCalled();
   });
+
+  it.each([undefined, 'disable-upload'] as const)(
+    'does not warn when `deleteSourcemapsAfterUpload` is set and `sourcemaps.disable` is `%s`',
+    disable => {
+      const options = normalizeUserOptions({ sourcemaps: { disable, deleteSourcemapsAfterUpload: true } });
+
+      expect(validateOptions(options, mockedLogger)).toBe(true);
+      expect(mockedLogger.warn).not.toHaveBeenCalled();
+    },
+  );
 
   it('should return `true` for options without special cases', () => {
     const options = {

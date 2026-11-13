@@ -28,11 +28,9 @@
     "@opentelemetry/sdk-trace": "^3.0.0",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
-    "import-in-the-middle": "^2",
     "next": "16.3.0",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "require-in-the-middle": "^8"
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
@@ -43,9 +41,6 @@
     "eslint": "^9",
     "eslint-config-next": "^16",
     "typescript": "^5"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sentryTest": {
     "variants": [

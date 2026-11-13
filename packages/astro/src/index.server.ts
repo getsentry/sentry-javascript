@@ -3,7 +3,7 @@
 // Vite puts these exports into a `default` property (Sentry.default) rather than
 // on the top - level namespace.
 
-import { sentryAstro } from './integration';
+import { sentryAstro as _sentryAstro } from './integration';
 import { handleRequest } from './server/middleware';
 
 // Hence, we export everything from the Node SDK explicitly:
@@ -13,11 +13,13 @@ export {
   addIntegration,
   amqplibIntegration,
   anthropicAIIntegration,
+  awsIntegration,
   // eslint-disable-next-line typescript/no-deprecated
   anrIntegration,
   googleGenAIIntegration,
   // eslint-disable-next-line typescript/no-deprecated
   disableAnrDetectionForCallback,
+  BullMQTelemetry,
   captureCheckIn,
   captureConsoleIntegration,
   captureEvent,
@@ -47,6 +49,9 @@ export {
   fsIntegration,
   functionToStringIntegration,
   genericPoolIntegration,
+  cronJobIntegration,
+  nodeCronIntegration,
+  nodeScheduleIntegration,
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,
@@ -92,6 +97,7 @@ export {
   nativeNodeFetchIntegration,
   NodeClient,
   nodeContextIntegration,
+  awsLambdaWebIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   mistralAIIntegration,
@@ -102,7 +108,9 @@ export {
   langChainIntegration,
   langGraphIntegration,
   createFlueInstrumentation,
+  instrumentPostgresJsSql,
   mastraIntegration,
+  piAiIntegration,
   piDurableIntegration,
   mcpServerIntegration,
   SentryMastraExporter,
@@ -161,6 +169,11 @@ export {
   systemErrorIntegration,
   tediousIntegration,
   trpcMiddleware,
+  serveTunnelIntegration,
+  getTunnelPath,
+  handleTunnelRequest,
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
   updateSpanName,
   vercelAIIntegration,
   withActiveSpan,
@@ -177,6 +190,8 @@ export {
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
   instrumentStateGraphCompile,
+  instrumentCreateReactAgent,
+  moduleMetadataIntegration,
   zodErrorsIntegration,
   profiler,
   logger,
@@ -206,6 +221,13 @@ export {
 
 export { init } from './server/sdk';
 
+/**
+ * @deprecated Import the integration from `@sentry/astro/integration` instead.
+ * This export will be removed in the next major version.
+ */
+const sentryAstro = _sentryAstro;
+
+// oxlint-disable-next-line typescript/no-deprecated
 export default sentryAstro;
 
 // This exports the `handleRequest` middleware for manual usage

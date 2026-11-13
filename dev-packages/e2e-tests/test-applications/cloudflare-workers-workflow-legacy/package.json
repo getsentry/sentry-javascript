@@ -19,8 +19,5 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "typescript": "^5.5.2",
     "wrangler": "4.70.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

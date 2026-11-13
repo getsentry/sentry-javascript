@@ -15,7 +15,6 @@
     "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
     "@sentry/react-router": "file:../../packed/sentry-react-router-packed.tgz",
     "ioredis": "^5.11.1",
-    "isbot": "^5.1.43",
     "mysql": "^2.18.1"
   },
   "devDependencies": {
@@ -45,7 +44,10 @@
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:ts && pnpm test:playwright",
     "test:ts": "pnpm typecheck",
-    "test:playwright": "playwright test"
+    "test:playwright": "playwright test",
+    "test:build:tunnel-basepath": "pnpm install && E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app pnpm build",
+    "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app pnpm test:playwright tunnel",
+    "test:assert:tunnel-basepath-dev": "TEST_ENV=development E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app pnpm test:playwright tunnel"
   },
   "eslintConfig": {
     "extends": [
@@ -65,11 +67,7 @@
       "last 1 safari version"
     ]
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
-    "runner": "namespace-profile-sentry-javascript",
     "variants": [
       {
         "build-command": "pnpm test:build-latest",
@@ -87,6 +85,22 @@
       {
         "runtime": "cloudflare",
         "label": "react-router-8-framework (cloudflare)"
+      },
+      {
+        "build-command": "pnpm test:build:tunnel-basepath",
+        "assert-command": "pnpm test:assert:tunnel-basepath",
+        "label": "react-router-8-framework (tunnel-basepath)"
+      },
+      {
+        "runtime": "cloudflare",
+        "build-command": "pnpm test:build:tunnel-basepath",
+        "assert-command": "pnpm test:assert:tunnel-basepath",
+        "label": "react-router-8-framework (tunnel-basepath-cloudflare)"
+      },
+      {
+        "label": "react-router-8-framework (tunnel-basepath-dev)",
+        "build-command": "pnpm install",
+        "assert-command": "pnpm test:assert:tunnel-basepath-dev"
       }
     ]
   }

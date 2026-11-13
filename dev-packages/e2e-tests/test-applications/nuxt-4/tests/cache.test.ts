@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
+import { isViteServer, NITRO_ONLY } from './isViteServer';
+
+test.skip(isViteServer, NITRO_ONLY);
 
 test.describe('Cache Instrumentation', () => {
   const SEMANTIC_ATTRIBUTE_CACHE_KEY = 'cache.key';

@@ -16,7 +16,7 @@ function assertLambdaTrace(spans: SerializedStreamedSpan[], functionName: string
 
   expect(segmentSpan?.attributes).toMatchObject({
     'sentry.op': { value: 'function.aws', type: 'string' },
-    'sentry.origin': { value: 'auto.aws_lambda', type: 'string' },
+    'sentry.origin': { value: 'auto.function.aws_serverless', type: 'string' },
     'sentry.kind': { value: 'server', type: 'string' },
     'sentry.segment.name.source': { value: 'component', type: 'string' },
     'cloud.account.id': { value: '012345678912', type: 'string' },
@@ -82,4 +82,49 @@ test.describe('NPM package', () => {
       assertLambdaTrace(spans, functionName);
     });
   }
+
+  test('adds HTTP attributes for Function URL events', async ({ lambdaClient }) => {
+    const functionName = 'NpmTracingEsm';
+    const spansPromise = collectStreamedSpans('aws-serverless', spansOfTrace =>
+      spansOfTrace.some(span => span.is_segment && span.attributes['url.path']?.value === '/users/123'),
+    );
+
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: functionName,
+        Payload: JSON.stringify({
+          version: '2.0',
+          routeKey: '$default',
+          rawPath: '/users/123',
+          rawQueryString: 'page=2',
+          headers: {
+            host: 'abc123.lambda-url.us-east-1.on.aws',
+            'user-agent': 'e2e-test',
+            'x-forwarded-port': '443',
+            'x-forwarded-proto': 'https',
+          },
+          requestContext: {
+            domainName: 'abc123.lambda-url.us-east-1.on.aws',
+            http: { method: 'GET', path: '/users/123', protocol: 'HTTP/1.1', sourceIp: '198.51.100.7' },
+          },
+        }),
+      }),
+    );
+
+    const segmentSpan = (await spansPromise).find(span => span.is_segment);
+
+    expect(segmentSpan?.name).toBe(functionName);
+    expect(segmentSpan?.attributes).toMatchObject({
+      'faas.trigger': { value: 'http', type: 'string' },
+      'http.request.method': { value: 'GET', type: 'string' },
+      'url.full': { value: 'https://abc123.lambda-url.us-east-1.on.aws/users/123?page=2', type: 'string' },
+      'url.path': { value: '/users/123', type: 'string' },
+      'url.query': { value: 'page=2', type: 'string' },
+      'url.scheme': { value: 'https', type: 'string' },
+      'server.address': { value: 'abc123.lambda-url.us-east-1.on.aws', type: 'string' },
+      'user_agent.original': { value: 'e2e-test', type: 'string' },
+      'network.protocol.version': { value: '1.1', type: 'string' },
+    });
+    expect(segmentSpan?.attributes['http.route']).toBeUndefined();
+  });
 });

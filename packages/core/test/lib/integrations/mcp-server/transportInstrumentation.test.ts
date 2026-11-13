@@ -1041,7 +1041,7 @@ describe('MCP Server Transport Instrumentation', () => {
             'mcp.client.version': '2.0.0',
             'mcp.method.name': 'notifications/tools/list_changed',
             'sentry.op': 'mcp.notification.client_to_server',
-            'sentry.origin': 'auto.mcp.notification',
+            'sentry.origin': 'auto.function.mcp_server.notification',
             'sentry.segment.name.source': 'route',
           },
         },

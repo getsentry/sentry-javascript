@@ -1,3 +1,4 @@
+import { CACHE_ORIGIN_META_TAG_NAME } from '../../common/traceMetaTags';
 import { debug, isMatchingPattern, parseSemver } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import * as fs from 'fs';
@@ -7,19 +8,48 @@ import { getBuildLogger } from '../buildLogger';
 import { createRouteManifest } from '../manifest/createRouteManifest';
 import type { RouteManifest } from '../manifest/types';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
-import { requiresInstrumentationHook } from '../util';
+import { DEFAULT_PAGE_EXTENSIONS, requiresInstrumentationHook } from '../util';
 import { getGitRevision, getInstrumentationClientFileContents } from './buildTime';
-import {
-  findTunnelRouteHandlerFile,
-  resolveTunnelRoute,
-  setUpTunnelHandlerRewrite,
-  setUpTunnelRewriteRules,
-} from './tunnel';
+import { setUpManagedTunnelVercelRoute } from './tunnel';
 
 let showedExportModeTunnelWarning = false;
-let showedUnusedTunnelRouteHandlerWarning = false;
-let showedTunnelRouteHandlerModeLog = false;
+let showedDeprecatedTunnelRouteWarning = false;
 let showedExperimentalBuildModeWarning = false;
+
+const MISSING_INSTRUMENTATION_FILE_WARNING_SHOWN = '__SENTRY_MISSING_INSTRUMENTATION_FILE_WARNING_SHOWN__';
+
+/**
+ * Sets `experimental.turbopackPluginRuntimeStrategy` to `'workerThreads'` for Turbopack builds on Bun.
+ *
+ * With the default `'childProcesses'`, Next.js runs Turbopack loaders in `node` processes and puts `process.execArgv`
+ * into their `NODE_OPTIONS`. On Bun, `execArgv` contains `--bun`, which Node.js does not accept, so the build fails or
+ * hangs. `withSentryConfig` always adds loaders.
+ */
+export function maybeSetTurbopackPluginRuntimeStrategyOption(
+  incomingUserNextConfigObject: NextConfigObject,
+  nextJsVersion: string | undefined,
+  isTurbopack: boolean,
+  silent?: boolean,
+): void {
+  if (!process.versions.bun || !isTurbopack || !nextJsVersion) {
+    return;
+  }
+
+  const { major, minor } = parseSemver(nextJsVersion);
+  if (major === undefined || minor === undefined || major < 16 || (major === 16 && minor < 2)) {
+    return;
+  }
+
+  if (incomingUserNextConfigObject.experimental?.turbopackPluginRuntimeStrategy === 'childProcesses') {
+    getBuildLogger(silent).warn(
+      '[@sentry/nextjs] `experimental.turbopackPluginRuntimeStrategy` is set to `childProcesses`. Turbopack builds on Bun fail or hang with this strategy. Remove the option, or set it to `workerThreads`.',
+    );
+    return;
+  }
+
+  incomingUserNextConfigObject.experimental = incomingUserNextConfigObject.experimental || {};
+  incomingUserNextConfigObject.experimental.turbopackPluginRuntimeStrategy ??= 'workerThreads';
+}
 
 /**
  * Resolves the Sentry release name to use for build-time behavior.
@@ -34,70 +64,36 @@ export function resolveReleaseName(userSentryOptions: SentryBuildOptions): strin
 }
 
 /**
- * Applies tunnel-route rewrites, if configured. Uses handler mode if the project has a tunnel route handler file.
+ * Sets up the route of the managed tunnel on Vercel. A `tunnelRoute` turns on the managed tunnel at its path, or at
+ * the path derived from the DSN for `true`, which the client, server and edge SDKs read from the injected values.
  *
- * Note: this mutates `userSentryOptions` (to store the resolved tunnel route) and `incomingUserNextConfigObject`.
+ * Note: this mutates `incomingUserNextConfigObject`.
  */
 export function maybeSetUpTunnelRouteRewriteRules(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): void {
-  if (userSentryOptions.tunnelRoute === undefined) {
-    maybeWarnAboutUnusedTunnelRouteHandler(incomingUserNextConfigObject, userSentryOptions.silent);
-    return;
-  }
-
-  if (!userSentryOptions.tunnelRoute) {
-    return;
-  }
-
-  if (incomingUserNextConfigObject.output === 'export') {
-    if (!showedExportModeTunnelWarning) {
-      showedExportModeTunnelWarning = true;
-      getBuildLogger(userSentryOptions.silent).warn(
-        '[@sentry/nextjs] The Sentry Next.js SDK `tunnelRoute` option will not work in combination with Next.js static exports. The `tunnelRoute` option uses server-side features that cannot be accessed in export mode. If you still want to tunnel Sentry events, set up your own tunnel: https://docs.sentry.io/platforms/javascript/troubleshooting/#using-the-tunnel-option',
-      );
-    }
-    return;
-  }
-
-  // Update the global options object to use the resolved value everywhere
-  const resolvedTunnelRoute = resolveTunnelRoute(userSentryOptions.tunnelRoute);
-  userSentryOptions.tunnelRoute = resolvedTunnelRoute || undefined;
-
-  const tunnelRouteHandlerFile = findTunnelRouteHandlerFile(incomingUserNextConfigObject.pageExtensions);
-  if (!tunnelRouteHandlerFile) {
-    setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
-    return;
-  }
-
-  setUpTunnelHandlerRewrite(incomingUserNextConfigObject, resolvedTunnelRoute);
-
-  if (!showedTunnelRouteHandlerModeLog) {
-    showedTunnelRouteHandlerModeLog = true;
-    getBuildLogger(userSentryOptions.silent).log(
-      `[@sentry/nextjs] The tunnel route sends events through ${tunnelRouteHandlerFile}. Only the event payload goes to Sentry.`,
+  // oxlint-disable-next-line typescript/no-deprecated -- reads the deprecated option to keep it working
+  const tunnelRoute = userSentryOptions.tunnelRoute;
+  if (tunnelRoute !== undefined && !showedDeprecatedTunnelRouteWarning) {
+    showedDeprecatedTunnelRouteWarning = true;
+    getBuildLogger(userSentryOptions.silent).warn(
+      '[@sentry/nextjs] The `tunnelRoute` option is deprecated. Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration()` to the server `Sentry.init` instead.',
     );
   }
-}
 
-function maybeWarnAboutUnusedTunnelRouteHandler(
-  incomingUserNextConfigObject: NextConfigObject,
-  silent: boolean | undefined,
-): void {
-  if (showedUnusedTunnelRouteHandlerWarning || incomingUserNextConfigObject.output === 'export') {
+  if (tunnelRoute === false || tunnelRoute === '') {
     return;
   }
 
-  const tunnelRouteHandlerFile = findTunnelRouteHandlerFile(incomingUserNextConfigObject.pageExtensions);
-  if (!tunnelRouteHandlerFile) {
-    return;
+  if (tunnelRoute && incomingUserNextConfigObject.output === 'export' && !showedExportModeTunnelWarning) {
+    showedExportModeTunnelWarning = true;
+    getBuildLogger(userSentryOptions.silent).warn(
+      '[@sentry/nextjs] The Sentry Next.js SDK `tunnelRoute` option will not work in combination with Next.js static exports. The `tunnelRoute` option uses server-side features that cannot be accessed in export mode. If you still want to tunnel Sentry events, set up your own tunnel: https://docs.sentry.io/platforms/javascript/troubleshooting/#using-the-tunnel-option',
+    );
   }
 
-  showedUnusedTunnelRouteHandlerWarning = true;
-  getBuildLogger(silent).warn(
-    `[@sentry/nextjs] Found ${tunnelRouteHandlerFile}, but the \`tunnelRoute\` option is not set. Set \`tunnelRoute\` in \`withSentryConfig\` to send events through this route.`,
-  );
+  setUpManagedTunnelVercelRoute(incomingUserNextConfigObject);
 }
 
 /**
@@ -192,12 +188,13 @@ export function maybeSetClientTraceMetadataOption(
       incomingUserNextConfigObject.experimental.clientTraceMetadata = [
         'baggage',
         'sentry-trace',
+        CACHE_ORIGIN_META_TAG_NAME,
         ...(incomingUserNextConfigObject.experimental?.clientTraceMetadata || []),
       ];
     }
   } else {
     getBuildLogger(silent).log(
-      "[@sentry/nextjs] The Sentry SDK was not able to determine your Next.js version. If you are using Next.js version 15 or greater, please add `experimental.clientTraceMetadata: ['sentry-trace', 'baggage']` to your Next.js config to enable pageload tracing for App Router.",
+      "[@sentry/nextjs] The Sentry SDK was not able to determine your Next.js version. If you are using Next.js version 15 or greater, please add `experimental.clientTraceMetadata: ['sentry-trace', 'baggage', 'sentry-cache-origin']` to your Next.js config to enable pageload tracing for App Router.",
     );
   }
 }
@@ -264,6 +261,43 @@ export function warnIfMissingOnRouterTransitionStartHook(userSentryOptions: Sent
       '[@sentry/nextjs] ACTION REQUIRED: To instrument navigations, the Sentry SDK requires you to export an `onRouterTransitionStart` hook from your `instrumentation-client.(js|ts)` file. You can do so by adding `export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;` to the file.',
     );
   }
+}
+
+/**
+ * Warns if there is no `instrumentation` file next to the `app` or `pages` directory.
+ * `next build` only looks there, even though dev and Turbopack also find the file in other places.
+ */
+export function warnIfMissingInstrumentationFile(
+  incomingUserNextConfigObject: NextConfigObject,
+  userSentryOptions: SentryBuildOptions,
+): void {
+  if (
+    process.env[MISSING_INSTRUMENTATION_FILE_WARNING_SHOWN] ||
+    process.env.SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING
+  ) {
+    return;
+  }
+
+  const projectDir = process.cwd();
+  const exists = (relativePath: string): boolean => fs.existsSync(path.join(projectDir, relativePath));
+
+  // Same order as Next.js' `findPagesDir`
+  const routerDir = ['pages', path.join('src', 'pages'), 'app', path.join('src', 'app')].find(exists);
+  if (!routerDir) {
+    return;
+  }
+
+  const instrumentationDir = path.dirname(routerDir);
+  const pageExtensions = incomingUserNextConfigObject.pageExtensions ?? DEFAULT_PAGE_EXTENSIONS;
+  if (pageExtensions.some(extension => exists(path.join(instrumentationDir, `instrumentation.${extension}`)))) {
+    return;
+  }
+
+  // Next.js may evaluate its config in child processes, which inherit this state from their parent.
+  process.env[MISSING_INSTRUMENTATION_FILE_WARNING_SHOWN] = '1';
+  getBuildLogger(userSentryOptions.silent).warn(
+    `[@sentry/nextjs] Could not find an instrumentation file next to your ${routerDir} directory. Next.js production builds only load it from there, so the Sentry SDK will not be initialized on the server. Create ${path.join(instrumentationDir, 'instrumentation.ts')}, or move your existing instrumentation file there: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#register-server-side-sdk (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)`,
+  );
 }
 
 /**

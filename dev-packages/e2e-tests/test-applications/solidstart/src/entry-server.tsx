@@ -1,3 +1,4 @@
+// SOURCEMAP_MARKER_SERVER
 // @refresh reload
 import { StartServer, createHandler } from '@solidjs/start/server';
 

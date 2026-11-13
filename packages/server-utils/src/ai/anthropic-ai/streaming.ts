@@ -16,7 +16,9 @@ interface StreamingState {
   responseId: string;
   /** The model name. */
   responseModel: string;
-  /** Number of prompt/input tokens used. */
+  /** Number of input tokens, not counting cache reads and writes. */
+  inputTokens: number | undefined;
+  /** Number of prompt/input tokens used, including cache reads and writes. */
   promptTokens: number | undefined;
   /** Number of completion/output tokens used. */
   completionTokens: number | undefined;
@@ -68,8 +70,12 @@ function handleMessageMetadata(event: AnthropicAiStreamingEvent, state: Streamin
   // Cumulative token counts and the final stop reason both arrive on the message_delta event.
   // @see https://docs.anthropic.com/en/docs/build-with-claude/streaming#event-types
   if (event.type === 'message_delta') {
-    if (event.usage && typeof event.usage.output_tokens === 'number') {
-      state.completionTokens = event.usage.output_tokens;
+    if (event.usage) {
+      // Input and cache counts can grow after message_start (e.g. with server tools), so the last value wins.
+      applyInputUsage(event.usage, state);
+      if (typeof event.usage.output_tokens === 'number') {
+        state.completionTokens = event.usage.output_tokens;
+      }
     }
     if (event.delta?.stop_reason) {
       state.finishReasons.push(event.delta.stop_reason);
@@ -83,17 +89,29 @@ function handleMessageMetadata(event: AnthropicAiStreamingEvent, state: Streamin
     if (message.model) state.responseModel = message.model;
 
     if (message.usage) {
-      if (typeof message.usage.input_tokens === 'number') {
-        state.promptTokens =
-          message.usage.input_tokens +
-          (message.usage.cache_creation_input_tokens ?? 0) +
-          (message.usage.cache_read_input_tokens ?? 0);
-      }
-      if (typeof message.usage.cache_creation_input_tokens === 'number')
-        state.cacheCreationInputTokens = message.usage.cache_creation_input_tokens;
-      if (typeof message.usage.cache_read_input_tokens === 'number')
-        state.cacheReadInputTokens = message.usage.cache_read_input_tokens;
+      applyInputUsage(message.usage, state);
     }
+  }
+}
+
+/**
+ * Records the input and cache token counts of a usage object that are numbers.
+ */
+function applyInputUsage(
+  usage: {
+    input_tokens?: number | null;
+    cache_creation_input_tokens?: number | null;
+    cache_read_input_tokens?: number | null;
+  },
+  state: StreamingState,
+): void {
+  if (typeof usage.input_tokens === 'number') state.inputTokens = usage.input_tokens;
+  if (typeof usage.cache_creation_input_tokens === 'number')
+    state.cacheCreationInputTokens = usage.cache_creation_input_tokens;
+  if (typeof usage.cache_read_input_tokens === 'number') state.cacheReadInputTokens = usage.cache_read_input_tokens;
+
+  if (typeof state.inputTokens === 'number') {
+    state.promptTokens = state.inputTokens + (state.cacheCreationInputTokens ?? 0) + (state.cacheReadInputTokens ?? 0);
   }
 }
 
@@ -215,6 +233,7 @@ export async function* instrumentAsyncIterableStream(
     finishReasons: [],
     responseId: '',
     responseModel: '',
+    inputTokens: undefined,
     promptTokens: undefined,
     completionTokens: undefined,
     cacheCreationInputTokens: undefined,
@@ -228,6 +247,9 @@ export async function* instrumentAsyncIterableStream(
       processEvent(event, state, recordOutputs, span);
       yield event;
     }
+  } catch (error) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    throw error;
   } finally {
     endStreamSpan(span, state, recordOutputs);
   }
@@ -236,7 +258,7 @@ export async function* instrumentAsyncIterableStream(
 /**
  * Instruments a MessageStream by registering event handlers and preserving the original stream API.
  */
-export function instrumentMessageStream<R extends { on: (...args: unknown[]) => void }>(
+export function instrumentMessageStream<R extends { on: (...args: unknown[]) => void; aborted?: boolean }>(
   stream: R,
   span: Span,
   recordOutputs: boolean,
@@ -246,6 +268,7 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
     finishReasons: [],
     responseId: '',
     responseModel: '',
+    inputTokens: undefined,
     promptTokens: undefined,
     completionTokens: undefined,
     cacheCreationInputTokens: undefined,
@@ -264,6 +287,15 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
     endStreamSpan(span, state, recordOutputs);
   });
 
+  // Fires last on every stream, so a stream that stops without 'message' (aborted, or the body closed early) still
+  // ends its span. An 'abort' listener would also stop the SDK from raising an unobserved abort as a rejection.
+  stream.on('end', () => {
+    if (span.isRecording() && (stream as { aborted?: boolean }).aborted) {
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
+    }
+    endStreamSpan(span, state, recordOutputs);
+  });
+
   stream.on('error', (error: unknown) => {
     // Attaching this listener stops the stream error from being raised as an unhandled rejection, so
     // we capture it here to avoid swallowing it (e.g. for callers that don't await/iterate the stream).
@@ -276,8 +308,17 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
 
     if (span.isRecording()) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-      span.end();
+      endStreamSpan(span, state, recordOutputs);
     }
+  });
+
+  // An aborted stream emits only `abort` and `end`. We don't listen for `abort`: doing so would stop the SDK from
+  // raising an unhandled rejection when the caller never awaits the aborted stream.
+  stream.on('end', () => {
+    if (stream.aborted && span.isRecording()) {
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
+    }
+    endStreamSpan(span, state, recordOutputs);
   });
 
   return stream;

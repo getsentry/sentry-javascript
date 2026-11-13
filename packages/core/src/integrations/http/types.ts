@@ -68,6 +68,9 @@ export interface HttpServerResponse {
   once(ev: string | symbol, handler: (...data: unknown[]) => void): this;
   once(ev: 'close', handler: () => void): this;
   on(ev: string | symbol, handler: (...data: unknown[]) => void): this;
+  headersSent?: boolean;
+  writeHead(statusCode: number, headers?: Record<string, string>): this;
+  end(chunk?: Uint8Array): this;
 }
 
 export interface HttpServer {
@@ -93,6 +96,7 @@ export interface HttpIncomingMessage {
   socket?: HttpSocket;
   aborted?: boolean;
   complete?: boolean;
+  errored?: Error | null;
   resume(): void;
   on(event: 'end', listener: () => void): this;
   on(event: string | symbol, listener: (...args: unknown[]) => void): this;
@@ -100,6 +104,7 @@ export interface HttpIncomingMessage {
   addListener(event: string | symbol, listener: (...args: unknown[]) => void): this;
   off(event: string | symbol, listener: (...args: unknown[]) => void): this;
   removeListener(event: string | symbol, listener: (...args: unknown[]) => void): this;
+  [Symbol.asyncIterator](): AsyncIterator<Uint8Array | string>;
 }
 
 /** Minimal interface for the Node.js `http.ClientRequest` constructor. */

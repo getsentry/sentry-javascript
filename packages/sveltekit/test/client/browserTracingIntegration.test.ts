@@ -9,7 +9,15 @@ import { writable } from 'svelte/store';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { navigating, page } from '$app/stores';
 import { browserTracingIntegration } from '../../src/client';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { CACHE_ORIGIN_META_TAG_NAME } from '../../src/common/traceMetaTags';
+import {
+  PAGE_SERVER_RENDERING_TYPE,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  URL_TEMPLATE,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { PAGELOAD } from '@sentry/conventions/op';
 
 // we have to overwrite the global mock from `vitest.setup.ts` here to reset the
 // `navigating` store for each test.
@@ -72,6 +80,7 @@ describe('browserTracingIntegration', () => {
   beforeEach(() => {
     createdRootSpan = undefined;
     navigatingStore = writable();
+    document.head.innerHTML = '';
     vi.clearAllMocks();
   });
 
@@ -169,6 +178,28 @@ describe('browserTracingIntegration', () => {
     // This should update the transaction name with the parameterized route:
     expect(scopeSetTransactionNameSpy).toHaveBeenCalledTimes(3);
     expect(scopeSetTransactionNameSpy).toHaveBeenLastCalledWith('testRoute/:id');
+  });
+
+  it('marks the pageload of a prerendered page as statically rendered, without a link', async () => {
+    const marker = document.createElement('meta');
+    marker.name = CACHE_ORIGIN_META_TAG_NAME;
+    marker.content = '';
+    document.head.appendChild(marker);
+
+    const integration = browserTracingIntegration();
+    // @ts-expect-error - the fakeClient doesn't satisfy Client but that's fine
+    integration.afterAllSetup(fakeClient);
+    await vi.dynamicImportSettled();
+
+    expect(startBrowserTracingPageLoadSpanSpy).toHaveBeenCalledWith(fakeClient, {
+      name: '/',
+      attributes: {
+        [SENTRY_OP]: PAGELOAD,
+        [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+        [PAGE_SERVER_RENDERING_TYPE]: 'static',
+      },
+    });
   });
 
   it("doesn't start a navigation span when `instrumentNavigation` is false", async () => {

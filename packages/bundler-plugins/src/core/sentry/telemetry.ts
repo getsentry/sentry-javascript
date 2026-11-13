@@ -106,6 +106,14 @@ export function setTelemetryDataOnScope(
   scope.setTag('custom-error-handler', !!errorHandler);
   scope.setTag('sourcemaps-assets', !!sourcemaps?.assets);
   scope.setTag('delete-after-upload', !!sourcemaps?.filesToDeleteAfterUpload);
+  scope.setTag(
+    'delete-sourcemaps-after-upload',
+    typeof sourcemaps?.deleteSourcemapsAfterUpload === 'function'
+      ? 'function'
+      : sourcemaps?.deleteSourcemapsAfterUpload === undefined
+        ? 'auto'
+        : String(sourcemaps.deleteSourcemapsAfterUpload),
+  );
   scope.setTag('sourcemaps-disabled', !!sourcemaps?.disable);
 
   scope.setTag('react-annotate', !!reactComponentAnnotation?.enabled);
@@ -133,7 +141,8 @@ export function setTelemetryDataOnScope(
 }
 
 export async function allowedToSendTelemetry(options: NormalizedOptions): Promise<boolean> {
-  const { telemetry, url } = options;
+  const { telemetry } = options;
+  const url = options.url ?? SENTRY_SAAS_URL;
 
   // `options.telemetry` defaults to true
   if (telemetry === false) {

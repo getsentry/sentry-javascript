@@ -4,16 +4,18 @@ import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, startInactiveSpan } from '@sentry/core';
 import type { HonoRuntime } from './connInfo';
-import type { Env, Hono, MiddlewareHandler } from './honoTypes';
+import type { Env, Hono, MatchedHandler, MiddlewareHandler } from './honoTypes';
 import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { honoModuleNames } from '../../orchestrion/config/hono';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import { bindTracingChannelToSpan, safeChannelCallback } from '../../tracing-channel';
+import { isBun, isCloudflareWorkers, isDeno } from '../../utils/runtime';
 import { applyPatches } from './applyPatches';
 import { INTERNAL_REQUEST_ORIGIN } from './constants';
 import { createHonoRequestMiddleware } from './createHonoMiddleware';
-import { isMiddleware } from './isMiddleware';
+import { getMiddlewareFlags } from './isMiddleware';
+import { isMatchedHandlerList, wrapRouteHandlers } from './matchResult';
 import { extractPathname, isInternalRequestSpanActive } from './patchAppRequest';
 import { wrapMiddlewareWithSpan } from './wrapMiddlewareSpan';
 import type { SentryHonoMiddlewareOptions } from './types';
@@ -24,12 +26,9 @@ const INTEGRATION_NAME = 'Hono' as const;
 
 export interface HonoIntegrationOptions extends SentryHonoMiddlewareOptions {}
 
-const globalAny = globalThis as { Bun?: unknown; Deno?: unknown; navigator?: { userAgent?: string } };
-const isBun = typeof globalAny.Bun !== 'undefined';
-const isDeno = typeof globalAny.Deno !== 'undefined';
-const isCloudflare = globalAny.navigator?.userAgent === 'Cloudflare-Workers';
-
-const runtime: HonoRuntime = isBun ? 'bun' : isDeno ? 'deno' : isCloudflare ? 'cloudflare' : 'node';
+function getHonoRuntime(): HonoRuntime {
+  return isBun() ? 'bun' : isDeno() ? 'deno' : isCloudflareWorkers() ? 'cloudflare' : 'node';
+}
 
 /**
  * Manually instruments a Hono app and returns the Sentry request/response middleware to register
@@ -44,21 +43,26 @@ export function honoMiddleware<E extends Env>(app: Hono<E>, options: HonoIntegra
   applyPatches(app);
 
   return createHonoRequestMiddleware({
-    runtime,
+    runtime: getHonoRuntime(),
     shouldHandleError: options.shouldHandleError,
   });
 }
 
-// A Hono `matchResult[0]` entry: `[[handler, routeMeta], paramIndexMap]` — `compose` runs the
-// handler (`entry[0][0]`) and the `matchedRoutes` getter reads `routeMeta` (`entry[0][1]`).
-// oxlint-disable-next-line typescript/no-explicit-any
-type MatchedHandlerEntry = [[any, any], any];
+function wrapMatchedMiddleware(handlers: MatchedHandler[], middlewareFlags: boolean[]): void {
+  for (const [i, [pair]] of handlers.entries()) {
+    if (middlewareFlags[i]) {
+      pair[0] = wrapMiddlewareWithSpan(pair[0]);
+    }
+  }
+}
 
 /**
  * Per-request Context hook. `#dispatch` builds `new Context(req, { matchResult })` before its
  * single-handler fast-path check, so from the live `matchResult` we:
  *  1. wrap the matched middleware handlers for spans (route handlers are covered by the request span);
- *  2. prepend the Sentry request/response middleware — it drives route naming, request data and error
+ *  2. wrap the matched route handlers if more than one matched, so the route name follows the handler
+ *     that responds;
+ *  3. prepend the Sentry request/response middleware — it drives route naming, request data and error
  *     capture from inside the chain, and forces the ≥2-handler `compose` path so the fast-path is
  *     never taken.
  *
@@ -69,47 +73,21 @@ function injectHonoInstrumentation(
   requestMiddleware: MiddlewareHandler,
   injectedHandlerLists: WeakSet<object>,
 ): void {
-  const ctorOptions = message.arguments?.[1] as { matchResult?: [MatchedHandlerEntry[], unknown] } | undefined;
+  const ctorOptions = message.arguments?.[1] as { matchResult?: [unknown[], unknown] } | undefined;
   const handlers = ctorOptions?.matchResult?.[0];
   if (!Array.isArray(handlers) || injectedHandlerLists.has(handlers)) {
     return;
   }
   injectedHandlerLists.add(handlers);
 
-  // Classify matched handlers with the same positional heuristic as `wrapSubAppMiddleware`: within a
-  // method+path group the last handler is the route handler and earlier ones are middleware; `.use()`
-  // registers as method 'ALL' with a lone genuine-middleware entry, so fall back to arity there.
-  // Position is needed because a route handler declared with an unused `next` param has middleware arity.
-  const lastIndexByKey = new Map<string, number>();
-  for (const [i, entry] of handlers.entries()) {
-    const routeMeta = entry?.[0]?.[1] as { method?: string; path?: string } | undefined;
-    if (routeMeta?.method != null && routeMeta.path != null) {
-      // \0 is a collision-free delimiter: it cannot appear in a valid HTTP method or URL path.
-      lastIndexByKey.set(`${routeMeta.method}\0${routeMeta.path}`, i);
-    }
+  if (isMatchedHandlerList(handlers)) {
+    const middlewareFlags = getMiddlewareFlags(handlers.map(([[, route]]) => route));
+    wrapMatchedMiddleware(handlers, middlewareFlags);
+    wrapRouteHandlers(handlers, middlewareFlags);
   }
 
-  for (const [i, entry] of handlers.entries()) {
-    const pair = entry?.[0];
-    const handler = pair?.[0];
-    if (typeof handler !== 'function') {
-      continue;
-    }
-
-    const routeMeta = pair?.[1] as { method?: string; path?: string } | undefined;
-    const isMW =
-      routeMeta?.method != null && routeMeta.path != null
-        ? lastIndexByKey.get(`${routeMeta.method}\0${routeMeta.path}`) !== i ||
-          (routeMeta.method === 'ALL' && isMiddleware(handler))
-        : isMiddleware(handler);
-
-    if (isMW) {
-      pair[0] = wrapMiddlewareWithSpan(handler as MiddlewareHandler);
-    }
-  }
-
-  // Prepend the Sentry request/response middleware. `routeMeta` is what the `matchedRoutes` getter
-  // exposes; its middleware arity keeps route-name resolution from picking it.
+  // Prepend the Sentry request/response middleware. Its arity marks it as a middleware, so its `/*`
+  // never becomes the route name.
   const routeMeta = { basePath: '/', path: '/*', method: 'ALL', handler: requestMiddleware };
   handlers.unshift([[requestMiddleware, routeMeta], {}]);
 }
@@ -134,13 +112,13 @@ function instrumentInternalRequests(): void {
       ).toUpperCase();
       return startInactiveSpan({
         name: `${method} ${extractPathname(input)}`,
+        onlyIfParent: true,
         attributes: {
           [SENTRY_OP]: HTTP_SERVER,
           [SENTRY_ORIGIN]: INTERNAL_REQUEST_ORIGIN,
         },
       });
     },
-    { requiresParentSpan: true },
   );
 }
 
@@ -161,7 +139,7 @@ function instrumentHono(options: HonoIntegrationOptions): void {
   // The request/response middleware is stateless (per-request state lives on the request scope) and
   // `options` is fixed, so build it once and reuse it across every dispatched Context.
   const requestMiddleware = createHonoRequestMiddleware({
-    runtime,
+    runtime: getHonoRuntime(),
     shouldHandleError: options.shouldHandleError,
   });
 

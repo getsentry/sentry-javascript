@@ -1,12 +1,15 @@
-import { URL_FULL } from '@sentry/conventions/attributes';
+import {
+  URL_FULL,
+  MESSAGING_DESTINATION_NAME,
+  MESSAGING_MESSAGE_ID,
+  MESSAGING_OPERATION_NAME,
+  MESSAGING_SYSTEM,
+} from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import { getIsolationScope, spanToJSON } from '@sentry/core';
 
 // OTel Messaging semantic convention attribute keys
-const ATTR_MESSAGING_SYSTEM = 'messaging.system';
-const ATTR_MESSAGING_DESTINATION_NAME = 'messaging.destination.name';
-const ATTR_MESSAGING_MESSAGE_ID = 'messaging.message.id';
-const ATTR_MESSAGING_OPERATION_NAME = 'messaging.operation.name';
+
 const ATTR_MESSAGING_CONSUMER_GROUP_NAME = 'messaging.consumer.group.name';
 const ATTR_MESSAGING_MESSAGE_DELIVERY_COUNT = 'messaging.message.delivery_count';
 
@@ -40,15 +43,15 @@ export function maybeEnrichQueueConsumerSpan(span: Span): void {
   const consumerGroup = getHeader(headers, 'ce-vqsconsumergroup');
   const deliveryCount = getHeader(headers, 'ce-vqsdeliverycount');
 
-  span.setAttribute(ATTR_MESSAGING_SYSTEM, 'vercel.queue');
-  span.setAttribute(ATTR_MESSAGING_OPERATION_NAME, 'process');
+  span.setAttribute(MESSAGING_SYSTEM, 'vercel.queue');
+  span.setAttribute(MESSAGING_OPERATION_NAME, 'process');
 
   if (queueName) {
-    span.setAttribute(ATTR_MESSAGING_DESTINATION_NAME, queueName);
+    span.setAttribute(MESSAGING_DESTINATION_NAME, queueName);
   }
 
   if (messageId) {
-    span.setAttribute(ATTR_MESSAGING_MESSAGE_ID, messageId);
+    span.setAttribute(MESSAGING_MESSAGE_ID, messageId);
   }
 
   if (consumerGroup) {
@@ -101,9 +104,9 @@ export function maybeEnrichQueueProducerSpan(span: Span): void {
 
   const topic = decodeURIComponent(topicMatch[1]!);
 
-  span.setAttribute(ATTR_MESSAGING_SYSTEM, 'vercel.queue');
-  span.setAttribute(ATTR_MESSAGING_DESTINATION_NAME, topic);
-  span.setAttribute(ATTR_MESSAGING_OPERATION_NAME, 'send');
+  span.setAttribute(MESSAGING_SYSTEM, 'vercel.queue');
+  span.setAttribute(MESSAGING_DESTINATION_NAME, topic);
+  span.setAttribute(MESSAGING_OPERATION_NAME, 'send');
 
   // Mark span so we can clean up marker on spanEnd
   span.setAttribute(ATTR_SENTRY_QUEUE_ENRICHED, true);

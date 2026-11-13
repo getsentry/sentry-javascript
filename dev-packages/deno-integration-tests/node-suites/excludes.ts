@@ -2,8 +2,13 @@
 // fails on Deno runs only on the other runtimes, with `test.runIf(supports({ runtimes }))` in the
 // Node suite, and is not listed here.
 
-// Node-only features: ANR and native thread watchdogs, child process and worker thread breadcrumbs.
-const NODE_ONLY = ['suites/anr/test.ts', 'suites/breadcrumbs/**', 'suites/thread-blocked-native/test.ts'];
+// Node-only features: ANR and native thread watchdogs, child process and worker thread breadcrumbs, and the AWS Lambda Node runtime.
+const NODE_ONLY = [
+  'suites/anr/test.ts',
+  'suites/aws-lambda-web/**',
+  'suites/breadcrumbs/**',
+  'suites/thread-blocked-native/test.ts',
+];
 
 // `@sentry/node` instruments `fetch` through undici's diagnostics channels, which Deno's `fetch`
 // does not publish. `@sentry/deno` has its own `fetchIntegration` for this. These suites check
@@ -26,6 +31,7 @@ const NO_FETCH_INSTRUMENTATION = [
   'suites/tracing/requests/fetch-no-tracing-no-spans/test.ts',
   'suites/tracing/requests/fetch-no-tracing/test.ts',
   'suites/tracing/requests/fetch-sampled-no-active-span/test.ts',
+  'suites/tracing/requests/fetch-sentry-requests/test.ts',
   'suites/tracing/requests/fetch-unsampled/test.ts',
   'suites/tracing/requests/traceparent/test.ts',
   'suites/tracing/sample-rand-propagation/test.ts',
@@ -61,6 +67,7 @@ const NOT_TRIAGED = [
   'suites/tracing/koa/test.ts',
   'suites/tracing/langchain/test.ts',
   'suites/tracing/langgraph/test.ts',
+  'suites/tracing/mistral-v2/test.ts',
   'suites/tracing/mistral/test.ts',
   'suites/tracing/mongodb/test.ts',
   'suites/tracing/mongoose-v5/test.ts',

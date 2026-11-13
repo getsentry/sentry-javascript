@@ -15,7 +15,12 @@ import {
 } from '@sentry/core';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
+import {
+  _INTERNAL_forwardTunnelRequest as forwardTunnelRequest,
+  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
+} from '@sentry/core/server';
 import { DEBUG_BUILD } from '../common/debug-build';
+import { getInjectedBasePath } from '../common/utils/basePath';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import {
   ATTR_NEXT_PAGES_API_ROUTE_TYPE,
@@ -26,6 +31,7 @@ import { backfillHttpResponseStatusCode } from '../common/utils/backfillHttpResp
 import { backfillHttpServerStatus } from '../common/utils/backfillHttpServerStatus';
 import { createLiveRootSpanAdapter } from '../common/utils/liveRootSpanAdapter';
 import { dropMiddlewareTunnelRequests, getTunnelRouteIgnoreSpans } from '../common/utils/dropMiddlewareTunnelRequests';
+import { getTunnelRouteServerOptions } from '../common/utils/tunnelPathnameMatch';
 import { maybeForkIsolationScopeForRootSpan } from '../common/utils/forkIsolationScopeForRootSpan';
 import { getNormalizedRequestFromAttributes } from '../common/utils/getNormalizedRequestFromAttributes';
 import { isBuild } from '../common/utils/isBuild';
@@ -66,7 +72,6 @@ export type EdgeOptions = VercelEdgeOptions;
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
   _sentryRelease?: string;
-  _sentryRewritesTunnelPath?: string;
 };
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
@@ -110,9 +115,15 @@ export function init(options: VercelEdgeOptions = {}): void {
   const nextjsIgnoreSpans: NonNullable<VercelEdgeOptions['ignoreSpans']> = [
     // (set in `dropMiddlewareTunnelRequests` during `spanStart`)
     { attributes: { [TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]: true } },
-    ...getTunnelRouteIgnoreSpans(),
   ];
   opts.ignoreSpans = [...(opts.ignoreSpans || []), ...nextjsIgnoreSpans];
+
+  // Before `init`, which applies it to the managed tunnel of `serveTunnelIntegration` or `tunnelRoute`.
+  setTunnelDefaults({
+    basePath: getInjectedBasePath(),
+    tunnel: getTunnelRouteServerOptions(),
+    forward: forwardTunnelRequest,
+  });
 
   // Before the Cloudflare check, so that the events of the client of `withSentry` get the tag too.
   try {
@@ -143,12 +154,14 @@ export function init(options: VercelEdgeOptions = {}): void {
   }
 
   const client = vercelEdgeInit(opts);
+  const clientOptions = client.getOptions();
+  clientOptions.ignoreSpans = [...(clientOptions.ignoreSpans || []), ...getTunnelRouteIgnoreSpans(client)];
 
   // Next.js's OTel instrumentation samples root spans before the Sentry middleware wrapper can set
   // `normalizedRequest` on the isolation scope. Seed it from span attributes so `tracesSampler` has access.
   client.on('beforeSampling', ({ spanAttributes }) => {
     const spanType = spanAttributes[ATTR_NEXT_SPAN_TYPE];
-    if (spanType !== 'Middleware.execute' && spanType !== 'BaseServer.handleRequest') {
+    if (spanType !== 'Middleware.execute' && spanType !== 'BaseServer.handleRequest' && spanType !== 'Next.request') {
       return;
     }
 
@@ -169,7 +182,7 @@ export function init(options: VercelEdgeOptions = {}): void {
     const rootSpan = getRootSpan(span);
     const isRootSpan = span === rootSpan;
 
-    dropMiddlewareTunnelRequests(span, spanAttributes);
+    dropMiddlewareTunnelRequests(span, spanAttributes, client);
 
     // Next.js names the incoming-request span after the raw URL. With span streaming, span names have to
     // be low cardinality, so we replace it here at span start; the `next.route` hoisting below renames it

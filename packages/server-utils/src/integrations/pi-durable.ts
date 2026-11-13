@@ -60,9 +60,8 @@ function instrumentPiDurable(options: PiDurableOptions): void {
  * channel injected into `Harness.open()` and to the `codingTool` channel injected into the built-in
  * tool factories, so it requires the Sentry runtime hook or bundler plugin.
  *
- * Traces one `gen_ai.invoke_agent` span per run, with its model requests as `gen_ai.chat` and its
- * tool calls as `gen_ai.execute_tool` children. From the first model request on, the `openai`,
- * `@anthropic-ai/sdk`, `@google/genai` and Workers AI integrations stop reporting requests in the
- * whole process, because pi-ai sends its requests through those clients.
+ * Traces one `gen_ai.invoke_agent` span per run, with its tool calls as `gen_ai.execute_tool`
+ * children. Its model requests become `gen_ai.chat` children through `piAiIntegration`, since
+ * pi-durable sends them through pi-ai.
  */
 export const piDurableIntegration = defineIntegration(_piDurableIntegration);

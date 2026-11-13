@@ -1,7 +1,8 @@
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { Client } from '@sentry/core';
-import { addNonEnumerableProperty, debug, waitForTracingChannelBinding } from '@sentry/core';
+import { addNonEnumerableProperty, debug, GLOBAL_OBJ, waitForTracingChannelBinding } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import { isBun, isCloudflareWorkers, isDeno } from '../utils/runtime';
 import { getOrchestrionInjectedModules } from './detect';
 
 // Marks an instrumentation callback as already run, so it subscribes at most once
@@ -13,9 +14,8 @@ const INSTRUMENTED = Symbol.for('SentryOrchestrionInstrumented');
 // oxlint-disable-next-line typescript/no-explicit-any
 type InstrumentationFn = ((...args: any[]) => void) & { [INSTRUMENTED]?: boolean };
 
-const globalAny = globalThis as { Bun?: unknown; Deno?: unknown };
-const isBun = typeof globalAny.Bun !== 'undefined';
-const isDeno = typeof globalAny.Deno !== 'undefined';
+// Labels already warned about, so a client per request does not repeat the warning.
+const warnedMissingCloudflarePlugin = new Set<string>();
 
 /**
  * Run an integration's channel-subscription callback once one of its modules is
@@ -55,6 +55,8 @@ export function invokeOrchestrionInstrumentation<Callback extends Instrumentatio
   // they pass `false` so a missing binding never blocks their subscription.
   { requiresTracingChannelBinding = true }: { requiresTracingChannelBinding?: boolean } = {},
 ): void {
+  (GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ??= {}).channelIntegrations = true;
+
   const label = moduleNames.join(', ');
 
   // `tracingChannel` is unavailable before Node 18.19; nothing to subscribe to.
@@ -99,7 +101,7 @@ export function invokeOrchestrionInstrumentation<Callback extends Instrumentatio
     }
   };
 
-  if (isBun || isDeno) {
+  if (isBun() || isDeno()) {
     DEBUG_BUILD && debug.log(`[instrumentation:${label}] Bun/Deno, subscribing eagerly`);
     run();
     return;
@@ -111,6 +113,21 @@ export function invokeOrchestrionInstrumentation<Callback extends Instrumentatio
     DEBUG_BUILD && debug.log(`[instrumentation:${label}] "${injectedName}" already injected, subscribing now`);
     run();
     return;
+  }
+
+  // On Cloudflare, only the `@sentry/cloudflare/vite` plugin injects the channels. An entry banner
+  // from the plugin defines `bundler` at boot, so without it the channels never fire.
+  if (
+    DEBUG_BUILD &&
+    isCloudflareWorkers() &&
+    !GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler &&
+    !warnedMissingCloudflarePlugin.has(label)
+  ) {
+    warnedMissingCloudflarePlugin.add(label);
+    debug.warn(
+      `[instrumentation:${label}] The integration for "${label}" records nothing, because the ` +
+        '`@sentry/cloudflare/vite` plugin did not run. Add `sentryCloudflareVitePlugin()` to your Vite config.',
+    );
   }
 
   DEBUG_BUILD && debug.log(`[instrumentation:${label}] not injected yet, waiting for the module to load`);

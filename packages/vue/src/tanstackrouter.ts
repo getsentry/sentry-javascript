@@ -105,7 +105,7 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
             [SENTRY_OP]: PAGELOAD,
             [SENTRY_ORIGIN]: 'auto.pageload.vue.tanstack_router',
             [SENTRY_SEGMENT_NAME_SOURCE]: routeMatch ? 'route' : 'url',
-            ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
+            [URL_TEMPLATE]: routeMatch?.routeId,
             ...routeMatchToParamSpanAttributes(routeMatch),
           },
         });
@@ -165,7 +165,7 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
                 [SENTRY_OP]: NAVIGATION,
                 [SENTRY_ORIGIN]: 'auto.navigation.vue.tanstack_router',
                 [SENTRY_SEGMENT_NAME_SOURCE]: routeMatch ? 'route' : 'url',
-                ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
+                [URL_TEMPLATE]: routeMatch?.routeId,
                 ...routeMatchToParamSpanAttributes(routeMatch),
               },
             },

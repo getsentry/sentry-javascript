@@ -24,6 +24,8 @@ import type { HttpIncomingMessage, HttpInstrumentationOptions, HttpServer, HttpS
 import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
 import { safeCallback } from '../../utils/safeCallback';
+import { isServedTunnelRequest } from '../../utils/tunnel';
+import { getNodeTunnelHandler, setHttpServerHandlesTunnel } from '../../utils/tunnelStore';
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
 import {
@@ -67,6 +69,8 @@ import {
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
   SENTRY_ORIGIN,
+  HTTP_REQUEST_BODY_SIZE,
+  HTTP_RESPONSE_STATUS_TEXT,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import { filterCollectedUrl, filterCollectedUrlQuery } from '../../utils/data-collection/filterCollectedUrl';
@@ -128,6 +132,20 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
 
       if (!client || !markRequest(request)) {
         return target.apply(thisArg, args);
+      }
+
+      // Tunnel requests record no session or span. This wrapper answers them ahead of the app, so `emit` needs no
+      // second wrapper for the tunnel. With `intercept: false` the app answers them, so they keep their own isolation
+      // scope.
+      if (isServedTunnelRequest(request)) {
+        if (getNodeTunnelHandler()?.(request, response)) {
+          return true;
+        }
+
+        const tunnelIsolationScope = getIsolationScope().clone();
+        tunnelIsolationScope.setClient(client);
+
+        return withIsolationScope(tunnelIsolationScope, () => target.apply(thisArg, args));
       }
 
       DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Handling incoming request');
@@ -239,6 +257,7 @@ export function getHttpServerSubscriptions(options: HttpInstrumentationOptions):
   // this because it creates spans through a separate code path).
   const userWrap = options.wrapServerEmitRequest;
   const spanWrap = buildServerSpanWrap(options);
+  setHttpServerHandlesTunnel();
 
   const effectiveOptions: HttpInstrumentationOptions = {
     ...options,
@@ -357,7 +376,7 @@ function buildServerSpanWrap(
             [USER_AGENT_ORIGINAL]: userAgent,
             [URL_SCHEME]: scheme,
             [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
-            'http.request.body.size': getContentLengthFromHeaders(request.headers),
+            [HTTP_REQUEST_BODY_SIZE]: getContentLengthFromHeaders(request.headers),
             ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, dataCollectionOptions),
           },
         },
@@ -379,7 +398,7 @@ function buildServerSpanWrap(
             isEnded = true;
             // set attributes that come from the response
             span.setAttributes({
-              'http.response.status_text': response.statusMessage?.toUpperCase(),
+              [HTTP_RESPONSE_STATUS_TEXT]: response.statusMessage?.toUpperCase(),
               [HTTP_RESPONSE_STATUS_CODE]: response.statusCode,
               ...httpHeadersToSpanAttributes(headersToDict(response.headers), dataCollectionOptions, 'response'),
             });

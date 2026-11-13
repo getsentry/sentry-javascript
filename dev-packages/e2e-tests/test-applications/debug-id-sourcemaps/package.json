@@ -17,9 +17,6 @@
     "vitest": "^4.1.11",
     "@sentry/rollup-plugin": "^5.4.1"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "optional": true
   }

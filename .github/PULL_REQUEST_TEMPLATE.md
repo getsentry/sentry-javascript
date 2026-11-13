@@ -1,8 +1,19 @@
-Before submitting a pull request, please take a look at our
-[Contributing](https://github.com/getsentry/sentry-javascript/blob/master/CONTRIBUTING.md) guidelines and verify:
+<!--
+Read the Contributing guidelines first: https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md
+Use simple, direct sentences. No "Summary" heading, no test-plan checklist.
+Remove "Closes" if there is no linked issue.
+External contributors: link an issue where you got a maintainer's go-ahead.
+-->
 
-- [ ] If you've added code that should be tested, please add tests.
-- [ ] Ensure your code lints and the test suite passes (`pnpm run lint`) & (`pnpm run test`).
-- [ ] Link an issue if there is one related to your pull request. If no issue is linked, one will be auto-generated and linked.
+## What
 
-Closes #issue_link_here
+<!--
+One or two sentences on what changed for users. Add one-line bullets for the changes if needed.
+Describe behavior and intent, not implementation. Reviewers read the diff for the how.
+-->
+
+## Why
+
+<!-- One or two sentences: reason behind change, why this approach (no implementation walkthrough), non-obvious decisions/tradeoffs -->
+
+Closes: #

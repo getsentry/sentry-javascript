@@ -210,6 +210,23 @@ describe('makeAddSentryVitePlugin()', () => {
     expect(typeof configPlugin?.configResolved).toBe('function');
   });
 
+  it.each([
+    { name: 'client', consumer: 'client', expected: true },
+    { name: 'ssr', consumer: 'server', expected: false },
+    { name: 'nitro', consumer: 'server', expected: true },
+  ] as const)(
+    'applies the Sentry Vite plugin to the $name environment of a Nitro build: $expected',
+    ({ name, consumer, expected }) => {
+      const sentryPlugin = makeAddSentryVitePlugin({}).find(plugin => plugin.name === mockedSentryVitePlugin.name);
+      const environment = { name, config: { consumer, environments: { client: {}, ssr: {}, nitro: {} } } };
+
+      expect(sentryPlugin).toBeDefined();
+      expect((sentryPlugin?.applyToEnvironment as unknown as (env: typeof environment) => boolean)(environment)).toBe(
+        expected,
+      );
+    },
+  );
+
   describe('default filesToDeleteAfterUpload', () => {
     type TestEnvironment = {
       consumer: 'client' | 'server';
@@ -220,6 +237,7 @@ describe('makeAddSentryVitePlugin()', () => {
 
     const NITRO_ENVIRONMENTS: Record<string, TestEnvironment> = {
       client: { consumer: 'client', outDir: '.output/public' },
+      ssr: { consumer: 'server', outDir: 'node_modules/.nitro/vite/services/ssr' },
       // Nitro sets the output directory of its server build with `output.dir` only.
       nitro: { consumer: 'server', outDir: 'dist', outputDir: '.output/server' },
     };
@@ -270,7 +288,7 @@ describe('makeAddSentryVitePlugin()', () => {
 
     it.each([
       {
-        label: 'a Nitro build',
+        label: 'a Nitro build, but not in the Nitro service output',
         environments: NITRO_ENVIRONMENTS,
         expected: ['.output/public/**/*.map', '.output/server/**/*.map'],
       },

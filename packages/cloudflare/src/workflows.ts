@@ -3,10 +3,23 @@ import {
   CODE_FUNCTION_NAME,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  CLOUDFLARE_WORKFLOW_ATTEMPT,
+  CLOUDFLARE_WORKFLOW_RETRIES_BACKOFF,
+  CLOUDFLARE_WORKFLOW_RETRIES_DELAY,
+  CLOUDFLARE_WORKFLOW_RETRIES_LIMIT,
+  CLOUDFLARE_WORKFLOW_TIMEOUT,
 } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import type { PropagationContext, Scope } from '@sentry/core';
-import { captureException, flush, getCurrentScope, startSpan, withIsolationScope, withScope } from '@sentry/core';
+import {
+  captureException,
+  flush,
+  getCurrentScope,
+  isError,
+  startSpan,
+  withIsolationScope,
+  withScope,
+} from '@sentry/core';
 import type {
   WorkflowDelayDuration,
   WorkflowEntrypoint,
@@ -63,6 +76,14 @@ async function propagationContextFromInstanceId(instanceId: string): Promise<Pro
     traceId,
     sampleRand,
   };
+}
+
+// Same check the Workflows engine uses to stop retrying a step. Not `constructor.name`: a
+// `NonRetryableError` with a custom `name` is retried, so capturing it early would duplicate events.
+function isNonRetryableError(error: unknown): boolean {
+  return (
+    isError(error) && (error.name === 'NonRetryableError' || String(error.message).startsWith('NonRetryableError'))
+  );
 }
 
 class WrappedWorkflowStep implements WorkflowStep {
@@ -136,13 +157,13 @@ class WrappedWorkflowStep implements WorkflowStep {
               [SENTRY_OP]: FUNCTION,
               [CODE_FUNCTION_NAME]: name,
               'workflow.step.name': name,
-              'cloudflare.workflow.timeout': config?.timeout,
-              'cloudflare.workflow.retries.backoff': config?.retries?.backoff,
+              [CLOUDFLARE_WORKFLOW_TIMEOUT]: config?.timeout,
+              [CLOUDFLARE_WORKFLOW_RETRIES_BACKOFF]: config?.retries?.backoff,
               // In workers-types v5, `delay` may be a `WorkflowDelayFunction`, which isn't a valid span attribute value.
-              'cloudflare.workflow.retries.delay':
+              [CLOUDFLARE_WORKFLOW_RETRIES_DELAY]:
                 typeof config?.retries?.delay === 'function' ? undefined : config?.retries?.delay,
-              'cloudflare.workflow.retries.limit': config?.retries?.limit,
-              'cloudflare.workflow.attempt': attempt,
+              [CLOUDFLARE_WORKFLOW_RETRIES_LIMIT]: config?.retries?.limit,
+              [CLOUDFLARE_WORKFLOW_ATTEMPT]: attempt,
               [SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
               [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
             },
@@ -153,7 +174,7 @@ class WrappedWorkflowStep implements WorkflowStep {
               span.setStatus({ code: 1 });
               return result;
             } catch (error) {
-              if (isFinalAttempt) {
+              if (isFinalAttempt || isNonRetryableError(error)) {
                 captureException(error, { mechanism: { handled: true, type: 'auto.faas.cloudflare.workflow' } });
               }
               throw error;

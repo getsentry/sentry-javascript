@@ -54,6 +54,25 @@ describe('fill()', () => {
     expect(source.prop()).toEqual(41);
   });
 
+  test('wraps a method keyed by a symbol', () => {
+    const key = Symbol('method');
+    const source = { [key]: () => 42 };
+
+    fill(source, key, original => () => original() + 1);
+
+    expect(source[key]()).toBe(43);
+  });
+
+  test('does not throw when a method keyed by a symbol is not writeable', () => {
+    const key = Symbol('method');
+    const original = () => 42;
+    const source = Object.freeze({ [key]: original });
+
+    fill(source, key, () => () => 1);
+
+    expect(source[key]).toBe(original);
+  });
+
   test.each([42, null, undefined, {}])("does't throw if the property is not a function but %s", (propValue: any) => {
     const source = {
       foo: propValue,

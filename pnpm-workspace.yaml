@@ -49,6 +49,7 @@ packages:
   - 'packages/wasm'
   - 'packages/webpack-plugin'
   - 'dev-packages/browser-integration-tests'
+  - 'dev-packages/browser-min-version-tests'
   - 'dev-packages/bundler-plugin-integration-tests'
   - 'dev-packages/e2e-tests'
   - 'dev-packages/node-integration-tests'
@@ -69,6 +70,8 @@ strictPeerDependencies: false
 # The packages depend on each other by exact version, not with `workspace:`.
 # This links them from the workspace instead of installing them from npm.
 linkWorkspacePackages: true
+# Lockfiles written by Dependabot or `pnpm add` would otherwise fail `pnpm dedupe --check` in CI.
+autoDedupe: true
 
 overrides:
   nx>minimatch: 10.2.5
@@ -99,6 +102,7 @@ packageExtensions:
 # `false` only for scripts that just print a message.
 allowBuilds:
   '@apollo/protobufjs': true
+  '@google/genai': false
   '@nestjs/core': false
   '@parcel/watcher': true
   '@prisma/client': true
@@ -108,11 +112,32 @@ allowBuilds:
   core-js-pure: false
   esbuild: true
   mongodb-memory-server-global: true
+  msgpackr-extract: true
   nice-napi: true
   nx: true
   prisma: true
+  protobufjs: false
   sharp: true
   vue-demi: true
   workerd: true
 minimumReleaseAgeExclude:
-  - '@opentelemetry/api@1.10.0'
+  - '@sentry/*'
+  - sentry
+  - '@apm-js-collab/code-transformer-bundler-plugins@0.7.6'
+  - '@rolldown/binding-android-arm-eabi@1.3.2'
+  - '@rolldown/binding-android-arm64@1.3.2'
+  - '@rolldown/binding-darwin-arm64@1.3.2'
+  - '@rolldown/binding-darwin-x64@1.3.2'
+  - '@rolldown/binding-freebsd-x64@1.3.2'
+  - '@rolldown/binding-linux-arm-gnueabihf@1.3.2'
+  - '@rolldown/binding-linux-arm64-gnu@1.3.2'
+  - '@rolldown/binding-linux-arm64-musl@1.3.2'
+  - '@rolldown/binding-linux-ppc64-gnu@1.3.2'
+  - '@rolldown/binding-linux-s390x-gnu@1.3.2'
+  - '@rolldown/binding-linux-x64-gnu@1.3.2'
+  - '@rolldown/binding-linux-x64-musl@1.3.2'
+  - '@rolldown/binding-openharmony-arm64@1.3.2'
+  - '@rolldown/binding-wasm32-wasi@1.3.2'
+  - '@rolldown/binding-win32-arm64-msvc@1.3.2'
+  - '@rolldown/binding-win32-x64-msvc@1.3.2'
+  - rolldown@1.3.2

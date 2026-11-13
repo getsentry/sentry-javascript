@@ -30,7 +30,7 @@ const ORIGIN = 'auto.ai.mistralai';
 // Not exported from `@sentry/conventions` yet; the SDK defines it in `ai/core/gen-ai-attributes`.
 const GEN_AI_REQUEST_STREAM = 'gen_ai.request.stream';
 
-// ESM-only: `@mistralai/mistralai` v2 ships no CJS build, so CJS consumers load it via `require(esm)`,
+// ESM-only: `@mistralai/mistralai` v2+ ships no CJS build, so CJS consumers load it via `require(esm)`,
 // whose auto-instrumentation is inconsistent across Node versions. The SDK's native mode is ESM, so we
 // only run the suite there.
 describe('Mistral integration', () => {

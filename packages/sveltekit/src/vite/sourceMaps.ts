@@ -77,6 +77,7 @@ export async function makeCustomSentryVitePlugins(
     sourcemaps: {
       ...options?.sourcemaps,
       filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
+      deleteSourcemapsAfterUpload: false,
     },
   };
 
@@ -364,7 +365,7 @@ function detectSentryRelease(): string {
   let releaseFallback: string;
   try {
     releaseFallback = child_process
-      .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true })
       .toString()
       .trim();
   } catch {

@@ -12,14 +12,11 @@
   },
   "dependencies": {
     "@sentry/elysia": "file:../../packed/sentry-elysia-packed.tgz",
-    "elysia": "latest",
+    "elysia": "^1.4.0",
     "@elysiajs/node": "^1.4.5"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

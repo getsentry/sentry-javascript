@@ -179,9 +179,7 @@ function subscribeConstruct(): void {
 function subscribeLoad(): void {
   const channel = diagnosticsChannel.tracingChannel<DataLoaderChannelContext>(CHANNELS.DATALOADER_LOAD);
 
-  bindTracingChannelToSpan(channel, data => startInactiveSpanFor(data.self, 'load', data.arguments[0]), {
-    requiresParentSpan: true,
-  });
+  bindTracingChannelToSpan(channel, data => startInactiveSpanFor(data.self, 'load', data.arguments[0]));
 
   channel.end.subscribe(message => {
     const data = message as TracingChannelPayloadWithSpan<DataLoaderChannelContext>;
@@ -194,10 +192,8 @@ function subscribeLoad(): void {
 }
 
 function subscribeSimpleOperation(channelName: ChannelName, operation: Operation): void {
-  bindTracingChannelToSpan(
-    diagnosticsChannel.tracingChannel<DataLoaderChannelContext>(channelName),
-    data => startInactiveSpanFor(data.self, operation, data.arguments[0]),
-    { requiresParentSpan: true },
+  bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<DataLoaderChannelContext>(channelName), data =>
+    startInactiveSpanFor(data.self, operation, data.arguments[0]),
   );
 }
 

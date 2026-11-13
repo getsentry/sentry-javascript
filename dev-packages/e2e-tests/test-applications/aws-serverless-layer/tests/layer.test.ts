@@ -37,7 +37,7 @@ test.describe('Lambda layer', () => {
       data: {
         'sentry.sample_rate': 1,
         'sentry.segment.name.source': 'component',
-        'sentry.origin': 'auto.aws_lambda',
+        'sentry.origin': 'auto.function.aws_serverless',
         'sentry.op': 'function.aws',
         'cloud.account.id': '012345678912',
         'cloud.platform': 'aws_lambda',
@@ -49,7 +49,7 @@ test.describe('Lambda layer', () => {
         'sentry.kind': 'server',
       },
       op: 'function.aws',
-      origin: 'auto.aws_lambda',
+      origin: 'auto.function.aws_serverless',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       status: 'ok',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -108,7 +108,7 @@ test.describe('Lambda layer', () => {
       data: {
         'sentry.sample_rate': 1,
         'sentry.segment.name.source': 'component',
-        'sentry.origin': 'auto.aws_lambda',
+        'sentry.origin': 'auto.function.aws_serverless',
         'sentry.op': 'function.aws',
         'cloud.account.id': '012345678912',
         'cloud.platform': 'aws_lambda',
@@ -120,7 +120,7 @@ test.describe('Lambda layer', () => {
         'sentry.kind': 'server',
       },
       op: 'function.aws',
-      origin: 'auto.aws_lambda',
+      origin: 'auto.function.aws_serverless',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       status: 'ok',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -234,7 +234,7 @@ test.describe('Lambda layer', () => {
       data: {
         'sentry.sample_rate': 1,
         'sentry.segment.name.source': 'component',
-        'sentry.origin': 'auto.aws_lambda',
+        'sentry.origin': 'auto.function.aws_serverless',
         'sentry.op': 'function.aws',
         'cloud.account.id': '012345678912',
         'cloud.platform': 'aws_lambda',
@@ -246,7 +246,7 @@ test.describe('Lambda layer', () => {
         'sentry.kind': 'server',
       },
       op: 'function.aws',
-      origin: 'auto.aws_lambda',
+      origin: 'auto.function.aws_serverless',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       status: 'ok',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -283,11 +283,11 @@ test.describe('Lambda layer', () => {
     expect(transactionEvent.contexts?.trace).toEqual(
       expect.objectContaining({
         op: 'function.aws',
-        origin: 'auto.aws_lambda',
+        origin: 'auto.function.aws_serverless',
         status: 'ok',
         data: expect.objectContaining({
           'sentry.op': 'function.aws',
-          'sentry.origin': 'auto.aws_lambda',
+          'sentry.origin': 'auto.function.aws_serverless',
           'sentry.kind': 'server',
           'cloud.resource_id': 'arn:aws:lambda:us-east-1:012345678912:function:LayerCallback',
           'faas.name': 'LayerCallback',
@@ -392,6 +392,33 @@ test.describe('Lambda layer', () => {
     // The Lambda transaction is parented to the incoming trace context (eventContextExtractor + startInactiveSpan).
     expect(transactionEvent.contexts?.trace?.trace_id).toEqual(traceId);
     expect(transactionEvent.contexts?.trace?.parent_span_id).toEqual(parentSpanId);
+  });
+
+  test('does not leak isolation scope data between invocations on a warm container', async ({ lambdaClient }) => {
+    const firstErrorEventPromise = waitForError('aws-serverless-layer', errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === 'first invocation error';
+    });
+    const secondErrorEventPromise = waitForError('aws-serverless-layer', errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === 'second invocation error';
+    });
+
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerIsolationScope',
+        Payload: JSON.stringify({ tag: 'first-invocation', errorMessage: 'first invocation error' }),
+      }),
+    );
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerIsolationScope',
+        Payload: JSON.stringify({ errorMessage: 'second invocation error' }),
+      }),
+    );
+
+    const [firstErrorEvent, secondErrorEvent] = await Promise.all([firstErrorEventPromise, secondErrorEventPromise]);
+
+    expect(firstErrorEvent.tags?.invocation_tag).toBe('first-invocation');
+    expect(secondErrorEvent.tags?.invocation_tag).toBeUndefined();
   });
 
   test('extension tunnel validates DSN allowlist and rejects invalid envelopes', async ({ lambdaClient }) => {

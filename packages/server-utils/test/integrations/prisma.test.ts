@@ -1,3 +1,11 @@
+import {
+  DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_STATEMENT,
+  DB_SYSTEM,
+  DB_SYSTEM_NAME,
+} from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import { Client, createTransport, getCurrentScope, initAndBind, resolvedSyncPromise, spanToJSON } from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -22,9 +30,10 @@ class TestClient extends Client<any> {
   }
 }
 
-function initTestClient(): void {
+function initTestClient(options: { traceLifecycle?: 'stream' | 'static' } = {}): void {
   getCurrentScope().setClient(undefined);
   initAndBind(TestClient, {
+    ...options,
     dsn: 'https://username@domain/123',
     integrations: [],
     sendClientReports: false,
@@ -77,11 +86,11 @@ describe('instrumentPrisma', () => {
       instrumentPrisma();
 
       const span = runDbQuerySpan({
-        'db.system.name': 'postgresql',
-        'db.query.text': 'SELECT * FROM "public"."User" WHERE "bio" = $1',
+        [DB_SYSTEM_NAME]: 'postgresql',
+        [DB_QUERY_TEXT]: 'SELECT * FROM "public"."User" WHERE "bio" = $1',
       });
 
-      expect(spanToJSON(span).attributes['db.query.summary']).toBe('SELECT "public"."User"');
+      expect(spanToJSON(span).attributes[DB_QUERY_SUMMARY]).toBe('SELECT "public"."User"');
     });
 
     it.each(['mysql', 'mariadb'])('sanitizes double-quoted string literals as literals on %s', (system: string) => {
@@ -91,11 +100,90 @@ describe('instrumentPrisma', () => {
       // On MySQL `"..."` is a string literal, so treating it as a quoted identifier would let the
       // `FROM` inside a user-supplied value read as a second table.
       const span = runDbQuerySpan({
-        'db.system.name': system,
-        'db.query.text': 'SELECT * FROM `User` WHERE bio = "x FROM secret_table"',
+        [DB_SYSTEM_NAME]: system,
+        [DB_QUERY_TEXT]: 'SELECT * FROM `User` WHERE bio = "x FROM secret_table"',
       });
 
-      expect(spanToJSON(span).attributes['db.query.summary']).toBe('SELECT `User`');
+      expect(spanToJSON(span).attributes[DB_QUERY_SUMMARY]).toBe('SELECT `User`');
+    });
+
+    it('overrides a summary reported by Prisma with the one derived from the statement', () => {
+      initTestClient();
+      instrumentPrisma();
+
+      const span = runDbQuerySpan({
+        [DB_SYSTEM_NAME]: 'postgresql',
+        [DB_QUERY_TEXT]: 'SELECT * FROM "public"."User" WHERE "bio" = $1',
+        [DB_QUERY_SUMMARY]: 'prisma summary',
+      });
+
+      expect(spanToJSON(span).attributes[DB_QUERY_SUMMARY]).toBe('SELECT "public"."User"');
+    });
+  });
+
+  describe('span name', () => {
+    it('names a streamed db_query span after its summary', () => {
+      initTestClient({ traceLifecycle: 'stream' });
+      instrumentPrisma();
+
+      const span = runDbQuerySpan({
+        [DB_SYSTEM_NAME]: 'postgresql',
+        [DB_QUERY_TEXT]: 'SELECT * FROM "public"."User" WHERE "bio" = $1',
+      });
+
+      expect(spanToJSON(span).name).toBe('SELECT "public"."User"');
+    });
+
+    it('names a static db_query span after the sanitized statement, not the raw one', () => {
+      initTestClient({ traceLifecycle: 'static' });
+      instrumentPrisma();
+
+      const span = runDbQuerySpan({
+        [DB_SYSTEM]: 'postgresql',
+        [DB_STATEMENT]: 'SELECT * FROM "public"."User" WHERE "bio" = \'secret\'',
+      });
+
+      expect(spanToJSON(span).name).toBe('SELECT * FROM "public"."User" WHERE "bio" = ?');
+    });
+
+    it('keeps the Prisma span name for db_query spans without a statement', () => {
+      initTestClient({ traceLifecycle: 'static' });
+      instrumentPrisma();
+
+      const span = runDbQuerySpan({ [DB_SYSTEM_NAME]: 'postgresql' });
+
+      expect(spanToJSON(span).name).toBe('prisma:client:db_query');
+    });
+  });
+
+  describe('db.query.text', () => {
+    it('backfills the sanitized statement when Prisma only reports db.statement', () => {
+      initTestClient();
+      instrumentPrisma();
+
+      const span = runDbQuerySpan({
+        [DB_SYSTEM]: 'postgresql',
+        [DB_STATEMENT]: 'SELECT * FROM "public"."User" WHERE "bio" = \'secret\' LIMIT 10',
+      });
+
+      expect(spanToJSON(span).attributes).toMatchObject({
+        [DB_STATEMENT]: 'SELECT * FROM "public"."User" WHERE "bio" = \'secret\' LIMIT 10',
+        [DB_QUERY_TEXT]: 'SELECT * FROM "public"."User" WHERE "bio" = ? LIMIT ?',
+        [DB_QUERY_SUMMARY]: 'SELECT "public"."User"',
+        [DB_OPERATION_NAME]: 'SELECT',
+      });
+    });
+
+    it("keeps Prisma's own db.query.text", () => {
+      initTestClient();
+      instrumentPrisma();
+
+      const span = runDbQuerySpan({
+        [DB_SYSTEM_NAME]: 'postgresql',
+        [DB_QUERY_TEXT]: 'SELECT * FROM "public"."User" WHERE 1=1 OFFSET $1',
+      });
+
+      expect(spanToJSON(span).attributes[DB_QUERY_TEXT]).toBe('SELECT * FROM "public"."User" WHERE 1=1 OFFSET $1');
     });
   });
 

@@ -1,4 +1,5 @@
 export { httpIntegration } from './integrations/http';
+export { awsLambdaWebIntegration } from './integrations/awsLambdaWeb';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
 // oxlint-disable-next-line typescript/no-deprecated
@@ -6,11 +7,18 @@ export { expressErrorHandler, setupExpressErrorHandler } from '@sentry/server-ut
 export {
   amqplibIntegration,
   anthropicAIIntegration,
+  awsIntegration,
   dataloaderIntegration,
   expressIntegration,
   type ExpressIntegrationOptions,
   firebaseIntegration,
   genericPoolIntegration,
+  cronJobIntegration,
+  type CronJobIntegrationOptions,
+  nodeCronIntegration,
+  type NodeCronIntegrationOptions,
+  nodeScheduleIntegration,
+  type NodeScheduleIntegrationOptions,
   googleGenAIIntegration,
   graphqlIntegration,
   groqIntegration,
@@ -25,6 +33,7 @@ export {
   lruMemoizerIntegration,
   createFlueInstrumentation,
   mastraIntegration,
+  piAiIntegration,
   piDurableIntegration,
   mcpServerIntegration,
   SentryMastraExporter,
@@ -57,6 +66,8 @@ export {
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
   instrumentStateGraphCompile,
+  instrumentCreateReactAgent,
+  instrumentPostgresJsSql,
   fastifyIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupFastifyErrorHandler,
@@ -65,6 +76,7 @@ export {
 export { setupHapiErrorHandler } from './integrations/tracing/hapi';
 // oxlint-disable-next-line typescript/no-deprecated -- deprecated but still re-exported for backwards compatibility
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
+export { BullMQTelemetry } from './integrations/tracing/bullmq';
 export {
   launchDarklyIntegration,
   buildLaunchDarklyFlagUsedHandler,
@@ -148,6 +160,7 @@ export {
   captureSession,
   endSession,
   addIntegration,
+  moduleMetadataIntegration,
   startSpan,
   startSpanManual,
   startInactiveSpan,
@@ -171,7 +184,16 @@ export {
   featureFlagsIntegration,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export {
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
+  trpcMiddleware,
+  wrapMcpServerWithSentry,
+} from '@sentry/core/server';
+export type { TunnelRequestLike } from '@sentry/core/server';
+export { installTunnelHooks as _INTERNAL_installTunnelHooks, serveTunnelIntegration } from './integrations/serveTunnel';
+export { getTunnelPath, handleTunnelRequest } from '@sentry/core';
+export type { HandleTunnelRequestOptions, ServerTunnelOptions } from '@sentry/core';
 
 export type {
   Breadcrumb,
@@ -204,7 +226,7 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
 } from '@sentry/core';
-export * as logger from './logs/exports';
+export { logger } from './logs/exports';
 
 export { childProcessIntegration } from './integrations/childProcess';
 export { consoleIntegration } from './integrations/console';

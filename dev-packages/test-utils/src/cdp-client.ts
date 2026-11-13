@@ -135,18 +135,24 @@ export class CDPClient {
     this.#log('Sending:', method, params || '');
 
     return new Promise((resolve, reject) => {
-      this.#pendingRequests.set(id, {
-        resolve: value => resolve(value as T),
-        reject,
-      });
-      this.#ws!.send(message);
-
-      setTimeout(() => {
+      // Cleared on response, so a finished request doesn't keep the process alive until the timeout.
+      const timeoutId = setTimeout(() => {
         if (this.#pendingRequests.has(id)) {
           this.#pendingRequests.delete(id);
           reject(new Error(`CDP request ${method} timed out after ${timeout}ms`));
         }
       }, timeout);
+      this.#pendingRequests.set(id, {
+        resolve: value => {
+          clearTimeout(timeoutId);
+          resolve(value as T);
+        },
+        reject: error => {
+          clearTimeout(timeoutId);
+          reject(error);
+        },
+      });
+      this.#ws!.send(message);
     });
   }
 

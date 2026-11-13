@@ -22,28 +22,29 @@
     "test:assert": "pnpm test:prod && pnpm test:dev",
     "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack",
     "test:build:cloudflare": "pnpm install && opennextjs-cloudflare build --config wrangler.opennext.jsonc",
-    "test:build-latest:cloudflare": "pnpm install && pnpm add next@16.3 && opennextjs-cloudflare build --config wrangler.opennext.jsonc",
+    "test:build-latest:cloudflare": "pnpm install && pnpm add next@latest && opennextjs-cloudflare build --config wrangler.opennext.jsonc",
     "start:cloudflare": "opennextjs-cloudflare preview --config wrangler.opennext.jsonc --var \"E2E_TEST_DSN:$E2E_TEST_DSN\"",
     "test:build:vinext": "pnpm install && pnpm add react@19.3.1 react-dom@19.3.1 && npm pkg set type=module && vinext build",
-    "test:assert:vinext": "VINEXT=1 pnpm test:prod"
+    "test:assert:vinext": "VINEXT=1 pnpm test:prod",
+    "test:build:bun": "pnpm install && bun --bun ./node_modules/next/dist/bin/next build",
+    "test:build:deno": "pnpm install && deno run -A ./node_modules/next/dist/bin/next build"
   },
   "//": "Pin `ioredis` to 5.10.1: it's the last version before the driver publishes its own native diagnostics channels; orchestrion's config covers `ioredis <5.11.0`.",
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.14.9",
+    "@opennextjs/cloudflare": "^1.20.12",
     "@sentry/bun": "file:../../packed/sentry-bun-packed.tgz",
     "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@vercel/queue": "^0.1.3",
     "ai": "^3.0.0",
-    "import-in-the-middle": "^2",
     "ioredis": "5.10.1",
-    "next": "16.3.8",
+    "next": "16.4.2",
     "openai": "5.18.1",
     "pg": "^8.13.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "require-in-the-middle": "^8",
+    "sentry-metadata-test-dependency": "file:../../test-applications/nextjs-16/fixtures/metadata-dependency",
     "zod": "^3.22.4"
   },
   "devDependencies": {
@@ -63,28 +64,56 @@
     "vite": "^8.3.0",
     "wrangler": "^4.61.0"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
-    "runner": "namespace-profile-sentry-javascript",
     "variants": [
       {
+        "build-command": "pnpm install",
+        "label": "nextjs-16 (turbopack, development)",
+        "assert-command": "pnpm test:dev"
+      },
+      {
+        "build-command": "NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES=1 pnpm test:build",
+        "label": "nextjs-16 (exclude application key dependencies, production)",
+        "assert-command": "NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES=1 pnpm test:prod"
+      },
+      {
+        "build-command": "pnpm install",
+        "label": "nextjs-16 (exclude application key dependencies, development)",
+        "assert-command": "NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES=1 pnpm test:dev"
+      },
+      {
         "build-command": "pnpm test:build-webpack",
-        "label": "nextjs-16 (webpack)",
-        "assert-command": "pnpm test:assert-webpack"
+        "label": "nextjs-16 (webpack, production)",
+        "assert-command": "pnpm test:prod"
+      },
+      {
+        "build-command": "pnpm install",
+        "label": "nextjs-16 (webpack, development)",
+        "assert-command": "pnpm test:dev-webpack"
       },
       {
         "build-command": "pnpm test:build-latest-webpack",
-        "label": "nextjs-16 (latest, webpack)",
-        "assert-command": "pnpm test:assert-webpack"
+        "label": "nextjs-16 (latest, webpack, production)",
+        "assert-command": "pnpm test:prod"
+      },
+      {
+        "build-command": "pnpm install && pnpm add next@latest",
+        "label": "nextjs-16 (latest, webpack, development)",
+        "assert-command": "pnpm test:dev-webpack"
       },
       {
         "build-command": "pnpm test:build-latest",
-        "label": "nextjs-16 (latest, turbopack)"
+        "label": "nextjs-16 (latest, turbopack, production)",
+        "assert-command": "pnpm test:prod"
+      },
+      {
+        "build-command": "pnpm install && pnpm add next@latest",
+        "label": "nextjs-16 (latest, turbopack, development)",
+        "assert-command": "pnpm test:dev"
       },
       {
         "runtime": "bun",
+        "build-command": "pnpm test:build:bun",
         "assert-command": "pnpm test:prod",
         "label": "nextjs-16 (bun)"
       },
@@ -93,30 +122,21 @@
         "build-command": "pnpm test:build:cloudflare",
         "assert-command": "pnpm test:prod",
         "label": "nextjs-16 (cloudflare)"
+      },
+      {
+        "runtime": "deno",
+        "build-command": "pnpm test:build:deno",
+        "assert-command": "pnpm test:prod",
+        "deno-version": "v2.9.0",
+        "label": "nextjs-16 (deno)"
       }
     ],
     "optionalVariants": [
-      {
-        "build-command": "pnpm test:build-canary",
-        "label": "nextjs-16 (canary, turbopack)",
-        "assert-command": "pnpm test:assert"
-      },
-      {
-        "build-command": "pnpm test:build-canary-webpack",
-        "label": "nextjs-16 (canary, webpack)",
-        "assert-command": "pnpm test:assert-webpack"
-      },
       {
         "runtime": "cloudflare",
         "build-command": "pnpm test:build-latest:cloudflare",
         "assert-command": "pnpm test:prod",
         "label": "nextjs-16 (cloudflare, latest)"
-      },
-      {
-        "runtime": "deno",
-        "assert-command": "pnpm test:prod",
-        "deno-version": "v2.9.0",
-        "label": "nextjs-16 (deno)"
       },
       {
         "build-command": "pnpm test:build:vinext",
@@ -129,6 +149,23 @@
         "assert-command": "pnpm test:assert:vinext",
         "label": "nextjs-16 (vinext, bun)"
       }
-    ]
+    ],
+    "canaryVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "nextjs-16 (canary, turbopack)",
+        "assert-command": "pnpm test:assert"
+      },
+      {
+        "build-command": "pnpm test:build-canary-webpack",
+        "label": "nextjs-16 (canary, webpack)",
+        "assert-command": "pnpm test:assert-webpack"
+      }
+    ],
+    "baseVariant": {
+      "build-command": "pnpm test:build",
+      "label": "nextjs-16 (turbopack, production)",
+      "assert-command": "pnpm test:prod"
+    }
   }
 }
