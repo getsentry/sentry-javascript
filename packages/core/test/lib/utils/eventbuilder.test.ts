@@ -334,6 +334,15 @@ describe('exceptionFromError', () => {
     ['an array', [1, 'two'], '[1,"two"]'],
     ['a circular object', circular, '[object Object]'],
     ['a function', function namedFn() {}, '[Function: namedFn]'],
+    ['an error', new Error('inner'), '[object Error]'],
+    ['a map', new Map([['code', 42]]), '[object Map]'],
+    [
+      'a class instance',
+      new (class CustomMessage {
+        code = 42;
+      })(),
+      '{"code":42}',
+    ],
   ])('turns %s into a string', (_, message, expected) => {
     const error = new Error('placeholder');
     (error as { message: unknown }).message = message;

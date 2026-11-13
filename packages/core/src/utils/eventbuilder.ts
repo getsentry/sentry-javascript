@@ -59,7 +59,14 @@ function errorMessageToString(message: unknown): string {
     return String(message);
   }
 
-  return stringify(message, '') || stringifyValue(undefined, message);
+  if (isPlainObject(message) || Array.isArray(message)) {
+    const json = stringify(message, '');
+    if (json) {
+      return json;
+    }
+  }
+
+  return stringifyValue(undefined, message);
 }
 
 /**
