@@ -96,4 +96,20 @@ describe('setupNitroServer', () => {
     expect(nitro.hooks.hook).toHaveBeenCalledWith('rollup:before', expect.any(Function));
     expect(nitro.hooks.hook).toHaveBeenCalledWith('close', expect.any(Function));
   });
+
+  it.each([
+    ['cloudflare_module', ['./runtime/plugins/handler-legacy.server']],
+    ['node-server', ['./runtime/plugins/handler-legacy.server', './runtime/plugins/sentry.server']],
+  ])('drops the sentry.server plugin only on Cloudflare (%s preset)', (preset, expectedPlugins) => {
+    const { nuxt, callHook } = createFakeNuxt();
+    const nitro = {
+      options: { preset, plugins: ['./runtime/plugins/handler-legacy.server', './runtime/plugins/sentry.server'] },
+      hooks: { hook: vi.fn() },
+    };
+    setupNitroServer(nuxt, 'nitro2', SERVER_CONFIG, MODULE_OPTIONS);
+
+    callHook('nitro:init', nitro);
+
+    expect(nitro.options.plugins).toEqual(expectedPlugins);
+  });
 });

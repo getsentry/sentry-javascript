@@ -13,7 +13,7 @@ import {
 import { addDatabaseInstrumentation } from './databaseConfig';
 import { addMiddlewareImports, addMiddlewareInstrumentation } from './middlewareConfig';
 import { addCacheStorageInstrumentation, addStorageInstrumentation } from './storageConfig';
-import { addRuntimeInjectionTraceDep, type ServerApi } from './utils';
+import { addRuntimeInjectionTraceDep, isCloudflarePreset, type ServerApi } from './utils';
 
 type NitroModuleOptions = Omit<SentryNuxtModuleOptions, 'experimental_entrypointWrappedFunctions'> &
   Required<Pick<SentryNuxtModuleOptions, 'experimental_entrypointWrappedFunctions'>>;
@@ -50,7 +50,8 @@ export function setupNitroServer(
 
   addTunnelPlugin(serverApi);
 
-  addNitroPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
+  const sentryServerPlugin = moduleDirResolver.resolve('./runtime/plugins/sentry.server');
+  addNitroPlugin(sentryServerPlugin);
 
   // Preps the middleware instrumentation module.
   addMiddlewareImports();
@@ -61,6 +62,12 @@ export function setupNitroServer(
   nuxt.hooks.hook('nitro:init', nitro => {
     if (nuxt.options?._prepare) {
       return;
+    }
+
+    // On Cloudflare, `sentryCloudflareNitroPlugin` adds the meta tags and captures the errors, so this plugin would add
+    // them a second time.
+    if (isCloudflarePreset(nitro.options.preset)) {
+      nitro.options.plugins = (nitro.options.plugins ?? []).filter(plugin => plugin !== sentryServerPlugin);
     }
 
     addMiddlewareInstrumentation(nitro, isNitroV3);
