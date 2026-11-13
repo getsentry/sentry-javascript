@@ -212,9 +212,17 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
 
   // BullMQ passes the job error to the telemetry adapter since 6.7.5, so only then does the error have a stack.
   describe.each([
-    ['bullmq v5', {}, false],
-    ['bullmq v6', { bullmq: '^6.7.5' }, true],
-  ])('%s', (_version, additionalDependencies, hasJobErrorStack) => {
+    ['bullmq v5', {}, undefined],
+    [
+      'bullmq v6',
+      { bullmq: '^6.7.5' },
+      {
+        frames: expect.arrayContaining([
+          expect.objectContaining({ filename: expect.stringContaining('scenario-failed-job') }),
+        ]),
+      },
+    ],
+  ])('%s', (_version, additionalDependencies, expectedStacktrace) => {
     createEsmAndCjsTests(
       __dirname,
       'scenario-failed-job.mjs',
@@ -310,13 +318,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
               type: 'auto.queue.bullmq',
               handled: false,
             });
-            if (hasJobErrorStack) {
-              expect(errorEvent?.exception?.values?.[0]?.stacktrace?.frames).toContainEqual(
-                expect.objectContaining({ filename: expect.stringContaining('scenario-failed-job') }),
-              );
-            } else {
-              expect(errorEvent?.exception?.values?.[0]?.stacktrace).toBeUndefined();
-            }
+            expect(errorEvent?.exception?.values?.[0]?.stacktrace).toEqual(expectedStacktrace);
             expect(errorEvent?.contexts?.trace?.trace_id).toBe(processSpan.trace_id);
             expect(errorEvent?.contexts?.trace?.span_id).toBe(processSpan.span_id);
           },
