@@ -2,8 +2,8 @@
 /**
  * Shared utils for AI integrations (OpenAI, Anthropic, Verce.AI, etc.)
  */
-import { getClient, isObjectLike, isThenable, stringify } from '@sentry/core';
-import type { Span } from '@sentry/core';
+import { getClient, isObjectLike, isThenable, SPAN_STATUS_ERROR, stringify } from '@sentry/core';
+import type { Span, SpanStatus } from '@sentry/core';
 import {
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_RESPONSE_FINISH_REASONS,
@@ -231,6 +231,37 @@ export interface StreamResponseState {
   cacheCreationInputTokens?: number;
   cacheReadInputTokens?: number;
   reasoningOutputTokens?: number;
+}
+
+/**
+ * Reads `signal` from the request options OpenAI and Anthropic take as their second argument.
+ */
+export function getRequestSignal(requestOptions: unknown): AbortSignal | undefined {
+  return isObjectLike(requestOptions) ? (requestOptions.signal as AbortSignal | undefined) : undefined;
+}
+
+/**
+ * Checks the signal rather than the error name, because SDK timeouts also throw an `AbortError`. A caller's
+ * own `AbortSignal.timeout()` is a timeout too, not a cancellation.
+ */
+export function isCallerAbort(abortSignal: AbortSignal | undefined): boolean {
+  return !!abortSignal?.aborted && (abortSignal.reason as { name?: unknown } | undefined)?.name !== 'TimeoutError';
+}
+
+/**
+ * A caller's abort is `cancelled`, anything else `internal_error`.
+ */
+export function getErrorStatus(abortSignal: AbortSignal | undefined): SpanStatus {
+  return { code: SPAN_STATUS_ERROR, message: isCallerAbort(abortSignal) ? 'cancelled' : 'internal_error' };
+}
+
+/**
+ * Overrides the status of a span whose call the caller aborted.
+ */
+export function markCancelledIfAborted(span: Span, abortSignal: AbortSignal | undefined): void {
+  if (isCallerAbort(abortSignal)) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
+  }
 }
 
 /**
