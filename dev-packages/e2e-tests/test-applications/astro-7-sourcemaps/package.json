@@ -9,7 +9,9 @@
     "test:build": "pnpm install && pnpm build",
     "test:assert": "node assert-build.ts",
     "test:build:static": "E2E_ASTRO_OUTPUT=static pnpm test:build",
-    "test:assert:static": "E2E_ASTRO_OUTPUT=static pnpm test:assert"
+    "test:assert:static": "E2E_ASTRO_OUTPUT=static pnpm test:assert",
+    "test:build:no-upload": "E2E_NO_UPLOAD=1 pnpm test:build",
+    "test:assert:no-upload": "E2E_NO_UPLOAD=1 pnpm test:assert"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.4",
@@ -26,6 +28,11 @@
         "build-command": "pnpm test:build:static",
         "assert-command": "pnpm test:assert:static",
         "label": "astro-7-sourcemaps (static output)"
+      },
+      {
+        "build-command": "pnpm test:build:no-upload",
+        "assert-command": "pnpm test:assert:no-upload",
+        "label": "astro-7-sourcemaps (no upload)"
       }
     ]
   }
