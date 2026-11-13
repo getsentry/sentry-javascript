@@ -10,6 +10,10 @@
 
   `Sentry.cron.instrumentCron`, `instrumentNodeCron` and `instrumentNodeSchedule` send the server's time zone when a job has none, so monitors don't report false misses on servers that aren't on UTC. Schedules Sentry can't express exactly, such as per-second schedules, send no monitor config, so the monitor keeps the schedule set in Sentry. `Sentry.cron.instrumentNodeCron` is deprecated; use `nodeCronIntegration` instead.
 
+- **fix(nuxt): Name the database system in `db.system.name` of db0 spans ([#26285](https://github.com/getsentry/sentry-javascript/pull/26285))**
+
+  Nitro database (db0) spans now set `db.system.name` to the database system of the connector's dialect (`mysql`, `postgresql`, `sqlite` or `libsql`), as the OpenTelemetry conventions define it, instead of the connector name. For example, spans of the `mysql2` and `planetscale` connectors now report `mysql`, and spans of `better-sqlite3` and `cloudflare-d1` now report `sqlite`. Update saved queries, alerts and dashboards that filter on the connector names.
+
 ## 11.13.0
 
 ### Important Changes

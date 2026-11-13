@@ -2,8 +2,10 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 import { IMPORT_SURFACES } from './importSurfaces';
 import { isViteServer, NITRO_ONLY } from './isViteServer';
+import { NO_SERVER_CONFIG_INSTRUMENTATION, RUNTIME } from './runtime';
 
 test.skip(isViteServer, NITRO_ONLY);
+test.skip(RUNTIME === 'cloudflare', NO_SERVER_CONFIG_INSTRUMENTATION);
 
 // Nitro runs every file in `server/middleware/` on every request, so each surface tells its spans apart by
 // middleware name. `nuxt/server` has no object syntax (`onRequest`, `onBeforeResponse`) and no `eventHandler`

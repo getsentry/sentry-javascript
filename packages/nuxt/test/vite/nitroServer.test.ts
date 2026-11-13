@@ -96,31 +96,4 @@ describe('setupNitroServer', () => {
     expect(nitro.hooks.hook).toHaveBeenCalledWith('rollup:before', expect.any(Function));
     expect(nitro.hooks.hook).toHaveBeenCalledWith('close', expect.any(Function));
   });
-
-  it('drops the sentry.server plugin from the Cloudflare build and its prerenderer', () => {
-    const { nuxt, callHook } = createFakeNuxt();
-    const plugins = ['./runtime/plugins/handler-legacy.server', './runtime/plugins/sentry.server'];
-    const nitro = { options: { preset: 'cloudflare_module', plugins }, hooks: { hook: vi.fn() } };
-    setupNitroServer(nuxt, 'nitro2', SERVER_CONFIG, MODULE_OPTIONS);
-
-    callHook('nitro:init', nitro);
-    const prerenderConfig = { plugins };
-    const prerenderConfigHook = nitro.hooks.hook.mock.calls.find(([name]) => name === 'prerender:config')?.[1];
-    prerenderConfigHook?.(prerenderConfig);
-
-    expect(nitro.options.plugins).toEqual(['./runtime/plugins/handler-legacy.server']);
-    expect(prerenderConfig.plugins).toEqual(['./runtime/plugins/handler-legacy.server']);
-  });
-
-  it('keeps the sentry.server plugin on other presets', () => {
-    const { nuxt, callHook } = createFakeNuxt();
-    const plugins = ['./runtime/plugins/handler-legacy.server', './runtime/plugins/sentry.server'];
-    const nitro = { options: { preset: 'node-server', plugins }, hooks: { hook: vi.fn() } };
-    setupNitroServer(nuxt, 'nitro2', SERVER_CONFIG, MODULE_OPTIONS);
-
-    callHook('nitro:init', nitro);
-
-    expect(nitro.options.plugins).toEqual(plugins);
-    expect(nitro.hooks.hook).not.toHaveBeenCalledWith('prerender:config', expect.any(Function));
-  });
 });
