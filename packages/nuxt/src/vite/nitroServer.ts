@@ -67,7 +67,13 @@ export function setupNitroServer(
     // On Cloudflare, `sentryCloudflareNitroPlugin` adds the meta tags and captures the errors, so this plugin would add
     // them a second time.
     if (isCloudflarePreset(nitro.options.preset)) {
-      nitro.options.plugins = (nitro.options.plugins ?? []).filter(plugin => plugin !== sentryServerPlugin);
+      const withoutSentryServerPlugin = <T>(plugins: T[] | undefined): T[] =>
+        (plugins ?? []).filter(plugin => plugin !== sentryServerPlugin);
+      nitro.options.plugins = withoutSentryServerPlugin(nitro.options.plugins);
+      // The prerenderer is built from the original config, with its own preset.
+      nitro.hooks.hook('prerender:config', config => {
+        config.plugins = withoutSentryServerPlugin(config.plugins);
+      });
     }
 
     addMiddlewareInstrumentation(nitro, isNitroV3);
