@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
-import { PAGELOAD } from '@sentry/conventions/op';
+import { HTTP_SERVER, PAGELOAD } from '@sentry/conventions/op';
 
 function sentryMetaTagNames(html: string): string[] {
   return [...html.matchAll(/<meta name="(sentry-[\w-]+|baggage)"/g)].map(match => match[1] ?? '');
@@ -82,6 +82,8 @@ test('marks the pageload of a Vercel ISR page as statically rendered and links t
   ]);
 
   expect(originSpan.trace_id).toBe(originTraceId);
+  expect(getSpanOp(originSpan)).toBe(HTTP_SERVER);
+  expect(originSpan.is_segment).toBe(true);
   expect(pageloadSpan.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toEqual({ type: 'string', value: 'static' });
   expect(pageloadSpan.parent_span_id).toBeUndefined();
   expect(pageloadSpan.trace_id).not.toBe(originTraceId);

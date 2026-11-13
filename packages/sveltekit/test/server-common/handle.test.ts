@@ -698,6 +698,24 @@ describe('addSentryCodeToPage', () => {
       );
     });
 
+    it('uses the root span of the request as the cache origin while a child span is active', () => {
+      const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false, isVercelIsrRender: true });
+
+      const transformed = SentryCore.startSpan({ name: 'GET /pricing' }, rootSpan =>
+        SentryCore.startSpan({ name: 'sveltekit.resolve' }, () => {
+          const { traceId, spanId } = rootSpan.spanContext();
+          return { html: transformPageChunk({ html: serverRenderedHtml, done: true }), traceId, spanId };
+        }),
+      );
+
+      expect(transformed.html).toBe(
+        serverRenderedHtml.replace(
+          '<head>',
+          `<head>\n<meta name="sentry-cache-origin" content="${transformed.traceId}-${transformed.spanId}-1"/>`,
+        ),
+      );
+    });
+
     it('adds no meta tags to a client-side shell', () => {
       const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false, isVercelIsrRender: true });
 

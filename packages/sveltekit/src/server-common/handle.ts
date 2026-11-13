@@ -2,10 +2,12 @@ import type { Span } from '@sentry/core';
 import {
   continueTrace,
   debug,
+  getActiveSpan,
   getClient,
   getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
+  getRootSpan,
   getTraceData,
   getTraceMetaTags,
   hasSpanStreamingEnabled,
@@ -115,8 +117,14 @@ function getPageMetaTags(html: string, isVercelIsrRender: boolean): string {
 
   // The build does not reliably send spans, so a prerendered page has no trace to link.
   // The empty tag still marks the pageload as static.
-  const originTrace = isVercelIsrRender ? getTraceData()['sentry-trace'] : undefined;
+  const originTrace = isVercelIsrRender ? getRootSpanTrace() : undefined;
   return `<meta name="${CACHE_ORIGIN_META_TAG_NAME}" content="${originTrace ?? ''}"/>`;
+}
+
+/** With Kit tracing, the active span while the page renders is Kit's `sveltekit.resolve`, not the root span. */
+function getRootSpanTrace(): string | undefined {
+  const activeSpan = getActiveSpan();
+  return getTraceData({ span: activeSpan && getRootSpan(activeSpan) })['sentry-trace'];
 }
 
 /** Kit writes `node_ids` only if the server rendered content, not for `ssr = false` or the SPA fallback. */
