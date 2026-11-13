@@ -24,6 +24,22 @@ export function instrumentFetcher(fetchFn: Fetcher['fetch']): Fetcher['fetch'] {
       return fetchFn(requestWithTracing);
     }
 
+    if (init instanceof Request) {
+      // `init` is itself a Request (the `stub.fetch(url, request)` Workers idiom). A Request's
+      // `method`, `headers`, `body` and the rest are prototype getters, not own properties, so the
+      // object spread below would drop them and the call would reach the fetcher as a bare GET with
+      // no headers or body. Rebuild through the Request constructor, which reads those members by
+      // property access, then layer the tracing headers (which already include the request's own
+      // headers) on top.
+      const request = new Request(input, init);
+
+      if (!headers) {
+        return fetchFn(request);
+      }
+
+      return fetchFn(new Request(request, { headers: headers as HeadersInit }));
+    }
+
     const mergedInit = {
       ...init,
       ...(headers ? { headers } : {}),
