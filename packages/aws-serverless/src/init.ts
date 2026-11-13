@@ -26,40 +26,11 @@ const STATIC_ASSET_INVOCATIONS: NonNullable<Options['ignoreSpans']> = [
 ];
 
 /**
- * Checks if proxy environment variables would interfere with the layer extension.
- * The layer extension uses localhost:9000, so we need to check if proxy settings would prevent this.
+ * The Lambda extension only reads proxy settings from env vars, so it can't apply a proxy or CA certificates set in
+ * `transportOptions`.
  */
-function shouldDisableLayerExtensionForProxy(): boolean {
-  const { http_proxy, no_proxy } = process.env;
-
-  // If no http proxy is configured, no interference (https_proxy doesn't affect HTTP requests)
-  if (!http_proxy) {
-    return false;
-  }
-
-  // Check if localhost is exempted by no_proxy
-  if (no_proxy) {
-    const exemptions = no_proxy.split(',').map(exemption => exemption.trim().toLowerCase());
-
-    // Handle common localhost exemption patterns explicitly
-    // If localhost is exempted, requests to the layer extension will not be proxied
-    const localhostExemptions = ['*', 'localhost', '127.0.0.1', '::1'];
-    if (exemptions.some(exemption => localhostExemptions.includes(exemption))) {
-      return false;
-    }
-  }
-
-  // If http_proxy is set and no localhost exemption, it would interfere
-  // The layer extension uses HTTP to localhost:9000, so only http_proxy matters
-  if (http_proxy) {
-    DEBUG_BUILD &&
-      debug.log(
-        'Disabling useLayerExtension due to http_proxy environment variable. Consider adding localhost to no_proxy to re-enable.',
-      );
-    return true;
-  }
-
-  return false;
+function hasProxyTransportOptions(options: AwsServerlessOptions): boolean {
+  return !!(options.transportOptions?.proxy || options.transportOptions?.caCerts);
 }
 
 /**
@@ -107,14 +78,14 @@ export function getIgnoreSpans(options: AwsServerlessOptions): NonNullable<Optio
  */
 export function init(options: AwsServerlessOptions = {}): NodeClient | undefined {
   const sdkSource = getSDKSource();
-  const proxyWouldInterfere = shouldDisableLayerExtensionForProxy();
+  const hasProxyOptions = hasProxyTransportOptions(options);
 
   // Determine useLayerExtension value with the following priority:
   // 1. Explicit option value (if provided)
   // 2. Environment variable SENTRY_LAYER_EXTENSION (if set)
-  // 3. Default logic based on sdkSource, tunnel, and proxy settings
+  // 3. Default logic based on sdkSource, tunnel, and proxy transport options
   const useLayerExtensionFromEnv = envToBool(process.env.SENTRY_LAYER_EXTENSION, { strict: true });
-  const defaultUseLayerExtension = sdkSource === 'aws-lambda-layer' && !options.tunnel && !proxyWouldInterfere;
+  const defaultUseLayerExtension = sdkSource === 'aws-lambda-layer' && !options.tunnel && !hasProxyOptions;
   const useLayerExtension = options.useLayerExtension ?? useLayerExtensionFromEnv ?? defaultUseLayerExtension;
 
   const opts = {
@@ -127,7 +98,7 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
   if (opts.useLayerExtension) {
     if (sdkSource !== 'aws-lambda-layer') {
       DEBUG_BUILD && debug.warn('The Sentry Lambda extension is only supported when using the AWS Lambda layer.');
-    } else if (opts.tunnel || proxyWouldInterfere) {
+    } else if (opts.tunnel || hasProxyOptions) {
       if (opts.tunnel) {
         DEBUG_BUILD &&
           debug.warn(
@@ -135,15 +106,17 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
           );
       }
 
-      if (proxyWouldInterfere) {
+      if (hasProxyOptions) {
         DEBUG_BUILD &&
           debug.warn(
-            'Sentry Lambda extension is disabled due to proxy environment variables (http_proxy/https_proxy). Consider adding localhost to no_proxy to re-enable.',
+            'Sentry Lambda extension is disabled because `transportOptions` sets a proxy or CA certificates, which the extension cannot apply.',
           );
       }
     } else {
       DEBUG_BUILD && debug.log('Proxying Sentry events through the Sentry Lambda extension');
       opts.tunnel = 'http://localhost:9000/envelope';
+      // The extension applies proxy env vars itself; requests to it must not go through the proxy.
+      opts.transportOptions = { ...opts.transportOptions, proxy: false };
     }
   }
 
