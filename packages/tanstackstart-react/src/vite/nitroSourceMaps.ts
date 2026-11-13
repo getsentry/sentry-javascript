@@ -1,9 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import type { BuildEnvironmentOptions, Plugin, ResolvedConfig } from 'vite';
+import type { SourceMapState } from './sourceMaps';
 
 /** `nitro/vite` builds the final server in an environment with this name. */
-const NITRO_ENVIRONMENT = 'nitro';
+export const NITRO_ENVIRONMENT = 'nitro';
 
 /** The environment Vite passes to `applyToEnvironment`. */
 export type PluginEnvironment = Parameters<NonNullable<Plugin['applyToEnvironment']>>[0];
@@ -28,12 +29,6 @@ type Nitro = {
 };
 
 /**
- * Tells the plugin that deletes source maps after the upload whether the source maps of an environment are only
- * there because Sentry enabled them.
- */
-export type SourceMapsEnablerApi = { hasSentryEnabledSourceMaps(environmentName: string): boolean };
-
-/**
  * Whether Nitro bundles the output of this environment again. With `nitro/vite`, every server environment besides
  * `nitro` is a Nitro service, such as TanStack Start's `ssr` environment.
  */
@@ -49,11 +44,12 @@ export function isNitroService(environment: PluginEnvironment): boolean {
  * Keeps the sources in the source maps of Nitro's server build. Enables these source maps, unless a Nitro config
  * source or `build.rolldownOptions.output.sourcemap` of the Vite config sets them, or the Vite config disables them.
  */
-export function makeEnableNitroSourceMapsPlugin({ debug }: { debug?: boolean }): Plugin & {
-  api: SourceMapsEnablerApi;
+export function makeEnableNitroSourceMapsPlugin(
+  { debug }: { debug?: boolean },
+  state: SourceMapState,
+): Plugin & {
   nitro: { name: string; setup: (nitro: Nitro) => void };
 } {
-  let enabledSourceMaps = false;
   let viteConfigPreventsSourceMaps = false;
 
   return {
@@ -61,10 +57,8 @@ export function makeEnableNitroSourceMapsPlugin({ debug }: { debug?: boolean }):
     apply: 'build',
     // The `config` hook must run before the one of `nitro/vite`, which runs the Nitro modules.
     enforce: 'pre',
-    api: {
-      hasSentryEnabledSourceMaps: environmentName => enabledSourceMaps && environmentName === NITRO_ENVIRONMENT,
-    },
     config(viteConfig) {
+      state.sdkEnabledNitroSourceMaps = false;
       // Nitro overrides `build.sourcemap` for its environments, but `false` shows that the user wants no source maps.
       viteConfigPreventsSourceMaps =
         viteConfig.build?.sourcemap === false || hasOutputSourceMapSetting(viteConfig.build);
@@ -84,7 +78,7 @@ export function makeEnableNitroSourceMapsPlugin({ debug }: { debug?: boolean }):
         }
 
         nitro.options.sourcemap = 'hidden';
-        enabledSourceMaps = true;
+        state.sdkEnabledNitroSourceMaps = true;
         logDebug(debug, "Enabled source map generation for the Nitro server build with `nitro.sourcemap: 'hidden'`.");
       },
     },
@@ -118,7 +112,7 @@ export function makeComposeNitroServiceSourceMapsPlugin(): Plugin {
 }
 
 /** The output directories of the environments that Nitro bundles again. Empty in a build without Nitro. */
-export function getNitroServiceOutDirs(config: ResolvedConfig): string[] {
+function getNitroServiceOutDirs(config: ResolvedConfig): string[] {
   if (!(NITRO_ENVIRONMENT in config.environments)) {
     return [];
   }
@@ -140,9 +134,13 @@ function isInDirectory(file: string, directory: string): boolean {
 
 /** `output.sourcemap` of the bundler config overrides `build.sourcemap` in the build output. */
 export function hasOutputSourceMapSetting(
-  build: Pick<BuildEnvironmentOptions, 'rolldownOptions'> | undefined,
+  build: Pick<BuildEnvironmentOptions, 'rolldownOptions' | 'rollupOptions'> | undefined,
 ): boolean {
-  return [build?.rolldownOptions?.output ?? []].flat().some(output => output.sourcemap !== undefined);
+  // Vite 8 still accepts `rollupOptions` in the user config.
+  // oxlint-disable-next-line typescript/no-deprecated
+  return [build?.rolldownOptions?.output ?? [], build?.rollupOptions?.output ?? []]
+    .flat()
+    .some(output => output.sourcemap !== undefined);
 }
 
 /** In a Nitro config, `output.sourcemap` of the bundler config overrides `sourcemap` in the build output. */

@@ -9,3 +9,4 @@ src/routeTree.gen.ts
 .tmp_chunks
 .tmp_build_stdout
 .tmp_build_stderr
+.tmp_debug_ids_without_source_map
