@@ -3,7 +3,8 @@ import * as fs from 'fs';
 import { getJuniorRequesters, TEAM_SLUG } from './junior-requesters.mjs';
 
 const REQUIRED_REVIEWERS = 3;
-// Managers who are members (and code owners) of the SDK teams, but should never be auto-requested for review.
+// Managers who are members of the SDK teams, but should never be auto-requested for review.
+// GitHub's team auto-assignment can still pick them, so their pending requests are removed again.
 const NEVER_REQUEST = ['mydea', 'stephanie-anderson'];
 const REVIEWERS_PATH = '.github/REVIEWERS';
 
@@ -100,12 +101,22 @@ export async function assignReviewers({ github, context, core }) {
   // Whoever asked Junior for the PR is its de facto author.
   const requesters = await getJuniorRequesters({ github, core, pr: currentPr });
 
+  const neverRequest = new Set(NEVER_REQUEST.map(login => login.toLowerCase()));
+  const unwantedRequests = currentPr.requested_reviewers
+    .map(user => user.login)
+    .filter(login => neverRequest.has(login.toLowerCase()));
+  if (unwantedRequests.length) {
+    core.info(`Removing review requests from: ${unwantedRequests.join(', ')}`);
+    await github.rest.pulls.removeRequestedReviewers({ owner, repo, pull_number, reviewers: unwantedRequests });
+  }
+  const requestedReviewers = currentPr.requested_reviewers.filter(user => !neverRequest.has(user.login.toLowerCase()));
+
   const reviews = await github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number });
   // Requested reviewers drop off `requested_reviewers` once they submit a review, so count both.
   // Bots (AI reviewers) don't count towards the required reviewers.
   const existing = [
     ...new Set(
-      [...currentPr.requested_reviewers, ...reviews.map(r => r.user)]
+      [...requestedReviewers, ...reviews.map(r => r.user)]
         .filter(user => user && user.type !== 'Bot' && user.login.toLowerCase() !== author.toLowerCase())
         .map(user => user.login),
     ),
