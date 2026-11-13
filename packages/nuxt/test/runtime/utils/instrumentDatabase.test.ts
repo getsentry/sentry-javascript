@@ -1,10 +1,17 @@
 import { DB_NAMESPACE, DB_QUERY_TEXT, DB_SYSTEM_NAME, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
+import type * as SentryCoreServer from '@sentry/core/server';
+import { flushIfServerless } from '@sentry/core/server';
 import type { Database } from 'db0';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDatabasePlugin } from '../../../src/runtime/utils/instrumentDatabase';
 
 const span = { setStatus: vi.fn() };
+
+vi.mock('@sentry/core/server', async importOriginal => ({
+  ...(await importOriginal<typeof SentryCoreServer>()),
+  flushIfServerless: vi.fn(),
+}));
 
 vi.mock('@sentry/core', async importOriginal => ({
   ...(await importOriginal<typeof SentryCore>()),
@@ -44,6 +51,7 @@ describe('createDatabasePlugin', () => {
     expect(SentryCore.captureException).toHaveBeenCalledWith(error, {
       mechanism: { handled: false, type: 'auto.db.nuxt' },
     });
+    expect(flushIfServerless).toHaveBeenCalledTimes(1);
   });
 
   it('names the database system after the dialect, not the connector', async () => {

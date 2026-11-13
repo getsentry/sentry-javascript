@@ -93,6 +93,7 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConn
         // Connectors like `bun-sqlite` and `better-sqlite3` compile the statement in `prepare`, so an invalid query
         // throws here and not when the statement runs.
         startSpan(createStartSpanOptions(query, metadata, dialect), span => captureDatabaseError(span, error));
+        void flushIfServerless();
         throw error;
       }
 
