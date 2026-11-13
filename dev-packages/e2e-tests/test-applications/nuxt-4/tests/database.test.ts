@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 import { isViteServer, NITRO_ONLY } from './isViteServer';
-import { dbNamespaceAttribute, RUNTIME } from './runtime';
+import { NO_SERVER_CONFIG_INSTRUMENTATION, RUNTIME } from './runtime';
 
 test.skip(isViteServer, NITRO_ONLY);
+test.skip(RUNTIME === 'cloudflare', NO_SERVER_CONFIG_INSTRUMENTATION);
 
 async function collectDbSpans() {
   const spans = await collectStreamedSpansUntilSegment(
@@ -29,7 +30,7 @@ test.describe('database integration', () => {
       'db.query.summary': { type: 'string', value: 'SELECT users' },
       'db.query.text': { type: 'string', value: 'SELECT * FROM users WHERE id = ?' },
       'db.system.name': { type: 'string', value: 'sqlite' },
-      ...dbNamespaceAttribute('db'),
+      'db.namespace': { type: 'string', value: 'db.sqlite' },
       'sentry.op': { type: 'string', value: 'db.query' },
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
     });
@@ -152,8 +153,6 @@ test.describe('database integration', () => {
     expect(dbException?.mechanism).toEqual({
       handled: false,
       type: 'auto.db.nuxt',
-      // D1 errors carry a `cause`, so the exception is linked and gets an id.
-      ...(RUNTIME === 'cloudflare' && { exception_id: 0 }),
     });
 
     const dbSpan = dbSpans.find(span => span.name === 'SELECT nonexistent_table');

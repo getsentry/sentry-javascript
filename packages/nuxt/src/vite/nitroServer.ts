@@ -13,7 +13,7 @@ import {
 import { addDatabaseInstrumentation } from './databaseConfig';
 import { addMiddlewareImports, addMiddlewareInstrumentation } from './middlewareConfig';
 import { addCacheStorageInstrumentation, addStorageInstrumentation } from './storageConfig';
-import { addRuntimeInjectionTraceDep, isCloudflarePreset, type ServerApi } from './utils';
+import { addRuntimeInjectionTraceDep, type ServerApi } from './utils';
 
 type NitroModuleOptions = Omit<SentryNuxtModuleOptions, 'experimental_entrypointWrappedFunctions'> &
   Required<Pick<SentryNuxtModuleOptions, 'experimental_entrypointWrappedFunctions'>>;
@@ -50,8 +50,7 @@ export function setupNitroServer(
 
   addTunnelPlugin(serverApi);
 
-  const sentryServerPlugin = moduleDirResolver.resolve('./runtime/plugins/sentry.server');
-  addNitroPlugin(sentryServerPlugin);
+  addNitroPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
 
   // Preps the middleware instrumentation module.
   addMiddlewareImports();
@@ -62,18 +61,6 @@ export function setupNitroServer(
   nuxt.hooks.hook('nitro:init', nitro => {
     if (nuxt.options?._prepare) {
       return;
-    }
-
-    // On Cloudflare, `sentryCloudflareNitroPlugin` adds the meta tags and captures the errors, so this plugin would add
-    // them a second time.
-    if (isCloudflarePreset(nitro.options.preset)) {
-      const withoutSentryServerPlugin = <T>(plugins: T[] | undefined): T[] =>
-        (plugins ?? []).filter(plugin => plugin !== sentryServerPlugin);
-      nitro.options.plugins = withoutSentryServerPlugin(nitro.options.plugins);
-      // The prerenderer is built from the original config, with its own preset.
-      nitro.hooks.hook('prerender:config', config => {
-        config.plugins = withoutSentryServerPlugin(config.plugins);
-      });
     }
 
     addMiddlewareInstrumentation(nitro, isNitroV3);

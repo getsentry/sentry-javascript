@@ -92,15 +92,17 @@ export default defineNuxtModule<ModuleOptions>({
       } else {
         setupNitroServer(nuxt, serverApi, serverConfigFile, moduleOptions);
       }
-
-      if (isMinNuxtV4) {
-        addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'), mode: 'server' });
-      } else {
-        addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector-legacy.server'), mode: 'server' });
-      }
     } else {
       // The Cloudflare setup initializes the SDK from `sentryCloudflareNitroPlugin`, so it needs the tunnel too.
       addTunnelPlugin(serverApi);
+    }
+
+    // Names the server spans of pages after their route, with the SDK set up from the server config or from
+    // `sentryCloudflareNitroPlugin`.
+    if (isMinNuxtV4) {
+      addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'), mode: 'server' });
+    } else {
+      addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector-legacy.server'), mode: 'server' });
     }
 
     if (clientConfigFile || serverConfigFile) {

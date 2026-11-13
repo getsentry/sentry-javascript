@@ -179,7 +179,9 @@ is the reference setup.
   into the Nitro output, so `nuxt-4` calls `init()` of `@sentry/nuxt` on Bun and Deno too. `sentry.server.config.bun.ts`
   and `sentry.server.config.deno.ts` add the integrations of `@sentry/bun` or `@sentry/deno`. On Cloudflare, `nuxt-4`
   builds with the `cloudflare_module` preset and sets up the SDK with `sentryCloudflareNitroPlugin`, which
-  `nuxt.config.ts` adds only for that runtime. Nitro turns every file under `server/api` into a route, so
+  `nuxt.config.ts` adds only for that runtime. Like the documented Cloudflare setup, that build has no
+  `sentry.server.config.ts`: a runtime-specific file can replace a file but not remove it, so the build command deletes
+  it. Nitro turns every file under `server/api` into a route, so
   `nuxt.config.ts` lists the runtime-specific files there (such as `db-mongoose.cloudflare.ts`) in Nitro's `ignore`.
 - **Start commands**: `playwright.config.mjs` selects the start command with `getRuntime()`. Bun and Deno use the same build
   as Node and only change the start command, for example
