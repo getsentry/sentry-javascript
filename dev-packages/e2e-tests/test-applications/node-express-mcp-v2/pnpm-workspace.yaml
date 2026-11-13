@@ -1,2 +1,5 @@
 minimumReleaseAge: 0
+# The MCP SDK OpenTelemetry variant installs unreleased pkg.pr.new previews, which depend on
+# @modelcontextprotocol/core through a pkg.pr.new tarball URL. Remove this once an npm release of
+# @modelcontextprotocol/server ships the OpenTelemetry instrumentation and the variant pins that version.
 blockExoticSubdeps: false
