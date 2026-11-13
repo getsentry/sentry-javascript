@@ -4,6 +4,7 @@
 import type { BrowserTunnelOptions, Client, EventProcessor, Integration } from '@sentry/core';
 import {
   _INTERNAL_applyBrowserTunnelDefaults as applyBrowserTunnelDefaults,
+  _INTERNAL_captureOptionsSetByUser,
   applySdkMetadata,
   consoleSandbox,
   getGlobalScope,
@@ -39,7 +40,9 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 declare const __SENTRY_TRACING__: boolean;
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
-export function init(options: BrowserOptions): Client | undefined {
+export function init(userOptions: BrowserOptions): Client | undefined {
+  const options = _INTERNAL_captureOptionsSetByUser(userOptions);
+
   if (!DEBUG_BUILD && options.debug) {
     consoleSandbox(() => {
       // TODO(v12): Remove the `webpack.treeshake` mention together with that option

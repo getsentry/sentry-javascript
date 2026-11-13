@@ -130,7 +130,7 @@ export {
 } from './utils/spanUtils';
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
 export { parseSampleRate } from './utils/parseSampleRate';
-export { applySdkMetadata } from './utils/sdkMetadata';
+export { applySdkMetadata, captureOptionsSetByUser as _INTERNAL_captureOptionsSetByUser } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
 export { matchesTracePropagationTargets, shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';
@@ -166,6 +166,7 @@ export { requestDataIntegration } from './integrations/requestdata';
 export { captureConsoleIntegration } from './integrations/captureconsole';
 export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
+export { experimentalReportSdkConfigIntegration } from './integrations/reportSdkConfig';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { supabaseIntegration, instrumentSupabaseClient } from './integrations/supabase';
 export { zodErrorsIntegration } from './integrations/zoderrors';

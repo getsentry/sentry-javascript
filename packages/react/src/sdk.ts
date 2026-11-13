@@ -5,7 +5,7 @@ import {
   setContext,
 } from '@sentry/browser';
 import type { Client } from '@sentry/core';
-import { applySdkMetadata, setNormalizeStringifier } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata, setNormalizeStringifier } from '@sentry/core';
 import { version } from 'react';
 import { isSyntheticEvent } from './isSyntheticEvent';
 
@@ -14,7 +14,7 @@ import { isSyntheticEvent } from './isSyntheticEvent';
  */
 export function init(options: BrowserOptions): Client | undefined {
   const opts = {
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
   };
 
   applySdkMetadata(opts, 'react');

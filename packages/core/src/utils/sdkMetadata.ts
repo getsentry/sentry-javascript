@@ -2,6 +2,26 @@ import type { CoreOptions } from '../types/options';
 import { SDK_VERSION } from '../utils/version';
 
 /**
+ * Preserve user-provided option keys before SDK wrappers add defaults.
+ * @internal
+ */
+export function captureOptionsSetByUser<T extends Pick<CoreOptions, '_metadata'>>(options: T): T {
+  if (options._metadata?.optionsSetByUser) {
+    return options;
+  }
+
+  return {
+    ...options,
+    _metadata: {
+      ...options._metadata,
+      optionsSetByUser: Object.keys(options)
+        .filter(key => key !== '_metadata')
+        .sort(),
+    },
+  };
+}
+
+/**
  * A builder for the SDK metadata in the options for the SDK initialization.
  *
  * Note: This function is identical to `buildMetadata` in Remix and NextJS and SvelteKit.

@@ -7,6 +7,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { escapeStringForRegex } from '../vendor/escapeStringForRegex';
 import { debug } from './debug-logger';
 import { dsnToString, makeDsn } from './dsn';
+import { fnv1a32 } from './hash';
 import { getClientTunnel, setClientTunnel } from './tunnelStore';
 import { parseUrl } from './url';
 
@@ -83,7 +84,7 @@ export function applyBrowserTunnelDefaults(
 export function getTunnelPath(dsn?: DsnLike): string | undefined {
   const components = dsn ? makeDsn(dsn) : getClient()?.getDsn();
 
-  return components ? `/${fnv1a32(dsnToString(components)).toString(36)}` : undefined;
+  return components ? `/${fnv1a32(dsnToString(components))}` : undefined;
 }
 
 /**
@@ -289,21 +290,4 @@ function stripBasePath(pathname: string, basePath: string | undefined): string |
   }
 
   return pathname === base || pathname.startsWith(`${base}/`) ? pathname.slice(base.length) : undefined;
-}
-
-/**
- * 32-bit FNV-1a (https://www.ietf.org/archive/id/draft-eastlake-fnv-22.html#name-fnv32-code): synchronous (the
- * browser needs it in `init`) and dependency free. Changing it breaks mixed SDK versions, since browser and server
- * compute the path separately.
- */
-function fnv1a32(input: string): number {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < input.length; i++) {
-    // eslint-disable-next-line no-bitwise
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-
-  // eslint-disable-next-line no-bitwise
-  return hash >>> 0;
 }
