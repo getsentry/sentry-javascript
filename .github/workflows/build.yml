@@ -766,10 +766,11 @@ jobs:
           name: build-bundle-output
           path: ${{ env.BUNDLE_ARTIFACT_DOWNLOAD_PATH }}
 
+      # Chromium itself isn't cached: `run.mjs` downloads the 127 MB zip on each run, which is about as quick as a
+      # cache restore.
       - name: Install Chromium dependencies
         run: dev-packages/browser-min-version-tests/install-deps.sh
 
-      # Downloads the Chromium build on each run: its 127 MB zip is about as quick to fetch as a cache restore.
       - name: Run tests
         run: node dev-packages/browser-min-version-tests/run.mjs
 
