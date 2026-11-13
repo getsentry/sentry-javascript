@@ -103,7 +103,7 @@ function serialize(value: unknown, ancestors = new Set<object>()): unknown {
 
 function buildConfigAttributes(client: Client): Record<string, string> {
   // Integrations are reported separately; SDK metadata lives under `sdk`.
-  const options = Object.fromEntries(
+  const { runtime, ...options } = Object.fromEntries(
     Object.entries(client.getOptions()).filter(
       ([key]) => !['integrations', 'defaultIntegrations', '_metadata'].includes(key),
     ),
@@ -112,6 +112,7 @@ function buildConfigAttributes(client: Client): Record<string, string> {
   const config = {
     version: 1,
     sdk: client.getSdkMetadata()?.sdk,
+    runtime,
     options: serialize({
       ...options,
       dataCollection: client.getDataCollectionOptions(),
