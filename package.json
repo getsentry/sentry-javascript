@@ -112,6 +112,7 @@
     "packages/wasm",
     "packages/webpack-plugin",
     "dev-packages/browser-integration-tests",
+    "dev-packages/browser-min-version-tests",
     "dev-packages/bundler-plugin-integration-tests",
     "dev-packages/e2e-tests",
     "dev-packages/node-integration-tests",

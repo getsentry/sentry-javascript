@@ -319,6 +319,12 @@ importers:
         specifier: ^5.112.2
         version: 5.112.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@20.19.43))(svgo@4.1.0)(uglify-js@3.13.3)
 
+  dev-packages/browser-min-version-tests:
+    devDependencies:
+      '@sentry-internal/test-utils':
+        specifier: 11.12.0
+        version: link:../test-utils
+
   dev-packages/bun-integration-tests:
     devDependencies:
       '@sentry-internal/node-integration-tests':
