@@ -8,7 +8,7 @@ export default defineConfig({
       ignoredRouteFiles: ['**/.*'],
     }),
     sentryRemixVitePlugin({
-      authToken: 'fake-auth-token',
+      authToken: process.env.E2E_NO_UPLOAD ? undefined : 'fake-auth-token',
       org: 'test-org',
       project: 'test-project',
       sentryUrl: 'http://localhost:3033',

@@ -1,14 +1,20 @@
-import * as path from 'path';
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import type { Plugin, UserConfig } from 'vite';
 import type { SentryRemixVitePluginOptions } from './types';
 
-type FilesToDeleteAfterUpload = string | string[] | undefined;
+/** Shared by the two plugins of one build. */
+export type SourceMapState = {
+  /** The SDK turned on hidden source maps because the user did not set `build.sourcemap`. */
+  sdkEnabledSourceMaps: boolean;
+};
 
 /**
  * Adds the Sentry bundler plugin, which injects debug IDs and uploads source maps to Sentry.
  */
-export function makeAddSentryVitePlugin(options: SentryRemixVitePluginOptions): Plugin[] {
+export function makeAddSentryVitePlugin(
+  options: SentryRemixVitePluginOptions,
+  state: SourceMapState = { sdkEnabledSourceMaps: false },
+): Plugin[] {
   const {
     applicationKey,
     authToken,
@@ -26,59 +32,7 @@ export function makeAddSentryVitePlugin(options: SentryRemixVitePluginOptions): 
     telemetry,
   } = options;
 
-  // The default depends on `build.sourcemap`, which is only known once Vite resolves the config.
-  let resolveFilesToDeleteAfterUpload: ((value: FilesToDeleteAfterUpload) => void) | undefined;
-  const filesToDeleteAfterUploadPromise = new Promise<FilesToDeleteAfterUpload>(resolve => {
-    resolveFilesToDeleteAfterUpload = resolve;
-  });
-
-  const configPlugin: Plugin = {
-    name: 'sentry-remix-files-to-delete-after-upload',
-    apply: 'build',
-    enforce: 'post',
-    config(config) {
-      const userFilesToDelete = sourcemaps?.filesToDeleteAfterUpload;
-
-      // Only clean up after ourselves: if the user asked for source maps, they are theirs to keep.
-      // Scoped to the build output rather than `./**/*.map`, which the bundler plugin globs without
-      // ignoring `node_modules` and then deletes with `force: true`.
-      //
-      // `disable: 'disable-upload'` injects debug IDs but leaves uploading to the user, and the
-      // bundler plugin deletes in a `finally` block even when it skipped the upload - so defaulting
-      // the deletion there would remove the very maps they still have to upload by hand.
-      if (
-        typeof userFilesToDelete === 'undefined' &&
-        typeof config.build?.sourcemap === 'undefined' &&
-        !sourcemaps?.disable
-      ) {
-        // Derived from the configured `outDir` rather than hardcoding `build`, so a custom Remix
-        // `buildDirectory` still gets cleaned up. Remix runs a client and an SSR build, each with
-        // its own `outDir`, so each pass deletes only what it emitted.
-        //
-        // Separators are normalised because `glob` reads a backslash as an escape, and both path
-        // flavours are checked because `path.isAbsolute` only recognises the host platform's form.
-        // Only a relative path may take the `./` prefix: `.//abs/path/**/*.map` matches nothing.
-        const outDir = (config.build?.outDir || 'build').replace(/\\/g, '/').replace(/\/+$/, '');
-        const isAbsoluteOutDir = path.posix.isAbsolute(outDir) || path.win32.isAbsolute(outDir);
-        const outDirGlob = isAbsoluteOutDir ? outDir : `./${outDir.replace(/^\.\//, '')}`;
-        const filesToDelete = [`${outDirGlob}/**/*.map`];
-
-        if (debug) {
-          // eslint-disable-next-line no-console
-          console.log(
-            `[Sentry] Automatically setting \`sourcemaps.filesToDeleteAfterUpload: ${JSON.stringify(
-              filesToDelete,
-            )}\` to delete generated source maps after they were uploaded to Sentry.`,
-          );
-        }
-        resolveFilesToDeleteAfterUpload?.(filesToDelete);
-      } else {
-        resolveFilesToDeleteAfterUpload?.(userFilesToDelete);
-      }
-    },
-  };
-
-  const sentryPlugins = sentryVitePlugin({
+  return sentryVitePlugin({
     applicationKey,
     authToken: authToken ?? process.env.SENTRY_AUTH_TOKEN,
     bundleSizeOptimizations,
@@ -96,7 +50,13 @@ export function makeAddSentryVitePlugin(options: SentryRemixVitePluginOptions): 
       ignore: sourcemaps?.ignore,
       rewriteSources: sourcemaps?.rewriteSources,
       resolveSourceMap: sourcemaps?.resolveSourceMap,
-      filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
+      filesToDeleteAfterUpload: sourcemaps?.filesToDeleteAfterUpload,
+      // Called when the bundler plugin decides, after `makeEnableSourceMapsPlugin` ran.
+      // With `disable: 'disable-upload'` the user uploads the maps by hand, so they stay.
+      deleteSourcemapsAfterUpload: () =>
+        sourcemaps?.deleteSourcemapsAfterUpload ??
+        (state.sdkEnabledSourceMaps && !sourcemaps?.disable ? true : undefined),
+      sdkEnabledSourceMaps: () => state.sdkEnabledSourceMaps,
     },
     telemetry: telemetry ?? true,
     url: sentryUrl,
@@ -106,14 +66,15 @@ export function makeAddSentryVitePlugin(options: SentryRemixVitePluginOptions): 
       },
     },
   });
-
-  return [configPlugin, ...sentryPlugins];
 }
 
 /**
  * Enables "hidden" source maps if the user did not configure them.
  */
-export function makeEnableSourceMapsPlugin(options: SentryRemixVitePluginOptions): Plugin {
+export function makeEnableSourceMapsPlugin(
+  options: SentryRemixVitePluginOptions,
+  state: SourceMapState = { sdkEnabledSourceMaps: false },
+): Plugin {
   return {
     name: 'sentry-remix-update-source-map-setting',
     apply: 'build',
@@ -121,10 +82,10 @@ export function makeEnableSourceMapsPlugin(options: SentryRemixVitePluginOptions
     // Returning only the changed key: Vite concatenates arrays when merging a `config` return
     // value, so echoing the whole config back duplicates `ssr.noExternal`, `resolve.alias` etc.
     config(viteConfig) {
+      const sourcemap = getUpdatedSourceMapSettings(viteConfig, options);
+      state.sdkEnabledSourceMaps = sourcemap !== viteConfig.build?.sourcemap;
       return {
-        build: {
-          sourcemap: getUpdatedSourceMapSettings(viteConfig, options),
-        },
+        build: { sourcemap },
       };
     },
   };
@@ -141,7 +102,7 @@ export function makeEnableSourceMapsPlugin(options: SentryRemixVitePluginOptions
  *
  *     3. Users didn't set source maps generation
  *       - we enable 'hidden' source maps generation
- *       - configure `filesToDeleteAfterUpload` to delete all .map files (we emit a log about this)
+ *       - pass `deleteSourcemapsAfterUpload: true`, so the maps never reach the build output
  *
  * --> only exported for testing
  */

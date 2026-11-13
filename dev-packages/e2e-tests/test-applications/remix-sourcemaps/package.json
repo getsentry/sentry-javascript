@@ -6,7 +6,9 @@
     "build": "node start-mock-sentry-server.mjs & remix vite:build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; cat .tmp_build_stdout .tmp_build_stderr; exit $BUILD_EXIT",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm tsx assert-build.ts"
+    "test:build:no-upload": "pnpm install && E2E_NO_UPLOAD=1 pnpm build",
+    "test:assert": "pnpm tsx assert-build.ts",
+    "test:assert:no-upload": "E2E_NO_UPLOAD=1 pnpm test:assert"
   },
   "dependencies": {
     "@sentry/remix": "file:../../packed/sentry-remix-packed.tgz",
@@ -26,5 +28,14 @@
     "tsx": "^4.23.0",
     "typescript": "^5.1.6",
     "vite": "^5.4.11"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build:no-upload",
+        "assert-command": "pnpm test:assert:no-upload",
+        "label": "remix-sourcemaps (no upload)"
+      }
+    ]
   }
 }

@@ -1,21 +1,22 @@
-import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
+import type { SentryVitePluginInternalOptions } from '@sentry/bundler-plugins/vite';
 import type { UserConfig } from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { SourceMapState } from '../../src/vite/sourceMaps';
 import {
   getUpdatedSourceMapSettings,
   makeAddSentryVitePlugin,
   makeEnableSourceMapsPlugin,
 } from '../../src/vite/sourceMaps';
 
-let capturedOptions: SentryVitePluginOptions | undefined;
+let capturedOptions: SentryVitePluginInternalOptions | undefined;
 
-const sentryVitePluginSpy = vi.fn((options: SentryVitePluginOptions) => {
+const sentryVitePluginSpy = vi.fn((options: SentryVitePluginInternalOptions) => {
   capturedOptions = options;
   return [{ name: 'sentry-vite-plugin' }];
 });
 
 vi.mock('@sentry/bundler-plugins/vite', () => ({
-  sentryVitePlugin: (options: SentryVitePluginOptions) => sentryVitePluginSpy(options),
+  sentryVitePlugin: (options: SentryVitePluginInternalOptions) => sentryVitePluginSpy(options),
 }));
 
 beforeEach(() => {
@@ -35,11 +36,23 @@ describe('makeEnableSourceMapsPlugin', () => {
     expect(plugin.enforce).toBe('post');
   });
 
-  it('enables hidden source maps through its config hook', () => {
-    const plugin = makeEnableSourceMapsPlugin({});
+  it('enables hidden source maps through its config hook and records it', () => {
+    const state: SourceMapState = { sdkEnabledSourceMaps: false };
+    const plugin = makeEnableSourceMapsPlugin({}, state);
     const config = plugin.config as (config: UserConfig) => UserConfig;
 
     expect(config({}).build?.sourcemap).toBe('hidden');
+    expect(state.sdkEnabledSourceMaps).toBe(true);
+  });
+
+  it.each([['hidden'], [true], [false]] as const)('does not record a `%s` setting the user made', setting => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const state: SourceMapState = { sdkEnabledSourceMaps: true };
+    const plugin = makeEnableSourceMapsPlugin({}, state);
+
+    (plugin.config as (config: UserConfig) => UserConfig)({ build: { sourcemap: setting } });
+
+    expect(state.sdkEnabledSourceMaps).toBe(false);
   });
 });
 
@@ -131,79 +144,50 @@ describe('makeAddSentryVitePlugin', () => {
     expect(capturedOptions?.sourcemaps?.disable).toBeUndefined();
   });
 
-  it('deletes the generated source maps when the user configured neither setting', async () => {
-    const plugins = makeAddSentryVitePlugin({});
-    const configPlugin = plugins.find(plugin => plugin.name === 'sentry-remix-files-to-delete-after-upload');
+  function getDeleteOption(): boolean | undefined {
+    const value = capturedOptions?.sourcemaps?.deleteSourcemapsAfterUpload;
+    return typeof value === 'function' ? value() : value;
+  }
 
-    (configPlugin?.config as (config: UserConfig) => void)({});
+  it('asks for deletion once the SDK enabled the source maps', () => {
+    const state: SourceMapState = { sdkEnabledSourceMaps: false };
+    makeAddSentryVitePlugin({}, state);
 
-    await expect(capturedOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toEqual(['./build/**/*.map']);
+    expect(getDeleteOption()).toBeUndefined();
+    state.sdkEnabledSourceMaps = true;
+    expect(getDeleteOption()).toBe(true);
   });
 
-  // Remix's `buildDirectory` is configurable, and it runs a client and an SSR build with their own
-  // `outDir`s - a hardcoded `./build/**/*.map` would leave a custom output directory's maps on disk.
-  it('scopes the deletion glob to the configured outDir', async () => {
-    const plugins = makeAddSentryVitePlugin({});
-    const configPlugin = plugins.find(plugin => plugin.name === 'sentry-remix-files-to-delete-after-upload');
+  // With `disable: 'disable-upload'` the user uploads the maps by hand.
+  it('keeps the source maps when only the upload is disabled', () => {
+    makeAddSentryVitePlugin({ sourcemaps: { disable: 'disable-upload' } }, { sdkEnabledSourceMaps: true });
 
-    (configPlugin?.config as (config: UserConfig) => void)({ build: { outDir: 'dist/client' } });
-
-    await expect(capturedOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toEqual(['./dist/client/**/*.map']);
+    expect(getDeleteOption()).toBeUndefined();
   });
 
-  // Vite resolves `outDir` to an absolute path by the time this hook runs, and `.//abs/path` would
-  // match nothing - leaving the maps in the production output.
-  it('does not prefix an absolute outDir', async () => {
-    const plugins = makeAddSentryVitePlugin({});
-    const configPlugin = plugins.find(plugin => plugin.name === 'sentry-remix-files-to-delete-after-upload');
+  it.each([true, false])('passes a user-set `deleteSourcemapsAfterUpload: %s` through', value => {
+    makeAddSentryVitePlugin({ sourcemaps: { deleteSourcemapsAfterUpload: value } }, { sdkEnabledSourceMaps: !value });
 
-    (configPlugin?.config as (config: UserConfig) => void)({ build: { outDir: '/tmp/app/build/client' } });
-
-    await expect(capturedOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toEqual([
-      '/tmp/app/build/client/**/*.map',
-    ]);
+    expect(getDeleteOption()).toBe(value);
   });
 
-  // `glob` reads a backslash as an escape, so an unnormalised Windows `outDir` matches nothing and
-  // leaves the maps on disk. Both path flavours are checked, so this holds on POSIX runners too.
-  it('normalises a Windows absolute outDir', async () => {
-    const plugins = makeAddSentryVitePlugin({});
-    const configPlugin = plugins.find(plugin => plugin.name === 'sentry-remix-files-to-delete-after-upload');
+  it('passes a user-set filesToDeleteAfterUpload through and still deletes the maps the SDK enabled', () => {
+    makeAddSentryVitePlugin(
+      { sourcemaps: { filesToDeleteAfterUpload: ['./dist/**/*.map'] } },
+      { sdkEnabledSourceMaps: true },
+    );
 
-    (configPlugin?.config as (config: UserConfig) => void)({ build: { outDir: 'C:\\proj\\build\\client' } });
-
-    await expect(capturedOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toEqual([
-      'C:/proj/build/client/**/*.map',
-    ]);
+    expect(capturedOptions?.sourcemaps?.filesToDeleteAfterUpload).toEqual(['./dist/**/*.map']);
+    expect(getDeleteOption()).toBe(true);
   });
 
-  it('keeps the source maps when the user set their own build.sourcemap', async () => {
-    const plugins = makeAddSentryVitePlugin({});
-    const configPlugin = plugins.find(plugin => plugin.name === 'sentry-remix-files-to-delete-after-upload');
+  it('tells the bundler plugin whether the SDK enabled the source maps', () => {
+    const state: SourceMapState = { sdkEnabledSourceMaps: false };
+    makeAddSentryVitePlugin({}, state);
+    const sdkEnabled = capturedOptions?.sourcemaps?.sdkEnabledSourceMaps as () => boolean;
 
-    (configPlugin?.config as (config: UserConfig) => void)({ build: { sourcemap: 'hidden' } });
-
-    await expect(capturedOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toBeUndefined();
-  });
-
-  // `disable: 'disable-upload'` injects debug IDs but leaves the upload to the user. The bundler
-  // plugin deletes in a `finally` block even when it skipped uploading, so defaulting the deletion
-  // here would remove the maps they still have to upload by hand.
-  it('keeps the source maps when only the upload is disabled', async () => {
-    const plugins = makeAddSentryVitePlugin({ sourcemaps: { disable: 'disable-upload' } });
-    const configPlugin = plugins.find(plugin => plugin.name === 'sentry-remix-files-to-delete-after-upload');
-
-    (configPlugin?.config as (config: UserConfig) => void)({});
-
-    await expect(capturedOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toBeUndefined();
-  });
-
-  it('honours a user-specified filesToDeleteAfterUpload', async () => {
-    const plugins = makeAddSentryVitePlugin({ sourcemaps: { filesToDeleteAfterUpload: ['./dist/**/*.map'] } });
-    const configPlugin = plugins.find(plugin => plugin.name === 'sentry-remix-files-to-delete-after-upload');
-
-    (configPlugin?.config as (config: UserConfig) => void)({});
-
-    await expect(capturedOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toEqual(['./dist/**/*.map']);
+    expect(sdkEnabled()).toBe(false);
+    state.sdkEnabledSourceMaps = true;
+    expect(sdkEnabled()).toBe(true);
   });
 });
