@@ -1,6 +1,6 @@
 import type { Event, SerializedMetric } from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
-import { afterAll, expect } from 'vitest';
+import { afterAll, describe, expect } from 'vitest';
 import { EXPECTED_SDK_NAME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -210,96 +210,119 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-failed-job.mjs', 'instrument.mjs', (createRunner, test) => {
-    test(
-      'captures an error for a failed job and sets the error status on its process span',
-      { timeout: 90_000 },
-      async () => {
-        let errorEvent: Event | undefined;
-        const runner = createRunner().ignore('trace_metric');
-        const consumerSpansPromise = runner.collectStreamedSpansUntilSegment('process test-failed-queue');
+  // BullMQ passes the job error to the telemetry adapter since 6.7.5, so only then does the error have a stack.
+  describe.each([
+    ['bullmq v5', {}, false],
+    ['bullmq v6', { bullmq: '^6.7.5' }, true],
+  ])('%s', (_version, additionalDependencies, hasJobErrorStack) => {
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-failed-job.mjs',
+      'instrument.mjs',
+      (createRunner, test) => {
+        test(
+          'captures an error for a failed job and sets the error status on its process span',
+          { timeout: 90_000 },
+          async () => {
+            let errorEvent: Event | undefined;
+            const runner = createRunner().ignore('trace_metric');
+            const consumerSpansPromise = runner.collectStreamedSpansUntilSegment('process test-failed-queue');
 
-        await runner
-          .expect({
-            event: event => {
-              errorEvent = event;
-            },
-          })
-          .start()
-          .completed();
+            await runner
+              .expect({
+                event: event => {
+                  errorEvent = event;
+                },
+              })
+              .start()
+              .completed();
 
-        const consumerSpans = await consumerSpansPromise;
-        const processSpan = consumerSpans.find(span => span.is_segment && span.name === 'process test-failed-queue')!;
+            const consumerSpans = await consumerSpansPromise;
+            const processSpan = consumerSpans.find(
+              span => span.is_segment && span.name === 'process test-failed-queue',
+            )!;
 
-        expect(
-          consumerSpans
-            .filter(span => span.attributes['messaging.system']?.value === 'bullmq')
-            .sort((a, b) => a.start_timestamp - b.start_timestamp)
-            .map(span => ({
-              name: span.name,
-              status: span.status,
-              attributes: span.attributes,
-            })),
-        ).toEqual([
-          {
-            name: 'process test-failed-queue',
-            status: 'error',
-            attributes: {
-              'sentry.op': { type: 'string', value: 'queue.process' },
-              'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.consumer' },
-              'messaging.system': { type: 'string', value: 'bullmq' },
-              'messaging.destination.name': { type: 'string', value: 'test-failed-queue' },
-              'messaging.operation.name': { type: 'string', value: 'process' },
-              'messaging.message.id': { type: 'string', value: expect.any(String) },
-              'messaging.message.retry.count': { type: 'integer', value: 0 },
-              'messaging.client.id': { type: 'string', value: expect.any(String) },
-              'messaging.bullmq.job.name': { type: 'string', value: 'failing-job' },
-              'messaging.bullmq.job.processed_timestamp': { type: 'integer', value: expect.any(Number) },
-              'messaging.bullmq.job.attempt_finished_timestamp': { type: 'integer', value: expect.any(Number) },
-              'sentry.environment': { type: 'string', value: 'production' },
-              'sentry.is_localhost': { type: 'boolean', value: false },
-              'sentry.release': { type: 'string', value: '1.0' },
-              'sentry.sdk.name': { type: 'string', value: EXPECTED_SDK_NAME },
-              'sentry.sdk.version': { type: 'string', value: SDK_VERSION },
-              'sentry.segment.id': { type: 'string', value: processSpan.span_id },
-              'sentry.segment.name': { type: 'string', value: 'process test-failed-queue' },
-              'sentry.trace_lifecycle': { type: 'string', value: 'stream' },
-              'sentry.sample_rate': { type: 'integer', value: 1 },
-              'sentry.sdk.integrations': { type: 'array', value: expect.any(Array) },
-              'sentry.segment.name.source': { type: 'string', value: 'custom' },
-              'sentry.status.message': { type: 'string', value: 'internal_error' },
-            },
+            expect(
+              consumerSpans
+                .filter(span => span.attributes['messaging.system']?.value === 'bullmq')
+                .sort((a, b) => a.start_timestamp - b.start_timestamp)
+                .map(span => ({
+                  name: span.name,
+                  status: span.status,
+                  attributes: span.attributes,
+                })),
+            ).toEqual([
+              {
+                name: 'process test-failed-queue',
+                status: 'error',
+                attributes: {
+                  'sentry.op': { type: 'string', value: 'queue.process' },
+                  'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.consumer' },
+                  'messaging.system': { type: 'string', value: 'bullmq' },
+                  'messaging.destination.name': { type: 'string', value: 'test-failed-queue' },
+                  'messaging.operation.name': { type: 'string', value: 'process' },
+                  'messaging.message.id': { type: 'string', value: expect.any(String) },
+                  'messaging.message.retry.count': { type: 'integer', value: 0 },
+                  'messaging.client.id': { type: 'string', value: expect.any(String) },
+                  'messaging.bullmq.job.name': { type: 'string', value: 'failing-job' },
+                  'messaging.bullmq.job.processed_timestamp': { type: 'integer', value: expect.any(Number) },
+                  'messaging.bullmq.job.attempt_finished_timestamp': { type: 'integer', value: expect.any(Number) },
+                  'sentry.environment': { type: 'string', value: 'production' },
+                  'sentry.is_localhost': { type: 'boolean', value: false },
+                  'sentry.release': { type: 'string', value: '1.0' },
+                  'sentry.sdk.name': { type: 'string', value: EXPECTED_SDK_NAME },
+                  'sentry.sdk.version': { type: 'string', value: SDK_VERSION },
+                  'sentry.segment.id': { type: 'string', value: processSpan.span_id },
+                  'sentry.segment.name': { type: 'string', value: 'process test-failed-queue' },
+                  'sentry.trace_lifecycle': { type: 'string', value: 'stream' },
+                  'sentry.sample_rate': { type: 'integer', value: 1 },
+                  'sentry.sdk.integrations': { type: 'array', value: expect.any(Array) },
+                  'sentry.segment.name.source': { type: 'string', value: 'custom' },
+                  'sentry.status.message': { type: 'string', value: 'internal_error' },
+                },
+              },
+              {
+                name: 'fail test-failed-queue',
+                status: 'ok',
+                attributes: {
+                  'sentry.op': { type: 'string', value: 'queue' },
+                  'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+                  'messaging.system': { type: 'string', value: 'bullmq' },
+                  'messaging.destination.name': { type: 'string', value: 'test-failed-queue' },
+                  'messaging.operation.name': { type: 'string', value: 'fail' },
+                  'messaging.message.id': { type: 'string', value: expect.any(String) },
+                  'messaging.bullmq.job.name': { type: 'string', value: 'failing-job' },
+                  'sentry.environment': { type: 'string', value: 'production' },
+                  'sentry.is_localhost': { type: 'boolean', value: false },
+                  'sentry.release': { type: 'string', value: '1.0' },
+                  'sentry.sdk.name': { type: 'string', value: EXPECTED_SDK_NAME },
+                  'sentry.sdk.version': { type: 'string', value: SDK_VERSION },
+                  'sentry.segment.id': { type: 'string', value: processSpan.span_id },
+                  'sentry.segment.name': { type: 'string', value: 'process test-failed-queue' },
+                  'sentry.trace_lifecycle': { type: 'string', value: 'stream' },
+                },
+              },
+            ]);
+            expect(errorEvent?.exception?.values).toHaveLength(1);
+            expect(errorEvent?.exception?.values?.[0]?.type).toBe('Error');
+            expect(errorEvent?.exception?.values?.[0]?.value).toBe('Job failed on purpose');
+            expect(errorEvent?.exception?.values?.[0]?.mechanism).toEqual({
+              type: 'auto.queue.bullmq',
+              handled: false,
+            });
+            if (hasJobErrorStack) {
+              expect(errorEvent?.exception?.values?.[0]?.stacktrace?.frames).toContainEqual(
+                expect.objectContaining({ filename: expect.stringContaining('scenario-failed-job') }),
+              );
+            } else {
+              expect(errorEvent?.exception?.values?.[0]?.stacktrace).toBeUndefined();
+            }
+            expect(errorEvent?.contexts?.trace?.trace_id).toBe(processSpan.trace_id);
+            expect(errorEvent?.contexts?.trace?.span_id).toBe(processSpan.span_id);
           },
-          {
-            name: 'fail test-failed-queue',
-            status: 'ok',
-            attributes: {
-              'sentry.op': { type: 'string', value: 'queue' },
-              'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
-              'messaging.system': { type: 'string', value: 'bullmq' },
-              'messaging.destination.name': { type: 'string', value: 'test-failed-queue' },
-              'messaging.operation.name': { type: 'string', value: 'fail' },
-              'messaging.message.id': { type: 'string', value: expect.any(String) },
-              'messaging.bullmq.job.name': { type: 'string', value: 'failing-job' },
-              'sentry.environment': { type: 'string', value: 'production' },
-              'sentry.is_localhost': { type: 'boolean', value: false },
-              'sentry.release': { type: 'string', value: '1.0' },
-              'sentry.sdk.name': { type: 'string', value: EXPECTED_SDK_NAME },
-              'sentry.sdk.version': { type: 'string', value: SDK_VERSION },
-              'sentry.segment.id': { type: 'string', value: processSpan.span_id },
-              'sentry.segment.name': { type: 'string', value: 'process test-failed-queue' },
-              'sentry.trace_lifecycle': { type: 'string', value: 'stream' },
-            },
-          },
-        ]);
-        expect(errorEvent?.exception?.values).toHaveLength(1);
-        expect(errorEvent?.exception?.values?.[0]?.type).toBe('Error');
-        expect(errorEvent?.exception?.values?.[0]?.value).toBe('Job failed on purpose');
-        expect(errorEvent?.exception?.values?.[0]?.mechanism).toEqual({ type: 'auto.queue.bullmq', handled: false });
-        expect(errorEvent?.exception?.values?.[0]?.stacktrace).toBeUndefined();
-        expect(errorEvent?.contexts?.trace?.trace_id).toBe(processSpan.trace_id);
-        expect(errorEvent?.contexts?.trace?.span_id).toBe(processSpan.span_id);
+        );
       },
+      { additionalDependencies },
     );
   });
 
