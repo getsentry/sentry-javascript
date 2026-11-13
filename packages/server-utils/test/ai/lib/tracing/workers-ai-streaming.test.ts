@@ -162,6 +162,147 @@ describe('instrumentWorkersAiStream', () => {
     ]);
   });
 
+  it('keeps parallel tool calls that stream without an index as separate calls', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"id":"call_1","type":"function","function":{"name":"getWeather","arguments":"{\\"city\\":\\"Paris\\"}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"id":"call_2","type":"function","function":{"name":"getTime","arguments":"{\\"tz\\":\\"CET\\"}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
+    expect(toolCalls).toEqual([
+      { id: 'call_1', type: 'function', function: { name: 'getWeather', arguments: '{"city":"Paris"}' } },
+      { id: 'call_2', type: 'function', function: { name: 'getTime', arguments: '{"tz":"CET"}' } },
+    ]);
+  });
+
+  it('merges argument fragments of a tool call that streams without an index', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"id":"call_1","type":"function","function":{"name":"getRepoInfo","arguments":"{\\"owner\\":"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"function":{"arguments":"\\"cloudflare\\"}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
+    expect(toolCalls).toEqual([
+      {
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'getRepoInfo', arguments: '{"owner":"cloudflare"}' },
+      },
+    ]);
+  });
+
+  it.each([undefined, null])('continues a known id when its index changes from %s to numeric', async index => {
+    const { span, attributes } = createMockSpan();
+    const deltas = [
+      { index, id: 'call_1', function: { name: 'getWeather', arguments: '{"city":' } },
+      { index: 0, id: 'call_1', function: { arguments: '"Paris"}' } },
+      { index: 0, function: { arguments: ' ' } },
+    ];
+    const chunks = deltas.map(
+      delta => `data: ${JSON.stringify({ choices: [{ delta: { tool_calls: [delta] } }] })}\n\n`,
+    );
+    await new Response(instrumentWorkersAiStream(streamFromChunks(chunks), span, true)).text();
+    expect(JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string)).toEqual([
+      { index, id: 'call_1', function: { name: 'getWeather', arguments: '{"city":"Paris"} ' } },
+    ]);
+    expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+      {
+        role: 'assistant',
+        parts: [{ type: 'tool_call', id: 'call_1', name: 'getWeather', arguments: '{"city":"Paris"} ' }],
+      },
+    ]);
+  });
+
+  it('continues an unindexed call by id after another call opens', async () => {
+    const { span, attributes } = createMockSpan();
+    const deltas = [
+      { index: null, id: 'call_1', function: { name: 'first', arguments: '{' } },
+      { index: 0, id: 'call_2', function: { name: 'second', arguments: '{}' } },
+      { id: 'call_1', function: { arguments: '}' } },
+    ];
+    const chunks = deltas.map(
+      delta => `data: ${JSON.stringify({ choices: [{ delta: { tool_calls: [delta] } }] })}\n\n`,
+    );
+    await new Response(instrumentWorkersAiStream(streamFromChunks(chunks), span, true)).text();
+    expect(JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string)).toEqual([
+      { index: null, id: 'call_1', function: { name: 'first', arguments: '{}' } },
+      { index: 0, id: 'call_2', function: { name: 'second', arguments: '{}' } },
+    ]);
+  });
+
+  it('does not merge a tool call without an index into one that has the same index number', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"getWeather","arguments":"{}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"id":"call_2","type":"function","function":{"name":"getTime","arguments":"{}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
+    expect(toolCalls.map((call: { id: string }) => call.id)).toEqual(['call_1', 'call_2']);
+  });
+
+  it('opens a new call when a different id arrives on an index that is already taken', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"getWeather","arguments":"{}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_2","type":"function","function":{"name":"getTime","arguments":"{"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
+    expect(toolCalls.map((call: { id: string }) => call.id)).toEqual(['call_1', 'call_2']);
+    expect(toolCalls[1].function.arguments).toBe('{}');
+  });
+
+  it('continues an indexed call with an argument fragment that has no index or id', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"getRepoInfo","arguments":"{\\"owner\\":"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"function":{"arguments":"\\"cloudflare\\"}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
+    expect(toolCalls).toHaveLength(1);
+    expect(toolCalls[0].function).toEqual({ name: 'getRepoInfo', arguments: '{"owner":"cloudflare"}' });
+  });
+
+  it('returns tool calls in the order they were opened when unindexed and indexed calls are mixed', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"id":"call_1","type":"function","function":{"name":"getWeather","arguments":"{}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_2","type":"function","function":{"name":"getTime","arguments":"{}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
+    expect(toolCalls.map((call: { id: string }) => call.id)).toEqual(['call_1', 'call_2']);
+  });
+
   // Some Workers AI models (e.g. `@cf/moonshotai/kimi-k2.6`) stream tool calls with the
   // name/arguments at the top level of the tool-call object rather than nested under `function`.
   it('assembles tool calls whose name/arguments are at the top level of the delta', async () => {

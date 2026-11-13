@@ -1,11 +1,12 @@
 import { SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
+import { getToolCallKey } from '../core/streaming-tool-calls';
 import { endStreamSpan, type StreamResponseState } from '../core/utils';
 import type { WorkersAiUsage } from './types';
 import { setOutputMessagesAttribute } from './utils';
 
 interface WorkersAiStreamingToolCall {
-  index?: number;
+  index?: number | null;
   id?: string;
   type?: string;
   function?: { name?: string; arguments?: string };
@@ -29,13 +30,21 @@ interface WorkersAiStreamChunk {
 }
 
 /**
- * Accumulate a fragmented OpenAI-compatible tool call (delivered across multiple
- * `choices[].delta.tool_calls` chunks) into the index-keyed accumulator.
+ * Tool calls accumulated from a stream, keyed in the order they were opened (so output order is arrival order).
  */
-function accumulateStreamingToolCalls(
-  toolCalls: WorkersAiStreamingToolCall[],
-  accumulator: Record<number, WorkersAiStreamingToolCall>,
-): void {
+interface ToolCallAccumulator {
+  calls: Map<string, WorkersAiStreamingToolCall>;
+  /** Key of the latest call, which argument fragments with neither `index`, `id` nor name continue. */
+  lastKey?: string;
+  /** Key of the call currently open for a reported `index`, when a new `id` reused that index. */
+  keyByIndex: Map<number, string>;
+}
+
+/**
+ * Accumulate a fragmented OpenAI-compatible tool call (delivered across multiple
+ * `choices[].delta.tool_calls` chunks) into the accumulator.
+ */
+function accumulateStreamingToolCalls(toolCalls: WorkersAiStreamingToolCall[], accumulator: ToolCallAccumulator): void {
   for (const toolCall of toolCalls) {
     // Normalize both shapes: name/arguments nested under `function`, or at the top level.
     const name = toolCall.function?.name ?? toolCall.name;
@@ -46,19 +55,19 @@ function accumulateStreamingToolCalls(
       continue;
     }
 
-    const index = toolCall.index ?? 0;
-    const existing = accumulator[index];
+    const key = getToolCallKey(toolCall, name, accumulator);
+    const existing = accumulator.calls.get(key);
 
     if (!existing) {
-      accumulator[index] = {
-        index,
+      accumulator.calls.set(key, {
+        index: toolCall.index,
         id: toolCall.id,
         type: toolCall.type,
         function: {
           name,
           arguments: args ?? '',
         },
-      };
+      });
     } else if (existing.function) {
       if (name && !existing.function.name) {
         existing.function.name = name;
@@ -67,6 +76,7 @@ function accumulateStreamingToolCalls(
         existing.function.arguments = `${existing.function.arguments ?? ''}${args}`;
       }
     }
+    accumulator.lastKey = key;
   }
 }
 
@@ -81,7 +91,7 @@ function processLine(
   line: string,
   state: StreamResponseState,
   recordOutputs: boolean,
-  toolCallAccumulator: Record<number, WorkersAiStreamingToolCall>,
+  toolCallAccumulator: ToolCallAccumulator,
 ): void {
   const trimmed = line.trim();
   if (!trimmed.startsWith('data:')) {
@@ -162,7 +172,7 @@ export function instrumentWorkersAiStream(
 
   // OpenAI-compatible tool calls arrive fragmented across chunks and are keyed by index;
   // accumulate them here and flatten into `state.toolCalls` once the stream ends.
-  const toolCallAccumulator: Record<number, WorkersAiStreamingToolCall> = {};
+  const toolCallAccumulator: ToolCallAccumulator = { calls: new Map(), keyByIndex: new Map() };
 
   let buffer = '';
   let spanEnded = false;
@@ -174,7 +184,7 @@ export function instrumentWorkersAiStream(
     spanEnded = true;
 
     if (recordOutputs) {
-      const accumulatedToolCalls = Object.values(toolCallAccumulator);
+      const accumulatedToolCalls = [...toolCallAccumulator.calls.values()];
       if (accumulatedToolCalls.length > 0) {
         state.toolCalls.push(...accumulatedToolCalls);
       }
