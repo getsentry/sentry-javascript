@@ -21,6 +21,7 @@ const NODE_ONLY = [
 // so the `@sentry/bun` project runs these suites, except the ones in `SENTRY_BUN_EXCLUDE`.
 const NO_HTTP_SERVER_SPANS = [
   'suites/sessions/**',
+  'suites/tracing/envelope-header/incoming-trace-without-dsc/test.ts',
   'suites/tracing/envelope-header/sampleRate-propagation/test.ts',
   'suites/tracing/httpIntegration-streamed/test.ts',
   'suites/tracing/httpIntegration/test.ts',
