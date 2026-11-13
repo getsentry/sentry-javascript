@@ -12,8 +12,7 @@ import { afterAll, describe, expect } from 'vitest';
 import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
-// Node publishes the `http2.server.stream.*` channels from 22.17.0 and 24.2.0.
-describe.runIf(supports({ nodeMin: ['22.17.0', '24.2.0'], runtimes: ['node'] }))('http2 server', () => {
+describe.runIf(supports({ min: 22, runtimes: ['node'] }))('http2 server', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

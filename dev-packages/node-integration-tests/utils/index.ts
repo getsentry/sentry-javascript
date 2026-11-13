@@ -48,12 +48,6 @@ export type Requirements = {
   min?: number;
   /** Highest Node major version that runs the tests. */
   max?: number;
-  /**
-   * First Node version with the feature on each release line, for features backported to older
-   * lines, e.g. `['22.17.0', '24.2.0']`. A Node version must reach the entry of its own release
-   * line, or of the closest older one.
-   */
-  nodeMin?: string[];
   /** Lowest Bun version that runs the tests, for tests that fail on the oldest Bun version in CI. */
   bunMin?: string;
   /** Runtimes that run the tests. All runtimes run them when this is not set. */
@@ -84,24 +78,12 @@ export function supports(requirements: Requirements): boolean {
   return matchesNodeVersion(requirements);
 }
 
-function matchesNodeVersion({ min, max, nodeMin }: Requirements): boolean {
+function matchesNodeVersion({ min, max }: { min?: number; max?: number }): boolean {
   if (!NODE_VERSION) {
     return false;
   }
 
-  if (NODE_VERSION < (min || -Infinity) || NODE_VERSION > (max || Infinity)) {
-    return false;
-  }
-
-  if (!nodeMin) {
-    return true;
-  }
-
-  const lineMin = nodeMin
-    .filter(version => (parseSemver(version).major || 0) <= NODE_VERSION)
-    .sort((a, b) => (isOlderThan(a, b) ? 1 : -1))[0];
-
-  return !!lineMin && !isOlderThan(process.versions.node, lineMin);
+  return !(NODE_VERSION < (min || -Infinity) || NODE_VERSION > (max || Infinity));
 }
 
 function isBunOlderThan(version: string): boolean {
@@ -109,12 +91,8 @@ function isBunOlderThan(version: string): boolean {
     return false;
   }
 
-  return isOlderThan(BUN_VERSION, version);
-}
-
-function isOlderThan(currentVersion: string, requiredVersion: string): boolean {
-  const current = parseSemver(currentVersion);
-  const required = parseSemver(requiredVersion);
+  const current = parseSemver(BUN_VERSION);
+  const required = parseSemver(version);
   const difference =
     (current.major || 0) - (required.major || 0) ||
     (current.minor || 0) - (required.minor || 0) ||
