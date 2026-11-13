@@ -2,6 +2,7 @@
 Read the Contributing guidelines first: https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md
 Use simple, direct sentences. No "Summary" heading, no test-plan checklist.
 Remove "Closes" if there is no linked issue.
+External contributors: link an issue where you got a maintainer's go-ahead.
 -->
 
 ## What
