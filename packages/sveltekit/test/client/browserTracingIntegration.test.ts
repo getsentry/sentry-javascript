@@ -9,7 +9,7 @@ import { writable } from 'svelte/store';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { navigating, page } from '$app/stores';
 import { browserTracingIntegration } from '../../src/client';
-import { CACHE_ORIGIN_META_TAG_NAME } from '../../src/common/traceMetaTags';
+import { _INTERNAL_CACHE_ORIGIN_META_TAG_NAME } from '@sentry/core';
 import {
   PAGE_SERVER_RENDERING_TYPE,
   SENTRY_SEGMENT_NAME_SOURCE,
@@ -17,6 +17,7 @@ import {
   URL_TEMPLATE,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { PAGELOAD } from '@sentry/conventions/op';
 
 // we have to overwrite the global mock from `vitest.setup.ts` here to reset the
 // `navigating` store for each test.
@@ -181,7 +182,7 @@ describe('browserTracingIntegration', () => {
 
   it('marks the pageload of a prerendered page as statically rendered, without a link', async () => {
     const marker = document.createElement('meta');
-    marker.name = CACHE_ORIGIN_META_TAG_NAME;
+    marker.name = _INTERNAL_CACHE_ORIGIN_META_TAG_NAME;
     marker.content = '';
     document.head.appendChild(marker);
 
@@ -193,7 +194,7 @@ describe('browserTracingIntegration', () => {
     expect(startBrowserTracingPageLoadSpanSpy).toHaveBeenCalledWith(fakeClient, {
       name: '/',
       attributes: {
-        [SENTRY_OP]: 'pageload',
+        [SENTRY_OP]: PAGELOAD,
         [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [PAGE_SERVER_RENDERING_TYPE]: 'static',

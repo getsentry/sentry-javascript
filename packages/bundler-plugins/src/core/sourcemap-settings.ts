@@ -16,10 +16,27 @@ export type SourceMapDecision = {
   enableHidden: boolean;
   /** Remove the source maps from the build output once they are uploaded. */
   deleteAfterUpload: boolean;
+  /**
+   * With `deleteAfterUpload`, remove every source map of the build, also those of CSS and of chunks
+   * the upload leaves out. Set when the plugin or the SDK turned the source maps on.
+   */
+  removeAllSourceMaps?: boolean;
   log?: { level: 'info' | 'warn'; message: string };
 };
 
 const NO_CHANGE: SourceMapDecision = { enableHidden: false, deleteAfterUpload: false };
+
+/** Reads `sourcemaps.deleteSourcemapsAfterUpload`, calling the internal function form if given. */
+export function getDeleteSourcemapsAfterUpload(options: NormalizedOptions, environment?: string): boolean | undefined {
+  const value = options.sourcemaps?.deleteSourcemapsAfterUpload;
+  return typeof value === 'function' ? value(environment) : value;
+}
+
+/** Reads the internal `sourcemaps.sdkEnabledSourceMaps` option, calling its function form if given. */
+export function getSdkEnabledSourceMaps(options: NormalizedOptions, environment?: string): boolean {
+  const value = options.sourcemaps?.sdkEnabledSourceMaps;
+  return (typeof value === 'function' ? value(environment) : value) === true;
+}
 
 /**
  * Decides whether the plugin turns hidden source maps on and whether it removes the maps from the
@@ -30,11 +47,37 @@ export function decideSourceMapHandling(
   kind: SourceMapKind,
   options: NormalizedOptions,
   uploadPossible: boolean,
+  environment?: string,
 ): SourceMapDecision {
-  const deleteOption = options.sourcemaps?.deleteSourcemapsAfterUpload;
+  const deleteOption = getDeleteSourcemapsAfterUpload(options, environment);
+  const sdkEnabledSourceMaps = getSdkEnabledSourceMaps(options, environment);
 
   if (!uploadPossible || options.sourcemaps?.disable) {
-    return NO_CHANGE;
+    if (deleteOption !== true || (kind !== 'hidden' && kind !== 'visible')) {
+      return NO_CHANGE;
+    }
+    // Users set `sourcemaps.disable` to upload the maps themselves. Maps the
+    // SDK turned on are still removed, as the SDKs' own globs did.
+    if (options.sourcemaps?.disable && !sdkEnabledSourceMaps) {
+      return {
+        ...NO_CHANGE,
+        log: {
+          level: 'warn',
+          message:
+            '`sourcemaps.deleteSourcemapsAfterUpload` is set, but source map upload is disabled with `sourcemaps.disable`, so the source maps are not removed.',
+        },
+      };
+    }
+    return {
+      enableHidden: kind === 'visible',
+      deleteAfterUpload: true,
+      removeAllSourceMaps: sdkEnabledSourceMaps,
+      log: {
+        level: 'warn',
+        message:
+          'Source maps are not uploaded, but they are removed from the build output because `sourcemaps.deleteSourcemapsAfterUpload` is set.',
+      },
+    };
   }
 
   switch (kind) {
@@ -74,6 +117,7 @@ export function decideSourceMapHandling(
       return {
         enableHidden: true,
         deleteAfterUpload: true,
+        removeAllSourceMaps: true,
         log: {
           level: 'info',
           message:
@@ -83,7 +127,10 @@ export function decideSourceMapHandling(
       };
 
     case 'hidden':
-      return { enableHidden: false, deleteAfterUpload: deleteOption === true };
+      if (deleteOption !== true) {
+        return NO_CHANGE;
+      }
+      return { enableHidden: false, deleteAfterUpload: true, removeAllSourceMaps: sdkEnabledSourceMaps };
 
     case 'visible':
       if (deleteOption !== true) {
@@ -92,6 +139,7 @@ export function decideSourceMapHandling(
       return {
         enableHidden: true,
         deleteAfterUpload: true,
+        removeAllSourceMaps: sdkEnabledSourceMaps,
         log: {
           level: 'info',
           message:

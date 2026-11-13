@@ -43,6 +43,14 @@
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
       },
+      "bun": {
+        "import": "./build/esm/index.bun.js",
+        "require": "./build/cjs/index.bun.js"
+      },
+      "deno": {
+        "import": "./build/esm/index.deno.js",
+        "require": "./build/cjs/index.deno.js"
+      },
       "node": "./build/cjs/index.server.js",
       "import": "./build/esm/index.server.js"
     },
@@ -100,30 +108,39 @@
   },
   "devDependencies": {
     "@sentry-internal/rollup-utils": "11.12.0",
+    "@sentry/bun": "11.12.0",
+    "@sentry/deno": "11.12.0",
     "cjs-module-lexer": "^2.2.0",
     "next": "15.5.28",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "peerDependencies": {
+    "@sentry/bun": "11.12.0",
+    "@sentry/deno": "11.12.0",
     "next": "^14.0 || ^15.0.0-rc.0 || ^16.0.0-0"
   },
+  "peerDependenciesMeta": {
+    "@sentry/bun": {
+      "optional": true
+    },
+    "@sentry/deno": {
+      "optional": true
+    }
+  },
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:dev": "pnpm run build",
     "build:transpile": "tsx --tsconfig tsconfig.tsnode.json scripts/buildRollup.ts",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "pnpm run build:watch",
-    "build:transpile:watch": "nodemon --ext ts --watch src scripts/buildRollup.ts",
     "build:tarball": "pnpm pack",
     "clean": "node ../../scripts/rm.mjs build coverage sentry-nextjs-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
-    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
+    "lint:es-compatibility": "node ../../scripts/es-check.mjs es2020",
     "test": "pnpm run test:unit",
-    "test:all": "run-s test:unit",
+    "test:all": "pnpm run test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",
     "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",

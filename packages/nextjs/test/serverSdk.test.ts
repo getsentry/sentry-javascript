@@ -47,6 +47,7 @@ describe('Server init()', () => {
     delete process.env.VERCEL;
     delete (process as { turbopack?: boolean }).turbopack;
     delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRelease?: string })._sentryRelease;
+    delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryTurbopack?: boolean })._sentryTurbopack;
   });
 
   it('inits the Node SDK', () => {
@@ -221,6 +222,14 @@ describe('Server init()', () => {
 
     expect(first).toBeDefined();
     expect(second).toBe(first);
+  });
+
+  it('sets the `turbopack` tag when the Turbopack build injected `_sentryTurbopack`', () => {
+    (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryTurbopack?: boolean })._sentryTurbopack = true;
+
+    init({});
+
+    expect(getGlobalScope().getScopeData().tags.turbopack).toBe(true);
   });
 
   it('skips init on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {

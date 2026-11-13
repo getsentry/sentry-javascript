@@ -39,15 +39,11 @@
     "@sentry-internal/rollup-utils": "11.12.0"
   },
   "scripts": {
-    "build": "run-p build:transpile build:bundle build:types",
+    "build": "pnpm run \"/^build:(transpile|bundle|types)$/\"",
     "build:bundle": "rolldown --config rollup.bundle.config.mjs",
-    "build:dev": "run-p build:transpile build:types",
+    "build:dev": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:transpile:watch build:bundle:watch",
-    "build:bundle:watch": "rolldown --config rollup.bundle.config.mjs --watch",
-    "build:dev:watch": "run-p build:transpile:watch",
-    "build:transpile:watch": "rolldown -c rollup.npm.config.mjs --watch",
     "build:tarball": "pnpm pack",
     "test": "vitest run",
     "test:watch": "vitest --watch",
@@ -55,7 +51,7 @@
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
-    "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs}/*.js && es-check es2020 ./build/npm/esm/*.js --module",
+    "lint:es-compatibility": "node ../../scripts/es-check.mjs es2020",
     "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
   "sideEffects": false

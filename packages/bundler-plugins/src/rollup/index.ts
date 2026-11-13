@@ -1,4 +1,4 @@
-import type { ChunkGraphNode, Options } from '../core';
+import type { ChunkGraphNode, InternalOptions, Options } from '../core';
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
@@ -91,7 +91,7 @@ function getViteParseAstAsync(): Promise<ViteParseAstAsync | null> {
  */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function _createRollupPluginInternals(
-  userOptions: Options = {},
+  userOptions: InternalOptions = {},
   buildTool: 'rollup' | 'vite',
   buildToolMajorVersion?: string,
 ) {

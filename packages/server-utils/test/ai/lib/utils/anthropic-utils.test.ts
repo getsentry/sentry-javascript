@@ -1,12 +1,29 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getMessagesAttributes,
+  getProviderName,
   mapAnthropicErrorToStatusMessage,
   messagesFromParams,
-  setMessagesAttribute,
 } from '../../../../src/ai/anthropic-ai/utils';
-import type { Span } from '@sentry/core';
 
 describe('anthropic-ai-utils', () => {
+  describe('getProviderName', () => {
+    it('reads the provider name of the client that owns the resource', () => {
+      expect(getProviderName({ _client: { _genAIProviderName: 'aws.bedrock' } })).toBe('aws.bedrock');
+    });
+
+    it.each([
+      undefined,
+      null,
+      {},
+      { _client: {} },
+      { _client: { _genAIProviderName: '' } },
+      { _client: { _genAIProviderName: 1 } },
+    ])('falls back to anthropic for %j', resource => {
+      expect(getProviderName(resource)).toBe('anthropic');
+    });
+  });
+
   describe('mapAnthropicErrorToStatusMessage', () => {
     it('maps known Anthropic error types to SpanStatusType values', () => {
       expect(mapAnthropicErrorToStatusMessage('invalid_request_error')).toBe('invalid_argument');
@@ -98,32 +115,15 @@ describe('anthropic-ai-utils', () => {
     });
   });
 
-  describe('setMessagesAtribute', () => {
-    const mock = {
-      attributes: {} as Record<string, any>,
-      setAttributes(kv: Record<string, any>) {
-        for (const [key, val] of Object.entries(kv)) {
-          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-          if (val === undefined) delete this.attributes[key];
-          else this.attributes[key] = val;
-        }
-      },
-    };
-    const span = mock as unknown as Span;
-
-    it('sets the input messages attribute', () => {
-      setMessagesAttribute(span, [{ role: 'user', content: 'hello, world' }]);
-      expect(mock.attributes).toStrictEqual({
+  describe('getMessagesAttributes', () => {
+    it('returns the input messages attribute', () => {
+      expect(getMessagesAttributes([{ role: 'user', content: 'hello, world' }])).toStrictEqual({
         'gen_ai.input.messages': '[{"role":"user","content":"hello, world"}]',
       });
     });
 
     it('ignores empty array', () => {
-      setMessagesAttribute(span, [{ role: 'user', content: 'hello, world' }]);
-      const before = { ...mock.attributes };
-
-      setMessagesAttribute(span, []);
-      expect(mock.attributes).toStrictEqual(before);
+      expect(getMessagesAttributes([])).toStrictEqual({});
     });
   });
 });

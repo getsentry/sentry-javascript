@@ -1,7 +1,7 @@
 import type { Context, TextMapSetter, TracerProvider } from '@opentelemetry/api';
 import { defaultTextMapSetter, propagation } from '@opentelemetry/api';
+import { _INTERNAL_CACHE_ORIGIN_META_TAG_NAME } from '@sentry/core';
 import { SentryPropagator } from '@sentry/opentelemetry';
-import { CACHE_ORIGIN_META_TAG_NAME } from '../common/traceMetaTags';
 import { isPrerenderContext, markPrerendersOnTracerProvider } from './prerenderContext';
 
 /**
@@ -28,7 +28,7 @@ export class NextSentryPropagator extends SentryPropagator {
     super.inject(ctx, values, defaultTextMapSetter);
     const sentryTrace = values['sentry-trace'];
     if (sentryTrace) {
-      setter.set(carrier, CACHE_ORIGIN_META_TAG_NAME, sentryTrace);
+      setter.set(carrier, _INTERNAL_CACHE_ORIGIN_META_TAG_NAME, sentryTrace);
     }
   }
 }

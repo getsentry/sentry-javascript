@@ -29,7 +29,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
-import { resolveAIRecordingOptions } from '../core/utils';
+import { getErrorStatus, resolveAIRecordingOptions } from '../core/utils';
 import { withCleanScopes } from '../../utils/withCleanScopes';
 import { ANTHROPIC_AI_ORIGIN } from './constants';
 import type { AnthropicAiOptions } from './types';
@@ -217,12 +217,11 @@ function runWithSpan(
 }
 
 function handleToolError(span: Span, error: unknown, context: RunContext): void {
+  span.setStatus(getErrorStatus(context?.signal));
+  // An aborted tool, caller abort or timeout, throws because the run stopped, not because the tool failed.
   if (context?.signal?.aborted) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
     return;
   }
-
-  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
 
   // Only a runner passes `toolUse`/`toolUseBlock` (SDK 0.85+), and it hands the throw to the model as a result.
   // A direct call rethrows to its caller, and a `ToolError` is sent on purpose, so neither is captured.

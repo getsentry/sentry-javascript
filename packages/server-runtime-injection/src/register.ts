@@ -343,8 +343,15 @@ export function registerDiagnosticsChannelInjection(): void {
   } catch (error) {
     marker.runtimeUnavailable = true;
     const reason = error instanceof Error ? error.message : String(error);
+    // Build tracers decide which of this package's files a deployment ships, and they miss the ones
+    // only reached through `Module.register()`. Say so, because the bare message reads like an SDK bug.
+    const missingFile = (error as { code?: unknown } | null)?.code === 'ERR_MODULE_NOT_FOUND';
     warnRuntimeUnavailable(
-      `Failed to register diagnostics-channel injection hooks (${reason}), so channel-based integrations will not record spans.`,
+      missingFile
+        ? 'Channel-based integrations will not record spans: your deployment is missing a file from ' +
+            `\`@sentry/server-runtime-injection\` (${reason}). Your build's file tracing left it out. Deploy the ` +
+            'whole `@sentry/server-runtime-injection` package directory with your server.'
+        : `Failed to register diagnostics-channel injection hooks (${reason}), so channel-based integrations will not record spans.`,
     );
     debug.warn('Diagnostics-channel injection registration error:', error);
     return;

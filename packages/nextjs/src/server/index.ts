@@ -53,6 +53,7 @@ export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/n
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
   _sentryRelease?: string;
+  _sentryTurbopack?: boolean;
 };
 
 // Call at module level so `next build` prerender workers still register the runner without `init`
@@ -236,7 +237,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   try {
     // @ts-expect-error `process.turbopack` is a magic string that will be replaced by Next.js
-    if (process.turbopack) {
+    if (process.turbopack || globalWithInjectedValues._sentryTurbopack) {
       getGlobalScope().setTag('turbopack', true);
       getGlobalScope().setAttribute('turbopack', true);
     }

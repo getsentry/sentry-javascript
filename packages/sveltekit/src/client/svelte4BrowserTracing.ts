@@ -5,6 +5,7 @@ import {
   PAGELOAD_SPAN_NAME_FALLBACK,
   ROUTER_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
+import { _INTERNAL_withCacheOrigin } from '@sentry/core/browser';
 import {
   getCurrentScope,
   startBrowserTracingNavigationSpan,
@@ -26,7 +27,6 @@ import type { Navigation, Page } from '@sveltejs/kit';
 // eslint-disable-next-line typescript/no-deprecated
 import { navigating, page } from '$app/stores';
 import type { Readable } from 'svelte/store';
-import { getServerRenderingAttributes } from './traceMetaTags';
 
 /**
  * SvelteKit 2 / Svelte 4 browser tracing (`$app/stores`). Selected at build time, so it's only
@@ -51,17 +51,22 @@ export function instrumentSvelteKitTracing(
 function _instrumentPageload(client: Client, pageStore: Readable<Page>): void {
   const initialPath = WINDOW.location?.pathname;
 
-  const pageloadSpan = startBrowserTracingPageLoadSpan(client, {
-    // With span streaming, span names have to be low cardinality. The route id is only available
-    // asynchronously, which updates the span name then.
-    name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : initialPath,
-    attributes: {
-      [SENTRY_OP]: PAGELOAD,
-      [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
-      [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-      ...getServerRenderingAttributes(),
-    },
-  });
+  const pageloadSpan = startBrowserTracingPageLoadSpan(
+    client,
+    _INTERNAL_withCacheOrigin(
+      {
+        // With span streaming, span names have to be low cardinality. The route id is only available
+        // asynchronously, which updates the span name then.
+        name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : initialPath,
+        attributes: {
+          [SENTRY_OP]: PAGELOAD,
+          [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+        },
+      },
+      'static',
+    ),
+  );
   if (!pageloadSpan) {
     return;
   }

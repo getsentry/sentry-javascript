@@ -351,24 +351,15 @@ describe('validateOptions', () => {
     expect(mockedLogger.error).not.toHaveBeenCalled();
   });
 
-  it('warns when `deleteSourcemapsAfterUpload` is set together with `sourcemaps.disable`', () => {
-    const options = normalizeUserOptions({
-      sourcemaps: { disable: 'disable-upload', deleteSourcemapsAfterUpload: true },
-    });
+  it.each([undefined, 'disable-upload'] as const)(
+    'does not warn when `deleteSourcemapsAfterUpload` is set and `sourcemaps.disable` is `%s`',
+    disable => {
+      const options = normalizeUserOptions({ sourcemaps: { disable, deleteSourcemapsAfterUpload: true } });
 
-    expect(validateOptions(options, mockedLogger)).toBe(true);
-    expect(mockedLogger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('deleteSourcemapsAfterUpload'),
-      expect.any(String),
-    );
-  });
-
-  it('does not warn when `deleteSourcemapsAfterUpload` is set and uploads are enabled', () => {
-    const options = normalizeUserOptions({ sourcemaps: { deleteSourcemapsAfterUpload: true } });
-
-    expect(validateOptions(options, mockedLogger)).toBe(true);
-    expect(mockedLogger.warn).not.toHaveBeenCalled();
-  });
+      expect(validateOptions(options, mockedLogger)).toBe(true);
+      expect(mockedLogger.warn).not.toHaveBeenCalled();
+    },
+  );
 
   it('should return `true` for options without special cases', () => {
     const options = {
