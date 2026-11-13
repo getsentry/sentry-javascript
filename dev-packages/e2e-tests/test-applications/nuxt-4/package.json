@@ -87,9 +87,7 @@
         "build-command": "pnpm test:build:cloudflare",
         "assert-command": "pnpm test:prod",
         "label": "nuxt-4 (cloudflare)"
-      }
-    ],
-    "optionalVariants": [
+      },
       {
         "runtime": "cloudflare",
         "build-command": "pnpm test:build:tunnel-basepath-cloudflare",

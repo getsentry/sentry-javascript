@@ -9,7 +9,10 @@ import {
   getTraceData,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
-import { _INTERNAL_isServedTunnelRequest as isServedTunnelRequest } from '@sentry/core/server';
+import {
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+  _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
+} from '@sentry/core/server';
 import type { H3Event } from 'h3';
 import type { NitroApp, NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
@@ -106,12 +109,11 @@ export const sentryCloudflareNitroPlugin =
         } else {
           // Usually, the protocol already includes ":"
           const url = `${event.protocol}${event.protocol.endsWith(':') ? '' : ':'}//${event.host}${pathname}`;
+          // Nitro read the body before calling `localFetch`. This request has no body, so other requests' bodies
+          // don't end up on events. Only the managed tunnel needs it, see below.
           const request = new Request(url, {
             method: event.method,
             headers: event.headers,
-            // Nitro read the body before calling `localFetch`. Only the managed tunnel answers from this request, so
-            // only its requests get the body, and other requests' bodies don't end up on events.
-            body: isServedTunnelRequest({ method: event.method, url: pathname }) ? event.body : undefined,
             // @ts-expect-error - 'cf' is a valid property in the RequestInit type for Cloudflare
             cf: getCfProperties(event),
           });
@@ -129,6 +131,17 @@ export const sentryCloudflareNitroPlugin =
           };
 
           return wrapRequestHandler(requestHandlerOptions, () => {
+            // The served tunnel belongs to the client `wrapRequestHandler` creates, so it can only match from here.
+            // The wrapper records no span, session or body for a tunnel request.
+            if (event.body && isServedTunnelRequest(request)) {
+              const tunnelResponse = handleServedTunnelRequest(
+                new Request(url, { method: event.method, headers: event.headers, body: event.body }),
+              );
+              if (tunnelResponse) {
+                return tunnelResponse;
+              }
+            }
+
             setRequestTransactionName(event.method, pathname);
 
             const isolationScope = getIsolationScope();
