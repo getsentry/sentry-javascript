@@ -147,7 +147,6 @@
     "es-check": "^9.8.1",
     "esbuild": "^0.28.1",
     "jsdom": "^21.1.2",
-    "nodemon": "^3.1.10",
     "nx": "24.0.3",
     "oxfmt": "^0.74.0",
     "oxlint": "^1.89.0",
@@ -160,8 +159,7 @@
     "tsx": "^4.23.15",
     "typescript": "~7.0.2",
     "vitest": "^4.1.12",
-    "webpack": "^5.112.2",
-    "yalc": "^1.0.0-pre.53"
+    "webpack": "^5.112.2"
   },
   "version": "0.0.0",
   "name": "sentry-javascript"
