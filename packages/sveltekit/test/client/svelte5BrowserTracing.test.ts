@@ -15,7 +15,7 @@ import {
 import { PAGELOAD } from '@sentry/conventions/op';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentSvelteKitTracing } from '../../src/client/svelte5BrowserTracing';
-import { CACHE_ORIGIN_META_TAG_NAME } from '../../src/common/traceMetaTags';
+import { _INTERNAL_CACHE_ORIGIN_META_TAG_NAME } from '@sentry/core';
 
 // The Svelte 5 variant reads navigation state from rune-backed helpers (`navigationState.svelte.ts`),
 // which need the Svelte compiler. We mock them here so the variant's orchestration logic (fetch
@@ -108,7 +108,7 @@ describe('svelte5 browser tracing', () => {
 
     it('marks the pageload of a prerendered page as statically rendered, without a link', () => {
       const marker = document.createElement('meta');
-      marker.name = CACHE_ORIGIN_META_TAG_NAME;
+      marker.name = _INTERNAL_CACHE_ORIGIN_META_TAG_NAME;
       marker.content = '';
       document.head.appendChild(marker);
 

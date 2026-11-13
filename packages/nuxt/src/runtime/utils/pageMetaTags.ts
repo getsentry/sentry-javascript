@@ -1,9 +1,9 @@
 import type { SerializedTraceData } from '@sentry/core';
-import { debug, getTraceData, GLOBAL_OBJ } from '@sentry/core';
+import { debug, GLOBAL_OBJ } from '@sentry/core';
+import { _INTERNAL_getCacheOriginMetaTag, _INTERNAL_getRootSpanSentryTrace } from '@sentry/core/server';
 import type { H3Event } from 'h3';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { addSentryTracingMetaTags, getEventRequestInfo } from '../utils';
-import { CACHE_ORIGIN_META_TAG_NAME } from './cacheOriginMetaTag';
 
 /** Global flag set by the generated runtime-flags module to the Nitro preset of the server build. */
 export const NUXT_NITRO_PRESET_FLAG = '__SENTRY_NUXT_NITRO_PRESET__';
@@ -27,32 +27,23 @@ interface RouteRules {
 /**
  * Adds the Sentry meta tags to a rendered page. A page that other visitors get too has a
  * `sentry-cache-origin` tag instead of `sentry-trace` and `baggage`, so that no visitor continues the
- * trace of the render. The tag is empty for build prerenders, because the SDK does not run in the build.
+ * trace of the render.
  */
 export function addSentryPageMetaTags(
   head: NuxtRenderHTMLContext['head'],
   event: H3Event,
   traceData?: SerializedTraceData,
 ): void {
-  const cacheOrigin = getCacheOrigin(event, traceData);
-  if (cacheOrigin === undefined) {
+  const isPrerender = isPrerenderRequest(event);
+  if (!isPrerender && !isCachedRoute(event)) {
     addSentryTracingMetaTags(head, traceData);
     return;
   }
 
   debug.log(`Adding the Sentry cache origin meta tag to the reused page ${getEventRequestInfo(event).path}.`);
-  head.push(`<meta name="${CACHE_ORIGIN_META_TAG_NAME}" content="${cacheOrigin}"/>`);
-}
-
-/** The `sentry-trace` value of the render of a reused page, or `undefined` for a page rendered per request. */
-function getCacheOrigin(event: H3Event, traceData: SerializedTraceData | undefined): string | undefined {
-  if (isPrerenderRequest(event)) {
-    return '';
-  }
-  if (!isCachedRoute(event)) {
-    return undefined;
-  }
-  return (traceData ?? getTraceData())['sentry-trace'] ?? '';
+  // Sentry skips its server init in the prerender build, so a prerendered page has no trace to link.
+  const renderTrace = isPrerender ? undefined : (traceData?.['sentry-trace'] ?? _INTERNAL_getRootSpanSentryTrace());
+  head.push(_INTERNAL_getCacheOriginMetaTag(renderTrace));
 }
 
 // The Nitro prerenderer sends this header with each route it renders (Nitro v2 and v3). h3 v2 deprecates

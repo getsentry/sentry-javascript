@@ -134,6 +134,7 @@ export { applySdkMetadata } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
 export { matchesTracePropagationTargets, shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';
+export { _INTERNAL_CACHE_ORIGIN_META_TAG_NAME } from './utils/cacheOrigin';
 export { debounce } from './utils/debounce';
 export { uniq } from './utils/array';
 export { makeWeakRef, derefWeakRef } from './utils/weakRef';
