@@ -16,7 +16,6 @@
     "ci:print-build-artifact-paths": "node ./scripts/ci-print-build-artifact-paths.mjs",
     "changelog": "tsx ./scripts/get-commit-list.ts",
     "generate-changelog": "tsx ./scripts/generate-changelog.ts",
-    "circularDepCheck": "nx run-many -t circularDepCheck",
     "clean": "run-s clean:build clean:caches",
     "clean:build": "nx run-many -t clean",
     "clean:caches": "node scripts/rm.mjs eslintcache .nxcache .nx",
@@ -148,7 +147,6 @@
     "deepmerge": "^4.2.2",
     "esbuild": "^0.28.1",
     "jsdom": "^21.1.2",
-    "madge": "8.0.0",
     "nodemon": "^3.1.10",
     "npm-run-all2": "^6.2.0",
     "nx": "24.0.3",
@@ -163,8 +161,7 @@
     "tsx": "^4.23.15",
     "typescript": "~7.0.2",
     "vitest": "^4.1.12",
-    "webpack": "^5.112.2",
-    "yalc": "^1.0.0-pre.53"
+    "webpack": "^5.112.2"
   },
   "version": "0.0.0",
   "name": "sentry-javascript"

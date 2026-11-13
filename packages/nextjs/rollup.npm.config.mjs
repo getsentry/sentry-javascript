@@ -7,6 +7,8 @@ export default [
       // doesn't automatically include it when calculating the module dependency tree.
       entrypoints: [
         'src/index.server.ts',
+        'src/index.bun.ts',
+        'src/index.deno.ts',
         'src/index.client.ts',
         'src/client/index.ts',
         'src/server/index.ts',

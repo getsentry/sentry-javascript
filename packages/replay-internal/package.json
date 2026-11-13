@@ -48,7 +48,6 @@
     "build:transpile:watch": "pnpm run build:transpile --watch",
     "build:bundle:watch": "pnpm run build:bundle --watch",
     "build:tarball": "pnpm pack",
-    "circularDepCheck": "madge --circular src/index.ts",
     "clean": "node ../../scripts/rm.mjs build sentry-replay-*.tgz",
     "format": "oxfmt \"src/**/*.ts\" \"test/**/*.ts\" --write",
     "format:check": "oxfmt \"src/**/*.ts\" \"test/**/*.ts\" --check",
@@ -58,7 +57,7 @@
     "lint:es-compatibility": "node ../../scripts/es-check.mjs es2020",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
   "repository": {
     "type": "git",
