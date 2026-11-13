@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { debug, SPAN_STATUS_ERROR } from '@sentry/core';
+import { debug } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
@@ -14,7 +14,13 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
 import type { StreamResponseState } from '../../../ai/core/utils';
-import { endStreamSpan, getTokenUsageAttributes } from '../../../ai/core/utils';
+import {
+  endStreamSpan,
+  getErrorStatus,
+  getTokenUsageAttributes,
+  resolveAIRecordingOptions,
+} from '../../../ai/core/utils';
+import { isInsidePiAiSpan } from '../../../ai/pi-ai/providers';
 import { DEBUG_BUILD } from '../../../debug-build';
 import {
   GEN_AI_OPERATION_NAME_VALUE_CHAT,
@@ -22,6 +28,11 @@ import {
   GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
 } from '../constants';
 import type { NormalizedRequest, NormalizedResponse } from '../types';
+import {
+  getClaudeInputAttributes,
+  getConverseInputAttributes,
+  getPromptInputAttributes,
+} from './bedrock-runtime-content';
 import type { RequestMetadata, ServiceExtension } from './ServiceExtension';
 
 // Simplified types inlined from @aws-sdk/client-bedrock-runtime
@@ -48,7 +59,16 @@ type ParsedChunk = any;
 const textDecoder = new TextDecoder();
 
 export class BedrockRuntimeServiceExtension implements ServiceExtension {
+  // Requests pi-ai sends, which its own `gen_ai.chat` span already reports. They keep the plain AWS
+  // client span, without the model call on it.
+  private _piAiRequests: WeakSet<NormalizedRequest> = new WeakSet();
+
   public requestPreSpanHook(request: NormalizedRequest): RequestMetadata {
+    if (isInsidePiAiSpan()) {
+      this._piAiRequests.add(request);
+      return {};
+    }
+
     switch (request.commandName) {
       case 'Converse':
         return this._requestPreSpanHookConverse(request, false);
@@ -64,6 +84,10 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
   }
 
   public responseHook(response: NormalizedResponse, span: Span): void {
+    if (this._piAiRequests.has(response.request)) {
+      return;
+    }
+
     const commandName = response.request.commandName;
 
     if (!span.isRecording()) {
@@ -118,6 +142,10 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       if (stopSequences !== undefined) {
         spanAttributes[ATTR_GEN_AI_REQUEST_STOP_SEQUENCES] = stopSequences;
       }
+    }
+
+    if (resolveAIRecordingOptions().recordInputs) {
+      Object.assign(spanAttributes, getConverseInputAttributes(request.commandInput));
     }
 
     return {
@@ -243,6 +271,10 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
         if (requestBody.stop !== undefined) {
           spanAttributes[ATTR_GEN_AI_REQUEST_STOP_SEQUENCES] = requestBody.stop;
         }
+      }
+
+      if (resolveAIRecordingOptions().recordInputs) {
+        Object.assign(spanAttributes, getInvokeModelInputAttributes(modelId, requestBody));
       }
     }
 
@@ -398,6 +430,13 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
   }
 }
 
+function getInvokeModelInputAttributes(modelId: string, requestBody: ParsedChunk): Record<string, unknown> {
+  if (modelId.includes('amazon.nova')) return getConverseInputAttributes(requestBody);
+  if (modelId.includes('anthropic.claude')) return getClaudeInputAttributes(requestBody);
+  // The other families send one prompt string: Titan as `inputText`, Cohere Command R as `message`.
+  return getPromptInputAttributes(requestBody.inputText ?? requestBody.message ?? requestBody.prompt);
+}
+
 type StreamProcessor = (parsedChunk: ParsedChunk, state: StreamResponseState) => void;
 
 function resolveStreamProcessor(modelId: string): StreamProcessor | undefined {
@@ -425,7 +464,7 @@ async function* instrumentStream<T>(
       yield item;
     }
   } catch (error) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: abortSignal?.aborted ? 'cancelled' : 'internal_error' });
+    span.setStatus(getErrorStatus(abortSignal));
     throw error;
   } finally {
     endStreamSpan(span, state, false);

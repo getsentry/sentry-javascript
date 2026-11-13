@@ -134,6 +134,7 @@ export { applySdkMetadata, captureOptionsSetByUser as _INTERNAL_captureOptionsSe
 export { getTraceData } from './utils/traceData';
 export { matchesTracePropagationTargets, shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';
+export { _INTERNAL_CACHE_ORIGIN_META_TAG_NAME } from './utils/cacheOrigin';
 export { debounce } from './utils/debounce';
 export { uniq } from './utils/array';
 export { makeWeakRef, derefWeakRef } from './utils/weakRef';
@@ -146,6 +147,7 @@ export {
   httpRequestToRequestData,
   extractQueryParamsFromUrl,
   headersToDict,
+  getHostFromHeaders,
   httpHeadersToSpanAttributes,
   getContentLengthFromHeaders,
   getMaxBodyByteLength,
@@ -185,14 +187,14 @@ export { instrumentFetchRequest, _INTERNAL_getTracingHeadersForFetchRequest } fr
 export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';
 export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/internal';
-export * as logger from './logs/public-api';
+export { logger } from './logs/public-api';
 export { consoleLoggingIntegration } from './logs/console-integration';
 export {
   _INTERNAL_captureMetric,
   _INTERNAL_flushMetricsBuffer,
   _INTERNAL_captureSerializedMetric,
 } from './metrics/internal';
-export * as metrics from './metrics/public-api';
+export { metrics } from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
 export { SpanBuffer } from './tracing/spans/spanBuffer';

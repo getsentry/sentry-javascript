@@ -1,6 +1,6 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { endStreamSpan } from '../core/utils';
+import { endStreamSpan, getErrorStatus } from '../core/utils';
 import type { AnthropicAiStreamingEvent } from './types';
 import { mapAnthropicErrorToStatusMessage } from './utils';
 
@@ -262,6 +262,7 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
   stream: R,
   span: Span,
   recordOutputs: boolean,
+  abortSignal?: AbortSignal,
 ): R {
   const state: StreamingState = {
     responseTexts: [],
@@ -290,8 +291,11 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
   // Fires last on every stream, so a stream that stops without 'message' (aborted, or the body closed early) still
   // ends its span. An 'abort' listener would also stop the SDK from raising an unobserved abort as a rejection.
   stream.on('end', () => {
-    if (span.isRecording() && (stream as { aborted?: boolean }).aborted) {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
+    if (span.isRecording() && stream.aborted) {
+      // `aborted` is also set when the caller's `AbortSignal.timeout()` fires, which is a timeout, not a cancellation.
+      span.setStatus(
+        abortSignal?.aborted ? getErrorStatus(abortSignal) : { code: SPAN_STATUS_ERROR, message: 'cancelled' },
+      );
     }
     endStreamSpan(span, state, recordOutputs);
   });
@@ -310,15 +314,6 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       endStreamSpan(span, state, recordOutputs);
     }
-  });
-
-  // An aborted stream emits only `abort` and `end`. We don't listen for `abort`: doing so would stop the SDK from
-  // raising an unhandled rejection when the caller never awaits the aborted stream.
-  stream.on('end', () => {
-    if (stream.aborted && span.isRecording()) {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
-    }
-    endStreamSpan(span, state, recordOutputs);
   });
 
   return stream;

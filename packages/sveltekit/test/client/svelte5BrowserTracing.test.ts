@@ -5,9 +5,17 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { Span } from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  PAGE_SERVER_RENDERING_TYPE,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  URL_TEMPLATE,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { PAGELOAD } from '@sentry/conventions/op';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentSvelteKitTracing } from '../../src/client/svelte5BrowserTracing';
+import { _INTERNAL_CACHE_ORIGIN_META_TAG_NAME } from '@sentry/core';
 
 // The Svelte 5 variant reads navigation state from rune-backed helpers (`navigationState.svelte.ts`),
 // which need the Svelte compiler. We mock them here so the variant's orchestration logic (fetch
@@ -70,6 +78,7 @@ describe('svelte5 browser tracing', () => {
     navigationChangeCb = undefined;
     pageRouteChangeCb = undefined;
     createdRootSpan = undefined;
+    document.head.innerHTML = '';
     // The variant wraps `window.fetch`; give it a resolvable fetch to wrap and reset each test.
     window.fetch = vi.fn().mockResolvedValue(undefined);
   });
@@ -95,6 +104,25 @@ describe('svelte5 browser tracing', () => {
         [URL_TEMPLATE]: '/users/[id]',
       });
       expect(setTransactionNameSpy).toHaveBeenCalledWith('/users/[id]');
+    });
+
+    it('marks the pageload of a prerendered page as statically rendered, without a link', () => {
+      const marker = document.createElement('meta');
+      marker.name = _INTERNAL_CACHE_ORIGIN_META_TAG_NAME;
+      marker.content = '';
+      document.head.appendChild(marker);
+
+      instrumentSvelteKitTracing(client, {});
+
+      expect(startPageLoadSpanSpy).toHaveBeenCalledWith(client, {
+        name: '/',
+        attributes: {
+          [SENTRY_OP]: PAGELOAD,
+          [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+          [PAGE_SERVER_RENDERING_TYPE]: 'static',
+        },
+      });
     });
 
     it("doesn't upgrade the pageload span while the route id is still null", () => {

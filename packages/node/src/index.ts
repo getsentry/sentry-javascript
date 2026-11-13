@@ -33,6 +33,7 @@ export {
   lruMemoizerIntegration,
   createFlueInstrumentation,
   mastraIntegration,
+  piAiIntegration,
   piDurableIntegration,
   mcpServerIntegration,
   SentryMastraExporter,
@@ -226,7 +227,7 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
 } from '@sentry/core';
-export * as logger from './logs/exports';
+export { logger } from './logs/exports';
 
 export { childProcessIntegration } from './integrations/childProcess';
 export { consoleIntegration } from './integrations/console';

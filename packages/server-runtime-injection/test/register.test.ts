@@ -128,6 +128,26 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
     expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtimeUnavailable).toBe(true);
   });
 
+  it('says the deployment is missing a file when registering fails with ERR_MODULE_NOT_FOUND', () => {
+    (globalThis as { Deno?: unknown }).Deno = { version: { deno: '2.8.3' } };
+    registerHooksMock.mockImplementationOnce(() => {
+      throw Object.assign(new Error("Cannot find module '/var/task/hook.js'"), { code: 'ERR_MODULE_NOT_FOUND' });
+    });
+
+    try {
+      registerDiagnosticsChannelInjection();
+    } finally {
+      delete (globalThis as { Deno?: unknown }).Deno;
+    }
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "your deployment is missing a file from `@sentry/server-runtime-injection` (Cannot find module '/var/task/hook.js')",
+      ),
+    );
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtimeUnavailable).toBe(true);
+  });
+
   it('warns once when a module fails to transform because the transformer was tree-shaken', () => {
     registerDiagnosticsChannelInjection();
     const onDiagnostics = diagnosticsCallback();

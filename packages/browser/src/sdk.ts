@@ -11,7 +11,7 @@ import {
   setNormalizeStringifier,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import type { BrowserClientOptions, BrowserOptions } from './client';
+import type { BrowserOptions, ResolvedBrowserClientOptions } from './client';
 import { BrowserClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { browserApiErrorsIntegration } from './integrations/browserapierrors';
@@ -119,7 +119,7 @@ export function init(userOptions: BrowserOptions = {}): Client | undefined {
     defaultIntegrations,
   });
 
-  const clientOptions: BrowserClientOptions = {
+  const clientOptions: ResolvedBrowserClientOptions = {
     ...options,
     ...resolveBrowserTunnelOption(options),
     enabled: shouldDisableBecauseIsBrowserExtenstion ? false : options.enabled,

@@ -46,13 +46,12 @@ doesn't match the repo, see [Node.js and pnpm Versions](#nodejs-and-pnpm-version
 ## Building Packages
 
 Since we are using [`TypeScript`](https://www.typescriptlang.org/), you need to transpile the code to JavaScript to be
-able to use it. From the top level of the repo, there are three commands available:
+able to use it. From the top level of the repo, there are two commands available:
 
 - `pnpm run build:dev`, which runs a one-time build of every package
 - `pnpm run build:dev:filter <name of npm package>`, which runs `pnpm run build:dev` only in projects relevant to the given
   package (so, for example, running `pnpm run build:dev:filter @sentry/react` will build the `react` package, all of its
   dependencies (`utils`, `core`, `browser`, etc), and all packages which depend on it (currently `gatsby` and `nextjs`))
-- `pnpm run build:dev:watch`, which runs `pnpm run build:dev` in watch mode (recommended)
 
 Note: Due to package incompatibilities between Python versions, building native binaries currently requires a Python
 version <3.12.

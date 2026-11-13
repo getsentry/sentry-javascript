@@ -107,25 +107,24 @@
     "react": "18.x",
     "remix": "3.x"
   },
+  "//_scripts_comment": [
+    "`lint:es-compatibility`: `build/v3-node.mjs` is Node-only and uses top-level await. `build/esm/v3/client-bundle.js` inlines web-vitals 6 untranspiled, whose only ES2022 syntax is public instance class fields (Chrome 72, Firefox 69, Safari 14, so supported by all our minimum browsers). Its `Array.prototype.at` use is guarded since #26347."
+  ],
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:dev": "pnpm run build",
-    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:transpile": "rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "pnpm run build:watch",
-    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "pnpm pack",
-    "circularDepCheck": "madge --circular src/index.server.ts src/index.client.ts",
     "clean": "node ../../scripts/rm.mjs build coverage sentry-remix-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
-    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
+    "lint:es-compatibility": "node ../../scripts/es-check.mjs es2020 'build/{cjs,esm}/**/*.js' '!build/esm/v3/client-bundle.js' build/import-hook.mjs && node ../../scripts/es-check.mjs es2022 build/esm/v3/client-bundle.js build/v3-node.mjs",
     "test": "pnpm run test:unit",
     "test:unit": "vitest run --config vitest.config.unit.ts",
     "test:watch": "vitest --watch --config vitest.config.unit.ts",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
   "sideEffects": false,
   "nx": {

@@ -1,10 +1,12 @@
-import type { Client } from '@sentry/core';
+import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
+import type { Client, StartSpanOptions } from '@sentry/core';
 import type { isNuxtError as nuxtIsNuxtError, NuxtApp } from 'nuxt/app';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import clientPlugin from '../../../src/runtime/plugins/sentry.client';
 import * as utils from '../../../src/runtime/utils';
 
 const getClient = vi.hoisted(() => vi.fn<() => Client | undefined>());
+const withCacheOriginMock = vi.hoisted(() => vi.fn());
 const browserTracingIntegration = vi.hoisted(() => vi.fn());
 const vueIntegration = vi.hoisted(() => vi.fn());
 const createVueRouteProvider = vi.hoisted(() => vi.fn());
@@ -27,6 +29,11 @@ vi.mock(import('@sentry/core'), async importOriginal => {
     GLOBAL_OBJ: globalObj as never,
   };
 });
+
+vi.mock(import('@sentry/core/browser'), async importOriginal => ({
+  ...(await importOriginal()),
+  _INTERNAL_withCacheOrigin: withCacheOriginMock,
+}));
 
 vi.mock(import('@sentry/vue'), async importOriginal => {
   const mod = await importOriginal();
@@ -126,8 +133,50 @@ describe('Sentry Nuxt client plugin', () => {
 
       await (clientPlugin as NuxtPluginShape).setup(makeNuxtApp(router));
 
-      expect(browserTracingIntegration).toHaveBeenCalledWith({ router, routeLabel: 'path' });
+      expect(browserTracingIntegration).toHaveBeenCalledWith({
+        router,
+        routeLabel: 'path',
+        beforeStartSpan: expect.any(Function),
+      });
       expect(client.addIntegration).toHaveBeenCalledWith(integration);
+    });
+
+    describe('beforeStartSpan', () => {
+      async function setupBeforeStartSpan(
+        serverRendered: boolean,
+      ): Promise<(options: StartSpanOptions) => StartSpanOptions> {
+        let beforeStartSpan: ((options: StartSpanOptions) => StartSpanOptions) | undefined;
+        browserTracingIntegration.mockImplementation(options => {
+          beforeStartSpan = options.beforeStartSpan;
+          return { name: 'BrowserTracing' };
+        });
+        getClient.mockReturnValue(makeClient());
+        const nuxtApp = makeNuxtApp({ beforeEach: vi.fn(), onError: vi.fn() });
+        nuxtApp.payload = { serverRendered } as NuxtApp['payload'];
+
+        await (clientPlugin as NuxtPluginShape).setup(nuxtApp);
+        return beforeStartSpan!;
+      }
+
+      it('passes the pageload of a server-rendered page to the cache origin helper as static', async () => {
+        const beforeStartSpan = await setupBeforeStartSpan(true);
+        const pageloadOptions = { name: '/rendering-modes/swr-cached-page', op: PAGELOAD };
+
+        beforeStartSpan(pageloadOptions);
+
+        expect(withCacheOriginMock).toHaveBeenCalledWith(pageloadOptions, 'static');
+      });
+
+      it.each([
+        { kind: 'the pageload of a client-side shell', serverRendered: false, op: PAGELOAD },
+        { kind: 'a navigation', serverRendered: true, op: NAVIGATION },
+      ])('does not change $kind', async ({ serverRendered, op }) => {
+        const beforeStartSpan = await setupBeforeStartSpan(serverRendered);
+        const options = { name: '/rendering-modes/swr-cached-page', op };
+
+        expect(beforeStartSpan(options)).toBe(options);
+        expect(withCacheOriginMock).not.toHaveBeenCalled();
+      });
     });
 
     it('does not add browserTracingIntegration without an initialized client', async () => {
