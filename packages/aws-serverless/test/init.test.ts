@@ -139,254 +139,63 @@ describe('init', () => {
     });
   });
 
-  describe('proxy environment variables and layer extension', () => {
-    test('should enable useLayerExtension when no proxy env vars are set', () => {
+  describe('proxy settings and layer extension', () => {
+    test('keeps the extension enabled and bypasses the proxy for it when http_proxy is set', () => {
+      process.env.http_proxy = 'http://proxy.example.com:8080';
       mockGetSDKSource.mockReturnValue('aws-lambda-layer');
-      const options: AwsServerlessOptions = {};
 
-      init(options);
+      init({ transportOptions: { keepAlive: false } });
 
       expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
         expect.objectContaining({
           useLayerExtension: true,
           tunnel: 'http://localhost:9000/envelope',
+          transportOptions: { keepAlive: false, proxy: false },
         }),
       );
     });
 
-    test('should disable useLayerExtension when http_proxy is set', () => {
+    test.each([
+      ['proxy', { proxy: 'http://proxy.example.com:8080' }],
+      ['caCerts', { caCerts: 'cert' }],
+    ])('disables the extension when transportOptions.%s is set', (_name, transportOptions) => {
+      mockGetSDKSource.mockReturnValue('aws-lambda-layer');
+
+      init({ transportOptions });
+
+      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
+        expect.objectContaining({ useLayerExtension: false, transportOptions }),
+      );
+      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
+        expect.not.objectContaining({ tunnel: expect.any(String) }),
+      );
+    });
+
+    test('does not use the extension when explicitly enabled but transportOptions sets a proxy', () => {
+      mockGetSDKSource.mockReturnValue('aws-lambda-layer');
+      const transportOptions = { proxy: 'http://proxy.example.com:8080' };
+
+      init({ useLayerExtension: true, transportOptions });
+
+      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
+        expect.objectContaining({ useLayerExtension: true, transportOptions }),
+      );
+      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
+        expect.not.objectContaining({ tunnel: expect.any(String) }),
+      );
+    });
+
+    test('respects explicit useLayerExtension=false when http_proxy is set', () => {
       process.env.http_proxy = 'http://proxy.example.com:8080';
       mockGetSDKSource.mockReturnValue('aws-lambda-layer');
-      const options: AwsServerlessOptions = {};
 
-      init(options);
+      init({ useLayerExtension: false });
 
       expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-        expect.objectContaining({
-          useLayerExtension: false,
-        }),
+        expect.objectContaining({ useLayerExtension: false }),
       );
       expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-        expect.not.objectContaining({
-          tunnel: expect.any(String),
-        }),
-      );
-    });
-
-    describe('no_proxy patterns', () => {
-      test('should enable useLayerExtension when no_proxy=* (wildcard)', () => {
-        process.env.http_proxy = 'http://proxy.example.com:8080';
-        process.env.no_proxy = '*';
-        mockGetSDKSource.mockReturnValue('aws-lambda-layer');
-        const options: AwsServerlessOptions = {};
-
-        init(options);
-
-        expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-          expect.objectContaining({
-            useLayerExtension: true,
-            tunnel: 'http://localhost:9000/envelope',
-          }),
-        );
-      });
-
-      test('should enable useLayerExtension when no_proxy contains localhost', () => {
-        process.env.http_proxy = 'http://proxy.example.com:8080';
-        process.env.no_proxy = 'localhost';
-        mockGetSDKSource.mockReturnValue('aws-lambda-layer');
-        const options: AwsServerlessOptions = {};
-
-        init(options);
-
-        expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-          expect.objectContaining({
-            useLayerExtension: true,
-            tunnel: 'http://localhost:9000/envelope',
-          }),
-        );
-      });
-
-      test('should enable useLayerExtension when no_proxy contains 127.0.0.1', () => {
-        process.env.http_proxy = 'http://proxy.example.com:8080';
-        process.env.no_proxy = '127.0.0.1';
-        mockGetSDKSource.mockReturnValue('aws-lambda-layer');
-        const options: AwsServerlessOptions = {};
-
-        init(options);
-
-        expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-          expect.objectContaining({
-            useLayerExtension: true,
-            tunnel: 'http://localhost:9000/envelope',
-          }),
-        );
-      });
-
-      test('should enable useLayerExtension when no_proxy contains ::1', () => {
-        process.env.http_proxy = 'http://proxy.example.com:8080';
-        process.env.no_proxy = '::1';
-        mockGetSDKSource.mockReturnValue('aws-lambda-layer');
-        const options: AwsServerlessOptions = {};
-
-        init(options);
-
-        expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-          expect.objectContaining({
-            useLayerExtension: true,
-            tunnel: 'http://localhost:9000/envelope',
-          }),
-        );
-      });
-
-      test('should enable useLayerExtension when no_proxy contains localhost in a comma-separated list', () => {
-        process.env.http_proxy = 'http://proxy.example.com:8080';
-        process.env.no_proxy = 'example.com,localhost,other.com';
-        mockGetSDKSource.mockReturnValue('aws-lambda-layer');
-        const options: AwsServerlessOptions = {};
-
-        init(options);
-
-        expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-          expect.objectContaining({
-            useLayerExtension: true,
-            tunnel: 'http://localhost:9000/envelope',
-          }),
-        );
-      });
-
-      test('should disable useLayerExtension when no_proxy does not contain localhost patterns', () => {
-        process.env.http_proxy = 'http://proxy.example.com:8080';
-        process.env.no_proxy = 'example.com,other.com';
-        mockGetSDKSource.mockReturnValue('aws-lambda-layer');
-        const options: AwsServerlessOptions = {};
-
-        init(options);
-
-        expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-          expect.objectContaining({
-            useLayerExtension: false,
-          }),
-        );
-        expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-          expect.not.objectContaining({
-            tunnel: expect.any(String),
-          }),
-        );
-      });
-
-      test('should disable useLayerExtension when no_proxy contains host (no longer supported)', () => {
-        process.env.http_proxy = 'http://proxy.example.com:8080';
-        process.env.no_proxy = 'host';
-        mockGetSDKSource.mockReturnValue('aws-lambda-layer');
-        const options: AwsServerlessOptions = {};
-
-        init(options);
-
-        expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-          expect.objectContaining({
-            useLayerExtension: false,
-          }),
-        );
-        expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-          expect.not.objectContaining({
-            tunnel: expect.any(String),
-          }),
-        );
-      });
-
-      test('should handle case-insensitive no_proxy values', () => {
-        process.env.http_proxy = 'http://proxy.example.com:8080';
-        process.env.no_proxy = 'LOCALHOST';
-        mockGetSDKSource.mockReturnValue('aws-lambda-layer');
-        const options: AwsServerlessOptions = {};
-
-        init(options);
-
-        expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-          expect.objectContaining({
-            useLayerExtension: true,
-            tunnel: 'http://localhost:9000/envelope',
-          }),
-        );
-      });
-
-      test('should handle whitespace in no_proxy values', () => {
-        process.env.http_proxy = 'http://proxy.example.com:8080';
-        process.env.no_proxy = ' localhost , example.com ';
-        mockGetSDKSource.mockReturnValue('aws-lambda-layer');
-        const options: AwsServerlessOptions = {};
-
-        init(options);
-
-        expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-          expect.objectContaining({
-            useLayerExtension: true,
-            tunnel: 'http://localhost:9000/envelope',
-          }),
-        );
-      });
-    });
-
-    test('should respect explicit useLayerExtension=false even with no proxy interference', () => {
-      mockGetSDKSource.mockReturnValue('aws-lambda-layer');
-      const options: AwsServerlessOptions = {
-        useLayerExtension: false,
-      };
-
-      init(options);
-
-      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-        expect.objectContaining({
-          useLayerExtension: false,
-        }),
-      );
-      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-        expect.not.objectContaining({
-          tunnel: expect.any(String),
-        }),
-      );
-    });
-
-    test('should respect explicit useLayerExtension=false even with proxy that would interfere', () => {
-      process.env.http_proxy = 'http://proxy.example.com:8080';
-      mockGetSDKSource.mockReturnValue('aws-lambda-layer');
-      const options: AwsServerlessOptions = {
-        useLayerExtension: false,
-      };
-
-      init(options);
-
-      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-        expect.objectContaining({
-          useLayerExtension: false,
-        }),
-      );
-      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-        expect.not.objectContaining({
-          tunnel: expect.any(String),
-        }),
-      );
-    });
-
-    test('should respect explicit useLayerExtension=false even when no_proxy would enable it', () => {
-      process.env.http_proxy = 'http://proxy.example.com:8080';
-      process.env.no_proxy = 'localhost';
-      mockGetSDKSource.mockReturnValue('aws-lambda-layer');
-      const options: AwsServerlessOptions = {
-        useLayerExtension: false,
-      };
-
-      init(options);
-
-      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-        expect.objectContaining({
-          useLayerExtension: false,
-        }),
-      );
-      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-        expect.not.objectContaining({
-          tunnel: expect.any(String),
-        }),
+        expect.not.objectContaining({ tunnel: expect.any(String) }),
       );
     });
   });
@@ -461,23 +270,18 @@ describe('init', () => {
       );
     });
 
-    test('should not set tunnel even tho useLayerExtension is set via env var when proxy is explicitly set', () => {
+    test('should set tunnel when useLayerExtension is set via env var and http_proxy is set', () => {
       process.env.http_proxy = 'http://proxy.example.com:8080';
       process.env.SENTRY_LAYER_EXTENSION = 'true';
       mockGetSDKSource.mockReturnValue('aws-lambda-layer');
-      const options: AwsServerlessOptions = {};
 
-      init(options);
+      init({});
 
-      // useLayerExtension is respected but tunnel is not set due to proxy interference
       expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
         expect.objectContaining({
           useLayerExtension: true,
-        }),
-      );
-      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-        expect.not.objectContaining({
-          tunnel: expect.any(String),
+          tunnel: 'http://localhost:9000/envelope',
+          transportOptions: { proxy: false },
         }),
       );
     });

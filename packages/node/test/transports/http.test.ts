@@ -377,6 +377,18 @@ describe('makeNewHttpTransport()', () => {
       delete process.env.http_proxy;
     });
 
+    it('proxy: false ignores proxy env variables', () => {
+      process.env.http_proxy = 'http://example.com';
+      makeNodeTransport({
+        ...defaultOptions,
+        url: 'http://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
+        proxy: false,
+      });
+
+      expect(proxyAgentSpy).not.toHaveBeenCalled();
+      delete process.env.http_proxy;
+    });
+
     it('no_proxy allows for skipping specific hosts', () => {
       process.env.no_proxy = 'sentry.io';
       makeNodeTransport({
