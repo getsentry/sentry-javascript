@@ -9,6 +9,7 @@ import {
 import { defineNuxtPlugin, isNuxtError } from 'nuxt/app';
 import type { GlobalObjWithIntegrationOptions } from '../../client/vueIntegration';
 import { reportNuxtError } from '../utils';
+import { withCacheOrigin } from '../utils/cacheOriginPageload';
 
 // --- Types are copied from @sentry/vue (so it does not need to be exported) ---
 // The following type is an intersection of the Route type from VueRouter v2, v3, and v4.
@@ -73,7 +74,11 @@ export default defineNuxtPlugin({
 
       if (sentryClient && '$router' in nuxtApp) {
         sentryClient.addIntegration(
-          browserTracingIntegration({ router: nuxtApp.$router as VueRouter, routeLabel: 'path' }),
+          browserTracingIntegration({
+            router: nuxtApp.$router as VueRouter,
+            routeLabel: 'path',
+            beforeStartSpan: options => withCacheOrigin(options, nuxtApp.payload.serverRendered === true),
+          }),
         );
       }
     }

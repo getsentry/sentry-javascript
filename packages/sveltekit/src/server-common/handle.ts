@@ -2,10 +2,13 @@ import type { Span } from '@sentry/core';
 import {
   continueTrace,
   debug,
+  getActiveSpan,
   getClient,
   getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
+  getRootSpan,
+  getTraceData,
   getTraceMetaTags,
   hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
@@ -82,9 +85,10 @@ export const FETCH_PROXY_SCRIPT = `
  */
 export function addSentryCodeToPage(options: {
   injectFetchProxyScript: boolean;
+  isVercelIsrRender?: boolean;
 }): NonNullable<ResolveOptions['transformPageChunk']> {
   return ({ html }) => {
-    const metaTags = getPageMetaTags(html);
+    const metaTags = getPageMetaTags(html, !!options.isVercelIsrRender);
     const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
 
     const headWithFetchScript = options.injectFetchProxyScript ? `\n<script>${FETCH_PROXY_SCRIPT}</script>` : '';
@@ -95,15 +99,35 @@ export function addSentryCodeToPage(options: {
   };
 }
 
-/** Trace meta tags written during the build would put one trace into the HTML of every visitor. */
-function getPageMetaTags(html: string): string {
-  if (!isSvelteKitBuilding()) {
+/**
+ * Returns the meta tags for the pageload. A page rendered for this request gets the trace meta tags. A page
+ * that many visitors get, such as a prerendered or ISR page, gets `sentry-cache-origin` instead, so each
+ * pageload starts its own trace.
+ */
+function getPageMetaTags(html: string, isVercelIsrRender: boolean): string {
+  if (!isVercelIsrRender && !isSvelteKitBuilding()) {
     return getTraceMetaTags();
   }
-  return isServerRenderedPage(html) ? `<meta name="${CACHE_ORIGIN_META_TAG_NAME}" content=""/>` : '';
+
+  // An `ssr = false` page has no server-rendered content, so `page.server_rendering.type` does not apply.
+  // Many visitors get the same HTML, so it gets no trace tags either.
+  if (!isServerRenderedPage(html)) {
+    return '';
+  }
+
+  // The build does not reliably send spans, so a prerendered page has no trace to link.
+  // The empty tag still marks the pageload as static.
+  const originTrace = isVercelIsrRender ? getRootSpanTrace() : undefined;
+  return `<meta name="${CACHE_ORIGIN_META_TAG_NAME}" content="${originTrace ?? ''}"/>`;
 }
 
-/** Kit writes `node_ids` only for server-rendered pages, not for shells (`ssr = false`, SPA fallback). */
+/** With Kit tracing, the active span while the page renders is Kit's `sveltekit.resolve`, not the root span. */
+function getRootSpanTrace(): string | undefined {
+  const activeSpan = getActiveSpan();
+  return getTraceData({ span: activeSpan && getRootSpan(activeSpan) })['sentry-trace'];
+}
+
+/** Kit writes `node_ids` only if the server rendered content, not for `ssr = false` or the SPA fallback. */
 function isServerRenderedPage(html: string): boolean {
   return html.includes('node_ids:');
 }
@@ -240,6 +264,9 @@ async function instrumentHandle(
       const res = await resolve(event, {
         transformPageChunk: addSentryCodeToPage({
           injectFetchProxyScript: options.injectFetchProxyScript ?? true,
+          // Vercel sets this on every ISR invocation, also on revalidation.
+          // A client that sends it changes only its own response.
+          isVercelIsrRender: event.request.headers.has('x-vercel-isr'),
         }),
       });
 

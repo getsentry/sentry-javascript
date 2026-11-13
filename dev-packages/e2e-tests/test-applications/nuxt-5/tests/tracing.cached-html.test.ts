@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test.describe('Rendering Modes with Cached HTML', () => {
@@ -14,18 +15,16 @@ test.describe('Rendering Modes with Cached HTML', () => {
     await testChangingTracingMetaTagsOnISRPage(page, '/rendering-modes/isr-1h-cached-page', 'ISR 1h Cached Page');
   });
 
-  // fixme
-  test.skip('exclude tracing meta tags on SWR-cached page', async ({ page }) => {
-    await testExcludeTracingMetaTagsOnCachedPage(page, '/rendering-modes/swr-cached-page', 'SWR Cached Page');
+  test('links the render as cache origin on SWR-cached page', async ({ page }) => {
+    await testCacheOriginOnRuntimeCachedPage(page, '/rendering-modes/swr-cached-page', 'SWR Cached Page');
   });
 
-  // fixme
-  test.skip('exclude tracing meta tags on SWR 1h cached page', async ({ page }) => {
-    await testExcludeTracingMetaTagsOnCachedPage(page, '/rendering-modes/swr-1h-cached-page', 'SWR 1h Cached Page');
+  test('links the render as cache origin on SWR 1h cached page', async ({ page }) => {
+    await testCacheOriginOnRuntimeCachedPage(page, '/rendering-modes/swr-1h-cached-page', 'SWR 1h Cached Page');
   });
 
-  test('exclude tracing meta tags on pre-rendered page', async ({ page }) => {
-    await testExcludeTracingMetaTagsOnCachedPage(page, '/rendering-modes/pre-rendered-page', 'Pre-Rendered Page');
+  test('marks pageloads of pre-rendered page as static without a cache origin link', async ({ page }) => {
+    await testEmptyCacheOriginOnPrerenderedPage(page, '/rendering-modes/pre-rendered-page', 'Pre-Rendered Page');
   });
 });
 
@@ -71,6 +70,7 @@ export async function testChangingTracingMetaTagsOnISRPage(
     expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
   ]);
 
+  await expect(page.locator('meta[name="baggage"]')).toHaveCount(1);
   const baggageMetaTagContent1 = await page.locator('meta[name="baggage"]').getAttribute('content');
   const sentryTraceMetaTagContent1 = await page.locator('meta[name="sentry-trace"]').getAttribute('content');
   const [htmlMetaTraceId1] = sentryTraceMetaTagContent1?.split('-') || [];
@@ -87,6 +87,7 @@ export async function testChangingTracingMetaTagsOnISRPage(
     expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
   ]);
 
+  await expect(page.locator('meta[name="baggage"]')).toHaveCount(1);
   const baggageMetaTagContent2 = await page.locator('meta[name="baggage"]').getAttribute('content');
   const sentryTraceMetaTagContent2 = await page.locator('meta[name="sentry-trace"]').getAttribute('content');
   const [htmlMetaTraceId2] = sentryTraceMetaTagContent2?.split('-') || [];
@@ -118,26 +119,25 @@ export async function testChangingTracingMetaTagsOnISRPage(
   });
 }
 
+async function getCacheOriginMetaTag(page: Page): Promise<string | null> {
+  await expect(page.locator('meta[name="sentry-cache-origin"]')).toHaveCount(1);
+  expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(0);
+  expect(await page.locator('meta[name="baggage"]').count()).toBe(0);
+  return page.locator('meta[name="sentry-cache-origin"]').getAttribute('content');
+}
+
 /**
- * Tests that tracing meta-tags are excluded on cached pages (SWR, pre-rendered, etc.)
- * This utility handles the common pattern of:
- * 1. Making two requests to a cached page
- * 2. Verifying no tracing meta-tags are present
- * 3. Verifying traces are not distributed (each pageload starts its own trace)
- *
- * @param page - Playwright page object
- * @param routePath - The route path to test (e.g., '/rendering-modes/swr-cached-page')
- * @param expectedPageText - The text to verify is visible on the page (e.g., 'SWR Cached Page')
+ * Tests a page that a route rule caches at runtime. The cached HTML holds the `sentry-trace` value of
+ * the render in a `sentry-cache-origin` tag. Every pageload starts its own trace, is static, and links
+ * the render.
  */
-export async function testExcludeTracingMetaTagsOnCachedPage(
+export async function testCacheOriginOnRuntimeCachedPage(
   page: Page,
   routePath: string,
   expectedPageText: string,
 ): Promise<void> {
-  // === 1. Request ===
+  // === 1. Request (renders and fills the cache) ===
   const clientSpanPromise1 = waitForPageloadSegment(routePath);
-
-  // Only the 1. request creates a server root span
   const serverSpanPromise1 = waitForServerSegment(routePath);
 
   const [_1, clientSpan1, serverSpan1] = await Promise.all([
@@ -146,13 +146,9 @@ export async function testExcludeTracingMetaTagsOnCachedPage(
     serverSpanPromise1,
     expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
   ]);
+  const cacheOrigin1 = await getCacheOriginMetaTag(page);
 
-  // Verify no baggage and sentry-trace meta-tags are present on first request
-  expect(await page.locator('meta[name="baggage"]').count()).toBe(0);
-  expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(0);
-
-  // === 2. Request ===
-
+  // === 2. Request (served from the cache) ===
   const clientSpanPromise2 = waitForPageloadSegment(routePath);
 
   const [_2, clientSpan2] = await Promise.all([
@@ -160,30 +156,71 @@ export async function testExcludeTracingMetaTagsOnCachedPage(
     clientSpanPromise2,
     expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
   ]);
+  const cacheOrigin2 = await getCacheOriginMetaTag(page);
 
-  const clientSpan1TraceId = clientSpan1.trace_id;
-  const clientSpan2TraceId = clientSpan2.trace_id;
+  const [originTraceId, originSpanId, originSampled] = cacheOrigin1?.split('-') ?? [];
+  const cacheOriginLink = {
+    trace_id: serverSpan1.trace_id,
+    span_id: originSpanId,
+    sampled: true,
+    attributes: { [SENTRY_LINK_TYPE]: { type: 'string', value: 'cache_origin' } },
+  };
 
-  const serverSpan1TraceId = serverSpan1.trace_id;
-
-  await test.step('No baggage and sentry-trace meta-tags are present on second request', async () => {
-    expect(await page.locator('meta[name="baggage"]').count()).toBe(0);
-    expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(0);
+  await test.step('The cache origin tag holds the sampled render of the 1. request', () => {
+    expect(originTraceId).toBe(serverSpan1.trace_id);
+    expect(originSpanId).toMatch(/^[a-f0-9]{16}$/);
+    expect(originSampled).toBe('1');
+    expect(cacheOrigin2).toBe(cacheOrigin1);
   });
 
-  await test.step('1. server root span and all client root spans are defined', () => {
-    expect(serverSpan1TraceId).toBeDefined();
-    expect(clientSpan1TraceId).toBeDefined();
-    expect(clientSpan2TraceId).toBeDefined();
-  });
-
-  await test.step('Trace is not distributed', () => {
-    // Cannot create distributed trace as HTML Meta Tags are not added (caching leads to multiple usages of the same server trace id)
-    expect(clientSpan1TraceId).not.toBe(clientSpan2TraceId);
-    expect(clientSpan1TraceId).not.toBe(serverSpan1TraceId);
-    expect(clientSpan2TraceId).not.toBe(serverSpan1TraceId);
-    // Without meta tags the pageloads have no parent and start their own traces
+  await test.step('Every pageload starts its own trace', () => {
     expect(clientSpan1.parent_span_id).toBeUndefined();
     expect(clientSpan2.parent_span_id).toBeUndefined();
+    expect(clientSpan1.trace_id).not.toBe(serverSpan1.trace_id);
+    expect(clientSpan2.trace_id).not.toBe(serverSpan1.trace_id);
+    expect(clientSpan1.trace_id).not.toBe(clientSpan2.trace_id);
   });
+
+  await test.step('Every pageload is static and links the render', () => {
+    expect(clientSpan1.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toEqual({ type: 'string', value: 'static' });
+    expect(clientSpan2.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toEqual({ type: 'string', value: 'static' });
+    expect(clientSpan1.links).toEqual([cacheOriginLink]);
+    expect(clientSpan2.links).toEqual([cacheOriginLink]);
+  });
+}
+
+/**
+ * Tests a page that Nitro prerendered during the build. The SDK does not run in the build, so the
+ * `sentry-cache-origin` tag is empty: every pageload starts its own trace and is static, without a link.
+ */
+export async function testEmptyCacheOriginOnPrerenderedPage(
+  page: Page,
+  routePath: string,
+  expectedPageText: string,
+): Promise<void> {
+  const clientSpanPromise1 = waitForPageloadSegment(routePath);
+  const [_1, clientSpan1] = await Promise.all([
+    page.goto(routePath),
+    clientSpanPromise1,
+    expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
+  ]);
+  const cacheOrigin1 = await getCacheOriginMetaTag(page);
+
+  const clientSpanPromise2 = waitForPageloadSegment(routePath);
+  const [_2, clientSpan2] = await Promise.all([
+    page.goto(routePath),
+    clientSpanPromise2,
+    expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
+  ]);
+  const cacheOrigin2 = await getCacheOriginMetaTag(page);
+
+  expect(cacheOrigin1).toBe('');
+  expect(cacheOrigin2).toBe('');
+  expect(clientSpan1.parent_span_id).toBeUndefined();
+  expect(clientSpan2.parent_span_id).toBeUndefined();
+  expect(clientSpan1.trace_id).not.toBe(clientSpan2.trace_id);
+  expect(clientSpan1.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toEqual({ type: 'string', value: 'static' });
+  expect(clientSpan2.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toEqual({ type: 'string', value: 'static' });
+  expect(clientSpan1.links).toBeUndefined();
+  expect(clientSpan2.links).toBeUndefined();
 }

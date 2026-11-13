@@ -7,10 +7,11 @@ import type { ParameterizedString } from '../types/parameterize';
 import type { SeverityLevel } from '../types/severity';
 import type { StackFrame } from '../types/stackframe';
 import type { StackParser } from '../types/stacktrace';
-import { isError, isErrorEvent, isParameterizedString, isPlainObject } from './is';
+import { isError, isErrorEvent, isParameterizedString, isPlainObject, isPrimitive } from './is';
 import { addExceptionMechanism, addExceptionTypeValue } from './misc';
-import { normalizeToSize } from './normalize';
+import { normalizeToSize, stringifyValue } from './normalize';
 import { extractExceptionKeysForMessage } from './object';
+import { stringify } from './string';
 
 /**
  * Extracts stack frames from the error.stack string
@@ -32,13 +33,40 @@ function hasSentryFetchUrlHost(error: unknown): error is Error & { __sentry_fetc
  * @hidden
  */
 export function _enhanceErrorWithSentryInfo<T extends Error>(error: T): string {
+  const message = errorMessageToString(error.message);
+
   // If the error has a __sentry_fetch_url_host__ property (added by fetch instrumentation),
   // enhance the error message with the hostname.
   if (hasSentryFetchUrlHost(error)) {
-    return `${error.message} (${error.__sentry_fetch_url_host__})`;
+    return `${message} (${error.__sentry_fetch_url_host__})`;
   }
 
-  return error.message;
+  return message;
+}
+
+// `message` is typed as a string, but user code can assign anything to it, and event processors
+// call string methods on `exception.value`.
+function errorMessageToString(message: unknown): string {
+  if (typeof message === 'string') {
+    return message;
+  }
+
+  if (message == null) {
+    return '';
+  }
+
+  if (isPrimitive(message)) {
+    return String(message);
+  }
+
+  if (isPlainObject(message) || Array.isArray(message)) {
+    const json = stringify(message, '');
+    if (json) {
+      return json;
+    }
+  }
+
+  return stringifyValue(undefined, message);
 }
 
 /**

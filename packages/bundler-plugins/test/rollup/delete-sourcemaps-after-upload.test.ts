@@ -2,10 +2,11 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { rollup } from 'rollup';
+import type { Plugin } from 'rollup';
 import { rolldown } from 'rolldown';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { sentryRollupPlugin } from '../../src/rollup';
-import type { Options } from '../../src/core';
+import { _createRollupPluginInternals, sentryRollupPlugin } from '../../src/rollup';
+import type { InternalOptions, Options } from '../../src/core';
 
 const { mockSourcemapUpload, mockReleaseCreate } = vi.hoisted(() => ({
   mockSourcemapUpload: vi.fn(),
@@ -248,6 +249,148 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (rollup / rolldown)', () => {
     expect(fs.readdirSync(outDir)).toEqual(['entry.js']);
     expect(uploads).toHaveLength(0);
     expect(mkdtempSpy).not.toHaveBeenCalled();
+  });
+
+  it('removes hidden source maps when the option is true and no upload runs', async () => {
+    const mkdtempSpy = vi.spyOn(fs.promises, 'mkdtemp');
+    const build = await rollup({
+      input: entry,
+      plugins: [
+        sentryRollupPlugin({ ...credentials, authToken: undefined, sourcemaps: { deleteSourcemapsAfterUpload: true } }),
+      ],
+    });
+    await build.write({ dir: outDir, sourcemap: 'hidden' });
+
+    expect(fs.readdirSync(outDir)).toEqual(['entry.js']);
+    expect(uploads).toHaveLength(0);
+    expect(mkdtempSpy).not.toHaveBeenCalled();
+  });
+
+  it.each<[string, Options['sourcemaps']]>([
+    ['"disable-upload"', { disable: 'disable-upload' }],
+    ['`true`', { disable: true }],
+  ])('keeps hidden source maps when the option is true and `sourcemaps.disable` is %s', async (_label, sourcemaps) => {
+    const build = await rollup({
+      input: entry,
+      plugins: [
+        sentryRollupPlugin({ ...credentials, sourcemaps: { ...sourcemaps, deleteSourcemapsAfterUpload: true } }),
+      ],
+    });
+    await build.write({ dir: outDir, sourcemap: 'hidden' });
+
+    expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'entry.js.map']);
+    expect(uploads).toHaveLength(0);
+  });
+
+  it('keeps hidden source maps without an upload when the option is unset', async () => {
+    const build = await rollup({
+      input: entry,
+      plugins: [sentryRollupPlugin({ ...credentials, authToken: undefined })],
+    });
+    await build.write({ dir: outDir, sourcemap: 'hidden' });
+
+    expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'entry.js.map']);
+  });
+
+  it('keeps the maps of chunks matched by `sourcemaps.ignore` when no upload runs', async () => {
+    const build = await rollup({
+      input: entry,
+      plugins: [
+        sentryRollupPlugin({
+          ...credentials,
+          authToken: undefined,
+          sourcemaps: { ignore: ['**/entry.js'], deleteSourcemapsAfterUpload: true },
+        }),
+      ],
+    });
+    await build.write({ dir: outDir, sourcemap: 'hidden' });
+
+    expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'entry.js.map']);
+  });
+
+  it('keeps the maps other plugins emit as assets when the setting is unset', async () => {
+    const build = await rollup({
+      input: entry,
+      plugins: [
+        sentryRollupPlugin(credentials),
+        {
+          name: 'css',
+          generateBundle() {
+            this.emitFile({ type: 'asset', fileName: 'style.css', source: 'body { color: red; }\n' });
+            this.emitFile({ type: 'asset', fileName: 'style.css.map', source: '{"version":3,"mappings":""}' });
+          },
+        },
+      ],
+    });
+    await build.write({ dir: outDir });
+
+    expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'style.css', 'style.css.map']);
+  });
+
+  describe('with source maps the SDK turned on', () => {
+    // `sentryRollupPlugin` only takes the public options.
+    function sdkRollupPlugin(options: InternalOptions): Plugin[] {
+      const { main, post } = _createRollupPluginInternals({ ...credentials, ...options }, 'rollup');
+      return (post ? [main, post] : [main]) as Plugin[];
+    }
+
+    // Vite emits worker bundles and their maps as assets.
+    const assetMapsPlugin: Plugin = {
+      name: 'asset-maps',
+      generateBundle() {
+        this.emitFile({ type: 'asset', fileName: 'style.css', source: 'body { color: red; }\n' });
+        this.emitFile({ type: 'asset', fileName: 'style.css.map', source: '{"version":3,"mappings":""}' });
+        this.emitFile({ type: 'asset', fileName: 'worker.js', source: 'self.onmessage = () => {};\n' });
+        this.emitFile({ type: 'asset', fileName: 'worker.js.map', source: '{"version":3,"mappings":""}' });
+      },
+    };
+
+    const sdkSourcemaps = { deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: true, ignore: ['**/vendor.js'] };
+
+    async function writeSdkBuild(options: InternalOptions): Promise<void> {
+      const vendor = path.join(tmpDir, 'vendor.js');
+      fs.writeFileSync(vendor, 'console.log("vendor");\n');
+      const build = await rollup({ input: [entry, vendor], plugins: [...sdkRollupPlugin(options), assetMapsPlugin] });
+      await build.write({ dir: outDir, sourcemap: 'hidden' });
+    }
+
+    it('removes the maps of ignored chunks and of assets after the upload', async () => {
+      await writeSdkBuild({ sourcemaps: sdkSourcemaps });
+
+      expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'style.css', 'vendor.js', 'worker.js']);
+      expect(uploads).toHaveLength(1);
+      expectUploadedPair(uploads[0]!, fs.readFileSync(path.join(outDir, 'entry.js'), 'utf8'));
+    });
+
+    it('removes all maps when no upload runs', async () => {
+      await writeSdkBuild({ authToken: undefined, sourcemaps: sdkSourcemaps });
+
+      expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'style.css', 'vendor.js', 'worker.js']);
+      expect(uploads).toHaveLength(0);
+    });
+
+    it('reads the function form when it decides', async () => {
+      let sdkEnabled: boolean | undefined;
+      const plugins = sdkRollupPlugin({ sourcemaps: { ...sdkSourcemaps, sdkEnabledSourceMaps: () => sdkEnabled } });
+      sdkEnabled = true;
+      const vendor = path.join(tmpDir, 'vendor.js');
+      fs.writeFileSync(vendor, 'console.log("vendor");\n');
+      const build = await rollup({ input: [entry, vendor], plugins: [...plugins, assetMapsPlugin] });
+      await build.write({ dir: outDir, sourcemap: 'hidden' });
+
+      expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'style.css', 'vendor.js', 'worker.js']);
+    });
+
+    it('keeps the maps when `deleteSourcemapsAfterUpload` is not true', async () => {
+      await writeSdkBuild({ sourcemaps: { sdkEnabledSourceMaps: true } });
+
+      expect(
+        fs
+          .readdirSync(outDir)
+          .filter(file => file.endsWith('.map'))
+          .sort(),
+      ).toEqual(['entry.js.map', 'style.css.map', 'vendor.js.map', 'worker.js.map']);
+    });
   });
 
   it('returns no source maps from generate() and does not log or stage', async () => {

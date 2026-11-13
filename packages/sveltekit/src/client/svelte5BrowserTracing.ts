@@ -24,7 +24,7 @@ import {
 import { NAVIGATION, PAGELOAD, ROUTER } from '@sentry/conventions/op';
 import type { Navigation } from '@sveltejs/kit';
 import { getCurrentNavigation, onNavigationChange, onPageRouteChange } from './navigationState.svelte';
-import { getServerRenderingAttributes } from './traceMetaTags';
+import { withCacheOrigin } from './traceMetaTags';
 
 /**
  * SvelteKit 3 / Svelte 5 browser tracing (`$app/state` runes). Selected at build time, so it's only
@@ -47,17 +47,19 @@ export function instrumentSvelteKitTracing(
 function _instrumentPageLoad(client: Client): void {
   const initialPath = WINDOW.location?.pathname;
 
-  const pageLoadSpan = startBrowserTracingPageLoadSpan(client, {
-    // With span streaming, span names have to be low cardinality. The route id is only available
-    // asynchronously, which updates the span name then.
-    name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : initialPath,
-    attributes: {
-      [SENTRY_OP]: PAGELOAD,
-      [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
-      [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-      ...getServerRenderingAttributes(),
-    },
-  });
+  const pageLoadSpan = startBrowserTracingPageLoadSpan(
+    client,
+    withCacheOrigin({
+      // With span streaming, span names have to be low cardinality. The route id is only available
+      // asynchronously, which updates the span name then.
+      name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : initialPath,
+      attributes: {
+        [SENTRY_OP]: PAGELOAD,
+        [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+      },
+    }),
+  );
 
   if (!pageLoadSpan) {
     return;

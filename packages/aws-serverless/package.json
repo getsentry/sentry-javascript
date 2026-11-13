@@ -79,26 +79,22 @@
     "@vercel/nft": "^1.11.0"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:extension": "rolldown -c rollup.lambda-extension.config.mjs && pnpm exec tsx scripts/buildLambdaExtension.ts",
     "build:layer": "node ../../scripts/rm.mjs build/aws && pnpm exec tsx scripts/buildLambdaLayer.ts",
-    "build:dev": "run-p build:transpile build:types",
-    "build:transpile": "run-s build:transpile:npm build:extension",
+    "build:dev": "pnpm run \"/^build:(transpile|types)$/\"",
+    "build:transpile": "pnpm run build:transpile:npm && pnpm run build:extension",
     "build:transpile:npm": "rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "pnpm run build:watch",
-    "build:transpile:watch": "rolldown -c rollup.npm.config.mjs --watch",
     "build:tarball": "pnpm pack",
-    "circularDepCheck": "madge --circular src/index.ts",
     "clean": "node ../../scripts/rm.mjs build dist-awslambda-layer coverage sentry-serverless-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
-    "lint:es-compatibility": "es-check es2022 ./build/npm/cjs/*.js && es-check es2022 ./build/npm/esm/*.js --module",
+    "lint:es-compatibility": "node ../../scripts/es-check.mjs es2022",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
   "sideEffects": false,
   "nx": {

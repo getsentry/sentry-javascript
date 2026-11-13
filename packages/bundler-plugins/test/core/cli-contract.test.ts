@@ -35,6 +35,7 @@ interface RecordedRequest {
   method: string;
   url: string;
   jsonBody?: unknown;
+  requestHeaders: Record<string, string>;
 }
 
 function recordedRequestRecords(): RecordedRequest[] {

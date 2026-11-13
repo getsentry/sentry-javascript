@@ -11,8 +11,6 @@ import { getBuildLogger } from './buildLogger';
 import { externalizeOrchestrionRuntimePackages } from './diagnosticsChannelInjection';
 import { getBuildPluginOptions, normalizePathForGlob } from './getBuildPluginOptions';
 import type { RouteManifest } from './manifest/types';
-// Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
-// circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
 import type {
   BuildContext,
   EntryPropertyObject,

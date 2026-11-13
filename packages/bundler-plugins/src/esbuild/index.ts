@@ -1,4 +1,4 @@
-import type { Options, SourceMapDecision, SourceMapKind } from '../core';
+import type { InternalOptions, SourceMapDecision, SourceMapKind } from '../core';
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
@@ -110,7 +110,7 @@ function getEsbuildMajorVersion(): string | undefined {
 const pluginName = 'sentry-esbuild-plugin';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function sentryEsbuildPlugin(userOptions: Options = {}): any {
+export function sentryEsbuildPlugin(userOptions: InternalOptions = {}): any {
   const sentryBuildPluginManager = createSentryBuildPluginManager(userOptions, {
     loggerPrefix: userOptions._metaOptions?.loggerPrefixOverride ?? `[${pluginName}]`,
     buildTool: 'esbuild',
@@ -326,36 +326,17 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
         try {
           await sentryBuildPluginManager.createRelease();
 
-          if (sourcemapsEnabled) {
-            // The metafile lists outputs relative to `absWorkingDir`, not to the process.
-            const outputDir = initialOptions.absWorkingDir ?? process.cwd();
-            const buildArtifacts = result.metafile
-              ? Object.keys(result.metafile.outputs).map(output => path.resolve(outputDir, output))
-              : [];
+          // The metafile lists outputs relative to `absWorkingDir`, not to the process.
+          const outputDir = initialOptions.absWorkingDir ?? process.cwd();
+          const buildArtifacts = result.metafile
+            ? Object.keys(result.metafile.outputs).map(output => path.resolve(outputDir, output))
+            : [];
 
-            if (options.sourcemaps?.disable !== 'disable-upload') {
-              // The upload globs the paths, and glob reads backslashes as escapes.
-              const { uploaded, uploadedSourceMapPaths } = await upload(
-                buildArtifacts.map(artifact => artifact.split(path.sep).join('/')),
-              );
-
-              // esbuild writes before `onEnd` runs, so the maps are deleted from disk
-              // afterwards instead of being dropped from the output like in other bundlers.
-              // A map the plugin turned on never stays in the output. A map the user
-              // enabled is only deleted once it was uploaded.
-              if (sourceMapDecision.deleteAfterUpload) {
-                const sourceMaps =
-                  sourceMapKind === 'unset'
-                    ? buildArtifacts.filter(artifact => artifact.endsWith('.map'))
-                    : uploadedSourceMapPaths;
-
-                if (uploaded) {
-                  await sentryBuildPluginManager.sourceMaps.deleteFromOutput(sourceMaps);
-                } else if (sourceMaps.length > 0) {
-                  logger.error('The source maps were not uploaded, so they stay in the build output.');
-                }
-              }
-            } else if (initialOptions.write === false) {
+          const { sourceMaps } = sentryBuildPluginManager;
+          const allMaps = buildArtifacts.filter(artifact => artifact.endsWith('.map'));
+          const deleteWithoutUpload = sourceMapDecision.deleteAfterUpload && !sourceMaps.uploadPossible;
+          if (sourcemapsEnabled && options.sourcemaps?.disable === 'disable-upload') {
+            if (initialOptions.write === false) {
               logger.debug('Build output is not written to disk. Skipping debug ID injection into build artifacts.');
             } else {
               // The upload routine (which stamps debug IDs into temp copies of the artifacts) is
@@ -367,6 +348,35 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
                   .map(bundle => addDebugIdToEmittedArtifacts(bundle, logger, options.sourcemaps?.resolveSourceMap)),
               );
             }
+          } else if (sourcemapsEnabled) {
+            // The upload globs the paths, and glob reads backslashes as escapes.
+            // When no upload can run, this logs why.
+            const { uploaded, uploadedSourceMapPaths } = await upload(
+              buildArtifacts.map(artifact => artifact.split(path.sep).join('/')),
+            );
+
+            // esbuild writes before `onEnd` runs, so the maps are deleted from disk
+            // afterwards instead of being dropped from the output like in other bundlers.
+            // A map the plugin turned on never stays in the output. A map the user
+            // enabled is only deleted once it was uploaded.
+            if (sourceMapDecision.deleteAfterUpload && !deleteWithoutUpload) {
+              const mapsToDelete = sourceMapDecision.removeAllSourceMaps ? allMaps : uploadedSourceMapPaths;
+
+              if (uploaded) {
+                await sourceMaps.deleteFromOutput(mapsToDelete);
+              } else if (mapsToDelete.length > 0) {
+                logger.error('The source maps were not uploaded, so they stay in the build output.');
+              }
+            }
+          }
+
+          if (deleteWithoutUpload) {
+            const bundleOf = (map: string): string => map.slice(0, -'.map'.length);
+            const isUploaded = (map: string): boolean =>
+              isJsFile(bundleOf(map)) && sourceMaps.shouldUpload(bundleOf(map));
+            await sourceMaps.deleteFromOutput(
+              sourceMapDecision.removeAllSourceMaps ? allMaps : allMaps.filter(isUploaded),
+            );
           }
         } finally {
           freeGlobalDependencyOnBuildArtifacts();

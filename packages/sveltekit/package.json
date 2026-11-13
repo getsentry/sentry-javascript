@@ -94,24 +94,20 @@
     "vite": "^8.3.6"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:dev": "pnpm run build",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "pnpm run build:watch",
-    "build:transpile:watch": "rolldown -c rollup.npm.config.mjs --watch",
     "build:tarball": "pnpm pack",
-    "circularDepCheck": "madge --circular src/index.client.ts src/index.server.ts src/index.types.ts",
     "clean": "node ../../scripts/rm.mjs build coverage sentry-sveltekit-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
-    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
+    "lint:es-compatibility": "node ../../scripts/es-check.mjs es2020",
     "test": "pnpm run test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
   "sideEffects": false
 }
