@@ -1,6 +1,8 @@
+import type { Span } from '@sentry/core';
 import { isObjectLike, stringify } from '@sentry/core';
 import {
   GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
 } from '@sentry/conventions/attributes';
@@ -11,11 +13,11 @@ import type { GenAiMessagePart } from '../../../ai/types';
  * Translate Converse `ContentBlock`s (also used by Amazon Nova `InvokeModel` bodies) into message parts.
  * The conventions require a `type` on each part, and Bedrock's blocks (`{ text }`, `{ toolUse }`, ...) have none.
  *
- * Media is reported by modality only: inline media is raw bytes, which the conventions require to be
- * dropped rather than recorded. Blocks without content worth recording (`cachePoint`, redacted
+ * Media is reported by modality only: inline media is raw bytes, which would serialize as a large array of
+ * numbers. Blocks without content worth recording (`cachePoint`, redacted
  * reasoning, unknown members) are left out rather than serialized, so no binary payload slips through.
  */
-function contentBlocksToParts(content: unknown): GenAiMessagePart[] {
+export function contentBlocksToParts(content: unknown): GenAiMessagePart[] {
   return Array.isArray(content) ? content.flatMap(contentBlockToParts) : [];
 }
 
@@ -155,4 +157,70 @@ export function getPromptInputAttributes(prompt: unknown): Record<string, unknow
     return {};
   }
   return { [GEN_AI_INPUT_MESSAGES]: JSON.stringify([{ role: 'user', parts: [{ type: 'text', content: prompt }] }]) };
+}
+
+/** Output parts of an Anthropic Messages response body (Claude `InvokeModel`). */
+export function getClaudeOutputParts(content: unknown): GenAiMessagePart[] {
+  if (!Array.isArray(content)) {
+    return [];
+  }
+
+  return content.flatMap((block): GenAiMessagePart[] => {
+    if (!isObjectLike(block)) {
+      return [];
+    }
+    if (block.type === 'text') {
+      return textParts(block.text);
+    }
+    if (block.type === 'thinking') {
+      return typeof block.thinking === 'string' ? [{ type: 'reasoning', content: block.thinking }] : [];
+    }
+    if (block.type === 'tool_use') {
+      return [{ type: 'tool_call', id: block.id, name: block.name, arguments: stringify(block.input ?? {}, String) }];
+    }
+    return [];
+  });
+}
+
+export function textParts(text: unknown): GenAiMessagePart[] {
+  return typeof text === 'string' ? [{ type: 'text', content: text }] : [];
+}
+
+/** Record the parts as one assistant message. Parts of a stream are kept at their block index, so skip the gaps. */
+export function setOutputMessages(span: Span, parts: GenAiMessagePart[], finishReason: unknown): void {
+  const filledParts = parts.filter(Boolean);
+  if (filledParts.length) {
+    // An `undefined` finish reason is left out of the JSON.
+    span.setAttribute(
+      GEN_AI_OUTPUT_MESSAGES,
+      JSON.stringify([{ role: 'assistant', parts: filledParts, finish_reason: finishReason }]),
+    );
+  }
+}
+
+/** Append a streamed fragment to the part at the block `index`, and open a `type` part there if there is none. */
+export function appendStreamPart(
+  parts: GenAiMessagePart[] | undefined,
+  index: unknown,
+  type: 'text' | 'reasoning' | 'tool_call',
+  fragment: unknown,
+): void {
+  if (!parts || typeof fragment !== 'string') {
+    return;
+  }
+  // Tool call arguments stream in as fragments of their JSON.
+  const field = type === 'tool_call' ? 'arguments' : 'content';
+  const part = (parts[typeof index === 'number' ? index : 0] ??= { type, [field]: '' });
+  part[field] = `${part[field]}${fragment}`;
+}
+
+export function startStreamToolCall(
+  parts: GenAiMessagePart[] | undefined,
+  index: unknown,
+  id: unknown,
+  name: unknown,
+): void {
+  if (parts) {
+    parts[typeof index === 'number' ? index : 0] = { type: 'tool_call', id, name, arguments: '' };
+  }
 }

@@ -14,6 +14,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
 import type { StreamResponseState } from '../../../ai/core/utils';
+import type { GenAiMessagePart } from '../../../ai/types';
 import { endStreamSpan, getTokenUsageAttributes, resolveAIRecordingOptions } from '../../../ai/core/utils';
 import { isInsidePiAiSpan } from '../../../ai/pi-ai/providers';
 import { DEBUG_BUILD } from '../../../debug-build';
@@ -24,9 +25,15 @@ import {
 } from '../constants';
 import type { NormalizedRequest, NormalizedResponse } from '../types';
 import {
+  appendStreamPart,
+  contentBlocksToParts,
   getClaudeInputAttributes,
+  getClaudeOutputParts,
   getConverseInputAttributes,
   getPromptInputAttributes,
+  setOutputMessages,
+  startStreamToolCall,
+  textParts,
 } from './bedrock-runtime-content';
 import type { RequestMetadata, ServiceExtension } from './ServiceExtension';
 
@@ -50,6 +57,9 @@ interface ConverseStreamOutput {
 // claude, llama, cohere, mistral); the record helpers probe the shapes defensively, so `any` instead
 // of one structural type per family.
 type ParsedChunk = any;
+
+/** The output parts are only collected when outputs are recorded. */
+type BedrockStreamState = StreamResponseState & { parts?: GenAiMessagePart[] };
 
 const textDecoder = new TextDecoder();
 
@@ -282,9 +292,12 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
   }
 
   private _responseHookConverse(response: NormalizedResponse, span: Span): void {
-    const { stopReason, usage } = response.data;
+    const { stopReason, usage, output } = response.data;
 
     setStopReason(span, stopReason);
+    if (resolveAIRecordingOptions().recordOutputs) {
+      setOutputMessages(span, contentBlocksToParts(output?.message?.content), stopReason);
+    }
     span.setAttributes(
       getTokenUsageAttributes(
         // With prompt caching, `inputTokens` leaves out cache reads and writes, which the conventions count as input.
@@ -319,15 +332,21 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     if (response.data?.body) {
       const decodedResponseBody = textDecoder.decode(response.data.body);
       const responseBody = JSON.parse(decodedResponseBody);
+      // Nova; Claude and Llama; Cohere Command R; Titan; Cohere Command; Mistral.
+      const finishReason =
+        responseBody.stopReason ??
+        responseBody.stop_reason ??
+        responseBody.finish_reason ??
+        responseBody.results?.[0]?.completionReason ??
+        responseBody.generations?.[0]?.finish_reason ??
+        responseBody.outputs?.[0]?.stop_reason;
+      setStopReason(span, finishReason);
       if (currentModelId.includes('amazon.titan')) {
         if (responseBody.inputTextTokenCount !== undefined) {
           span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, responseBody.inputTextTokenCount);
         }
         if (responseBody.results?.[0]?.tokenCount !== undefined) {
           span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, responseBody.results[0].tokenCount);
-        }
-        if (responseBody.results?.[0]?.completionReason !== undefined) {
-          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([responseBody.results[0].completionReason]));
         }
       } else if (currentModelId.includes('amazon.nova')) {
         if (responseBody.usage !== undefined) {
@@ -337,9 +356,6 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
           if (responseBody.usage.outputTokens !== undefined) {
             span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, responseBody.usage.outputTokens);
           }
-        }
-        if (responseBody.stopReason !== undefined) {
-          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([responseBody.stopReason]));
         }
       } else if (currentModelId.includes('anthropic.claude')) {
         const usage = responseBody.usage;
@@ -354,9 +370,6 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
             usage?.cache_read_input_tokens,
           ),
         );
-        if (responseBody.stop_reason !== undefined) {
-          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([responseBody.stop_reason]));
-        }
       } else if (currentModelId.includes('meta.llama')) {
         if (responseBody.prompt_token_count !== undefined) {
           span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, responseBody.prompt_token_count);
@@ -364,33 +377,21 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
         if (responseBody.generation_token_count !== undefined) {
           span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, responseBody.generation_token_count);
         }
-        if (responseBody.stop_reason !== undefined) {
-          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([responseBody.stop_reason]));
-        }
       } else if (currentModelId.includes('cohere.command-r')) {
         if (responseBody.text !== undefined) {
           span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(responseBody.text.length / 6));
-        }
-        if (responseBody.finish_reason !== undefined) {
-          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([responseBody.finish_reason]));
         }
       } else if (currentModelId.includes('cohere.command')) {
         if (responseBody.generations?.[0]?.text !== undefined) {
           span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(responseBody.generations[0].text.length / 6));
         }
-        if (responseBody.generations?.[0]?.finish_reason !== undefined) {
-          span.setAttribute(
-            GEN_AI_RESPONSE_FINISH_REASONS,
-            JSON.stringify([responseBody.generations[0].finish_reason]),
-          );
-        }
       } else if (currentModelId.includes('mistral')) {
         if (responseBody.outputs?.[0]?.text !== undefined) {
           span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(responseBody.outputs[0].text.length / 6));
         }
-        if (responseBody.outputs?.[0]?.stop_reason !== undefined) {
-          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([responseBody.outputs[0].stop_reason]));
-        }
+      }
+      if (resolveAIRecordingOptions().recordOutputs) {
+        setOutputMessages(span, getInvokeModelOutputParts(currentModelId, responseBody), finishReason);
       }
     }
   }
@@ -425,6 +426,19 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
   }
 }
 
+function getInvokeModelOutputParts(modelId: string, responseBody: ParsedChunk): GenAiMessagePart[] {
+  if (modelId.includes('amazon.nova')) return contentBlocksToParts(responseBody.output?.message?.content);
+  if (modelId.includes('anthropic.claude')) return getClaudeOutputParts(responseBody.content);
+  // The other families return one text: Titan, Llama, Cohere Command R, Cohere Command, Mistral.
+  return textParts(
+    responseBody.results?.[0]?.outputText ??
+      responseBody.generation ??
+      responseBody.text ??
+      responseBody.generations?.[0]?.text ??
+      responseBody.outputs?.[0]?.text,
+  );
+}
+
 function getInvokeModelInputAttributes(modelId: string, requestBody: ParsedChunk): Record<string, unknown> {
   if (modelId.includes('amazon.nova')) return getConverseInputAttributes(requestBody);
   if (modelId.includes('anthropic.claude')) return getClaudeInputAttributes(requestBody);
@@ -432,7 +446,7 @@ function getInvokeModelInputAttributes(modelId: string, requestBody: ParsedChunk
   return getPromptInputAttributes(requestBody.inputText ?? requestBody.message ?? requestBody.prompt);
 }
 
-type StreamProcessor = (parsedChunk: ParsedChunk, state: StreamResponseState) => void;
+type StreamProcessor = (parsedChunk: ParsedChunk, state: BedrockStreamState) => void;
 
 function resolveStreamProcessor(modelId: string): StreamProcessor | undefined {
   if (modelId.includes('amazon.titan')) return processTitanChunk;
@@ -450,9 +464,14 @@ async function* instrumentStream<T>(
   stream: AsyncIterable<T>,
   span: Span,
   abortSignal: AbortSignal | undefined,
-  processItem: (item: T, state: StreamResponseState) => void,
+  processItem: (item: T, state: BedrockStreamState) => void,
 ): AsyncGenerator<T> {
-  const state: StreamResponseState = { finishReasons: [], responseTexts: [], toolCalls: [] };
+  const state: BedrockStreamState = {
+    finishReasons: [],
+    responseTexts: [],
+    toolCalls: [],
+    parts: resolveAIRecordingOptions().recordOutputs ? [] : undefined,
+  };
   try {
     for await (const item of stream) {
       processItem(item, state);
@@ -462,11 +481,15 @@ async function* instrumentStream<T>(
     span.setStatus({ code: SPAN_STATUS_ERROR, message: abortSignal?.aborted ? 'cancelled' : 'internal_error' });
     throw error;
   } finally {
+    if (state.parts) {
+      setOutputMessages(span, state.parts, state.finishReasons[0]);
+    }
     endStreamSpan(span, state, false);
   }
 }
 
-function processConverseStreamEvent(event: ConverseStreamOutput, state: StreamResponseState): void {
+function processConverseStreamEvent(event: ConverseStreamOutput, state: BedrockStreamState): void {
+  appendConverseStreamContent(event, state);
   pushFinishReason(state, event.messageStop?.stopReason);
   const usage = event.metadata?.usage;
   if (usage) {
@@ -479,6 +502,22 @@ function processConverseStreamEvent(event: ConverseStreamOutput, state: StreamRe
     state.cacheReadInputTokens = usage.cacheReadInputTokens;
     state.cacheCreationInputTokens = usage.cacheWriteInputTokens;
   }
+}
+
+/** `ConverseStream` events, and Amazon Nova `InvokeModelWithResponseStream` chunks, which share their shape. */
+function appendConverseStreamContent(
+  { contentBlockStart, contentBlockDelta }: ParsedChunk,
+  state: BedrockStreamState,
+): void {
+  const toolUse = contentBlockStart?.start?.toolUse;
+  if (toolUse) {
+    startStreamToolCall(state.parts, contentBlockStart.contentBlockIndex, toolUse.toolUseId, toolUse.name);
+  }
+  const delta = contentBlockDelta?.delta;
+  const index = contentBlockDelta?.contentBlockIndex;
+  appendStreamPart(state.parts, index, 'text', delta?.text);
+  appendStreamPart(state.parts, index, 'tool_call', delta?.toolUse?.input);
+  appendStreamPart(state.parts, index, 'reasoning', delta?.reasoningContent?.text);
 }
 
 function setStopReason(span: Span, stopReason: string | undefined): void {
@@ -519,7 +558,8 @@ function parseChunk(bytes?: Uint8Array): ParsedChunk {
   }
 }
 
-function processNovaChunk(parsedChunk: ParsedChunk, state: StreamResponseState): void {
+function processNovaChunk(parsedChunk: ParsedChunk, state: BedrockStreamState): void {
+  appendConverseStreamContent(parsedChunk, state);
   const usage = parsedChunk.metadata?.usage;
   if (typeof usage?.inputTokens === 'number') {
     state.promptTokens = usage.inputTokens;
@@ -530,7 +570,15 @@ function processNovaChunk(parsedChunk: ParsedChunk, state: StreamResponseState):
   pushFinishReason(state, parsedChunk.messageStop?.stopReason);
 }
 
-function processClaudeChunk(parsedChunk: ParsedChunk, state: StreamResponseState): void {
+/** Claude chunks are Anthropic Messages streaming events. */
+function processClaudeChunk(parsedChunk: ParsedChunk, state: BedrockStreamState): void {
+  const { index, content_block: block, delta } = parsedChunk;
+  if (block?.type === 'tool_use') {
+    startStreamToolCall(state.parts, index, block.id, block.name);
+  }
+  appendStreamPart(state.parts, index, 'text', delta?.text);
+  appendStreamPart(state.parts, index, 'tool_call', delta?.partial_json);
+  appendStreamPart(state.parts, index, 'reasoning', delta?.thinking);
   const inputUsage = parsedChunk.message?.usage;
   if (typeof inputUsage?.cache_read_input_tokens === 'number') {
     state.cacheReadInputTokens = inputUsage.cache_read_input_tokens;
@@ -550,7 +598,8 @@ function processClaudeChunk(parsedChunk: ParsedChunk, state: StreamResponseState
   pushFinishReason(state, parsedChunk.delta?.stop_reason);
 }
 
-function processTitanChunk(parsedChunk: ParsedChunk, state: StreamResponseState): void {
+function processTitanChunk(parsedChunk: ParsedChunk, state: BedrockStreamState): void {
+  appendStreamPart(state.parts, 0, 'text', parsedChunk.outputText);
   if (typeof parsedChunk.inputTextTokenCount === 'number') {
     state.promptTokens = parsedChunk.inputTextTokenCount;
   }
@@ -560,7 +609,8 @@ function processTitanChunk(parsedChunk: ParsedChunk, state: StreamResponseState)
   pushFinishReason(state, parsedChunk.completionReason);
 }
 
-function processLlamaChunk(parsedChunk: ParsedChunk, state: StreamResponseState): void {
+function processLlamaChunk(parsedChunk: ParsedChunk, state: BedrockStreamState): void {
+  appendStreamPart(state.parts, 0, 'text', parsedChunk.generation);
   if (typeof parsedChunk.prompt_token_count === 'number') {
     state.promptTokens = parsedChunk.prompt_token_count;
   }
@@ -584,17 +634,20 @@ function processInvocationMetrics(parsedChunk: ParsedChunk, state: StreamRespons
   }
 }
 
-function processMistralChunk(parsedChunk: ParsedChunk, state: StreamResponseState): void {
+function processMistralChunk(parsedChunk: ParsedChunk, state: BedrockStreamState): void {
+  appendStreamPart(state.parts, 0, 'text', parsedChunk.outputs?.[0]?.text);
   processInvocationMetrics(parsedChunk, state);
   pushFinishReason(state, parsedChunk.outputs?.[0]?.stop_reason);
 }
 
-function processCohereChunk(parsedChunk: ParsedChunk, state: StreamResponseState): void {
+function processCohereChunk(parsedChunk: ParsedChunk, state: BedrockStreamState): void {
+  appendStreamPart(state.parts, 0, 'text', parsedChunk.generations?.[0]?.text);
   processInvocationMetrics(parsedChunk, state);
   pushFinishReason(state, parsedChunk.generations?.[0]?.finish_reason);
 }
 
-function processCohereRChunk(parsedChunk: ParsedChunk, state: StreamResponseState): void {
+function processCohereRChunk(parsedChunk: ParsedChunk, state: BedrockStreamState): void {
+  appendStreamPart(state.parts, 0, 'text', parsedChunk.text);
   processInvocationMetrics(parsedChunk, state);
   pushFinishReason(state, parsedChunk.finish_reason);
 }
