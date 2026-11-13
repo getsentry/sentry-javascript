@@ -215,9 +215,23 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (esbuild)', () => {
   });
 
   it('deletes external source maps when the option is true and no upload runs', async () => {
-    await build({ authToken: undefined, sourcemaps: { deleteSourcemapsAfterUpload: true } }, { sourcemap: 'external' });
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    await build(
+      { silent: false, authToken: undefined, sourcemaps: { deleteSourcemapsAfterUpload: true } },
+      { sourcemap: 'external' },
+    );
 
     expect(fs.readdirSync(outDir)).toEqual(['entry.js']);
+    expect(uploads).toHaveLength(0);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('No auth token provided'));
+  });
+
+  it('keeps the source maps in development mode when the option is true', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    await build({ sourcemaps: { deleteSourcemapsAfterUpload: true } }, { sourcemap: 'external' });
+    vi.unstubAllEnvs();
+
+    expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'entry.js.map']);
     expect(uploads).toHaveLength(0);
   });
 

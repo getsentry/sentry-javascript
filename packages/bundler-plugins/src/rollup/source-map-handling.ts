@@ -174,10 +174,17 @@ export function createSourceMapHandling(sentryBuildPluginManager: SentryBuildPlu
     }
   }
 
-  // CSS maps are assets that other plugins emit next to their CSS asset.
-  function dropCssSourceMaps(bundle: OutputBundle): void {
+  // Other plugins emit maps as assets, e.g. for CSS or for Vite worker
+  // bundles. Chunk maps stay here, because staging still needs them.
+  function dropAssetSourceMaps(bundle: OutputBundle): void {
+    const chunkMaps = new Set<string>();
+    for (const output of Object.values(bundle)) {
+      if (output.type === 'chunk') {
+        chunkMaps.add(getSourceMapFileName(output));
+      }
+    }
     for (const [fileName, output] of Object.entries(bundle)) {
-      if (output.type === 'asset' && fileName.endsWith('.css.map')) {
+      if (output.type === 'asset' && fileName.endsWith('.map') && !chunkMaps.has(fileName)) {
         // oxlint-disable-next-line typescript/no-dynamic-delete -- Rollup drops an asset when its key is deleted from the bundle
         delete bundle[fileName];
       }
@@ -221,8 +228,10 @@ export function createSourceMapHandling(sentryBuildPluginManager: SentryBuildPlu
       }
 
       const removeAll = record.decision.removeAllSourceMaps === true;
-      if (removeAll) {
-        dropCssSourceMaps(bundle);
+      // With `unset` the plugin only turned on the chunk maps. Asset maps
+      // come from other plugins' own settings.
+      if (removeAll && record.kind !== 'unset') {
+        dropAssetSourceMaps(bundle);
       }
 
       if (!sentryBuildPluginManager.sourceMaps.uploadPossible) {

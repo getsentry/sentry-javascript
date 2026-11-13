@@ -348,8 +348,9 @@ export function sentryEsbuildPlugin(userOptions: InternalOptions = {}): any {
                   .map(bundle => addDebugIdToEmittedArtifacts(bundle, logger, options.sourcemaps?.resolveSourceMap)),
               );
             }
-          } else if (sourcemapsEnabled && !deleteWithoutUpload) {
+          } else if (sourcemapsEnabled) {
             // The upload globs the paths, and glob reads backslashes as escapes.
+            // When no upload can run, this logs why.
             const { uploaded, uploadedSourceMapPaths } = await upload(
               buildArtifacts.map(artifact => artifact.split(path.sep).join('/')),
             );
@@ -358,7 +359,7 @@ export function sentryEsbuildPlugin(userOptions: InternalOptions = {}): any {
             // afterwards instead of being dropped from the output like in other bundlers.
             // A map the plugin turned on never stays in the output. A map the user
             // enabled is only deleted once it was uploaded.
-            if (sourceMapDecision.deleteAfterUpload) {
+            if (sourceMapDecision.deleteAfterUpload && !deleteWithoutUpload) {
               const mapsToDelete = sourceMapDecision.removeAllSourceMaps ? allMaps : uploadedSourceMapPaths;
 
               if (uploaded) {
