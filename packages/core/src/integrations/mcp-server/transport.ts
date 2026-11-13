@@ -5,20 +5,32 @@
  * @see https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
  */
 
-import { MCP_AUTH_CLIENT_NAME, MCP_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
+import { MCP_AUTH_CLIENT_NAME, MCP_METHOD_NAME, MCP_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
 import { getClient, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { withActiveSpan } from '../../tracing';
 import { startInactiveSpan } from '../../tracing/trace';
+import { getActiveSpan, spanToJSON } from '../../utils/spanUtils';
 import { isObjectLike } from '../../utils/is';
 import { fill } from '../../utils/object';
 import { safeCallback } from '../../utils/safeCallback';
-import { cleanupPendingSpansForTransport, completeSpanWithResults, storeSpanForRequest } from './correlation';
+import {
+  applyResponseToSpan,
+  cleanupPendingSpansForTransport,
+  completeSpanWithResults,
+  storeSpanForRequest,
+} from './correlation';
 import { captureError, isJsonRpcServerError } from './errorCapture';
 import { buildClientAttributesFromInfo, extractSessionDataFromInitializeRequest } from './sessionExtraction';
 import { cleanupSessionDataForTransport, updateSessionDataForTransport } from './sessionManagement';
-import { buildMcpServerSpanConfig, createMcpNotificationSpan, createMcpOutgoingNotificationSpan } from './spans';
+import {
+  buildMcpNotificationSpanConfig,
+  buildMcpServerSpanConfig,
+  createMcpNotificationSpan,
+  createMcpOutgoingNotificationSpan,
+} from './spans';
 import type { ExtraHandlerData, McpServerWrapperOptions, MCPTransport, ResolvedMcpOptions, SessionData } from './types';
+import { hasGlobalTracerProvider, withInboundHandoff } from './upstreamInstrumentation';
 import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse } from './validation';
 
 function resolveMcpOptions(options: McpServerWrapperOptions): ResolvedMcpOptions {
@@ -66,8 +78,13 @@ function resolveOAuthClientName(options: McpServerWrapperOptions, extra?: ExtraH
  * Modern request metadata is read directly when building each message's span.
  * @param transport - MCP transport instance to wrap
  * @param options - MCP instrumentation options
+ * @param upstreamInstrumented - Whether the server has the MCP SDK's built-in instrumentation
  */
-export function wrapTransportOnMessage(transport: MCPTransport, options: McpServerWrapperOptions): void {
+export function wrapTransportOnMessage(
+  transport: MCPTransport,
+  options: McpServerWrapperOptions,
+  upstreamInstrumented = false,
+): void {
   if (transport.onmessage) {
     fill(transport, 'onmessage', originalOnMessage => {
       return function (this: MCPTransport, message: unknown, extra?: unknown) {
@@ -96,30 +113,63 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: McpServ
             if (oauthClientName) {
               spanConfig.attributes[MCP_AUTH_CLIENT_NAME] = oauthClientName;
             }
-            const span = startInactiveSpan(spanConfig);
-
             if (request.method === 'initialize' && messageSessionData) {
-              span.setAttributes({
-                ...buildClientAttributesFromInfo(messageSessionData.clientInfo),
-                ...(messageSessionData.protocolVersion && {
-                  [MCP_PROTOCOL_VERSION]: messageSessionData.protocolVersion,
-                }),
-              });
+              Object.assign(spanConfig.attributes, buildClientAttributesFromInfo(messageSessionData.clientInfo));
+              if (messageSessionData.protocolVersion) {
+                spanConfig.attributes[MCP_PROTOCOL_VERSION] = messageSessionData.protocolVersion;
+              }
+            }
+            const callOriginal = (): unknown =>
+              (originalOnMessage as (...args: unknown[]) => unknown).call(this, request, extra);
+            const startOwnSpan = (fn: () => unknown): unknown => {
+              const span = startInactiveSpan(spanConfig);
+              storeSpanForRequest(transport, request.id, span, request.method, resolvedOptions);
+              return withActiveSpan(span, fn);
+            };
+
+            if (upstreamInstrumented && hasGlobalTracerProvider()) {
+              return withInboundHandoff(
+                {
+                  method: request.method,
+                  id: request.id,
+                  attributes: spanConfig.attributes,
+                  onResponse: (span, result, error) =>
+                    applyResponseToSpan(transport, span, request.method, result, error, resolvedOptions),
+                  startOwnSpan,
+                },
+                callOriginal,
+              );
             }
 
-            storeSpanForRequest(transport, request.id, span, request.method, resolvedOptions);
-
-            return withActiveSpan(span, () => {
-              return (originalOnMessage as (...args: unknown[]) => unknown).call(this, request, extra);
-            });
+            return startOwnSpan(callOriginal);
           });
         }
 
         if (notification) {
           const resolvedOptions = resolveMcpOptions(options);
-          return createMcpNotificationSpan(notification, transport, extra as ExtraHandlerData, resolvedOptions, () => {
-            return (originalOnMessage as (...args: unknown[]) => unknown).call(this, notification, extra);
-          });
+          const callOriginal = (): unknown =>
+            (originalOnMessage as (...args: unknown[]) => unknown).call(this, notification, extra);
+          const startOwnSpan = (fn: () => unknown): unknown =>
+            createMcpNotificationSpan(notification, transport, extra as ExtraHandlerData, resolvedOptions, fn);
+
+          if (upstreamInstrumented && hasGlobalTracerProvider()) {
+            return withInboundHandoff(
+              {
+                method: notification.method,
+                attributes: buildMcpNotificationSpanConfig(
+                  'notification-incoming',
+                  notification,
+                  transport,
+                  resolvedOptions,
+                  extra as ExtraHandlerData,
+                ).attributes,
+                startOwnSpan,
+              },
+              callOriginal,
+            );
+          }
+
+          return startOwnSpan(callOriginal);
         }
 
         return (originalOnMessage as (...args: unknown[]) => unknown).call(this, message, extra);
@@ -134,8 +184,13 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: McpServ
  * the corresponding request span.
  * @param transport - MCP transport instance to wrap
  * @param options - MCP capture overrides
+ * @param upstreamInstrumented - Whether the server has the MCP SDK's built-in instrumentation
  */
-export function wrapTransportSend(transport: MCPTransport, options: McpServerWrapperOptions): void {
+export function wrapTransportSend(
+  transport: MCPTransport,
+  options: McpServerWrapperOptions,
+  upstreamInstrumented = false,
+): void {
   if (transport.send) {
     fill(transport, 'send', originalSend => {
       return async function (this: MCPTransport, ...args: unknown[]) {
@@ -143,6 +198,14 @@ export function wrapTransportSend(transport: MCPTransport, options: McpServerWra
 
         if (isJsonRpcNotification(message)) {
           const resolvedOptions = resolveMcpOptions(options);
+          // The MCP SDK sends a notification inside its own scope, so its span is the active one.
+          const upstreamSpan = upstreamInstrumented && hasGlobalTracerProvider() ? getActiveSpan() : undefined;
+          if (upstreamSpan && spanToJSON(upstreamSpan).attributes[MCP_METHOD_NAME] === message.method) {
+            upstreamSpan.setAttributes(
+              buildMcpNotificationSpanConfig('notification-outgoing', message, transport, resolvedOptions).attributes,
+            );
+            return (originalSend as (...args: unknown[]) => unknown).call(this, ...args);
+          }
           return createMcpOutgoingNotificationSpan(message, transport, resolvedOptions, () => {
             return (originalSend as (...args: unknown[]) => unknown).call(this, ...args);
           });

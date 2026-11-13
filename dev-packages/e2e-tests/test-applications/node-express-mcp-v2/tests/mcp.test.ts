@@ -3,6 +3,8 @@ import { waitForStreamedSpan, getSpanOp } from '@sentry-internal/test-utils';
 import { Client } from '@modelcontextprotocol/client';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 
+test.skip(process.env.MCP_SDK_OTEL === '1', 'Covered by mcp-sdk-otel.test.ts');
+
 // The server in this app is never wrapped with `wrapMcpServerWithSentry` — spans are produced
 // solely by the auto-instrumenting `mcpServer` integration.
 test('auto-instruments a stable MCP SDK v2 server (no manual wrap)', async ({ baseURL }) => {
