@@ -22,6 +22,8 @@ const NODE_EXPORTS_IGNORE = [
   '_INTERNAL_normalizeCollectionInterval',
   // Only needed by framework SDKs that enable the managed tunnel after `init`
   '_INTERNAL_installTunnelHooks',
+  // Only needed by the AWS Lambda extension
+  '_INTERNAL_getProxyAgent',
   // not exported by bun
   'nativeNodeFetchIntegration',
 ];
