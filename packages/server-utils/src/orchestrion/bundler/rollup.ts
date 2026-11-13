@@ -60,11 +60,12 @@ const COMMONJS_HELPERS_ID = '\0commonjsHelpers.js';
 // sole key on its namespace. Node >= 23 and Deno add a `'module.exports'` key to every CommonJS
 // namespace (nodejs/node#53848), so ignoring that key restores the check there. Bun adds a key
 // for each own property of `module.exports`, which for a function includes the non-enumerable
-// `length` and `name`. No ES module namespace mirrors a non-enumerable property of its default
-// export, so such a key marks a CommonJS function export on Bun.
+// `length` and `name`. So on Bun, a namespace whose keys all mirror its function default, at least
+// one of them a non-enumerable property, is unwrapped. An ES module namespace can match only when
+// its named exports equal the same properties of its default export, which loses nothing.
 const BROKEN_NAMESPACE_CHECK = 'Object.keys(n).length === 1';
 const FIXED_NAMESPACE_CHECK =
-  "(Object.keys(n).filter(k => k !== 'module.exports').length === 1 || (typeof n['default'] === 'function' && Object.keys(n).some(k => Object.getOwnPropertyDescriptor(n['default'], k)?.enumerable === false)))";
+  "(Object.keys(n).filter(k => k !== 'module.exports').length === 1 || (typeof n['default'] === 'function' && Object.keys(n).every(k => k === 'default' || k === 'module.exports' || n[k] === n['default'][k]) && Object.keys(n).some(k => Object.getOwnPropertyDescriptor(n['default'], k)?.enumerable === false)))";
 
 /**
  * Fixes `@rollup/plugin-commonjs`' `'auto'` interop for Node >= 23, Deno and Bun by patching the
