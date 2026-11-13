@@ -6,9 +6,12 @@
 import { getClient } from '../../currentScopes';
 import { continueTrace } from '../../tracing/trace';
 import type { SpanLink } from '../../types/link';
+import { mergeBaggageHeaders } from '../../utils/baggage';
 import { isObjectLike } from '../../utils/is';
 import { getActiveSpan } from '../../utils/spanUtils';
+import { getTraceData } from '../../utils/traceData';
 import { extractTraceparentData, sentryTraceFromTraceparent } from '../../utils/tracing';
+import type { JsonRpcNotification, JsonRpcRequest } from './types';
 
 function getSentryTraceFromMeta(meta: Record<PropertyKey, unknown>): string | undefined {
   const sentryTrace = meta['sentry-trace'];
@@ -45,4 +48,44 @@ export function continueMcpTrace<T>(params: unknown, callback: (links: SpanLink[
   const baggage = typeof meta.baggage === 'string' ? meta.baggage : undefined;
 
   return continueTrace({ sentryTrace, baggage }, () => callback(links));
+}
+
+/**
+ * Returns a copy of an outgoing request or notification with the active trace context added to `params._meta`, so the
+ * receiving side can continue the trace. Messages that already carry trace context are returned unchanged.
+ */
+export function injectMcpTraceContext<M extends JsonRpcRequest | JsonRpcNotification>(message: M): M {
+  const meta = message.params?._meta;
+  if (
+    meta !== undefined &&
+    (!isObjectLike(meta) || meta['sentry-trace'] !== undefined || meta.traceparent !== undefined)
+  ) {
+    return message;
+  }
+
+  const {
+    'sentry-trace': sentryTrace,
+    baggage,
+    traceparent,
+  } = getTraceData({
+    propagateTraceparent: getClient()?.getOptions().propagateTraceparent,
+  });
+  if (!sentryTrace) {
+    return message;
+  }
+
+  const existingBaggage = isObjectLike(meta) && typeof meta.baggage === 'string' ? meta.baggage : undefined;
+
+  return {
+    ...message,
+    params: {
+      ...message.params,
+      _meta: {
+        ...meta,
+        'sentry-trace': sentryTrace,
+        ...(traceparent && { traceparent }),
+        ...(baggage && { baggage: mergeBaggageHeaders(existingBaggage, baggage) }),
+      },
+    },
+  };
 }
