@@ -73,6 +73,7 @@ export function getFinalConfigObject(
     nextJsVersion,
     bundlerInfo,
     vercelCronsConfigResult,
+    releaseName,
   );
 
   const shouldUseRunAfterProductionCompileHook = resolveUseRunAfterProductionCompileHookOption(
