@@ -14,6 +14,6 @@ Describe behavior and intent, not implementation. Reviewers read the diff for th
 
 ## Why
 
-<!-- One or two sentences on why the change is needed. -->
+<!-- One or two sentences: reason behind change, why this approach (no implementation walkthrough), non-obvious decisions/tradeoffs -->
 
 Closes: #
