@@ -51,26 +51,21 @@
     "fake-indexeddb": "^6.2.7"
   },
   "scripts": {
-    "build": "run-p build:transpile build:bundle build:types",
-    "build:dev": "run-p build:transpile build:types",
+    "build": "pnpm run \"/^build:(transpile|bundle|types)$/\"",
+    "build:dev": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:bundle": "rolldown -c rollup.bundle.config.mjs",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:transpile:watch build:bundle:watch",
-    "build:dev:watch": "run-p build:transpile:watch",
-    "build:bundle:watch": "rolldown -c rollup.bundle.config.mjs --watch",
-    "build:transpile:watch": "rolldown -c rollup.npm.config.mjs --watch",
     "build:tarball": "pnpm pack",
-    "circularDepCheck": "madge --circular src/index.ts",
     "clean": "node ../../scripts/rm.mjs build coverage .rpt2_cache sentry-browser-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
-    "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs/prod}/*.js && es-check es2020 ./build/npm/esm/prod/*.js --module",
+    "lint:es-compatibility": "node ../../scripts/es-check.mjs es2020",
     "size:check": "cat build/bundles/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES2017: \",$1,\"kB\";}'",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
   "sideEffects": false
 }

@@ -35,6 +35,7 @@ describe('generateValueInjectionRules', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
                   },
                 },
               },
@@ -60,6 +61,37 @@ describe('generateValueInjectionRules', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                  },
+                },
+              },
+            ],
+          },
+        },
+      ]);
+    });
+  });
+
+  describe('with server build values', () => {
+    it('injects the release and dist dir only into the server instrumentation file', () => {
+      const result = generateValueInjectionRules({
+        releaseName: 'my-app@1.2.3',
+        distDirName: 'build',
+      });
+
+      expect(result).toEqual([
+        {
+          matcher: '**/instrumentation.*',
+          rule: {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  values: {
+                    __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRelease: 'my-app@1.2.3',
+                    _sentryRewriteFramesDistDir: 'build',
                   },
                 },
               },
@@ -104,6 +136,7 @@ describe('generateValueInjectionRules', () => {
             options: {
               values: {
                 __SENTRY_SERVER_MODULES__: expect.any(Object),
+                _sentryTurbopack: true,
                 _sentryNextJsVersion: '14.0.0',
               },
             },
@@ -147,6 +180,7 @@ describe('generateValueInjectionRules', () => {
             options: {
               values: {
                 __SENTRY_SERVER_MODULES__: expect.any(Object),
+                _sentryTurbopack: true,
               },
             },
           },
@@ -186,6 +220,7 @@ describe('generateValueInjectionRules', () => {
             options: {
               values: {
                 __SENTRY_SERVER_MODULES__: expect.any(Object),
+                _sentryTurbopack: true,
               },
             },
           },
@@ -234,6 +269,7 @@ describe('generateValueInjectionRules', () => {
             options: {
               values: {
                 __SENTRY_SERVER_MODULES__: expect.any(Object),
+                _sentryTurbopack: true,
               },
             },
           },
@@ -278,6 +314,7 @@ describe('generateValueInjectionRules', () => {
             options: {
               values: {
                 __SENTRY_SERVER_MODULES__: expect.any(Object),
+                _sentryTurbopack: true,
                 _sentryNextJsVersion: '14.0.0',
               },
             },
@@ -321,6 +358,7 @@ describe('generateValueInjectionRules', () => {
           '**/instrumentation.*',
           {
             _sentryTunnelRoute: '/monitoring',
+            _sentryTurbopack: true,
             __SENTRY_SERVER_MODULES__: expect.any(Object),
           },
         ],
@@ -338,7 +376,10 @@ describe('generateValueInjectionRules', () => {
       ]);
       expect(injectedValues).toEqual([
         ['**/instrumentation-client.*', { _sentryBasePath: '/docs' }],
-        ['**/instrumentation.*', { _sentryBasePath: '/docs', __SENTRY_SERVER_MODULES__: expect.any(Object) }],
+        [
+          '**/instrumentation.*',
+          { _sentryBasePath: '/docs', _sentryTurbopack: true, __SENTRY_SERVER_MODULES__: expect.any(Object) },
+        ],
       ]);
     });
   });
@@ -439,6 +480,7 @@ describe('generateValueInjectionRules', () => {
               options: {
                 values: {
                   __SENTRY_SERVER_MODULES__: expect.any(Object),
+                  _sentryTurbopack: true,
                 },
               },
             },

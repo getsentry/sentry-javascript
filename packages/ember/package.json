@@ -29,8 +29,6 @@
     "build": "rollup --config",
     "build:dev": "pnpm run build",
     "build:tarball": "pnpm pack",
-    "build:watch": "rollup --config --watch",
-    "circularDepCheck": "madge --circular src/index.ts",
     "clean": "node ../../scripts/rm.mjs dist declarations *.tgz .turbo",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
@@ -39,7 +37,7 @@
     "test": "pnpm run test:unit",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest --watch",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
   "dependencies": {
     "@embroider/addon-shim": "^1.11.0",

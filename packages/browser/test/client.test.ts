@@ -4,8 +4,9 @@
 
 import { getRouteProvider, resolveCurrentRoute, setRouteProvider } from '@sentry/browser-utils';
 import * as SentryCore from '@sentry/core';
-import { debug, getCurrentScope, makeSession, setCurrentClient } from '@sentry/core';
+import { debug, getCurrentScope, getTunnelPath, makeSession, setCurrentClient } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { BrowserOptions } from '../src/client';
 import { applyDefaultOptions, BrowserClient } from '../src/client';
 import { WINDOW } from '../src/helpers';
 import { getDefaultBrowserClientOptions } from './helper/browser-client-options';
@@ -126,6 +127,19 @@ describe('BrowserClient', () => {
       setRouteProvider({ resolveRoute: () => '/runtime', resolveCurrentRoute: () => '/runtime' }, client);
 
       expect(resolveCurrentRoute(client)).toBe('/runtime');
+    });
+  });
+
+  describe('tunnel option', () => {
+    it('accepts BrowserOptions and resolves a managed tunnel to its URL', () => {
+      const options: BrowserOptions = { dsn: 'http://examplePublicKey@localhost/0', tunnel: true };
+      const { integrations, stackParser, transport } = getDefaultBrowserClientOptions();
+      client = new BrowserClient({ ...options, integrations, stackParser, transport });
+
+      expect(client.getOptions().tunnel).toBe(getTunnelPath(client.getDsn()!));
+      expect(client.getOptions().transportOptions?.headers).toEqual({
+        'Content-Type': 'application/x-sentry-envelope',
+      });
     });
   });
 

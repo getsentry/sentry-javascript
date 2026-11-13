@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { isAbsolute } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   BUNDLE_SAFE_INSTRUMENTED_PACKAGES,
   externalizeOrchestrionRuntimePackages,
@@ -55,6 +55,46 @@ describe('getServerExternalPackagesPatch (build-time instrumentation)', () => {
     expect(externals).toContain('ioredis');
     expect(externals).toContain('mysql');
     expect(externals).not.toContain('@apm-js-collab/tracing-hooks');
+  });
+});
+
+describe('getServerExternalPackagesPatch (Bun and Deno)', () => {
+  const originalVersions = Object.getOwnPropertyDescriptor(process, 'versions')!;
+
+  afterEach(() => {
+    Object.defineProperty(process, 'versions', originalVersions);
+  });
+
+  it('makes @sentry/nextjs external when the build runs on Bun', () => {
+    Object.defineProperty(process, 'versions', { ...originalVersions, value: { ...process.versions, bun: '1.4.2' } });
+
+    const patch = getServerExternalPackagesPatch({}, 16, false);
+
+    expect(patch.serverExternalPackages).toContain('@sentry/nextjs');
+  });
+
+  it('makes @sentry/nextjs external when the build runs on Deno', () => {
+    Object.defineProperty(process, 'versions', { ...originalVersions, value: { ...process.versions, deno: '2.9.0' } });
+
+    const patch = getServerExternalPackagesPatch({}, 16, false);
+
+    expect(patch.serverExternalPackages).toContain('@sentry/nextjs');
+  });
+
+  it('keeps @sentry/nextjs bundled on Bun when it is in transpilePackages', () => {
+    Object.defineProperty(process, 'versions', { ...originalVersions, value: { ...process.versions, bun: '1.4.2' } });
+
+    const patch = getServerExternalPackagesPatch({ transpilePackages: ['@sentry/nextjs'] }, 16, false);
+
+    expect(patch.serverExternalPackages).not.toContain('@sentry/nextjs');
+  });
+
+  it('keeps @sentry/nextjs bundled when the build runs on Node.js', () => {
+    Object.defineProperty(process, 'versions', { ...originalVersions, value: { ...process.versions, bun: undefined } });
+
+    const patch = getServerExternalPackagesPatch({}, 16, false);
+
+    expect(patch.serverExternalPackages).not.toContain('@sentry/nextjs');
   });
 });
 

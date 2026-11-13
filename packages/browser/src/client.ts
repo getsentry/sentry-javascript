@@ -16,6 +16,7 @@ import { addAutoIpAddressToSession, applySdkMetadata, Client, getSDKSource, time
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
 import type { BrowserTransportOptions } from './transports/types';
+import { resolveBrowserTunnelOption } from './utils/managedTunnel';
 
 /**
  * A magic string that build tooling can leverage in order to inject a release value into the SDK.
@@ -107,7 +108,12 @@ export type BrowserOptions = CoreOptions<BrowserTransportOptions> &
  * Configuration options for the Sentry Browser SDK Client class
  * @see BrowserClient for more information.
  */
-export type BrowserClientOptions = ClientOptions<BrowserTransportOptions> & BrowserSpecificOptions;
+export type BrowserClientOptions = Omit<ResolvedBrowserClientOptions, 'tunnel'> & Pick<BrowserOptions, 'tunnel'>;
+
+/**
+ * {@link BrowserClientOptions} after the client resolved the tunnel to a URL.
+ */
+export type ResolvedBrowserClientOptions = ClientOptions<BrowserTransportOptions> & BrowserSpecificOptions;
 
 /**
  * The Sentry Browser SDK Client.
@@ -115,14 +121,15 @@ export type BrowserClientOptions = ClientOptions<BrowserTransportOptions> & Brow
  * @see BrowserOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
  */
-export class BrowserClient extends Client<BrowserClientOptions> {
+export class BrowserClient extends Client<ResolvedBrowserClientOptions> {
   /**
    * Creates a new Browser SDK instance.
    *
    * @param options Configuration options for this SDK.
    */
   public constructor(options: BrowserClientOptions) {
-    const opts = applyDefaultOptions(options);
+    // `init()` already resolves the tunnel, but a client constructed by hand doesn't go through it.
+    const opts = applyDefaultOptions({ ...options, ...resolveBrowserTunnelOption(options) });
     const sdkSource = WINDOW.SENTRY_SDK_SOURCE || getSDKSource();
     applySdkMetadata(opts, 'browser', ['browser'], sdkSource);
 
