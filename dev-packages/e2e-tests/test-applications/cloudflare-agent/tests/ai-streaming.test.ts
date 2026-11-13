@@ -16,7 +16,13 @@ function assertGenAiStreamingSpan(span: SerializedStreamedSpan): void {
   expect(span.attributes['gen_ai.response.streaming']?.value).toBe(true);
   expect(span.attributes['gen_ai.response.text']?.value).toBe('The capital of France is Paris.');
   expect(span.attributes['gen_ai.output.messages']?.value).toBe(
-    JSON.stringify([{ role: 'assistant', parts: [{ type: 'text', content: 'The capital of France is Paris.' }] }]),
+    JSON.stringify([
+      {
+        role: 'assistant',
+        parts: [{ type: 'text', content: 'The capital of France is Paris.' }],
+        finish_reason: 'stop',
+      },
+    ]),
   );
   expect(span.attributes['gen_ai.usage.input_tokens']?.value).toBe(15);
   expect(span.attributes['gen_ai.usage.output_tokens']?.value).toBe(8);
