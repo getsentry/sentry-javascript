@@ -1,5 +1,11 @@
 // @vitest-environment jsdom
-import { SENTRY_LINK_TYPE, SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  PAGE_SERVER_RENDERING_TYPE,
+  SENTRY_LINK_TYPE,
+  SENTRY_OP,
+  URL_FULL,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
 import { PAGELOAD } from '@sentry/conventions/op';
 import type { Client } from '@sentry/core';
 import type * as SentryCore from '@sentry/core';
@@ -196,6 +202,26 @@ describe('appRouterInstrumentNavigation (router-patch mode)', () => {
       expect(core.spanToJSON(pushSpan!).end_timestamp).toBeDefined();
     });
 
+    it('records a protocol-relative `router.push()` target as an external URL', async () => {
+      const { core, router } = await setup(traceLifecycle);
+
+      router.push('//cdn.example.com/x');
+
+      expect(core.spanToJSON(core.getActiveSpan()!).attributes).toEqual(
+        expect.objectContaining({ [URL_FULL]: 'http://cdn.example.com/x' }),
+      );
+    });
+
+    it('records a protocol-relative transition-start-hook target as an external URL', async () => {
+      const { core, instrumentation } = await setup(traceLifecycle);
+
+      instrumentation.captureRouterTransitionStart('//cdn.example.com/x', 'push');
+
+      expect(core.spanToJSON(core.getActiveSpan()!).attributes).toEqual(
+        expect.objectContaining({ [URL_FULL]: 'http://cdn.example.com/x' }),
+      );
+    });
+
     it('tags a popstate without a preceding router call with `browser.popstate`', async () => {
       const { core } = await setup(traceLifecycle);
 
@@ -257,6 +283,16 @@ describe('appRouterInstrumentNavigation with basePath', () => {
     expect(spanJson.name).toBe('/my-app/navigation/:param/router-push');
     expect(spanJson.attributes).toEqual(
       expect.objectContaining({ 'url.full': 'http://localhost:3000/my-app/navigation/42/router-push' }),
+    );
+  });
+
+  it('records a `//` target as a path under basePath, like Next.js does', async () => {
+    const { core, router } = await setup('static');
+
+    router.push('//cdn.example.com/x');
+
+    expect(core.spanToJSON(core.getActiveSpan()!).attributes).toEqual(
+      expect.objectContaining({ [URL_FULL]: 'http://localhost:3000/my-app//cdn.example.com/x' }),
     );
   });
 
@@ -375,7 +411,7 @@ describe('appRouterInstrumentPageLoad', () => {
 
     const spanJson = core.spanToJSON(core.getActiveSpan()!);
     expect(spanJson.attributes?.[SENTRY_OP]).toBe(PAGELOAD);
-    expect(spanJson.attributes?.['page.server_rendering.type']).toBe('static');
+    expect(spanJson.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toBe('static');
     expect(spanJson.trace_id).not.toBe(PRERENDER_TRACE_ID);
     expect(spanJson.links).toEqual([PRERENDER_LINK]);
   });
@@ -393,7 +429,7 @@ describe('appRouterInstrumentPageLoad', () => {
     const spanJson = core.spanToJSON(core.getActiveSpan()!);
     expect(spanJson.trace_id).toBe('22222222222222222222222222222222');
     expect(spanJson.parent_span_id).toBe('2222222222222222');
-    expect(spanJson.attributes?.['page.server_rendering.type']).toBe('partially_static');
+    expect(spanJson.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toBe('partially_static');
     expect(spanJson.links).toEqual([PRERENDER_LINK]);
   });
 
@@ -406,7 +442,7 @@ describe('appRouterInstrumentPageLoad', () => {
 
     const spanJson = core.spanToJSON(core.getActiveSpan()!);
     expect(spanJson.attributes?.[SENTRY_OP]).toBe(PAGELOAD);
-    expect(spanJson.attributes).not.toHaveProperty('page.server_rendering.type');
+    expect(spanJson.attributes).not.toHaveProperty(PAGE_SERVER_RENDERING_TYPE);
     expect(spanJson.links).toEqual([PRERENDER_LINK]);
   });
 

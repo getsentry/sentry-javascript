@@ -6,6 +6,11 @@ import {
   BROWSER_BFCACHE_REASON,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import {
+  BROWSER_BFCACHE_NAVIGATION,
+  BROWSER_BFCACHE_NOT_RESTORED,
+  BROWSER_BFCACHE_RELOAD_DURATION,
+} from '@sentry/conventions/metrics';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import { debug, defineIntegration, getCurrentScope, metrics } from '@sentry/core';
 import { resolveCurrentRoute } from '@sentry/browser-utils';
@@ -82,7 +87,7 @@ export const bfcacheMetricsIntegration = defineIntegration(
 
           // Measures how expensive the fallback reload was when a back/forward navigation missed bfcache.
           if (typeof navigationEntry.duration === 'number' && navigationEntry.duration > 0) {
-            metrics.distribution('browser.bfcache.reload.duration', navigationEntry.duration, {
+            metrics.distribution(BROWSER_BFCACHE_RELOAD_DURATION, navigationEntry.duration, {
               unit: 'millisecond',
               attributes: _withOriginAttr({
                 [SENTRY_SEGMENT_NAME]: routeName,
@@ -106,7 +111,7 @@ export const bfcacheMetricsIntegration = defineIntegration(
  * Captures a bf navigation as a metric and records the outcome and reason count.
  */
 function _captureBFCacheNavigation(outcome: BFCacheOutcome, reasonCount: number, routeName?: string): void {
-  metrics.count('browser.bfcache.navigation', 1, {
+  metrics.count(BROWSER_BFCACHE_NAVIGATION, 1, {
     attributes: _withOriginAttr({
       [BROWSER_BFCACHE_OUTCOME]: outcome,
       // Attribute should be present if reasons are >= 1
@@ -120,7 +125,7 @@ function _captureBFCacheNavigation(outcome: BFCacheOutcome, reasonCount: number,
  * Maps a collected reason to a metric and captures/sends it.
  */
 function _captureBFCacheReason({ reason, frame }: CollectedReason, routeName?: string) {
-  metrics.count('browser.bfcache.not_restored', 1, {
+  metrics.count(BROWSER_BFCACHE_NOT_RESTORED, 1, {
     attributes: _withOriginAttr({
       [BROWSER_BFCACHE_REASON]: reason,
       [BROWSER_BFCACHE_FRAME]: frame,

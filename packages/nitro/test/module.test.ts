@@ -1,6 +1,6 @@
 import type { Client } from '@sentry/core';
 import { getCurrentScope, makeDsn } from '@sentry/core';
-import { _INTERNAL_resetManagedTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
+import { _INTERNAL_resetTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createNitroModule } from '../src/module';
 
@@ -26,7 +26,7 @@ function setup(options: { dev: boolean; baseURL: string; runtimeConfig?: Record<
 describe('createNitroModule', () => {
   afterEach(() => {
     getCurrentScope().setClient(undefined);
-    _INTERNAL_resetManagedTunnelDefaults();
+    _INTERNAL_resetTunnelDefaults();
   });
 
   it("serves the dev server's managed tunnel under `baseURL`", () => {

@@ -112,6 +112,49 @@ describe('instrumentWorkerEntrypoint', () => {
     expect(await response.text()).toBe('ok');
   });
 
+  it('captures and re-throws errors thrown by the trace method', async () => {
+    const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+    const error = new Error('test');
+    const TestClass = class extends WorkerEntrypoint {
+      trace() {
+        throw error;
+      }
+    };
+    const obj = Reflect.construct(
+      instrumentWorkerEntrypoint(vi.fn().mockReturnValue({}), TestClass as unknown as WorkerEntrypointConstructor),
+      [createMockExecutionContext(), {}],
+    );
+
+    await expect(obj.trace([])).rejects.toBe(error);
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+    expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
+      mechanism: { handled: false, type: 'auto.faas.cloudflare.trace' },
+    });
+  });
+
+  it('captures and re-throws errors thrown by the event handler that tailStream returns', async () => {
+    const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+    const error = new Error('test');
+    const TestClass = class extends WorkerEntrypoint {
+      tailStream() {
+        return () => {
+          throw error;
+        };
+      }
+    };
+    const obj = Reflect.construct(
+      instrumentWorkerEntrypoint(vi.fn().mockReturnValue({}), TestClass as unknown as WorkerEntrypointConstructor),
+      [createMockExecutionContext(), {}],
+    );
+
+    const eventHandler = await obj.tailStream({});
+    await expect(eventHandler({})).rejects.toBe(error);
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+    expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
+      mechanism: { handled: false, type: 'auto.faas.cloudflare.tail_stream' },
+    });
+  });
+
   it('Does not instrument ctx and env properties', () => {
     const mockContext = createMockExecutionContext();
     const mockEnv = {};
@@ -529,7 +572,7 @@ describe('instrumentWorkerEntrypoint', () => {
       await obj.alarm();
       await obj.webSocketMessage();
 
-      expect(initAndBind).toHaveBeenCalledTimes(3);
+      expect(initAndBind).toHaveBeenCalledTimes(5);
     });
   });
 

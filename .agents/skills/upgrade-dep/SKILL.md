@@ -44,7 +44,6 @@ pnpm install
 pnpm run build:dev
 pnpm run dedupe-deps:fix
 pnpm run fix
-pnpm run circularDepCheck
 ```
 
 ## Useful commands

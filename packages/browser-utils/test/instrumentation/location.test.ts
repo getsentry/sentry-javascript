@@ -24,4 +24,11 @@ describe('getAbsoluteUrl', () => {
   it('returns fragments', () => {
     expect(getAbsoluteUrl('/foo#bar')).toBe('https://sentry.io/foo#bar');
   });
+
+  it.each([
+    ['//foo/bar', 'https://sentry.io//foo/bar'],
+    ['//foo/bar?x=1#h', 'https://sentry.io//foo/bar?x=1#h'],
+  ])('keeps the current origin for a path starting with `//` (%s)', (path, expected) => {
+    expect(getAbsoluteUrl(path)).toBe(expected);
+  });
 });

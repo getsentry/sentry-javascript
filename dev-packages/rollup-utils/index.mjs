@@ -4,4 +4,4 @@ export { plugins };
 
 export * from './bundleHelpers.mjs';
 export * from './npmHelpers.mjs';
-export { insertAt } from './utils.mjs';
+export { insertAt, treeShakePreset } from './utils.mjs';

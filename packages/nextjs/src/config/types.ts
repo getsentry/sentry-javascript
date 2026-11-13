@@ -31,6 +31,8 @@ export type NextConfigObject = {
   assetPrefix?: string;
   // The root at which the nextjs app will be served (defaults to "/")
   basePath?: string;
+  // Whether URLs end with a slash, which Next.js redirects to for paths without one
+  trailingSlash?: boolean;
   // Config which will be available at runtime
   publicRuntimeConfig?: { [key: string]: unknown };
   // File extensions that count as pages in the `pages/` directory
@@ -47,12 +49,15 @@ export type NextConfigObject = {
       }
   >;
   cacheComponents?: boolean;
+  // Packages that Next.js compiles, also in `node_modules`
+  transpilePackages?: string[];
   // Next.js experimental options
   experimental?: {
     instrumentationHook?: boolean;
     clientTraceMetadata?: string[];
     serverComponentsExternalPackages?: string[]; // next < v15.0.0
     sri?: { algorithm?: string };
+    turbopackPluginRuntimeStrategy?: 'workerThreads' | 'childProcesses'; // next >= v16.2.0
   };
   productionBrowserSourceMaps?: boolean;
   // https://nextjs.org/docs/pages/api-reference/next-config-js/env
@@ -282,31 +287,17 @@ export type SentryBuildOptions = Omit<
 
   /**
    * Tunnel Sentry requests through this route on the Next.js server, to circumvent ad-blockers blocking Sentry events
-   * from being sent. This option should be a path (for example: '/error-monitoring').
+   * from being sent. It turns on the managed tunnel, like `tunnel: true` in the browser `Sentry.init` together with
+   * `serveTunnelIntegration()` in the server `Sentry.init`.
    *
-   * - Pass `true` to auto-generate a random, ad-blocker-resistant route for each build
+   * - Pass `true` to use the path derived from the DSN
    * - Pass a string path (e.g., '/monitoring') to use a custom route
    *
-   * By default, the tunnel route proxies each request to Sentry with its headers. To forward only the event payload,
-   * create `app/sentry-tunnel/route.ts` (or `src/app/sentry-tunnel/route.ts`, not in a route
-   * group) with:
+   * The server forwards only the event payload, for the DSN of the server SDK. A `tunnel` or `serveTunnelIntegration`
+   * you set in `Sentry.init` wins over this option.
    *
-   * ```ts
-   * export { POST } from '@sentry/nextjs/tunnel';
-   * ```
-   *
-   * This handler accepts the DSN of the server SDK, also a self-hosted one. For other DSNs, use
-   * `createSentryTunnelRoute` from the same import.
-   *
-   * Tunnel requests go through your middleware (`proxy.ts` / `middleware.ts`) like any other request. If your
-   * middleware redirects or blocks unauthenticated requests, exclude the tunnel route in its `matcher` so events
-   * can reach Sentry. Matchers have to be static, so use a fixed string route in that case rather than `true`.
-   *
-   * Without the route handler, the browser sends tunnel requests with `credentials: 'omit'`, so without cookies or HTTP
-   * authentication. If a layer in front of your app needs them (for example Vercel Deployment Protection or HTTP Basic authentication), set
-   * `transportOptions: { fetchOptions: { credentials: 'same-origin' } }` in `Sentry.init` of `instrumentation-client.ts`.
-   *
-   * NOTE: This feature only works with Next.js 11+
+   * @deprecated Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration()` to the server
+   * `Sentry.init` instead. The server answers the tunnel requests, also on Vercel.
    */
   tunnelRoute?: string | boolean;
 

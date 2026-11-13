@@ -80,6 +80,13 @@
       }
     },
     {
+      // Type-only imports are erased at build time, so they cannot cause load-order bugs.
+      "files": ["**/src/**"],
+      "rules": {
+        "import/no-cycle": ["error", { "ignoreTypes": true }]
+      }
+    },
+    {
       // The rule itself decides which files are browser-facing (see `no-unguarded-span-apis.js`);
       // oxlint resolves `files` globs relative to each package's own config, so scoping it to
       // individual packages here is not possible.

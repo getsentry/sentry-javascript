@@ -5,6 +5,7 @@ import type { Scope } from './scope';
 import type { SegmentSpanCaptureStrategy } from './tracing/segmentSpanCaptureStrategy';
 import type { SerializedLog } from './types/log';
 import type { SerializedMetric } from './types/metric';
+import type { TunnelStore } from './utils/tunnelStore';
 import { SDK_VERSION } from './utils/version';
 import { GLOBAL_OBJ } from './utils/worldwide';
 
@@ -50,6 +51,9 @@ export interface SentryCarrier {
   encodePolyfill?: (input: string) => Uint8Array;
   /** Overwrites TextDecoder used in `@sentry/core`, need for `react-native@0.73` and older */
   decodePolyfill?: (input: Uint8Array) => string;
+
+  /** Only `utils/tunnelStore.ts` reads or writes it. */
+  tunnelStore?: TunnelStore;
 }
 
 /**

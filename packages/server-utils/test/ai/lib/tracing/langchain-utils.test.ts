@@ -2,6 +2,7 @@ import { GEN_AI_CONVERSATION_ID } from '@sentry/conventions/attributes';
 import { describe, expect, it, vi } from 'vitest';
 import type { LangChainMessage } from '../../../../src/ai/langchain/types';
 import {
+  _INTERNAL_addLangChainCallbackHandler,
   _INTERNAL_mergeLangChainCallbackHandler,
   getConversationIdFromMetadata,
   getConversationIdMetadataFromConfig,
@@ -65,6 +66,34 @@ describe('normalizeLangChainMessages', () => {
 
     const result = normalizeLangChainMessages(messages);
     expect(result).toEqual([{ role: 'user', content: 'Hello from serialized' }]);
+  });
+});
+
+describe('_INTERNAL_addLangChainCallbackHandler', () => {
+  const sentryHandler = { name: 'SentryCallbackHandler' };
+  const listener = { name: 'Listener' };
+
+  it('appends even when the sentry handler is already present', () => {
+    expect(_INTERNAL_addLangChainCallbackHandler([sentryHandler], listener)).toStrictEqual([sentryHandler, listener]);
+    expect(_INTERNAL_addLangChainCallbackHandler(sentryHandler, listener)).toStrictEqual([sentryHandler, listener]);
+    expect(_INTERNAL_addLangChainCallbackHandler(undefined, listener)).toStrictEqual([listener]);
+  });
+
+  it('adds to a copy of a callback manager that already holds the sentry handler', () => {
+    const manager = {
+      handlers: [sentryHandler] as unknown[],
+      addHandler: vi.fn(function (this: { handlers: unknown[] }, handler: unknown) {
+        this.handlers.push(handler);
+      }),
+      copy: vi.fn(() => ({ ...manager, handlers: [...manager.handlers] })),
+    };
+
+    const result = _INTERNAL_addLangChainCallbackHandler(manager, listener) as typeof manager;
+
+    expect(result).not.toBe(manager);
+    expect(manager.handlers).toEqual([sentryHandler]);
+    expect(result.handlers).toEqual([sentryHandler, listener]);
+    expect(result.addHandler).toHaveBeenCalledWith(listener, true);
   });
 });
 
