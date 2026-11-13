@@ -1,11 +1,46 @@
+import type { APIRequestContext } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { IMPORT_SURFACES } from './importSurfaces';
 import { isViteServer, NITRO_ONLY, NO_META_TAGS } from './isViteServer';
 import { RUNTIME, SERVER_ORIGIN } from './runtime';
 
+// `sentryCloudflareNitroPlugin` takes the trace data of the meta tags when the request starts, before the route
+// names the segment.
+const CLOUDFLARE_META_TAGS_BEFORE_ROUTE = 'Cloudflare meta tags are created before the route is known';
+
+async function getBaggageMetaTagAndServerSpan(request: APIRequestContext, path: string) {
+  const serverSpanPromise = waitForStreamedSpan('nuxt-4', span => {
+    return span.is_segment && span.name.includes('GET /test-param/');
+  });
+
+  const [response, serverSpan] = await Promise.all([request.get(path), serverSpanPromise]);
+  const matches = [...(await response.text()).matchAll(/<meta name="baggage" content="([^"]*)"/g)];
+  expect(matches).toHaveLength(1);
+
+  return { baggageMetaTagContent: matches[0]?.[1], serverSpan };
+}
+
 test.describe('distributed tracing', () => {
   const PARAM = 's0me-param';
+
+  test('puts the parametrized route in the baggage meta tag', async ({ request }) => {
+    test.fail(isViteServer, NO_META_TAGS);
+    test.skip(RUNTIME === 'cloudflare', CLOUDFLARE_META_TAGS_BEFORE_ROUTE);
+
+    const { baggageMetaTagContent, serverSpan } = await getBaggageMetaTagAndServerSpan(request, `/test-param/${PARAM}`);
+    expect(baggageMetaTagContent).toContain(`sentry-trace_id=${serverSpan.trace_id}`);
+    // URL-encoded for parametrized 'GET /test-param/s0me-param' -> `GET /test-param/:param`
+    expect(baggageMetaTagContent).toContain(`sentry-transaction=GET%20%2Ftest-param%2F%3Aparam`);
+  });
+
+  test('leaves the transaction out of the baggage meta tag on Cloudflare', async ({ request }) => {
+    test.skip(RUNTIME !== 'cloudflare', CLOUDFLARE_META_TAGS_BEFORE_ROUTE);
+
+    const { baggageMetaTagContent, serverSpan } = await getBaggageMetaTagAndServerSpan(request, `/test-param/${PARAM}`);
+    expect(baggageMetaTagContent).toContain(`sentry-trace_id=${serverSpan.trace_id}`);
+    expect(baggageMetaTagContent).not.toContain('sentry-transaction=');
+  });
 
   test('capture a distributed pageload trace', async ({ page }) => {
     test.fail(isViteServer, NO_META_TAGS);
@@ -28,14 +63,6 @@ test.describe('distributed tracing', () => {
     await expect(page.locator('meta[name="baggage"]')).toHaveCount(1);
     const baggageMetaTagContent = await page.locator('meta[name="baggage"]').getAttribute('content');
 
-    if (RUNTIME === 'cloudflare') {
-      // `sentryCloudflareNitroPlugin` takes the trace data of the meta tags when the request starts, before the
-      // route names the segment.
-      expect(baggageMetaTagContent).not.toContain('sentry-transaction=');
-    } else {
-      // URL-encoded for parametrized 'GET /test-param/s0me-param' -> `GET /test-param/:param`
-      expect(baggageMetaTagContent).toContain(`sentry-transaction=GET%20%2Ftest-param%2F%3Aparam`);
-    }
     expect(baggageMetaTagContent).toContain(`sentry-trace_id=${serverSpan.trace_id}`);
     expect(baggageMetaTagContent).toContain('sentry-sampled=true');
     expect(baggageMetaTagContent).toContain('sentry-sample_rate=1');
