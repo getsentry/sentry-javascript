@@ -16,7 +16,8 @@
   "dependencies": {
     "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
     "nitro": "latest",
-    "nuxt": "npm:nuxt-nightly@5x"
+    "nuxt": "npm:nuxt-nightly@5x",
+    "vue-router": "^5.5.0"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
