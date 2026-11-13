@@ -1,3 +1,4 @@
+import childProcess from 'child_process';
 import type { Options } from '../../src/core';
 import type { NormalizedOptions } from '../../src/core/options-mapping';
 import { normalizeUserOptions, validateOptions } from '../../src/core/options-mapping';
@@ -207,6 +208,78 @@ describe('normalizeUserOptions()', () => {
       expect(normalizedOptions.release.setCommits).toEqual(expect.objectContaining({ auto: true }));
       expect(normalizedOptions.release.setCommits).not.toHaveProperty('commit');
       vi.restoreAllMocks();
+    });
+
+    test.each(['preview', 'development', 'staging'])(
+      'should skip commit association on %s Vercel builds without a git remote',
+      targetEnv => {
+        vi.spyOn(childProcess, 'execSync').mockImplementation(() => {
+          throw new Error('fatal: not a git repository');
+        });
+        // Only Vercel's variables, so CI variables from the machine running the tests don't leak in.
+        process.env = {
+          VERCEL: '1',
+          VERCEL_TARGET_ENV: targetEnv,
+          VERCEL_GIT_COMMIT_SHA: 'abc123',
+          VERCEL_GIT_REPO_OWNER: 'my-owner',
+          VERCEL_GIT_REPO_SLUG: 'my-repo',
+        };
+
+        const normalizedOptions = normalizeUserOptions({ release: { name: 'my-release' } });
+
+        expect(normalizedOptions.release.setCommits).toBe(false);
+        vi.restoreAllMocks();
+      },
+    );
+
+    test('should keep automatic commit association on preview Vercel builds that have a git remote', () => {
+      const execSyncSpy = vi
+        .spyOn(childProcess, 'execSync')
+        .mockReturnValue(Buffer.from('https://github.com/my-owner/my-repo.git'));
+      // Only Vercel's variables, so the git remote is what keeps `--auto`, not CI variables from the test machine.
+      process.env = {
+        VERCEL: '1',
+        VERCEL_TARGET_ENV: 'preview',
+        VERCEL_GIT_COMMIT_SHA: 'abc123',
+        VERCEL_GIT_REPO_OWNER: 'my-owner',
+        VERCEL_GIT_REPO_SLUG: 'my-repo',
+      };
+
+      const normalizedOptions = normalizeUserOptions({ release: { name: 'my-release' } });
+
+      expect(execSyncSpy).toHaveBeenCalledWith('git remote get-url origin', expect.anything());
+      expect(normalizedOptions.release.setCommits).toEqual(expect.objectContaining({ auto: true }));
+      expect(normalizedOptions.release.setCommits).not.toHaveProperty('commit');
+      vi.restoreAllMocks();
+    });
+
+    test('should keep automatic commit association on preview Vercel builds in another CI without a git remote', () => {
+      vi.spyOn(childProcess, 'execSync').mockImplementation(() => {
+        throw new Error('fatal: not a git repository');
+      });
+      process.env['VERCEL'] = '1';
+      process.env['VERCEL_TARGET_ENV'] = 'preview';
+      process.env['GITHUB_REPOSITORY'] = 'my-owner/my-repo';
+
+      const normalizedOptions = normalizeUserOptions({ release: { name: 'my-release' } });
+
+      expect(normalizedOptions.release.setCommits).toEqual(expect.objectContaining({ auto: true }));
+      vi.restoreAllMocks();
+    });
+
+    test('should associate commits from Vercel env vars when only VERCEL_ENV is production', () => {
+      process.env['VERCEL'] = '1';
+      delete process.env['VERCEL_TARGET_ENV'];
+      process.env['VERCEL_ENV'] = 'production';
+      process.env['VERCEL_GIT_COMMIT_SHA'] = 'abc123';
+      process.env['VERCEL_GIT_REPO_OWNER'] = 'my-owner';
+      process.env['VERCEL_GIT_REPO_SLUG'] = 'my-repo';
+
+      const normalizedOptions = normalizeUserOptions({ release: { name: 'my-release' } });
+
+      expect(normalizedOptions.release.setCommits).toEqual(
+        expect.objectContaining({ commit: 'abc123', repo: 'my-owner/my-repo' }),
+      );
     });
 
     test('should not create deploy config when Vercel env vars are missing', () => {
