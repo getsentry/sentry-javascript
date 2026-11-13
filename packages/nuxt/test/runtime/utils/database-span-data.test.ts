@@ -124,7 +124,7 @@ describe('getDatabaseSpanData', () => {
   });
 
   describe('SQLite-like connectors', () => {
-    it.each(['better-sqlite3', 'bun', 'sqlite', 'sqlite3'] as ConnectorName[])(
+    it.each(['better-sqlite3', 'bun', 'bun-sqlite', 'node-sqlite', 'sqlite', 'sqlite3'] as ConnectorName[])(
       'should extract database name for %s',
       connector => {
         const config: DatabaseConfig = {
@@ -141,7 +141,7 @@ describe('getDatabaseSpanData', () => {
       },
     );
 
-    it.each(['better-sqlite3', 'bun', 'sqlite', 'sqlite3'] as ConnectorName[])(
+    it.each(['better-sqlite3', 'bun', 'bun-sqlite', 'node-sqlite', 'sqlite', 'sqlite3'] as ConnectorName[])(
       'should use default name for %s when name is not provided',
       connector => {
         const config: DatabaseConfig = {
@@ -156,7 +156,7 @@ describe('getDatabaseSpanData', () => {
       },
     );
 
-    it.each(['better-sqlite3', 'bun', 'sqlite', 'sqlite3'] as ConnectorName[])(
+    it.each(['better-sqlite3', 'bun', 'bun-sqlite', 'node-sqlite', 'sqlite', 'sqlite3'] as ConnectorName[])(
       'should handle missing options for %s',
       connector => {
         const config: DatabaseConfig = {

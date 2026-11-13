@@ -2,7 +2,13 @@ import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import { getDefaultIntegrations, setAsyncLocalStorageAsyncContextStrategy } from '@sentry/cloudflare';
 import { wrapRequestHandler } from '@sentry/cloudflare/request';
-import { debug, getDefaultIsolationScope, getIsolationScope, getTraceData } from '@sentry/core';
+import {
+  debug,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  getTraceData,
+  stripUrlQueryAndFragment,
+} from '@sentry/core';
 import { _INTERNAL_isServedTunnelRequest as isServedTunnelRequest } from '@sentry/core/server';
 import type { H3Event } from 'h3';
 import type { NitroApp, NitroAppPlugin } from 'nitropack';
@@ -75,7 +81,10 @@ export const sentryCloudflareNitroPlugin =
             request,
             context: runtime.cloudflare.context,
           },
-          () => appFetch(request),
+          () => {
+            setRequestTransactionName(request.method, new URL(request.url).pathname);
+            return appFetch(request);
+          },
         );
       };
       nitroApp.hooks.hook('error', sentryCaptureErrorHook);
@@ -120,6 +129,8 @@ export const sentryCloudflareNitroPlugin =
           };
 
           return wrapRequestHandler(requestHandlerOptions, () => {
+            setRequestTransactionName(event.method, pathname);
+
             const isolationScope = getIsolationScope();
             const newIsolationScope =
               isolationScope === getDefaultIsolationScope() ? isolationScope.clone() : isolationScope;
@@ -170,3 +181,11 @@ export const sentryCloudflareNitroPlugin =
 
     nitroApp.hooks.hook('error', sentryCaptureErrorHook);
   };
+
+/**
+ * Names the events of the request after its method and path until a route names them, like the `node:http`
+ * instrumentation does on Node. Without it, events captured outside Nitro's `error` hook have no transaction.
+ */
+function setRequestTransactionName(method: string, path: string): void {
+  getIsolationScope().setTransactionName(`${method.toUpperCase()} ${stripUrlQueryAndFragment(path)}`);
+}

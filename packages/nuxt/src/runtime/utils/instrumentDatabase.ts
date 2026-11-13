@@ -73,7 +73,8 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConn
   }
 
   const metadata: DatabaseSpanData = {
-    [DB_SYSTEM_NAME]: config?.connector ?? db.dialect,
+    // A connector name like `bun-sqlite` or `mysql2` names the driver, the dialect names the database system.
+    [DB_SYSTEM_NAME]: db.dialect ?? config?.connector,
     ...getDatabaseSpanData(config),
   };
 
@@ -85,7 +86,18 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConn
     apply(target, thisArg, args: Parameters<typeof db.prepare>) {
       const [query] = args;
 
-      return instrumentPreparedStatement(target.apply(thisArg, args), query, metadata, dialect);
+      let statement: PreparedStatement;
+      try {
+        statement = target.apply(thisArg, args);
+      } catch (error) {
+        // Connectors like `bun-sqlite` and `better-sqlite3` compile the statement in `prepare`, so an invalid query
+        // throws here and not when the statement runs.
+        startSpan(createStartSpanOptions(query, metadata, dialect), span => captureDatabaseError(span, error));
+        void flushIfServerless();
+        throw error;
+      }
+
+      return instrumentPreparedStatement(statement, query, metadata, dialect);
     },
   });
 
@@ -224,13 +236,7 @@ function handleSpanStart(fn: () => unknown, breadcrumbOpts?: { query: string; di
 
       return result;
     } catch (error) {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-      captureException(error, {
-        mechanism: {
-          handled: false,
-          type: NUXT_DATABASE_ORIGIN,
-        },
-      });
+      captureDatabaseError(span, error);
 
       // Re-throw the error to be handled by the caller
       throw error;
@@ -238,6 +244,16 @@ function handleSpanStart(fn: () => unknown, breadcrumbOpts?: { query: string; di
       await flushIfServerless();
     }
   };
+}
+
+function captureDatabaseError(span: Span, error: unknown): void {
+  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+  captureException(error, {
+    mechanism: {
+      handled: false,
+      type: NUXT_DATABASE_ORIGIN,
+    },
+  });
 }
 
 function createBreadcrumb(query: string, dialect: SqlDialect | undefined): void {

@@ -18,6 +18,10 @@ Work in this release was contributed by @kunal649 and @bardrop. Thank you for yo
 
   HTTP spans that the SDK builds from a `URL` now send `url.scheme` without the trailing colon (`https` instead of `https:`) and `url.port` as a number instead of a string, as the Sentry conventions define them and as Node `http.server` spans already do. This changes `http.server` spans from `@sentry/cloudflare`, `Bun.serve`, Deno and Nitro, and outgoing `node:http` client spans. Update saved queries, alerts and dashboards that filter on `url.scheme:"https:"` or on `url.port` as a string.
 
+- **fix(nuxt): Name the database system in `db.system.name` of db0 spans ([#26285](https://github.com/getsentry/sentry-javascript/pull/26285))**
+
+  Nitro database (db0) spans now set `db.system.name` to the database system of the connector's dialect (`mysql`, `postgresql` or `sqlite`), as the OpenTelemetry conventions define it, instead of the connector name. For example, spans of the `mysql2` and `planetscale` connectors now report `mysql`, and spans of `better-sqlite3` and `cloudflare-d1` now report `sqlite`. Update saved queries, alerts and dashboards that filter on the connector names.
+
 ## 11.12.0
 
 ### Important Changes

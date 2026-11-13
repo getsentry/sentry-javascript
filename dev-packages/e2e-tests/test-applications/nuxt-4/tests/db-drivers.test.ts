@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 import { isViteServer, NITRO_ONLY } from './isViteServer';
+import { MONGOOSE_UNSUPPORTED, RUNTIME } from './runtime';
 
 test.skip(isViteServer, NITRO_ONLY);
 
@@ -73,6 +74,8 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
 // The Nitro bundle force-inlines the instrumented drivers while their CommonJS dependencies and
 // Node builtins stay external, and every `require()` across that boundary needs working interop.
 test('Instruments mongoose automatically', async ({ baseURL }) => {
+  test.skip(RUNTIME === 'cloudflare', MONGOOSE_UNSUPPORTED);
+
   const spansPromise = collectRequestSpans('/api/db-mongoose');
 
   const response = await fetch(`${baseURL}/api/db-mongoose`);
