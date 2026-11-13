@@ -6,6 +6,7 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   LRUMap,
+  sentryTraceFromTraceparent,
   startNewTrace,
   startSpan,
   withActiveSpan,
@@ -26,7 +27,7 @@ import { isBun, isCloudflareWorkers, isDeno } from '../../utils/runtime';
 import { withCleanScopes } from '../../utils/withCleanScopes';
 import { FLUE_INSTRUMENTATION_KEY, FLUE_OPERATION, FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
 import type { SpanTracker } from './utils';
-import { endToolSpan, sentryTraceFromTraceparent, startToolSpan } from './utils';
+import { endToolSpan, startToolSpan } from './utils';
 import type { FlueInstrumentation } from './types';
 
 export type FlueOptions = GenAiOptions;

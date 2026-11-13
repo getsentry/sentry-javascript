@@ -1,3 +1,4 @@
+import type { SpanLink } from '../../types/link';
 import type { Span } from '../../types/span';
 
 /** Types for MCP server instrumentation */
@@ -170,6 +171,7 @@ export interface McpSpanConfig {
   extra?: ExtraHandlerData;
   callback: () => unknown;
   options?: ResolvedMcpOptions;
+  links?: SpanLink[];
 }
 
 export type SessionId = string;

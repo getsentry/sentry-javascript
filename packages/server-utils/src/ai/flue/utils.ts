@@ -21,20 +21,6 @@ import { FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
 import type { FlueErrorInfo, FlueObservation } from './types';
 
 /**
- * Flue persists the incoming W3C `traceparent` at admission and replays it on the agent operation.
- * Sentry's own propagation uses `sentry-trace`, so the carrier has to be converted before it can
- * continue the trace. Kept local until something else needs a W3C parser.
- */
-export function sentryTraceFromTraceparent(traceparent: string): string | undefined {
-  const [version, traceId, spanId, flags] = traceparent.split('-');
-  if (version !== '00' || !traceId || !spanId || !flags) {
-    return undefined;
-  }
-  // The sampled bit is the low bit of the flags byte; `% 2` avoids a bitwise operator.
-  return `${traceId}-${spanId}-${parseInt(flags, 16) % 2 === 1 ? '1' : '0'}`;
-}
-
-/**
  * Turn and tool spans, keyed by the id of the work they cover. Bounded, because the key is only
  * removed when the matching end observation arrives and an abandoned stream never emits one.
  */

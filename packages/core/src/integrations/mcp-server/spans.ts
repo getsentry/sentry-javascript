@@ -15,6 +15,7 @@ import { getClient } from '../../currentScopes';
 import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
 import { MCP_NOTIFICATION_SPAN_NAME_FALLBACK, MCP_SERVER_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
 import { startSpan } from '../../tracing/trace';
+import type { SpanLink } from '../../types/link';
 import { buildTransportAttributes, buildTypeSpecificAttributes } from './attributeExtraction';
 import { MCP_FUNCTION_ORIGIN_VALUE, MCP_NOTIFICATION_ORIGIN_VALUE, MCP_ROUTE_SOURCE_VALUE } from './attributes';
 import { extractTargetInfo } from './methodConfig';
@@ -78,7 +79,7 @@ function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, stri
  * @returns Created span
  */
 function createMcpSpan(config: McpSpanConfig): unknown {
-  const { type, message, transport, extra, callback, options } = config;
+  const { type, message, transport, extra, callback, options, links } = config;
   const { method } = message;
   const params = message.params;
   const client = getClient();
@@ -112,6 +113,7 @@ function createMcpSpan(config: McpSpanConfig): unknown {
       // oxlint-disable-next-line typescript/no-deprecated
       forceTransaction: true,
       attributes,
+      links,
     },
     callback,
   );
@@ -124,6 +126,7 @@ function createMcpSpan(config: McpSpanConfig): unknown {
  * @param extra - Extra handler data
  * @param options - Resolved MCP options
  * @param callback - Span execution callback
+ * @param links - Links to add to the span
  * @returns Span execution result
  */
 export function createMcpNotificationSpan(
@@ -132,6 +135,7 @@ export function createMcpNotificationSpan(
   extra: ExtraHandlerData,
   options: ResolvedMcpOptions,
   callback: () => unknown,
+  links?: SpanLink[],
 ): unknown {
   return createMcpSpan({
     type: 'notification-incoming',
@@ -140,6 +144,7 @@ export function createMcpNotificationSpan(
     extra,
     callback,
     options,
+    links,
   });
 }
 
