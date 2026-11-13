@@ -1,7 +1,7 @@
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace';
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import * as Sentry from '@sentry/node';
 import { register } from 'node:module';
 
@@ -16,10 +16,7 @@ register('@opentelemetry/instrumentation/hook.mjs', import.meta.url);
 const sdk = new NodeSDK({
   instrumentations: [new HttpInstrumentation()],
   spanProcessors: [
-    new BatchSpanProcessor({
-      exporter: new OTLPTraceExporter({ url: 'http://localhost:3032/' }),
-      scheduledDelayMillis: 100,
-    }),
+    new BatchSpanProcessor(new OTLPTraceExporter({ url: 'http://localhost:3032/' }), { scheduledDelayMillis: 100 }),
   ],
 });
 
