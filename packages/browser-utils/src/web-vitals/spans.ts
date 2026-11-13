@@ -22,7 +22,13 @@ import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { getComponentName } from '../component-name';
 import type { InteractionType } from './inp';
-import { getCachedInteractionContext, INP_ENTRY_MAP, MAX_PLAUSIBLE_INP_DURATION, UNKNOWN_ELEMENT_NAME } from './inp';
+import {
+  getCachedInteractionContext,
+  getInpSubpartAttributes,
+  INP_ENTRY_MAP,
+  MAX_PLAUSIBLE_INP_DURATION,
+  UNKNOWN_ELEMENT_NAME,
+} from './inp';
 import type { InstrumentationHandlerCallback, MetricNavigationType } from '../instrumentation/performanceObserver';
 import {
   addClsInstrumentationHandler,
@@ -45,7 +51,7 @@ import {
   BROWSER_WEB_VITAL_LCP_URL,
 } from '@sentry/conventions/attributes';
 import { _emitWebVitalSpan } from './emitSpan';
-import { isValidLcpMetric } from './lcp';
+import { getLcpSubpartAttributes, isValidLcpMetric } from './lcp';
 import { listenForWebVitalReportEvents } from './reportEvents';
 import { getNavigationSpanForMetric } from './softNavs';
 import { getBrowserPerformanceAPI, msToSec, supportsWebVital } from '../performance/utils';
@@ -230,6 +236,10 @@ export function _sendLcpSpan(
   entry?.loadTime != null && (attributes[BROWSER_WEB_VITAL_LCP_LOAD_TIME] = entry.loadTime);
   entry?.renderTime != null && (attributes[BROWSER_WEB_VITAL_LCP_RENDER_TIME] = entry.renderTime);
   entry?.size != null && (attributes[BROWSER_WEB_VITAL_LCP_SIZE] = entry.size);
+
+  if (entry && navigationType !== 'soft-navigation' && navigationType !== 'back-forward-cache') {
+    Object.assign(attributes, getLcpSubpartAttributes(lcpValue, entry));
+  }
 
   _emitWebVitalSpan({
     name,
@@ -431,7 +441,7 @@ export function _sendInpSpan(
   const entryInteractionType = entry && INP_ENTRY_MAP[entry.name];
   const interactionType = entryInteractionType || 'click';
 
-  const cachedContext = entry && getCachedInteractionContext(entry.interactionId);
+  const cachedContext = getCachedInteractionContext(entry);
   const activeSpan = getActiveSpan();
   const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
@@ -455,6 +465,8 @@ export function _sendInpSpan(
   // component name or the op's fallback under span streaming.
   selector && selector !== UNKNOWN_ELEMENT_NAME && (attributes[BROWSER_WEB_VITAL_INP_TARGET] = selector);
   entryInteractionType && (attributes[BROWSER_WEB_VITAL_INP_INTERACTION_TYPE] = entryInteractionType);
+
+  Object.assign(attributes, getInpSubpartAttributes(entry));
 
   if (componentName) {
     attributes[UI_COMPONENT_NAME] = componentName;
