@@ -9,8 +9,6 @@
     "build:dev:filter": "nx run-many -t build:dev -p",
     "build:transpile": "nx run-many -t build:transpile",
     "build:types": "nx run-many -t build:types",
-    "build:watch": "nx run-many -t build:watch",
-    "build:dev:watch": "nx run-many -t build:dev:watch",
     "build:tarball": "run-s clean:tarballs build:tarballs",
     "build:tarballs": "nx run-many -t build:tarball",
     "ci:print-build-artifact-paths": "node ./scripts/ci-print-build-artifact-paths.mjs",
