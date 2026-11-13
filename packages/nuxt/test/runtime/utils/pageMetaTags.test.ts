@@ -120,6 +120,15 @@ describe('addSentryPageMetaTags', () => {
     expect(head).toEqual([EMPTY_CACHE_ORIGIN_META_TAG]);
   });
 
+  it('adds the tracing meta tags when the event has no `headers` getter', () => {
+    (getTraceMetaTags as Mock).mockReturnValue(LIVE_TRACE_META_TAGS);
+    const head: string[] = [];
+
+    addSentryPageMetaTags(head, { context: { routeRules: {} } } as unknown as H3Event);
+
+    expect(head).toEqual([LIVE_TRACE_META_TAGS]);
+  });
+
   it.each(['vercel', 'netlify'])('replaces the tracing meta tags on an `isr` route on the %s preset', preset => {
     vi.stubGlobal(NUXT_NITRO_PRESET_FLAG, preset);
     (getTraceData as Mock).mockReturnValue({ 'sentry-trace': SENTRY_TRACE });

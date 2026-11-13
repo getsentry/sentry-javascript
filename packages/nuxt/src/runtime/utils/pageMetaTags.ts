@@ -55,10 +55,10 @@ function getCacheOrigin(event: H3Event, traceData: SerializedTraceData | undefin
   return (traceData ?? getTraceData())['sentry-trace'] ?? '';
 }
 
-// The Nitro prerenderer sends this header with each route it renders (Nitro v2 and v3). `event.headers`
-// exists in h3 v1 (1.8+) and h3 v2, where it is a deprecated alias of `event.req.headers`.
+// The Nitro prerenderer sends this header with each route it renders (Nitro v2 and v3). h3 v2 deprecates
+// `event.headers`, so a later h3 can remove it. Then the page gets the live tags and does not fail.
 function isPrerenderRequest(event: H3Event): boolean {
-  return event.headers.has('x-nitro-prerender');
+  return !!event.headers?.has?.('x-nitro-prerender');
 }
 
 // Nitro changes `swr` rules into `cache` rules, so `cache` covers both.
