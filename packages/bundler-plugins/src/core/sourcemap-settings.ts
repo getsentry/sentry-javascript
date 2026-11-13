@@ -73,7 +73,7 @@ export function decideSourceMapHandling(
       deleteAfterUpload: true,
       removeAllSourceMaps: sdkEnabledSourceMaps,
       log: {
-        level: 'info',
+        level: 'warn',
         message:
           'Source maps are not uploaded, but they are removed from the build output because `sourcemaps.deleteSourcemapsAfterUpload` is set.',
       },
