@@ -27,6 +27,10 @@ import { flushIfServerless } from '@sentry/core/server';
 import type { ServerInstrumentation } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';
+import {
+  LOW_QUALITY_TRANSACTIONS_FILTER_NAME,
+  lowQualityTransactionsFilterIntegration,
+} from './integration/lowQualityTransactionsFilterIntegration';
 import { getMiddlewareName } from './serverBuild';
 import { markInstrumentationApiUsed } from './serverGlobals';
 
@@ -38,6 +42,25 @@ const middlewareCountersByRootSpan = new WeakMap<object, Record<string, number>>
 
 // Re-export for backward compatibility and external use
 export { isInstrumentationApiUsed } from './serverGlobals';
+
+/**
+ * Adds the low-quality transactions filter to the current client when the app initialized a runtime SDK
+ * (`@sentry/bun`, `@sentry/deno`, `@sentry/cloudflare`, ...) instead of `@sentry/react-router`'s `init()`.
+ * The `init()` of `@sentry/react-router` has the filter as a default integration, so a user who removed it
+ * there keeps it removed.
+ */
+function addLowQualityTransactionsFilter(): void {
+  const client = getClient();
+  if (
+    !client ||
+    client.getOptions()._metadata?.sdk?.name === 'sentry.javascript.react-router' ||
+    client.getIntegrationByName(LOW_QUALITY_TRANSACTIONS_FILTER_NAME)
+  ) {
+    return;
+  }
+
+  client.addIntegration(lowQualityTransactionsFilterIntegration());
+}
 
 /**
  * Options for creating Sentry server instrumentation.
@@ -64,6 +87,9 @@ export function createSentryServerInstrumentation(
     handler(handler) {
       // Mark the instrumentation API active only when React Router actually invokes this
       markInstrumentationApiUsed();
+      // React Router calls `handler()` inside the first request, where every runtime has a client. With span
+      // streaming, `ignoreSpans` applies when a span starts, so the filter applies from the next request on.
+      addLowQualityTransactionsFilter();
       handler.instrument({
         async request(handleRequest, info) {
           const pathname = getPathFromRequest(info.request);
