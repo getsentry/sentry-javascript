@@ -65,6 +65,27 @@ module.exports = [
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
+    name: '@sentry/browser (incl. Tracing) - with treeshaking flags excluding static lifecycle',
+    path: 'packages/browser/build/npm/esm/prod/index.js',
+    import: createImport('init', 'browserTracingIntegration'),
+    gzip: true,
+    disablePlugins: ['@size-limit/esbuild'],
+    modifyWebpackConfig: function (config) {
+      const webpack = require('webpack');
+
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          __SENTRY_DEBUG__: false,
+          __SENTRY_EXCLUDE_STATIC_LIFECYCLE__: true,
+        }),
+      );
+
+      config.optimization.minimize = true;
+
+      return config;
+    },
+  },
+  {
     name: '@sentry/browser (incl. Tracing + Span Streaming)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'spanStreamingIntegration'),

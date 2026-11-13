@@ -29,6 +29,9 @@ import { getBrowserPerformanceAPI, msToSec } from '../performance/utils';
 import { isValidLcpMetric } from './lcp';
 import { getActivationStart, getNavigationEntry, getVisibilityWatcher } from './utils';
 
+// Treeshakable guard to always stream spans and drop the code paths that build and process transactions
+declare const __SENTRY_EXCLUDE_STATIC_LIFECYCLE__: boolean | undefined;
+
 let _measurements: Measurements = {};
 let _lcpEntry: LargestContentfulPaint | undefined;
 let _clsEntry: LayoutShift | undefined;
@@ -178,7 +181,11 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
     return;
   }
 
-  const { spanStreamingEnabled, recordClsOnPageloadSpan, recordLcpOnPageloadSpan } = options;
+  const { recordClsOnPageloadSpan, recordLcpOnPageloadSpan } = options;
+  // Redundant at runtime (the constructor forces 'stream'); lets bundlers drop the static branch.
+  const spanStreamingEnabled =
+    (typeof __SENTRY_EXCLUDE_STATIC_LIFECYCLE__ === 'boolean' && __SENTRY_EXCLUDE_STATIC_LIFECYCLE__) ||
+    options.spanStreamingEnabled;
   const timeOrigin = msToSec(origin);
 
   // Measurements are only available for pageload transactions

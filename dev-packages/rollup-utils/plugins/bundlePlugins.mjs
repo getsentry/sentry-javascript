@@ -65,6 +65,9 @@ export function makeSetSDKSourcePlugin(sdkSource) {
 /**
  * Create a plugin to set the value of the `__SENTRY_BROWSER_BUNDLE__` magic string.
  *
+ * It also sets `__SENTRY_EXCLUDE_STATIC_LIFECYCLE__` to `false`. CDN bundles always keep the static lifecycle, so the
+ * unresolved runtime checks for that flag would only add bytes.
+ *
  * @param isBrowserBuild Whether or not the resulting build will be run in the browser
  * @returns A `rolldown` replace plugin instance to do the replacement of the magic string with `true` or `false`
  */
@@ -72,6 +75,7 @@ export function makeBrowserBuildPlugin(isBrowserBuild) {
   return replacePlugin(
     {
       __SENTRY_BROWSER_BUNDLE__: JSON.stringify(!!isBrowserBuild),
+      __SENTRY_EXCLUDE_STATIC_LIFECYCLE__: JSON.stringify(false),
       // Bundled dependencies (e.g. Preact in the feedback bundles) branch on this, and there is no
       // CommonJS plugin left to fold it away for us.
       'process.env.NODE_ENV': JSON.stringify('production'),

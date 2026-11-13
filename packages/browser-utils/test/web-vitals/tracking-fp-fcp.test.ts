@@ -1,3 +1,4 @@
+import { BROWSER_PERFORMANCE_TIME_ORIGIN, PERFORMANCE_TIMEORIGIN } from '@sentry/conventions/attributes';
 import { getClient, getMainCarrier, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { addWebVitalsToSpan, startTrackingWebVitals } from '../../src/web-vitals/tracking';
@@ -91,5 +92,28 @@ describe('startTrackingWebVitals', () => {
     expect(spanToJSON(pageloadSpan).attributes['browser.web_vital.fp.value']).toBe(12);
     expect(spanToJSON(pageloadSpan).attributes['browser.web_vital.fcp.value']).toBe(18);
     expect(spanToJSON(pageloadSpan).attributes['browser.navigation.type']).toBe('navigate');
+  });
+
+  it('reports web vitals as span attributes when the static lifecycle is excluded from the bundle', () => {
+    vi.stubGlobal('__SENTRY_EXCLUDE_STATIC_LIFECYCLE__', true);
+    vi.stubGlobal('addEventListener', vi.fn());
+    vi.stubGlobal('performance', {
+      timeOrigin: realPerformance.timeOrigin,
+      now: () => realPerformance.now(),
+      getEntries: () => [],
+      getEntriesByType: () => [],
+    });
+
+    const pageloadSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
+    addWebVitalsToSpan(pageloadSpan, {
+      recordClsOnPageloadSpan: true,
+      recordLcpOnPageloadSpan: true,
+      spanStreamingEnabled: false,
+    });
+
+    const { attributes } = spanToJSON(pageloadSpan);
+    expect(attributes[BROWSER_PERFORMANCE_TIME_ORIGIN]).toEqual(expect.any(Number));
+    // oxlint-disable-next-line typescript/no-deprecated -- Asserting the legacy attribute is not set.
+    expect(attributes[PERFORMANCE_TIMEORIGIN]).toBeUndefined();
   });
 });

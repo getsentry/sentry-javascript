@@ -99,6 +99,21 @@ describe('init', () => {
     }
   });
 
+  test('does not leave a timer pending when the static lifecycle is excluded from the bundle', () => {
+    vi.stubGlobal('__SENTRY_EXCLUDE_STATIC_LIFECYCLE__', true);
+    vi.useFakeTimers();
+    try {
+      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 0, traceLifecycle: 'static' });
+
+      startSpan({ name: 'alarm' }, () => undefined);
+
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
+  });
+
   test("doesn't add spanStreamingIntegration when tracing is excluded from the bundle", () => {
     vi.stubGlobal('__SENTRY_TRACING__', false);
     try {
