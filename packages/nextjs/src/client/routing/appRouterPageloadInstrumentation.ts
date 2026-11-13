@@ -18,8 +18,8 @@ import { resolveCurrentRoute, startBrowserTracingPageLoadSpan, WINDOW } from '@s
 import { stripTrailingSlash } from './parameterization';
 import type { TraceMetaTagValues, TraceMetaTagWait } from './traceMetaTags';
 import {
-  addTraceMetaTagLink,
   canWaitForTraceMetaTag,
+  observeLateTraceMetaTag,
   readTraceMetaTags,
   waitForTraceMetaTag,
   withCacheOrigin,
@@ -58,6 +58,9 @@ function startPageloadSpan(
   if (normalizedRequest) {
     scope.setSDKProcessingMetadata({ normalizedRequest: { ...normalizedRequest, url: documentUrl } });
   }
+  if (span && !traceMetaTags) {
+    observeLateTraceMetaTag(span);
+  }
   return span;
 }
 
@@ -80,10 +83,11 @@ export function appRouterInstrumentPageLoad(client: Client): void {
     },
   };
 
-  // A tag that is already in the document was rendered for this request and can be continued. A
-  // Cache Components document that resumes a prerendered shell gets its tag with the resumed part,
-  // which usually arrives after the SDK started. Waiting for it lets the pageload continue the server
-  // trace instead of linking it; the span's start is backdated to the time origin either way.
+  // A tag that is already in the document was rendered for this request and can be continued, as is
+  // the trace of a `Server-Timing` header, which a self-hosted server sends. Without either, a Cache
+  // Components document that resumes a prerendered shell gets its tag with the resumed part, which
+  // usually arrives after the SDK started. Waiting for it lets the pageload continue the server trace
+  // instead of linking it; the span's start is backdated to the time origin either way.
   const traceMetaTags = readTraceMetaTags();
   if (traceMetaTags || !canWaitForTraceMetaTag()) {
     startPageloadSpan(client, spanOptions, documentUrl, traceMetaTags);
@@ -97,15 +101,7 @@ export function appRouterInstrumentPageLoad(client: Client): void {
     },
     () => {
       pendingPageloadWait = undefined;
-      const span = startPageloadSpan(client, spanOptions, documentUrl);
-      // Only reachable through the cap or a navigation while the document still streams: a tag that
-      // shows up after this can no longer be continued, but the server request can still be linked.
-      if (span) {
-        waitForTraceMetaTag(
-          values => span.isRecording() && addTraceMetaTagLink(span, values),
-          () => undefined,
-        );
-      }
+      startPageloadSpan(client, spanOptions, documentUrl);
     },
     PAGELOAD_TRACE_META_TAG_TIMEOUT_MS,
   );
