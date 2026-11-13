@@ -105,7 +105,10 @@ describe('assignReviewers', () => {
       expect.objectContaining({ reviewers: [expect.any(String), expect.any(String)] }),
     );
     expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
-      expect.objectContaining({ reviewers: expect.not.arrayContaining(['a', 'Mydea']) }),
+      expect.objectContaining({ reviewers: expect.not.arrayContaining(['a']) }),
+    );
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.not.arrayContaining(['Mydea']) }),
     );
   });
 
