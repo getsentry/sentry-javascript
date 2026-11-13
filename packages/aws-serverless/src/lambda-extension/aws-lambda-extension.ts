@@ -1,4 +1,5 @@
 import * as http from 'node:http';
+import * as https from 'node:https';
 import { buffer } from 'node:stream/consumers';
 import {
   consoleSandbox,
@@ -8,6 +9,7 @@ import {
   getEnvelopeEndpointWithUrlEncodedAuth,
   makeDsn,
 } from '@sentry/core';
+import { _INTERNAL_getProxyAgent as getProxyAgent } from '@sentry/node';
 import { DEBUG_BUILD } from './debug-build';
 
 /**
@@ -116,7 +118,7 @@ export class AwsLambdaExtension {
   /**
    * Starts the Sentry tunnel.
    */
-  public startSentryTunnel(): void {
+  public startSentryTunnel(port = 9000): http.Server {
     const allowedDsnComponents = getSentryDSNFromEnv();
 
     if (!allowedDsnComponents) {
@@ -134,10 +136,7 @@ export class AwsLambdaExtension {
       if (req.method === 'POST' && req.url?.startsWith('/envelope')) {
         try {
           const buf = await buffer(req);
-          // Extract the actual bytes from the Buffer by slicing its underlying ArrayBuffer
-          // This ensures we get only the data portion without any padding or offset
-          const envelopeBytes = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-          const envelope = new TextDecoder().decode(envelopeBytes);
+          const envelope = buf.toString('utf8');
           const piece = envelope.split('\n')[0];
           const header = JSON.parse(piece || '{}') as { dsn?: string };
           const envelopeDsn = header.dsn;
@@ -165,14 +164,7 @@ export class AwsLambdaExtension {
             res.end(JSON.stringify({ error: 'Invalid DSN' }));
             return;
           }
-          const upstreamSentryUrl = getEnvelopeEndpointWithUrlEncodedAuth(dsn);
-
-          fetch(upstreamSentryUrl, {
-            method: 'POST',
-            body: envelopeBytes as BodyInit,
-          }).catch(err => {
-            DEBUG_BUILD && debug.error('Error sending envelope to Sentry', err);
-          });
+          forwardEnvelope(new URL(getEnvelopeEndpointWithUrlEncodedAuth(dsn)), buf);
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({}));
@@ -187,15 +179,31 @@ export class AwsLambdaExtension {
       }
     });
 
-    server.listen(9000, () => {
-      DEBUG_BUILD && debug.log('Sentry proxy listening on port 9000');
+    server.listen(port, () => {
+      DEBUG_BUILD && debug.log(`Sentry proxy listening on port ${port}`);
     });
 
     server.on('error', err => {
       DEBUG_BUILD && debug.error('Error starting Sentry proxy', err);
       process.exit(1);
     });
+
+    return server;
   }
+}
+
+function forwardEnvelope(url: URL, body: Buffer): void {
+  const req = (url.protocol === 'https:' ? https : http).request(
+    url,
+    { method: 'POST', agent: getProxyAgent(url) },
+    res => {
+      res.resume();
+    },
+  );
+  req.on('error', err => {
+    DEBUG_BUILD && debug.error('Error sending envelope to Sentry', err);
+  });
+  req.end(body);
 }
 
 /**

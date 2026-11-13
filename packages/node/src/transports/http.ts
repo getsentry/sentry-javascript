@@ -60,21 +60,30 @@ export function makeNodeTransport(options: NodeTransportOptions): Transport {
 
   const isHttps = urlSegments.protocol === 'https:';
 
-  // Proxy prioritization: http => `options.proxy` | `process.env.http_proxy`
-  // Proxy prioritization: https => `options.proxy` | `process.env.https_proxy` | `process.env.http_proxy`
-  const proxy = applyNoProxyOption(
-    urlSegments,
-    options.proxy || (isHttps ? process.env.https_proxy : undefined) || process.env.http_proxy,
-  );
-
   const nativeHttpModule = isHttps ? https : http;
   const keepAlive = options.keepAlive ?? true;
-  const agent = proxy
-    ? (new HttpsProxyAgent(proxy) as http.Agent)
-    : new nativeHttpModule.Agent({ keepAlive, maxSockets: 30, timeout: 2000 });
+  const agent =
+    getProxyAgent(urlSegments, options.proxy) ??
+    new nativeHttpModule.Agent({ keepAlive, maxSockets: 30, timeout: 2000 });
 
   const requestExecutor = createRequestExecutor(options, options.httpModule ?? nativeHttpModule, agent);
   return createTransport(options, requestExecutor);
+}
+
+/**
+ * Returns an agent that tunnels requests to `url` through a proxy, or `undefined` when no proxy applies.
+ *
+ * Proxy prioritization: http => `proxy` | `process.env.http_proxy`
+ * Proxy prioritization: https => `proxy` | `process.env.https_proxy` | `process.env.http_proxy`
+ * Hosts listed in `process.env.no_proxy` are never proxied.
+ */
+export function getProxyAgent(url: URL, proxy?: string): http.Agent | undefined {
+  const isHttps = url.protocol === 'https:';
+  const resolvedProxy = applyNoProxyOption(
+    url,
+    proxy || (isHttps ? process.env.https_proxy : undefined) || process.env.http_proxy,
+  );
+  return resolvedProxy ? new HttpsProxyAgent(resolvedProxy) : undefined;
 }
 
 /**

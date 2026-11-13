@@ -250,6 +250,7 @@ export { cron } from './cron';
 export { NODE_VERSION } from './nodeVersion';
 export { defaultStackParser, getSentryRelease } from './sdk/api';
 export { makeNodeTransport } from './transports';
+export { getProxyAgent as _INTERNAL_getProxyAgent } from './transports/http';
 export { createGetModuleFromFilename } from './utils/module';
 
 export { eveConversationHook, eveIntegration, getInstrumentedModuleNames } from '@sentry/server-utils';
