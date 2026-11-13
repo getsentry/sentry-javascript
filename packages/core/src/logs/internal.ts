@@ -26,6 +26,7 @@ import { getActiveSpan } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
 import { getSequenceAttribute } from '../utils/timestampSequence';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
+import { estimateLogSizeInBytes, setupWeightBasedFlushing } from '../utils/weightBasedFlushing';
 import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
 import { createLogEnvelope } from './envelope';
 
@@ -64,6 +65,8 @@ export function _INTERNAL_captureSerializedLog(client: Client, serializedLog: Se
   const logBuffer = _INTERNAL_getLogBuffer(client);
 
   if (logBuffer === undefined) {
+    // Set up flushing on the first log, so apps that never capture logs don't bundle the flush code.
+    setupWeightBasedFlushing(client, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
     bufferMap.set(client, [serializedLog]);
   } else {
     if (logBuffer.length >= MAX_LOG_BUFFER_SIZE) {

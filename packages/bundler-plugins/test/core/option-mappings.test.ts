@@ -40,7 +40,7 @@ describe('normalizeUserOptions()', () => {
           metaFramework: undefined,
         },
       },
-      url: 'https://sentry.io',
+      url: undefined,
     });
   });
 
@@ -97,7 +97,7 @@ describe('normalizeUserOptions()', () => {
           metaFramework: undefined,
         },
       },
-      url: 'https://sentry.io',
+      url: undefined,
     });
   });
 

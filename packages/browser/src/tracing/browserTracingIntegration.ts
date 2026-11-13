@@ -127,7 +127,7 @@ export interface BrowserTracingOptions {
   /**
    * If true, Sentry will capture long animation frames and add them to the corresponding transaction.
    *
-   * Default: false
+   * Default: true
    */
   enableLongAnimationFrame: boolean;
 

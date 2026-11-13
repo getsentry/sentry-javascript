@@ -1,4 +1,5 @@
 import { MESSAGING_OPERATION_NAME, MESSAGING_SYSTEM } from '@sentry/conventions/attributes';
+import { MESSAGING_PROCESS_DURATION } from '@sentry/conventions/metrics';
 import { metrics } from '@sentry/core';
 import { toMessagingKey, toSentryAttributes } from './span';
 import type { AttributeValue, Counter, Gauge, Histogram, Meter, MetricOptions } from './types';
@@ -91,7 +92,7 @@ class SentryBullMQGauge implements Gauge {
  */
 class SentryBullMQProcessDuration implements Histogram {
   public record(value: number, attributes?: Record<string, AttributeValue>): void {
-    metrics.distribution('messaging.process.duration', value / 1000, {
+    metrics.distribution(MESSAGING_PROCESS_DURATION, value / 1000, {
       unit: 'second',
       attributes: {
         ...toMetricAttributes(attributes),

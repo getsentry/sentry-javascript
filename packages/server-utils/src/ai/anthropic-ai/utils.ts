@@ -1,4 +1,4 @@
-import { captureException, SPAN_STATUS_ERROR, stringify } from '@sentry/core';
+import { captureException, isObjectLike, SPAN_STATUS_ERROR, stringify } from '@sentry/core';
 import type { Span, SpanStatusType } from '@sentry/core';
 import { GEN_AI_INPUT_MESSAGES, GEN_AI_SYSTEM_INSTRUCTIONS } from '@sentry/conventions/attributes';
 import { extractSystemInstructions } from '../core/utils';
@@ -74,13 +74,25 @@ export function handleResponseError(span: Span, response: AnthropicAiResponse): 
   }
 }
 
+/** Anthropic accepts the system prompt as a string or as an array of text blocks. */
+function systemToText(system: unknown): string | undefined {
+  if (!Array.isArray(system)) {
+    return typeof system === 'string' ? system : undefined;
+  }
+  return system
+    .map(block => (isObjectLike(block) ? block.text : undefined))
+    .filter(text => typeof text === 'string' && text)
+    .join('\n');
+}
+
 /**
  * Include the system prompt in the messages list, if available
  */
 export function messagesFromParams(params: Record<string, unknown>): unknown[] {
   const { system, messages, input, prompt } = params;
 
-  const systemMessages = typeof system === 'string' ? [{ role: 'system', content: params.system }] : [];
+  const systemText = systemToText(system);
+  const systemMessages = systemText ? [{ role: 'system', content: systemText }] : [];
 
   const inputParamMessages = Array.isArray(input) ? input : input != null ? [input] : undefined;
 

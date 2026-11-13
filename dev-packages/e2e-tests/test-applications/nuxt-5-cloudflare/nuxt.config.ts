@@ -1,0 +1,18 @@
+// https://nuxt.com/docs/api/configuration/nuxt-config
+export default defineNuxtConfig({
+  compatibilityDate: '2025-06-06',
+  modules: ['@sentry/nuxt/module'],
+  // The tunnel variant serves the app, and so the tunnel, under a base URL.
+  ...(process.env.E2E_TEST_TUNNEL && { app: { baseURL: '/app/' } }),
+  nitro: {
+    preset: 'cloudflare_module',
+    cloudflare: {
+      nodeCompat: true,
+      deployConfig: false,
+    },
+    // The tunnel variant serves the managed tunnel.
+    replace: {
+      __E2E_TEST_TUNNEL__: JSON.stringify(!!process.env.E2E_TEST_TUNNEL),
+    },
+  },
+});

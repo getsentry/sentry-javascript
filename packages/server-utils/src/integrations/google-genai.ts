@@ -2,7 +2,6 @@ import { GEN_AI_REQUEST_MODEL, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventi
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
-  _INTERNAL_shouldSkipAiProviderWrapping,
   defineIntegration,
   getActiveSpan,
   getClient,
@@ -17,6 +16,7 @@ import {
   extractRequestAttributes,
   resolveChatParams,
 } from '../ai/google-genai';
+import { shouldSkipAiProviderSpan } from '../ai/pi-ai/providers';
 import { instrumentStream } from '../ai/google-genai/streaming';
 import type { GoogleGenAIOptions, GoogleGenAIResponse } from '../ai/google-genai/types';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
@@ -63,7 +63,7 @@ function instrumentGoogleGenai(options: GoogleGenAIOptions): void {
             );
           }
         },
-        deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, options),
+        deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, operation, options),
       },
     );
   }
@@ -78,9 +78,7 @@ function createGenAiSpan(
   operation: string,
   options: GoogleGenAIOptions,
 ): Span | undefined {
-  // When another provider (e.g. LangChain) is driving the SDK, it records the spans itself and marks this
-  // provider as skipped; skip here to avoid double spans.
-  if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME)) {
+  if (shouldSkipAiProviderSpan(INTEGRATION_NAME)) {
     return undefined;
   }
 
@@ -136,7 +134,12 @@ function isAsyncIterable(value: unknown): value is AsyncIterableStream {
  * For a stream we patch `result[Symbol.asyncIterator]` in place so `instrumentStream` ends the
  * span when iteration finishes.
  */
-function wrapStreamResult(span: Span, data: OrchestrionChannelContext, options: GoogleGenAIOptions): boolean {
+function wrapStreamResult(
+  span: Span,
+  data: OrchestrionChannelContext,
+  operation: string,
+  options: GoogleGenAIOptions,
+): boolean {
   const result = data.result;
   if (!isAsyncIterable(result)) {
     return false;
@@ -144,7 +147,13 @@ function wrapStreamResult(span: Span, data: OrchestrionChannelContext, options: 
 
   const { recordOutputs } = resolveAIRecordingOptions(options);
   const iterate = result[Symbol.asyncIterator].bind(result);
-  const instrumented = instrumentStream({ [Symbol.asyncIterator]: iterate }, span, recordOutputs ?? false);
+  const params = resolveChatParams(operation, data.arguments?.[0] as Record<string, unknown> | undefined, data.self);
+  const instrumented = instrumentStream(
+    { [Symbol.asyncIterator]: iterate },
+    span,
+    recordOutputs ?? false,
+    (params?.config as { abortSignal?: AbortSignal } | undefined)?.abortSignal,
+  );
   result[Symbol.asyncIterator] = () => instrumented;
 
   return true;

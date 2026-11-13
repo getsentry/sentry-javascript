@@ -59,6 +59,21 @@ describe('anthropic-ai-utils', () => {
       ]);
     });
 
+    it('includes the text of system blocks as one system message', () => {
+      expect(
+        messagesFromParams({
+          messages: [{ role: 'user', content: 'hello' }],
+          system: [
+            { type: 'text', text: 'Be brief.' },
+            { type: 'text', text: 'Be kind.', cache_control: { type: 'ephemeral' } },
+          ],
+        }),
+      ).toStrictEqual([
+        { role: 'system', content: 'Be brief.\nBe kind.' },
+        { role: 'user', content: 'hello' },
+      ]);
+    });
+
     it('looks to params.input ahead of params.messages', () => {
       expect(
         messagesFromParams({

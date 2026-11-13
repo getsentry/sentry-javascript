@@ -9,8 +9,9 @@ import {
   type WrappedFunction,
 } from '@sentry/core';
 import { type MiddlewareHandler } from './honoTypes';
-import { SENTRY_HONO_MIDDLEWARE } from './createHonoMiddleware';
+import { SENTRY_HONO_MIDDLEWARE } from './constants';
 import { defaultShouldHandleError } from './defaultShouldHandleError';
+import { sentryOriginalTraps } from './sentryOriginalTraps';
 
 const MIDDLEWARE_ORIGIN = 'auto.middleware.hono';
 
@@ -59,11 +60,6 @@ export function wrapMiddlewareWithSpan(handler: MiddlewareHandler): MiddlewareHa
         span.end();
       }
     },
-    get(target, prop, receiver) {
-      if (prop === '__sentry_original__') {
-        return handler;
-      }
-      return Reflect.get(target, prop, receiver);
-    },
+    ...sentryOriginalTraps(handler),
   });
 }

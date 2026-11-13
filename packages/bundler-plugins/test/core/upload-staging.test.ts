@@ -65,7 +65,7 @@ describe('createUploadStaging', () => {
         code: chunk(DEBUG_ID),
         mapSource: MAP,
         mapDir: '/out',
-        fileName: 'index.js',
+        chunkPath: path.join('/out', 'index.js'),
       });
 
       expect(result).toBe('staged');
@@ -86,7 +86,12 @@ describe('createUploadStaging', () => {
     const staging = await manager.createUploadStaging();
 
     try {
-      await staging.stage({ code: chunk(DEBUG_ID), mapSource: MAP, mapDir: '/out/assets', fileName: 'a.js' });
+      await staging.stage({
+        code: chunk(DEBUG_ID),
+        mapSource: MAP,
+        mapDir: '/out/assets',
+        chunkPath: path.join('/out/assets', 'a.js'),
+      });
     } finally {
       await staging.discard();
     }
@@ -99,11 +104,21 @@ describe('createUploadStaging', () => {
     const staging = await manager.createUploadStaging();
 
     try {
-      expect(await staging.stage({ code: 'console.log(1)', mapSource: MAP, mapDir: '/out', fileName: 'a.js' })).toBe(
-        'skipped',
-      );
       expect(
-        await staging.stage({ code: chunk(DEBUG_ID), mapSource: undefined, mapDir: '/out', fileName: 'b.js' }),
+        await staging.stage({
+          code: 'console.log(1)',
+          mapSource: MAP,
+          mapDir: '/out',
+          chunkPath: path.join('/out', 'a.js'),
+        }),
+      ).toBe('skipped');
+      expect(
+        await staging.stage({
+          code: chunk(DEBUG_ID),
+          mapSource: undefined,
+          mapDir: '/out',
+          chunkPath: path.join('/out', 'b.js'),
+        }),
       ).toBe('skipped');
       expect(staging.count).toBe(0);
       expect(fs.readdirSync(staging.dir)).toEqual([]);
@@ -112,11 +127,53 @@ describe('createUploadStaging', () => {
     }
   });
 
+  it('does not stage chunks excluded by `sourcemaps.ignore` and leaves them uncounted', async () => {
+    const manager = createSentryBuildPluginManager(
+      {
+        authToken: 't',
+        org: 'o',
+        project: 'p',
+        release: { name: 'r', create: false, finalize: false },
+        telemetry: false,
+        sourcemaps: { ignore: ['**/vendor.js'] },
+      },
+      { buildTool: 'rollup', loggerPrefix: '[test]' },
+    );
+    const staging = await manager.createUploadStaging();
+
+    await expect(
+      staging.stage({
+        code: chunk(DEBUG_ID),
+        mapSource: MAP,
+        mapDir: tmpDir,
+        chunkPath: path.join(tmpDir, 'vendor.js'),
+      }),
+    ).resolves.toBe('excluded');
+    await expect(
+      staging.stage({
+        code: chunk(OTHER_DEBUG_ID),
+        mapSource: MAP,
+        mapDir: tmpDir,
+        chunkPath: path.join(tmpDir, 'main.js'),
+      }),
+    ).resolves.toBe('staged');
+
+    expect(staging.count).toBe(1);
+    expect(staging.stagedChunkPaths.has(path.join(tmpDir, 'vendor.js'))).toBe(false);
+    expect(fs.readdirSync(staging.dir).sort()).toEqual([`${OTHER_DEBUG_ID}-0.js`, `${OTHER_DEBUG_ID}-0.js.map`]);
+    await staging.discard();
+  });
+
   it('removes the folder on discard', async () => {
     const manager = createManager();
     const staging = await manager.createUploadStaging();
 
-    await staging.stage({ code: chunk(DEBUG_ID), mapSource: MAP, mapDir: '/out', fileName: 'a.js' });
+    await staging.stage({
+      code: chunk(DEBUG_ID),
+      mapSource: MAP,
+      mapDir: '/out',
+      chunkPath: path.join('/out', 'a.js'),
+    });
     await staging.discard();
     await staging.discard();
 
@@ -138,7 +195,12 @@ describe('createUploadStaging', () => {
     const manager = createManager();
     const errorSpy = vi.spyOn(manager.logger, 'error');
     const staging = await manager.createUploadStaging();
-    await staging.stage({ code: chunk(DEBUG_ID), mapSource: MAP, mapDir: '/out', fileName: 'a.js' });
+    await staging.stage({
+      code: chunk(DEBUG_ID),
+      mapSource: MAP,
+      mapDir: '/out',
+      chunkPath: path.join('/out', 'a.js'),
+    });
 
     try {
       await staging.keep('The upload did not run.');
@@ -170,11 +232,16 @@ describe('createUploadStaging', () => {
     it('uploads the staging folder and removes it afterwards', async () => {
       const manager = createManager();
       const staging = await manager.createUploadStaging();
-      await staging.stage({ code: chunk(DEBUG_ID), mapSource: MAP, mapDir: '/out', fileName: 'a.js' });
+      await staging.stage({
+        code: chunk(DEBUG_ID),
+        mapSource: MAP,
+        mapDir: '/out',
+        chunkPath: path.join('/out', 'a.js'),
+      });
 
       const result = await manager.uploadSourcemaps([], { staging });
 
-      expect(result).toEqual({ uploaded: true });
+      expect(result).toEqual({ uploaded: true, uploadedSourceMapPaths: [] });
       expect(mockSourcemapUpload).toHaveBeenCalledWith(expect.objectContaining({ directory: staging.dir }));
       expect(fs.existsSync(staging.dir)).toBe(false);
     });
@@ -187,7 +254,12 @@ describe('createUploadStaging', () => {
       );
       const manager = createManager();
       const staging = await manager.createUploadStaging();
-      await staging.stage({ code: chunk(DEBUG_ID), mapSource: MAP, mapDir: tmpDir, fileName: 'index.js' });
+      await staging.stage({
+        code: chunk(DEBUG_ID),
+        mapSource: MAP,
+        mapDir: tmpDir,
+        chunkPath: path.join(tmpDir, 'index.js'),
+      });
 
       let uploadedFiles: string[] = [];
       let uploadedMaps = '';
@@ -201,7 +273,7 @@ describe('createUploadStaging', () => {
 
       const result = await manager.uploadSourcemaps([path.join(tmpDir, '**/*.js')], { staging });
 
-      expect(result).toEqual({ uploaded: true });
+      expect(result).toEqual({ uploaded: true, uploadedSourceMapPaths: [] });
       expect(uploadedFiles).toEqual([`${DEBUG_ID}-0.js`, `${DEBUG_ID}-0.js.map`]);
       expect(uploadedMaps).not.toContain('stale.ts');
     });
@@ -214,7 +286,12 @@ describe('createUploadStaging', () => {
 
       const manager = createManager();
       const staging = await manager.createUploadStaging();
-      await staging.stage({ code: chunk(DEBUG_ID), mapSource: MAP, mapDir: outDir, fileName: 'staged.js' });
+      await staging.stage({
+        code: chunk(DEBUG_ID),
+        mapSource: MAP,
+        mapDir: outDir,
+        chunkPath: path.join(outDir, 'staged.js'),
+      });
 
       let uploadedFiles: string[] = [];
       mockSourcemapUpload.mockImplementation(async ({ directory }: { directory: string }) => {
@@ -235,7 +312,12 @@ describe('createUploadStaging', () => {
       const manager = createManager();
       const warnSpy = vi.spyOn(manager.logger, 'warn');
       const staging = await manager.createUploadStaging();
-      await staging.stage({ code: chunk(DEBUG_ID), mapSource: MAP, mapDir: '/out', fileName: 'a.js' });
+      await staging.stage({
+        code: chunk(DEBUG_ID),
+        mapSource: MAP,
+        mapDir: '/out',
+        chunkPath: path.join('/out', 'a.js'),
+      });
 
       await manager.uploadSourcemaps([], { staging });
 
@@ -250,7 +332,7 @@ describe('createUploadStaging', () => {
 
       const result = await manager.uploadSourcemaps([], { staging });
 
-      expect(result).toEqual({ uploaded: false });
+      expect(result).toEqual({ uploaded: false, uploadedSourceMapPaths: [] });
       expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(/matching sources/));
       expect(mockSourcemapUpload).not.toHaveBeenCalled();
       expect(fs.existsSync(staging.dir)).toBe(false);
@@ -262,11 +344,16 @@ describe('createUploadStaging', () => {
         { buildTool: 'rollup', loggerPrefix: '[test]' },
       );
       const staging = await manager.createUploadStaging();
-      await staging.stage({ code: chunk(DEBUG_ID), mapSource: MAP, mapDir: '/out', fileName: 'a.js' });
+      await staging.stage({
+        code: chunk(DEBUG_ID),
+        mapSource: MAP,
+        mapDir: '/out',
+        chunkPath: path.join('/out', 'a.js'),
+      });
 
       const result = await manager.uploadSourcemaps([], { staging });
 
-      expect(result).toEqual({ uploaded: false });
+      expect(result).toEqual({ uploaded: false, uploadedSourceMapPaths: [] });
       expect(mockSourcemapUpload).not.toHaveBeenCalled();
       expect(fs.existsSync(staging.dir)).toBe(false);
     });
@@ -276,12 +363,17 @@ describe('createUploadStaging', () => {
       const manager = createManager();
       const errorSpy = vi.spyOn(manager.logger, 'error');
       const staging = await manager.createUploadStaging();
-      await staging.stage({ code: chunk(DEBUG_ID), mapSource: MAP, mapDir: '/out', fileName: 'a.js' });
+      await staging.stage({
+        code: chunk(DEBUG_ID),
+        mapSource: MAP,
+        mapDir: '/out',
+        chunkPath: path.join('/out', 'a.js'),
+      });
 
       try {
         const result = await manager.uploadSourcemaps([], { staging });
 
-        expect(result).toEqual({ uploaded: false });
+        expect(result).toEqual({ uploaded: false, uploadedSourceMapPaths: [] });
         expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining(`sentry sourcemap upload ${staging.dir}`));
         expect(fs.existsSync(staging.dir)).toBe(true);
       } finally {
@@ -292,11 +384,16 @@ describe('createUploadStaging', () => {
     it('uploads the staging folder next to the direct paths when prepareArtifacts is false', async () => {
       const manager = createManager();
       const staging = await manager.createUploadStaging();
-      await staging.stage({ code: chunk(DEBUG_ID), mapSource: MAP, mapDir: '/out', fileName: 'a.js' });
+      await staging.stage({
+        code: chunk(DEBUG_ID),
+        mapSource: MAP,
+        mapDir: '/out',
+        chunkPath: path.join('/out', 'a.js'),
+      });
 
       const result = await manager.uploadSourcemaps(['.next/server'], { staging, prepareArtifacts: false });
 
-      expect(result).toEqual({ uploaded: true });
+      expect(result).toEqual({ uploaded: true, uploadedSourceMapPaths: [] });
       expect(mockSourcemapUpload).toHaveBeenCalledTimes(2);
       expect(mockSourcemapUpload).toHaveBeenCalledWith(expect.objectContaining({ directory: '.next/server' }));
       expect(mockSourcemapUpload).toHaveBeenCalledWith(expect.objectContaining({ directory: staging.dir }));
@@ -320,7 +417,7 @@ describe('createUploadStaging', () => {
 
       const result = await manager.uploadSourcemaps([], { prepareArtifacts: false });
 
-      expect(result).toEqual({ uploaded: false });
+      expect(result).toEqual({ uploaded: false, uploadedSourceMapPaths: [] });
       expect(mockSourcemapUpload).not.toHaveBeenCalled();
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Didn't find any matching sources"));
     });
@@ -378,7 +475,7 @@ describe('sourceMaps', () => {
     expect(manager.sourceMaps.decide('unset')).toEqual({ enableHidden: false, deleteAfterUpload: false });
 
     const staging = await manager.createUploadStaging();
-    expect(await staging.stage({ code: '', mapSource: undefined, mapDir: '', fileName: 'a.js' })).toBe('skipped');
-    expect(await manager.uploadSourcemaps([], { staging })).toEqual({ uploaded: false });
+    expect(await staging.stage({ code: '', mapSource: undefined, mapDir: '', chunkPath: 'a.js' })).toBe('skipped');
+    expect(await manager.uploadSourcemaps([], { staging })).toEqual({ uploaded: false, uploadedSourceMapPaths: [] });
   });
 });

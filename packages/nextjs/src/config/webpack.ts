@@ -11,8 +11,6 @@ import { getBuildLogger } from './buildLogger';
 import { externalizeOrchestrionRuntimePackages } from './diagnosticsChannelInjection';
 import { getBuildPluginOptions, normalizePathForGlob } from './getBuildPluginOptions';
 import type { RouteManifest } from './manifest/types';
-// Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
-// circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
 import type {
   BuildContext,
   EntryPropertyObject,
@@ -714,7 +712,8 @@ function addValueInjectionLoader({
     // Having a release defined in dev-mode spams releases in Sentry so we only set one in non-dev mode
     // Only inject if release creation is not explicitly disabled (to maintain build determinism)
     SENTRY_RELEASE: releaseToInject && !buildContext.dev ? { id: releaseToInject } : undefined,
-    _sentryBasePath: buildContext.dev ? userNextConfig.basePath : undefined,
+    // The server reads it to serve the managed tunnel under the base path, dev symbolication to reach the dev server.
+    _sentryBasePath: userNextConfig.basePath,
     // This is used to determine version-based dev-symbolication behavior
     _sentryNextJsVersion: nextJsVersion,
   };

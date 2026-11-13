@@ -247,6 +247,9 @@ export async function* instrumentAsyncIterableStream(
       processEvent(event, state, recordOutputs, span);
       yield event;
     }
+  } catch (error) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    throw error;
   } finally {
     endStreamSpan(span, state, recordOutputs);
   }
@@ -255,7 +258,7 @@ export async function* instrumentAsyncIterableStream(
 /**
  * Instruments a MessageStream by registering event handlers and preserving the original stream API.
  */
-export function instrumentMessageStream<R extends { on: (...args: unknown[]) => void }>(
+export function instrumentMessageStream<R extends { on: (...args: unknown[]) => void; aborted?: boolean }>(
   stream: R,
   span: Span,
   recordOutputs: boolean,
@@ -284,6 +287,15 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
     endStreamSpan(span, state, recordOutputs);
   });
 
+  // Fires last on every stream, so a stream that stops without 'message' (aborted, or the body closed early) still
+  // ends its span. An 'abort' listener would also stop the SDK from raising an unobserved abort as a rejection.
+  stream.on('end', () => {
+    if (span.isRecording() && (stream as { aborted?: boolean }).aborted) {
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
+    }
+    endStreamSpan(span, state, recordOutputs);
+  });
+
   stream.on('error', (error: unknown) => {
     // Attaching this listener stops the stream error from being raised as an unhandled rejection, so
     // we capture it here to avoid swallowing it (e.g. for callers that don't await/iterate the stream).
@@ -296,8 +308,17 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
 
     if (span.isRecording()) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-      span.end();
+      endStreamSpan(span, state, recordOutputs);
     }
+  });
+
+  // An aborted stream emits only `abort` and `end`. We don't listen for `abort`: doing so would stop the SDK from
+  // raising an unhandled rejection when the caller never awaits the aborted stream.
+  stream.on('end', () => {
+    if (stream.aborted && span.isRecording()) {
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
+    }
+    endStreamSpan(span, state, recordOutputs);
   });
 
   return stream;

@@ -452,18 +452,48 @@ describe('Anthropic integration', () => {
             expect(streamInitErrorSpan!.status).toBe('error');
 
             const createMidwayErrorSpan = spans.find(
-              span => span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-midway' && span.status === 'ok',
+              span =>
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-midway' &&
+                span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,
             );
             expect(createMidwayErrorSpan!.name).toBe('chat error-stream-midway');
-            expect(createMidwayErrorSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE].value).toBe(true);
+            expect(createMidwayErrorSpan!.status).toBe('error');
             expect(createMidwayErrorSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
             expect(createMidwayErrorSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('This stream will ');
 
             const streamMidwayErrorSpan = spans.find(
-              span => span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-midway' && span.status === 'error',
+              span =>
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-midway' &&
+                span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] === undefined,
             );
             expect(streamMidwayErrorSpan!.name).toBe('chat error-stream-midway');
-            expect(streamMidwayErrorSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
+            expect(streamMidwayErrorSpan!.status).toBe('error');
+            expect(streamMidwayErrorSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('This stream will ');
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-stream-abort.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('sends messages.stream() spans that were aborted', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          span: container => {
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            expect(spans).toHaveLength(2);
+
+            // `cancelled` is sent as `ok` under span streaming.
+            const beforeResponseSpan = spans.find(span => span.name === 'chat abort-before-response');
+            expect(beforeResponseSpan!.status).toBe('ok');
+
+            const midwaySpan = spans.find(span => span.name === 'chat abort-midway');
+            expect(midwaySpan!.status).toBe('ok');
+            expect(midwaySpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
+            expect(midwaySpan!.attributes[GEN_AI_RESPONSE_ID].value).toBe('msg_abort_midway_1');
+            expect(midwaySpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('This stream will ');
           },
         })
         .start()

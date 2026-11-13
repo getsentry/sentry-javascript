@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/bundler-plugin-integration-tests",
-  "version": "11.10.0",
+  "version": "11.12.0",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -8,14 +8,13 @@
     "check:types": "tsc --project ./tsconfig.json --noEmit",
     "clean": "run-s clean:build",
     "clean:all": "run-p clean clean:deps",
-    "clean:build": "premove ./fixtures/*/out",
-    "clean:deps": "premove node_modules"
+    "clean:build": "node ../../scripts/rm.mjs ./fixtures/*/out",
+    "clean:deps": "node ../../scripts/rm.mjs node_modules"
   },
   "devDependencies": {
-    "@sentry/bundler-plugins": "11.10.0",
-    "premove": "^4.0.0",
-    "sentry": "^0.45.0",
+    "@sentry/bundler-plugins": "11.12.0",
+    "sentry": "^0.49.0",
     "typescript": "~6.0.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   }
 }

@@ -42,7 +42,7 @@ export interface Options {
    *
    * This value can also be set via the `SENTRY_URL` environment variable.
    *
-   * @default "https://sentry.io" (correct value for SaaS customers)
+   * @default The server that a `sntrys_` organization auth token was created on, otherwise "https://sentry.io"
    */
   url?: string;
 
@@ -199,6 +199,13 @@ export interface Options {
      * When unset, the plugin removes only the source maps it turned on itself, that is, when the bundler's source map
      * setting was not set. `true` also removes source maps you enabled yourself. `false` never removes them; the plugin
      * still turns on hidden source maps when the setting is not set, so they can be uploaded.
+     *
+     * When the plugin turned source maps on, none of them reach the build output, not even those of chunks that
+     * `sourcemaps.assets` or `sourcemaps.ignore` keep out of the upload. Source maps you enabled yourself are only
+     * removed for the JavaScript chunks that were uploaded; excluded chunks keep theirs.
+     *
+     * With webpack's array form of `devtool`, `true` replaces the array with one hidden source map setting for
+     * all asset types, because webpack hides the array from plugins.
      *
      * With Rollup, Vite and webpack the removed source maps are never written to the output directory. With esbuild
      * they are deleted after the upload.

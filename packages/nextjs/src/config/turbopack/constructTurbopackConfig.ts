@@ -29,6 +29,7 @@ import { generateValueInjectionRules } from './generateValueInjectionRules';
  * @param routeManifest - The route manifest object.
  * @param nextJsVersion - The Next.js version.
  * @param vercelCronsConfig - The Vercel crons configuration from vercel.json.
+ * @param releaseName - The release that `withSentryConfig` resolved for this build.
  * @returns The Turbopack config object.
  */
 export function constructTurbopackConfig({
@@ -37,12 +38,14 @@ export function constructTurbopackConfig({
   routeManifest,
   nextJsVersion,
   vercelCronsConfig,
+  releaseName,
 }: {
   userNextConfig: NextConfigObject;
   userSentryOptions?: SentryBuildOptions;
   routeManifest?: RouteManifest;
   nextJsVersion?: string;
   vercelCronsConfig?: VercelCronsConfig;
+  releaseName?: string;
 }): TurbopackOptions {
   // If sourcemaps are disabled, we don't need to enable native debug ids as this will add build time.
   const shouldEnableNativeDebugIds =
@@ -59,6 +62,10 @@ export function constructTurbopackConfig({
     nextJsVersion,
     tunnelRouteValues: getTunnelRouteInjectedValues(userNextConfig, userSentryOptions),
     vercelCronsConfig,
+    releaseName,
+    // Same value as `_sentryRewriteFramesDistDir` in `nextConfig.env`
+    distDirName: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
+    basePath: userNextConfig.basePath,
   });
 
   for (const { matcher, rule } of valueInjectionRules) {

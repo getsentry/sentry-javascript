@@ -1,6 +1,6 @@
 {
   "name": "@sentry/bun",
-  "version": "11.10.0",
+  "version": "11.12.0",
   "description": "Official Sentry SDK for bun",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/bun",
@@ -43,27 +43,26 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/bundler-plugins": "11.10.0",
-    "@sentry/core": "11.10.0",
-    "@sentry/conventions": "^0.30.0",
-    "@sentry/node": "11.10.0",
-    "@sentry/server-utils": "11.10.0"
+    "@sentry/bundler-plugins": "11.12.0",
+    "@sentry/core": "11.12.0",
+    "@sentry/conventions": "^0.32.0",
+    "@sentry/node": "11.12.0",
+    "@sentry/server-utils": "11.12.0"
   },
   "devDependencies": {
-    "@sentry-internal/rollup-utils": "11.10.0",
+    "@sentry-internal/rollup-utils": "11.12.0",
     "bun-types": "^1.2.9"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "pnpm run build",
-    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:transpile": "rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
-    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:tarball": "npm pack",
-    "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build coverage sentry-bun-*.tgz",
+    "build:transpile:watch": "rolldown -c rollup.npm.config.mjs --watch",
+    "build:tarball": "pnpm pack",
+    "clean": "node ../../scripts/rm.mjs build coverage sentry-bun-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
@@ -72,7 +71,7 @@
     "test": "run-s install:bun test:bun",
     "test:bun": "bun test",
     "test:watch": "bun test --watch",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
   "sideEffects": false
 }
