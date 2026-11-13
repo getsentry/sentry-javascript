@@ -12,6 +12,24 @@ Work in this release was contributed by @kunal649. Thank you for your contributi
 
   HTTP spans that the SDK builds from a `URL` now send `url.scheme` without the trailing colon (`https` instead of `https:`) and `url.port` as a number instead of a string, as the Sentry conventions define them and as Node `http.server` spans already do. This changes `http.server` spans from `@sentry/cloudflare`, `Bun.serve`, Deno and Nitro, and outgoing `node:http` client spans. Update saved queries, alerts and dashboards that filter on `url.scheme:"https:"` or on `url.port` as a string.
 
+- **feat(nestjs): Add Bun, Deno and Cloudflare entry points ([#26298](https://github.com/getsentry/sentry-javascript/pull/26298))**
+
+  `@sentry/nestjs` now has `@sentry/nestjs/bun`, `@sentry/nestjs/deno` and `@sentry/nestjs/cloudflare` entry points for Nest apps that run on those runtimes. Each one wraps the runtime's SDK, adds the Nest integration to its default integrations, and reports the SDK as `sentry.javascript.nestjs`, the same as on Node. Install the runtime SDK (`@sentry/bun`, `@sentry/deno` or `@sentry/cloudflare`) next to `@sentry/nestjs`:
+
+  ```ts
+  // Bun (use `@sentry/nestjs/deno` on Deno)
+  import * as Sentry from '@sentry/nestjs/bun';
+
+  Sentry.init({ dsn: '__DSN__' });
+  ```
+
+  ```ts
+  // Cloudflare: instrument.server.ts, picked up by `sentryCloudflareVitePlugin()`
+  import { defineCloudflareOptions } from '@sentry/nestjs/cloudflare';
+
+  export default defineCloudflareOptions(env => ({ dsn: env.SENTRY_DSN }));
+  ```
+
 ## 11.12.0
 
 ### Important Changes

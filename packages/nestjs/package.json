@@ -48,6 +48,32 @@
         "types": "./build/types/bundler-plugin/webpack.d.ts",
         "default": "./build/cjs/bundler-plugin/webpack.js"
       }
+    },
+    "./bun": {
+      "import": {
+        "types": "./build/types/index.bun.d.ts",
+        "default": "./build/esm/index.bun.js"
+      },
+      "require": {
+        "types": "./build/types/index.bun.d.ts",
+        "default": "./build/cjs/index.bun.js"
+      }
+    },
+    "./cloudflare": {
+      "import": {
+        "types": "./build/types/index.cloudflare.d.ts",
+        "default": "./build/esm/index.cloudflare.js"
+      },
+      "require": {
+        "types": "./build/types/index.cloudflare.d.ts",
+        "default": "./build/cjs/index.cloudflare.js"
+      }
+    },
+    "./deno": {
+      "import": {
+        "types": "./build/types/index.deno.d.ts",
+        "default": "./build/esm/index.deno.js"
+      }
     }
   },
   "publishConfig": {
@@ -63,12 +89,29 @@
     "@nestjs/common": "^10.4.22",
     "@nestjs/core": "^10.4.22",
     "@sentry-internal/rollup-utils": "11.12.0",
+    "@sentry/bun": "11.12.0",
+    "@sentry/cloudflare": "11.12.0",
+    "@sentry/deno": "11.12.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
   "peerDependencies": {
     "@nestjs/common": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0 || ^12.0.0",
-    "@nestjs/core": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0 || ^12.0.0"
+    "@nestjs/core": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0 || ^12.0.0",
+    "@sentry/bun": "11.12.0",
+    "@sentry/cloudflare": "11.12.0",
+    "@sentry/deno": "11.12.0"
+  },
+  "peerDependenciesMeta": {
+    "@sentry/bun": {
+      "optional": true
+    },
+    "@sentry/cloudflare": {
+      "optional": true
+    },
+    "@sentry/deno": {
+      "optional": true
+    }
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
