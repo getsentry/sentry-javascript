@@ -26,3 +26,16 @@ export class AppGateway {
     return { event: 'capture-response', data: { success: true } };
   }
 }
+
+@WebSocketGateway({ namespace: '/events' })
+export class EventsGateway {
+  @SubscribeMessage('test-transaction')
+  handleTestTransaction() {
+    return { event: 'test-transaction-response', data: { success: true } };
+  }
+
+  @SubscribeMessage('test-transaction-error')
+  handleTestTransactionError() {
+    throw new Error('WebSocket handler failed');
+  }
+}
