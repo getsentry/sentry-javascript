@@ -6,7 +6,7 @@
   "scripts": {
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
-    "test:e2e": "run-s test:prepare test:validate test:run",
+    "test:e2e": "pnpm run test:prepare && pnpm run test:validate && pnpm run test:run",
     "test:run": "node run.mjs",
     "test:prepare": "node prepare.mjs",
     "test:validate": "node validate-packed-tarball-setup.mjs",

@@ -2,7 +2,7 @@ import { builtinModules } from 'node:module';
 import * as path from 'node:path';
 import license from 'rollup-plugin-license';
 import { defineConfig } from 'rolldown';
-import { makeBaseNPMConfig, makeNPMConfigVariants, plugins } from '@sentry-internal/rollup-utils';
+import { makeBaseNPMConfig, makeCjsVariantsFlat, makeNPMConfigVariants, plugins } from '@sentry-internal/rollup-utils';
 
 // The orchestrion runtime dependency chain (`@apm-js-collab/tracing-hooks` →
 // `@apm-js-collab/code-transformer` → meriyah/esquery/astring/…) is bundled into this package's
@@ -106,30 +106,32 @@ const orchestrionRuntimeHooks = [
 
 export default [
   ...orchestrionRuntimeHooks,
-  ...makeNPMConfigVariants(
-    makeBaseNPMConfig({
-      // `register.ts` backs `./register` (the Node SDK `require`s it synchronously from
-      // `Sentry.init()`); `hook.mjs` is the async `Module.register()` target, loaded on Node's
-      // loader thread. Each build registers its own copy, which shares that build's vendored chunks.
-      entrypoints: ['src/register.ts', 'src/hook.mjs'],
-      packageSpecificConfig: {
-        plugins: [
-          debugShim,
-          guardTracingDump,
-          plugins.makeEsqueryCjsAliasPlugin(),
-          thirdPartyLicensePlugin,
-          plugins.makeBuiltinRequireShimPlugin(),
-          plugins.makeCjsExportsSplitPlugin(SPLITTABLE_VENDORED),
-        ],
-        output: {
-          exports: 'named',
-          preserveModules: true,
-          entryFileNames: sanitizedFileNames,
-          // The vendored dependencies import builtins unprefixed (`import … from 'tty'`), which Deno
-          // rejects and vite-node (Node 26) misresolves as a relative path. Emit them `node:`-prefixed.
-          paths: Object.fromEntries(builtinModules.map(m => [m, `node:${m}`])),
+  ...makeCjsVariantsFlat(
+    makeNPMConfigVariants(
+      makeBaseNPMConfig({
+        // `register.ts` backs `./register` (the Node SDK `require`s it synchronously from
+        // `Sentry.init()`); `hook.mjs` is the async `Module.register()` target, loaded on Node's
+        // loader thread. Each build registers its own copy, which shares that build's vendored chunks.
+        entrypoints: ['src/register.ts', 'src/hook.mjs'],
+        packageSpecificConfig: {
+          plugins: [
+            debugShim,
+            guardTracingDump,
+            plugins.makeEsqueryCjsAliasPlugin(),
+            thirdPartyLicensePlugin,
+            plugins.makeBuiltinRequireShimPlugin(),
+            plugins.makeCjsExportsSplitPlugin(SPLITTABLE_VENDORED),
+          ],
+          output: {
+            exports: 'named',
+            preserveModules: true,
+            entryFileNames: sanitizedFileNames,
+            // The vendored dependencies import builtins unprefixed (`import … from 'tty'`), which Deno
+            // rejects and vite-node (Node 26) misresolves as a relative path. Emit them `node:`-prefixed.
+            paths: Object.fromEntries(builtinModules.map(m => [m, `node:${m}`])),
+          },
         },
-      },
-    }),
+      }),
+    ),
   ),
 ];
