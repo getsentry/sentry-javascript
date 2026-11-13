@@ -6,6 +6,7 @@ import {
 import { setupSentryNitroModule } from '@sentry/nitro';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin, UserConfig } from 'vite';
+import type { SourceMapState } from './sourceMaps';
 import { makeAddSentryVitePluginSolidStart2, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 
 /**
@@ -56,7 +57,14 @@ export function sentrySolidStart(options: SentrySolidStartOptions = {}): Plugin[
   plugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: options.buildTimeInstrumentation }));
 
   if (options.sourcemaps?.disable !== true) {
-    plugins.push(...makeAddSentryVitePluginSolidStart2(options), ...makeEnableSourceMapsVitePlugin(options));
+    const sourceMapState: SourceMapState = { sdkEnabledSourceMaps: false };
+
+    // The bundler plugin decides on the `build.sourcemap` it finds in its own `config` hook,
+    // so the plugin that sets it has to come first.
+    plugins.push(
+      ...makeEnableSourceMapsVitePlugin(options, sourceMapState),
+      ...makeAddSentryVitePluginSolidStart2(options, sourceMapState),
+    );
   }
 
   return plugins;

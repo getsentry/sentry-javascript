@@ -1,17 +1,14 @@
 import { warnOnRemovedBuildOptions } from '@sentry/core';
 import type { Plugin, UserConfig } from 'vite';
 import { makeBuildInstrumentationFilePlugin } from './buildInstrumentationFile';
+import type { SourceMapState } from './sourceMaps';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 import type { SentrySolidStartPluginOptions } from './types';
 
 /**
  * Various Sentry vite plugins to be used for SolidStart.
  */
-export const sentrySolidStartVite = (
-  options: SentrySolidStartPluginOptions = {},
-  viteConfig: UserConfig,
-  tunnelBasePath = '',
-): Plugin[] => {
+export const sentrySolidStartVite = (options: SentrySolidStartPluginOptions = {}, tunnelBasePath = ''): Plugin[] => {
   warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions']);
 
   const sentryPlugins: Plugin[] = [
@@ -30,10 +27,14 @@ export const sentrySolidStartVite = (
 
   if (process.env.NODE_ENV !== 'development') {
     if (options.sourcemaps?.disable !== true) {
-      const sourceMapsPlugin = makeAddSentryVitePlugin(options, viteConfig);
-      const enableSourceMapsPlugin = makeEnableSourceMapsVitePlugin(options);
+      const sourceMapState: SourceMapState = { sdkEnabledSourceMaps: false };
 
-      sentryPlugins.push(...sourceMapsPlugin, ...enableSourceMapsPlugin);
+      // The bundler plugin decides on the `build.sourcemap` it finds in its own `config` hook,
+      // so the plugin that sets it has to come first.
+      sentryPlugins.push(
+        ...makeEnableSourceMapsVitePlugin(options, sourceMapState),
+        ...makeAddSentryVitePlugin(options, sourceMapState),
+      );
     }
   }
 
@@ -49,7 +50,7 @@ export const addSentryPluginToVite = (
   tunnelBasePath?: string,
 ): UserConfig => {
   const plugins = Array.isArray(config.plugins) ? [...config.plugins] : [];
-  plugins.unshift(sentrySolidStartVite(options, config, tunnelBasePath));
+  plugins.unshift(sentrySolidStartVite(options, tunnelBasePath));
 
   return {
     ...config,

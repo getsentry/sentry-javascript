@@ -53,10 +53,9 @@ describe('sentrySolidStart()', () => {
       'sentry-solidstart-server-entry',
       // `sentryOrchestrionPlugin` spreads the upstream code-transformer plugin, which brings its name.
       'code-transformer',
-      'sentry-solidstart-files-to-delete-after-upload',
+      'sentry-solidstart-update-source-map-setting',
       'sentry-vite-plugin',
       'sentry-vite-upload-staging',
-      'sentry-solidstart-update-source-map-setting',
     ]);
   });
 
