@@ -18,7 +18,9 @@
     "test:assert": "pnpm test:prod && pnpm test:dev",
     "test:build:tunnel-basepath": "pnpm install && E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app pnpm build",
     "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app TEST_ENV=production playwright test tunnel",
-    "test:assert:tunnel-dev": "E2E_TEST_TUNNEL=1 TEST_ENV=development playwright test tunnel"
+    "test:assert:tunnel-dev": "E2E_TEST_TUNNEL=1 TEST_ENV=development playwright test tunnel",
+    "test:build:kv-cache": "pnpm install && E2E_TEST_CACHE_DRIVER=kv pnpm build",
+    "test:assert:kv-cache": "E2E_TEST_CACHE_DRIVER=kv TEST_ENV=production playwright test cache"
   },
   "//": [
     "Currently, we need to install the Nuxt nightlies as those contain Nuxt v5",
@@ -33,7 +35,8 @@
     "mongoose": "^9.10.2",
     "ofetch": "^2.0.0-alpha.3",
     "nuxt": "npm:nuxt-nightly@5x",
-    "vue": "^3.5.41"
+    "vue": "^3.5.41",
+    "vue-router": "^5.5.0"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
@@ -53,6 +56,11 @@
         "build-command": "pnpm install",
         "assert-command": "pnpm test:assert:tunnel-dev",
         "label": "nuxt-5 (tunnel-dev)"
+      },
+      {
+        "build-command": "pnpm test:build:kv-cache",
+        "assert-command": "pnpm test:assert:kv-cache",
+        "label": "nuxt-5 (kv-cache)"
       }
     ]
   }

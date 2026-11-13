@@ -120,10 +120,23 @@ allowBuilds:
   vue-demi: true
   workerd: true
 minimumReleaseAgeExclude:
-  - '@opentelemetry/api@1.10.0'
-  - '@sentry/conventions@0.32.0'
-  - '@sentry/rrdom@2.46.0'
-  - '@sentry/rrweb-snapshot@2.46.0'
-  - '@sentry/rrweb-types@2.46.0'
-  - '@sentry/rrweb@2.46.0'
-  - sentry@0.49.0
+  - '@sentry/*'
+  - sentry
+  - '@apm-js-collab/code-transformer-bundler-plugins@0.7.6'
+  - '@rolldown/binding-android-arm-eabi@1.3.2'
+  - '@rolldown/binding-android-arm64@1.3.2'
+  - '@rolldown/binding-darwin-arm64@1.3.2'
+  - '@rolldown/binding-darwin-x64@1.3.2'
+  - '@rolldown/binding-freebsd-x64@1.3.2'
+  - '@rolldown/binding-linux-arm-gnueabihf@1.3.2'
+  - '@rolldown/binding-linux-arm64-gnu@1.3.2'
+  - '@rolldown/binding-linux-arm64-musl@1.3.2'
+  - '@rolldown/binding-linux-ppc64-gnu@1.3.2'
+  - '@rolldown/binding-linux-s390x-gnu@1.3.2'
+  - '@rolldown/binding-linux-x64-gnu@1.3.2'
+  - '@rolldown/binding-linux-x64-musl@1.3.2'
+  - '@rolldown/binding-openharmony-arm64@1.3.2'
+  - '@rolldown/binding-wasm32-wasi@1.3.2'
+  - '@rolldown/binding-win32-arm64-msvc@1.3.2'
+  - '@rolldown/binding-win32-x64-msvc@1.3.2'
+  - rolldown@1.3.2

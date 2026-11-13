@@ -8,7 +8,7 @@ if (!testEnv) {
 const productionStartCommands = {
   node: 'pnpm next start -p 3030',
   bun: 'bun --bun ./node_modules/next/dist/bin/next start -p 3030',
-  deno: 'deno run -A ./node_modules/next/dist/bin/next start -p 3030',
+  deno: 'deno run -A --conditions=deno ./node_modules/next/dist/bin/next start -p 3030',
   cloudflare: 'pnpm start:cloudflare --port 3030',
 };
 

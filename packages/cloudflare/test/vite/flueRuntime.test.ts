@@ -1,41 +1,78 @@
-import { describe, expect, it, vi } from 'vitest';
-import { sentryFlueRuntimeProviderPlugin } from '../../src/vite/flueRuntime';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { sentryCloudflareVitePlugin } from '../../src/vite/index';
 
-const PROVIDER_PLUGIN = 'sentry-cloudflare-flue-runtime-provider';
-const FLUE_INTEGRATION_MODULE = '/app/node_modules/@sentry/server-utils/build/esm/integrations/flue.js';
+type TransformResult = { code: string } | null | undefined;
+type TransformFn = (code: string, id: string, opts?: { ssr?: boolean }) => TransformResult | Promise<TransformResult>;
+type TestPlugin = {
+  name: string;
+  configResolved?: (config: unknown) => void;
+  buildStart?: (this: unknown) => void | Promise<void>;
+  transform?: TransformFn | { handler: TransformFn };
+};
 
-describe('sentryFlueRuntimeProviderPlugin', () => {
-  it('injects `@flue/runtime` behind a getter', async () => {
-    // A getter, not an assignment: the bundler may evaluate Sentry's module before
-    // `@flue/runtime` is initialized, and assigning there would store `undefined`.
-    const plugin = sentryFlueRuntimeProviderPlugin();
-    plugin.configResolved({ root: '/app' });
-    const resolve = vi.fn(async () => ({ id: '/app/node_modules/@flue/runtime/dist/index.mjs' }));
-    await plugin.buildStart.call({ resolve, warn: vi.fn() });
+const FLUE_ENTRY = 'import { r as instrument } from "./instrumentation.mjs";\nexport { instrument };\n';
+const FLUE_IMPORT = /from\s*["']@flue\/runtime["']/;
 
-    const code = plugin.transform('export const x = 1;', FLUE_INTEGRATION_MODULE)?.code;
+/** Runs every module through `sentryCloudflareVitePlugin()`'s transforms, in order, as an SSR build would. */
+async function createPipeline(root: string): Promise<(code: string, id: string) => Promise<string>> {
+  const plugins = sentryCloudflareVitePlugin({ autoInstrumentation: false }) as TestPlugin[];
 
-    expect(resolve).toHaveBeenCalledWith('@flue/runtime', '/app/noop.js');
-    expect(code).toContain("import * as __SENTRY_FLUE_RUNTIME__ from '@flue/runtime';");
-    expect(code).toContain('get() { return __SENTRY_FLUE_RUNTIME__; }');
-  });
+  for (const plugin of plugins) {
+    plugin.configResolved?.({ root, command: 'build', plugins, ssr: {} });
+    // Every package the app could import resolves, so a plugin that probes for `@flue/runtime` finds it.
+    await plugin.buildStart?.call({ resolve: vi.fn(async (id: string) => ({ id })), warn: vi.fn() });
+  }
 
-  it('injects nothing when the app has no @flue/runtime', async () => {
-    const plugin = sentryFlueRuntimeProviderPlugin();
-    plugin.configResolved({ root: '/app' });
-    await plugin.buildStart.call({ resolve: vi.fn(async () => null), warn: vi.fn() });
+  return async (source, id) => {
+    let code = source;
+    for (const { transform } of plugins) {
+      const handler = typeof transform === 'function' ? transform : transform?.handler;
+      const result = await handler?.call({}, code, id, { ssr: true });
+      code = result?.code ?? code;
+    }
+    return code;
+  };
+}
 
-    expect(plugin.transform('export const x = 1;', FLUE_INTEGRATION_MODULE)).toBeUndefined();
-  });
-});
+describe('sentryCloudflareVitePlugin with @flue/runtime', () => {
+  let root: string;
 
-describe('sentryCloudflareVitePlugin', () => {
-  it('always includes the Flue runtime provider plugin', () => {
-    expect(sentryCloudflareVitePlugin().map(plugin => plugin.name)).toContain(PROVIDER_PLUGIN);
-    // Not gated by auto-instrumentation: it injects into Sentry's own module, not the entry.
-    expect(sentryCloudflareVitePlugin({ autoInstrumentation: false }).map(plugin => plugin.name)).toContain(
-      PROVIDER_PLUGIN,
+  beforeAll(() => {
+    root = mkdtempSync(join(tmpdir(), 'cf-flue-runtime-'));
+    const pkg = join(root, 'node_modules/@flue/runtime');
+    mkdirSync(join(pkg, 'dist'), { recursive: true });
+    writeFileSync(
+      join(pkg, 'package.json'),
+      JSON.stringify({ name: '@flue/runtime', version: '2.3.0', type: 'module' }),
     );
+  });
+
+  afterAll(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("adds no @flue/runtime import to Sentry's Flue integration module", async () => {
+    // Every instrumented package imports `@sentry/server-utils`. An `@flue/runtime` edge from there
+    // closes a cycle through them, and Flue's module-level `createModels()` then runs before pi-ai's
+    // `ModelsImpl` is initialized ("Cannot access 'ModelsImpl' before initialization").
+    const transform = await createPipeline(root);
+    const code = await transform(
+      'export const flueIntegration = () => {};\n',
+      join(root, 'node_modules/@sentry/server-utils/build/esm/integrations/flue.js'),
+    );
+
+    expect(code).not.toMatch(FLUE_IMPORT);
+  });
+
+  it('has the @flue/runtime entry publish its own namespace through a self-import', async () => {
+    const transform = await createPipeline(root);
+    const code = await transform(FLUE_ENTRY, join(root, 'node_modules/@flue/runtime/dist/index.mjs'));
+
+    expect(code).toContain('import * as __SENTRY_SELF_PROVIDED__ from "./index.mjs";');
+    expect(code).toContain('Object.defineProperty(globalThis.__SENTRY_ORCHESTRION__.providedModules, "@flue/runtime"');
+    expect(code).not.toMatch(FLUE_IMPORT);
   });
 });

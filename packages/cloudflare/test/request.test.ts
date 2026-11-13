@@ -4,6 +4,7 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import { beforeAll, beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from '../src/client';
@@ -158,6 +159,20 @@ describe('withSentry', () => {
 
     // Verify that exactly one flush call was made during this test
     expect(delta).toBe(1);
+  });
+
+  test("skips a framework's flushIfServerless() inside the request, since the wrap flushes after the response", async () => {
+    const cloudflareWaitUntil = vi.fn();
+
+    await wrapRequestHandler(
+      { options: MOCK_OPTIONS, request: new Request('https://example.com'), context: createMockExecutionContext() },
+      async () => {
+        await flushIfServerless({ cloudflareWaitUntil });
+        return new Response('test');
+      },
+    );
+
+    expect(cloudflareWaitUntil).not.toHaveBeenCalled();
   });
 
   describe('scope instrumentation', () => {
@@ -671,7 +686,7 @@ describe('withSentry', () => {
           'server.address': 'example.com',
           'network.protocol.name': 'http',
           'network.protocol.version': '1.1',
-          'url.scheme': 'https:',
+          'url.scheme': 'https',
           'url.path': '/',
           'sentry.sample_rate': 1,
           'http.response.status_code': 200,

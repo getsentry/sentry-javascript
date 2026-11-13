@@ -487,7 +487,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'url.fragment': 'section',
       'url.full': 'https://example.com/api/users?q=test#section',
       'server.address': 'example.com',
-      'url.scheme': 'https:',
+      'url.scheme': 'https',
     });
   });
 
@@ -501,7 +501,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'url.path': '/api/users',
       'url.full': 'https://example.com/api/users',
       'server.address': 'example.com',
-      'url.scheme': 'https:',
+      'url.scheme': 'https',
       'http.request.method': 'POST',
     });
   });
@@ -522,7 +522,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'url.path': '/api/users',
       'url.full': 'https://example.com/api/users',
       'server.address': 'example.com',
-      'url.scheme': 'https:',
+      'url.scheme': 'https',
       'http.route': '/api/users/:id',
     });
   });
@@ -537,7 +537,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'url.path': '/',
       'url.full': 'https://example.com/',
       'server.address': 'example.com',
-      'url.scheme': 'https:',
+      'url.scheme': 'https',
     });
   });
 
@@ -551,8 +551,8 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'url.path': '/api/users',
       'url.full': 'https://example.com:8080/api/users',
       'server.address': 'example.com',
-      'url.scheme': 'https:',
-      'url.port': '8080',
+      'url.scheme': 'https',
+      'url.port': 8080,
     });
   });
 
@@ -566,8 +566,8 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'url.path': '/api/users',
       'url.full': 'https://example.com:3000/api/users',
       'server.address': 'example.com',
-      'url.scheme': 'https:',
-      'url.port': '3000',
+      'url.scheme': 'https',
+      'url.port': 3000,
       'http.request.method': 'PUT',
     });
   });
@@ -588,7 +588,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'url.path': '/api/users/123',
       'url.full': 'https://example.com/api/users/123',
       'server.address': 'example.com',
-      'url.scheme': 'https:',
+      'url.scheme': 'https',
       'http.route': '/api/users/:id',
       'http.request.method': 'PATCH',
     });
@@ -611,7 +611,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'url.query': 'q=test&page=1',
       'url.full': 'https://example.com/api/search?q=test&page=1',
       'server.address': 'example.com',
-      'url.scheme': 'https:',
+      'url.scheme': 'https',
       'http.route': '/api/search',
     });
   });
@@ -633,7 +633,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'url.fragment': 'section-1',
       'url.full': 'https://example.com/api/docs#section-1',
       'server.address': 'example.com',
-      'url.scheme': 'https:',
+      'url.scheme': 'https',
       'http.route': '/api/docs',
     });
   });
@@ -648,7 +648,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'url.path': '/api/users',
       'url.full': 'https://user:pass@example.com/api/users',
       'server.address': 'example.com',
-      'url.scheme': 'https:',
+      'url.scheme': 'https',
     });
   });
 
@@ -662,8 +662,8 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'url.path': '/api/users',
       'url.full': 'https://192.168.1.1:8080/api/users',
       'server.address': '192.168.1.1',
-      'url.scheme': 'https:',
-      'url.port': '8080',
+      'url.scheme': 'https',
+      'url.port': 8080,
     });
   });
 
@@ -677,8 +677,8 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'url.path': '/api/users',
       'url.full': 'https://[2001:db8::1]:8080/api/users',
       'server.address': '[2001:db8::1]',
-      'url.scheme': 'https:',
-      'url.port': '8080',
+      'url.scheme': 'https',
+      'url.port': 8080,
     });
   });
 
@@ -692,7 +692,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'url.path': '/users',
       'url.full': 'https://api.example.com/users',
       'server.address': 'api.example.com',
-      'url.scheme': 'https:',
+      'url.scheme': 'https',
     });
   });
 });

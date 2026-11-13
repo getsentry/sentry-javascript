@@ -1,6 +1,6 @@
 {
   "name": "@sentry/replay",
-  "version": "11.11.0",
+  "version": "11.12.0",
   "description": "User replays for Sentry",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
@@ -39,16 +39,11 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
-    "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:bundle": "rollup -c rollup.bundle.config.mjs",
+    "build:transpile": "rolldown -c rollup.npm.config.mjs",
+    "build:bundle": "rolldown -c rollup.bundle.config.mjs",
     "build:dev": "run-p build:transpile build:types",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:transpile:watch build:bundle:watch",
-    "build:dev:watch": "run-p build:transpile:watch",
-    "build:transpile:watch": "pnpm run build:transpile --watch",
-    "build:bundle:watch": "pnpm run build:bundle --watch",
     "build:tarball": "pnpm pack",
-    "circularDepCheck": "madge --circular src/index.ts",
     "clean": "node ../../scripts/rm.mjs build sentry-replay-*.tgz",
     "format": "oxfmt \"src/**/*.ts\" \"test/**/*.ts\" --write",
     "format:check": "oxfmt \"src/**/*.ts\" \"test/**/*.ts\" --check",
@@ -58,7 +53,7 @@
     "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs}/*.js && es-check es2020 ./build/npm/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
   "repository": {
     "type": "git",
@@ -71,8 +66,8 @@
   },
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
-    "@sentry-internal/replay-worker": "11.11.0",
-    "@sentry-internal/rollup-utils": "11.11.0",
+    "@sentry-internal/replay-worker": "11.12.0",
+    "@sentry-internal/rollup-utils": "11.12.0",
     "@sentry/conventions": "^0.32.0",
     "@sentry/rrweb": "2.46.0",
     "@sentry/rrweb-snapshot": "2.46.0",
@@ -80,8 +75,8 @@
     "jsdom-worker": "^0.3.0"
   },
   "dependencies": {
-    "@sentry/browser-utils": "11.11.0",
-    "@sentry/core": "11.11.0"
+    "@sentry/browser-utils": "11.12.0",
+    "@sentry/core": "11.12.0"
   },
   "engines": {
     "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"

@@ -1,4 +1,5 @@
 import test, { expect } from '@playwright/test';
+import fs from 'fs';
 import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('Should create a span for node route handlers', async ({ request }) => {
@@ -93,4 +94,14 @@ test('Should record exceptions and spans for faulty route handlers', async ({ re
   expect(routehandlerError.request?.url).toContain('/route-handler/123/error');
 
   expect(routehandlerError.transaction).toContain('/route-handler/[xoxo]/error');
+});
+
+test('Should not give route handlers without a default export a default export', async ({ request }) => {
+  test.skip(process.env.TEST_ENV !== 'development', 'Next.js only checks for a default export in webpack dev mode');
+
+  const response = await request.get('/route-handler/static');
+  expect(await response.json()).toStrictEqual({ name: 'Static' });
+
+  const devStdout = fs.readFileSync('.tmp_dev_server_logs', 'utf-8');
+  expect(devStdout).not.toContain('Detected default export');
 });

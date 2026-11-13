@@ -193,7 +193,7 @@ function _getXhrBreadcrumbHandler(client: Client): (handlerData: HandlerDataXhr)
 
     const data: XhrBreadcrumbData = {
       method,
-      url: filterCollectedUrl(url),
+      url: getBreadcrumbUrl(url, client),
       status_code,
     };
 
@@ -248,7 +248,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
 
       const breadcrumb = {
         category: 'fetch',
-        data: { ...handlerData.fetchData, url: filterCollectedUrl(handlerData.fetchData.url) },
+        data: { ...handlerData.fetchData, url: getBreadcrumbUrl(handlerData.fetchData.url, client) },
         level: 'error',
         type: 'http',
       } satisfies Breadcrumb;
@@ -260,7 +260,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
       const response = handlerData.response as Response | undefined;
       const data: FetchBreadcrumbData = {
         ...handlerData.fetchData,
-        url: filterCollectedUrl(handlerData.fetchData.url),
+        url: getBreadcrumbUrl(handlerData.fetchData.url, client),
         status_code: response?.status,
       };
 
@@ -322,6 +322,11 @@ function _getHistoryBreadcrumbHandler(client: Client): (handlerData: HandlerData
       },
     });
   };
+}
+
+function getBreadcrumbUrl(url: string, client?: Client): string {
+  const pageUrl = url === '' ? WINDOW.location?.href : undefined;
+  return filterCollectedUrl(pageUrl ? (pageUrl.split('#')[0] ?? '') : url, client);
 }
 
 function _isEvent(event: unknown): event is Event {

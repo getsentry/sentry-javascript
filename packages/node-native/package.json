@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node-native",
-  "version": "11.11.0",
+  "version": "11.12.0",
   "description": "Native Tools for the Official Sentry Node.js SDK",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node-native",
@@ -47,20 +47,18 @@
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "lint:fix": "oxlint . --fix --type-aware",
     "build": "pnpm run build:types && pnpm run build:transpile",
-    "build:transpile": "pnpm exec rollup -c rollup.npm.config.mjs",
+    "build:transpile": "pnpm exec rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:dev": "pnpm clean && pnpm run build",
-    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:watch": "run-p build:transpile:watch",
     "build:tarball": "pnpm pack"
   },
   "dependencies": {
     "@sentry/node-native-stacktrace": "^0.5.1",
-    "@sentry/core": "11.11.0",
-    "@sentry/node": "11.11.0"
+    "@sentry/core": "11.12.0",
+    "@sentry/node": "11.12.0"
   },
   "devDependencies": {
-    "@sentry-internal/rollup-utils": "11.11.0",
+    "@sentry-internal/rollup-utils": "11.12.0",
     "@types/node": "^20.19.0"
   },
   "sideEffects": false,

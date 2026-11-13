@@ -101,6 +101,7 @@ jobs:
         with:
           test-application: ${{ matrix.test-application }}
           runtime: ${{ matrix.runtime }}
+          bun-version: ${{ matrix.bun-version }}
           deno-version: ${{ matrix.deno-version }}
 
       - name: Build E2E app

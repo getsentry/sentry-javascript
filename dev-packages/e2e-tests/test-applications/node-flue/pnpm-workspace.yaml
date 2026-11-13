@@ -4,3 +4,8 @@ allowBuilds:
   esbuild: true
   protobufjs: false
 minimumReleaseAge: 0
+# @flue/runtime 2.3.0 imports `Type` from pi-ai, which pi 1.5.0 stopped re-exporting
+# (https://github.com/withastro/flue/issues/912). Scoped to ^1 so the pinned variant (pi 0.83) is untouched.
+overrides:
+  '@earendil-works/pi-ai@^1': '1.4.0'
+  '@earendil-works/pi-agent-core@^1': '1.4.0'
