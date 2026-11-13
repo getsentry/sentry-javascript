@@ -38,6 +38,7 @@ export type { InstrumentationFixture } from './bundler-instrumentation';
 
 export { hidePage, waitForSoftNavigation } from './page';
 export { getPlaywrightConfig } from './playwright-config';
+export { getTestRetries } from './retries';
 export { getRuntime } from './runtime';
 export type { Runtime } from './runtime';
 export { createBasicSentryServer, createTestServer } from './server';
