@@ -33,7 +33,11 @@ async function converse() {
   await client.send(
     new ConverseCommand({
       modelId: 'anthropic.claude-3-5-sonnet-20240620-v1:0',
+      system: [{ text: 'You are a weather bot.' }],
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
+      toolConfig: {
+        tools: [{ toolSpec: { name: 'get_weather', inputSchema: { json: { type: 'object' } } } }],
+      },
       inferenceConfig: { maxTokens: 100, temperature: 0.5, topP: 0.9 },
     }),
   );
@@ -68,6 +72,7 @@ async function invokeModel() {
         max_tokens: 100,
         temperature: 0.5,
         top_p: 0.9,
+        system: 'You are a weather bot.',
         messages: [{ role: 'user', content: 'Hello' }],
       }),
     }),

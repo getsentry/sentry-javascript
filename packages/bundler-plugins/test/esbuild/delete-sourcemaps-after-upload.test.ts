@@ -5,7 +5,7 @@ import * as esbuild from 'esbuild';
 import type { BuildOptions } from 'esbuild';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { sentryEsbuildPlugin } from '../../src/esbuild';
-import type { Options } from '../../src/core';
+import type { InternalOptions, Options } from '../../src/core';
 
 const { mockSourcemapUpload } = vi.hoisted(() => ({ mockSourcemapUpload: vi.fn() }));
 
@@ -58,7 +58,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (esbuild)', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  function build(pluginOptions: Options = {}, overrides: BuildOptions = {}) {
+  function build(pluginOptions: InternalOptions = {}, overrides: BuildOptions = {}) {
     return esbuild.build({
       entryPoints: [entry],
       bundle: true,
@@ -174,6 +174,23 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (esbuild)', () => {
     expect(uploads).toHaveLength(1);
   });
 
+  it.each<[string, InternalOptions]>([
+    ['after the upload', {}],
+    ['when no upload runs', { authToken: undefined }],
+  ])(
+    'deletes every map the SDK turned on, also those of chunks and CSS that were not uploaded (%s)',
+    async (_, options) => {
+      await build(
+        { ...options, sourcemaps: { deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: true } },
+        { ...writeSplitBuild(), sourcemap: 'external' },
+      );
+
+      const files = fs.readdirSync(outDir);
+      expect(files.filter(file => file.endsWith('.map'))).toEqual([]);
+      expect(files).toContain('entry.css');
+    },
+  );
+
   it('warns when source maps are turned off', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     await build({ silent: false }, { sourcemap: false });
@@ -194,6 +211,27 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (esbuild)', () => {
     await build({ authToken: undefined });
 
     expect(fs.readdirSync(outDir)).toEqual(['entry.js']);
+    expect(uploads).toHaveLength(0);
+  });
+
+  it('deletes external source maps when the option is true and no upload runs', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    await build(
+      { silent: false, authToken: undefined, sourcemaps: { deleteSourcemapsAfterUpload: true } },
+      { sourcemap: 'external' },
+    );
+
+    expect(fs.readdirSync(outDir)).toEqual(['entry.js']);
+    expect(uploads).toHaveLength(0);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('No auth token provided'));
+  });
+
+  it('keeps the source maps in development mode when the option is true', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    await build({ sourcemaps: { deleteSourcemapsAfterUpload: true } }, { sourcemap: 'external' });
+    vi.unstubAllEnvs();
+
+    expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'entry.js.map']);
     expect(uploads).toHaveLength(0);
   });
 

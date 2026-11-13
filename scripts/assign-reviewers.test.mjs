@@ -88,4 +88,24 @@ describe('assignReviewers', () => {
       expect.objectContaining({ reviewers: expect.arrayContaining(['b', 'c', 'd']) }),
     );
   });
+
+  it('does not count pending review requests from managers towards the required reviewers', async () => {
+    const { github, run } = setup(assignReviewers, {
+      user: { login: 'author', type: 'User' },
+      requested_reviewers: [
+        { login: 'Mydea', type: 'User' },
+        { login: 'a', type: 'User' },
+      ],
+    });
+    await run();
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: [expect.any(String), expect.any(String)] }),
+    );
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.not.arrayContaining(['a']) }),
+    );
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.not.arrayContaining(['Mydea']) }),
+    );
+  });
 });

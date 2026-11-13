@@ -17,6 +17,7 @@ import {
   URL_TEMPLATE,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { PAGELOAD } from '@sentry/conventions/op';
 
 // we have to overwrite the global mock from `vitest.setup.ts` here to reset the
 // `navigating` store for each test.
@@ -193,7 +194,7 @@ describe('browserTracingIntegration', () => {
     expect(startBrowserTracingPageLoadSpanSpy).toHaveBeenCalledWith(fakeClient, {
       name: '/',
       attributes: {
-        [SENTRY_OP]: 'pageload',
+        [SENTRY_OP]: PAGELOAD,
         [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [PAGE_SERVER_RENDERING_TYPE]: 'static',

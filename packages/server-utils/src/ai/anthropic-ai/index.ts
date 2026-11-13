@@ -29,7 +29,7 @@ import { ANTHROPIC_AI_ORIGIN, ANTHROPIC_METHOD_REGISTRY } from './constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import { instrumentSessionToolRunner, instrumentToolRunner, instrumentToolRunnerFactory } from './tool-runner';
 import type { AnthropicAiOptions, AnthropicAiResponse, AnthropicAiStreamingEvent, ContentBlock } from './types';
-import { getProviderName, handleResponseError, messagesFromParams, setMessagesAttribute } from './utils';
+import { getMessagesAttributes, getProviderName, handleResponseError, messagesFromParams } from './utils';
 
 // Set only while a streaming helper (e.g. `messages.stream()`) synchronously delegates to the
 // underlying `create`. The SDK invokes that internal `create` synchronously, so a plain flag
@@ -81,7 +81,7 @@ export function extractRequestAttributes(
  */
 export function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   const messages = messagesFromParams(params);
-  setMessagesAttribute(span, messages);
+  span.setAttributes(getMessagesAttributes(messages));
 }
 
 /**
