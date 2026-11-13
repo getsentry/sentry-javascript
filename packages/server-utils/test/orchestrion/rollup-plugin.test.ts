@@ -123,6 +123,12 @@ describe('sentryCommonJSInteropPlugin', () => {
 
       expect(getDefault(namespace)).toBe(namespace);
     });
+
+    it('keeps the namespace of an ES module that exports a `name` next to its default function', () => {
+      const namespace = { default: function plugin() {}, name: 'my-plugin' };
+
+      expect(getDefault(namespace)).toBe(namespace);
+    });
   });
 
   it('ignores other modules', () => {
