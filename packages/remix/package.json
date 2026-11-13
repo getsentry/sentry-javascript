@@ -116,7 +116,6 @@
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rolldown -c rollup.npm.config.mjs --watch",
     "build:tarball": "pnpm pack",
-    "circularDepCheck": "madge --circular src/index.server.ts src/index.client.ts",
     "clean": "node ../../scripts/rm.mjs build coverage sentry-remix-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
@@ -125,7 +124,7 @@
     "test": "pnpm run test:unit",
     "test:unit": "vitest run --config vitest.config.unit.ts",
     "test:watch": "vitest --watch --config vitest.config.unit.ts",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
   "sideEffects": false,
   "nx": {

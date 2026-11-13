@@ -124,7 +124,6 @@
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rolldown -c rollup.npm.config.mjs --watch",
     "build:tarball": "pnpm pack",
-    "circularDepCheck": "madge --circular src/index.ts src/index.bun.ts src/index.cloudflare.ts src/index.deno.ts src/setup.ts",
     "clean": "node ../../scripts/rm.mjs build coverage sentry-nestjs-*.tgz ./*.d.ts ./*.d.ts.map",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
@@ -132,7 +131,7 @@
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
   "nx": {
     "targets": {

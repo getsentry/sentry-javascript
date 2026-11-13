@@ -34,7 +34,6 @@
     "build:transpile:watch": "pnpm run build:transpile --watch",
     "build:bundle:watch": "pnpm run build:bundle --watch",
     "build:tarball": "pnpm pack",
-    "circularDepCheck": "madge --circular src/index.ts",
     "clean": "node ../../scripts/rm.mjs build sentry-replay-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
@@ -42,7 +41,7 @@
     "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs}/*.js && es-check es2020 ./build/npm/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
   "publishConfig": {
     "access": "public"

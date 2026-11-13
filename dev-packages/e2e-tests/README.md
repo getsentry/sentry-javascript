@@ -173,9 +173,9 @@ is the reference setup.
   (`instrument.mjs`), Bun `@sentry/bun` (`instrument.bun.mjs`), Deno `@sentry/deno` (`instrument.deno.mjs`) and
   Cloudflare `@sentry/cloudflare`. The framework SDK only provides the framework wrappers on the other runtimes, so
   values that come from its `init()` (`sdk.name`, default integrations) are Node-only. Next.js is different: it loads
-  `instrumentation.ts` on every runtime, so `nextjs-16` calls `init()` of `@sentry/nextjs` on Bun and Deno too, and
-  adds the integrations of `@sentry/bun` or `@sentry/deno` that replace the Node instrumentation those runtimes do not
-  trigger.
+  `instrumentation.ts` on every runtime, so `nextjs-16` calls `init()` of `@sentry/nextjs` on Bun and Deno too. Its
+  Bun and Deno variants build the app on that runtime, so `@sentry/nextjs` loads its `bun` or `deno` entry, which adds
+  the integrations of `@sentry/bun` or `@sentry/deno`.
 - **Start commands**: `playwright.config.mjs` selects the start command with `getRuntime()`. Bun and Deno use the same build
   as Node and only change the start command, for example
   `bun --bun --preload ./instrument.bun.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js` and

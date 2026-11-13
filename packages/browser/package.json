@@ -61,7 +61,6 @@
     "build:bundle:watch": "rolldown -c rollup.bundle.config.mjs --watch",
     "build:transpile:watch": "rolldown -c rollup.npm.config.mjs --watch",
     "build:tarball": "pnpm pack",
-    "circularDepCheck": "madge --circular src/index.ts",
     "clean": "node ../../scripts/rm.mjs build coverage .rpt2_cache sentry-browser-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
@@ -70,7 +69,7 @@
     "size:check": "cat build/bundles/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES2017: \",$1,\"kB\";}'",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
   "sideEffects": false
 }

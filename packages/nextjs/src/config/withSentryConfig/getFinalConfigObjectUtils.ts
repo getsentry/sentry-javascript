@@ -19,6 +19,39 @@ let showedExperimentalBuildModeWarning = false;
 const MISSING_INSTRUMENTATION_FILE_WARNING_SHOWN = '__SENTRY_MISSING_INSTRUMENTATION_FILE_WARNING_SHOWN__';
 
 /**
+ * Sets `experimental.turbopackPluginRuntimeStrategy` to `'workerThreads'` for Turbopack builds on Bun.
+ *
+ * With the default `'childProcesses'`, Next.js runs Turbopack loaders in `node` processes and puts `process.execArgv`
+ * into their `NODE_OPTIONS`. On Bun, `execArgv` contains `--bun`, which Node.js does not accept, so the build fails or
+ * hangs. `withSentryConfig` always adds loaders.
+ */
+export function maybeSetTurbopackPluginRuntimeStrategyOption(
+  incomingUserNextConfigObject: NextConfigObject,
+  nextJsVersion: string | undefined,
+  isTurbopack: boolean,
+  silent?: boolean,
+): void {
+  if (!process.versions.bun || !isTurbopack || !nextJsVersion) {
+    return;
+  }
+
+  const { major, minor } = parseSemver(nextJsVersion);
+  if (major === undefined || minor === undefined || major < 16 || (major === 16 && minor < 2)) {
+    return;
+  }
+
+  if (incomingUserNextConfigObject.experimental?.turbopackPluginRuntimeStrategy === 'childProcesses') {
+    getBuildLogger(silent).warn(
+      '[@sentry/nextjs] `experimental.turbopackPluginRuntimeStrategy` is set to `childProcesses`. Turbopack builds on Bun fail or hang with this strategy. Remove the option, or set it to `workerThreads`.',
+    );
+    return;
+  }
+
+  incomingUserNextConfigObject.experimental = incomingUserNextConfigObject.experimental || {};
+  incomingUserNextConfigObject.experimental.turbopackPluginRuntimeStrategy ??= 'workerThreads';
+}
+
+/**
  * Resolves the Sentry release name to use for build-time behavior.
  *
  * Note: if `release.create === false`, we avoid falling back to git to preserve build determinism.
