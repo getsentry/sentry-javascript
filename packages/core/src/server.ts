@@ -35,6 +35,7 @@ export { wrapMcpServerWithSentry } from './integrations/mcp-server';
 export { isNodeEnv, loadModule } from './utils/node';
 export { filenameIsInApp, node, nodeStackLineParser } from './utils/node-stack-trace';
 export { vercelWaitUntil } from './utils/vercelWaitUntil';
+export { _INTERNAL_getCacheOriginMetaTag, _INTERNAL_getRootSpanSentryTrace } from './utils/cacheOrigin';
 export {
   getReleaseFromCommitEnv as _INTERNAL_getReleaseFromCommitEnv,
   readCommitEnvVar as _INTERNAL_readCommitEnvVar,
