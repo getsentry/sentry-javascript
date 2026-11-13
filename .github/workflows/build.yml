@@ -745,6 +745,34 @@ jobs:
           overwrite: true
           retention-days: 7
 
+  # Runs the CDN bundles in the oldest Chromium we support. Chromium snapshots only exist for x64.
+  job_browser_min_version_tests:
+    name: Minimum Chromium Version Tests
+    needs: [job_get_metadata, job_build, job_build_bundles]
+    if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: ./.github/actions/setup-node
+
+      - name: Restore build bundle artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: build-bundle-output
+          path: ${{ env.BUNDLE_ARTIFACT_DOWNLOAD_PATH }}
+
+      - name: Install Chromium dependencies
+        run: dev-packages/browser-min-version-tests/install-deps.sh
+
+      # Downloads the Chromium build on each run: its 127 MB zip is about as quick to fetch as a cache restore.
+      - name: Run tests
+        run: node dev-packages/browser-min-version-tests/run.mjs
+
   job_node_integration_tests:
     name: Node (${{ matrix.node }}) Integration Tests (${{ matrix.shard }}/${{ matrix.shards }})
     needs: [job_get_metadata, job_build]
@@ -1207,6 +1235,7 @@ jobs:
         job_deno_integration_tests,
         job_browser_playwright_tests,
         job_browser_loader_tests,
+        job_browser_min_version_tests,
         job_e2e_tests_1,
         job_e2e_tests_2,
         job_e2e_aws_layer_tests,
