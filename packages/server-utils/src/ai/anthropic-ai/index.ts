@@ -29,7 +29,7 @@ import { ANTHROPIC_AI_ORIGIN, ANTHROPIC_METHOD_REGISTRY } from './constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import { instrumentSessionToolRunner, instrumentToolRunner, instrumentToolRunnerFactory } from './tool-runner';
 import type { AnthropicAiOptions, AnthropicAiResponse, AnthropicAiStreamingEvent, ContentBlock } from './types';
-import { getMessagesAttributes, handleResponseError, messagesFromParams } from './utils';
+import { getMessagesAttributes, getProviderName, handleResponseError, messagesFromParams } from './utils';
 
 // Set only while a streaming helper (e.g. `messages.stream()`) synchronously delegates to the
 // underlying `create`. The SDK invokes that internal `create` synchronously, so a plain flag
@@ -47,9 +47,10 @@ export function extractRequestAttributes(
   args: unknown[],
   operationName: string,
   recordInputs: boolean,
+  providerName = 'anthropic',
 ): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
-    [GEN_AI_PROVIDER_NAME]: 'anthropic',
+    [GEN_AI_PROVIDER_NAME]: providerName,
     [GEN_AI_OPERATION_NAME]: operationName,
     [SENTRY_ORIGIN]: ANTHROPIC_AI_ORIGIN,
   };
@@ -261,7 +262,12 @@ function instrumentMethod<T extends unknown[], R>(
       }
 
       const operationName = instrumentedMethod.operation || 'unknown';
-      const requestAttributes = extractRequestAttributes(args, operationName, !!options.recordInputs);
+      const requestAttributes = extractRequestAttributes(
+        args,
+        operationName,
+        !!options.recordInputs,
+        getProviderName(invocationThis),
+      );
       const model = requestAttributes[GEN_AI_REQUEST_MODEL] || 'unknown';
       const client = getClient();
       // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.

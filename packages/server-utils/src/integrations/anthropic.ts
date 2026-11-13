@@ -6,6 +6,7 @@ import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
 import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../ai/anthropic-ai';
 import { ANTHROPIC_AI_ORIGIN } from '../ai/anthropic-ai/constants';
+import { getProviderName } from '../ai/anthropic-ai/utils';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from '../ai/anthropic-ai/streaming';
 import { instrumentSessionToolRunner, instrumentToolRunner } from '../ai/anthropic-ai/tool-runner';
 import type { AnthropicAiOptions, AnthropicAiResponse } from '../ai/anthropic-ai/types';
@@ -134,7 +135,7 @@ function createGenAiSpan(
 
   const { recordInputs } = resolveAIRecordingOptions(options);
 
-  const attributes = extractRequestAttributes(args, operation, recordInputs);
+  const attributes = extractRequestAttributes(args, operation, recordInputs, getProviderName(data.self));
   const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
   attributes[SENTRY_ORIGIN] = ANTHROPIC_AI_ORIGIN;
   const client = getClient();
