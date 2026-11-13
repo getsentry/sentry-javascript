@@ -81,6 +81,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/anthropic/v0.129/test.ts',
   'suites/tracing/anthropic/v1/test.ts',
   'suites/tracing/apollo-graphql/**',
+  'suites/tracing/clickhouse/test.ts',
   'suites/tracing/dataloader/test.ts',
   'suites/tracing/fastify/test.ts',
   'suites/tracing/genericPool-v2/test.ts',
