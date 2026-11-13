@@ -130,7 +130,7 @@ export {
 } from './utils/spanUtils';
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
 export { parseSampleRate } from './utils/parseSampleRate';
-export { applySdkMetadata } from './utils/sdkMetadata';
+export { applySdkMetadata, captureOptionsSetByUser as _INTERNAL_captureOptionsSetByUser } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
 export { matchesTracePropagationTargets, shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';

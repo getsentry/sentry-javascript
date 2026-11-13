@@ -99,6 +99,7 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     version: 1,
     sdk: client.getSdkMetadata()?.sdk,
     options: serialize(options) as Record<string, unknown>,
+    options_set_by_user: client.getSdkMetadata()?.optionsSetByUser,
     integrations: client.getIntegrationNames().map(name => ({ name })),
   };
 
