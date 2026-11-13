@@ -327,6 +327,9 @@ importers:
       '@sentry-internal/node-integration-tests':
         specifier: 11.12.0
         version: link:../node-integration-tests
+      '@sentry-internal/test-utils':
+        specifier: 11.12.0
+        version: link:../test-utils
       '@sentry/bun':
         specifier: 11.12.0
         version: link:../../packages/bun
