@@ -1,6 +1,7 @@
 import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
@@ -59,7 +60,11 @@ function assertBedrockSpans(container: SerializedStreamedSpanContainer): void {
 
 const SYSTEM_INSTRUCTIONS = JSON.stringify([{ type: 'text', content: 'You are a weather bot.' }]);
 
-function assertBedrockInputs(container: SerializedStreamedSpanContainer): void {
+const OUTPUT_MESSAGES = JSON.stringify([
+  { role: 'assistant', parts: [{ type: 'text', content: 'Hello from Bedrock' }], finish_reason: 'end_turn' },
+]);
+
+function assertBedrockContent(container: SerializedStreamedSpanContainer): void {
   const converseSpan = container.items.find(span => span.name === `chat ${MODEL_ID}`);
   expect(converseSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(SYSTEM_INSTRUCTIONS);
   expect(converseSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
@@ -68,12 +73,14 @@ function assertBedrockInputs(container: SerializedStreamedSpanContainer): void {
   expect(converseSpan!.attributes[GEN_AI_TOOL_DEFINITIONS].value).toBe(
     JSON.stringify([{ name: 'get_weather', inputSchema: { json: { type: 'object' } } }]),
   );
+  expect(converseSpan!.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(OUTPUT_MESSAGES);
 
   const invokeModelSpan = container.items.find(span => span.name === `generate_content ${MODEL_ID}`);
   expect(invokeModelSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(SYSTEM_INSTRUCTIONS);
   expect(invokeModelSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
     JSON.stringify([{ role: 'user', content: 'Hello' }]),
   );
+  expect(invokeModelSpan!.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(OUTPUT_MESSAGES);
 }
 
 function assertStreamSpans(container: SerializedStreamedSpanContainer): void {
@@ -113,8 +120,8 @@ describe('awsIntegration - Bedrock', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-gen-ai.mjs', (createTestRunner, test) => {
-    test('records Bedrock inputs by default', { timeout: 90_000 }, async () => {
-      await createTestRunner().ignore('event').expect({ span: assertBedrockInputs }).start().completed();
+    test('records Bedrock inputs and outputs by default', { timeout: 90_000 }, async () => {
+      await createTestRunner().ignore('event').expect({ span: assertBedrockContent }).start().completed();
     });
   });
 

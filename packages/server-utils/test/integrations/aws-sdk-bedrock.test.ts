@@ -1,6 +1,7 @@
 import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
@@ -555,5 +556,277 @@ describe('BedrockRuntimeServiceExtension token usage with prompt caching', () =>
     await drain(data.body);
 
     expect(usageAttributes(span, EXPECTED_USAGE)).toEqual(EXPECTED_USAGE);
+  });
+});
+
+describe('BedrockRuntimeServiceExtension output recording', () => {
+  const encoder = new TextEncoder();
+
+  function streamOf(chunks: unknown[]): AsyncIterable<{ chunk: { bytes: Uint8Array } }> {
+    return (async function* () {
+      for (const chunk of chunks) {
+        yield { chunk: { bytes: encoder.encode(JSON.stringify(chunk)) } };
+      }
+    })();
+  }
+
+  function outputMessages(span: Span): unknown {
+    const value = spanToJSON(span).attributes?.[GEN_AI_OUTPUT_MESSAGES];
+    return typeof value === 'string' ? JSON.parse(value) : value;
+  }
+
+  const ASSISTANT_TURN = [
+    {
+      role: 'assistant',
+      parts: [
+        { type: 'reasoning', content: 'The user wants the weather.' },
+        { type: 'text', content: 'Let me check.' },
+        {
+          type: 'tool_call',
+          id: 'tooluse_kZJMlvQmRJ6eAyJE5GIl7Q',
+          name: 'get_weather',
+          arguments: '{"city":"Vienna"}',
+        },
+      ],
+      finish_reason: 'tool_use',
+    },
+  ];
+
+  beforeEach(() => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+  });
+
+  afterEach(() => {
+    setCurrentClient(undefined as never);
+  });
+
+  it('records the Converse response message as message parts', () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+
+    respond(
+      span,
+      'Converse',
+      {},
+      {
+        stopReason: 'tool_use',
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              { reasoningContent: { reasoningText: { text: 'The user wants the weather.', signature: 'c2ln' } } },
+              { text: 'Let me check.' },
+              {
+                toolUse: {
+                  toolUseId: 'tooluse_kZJMlvQmRJ6eAyJE5GIl7Q',
+                  name: 'get_weather',
+                  input: { city: 'Vienna' },
+                },
+              },
+            ],
+          },
+        },
+      },
+    );
+
+    expect(outputMessages(span)).toEqual(ASSISTANT_TURN);
+  });
+
+  it('records no output message when the response has no content', () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+
+    respond(span, 'Converse', {}, { stopReason: 'end_turn', output: { message: { role: 'assistant', content: [] } } });
+
+    expect(spanToJSON(span).attributes).not.toHaveProperty(GEN_AI_OUTPUT_MESSAGES);
+  });
+
+  it('records the Claude InvokeModel response content as message parts', () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const body = {
+      stop_reason: 'tool_use',
+      content: [
+        { type: 'thinking', thinking: 'The user wants the weather.', signature: 'c2ln' },
+        { type: 'redacted_thinking', data: 'ZW5jcnlwdGVk' },
+        { type: 'text', text: 'Let me check.' },
+        { type: 'tool_use', id: 'tooluse_kZJMlvQmRJ6eAyJE5GIl7Q', name: 'get_weather', input: { city: 'Vienna' } },
+      ],
+    };
+
+    respond(span, 'InvokeModel', { modelId: CLAUDE_MODEL_ID }, { body: encoder.encode(JSON.stringify(body)) });
+
+    expect(outputMessages(span)).toEqual(ASSISTANT_TURN);
+  });
+
+  it.each([
+    {
+      family: 'Titan',
+      modelId: 'amazon.titan-text-express-v1',
+      body: { results: [{ outputText: 'Paris.', completionReason: 'FINISH' }] },
+      finishReason: 'FINISH',
+    },
+    {
+      family: 'Llama',
+      modelId: 'meta.llama3-8b-instruct-v1:0',
+      body: { generation: 'Paris.', stop_reason: 'stop' },
+      finishReason: 'stop',
+    },
+    {
+      family: 'Cohere Command R',
+      modelId: 'cohere.command-r-v1:0',
+      body: { text: 'Paris.', finish_reason: 'COMPLETE' },
+      finishReason: 'COMPLETE',
+    },
+    {
+      family: 'Cohere Command',
+      modelId: 'cohere.command-text-v14',
+      body: { generations: [{ text: 'Paris.', finish_reason: 'COMPLETE' }] },
+      finishReason: 'COMPLETE',
+    },
+    {
+      family: 'Mistral',
+      modelId: 'mistral.mistral-7b-instruct-v0:2',
+      body: { outputs: [{ text: 'Paris.', stop_reason: 'stop' }] },
+      finishReason: 'stop',
+    },
+    {
+      family: 'Nova',
+      modelId: 'amazon.nova-lite-v1:0',
+      body: { output: { message: { role: 'assistant', content: [{ text: 'Paris.' }] } }, stopReason: 'end_turn' },
+      finishReason: 'end_turn',
+    },
+  ])('records the $family InvokeModel response text', ({ modelId, body, finishReason }) => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+
+    respond(span, 'InvokeModel', { modelId }, { body: encoder.encode(JSON.stringify(body)) });
+
+    expect(outputMessages(span)).toEqual([
+      { role: 'assistant', parts: [{ type: 'text', content: 'Paris.' }], finish_reason: finishReason },
+    ]);
+  });
+
+  it('collects a ConverseStream response by content block', async () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const data = {
+      stream: (async function* () {
+        yield { messageStart: { role: 'assistant' } };
+        yield { contentBlockDelta: { contentBlockIndex: 0, delta: { reasoningContent: { text: 'The user wants ' } } } };
+        yield { contentBlockDelta: { contentBlockIndex: 0, delta: { reasoningContent: { text: 'the weather.' } } } };
+        yield { contentBlockDelta: { contentBlockIndex: 1, delta: { text: 'Let me ' } } };
+        yield { contentBlockDelta: { contentBlockIndex: 1, delta: { text: 'check.' } } };
+        yield {
+          contentBlockStart: {
+            contentBlockIndex: 2,
+            start: { toolUse: { toolUseId: 'tooluse_kZJMlvQmRJ6eAyJE5GIl7Q', name: 'get_weather' } },
+          },
+        };
+        yield { contentBlockDelta: { contentBlockIndex: 2, delta: { toolUse: { input: '{"city":' } } } };
+        yield { contentBlockDelta: { contentBlockIndex: 2, delta: { toolUse: { input: '"Vienna"}' } } } };
+        yield { messageStop: { stopReason: 'tool_use' } };
+      })(),
+    };
+
+    respond(span, 'ConverseStream', {}, data);
+    await drain(data.stream);
+
+    expect(outputMessages(span)).toEqual(ASSISTANT_TURN);
+  });
+
+  it('collects a Claude InvokeModelWithResponseStream response by content block', async () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const data = {
+      body: streamOf([
+        { type: 'message_start', message: { role: 'assistant', usage: { input_tokens: 14, output_tokens: 1 } } },
+        // Redacted reasoning has no deltas, so it leaves a gap at its index.
+        { type: 'content_block_start', index: 0, content_block: { type: 'redacted_thinking', data: 'ZW5jcnlwdGVk' } },
+        { type: 'content_block_start', index: 1, content_block: { type: 'thinking', thinking: '' } },
+        { type: 'content_block_delta', index: 1, delta: { type: 'thinking_delta', thinking: 'The user wants ' } },
+        { type: 'content_block_delta', index: 1, delta: { type: 'thinking_delta', thinking: 'the weather.' } },
+        { type: 'content_block_delta', index: 1, delta: { type: 'signature_delta', signature: 'c2ln' } },
+        { type: 'content_block_start', index: 2, content_block: { type: 'text', text: '' } },
+        { type: 'content_block_delta', index: 2, delta: { type: 'text_delta', text: 'Let me ' } },
+        { type: 'content_block_delta', index: 2, delta: { type: 'text_delta', text: 'check.' } },
+        {
+          type: 'content_block_start',
+          index: 3,
+          content_block: { type: 'tool_use', id: 'tooluse_kZJMlvQmRJ6eAyJE5GIl7Q', name: 'get_weather', input: {} },
+        },
+        { type: 'content_block_delta', index: 3, delta: { type: 'input_json_delta', partial_json: '{"city":' } },
+        { type: 'content_block_delta', index: 3, delta: { type: 'input_json_delta', partial_json: '"Vienna"}' } },
+        { type: 'message_delta', delta: { stop_reason: 'tool_use' }, usage: { output_tokens: 42 } },
+      ]),
+    };
+
+    respond(span, 'InvokeModelWithResponseStream', { modelId: CLAUDE_MODEL_ID }, data);
+    await drain(data.body);
+
+    expect(outputMessages(span)).toEqual(ASSISTANT_TURN);
+  });
+
+  it.each([
+    {
+      family: 'Titan',
+      modelId: 'amazon.titan-text-express-v1',
+      toChunk: (text: string) => ({ outputText: text }),
+    },
+    { family: 'Llama', modelId: 'meta.llama3-8b-instruct-v1:0', toChunk: (text: string) => ({ generation: text }) },
+    {
+      family: 'Mistral',
+      modelId: 'mistral.mistral-large-2402-v1:0',
+      toChunk: (text: string) => ({ outputs: [{ text }] }),
+    },
+    {
+      family: 'Cohere Command',
+      modelId: 'cohere.command-text-v14',
+      toChunk: (text: string) => ({ generations: [{ text }] }),
+    },
+    { family: 'Cohere Command R', modelId: 'cohere.command-r-plus-v1:0', toChunk: (text: string) => ({ text }) },
+    {
+      family: 'Nova',
+      modelId: 'amazon.nova-lite-v1:0',
+      toChunk: (text: string) => ({ contentBlockDelta: { contentBlockIndex: 0, delta: { text } } }),
+    },
+  ])('joins the streamed $family text into one part', async ({ modelId, toChunk }) => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const data = { body: streamOf([toChunk('The capital'), toChunk(' is Paris.')]) };
+
+    respond(span, 'InvokeModelWithResponseStream', { modelId }, data);
+    await drain(data.body);
+
+    expect(outputMessages(span)).toEqual([
+      { role: 'assistant', parts: [{ type: 'text', content: 'The capital is Paris.' }] },
+    ]);
+  });
+
+  it.each([
+    { commandName: 'Converse', makeData: () => ({ output: { message: { content: [{ text: 'Paris.' }] } } }) },
+    {
+      commandName: 'InvokeModel',
+      makeData: () => ({ body: encoder.encode(JSON.stringify({ outputs: [{ text: 'Paris.' }] })) }),
+    },
+    {
+      commandName: 'ConverseStream',
+      makeData: () => ({
+        stream: (async function* () {
+          yield { contentBlockStart: { contentBlockIndex: 0, start: { toolUse: { toolUseId: 't', name: 'f' } } } };
+          yield { contentBlockDelta: { contentBlockIndex: 0, delta: { toolUse: { input: '{}' } } } };
+        })(),
+      }),
+    },
+  ])('records no $commandName output when dataCollection.genAI.outputs is off', async ({ commandName, makeData }) => {
+    const client = new TestClient(
+      getDefaultTestClientOptions({ tracesSampleRate: 1, dataCollection: { genAI: { outputs: false } } }),
+    );
+    setCurrentClient(client);
+    client.init();
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const data = makeData();
+
+    respond(span, commandName, { modelId: 'mistral.mistral-large-2402-v1:0' }, data);
+    if ('stream' in data) {
+      await drain(data.stream);
+    }
+
+    expect(spanToJSON(span).attributes).not.toHaveProperty(GEN_AI_OUTPUT_MESSAGES);
   });
 });
