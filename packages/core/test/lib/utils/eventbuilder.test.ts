@@ -308,5 +308,46 @@ describe('eventFromMessage', () => {
       const exception = exceptionFromError(stackParser, error);
       expect(exception.value).toBe('Failed to fetch (localhost:8080)');
     });
+
+    it('should enhance a non-string message', () => {
+      const error = new TypeError('placeholder');
+      (error as { message: unknown }).message = { code: 42 };
+      addNonEnumerableProperty(error, '__sentry_fetch_url_host__', 'example.com');
+
+      const exception = exceptionFromError(stackParser, error);
+      expect(exception.value).toBe('{"code":42} (example.com)');
+    });
+  });
+});
+
+describe('exceptionFromError', () => {
+  const circular: Record<string, unknown> = { code: 42 };
+  circular.self = circular;
+
+  it.each([
+    ['a number', 42, '42'],
+    ['a bigint', BigInt(42), '42'],
+    ['a boolean', false, 'false'],
+    ['undefined', undefined, ''],
+    ['null', null, ''],
+    ['an object', { code: 42 }, '{"code":42}'],
+    ['an array', [1, 'two'], '[1,"two"]'],
+    ['a circular object', circular, '[object Object]'],
+    ['a function', function namedFn() {}, '[Function: namedFn]'],
+    ['an error', new Error('inner'), '[object Error]'],
+    ['a map', new Map([['code', 42]]), '[object Map]'],
+    [
+      'a class instance',
+      new (class CustomMessage {
+        code = 42;
+      })(),
+      '{"code":42}',
+    ],
+  ])('turns %s into a string', (_, message, expected) => {
+    const error = new Error('placeholder');
+    (error as { message: unknown }).message = message;
+
+    const exception = exceptionFromError(stackParser, error);
+    expect(exception.value).toBe(expected);
   });
 });

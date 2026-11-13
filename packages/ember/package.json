@@ -29,7 +29,6 @@
     "build": "rollup --config",
     "build:dev": "pnpm run build",
     "build:tarball": "pnpm pack",
-    "build:watch": "rollup --config --watch",
     "clean": "node ../../scripts/rm.mjs dist declarations *.tgz .turbo",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",

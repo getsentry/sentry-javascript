@@ -341,7 +341,7 @@ importers:
         version: 1.2.9
       hono:
         specifier: ^4.13.7
-        version: 4.13.11
+        version: 4.13.16
       mysql:
         specifier: ^2.18.1
         version: 2.18.1
@@ -497,7 +497,7 @@ importers:
         version: 6.0.218(zod@4.6.7)
       hono:
         specifier: ^4.13.7
-        version: 4.13.11
+        version: 4.13.16
       openai:
         specifier: 5.18.1
         version: 5.18.1(ws@8.22.2)(zod@4.6.7)
@@ -607,7 +607,7 @@ importers:
         version: 21.3.10
       '@hono/node-server':
         specifier: ^2.1.5
-        version: 2.1.5(hono@4.13.11)
+        version: 2.1.7(hono@4.13.16)
       '@koa/router':
         specifier: ^12.0.1
         version: 12.0.2(supports-color@10.0.0)
@@ -742,7 +742,7 @@ importers:
         version: 2.0.1-rc.22(crossws@0.4.10(srvx@0.11.22))
       hono:
         specifier: ^4.13.7
-        version: 4.13.11
+        version: 4.13.16
       ioredis:
         specifier: 5.10.1
         version: 5.10.1(supports-color@10.0.0)
@@ -1513,8 +1513,8 @@ importers:
         specifier: ^20.19.0
         version: 20.19.43
       hono:
-        specifier: 4.13.11
-        version: 4.13.11
+        specifier: 4.13.16
+        version: 4.13.16
       hono-5:
         specifier: npm:hono@5.0.0-rc.1
         version: hono@5.0.0-rc.1
@@ -5337,8 +5337,8 @@ packages:
   '@hapi/wreck@18.1.2':
     resolution: {integrity: sha512-3dMnV2pfhQiyEqu8DL3VBmxkdLiRDiiUDuG79Dp+UK1gL9ZxAfDOUhB6k3D5MLqcgJJ1IARyGFhwoc1NITr/pg==}
 
-  '@hono/node-server@2.1.5':
-    resolution: {integrity: sha512-MgP/I06GdvsilDspMk/qmRzpk8LOUStP6jFAbSRi40W09DhoyUn+Mj7eyKICPqeYKybOjVFLVIAQzvu1bfIa7Q==}
+  '@hono/node-server@2.1.7':
+    resolution: {integrity: sha512-Wr0E6S+v2Bw9FkpGNP5BQ5QbJvclUa06UVehd65WFZe6XeJwbrKQQ5wPDevc0IC+QyzbO7v3Llh5uo45IZcSnA==}
     engines: {node: '>=20'}
     peerDependencies:
       hono: ^4 || ^5.0.0-0
@@ -12633,8 +12633,8 @@ packages:
   hoist-non-react-statics@3.3.2:
     resolution: {integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==}
 
-  hono@4.13.11:
-    resolution: {integrity: sha512-/SMX/RQNJn7oNmFwH6DtwDqcrzZU2otm1FD6OJe2cWF6cfy/F8hq0XVBv7xW3FTJshRQwuBnXHDq2kNsdZnshg==}
+  hono@4.13.16:
+    resolution: {integrity: sha512-AOLOEhvrV+iH92xXCnFr/5+3KjPKcI3xP63XJtX5spAnkznPdHijlIsUTpi7/9EhWqrTCekw5c5zh1K+YsVw7A==}
     engines: {node: '>=16.9.0'}
 
   hono@5.0.0-rc.1:
@@ -23484,10 +23484,10 @@ snapshots:
     dependencies:
       '@earendil-works/pi-agent-core': 1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7)
       '@earendil-works/pi-ai': 1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7)
-      '@hono/node-server': 2.1.5(hono@4.13.11)
+      '@hono/node-server': 2.1.7(hono@4.13.16)
       '@modelcontextprotocol/client': 2.0.0
       '@valibot/to-json-schema': 1.8.0(valibot@1.5.0(typescript@7.0.2))
-      hono: 4.13.11
+      hono: 4.13.16
       js-yaml: 5.5.0
       ulidx: 2.4.1
       valibot: 1.5.0(typescript@7.0.2)
@@ -23817,9 +23817,9 @@ snapshots:
       '@hapi/bourne': 3.0.0
       '@hapi/hoek': 11.0.4
 
-  '@hono/node-server@2.1.5(hono@4.13.11)':
+  '@hono/node-server@2.1.7(hono@4.13.16)':
     dependencies:
-      hono: 4.13.11
+      hono: 4.13.16
 
   '@humanwhocodes/config-array@0.11.14(supports-color@10.0.0)':
     dependencies:
@@ -24412,7 +24412,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7)':
     dependencies:
-      '@hono/node-server': 2.1.5(hono@4.13.11)
+      '@hono/node-server': 2.1.7(hono@4.13.16)
       ajv: 8.20.0
       ajv-formats: 3.0.1
       content-type: 1.0.5
@@ -24422,7 +24422,7 @@ snapshots:
       eventsource-parser: 3.1.1
       express: 5.3.0(supports-color@10.0.0)
       express-rate-limit: 8.7.1(express@5.3.0(supports-color@10.0.0))(supports-color@10.0.0)
-      hono: 4.13.11
+      hono: 4.13.16
       jose: 6.2.10
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
@@ -32197,7 +32197,7 @@ snapshots:
     dependencies:
       react-is: 16.13.1
 
-  hono@4.13.11: {}
+  hono@4.13.16: {}
 
   hono@5.0.0-rc.1: {}
 
