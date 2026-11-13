@@ -55,7 +55,7 @@ export type { RequestInstrumentationOptions } from './tracing/request';
 export {
   captureConsoleIntegration,
   extraErrorDataIntegration,
-  experimentalSdkConfigIntegration,
+  experimentalReportSdkConfigIntegration,
   rewriteFramesIntegration,
   consoleLoggingIntegration,
   createConsolaReporter,

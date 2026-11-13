@@ -154,7 +154,7 @@ export {
   captureConsoleIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
-  experimentalSdkConfigIntegration,
+  experimentalReportSdkConfigIntegration,
   rewriteFramesIntegration,
   startSession,
   captureSession,

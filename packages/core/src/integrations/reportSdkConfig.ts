@@ -10,8 +10,8 @@ import { isPlainObject } from '../utils/is';
 import { timestampInSeconds } from '../utils/time';
 import { safeUnref } from '../utils/timer';
 
-const _experimentalSdkConfigIntegration = (() => ({
-  name: 'ExperimentalSdkConfig',
+const _experimentalReportSdkConfigIntegration = (() => ({
+  name: 'ExperimentalReportSdkConfig',
   afterAllSetup(client: Client) {
     const scope = new Scope();
     scope.setClient(client);
@@ -39,7 +39,7 @@ const _experimentalSdkConfigIntegration = (() => ({
  *
  * @experimental This integration may change or be removed without notice.
  */
-export const experimentalSdkConfigIntegration = defineIntegration(_experimentalSdkConfigIntegration);
+export const experimentalReportSdkConfigIntegration = defineIntegration(_experimentalReportSdkConfigIntegration);
 
 // Sort object keys recursively, preserving array order. Replace functions
 // and unsupported values with fingerprints before hashing the config.

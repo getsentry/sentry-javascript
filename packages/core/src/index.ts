@@ -164,7 +164,7 @@ export { requestDataIntegration } from './integrations/requestdata';
 export { captureConsoleIntegration } from './integrations/captureconsole';
 export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
-export { experimentalSdkConfigIntegration } from './integrations/sdkConfig';
+export { experimentalReportSdkConfigIntegration } from './integrations/reportSdkConfig';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { supabaseIntegration, instrumentSupabaseClient } from './integrations/supabase';
 export { zodErrorsIntegration } from './integrations/zoderrors';
