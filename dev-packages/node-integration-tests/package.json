@@ -35,6 +35,7 @@
     "@aws-sdk/client-sfn": "^3.1161.0",
     "@aws-sdk/client-sns": "^3.1161.0",
     "@aws-sdk/client-sqs": "^3.1161.0",
+    "@clickhouse/client": "1.25.0",
     "@earendil-works/chord": "^1.4.0",
     "@earendil-works/pi-ai": "^1.4.0",
     "@earendil-works/pi-durable": "^1.4.0",

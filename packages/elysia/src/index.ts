@@ -135,6 +135,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   neonIntegration,
+  clickhouseIntegration,
   prismaIntegration,
   processSessionIntegration,
   hapiIntegration,

@@ -86,6 +86,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   neonIntegration,
+  clickhouseIntegration,
   prismaIntegration,
   redisIntegration,
   requestDataIntegration,
