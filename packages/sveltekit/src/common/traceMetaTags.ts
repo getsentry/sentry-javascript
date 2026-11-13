@@ -1,6 +1,5 @@
 /**
- * Replaces the trace meta tags of pages that are reused. Holds the `sentry-trace` of the render that a
- * Vercel ISR page reuses, or is empty for a page prerendered during the build: spans from the build are
- * not reliably sent, so there is no origin to link.
+ * Replaces `sentry-trace` and `baggage` in a page that many visitors get. Holds the `sentry-trace` of the
+ * render to link, or is empty. The client links it but never continues it.
  */
 export const CACHE_ORIGIN_META_TAG_NAME = 'sentry-cache-origin';

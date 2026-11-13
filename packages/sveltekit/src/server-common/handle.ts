@@ -97,27 +97,29 @@ export function addSentryCodeToPage(options: {
   };
 }
 
-/** Trace meta tags in a page that other visitors get too would put one trace into all of their pageloads. */
+/**
+ * Returns the meta tags for the pageload. A page rendered for this request gets the trace meta tags. A page
+ * that many visitors get, such as a prerendered or ISR page, gets `sentry-cache-origin` instead, so each
+ * pageload starts its own trace.
+ */
 function getPageMetaTags(html: string, isVercelIsrRender: boolean): string {
-  const cacheOrigin = getCacheOrigin(isVercelIsrRender);
-  if (cacheOrigin === undefined) {
+  if (!isVercelIsrRender && !isSvelteKitBuilding()) {
     return getTraceMetaTags();
   }
-  return isServerRenderedPage(html) ? `<meta name="${CACHE_ORIGIN_META_TAG_NAME}" content="${cacheOrigin}"/>` : '';
-}
 
-/**
- * The `sentry-trace` of the render that other visitors reuse, empty for the build (its spans are not
- * reliably sent), or `undefined` if the page is rendered for this request only.
- */
-function getCacheOrigin(isVercelIsrRender: boolean): string | undefined {
-  if (isVercelIsrRender) {
-    return getTraceData()['sentry-trace'] ?? '';
+  // An `ssr = false` page has no server-rendered content, so `page.server_rendering.type` does not apply.
+  // Many visitors get the same HTML, so it gets no trace tags either.
+  if (!isServerRenderedPage(html)) {
+    return '';
   }
-  return isSvelteKitBuilding() ? '' : undefined;
+
+  // The build does not reliably send spans, so a prerendered page has no trace to link.
+  // The empty tag still marks the pageload as static.
+  const originTrace = isVercelIsrRender ? getTraceData()['sentry-trace'] : undefined;
+  return `<meta name="${CACHE_ORIGIN_META_TAG_NAME}" content="${originTrace ?? ''}"/>`;
 }
 
-/** Kit writes `node_ids` only for server-rendered pages, not for shells (`ssr = false`, SPA fallback). */
+/** Kit writes `node_ids` only if the server rendered content, not for `ssr = false` or the SPA fallback. */
 function isServerRenderedPage(html: string): boolean {
   return html.includes('node_ids:');
 }
@@ -254,7 +256,8 @@ async function instrumentHandle(
       const res = await resolve(event, {
         transformPageChunk: addSentryCodeToPage({
           injectFetchProxyScript: options.injectFetchProxyScript ?? true,
-          // Vercel sets this on every invocation of an ISR function, also for background revalidations
+          // Vercel sets this on every ISR invocation, also on revalidation.
+          // A client that sends it changes only its own response.
           isVercelIsrRender: event.request.headers.has('x-vercel-isr'),
         }),
       });

@@ -8,8 +8,8 @@ import { CACHE_ORIGIN_META_TAG_NAME } from '../common/traceMetaTags';
 const TRACE_FLAG_SAMPLED = 0x1;
 
 /**
- * Marks the pageload of a reused page as `static`, and links the render that the page reuses. Set at
- * span start, so `tracesSampler` sees the attribute. Like a `use cache` hit, links only a sampled render.
+ * Marks the pageload of a reused page as `static` at span start, so `tracesSampler` sees it. Links the
+ * render only if it was sampled, like every `cache_origin` link.
  */
 export function withCacheOrigin(spanOptions: StartSpanOptions): StartSpanOptions {
   const cacheOrigin = WINDOW.document
