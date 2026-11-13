@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { HTTP_CLIENT, HTTP_SERVER } from '@sentry/conventions/op';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { collectStreamedSpans, getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isViteServer, NITRO_ONLY } from './isViteServer';
@@ -21,7 +22,7 @@ test('continues an incoming trace in the server segment and its events', async (
 
   const [segment, event] = await Promise.all([segmentPromise, eventPromise]);
 
-  expect(getSpanOp(segment)).toBe('http.server');
+  expect(getSpanOp(segment)).toBe(HTTP_SERVER);
   expect(segment.parent_span_id).toBe(parentSpanId);
   expect(segment.attributes['url.path']?.value).toBe('/api/trace-continuation');
   expect(event.contexts?.trace?.trace_id).toBe(traceId);
@@ -34,7 +35,7 @@ test('propagates the trace to an outgoing `fetch` request', async ({ request }) 
   const isIncomingSegment = (span: SerializedStreamedSpan) =>
     span.is_segment && span.attributes['url.path']?.value === '/api/echo-headers';
   const isHttpClientSpan = (span: SerializedStreamedSpan) =>
-    getSpanOp(span) === 'http.client' && String(span.attributes['url.full']?.value).endsWith('/api/echo-headers');
+    getSpanOp(span) === HTTP_CLIENT && String(span.attributes['url.full']?.value).endsWith('/api/echo-headers');
 
   // Both segments and the http.client span in between share one trace, and `collectStreamedSpans`
   // evaluates one trace at a time, so requiring all three keeps them paired.

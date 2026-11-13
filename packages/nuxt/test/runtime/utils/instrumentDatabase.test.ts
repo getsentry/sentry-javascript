@@ -1,3 +1,4 @@
+import { DB_NAMESPACE, DB_QUERY_TEXT, DB_SYSTEM_NAME, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import type { Database } from 'db0';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -32,9 +33,9 @@ describe('createDatabasePlugin', () => {
     expect(SentryCore.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
-          'db.query.text': 'SELECT * FROM missing',
-          'db.system.name': 'sqlite',
-          'sentry.origin': 'auto.db.nuxt',
+          [DB_QUERY_TEXT]: 'SELECT * FROM missing',
+          [DB_SYSTEM_NAME]: 'sqlite',
+          [SENTRY_ORIGIN]: 'auto.db.nuxt',
         }),
       }),
       expect.any(Function),
@@ -54,7 +55,7 @@ describe('createDatabasePlugin', () => {
 
     expect(SentryCore.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
-        attributes: expect.objectContaining({ 'db.system.name': 'sqlite', 'db.namespace': 'db.sqlite' }),
+        attributes: expect.objectContaining({ [DB_SYSTEM_NAME]: 'sqlite', [DB_NAMESPACE]: 'db.sqlite' }),
       }),
       expect.any(Function),
     );
