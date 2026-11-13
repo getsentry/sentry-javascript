@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           sparse-checkout: |
-            .github/CODEOWNERS
+            .github/REVIEWERS
             scripts/assign-reviewers.mjs
             scripts/junior-requesters.mjs
           sparse-checkout-cone-mode: false

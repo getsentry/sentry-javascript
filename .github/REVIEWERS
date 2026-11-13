@@ -1,3 +1,8 @@
+# Reviewer routing for scripts/assign-reviewers.mjs, in CODEOWNERS syntax.
+# This is deliberately not a CODEOWNERS file: GitHub requests every matching
+# code owner team as soon as a PR opens, before the workflow requests anyone,
+# so the whole team gets notified.
+
 # Browser, replay, feedback, and related packages
 /packages/browser/                  @getsentry/team-javascript-sdks-browser
 /packages/browser-utils/            @getsentry/team-javascript-sdks-browser
