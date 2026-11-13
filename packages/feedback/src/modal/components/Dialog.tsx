@@ -1,7 +1,7 @@
 import type { FeedbackFormData, FeedbackInternalOptions } from '@sentry/core';
 import type { VNode } from 'preact';
 import { Fragment, h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
-import { useCallback, useMemo, useState } from 'preact/hooks';
+import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { SUCCESS_MESSAGE_TIMEOUT } from '../../constants';
 import type { Props as HeaderProps } from './DialogHeader';
 import { DialogHeader } from './DialogHeader';
@@ -20,6 +20,35 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
   const successIconHtml = useMemo(() => ({ __html: SuccessIcon().outerHTML }), []);
 
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    if (open && dialog && !dialog.open) {
+      if (typeof dialog.showModal === 'function') {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute('open', '');
+        dialog.querySelector<HTMLElement>('[autofocus]')?.focus();
+      }
+    }
+    return () => {
+      if (typeof dialog?.close === 'function') {
+        dialog.close();
+      } else {
+        dialog?.removeAttribute('open');
+      }
+    };
+  }, [open, timeoutId]);
+
+  useLayoutEffect(() => {
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [timeoutId]);
 
   const handleOnSuccessClick = useCallback(() => {
     if (timeoutId) {
@@ -52,7 +81,41 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
           </div>
         </div>
       ) : (
-        <dialog class="dialog" onClick={options.onFormClose} open={open}>
+        <dialog
+          class="dialog"
+          ref={dialogRef}
+          role="dialog"
+          aria-labelledby={titleId}
+          onClick={props.onFormClose}
+          onCancel={event => {
+            event.preventDefault();
+            props.onFormClose();
+          }}
+          onKeyDown={event => {
+            if (event.key === 'Escape' && typeof event.currentTarget.showModal !== 'function') {
+              event.preventDefault();
+              props.onFormClose();
+              return;
+            }
+            if (event.key !== 'Tab') {
+              return;
+            }
+            const controls = Array.from(
+              event.currentTarget.querySelectorAll<HTMLElement>('a[href], button, input, textarea, select, [tabindex]'),
+            ).filter(
+              control => control.tabIndex >= 0 && !control.matches(':disabled') && control.getClientRects().length > 0,
+            );
+            const first = controls[0];
+            const last = controls[controls.length - 1];
+            if (event.shiftKey && event.target === first) {
+              event.preventDefault();
+              last?.focus();
+            } else if (!event.shiftKey && event.target === last) {
+              event.preventDefault();
+              first?.focus();
+            }
+          }}
+        >
           <div class="dialog__position">
             <div
               class="dialog__content"
@@ -61,7 +124,7 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
                 e.stopPropagation();
               }}
             >
-              <DialogHeader options={options} />
+              <DialogHeader options={options} titleId={titleId} />
               <Form {...props} onSubmitSuccess={onSubmitSuccess} />
             </div>
           </div>
