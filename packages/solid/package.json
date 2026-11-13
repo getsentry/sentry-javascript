@@ -84,10 +84,10 @@
     "vite-plugin-solid": "^2.11.6"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:dev": "pnpm run build",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:routers",
+    "build:types": "pnpm run build:types:core && pnpm run build:types:routers",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:routers": "tsc -p tsconfig.routers-types.json",
     "build:tarball": "pnpm pack",

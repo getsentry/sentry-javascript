@@ -53,10 +53,10 @@
     "webpack": "^5.112.2"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:dev": "pnpm run build",
     "build:plugin": "tsc -p tsconfig.plugin.json",
-    "build:transpile": "run-p build:rollup build:plugin",
+    "build:transpile": "pnpm run \"/^build:(rollup|plugin)$/\"",
     "build:rollup": "rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:tarball": "pnpm pack",

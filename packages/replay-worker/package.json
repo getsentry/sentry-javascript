@@ -28,7 +28,7 @@
   "sideEffects": false,
   "private": true,
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:transpile": "rolldown -c rollup.worker.config.mjs",
     "build:examples": "rolldown -c rollup.examples.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",

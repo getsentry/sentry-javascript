@@ -39,9 +39,9 @@
     "@sentry-internal/rollup-utils": "11.12.0"
   },
   "scripts": {
-    "build": "run-p build:transpile build:bundle build:types",
+    "build": "pnpm run \"/^build:(transpile|bundle|types)$/\"",
     "build:bundle": "rolldown --config rollup.bundle.config.mjs",
-    "build:dev": "run-p build:transpile build:types",
+    "build:dev": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:tarball": "pnpm pack",

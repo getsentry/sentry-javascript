@@ -67,10 +67,10 @@
     "vue": "~3.5.44"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types",
-    "build:dev": "run-p build:transpile build:types",
+    "build": "pnpm run \"/^build:(transpile|types)$/\"",
+    "build:dev": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:router",
+    "build:types": "pnpm run build:types:core && pnpm run build:types:router",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:router": "tsc -p tsconfig.router-types.json",
     "build:tarball": "pnpm pack",

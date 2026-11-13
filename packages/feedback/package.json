@@ -40,10 +40,10 @@
     "preact": "^10.29.8"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types build:bundle",
+    "build": "pnpm run \"/^build:(transpile|types|bundle)$/\"",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
     "build:bundle": "rolldown -c rollup.bundle.config.mjs",
-    "build:dev": "run-p build:transpile build:types",
+    "build:dev": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:types": "tsc -p tsconfig.types.json",
     "build:tarball": "pnpm pack",
     "clean": "node ../../scripts/rm.mjs build sentry-feedback-*.tgz",
