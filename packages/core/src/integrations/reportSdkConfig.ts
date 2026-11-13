@@ -1,6 +1,7 @@
 import type { Client } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
+import { _INTERNAL_flushMetricsBuffer } from '../metrics/internal';
 import { count } from '../metrics/public-api';
 import { Scope } from '../scope';
 import type { IntegrationFn } from '../types/integration';
@@ -15,21 +16,34 @@ const _experimentalReportSdkConfigIntegration = (() => ({
   afterAllSetup(client: Client) {
     const scope = new Scope();
     scope.setClient(client);
+    let reported = false;
 
-    // Allow configuration to settle before capturing it.
-    const timer = safeUnref(
-      setTimeout(() => {
-        try {
-          const attributes = buildConfigAttributes(client);
-          count('sdk.config', 1, { attributes, scope });
-        } catch (error) {
-          DEBUG_BUILD && debug.warn('Failed to report SDK configuration', error);
-        }
-      }, 5000),
-    );
+    const report = (): void => {
+      // The timer and flush hook can both request capture; only report once.
+      if (reported) {
+        return;
+      }
 
-    client.on('close', () => {
+      reported = true;
       clearTimeout(timer);
+
+      try {
+        const attributes = buildConfigAttributes(client);
+        count('sdk.config', 1, { attributes, scope });
+      } catch (error) {
+        DEBUG_BUILD && debug.warn('Failed to report SDK configuration', error);
+      }
+    };
+
+    // Allow configuration to settle unless the client flushes earlier.
+    const timer = safeUnref(setTimeout(report, 5000));
+
+    // Close, tab hiding, and natural Node process exit trigger flushing.
+    client.on('flush', () => {
+      report();
+      // report() may register the first metric flusher too late for this flush,
+      // or run after an existing flusher. Drain explicitly to cover both cases.
+      _INTERNAL_flushMetricsBuffer(client);
     });
   },
 })) satisfies IntegrationFn;
