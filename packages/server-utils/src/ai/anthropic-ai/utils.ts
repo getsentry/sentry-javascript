@@ -5,24 +5,21 @@ import { extractSystemInstructions } from '../core/utils';
 import type { AnthropicAiResponse } from './types';
 
 /**
- * Set the input messages attribute, extracting system instructions into their own attribute.
+ * Get the input messages attribute, with system instructions extracted into their own attribute.
  */
-export function setMessagesAttribute(span: Span, messages: unknown): void {
+export function getMessagesAttributes(messages: unknown): Record<string, string | undefined> {
   if (Array.isArray(messages) && messages.length === 0) {
-    return;
+    return {};
   }
 
   const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
 
+  const attributes: Record<string, string | undefined> = {};
   if (systemInstructions) {
-    span.setAttributes({
-      [GEN_AI_SYSTEM_INSTRUCTIONS]: systemInstructions,
-    });
+    attributes[GEN_AI_SYSTEM_INSTRUCTIONS] = systemInstructions;
   }
-
-  span.setAttributes({
-    [GEN_AI_INPUT_MESSAGES]: stringify(filteredMessages),
-  });
+  attributes[GEN_AI_INPUT_MESSAGES] = stringify(filteredMessages);
+  return attributes;
 }
 
 const ANTHROPIC_ERROR_TYPE_TO_SPAN_STATUS: Record<string, SpanStatusType> = {
