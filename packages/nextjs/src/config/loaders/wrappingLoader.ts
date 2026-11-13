@@ -1,5 +1,5 @@
 import commonjs from '@rollup/plugin-commonjs';
-import { stringMatchesSomePattern } from '@sentry/core';
+import { stringifyForCodeInjection, stringMatchesSomePattern } from '@sentry/core';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { RollupBuild, RollupError } from 'rollup';
@@ -119,7 +119,10 @@ export default function wrappingLoader(
       throw new Error(`Invariant: Could not get template code of unknown kind "${wrappingTargetKind}"`);
     }
 
-    templateCode = templateCode.replace(/__VERCEL_CRONS_CONFIGURATION__/g, JSON.stringify(vercelCronsConfig));
+    templateCode = templateCode.replace(
+      /__VERCEL_CRONS_CONFIGURATION__/g,
+      stringifyForCodeInjection(vercelCronsConfig),
+    );
 
     // Inject the route and the path to the file we're wrapping into the template
     templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));

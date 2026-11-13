@@ -1,6 +1,7 @@
 import {
-  type BuildTimeOptionsBase,
   _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath,
+  type BuildTimeOptionsBase,
+  stringifyForCodeInjection,
   warnOnRemovedBuildOptions,
 } from '@sentry/core';
 import { setupSentryNitroModule } from '@sentry/nitro';
@@ -114,7 +115,7 @@ function makeSentryNitroPlugin(options: SentrySolidStartOptions): Plugin {
       const tunnelBasePath = normalizeTunnelBasePath(userConfig.server?.baseURL || userConfig.base);
 
       return {
-        define: { __SENTRY_SOLIDSTART_TUNNEL_BASE_PATH__: JSON.stringify(tunnelBasePath) },
+        define: { __SENTRY_SOLIDSTART_TUNNEL_BASE_PATH__: stringifyForCodeInjection(tunnelBasePath) },
         nitro: {
           ...(setupSentryNitroModule(
             // `sourcemap` decides whether Sentry enables its own; `tracingChannel` is left as the user set it.

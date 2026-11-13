@@ -3,7 +3,7 @@ import { basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { addNitroPlugin, addTemplate, createResolver } from '@nuxt/kit';
 import type { Nuxt } from '@nuxt/schema';
-import { consoleSandbox, debug } from '@sentry/core';
+import { consoleSandbox, debug, stringifyForCodeInjection } from '@sentry/core';
 import * as fs from 'fs';
 import type { Nitro } from 'nitropack';
 import type { InputPluginOption } from 'rollup';
@@ -116,7 +116,7 @@ export function addServerConfigPlugin(nuxt: Nuxt, serverConfigFile: string, isLe
     filename: 'sentry-server-config-plugin.mjs',
     write: true,
     getContents: () =>
-      `import ${JSON.stringify(runtimeFlagsTemplate.dst)};\nimport ${JSON.stringify(configPath)};\nexport default () => {};\n`,
+      `import ${stringifyForCodeInjection(runtimeFlagsTemplate.dst)};\nimport ${stringifyForCodeInjection(configPath)};\nexport default () => {};\n`,
   });
 
   addNitroPlugin(configPluginTemplate.dst);
@@ -368,10 +368,10 @@ export function wrapEntryWithDynamicImport({
 
         return (
           // Regular `import` of the Sentry config
-          `import ${JSON.stringify(configUrl)};\n` +
+          `import ${stringifyForCodeInjection(configUrl)};\n` +
           // Dynamic `import()` for the previous, actual entry point.
           // `import()` can be used for any code that should be run after the hooks are registered (https://nodejs.org/api/module.html#enabling)
-          `import(${JSON.stringify(entryIdUrl)});\n` +
+          `import(${stringifyForCodeInjection(entryIdUrl)});\n` +
           `${reExportedFunctions}\n`
         );
       }

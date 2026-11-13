@@ -2,6 +2,7 @@
 import MagicString from 'magic-string';
 import { DEFAULT_EXPORT, type ExportName, type SameWorkerBinding } from './wranglerConfig';
 import { detectWorkerEntrypointClasses } from './workerEntrypoint';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 const MERGED_OPTIONS_IDENTIFIER = '__SENTRY_OPTIONS__';
 
@@ -272,7 +273,7 @@ function buildMergedOptionsDeclaration(
     return `const ${MERGED_OPTIONS_IDENTIFIER} = ${optionsFn};\n`;
   }
 
-  const names = bindingNames.map(name => JSON.stringify(name)).join(', ');
+  const names = bindingNames.map(name => stringifyForCodeInjection(name)).join(', ');
   return (
     `const ${MERGED_OPTIONS_IDENTIFIER} = (env) => { ` +
     `const opts = (${optionsFn})(env); ` +

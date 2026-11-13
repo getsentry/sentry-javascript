@@ -6,6 +6,7 @@ import type { Plugin } from 'vite';
 import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
 import type { ResolvedKitConfig } from './kitConfig';
 import { isNativeServerTracingEnabled } from './kitConfig';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 const AcornParser = acorn.Parser.extend(tsPlugin());
 
@@ -200,8 +201,8 @@ function getWrapperCode(
 ): string {
   return (
     `import { ${wrapperFunction} } from "@sentry/sveltekit";` +
-    `import * as userModule from ${JSON.stringify(idWithSuffix)};` +
+    `import * as userModule from ${stringifyForCodeInjection(idWithSuffix)};` +
     `export const load = userModule.load ? ${wrapperFunction}(userModule.load) : undefined;` +
-    `export * from ${JSON.stringify(idWithSuffix)};`
+    `export * from ${stringifyForCodeInjection(idWithSuffix)};`
   );
 }

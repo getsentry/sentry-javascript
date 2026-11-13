@@ -1,5 +1,6 @@
 import { getCodeInjectionPosition } from '@sentry/bundler-plugins/loader-utils';
 import type { LoaderThis } from './types';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 export type ModuleMetadataInjectionLoaderOptions = {
   applicationKey: string;
@@ -31,7 +32,7 @@ export default function moduleMetadataInjectionLoader(
   // The IIFE resolves the global object and stores metadata keyed by (new Error).stack
   // so the SDK can map chunk filenames to metadata at runtime.
   // Not putting any newlines in the generated code will decrease the likelihood of sourcemaps breaking.
-  const metadata = JSON.stringify({ [`_sentryBundlerPluginAppKey:${applicationKey}`]: true });
+  const metadata = stringifyForCodeInjection({ [`_sentryBundlerPluginAppKey:${applicationKey}`]: true });
   const injectedCode =
     ';!function(){try{' +
     'var e="undefined"!=typeof globalThis?globalThis:"undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:{};' +

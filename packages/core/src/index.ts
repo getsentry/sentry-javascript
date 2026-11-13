@@ -563,4 +563,5 @@ export {
   safeDateNow as _INTERNAL_safeDateNow,
 } from './utils/randomSafeContext';
 export { warnOnRemovedBuildOptions } from './build-time-plugins/warnOnRemovedBuildOptions';
+export { stringifyForCodeInjection } from './build-time-plugins/stringifyForCodeInjection';
 export { startSpan, startInactiveSpan, startSpanManual } from './tracing/trace';

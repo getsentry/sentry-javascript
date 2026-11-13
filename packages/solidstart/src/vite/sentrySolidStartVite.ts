@@ -1,4 +1,4 @@
-import { warnOnRemovedBuildOptions } from '@sentry/core';
+import { stringifyForCodeInjection, warnOnRemovedBuildOptions } from '@sentry/core';
 import type { Plugin, UserConfig } from 'vite';
 import { makeBuildInstrumentationFilePlugin } from './buildInstrumentationFile';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
@@ -19,7 +19,7 @@ export const sentrySolidStartVite = (
       name: 'sentry-solidstart-tunnel-base-path',
       // Serves the browser's managed tunnel under `server.baseURL`, like every other route of the app.
       config: () => ({
-        define: { __SENTRY_SOLIDSTART_TUNNEL_BASE_PATH__: JSON.stringify(tunnelBasePath) },
+        define: { __SENTRY_SOLIDSTART_TUNNEL_BASE_PATH__: stringifyForCodeInjection(tunnelBasePath) },
       }),
     },
   ];

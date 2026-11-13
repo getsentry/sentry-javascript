@@ -5,6 +5,7 @@ import type {
   SentryPreprocessorGroup,
   TrackComponentOptions,
 } from './types';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 export const defaultComponentTrackingOptions: Required<ComponentTrackingInitOptions> = {
   trackComponents: true,
@@ -64,7 +65,7 @@ export function componentTrackingPreprocessor(options?: ComponentTrackingInitOpt
       };
 
       const importStmt = 'import { trackComponent } from "@sentry/svelte";\n';
-      const functionCall = `trackComponent(${JSON.stringify(trackComponentOptions)});\n`;
+      const functionCall = `trackComponent(${stringifyForCodeInjection(trackComponentOptions)});\n`;
 
       const s = new MagicString(content);
       s.prepend(functionCall).prepend(importStmt);
