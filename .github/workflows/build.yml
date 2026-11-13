@@ -759,6 +759,10 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: ./.github/actions/setup-node
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Restore build bundle artifacts
         uses: actions/download-artifact@v8

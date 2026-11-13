@@ -1,7 +1,7 @@
 // Loads the CDN bundles in the oldest Chromium we support and checks that the web vitals it can
 // measure are sent, and that nothing throws. Playwright only drives the Chromium it ships with, so
-// this talks to the browser over the DevTools protocol directly and needs no dependencies. Run it after
-// `pnpm build:bundle` in `packages/browser`.
+// this talks to the browser over the DevTools protocol directly. Run it after `pnpm build:bundle` in
+// `packages/browser`.
 import { execFileSync, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -9,6 +9,7 @@ import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CDPClient, createBasicSentryServer, getSpanOp } from '@sentry-internal/test-utils';
 
 // Chromium 80.0.3987.0, the minimum Chrome version in our supported browsers docs.
 const CHROMIUM_REVISION = '722234';
@@ -50,27 +51,17 @@ async function ensureChromium() {
   rmSync(zip);
 }
 
-// The page is served from 127.0.0.1 and the DSN points at localhost, so envelopes are sent cross-origin like
-// they are to sentry.io.
-function startServer(bundlePath, envelopes) {
+// The page and the DSN are on different ports, so envelopes are sent cross-origin like they are to sentry.io.
+function startPageServer(bundlePath, sentryPort) {
+  const page = PAGE.replace('__DSN__', `http://public@localhost:${sentryPort}/1337`);
   const server = createServer((req, res) => {
-    if (req.method === 'POST' && req.url.startsWith('/api/1337/envelope/')) {
-      let body = '';
-      req.on('data', chunk => (body += chunk));
-      req.on('end', () => {
-        envelopes.push(body);
-        res.setHeader('access-control-allow-origin', '*');
-        res.end('{}');
-      });
-      return;
-    }
     if (req.url === '/bundle.js') {
       res.setHeader('content-type', 'text/javascript');
       res.end(readFileSync(bundlePath));
       return;
     }
     res.setHeader('content-type', 'text/html');
-    res.end(PAGE.replace('__DSN__', `http://public@localhost:${server.address().port}/1337`));
+    res.end(page);
   });
   return new Promise(resolve => server.listen(0, '127.0.0.1', () => resolve(server)));
 }
@@ -112,140 +103,136 @@ async function connect(port) {
   if (!page) {
     throw new Error('Chromium has no page target');
   }
-  const ws = new WebSocket(page.webSocketDebuggerUrl);
-  await new Promise((resolve, reject) => {
-    ws.onopen = resolve;
-    ws.onerror = reject;
-  });
-
-  let lastId = 0;
-  const pending = new Map();
-  const listeners = [];
-  ws.onmessage = ({ data }) => {
-    const message = JSON.parse(data);
-    if (!message.id) {
-      listeners.forEach(listener => listener(message));
-      return;
-    }
-    const { resolve, reject } = pending.get(message.id);
-    pending.delete(message.id);
-    message.error ? reject(new Error(message.error.message)) : resolve(message.result);
-  };
-
-  const send = (method, params = {}) =>
-    new Promise((resolve, reject) => {
-      pending.set(++lastId, { resolve, reject });
-      ws.send(JSON.stringify({ id: lastId, method, params }));
-    });
-  const waitFor = method => new Promise(resolve => listeners.push(message => message.method === method && resolve()));
-  const evaluate = async expression => {
-    const { result, exceptionDetails } = await send('Runtime.evaluate', {
-      expression,
-      awaitPromise: true,
-      returnByValue: true,
-    });
-    if (exceptionDetails) {
-      throw new Error(`Evaluating failed: ${exceptionDetails.exception?.description ?? exceptionDetails.text}`);
-    }
-    return result.value;
-  };
-
-  return { send, waitFor, evaluate, on: listener => listeners.push(listener), close: () => ws.close() };
+  const cdp = new CDPClient({ url: page.webSocketDebuggerUrl, retries: 1 });
+  await cdp.connect();
+  return cdp;
 }
 
-function parseEnvelopes(envelopes) {
-  const spans = [];
-  const events = [];
-  for (const envelope of envelopes) {
-    const [, ...items] = envelope.split('\n').filter(Boolean);
-    for (let i = 0; i < items.length; i += 2) {
-      const header = JSON.parse(items[i]);
-      const payload = JSON.parse(items[i + 1]);
+function waitForEvent(cdp, method) {
+  return new Promise(resolve => {
+    const off = cdp.on(method, () => {
+      off();
+      resolve();
+    });
+  });
+}
+
+async function evaluate(cdp, expression) {
+  const { result, exceptionDetails } = await cdp.send('Runtime.evaluate', {
+    expression,
+    awaitPromise: true,
+    returnByValue: true,
+  });
+  if (exceptionDetails) {
+    throw new Error(`Evaluating failed: ${exceptionDetails.exception?.description ?? exceptionDetails.text}`);
+  }
+  return result.value;
+}
+
+function collectItems(spans, events) {
+  return ([, items]) => {
+    for (const [header, payload] of items) {
       if (header.type === 'span') {
         spans.push(...payload.items);
       } else if (header.type === 'event') {
         events.push(payload);
       }
     }
-  }
-  return { spans, events };
+  };
 }
 
-const getOp = span => span.attributes['sentry.op']?.value;
-const isPageload = span => span.is_segment && getOp(span) === 'pageload';
+const isPageload = span => span.is_segment && getSpanOp(span) === 'pageload';
 
 async function runBundle(bundle) {
-  const envelopes = [];
+  const spans = [];
+  const events = [];
   const errors = [];
-  const server = await startServer(path.join(BUNDLES_DIR, bundle), envelopes);
+  const [sentryPort, closeSentryServer] = await createBasicSentryServer(collectItems(spans, events));
+  const server = await startPageServer(path.join(BUNDLES_DIR, bundle), sentryPort);
   const userDataDir = mkdtempSync(path.join(tmpdir(), 'chromium-profile-'));
   const { chrome, port } = launchChrome(userDataDir);
   let cdp;
 
   try {
     cdp = await connect(await port);
-    cdp.on(({ method, params }) => {
-      if (method === 'Runtime.exceptionThrown') {
-        errors.push(params.exceptionDetails.exception?.description ?? params.exceptionDetails.text);
-      } else if (method === 'Runtime.consoleAPICalled' && params.type === 'error') {
-        errors.push(params.args.map(arg => arg.value ?? arg.description).join(' '));
-      } else if (method === 'Log.entryAdded' && params.entry.level === 'error') {
-        errors.push(params.entry.text);
+    cdp.on('Runtime.exceptionThrown', ({ exceptionDetails }) => {
+      errors.push(exceptionDetails.exception?.description ?? exceptionDetails.text);
+    });
+    cdp.on('Runtime.consoleAPICalled', ({ type, args }) => {
+      if (type === 'error') {
+        errors.push(args.map(arg => arg.value ?? arg.description).join(' '));
+      }
+    });
+    cdp.on('Log.entryAdded', ({ entry }) => {
+      if (entry.level === 'error') {
+        errors.push(entry.text);
       }
     });
     await Promise.all([cdp.send('Runtime.enable'), cdp.send('Log.enable'), cdp.send('Page.enable')]);
 
-    const loaded = cdp.waitFor('Page.loadEventFired');
+    const loaded = waitForEvent(cdp, 'Page.loadEventFired');
     await cdp.send('Page.navigate', { url: `http://127.0.0.1:${server.address().port}/` });
     await loaded;
 
     // Layout shifts, then a click: shifts within 500ms after an input don't count towards CLS.
-    await cdp.evaluate(`(async () => {
+    await evaluate(
+      cdp,
+      `(async () => {
       const element = document.getElementById('shift');
       for (let i = 1; i <= 10; i++) {
         element.style.top = 200 + i * 40 + 'px';
         await new Promise(resolve => setTimeout(resolve, 50));
       }
-    })()`);
-    const { x, y } = await cdp.evaluate(`(() => {
+    })()`,
+    );
+    const { x, y } = await evaluate(
+      cdp,
+      `(() => {
       const rect = document.getElementById('button').getBoundingClientRect();
       return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-    })()`);
+    })()`,
+    );
     for (const type of ['mousePressed', 'mouseReleased']) {
       await cdp.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 });
     }
     await new Promise(resolve => setTimeout(resolve, 300));
 
     // Without these, the checks that CLS and INP are not sent would pass without testing anything.
-    const { layoutShifts, clicked } = await cdp.evaluate(`new Promise(resolve => {
+    const { layoutShifts, clicked } = await evaluate(
+      cdp,
+      `new Promise(resolve => {
       const done = layoutShifts => resolve({ layoutShifts, clicked: document.getElementById('button').dataset.clicked === 'true' });
       new PerformanceObserver(list => done(list.getEntries().length)).observe({ type: 'layout-shift', buffered: true });
       setTimeout(() => done(0), 500);
-    })`);
+    })`,
+    );
     if (!layoutShifts || !clicked) {
       throw new Error(`Page did not shift (${layoutShifts} layout shifts) or was not clicked (${clicked})`);
     }
 
     // Hiding the page is what makes the SDK finalize LCP and CLS.
-    await cdp.evaluate(`(() => {
+    await evaluate(
+      cdp,
+      `(() => {
       Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
       document.dispatchEvent(new Event('visibilitychange'));
-    })()`);
+    })()`,
+    );
     // The pageload span, which carries FCP, FP and TTFB, ends once the page has been idle for a second.
     const deadline = Date.now() + 10_000;
-    while (!parseEnvelopes(envelopes).spans.some(isPageload) && Date.now() < deadline) {
+    while (!spans.some(isPageload) && Date.now() < deadline) {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
   } finally {
-    cdp?.close();
+    await cdp?.close();
     chrome.kill();
     server.close();
+    closeSentryServer();
     rmSync(userDataDir, { recursive: true, force: true });
   }
 
-  const { spans, events } = parseEnvelopes(envelopes);
   const pageload = spans.find(isPageload);
-  const ops = new Set(spans.map(getOp));
+  const ops = new Set(spans.map(getSpanOp));
   const failures = [...new Set(errors)].map(error => `page error: ${error}`);
 
   for (const event of events) {
@@ -263,7 +250,7 @@ async function runBundle(bundle) {
       }
     }
   }
-  const lcp = spans.find(span => getOp(span) === 'ui.webvital.lcp');
+  const lcp = spans.find(span => getSpanOp(span) === 'ui.webvital.lcp');
   if (typeof lcp?.attributes['browser.web_vital.lcp.value']?.value !== 'number') {
     failures.push('no LCP span sent');
   }
