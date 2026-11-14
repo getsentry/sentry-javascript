@@ -29,7 +29,7 @@
   ],
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/conventions": "^0.32.0",
+    "@sentry/conventions": "^0.33.0",
     "@sentry/core": "11.12.0",
     "@sentry/server-runtime-injection": "11.12.0",
     "@sentry/server-utils": "11.12.0"
