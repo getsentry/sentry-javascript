@@ -224,6 +224,27 @@ describe('browserTracingIntegration', () => {
     expect(client.getIntegrationByName('WebVitals')).toBeUndefined();
   });
 
+  it.each([
+    ['registers longTasksIntegration by default', {}, true],
+    ['registers longTasksIntegration with only long tasks enabled', { enableLongAnimationFrame: false }, true],
+    [
+      'does not register longTasksIntegration when both options are off',
+      { enableLongTask: false, enableLongAnimationFrame: false },
+      false,
+    ],
+  ])('%s', (_name, options, registered) => {
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingIntegration(options)],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(!!client.getIntegrationByName('LongTasks')).toBe(registered);
+  });
+
   it('keeps the webVitalsIntegration the user supplies', () => {
     const userWebVitals = webVitalsModule.webVitalsIntegration({ softNavigations: false });
 
