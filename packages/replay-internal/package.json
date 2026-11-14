@@ -68,7 +68,7 @@
   "devDependencies": {
     "@sentry-internal/replay-worker": "11.12.0",
     "@sentry-internal/rollup-utils": "11.12.0",
-    "@sentry/conventions": "^0.32.0",
+    "@sentry/conventions": "^0.33.0",
     "@sentry/rrweb": "2.46.0",
     "@sentry/rrweb-snapshot": "2.46.0",
     "fflate": "0.8.3",
