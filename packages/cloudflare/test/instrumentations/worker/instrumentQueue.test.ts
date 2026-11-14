@@ -398,6 +398,52 @@ describe('instrumentQueue', () => {
         },
       ]);
     });
+
+    describe('with a Cloudflare trace', () => {
+      const context = {
+        ...createMockExecutionContext(),
+        tracing: {
+          getActiveSpan: () => ({
+            isTraced: true,
+            spanContext: () => ({
+              traceId: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+              spanId: 'b1c2d3e4f5a60718',
+              traceFlags: 1,
+            }),
+          }),
+        },
+      } as unknown as ExecutionContext;
+
+      test('continues the Cloudflare trace when tracing is not set up', async () => {
+        let propagationContext: ReturnType<SentryCore.Scope['getPropagationContext']> | undefined;
+        const handler = {
+          queue(_arg, _env, _context) {
+            propagationContext = SentryCore.getCurrentScope().getPropagationContext();
+          },
+        } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+        const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN }), handler);
+        await wrappedHandler.queue?.(createMockQueueBatch(), MOCK_ENV, context);
+
+        expect(propagationContext?.traceId).toBe('a1b2c3d4e5f60718293a4b5c6d7e8f90');
+        expect(propagationContext?.parentSpanId).toBe('b1c2d3e4f5a60718');
+      });
+
+      test('does not make the queue span a child of the Cloudflare span when tracing is set up', async () => {
+        let rootSpan: ReturnType<typeof SentryCore.spanToJSON> | undefined;
+        const handler = {
+          queue(_arg, _env, _context) {
+            rootSpan = SentryCore.spanToJSON(SentryCore.getRootSpan(SentryCore.getActiveSpan()!));
+          },
+        } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+        const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN, tracesSampleRate: 1 }), handler);
+        await wrappedHandler.queue?.(createMockQueueBatch(), MOCK_ENV, context);
+
+        expect(rootSpan?.trace_id).not.toBe('a1b2c3d4e5f60718293a4b5c6d7e8f90');
+        expect(rootSpan?.parent_span_id).toBeUndefined();
+      });
+    });
   });
 
   test('flush must be called when all waitUntil are done', async () => {

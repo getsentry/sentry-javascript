@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { eventEnvelope } from '../../../expect';
+import { eventEnvelope, SHORT_UUID_MATCHER, UUID_MATCHER } from '../../../expect';
 import { createRunner } from '../../../runner';
 import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
 
@@ -28,6 +28,12 @@ it('omits the span name from the DSC for url-source spans when tracing is enable
             headers: expect.any(Object),
             method: 'GET',
             url: expect.any(String),
+          },
+          contexts: {
+            trace: {
+              trace_id: UUID_MATCHER,
+              span_id: SHORT_UUID_MATCHER,
+            },
           },
         },
         { includeSamplingFields: true, includeSampleRand: true, includeTransaction: false },

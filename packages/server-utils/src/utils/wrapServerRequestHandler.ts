@@ -57,6 +57,11 @@ export interface ServerRequestHandlerConfig {
   routeName?: string;
   /** Span attributes that only the runtime knows, e.g. the route parameters. */
   attributes?: SpanAttributes;
+  /**
+   * Called in the scope of the continued trace, before the span starts. Lets the runtime continue
+   * its own trace, e.g. the trace that Cloudflare exports for the invocation.
+   */
+  onTraceContinued?: () => void;
   /** Whether the response streams. Return `undefined` to use the default classification. */
   isStreamingResponse?: (response: Response) => boolean | undefined;
   /**
@@ -174,6 +179,8 @@ export async function wrapServerRequestHandler<R extends Response | undefined = 
       baggage: request.headers.get('baggage'),
     },
     async () => {
+      config.onTraceContinued?.();
+
       if (!createSpan) {
         let response: R;
         try {
