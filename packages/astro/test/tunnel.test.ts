@@ -21,14 +21,13 @@ describe('getAstroTunnelOptions', () => {
 
 describe('makeTunnelOptionsVitePlugin', () => {
   it('serves a module that sets the tunnel options global', () => {
-    const plugin = makeTunnelOptionsVitePlugin({ basePath: '/docs' });
-    const resolved = (plugin.resolveId as unknown as (id: string) => string | null)(
-      'virtual:@sentry/astro/tunnel-options',
-    );
+    const plugin = makeTunnelOptionsVitePlugin({ basePath: '/docs' }) as unknown as {
+      resolveId: (id: string) => string | null;
+      load: (id: string) => string | null;
+    };
+    const resolved = plugin.resolveId('virtual:@sentry/astro/tunnel-options');
 
-    expect((plugin.load as unknown as (id: string) => string | null)(resolved!)).toBe(
-      `globalThis[${JSON.stringify(TUNNEL_OPTIONS_GLOBAL)}] = {"basePath":"/docs"};`,
-    );
+    expect(plugin.load(resolved!)).toBe(`globalThis[${JSON.stringify(TUNNEL_OPTIONS_GLOBAL)}] = {"basePath":"/docs"};`);
   });
 });
 
