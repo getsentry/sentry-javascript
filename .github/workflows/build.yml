@@ -1,3 +1,4 @@
+# Benchmark baseline for Nuxt and Next.js E2E sharding.
 name: 'CI: Build & Test'
 on:
   push:
