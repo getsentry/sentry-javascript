@@ -76,7 +76,7 @@
   },
   "devDependencies": {
     "@sentry-internal/rollup-utils": "11.12.0",
-    "astro": "^4.16.19",
+    "astro": "^7.4.7",
     "vite": "^8.3.6"
   },
   "scripts": {
