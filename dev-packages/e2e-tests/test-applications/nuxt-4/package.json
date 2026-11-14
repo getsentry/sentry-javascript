@@ -40,12 +40,14 @@
       {
         "build-command": "E2E_TEST_OTEL_SETUP=true pnpm test:build",
         "assert-command": "E2E_TEST_OTEL_SETUP=true pnpm test:assert",
-        "label": "nuxt-4 (tracer provider)"
+        "label": "nuxt-4 (tracer provider)",
+        "test-shards": 2
       },
       {
         "build-command": "pnpm test:build",
         "assert-command": "pnpm test:prod:import",
-        "label": "nuxt-4 (--import compat)"
+        "label": "nuxt-4 (--import compat)",
+        "test-shards": 2
       },
       {
         "build-command": "E2E_TEST_VITE_SERVER=true pnpm test:build",
@@ -68,6 +70,9 @@
         "build-command": "pnpm test:build-canary",
         "label": "nuxt-4 (canary)"
       }
-    ]
+    ],
+    "baseVariant": {
+      "test-shards": 2
+    }
   }
 }
