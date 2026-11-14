@@ -23,6 +23,13 @@ runs:
       uses: actions/download-artifact@v7
       with:
         name: build-output
+        path: ${{ runner.temp }}/build-output
+
+    - name: Extract build output
+      shell: bash
+      run: |
+        tar --zstd -xf "$RUNNER_TEMP/build-output/build-output.tar.zst" \
+          -C "$GITHUB_WORKSPACE"
 
     - name: Install dependencies
       if: steps.dep-cache.outputs.cache-hit != 'true'
