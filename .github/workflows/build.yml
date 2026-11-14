@@ -141,7 +141,7 @@ jobs:
           name: build-output
           path: ${{ steps.nx_build_paths.outputs.paths }}
           retention-days: 4
-          compression-level: 1
+          compression-level: 6
           overwrite: true
 
       - name: Determine which test applications should be run
