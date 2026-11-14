@@ -299,6 +299,10 @@ of a test application.
 set its `assert-command` to run production tests and add a development variant to run both environments in parallel.
 The local `test:assert` script can still run both; select the base variant locally with `--variant <label>`.
 
+Set `"test-shards": 2` on a variant or `baseVariant` to split its Playwright test files across two CI jobs.
+The shared Playwright config reads `SENTRY_E2E_TEST_SHARD`, so each invocation in a combined production/development script
+runs its part of the suite without changing the number of workers.
+
 Variants that build against upstream prereleases (for example `canary`, `next` or nightly builds of a framework) go into
 `canaryVariants`. They do not run on PRs, only in the nightly `CI: Canary Tests` workflow (`.github/workflows/canary.yml`),
 so failures caused by an upstream prerelease do not show up on unrelated PRs. Run one locally with
