@@ -23,6 +23,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vites
 import { BrowserClient } from '../../src/client';
 import { WINDOW } from '../../src/helpers';
 import {
+  browserTracingCoreIntegration,
   browserTracingIntegration,
   getServerTiming,
   startBrowserTracingNavigationSpan,
@@ -209,10 +210,22 @@ describe('browserTracingIntegration', () => {
     expect(client.getIntegrationByName('WebVitals')).toBeDefined();
   });
 
-  it('does not auto-register when the user supplies their own webVitalsIntegration', () => {
-    const webVitalsSpy = vi.spyOn(webVitalsModule, 'webVitalsIntegration');
+  it('does not register webVitalsIntegration in browserTracingCoreIntegration', () => {
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingCoreIntegration()],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(client.getIntegrationByName('BrowserTracing')).toBeDefined();
+    expect(client.getIntegrationByName('WebVitals')).toBeUndefined();
+  });
+
+  it('keeps the webVitalsIntegration the user supplies', () => {
     const userWebVitals = webVitalsModule.webVitalsIntegration({ softNavigations: false });
-    webVitalsSpy.mockClear();
 
     const client = new BrowserClient(
       getDefaultBrowserClientOptions({
@@ -223,7 +236,7 @@ describe('browserTracingIntegration', () => {
     setCurrentClient(client);
     client.init();
 
-    expect(webVitalsSpy).not.toHaveBeenCalled();
+    expect(client.getIntegrationByName('WebVitals')).toBe(userWebVitals);
   });
 
   it('forwards webVitals options to the auto-registered integration', () => {
