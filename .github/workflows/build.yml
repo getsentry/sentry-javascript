@@ -128,6 +128,13 @@ jobs:
             .nx/workspace-data
           key: ${{ env.NX_CACHE_KEY }}-${{ runner.arch }}
 
+      - name: Build tarballs and bundles
+        id: pack-and-bundle
+        background: true
+        run: |
+          pnpm run clean:tarballs
+          pnpm exec nx run-many -t build:tarball build:bundle --parallel=4
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -153,10 +160,7 @@ jobs:
           $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
-      - name: Build tarballs and bundles
-        run: |
-          pnpm run clean:tarballs
-          pnpm exec nx run-many -t build:tarball build:bundle --parallel=4
+      - wait: [pack-and-bundle]
 
       - name: Upload tarball artifacts
         uses: actions/upload-artifact@v7
