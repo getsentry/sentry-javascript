@@ -153,25 +153,12 @@ jobs:
           $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
-      - name: Check whether tarballs are needed
-        id: tarballs
-        env:
-          NEEDED: >-
-            ${{ needs.job_get_metadata.outputs.is_release == 'true' || steps.matrix.outputs.matrix-1 != '{"include":[]}'
-            || steps.matrix.outputs.matrix-2 != '{"include":[]}' || steps.matrix.outputs.matrix-aws-layer !=
-            '{"include":[]}' || (steps.matrix-optional.outputs.matrix != '{"include":[]}' && github.actor !=
-            'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name
-            == github.repository)) }}
-        run: echo "needed=$NEEDED" >> "$GITHUB_OUTPUT"
-
       - name: Build tarballs
-        if: steps.tarballs.outputs.needed == 'true'
         run: |
           pnpm run clean:tarballs
           pnpm run build:tarballs --parallel=4
 
       - name: Upload tarball artifacts
-        if: steps.tarballs.outputs.needed == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: build-tarball-output
@@ -182,7 +169,6 @@ jobs:
           overwrite: true
 
       - name: Upload test-utils tarball artifact
-        if: steps.tarballs.outputs.needed == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: build-test-utils-tarball-output
