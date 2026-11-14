@@ -128,23 +128,35 @@ jobs:
             .nx/workspace-data
           key: ${{ env.NX_CACHE_KEY }}-${{ runner.arch }}
 
-      - name: Build tarballs and bundles
-        id: pack-and-bundle
-        background: true
+      # Snapshot before prepack hooks can modify build outputs.
+      - name: Archive build output
+        shell: bash
+        env:
+          BUILD_PATHS: ${{ steps.nx_build_paths.outputs.paths }}
         run: |
-          pnpm run clean:tarballs
-          pnpm exec nx run-many -t build:tarball build:bundle --parallel=4
+          shopt -s globstar
+          while IFS= read -r pattern; do
+            pattern=${pattern#"$GITHUB_WORKSPACE"/}
+            while IFS= read -r path; do
+              # Ember's dependency declarations are restored from cache.
+              find -L "$path" -type f ! -path '*/.*' \
+                ! -path 'packages/ember/node_modules/*' -print0
+            done < <(compgen -G "$pattern" || true)
+          done <<< "$BUILD_PATHS" | sort -zu > "$RUNNER_TEMP/build-output-files"
+
+          test -s "$RUNNER_TEMP/build-output-files"
+          tar --dereference --hard-dereference --no-recursion --mode=0644 \
+            --null -T "$RUNNER_TEMP/build-output-files" -cf - |
+            zstd -1 -T0 -o "$RUNNER_TEMP/build-output.tar.zst"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:
           name: build-output
-          # Ember's declaration glob also matches cached dependencies.
-          path: |
-            ${{ steps.nx_build_paths.outputs.paths }}
-            !${{ github.workspace }}/packages/ember/node_modules/**
+          path: ${{ runner.temp }}/build-output.tar.zst
+          if-no-files-found: error
           retention-days: 4
-          compression-level: 6
+          compression-level: 0
           overwrite: true
 
       - name: Determine which test applications should be run
@@ -163,7 +175,10 @@ jobs:
           $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
-      - wait: [pack-and-bundle]
+      - name: Build tarballs and bundles
+        run: |
+          pnpm run clean:tarballs
+          pnpm exec nx run-many -t build:tarball build:bundle --parallel=4
 
       - name: Upload tarball artifacts
         uses: actions/upload-artifact@v7
