@@ -83,16 +83,8 @@ runs:
       uses: actions/download-artifact@v8
       with:
         name: build-output
-        path: ${{ runner.temp }}/build-output
         run-id: ${{ inputs.artifacts-run-id || github.run_id }}
         github-token: ${{ inputs.github-token }}
-
-    - name: Extract build output
-      if: inputs.test-application == 'aws-serverless'
-      shell: bash
-      run: |
-        tar --zstd -xf "$RUNNER_TEMP/build-output/build-output.tar.zst" \
-          -C "$GITHUB_WORKSPACE"
 
     - name: Prepare E2E tests
       run: pnpm run test:prepare
