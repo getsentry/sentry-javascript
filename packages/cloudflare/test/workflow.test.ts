@@ -721,6 +721,155 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
     });
   });
 
+  describe('errors that fail run()', () => {
+    const event = { payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID };
+
+    test('captures an error thrown in run() outside a step', async () => {
+      class ThrowingWorkflow {
+        constructor(_ctx: ExecutionContext, _env: unknown) {}
+
+        async run(_event: Readonly<WorkflowEvent<Params>>, _step: WorkflowStep): Promise<void> {
+          throw new TypeError('thrown before any step');
+        }
+      }
+
+      const TestWorkflowInstrumented = instrumentWorkflowWithSentry(() => getSentryOptions(), ThrowingWorkflow as any);
+      const workflow = new TestWorkflowInstrumented(mockContext, {}) as ThrowingWorkflow;
+      await expect(workflow.run(event, mockStep)).rejects.toThrow('thrown before any step');
+
+      const errorEvents = mockTransport.send.mock.calls
+        .map(call => (call[0] as any)[1] as any[])
+        .flatMap(items => items.filter(i => i[0].type === 'event').map(i => i[1]));
+
+      expect(errorEvents).toHaveLength(1);
+      expect(errorEvents[0]).toMatchObject({
+        exception: {
+          values: [
+            expect.objectContaining({
+              type: 'TypeError',
+              value: 'thrown before any step',
+              mechanism: { type: 'auto.faas.cloudflare.workflow', handled: false },
+            }),
+          ],
+        },
+      });
+    });
+
+    test('captures a step rejection that does not come from the step callback', async () => {
+      const timedOutStep: WorkflowStep = {
+        ...mockStep,
+        do: vi.fn().mockRejectedValue(new Error('Execution timed out after 1000ms')),
+      };
+
+      class TimedOutWorkflow {
+        constructor(_ctx: ExecutionContext, _env: unknown) {}
+
+        async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+          await step.do('slow step', async () => 'never called');
+        }
+      }
+
+      const TestWorkflowInstrumented = instrumentWorkflowWithSentry(() => getSentryOptions(), TimedOutWorkflow as any);
+      const workflow = new TestWorkflowInstrumented(mockContext, {}) as TimedOutWorkflow;
+      await expect(workflow.run(event, timedOutStep)).rejects.toThrow('Execution timed out after 1000ms');
+
+      const errorEvents = mockTransport.send.mock.calls
+        .map(call => (call[0] as any)[1] as any[])
+        .flatMap(items => items.filter(i => i[0].type === 'event').map(i => i[1]));
+
+      expect(errorEvents).toHaveLength(1);
+      expect(errorEvents[0]).toMatchObject({
+        exception: {
+          values: [
+            expect.objectContaining({
+              value: 'Execution timed out after 1000ms',
+              mechanism: { type: 'auto.faas.cloudflare.workflow', handled: false },
+            }),
+          ],
+        },
+      });
+    });
+
+    test('captures a step callback error only once when the engine rejects with a copy of it', async () => {
+      const copyingStep: WorkflowStep = {
+        ...mockStep,
+        do: vi.fn().mockImplementation(async (_name: string, callback: (...args: unknown[]) => Promise<any>) => {
+          try {
+            return await callback({ attempt: 1, config: { retries: { limit: 0 }, timeout: 60000 } });
+          } catch (err) {
+            throw new Error((err as Error).message);
+          }
+        }),
+      };
+
+      class FailingStepWorkflow {
+        constructor(_ctx: ExecutionContext, _env: unknown) {}
+
+        async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+          await step.do('failing step', async () => {
+            throw new Error('thrown inside the step callback');
+          });
+        }
+      }
+
+      const TestWorkflowInstrumented = instrumentWorkflowWithSentry(
+        () => getSentryOptions(),
+        FailingStepWorkflow as any,
+      );
+      const workflow = new TestWorkflowInstrumented(mockContext, {}) as FailingStepWorkflow;
+      await expect(workflow.run(event, copyingStep)).rejects.toThrow('thrown inside the step callback');
+
+      const errorEvents = mockTransport.send.mock.calls
+        .map(call => (call[0] as any)[1] as any[])
+        .flatMap(items => items.filter(i => i[0].type === 'event').map(i => i[1]));
+
+      expect(errorEvents).toHaveLength(1);
+      expect(errorEvents[0]).toMatchObject({
+        exception: {
+          values: [
+            expect.objectContaining({
+              value: 'thrown inside the step callback',
+              mechanism: { type: 'auto.faas.cloudflare.workflow', handled: true },
+            }),
+          ],
+        },
+      });
+    });
+
+    test('captures the last rejection when earlier attempts failed in the callback without a capture', async () => {
+      const timeoutAfterRetryStep: WorkflowStep = {
+        ...mockStep,
+        do: vi.fn().mockImplementation(async (_name: string, callback: (...args: unknown[]) => Promise<any>) => {
+          await callback({ attempt: 1, config: { retries: { limit: 1 }, timeout: 60000 } }).catch(() => undefined);
+          throw new Error('Execution timed out after 1000ms');
+        }),
+      };
+
+      class RetriedWorkflow {
+        constructor(_ctx: ExecutionContext, _env: unknown) {}
+
+        async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+          await step.do('retried step', async () => {
+            throw new Error('first attempt failed');
+          });
+        }
+      }
+
+      const TestWorkflowInstrumented = instrumentWorkflowWithSentry(() => getSentryOptions(), RetriedWorkflow as any);
+      const workflow = new TestWorkflowInstrumented(mockContext, {}) as RetriedWorkflow;
+      await expect(workflow.run(event, timeoutAfterRetryStep)).rejects.toThrow('Execution timed out after 1000ms');
+
+      const errorEvents = mockTransport.send.mock.calls
+        .map(call => (call[0] as any)[1] as any[])
+        .flatMap(items => items.filter(i => i[0].type === 'event').map(i => i[1]));
+
+      expect(errorEvents).toHaveLength(1);
+      expect(errorEvents[0]).toMatchObject({
+        exception: { values: [expect.objectContaining({ value: 'Execution timed out after 1000ms' })] },
+      });
+    });
+  });
+
   test('emits error per attempt on older Cloudflare without step context', async () => {
     // Mock that always throws — simulates a step that fails through every retry
     // Does NOT pass step context (simulates older Cloudflare versions)

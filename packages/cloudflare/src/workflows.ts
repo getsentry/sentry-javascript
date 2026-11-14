@@ -13,6 +13,7 @@ import { FUNCTION } from '@sentry/conventions/op';
 import type { PropagationContext, Scope } from '@sentry/core';
 import {
   captureException,
+  checkOrSetAlreadyCaught,
   flush,
   getCurrentScope,
   isError,
@@ -126,6 +127,8 @@ class WrappedWorkflowStep implements WorkflowStep {
       | WorkflowStepRollbackOptions<T>
       | undefined;
 
+    let capturedByCallback = false;
+
     const instrumentedCallback = async (...args: unknown[]): Promise<T> => {
       // Feature detection: Cloudflare Workflows (April 2026+) pass a step context
       // with `attempt` and `config.retries.limit`. When available, we only capture
@@ -176,6 +179,7 @@ class WrappedWorkflowStep implements WorkflowStep {
             } catch (error) {
               if (isFinalAttempt || isNonRetryableError(error)) {
                 captureException(error, { mechanism: { handled: true, type: 'auto.faas.cloudflare.workflow' } });
+                capturedByCallback = true;
               }
               throw error;
             }
@@ -198,15 +202,26 @@ class WrappedWorkflowStep implements WorkflowStep {
       });
     };
 
+    let stepResult: Promise<T>;
     if (config) {
-      return rollbackOptions
+      stepResult = rollbackOptions
         ? this._step.do(name, config, instrumentedCallback, rollbackOptions)
         : this._step.do(name, config, instrumentedCallback);
+    } else {
+      stepResult = rollbackOptions
+        ? this._step.do(name, instrumentedCallback, rollbackOptions)
+        : this._step.do(name, instrumentedCallback);
     }
 
-    return rollbackOptions
-      ? this._step.do(name, instrumentedCallback, rollbackOptions)
-      : this._step.do(name, instrumentedCallback);
+    return stepResult.catch(error => {
+      // The engine rejects with a copy of the error the callback threw. `checkOrSetAlreadyCaught` is used
+      // only to mark that copy as captured, so `run` does not report the same failure a second time.
+      // Rejections the callback did not capture (step timeout, engine failure) stay unmarked.
+      if (capturedByCallback) {
+        checkOrSetAlreadyCaught(error);
+      }
+      throw error;
+    });
   }
 
   public async sleep(name: string, duration: WorkflowSleepDuration): Promise<void> {
@@ -291,6 +306,9 @@ export function instrumentWorkflowWithSentry<
                       event,
                       new WrappedWorkflowStep(event.instanceId, options, step, waitUntil, isolationScope),
                     );
+                  } catch (error) {
+                    captureException(error, { mechanism: { handled: false, type: 'auto.faas.cloudflare.workflow' } });
+                    throw error;
                   } finally {
                     waitUntil(flushAndDispose(client));
                   }
