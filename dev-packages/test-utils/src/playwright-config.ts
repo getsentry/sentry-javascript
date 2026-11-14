@@ -15,6 +15,9 @@ export function getPlaywrightConfig(
   const eventProxyPort = options?.eventProxyPort || 3031;
   const eventProxyFile = options?.eventProxyFile || 'start-event-proxy.mjs';
   const startCommand = options?.startCommand;
+  // Apply the shard to every invocation, including scripts that run production and development tests.
+  const testShard = process.env.SENTRY_E2E_TEST_SHARD;
+  const [current, total] = testShard?.split('/') ?? [];
 
   /**
    * See https://playwright.dev/docs/test-configuration.
@@ -32,6 +35,7 @@ export function getPlaywrightConfig(
     },
     fullyParallel: false,
     workers: 1,
+    shard: testShard ? { current: Number(current), total: Number(total) } : undefined,
     /* Fail the build on CI if you accidentally left test.only in the source code. */
     forbidOnly: !!process.env.CI,
     /* In dev mode some apps are flaky, so we allow retry there... */

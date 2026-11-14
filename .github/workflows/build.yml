@@ -1090,6 +1090,7 @@ jobs:
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
       # The `runtime` of a runtime variant, see dev-packages/e2e-tests/README.md
       RUNTIME: ${{ matrix.runtime }}
+      SENTRY_E2E_TEST_SHARD: ${{ matrix.test-shard }}
       # Without the root node_modules, `pnpm run` would first install the whole workspace.
       pnpm_config_verify_deps_before_run: 'false'
     strategy:
