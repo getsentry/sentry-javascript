@@ -153,6 +153,45 @@ jobs:
           $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
+      - name: Check whether tarballs are needed
+        id: tarballs
+        env:
+          NEEDED: >-
+            ${{ needs.job_get_metadata.outputs.is_release == 'true' || steps.matrix.outputs.matrix-1 != '{"include":[]}'
+            || steps.matrix.outputs.matrix-2 != '{"include":[]}' || steps.matrix.outputs.matrix-aws-layer !=
+            '{"include":[]}' || (steps.matrix-optional.outputs.matrix != '{"include":[]}' && github.actor !=
+            'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name
+            == github.repository)) }}
+        run: echo "needed=$NEEDED" >> "$GITHUB_OUTPUT"
+
+      - name: Build tarballs
+        if: steps.tarballs.outputs.needed == 'true'
+        run: |
+          pnpm run clean:tarballs
+          pnpm run build:tarballs --parallel=4
+
+      - name: Upload tarball artifacts
+        if: steps.tarballs.outputs.needed == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-tarball-output
+          path: ${{ env.TARBALL_ARTIFACT_GLOB }}
+          if-no-files-found: error
+          retention-days: 4
+          compression-level: 6
+          overwrite: true
+
+      - name: Upload test-utils tarball artifact
+        if: steps.tarballs.outputs.needed == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-test-utils-tarball-output
+          path: dev-packages/test-utils/*.tgz
+          if-no-files-found: error
+          retention-days: 4
+          compression-level: 6
+          overwrite: true
+
     outputs:
       dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
       changed_node_integration:
@@ -404,7 +443,7 @@ jobs:
 
   job_artifacts:
     name: Upload Artifacts
-    needs: [job_get_metadata, job_build, job_build_layer, job_build_bundles, job_build_tarballs]
+    needs: [job_get_metadata, job_build, job_build_layer, job_build_bundles]
     runs-on: ubuntu-24.04
     # Build artifacts are only needed for releasing workflow.
     if: needs.job_get_metadata.outputs.is_release == 'true'
@@ -1012,71 +1051,12 @@ jobs:
         # Tedious runs in the dedicated SQL Server job because its database container requires x86.
         run: pnpm run test:node-suites --shard=${{ matrix.shard }}/2 --exclude '**/tracing/tedious/**'
 
-  job_build_tarballs:
-    name: Build tarballs
-    # We want to run this if:
-    # - The build job was successful, not skipped
-    if: |
-      always() &&
-      needs.job_build.result == 'success'
-    needs: [job_get_metadata, job_build]
-    runs-on: ubuntu-24.04-arm
-    timeout-minutes: 15
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: ./.github/actions/setup-node
-      - name: Restore NX cache
-        uses: actions/cache/restore@v6.1.0
-        with:
-          path: |
-            .nx/cache
-            .nx/workspace-data
-          key: ${{ env.NX_CACHE_KEY }}-${{ runner.arch }}
-
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Build tarballs
-        run: |
-          pnpm run clean:tarballs
-          pnpm run build:tarballs --parallel=4
-
-      - name: Upload tarball artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: build-tarball-output
-          path: ${{ env.TARBALL_ARTIFACT_GLOB }}
-          if-no-files-found: error
-          retention-days: 4
-          compression-level: 6
-          overwrite: true
-
-      - name: Upload test-utils tarball artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: build-test-utils-tarball-output
-          path: dev-packages/test-utils/*.tgz
-          if-no-files-found: error
-          retention-days: 4
-          compression-level: 6
-          overwrite: true
-
   # GitHub Actions allows at most 256 jobs in one matrix, so the E2E tests are split into two jobs that share `env`
   # and `steps`.
   job_e2e_tests_1:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
-    # We need to add the `always()` check here because the previous step has this as well :(
-    # See: https://github.com/actions/runner/issues/2205
-    if:
-      always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix-1 !=
-      '{"include":[]}'
-    needs: [job_get_metadata, job_build, job_build_tarballs]
+    if: always() && needs.job_build.result == 'success' && needs.job_build.outputs.e2e-matrix-1 != '{"include":[]}'
+    needs: [job_get_metadata, job_build]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -1147,10 +1127,8 @@ jobs:
 
   job_e2e_tests_2:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
-    if:
-      always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix-2 !=
-      '{"include":[]}'
-    needs: [job_get_metadata, job_build, job_build_tarballs]
+    if: always() && needs.job_build.result == 'success' && needs.job_build.outputs.e2e-matrix-2 != '{"include":[]}'
+    needs: [job_get_metadata, job_build]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env: *e2e-env
@@ -1161,9 +1139,9 @@ jobs:
 
   job_e2e_aws_layer_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
-    needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
+    needs: [job_get_metadata, job_build, job_build_layer]
     if: >-
-      always() && needs.job_build_tarballs.result == 'success' && needs.job_build_layer.result == 'success' &&
+      always() && needs.job_build.result == 'success' && needs.job_build_layer.result == 'success' &&
       needs.job_build.outputs.e2e-matrix-aws-layer != '{"include":[]}'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -1179,13 +1157,11 @@ jobs:
   job_optional_e2e_tests:
     name: E2E Tests (optional)
     # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
-    # We need to add the `always()` check here because the previous step has this as well :(
-    # See: https://github.com/actions/runner/issues/2205
     if:
-      always() && needs.job_get_metadata.outputs.is_release != 'true' && needs.job_build_tarballs.result == 'success' &&
+      always() && needs.job_get_metadata.outputs.is_release != 'true' && needs.job_build.result == 'success' &&
       needs.job_build.outputs.e2e-matrix-optional != '{"include":[]}' && (github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
-    needs: [job_get_metadata, job_build, job_build_tarballs]
+    needs: [job_get_metadata, job_build]
     # This job only waits for optional-e2e.yml, which can take most of an hour.
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -1218,7 +1194,6 @@ jobs:
         job_build,
         job_build_bundles,
         job_build_layer,
-        job_build_tarballs,
         job_browser_unit_tests,
         job_bun_unit_tests,
         job_deno_unit_tests,
