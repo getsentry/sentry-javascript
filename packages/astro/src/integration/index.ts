@@ -259,7 +259,9 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
 
         // In Astro 5+, `config.output` is no longer explicitly set — having an adapter
         // implies SSR capability. We check for the adapter to handle this correctly.
-        const isSSR = config && (config.output === 'server' || config.output === 'hybrid' || !!config.adapter);
+        // `hybrid` only exists in Astro 4, so it is missing from the current `output` type.
+        const output: string | undefined = config?.output;
+        const isSSR = config && (output === 'server' || output === 'hybrid' || !!config.adapter);
         const shouldAddMiddleware = sdkEnabled.server && autoInstrumentation?.requestHandler !== false;
 
         if (isSSR && shouldAddMiddleware) {
