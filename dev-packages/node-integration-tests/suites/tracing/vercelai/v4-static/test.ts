@@ -697,6 +697,43 @@ describe('Vercel AI integration (v4)', () => {
     });
   });
 
+  // This directory's instrument.mjs pins traceLifecycle: 'static' for the existing cases.
+  // New tests leave the lifecycle unset and assert the streamed span container.
+  createEsmAndCjsTests(__dirname, 'scenario-stream-object.mjs', '../v6_v7/instrument.mjs', (createRunner, test) => {
+    test('creates ai spans for streamObject (doStream)', async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === expectedOrigin);
+            expect(spans).toHaveLength(2);
+
+            const invokeAgentSpan = spans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent')!;
+            expect(invokeAgentSpan.status).toBe('ok');
+            expect(invokeAgentSpan.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
+            expect(invokeAgentSpan.attributes[SENTRY_ORIGIN].value).toBe(expectedOrigin);
+            expect(invokeAgentSpan.attributes['vercel.ai.operationId'].value).toBe('ai.streamObject');
+            expect(invokeAgentSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
+            expect(invokeAgentSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(25);
+            expect(invokeAgentSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(40);
+
+            const generateContentSpan = spans.find(
+              span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
+            )!;
+            expect(generateContentSpan.status).toBe('ok');
+            expect(generateContentSpan.parent_span_id).toBe(invokeAgentSpan.span_id);
+            expect(generateContentSpan.attributes['vercel.ai.operationId'].value).toBe('ai.streamObject.doStream');
+            expect(generateContentSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
+            expect(generateContentSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(25);
+          },
+        })
+        .unordered()
+        .start()
+        .completed();
+    });
+  });
+
   createEsmAndCjsTests(__dirname, 'scenario-generate-object.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('captures generateObject spans with schema attributes', async () => {
       await createRunner()

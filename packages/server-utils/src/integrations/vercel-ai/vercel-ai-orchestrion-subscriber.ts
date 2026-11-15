@@ -149,6 +149,7 @@ export function subscribeVercelAiOrchestrionChannels(
   try {
     bindOperation(tracingChannel, CHANNELS.VERCEL_AI_GENERATE_TEXT, buildTextMessage('generateText'), options);
     bindOperation(tracingChannel, CHANNELS.VERCEL_AI_STREAM_TEXT, buildTextMessage('streamText'), options);
+    bindOperation(tracingChannel, CHANNELS.VERCEL_AI_STREAM_OBJECT, buildTextMessage('streamObject'), options);
     bindOperation(tracingChannel, CHANNELS.VERCEL_AI_GENERATE_OBJECT, buildTextMessage('generateObject'), options);
     bindOperation(
       tracingChannel,
@@ -305,48 +306,57 @@ function bindOperation(
           message.result = message.type === 'executeTool' ? { output: data.result } : data.result;
           enrichSpanOnEnd(span, message, options);
         }
-        // A `streamText` model call runs after this (synchronously-returning) operation's span has
-        // already ended, so its `callId` entry must outlive the operation — it's cleared once the model
-        // call settles (see `patchModelMethod`). Every other operation can clear here.
-        if (message.type !== 'streamText') {
+        // A `streamText`/`streamObject` model call runs after this (synchronously-returning) operation's
+        // span has already ended, so its `callId` entry must outlive the operation — it's cleared once the
+        // model call settles (see `patchModelMethod`). Every other operation can clear here.
+        if (message.type !== 'streamText' && message.type !== 'streamObject') {
           clearOperationId(message);
         }
         messages.delete(data);
       },
-      // `streamText` returns synchronously, so its operation span would otherwise end before the stream
-      // drains — losing the aggregate usage/output. Defer the end and await the result's completion
-      // promises (`totalUsage`/`text`/…, which resolve on drain), mirroring how v7's channel defers the
-      // operation span on the SDK's total-usage promise.
+      // `streamText`/`streamObject` return synchronously, so their operation span would otherwise end
+      // before the stream drains — losing the aggregate usage/output. Defer the end and await the result's
+      // completion promises (`totalUsage`/`text`/…, which resolve on drain), mirroring how v7's channel
+      // defers the operation span on the SDK's total-usage promise.
       deferSpanEnd: ({ data, end }) => deferStreamTextOperationEnd(data, end),
     },
   );
 }
 
 /**
- * Keep a streamed `streamText` operation span open until the stream drains, then enrich it from the
- * `StreamTextResult`'s completion promises (usage/output/finish reason) and end it. Returns `false` for
- * anything that isn't a streamed `streamText` result, so the helper ends the span as usual.
+ * Keep a streamed `streamText`/`streamObject` operation span open until the stream drains, then enrich it
+ * from the result's completion promises (usage/output/finish reason) and end it. `streamObject` resolves
+ * `object` rather than `text`; `getOutputMessages` reads `text`, so a resolved object is stringified into
+ * that field. Returns `false` for anything that isn't a streamed result, so the helper ends the span as usual.
  */
 function deferStreamTextOperationEnd(
   data: TracingChannelPayloadWithSpan<OrchestrionChannelContext>,
   end: (error?: unknown) => void,
 ): boolean {
-  if (messages.get(data)?.type !== 'streamText' || 'error' in data || !isStreamingResult(data.result)) {
+  const type = messages.get(data)?.type;
+  if ((type !== 'streamText' && type !== 'streamObject') || 'error' in data || !isStreamingResult(data.result)) {
     return false;
   }
 
   const streamResult = data.result;
   void (async () => {
     try {
-      const [usage, text, toolCalls, finishReason, response] = await Promise.all([
+      const [usage, text, object, toolCalls, finishReason, response] = await Promise.all([
         streamResult.totalUsage ?? streamResult.usage,
         streamResult.text,
+        type === 'streamObject' ? streamResult.object : undefined,
         streamResult.toolCalls,
         streamResult.finishReason,
         streamResult.response,
       ]);
       // Feed the resolved values back through the shared enrichment: `beforeSpanEnd` reads `data.result`.
-      data.result = { usage, text, toolCalls, finishReason, response };
+      data.result = {
+        usage,
+        text: text ?? (isObjectLike(object) ? JSON.stringify(object) : object),
+        toolCalls,
+        finishReason,
+        response,
+      };
       end();
     } catch (error) {
       end(error);
@@ -356,7 +366,7 @@ function deferStreamTextOperationEnd(
   return true;
 }
 
-/** A `StreamTextResult` exposes its aggregates as promises (`totalUsage`/`usage`); a settled result does not. */
+/** A streamed result exposes its aggregates as promises (`totalUsage`/`usage`); a settled result does not. */
 function isStreamingResult(result: unknown): result is Record<string, PromiseLike<unknown> | undefined> {
   return isObjectLike(result) && (isThenable(result.totalUsage) || isThenable(result.usage));
 }
@@ -654,7 +664,7 @@ function patchToolExecute(
   };
 }
 
-function buildTextMessage(type: 'generateText' | 'streamText' | 'generateObject'): MessageBuilder {
+function buildTextMessage(type: 'generateText' | 'streamText' | 'streamObject' | 'generateObject'): MessageBuilder {
   return (options, telemetry) => ({
     type,
     event: {

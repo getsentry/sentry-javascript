@@ -122,6 +122,7 @@ const runtimeContextAttributesByCallId = new Map<string, SpanAttributes>();
 const ROOT_OPERATION_TYPES = new Set<ChannelEventType>([
   'generateText',
   'streamText',
+  'streamObject',
   'generateObject',
   'embed',
   'embedMany',
@@ -141,9 +142,10 @@ export function clearOperationId(data: VercelAiChannelMessage): void {
 
 /**
  * Drop the per-operation `callId` maps for a single id. The v6 orchestrion adapter uses this to clear a
- * `streamText` operation only after its lazily-run model call settles — the operation's own span ends
- * synchronously (when `streamText` returns) but the model call runs later as the stream is consumed, and
- * it still needs the operation's `operationId`/`isStream` entry to name itself `ai.streamText.doStream`.
+ * `streamText`/`streamObject` operation only after its lazily-run model call settles — the operation's own
+ * span ends synchronously (when the call returns) but the model call runs later as the stream is consumed,
+ * and it still needs the operation's `operationId`/`isStream` entry to name itself `ai.streamText.doStream`
+ * (or `ai.streamObject.doStream`).
  */
 export function clearOperationCallId(callId: string): void {
   operationIdByCallId.delete(callId);
@@ -244,6 +246,7 @@ function resolveToolDescription(callId: string | undefined, toolName: string, to
 export type ChannelEventType =
   | 'generateText'
   | 'streamText'
+  | 'streamObject'
   | 'generateObject'
   | 'step'
   | 'languageModelCall'
@@ -482,10 +485,16 @@ export function createSpanFromMessage(
     case 'generateText':
     case 'streamText':
     case 'generateObject':
-      // `generateObject` builds the same `invoke_agent` span as `generateText` (non-streaming); its
-      // distinct `ai.generateObject` operationId rides on `event.operationId`. The JSON-schema attribute
-      // the OTel path derives from the SDK's Zod schema is not reconstructed on the channel path.
-      return buildInvokeAgentSpan(event, baseAttributes, recordInputs, callId, type === 'streamText');
+    case 'streamObject':
+      // The object variants' operationId rides on `event.operationId`. The JSON-schema attribute the OTel
+      // path derives from the SDK's Zod schema is not reconstructed on the channel path.
+      return buildInvokeAgentSpan(
+        event,
+        baseAttributes,
+        recordInputs,
+        callId,
+        type === 'streamText' || type === 'streamObject',
+      );
     case 'languageModelCall':
       _INTERNAL_skipAiProviderWrapping([WORKERS_AI_INTEGRATION_NAME]);
 
