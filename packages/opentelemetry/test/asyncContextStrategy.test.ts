@@ -1,16 +1,19 @@
 import type { Scope } from '@sentry/core';
 import {
+  getActiveSpan,
   getAsyncContextStrategy,
   getCurrentScope,
   getIsolationScope,
   getMainCarrier,
   Scope as ScopeClass,
   setAsyncContextStrategy,
+  startSpan,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
 import { afterAll, beforeEach, describe, expect, it, test } from 'vitest';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../src/asyncContextStrategy';
+import { getContextFromScope } from '../src/utils/contextData';
 import { mockSdkInit } from './helpers/mockSdkInit';
 
 describe('asyncContextStrategy', () => {
@@ -397,6 +400,20 @@ describe('asyncContextStrategy', () => {
           done();
         });
       }));
+
+    it('keeps the context link of a passed in scope that is still linked to a context', () => {
+      startSpan({ name: 'parent' }, parent => {
+        const scope = getCurrentScope();
+        const linkedContext = getContextFromScope(scope);
+        expect(linkedContext).toBeDefined();
+
+        withScope(scope, () => {
+          expect(getActiveSpan()).toBe(parent);
+        });
+
+        expect(getContextFromScope(scope)).toBe(linkedContext);
+      });
+    });
   });
 
   describe('withIsolationScope()', () => {

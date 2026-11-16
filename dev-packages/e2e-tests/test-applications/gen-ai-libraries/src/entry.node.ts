@@ -33,6 +33,18 @@ for (const library of libraries) {
       next(error);
     }
   });
+
+  const chatStream = library.chatStream;
+  if (chatStream) {
+    app.get(`/${library.id}/chat-stream`, async (_req, res, next) => {
+      try {
+        const answer = await Sentry.startSpan({ name: 'ai-workflow', op: 'function' }, () => chatStream(apiKey));
+        res.send({ answer });
+      } catch (error) {
+        next(error);
+      }
+    });
+  }
 }
 
 Sentry.setupExpressErrorHandler(app);

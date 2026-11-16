@@ -123,7 +123,10 @@ export class LocalLambdaStack extends Stack {
               SENTRY_DSN: dsn,
               SENTRY_TRACES_SAMPLE_RATE: 1.0,
               SENTRY_DEBUG: true,
-              NODE_OPTIONS: `--import=@sentry/aws-serverless/awslambda-auto`,
+              // A function with its own `instrument.mjs` initializes the SDK itself, e.g. to add integrations.
+              NODE_OPTIONS: fs.existsSync(path.join(lambdaPath, 'instrument.mjs'))
+                ? '--import=/var/task/instrument.mjs'
+                : '--import=@sentry/aws-serverless/awslambda-auto',
             },
           },
         },

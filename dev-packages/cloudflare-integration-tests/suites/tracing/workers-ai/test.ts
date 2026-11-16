@@ -21,13 +21,10 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_DECIDE } from '@sentry/conventions/op';
+import { GEN_AI_DECIDE, GEN_AI_EXTRACT } from '@sentry/conventions/op';
 import { SDK_VERSION } from '@sentry/core';
 import { expect, it } from 'vitest';
-import {
-  GEN_AI_EXTRACT_OP,
-  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-} from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { createRunner } from '../../../runner';
 import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
 
@@ -250,7 +247,7 @@ it('traces a Clairic extraction', async ({ signal }) => {
           is_segment: false,
           attributes: {
             [SENTRY_ORIGIN]: { value: 'auto.ai.cloudflare.workers_ai', type: 'string' },
-            [SENTRY_OP]: { value: GEN_AI_EXTRACT_OP, type: 'string' },
+            [SENTRY_OP]: { value: GEN_AI_EXTRACT, type: 'string' },
             [GEN_AI_PROVIDER_NAME]: { value: 'cloudflare.workers_ai', type: 'string' },
             [GEN_AI_OPERATION_NAME]: { value: 'extract', type: 'string' },
             [GEN_AI_REQUEST_MODEL]: { value: '@cf/cloudflare/clairic', type: 'string' },

@@ -1,6 +1,7 @@
 import { SENTRY_LINK_TYPE, SENTRY_STATUS_MESSAGE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
-import { beforeEach, describe, expect, it, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import {
+  browserPerformanceTimeOrigin,
   convertSpanLinksForEnvelope,
   getCurrentScope,
   Scope,
@@ -28,6 +29,7 @@ import {
   getRootSpan,
   getSpanDescendants,
   spanIsSampled,
+  otelTimeInputToSeconds,
   spanTimeInputToSeconds,
   spanToStaticSpanJSON,
   spanToJSON,
@@ -314,6 +316,46 @@ describe('spanTimeInputToSeconds', () => {
     const seconds = Math.floor(timestampInSeconds());
     const timestamp: [number, number] = [seconds, 9000];
     expect(spanTimeInputToSeconds(timestamp)).toEqual(seconds + 0.000009);
+  });
+});
+
+describe('otelTimeInputToSeconds', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.resetModules();
+  });
+
+  it('treats epoch milliseconds as milliseconds', () => {
+    const timestamp = Date.now();
+    expect(otelTimeInputToSeconds(timestamp)).toEqual(timestamp / 1000);
+  });
+
+  it('treats small numbers as `performance.now()` milliseconds', () => {
+    const origin = browserPerformanceTimeOrigin()!;
+    expect(otelTimeInputToSeconds(1_234.5)).toEqual((origin + 1_234.5) / 1000);
+  });
+
+  it('treats `performance.now()` milliseconds after a long uptime as relative', () => {
+    // 30 days of uptime, which overlaps with the range of epoch seconds
+    const performanceNow = 30 * 24 * 60 * 60 * 1000;
+    const origin = browserPerformanceTimeOrigin()!;
+    expect(otelTimeInputToSeconds(performanceNow)).toEqual((origin + performanceNow) / 1000);
+  });
+
+  it('treats a `performance.now()` value that is still in the future as relative', () => {
+    const performanceNow = performance.now() + 25;
+    const origin = browserPerformanceTimeOrigin()!;
+    expect(otelTimeInputToSeconds(performanceNow)).toEqual((origin + performanceNow) / 1000);
+  });
+
+  it('falls back to the current time if the Performance API is unavailable', async () => {
+    vi.stubGlobal('performance', undefined);
+    const { otelTimeInputToSeconds } = await import('../../../src/utils/spanUtils');
+
+    const before = Date.now() / 1000;
+    const seconds = otelTimeInputToSeconds(1_234.5);
+    expect(seconds).toBeGreaterThanOrEqual(before);
+    expect(seconds).toBeLessThanOrEqual(Date.now() / 1000);
   });
 });
 

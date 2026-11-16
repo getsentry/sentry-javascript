@@ -34,9 +34,6 @@ describe.each(['v1', 'v2'])('MCP TypeScript SDK %s', sdk => {
         expect(root?.attributes['test.mcp.handlers_verified']).toEqual({ type: 'integer', value: 4 });
       });
     },
-    {
-      additionalDependencies: sdk === 'v1' ? { '@modelcontextprotocol/sdk': '1.30.0' } : undefined,
-      copyPaths: ['run.cjs'],
-    },
+    { copyPaths: ['run.cjs'] },
   );
 });

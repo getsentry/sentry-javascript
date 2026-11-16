@@ -7,6 +7,9 @@ import {
   getSourcemapSources,
   getChunkUploadPosts,
   getAssembleRequests,
+  findSourceMapFiles,
+  findSourceMappingUrlComments,
+  getRuntime,
 } from '@sentry-internal/test-utils';
 
 const requests = loadMockServerResults();
@@ -28,6 +31,12 @@ assert.ok(
   chunkPosts.some(r => r.bodySize > 0),
   'Expected at least one chunk upload with a non-empty body',
 );
+
+// The `sentry` CLI adds the runtime that runs it to its User-Agent, for example `bun/1.4.2`.
+const runtime = getRuntime();
+for (const req of chunkPosts) {
+  assert.match(req.requestHeaders['user-agent'] ?? '', new RegExp(` ${runtime}/`), `Expected ${runtime} to upload`);
+}
 
 // Release endpoint was called
 assert.ok(
@@ -74,6 +83,17 @@ assert.ok(assembleReqs.length > 0, 'Expected at least one assemble request');
 for (const req of assembleReqs) {
   assert.ok(req.assembleBody?.projects?.includes('test-project'), 'Expected assemble request to include test-project');
   assert.ok((req.assembleBody?.chunks?.length ?? 0) > 0, 'Expected assemble request to have chunk checksums');
+}
+
+// The browser loads everything under `.next/static`, so a map left there hands out the source.
+if (process.env.E2E_DELETE_SOURCEMAPS) {
+  const staticDir = '.next/static';
+  assert.deepEqual(findSourceMapFiles({ outputDir: staticDir }), [], `Expected no source maps in ${staticDir}`);
+  assert.deepEqual(
+    findSourceMappingUrlComments({ outputDir: staticDir }),
+    [],
+    `Expected no sourceMappingURL comments in ${staticDir}`,
+  );
 }
 
 console.log('All sourcemap upload assertions passed!');

@@ -14,7 +14,7 @@ const SAM_START_TIMEOUT_MS = 90_000;
 const SAM_START_ATTEMPTS = 2;
 const SAM_OUTPUT_MAX_CHARS = 20_000;
 
-/** Major Node for SAM `--invoke-image`; default matches root `package.json` `volta.node` and `pull-sam-image.sh`. */
+/** Major Node for SAM `--invoke-image`; default is the oldest major the SDK supports and matches `pull-sam-image.sh`. */
 const DEFAULT_NODE_VERSION_MAJOR = '20';
 
 const SAM_INSTALL_ERROR =

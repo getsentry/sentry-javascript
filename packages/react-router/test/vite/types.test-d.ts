@@ -6,7 +6,7 @@ describe('Sentry React-Router build-time options type', () => {
     const completeOptions: SentryReactRouterBuildOptions = {
       // --- BuildTimeOptionsBase options ---
       org: 'test-org',
-      project: 'test-project',
+      project: ['test-project', 'other-project'],
       authToken: 'test-auth-token',
       sentryUrl: 'https://sentry.io',
       headers: { Authorization: ' Bearer test-auth-token' },

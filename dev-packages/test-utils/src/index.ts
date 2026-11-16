@@ -17,12 +17,16 @@ export {
   getSpanOp,
 } from './event-proxy-server';
 export type { SerializedStreamedSpan } from '@sentry/core';
+export { isServerSpanAt, makeClientReportEnvelope, watchForTunnelSpan } from './tunnel';
+export { EXPECTED_TUNNEL_OUTCOMES, runTunnelHardeningCases, startFakeIngests } from './tunnel-hardening';
+export type { FakeIngests, TunnelHardeningResult } from './tunnel-hardening';
 
 export {
   findAbsolutePathImports,
   findSourceMapFiles,
   findSourceMappingUrlComments,
   findInjectedDebugIds,
+  findDebugIdsInFilesWithGlobCharacters,
   findFilesWithMultipleDebugIds,
   findFilesWithForeignSourcemaps,
   bundleReferencesModule,
@@ -44,6 +48,8 @@ export type { NodeServerOptions, NodeServer } from './node-server';
 export { startMockSentryServer } from './mock-sentry-server';
 export type { MockSentryServerOptions, MockSentryServer } from './mock-sentry-server';
 export * from './sourcemap-upload-utils';
+export { assertSourceMapUpload } from './sourcemap-upload-assertions';
+export type { SourceMapUploadAssertionOptions, SourceMapUploadAssertionResult } from './sourcemap-upload-assertions';
 
 export { CDPClient } from './cdp-client';
 export type { CDPClientOptions } from './cdp-client';

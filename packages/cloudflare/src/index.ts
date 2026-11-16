@@ -110,7 +110,16 @@ export {
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export {
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
+  serveTunnelIntegration,
+  trpcMiddleware,
+  wrapMcpServerWithSentry,
+} from '@sentry/core/server';
+export type { TunnelRequestLike } from '@sentry/core/server';
+export { getTunnelPath, handleTunnelRequest } from '@sentry/core';
+export type { HandleTunnelRequestOptions, ServerTunnelOptions } from '@sentry/core';
 export { createFlueInstrumentation, instrumentPostgresJsSql } from '@sentry/server-utils';
 export type { FlueOptions } from '@sentry/server-utils';
 
@@ -121,7 +130,8 @@ export { _INTERNAL_wrapUnlessInstrumented } from './instrument';
 export { sentryPagesPlugin } from './pages-plugin';
 
 export { CloudflareClient } from './client';
-export { _INTERNAL_wrapRequestHandler, getDefaultIntegrations } from './sdk';
+export { _INTERNAL_wrapRequestHandler, getDefaultIntegrations, init as _INTERNAL_init } from './sdk';
+export { getFinalOptions as _INTERNAL_getFinalOptions } from './options';
 
 export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
@@ -184,6 +194,7 @@ export {
   neonIntegration,
   nitroIntegration,
   openAIIntegration,
+  piAiIntegration,
   piDurableIntegration,
   postgresIntegration,
   postgresJsIntegration,

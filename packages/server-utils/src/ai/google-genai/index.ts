@@ -4,7 +4,6 @@ import {
   getClient,
   handleCallbackErrors,
   hasSpanStreamingEnabled,
-  SPAN_STATUS_ERROR,
   startSpan,
   startSpanManual,
   stringify,
@@ -31,7 +30,13 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
-import { buildMethodPath, getGenAiSpanOp, getTokenUsageAttributes, resolveAIRecordingOptions } from '../core/utils';
+import {
+  buildMethodPath,
+  getErrorStatus,
+  getGenAiSpanOp,
+  getTokenUsageAttributes,
+  resolveAIRecordingOptions,
+} from '../core/utils';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
@@ -206,7 +211,9 @@ export function addResponseAttributes(span: Span, response: GoogleGenAIResponse,
     const hasOutput = typeof usage.candidatesTokenCount === 'number' || typeof usage.thoughtsTokenCount === 'number';
     span.setAttributes(
       getTokenUsageAttributes(
-        usage.promptTokenCount,
+        typeof usage.promptTokenCount === 'number'
+          ? usage.promptTokenCount + (usage.toolUsePromptTokenCount ?? 0)
+          : undefined,
         hasOutput ? (usage.candidatesTokenCount ?? 0) + (usage.thoughtsTokenCount ?? 0) : undefined,
         undefined,
         usage.cachedContentTokenCount,
@@ -286,6 +293,13 @@ export function resolveChatParams(
 }
 
 /**
+ * Reads the caller's `config.abortSignal` from params resolved by `resolveChatParams`.
+ */
+export function getAbortSignal(params: Record<string, unknown> | undefined): AbortSignal | undefined {
+  return (params?.config as { abortSignal?: AbortSignal } | undefined)?.abortSignal;
+}
+
+/**
  * Instrument any async or synchronous genai method with Sentry spans
  * Handles operations like models.generateContent and chat.sendMessage and chats.create
  * @see https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation
@@ -304,6 +318,7 @@ function instrumentMethod<T extends unknown[], R>(
       const operationName = instrumentedMethod.operation || 'unknown';
       const params = args[0] as Record<string, unknown> | undefined;
       const attributeParams = resolveChatParams(operationName, params, context);
+      const abortSignal = getAbortSignal(attributeParams);
       const requestAttributes = extractRequestAttributes(
         operationName,
         attributeParams,
@@ -333,9 +348,9 @@ function instrumentMethod<T extends unknown[], R>(
                 addPrivateRequestAttributes(span, attributeParams, operationName);
               }
               const stream = await target.apply(context, args);
-              return instrumentStream(stream, span, Boolean(options.recordOutputs)) as R;
+              return instrumentStream(stream, span, Boolean(options.recordOutputs), abortSignal) as R;
             } catch (error) {
-              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              span.setStatus(getErrorStatus(abortSignal));
               span.end();
               throw error;
             }
@@ -354,11 +369,10 @@ function instrumentMethod<T extends unknown[], R>(
             addPrivateRequestAttributes(span, attributeParams, operationName);
           }
 
-          // `onError` is a no-op because the rejection is rethrown to the caller and `startSpan` already
-          // marks the span errored; both leading callbacks are positional and only exist to reach `onSuccess`.
+          // The rejection is rethrown to the caller. `startSpan` keeps the status set here.
           return handleCallbackErrors(
             () => target.apply(context, args),
-            () => {},
+            () => span.setStatus(getErrorStatus(abortSignal)),
             () => {},
             result => {
               // Only add response attributes for content-producing methods, not for embeddings
@@ -378,9 +392,19 @@ function instrumentMethod<T extends unknown[], R>(
  * Recursively instruments methods and handles special cases like chats.create
  */
 function createDeepProxy<T extends object>(target: T, currentPath = '', options: GoogleGenAIOptions): T {
+  const propertyCache = new Map<PropertyKey, { original: unknown; wrapped: unknown }>();
+
   return new Proxy(target, {
     get: (t, prop, receiver) => {
       const value = Reflect.get(t, prop, receiver);
+      const cachedEntry = propertyCache.get(prop);
+      if (cachedEntry) {
+        if (cachedEntry.original === value) {
+          return cachedEntry.wrapped;
+        }
+        propertyCache.delete(prop);
+      }
+
       const methodPath = buildMethodPath(currentPath, String(prop));
 
       const instrumentedMethod: InstrumentedMethodEntry | undefined =
@@ -392,6 +416,7 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
           : value.bind(t);
 
         if (!instrumentedMethod.proxyResultPath) {
+          propertyCache.set(prop, { original: value, wrapped: wrappedMethod });
           return wrappedMethod;
         }
 
@@ -399,22 +424,28 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
         // Note: This currently only properly handles synchronous methods. For async methods,
         // the Promise itself would be proxied instead of the resolved value. Currently we
         // don't have a case where this is needed, so I'll keep it simple for now.
-        return function (...args: unknown[]): unknown {
+        const methodWithProxiedResult = function (...args: unknown[]): unknown {
           const result = wrappedMethod(...args);
           if (result && typeof result === 'object') {
             return createDeepProxy(result as object, instrumentedMethod.proxyResultPath, options);
           }
           return result;
         };
+        propertyCache.set(prop, { original: value, wrapped: methodWithProxiedResult });
+        return methodWithProxiedResult;
       }
 
       if (typeof value === 'function') {
         // Bind non-instrumented functions to preserve the original `this` context
-        return value.bind(t);
+        const boundMethod = value.bind(t);
+        propertyCache.set(prop, { original: value, wrapped: boundMethod });
+        return boundMethod;
       }
 
       if (value && typeof value === 'object') {
-        return createDeepProxy(value, methodPath, options);
+        const nestedProxy = createDeepProxy(value, methodPath, options);
+        propertyCache.set(prop, { original: value, wrapped: nestedProxy });
+        return nestedProxy;
       }
 
       return value;

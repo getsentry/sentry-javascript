@@ -96,4 +96,87 @@ describe('injectTraceMetaTags', () => {
     expect(output).not.toContain(REPLACEMENT_CHARACTER);
     expect(output).toContain('€ inside body');
   });
+
+  test('injects meta tags when </head> is split across chunks', async () => {
+    const encoder = new TextEncoder();
+    const input = streamFromChunks([encoder.encode('<html><head></he'), encoder.encode('ad><body>Test</body></html>')]);
+
+    const output = new TextDecoder().decode(await readAll(injectTraceMetaTags(input)));
+
+    expect(output).toBe(
+      '<html><head><meta name="sentry-trace" content="test-trace-id"></head><body>Test</body></html>',
+    );
+  });
+
+  test('preserves a multi-byte character split together with a split </head>', async () => {
+    const encoder = new TextEncoder();
+    const input = streamFromChunks([
+      encoder.encode('<html><head></he'),
+      new Uint8Array([...encoder.encode('ad><body><p>'), 0xc2]),
+      new Uint8Array([0xa9, ...encoder.encode(' 2026</p></body></html>')]),
+    ]);
+
+    const output = new TextDecoder('utf-8', { fatal: false }).decode(await readAll(injectTraceMetaTags(input)));
+
+    expect(output).not.toContain(REPLACEMENT_CHARACTER);
+    expect(output).toContain('<meta name="sentry-trace" content="test-trace-id"></head><body><p>© 2026</p>');
+  });
+
+  test('flushes a held-back partial tag when the stream has no </head>', async () => {
+    const encoder = new TextEncoder();
+    const input = streamFromChunks([encoder.encode('<html><body></he')]);
+
+    const output = new TextDecoder().decode(await readAll(injectTraceMetaTags(input)));
+
+    expect(output).toBe('<html><body></he');
+  });
+
+  test('does not rely on the TransformStream constructor, which older workerd compatibility dates reject', async () => {
+    vi.stubGlobal(
+      'TransformStream',
+      class {
+        constructor() {
+          throw new Error('TransformStream is not supported');
+        }
+      },
+    );
+
+    try {
+      const input = streamFromChunks([new TextEncoder().encode('<html><head></head></html>')]);
+      const output = new TextDecoder().decode(await readAll(injectTraceMetaTags(input)));
+
+      expect(output).toContain('<meta name="sentry-trace" content="test-trace-id"></head>');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  test('keeps reading while a partial tag is held back so the stream does not stall', async () => {
+    const encoder = new TextEncoder();
+    const input = streamFromChunks([encoder.encode('<head><'), encoder.encode('/'), encoder.encode('head><body>')]);
+
+    const output = new TextDecoder().decode(await readAll(injectTraceMetaTags(input)));
+
+    expect(output).toBe('<head><meta name="sentry-trace" content="test-trace-id"></head><body>');
+  });
+
+  test('cancels the source stream when the consumer cancels', async () => {
+    const cancel = vi.fn();
+    const input = new ReadableStream({ cancel });
+
+    await injectTraceMetaTags(input).cancel('done');
+
+    expect(cancel).toHaveBeenCalledWith('done');
+  });
+
+  test('resolves the trace meta tags synchronously, before the stream is read', async () => {
+    const encoder = new TextEncoder();
+    const input = streamFromChunks([encoder.encode('<html><head></head></html>')]);
+
+    const output = injectTraceMetaTags(input);
+
+    expect(getTraceMetaTags).toHaveBeenCalledTimes(1);
+    expect(new TextDecoder().decode(await readAll(output))).toContain('<meta name="sentry-trace"');
+    expect(getTraceMetaTags).toHaveBeenCalledTimes(1);
+  });
 });

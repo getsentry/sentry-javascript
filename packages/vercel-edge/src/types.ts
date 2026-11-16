@@ -58,7 +58,13 @@ export interface BaseVercelEdgeOptions {
  * Configuration options for the Sentry VercelEdge SDK
  * @see @sentry/core Options for more information.
  */
-export interface VercelEdgeOptions extends Options<VercelEdgeTransportOptions>, BaseVercelEdgeOptions {}
+export interface VercelEdgeOptions extends Options<VercelEdgeTransportOptions>, BaseVercelEdgeOptions {
+  /**
+   * A URL to send this server's own envelopes to instead of the Sentry ingest URL. To serve the managed tunnel for the
+   * browser, use `serveTunnelIntegration`.
+   */
+  tunnel?: string;
+}
 
 /**
  * Configuration options for the Sentry VercelEdge SDK Client class

@@ -1,9 +1,23 @@
 // The Cloudflare variant: the same libraries and routes as the Node entry, but instrumented by the
 // `@sentry/cloudflare/vite` bundler plugin (build-time channel injection) and run on workerd.
 import * as Sentry from '@sentry/cloudflare';
+import type { Library } from './libraries';
 import { libraries } from './libraries';
 
 const byId = new Map(libraries.map(library => [library.id, library]));
+
+function getCall(library: Library, action: string | undefined): ((apiKey: string) => Promise<unknown>) | undefined {
+  switch (action) {
+    case 'chat':
+      return library.chat;
+    case 'tools':
+      return library.tools;
+    case 'chat-stream':
+      return library.chatStream;
+    default:
+      return undefined;
+  }
+}
 
 export default Sentry.withSentry(
   (env: Env) => ({
@@ -17,8 +31,9 @@ export default Sentry.withSentry(
       const url = new URL(request.url);
       const [, id, action] = url.pathname.split('/');
       const library = id ? byId.get(id) : undefined;
+      const call = library && getCall(library, action);
 
-      if (!library || (action !== 'chat' && action !== 'tools')) {
+      if (!call) {
         return new Response('Not found', { status: 404 });
       }
 
@@ -29,7 +44,7 @@ export default Sentry.withSentry(
 
       try {
         const spanName = action === 'tools' ? 'ai-tool-workflow' : 'ai-workflow';
-        const result = await Sentry.startSpan({ name: spanName, op: 'function' }, () => library[action](apiKey));
+        const result = await Sentry.startSpan({ name: spanName, op: 'function' }, () => call(apiKey));
         return Response.json({ result });
       } catch (error) {
         return Response.json({ message: (error as Error).message }, { status: 500 });

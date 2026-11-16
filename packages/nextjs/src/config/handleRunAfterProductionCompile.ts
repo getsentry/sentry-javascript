@@ -137,7 +137,8 @@ async function warnAboutUncoveredSourcemaps(
   }
 }
 
-const SOURCEMAPPING_URL_COMMENT_REGEX = /(?:^|\n)\/\/[#@] sourceMappingURL=[^\s'"`*]+\s*$/;
+const SOURCEMAPPING_URL_COMMENT_REGEX =
+  /(?:^|\r?\n)\/\/[#@] sourceMappingURL=[^\s'"`*]+\s*?(?=(?:\r?\n\/\/# debugId=[\da-fA-F-]+\s*)?$)/;
 const CSS_SOURCEMAPPING_URL_COMMENT_REGEX = /\n?\/\*[#@] sourceMappingURL=[^\s*]+\s*\*\/\s*$/;
 
 /**

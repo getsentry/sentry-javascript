@@ -46,7 +46,7 @@ export function updateRouteBeforeResponse(event: EventWithMatchedRoute): void {
 
     if (isObjectLike(params)) {
       Object.entries(params).forEach(([key, value]) => {
-        // Based on this convention: https://getsentry.github.io/sentry-conventions/generated/attributes/url.html#urlpathparameterkey
+        // Based on this convention: https://conventions.sentry.dev/attributes/url/#url-path-parameter-key
         rootSpan.setAttributes({
           [`url.path.parameter.${key}`]: String(value),
           [`params.${key}`]: String(value),

@@ -149,6 +149,8 @@ type StartResult = {
   completed(): Promise<void>;
   /** Every non-ignored envelope received so far, matched or not, for count assertions. */
   getReceivedEnvelopes(): Envelope[];
+  /** The port wrangler serves the worker on, once it is ready. */
+  getPort(): Promise<number>;
   makeRequest<T>(
     method: 'get' | 'post',
     path: string,
@@ -557,6 +559,9 @@ export function createRunner(...paths: string[]) {
         },
         getReceivedEnvelopes: function (): Envelope[] {
           return receivedEnvelopes;
+        },
+        getPort: function (): Promise<number> {
+          return workerPortPromise;
         },
         makeRequest: async function <T>(
           method: 'get' | 'post',

@@ -50,13 +50,17 @@ const getRootSpanMock = SentryCore.getRootSpan as ReturnType<typeof vi.fn>;
 
 // `event` throws on access so `hasFetchEvent` reports `false` (the Node/Bun/Deno path), which makes
 // the request handler read request data from `req.raw` rather than a Cloudflare fetch event.
-function createMockContext(status: number, error?: Error): object {
+function createMockContext(
+  status: number,
+  error?: Error,
+  matchedRoutes: unknown[] = [{ basePath: '/', path: '/test', method: 'GET', handler: (_c: unknown) => undefined }],
+): object {
   return {
     req: {
       method: 'GET',
       routeIndex: 0,
       // `resolveRouteName` reads the matched routes straight off the request.
-      matchedRoutes: [{ basePath: '/', path: '/test', method: 'GET', handler: (_c: unknown) => undefined }],
+      matchedRoutes,
       raw: new Request('http://localhost/test'),
     },
     get event(): never {
@@ -203,6 +207,16 @@ describe('responseHandler (via createHonoRequestMiddleware)', () => {
 
       expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(HTTP_ROUTE, '/test');
       expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'route');
+    });
+
+    it('keeps the runtime name when no route matched', async () => {
+      getActiveSpanMock.mockReturnValue(mockRootSpan);
+
+      await runMiddleware(createMockContext(404, undefined, []));
+
+      expect(mockRootSpan.updateName).not.toHaveBeenCalled();
+      expect(mockRootSpan.setAttribute).not.toHaveBeenCalledWith(HTTP_ROUTE, expect.anything());
+      expect(mockSetTransactionName).not.toHaveBeenCalled();
     });
   });
 });

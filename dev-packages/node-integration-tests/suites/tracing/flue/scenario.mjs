@@ -4,10 +4,15 @@ import { start } from '@flue/runtime/node';
 import { fauxAssistantMessage, fauxProvider, fauxToolCall } from '@earendil-works/pi-ai/providers/faux';
 import * as v from 'valibot';
 
+const recording = process.env.FLUE_RECORDING === 'on';
+instrument(
+  Sentry.createFlueInstrumentation(
+    process.env.FLUE_RECORDING ? { recordInputs: recording, recordOutputs: recording } : undefined,
+  ),
+);
+
 // `pi-ai`'s faux provider scripts model responses in-process, so the run is deterministic and needs
 // no provider key or mock server. Two steps: a tool call, then the final answer.
-instrument(Sentry.createFlueInstrumentation());
-
 const faux = fauxProvider({
   provider: 'faux',
   models: [{ id: 'faux-model', cost: { input: 1, output: 2, cacheRead: 0, cacheWrite: 0 } }],

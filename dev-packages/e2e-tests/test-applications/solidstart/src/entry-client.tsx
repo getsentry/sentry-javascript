@@ -1,3 +1,4 @@
+// SOURCEMAP_MARKER_CLIENT
 // @refresh reload
 import * as Sentry from '@sentry/solidstart';
 import { solidRouterBrowserTracingIntegration } from '@sentry/solidstart/solidrouter';

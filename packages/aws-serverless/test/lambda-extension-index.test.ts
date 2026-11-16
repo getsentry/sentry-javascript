@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-beforeEach(() => {
+let extension: Awaited<ReturnType<typeof setupExtension>>;
+
+beforeEach(async () => {
   vi.resetModules();
   vi.useFakeTimers();
   vi.setSystemTime(0);
+  extension = await setupExtension();
 });
 
 afterEach(() => {
@@ -24,7 +27,7 @@ async function setupExtension() {
 test.each(['ECONNRESET', 'ECONNREFUSED', 'EPIPE', 'ETIMEDOUT', 'EAI_AGAIN'])(
   'recovers from %s without exiting',
   async code => {
-    const { next, exit, log } = await setupExtension();
+    const { next, exit, log } = extension;
     next.mockRejectedValueOnce(Object.assign(new Error('Connection failed'), { code })).mockResolvedValueOnce();
 
     const { POLL_RETRY_DELAYS } = await import('../src/lambda-extension/index');
@@ -41,7 +44,7 @@ test.each(['ECONNRESET', 'ECONNREFUSED', 'EPIPE', 'ETIMEDOUT', 'EAI_AGAIN'])(
 );
 
 test('logs and exits after exhausting consecutive connection retries', async () => {
-  const { next, exit, log } = await setupExtension();
+  const { next, exit, log } = extension;
   const error = Object.assign(new Error('Connection reset'), { code: 'ECONNRESET' });
   const attempts: number[] = [];
   next.mockImplementation(async () => {
@@ -62,7 +65,7 @@ test('logs and exits after exhausting consecutive connection retries', async () 
 });
 
 test('resets the retry budget after a successful poll', async () => {
-  const { next, exit } = await setupExtension();
+  const { next, exit } = extension;
   const error = Object.assign(new Error('Connection reset'), { code: 'ECONNRESET' });
   next
     .mockRejectedValueOnce(error)
@@ -86,7 +89,7 @@ test.each([
   new Error('Failed to advance to next event: Container error'),
   Object.assign(new Error('Invalid URL'), { code: 'ERR_INVALID_URL' }),
 ])('logs and exits immediately for $message', async error => {
-  const { next, log, exit } = await setupExtension();
+  const { next, log, exit } = extension;
   next.mockRejectedValue(error);
 
   await import('../src/lambda-extension/index');

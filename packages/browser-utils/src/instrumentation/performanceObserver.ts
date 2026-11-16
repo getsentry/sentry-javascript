@@ -322,6 +322,13 @@ function unlessBfcacheDisabled(callback: (metric: Metric) => void): (metric: Met
 }
 
 function instrumentCls(): StopListening {
+  // web-vitals' CLS code calls `Array.prototype.at`, which Chromium only ships from 92. Chromium 80-91
+  // still emits layout shifts, so web-vitals would throw an uncaught TypeError on every one of them.
+  // TODO(v12): Remove this check if the minimum supported Chromium version is raised to 92 or higher.
+  if (!('at' in Array.prototype)) {
+    return;
+  }
+
   return onCLS(
     unlessBfcacheDisabled(metric => {
       triggerHandlers('cls', {

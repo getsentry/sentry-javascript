@@ -33,7 +33,6 @@ function getOperationSpans(container: SerializedStreamedSpanContainer): Serializ
 
 // Prisma 8 has no tracing surface: the operation spans come from the orchestrion channels the runtime hook
 // injects, and the `pg` spans underneath stand in for v7's `db_query` spans.
-// Prisma 8 requires Node 22.12 (`engines` of its `@prisma/cli-engine` peer), and on Node 20 it does not install.
 describe.runIf(supports({ min: 22 }))('Prisma ORM v8 Tests', () => {
   describeWithDockerCompose('Prisma ORM v8', { workingDirectory: [__dirname] }, () => {
     createEsmAndCjsTests(
@@ -100,9 +99,6 @@ describe.runIf(supports({ min: 22 }))('Prisma ORM v8 Tests', () => {
         testInstrumentedOperations();
       },
       {
-        additionalDependencies: {
-          '@prisma/orm-postgres': '8.0.0-rc.17',
-        },
         copyPaths: ['prisma'],
       },
     );

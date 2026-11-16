@@ -1,12 +1,20 @@
 <p align="center">
   <a href="https://sentry.io/?utm_source=github&utm_medium=logo" target="_blank">
-    <img src="https://sentry-brand.storage.googleapis.com/sentry-wordmark-dark-280x84.png" alt="Sentry" width="280" height="84">
+    <picture>
+      <source srcset="https://sentry-brand.storage.googleapis.com/sentry-logo-white.png" media="(prefers-color-scheme: dark)" />
+      <source srcset="https://sentry-brand.storage.googleapis.com/sentry-wordmark-dark-280x84.png" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)" />
+      <img src="https://sentry-brand.storage.googleapis.com/sentry-wordmark-dark-280x84.png" alt="Sentry" width="280">
+    </picture>
   </a>
 </p>
 
 # Official Sentry SDK for AWS Lambda
 
-The official Sentry SDK for monitoring AWS Lambda functions.
+The official Sentry SDK for monitoring AWS Lambda Event Functions (formerly called Lambda functions).
+
+For Lambda Web Functions, which run a standard HTTP server, use [`@sentry/node`](https://github.com/getsentry/sentry-javascript/tree/master/packages/node) instead. Its default
+[`awsLambdaWebIntegration`](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/awslambdaweb/)
+adds Lambda metadata to your errors and spans.
 
 ## Documentation
 

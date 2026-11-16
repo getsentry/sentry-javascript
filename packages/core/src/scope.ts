@@ -67,6 +67,11 @@ export interface SdkProcessingMetadata {
    */
   spanCountBeforeProcessing?: number;
   ipAddress?: string;
+  /**
+   * Set on `captureMessage` events whose stack trace exists only because `attachStacktrace`
+   * defaults to `true`, so Replay does not treat them as errors in buffer mode.
+   */
+  hasDefaultSyntheticStacktrace?: boolean;
 }
 
 /**

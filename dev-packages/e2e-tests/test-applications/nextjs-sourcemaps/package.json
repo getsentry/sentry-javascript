@@ -3,10 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "node start-mock-sentry-server.mjs & next build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; exit $BUILD_EXIT",
+    "build": "node start-mock-sentry-server.mjs & next build ${E2E_NEXT_WEBPACK:+--webpack} > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; exit $BUILD_EXIT",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm ts-node --script-mode assert-build.ts"
+    "test:assert": "pnpm ts-node --script-mode assert-build.ts",
+    "test:build:delete": "pnpm install && E2E_DELETE_SOURCEMAPS=1 pnpm build",
+    "test:build:delete-webpack": "pnpm install && E2E_DELETE_SOURCEMAPS=1 E2E_NEXT_WEBPACK=1 pnpm build",
+    "test:build:delete-bun": "pnpm install && E2E_DELETE_SOURCEMAPS=1 bun --bun run build",
+    "test:build:delete-webpack-bun": "pnpm install && E2E_DELETE_SOURCEMAPS=1 E2E_NEXT_WEBPACK=1 bun --bun run build",
+    "test:assert:delete": "E2E_DELETE_SOURCEMAPS=1 pnpm test:assert"
   },
   "dependencies": {
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
@@ -23,7 +28,30 @@
     "@types/react-dom": "^19",
     "ts-node": "10.9.1"
   },
-  "volta": {
-    "extends": "../../package.json"
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build:delete",
+        "assert-command": "pnpm test:assert:delete",
+        "label": "nextjs-sourcemaps (delete, turbopack)"
+      },
+      {
+        "build-command": "pnpm test:build:delete-webpack",
+        "assert-command": "pnpm test:assert:delete",
+        "label": "nextjs-sourcemaps (delete, webpack)"
+      },
+      {
+        "runtime": "bun",
+        "build-command": "pnpm test:build:delete-bun",
+        "assert-command": "pnpm test:assert:delete",
+        "label": "nextjs-sourcemaps (delete, turbopack, bun)"
+      },
+      {
+        "runtime": "bun",
+        "build-command": "pnpm test:build:delete-webpack-bun",
+        "assert-command": "pnpm test:assert:delete",
+        "label": "nextjs-sourcemaps (delete, webpack, bun)"
+      }
+    ]
   }
 }

@@ -1,4 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   imports: { autoImport: false },
@@ -21,6 +22,7 @@ export default defineNuxtConfig({
     },
   },
   nitro: {
+    ...(process.env.E2E_TEST_CACHE_DRIVER && { cache: { driver: process.env.E2E_TEST_CACHE_DRIVER } }),
     experimental: {
       database: true,
     },

@@ -27,13 +27,9 @@
     "@remix-run/eslint-config": "2.17.4",
     "@types/react": "^18.2.64",
     "@types/react-dom": "^18.2.34",
-    "@types/prop-types": "15.7.7",
     "eslint": "^8.38.0",
     "typescript": "^5.1.6",
     "vite": "^5.4.11",
     "vite-tsconfig-paths": "^4.2.1"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

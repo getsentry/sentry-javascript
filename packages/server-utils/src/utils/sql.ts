@@ -1,3 +1,13 @@
+import {
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+} from '@sentry/conventions/attributes';
+import type { SpanAttributes } from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled } from '@sentry/core';
+
 const MAX_SUMMARY_LENGTH = 255;
 
 // A single identifier: quoted (`"..."`, `'...'`, or MySQL backticks) or bare. The quoted forms have
@@ -101,6 +111,43 @@ export function getSqlQuerySummary(query: string | undefined): string | undefine
   }
 
   return truncate(query.trim().split(/\s+/)[0] ?? query);
+}
+
+const LEADING_KEYWORD_RE = /^\s*(?:\(\s*)*([A-Za-z]+)\b/;
+const CTE_MAIN_STATEMENT_RE = /\(|\)|\b(SELECT|INSERT|UPDATE|DELETE|MERGE|VALUES|TABLE)\b/gi;
+
+/**
+ * Derives `db.operation.name` from a SQL query: the first operation keyword, in its original case.
+ *
+ * @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/db/#db-operation-name
+ */
+export function getSqlOperationName(query: string | undefined): string | undefined {
+  const match = query ? LEADING_KEYWORD_RE.exec(query) : null;
+  const keyword = match?.[1];
+  if (!query || !match || !keyword) {
+    return undefined;
+  }
+  // Scanned from after `WITH`, so parentheses wrapping the whole query don't shift the depth.
+  return keyword.toUpperCase() === 'WITH' ? getCteMainOperationName(query.slice(match[0].length)) : keyword;
+}
+
+/**
+ * The operation of a `WITH` query is its main statement: the first operation keyword outside the
+ * CTE bodies, which are all parenthesized. Counting parentheses is safe on a sanitized query, which
+ * has no literals or comments left.
+ */
+function getCteMainOperationName(query: string): string | undefined {
+  let depth = 0;
+  for (const match of query.matchAll(CTE_MAIN_STATEMENT_RE)) {
+    if (match[0] === '(') {
+      depth++;
+    } else if (match[0] === ')') {
+      depth--;
+    } else if (depth === 0) {
+      return match[1];
+    }
+  }
+  return undefined;
 }
 
 function extractTableNames(sql: string): string[] {
@@ -366,6 +413,7 @@ export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDiale
     // whether it is looking at SQL syntax or at a user-supplied value.
     stripLiteralsAndComments(sqlQuery, dialect)
       .replace(/;\s*$/, '') // Remove trailing semicolons
+      .replace(/^[\s;]+/, '') // Remove leading semicolons (T-SQL's `;WITH`)
       // Collapse whitespace to a single space (after removing comments)
       .replace(/\s+/g, ' ')
       .trim() // Remove extra spaces and trim
@@ -384,15 +432,50 @@ export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDiale
   );
 }
 
+export interface SqlQueryAttributes {
+  [DB_QUERY_TEXT]: string | undefined;
+  [DB_QUERY_SUMMARY]: string | undefined;
+  [DB_OPERATION_NAME]: string | undefined;
+}
+
 /**
- * Sanitizes a collected SQL statement and derives the matching `db.query.summary`, the pair the SQL
- * integrations attach to their spans. Both come back `undefined` when there is no statement, so an
- * empty query omits the attributes instead of reporting the sanitizer's fallback text.
+ * Sanitizes a collected SQL statement into the query attributes the SQL integrations attach to
+ * their spans: `db.query.text`, `db.query.summary` and `db.operation.name`. All are `undefined`
+ * when there is no statement, so an empty query omits the attributes instead of reporting the
+ * sanitizer's fallback text.
  */
-export function sanitizeSqlQueryWithSummary(
-  sqlQuery: string | undefined,
-  dialect?: SqlDialect,
-): { queryText: string | undefined; querySummary: string | undefined } {
-  const queryText = sqlQuery ? sanitizeSqlQuery(sqlQuery, dialect) : undefined;
-  return { queryText, querySummary: getSqlQuerySummary(queryText) };
+export function getSqlQueryAttributes(sqlQuery: string | undefined, dialect?: SqlDialect): SqlQueryAttributes {
+  const queryText = (sqlQuery && sanitizeSqlQuery(sqlQuery, dialect)) || undefined;
+  return {
+    [DB_QUERY_TEXT]: queryText,
+    [DB_QUERY_SUMMARY]: getSqlQuerySummary(queryText),
+    [DB_OPERATION_NAME]: getSqlOperationName(queryText),
+  };
+}
+
+/**
+ * Names a SQL span with a low-cardinality name: `db.query.summary`, falling back to `db.namespace`
+ * and then `db.system.name`. `fallback` is the integration's name for a span with none of those.
+ *
+ * New SQL integrations should name their spans with this regardless of span streaming.
+ */
+export function getLowCardinalitySqlSpanName(attributes: SpanAttributes, fallback: string): string {
+  return toSpanName(attributes[DB_QUERY_SUMMARY] || attributes[DB_NAMESPACE] || attributes[DB_SYSTEM_NAME], fallback);
+}
+
+/**
+ * Names a SQL span from its attributes. Streamed span names have to be low cardinality (see
+ * {@link getLowCardinalitySqlSpanName}); otherwise the sanitized `db.query.text` is used, which
+ * existing integrations keep for spans that aren't streamed.
+ */
+export function getSqlSpanName(attributes: SpanAttributes, fallback: string): string {
+  const client = getClient();
+  if (client && hasSpanStreamingEnabled(client)) {
+    return getLowCardinalitySqlSpanName(attributes, fallback);
+  }
+  return toSpanName(attributes[DB_QUERY_TEXT], fallback);
+}
+
+function toSpanName(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value ? value : fallback;
 }

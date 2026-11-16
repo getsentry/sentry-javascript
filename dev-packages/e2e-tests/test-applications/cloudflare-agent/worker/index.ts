@@ -100,9 +100,31 @@ class MyManualChatAgentBase extends AIChatAgent<Env> {
   }
 }
 
+// `agents` wraps the `@callable()` methods of a class during its first construction in the isolate.
+// Throwing after `super()` fails that construction after the wrapping, like a storage error during
+// Agent initialization (for example a Durable Object storage quota limit) does.
+let failNextRecoveringAgentConstruction = true;
+
+class MyRecoveringAgentBase extends Agent<Env> {
+  public constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+
+    if (failNextRecoveringAgentConstruction) {
+      failNextRecoveringAgentConstruction = false;
+      throw new Error('Simulated storage failure during the first construction');
+    }
+  }
+
+  @callable()
+  async greet(name: string): Promise<string> {
+    return `Hello, ${name}!`;
+  }
+}
+
 export const MyAgent = Sentry.instrumentAgentWithSentry(sentryOptions, MyBaseAgent);
 export const MyChatAgent = Sentry.instrumentAgentWithSentry(sentryOptions, MyChatAgentBase);
 export const MyManualChatAgent = Sentry.instrumentAgentWithSentry(sentryOptions, MyManualChatAgentBase);
+export const MyRecoveringAgent = Sentry.instrumentAgentWithSentry(sentryOptions, MyRecoveringAgentBase);
 
 export default Sentry.withSentry(sentryOptions, {
   async fetch(request, env): Promise<Response> {

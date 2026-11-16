@@ -14,9 +14,10 @@ import {
 } from '@sentry/conventions/attributes';
 import { DB_QUERY, GEN_AI_CHAT, GEN_AI_INVOKE_AGENT, HTTP_CLIENT, HTTP_SERVER } from '@sentry/conventions/op';
 import { collectStreamedSpans, getSpanOp, waitForError } from '@sentry-internal/test-utils';
-import { newAgentId, prompt, submitPrompt, waitForOperation } from './utils';
+import { createEagerConversation, newAgentId, prompt, promptEager, submitPrompt, waitForOperation } from './utils';
 
 const APP = 'cloudflare-pi-durable';
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 test('traces a PiHarness prompt as invoke_agent with chat, execute_tool and provider spans', async ({ baseURL }) => {
   // A run is its own trace, and its `invoke_agent` segment ends last. Only this test calls get_weather.
@@ -43,8 +44,8 @@ test('traces a PiHarness prompt as invoke_agent with chat, execute_tool and prov
   const providerCalls = spans.filter(span => getSpanOp(span) === HTTP_CLIENT);
 
   expect(agent.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.pi_durable');
-  // The PiHarness root session is pi conversation 1, in a Harness of its own per Durable Object.
-  expect(agent.attributes[GEN_AI_CONVERSATION_ID]?.value).toMatch(/^[0-9a-f]{32}:1$/);
+  // The provider session id pi-durable keeps with the conversation.
+  expect(agent.attributes[GEN_AI_CONVERSATION_ID]?.value).toMatch(UUID);
   // The request that submitted the prompt is a trace of its own: the scheduler runs the work.
   expect(spans.some(span => getSpanOp(span) === HTTP_SERVER)).toBe(false);
   // pi-durable keeps its state in the `pi_` tables of `PiHarness`, whose statements start no span.
@@ -52,7 +53,9 @@ test('traces a PiHarness prompt as invoke_agent with chat, execute_tool and prov
   // pi-ai sends the requests through `@anthropic-ai/sdk`, whose own integration must stay out so
   // each request is reported once.
   expect(spans.filter(span => String(span.attributes[SENTRY_ORIGIN]?.value).startsWith('auto.ai.'))).toEqual(
-    spans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.pi_durable'),
+    spans.filter(span =>
+      ['auto.ai.pi_durable', 'auto.ai.pi_ai'].includes(String(span.attributes[SENTRY_ORIGIN]?.value)),
+    ),
   );
 
   // One tool-calling response, then the answer.
@@ -141,7 +144,37 @@ test('resumes a run in a new trace after the Durable Object resets during a tool
   expect(getSpanOp(agent)).toBe(GEN_AI_INVOKE_AGENT);
   expect(tool.parent_span_id).toBe(agent.span_id);
   expect(finalAnswer?.parent_span_id).toBe(agent.span_id);
+  // The restarted object reads the conversation id from storage, also when the run resumes with a tool call.
+  expect(agent.attributes[GEN_AI_CONVERSATION_ID]?.value).toMatch(UUID);
+  expect(tool.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe(agent.attributes[GEN_AI_CONVERSATION_ID]?.value);
   // The request that called the tool ran before the reset, so this trace starts with the rerun of the
   // tool. A run that never reset would start with that request.
   expect(chats.every(chat => chat.start_timestamp >= tool.start_timestamp)).toBe(true);
+});
+
+test('traces a Durable Object that opens the Harness in its constructor', async ({ baseURL }) => {
+  // The object runs in its own Worker, so its isolate has no earlier handler that initialized the SDK.
+  const objectId = newAgentId('eager');
+  const conversation = await createEagerConversation(baseURL!, objectId);
+  const spansPromise = collectStreamedSpans(APP, spansOfTrace =>
+    spansOfTrace.some(
+      span =>
+        span.is_segment &&
+        getSpanOp(span) === GEN_AI_INVOKE_AGENT &&
+        span.attributes[GEN_AI_CONVERSATION_ID]?.value === conversation.sessionId,
+    ),
+  );
+
+  const answer = await promptEager(baseURL!, objectId, conversation.id, 'Reply with the word DONE.');
+  expect(answer.status, answer.reason).toBe('done');
+
+  const spans = await spansPromise;
+  const agent = spans.find(span => span.is_segment)!;
+  const chats = spans.filter(span => getSpanOp(span) === GEN_AI_CHAT);
+
+  expect(agent.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.pi_durable');
+  expect(chats.length).toBeGreaterThan(0);
+  for (const chat of chats) {
+    expect(chat.parent_span_id).toBe(agent.span_id);
+  }
 });

@@ -1,5 +1,6 @@
 // oxlint-disable-next-line no-restricted-imports
 import * as nodeDiagnosticsChannel from 'node:diagnostics_channel';
+import { isBun } from './runtime';
 
 // Bun garbage-collects a diagnostics channel that no code references, together with its
 // subscribers, so a subscription made at `init()` can stop receiving messages after the next GC.
@@ -7,7 +8,7 @@ import * as nodeDiagnosticsChannel from 'node:diagnostics_channel';
 // `node:diagnostics_channel` functions keep a reference to every channel they return, so the SDK's
 // subscriptions stay active. Other runtimes get the original functions.
 // See https://github.com/oven-sh/bun/issues/43086
-const keepChannelsReferenced = typeof (globalThis as { Bun?: unknown }).Bun !== 'undefined';
+const keepChannelsReferenced = isBun();
 
 const channelsByName = new Map<string | symbol, nodeDiagnosticsChannel.Channel>();
 const tracingChannelsByName = new Map<string, nodeDiagnosticsChannel.TracingChannel>();

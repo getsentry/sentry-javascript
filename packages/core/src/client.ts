@@ -6,8 +6,6 @@ import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations, setupIntegration, setupIntegrations } from './integration';
-import { _INTERNAL_flushLogsBuffer } from './logs/internal';
-import { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
@@ -26,7 +24,6 @@ import type { FeedbackEvent } from './types/feedback';
 import type { Integration } from './types/integration';
 import type { Log } from './types/log';
 import type { Metric } from './types/metric';
-import type { Primitive } from './types/misc';
 import type { ClientOptions } from './types/options';
 import type { ParameterizedString } from './types/parameterize';
 import type { ReplayEndEvent, ReplayStartEvent } from './types/replay';
@@ -52,7 +49,7 @@ import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from 
 import { safeMathRandom } from './utils/randomSafeContext';
 import { safeCallback } from './utils/safeCallback';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
-import { safeUnref } from './utils/timer';
+import { rejectedSyncPromise } from './utils/syncpromise';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 import { maybeWarnAboutIgnoredTransactionOptions } from './utils/warnAboutIgnoredTransactionOptions';
 import { resolveDataCollectionOptions } from './utils/data-collection/resolveDataCollectionOptions';
@@ -63,9 +60,6 @@ const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing 
 
 const INTERNAL_ERROR_SYMBOL = Symbol.for('SentryInternalError');
 const DO_NOT_SEND_EVENT_SYMBOL = Symbol.for('SentryDoNotSendEventError');
-
-// Default interval for flushing logs and metrics (5 seconds)
-const DEFAULT_FLUSH_INTERVAL = 5000;
 
 // Clones of a scope keep their own reference to its client, so unbinding a
 // closed client from one scope does not reach the others. The mark lives on
@@ -105,76 +99,18 @@ function _makeDoNotSendEventError(message: string): DoNotSendEventError {
   };
 }
 
+function _makeSampledOutError(sampleRate: ClientOptions['sampleRate']): DoNotSendEventError {
+  return _makeDoNotSendEventError(
+    `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
+  );
+}
+
 function _isInternalError(error: unknown): error is InternalError {
   return isObjectLike(error) && INTERNAL_ERROR_SYMBOL in error;
 }
 
 function _isDoNotSendEventError(error: unknown): error is DoNotSendEventError {
   return isObjectLike(error) && DO_NOT_SEND_EVENT_SYMBOL in error;
-}
-
-/**
- * Sets up weight-based flushing for logs or metrics.
- * This helper function encapsulates the common pattern of:
- * 1. Tracking accumulated weight of items
- * 2. Flushing when weight exceeds threshold (800KB)
- * 3. Flushing after timeout period from the first item
- *
- * Uses closure variables to track weight and timeout state.
- */
-function setupWeightBasedFlushing<
-  T,
-  AfterCaptureHook extends 'afterCaptureLog' | 'afterCaptureMetric',
-  FlushHook extends 'flushLogs' | 'flushMetrics',
->(
-  client: Client,
-  afterCaptureHook: AfterCaptureHook,
-  flushHook: FlushHook,
-  estimateSizeFn: (item: T) => number,
-  flushFn: (client: Client) => void,
-): void {
-  // Track weight and timeout in closure variables
-  let weight = 0;
-  let flushTimeout: ReturnType<typeof setTimeout> | undefined;
-  let isTimerActive = false;
-
-  // @ts-expect-error - TypeScript can't narrow generic hook types to match specific overloads, but we know this is type-safe
-  client.on(flushHook, () => {
-    weight = 0;
-    clearTimeout(flushTimeout);
-    isTimerActive = false;
-  });
-
-  // @ts-expect-error - TypeScript can't narrow generic hook types to match specific overloads, but we know this is type-safe
-  client.on(afterCaptureHook, (item: T) => {
-    weight += estimateSizeFn(item);
-
-    // We flush the buffer if it exceeds 0.8 MB
-    // The weight is a rough estimate, so we flush way before the payload gets too big.
-    if (weight >= 800_000) {
-      flushFn(client);
-    } else if (!isTimerActive) {
-      const flushInterval = client.getOptions()._flushInterval ?? DEFAULT_FLUSH_INTERVAL;
-      if (flushInterval > 0) {
-        // Only start timer if one isn't already running.
-        // This prevents flushing being delayed by items that arrive close to the timeout limit
-        // and thus resetting the flushing timeout and delaying items being flushed.
-        isTimerActive = true;
-        // Use safeUnref so the timer doesn't prevent the process from exiting
-        flushTimeout = safeUnref(
-          setTimeout(() => {
-            flushFn(client);
-            // Note: isTimerActive is reset by the flushHook handler above, not here,
-            // to avoid race conditions when new items arrive during the flush.
-          }, flushInterval),
-        );
-      }
-    }
-  });
-
-  client.on('flush', () => {
-    flushFn(client);
-  });
 }
 
 /**
@@ -243,6 +179,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   protected _unhandledSessionStatus: SessionStatus;
 
+  /** Whether `attachStacktrace` came from the SDK default rather than the user's options. */
+  protected readonly _attachStacktraceIsDefault: boolean;
+
   /**
    * Initializes this client instance.
    *
@@ -264,6 +203,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._promiseBuffer = makePromiseBuffer(options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE);
     this._dataCollection = resolveDataCollectionOptions(options);
     this._unhandledSessionStatus = 'crashed';
+    this._attachStacktraceIsDefault = options.attachStacktrace === undefined;
 
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
@@ -302,18 +242,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         url,
       });
     }
-
-    // Setup log flushing with weight and timeout tracking
-    setupWeightBasedFlushing(this, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
-
-    // Setup metric flushing with weight and timeout tracking
-    setupWeightBasedFlushing(
-      this,
-      'afterCaptureMetric',
-      'flushMetrics',
-      estimateMetricSizeInBytes,
-      _INTERNAL_flushMetricsBuffer,
-    );
   }
 
   /**
@@ -365,7 +293,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const eventMessage = isParameterizedString(message) ? message : String(message);
     const isMessage = isPrimitive(message);
     const promisedEvent = isMessage
-      ? this.eventFromMessage(eventMessage, level, hintWithEventId)
+      ? this.eventFromMessage(eventMessage, level, hintWithEventId).then(event => {
+          // Lets Replay keep treating messages as non-errors unless the user opted into stack traces
+          if (event.exception && this._attachStacktraceIsDefault) {
+            event.sdkProcessingMetadata = { ...event.sdkProcessingMetadata, hasDefaultSyntheticStacktrace: true };
+          }
+
+          return event;
+        })
       : this.eventFromException(message, hintWithEventId);
 
     this._process(
@@ -1317,6 +1252,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       try {
         const result = await this._transport.send(envelope);
         this.emit('afterEnvelope', envelope);
+
         return result;
       } catch (reason) {
         DEBUG_BUILD && debug.error('Error while sending envelope:', reason);
@@ -1550,10 +1486,19 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
+    const isSampledOut = isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate;
     const dataCategory = getDataCategoryByType(event.type);
     // Spans that event processors removed are already recorded in `prepareEvent`, so all later
     // span outcomes are relative to the span count of the prepared event.
     let preparedSpanCount = 0;
+
+    const session = currentScope.getSession() || isolationScope.getSession();
+    // A sampled-out error only runs the pipeline to update the session. Without a session it could update,
+    // drop it right away so it doesn't hold a promise buffer slot while event processors run.
+    if (isSampledOut && session?.status !== 'ok') {
+      this.recordDroppedEvent('sample_rate', 'error');
+      return rejectedSyncPromise(_makeSampledOutError(sampleRate));
+    }
 
     return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
@@ -1602,16 +1547,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError(`${dropMessage}, will not send event.`);
         }
 
-        const session = currentScope.getSession() || isolationScope.getSession();
         if (isError && session) {
           this._updateSessionFromEvent(session, processedEvent);
         }
 
-        if (isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate) {
+        if (isSampledOut) {
           this.recordDroppedEvent('sample_rate', 'error');
-          throw _makeDoNotSendEventError(
-            `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
-          );
+          throw _makeSampledOutError(sampleRate);
         }
 
         if (isTransaction) {
@@ -1848,80 +1790,4 @@ function isErrorEvent(event: Event): event is ErrorEvent {
 
 function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
-}
-
-/**
- * Estimate the size of a metric in bytes.
- *
- * @param metric - The metric to estimate the size of.
- * @returns The estimated size of the metric in bytes.
- */
-function estimateMetricSizeInBytes(metric: Metric): number {
-  let weight = 0;
-
-  // Estimate byte size of 2 bytes per character. This is a rough estimate JS strings are stored as UTF-16.
-  if (metric.name) {
-    weight += metric.name.length * 2;
-  }
-
-  // Add weight for number
-  weight += 8;
-
-  return weight + estimateAttributesSizeInBytes(metric.attributes);
-}
-
-/**
- * Estimate the size of a log in bytes.
- *
- * @param log - The log to estimate the size of.
- * @returns The estimated size of the log in bytes.
- */
-function estimateLogSizeInBytes(log: Log): number {
-  let weight = 0;
-
-  // Estimate byte size of 2 bytes per character. This is a rough estimate JS strings are stored as UTF-16.
-  if (log.message) {
-    weight += log.message.length * 2;
-  }
-
-  return weight + estimateAttributesSizeInBytes(log.attributes);
-}
-
-/**
- * Estimate the size of attributes in bytes.
- *
- * @param attributes - The attributes object to estimate the size of.
- * @returns The estimated size of the attributes in bytes.
- */
-function estimateAttributesSizeInBytes(attributes: Record<string, unknown> | undefined): number {
-  if (!attributes) {
-    return 0;
-  }
-
-  let weight = 0;
-
-  Object.values(attributes).forEach(value => {
-    if (Array.isArray(value)) {
-      weight += value.length * estimatePrimitiveSizeInBytes(value[0]);
-    } else if (isPrimitive(value)) {
-      weight += estimatePrimitiveSizeInBytes(value);
-    } else {
-      // For objects values, we estimate the size of the object as 100 bytes
-      weight += 100;
-    }
-  });
-
-  return weight;
-}
-
-function estimatePrimitiveSizeInBytes(value: Primitive): number {
-  if (typeof value === 'string') {
-    return value.length * 2;
-  } else if (typeof value === 'number') {
-    return 8;
-  } else if (typeof value === 'boolean') {
-    return 4;
-  }
-
-  return 0;
 }

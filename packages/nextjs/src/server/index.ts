@@ -11,11 +11,22 @@ import {
   GLOBAL_OBJ,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
+import {
+  _INTERNAL_installTunnelHooks as installTunnelHooks,
+  getDefaultIntegrations,
+  httpIntegration,
+  init as nodeInit,
+} from '@sentry/node';
+import {
+  _INTERNAL_forwardTunnelRequest as forwardTunnelRequest,
+  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
+} from '@sentry/core/server';
 import { DEBUG_BUILD } from '../common/debug-build';
+import { getInjectedBasePath } from '../common/utils/basePath';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { dropReactControlFlowErrorsEventProcessor } from '../common/utils/dropReactControlFlowErrors';
 import { getTunnelRouteIgnoreSpans } from '../common/utils/dropMiddlewareTunnelRequests';
+import { getTunnelRouteServerOptions } from '../common/utils/tunnelPathnameMatch';
 import { isBuild } from '../common/utils/isBuild';
 import {
   isAsyncContextOwnedByCloudflare,
@@ -26,6 +37,7 @@ import {
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { registerNextSentryPropagator } from './nextSentryPropagator';
 import { addNextjsServerSpanHooks, NEXTJS_SERVER_IGNORE_SPANS } from './serverSpanHooks';
+import { addServerTimingTraceHeader } from './serverTimingHeader';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
 import { nextjsUseCacheIntegration } from './useCacheInstrumentation';
 
@@ -42,6 +54,7 @@ export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/n
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
   _sentryRelease?: string;
+  _sentryTurbopack?: boolean;
 };
 
 // Call at module level so `next build` prerender workers still register the runner without `init`
@@ -157,7 +170,14 @@ export function init(options: NodeOptions): NodeClient | undefined {
     ...cloudflareConfig,
   };
 
-  opts.ignoreSpans = [...(opts.ignoreSpans || []), ...NEXTJS_SERVER_IGNORE_SPANS, ...getTunnelRouteIgnoreSpans()];
+  opts.ignoreSpans = [...(opts.ignoreSpans || []), ...NEXTJS_SERVER_IGNORE_SPANS];
+
+  // Before `init`, which applies it to the managed tunnel of `serveTunnelIntegration` or `tunnelRoute`.
+  const tunnelRoute = getTunnelRouteServerOptions();
+  setTunnelDefaults({ basePath: getInjectedBasePath(), tunnel: tunnelRoute, forward: forwardTunnelRequest });
+  if (tunnelRoute) {
+    installTunnelHooks();
+  }
 
   if (DEBUG_BUILD && opts.debug) {
     debug.enable();
@@ -181,6 +201,9 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   if (client) {
     addNextjsServerSpanHooks(client);
+    addServerTimingTraceHeader(client);
+    const clientOptions = client.getOptions();
+    clientOptions.ignoreSpans = [...(clientOptions.ignoreSpans || []), ...getTunnelRouteIgnoreSpans(client)];
   } else if (isOwnedByCloudflare) {
     setCloudflareWorkerRelease(opts.release);
   }
@@ -216,7 +239,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   try {
     // @ts-expect-error `process.turbopack` is a magic string that will be replaced by Next.js
-    if (process.turbopack) {
+    if (process.turbopack || globalWithInjectedValues._sentryTurbopack) {
       getGlobalScope().setTag('turbopack', true);
       getGlobalScope().setAttribute('turbopack', true);
     }

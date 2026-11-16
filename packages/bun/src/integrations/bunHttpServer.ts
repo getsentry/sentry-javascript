@@ -10,6 +10,7 @@ import type {
   HttpServerResponse,
 } from '@sentry/core/server';
 import { getHttpServerSubscriptions, HTTP_ON_SERVER_REQUEST } from '@sentry/core/server';
+import { isBun } from '@sentry/server-utils';
 
 const INTEGRATION_NAME = 'BunHttpServer' as const;
 
@@ -135,7 +136,7 @@ export const bunHttpServerIntegration = defineIntegration(_bunHttpServerIntegrat
  */
 export function instrumentBunHttpServer(options: BunHttpServerOptions = {}): void {
   // This only makes sense under Bun; on Node the diagnostics channel already handles this.
-  if (!process.versions.bun || hasPatched) {
+  if (!isBun() || hasPatched) {
     return;
   }
 

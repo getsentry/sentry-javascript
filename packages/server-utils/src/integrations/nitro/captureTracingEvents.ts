@@ -1,4 +1,4 @@
-import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, SENTRY_ORIGIN, SERVER_PORT } from '@sentry/conventions/attributes';
 import { HANDLER, HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
 import {
   isObjectLike,
@@ -21,17 +21,16 @@ import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
 import type { H3TracingRequestEvent, NitroH3Event, SrvxRequestEvent } from './nitroTypes';
 
-/**
- * Global object with the trace channels
- */
-const globalWithTraceChannels = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __SENTRY_NITRO_HTTP_CHANNELS_INSTRUMENTED__: boolean;
+type GlobalWithTraceChannels = typeof GLOBAL_OBJ & {
+  __SENTRY_NITRO_HTTP_CHANNELS_INSTRUMENTED__?: boolean;
 };
 
 /**
  * Captures tracing events emitted by Nitro tracing channels.
  */
 export function captureTracingEvents(): void {
+  // Resolved at call time: bundlers may evaluate this module before `GLOBAL_OBJ` is initialized.
+  const globalWithTraceChannels = GLOBAL_OBJ as GlobalWithTraceChannels;
   if (globalWithTraceChannels.__SENTRY_NITRO_HTTP_CHANNELS_INSTRUMENTED__) {
     return;
   }
@@ -230,7 +229,7 @@ function setupSrvxTracingChannels(): void {
           ...headerAttributes,
           [SENTRY_ORIGIN]: 'auto.http.nitro.srvx',
           [SENTRY_OP]: data.middleware ? MIDDLEWARE : HTTP_SERVER,
-          'server.port': getServerPort(data.server),
+          [SERVER_PORT]: getServerPort(data.server),
         },
         // Use the same parent span as middleware to make them siblings
         parentSpan: requestParentSpans.get(data.request) || undefined,
@@ -301,7 +300,7 @@ function setParameterizedRouteAttributes(span: Span, event: NitroH3Event): void 
 
   if (isObjectLike(params)) {
     Object.entries(params).forEach(([key, value]) => {
-      // Based on this convention: https://getsentry.github.io/sentry-conventions/generated/attributes/url.html#urlpathparameterkey
+      // Based on this convention: https://conventions.sentry.dev/attributes/url/#url-path-parameter-key
       rootSpan.setAttributes({
         [`url.path.parameter.${key}`]: String(value),
         [`params.${key}`]: String(value),

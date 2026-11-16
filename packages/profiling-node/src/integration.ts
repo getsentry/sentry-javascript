@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+import { THREAD_ID, THREAD_NAME } from '@sentry/conventions/attributes';
 import type { Event, IntegrationFn, ProfileChunk, ProfilingIntegration } from '@sentry/core';
 import {
   consoleSandbox,
@@ -424,8 +425,8 @@ class ContinuousProfiler {
       ...(event.contexts?.trace ?? {}),
       data: {
         ...(event.contexts?.trace?.data ?? {}),
-        ['thread.id']: PROFILER_THREAD_ID_STRING,
-        ['thread.name']: PROFILER_THREAD_NAME,
+        [THREAD_ID]: PROFILER_THREAD_ID_STRING,
+        [THREAD_NAME]: PROFILER_THREAD_NAME,
       },
     };
   }

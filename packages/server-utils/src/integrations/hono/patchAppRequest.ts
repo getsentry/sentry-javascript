@@ -4,6 +4,7 @@ import { debug, getActiveSpan, getOriginalFunction, startSpan, type WrappedFunct
 import { INTERNAL_REQUEST_ORIGIN } from './constants';
 import type { Env, Hono } from './honoTypes';
 import { DEBUG_BUILD } from '../../debug-build';
+import { sentryOriginalTraps } from './sentryOriginalTraps';
 
 const INTERNAL_REQUEST_OP = HTTP_SERVER;
 
@@ -113,12 +114,7 @@ export function patchAppRequest<E extends Env>(app: Hono<E>): void {
         },
       );
     },
-    get(target, prop, receiver) {
-      if (prop === '__sentry_original__') {
-        return originalRequest;
-      }
-      return Reflect.get(target, prop, receiver);
-    },
+    ...sentryOriginalTraps(originalRequest),
   });
 
   DEBUG_BUILD && debug.log('[hono] Patched app.request for internal dispatch tracing.');

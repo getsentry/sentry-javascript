@@ -22,8 +22,5 @@
     "@sentry/bun": "file:../../packed/sentry-bun-packed.tgz",
     "@types/node": "^18.19.1",
     "typescript": "~5.0.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

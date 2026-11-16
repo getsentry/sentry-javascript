@@ -15,7 +15,6 @@
     "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
     "@sentry/react-router": "file:../../packed/sentry-react-router-packed.tgz",
     "ioredis": "^5.11.1",
-    "isbot": "^5.1.43",
     "mysql": "^2.18.1"
   },
   "devDependencies": {
@@ -65,11 +64,7 @@
       "last 1 safari version"
     ]
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
-    "runner": "namespace-profile-sentry-javascript",
     "variants": [
       {
         "build-command": "pnpm test:build-latest",

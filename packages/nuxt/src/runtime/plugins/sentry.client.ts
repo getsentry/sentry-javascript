@@ -1,4 +1,6 @@
+import { PAGELOAD } from '@sentry/conventions/op';
 import { getClient, GLOBAL_OBJ } from '@sentry/core';
+import { _INTERNAL_withCacheOrigin } from '@sentry/core/browser';
 import {
   browserTracingIntegration,
   _INTERNAL_createVueRouteProvider,
@@ -73,7 +75,15 @@ export default defineNuxtPlugin({
 
       if (sentryClient && '$router' in nuxtApp) {
         sentryClient.addIntegration(
-          browserTracingIntegration({ router: nuxtApp.$router as VueRouter, routeLabel: 'path' }),
+          browserTracingIntegration({
+            router: nuxtApp.$router as VueRouter,
+            routeLabel: 'path',
+            // A client-side shell (`ssr: false`) has no server-rendered content to mark.
+            beforeStartSpan: options =>
+              options.op === PAGELOAD && nuxtApp.payload.serverRendered === true
+                ? _INTERNAL_withCacheOrigin(options, 'static')
+                : options,
+          }),
         );
       }
     }

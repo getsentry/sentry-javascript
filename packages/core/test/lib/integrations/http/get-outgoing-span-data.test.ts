@@ -19,6 +19,8 @@ import {
   URL_DOMAIN,
   URL_FULL,
   URL_PATH,
+  URL_PORT,
+  URL_SCHEME,
 } from '@sentry/conventions/attributes';
 
 function makeMockRequest(overrides: Partial<Record<string, unknown>> = {}): HttpClientRequest {
@@ -146,6 +148,8 @@ describe('getOutgoingRequestSpanData', () => {
   it('includes non-standard port in the URL', () => {
     const result = getOutgoingRequestSpanData(makeMockRequest({ port: 3000 }));
     expect(result.attributes![URL_FULL]).toContain(':3000');
+    expect(result.attributes![URL_SCHEME]).toBe('http');
+    expect(result.attributes![URL_PORT]).toBe(3000);
   });
 });
 

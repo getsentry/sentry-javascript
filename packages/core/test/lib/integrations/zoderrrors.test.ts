@@ -218,24 +218,24 @@ describe('flattenIssue()', () => {
       [
         {
           "code": "too_small",
-          "exact": false,
           "inclusive": true,
-          "message": "String must contain at least 1 character(s)",
+          "message": "Too small: expected string to have >=1 characters",
           "minimum": 1,
+          "origin": "string",
           "path": [
             "foo",
           ],
-          "type": "string",
         },
         {
-          "code": "invalid_literal",
-          "expected": "baz",
-          "message": "Invalid literal value, expected "baz"",
+          "code": "invalid_value",
+          "message": "Invalid input: expected "baz"",
           "path": [
             "nested",
             "bar",
           ],
-          "received": "not-baz",
+          "values": [
+            "baz",
+          ],
         },
       ]
     `);
@@ -248,23 +248,23 @@ describe('flattenIssue()', () => {
       [
         {
           "code": "too_small",
-          "exact": false,
           "inclusive": true,
           "keys": undefined,
-          "message": "String must contain at least 1 character(s)",
+          "message": "Too small: expected string to have >=1 characters",
           "minimum": 1,
+          "origin": "string",
           "path": "foo",
-          "type": "string",
           "unionErrors": undefined,
         },
         {
-          "code": "invalid_literal",
-          "expected": "baz",
+          "code": "invalid_value",
           "keys": undefined,
-          "message": "Invalid literal value, expected "baz"",
+          "message": "Invalid input: expected "baz"",
           "path": "nested.bar",
-          "received": "not-baz",
           "unionErrors": undefined,
+          "values": [
+            "baz",
+          ],
         },
       ]
     `);
@@ -275,25 +275,25 @@ describe('flattenIssue()', () => {
           "foo": [
             {
               "code": "too_small",
-              "exact": false,
               "inclusive": true,
               "keys": undefined,
-              "message": "String must contain at least 1 character(s)",
+              "message": "Too small: expected string to have >=1 characters",
               "minimum": 1,
+              "origin": "string",
               "path": "foo",
-              "type": "string",
               "unionErrors": undefined,
             },
           ],
           "nested": [
             {
-              "code": "invalid_literal",
-              "expected": "baz",
+              "code": "invalid_value",
               "keys": undefined,
-              "message": "Invalid literal value, expected "baz"",
+              "message": "Invalid input: expected "baz"",
               "path": "nested.bar",
-              "received": "not-baz",
               "unionErrors": undefined,
+              "values": [
+                "baz",
+              ],
             },
           ],
         },
@@ -326,7 +326,7 @@ describe('flattenIssue()', () => {
             "extra_key_abc",
             "extra_key_def",
           ],
-          "message": "Unrecognized key(s) in object: 'extra_key_abc', 'extra_key_def'",
+          "message": "Unrecognized keys: "extra_key_abc", "extra_key_def"",
           "path": [],
         },
       ]
@@ -349,7 +349,7 @@ describe('flattenIssue()', () => {
       {
         "code": "unrecognized_keys",
         "keys": "["extra_key_abc","extra_key_def"]",
-        "message": "Unrecognized key(s) in object: 'extra_key_abc', 'extra_key_def'",
+        "message": "Unrecognized keys: "extra_key_abc", "extra_key_def"",
         "path": "",
         "unionErrors": undefined,
       }
@@ -412,9 +412,8 @@ describe('formatIssueMessage()', () => {
           {
             "code": "invalid_type",
             "expected": "object",
-            "message": "Expected object, received number",
+            "message": "Invalid input: expected object, received number",
             "path": [],
-            "received": "number",
           },
         ]
       `);
@@ -435,9 +434,8 @@ describe('formatIssueMessage()', () => {
           {
             "code": "invalid_type",
             "expected": "number",
-            "message": "Expected number, received string",
+            "message": "Invalid input: expected number, received string",
             "path": [],
-            "received": "string",
           },
         ]
       `);
@@ -458,9 +456,8 @@ describe('formatIssueMessage()', () => {
           {
             "code": "invalid_type",
             "expected": "string",
-            "message": "Expected string, received number",
+            "message": "Invalid input: expected string, received number",
             "path": [],
-            "received": "number",
           },
         ]
       `);
@@ -481,9 +478,8 @@ describe('formatIssueMessage()', () => {
           {
             "code": "invalid_type",
             "expected": "array",
-            "message": "Expected array, received string",
+            "message": "Invalid input: expected array, received string",
             "path": [],
-            "received": "string",
           },
         ]
       `);
@@ -504,11 +500,10 @@ describe('formatIssueMessage()', () => {
           {
             "code": "invalid_type",
             "expected": "string",
-            "message": "Expected string, received number",
+            "message": "Invalid input: expected string, received number",
             "path": [
               0,
             ],
-            "received": "number",
           },
         ]
       `);

@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context';
-import { Type } from '@earendil-works/pi-ai';
+import { Type } from 'typebox';
 import { createModels } from '@earendil-works/pi-ai/models';
 import { openrouterProvider } from '@earendil-works/pi-ai/providers/openrouter';
 import {
@@ -11,6 +11,7 @@ import {
   defineExtension,
   defineTool,
   Harness,
+  ProviderDoc,
   section,
 } from '@earendil-works/pi-durable';
 import { openNodeSqliteStorage } from '@earendil-works/pi-durable/storage/sqlite/node';
@@ -125,7 +126,9 @@ async function handle(req, res) {
       { ownership: { kind: 'ownerless' }, agent: { model: MODEL } },
       context,
     );
-    return { id: conversation.id };
+    // The SDK reports the provider session id as `gen_ai.conversation.id`.
+    const provider = await harness.snapshot(ProviderDoc, conversation.id, context);
+    return { id: conversation.id, sessionId: provider?.sessionId };
   }
 
   // Returns as soon as the input is admitted. The run continues in the background, possibly in a

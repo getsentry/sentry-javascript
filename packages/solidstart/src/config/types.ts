@@ -9,6 +9,7 @@ export type RollupConfig = {
 export type SolidStartInlineConfig = NonNullable<Parameters<typeof defineConfig>[0]>;
 
 export type SolidStartInlineServerConfig = {
+  plugins?: string[];
   hooks?: {
     close?: () => unknown;
     'rollup:before'?: (nitro: Nitro) => unknown;

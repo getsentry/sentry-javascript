@@ -1,3 +1,4 @@
+import { HTTP_RESPONSE_STATUS_CODE } from '@sentry/conventions/attributes';
 import type { Span } from '../types/span';
 import type { SpanStatusType } from '../types/spanStatus';
 import { SPAN_STATUS_TYPES, type SpanStatus } from '../types/spanStatus';
@@ -64,7 +65,7 @@ export function getSpanStatusFromHttpCode(httpStatus: number): SpanStatus {
  * Additionally, the span's status is updated, depending on the http code.
  */
 export function setHttpStatus(span: Span, httpStatus: number): void {
-  span.setAttribute('http.response.status_code', httpStatus);
+  span.setAttribute(HTTP_RESPONSE_STATUS_CODE, httpStatus);
 
   const spanStatus = getSpanStatusFromHttpCode(httpStatus);
   if (spanStatus.message !== 'unknown_error') {

@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
+import { isViteServer, NITRO_ONLY, NO_IMPORT_CONFIG } from './isViteServer';
 
 function readServerBundle(): string {
   const serverDir = path.join(process.cwd(), '.output/server');
@@ -34,6 +35,12 @@ test.describe('Orchestrion build-time injection', () => {
     // on the global marker (and registers its subscriber factory) when evaluated.
     expect(serverBundle).toContain('orchestrionModuleInjected');
     expect(serverBundle).toMatch(/tracingChannel\(["']orchestrion:mysql:query["']\)/);
+  });
+
+  test('injects diagnostics-channel publishers into ioredis', () => {
+    // Only a server route imports ioredis.
+    test.skip(isViteServer, NITRO_ONLY);
+
     expect(serverBundle).toMatch(/tracingChannel\(["']orchestrion:ioredis:command["']\)/);
     expect(serverBundle).toMatch(/tracingChannel\(["']orchestrion:ioredis:connect["']\)/);
   });
@@ -46,6 +53,8 @@ test.describe('Orchestrion build-time injection', () => {
 
 test.describe('Sentry server config injection', () => {
   test('evaluates Sentry.init before nitro runs its plugins', () => {
+    test.skip(isViteServer, NITRO_ONLY);
+
     const nitroChunk = readFileSync(path.join(process.cwd(), '.output/server/chunks/nitro/nitro.mjs'), 'utf8');
 
     // The app DSN only appears in the transpiled `Sentry.init` options object, so it marks where
@@ -59,6 +68,8 @@ test.describe('Sentry server config injection', () => {
   });
 
   test('emits the `--import` compatibility shim at the former config path', () => {
+    test.skip(isViteServer, NO_IMPORT_CONFIG);
+
     const shimPath = path.join(process.cwd(), '.output/server/sentry.server.config.mjs');
 
     expect(existsSync(shimPath)).toBe(true);

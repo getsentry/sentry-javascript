@@ -1,14 +1,6 @@
 /* eslint-disable typescript-eslint/no-deprecated */
 import { DEBUG_BUILD } from '../../debug-build';
-import {
-  getClient,
-  hasSpanStreamingEnabled,
-  SPAN_STATUS_ERROR,
-  startSpan,
-  startSpanManual,
-  debug,
-  stringify,
-} from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, startSpan, startSpanManual, debug, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
@@ -24,7 +16,9 @@ import type { InstrumentedMethodEntry } from '../core/utils';
 import {
   buildMethodPath,
   extractSystemInstructions,
+  getErrorStatus,
   getGenAiSpanOp,
+  getRequestSignal,
   resolveAIRecordingOptions,
   wrapPromiseWithMethods,
 } from '../core/utils';
@@ -158,6 +152,7 @@ function instrumentMethod<T extends unknown[], R>(
 
     const params = args[0] as Record<string, unknown> | undefined;
     const isStreamRequested = params && typeof params === 'object' && params.stream === true;
+    const abortSignal = getRequestSignal(args[1]);
     const client = getClient();
 
     const spanConfig = {
@@ -190,7 +185,7 @@ function instrumentMethod<T extends unknown[], R>(
               options.recordOutputs ?? false,
             ) as unknown as R;
           } catch (error) {
-            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            span.setStatus(getErrorStatus(abortSignal));
             span.end();
             throw error;
           }
@@ -211,10 +206,16 @@ function instrumentMethod<T extends unknown[], R>(
         addRequestAttributes(span, params, operationName);
       }
 
-      return originalResult.then(result => {
-        addResponseAttributes(span, result, options.recordOutputs, operationName);
-        return result;
-      });
+      return originalResult.then(
+        result => {
+          addResponseAttributes(span, result, options.recordOutputs, operationName);
+          return result;
+        },
+        error => {
+          span.setStatus(getErrorStatus(abortSignal));
+          throw error;
+        },
+      );
     });
 
     return wrapPromiseWithMethods(originalResult, instrumentedPromise);
@@ -225,30 +226,46 @@ function instrumentMethod<T extends unknown[], R>(
  * Create a deep proxy for OpenAI client instrumentation
  */
 function createDeepProxy<T extends object>(target: T, currentPath = '', options: OpenAiOptions): T {
+  const propertyCache = new Map<PropertyKey, { original: unknown; wrapped: unknown }>();
+
   return new Proxy(target, {
-    get(obj: object, prop: string): unknown {
-      const value = (obj as Record<string, unknown>)[prop];
+    get(obj: object, prop: string | symbol): unknown {
+      const value = Reflect.get(obj, prop) as unknown;
+      const cachedEntry = propertyCache.get(prop);
+      if (cachedEntry) {
+        if (cachedEntry.original === value) {
+          return cachedEntry.wrapped;
+        }
+        propertyCache.delete(prop);
+      }
+
       const methodPath = buildMethodPath(currentPath, String(prop));
 
       const instrumentedMethod = OPENAI_METHOD_REGISTRY[methodPath as keyof typeof OPENAI_METHOD_REGISTRY];
       if (typeof value === 'function' && instrumentedMethod) {
-        return instrumentMethod(
+        const wrappedMethod = instrumentMethod(
           value as (...args: unknown[]) => Promise<unknown>,
           methodPath,
           instrumentedMethod,
           obj,
           options,
         );
+        propertyCache.set(prop, { original: value, wrapped: wrappedMethod });
+        return wrappedMethod;
       }
 
       if (typeof value === 'function') {
         // Bind non-instrumented functions to preserve the original `this` context,
         // which is required for accessing private class fields (e.g. #baseURL) in OpenAI SDK v5.
-        return value.bind(obj);
+        const boundMethod = value.bind(obj);
+        propertyCache.set(prop, { original: value, wrapped: boundMethod });
+        return boundMethod;
       }
 
       if (value && typeof value === 'object') {
-        return createDeepProxy(value, methodPath, options);
+        const nestedProxy = createDeepProxy(value, methodPath, options);
+        propertyCache.set(prop, { original: value, wrapped: nestedProxy });
+        return nestedProxy;
       }
 
       return value;

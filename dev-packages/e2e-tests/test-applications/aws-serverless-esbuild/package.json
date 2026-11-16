@@ -1,0 +1,20 @@
+{
+  "name": "aws-serverless-esbuild",
+  "description": "ensure the esbuild plugin from @sentry/aws-serverless/esbuild build-time instruments a bundled graphql at runtime",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
+    "test:build": "pnpm install && node ./build.mjs",
+    "test:assert": "node ./assert.mjs"
+  },
+  "dependencies": {
+    "@sentry/aws-serverless": "file:../../packed/sentry-aws-serverless-packed.tgz"
+  },
+  "devDependencies": {
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
+    "graphql": "16.9.0",
+    "esbuild": "0.28.2"
+  }
+}

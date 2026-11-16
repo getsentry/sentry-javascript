@@ -1,42 +1,35 @@
-import commonjs from '@rollup/plugin-commonjs';
-import resolve from '@rollup/plugin-node-resolve';
-import terser from '@rollup/plugin-terser';
-import { defineConfig } from 'rollup';
-import esbuild from 'rollup-plugin-esbuild';
-import { makeLicensePlugin } from '../../dev-packages/rollup-utils/plugins/index.mjs';
+import { plugins, treeShakePreset } from '@sentry-internal/rollup-utils';
+import { defineConfig } from 'rolldown';
 
-const licensePlugin = makeLicensePlugin('Sentry Replay Worker');
-
-const esbuildPlugin = esbuild({ tsconfig: './tsconfig.json', target: 'es2020', sourceMap: false });
+const banner = plugins.makeBannerOptions('Sentry Replay Worker', process.env.npm_package_version);
 
 const config = defineConfig([
   {
     input: ['./src/_worker.ts'],
+    tsconfig: './tsconfig.build.json',
     output: {
       file: './examples/worker.js',
       format: 'esm',
+      banner,
     },
-    treeshake: 'smallest',
-    plugins: [commonjs(), esbuildPlugin, resolve(), licensePlugin],
+    transform: {
+      target: 'es2020',
+    },
+    treeshake: treeShakePreset('smallest'),
   },
   {
     input: ['./src/_worker.ts'],
+    tsconfig: './tsconfig.build.json',
     output: {
       file: './examples/worker.min.js',
       format: 'esm',
+      banner,
+      minify: true,
     },
-    treeshake: 'smallest',
-    plugins: [
-      commonjs(),
-      esbuildPlugin,
-      resolve(),
-      terser({
-        mangle: {
-          module: true,
-        },
-      }),
-      licensePlugin,
-    ],
+    transform: {
+      target: 'es2020',
+    },
+    treeshake: treeShakePreset('smallest'),
   },
 ]);
 

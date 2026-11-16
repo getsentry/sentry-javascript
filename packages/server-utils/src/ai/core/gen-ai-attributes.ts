@@ -34,9 +34,3 @@ export const GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE = 'gen_ai.response.stop_reaso
  * The tool call ID
  */
 export const GEN_AI_TOOL_CALL_ID_ATTRIBUTE = 'gen_ai.tool.call.id';
-
-/**
- * The span op for extraction of typed fields from a state (e.g. Cloudflare Clairic)
- * TODO: Import from `@sentry/conventions/op` once getsentry/sentry-conventions#728 is released
- */
-export const GEN_AI_EXTRACT_OP = 'gen_ai.extract';

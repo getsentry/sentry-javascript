@@ -6,16 +6,6 @@ function startMockAnthropicServer() {
   const app = express();
   app.use(express.json());
 
-  app.post('/anthropic/v1/complete', (req, res) => {
-    res.send({
-      id: 'compl_withresponse',
-      type: 'completion',
-      model: req.body.model,
-      completion: 'Testing .asResponse() method!',
-      stop_reason: 'stop_sequence',
-    });
-  });
-
   app.post('/anthropic/v1/messages', (req, res) => {
     const model = req.body.model;
 
@@ -209,15 +199,6 @@ async function run() {
       })
       .asResponse();
     await betaResponse.json();
-
-    const completionResponse = await client.completions
-      .create({
-        model: 'claude-2',
-        max_tokens_to_sample: 100,
-        prompt: '\n\nHuman: Test asResponse\n\nAssistant:',
-      })
-      .asResponse();
-    await completionResponse.json();
 
     const rawStreamResponse = await client.messages
       .create({

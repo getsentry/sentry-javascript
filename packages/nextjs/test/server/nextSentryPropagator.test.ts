@@ -82,32 +82,34 @@ describe('NextSentryPropagator', () => {
     });
   });
 
-  it('hands out nothing while a route is prerendered', () => {
+  it('hands out only the trace of the prerender as cache origin while a route is prerendered', () => {
     trace.getTracer('next.js').startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, span => {
       expect(isPrerenderContext(context.active())).toBe(true);
-      expect(inject()).toEqual({});
+      expect(inject()).toEqual({
+        'sentry-cache-origin': `${span.spanContext().traceId}-${span.spanContext().spanId}-1`,
+      });
       span.end();
     });
   });
 
   it('keeps propagating to outgoing requests while a route is prerendered', () => {
     trace.getTracer('next.js').startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, span => {
-      expect(inject()).toEqual({});
+      expect(inject()).toEqual({ 'sentry-cache-origin': expect.stringMatching(/-1$/) });
       expect(injectHeaders()['sentry-trace']).toBe(`${span.spanContext().traceId}-${span.spanContext().spanId}-1`);
       span.end();
     });
   });
 
-  it('hands out nothing inside a span nested in a prerender', () => {
+  it('hands out only the cache origin inside a span nested in a prerender', () => {
     trace.getTracer('next.js').startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, span => {
       startSpan({ name: 'server component' }, () => {
-        expect(inject()).toEqual({});
+        expect(Object.keys(inject())).toEqual(['sentry-cache-origin']);
       });
       span.end();
     });
   });
 
-  it('hands out nothing while a route is prerendered in an unsampled trace', () => {
+  it('hands out only the cache origin while a route is prerendered in an unsampled trace', () => {
     setup(0);
 
     trace.getTracer('next.js').startActiveSpan('GET /[id]', span => {
@@ -118,7 +120,7 @@ describe('NextSentryPropagator', () => {
         .getTracer('next.js')
         .startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, prerenderSpan => {
           expect(prerenderSpan.isRecording()).toBe(false);
-          expect(inject()).toEqual({});
+          expect(inject()).toEqual({ 'sentry-cache-origin': expect.stringMatching(/-0$/) });
           prerenderSpan.end();
         });
       span.end();
@@ -129,7 +131,7 @@ describe('NextSentryPropagator', () => {
     const span = trace.getTracer('next.js').startSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS);
     context.with(trace.setSpan(context.active(), span), () => {
       expect(isPrerenderContext(context.active())).toBe(true);
-      expect(inject()).toEqual({});
+      expect(Object.keys(inject())).toEqual(['sentry-cache-origin']);
     });
     span.end();
 
@@ -145,7 +147,7 @@ describe('NextSentryPropagator', () => {
       .getTracer('next.js')
       .startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, context.active(), span => {
         expect(isPrerenderContext(context.active())).toBe(true);
-        expect(inject()).toEqual({});
+        expect(Object.keys(inject())).toEqual(['sentry-cache-origin']);
         span.end();
       });
   });

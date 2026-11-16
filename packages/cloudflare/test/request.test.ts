@@ -4,6 +4,7 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import { beforeAll, beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from '../src/client';
@@ -158,6 +159,20 @@ describe('withSentry', () => {
 
     // Verify that exactly one flush call was made during this test
     expect(delta).toBe(1);
+  });
+
+  test("skips a framework's flushIfServerless() inside the request, since the wrap flushes after the response", async () => {
+    const cloudflareWaitUntil = vi.fn();
+
+    await wrapRequestHandler(
+      { options: MOCK_OPTIONS, request: new Request('https://example.com'), context: createMockExecutionContext() },
+      async () => {
+        await flushIfServerless({ cloudflareWaitUntil });
+        return new Response('test');
+      },
+    );
+
+    expect(cloudflareWaitUntil).not.toHaveBeenCalled();
   });
 
   describe('scope instrumentation', () => {
@@ -671,12 +686,13 @@ describe('withSentry', () => {
           'server.address': 'example.com',
           'network.protocol.name': 'http',
           'network.protocol.version': '1.1',
-          'url.scheme': 'https:',
+          'url.scheme': 'https',
           'url.path': '/',
           'sentry.sample_rate': 1,
           'http.response.status_code': 200,
           'http.request.body.size': 10,
           'http.request.header.content-length': ['10'],
+          'http.response.header.content-type': ['text/plain;charset=UTF-8'],
         },
         op: 'http.server',
         origin: 'auto.http.cloudflare',
@@ -685,6 +701,159 @@ describe('withSentry', () => {
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         parent_span_id: undefined,
         links: undefined,
+      });
+    });
+
+    describe('with a Cloudflare trace', () => {
+      const CLOUDFLARE_TRACE_ID = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
+      const CLOUDFLARE_SPAN_ID = 'b1c2d3e4f5a60718';
+      const CLOUDFLARE_TRACING = {
+        getActiveSpan: () => ({
+          isTraced: true,
+          spanContext: () => ({ traceId: CLOUDFLARE_TRACE_ID, spanId: CLOUDFLARE_SPAN_ID, traceFlags: 1 }),
+        }),
+      };
+
+      test('attaches errors to the Cloudflare trace when tracing is not set up', async () => {
+        let sentryEvent: Event = {};
+        await wrapRequestHandler(
+          {
+            options: {
+              dsn: MOCK_OPTIONS.dsn,
+              cacheClient: false,
+              beforeSend(event) {
+                sentryEvent = event;
+                return null;
+              },
+            },
+            request: new Request('https://example.com'),
+            context: { ...createMockExecutionContext(), tracing: CLOUDFLARE_TRACING } as unknown as ExecutionContext,
+          },
+          () => {
+            SentryCore.captureException(new Error('test'));
+            return new Response('test');
+          },
+        );
+
+        expect(sentryEvent.contexts?.trace?.trace_id).toBe(CLOUDFLARE_TRACE_ID);
+        expect(sentryEvent.contexts?.trace?.parent_span_id).toBe(CLOUDFLARE_SPAN_ID);
+      });
+
+      test.each([0, 1])('starts its own trace with tracesSampleRate %s', async rate => {
+        let sentryEvent: Event = {};
+        await wrapRequestHandler(
+          {
+            options: {
+              dsn: MOCK_OPTIONS.dsn,
+              cacheClient: false,
+              tracesSampleRate: rate,
+              beforeSend(event) {
+                sentryEvent = event;
+                return null;
+              },
+            },
+            request: new Request('https://example.com'),
+            context: { ...createMockExecutionContext(), tracing: CLOUDFLARE_TRACING } as unknown as ExecutionContext,
+          },
+          () => {
+            SentryCore.captureException(new Error('test'));
+            return new Response('test');
+          },
+        );
+
+        expect(sentryEvent.contexts?.trace?.trace_id).toMatch(/^[a-f0-9]{32}$/);
+        expect(sentryEvent.contexts?.trace?.trace_id).not.toBe(CLOUDFLARE_TRACE_ID);
+        expect(sentryEvent.contexts?.trace?.parent_span_id).toBeUndefined();
+      });
+
+      test('does not make the request span a child of the Cloudflare span', async () => {
+        let rootSpan: ReturnType<typeof SentryCore.spanToJSON> | undefined;
+        await wrapRequestHandler(
+          {
+            options: { dsn: MOCK_OPTIONS.dsn, cacheClient: false, tracesSampleRate: 1 },
+            request: new Request('https://example.com'),
+            context: { ...createMockExecutionContext(), tracing: CLOUDFLARE_TRACING } as unknown as ExecutionContext,
+          },
+          () => {
+            rootSpan = SentryCore.spanToJSON(SentryCore.getRootSpan(SentryCore.getActiveSpan()!));
+            return new Response('test');
+          },
+        );
+
+        expect(rootSpan?.trace_id).not.toBe(CLOUDFLARE_TRACE_ID);
+        expect(rootSpan?.parent_span_id).toBeUndefined();
+      });
+
+      test('prefers an incoming sentry-trace header', async () => {
+        const request = new Request('https://example.com');
+        request.headers.set('sentry-trace', '12312012123120121231201212312012-1121201211212012');
+
+        let sentryEvent: Event = {};
+        await wrapRequestHandler(
+          {
+            options: {
+              dsn: MOCK_OPTIONS.dsn,
+              cacheClient: false,
+              beforeSend(event) {
+                sentryEvent = event;
+                return null;
+              },
+            },
+            request,
+            context: { ...createMockExecutionContext(), tracing: CLOUDFLARE_TRACING } as unknown as ExecutionContext,
+          },
+          () => {
+            SentryCore.captureException(new Error('test'));
+            return new Response('test');
+          },
+        );
+
+        expect(sentryEvent.contexts?.trace?.trace_id).toBe('12312012123120121231201212312012');
+      });
+
+      test.each([
+        {
+          reason: 'the org ids do not match',
+          headers: {
+            'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
+            baggage: 'sentry-trace_id=12312012123120121231201212312012,sentry-org_id=2',
+          },
+          options: {},
+        },
+        {
+          reason: 'strictTraceContinuation is set and the baggage has no org id',
+          headers: { 'sentry-trace': '12312012123120121231201212312012-1121201211212012-1' },
+          options: { strictTraceContinuation: true },
+        },
+        {
+          reason: 'the sentry-trace header is malformed',
+          headers: { 'sentry-trace': 'not-a-sentry-trace' },
+          options: {},
+        },
+      ])('uses the Cloudflare trace when $reason', async ({ headers, options }) => {
+        let sentryEvent: Event = {};
+        await wrapRequestHandler(
+          {
+            options: {
+              dsn: 'https://public@o1.ingest.sentry.io/1337',
+              cacheClient: false,
+              ...options,
+              beforeSend(event) {
+                sentryEvent = event;
+                return null;
+              },
+            },
+            request: new Request('https://example.com', { headers }),
+            context: { ...createMockExecutionContext(), tracing: CLOUDFLARE_TRACING } as unknown as ExecutionContext,
+          },
+          () => {
+            SentryCore.captureException(new Error('test'));
+            return new Response('test');
+          },
+        );
+
+        expect(sentryEvent.contexts?.trace?.trace_id).toBe(CLOUDFLARE_TRACE_ID);
+        expect(sentryEvent.contexts?.trace?.parent_span_id).toBe(CLOUDFLARE_SPAN_ID);
       });
     });
   });
@@ -1297,13 +1466,16 @@ describe('flushAndDispose', () => {
       },
     );
 
-    test('tears down at handler return when TransformStream ignores the transformer', async () => {
-      // workerd without `transformstream_enable_standard_constructor` returns an identity stream.
+    test('tears down at handler return when the ReadableStream constructor is not available', async () => {
+      const response = new Response('<div>shell</div>', {
+        headers: { 'content-type': 'text/x-component;charset=utf-8' },
+      });
+      // workerd before the 2022-11-30 compatibility date, without `streams_enable_constructors`.
       vi.stubGlobal(
-        'TransformStream',
-        class extends TransformStream {
+        'ReadableStream',
+        class {
           constructor() {
-            super();
+            throw new TypeError('To use the new ReadableStream() constructor, enable streams_enable_constructors.');
           }
         },
       );
@@ -1316,16 +1488,14 @@ describe('flushAndDispose', () => {
 
       const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
 
-      const response = new Response('<div>shell</div>', {
-        headers: { 'content-type': 'text/x-component;charset=utf-8' },
-      });
-
       const result = await wrapRequestHandler(
         { options, request: new Request('https://example.com'), context },
         () => response,
       );
 
       expect(result).toBe(response);
+      expect(result.bodyUsed).toBe(false);
+      expect(result.body?.locked).toBe(false);
       expect(waitUntil).toHaveBeenCalledTimes(1);
 
       flushSpy.mockRestore();

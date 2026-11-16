@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import {
   collectStreamedSpansUntilSegment,
   getSpanOp,
@@ -7,17 +8,24 @@ import {
 } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
+function isErrorLoaderSegment(span: SerializedStreamedSpan, id: string): boolean {
+  const url = span.attributes['url.full']?.value;
+  return span.is_segment && typeof url === 'string' && url.endsWith(`/performance/error-loader/${id}`);
+}
+
 test.describe('server - instrumentation API error capture', () => {
+  // Each loader test hits its own URL: streamed spans flush later than errors, so a segment span
+  // (or error) from an earlier test on the same URL could otherwise be matched by a later test.
   test('should capture loader errors with instrumentation API mechanism', async ({ page }) => {
     const errorPromise = waitForError(APP_NAME, async errorEvent => {
-      return errorEvent.exception?.values?.[0]?.value === 'Loader error for testing';
+      return errorEvent.exception?.values?.[0]?.value === 'Loader error for testing (mechanism)';
     });
 
     const spanPromise = waitForStreamedSpan(APP_NAME, span => {
-      return span.name === 'GET /performance/error-loader' && span.is_segment;
+      return isErrorLoaderSegment(span, 'mechanism');
     });
 
-    await page.goto(`/performance/error-loader`).catch(() => {
+    await page.goto(`/performance/error-loader/mechanism`).catch(() => {
       // Expected to fail due to loader error
     });
 
@@ -29,7 +37,7 @@ test.describe('server - instrumentation API error capture', () => {
         values: [
           {
             type: 'Error',
-            value: 'Loader error for testing',
+            value: 'Loader error for testing (mechanism)',
             mechanism: {
               type: 'react_router.loader',
               handled: false,
@@ -37,19 +45,19 @@ test.describe('server - instrumentation API error capture', () => {
           },
         ],
       },
-      transaction: 'GET /performance/error-loader',
+      transaction: 'GET /performance/error-loader/:id',
     });
 
     // Verify the transaction was also created with correct attributes
-    expect(span.name).toBe('GET /performance/error-loader');
+    expect(span.name).toBe('GET /performance/error-loader/:id');
     expect(getSpanOp(span)).toBe('http.server');
     expect(span.attributes['sentry.origin']?.value).toBe('auto.http.react_router.instrumentation_api');
   });
 
   test('should include loader span in the segment even when loader throws', async ({ page }) => {
-    const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /performance/error-loader');
+    const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, span => isErrorLoaderSegment(span, 'loader-span'));
 
-    await page.goto(`/performance/error-loader`).catch(() => {
+    await page.goto(`/performance/error-loader/loader-span`).catch(() => {
       // Expected to fail due to loader error
     });
 
@@ -69,20 +77,20 @@ test.describe('server - instrumentation API error capture', () => {
 
   test('error and segment span should share the same trace', async ({ page }) => {
     const errorPromise = waitForError(APP_NAME, async errorEvent => {
-      return errorEvent.exception?.values?.[0]?.value === 'Loader error for testing';
+      return errorEvent.exception?.values?.[0]?.value === 'Loader error for testing (same-trace)';
     });
 
     const spanPromise = waitForStreamedSpan(APP_NAME, span => {
-      return span.name === 'GET /performance/error-loader' && span.is_segment;
+      return isErrorLoaderSegment(span, 'same-trace');
     });
 
-    await page.goto(`/performance/error-loader`).catch(() => {
+    await page.goto(`/performance/error-loader/same-trace`).catch(() => {
       // Expected to fail due to loader error
     });
 
     const [error, span] = await Promise.all([errorPromise, spanPromise]);
 
-    // Error and segment span should have the same trace_id
+    expect(error.contexts?.trace?.trace_id).toMatch(/^[a-f0-9]{32}$/);
     expect(error.contexts?.trace?.trace_id).toBe(span.trace_id);
   });
 

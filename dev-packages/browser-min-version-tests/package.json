@@ -1,0 +1,13 @@
+{
+  "name": "@sentry-internal/browser-min-version-tests",
+  "version": "11.12.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
+  },
+  "devDependencies": {
+    "@sentry-internal/test-utils": "11.12.0"
+  }
+}
