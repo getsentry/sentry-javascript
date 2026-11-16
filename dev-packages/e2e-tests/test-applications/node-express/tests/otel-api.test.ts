@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 
 test.skip(process.env.E2E_TEST_OTEL_SETUP !== 'true', 'Only runs in the tracer provider variant');
 
 test('Captures spans started via @opentelemetry/api as children of the request span', async ({ baseURL }) => {
   const spansPromise = collectStreamedSpansUntilSegment(
     'node-express',
-    segment => getSpanOp(segment) === 'http.server' && segment.name === 'GET /test-otel-api-span',
+    segment => getSpanOp(segment) === HTTP_SERVER && segment.name === 'GET /test-otel-api-span',
   );
 
   await fetch(`${baseURL}/test-otel-api-span`);
