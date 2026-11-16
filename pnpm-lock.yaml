@@ -393,6 +393,9 @@ importers:
       '@sentry/deno':
         specifier: 11.12.0
         version: link:../../packages/deno
+      '@sentry/nestjs':
+        specifier: 11.12.0
+        version: link:../../packages/nestjs
       '@sentry/nextjs':
         specifier: 11.12.0
         version: link:../../packages/nextjs
@@ -1559,6 +1562,15 @@ importers:
       '@sentry-internal/rollup-utils':
         specifier: 11.12.0
         version: link:../../dev-packages/rollup-utils
+      '@sentry/bun':
+        specifier: 11.12.0
+        version: link:../bun
+      '@sentry/cloudflare':
+        specifier: 11.12.0
+        version: link:../cloudflare
+      '@sentry/deno':
+        specifier: 11.12.0
+        version: link:../deno
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2

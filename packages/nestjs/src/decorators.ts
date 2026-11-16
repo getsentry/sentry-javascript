@@ -1,8 +1,6 @@
 import type { MonitorConfig } from '@sentry/core';
 import { CODE_FUNCTION_NAME, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
-import { captureException, debug } from '@sentry/core';
-import * as Sentry from '@sentry/node';
-import { startSpan } from '@sentry/node';
+import { captureException, debug, startNewTrace, startSpan, withMonitor } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import { isExpectedError } from './helpers';
 import type { ReflectWithMetadata } from './integrations/helpers';
@@ -47,7 +45,7 @@ export const SentryCron = (
       }
 
       const runWithMonitor = (): unknown =>
-        Sentry.withMonitor(
+        withMonitor(
           monitorSlug,
           () => {
             return originalMethod.apply(this, args);
@@ -56,7 +54,7 @@ export const SentryCron = (
         );
 
       // `withMonitor` reads `isolateTrace` from the monitor config, which is not sent without a schedule.
-      return isolateTraceWithoutConfig ? Sentry.startNewTrace(runWithMonitor) : runWithMonitor();
+      return isolateTraceWithoutConfig ? startNewTrace(runWithMonitor) : runWithMonitor();
     };
 
     descriptor.value = wrappedMethod;

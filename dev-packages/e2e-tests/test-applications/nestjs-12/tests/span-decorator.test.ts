@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
-import { SDK_NAME } from './constants';
 
 const APP_NAME = 'nestjs-12';
 
@@ -23,7 +22,7 @@ function tracedSpan(segmentSpan: SerializedStreamedSpan, name: string, op: strin
       'sentry.is_localhost': segmentSpan.attributes['sentry.is_localhost'],
       'sentry.segment.name': { type: 'string', value: segmentSpan.name },
       'sentry.segment.id': { type: 'string', value: segmentSpan.span_id },
-      'sentry.sdk.name': { type: 'string', value: SDK_NAME },
+      'sentry.sdk.name': { type: 'string', value: 'sentry.javascript.nestjs' },
       'sentry.sdk.version': { type: 'string', value: expect.any(String) },
       'sentry.environment': { type: 'string', value: 'qa' },
       // CI builds the apps with a release, local runs have none. It comes from the client
