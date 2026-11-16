@@ -9,6 +9,7 @@ import { setCurrentClient, startSpan } from '../../../src';
 import type { StartSpanOptions } from '../../../src/types/startSpanOptions';
 import {
   _INTERNAL_getCacheOriginMetaTag,
+  _INTERNAL_getCacheOriginMetaTags,
   _INTERNAL_getRenderStart,
   _INTERNAL_getRootSpanSentryTrace,
   _INTERNAL_withCacheOrigin,
@@ -59,6 +60,29 @@ describe('_INTERNAL_getCacheOriginMetaTag', () => {
 
   it('is empty without a sentry-trace value', () => {
     expect(_INTERNAL_getCacheOriginMetaTag(undefined)).toBe('<meta name="sentry-cache-origin" content=""/>');
+  });
+});
+
+describe('_INTERNAL_getCacheOriginMetaTags', () => {
+  beforeEach(() => {
+    initTestClient(1);
+  });
+
+  it('holds the sentry-trace value and the start of the root span while a child span is active', () => {
+    startSpan({ name: 'GET /pricing', startTime: RENDER_START + 0.9 }, () =>
+      startSpan({ name: 'sveltekit.resolve', startTime: RENDER_START + 5 }, () => {
+        expect(_INTERNAL_getCacheOriginMetaTags(`${TRACE_ID}-${SPAN_ID}-1`, REQUEST_START)).toBe(
+          `<meta name="sentry-cache-origin" content="${TRACE_ID}-${SPAN_ID}-1"/>\n` +
+            `<meta name="sentry-render-start" content="${RENDER_START}"/>`,
+        );
+      }),
+    );
+  });
+
+  it('has an empty cache origin tag and the request start without a span (prerendered during the build)', () => {
+    expect(_INTERNAL_getCacheOriginMetaTags(undefined, REQUEST_START + 0.9)).toBe(
+      `<meta name="sentry-cache-origin" content=""/>\n<meta name="sentry-render-start" content="${REQUEST_START}"/>`,
+    );
   });
 });
 
@@ -220,28 +244,34 @@ describe('_INTERNAL_withCacheOrigin with a sentry-render-start tag', () => {
   });
 });
 
-// The server writes the tag and the client reads it, so the HTML format must stay readable by the client.
-describe('the tag that _INTERNAL_getCacheOriginMetaTag writes', () => {
+// The server writes the tags and the client reads them, so the HTML format must stay readable by the client.
+describe('the tags that _INTERNAL_getCacheOriginMetaTags writes', () => {
+  const pageloadStart = Math.floor(browserPerformanceTimeOrigin()! / 1000);
+
   beforeEach(() => {
     document.head.innerHTML = '';
   });
 
-  it('makes _INTERNAL_withCacheOrigin link the render', () => {
-    document.head.innerHTML = _INTERNAL_getCacheOriginMetaTag(`${TRACE_ID}-${SPAN_ID}-1`);
+  function writeTags(renderTrace: string | undefined): void {
+    document.head.innerHTML = _INTERNAL_getCacheOriginMetaTags(renderTrace, pageloadStart - 42);
+  }
+
+  it('make _INTERNAL_withCacheOrigin link the render and set its age', () => {
+    writeTags(`${TRACE_ID}-${SPAN_ID}-1`);
 
     expect(_INTERNAL_withCacheOrigin(spanOptions, 'static')).toEqual({
-      name: '/pricing',
-      attributes: { [SENTRY_OP]: PAGELOAD, [PAGE_SERVER_RENDERING_TYPE]: 'static' },
+      ...spanOptions,
+      attributes: { [SENTRY_OP]: PAGELOAD, [PAGE_SERVER_RENDERING_TYPE]: 'static', [PAGE_SERVER_RENDERING_AGE]: 42 },
       links: [cacheOriginLink],
     });
   });
 
-  it('makes _INTERNAL_withCacheOrigin set the rendering type without a link when it is empty', () => {
-    document.head.innerHTML = _INTERNAL_getCacheOriginMetaTag(undefined);
+  it('make _INTERNAL_withCacheOrigin set the rendering type and age without a link when the cache origin is empty', () => {
+    writeTags(undefined);
 
     expect(_INTERNAL_withCacheOrigin(spanOptions, 'static')).toEqual({
-      name: '/pricing',
-      attributes: { [SENTRY_OP]: PAGELOAD, [PAGE_SERVER_RENDERING_TYPE]: 'static' },
+      ...spanOptions,
+      attributes: { [SENTRY_OP]: PAGELOAD, [PAGE_SERVER_RENDERING_TYPE]: 'static', [PAGE_SERVER_RENDERING_AGE]: 42 },
     });
   });
 });

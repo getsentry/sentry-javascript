@@ -1,7 +1,17 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { HTTP_SERVER, PAGELOAD } from '@sentry/conventions/op';
+
+const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';
+
+function expectedRenderAge(pageloadStart: number, renderStart: number): number {
+  return Math.max(0, Math.floor(pageloadStart - renderStart));
+}
+
+async function getRenderStart(page: Page): Promise<number> {
+  return Number(await page.locator('meta[name="sentry-render-start"]').getAttribute('content'));
+}
 
 function sentryMetaTagNames(html: string): string[] {
   return [...html.matchAll(/<meta name="(sentry-[\w-]+|baggage)"/g)].map(match => match[1] ?? '');
@@ -10,10 +20,15 @@ function sentryMetaTagNames(html: string): string[] {
 const VERCEL_ISR_HEADERS = { 'x-vercel-isr': '1' };
 
 [
-  { path: '/prerendered', kind: 'a prerendered page', expected: ['sentry-cache-origin'] },
+  { path: '/prerendered', kind: 'a prerendered page', expected: ['sentry-cache-origin', 'sentry-render-start'] },
   { path: '/prerendered-shell', kind: 'a prerendered client-side shell', expected: [] },
   { path: '/', kind: 'a server-rendered page', expected: ['sentry-trace', 'baggage'] },
-  { path: '/', headers: VERCEL_ISR_HEADERS, kind: 'a Vercel ISR render', expected: ['sentry-cache-origin'] },
+  {
+    path: '/',
+    headers: VERCEL_ISR_HEADERS,
+    kind: 'a Vercel ISR render',
+    expected: ['sentry-cache-origin', 'sentry-render-start'],
+  },
 ].forEach(({ path, headers, kind, expected }) => {
   test(`writes the expected Sentry meta tags into ${kind} (${path})`, async ({ request }) => {
     const html = await (await request.get(path, { headers })).text();
@@ -28,9 +43,15 @@ test('marks the pageload of a prerendered page as statically rendered, without a
   });
 
   await page.goto('/prerendered');
+  const renderStart = await getRenderStart(page);
   const pageloadSpan = await pageloadSpanPromise;
 
   expect(pageloadSpan.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toEqual({ type: 'string', value: 'static' });
+  // The build rendered the page, so the age is the time since the build.
+  expect(pageloadSpan.attributes?.[PAGE_SERVER_RENDERING_AGE]).toEqual({
+    type: 'integer',
+    value: expectedRenderAge(pageloadSpan.start_timestamp, renderStart),
+  });
   expect(pageloadSpan.links).toBeUndefined();
   expect(pageloadSpan.parent_span_id).toBeUndefined();
 });
@@ -44,6 +65,7 @@ test("doesn't mark the pageload of a prerendered client-side shell", async ({ pa
   const pageloadSpan = await pageloadSpanPromise;
 
   expect(pageloadSpan.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toBeUndefined();
+  expect(pageloadSpan.attributes?.[PAGE_SERVER_RENDERING_AGE]).toBeUndefined();
   expect(pageloadSpan.parent_span_id).toBeUndefined();
 });
 
@@ -76,6 +98,7 @@ test('marks the pageload of a Vercel ISR page as statically rendered and links t
   await page.goto('/');
   const cacheOrigin = await page.locator('meta[name="sentry-cache-origin"]').getAttribute('content');
   const [originTraceId, originSpanId] = cacheOrigin?.split('-') ?? [];
+  const renderStart = await getRenderStart(page);
   const [originSpan, pageloadSpan] = await Promise.all([
     waitForStreamedSpan('sveltekit-3', span => span.span_id === originSpanId, requestStart),
     pageloadSpanPromise,
@@ -85,6 +108,12 @@ test('marks the pageload of a Vercel ISR page as statically rendered and links t
   expect(getSpanOp(originSpan)).toBe(HTTP_SERVER);
   expect(originSpan.is_segment).toBe(true);
   expect(pageloadSpan.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toEqual({ type: 'string', value: 'static' });
+  // The render started with the request that Vercel marked as an ISR render.
+  expect(renderStart).toBe(Math.floor(originSpan.start_timestamp));
+  expect(pageloadSpan.attributes?.[PAGE_SERVER_RENDERING_AGE]).toEqual({
+    type: 'integer',
+    value: expectedRenderAge(pageloadSpan.start_timestamp, renderStart),
+  });
   expect(pageloadSpan.parent_span_id).toBeUndefined();
   expect(pageloadSpan.trace_id).not.toBe(originTraceId);
   expect(pageloadSpan.links).toEqual([
