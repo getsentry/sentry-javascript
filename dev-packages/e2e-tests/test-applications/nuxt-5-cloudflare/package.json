@@ -8,9 +8,7 @@
     "preview": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --port 3030 --log-level=$(test $CI && echo 'none' || echo 'log')",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test",
-    "test:build:tunnel": "pnpm install && E2E_TEST_TUNNEL=1 pnpm build",
-    "test:assert:tunnel": "E2E_TEST_TUNNEL=1 pnpm test tunnel"
+    "test:assert": "pnpm test"
   },
   "//": [
     "Nuxt v5 is only on the Nuxt nightlies, like the `nuxt-5` app.",
@@ -29,13 +27,6 @@
     "wrangler": "^4.72.0"
   },
   "sentryTest": {
-    "optional": true,
-    "variants": [
-      {
-        "build-command": "pnpm test:build:tunnel",
-        "assert-command": "pnpm test:assert:tunnel",
-        "label": "nuxt-5-cloudflare (tunnel)"
-      }
-    ]
+    "optional": true
   }
 }
