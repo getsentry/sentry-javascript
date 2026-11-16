@@ -6,6 +6,7 @@ import { instrumentNodeSchedule } from './node-schedule';
 export const cron = {
   // oxlint-disable-next-line typescript/no-deprecated
   instrumentCron,
+  // oxlint-disable-next-line typescript/no-deprecated
   instrumentNodeCron,
   instrumentNodeSchedule,
 };
