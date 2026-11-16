@@ -125,6 +125,16 @@ describe('awsIntegration - Bedrock', () => {
     });
   });
 
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-integration-options.mjs', (createTestRunner, test) => {
+    test(
+      'records Bedrock inputs and outputs when awsIntegration options override dataCollection',
+      { timeout: 90_000 },
+      async () => {
+        await createTestRunner().ignore('event').expect({ span: assertBedrockContent }).start().completed();
+      },
+    );
+  });
+
   createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test('ends Bedrock stream spans when the streams finish, fail, or are aborted', { timeout: 90_000 }, async () => {
       await createTestRunner().ignore('event').expect({ span: assertStreamSpans }).start().completed();
