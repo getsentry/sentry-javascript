@@ -39,7 +39,6 @@ import type { ContentListUnion, Message, PartListUnion } from './utils';
 import {
   candidatesToMessageParts,
   contentUnionToMessages,
-  getInputTokens,
   setOutputMessagesAttribute,
   systemInstructionToText,
 } from './utils';
@@ -207,7 +206,9 @@ export function addResponseAttributes(span: Span, response: GoogleGenAIResponse,
     const hasOutput = typeof usage.candidatesTokenCount === 'number' || typeof usage.thoughtsTokenCount === 'number';
     span.setAttributes(
       getTokenUsageAttributes(
-        getInputTokens(usage.promptTokenCount, usage.toolUsePromptTokenCount),
+        typeof usage.promptTokenCount === 'number'
+          ? usage.promptTokenCount + (usage.toolUsePromptTokenCount ?? 0)
+          : undefined,
         hasOutput ? (usage.candidatesTokenCount ?? 0) + (usage.thoughtsTokenCount ?? 0) : undefined,
         undefined,
         usage.cachedContentTokenCount,

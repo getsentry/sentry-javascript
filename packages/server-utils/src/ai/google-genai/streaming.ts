@@ -3,7 +3,7 @@ import type { Span } from '@sentry/core';
 import { endStreamSpan } from '../core/utils';
 import type { GoogleGenAIResponse } from './types';
 import type { MessagePart } from './utils';
-import { candidatesToMessageParts, getInputTokens, setOutputMessagesAttribute } from './utils';
+import { candidatesToMessageParts, setOutputMessagesAttribute } from './utils';
 
 /**
  * State object used to accumulate information from a stream of Google GenAI events.
@@ -141,7 +141,7 @@ export async function* instrumentStream(
     if (recordOutputs) {
       setOutputMessagesAttribute(span, state.outputParts);
     }
-    state.promptTokens = getInputTokens(state.promptTokens, state.toolUsePromptTokens);
+    if (typeof state.promptTokens === 'number') state.promptTokens += state.toolUsePromptTokens ?? 0;
     endStreamSpan(span, state, recordOutputs);
   }
 }
