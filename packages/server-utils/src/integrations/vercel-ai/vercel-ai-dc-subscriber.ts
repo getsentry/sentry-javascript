@@ -281,11 +281,7 @@ export type VercelAiChannelOptions = GenAiOptions;
 
 // `ai` >= 7.0.163 publishes no channel `result` for calls with `recordInputs`/`recordOutputs: false`. These stay
 // here rather than on the shared channel message, which other subscribers can read.
-const fallbackChannelResults = new WeakMap<Span, unknown>();
-
-export function setFallbackChannelResult(span: Span, result: unknown): void {
-  fallbackChannelResults.set(span, result);
-}
+export const fallbackChannelResults = new WeakMap<Span, unknown>();
 
 /**
  * Subscribe Sentry span handlers to the `ai` SDK's native telemetry tracing channel (`ai:telemetry`,
@@ -669,15 +665,14 @@ export function enrichSpanOnEnd(
   const { recordOutputs } = getRecordingOptions(data.event, channelOptions, data.result === undefined);
 
   if (type === 'executeTool') {
-    if (recordOutputs) {
-      span.setAttribute(GEN_AI_TOOL_CALL_RESULT, stringify(result.output ?? result));
-    }
     // From V5 on, tool errors are not rejected (so the `error` channel verb never fires) — they
     // surface as `tool-error` content on the resolved result. Mirror the OTel path by marking the
-    // span and capturing the error.
+    // span and capturing the error, which carry the failure instead of the result attribute.
     const output = isObjectLike(result.output) ? result.output : undefined;
     if (output?.type === 'tool-error') {
       captureToolError(span, data, output.error);
+    } else if (recordOutputs) {
+      span.setAttribute(GEN_AI_TOOL_CALL_RESULT, stringify(result.output ?? result));
     }
     return;
   }

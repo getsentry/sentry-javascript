@@ -5,7 +5,7 @@ import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../ai/core/gen-ai-attributes';
 import * as dc from '../../utils/diagnosticsChannel';
 import {
   AI_SDK_TELEMETRY_TRACING_CHANNEL,
-  setFallbackChannelResult,
+  fallbackChannelResults,
   type VercelAiChannelMessage,
 } from './vercel-ai-dc-subscriber';
 
@@ -48,7 +48,7 @@ export function registerVercelAiToolTelemetry(): void {
       const span = isRecordingOff(event) ? getActiveSpan() : undefined;
       const result = await execute();
       if (span && spanToJSON(span).attributes?.[SENTRY_OP] === GEN_AI_GENERATE_CONTENT) {
-        setFallbackChannelResult(span, result);
+        fallbackChannelResults.set(span, result);
       }
       return result;
     },
@@ -59,7 +59,7 @@ export function registerVercelAiToolTelemetry(): void {
       if (activeSpan && spanToJSON(activeSpan).attributes?.[GEN_AI_TOOL_CALL_ID_ATTRIBUTE] === event.toolCallId) {
         return isRecordingOff(event)
           ? handleCallbackErrors(execute, error => {
-              setFallbackChannelResult(activeSpan, { output: { type: 'tool-error', error } });
+              fallbackChannelResults.set(activeSpan, { output: { type: 'tool-error', error } });
             })
           : execute();
       }

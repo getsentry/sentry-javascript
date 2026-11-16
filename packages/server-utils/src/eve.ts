@@ -1,4 +1,4 @@
-import { defineIntegration, getClient, setConversationId } from '@sentry/core';
+import { defineIntegration, setConversationId } from '@sentry/core';
 import { markEveGenAiRecordingDefault } from './integrations/vercel-ai/gen-ai-recording-mode';
 
 /**
@@ -82,8 +82,6 @@ export const eveIntegration = defineIntegration(() => {
  * enforces. They apply to every AI SDK telemetry integration in the app, so those filter content with their own
  * settings, as eve documents.
  */
-export function eveTracePolicy(): { emit: true; recordInputs: boolean; recordOutputs: boolean } {
-  // Without a client nothing reaches Sentry, so don't widen content for the app's other integrations.
-  const record = !!getClient();
-  return { emit: true, recordInputs: record, recordOutputs: record };
+export function eveTracePolicy(): { emit: true; recordInputs: true; recordOutputs: true } {
+  return { emit: true, recordInputs: true, recordOutputs: true };
 }
