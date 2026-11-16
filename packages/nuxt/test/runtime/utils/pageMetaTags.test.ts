@@ -1,4 +1,5 @@
-import { getTraceData, getTraceMetaTags } from '@sentry/core';
+import { getTraceMetaTags } from '@sentry/core';
+import { _INTERNAL_getRootSpanSentryTrace } from '@sentry/core/server';
 import type { H3Event } from 'h3';
 import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { addSentryPageMetaTags, NUXT_NITRO_PRESET_FLAG } from '../../../src/runtime/utils/pageMetaTags';
@@ -7,10 +8,14 @@ vi.mock(import('@sentry/core'), async importOriginal => {
   const mod = await importOriginal();
   return {
     ...mod,
-    getTraceData: vi.fn(),
     getTraceMetaTags: vi.fn(),
   };
 });
+
+vi.mock(import('@sentry/core/server'), async importOriginal => ({
+  ...(await importOriginal()),
+  _INTERNAL_getRootSpanSentryTrace: vi.fn(),
+}));
 
 const SENTRY_TRACE = '4c79f60c11214eb38604f4ae0781bfb2-fa90fdead5f74052-1';
 const LIVE_TRACE_META_TAGS = [
@@ -73,7 +78,7 @@ describe('addSentryPageMetaTags', () => {
     { nitro: 'Nitro v2', event: h3v1Event({ cache: { swr: true, maxAge: 3600 } }) },
     { nitro: 'Nitro v3', event: h3v2Event(nitroV3Rule('cache', { swr: true, maxAge: 3600 })) },
   ])('replaces the tracing meta tags with the render as cache origin on a cached route ($nitro)', ({ event }) => {
-    (getTraceData as Mock).mockReturnValue({ 'sentry-trace': SENTRY_TRACE, baggage: 'sentry-environment=production' });
+    (_INTERNAL_getRootSpanSentryTrace as Mock).mockReturnValue(SENTRY_TRACE);
     const head: string[] = [];
 
     addSentryPageMetaTags(head, event);
@@ -97,11 +102,11 @@ describe('addSentryPageMetaTags', () => {
     addSentryPageMetaTags(head, h3v1Event({ cache: {} }), { 'sentry-trace': storedSentryTrace });
 
     expect(head).toEqual([`<meta name="sentry-cache-origin" content="${storedSentryTrace}"/>`]);
-    expect(getTraceData).not.toHaveBeenCalled();
+    expect(_INTERNAL_getRootSpanSentryTrace).not.toHaveBeenCalled();
   });
 
   it('adds an empty cache origin tag to a cached route when the server has no trace data', () => {
-    (getTraceData as Mock).mockReturnValue({});
+    (_INTERNAL_getRootSpanSentryTrace as Mock).mockReturnValue(undefined);
     const head: string[] = [];
 
     addSentryPageMetaTags(head, h3v1Event({ cache: {} }));
@@ -131,7 +136,7 @@ describe('addSentryPageMetaTags', () => {
 
   it.each(['vercel', 'netlify'])('replaces the tracing meta tags on an `isr` route on the %s preset', preset => {
     vi.stubGlobal(NUXT_NITRO_PRESET_FLAG, preset);
-    (getTraceData as Mock).mockReturnValue({ 'sentry-trace': SENTRY_TRACE });
+    (_INTERNAL_getRootSpanSentryTrace as Mock).mockReturnValue(SENTRY_TRACE);
     const head: string[] = [];
 
     addSentryPageMetaTags(head, h3v1Event({ isr: 3600 }));

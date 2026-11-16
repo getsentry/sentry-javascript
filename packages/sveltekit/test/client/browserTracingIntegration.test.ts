@@ -9,7 +9,7 @@ import { writable } from 'svelte/store';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { navigating, page } from '$app/stores';
 import { browserTracingIntegration } from '../../src/client';
-import { CACHE_ORIGIN_META_TAG_NAME } from '../../src/common/traceMetaTags';
+import { _INTERNAL_CACHE_ORIGIN_META_TAG_NAME } from '@sentry/core';
 import {
   PAGE_SERVER_RENDERING_TYPE,
   SENTRY_SEGMENT_NAME_SOURCE,
@@ -182,7 +182,7 @@ describe('browserTracingIntegration', () => {
 
   it('marks the pageload of a prerendered page as statically rendered, without a link', async () => {
     const marker = document.createElement('meta');
-    marker.name = CACHE_ORIGIN_META_TAG_NAME;
+    marker.name = _INTERNAL_CACHE_ORIGIN_META_TAG_NAME;
     marker.content = '';
     document.head.appendChild(marker);
 

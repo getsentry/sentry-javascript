@@ -14,15 +14,16 @@ import {
   hasSpanStreamingEnabled,
   PAGELOAD_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
+import { _INTERNAL_withCacheOrigin } from '@sentry/core/browser';
 import { resolveCurrentRoute, startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
 import { stripTrailingSlash } from './parameterization';
 import type { TraceMetaTagValues, TraceMetaTagWait } from './traceMetaTags';
 import {
   addTraceMetaTagLink,
   canWaitForTraceMetaTag,
+  getServerRenderingType,
   readTraceMetaTags,
   waitForTraceMetaTag,
-  withCacheOrigin,
 } from './traceMetaTags';
 
 /**
@@ -52,7 +53,11 @@ function startPageloadSpan(
   documentUrl: string,
   traceMetaTags?: TraceMetaTagValues,
 ): Span | undefined {
-  const span = startBrowserTracingPageLoadSpan(client, withCacheOrigin(spanOptions, traceMetaTags), traceMetaTags);
+  const span = startBrowserTracingPageLoadSpan(
+    client,
+    _INTERNAL_withCacheOrigin(spanOptions, getServerRenderingType(traceMetaTags)),
+    traceMetaTags,
+  );
   const scope = getCurrentScope();
   const { normalizedRequest } = scope.getScopeData().sdkProcessingMetadata;
   if (normalizedRequest) {

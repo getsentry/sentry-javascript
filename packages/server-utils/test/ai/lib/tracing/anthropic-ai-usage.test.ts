@@ -312,6 +312,25 @@ describe('instrumentMessageStream', () => {
     });
   });
 
+  it.each([
+    { reason: 'the caller aborts its signal', signal: AbortSignal.abort(), status: 'cancelled' },
+    {
+      reason: "the caller's AbortSignal.timeout() fired",
+      signal: AbortSignal.abort(new DOMException('The operation timed out', 'TimeoutError')),
+      status: 'internal_error',
+    },
+  ])('ends an aborted stream as $status when $reason', ({ signal, status }) => {
+    const { span } = createMockSpan();
+    const setStatus = vi.fn();
+    Object.assign(span, { setStatus });
+    const stream = instrumentMessageStream(Object.assign(new EventEmitter(), { aborted: true }), span, false, signal);
+
+    stream.emit('end');
+
+    expect(setStatus).toHaveBeenCalledTimes(1);
+    expect(setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: status });
+  });
+
   it('leaves the status alone when the body closes early without an abort', () => {
     const { span } = createMockSpan();
     const setStatus = vi.fn();

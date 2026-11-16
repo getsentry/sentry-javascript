@@ -4,7 +4,6 @@ import {
   getClient,
   handleCallbackErrors,
   hasSpanStreamingEnabled,
-  SPAN_STATUS_ERROR,
   startSpan,
   startSpanManual,
   stringify,
@@ -31,7 +30,13 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
-import { buildMethodPath, getGenAiSpanOp, getTokenUsageAttributes, resolveAIRecordingOptions } from '../core/utils';
+import {
+  buildMethodPath,
+  getErrorStatus,
+  getGenAiSpanOp,
+  getTokenUsageAttributes,
+  resolveAIRecordingOptions,
+} from '../core/utils';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
@@ -286,6 +291,13 @@ export function resolveChatParams(
 }
 
 /**
+ * Reads the caller's `config.abortSignal` from params resolved by `resolveChatParams`.
+ */
+export function getAbortSignal(params: Record<string, unknown> | undefined): AbortSignal | undefined {
+  return (params?.config as { abortSignal?: AbortSignal } | undefined)?.abortSignal;
+}
+
+/**
  * Instrument any async or synchronous genai method with Sentry spans
  * Handles operations like models.generateContent and chat.sendMessage and chats.create
  * @see https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation
@@ -304,6 +316,7 @@ function instrumentMethod<T extends unknown[], R>(
       const operationName = instrumentedMethod.operation || 'unknown';
       const params = args[0] as Record<string, unknown> | undefined;
       const attributeParams = resolveChatParams(operationName, params, context);
+      const abortSignal = getAbortSignal(attributeParams);
       const requestAttributes = extractRequestAttributes(
         operationName,
         attributeParams,
@@ -333,14 +346,9 @@ function instrumentMethod<T extends unknown[], R>(
                 addPrivateRequestAttributes(span, attributeParams, operationName);
               }
               const stream = await target.apply(context, args);
-              return instrumentStream(
-                stream,
-                span,
-                Boolean(options.recordOutputs),
-                (attributeParams?.config as { abortSignal?: AbortSignal } | undefined)?.abortSignal,
-              ) as R;
+              return instrumentStream(stream, span, Boolean(options.recordOutputs), abortSignal) as R;
             } catch (error) {
-              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              span.setStatus(getErrorStatus(abortSignal));
               span.end();
               throw error;
             }
@@ -359,11 +367,10 @@ function instrumentMethod<T extends unknown[], R>(
             addPrivateRequestAttributes(span, attributeParams, operationName);
           }
 
-          // `onError` is a no-op because the rejection is rethrown to the caller and `startSpan` already
-          // marks the span errored; both leading callbacks are positional and only exist to reach `onSuccess`.
+          // The rejection is rethrown to the caller. `startSpan` keeps the status set here.
           return handleCallbackErrors(
             () => target.apply(context, args),
-            () => {},
+            () => span.setStatus(getErrorStatus(abortSignal)),
             () => {},
             result => {
               // Only add response attributes for content-producing methods, not for embeddings

@@ -161,14 +161,14 @@ export async function testCacheOriginOnRuntimeCachedPage(
   const [originTraceId, originSpanId, originSampled] = cacheOrigin1?.split('-') ?? [];
   const cacheOriginLink = {
     trace_id: serverSpan1.trace_id,
-    span_id: originSpanId,
+    span_id: serverSpan1.span_id,
     sampled: true,
     attributes: { [SENTRY_LINK_TYPE]: { type: 'string', value: 'cache_origin' } },
   };
 
-  await test.step('The cache origin tag holds the sampled render of the 1. request', () => {
+  await test.step('The cache origin tag holds the `http.server` root span of the 1. request', () => {
     expect(originTraceId).toBe(serverSpan1.trace_id);
-    expect(originSpanId).toMatch(/^[a-f0-9]{16}$/);
+    expect(originSpanId).toBe(serverSpan1.span_id);
     expect(originSampled).toBe('1');
     expect(cacheOrigin2).toBe(cacheOrigin1);
   });

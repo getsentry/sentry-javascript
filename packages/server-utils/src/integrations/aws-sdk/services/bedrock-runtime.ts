@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { debug, SPAN_STATUS_ERROR } from '@sentry/core';
+import { debug } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
@@ -15,7 +15,12 @@ import {
 import { GEN_AI_CHAT, GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
 import type { StreamResponseState } from '../../../ai/core/utils';
 import type { GenAiMessagePart } from '../../../ai/types';
-import { endStreamSpan, getTokenUsageAttributes, resolveAIRecordingOptions } from '../../../ai/core/utils';
+import {
+  endStreamSpan,
+  getErrorStatus,
+  getTokenUsageAttributes,
+  resolveAIRecordingOptions,
+} from '../../../ai/core/utils';
 import { isInsidePiAiSpan } from '../../../ai/pi-ai/providers';
 import { DEBUG_BUILD } from '../../../debug-build';
 import {
@@ -478,7 +483,7 @@ async function* instrumentStream<T>(
       yield item;
     }
   } catch (error) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: abortSignal?.aborted ? 'cancelled' : 'internal_error' });
+    span.setStatus(getErrorStatus(abortSignal));
     throw error;
   } finally {
     if (state.parts) {

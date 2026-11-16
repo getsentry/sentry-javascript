@@ -1,4 +1,6 @@
+import { PAGELOAD } from '@sentry/conventions/op';
 import { getClient, GLOBAL_OBJ } from '@sentry/core';
+import { _INTERNAL_withCacheOrigin } from '@sentry/core/browser';
 import {
   browserTracingIntegration,
   _INTERNAL_createVueRouteProvider,
@@ -9,7 +11,6 @@ import {
 import { defineNuxtPlugin, isNuxtError } from 'nuxt/app';
 import type { GlobalObjWithIntegrationOptions } from '../../client/vueIntegration';
 import { reportNuxtError } from '../utils';
-import { withCacheOrigin } from '../utils/cacheOriginPageload';
 
 // --- Types are copied from @sentry/vue (so it does not need to be exported) ---
 // The following type is an intersection of the Route type from VueRouter v2, v3, and v4.
@@ -77,7 +78,11 @@ export default defineNuxtPlugin({
           browserTracingIntegration({
             router: nuxtApp.$router as VueRouter,
             routeLabel: 'path',
-            beforeStartSpan: options => withCacheOrigin(options, nuxtApp.payload.serverRendered === true),
+            // A client-side shell (`ssr: false`) has no server-rendered content to mark.
+            beforeStartSpan: options =>
+              options.op === PAGELOAD && nuxtApp.payload.serverRendered === true
+                ? _INTERNAL_withCacheOrigin(options, 'static')
+                : options,
           }),
         );
       }

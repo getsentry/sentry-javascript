@@ -1,5 +1,4 @@
-import { CACHE_ORIGIN_META_TAG_NAME } from '../../common/traceMetaTags';
-import { debug, isMatchingPattern, parseSemver } from '@sentry/core';
+import { _INTERNAL_CACHE_ORIGIN_META_TAG_NAME, debug, isMatchingPattern, parseSemver } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -188,7 +187,7 @@ export function maybeSetClientTraceMetadataOption(
       incomingUserNextConfigObject.experimental.clientTraceMetadata = [
         'baggage',
         'sentry-trace',
-        CACHE_ORIGIN_META_TAG_NAME,
+        _INTERNAL_CACHE_ORIGIN_META_TAG_NAME,
         ...(incomingUserNextConfigObject.experimental?.clientTraceMetadata || []),
       ];
     }

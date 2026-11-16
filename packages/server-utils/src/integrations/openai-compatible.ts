@@ -7,7 +7,7 @@ import {
   startInactiveSpan,
 } from '@sentry/core';
 import { GEN_AI_PROVIDER_NAME, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
-import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
+import { getGenAiSpanOp, getRequestSignal, markCancelledIfAborted, resolveAIRecordingOptions } from '../ai/core/utils';
 import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/openai';
 import { instrumentStream } from '../ai/openai/streaming';
@@ -56,6 +56,9 @@ export function createOpenAiCompatibleIntegration<T extends OpenAiCompatibleProv
         data => createGenAiSpan(data, operation, provider, options),
         {
           beforeSpanEnd: (span, data) => {
+            if ('error' in data) {
+              markCancelledIfAborted(span, getRequestSignal(data.arguments?.[1]));
+            }
             addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs);
           },
           deferSpanEnd: ({ span, data, end }) =>

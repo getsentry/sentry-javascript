@@ -256,7 +256,7 @@ describe('instrumentAnthropicAiClient tool runner', () => {
     expect(events).toHaveLength(0);
   });
 
-  it('does not capture a ToolError or a call aborted by the runner', async () => {
+  it('does not capture a ToolError or a call aborted by the runner, but marks a timed-out one as an error', async () => {
     const toolError = Object.assign(new Error('bad input'), { name: 'ToolError' });
     const refuses = tool('refuses', async () => {
       throw toolError;
@@ -265,13 +265,27 @@ describe('instrumentAnthropicAiClient tool runner', () => {
       throw new Error('aborted');
     });
 
-    instrumentAnthropicAiClient(fakeClient()).beta.messages.toolRunner({ tools: [refuses, aborted] });
+    const timedOut = tool('timedOut', async () => {
+      throw new Error('timed out');
+    });
+
+    instrumentAnthropicAiClient(fakeClient()).beta.messages.toolRunner({ tools: [refuses, aborted, timedOut] });
     await expect(refuses.run({}, { toolUse: { id: 'toolu_1' } })).rejects.toBe(toolError);
     await expect(aborted.run({}, { toolUse: { id: 'toolu_2' }, signal: AbortSignal.abort() })).rejects.toThrow(
       'aborted',
     );
 
-    expect(toolSpans().map(span => span.status)).toEqual(['internal_error', 'cancelled']);
+    await expect(
+      timedOut.run(
+        {},
+        {
+          toolUse: { id: 'toolu_3' },
+          signal: AbortSignal.abort(new DOMException('The operation timed out', 'TimeoutError')),
+        },
+      ),
+    ).rejects.toThrow('timed out');
+
+    expect(toolSpans().map(span => span.status)).toEqual(['internal_error', 'cancelled', 'internal_error']);
     expect(events).toHaveLength(0);
   });
 
