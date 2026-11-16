@@ -1,3 +1,4 @@
+import { isBotUserAgent } from '@sentry/browser-utils';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import type { RequestInstrumentationOptions } from '../tracing/request';
@@ -16,6 +17,10 @@ const _fetchTracingIntegration = ((options: FetchTracingOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
+      if (isBotUserAgent()) {
+        return;
+      }
+
       instrumentFetchRequests(client, {
         ...options,
         tracePropagationTargets: client.getOptions().tracePropagationTargets,
