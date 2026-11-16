@@ -17,10 +17,10 @@ describe('labelJuniorPrForTeamReview', () => {
     expect(github.rest.issues.addLabels).toHaveBeenCalledWith(expect.objectContaining({ labels: [TEAM_REVIEW_LABEL] }));
   });
 
-  it('labels a Junior PR requested by a contractor', async () => {
+  it('does not label a Junior PR requested by a contractor', async () => {
     const { github, run } = setup(labelJuniorPrForTeamReview, { user: junior, body: attribution('@timfish') });
     await run();
-    expect(github.rest.issues.addLabels).toHaveBeenCalled();
+    expect(github.rest.issues.addLabels).not.toHaveBeenCalled();
   });
 
   it('labels a Junior PR when any requester is outside the SDK team', async () => {
@@ -85,16 +85,6 @@ describe('clearTeamReviewLabel', () => {
       clearTeamReviewLabel,
       { ...labeled, user: junior, body: attribution('@outsider') },
       approvedBy('other'),
-    );
-    await run();
-    expect(github.rest.issues.removeLabel).not.toHaveBeenCalled();
-  });
-
-  it('keeps the label when a requester approves their own Junior PR', async () => {
-    const { github, run } = setup(
-      clearTeamReviewLabel,
-      { ...labeled, user: junior, body: attribution('@timfish') },
-      approvedBy('timfish'),
     );
     await run();
     expect(github.rest.issues.removeLabel).not.toHaveBeenCalled();

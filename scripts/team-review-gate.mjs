@@ -7,14 +7,16 @@ const CONTRACTORS = ['timfish', 'RulaKhaled'];
 const sameLogin = (a, b) => a.toLowerCase() === b.toLowerCase();
 const hasTeamReviewLabel = pr => pr.labels.some(label => label.name === TEAM_REVIEW_LABEL);
 
-async function getTeamLogins(github, org) {
+async function getTrustedLogins(github, org) {
   const members = await github.paginate(github.rest.teams.listMembersInOrg, { org, team_slug: TEAM_SLUG });
-  return members.map(m => m.login);
+  return [...CONTRACTORS, ...members.map(m => m.login)];
 }
 
+const isTrusted = (trusted, login) => trusted.some(trustedLogin => sameLogin(trustedLogin, login));
+
 /**
- * Junior opens PRs as a bot, so whoever asked for one can approve it. Unless every requester is on the SDK team, the PR
- * gets a label that blocks merging until the team or a contractor approves it.
+ * Junior opens PRs as a bot, so whoever asked for one can approve it. Unless every requester is on the SDK team or a
+ * contractor, the PR gets a label that blocks merging until the team or a contractor approves it.
  */
 export async function labelJuniorPrForTeamReview({ github, context, core }) {
   const { owner, repo } = context.repo;
@@ -26,19 +28,19 @@ export async function labelJuniorPrForTeamReview({ github, context, core }) {
   }
 
   const requesters = await getJuniorRequesters({ github, core, pr });
-  const team = await getTeamLogins(github, owner);
-  if (requesters.length && requesters.every(login => team.some(member => sameLogin(member, login)))) {
-    core.info(`Requested by SDK team members (${requesters.join(', ')}), no team review needed.`);
+  const trusted = await getTrustedLogins(github, owner);
+  if (requesters.length && requesters.every(login => isTrusted(trusted, login))) {
+    core.info(`Requested by SDK team members or contractors (${requesters.join(', ')}), no team review needed.`);
     return;
   }
 
   core.info(
-    `Requesters (${requesters.join(', ') || 'none'}) are not all on the SDK team, adding "${TEAM_REVIEW_LABEL}".`,
+    `Requesters (${requesters.join(', ') || 'none'}) are not all SDK team members or contractors, adding "${TEAM_REVIEW_LABEL}".`,
   );
   await github.rest.issues.addLabels({ owner, repo, issue_number: pull_number, labels: [TEAM_REVIEW_LABEL] });
 }
 
-/** Removes the label once someone on the SDK team or a contractor approves, unless they authored or requested the PR. */
+/** Removes the label once someone on the SDK team or a contractor approves. */
 export async function clearTeamReviewLabel({ github, context, core }) {
   const { owner, repo } = context.repo;
   const pull_number = context.payload.pull_request.number;
@@ -54,14 +56,7 @@ export async function clearTeamReviewLabel({ github, context, core }) {
   }
 
   const reviewer = review.user.login;
-  const requesters = await getJuniorRequesters({ github, core, pr });
-  if ([pr.user.login, ...requesters].some(login => sameLogin(login, reviewer))) {
-    core.info(`${reviewer} authored or requested this PR, so their approval doesn't count.`);
-    return;
-  }
-
-  const trusted = [...CONTRACTORS, ...(await getTeamLogins(github, owner))];
-  if (!trusted.some(login => sameLogin(login, reviewer))) {
+  if (!isTrusted(await getTrustedLogins(github, owner), reviewer)) {
     core.info(`${reviewer} is neither on the SDK team nor a contractor, keeping "${TEAM_REVIEW_LABEL}".`);
     return;
   }
