@@ -72,6 +72,9 @@ strictPeerDependencies: false
 linkWorkspacePackages: true
 # Lockfiles written by Dependabot or `pnpm add` would otherwise fail `pnpm dedupe --check` in CI.
 autoDedupe: true
+# Experimental lockfile format planned for pnpm 13: https://pnpm.io/settings/store#lockfileformat
+lockfile:
+  format: v13
 
 overrides:
   nx>minimatch: 10.2.5
