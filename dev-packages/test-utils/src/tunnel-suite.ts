@@ -22,6 +22,12 @@ export interface ManagedTunnelSuiteOptions {
   appName: string;
   /** The base path the app and its managed tunnel are served under, like `/app`. */
   basePath: string;
+  /** Also counts the spans this matches as spans of the tunnel request, for framework spans without `url.path`. */
+  isTunnelSpan?: (span: SerializedStreamedSpan, tunnelPath: string) => boolean;
+  /** The path the managed tunnel is served at, if it's a fixed one. Defaults to the DSN-derived path under `basePath`. */
+  tunnelPath?: string;
+  /** Whether the app's routes, and so its tunnel path, end in a `/`. */
+  trailingSlash?: boolean;
 }
 
 /**
@@ -33,17 +39,25 @@ export interface ManagedTunnelSuiteOptions {
  * - `GET {basePath}/api/error`, which throws `TUNNEL_TEST_ERROR_MESSAGE`
  * - a middleware that answers every POST with a 401
  */
-export function runManagedTunnelSuite({ appName, basePath }: ManagedTunnelSuiteOptions): void {
-  const tunnelPath = `${basePath}${DSN_TUNNEL_PATH}`;
+export function runManagedTunnelSuite({
+  appName,
+  basePath,
+  isTunnelSpan,
+  tunnelPath: fixedTunnelPath,
+  trailingSlash = false,
+}: ManagedTunnelSuiteOptions): void {
+  const appPath = (path: string): string => `${basePath}${path}${trailingSlash ? '/' : ''}`;
+  const tunnelPath = fixedTunnelPath ?? appPath(DSN_TUNNEL_PATH);
+  const anchorPath = appPath('/api/anchor');
   const isTunnelRequest = (method: string, url: string): boolean =>
     method === 'POST' && new URL(url).pathname === tunnelPath;
 
   test('answers the browser under the base path before the app middleware, without spans of it', async ({ page }) => {
-    expect((await page.request.post(`${basePath}/api/anchor`, { data: 'x' })).status()).toBe(401);
+    expect((await page.request.post(anchorPath, { data: 'x' })).status()).toBe(401);
 
     const raceTunnelSpan = watchForTunnelSpan(
       appName,
-      span => isServerSpanAt(tunnelPath)(span) || isIngestRequestSpan(span),
+      span => isServerSpanAt(tunnelPath)(span) || isIngestRequestSpan(span) || !!isTunnelSpan?.(span, tunnelPath),
     );
     const tunnelResponsePromise = page.waitForResponse(response =>
       isTunnelRequest(response.request().method(), response.url()),
@@ -52,9 +66,7 @@ export function runManagedTunnelSuite({ appName, basePath }: ManagedTunnelSuiteO
     await page.goto(`${basePath}/`);
 
     expect((await tunnelResponsePromise).status()).toBe(200);
-    expect(
-      await raceTunnelSpan(isServerSpanAt(`${basePath}/api/anchor`), () => page.request.get(`${basePath}/api/anchor`)),
-    ).toBe('anchor');
+    expect(await raceTunnelSpan(isServerSpanAt(anchorPath), () => page.request.get(anchorPath))).toBe('anchor');
   });
 
   test('forwards browser events without the cookies of the browser', async ({ page, context, baseURL }) => {
@@ -108,7 +120,7 @@ export function runManagedTunnelSuite({ appName, basePath }: ManagedTunnelSuiteO
     });
 
     // Errors are sent in order, so one from a tunnel request would arrive before this one.
-    await request.get(`${basePath}/api/error`);
+    await request.get(appPath('/api/error'));
 
     expect((await firstErrorPromise).exception?.values?.[0]?.value).toBe(TUNNEL_TEST_ERROR_MESSAGE);
   });

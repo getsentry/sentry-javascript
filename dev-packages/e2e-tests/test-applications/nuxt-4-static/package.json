@@ -30,6 +30,16 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz"
   },
   "sentryTest": {
+    "baseVariant": {
+      "assert-command": "pnpm test:prod"
+    },
+    "variants": [
+      {
+        "build-command": "pnpm install",
+        "assert-command": "pnpm test:dev",
+        "label": "nuxt-4-static (development)"
+      }
+    ],
     "canaryVariants": [
       {
         "build-command": "pnpm test:build-canary",
