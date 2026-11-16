@@ -7,6 +7,7 @@ const REQUIRED_REVIEWERS = 3;
 // GitHub's team auto-assignment can still pick them, so their pending requests don't count towards the required reviewers.
 const NEVER_REQUEST = ['mydea', 'stephanie-anderson', 'HazAT'];
 const REVIEWERS_PATH = '.github/REVIEWERS';
+const REVIEW_LOAD_DAYS = 7;
 
 function patternToRegExp(pattern) {
   let p = pattern;
@@ -66,8 +67,8 @@ function shuffle(items) {
 
 /**
  * Picks reviewers to top the PR up to `REQUIRED_REVIEWERS`, preferring the codeowner pool and falling back
- * to the whole team. Within a pool, people with the fewest pending review requests (`load`, keyed by lowercase
- * login) go first, ties are broken randomly. Logins are compared case-insensitively, as GitHub does.
+ * to the whole team. Within a pool, people who were asked for the fewest reviews recently (`load`, keyed by
+ * lowercase login) go first, ties are broken randomly. Logins are compared case-insensitively, as GitHub does.
  */
 export function pickReviewers({ existing, codeownerPool, teamPool, exclude, load = new Map() }) {
   const taken = new Set([...existing, ...exclude].map(login => login.toLowerCase()));
@@ -115,22 +116,58 @@ export async function getBusyLogins({ github, core, logins }) {
   }
 }
 
-/**
- * Counts the pending review requests each user has across the repo's open PRs, keyed by lowercase login.
- * Requests made through a team aren't counted, as they aren't assigned to anyone yet.
- */
-export async function getReviewLoad({ github, core, owner, repo }) {
-  const load = new Map();
-  try {
-    const pulls = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
-    for (const pull of pulls) {
-      for (const reviewer of pull.requested_reviewers ?? []) {
-        const login = reviewer.login.toLowerCase();
-        load.set(login, (load.get(login) ?? 0) + 1);
+const REVIEW_REQUESTS_QUERY = `query($owner: String!, $repo: String!, $cursor: String) {
+  repository(owner: $owner, name: $repo) {
+    pullRequests(first: 100, after: $cursor, orderBy: { field: UPDATED_AT, direction: DESC }) {
+      pageInfo { hasNextPage endCursor }
+      nodes {
+        updatedAt
+        timelineItems(first: 100, itemTypes: [REVIEW_REQUESTED_EVENT, REVIEW_REQUEST_REMOVED_EVENT]) {
+          nodes {
+            __typename
+            ... on ReviewRequestedEvent { createdAt requestedReviewer { ... on User { login } } }
+            ... on ReviewRequestRemovedEvent { createdAt requestedReviewer { ... on User { login } } }
+          }
+        }
       }
     }
+  }
+}`;
+
+/**
+ * Counts the PRs each user was asked to review in the last `REVIEW_LOAD_DAYS`, keyed by lowercase login. This
+ * measures what people were handed, not their open queue, so working through reviews quickly doesn't attract
+ * more of them. Requests that were taken back are not counted.
+ */
+export async function getReviewLoad({ github, core, owner, repo, now = Date.now() }) {
+  const since = now - REVIEW_LOAD_DAYS * 24 * 60 * 60 * 1000;
+  const load = new Map();
+  try {
+    let cursor = null;
+    do {
+      const { repository } = await github.graphql(REVIEW_REQUESTS_QUERY, { owner, repo, cursor });
+      const { nodes, pageInfo } = repository.pullRequests;
+      // A review request updates the PR, so PRs updated before the window can't have requests in it.
+      const recent = nodes.filter(pr => Date.parse(pr.updatedAt) >= since);
+      for (const pr of recent) {
+        const requested = new Set();
+        for (const event of pr.timelineItems.nodes) {
+          const login = event.requestedReviewer?.login?.toLowerCase();
+          if (!login || Date.parse(event.createdAt) < since) {
+            continue;
+          }
+          if (event.__typename === 'ReviewRequestedEvent') {
+            requested.add(login);
+          } else {
+            requested.delete(login);
+          }
+        }
+        requested.forEach(login => load.set(login, (load.get(login) ?? 0) + 1));
+      }
+      cursor = pageInfo.hasNextPage && recent.length === nodes.length ? pageInfo.endCursor : null;
+    } while (cursor);
   } catch (error) {
-    core.warning(`Could not read open review requests, not balancing reviewer load: ${error.message}`);
+    core.warning(`Could not read recent review requests, not balancing reviewer load: ${error.message}`);
   }
   return load;
 }
@@ -207,7 +244,7 @@ export async function assignReviewers({ github, context, core }) {
   }
 
   core.info(
-    `Requesting reviews from: ${reviewers.map(login => `${login} (${load.get(login.toLowerCase()) ?? 0} pending)`).join(', ')}`,
+    `Requesting reviews from: ${reviewers.map(login => `${login} (${load.get(login.toLowerCase()) ?? 0} recent)`).join(', ')}`,
   );
   await github.rest.pulls.requestReviewers({ owner, repo, pull_number, reviewers });
 }

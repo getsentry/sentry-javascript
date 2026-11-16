@@ -23,7 +23,6 @@ export function setup(run, pr) {
             ...pr,
           },
         })),
-        list: vi.fn(),
         listReviews: vi.fn(),
         listFiles: vi.fn(),
         requestReviewers: vi.fn(),

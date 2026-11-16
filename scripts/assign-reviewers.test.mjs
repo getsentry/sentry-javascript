@@ -112,32 +112,88 @@ describe('pickReviewers', () => {
 });
 
 describe('getReviewLoad', () => {
-  it('counts pending review requests per user across open PRs', async () => {
+  const now = Date.parse('2026-01-10T00:00:00Z');
+  const requested = (login, createdAt) => ({
+    __typename: 'ReviewRequestedEvent',
+    createdAt,
+    requestedReviewer: { login },
+  });
+  const removed = (login, createdAt) => ({
+    __typename: 'ReviewRequestRemovedEvent',
+    createdAt,
+    requestedReviewer: { login },
+  });
+  const page = (nodes, hasNextPage = false) => ({
+    repository: { pullRequests: { pageInfo: { hasNextPage, endCursor: 'next' }, nodes } },
+  });
+  const pr = (updatedAt, events) => ({ updatedAt, timelineItems: { nodes: events } });
+
+  it('counts the PRs each user was asked to review in the last 7 days', async () => {
     const github = {
-      paginate: vi.fn(async () => [
-        { requested_reviewers: [{ login: 'A' }, { login: 'b' }] },
-        { requested_reviewers: [{ login: 'a' }] },
-        { requested_reviewers: [] },
-      ]),
-      rest: { pulls: { list: vi.fn() } },
+      graphql: vi.fn(async () =>
+        page([
+          pr('2026-01-09T00:00:00Z', [requested('A', '2026-01-08T00:00:00Z'), requested('b', '2026-01-08T00:00:00Z')]),
+          pr('2026-01-08T00:00:00Z', [requested('a', '2026-01-07T00:00:00Z'), requested('a', '2026-01-07T01:00:00Z')]),
+          pr('2026-01-07T00:00:00Z', [requested('c', '2025-12-01T00:00:00Z'), requested('d', '2026-01-06T00:00:00Z')]),
+        ]),
+      ),
     };
-    const load = await getReviewLoad({ github, core: { warning: vi.fn() }, owner: 'o', repo: 'r' });
+    const load = await getReviewLoad({ github, core: { warning: vi.fn() }, owner: 'o', repo: 'r', now });
     expect(load).toEqual(
       new Map([
         ['a', 2],
         ['b', 1],
+        ['d', 1],
       ]),
     );
-    expect(github.paginate).toHaveBeenCalledWith(github.rest.pulls.list, expect.objectContaining({ state: 'open' }));
   });
 
-  it('treats everyone as unloaded when listing PRs fails', async () => {
-    const core = { warning: vi.fn() };
+  it('does not count review requests that were removed again', async () => {
     const github = {
-      paginate: vi.fn(async () => Promise.reject(new Error('boom'))),
-      rest: { pulls: { list: vi.fn() } },
+      graphql: vi.fn(async () =>
+        page([
+          pr('2026-01-09T00:00:00Z', [
+            requested('a', '2026-01-08T00:00:00Z'),
+            requested('b', '2026-01-08T00:00:00Z'),
+            removed('a', '2026-01-08T01:00:00Z'),
+          ]),
+        ]),
+      ),
     };
-    expect(await getReviewLoad({ github, core, owner: 'o', repo: 'r' })).toEqual(new Map());
+    const load = await getReviewLoad({ github, core: { warning: vi.fn() }, owner: 'o', repo: 'r', now });
+    expect(load).toEqual(new Map([['b', 1]]));
+  });
+
+  it('pages until it reaches PRs last updated before the window', async () => {
+    const github = {
+      graphql: vi
+        .fn()
+        .mockResolvedValueOnce(page([pr('2026-01-09T00:00:00Z', [requested('a', '2026-01-08T00:00:00Z')])], true))
+        .mockResolvedValueOnce(
+          page(
+            [
+              pr('2026-01-08T00:00:00Z', [requested('b', '2026-01-08T00:00:00Z')]),
+              pr('2025-12-01T00:00:00Z', [requested('c', '2025-12-01T00:00:00Z')]),
+            ],
+            true,
+          ),
+        ),
+    };
+    const load = await getReviewLoad({ github, core: { warning: vi.fn() }, owner: 'o', repo: 'r', now });
+    expect(load).toEqual(
+      new Map([
+        ['a', 1],
+        ['b', 1],
+      ]),
+    );
+    expect(github.graphql).toHaveBeenCalledTimes(2);
+    expect(github.graphql).toHaveBeenLastCalledWith(expect.any(String), { owner: 'o', repo: 'r', cursor: 'next' });
+  });
+
+  it('treats everyone as unloaded when the query fails', async () => {
+    const core = { warning: vi.fn() };
+    const github = { graphql: vi.fn(async () => Promise.reject(new Error('boom'))) };
+    expect(await getReviewLoad({ github, core, owner: 'o', repo: 'r', now })).toEqual(new Map());
     expect(core.warning).toHaveBeenCalledWith(expect.stringContaining('boom'));
   });
 });
@@ -191,17 +247,25 @@ describe('assignReviewers', () => {
     );
   });
 
-  it('requests reviews from the least loaded team members', async () => {
+  it('requests reviews from the team members who were asked for the fewest reviews recently', async () => {
     const { github, run } = setup(assignReviewers, { user: { login: 'author', type: 'User' } });
-    const listMembers = github.paginate.getMockImplementation();
-    github.paginate.mockImplementation(async method =>
-      method === github.rest.pulls.list
-        ? [
-            { requested_reviewers: [{ login: 'a' }, { login: 'b' }, { login: 'c' }] },
-            { requested_reviewers: [{ login: 'a' }, { login: 'b' }] },
-            { requested_reviewers: [{ login: 'a' }] },
-          ]
-        : listMembers(method),
+    const recently = login => ({
+      __typename: 'ReviewRequestedEvent',
+      createdAt: new Date().toISOString(),
+      requestedReviewer: { login },
+    });
+    const pr = logins => ({ updatedAt: new Date().toISOString(), timelineItems: { nodes: logins.map(recently) } });
+    github.graphql.mockImplementation(async query =>
+      query.includes('timelineItems')
+        ? {
+            repository: {
+              pullRequests: {
+                pageInfo: { hasNextPage: false },
+                nodes: [pr(['a', 'b', 'c']), pr(['a', 'b']), pr(['a'])],
+              },
+            },
+          }
+        : {},
     );
     await run();
     expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
