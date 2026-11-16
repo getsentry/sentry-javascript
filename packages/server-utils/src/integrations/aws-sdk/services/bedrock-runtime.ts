@@ -73,6 +73,10 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
 
   public constructor(private readonly _options: GenAiOptions = {}) {}
 
+  private _recordingOptions(): Required<GenAiOptions> {
+    return resolveAIRecordingOptions(this._options);
+  }
+
   public requestPreSpanHook(request: NormalizedRequest): RequestMetadata {
     if (isInsidePiAiSpan()) {
       this._piAiRequests.add(request);
@@ -154,7 +158,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       }
     }
 
-    if (resolveAIRecordingOptions(this._options).recordInputs) {
+    if (this._recordingOptions().recordInputs) {
       Object.assign(spanAttributes, getConverseInputAttributes(request.commandInput));
     }
 
@@ -283,7 +287,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
         }
       }
 
-      if (resolveAIRecordingOptions(this._options).recordInputs) {
+      if (this._recordingOptions().recordInputs) {
         Object.assign(spanAttributes, getInvokeModelInputAttributes(modelId, requestBody));
       }
     }
@@ -300,7 +304,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     const { stopReason, usage, output } = response.data;
 
     setStopReason(span, stopReason);
-    if (resolveAIRecordingOptions(this._options).recordOutputs) {
+    if (this._recordingOptions().recordOutputs) {
       setOutputMessages(span, contentBlocksToParts(output?.message?.content));
     }
     span.setAttributes(
@@ -328,7 +332,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       response.data.stream as AsyncIterable<ConverseStreamOutput>,
       span,
       response.request.abortSignal,
-      resolveAIRecordingOptions(this._options).recordOutputs,
+      this._recordingOptions().recordOutputs,
       processConverseStreamEvent,
     );
   }
@@ -396,7 +400,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
           span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(responseBody.outputs[0].text.length / 6));
         }
       }
-      if (resolveAIRecordingOptions(this._options).recordOutputs) {
+      if (this._recordingOptions().recordOutputs) {
         setOutputMessages(span, getInvokeModelOutputParts(responseBody));
       }
     }
@@ -420,7 +424,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       stream as AsyncIterable<{ chunk?: { bytes?: Uint8Array } }>,
       span,
       response.request.abortSignal,
-      resolveAIRecordingOptions(this._options).recordOutputs,
+      this._recordingOptions().recordOutputs,
       (item, state) => {
         if (processChunk) {
           const parsedChunk = parseChunk(item?.chunk?.bytes);

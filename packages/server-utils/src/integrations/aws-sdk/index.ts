@@ -65,7 +65,9 @@ function setMetadataAttributes(span: Span, metadata: Record<string, any> | undef
 }
 
 // `recordInputs` and `recordOutputs` apply to Bedrock Runtime calls, the only AWS calls that carry prompts and responses.
-const _awsIntegration = ((options?: GenAiOptions) => {
+export type AwsIntegrationOptions = GenAiOptions;
+
+const _awsIntegration = ((options?: AwsIntegrationOptions) => {
   const servicesExtensions = new ServicesExtensions(options);
 
   return {
