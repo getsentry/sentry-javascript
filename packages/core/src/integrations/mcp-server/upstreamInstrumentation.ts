@@ -115,7 +115,9 @@ function receiveWithHandoff(
   const upstreamScope = scope;
   span.setAttributes(handoff.attributes);
   return {
-    run: fn => upstreamScope.run(fn),
+    // The SDK activates its span through the OpenTelemetry context, which is not Sentry's scope on every
+    // runtime (e.g. Deno, which has no OpenTelemetry context manager).
+    run: fn => withActiveSpan(span, () => upstreamScope.run(fn)),
     // The SDK ends its span before sending the response, so the response is recorded here.
     end: outcome => {
       if (outcome.type === 'result' || outcome.type === 'error') {

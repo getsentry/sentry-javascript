@@ -45,13 +45,15 @@ interface Instrumentation {
 
 // Mirrors the MCP SDK instrumentation under the Sentry tracer provider: one span per operation,
 // ended before the response is sent.
-function sentryTracedInstrumentation(): Instrumentation {
+// `activatesSpan: false` mirrors runtimes without an OpenTelemetry context manager, where the SDK's
+// `context.with` does not make its span active in Sentry.
+function sentryTracedInstrumentation({ activatesSpan = true } = {}): Instrumentation {
   const start = (operation: Operation, kind: 'client' | 'server'): Scope => {
     const span = startInactiveSpan({
       name: operation.method,
       attributes: { [MCP_METHOD_NAME]: operation.method, [SENTRY_KIND]: kind },
     });
-    return { run: fn => withActiveSpan(span, fn), end: () => span.end() };
+    return { run: fn => (activatesSpan ? withActiveSpan(span, fn) : fn()), end: () => span.end() };
   };
   return { send: operation => start(operation, 'client'), receive: operation => start(operation, 'server') };
 }
@@ -188,6 +190,23 @@ describe('MCP server hand-off to the MCP SDK instrumentation', () => {
     });
     expect(spanToJSON(handlerParent!).span_id).toBe(toolSpan!.span_id);
     expect(endedSpans.find(span => span.name === 'inside-tool')!.parent_span_id).toBe(toolSpan!.span_id);
+  });
+
+  it('makes the MCP SDK span active for the handler when the SDK scope does not', async () => {
+    const server = wrapMcpServerWithSentry(createServer(sentryTracedInstrumentation({ activatesSpan: false })));
+    let handlerParent: Span | undefined;
+    server.registerTool('echo', {}, async () => {
+      handlerParent = getActiveSpan();
+      return { content: [{ type: 'text', text: 'echo' }] };
+    });
+
+    const transport = new InMemoryTransport();
+    await server.connect(transport);
+    await callTool(transport, 'echo', {});
+
+    const spans = mcpSpans();
+    expect(spans).toHaveLength(1);
+    expect(spanToJSON(handlerParent!).span_id).toBe(spans[0]!.span_id);
   });
 
   it('records initialize session data on the MCP SDK span', async () => {
