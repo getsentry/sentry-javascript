@@ -703,12 +703,12 @@ describe('SentrySpan', () => {
   describe('end', () => {
     it('works without endTimestamp', () => {
       const span = new SentrySpan();
-      const now = timestampInSeconds();
       span.end();
 
       const { start_timestamp, end_timestamp } = spanToJSON(span);
+      const now = timestampInSeconds();
       expect(end_timestamp).toBeGreaterThanOrEqual(start_timestamp);
-      expect(end_timestamp).toBeCloseTo(now, 2);
+      expect(end_timestamp).toBeLessThanOrEqual(now);
     });
 
     it('works with endTimestamp in seconds', () => {
