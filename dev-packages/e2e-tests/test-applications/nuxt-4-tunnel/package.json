@@ -24,6 +24,7 @@
     "variants": [
       {
         "runtime": "cloudflare",
+        "build-command": "rm sentry.server.config.ts && pnpm test:build",
         "assert-command": "TEST_ENV=production pnpm exec playwright test",
         "label": "nuxt-4-tunnel (cloudflare)"
       }
