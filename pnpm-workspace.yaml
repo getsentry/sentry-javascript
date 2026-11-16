@@ -58,6 +58,7 @@ packages:
   - 'dev-packages/cloudflare-integration-tests'
   - 'dev-packages/test-utils'
   - 'dev-packages/size-limit-gh-action'
+  - 'dev-packages/size-limit-rolldown'
   - 'dev-packages/clear-cache-gh-action'
   - 'dev-packages/external-contributor-gh-action'
   - 'dev-packages/optional-e2e-gh-action'

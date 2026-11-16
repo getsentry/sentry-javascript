@@ -47,7 +47,7 @@ async function run() {
     const artifactClient = new DefaultArtifactClient();
 
     // Build and measure each bundle defined in .size-limit.js for the current branch
-    const { stdout } = await getExecOutput('pnpm', ['exec', 'size-limit', '--json']);
+    const { stdout } = await getExecOutput('pnpm', ['run', '--silent', 'test:size-limit']);
     const current = limit.parseResults(stdout);
 
     // If we have no comparison branch, we only store the results as artifacts (likely running on develop)

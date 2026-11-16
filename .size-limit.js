@@ -8,29 +8,17 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: '@sentry/browser - with treeshaking flags',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
-    modifyWebpackConfig: function (config) {
-      const webpack = require('webpack');
-
-      config.plugins.push(
-        new webpack.DefinePlugin({
-          __SENTRY_DEBUG__: false,
-          __RRWEB_EXCLUDE_SHADOW_DOM__: true,
-          __RRWEB_EXCLUDE_IFRAME__: true,
-          __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
-        }),
-      );
-
-      config.optimization.minimize = true;
-
-      return config;
+    define: {
+      __SENTRY_DEBUG__: false,
+      __RRWEB_EXCLUDE_SHADOW_DOM__: true,
+      __RRWEB_EXCLUDE_IFRAME__: true,
+      __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
     },
   },
   {
@@ -38,23 +26,12 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
-    modifyWebpackConfig: function (config) {
-      const webpack = require('webpack');
-
-      config.plugins.push(
-        new webpack.DefinePlugin({
-          __SENTRY_DEBUG__: false,
-          __RRWEB_EXCLUDE_SHADOW_DOM__: true,
-          __RRWEB_EXCLUDE_IFRAME__: true,
-          __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
-          __SENTRY_TRACING__: false,
-        }),
-      );
-
-      config.optimization.minimize = true;
-
-      return config;
+    define: {
+      __SENTRY_DEBUG__: false,
+      __RRWEB_EXCLUDE_SHADOW_DOM__: true,
+      __RRWEB_EXCLUDE_IFRAME__: true,
+      __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
+      __SENTRY_TRACING__: false,
     },
   },
   {
@@ -62,50 +39,35 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: '@sentry/browser (incl. Tracing + Span Streaming)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'spanStreamingIntegration'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: '@sentry/browser (incl. Tracing, Profiling)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'browserProfilingIntegration'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - with treeshaking flags',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
-    modifyWebpackConfig: function (config) {
-      const webpack = require('webpack');
-
-      config.plugins.push(
-        new webpack.DefinePlugin({
-          __SENTRY_DEBUG__: false,
-          __RRWEB_EXCLUDE_SHADOW_DOM__: true,
-          __RRWEB_EXCLUDE_IFRAME__: true,
-          __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
-        }),
-      );
-
-      config.optimization.minimize = true;
-
-      return config;
+    define: {
+      __SENTRY_DEBUG__: false,
+      __RRWEB_EXCLUDE_SHADOW_DOM__: true,
+      __RRWEB_EXCLUDE_IFRAME__: true,
+      __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
     },
   },
   {
@@ -113,56 +75,48 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'replayCanvasIntegration'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'feedbackIntegration'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: '@sentry/browser (incl. Feedback)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'feedbackIntegration'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: '@sentry/browser (incl. sendFeedback)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'sendFeedback'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: '@sentry/browser (incl. FeedbackAsync)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'feedbackAsyncIntegration'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: '@sentry/browser (incl. Metrics)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'metrics'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: '@sentry/browser (incl. Logs)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'logger'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: '@sentry/browser (incl. Metrics & Logs)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'metrics', 'logger'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   // React SDK (ESM)
   {
@@ -171,7 +125,6 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: '@sentry/react (incl. Tracing)',
@@ -179,7 +132,6 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   // Vue SDK (ESM)
   {
@@ -187,14 +139,12 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: '@sentry/vue (incl. Tracing)',
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   // Svelte SDK (ESM)
   {
@@ -202,7 +152,6 @@ module.exports = [
     path: 'packages/svelte/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   // Remix 3 browser SDK (ESM)
   {
@@ -214,62 +163,52 @@ module.exports = [
     path: 'packages/remix/build/esm/v3/client-bundle.js',
     import: '*',
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   // Browser CDN bundles
   {
     name: 'CDN Bundle',
     path: createCDNPath('bundle.min.js'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Tracing)',
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Logs, Metrics)',
     path: createCDNPath('bundle.logs.metrics.min.js'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Tracing, Logs, Metrics)',
     path: createCDNPath('bundle.tracing.logs.metrics.min.js'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Replay, Logs, Metrics)',
     path: createCDNPath('bundle.replay.logs.metrics.min.js'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay)',
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Logs, Metrics)',
     path: createCDNPath('bundle.tracing.replay.logs.metrics.min.js'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback)',
     path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback, Logs, Metrics)',
     path: createCDNPath('bundle.tracing.replay.feedback.logs.metrics.min.js'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   // browser CDN bundles (non-gzipped)
   {
@@ -277,63 +216,54 @@ module.exports = [
     path: createCDNPath('bundle.min.js'),
     gzip: false,
     brotli: false,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Tracing) - uncompressed',
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: false,
     brotli: false,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Logs, Metrics) - uncompressed',
     path: createCDNPath('bundle.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Tracing, Logs, Metrics) - uncompressed',
     path: createCDNPath('bundle.tracing.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Replay, Logs, Metrics) - uncompressed',
     path: createCDNPath('bundle.replay.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay) - uncompressed',
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: false,
     brotli: false,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Logs, Metrics) - uncompressed',
     path: createCDNPath('bundle.tracing.replay.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback) - uncompressed',
     path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
     gzip: false,
     brotli: false,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback, Logs, Metrics) - uncompressed',
     path: createCDNPath('bundle.tracing.replay.feedback.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   // Next.js SDK (ESM)
   {
@@ -342,7 +272,6 @@ module.exports = [
     import: createImport('init'),
     ignore: ['next/router', 'next/constants'],
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   // SvelteKit SDK (ESM)
   {
@@ -351,7 +280,6 @@ module.exports = [
     import: createImport('init'),
     ignore: ['$app/stores'],
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   // Core SDK subpath entry points (ESM)
   {
@@ -359,14 +287,12 @@ module.exports = [
     path: 'packages/core/build/esm/server.js',
     import: '*',
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: '@sentry/core/browser',
     path: 'packages/core/build/esm/browser.js',
     import: '*',
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   // Node SDK (ESM)
   {
@@ -375,19 +301,18 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: '@sentry/node/import (ESM hook with diagnostics-channel injection)',
     path: ['packages/server-runtime-injection/build/esm/hook.js', 'packages/node/build/import-hook.mjs'],
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
-    modifyWebpackConfig: function (config) {
-      // Both packages declare `sideEffects: false`, which lets webpack
-      // drop the side-effecting `--import` entry and report 0 bytes.
-      // Keep side effects so this measures what Node really loads.
-      config.optimization = { ...config.optimization, sideEffects: false };
+    modifyRolldownConfig: function (config) {
+      // Both packages declare `sideEffects: false`, which would let the bundler
+      // drop the side-effecting `--import` modules and report almost nothing.
+      // Keep side effects so this measures what Node really loads. Only the
+      // function form overrides `sideEffects` from package.json; `true` does not.
+      config.treeshake = { moduleSideEffects: () => true };
 
       return config;
     },
@@ -397,20 +322,9 @@ module.exports = [
     path: 'packages/node/build/esm/index.js',
     import: createImport('initWithoutDefaultIntegrations', 'getDefaultIntegrationsWithoutPerformance'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
-    modifyWebpackConfig: function (config) {
-      const webpack = require('webpack');
-
-      config.plugins.push(
-        new webpack.DefinePlugin({
-          __SENTRY_TRACING__: false,
-        }),
-      );
-
-      config.optimization.minimize = true;
-
-      return config;
+    define: {
+      __SENTRY_TRACING__: false,
     },
   },
   {
@@ -418,17 +332,9 @@ module.exports = [
     path: 'packages/node/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
-    modifyWebpackConfig: function (config) {
-      const webpack = require('webpack');
-      config.plugins.push(
-        new webpack.DefinePlugin({
-          __SENTRY_CHANNEL_INJECTION__: false,
-        }),
-      );
-      config.optimization.minimize = true;
-      return config;
+    define: {
+      __SENTRY_CHANNEL_INJECTION__: false,
     },
   },
   // AWS SDK (ESM)
@@ -438,7 +344,6 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    disablePlugins: ['@size-limit/esbuild'],
   },
   // Cloudflare SDK (ESM) - compressed, minified to match `wrangler deploy --dry-run --minify` output
   {
@@ -448,14 +353,11 @@ module.exports = [
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: false,
     brotli: false,
-    disablePlugins: ['@size-limit/webpack'],
-    webpack: false,
-    modifyEsbuildConfig: function (config) {
-      config.keepNames = true;
+    modifyRolldownConfig: function (config) {
       // Match wrangler's build settings
-      config.conditions = ['workerd', 'worker', 'browser'];
-      config.platform = 'browser';
-      config.format = 'esm';
+      config.resolve = { conditionNames: ['workerd', 'worker', 'browser'] };
+      config.output.keepNames = true;
+
       return config;
     },
   },
@@ -467,18 +369,14 @@ module.exports = [
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: false,
     brotli: false,
-    disablePlugins: ['@size-limit/webpack'],
-    webpack: false,
-    modifyEsbuildConfig: function (config) {
-      config.minify = false;
-      config.minifyIdentifiers = false;
-      config.minifySyntax = false;
-      config.minifyWhitespace = false;
-      config.keepNames = true;
+    modifyRolldownConfig: function (config) {
       // Match wrangler's build settings
-      config.conditions = ['workerd', 'worker', 'browser'];
-      config.platform = 'browser';
-      config.format = 'esm';
+      config.resolve = { conditionNames: ['workerd', 'worker', 'browser'] };
+      config.output.keepNames = true;
+      config.output.minify = false;
+      // esbuild (and so wrangler) drops JSDoc comments; rolldown keeps them by default
+      config.output.comments = { jsdoc: false };
+
       return config;
     },
   },
@@ -491,14 +389,11 @@ module.exports = [
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: false,
     brotli: false,
-    disablePlugins: ['@size-limit/webpack'],
-    webpack: false,
-    modifyEsbuildConfig: function (config) {
-      config.keepNames = true;
+    modifyRolldownConfig: function (config) {
       // Match wrangler's build settings
-      config.conditions = ['workerd', 'worker', 'browser'];
-      config.platform = 'browser';
-      config.format = 'esm';
+      config.resolve = { conditionNames: ['workerd', 'worker', 'browser'] };
+      config.output.keepNames = true;
+
       return config;
     },
   },
