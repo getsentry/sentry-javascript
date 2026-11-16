@@ -73,3 +73,15 @@ export const eveIntegration = defineIntegration(() => {
     },
   };
 });
+
+/**
+ * The eve `tracePolicy` for Sentry's instrumentation file. It always asks for full results, and Sentry filters content
+ * when it builds spans, like the other AI integrations do.
+ *
+ * On eve >= 1.0.0-rc.10 this also sets the AI SDK's `recordInputs`/`recordOutputs` flags, which `ai` >= 7.0.163
+ * enforces. They apply to every AI SDK telemetry integration in the app, so those filter content with their own
+ * settings, as eve documents.
+ */
+export function eveTracePolicy(): { emit: true; recordInputs: true; recordOutputs: true } {
+  return { emit: true, recordInputs: true, recordOutputs: true };
+}

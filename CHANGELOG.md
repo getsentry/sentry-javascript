@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @kunal649 and @bardrop. Thank you for your contributions!
+Work in this release was contributed by @kunal649, @bardrop, and @DomWane. Thank you for your contributions!
 
 ### Important Changes
 
@@ -17,6 +17,12 @@ Work in this release was contributed by @kunal649 and @bardrop. Thank you for yo
 - **fix(core): Set `url.scheme` without colon and `url.port` as a number ([#26284](https://github.com/getsentry/sentry-javascript/pull/26284))**
 
   HTTP spans that the SDK builds from a `URL` now send `url.scheme` without the trailing colon (`https` instead of `https:`) and `url.port` as a number instead of a string, as the Sentry conventions define them and as Node `http.server` spans already do. This changes `http.server` spans from `@sentry/cloudflare`, `Bun.serve`, Deno and Nitro, and outgoing `node:http` client spans. Update saved queries, alerts and dashboards that filter on `url.scheme:"https:"` or on `url.port` as a string.
+
+- **feat(cloudflare): Continue the Cloudflare trace of the invocation ([#25613](https://github.com/getsentry/sentry-javascript/pull/25613))**
+
+  When tracing is not set up (no `tracesSampleRate` or `tracesSampler`), errors and logs from fetch, scheduled, queue and email handlers and from `WorkerEntrypoint` RPC methods now get the trace id that Cloudflare gives the invocation. With this trace id, you can find the Cloudflare spans and logs of an error in Workers Observability. This needs workerd 1.20261009.1 or newer and Workers Observability turned on. An incoming Sentry trace still has precedence.
+
+  The `parent_span_id` of these events is the id of a Cloudflare span. This span is in Sentry only when you export your Workers traces to Sentry.
 
 ## 11.12.0
 

@@ -152,6 +152,9 @@ Apps like `cloudflare-workers-send-to-sentry` deploy the built app as a real Wor
   `cloudflare-flue-send-to-sentry/src/auth.ts`.
 - Add the `workerPrefix` to `.github/workflows/cleanup-e2e-workers.yml`, which deletes the Worker of a PR when the PR
   closes.
+- To check what Cloudflare stored for a request (for example its Cloudflare trace id), read Workers Logs with
+  `fetchWorkersLogsEvents`. `CLOUDFLARE_API_TOKEN` then also needs "Workers Observability: Edit". See
+  `cloudflare-workers-without-tracing-send-to-sentry`.
 - Set `"sentryTest": { "optional": true }` in `package.json`, because only the optional CI job has the Cloudflare
   secrets.
 
@@ -298,6 +301,10 @@ of a test application.
 `sentryTest.baseVariant` overrides the default matrix entry using the same fields as an entry in `variants`. For example,
 set its `assert-command` to run production tests and add a development variant to run both environments in parallel.
 The local `test:assert` script can still run both; select the base variant locally with `--variant <label>`.
+
+Set `"test-shards": 2` on a variant or `baseVariant` to split its Playwright test files across two CI jobs.
+The shared Playwright config reads `SENTRY_E2E_TEST_SHARD`, so each invocation in a combined production/development script
+runs its part of the suite without changing the number of workers.
 
 Variants that build against upstream prereleases (for example `canary`, `next` or nightly builds of a framework) go into
 `canaryVariants`. They do not run on PRs, only in the nightly `CI: Canary Tests` workflow (`.github/workflows/canary.yml`),

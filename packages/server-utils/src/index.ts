@@ -18,7 +18,7 @@ export {
   subscribe as subscribeDiagnosticsChannel,
   tracingChannel as diagnosticsTracingChannel,
 } from './utils/diagnosticsChannel';
-export { eveConversationHook, eveIntegration } from './eve';
+export { eveConversationHook, eveIntegration, eveTracePolicy } from './eve';
 export { getInstrumentedModuleNames } from './orchestrion/config';
 export {
   fastifyIntegration,

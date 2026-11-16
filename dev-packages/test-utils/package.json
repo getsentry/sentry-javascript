@@ -41,6 +41,16 @@
         "types": "./build/types/cloudflare.d.ts",
         "default": "./build/cjs/cloudflare.js"
       }
+    },
+    "./tunnel-suite": {
+      "import": {
+        "types": "./build/types/tunnel-suite.d.ts",
+        "default": "./build/esm/tunnel-suite.js"
+      },
+      "require": {
+        "types": "./build/types/tunnel-suite.d.ts",
+        "default": "./build/cjs/tunnel-suite.js"
+      }
     }
   },
   "sideEffects": false,
@@ -61,6 +71,7 @@
     "@playwright/test": "1.64.1"
   },
   "dependencies": {
+    "@sentry/conventions": "^0.33.0",
     "express": "^4.22.3",
     "ws": "^8.20.1"
   },
