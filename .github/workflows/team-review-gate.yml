@@ -22,6 +22,8 @@ jobs:
   team-review-gate:
     name: Team review gate
     runs-on: ubuntu-24.04
+    # A skipped job counts as passing for required checks, so other PRs aren't blocked.
+    if: github.event.pull_request.user.login == 'sentry-junior[bot]'
     steps:
       - name: Checkout base branch
         uses: actions/checkout@v7
