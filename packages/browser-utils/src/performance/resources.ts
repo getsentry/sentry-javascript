@@ -2,6 +2,7 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, hasSpanStreamingEnabled, spanToJSON } from '@sentry/core';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
+import { isBotUserAgent } from '../isBotUserAgent';
 import { addResourceSpans } from './entries';
 
 interface ResourcesOptions {
@@ -19,6 +20,10 @@ const _resourcesIntegration = ((options: ResourcesOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
+      if (isBotUserAgent()) {
+        return;
+      }
+
       client.on('beforeIdleSpanEnd', span => {
         // Interaction idle spans also end through this hook. We match the route span by op, since
         // `browserTracingIntegration` may already have cleared its active idle span at this point.

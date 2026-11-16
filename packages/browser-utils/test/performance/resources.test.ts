@@ -53,4 +53,14 @@ describe('resourcesIntegration', () => {
       endedSpans.map(s => spanToJSON(s).attributes?.[SENTRY_OP]).filter(o => o === 'resource.script'),
     ).toHaveLength(count);
   });
+
+  it('does not add resource spans for bot user agents', () => {
+    vi.spyOn(WINDOW.navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 (compatible; Googlebot/2.1)');
+    const botClient = new TestClient(getDefaultClientOptions({ tracesSampleRate: 1 }));
+    resourcesIntegration().setup?.(botClient);
+
+    botClient.emit('beforeIdleSpanEnd', new SentrySpan({ op: PAGELOAD, name: '/', sampled: true, startTimestamp: 1 }));
+
+    expect(endedSpans).toHaveLength(0);
+  });
 });
