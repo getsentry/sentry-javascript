@@ -698,9 +698,7 @@ describe('Vercel AI integration (v4)', () => {
     });
   });
 
-  // This directory's instrument.mjs pins traceLifecycle: 'static' for the existing cases.
-  // New tests leave the lifecycle unset and assert the streamed span container.
-  createEsmAndCjsTests(__dirname, 'scenario-stream-object.mjs', '../v6_v7/instrument.mjs', (createRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario-stream-object.mjs', 'instrument-streamed.mjs', (createRunner, test) => {
     test('creates ai spans for streamObject (doStream)', async () => {
       await createRunner()
         .expect({
