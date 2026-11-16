@@ -223,9 +223,7 @@ test('keeps a navigation that starts while the document still streams', async ({
   });
 });
 
-test('links the server request when its trace meta tag arrives after the pageload stopped waiting', async ({
-  page,
-}) => {
+test('continues the header trace without a link when the trace meta tag arrives late', async ({ page }) => {
   test.skip(process.env.TEST_ENV !== 'production', 'Only a prerendered shell makes the trace meta tag arrive late');
   test.setTimeout(60_000);
 
@@ -235,20 +233,11 @@ test('links the server request when its trace meta tag arrives after the pageloa
 
   await page.goto('/slow-stream', { waitUntil: 'commit' });
   await expect(page.locator('#slow-content')).toBeVisible({ timeout: 20_000 });
-  const [requestTraceId, requestSpanId] = (await page
-    .locator('meta[name="sentry-trace"]')
-    .getAttribute('content'))!.split('-');
+  const [requestTraceId] = (await page.locator('meta[name="sentry-trace"]').getAttribute('content'))!.split('-');
 
   const pageloadSpan = await pageloadSpanPromise;
 
-  // The tag arrived after the pageload had started its own trace, so the pageload only links it.
-  expect(pageloadSpan.trace_id).not.toBe(requestTraceId);
-  expect(pageloadSpan.links).toEqual([
-    {
-      trace_id: requestTraceId,
-      span_id: requestSpanId,
-      sampled: true,
-      attributes: { [SENTRY_LINK_TYPE]: { type: 'string', value: 'server_request' } },
-    },
-  ]);
+  // The header connected the pageload before the tag arrived, so the late tag adds no link.
+  expect(pageloadSpan.trace_id).toBe(requestTraceId);
+  expect(pageloadSpan.links).toBeUndefined();
 });
