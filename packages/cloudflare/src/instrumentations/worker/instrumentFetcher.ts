@@ -9,7 +9,12 @@ import { _INTERNAL_getTracingHeadersForFetchRequest } from '@sentry/core';
  * (e.g. Durable Object stubs, Service bindings).
  */
 export function instrumentFetcher(fetchFn: Fetcher['fetch']): Fetcher['fetch'] {
-  return function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  return function (originalInput: RequestInfo | URL, originalInit?: RequestInit): Promise<Response> {
+    // A Request's fields are prototype getters, so the object spread below would drop them.
+    const initIsRequest = originalInit instanceof Request;
+    const input = initIsRequest ? new Request(originalInput, originalInit) : originalInput;
+    const init = initIsRequest ? undefined : originalInit;
+
     const headers = _INTERNAL_getTracingHeadersForFetchRequest(input, { headers: init?.headers });
 
     if (input instanceof Request && init === undefined) {
@@ -22,22 +27,6 @@ export function instrumentFetcher(fetchFn: Fetcher['fetch']): Fetcher['fetch'] {
       const requestWithTracing = new Request(input, { headers: headers as HeadersInit });
 
       return fetchFn(requestWithTracing);
-    }
-
-    if (init instanceof Request) {
-      // `init` is itself a Request (the `stub.fetch(url, request)` Workers idiom). A Request's
-      // `method`, `headers`, `body` and the rest are prototype getters, not own properties, so the
-      // object spread below would drop them and the call would reach the fetcher as a bare GET with
-      // no headers or body. Rebuild through the Request constructor, which reads those members by
-      // property access, then layer the tracing headers (which already include the request's own
-      // headers) on top.
-      const request = new Request(input, init);
-
-      if (!headers) {
-        return fetchFn(request);
-      }
-
-      return fetchFn(new Request(request, { headers: headers as HeadersInit }));
     }
 
     const mergedInit = {

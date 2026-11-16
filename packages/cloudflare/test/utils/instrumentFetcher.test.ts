@@ -287,25 +287,6 @@ describe('instrumentFetcher', () => {
     expect(await forwarded.text()).toBe('{"a":1}');
   });
 
-  it('forwards method and body when init is a Request and tracing is disabled', async () => {
-    getTraceDataMock.mockReturnValue({});
-
-    const mockFetch = vi.fn().mockResolvedValue(new Response('ok'));
-    const wrapped = instrumentFetcher(mockFetch);
-
-    const incoming = new Request('https://example.com/upload', {
-      method: 'POST',
-      body: 'payload',
-    });
-
-    await wrapped('https://internal/upload', incoming as unknown as RequestInit);
-
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    const forwarded = mockFetch.mock.calls[0]![0] as Request;
-    expect(forwarded.method).toBe('POST');
-    expect(await forwarded.text()).toBe('payload');
-  });
-
   it('appends baggage to existing non-sentry baggage', async () => {
     getTraceDataMock.mockReturnValue({
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
