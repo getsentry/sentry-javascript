@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { HTTP_CLIENT } from '@sentry/conventions/op';
 import type { Event, SerializedStreamedSpan } from '@sentry/core';
 import { connect } from 'node:net';
 import { getSpanOp, waitForError, waitForRequest } from './event-proxy-server';
@@ -115,5 +116,5 @@ export function runManagedTunnelSuite({ appName, basePath }: ManagedTunnelSuiteO
 
 function isIngestRequestSpan(span: SerializedStreamedSpan): boolean {
   const url = span.attributes['url.full']?.value;
-  return getSpanOp(span) === 'http.client' && typeof url === 'string' && url.startsWith('http://localhost:3031/');
+  return getSpanOp(span) === HTTP_CLIENT && typeof url === 'string' && url.startsWith('http://localhost:3031/');
 }

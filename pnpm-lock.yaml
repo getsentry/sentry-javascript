@@ -895,6 +895,9 @@ importers:
 
   dev-packages/test-utils:
     dependencies:
+      '@sentry/conventions':
+        specifier: ^0.33.0
+        version: 0.33.0
       express:
         specifier: ^4.22.3
         version: 4.22.3(supports-color@10.0.0)
