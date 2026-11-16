@@ -1,0 +1,132 @@
+name: 'Benchmark: Node shard balancing'
+run-name: Node shards ${{ inputs.strategy || 'profile' }} (${{ inputs.label || 'training' }})
+
+on:
+  pull_request:
+    types: [opened]
+    paths: [.github/workflows/benchmark-node-shards.yml]
+  workflow_dispatch:
+    inputs:
+      strategy:
+        type: choice
+        options: [hash, balanced]
+        required: true
+        default: hash
+      commit:
+        description: Exact benchmark commit to check out
+        required: true
+      artifacts_run_id:
+        description: Training run containing the unchanged SDK build artifacts
+        required: true
+      label:
+        description: Trial label
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  BENCHMARK_COMMIT: ${{ inputs.commit || github.event.pull_request.head.sha || github.sha }}
+  DISABLE_V8_COMPILE_CACHE: '1'
+  CACHED_DEPENDENCY_PATHS: |
+    ${{ github.workspace }}/node_modules
+    ${{ github.workspace }}/packages/*/node_modules
+    ${{ github.workspace }}/dev-packages/*/node_modules
+    ~/.cache/mongodb-binaries/
+
+jobs:
+  build:
+    name: Prepare benchmark
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.BENCHMARK_COMMIT }}
+      - uses: ./.github/actions/setup-node
+      - uses: ./.github/actions/install-dependencies
+      - name: Build packages
+        run: pnpm run build:ci
+      - name: Compute build artifact paths
+        id: paths
+        run: |
+          {
+            echo 'paths<<EOF'
+            pnpm --silent run ci:print-build-artifact-paths
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: build-output
+          path: ${{ steps.paths.outputs.paths }}
+          retention-days: 4
+
+  test:
+    name: Node ${{ matrix.node }} / ${{ matrix.shard }} of 6
+    needs: build
+    if: >-
+      always() && (needs.build.result == 'success' || (github.event_name == 'workflow_dispatch' && needs.build.result ==
+      'skipped'))
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20.19', '22', '24', '26']
+        shard: [1, 2, 3, 4, 5, 6]
+    env:
+      NODE_SHARD_STRATEGY: ${{ inputs.strategy == 'balanced' && 'balanced' || 'hash' }}
+      BENCHMARK_SHARD: ${{ matrix.shard }}/6
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.BENCHMARK_COMMIT }}
+      - name: Free up disk space if low
+        run: |
+          df -h /
+          avail_kb=$(df -k --output=avail / | tail -1)
+          if [ "$avail_kb" -lt $((40 * 1024 * 1024)) ]; then
+            sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          fi
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: ./.github/actions/install-pnpm
+      - name: Compute dependency cache key
+        id: dependencies
+        run: node scripts/dependency-hash-key.js >> "$GITHUB_OUTPUT"
+      - name: Restore dependencies
+        uses: actions/cache/restore@v6.1.0
+        id: dependencies-cache
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ steps.dependencies.outputs.hash }}-${{ runner.arch }}
+      - name: Restore build artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: build-output
+          run-id: ${{ inputs.artifacts_run_id || github.run_id }}
+          github-token: ${{ github.token }}
+      - name: Install dependencies on cache miss
+        if: steps.dependencies-cache.outputs.cache-hit != 'true'
+        run: pnpm install --frozen-lockfile
+      - name: Record benchmark revision
+        run: |
+          git rev-parse HEAD
+          node --version
+      - name: Run integration tests
+        working-directory: dev-packages/node-integration-tests
+        run: pnpm run test --shard=${{ matrix.shard }}/6 --exclude '**/tracing/tedious/**'
+        env:
+          NODE_SHARD_TIMINGS: ${{ runner.temp }}/node-shard-timings.json
+      - name: Upload timing and coverage inventory
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: node-${{ matrix.node }}-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/node-shard-timings.json
+          if-no-files-found: error
+          retention-days: 7

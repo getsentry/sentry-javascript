@@ -1,11 +1,15 @@
 import { defineConfig } from 'vitest/config';
 import baseConfig from '../../vite/vite.config';
+import { DurationSequencer } from './test-sequencer';
 
 export default defineConfig({
   ...baseConfig,
   test: {
     ...baseConfig.test,
     isolate: false,
+    ...(process.env.NODE_SHARD_STRATEGY === 'balanced' && {
+      sequence: { sequencer: DurationSequencer },
+    }),
     coverage: {
       enabled: false,
     },
@@ -25,7 +29,7 @@ export default defineConfig({
     reporters: process.env.DEBUG
       ? [['default', { summary: false }]]
       : process.env.GITHUB_ACTIONS
-        ? ['dot', 'github-actions']
+        ? ['dot', 'github-actions', ...(process.env.NODE_SHARD_TIMINGS ? ['./timing-reporter.ts'] : [])]
         : ['verbose'],
   },
 });
