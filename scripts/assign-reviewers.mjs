@@ -116,9 +116,10 @@ export async function getBusyLogins({ github, core, logins }) {
   }
 }
 
+// Keep the page small: with larger pages (50+ PRs), GitHub silently returns empty `timelineItems` for some PRs.
 const REVIEW_REQUESTS_QUERY = `query($owner: String!, $repo: String!, $cursor: String) {
   repository(owner: $owner, name: $repo) {
-    pullRequests(first: 100, after: $cursor, orderBy: { field: UPDATED_AT, direction: DESC }) {
+    pullRequests(first: 25, after: $cursor, orderBy: { field: UPDATED_AT, direction: DESC }) {
       pageInfo { hasNextPage endCursor }
       nodes {
         updatedAt
@@ -135,37 +136,58 @@ const REVIEW_REQUESTS_QUERY = `query($owner: String!, $repo: String!, $cursor: S
 }`;
 
 /**
- * Counts the PRs each user was asked to review in the last `REVIEW_LOAD_DAYS`, keyed by lowercase login. This
- * measures what people were handed, not their open queue, so working through reviews quickly doesn't attract
- * more of them. Requests that were taken back are not counted.
+ * Fetches the PRs updated since `since`. PRs come newest-updated first, and requesting a review updates a PR, so
+ * paging stops at the first PR updated before `since`: neither it nor any later PR can have a request in the window.
+ */
+async function getPrsUpdatedSince({ github, owner, repo, since }) {
+  const prs = [];
+  let cursor = null;
+  for (;;) {
+    const { repository } = await github.graphql(REVIEW_REQUESTS_QUERY, { owner, repo, cursor });
+    const { nodes, pageInfo } = repository.pullRequests;
+    const updated = nodes.filter(pr => Date.parse(pr.updatedAt) >= since);
+    prs.push(...updated);
+    if (!pageInfo.hasNextPage || updated.length < nodes.length) {
+      return prs;
+    }
+    cursor = pageInfo.endCursor;
+  }
+}
+
+/**
+ * Returns the lowercase logins asked to review `pr` since `since`. Timeline events are in order, so removing a
+ * request cancels it, e.g. when someone was requested by mistake. Team requests have no login and are skipped.
+ */
+function getRecentReviewers(pr, since) {
+  const reviewers = new Set();
+  for (const event of pr.timelineItems.nodes) {
+    const login = event.requestedReviewer?.login?.toLowerCase();
+    if (!login || Date.parse(event.createdAt) < since) {
+      continue;
+    }
+    if (event.__typename === 'ReviewRequestedEvent') {
+      reviewers.add(login);
+    } else {
+      reviewers.delete(login);
+    }
+  }
+  return reviewers;
+}
+
+/**
+ * Returns how many PRs each user was asked to review in the last `REVIEW_LOAD_DAYS`, keyed by lowercase login.
+ * This counts what people were handed rather than their open queue, so working through reviews quickly doesn't
+ * attract more of them.
  */
 export async function getReviewLoad({ github, core, owner, repo, now = Date.now() }) {
   const since = now - REVIEW_LOAD_DAYS * 24 * 60 * 60 * 1000;
   const load = new Map();
   try {
-    let cursor = null;
-    do {
-      const { repository } = await github.graphql(REVIEW_REQUESTS_QUERY, { owner, repo, cursor });
-      const { nodes, pageInfo } = repository.pullRequests;
-      // A review request updates the PR, so PRs updated before the window can't have requests in it.
-      const recent = nodes.filter(pr => Date.parse(pr.updatedAt) >= since);
-      for (const pr of recent) {
-        const requested = new Set();
-        for (const event of pr.timelineItems.nodes) {
-          const login = event.requestedReviewer?.login?.toLowerCase();
-          if (!login || Date.parse(event.createdAt) < since) {
-            continue;
-          }
-          if (event.__typename === 'ReviewRequestedEvent') {
-            requested.add(login);
-          } else {
-            requested.delete(login);
-          }
-        }
-        requested.forEach(login => load.set(login, (load.get(login) ?? 0) + 1));
+    for (const pr of await getPrsUpdatedSince({ github, owner, repo, since })) {
+      for (const login of getRecentReviewers(pr, since)) {
+        load.set(login, (load.get(login) ?? 0) + 1);
       }
-      cursor = pageInfo.hasNextPage && recent.length === nodes.length ? pageInfo.endCursor : null;
-    } while (cursor);
+    }
   } catch (error) {
     core.warning(`Could not read recent review requests, not balancing reviewer load: ${error.message}`);
   }
