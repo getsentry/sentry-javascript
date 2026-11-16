@@ -1,5 +1,6 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, GLOBAL_OBJ } from '@sentry/core';
+import { isBotUserAgent } from '../isBotUserAgent';
 import { startTrackingLongAnimationFrames, startTrackingLongTasks } from './entries';
 
 interface LongTasksOptions {
@@ -26,6 +27,10 @@ const _longTasksIntegration = ((options: LongTasksOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup() {
+      if (isBotUserAgent()) {
+        return;
+      }
+
       if (
         enableLongAnimationFrame &&
         GLOBAL_OBJ.PerformanceObserver &&
