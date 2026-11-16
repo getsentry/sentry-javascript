@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
+    "@opentelemetry/api": "^1.9.1",
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "@trpc/server": "10.45.4",
     "@trpc/client": "10.45.4",
