@@ -887,7 +887,7 @@ jobs:
     name: Cloudflare Integration Tests (${{ matrix.shard }}/${{ matrix.shards }})
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     strategy:
       fail-fast: false
