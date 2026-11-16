@@ -27,7 +27,7 @@ jobs:
       - name: Checkout base branch
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.event.pull_request.base.ref }}
           sparse-checkout: |
             scripts/team-review-gate.mjs
             scripts/junior-requesters.mjs
