@@ -98,20 +98,16 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
   if (opts.useLayerExtension) {
     if (sdkSource !== 'aws-lambda-layer') {
       DEBUG_BUILD && debug.warn('The Sentry Lambda extension is only supported when using the AWS Lambda layer.');
-    } else if (opts.tunnel || hasProxyOptions) {
-      if (opts.tunnel) {
-        DEBUG_BUILD &&
-          debug.warn(
-            `Using a custom tunnel with the Sentry Lambda extension is not supported. Events will be tunnelled to ${opts.tunnel} and not through the extension.`,
-          );
-      }
-
-      if (hasProxyOptions) {
-        DEBUG_BUILD &&
-          debug.warn(
-            'Sentry Lambda extension is disabled because `transportOptions` sets a proxy or CA certificates, which the extension cannot apply.',
-          );
-      }
+    } else if (opts.tunnel) {
+      DEBUG_BUILD &&
+        debug.warn(
+          `Using a custom tunnel with the Sentry Lambda extension is not supported. Events will be tunnelled to ${opts.tunnel} and not through the extension.`,
+        );
+    } else if (hasProxyOptions) {
+      DEBUG_BUILD &&
+        debug.warn(
+          'Sentry Lambda extension is disabled because `transportOptions` sets a proxy or CA certificates, which the extension cannot apply. Use the `http_proxy`/`https_proxy` and `NODE_EXTRA_CA_CERTS` environment variables instead to keep using the extension.',
+        );
     } else {
       DEBUG_BUILD && debug.log('Proxying Sentry events through the Sentry Lambda extension');
       opts.tunnel = 'http://localhost:9000/envelope';
