@@ -1,10 +1,9 @@
 import { E2E_TEST_DSN } from '$env/static/private';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import * as Sentry from '@sentry/sveltekit';
 import { OTLP_RECEIVER_PORT, startOtlpReceiver } from './otel-receiver';
+import { registerTracerProvider } from './otel-tracer-provider';
 
 startOtlpReceiver();
 
@@ -21,15 +20,10 @@ if (!otlpTracesEndpoint) {
 // The app owns tracing: this registers the global tracer provider, context manager and
 // propagator. Sentry is initialized afterwards with `enableOpenTelemetrySetup: false` so it does
 // not contend for any of them.
-new NodeTracerProvider({
+registerTracerProvider(
+  new OTLPTraceExporter({ url: `${otlpBaseUrl}/v1/traces`, headers: otlpTracesEndpoint.headers }),
   resource,
-  spanProcessors: [
-    new BatchSpanProcessor(
-      new OTLPTraceExporter({ url: `${otlpBaseUrl}/v1/traces`, headers: otlpTracesEndpoint.headers }),
-      { scheduledDelayMillis: 100 },
-    ),
-  ],
-}).register();
+);
 
 Sentry.init({
   environment: 'qa',

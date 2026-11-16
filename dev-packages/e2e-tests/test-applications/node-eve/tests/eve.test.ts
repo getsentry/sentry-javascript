@@ -3,13 +3,16 @@ import {
   GEN_AI_CONVERSATION_ID,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_REQUEST_MODEL,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_NAME,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_DECIDE, GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
+import { GEN_AI_DECIDE, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { collectStreamedSpans, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 import { runAgentTurn } from './utils';
 
@@ -67,16 +70,6 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
   expect(executeTool?.attributes?.['gen_ai.operation.name']?.value).toBe('execute_tool');
   expect(executeTool?.attributes?.['gen_ai.tool.name']?.value).toBe('get_weather');
 
-  // Inputs and outputs are recorded with the SDK's default data collection (no
-  // `dataCollection` override), for both the model call and the tool call.
-  expect(invokeAgent?.attributes?.['gen_ai.input.messages']?.value).toContain('What is the weather in Paris?');
-  expect(typeof invokeAgent?.attributes?.['gen_ai.output.messages']?.value).toBe('string');
-  expect(String(invokeAgent?.attributes?.['gen_ai.output.messages']?.value ?? '')).not.toBe('');
-
-  expect(executeTool?.attributes?.['gen_ai.tool.call.arguments']?.value).toContain('Paris');
-  // The tool returns `{ city, condition: 'Sunny', temperatureC: 22 }`.
-  expect(executeTool?.attributes?.['gen_ai.tool.call.result']?.value).toContain('Sunny');
-
   // `get_weather` wraps its work in a manual `Sentry.startSpan`. Because eve runs
   // the tool while the SDK's `execute_tool` span is active, that user span nests
   // directly under it — this is the manual-instrumentation-inside-a-tool case.
@@ -117,6 +110,50 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
   }
 });
 
+// `on`: eve >= 1.0.0-rc.10 takes `Sentry.eveInstrumentation()`'s trace policy, so content reaches `ai`'s channel.
+// `off`: Sentry's `dataCollection.genAI` turns content off.
+const genAIContent = process.env.SENTRY_GENAI_CONTENT;
+
+async function runWeatherTurn(baseURL: string) {
+  const traceSpansPromise = collectStreamedSpans(APP, spansOfTrace =>
+    [GEN_AI_INVOKE_AGENT, GEN_AI_EXECUTE_TOOL].every(op => spansOfTrace.some(span => getSpanOp(span) === op)),
+  );
+  await runAgentTurn(baseURL, 'What is the weather in Paris?');
+  const traceSpans = await traceSpansPromise;
+
+  return {
+    invokeAgent: traceSpans.find(span => getSpanOp(span) === GEN_AI_INVOKE_AGENT),
+    executeTool: traceSpans.find(span => getSpanOp(span) === GEN_AI_EXECUTE_TOOL),
+  };
+}
+
+test('records input and output messages and tool data when content is allowed', async ({ baseURL }) => {
+  test.skip(genAIContent !== 'on', 'needs SENTRY_GENAI_CONTENT=on');
+
+  const { invokeAgent, executeTool } = await runWeatherTurn(baseURL!);
+
+  expect(invokeAgent?.attributes?.[GEN_AI_INPUT_MESSAGES]?.value).toContain('What is the weather in Paris?');
+  expect(String(invokeAgent?.attributes?.[GEN_AI_OUTPUT_MESSAGES]?.value ?? '')).not.toBe('');
+  expect(executeTool?.attributes?.[GEN_AI_TOOL_CALL_ARGUMENTS]?.value).toContain('Paris');
+  // The tool returns `{ city, condition: 'Sunny', temperatureC: 22 }`.
+  expect(executeTool?.attributes?.[GEN_AI_TOOL_CALL_RESULT]?.value).toContain('Sunny');
+});
+
+test('records usage but no messages when content is not allowed', async ({ baseURL }) => {
+  // eve allows content in development, so without Sentry's opt-out only production shows the default.
+  test.skip(
+    genAIContent === 'on' || (genAIContent !== 'off' && process.env.TEST_ENV !== 'production'),
+    'only without content',
+  );
+
+  const { invokeAgent } = await runWeatherTurn(baseURL!);
+
+  // `ai` >= 7.0.163 strips inputs and withholds results for calls with `recordInputs`/`recordOutputs: false`.
+  expect(invokeAgent?.attributes?.[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+  expect(invokeAgent?.attributes?.[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+  expect(typeof invokeAgent?.attributes?.[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe('number');
+});
+
 test('captures errors thrown inside an eve tool', async ({ baseURL }) => {
   const errorPromise = waitForError(
     APP,
@@ -147,6 +184,9 @@ test('captures errors thrown inside an eve tool', async ({ baseURL }) => {
 });
 
 test('captures a gen_ai.decide span for a Jev call inside an eve tool', async ({ baseURL }) => {
+  // `ai` keeps no usage or input on decide spans for calls with recording off.
+  test.skip(genAIContent === 'off', 'needs gen_ai content');
+
   const traceSpansPromise = collectStreamedSpans(APP, spansOfTrace =>
     [GEN_AI_EXECUTE_TOOL, GEN_AI_DECIDE].every(op => spansOfTrace.some(span => getSpanOp(span) === op)),
   );

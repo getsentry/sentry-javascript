@@ -211,7 +211,9 @@ export function addResponseAttributes(span: Span, response: GoogleGenAIResponse,
     const hasOutput = typeof usage.candidatesTokenCount === 'number' || typeof usage.thoughtsTokenCount === 'number';
     span.setAttributes(
       getTokenUsageAttributes(
-        usage.promptTokenCount,
+        typeof usage.promptTokenCount === 'number'
+          ? usage.promptTokenCount + (usage.toolUsePromptTokenCount ?? 0)
+          : undefined,
         hasOutput ? (usage.candidatesTokenCount ?? 0) + (usage.thoughtsTokenCount ?? 0) : undefined,
         undefined,
         usage.cachedContentTokenCount,

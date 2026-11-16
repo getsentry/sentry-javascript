@@ -44,6 +44,7 @@ import {
   getActiveSpan,
   getClient,
   isObjectLike,
+  isPlainObject,
   SPAN_STATUS_ERROR,
   spanToJSON,
   spanToTraceContext,
@@ -122,6 +123,7 @@ const runtimeContextAttributesByCallId = new Map<string, SpanAttributes>();
 const ROOT_OPERATION_TYPES = new Set<ChannelEventType>([
   'generateText',
   'streamText',
+  'streamObject',
   'generateObject',
   'embed',
   'embedMany',
@@ -141,9 +143,10 @@ export function clearOperationId(data: VercelAiChannelMessage): void {
 
 /**
  * Drop the per-operation `callId` maps for a single id. The v6 orchestrion adapter uses this to clear a
- * `streamText` operation only after its lazily-run model call settles — the operation's own span ends
- * synchronously (when `streamText` returns) but the model call runs later as the stream is consumed, and
- * it still needs the operation's `operationId`/`isStream` entry to name itself `ai.streamText.doStream`.
+ * `streamText`/`streamObject` operation only after its lazily-run model call settles — the operation's own
+ * span ends synchronously (when the call returns) but the model call runs later as the stream is consumed,
+ * and it still needs the operation's `operationId`/`isStream` entry to name itself `ai.streamText.doStream`
+ * (or `ai.streamObject.doStream`).
  */
 export function clearOperationCallId(callId: string): void {
   operationIdByCallId.delete(callId);
@@ -244,6 +247,7 @@ function resolveToolDescription(callId: string | undefined, toolName: string, to
 export type ChannelEventType =
   | 'generateText'
   | 'streamText'
+  | 'streamObject'
   | 'generateObject'
   | 'step'
   | 'languageModelCall'
@@ -281,6 +285,10 @@ export type VercelAiTracingChannelFactory = <T extends object>(name: string) => 
 /** Integration-level recording options, pinned at subscribe time so we never look the integration up per event. */
 export type VercelAiChannelOptions = GenAiOptions;
 
+// `ai` >= 7.0.163 publishes no channel `result` for calls with `recordInputs`/`recordOutputs: false`. These stay
+// here rather than on the shared channel message, which other subscribers can read.
+export const fallbackChannelResults = new WeakMap<Span, unknown>();
+
 /**
  * Subscribe Sentry span handlers to the `ai` SDK's native telemetry tracing channel (`ai:telemetry`,
  * available in `ai` >= 7) and emit fully-formed `gen_ai.*` spans directly — no OpenTelemetry span
@@ -305,11 +313,13 @@ export function subscribeVercelAiTracingChannel(
       // finish reasons, response model/id, provider metadata) and drop the per-operation `callId` maps.
       beforeSpanEnd: (span, data) => {
         enrichSpanOnEnd(span, data, options);
+        // The result can hold the provider request and response bodies, and spans outlive the call.
+        fallbackChannelResults.delete(span);
         clearOperationId(data);
       },
       // A streamed model call resolves before its stream is drained, so we tap the stream, keep the
       // span open, and end it (via `end`) once the final usage/finish/output chunks arrive.
-      deferSpanEnd: ({ data, end }) => deferStreamedModelCallEnd(data, options, end),
+      deferSpanEnd: ({ span, data, end }) => deferStreamedModelCallEnd(span, data, options, end),
     },
   );
 }
@@ -321,28 +331,29 @@ export function subscribeVercelAiTracingChannel(
  * model call so the helper ends the span as usual.
  */
 function deferStreamedModelCallEnd(
+  span: Span,
   data: VercelAiChannelMessage,
   options: VercelAiChannelOptions,
   end: (error?: unknown) => void,
 ): boolean {
-  if (data.type !== 'languageModelCall' || !isObjectLike(data.result)) {
+  const result = fallbackChannelResults.get(span) ?? data.result;
+  if (data.type !== 'languageModelCall' || !isObjectLike(result)) {
     return false;
   }
-  const result = data.result;
   const stream = result.stream;
   if (!isReadableStream(stream)) {
     return false;
   }
 
   const callId = asString(data.event.callId);
-  const { recordOutputs } = getRecordingOptions(data.event, options);
+  const { recordOutputs } = getRecordingOptions(data.event, options, data.result === undefined);
   result.stream = tapModelCallStream(
     stream,
     final => {
       // Reshape the aggregate into the result `enrichSpanOnEnd` expects, then let `end` run it (it calls
       // `beforeSpanEnd`). Enriching the model-call span and the parent from the same aggregate keeps
       // streamed and non-streamed spans identical.
-      data.result = { ...result, ...streamedResultToChannelResult(final) };
+      fallbackChannelResults.set(span, { ...result, ...streamedResultToChannelResult(final) });
       end();
       enrichInvokeAgentFromStream(callId, final, recordOutputs);
     },
@@ -482,10 +493,16 @@ export function createSpanFromMessage(
     case 'generateText':
     case 'streamText':
     case 'generateObject':
-      // `generateObject` builds the same `invoke_agent` span as `generateText` (non-streaming); its
-      // distinct `ai.generateObject` operationId rides on `event.operationId`. The JSON-schema attribute
-      // the OTel path derives from the SDK's Zod schema is not reconstructed on the channel path.
-      return buildInvokeAgentSpan(event, baseAttributes, recordInputs, callId, type === 'streamText');
+    case 'streamObject':
+      // The object variants' operationId rides on `event.operationId`. The JSON-schema attribute the OTel
+      // path derives from the SDK's Zod schema is not reconstructed on the channel path.
+      return buildInvokeAgentSpan(
+        event,
+        baseAttributes,
+        recordInputs,
+        callId,
+        type === 'streamText' || type === 'streamObject',
+      );
     case 'languageModelCall':
       _INTERNAL_skipAiProviderWrapping([WORKERS_AI_INTEGRATION_NAME]);
 
@@ -498,7 +515,7 @@ export function createSpanFromMessage(
       const input = type === 'embedMany' ? event.values : event.value;
       return startGenAiSpan('embeddings', modelId, {
         ...baseAttributes,
-        ...(recordInputs && input !== undefined ? { [GEN_AI_EMBEDDINGS_INPUT]: stringify(input) } : {}),
+        ...(recordInputs && !isStrippedInput(input) ? { [GEN_AI_EMBEDDINGS_INPUT]: stringify(input) } : {}),
       });
     }
     case 'rerank':
@@ -508,7 +525,7 @@ export function createSpanFromMessage(
     case 'experimental_decide':
       return startGenAiSpan('decide', modelId, {
         ...baseAttributes,
-        ...(recordInputs
+        ...(recordInputs && !(isStrippedInput(event.state) && isStrippedInput(event.questions))
           ? {
               [GEN_AI_INPUT_MESSAGES]: stringify([
                 { type: 'evaluation', state: event.state, questions: event.questions },
@@ -651,23 +668,23 @@ export function enrichSpanOnEnd(
   data: VercelAiChannelMessage,
   channelOptions: VercelAiChannelOptions,
 ): void {
-  const { type, result } = data;
+  const { type } = data;
+  const result = fallbackChannelResults.get(span) ?? data.result;
   if (!isObjectLike(result)) {
     return;
   }
 
-  const { recordOutputs } = getRecordingOptions(data.event, channelOptions);
+  const { recordOutputs } = getRecordingOptions(data.event, channelOptions, data.result === undefined);
 
   if (type === 'executeTool') {
-    if (recordOutputs) {
-      span.setAttribute(GEN_AI_TOOL_CALL_RESULT, stringify(result.output ?? result));
-    }
     // From V5 on, tool errors are not rejected (so the `error` channel verb never fires) — they
     // surface as `tool-error` content on the resolved result. Mirror the OTel path by marking the
-    // span and capturing the error.
+    // span and capturing the error, which carry the failure instead of the result attribute.
     const output = isObjectLike(result.output) ? result.output : undefined;
     if (output?.type === 'tool-error') {
       captureToolError(span, data, output.error);
+    } else if (recordOutputs) {
+      span.setAttribute(GEN_AI_TOOL_CALL_RESULT, stringify(result.output ?? result));
     }
     return;
   }
@@ -902,13 +919,16 @@ export function captureToolError(span: Span, data: VercelAiChannelMessage, error
 function getRecordingOptions(
   event: Record<string, unknown>,
   channelOptions: VercelAiChannelOptions,
+  channelWithheldResult = false,
 ): {
   recordInputs: boolean;
   recordOutputs: boolean;
 } {
   const client = getClient();
   const genAI = client?.getDataCollectionOptions().genAI;
-  const eveMode = client ? isEveGenAiRecordingDefault(client) : false;
+  // `ai` withheld the result because of the per-call flag, which eve >= 1.0.0-rc.10 sets from trace policies, so
+  // the flag is a content decision there rather than eve's blanket default.
+  const eveMode = client && !channelWithheldResult ? isEveGenAiRecordingDefault(client) : false;
 
   return {
     recordInputs: resolveRecording(channelOptions.recordInputs, event.recordInputs, genAI?.inputs, eveMode),
@@ -948,6 +968,16 @@ function resolveRecording(
   return globalDefault === true;
 }
 
+/** `ai` >= 7.0.163 replaces inputs with empty values when `recordInputs` is false. */
+function isStrippedInput(input: unknown): boolean {
+  return (
+    input === undefined ||
+    input === '' ||
+    (Array.isArray(input) && !input.length) ||
+    (isPlainObject(input) && !Object.keys(input).length)
+  );
+}
+
 /** The `ai` SDK accepts the system prompt as `string | SystemModelMessage | SystemModelMessage[]`. */
 function getSystemInstructionParts(instructions: unknown): { type: 'text'; content: string }[] {
   const messages = Array.isArray(instructions) ? instructions : [instructions];
@@ -971,7 +1001,7 @@ function buildInputMessageAttributes(event: Record<string, unknown>): Record<str
   // The AI SDK start events extend `StandardizedPrompt`; messages live on `messages`, otherwise the
   // simpler `prompt` field is used.
   const messages = event.messages ?? event.prompt;
-  if (messages !== undefined) {
+  if (!isStrippedInput(messages)) {
     attributes[GEN_AI_INPUT_MESSAGES] = stringify(messages);
   }
 

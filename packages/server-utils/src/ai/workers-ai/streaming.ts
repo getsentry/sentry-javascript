@@ -21,6 +21,8 @@ interface WorkersAiStreamChunk {
   tool_calls?: unknown[];
   // OpenAI-compatible streaming shape emitted for models routed through the
   // OpenAI-compatible endpoint (e.g. via `workers-ai-provider`).
+  id?: unknown;
+  model?: unknown;
   choices?: Array<{
     delta?: { content?: unknown; tool_calls?: WorkersAiStreamingToolCall[] };
     finish_reason?: unknown;
@@ -121,6 +123,13 @@ function processLine(
   }
 
   if (Array.isArray(parsed.choices)) {
+    if (typeof parsed.id === 'string') {
+      state.responseId = parsed.id;
+    }
+    if (typeof parsed.model === 'string') {
+      state.responseModel = parsed.model;
+    }
+
     for (const choice of parsed.choices) {
       if (recordOutputs && typeof choice.delta?.content === 'string' && choice.delta.content) {
         state.responseTexts.push(choice.delta.content);
@@ -184,6 +193,7 @@ export function instrumentWorkersAiStream(
       setOutputMessagesAttribute(span, {
         responseText: state.responseTexts.join(''),
         toolCalls: state.toolCalls,
+        finishReason: state.finishReasons[0],
       });
     }
 

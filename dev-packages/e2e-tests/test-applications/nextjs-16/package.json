@@ -89,7 +89,8 @@
       {
         "build-command": "pnpm install",
         "label": "nextjs-16 (webpack, development)",
-        "assert-command": "pnpm test:dev-webpack"
+        "assert-command": "pnpm test:dev-webpack",
+        "test-shards": 2
       },
       {
         "build-command": "pnpm test:build-latest-webpack",
@@ -99,7 +100,8 @@
       {
         "build-command": "pnpm install && pnpm add next@latest",
         "label": "nextjs-16 (latest, webpack, development)",
-        "assert-command": "pnpm test:dev-webpack"
+        "assert-command": "pnpm test:dev-webpack",
+        "test-shards": 2
       },
       {
         "build-command": "pnpm test:build-latest",
