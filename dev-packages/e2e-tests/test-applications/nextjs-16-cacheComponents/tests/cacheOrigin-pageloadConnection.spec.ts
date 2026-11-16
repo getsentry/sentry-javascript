@@ -5,6 +5,16 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 const APP = 'nextjs-16-cacheComponents';
 
+const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';
+
+async function getRenderStart(page: Page): Promise<number> {
+  return Number(await page.locator('meta[name="sentry-render-start"]').getAttribute('content'));
+}
+
+function expectedRenderAge(pageloadStart: number, renderStart: number): number {
+  return Math.max(0, Math.floor(pageloadStart - renderStart));
+}
+
 // A self-hosted server sends the trace of the request in a `Server-Timing` header of a document
 // that renders for the request, which reaches the browser before any HTML, so the pageload continues
 // it right away. A document that a shared cache may store gets no header, as a CDN would replay it.
@@ -76,7 +86,13 @@ test('does not share a trace between visitors of a shell generated at request ti
   // cached document is cacheable by a CDN as well, so the response carries no trace header either.
   const id = `shell-${Date.now()}`;
 
-  const visit = async (): Promise<{ traceId: string | undefined; links: unknown; serverRenderingType: unknown }> => {
+  const visit = async (): Promise<{
+    traceId: string | undefined;
+    links: unknown;
+    serverRenderingType: unknown;
+    renderAge: unknown;
+    expectedRenderAge: number;
+  }> => {
     const context = await browser.newContext();
     const page: Page = await context.newPage();
 
@@ -91,6 +107,8 @@ test('does not share a trace between visitors of a shell generated at request ti
     await expect(page.locator('#result')).toHaveText(`Hello, ${id}!`);
     expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(0);
     expect(await page.locator('meta[name="sentry-cache-origin"]').count()).toBe(1);
+    expect(await page.locator('meta[name="sentry-render-start"]').count()).toBe(1);
+    const renderStart = await getRenderStart(page);
     expect(response?.headers()['server-timing'] ?? '').not.toContain('sentry-trace');
 
     const pageloadTx = await pageloadTxPromise;
@@ -100,6 +118,8 @@ test('does not share a trace between visitors of a shell generated at request ti
       traceId: pageloadTx.contexts?.trace?.trace_id,
       links: pageloadTx.contexts?.trace?.links,
       serverRenderingType: pageloadTx.contexts?.trace?.data?.['page.server_rendering.type'],
+      renderAge: pageloadTx.contexts?.trace?.data?.[PAGE_SERVER_RENDERING_AGE],
+      expectedRenderAge: expectedRenderAge(pageloadTx.start_timestamp!, renderStart),
     };
   };
 
@@ -111,6 +131,8 @@ test('does not share a trace between visitors of a shell generated at request ti
   expect(second.traceId).not.toBe(first.traceId);
   expect(first.serverRenderingType).toBe('static');
   expect(second.serverRenderingType).toBe('static');
+  expect(first.renderAge).toBe(first.expectedRenderAge);
+  expect(second.renderAge).toBe(second.expectedRenderAge);
 
   // Both link the request that prerendered the shell, which is the first visitor's own request. The
   // client cannot tell the first visit from later ones, so that pageload starts a fresh trace too.
@@ -160,6 +182,7 @@ test('continues the request trace on a shell prerendered at runtime and links th
   const [prerenderTraceId, prerenderSpanId] = (await page
     .locator('meta[name="sentry-cache-origin"]')
     .getAttribute('content'))!.split('-');
+  const renderStart = await getRenderStart(page);
 
   const pageloadTx = await pageloadTxPromise;
 
@@ -167,6 +190,9 @@ test('continues the request trace on a shell prerendered at runtime and links th
   // pageload continues that trace.
   expect(pageloadTx.contexts?.trace?.trace_id).toBe(requestTraceId);
   expect(pageloadTx.contexts?.trace?.data?.['page.server_rendering.type']).toBe('partially_static');
+  expect(pageloadTx.contexts?.trace?.data?.[PAGE_SERVER_RENDERING_AGE]).toBe(
+    expectedRenderAge(pageloadTx.start_timestamp!, renderStart),
+  );
   expect(pageloadTx.contexts?.trace?.links).toEqual([
     {
       trace_id: prerenderTraceId,
@@ -195,10 +221,12 @@ test('starts a fresh trace on a fully static page', async ({ page }) => {
   // The response is cacheable, so the request that serves it sends no trace header either.
   expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(0);
   expect(await page.locator('meta[name="sentry-cache-origin"]').count()).toBe(0);
+  expect(await page.locator('meta[name="sentry-render-start"]').count()).toBe(0);
   expect(response?.headers()['server-timing'] ?? '').not.toContain('sentry-trace');
   expect(pageloadTx.contexts?.trace?.trace_id).toBeTruthy();
   expect(pageloadTx.contexts?.trace?.links).toBeUndefined();
   expect(pageloadTx.contexts?.trace?.data?.['page.server_rendering.type']).toBeUndefined();
+  expect(pageloadTx.contexts?.trace?.data?.[PAGE_SERVER_RENDERING_AGE]).toBeUndefined();
 });
 
 test('keeps a navigation that starts while the document still streams', async ({ page }) => {

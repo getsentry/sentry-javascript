@@ -9,14 +9,21 @@ import { setCurrentClient, startSpan } from '../../../src';
 import type { StartSpanOptions } from '../../../src/types/startSpanOptions';
 import {
   _INTERNAL_getCacheOriginMetaTag,
+  _INTERNAL_getRenderStart,
   _INTERNAL_getRootSpanSentryTrace,
   _INTERNAL_withCacheOrigin,
 } from '../../../src/utils/cacheOrigin';
+import { browserPerformanceTimeOrigin } from '../../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 import { resetGlobals } from '../../testutils';
 
 const TRACE_ID = '0b37aaf4f0d74c0e80875099e7d7ca68';
 const SPAN_ID = 'bc3a52360214dcf3';
+
+const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';
+
+const RENDER_START = 1_700_000_000;
+const REQUEST_START = RENDER_START - 100;
 
 const spanOptions: StartSpanOptions = { name: '/pricing', attributes: { [SENTRY_OP]: PAGELOAD } };
 
@@ -25,11 +32,22 @@ const cacheOriginLink = {
   attributes: { [SENTRY_LINK_TYPE]: 'cache_origin' },
 };
 
-function addCacheOriginTag(content: string): void {
+function addMetaTag(name: string, content: string): void {
   const tag = document.createElement('meta');
-  tag.name = 'sentry-cache-origin';
+  tag.name = name;
   tag.content = content;
   document.head.appendChild(tag);
+}
+
+function addCacheOriginTag(content: string): void {
+  addMetaTag('sentry-cache-origin', content);
+}
+
+function initTestClient(tracesSampleRate: number): void {
+  resetGlobals();
+  const client = new TestClient(getDefaultTestClientOptions({ dsn: 'https://123@sentry.io/42', tracesSampleRate }));
+  setCurrentClient(client);
+  client.init();
 }
 
 describe('_INTERNAL_getCacheOriginMetaTag', () => {
@@ -46,12 +64,7 @@ describe('_INTERNAL_getCacheOriginMetaTag', () => {
 
 describe('_INTERNAL_getRootSpanSentryTrace', () => {
   beforeEach(() => {
-    resetGlobals();
-    const client = new TestClient(
-      getDefaultTestClientOptions({ dsn: 'https://123@sentry.io/42', tracesSampleRate: 1 }),
-    );
-    setCurrentClient(client);
-    client.init();
+    initTestClient(1);
   });
 
   it('returns the sentry-trace of the root span while a child span is active', () => {
@@ -61,6 +74,28 @@ describe('_INTERNAL_getRootSpanSentryTrace', () => {
         expect(_INTERNAL_getRootSpanSentryTrace()).toBe(`${traceId}-${spanId}-1`);
       }),
     );
+  });
+});
+
+describe('_INTERNAL_getRenderStart', () => {
+  it('returns the start of a recording span in whole seconds', () => {
+    initTestClient(1);
+
+    startSpan({ name: 'prerender route (app) /pricing', startTime: RENDER_START + 0.9 }, span => {
+      expect(_INTERNAL_getRenderStart(span, REQUEST_START)).toBe(RENDER_START);
+    });
+  });
+
+  it('returns the start without a span for a span that does not record', () => {
+    initTestClient(0);
+
+    startSpan({ name: 'prerender route (app) /pricing', startTime: RENDER_START }, span => {
+      expect(_INTERNAL_getRenderStart(span, REQUEST_START + 0.9)).toBe(REQUEST_START);
+    });
+  });
+
+  it('returns the start without a span when there is no span', () => {
+    expect(_INTERNAL_getRenderStart(undefined, REQUEST_START)).toBe(REQUEST_START);
   });
 });
 
@@ -123,6 +158,65 @@ describe('_INTERNAL_withCacheOrigin', () => {
       previousTraceLink,
       cacheOriginLink,
     ]);
+  });
+});
+
+describe('_INTERNAL_withCacheOrigin with a sentry-render-start tag', () => {
+  const pageloadStart = Math.floor(browserPerformanceTimeOrigin()! / 1000);
+  const ONE_YEAR = 365 * 24 * 60 * 60;
+
+  beforeEach(() => {
+    document.head.innerHTML = '';
+  });
+
+  it('sets the age of the render at the time origin in whole seconds', () => {
+    addCacheOriginTag(`${TRACE_ID}-${SPAN_ID}-1`);
+    addMetaTag('sentry-render-start', String(pageloadStart - 3_600));
+
+    expect(_INTERNAL_withCacheOrigin(spanOptions, 'static').attributes).toEqual({
+      [SENTRY_OP]: PAGELOAD,
+      [PAGE_SERVER_RENDERING_TYPE]: 'static',
+      [PAGE_SERVER_RENDERING_AGE]: 3_600,
+    });
+  });
+
+  // The server clock can be ahead of the browser clock.
+  it('sets the age to 0 for a render that seems to start after the pageload', () => {
+    addCacheOriginTag(`${TRACE_ID}-${SPAN_ID}-1`);
+    addMetaTag('sentry-render-start', String(pageloadStart + 5_000));
+
+    expect(_INTERNAL_withCacheOrigin(spanOptions, 'static').attributes?.[PAGE_SERVER_RENDERING_AGE]).toBe(0);
+  });
+
+  it('sets an age of one year', () => {
+    addCacheOriginTag(`${TRACE_ID}-${SPAN_ID}-1`);
+    addMetaTag('sentry-render-start', String(pageloadStart - ONE_YEAR));
+
+    expect(_INTERNAL_withCacheOrigin(spanOptions, 'static').attributes?.[PAGE_SERVER_RENDERING_AGE]).toBe(ONE_YEAR);
+  });
+
+  it('sets no age without a cache origin tag', () => {
+    addMetaTag('sentry-render-start', String(pageloadStart));
+
+    expect(_INTERNAL_withCacheOrigin(spanOptions, 'static')).toBe(spanOptions);
+  });
+
+  it.each([
+    { kind: 'an empty value', content: '' },
+    { kind: 'a fraction', content: `${pageloadStart}.5` },
+    { kind: 'a negative value', content: '-1' },
+    { kind: 'an exponent', content: '1.7e9' },
+    { kind: 'a date', content: '2026-11-13T14:00:00Z' },
+    { kind: 'a render more than one year ago', content: String(pageloadStart - ONE_YEAR - 1) },
+    { kind: 'a server clock at 1970', content: '0' },
+  ])('sets no age for $kind', ({ content }) => {
+    addCacheOriginTag(`${TRACE_ID}-${SPAN_ID}-1`);
+    addMetaTag('sentry-render-start', content);
+
+    expect(_INTERNAL_withCacheOrigin(spanOptions, 'static').attributes).toEqual({
+      [SENTRY_OP]: PAGELOAD,
+      [PAGE_SERVER_RENDERING_TYPE]: 'static',
+    });
   });
 });
 
