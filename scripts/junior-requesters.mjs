@@ -1,5 +1,5 @@
 export const TEAM_SLUG = 'team-javascript-sdks';
-const JUNIOR_LOGIN = 'sentry-junior[bot]';
+export const JUNIOR_LOGIN = 'sentry-junior[bot]';
 // Junior writes `via **Slack Name**` when the requester has no GitHub account linked in Junior. These people's
 // GitHub profile name can't be matched to their Slack name.
 const JUNIOR_NAME_TO_LOGIN = {
