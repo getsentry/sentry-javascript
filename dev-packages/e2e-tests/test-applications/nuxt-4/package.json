@@ -35,6 +35,11 @@
   "sentryTest": {
     "variants": [
       {
+        "build-command": "pnpm install",
+        "assert-command": "pnpm test:dev",
+        "label": "nuxt-4 (development)"
+      },
+      {
         "build-command": "pnpm test:build",
         "assert-command": "pnpm test:prod:import",
         "label": "nuxt-4 (--import compat)"
@@ -52,7 +57,7 @@
       }
     ],
     "baseVariant": {
-      "test-shards": 2
+      "assert-command": "pnpm test:prod"
     }
   }
 }
