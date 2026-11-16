@@ -24,6 +24,8 @@ export interface ManagedTunnelSuiteOptions {
   basePath: string;
   /** Also counts the spans this matches as spans of the tunnel request, for framework spans without `url.path`. */
   isTunnelSpan?: (span: SerializedStreamedSpan, tunnelPath: string) => boolean;
+  /** The path the managed tunnel is served at, if it's a fixed one. Defaults to the DSN-derived path under `basePath`. */
+  tunnelPath?: string;
 }
 
 /**
@@ -35,8 +37,12 @@ export interface ManagedTunnelSuiteOptions {
  * - `GET {basePath}/api/error`, which throws `TUNNEL_TEST_ERROR_MESSAGE`
  * - a middleware that answers every POST with a 401
  */
-export function runManagedTunnelSuite({ appName, basePath, isTunnelSpan }: ManagedTunnelSuiteOptions): void {
-  const tunnelPath = `${basePath}${DSN_TUNNEL_PATH}`;
+export function runManagedTunnelSuite({
+  appName,
+  basePath,
+  isTunnelSpan,
+  tunnelPath = `${basePath}${DSN_TUNNEL_PATH}`,
+}: ManagedTunnelSuiteOptions): void {
   const isTunnelRequest = (method: string, url: string): boolean =>
     method === 'POST' && new URL(url).pathname === tunnelPath;
 
