@@ -988,6 +988,8 @@ jobs:
       - name: Run integration tests
         working-directory: dev-packages/bundler-plugin-integration-tests
         run: pnpm run test
+        env:
+          GITHUB_SHA: ${{ env.HEAD_COMMIT }}
 
   job_bun_integration_tests:
     name: Bun (${{ matrix.bun }}) Integration Tests (${{ matrix.shard }}/4)
