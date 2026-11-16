@@ -10,11 +10,10 @@ function findExpressSpan(container: SerializedStreamedSpanContainer, type: strin
   return container.items.find(item => item.attributes['express.type']?.value === type);
 }
 
-describe('express tracing', () => {
+export function registerExpressRoutingTests(): void {
   afterAll(() => {
     cleanupChildProcesses();
   });
-
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('should create and send segment spans for Express routes and spans for middlewares.', async () => {
       const runner = createRunner()
@@ -63,7 +62,6 @@ describe('express tracing', () => {
       runner.makeRequest('get', '/test/express');
       await runner.completed();
     });
-
     test('names router and request handler spans after their route', async () => {
       const runner = createRunner()
         .expect({
@@ -90,7 +88,6 @@ describe('express tracing', () => {
 
       await runner.completed();
     });
-
     test('should set a correct segment name for routes specified in RegEx', async () => {
       const runner = createRunner()
         .expect({
@@ -113,7 +110,6 @@ describe('express tracing', () => {
       runner.makeRequest('get', '/test/regex');
       await runner.completed();
     });
-
     test('nests a sub-router route handler span under the router span', async () => {
       const runner = createRunner()
         .expect({
@@ -141,7 +137,6 @@ describe('express tracing', () => {
       runner.makeRequest('get', '/test/router/user/42');
       await runner.completed();
     });
-
     test('keeps the parameter in a route mounted under a parameterized sub-router path', async () => {
       const runner = createRunner()
         .expect({
@@ -157,7 +152,6 @@ describe('express tracing', () => {
       runner.makeRequest('get', '/test/version/v1/user');
       await runner.completed();
     });
-
     test('handles root page correctly', async () => {
       const runner = createRunner()
         .expect({
@@ -182,9 +176,6 @@ describe('express tracing', () => {
       runner.makeRequest('get', '/');
       await runner.completed();
     });
-
-    // With span streaming, child spans are sent as they end, before the response status code is
-    // known, so `ignoreStatusCodes` has no effect and these routes are captured like any other.
     test.each([
       { status_code: 401, url: '/401', status_message: 'unauthenticated', name: 'GET /401', source: 'route' },
       { status_code: 402, url: '/402', status_message: 'invalid_argument', name: 'GET /402', source: 'route' },
@@ -231,7 +222,6 @@ describe('express tracing', () => {
         await runner.completed();
       },
     );
-
     test.each([['array1'], ['array5']])(
       'should set a correct segment name for routes consisting of arrays of routes for %p',
       async (segment: string) => {
@@ -257,7 +247,6 @@ describe('express tracing', () => {
         await runner.completed();
       },
     );
-
     test.each([
       ['arr/545'],
       ['arr/required'],
@@ -289,7 +278,14 @@ describe('express tracing', () => {
       await runner.makeRequest('get', `/test/${segment}`);
       await runner.completed();
     });
+  });
+}
 
+export function registerExpressRequestDataTests(): void {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     describe('request data', () => {
       test('correctly captures JSON request data', async () => {
         const runner = createRunner()
@@ -427,4 +423,4 @@ describe('express tracing', () => {
       });
     });
   });
-});
+}

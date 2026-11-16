@@ -235,7 +235,8 @@ const BUN_BUILD_UNBUNDLEABLE_DEPENDENCY = ['suites/tracing/mistral/test.ts'];
 // `@sentry/bun` the request body comes from `bunHttpServerIntegration`.
 const BUN_BUILD_NOT_TRIAGED = [
   'suites/express/sentry-trace/test.ts',
-  'suites/express/tracing/test.ts',
+  'suites/express/tracing/routing/test.ts',
+  'suites/express/tracing/request-data/test.ts',
   'suites/express/with-http/**',
   'suites/hono-sdk/test.ts',
   'suites/pino/test.ts',
