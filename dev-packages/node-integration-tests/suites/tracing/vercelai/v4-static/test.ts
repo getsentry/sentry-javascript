@@ -21,6 +21,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_GENERATE_CONTENT, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { getStringAttributeValue } from '../../../../utils';
@@ -709,9 +710,9 @@ describe('Vercel AI integration (v4)', () => {
             const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === expectedOrigin);
             expect(spans).toHaveLength(2);
 
-            const invokeAgentSpan = spans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent')!;
+            const invokeAgentSpan = spans.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT)!;
             expect(invokeAgentSpan.status).toBe('ok');
-            expect(invokeAgentSpan.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
+            expect(invokeAgentSpan.attributes[SENTRY_OP].value).toBe(GEN_AI_INVOKE_AGENT);
             expect(invokeAgentSpan.attributes[SENTRY_ORIGIN].value).toBe(expectedOrigin);
             expect(invokeAgentSpan.attributes['vercel.ai.operationId'].value).toBe('ai.streamObject');
             expect(invokeAgentSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
@@ -719,7 +720,7 @@ describe('Vercel AI integration (v4)', () => {
             expect(invokeAgentSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(40);
 
             const generateContentSpan = spans.find(
-              span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
+              span => span.attributes[SENTRY_OP]?.value === GEN_AI_GENERATE_CONTENT,
             )!;
             expect(generateContentSpan.status).toBe('ok');
             expect(generateContentSpan.parent_span_id).toBe(invokeAgentSpan.span_id);

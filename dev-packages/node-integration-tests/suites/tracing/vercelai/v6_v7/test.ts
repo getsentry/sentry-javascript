@@ -867,14 +867,14 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
                 const spans = container.items.filter(
                   span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
                 );
-                const invokeAgent = spans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent')!;
+                const invokeAgent = spans.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT)!;
                 expect(invokeAgent.attributes['vercel.ai.operationId']?.value).toBe('ai.streamObject');
                 expect(invokeAgent.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(15);
                 expect(invokeAgent.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(25);
                 expect(invokeAgent.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(40);
 
                 const generateContent = spans.find(
-                  span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
+                  span => span.attributes[SENTRY_OP]?.value === GEN_AI_GENERATE_CONTENT,
                 )!;
                 expect(generateContent.parent_span_id).toBe(invokeAgent.span_id);
                 expect(generateContent.attributes['vercel.ai.operationId']?.value).toBe('ai.streamObject.doStream');
