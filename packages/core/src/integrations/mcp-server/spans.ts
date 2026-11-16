@@ -14,7 +14,9 @@ import {
 import { getClient } from '../../currentScopes';
 import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
 import { MCP_NOTIFICATION_SPAN_NAME_FALLBACK, MCP_SERVER_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
-import { startSpan } from '../../tracing/trace';
+import { startInactiveSpan, startSpan } from '../../tracing/trace';
+import type { Span } from '../../types/span';
+import type { StartSpanOptions } from '../../types/startSpanOptions';
 import { buildTransportAttributes, buildTypeSpecificAttributes } from './attributeExtraction';
 import { MCP_FUNCTION_ORIGIN_VALUE, MCP_NOTIFICATION_ORIGIN_VALUE, MCP_ROUTE_SOURCE_VALUE } from './attributes';
 import { extractTargetInfo } from './methodConfig';
@@ -104,41 +106,21 @@ export function buildMcpNotificationSpanConfig(
   return { name, attributes };
 }
 
-function startMcpNotificationSpan(
-  { name, attributes }: { name: string; attributes: Record<string, string | number> },
-  callback: () => unknown,
-): unknown {
-  return startSpan(
-    {
-      name,
-      // oxlint-disable-next-line typescript/no-deprecated
-      forceTransaction: true,
-      attributes,
-    },
-    callback,
-  );
+type McpNotificationSpanConfig = { name: string; attributes: Record<string, string | number> };
+
+function notificationSpanOptions({ name, attributes }: McpNotificationSpanConfig): StartSpanOptions {
+  // oxlint-disable-next-line typescript/no-deprecated
+  return { name, forceTransaction: true, attributes };
 }
 
-/**
- * Creates a span for incoming MCP notifications
- * @param jsonRpcMessage - Notification message
- * @param transport - MCP transport instance
- * @param extra - Extra handler data
- * @param options - Resolved MCP options
- * @param callback - Span execution callback
- * @returns Span execution result
- */
-export function createMcpNotificationSpan(
-  jsonRpcMessage: JsonRpcNotification,
-  transport: MCPTransport,
-  extra: ExtraHandlerData,
-  options: ResolvedMcpOptions,
-  callback: () => unknown,
-): unknown {
-  return startMcpNotificationSpan(
-    buildMcpNotificationSpanConfig('notification-incoming', jsonRpcMessage, transport, options, extra),
-    callback,
-  );
+/** Starts an MCP notification span around `callback`. */
+export function startMcpNotificationSpan(config: McpNotificationSpanConfig, callback: () => unknown): unknown {
+  return startSpan(notificationSpanOptions(config), callback);
+}
+
+/** Starts an MCP notification span that the caller ends. */
+export function startInactiveMcpNotificationSpan(config: McpNotificationSpanConfig): Span {
+  return startInactiveSpan(notificationSpanOptions(config));
 }
 
 /**

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   MCP_CLIENT_NAME,
   MCP_METHOD_NAME,
@@ -23,11 +23,8 @@ import { withActiveSpan } from '../../../../src/tracing';
 import { startInactiveSpan, startSpan } from '../../../../src/tracing/trace';
 import type { Span, StreamedSpanJSON } from '../../../../src/types/span';
 import { getActiveSpan, spanToJSON } from '../../../../src/utils/spanUtils';
-import { GLOBAL_OBJ } from '../../../../src/utils/worldwide';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 import { resetGlobals } from '../../../testutils';
-
-const OTEL_API_GLOBAL_KEY = Symbol.for('opentelemetry.js.api.1');
 
 type Outcome = { type: 'result'; result: unknown } | { type: 'error'; error: { code: number; message: string } };
 
@@ -110,6 +107,13 @@ function createServer(instrumentation: Instrumentation | undefined) {
           return;
         }
 
+        if (method === 'tools/call' && !tools[params!.name!]) {
+          const error = { code: -32602, message: 'Unknown tool' };
+          scope?.end({ type: 'error', error });
+          void transport.send({ jsonrpc: '2.0', id, error });
+          return;
+        }
+
         const handler = (): Promise<unknown> =>
           method === 'tools/call'
             ? tools[params!.name!]!(params!.arguments ?? {})
@@ -144,16 +148,11 @@ async function callTool(transport: InMemoryTransport, name: string, args: Record
 describe('MCP server hand-off to the MCP SDK instrumentation', () => {
   let client: TestClient;
   let endedSpans: StreamedSpanJSON[];
-  let originalOtelRegistry: unknown;
 
   const mcpSpans = (): StreamedSpanJSON[] => endedSpans.filter(span => span.attributes[MCP_METHOD_NAME] !== undefined);
-  const registerTracerProvider = (): void => {
-    (GLOBAL_OBJ as unknown as Record<symbol, unknown>)[OTEL_API_GLOBAL_KEY] = { version: '1.9.0', trace: {} };
-  };
 
   beforeEach(() => {
     resetGlobals();
-    originalOtelRegistry = (GLOBAL_OBJ as unknown as Record<symbol, unknown>)[OTEL_API_GLOBAL_KEY];
     client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
     setCurrentClient(client);
     client.init();
@@ -163,12 +162,7 @@ describe('MCP server hand-off to the MCP SDK instrumentation', () => {
     });
   });
 
-  afterEach(() => {
-    (GLOBAL_OBJ as unknown as Record<symbol, unknown>)[OTEL_API_GLOBAL_KEY] = originalOtelRegistry;
-  });
-
   it('enriches the span the MCP SDK starts instead of starting a second one', async () => {
-    registerTracerProvider();
     const server = wrapMcpServerWithSentry(createServer(sentryTracedInstrumentation()));
     let handlerParent: Span | undefined;
     server.registerTool('echo', {}, async ({ message }) => {
@@ -197,7 +191,6 @@ describe('MCP server hand-off to the MCP SDK instrumentation', () => {
   });
 
   it('records initialize session data on the MCP SDK span', async () => {
-    registerTracerProvider();
     const server = wrapMcpServerWithSentry(createServer(sentryTracedInstrumentation()));
     const transport = new InMemoryTransport();
     await server.connect(transport);
@@ -224,7 +217,6 @@ describe('MCP server hand-off to the MCP SDK instrumentation', () => {
   });
 
   it('enriches the MCP SDK span of an incoming notification', async () => {
-    registerTracerProvider();
     const server = wrapMcpServerWithSentry(createServer(sentryTracedInstrumentation()));
     const transport = new InMemoryTransport();
     await server.connect(transport);
@@ -240,7 +232,6 @@ describe('MCP server hand-off to the MCP SDK instrumentation', () => {
   });
 
   it('enriches the MCP SDK span of an outgoing notification', async () => {
-    registerTracerProvider();
     const server = wrapMcpServerWithSentry(createServer(sentryTracedInstrumentation()));
     const transport = new InMemoryTransport();
     await server.connect(transport);
@@ -256,7 +247,6 @@ describe('MCP server hand-off to the MCP SDK instrumentation', () => {
   });
 
   it('starts its own span when the MCP SDK span does not reach Sentry', async () => {
-    registerTracerProvider();
     const server = wrapMcpServerWithSentry(createServer(foreignTracedInstrumentation()));
     let handlerSpan: Span | undefined;
     server.registerTool('echo', {}, async () => {
@@ -275,14 +265,31 @@ describe('MCP server hand-off to the MCP SDK instrumentation', () => {
     expect(spanToJSON(handlerSpan!).span_id).toBe(spans[0]!.span_id);
   });
 
-  it.each([
-    ['no tracer provider is registered', false, foreignTracedInstrumentation()],
-    ['the MCP SDK has no instrumentation', true, undefined],
-  ])('keeps starting its own spans when %s', async (_, withTracerProvider, instrumentation) => {
-    if (withTracerProvider) {
-      registerTracerProvider();
-    }
-    const server = wrapMcpServerWithSentry(createServer(instrumentation));
+  it('starts its own span for a request the MCP SDK rejects without running a handler', async () => {
+    const server = wrapMcpServerWithSentry(createServer(foreignTracedInstrumentation()));
+    const transport = new InMemoryTransport();
+    await server.connect(transport);
+    await callTool(transport, 'missing', {});
+
+    const spans = mcpSpans();
+    expect(spans).toHaveLength(1);
+    expect(spans[0]!.attributes).toMatchObject({ [SENTRY_OP]: MCP_SERVER, [MCP_TOOL_NAME]: 'missing' });
+  });
+
+  it('starts its own span for an incoming notification when the MCP SDK span does not reach Sentry', async () => {
+    const server = wrapMcpServerWithSentry(createServer(foreignTracedInstrumentation()));
+    const transport = new InMemoryTransport();
+    await server.connect(transport);
+
+    transport.onmessage?.({ jsonrpc: '2.0', method: 'notifications/initialized' }, {});
+
+    const spans = mcpSpans();
+    expect(spans).toHaveLength(1);
+    expect(spans[0]!.attributes).toMatchObject({ [SENTRY_OP]: MCP_NOTIFICATION_CLIENT_TO_SERVER });
+  });
+
+  it('keeps starting its own spans when the MCP SDK has no instrumentation', async () => {
+    const server = wrapMcpServerWithSentry(createServer(undefined));
     server.registerTool('echo', {}, async () => ({ content: [{ type: 'text', text: 'echo' }] }));
 
     const transport = new InMemoryTransport();

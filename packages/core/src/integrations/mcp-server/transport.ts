@@ -10,6 +10,7 @@ import { getClient, getIsolationScope, withIsolationScope } from '../../currentS
 import { DEBUG_BUILD } from '../../debug-build';
 import { withActiveSpan } from '../../tracing';
 import { startInactiveSpan } from '../../tracing/trace';
+import type { Span } from '../../types/span';
 import { getActiveSpan, spanToJSON } from '../../utils/spanUtils';
 import { isObjectLike } from '../../utils/is';
 import { fill } from '../../utils/object';
@@ -26,11 +27,12 @@ import { cleanupSessionDataForTransport, updateSessionDataForTransport } from '.
 import {
   buildMcpNotificationSpanConfig,
   buildMcpServerSpanConfig,
-  createMcpNotificationSpan,
   createMcpOutgoingNotificationSpan,
+  startInactiveMcpNotificationSpan,
+  startMcpNotificationSpan,
 } from './spans';
 import type { ExtraHandlerData, McpServerWrapperOptions, MCPTransport, ResolvedMcpOptions, SessionData } from './types';
-import { hasGlobalTracerProvider, withInboundHandoff } from './upstreamInstrumentation';
+import { withInboundHandoff } from './upstreamInstrumentation';
 import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse } from './validation';
 
 function resolveMcpOptions(options: McpServerWrapperOptions): ResolvedMcpOptions {
@@ -121,13 +123,13 @@ export function wrapTransportOnMessage(
             }
             const callOriginal = (): unknown =>
               (originalOnMessage as (...args: unknown[]) => unknown).call(this, request, extra);
-            const startOwnSpan = (fn: () => unknown): unknown => {
+            const startOwnSpan = (): Span => {
               const span = startInactiveSpan(spanConfig);
               storeSpanForRequest(transport, request.id, span, request.method, resolvedOptions);
-              return withActiveSpan(span, fn);
+              return span;
             };
 
-            if (upstreamInstrumented && hasGlobalTracerProvider()) {
+            if (upstreamInstrumented) {
               return withInboundHandoff(
                 {
                   method: request.method,
@@ -141,7 +143,7 @@ export function wrapTransportOnMessage(
               );
             }
 
-            return startOwnSpan(callOriginal);
+            return withActiveSpan(startOwnSpan(), callOriginal);
           });
         }
 
@@ -149,27 +151,26 @@ export function wrapTransportOnMessage(
           const resolvedOptions = resolveMcpOptions(options);
           const callOriginal = (): unknown =>
             (originalOnMessage as (...args: unknown[]) => unknown).call(this, notification, extra);
-          const startOwnSpan = (fn: () => unknown): unknown =>
-            createMcpNotificationSpan(notification, transport, extra as ExtraHandlerData, resolvedOptions, fn);
+          const spanConfig = buildMcpNotificationSpanConfig(
+            'notification-incoming',
+            notification,
+            transport,
+            resolvedOptions,
+            extra as ExtraHandlerData,
+          );
 
-          if (upstreamInstrumented && hasGlobalTracerProvider()) {
+          if (upstreamInstrumented) {
             return withInboundHandoff(
               {
                 method: notification.method,
-                attributes: buildMcpNotificationSpanConfig(
-                  'notification-incoming',
-                  notification,
-                  transport,
-                  resolvedOptions,
-                  extra as ExtraHandlerData,
-                ).attributes,
-                startOwnSpan,
+                attributes: spanConfig.attributes,
+                startOwnSpan: () => startInactiveMcpNotificationSpan(spanConfig),
               },
               callOriginal,
             );
           }
 
-          return startOwnSpan(callOriginal);
+          return startMcpNotificationSpan(spanConfig, callOriginal);
         }
 
         return (originalOnMessage as (...args: unknown[]) => unknown).call(this, message, extra);
@@ -199,7 +200,7 @@ export function wrapTransportSend(
         if (isJsonRpcNotification(message)) {
           const resolvedOptions = resolveMcpOptions(options);
           // The MCP SDK sends a notification inside its own scope, so its span is the active one.
-          const upstreamSpan = upstreamInstrumented && hasGlobalTracerProvider() ? getActiveSpan() : undefined;
+          const upstreamSpan = upstreamInstrumented ? getActiveSpan() : undefined;
           if (upstreamSpan && spanToJSON(upstreamSpan).attributes[MCP_METHOD_NAME] === message.method) {
             upstreamSpan.setAttributes(
               buildMcpNotificationSpanConfig('notification-outgoing', message, transport, resolvedOptions).attributes,

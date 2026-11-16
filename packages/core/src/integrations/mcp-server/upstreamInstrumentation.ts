@@ -1,15 +1,14 @@
 /**
  * Newer `@modelcontextprotocol/server` versions start their own OpenTelemetry span for every inbound
- * message once a tracer provider is registered. In that case we add our attributes to that span
- * instead of starting a second one.
+ * message. When that span reaches Sentry, we add our attributes to it instead of starting a second one.
  */
 
 import { MCP_METHOD_NAME } from '@sentry/conventions/attributes';
 import { getClient } from '../../currentScopes';
+import { withActiveSpan } from '../../tracing';
 import type { Span } from '../../types/span';
 import { isObjectLike } from '../../utils/is';
 import { spanToJSON } from '../../utils/spanUtils';
-import { GLOBAL_OBJ } from '../../utils/worldwide';
 import type { JsonRpcError, RequestId } from './types';
 
 interface UpstreamOutcome {
@@ -32,19 +31,11 @@ export interface InboundHandoff {
   id?: RequestId;
   attributes: Record<string, string | number>;
   onResponse?: (span: Span, result: unknown, error: JsonRpcError | undefined) => void;
-  /** Used when the MCP SDK's span does not reach Sentry, e.g. because a non-Sentry tracer provider is registered. */
-  startOwnSpan: (fn: () => unknown) => unknown;
+  /** Used when the MCP SDK's span does not reach Sentry, e.g. because no Sentry tracer provider is registered. */
+  startOwnSpan: () => Span;
 }
 
 let pendingHandoff: InboundHandoff | undefined;
-
-/** Whether the MCP SDK's built-in instrumentation records spans. */
-export function hasGlobalTracerProvider(): boolean {
-  const otelApi = (GLOBAL_OBJ as unknown as Record<symbol, { trace?: unknown } | undefined>)[
-    Symbol.for('opentelemetry.js.api.1')
-  ];
-  return !!otelApi?.trace;
-}
 
 /**
  * Hooks into the MCP SDK's built-in instrumentation (the package-internal `_instrumentation`).
@@ -100,9 +91,17 @@ function receiveWithHandoff(
   }
 
   if (!scope || !span) {
+    // Started here rather than in `run`, because the MCP SDK rejects some requests without running a handler.
+    const ownSpan = handoff.startOwnSpan();
     return {
-      run: fn => handoff.startOwnSpan(() => (scope ? scope.run(fn) : fn())) as ReturnType<typeof fn>,
-      end: outcome => scope?.end(outcome),
+      run: fn => withActiveSpan(ownSpan, () => (scope ? scope.run(fn) : fn())),
+      end: outcome => {
+        scope?.end(outcome);
+        // A request span ends once its response is sent.
+        if (handoff.id === undefined) {
+          ownSpan.end();
+        }
+      },
     };
   }
 
