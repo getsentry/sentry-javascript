@@ -34,7 +34,9 @@ runs:
         path: |
           ~/.cache/ms-playwright
         # Bump the iteration when bumping runner images to use a new cache
-        key: playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}
+        key:
+          playwright-${{ runner.os }}${{ runner.arch != 'X64' && format('-{0}', runner.arch) || '' }}-iteration-1-${{
+          steps.playwright-version.outputs.version }}
 
     # We always install all browsers, if uncached
     # `npx` runs outside the repo, so it can't pick up a `playwright` that a parallel `pnpm install` is still linking.
@@ -112,7 +114,8 @@ runs:
     - name: Remove obsolete cached WebKit packages
       if:
         steps.webkit-dependencies.outputs.key != '' && steps.webkit-apt-cache.outputs.cache-hit != 'true' &&
-        github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        (github.event_name == 'push' && github.ref == 'refs/heads/develop' || github.head_ref ==
+        'feat/benchmark-browser-playwright-arm' && inputs.cwd == 'dev-packages/browser-integration-tests')
       # Fallback restores can carry obsolete installers into newer cache entries.
       run: sudo apt-get -o Dir::Cache::archives=/var/tmp/webkit-apt-cache autoclean
       shell: bash
@@ -122,7 +125,8 @@ runs:
     - name: Store cached WebKit system packages
       if:
         steps.webkit-dependencies.outputs.key != '' && steps.webkit-apt-cache.outputs.cache-hit != 'true' &&
-        github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        (github.event_name == 'push' && github.ref == 'refs/heads/develop' || github.head_ref ==
+        'feat/benchmark-browser-playwright-arm' && inputs.cwd == 'dev-packages/browser-integration-tests')
       uses: actions/cache/save@v6.1.0
       with:
         path: /var/tmp/webkit-apt-cache/*.deb
@@ -132,10 +136,13 @@ runs:
     - name: Store cached playwright binaries
       uses: actions/cache/save@v6.1.0
       if:
-        steps.playwright-version.outputs.version != '' && github.event_name == 'push' && github.ref ==
-        'refs/heads/develop'
+        steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit != 'true' &&
+        (github.event_name == 'push' && github.ref == 'refs/heads/develop' || github.head_ref ==
+        'feat/benchmark-browser-playwright-arm' && inputs.cwd == 'dev-packages/browser-integration-tests')
       with:
         path: |
           ~/.cache/ms-playwright
         # Bump the iteration when bumping runner images to use a new cache
-        key: playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}
+        key:
+          playwright-${{ runner.os }}${{ runner.arch != 'X64' && format('-{0}', runner.arch) || '' }}-iteration-1-${{
+          steps.playwright-version.outputs.version }}

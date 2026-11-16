@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
+  HEAD_COMMIT: ${{ github.event.inputs.commit || github.event.pull_request.head.sha || github.sha }}
 
   CACHED_DEPENDENCY_PATHS: |
     ${{ github.workspace }}/node_modules
@@ -690,6 +690,16 @@ jobs:
           name: build-bundle-output
           path: ${{ env.BUNDLE_ARTIFACT_DOWNLOAD_PATH }}
 
+      - name: Record browser benchmark hardware
+        working-directory: dev-packages/browser-integration-tests
+        run: |
+          node -e '
+            const os = require("node:os");
+            const info = { arch: process.arch, cores: os.availableParallelism(), cpu: os.cpus()[0].model, memoryBytes: os.totalmem() };
+            require("node:fs").writeFileSync("browser-runner.json", JSON.stringify(info));
+            console.log(info);
+          '
+
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
         with:
@@ -703,6 +713,16 @@ jobs:
         run:
           pnpm run test:all${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard &&
           format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
+
+      - name: Upload browser benchmark results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-benchmark-${{ matrix.bundle }}-${{ matrix.project }}-${{ matrix.shard || '0' }}
+          path: |
+            dev-packages/browser-integration-tests/results.junit.xml
+            dev-packages/browser-integration-tests/browser-runner.json
+          if-no-files-found: error
 
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v7
@@ -954,7 +974,7 @@ jobs:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
-          ref: ${{ env.HEAD_COMMIT }}
+          ref: ${{ github.sha }}
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
