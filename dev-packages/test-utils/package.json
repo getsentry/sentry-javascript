@@ -41,6 +41,16 @@
         "types": "./build/types/cloudflare.d.ts",
         "default": "./build/cjs/cloudflare.js"
       }
+    },
+    "./tunnel-suite": {
+      "import": {
+        "types": "./build/types/tunnel-suite.d.ts",
+        "default": "./build/esm/tunnel-suite.js"
+      },
+      "require": {
+        "types": "./build/types/tunnel-suite.d.ts",
+        "default": "./build/cjs/tunnel-suite.js"
+      }
     }
   },
   "sideEffects": false,
