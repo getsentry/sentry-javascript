@@ -57,8 +57,7 @@
       }
     ],
     "baseVariant": {
-      "assert-command": "pnpm test:prod",
-      "test-shards": 2
+      "assert-command": "pnpm test:prod"
     }
   }
 }
