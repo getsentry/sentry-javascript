@@ -1,0 +1,41 @@
+{
+  "name": "react-router-8-tunnel",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "react-router build",
+    "dev": "NODE_OPTIONS='--import ./instrument.mjs' react-router dev --port 3030",
+    "start": "PORT=3030 NODE_ENV=production NODE_OPTIONS='--import ./instrument.mjs' react-router-serve ./build/server/index.js",
+    "start:cloudflare": "wrangler dev --config ./build/server/wrangler.json --port 3030",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml build",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "TEST_ENV=production playwright test && TEST_ENV=development playwright test"
+  },
+  "dependencies": {
+    "@react-router/node": "^8.0.0",
+    "@react-router/serve": "^8.0.0",
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
+    "@sentry/react-router": "file:../../packed/sentry-react-router-packed.tgz",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router": "^8.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.35.0",
+    "@playwright/test": "1.64.1",
+    "@react-router/dev": "^8.0.0",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
+    "vite": "^7.3.2",
+    "wrangler": "^4.120.0"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "runtime": "cloudflare",
+        "assert-command": "TEST_ENV=production pnpm exec playwright test",
+        "label": "react-router-8-tunnel (cloudflare)"
+      }
+    ]
+  }
+}
