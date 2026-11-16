@@ -33,12 +33,23 @@ export function _INTERNAL_getCacheOriginMetaTag(renderTrace: string | undefined)
 }
 
 /**
+ * Returns the `sentry-cache-origin` meta tag and the `sentry-render-start` meta tag for the request that rendered the
+ * page. Without `renderTrace`, the `sentry-cache-origin` tag is empty. `requestStart` is in seconds.
+ */
+export function _INTERNAL_getCacheOriginMetaTags(renderTrace: string | undefined, requestStart: number): string {
+  const renderStart = _INTERNAL_getRenderStart(getActiveRootSpan(), requestStart);
+  return [
+    `<meta name="${_INTERNAL_CACHE_ORIGIN_META_TAG_NAME}" content="${renderTrace ?? ''}"/>`,
+    `<meta name="${_INTERNAL_RENDER_START_META_TAG_NAME}" content="${renderStart}"/>`,
+  ].join('\n');
+}
+
+/**
  * Returns the `sentry-trace` of the request's root span, which a cached page links as its render. Unlike
  * `getTraceData()`, it ignores an active child span, such as SvelteKit's `sveltekit.resolve`.
  */
 export function _INTERNAL_getRootSpanSentryTrace(): string | undefined {
-  const activeSpan = getActiveSpan();
-  return getTraceData({ span: activeSpan && getRootSpan(activeSpan) })['sentry-trace'];
+  return getTraceData({ span: getActiveRootSpan() })['sentry-trace'];
 }
 
 /**
@@ -48,6 +59,11 @@ export function _INTERNAL_getRootSpanSentryTrace(): string | undefined {
  */
 export function _INTERNAL_getRenderStart(span: Span | undefined, startWithoutSpan: number): number {
   return Math.floor(span?.isRecording() ? spanToJSON(span).start_timestamp : startWithoutSpan);
+}
+
+function getActiveRootSpan(): Span | undefined {
+  const activeSpan = getActiveSpan();
+  return activeSpan && getRootSpan(activeSpan);
 }
 
 /**

@@ -564,13 +564,17 @@ describe('sentryHandle on Vercel ISR', () => {
     });
 
     const { traceId, spanId } = requestSpan!.spanContext();
+    const renderStart = Math.floor(spanToJSON(requestSpan!).start_timestamp);
     expect(html).toBe(
-      `<html><head>\n<meta name="sentry-cache-origin" content="${traceId}-${spanId}-1"/></head><body><script>kit.start(app, element, { node_ids: [0, 1] })</script></body></html>`,
+      `<html><head>\n<meta name="sentry-cache-origin" content="${traceId}-${spanId}-1"/>\n<meta name="sentry-render-start" content="${renderStart}"/></head><body><script>kit.start(app, element, { node_ids: [0, 1] })</script></body></html>`,
     );
   });
 });
 
 describe('addSentryCodeToPage', () => {
+  const RENDER_START = 1_700_000_000;
+  const REQUEST_START = RENDER_START - 100;
+
   const html = `<!DOCTYPE html>
   <html lang="en">
     <head>
@@ -606,7 +610,7 @@ describe('addSentryCodeToPage', () => {
   const clientShellHtml = withBootScript('app, element');
 
   it("Adds add meta tags and fetch proxy script if there's no active transaction", () => {
-    const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: true });
+    const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: true, requestStart: REQUEST_START });
     const transformed = transformPageChunk({ html, done: true });
 
     expect(transformed).toContain('<meta name="sentry-trace"');
@@ -616,7 +620,7 @@ describe('addSentryCodeToPage', () => {
   });
 
   it('adds meta tags and the fetch proxy script if there is an active transaction', () => {
-    const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: true });
+    const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: true, requestStart: REQUEST_START });
     SentryCore.startSpan({ name: 'test' }, () => {
       const transformed = transformPageChunk({ html, done: true }) as string;
 
@@ -628,7 +632,7 @@ describe('addSentryCodeToPage', () => {
   });
 
   it('does not add the cache origin marker to a page rendered for a request', () => {
-    const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false });
+    const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false, requestStart: REQUEST_START });
 
     const transformed = transformPageChunk({ html: serverRenderedHtml, done: true });
 
@@ -637,7 +641,7 @@ describe('addSentryCodeToPage', () => {
   });
 
   it('does not add the fetch proxy script if the `injectFetchProxyScript` option is false', () => {
-    const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false });
+    const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false, requestStart: REQUEST_START });
     const transformed = transformPageChunk({ html, done: true }) as string;
 
     expect(transformed).toContain('<meta name="sentry-trace"');
@@ -654,18 +658,24 @@ describe('addSentryCodeToPage', () => {
       vi.unstubAllEnvs();
     });
 
-    it('replaces the trace meta tags of a server-rendered page with an empty cache origin marker', () => {
-      const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false });
+    it('replaces the trace meta tags of a server-rendered page with an empty cache origin marker and the request start', () => {
+      const transformPageChunk = addSentryCodeToPage({
+        injectFetchProxyScript: false,
+        requestStart: REQUEST_START + 0.9,
+      });
 
       const transformed = transformPageChunk({ html: serverRenderedHtml, done: true });
 
       expect(transformed).toBe(
-        serverRenderedHtml.replace('<head>', '<head>\n<meta name="sentry-cache-origin" content=""/>'),
+        serverRenderedHtml.replace(
+          '<head>',
+          `<head>\n<meta name="sentry-cache-origin" content=""/>\n<meta name="sentry-render-start" content="${REQUEST_START}"/>`,
+        ),
       );
     });
 
     it('adds no meta tags to a client-side shell, such as an `ssr = false` page or the fallback page', () => {
-      const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false });
+      const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false, requestStart: REQUEST_START });
 
       const transformed = transformPageChunk({ html: clientShellHtml, done: true });
 
@@ -673,7 +683,7 @@ describe('addSentryCodeToPage', () => {
     });
 
     it('still adds the fetch proxy script', () => {
-      const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: true });
+      const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: true, requestStart: REQUEST_START });
 
       const transformed = transformPageChunk({ html: clientShellHtml, done: true });
 
@@ -683,9 +693,13 @@ describe('addSentryCodeToPage', () => {
 
   describe('while Vercel renders a page for its ISR cache', () => {
     it('replaces the trace meta tags of a server-rendered page with the cache origin of this render', () => {
-      const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false, isVercelIsrRender: true });
+      const transformPageChunk = addSentryCodeToPage({
+        injectFetchProxyScript: false,
+        isVercelIsrRender: true,
+        requestStart: REQUEST_START,
+      });
 
-      const transformed = SentryCore.startSpan({ name: 'GET /pricing' }, span => {
+      const transformed = SentryCore.startSpan({ name: 'GET /pricing', startTime: RENDER_START }, span => {
         const { traceId, spanId } = span.spanContext();
         return { html: transformPageChunk({ html: serverRenderedHtml, done: true }), traceId, spanId };
       });
@@ -693,16 +707,20 @@ describe('addSentryCodeToPage', () => {
       expect(transformed.html).toBe(
         serverRenderedHtml.replace(
           '<head>',
-          `<head>\n<meta name="sentry-cache-origin" content="${transformed.traceId}-${transformed.spanId}-1"/>`,
+          `<head>\n<meta name="sentry-cache-origin" content="${transformed.traceId}-${transformed.spanId}-1"/>\n<meta name="sentry-render-start" content="${RENDER_START}"/>`,
         ),
       );
     });
 
     it('uses the root span of the request as the cache origin while a child span is active', () => {
-      const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false, isVercelIsrRender: true });
+      const transformPageChunk = addSentryCodeToPage({
+        injectFetchProxyScript: false,
+        isVercelIsrRender: true,
+        requestStart: REQUEST_START,
+      });
 
-      const transformed = SentryCore.startSpan({ name: 'GET /pricing' }, rootSpan =>
-        SentryCore.startSpan({ name: 'sveltekit.resolve' }, () => {
+      const transformed = SentryCore.startSpan({ name: 'GET /pricing', startTime: RENDER_START }, rootSpan =>
+        SentryCore.startSpan({ name: 'sveltekit.resolve', startTime: RENDER_START + 5 }, () => {
           const { traceId, spanId } = rootSpan.spanContext();
           return { html: transformPageChunk({ html: serverRenderedHtml, done: true }), traceId, spanId };
         }),
@@ -711,13 +729,17 @@ describe('addSentryCodeToPage', () => {
       expect(transformed.html).toBe(
         serverRenderedHtml.replace(
           '<head>',
-          `<head>\n<meta name="sentry-cache-origin" content="${transformed.traceId}-${transformed.spanId}-1"/>`,
+          `<head>\n<meta name="sentry-cache-origin" content="${transformed.traceId}-${transformed.spanId}-1"/>\n<meta name="sentry-render-start" content="${RENDER_START}"/>`,
         ),
       );
     });
 
     it('adds no meta tags to a client-side shell', () => {
-      const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false, isVercelIsrRender: true });
+      const transformPageChunk = addSentryCodeToPage({
+        injectFetchProxyScript: false,
+        isVercelIsrRender: true,
+        requestStart: REQUEST_START,
+      });
 
       const transformed = transformPageChunk({ html: clientShellHtml, done: true });
 

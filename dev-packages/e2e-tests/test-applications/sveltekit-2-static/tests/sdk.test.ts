@@ -4,6 +4,8 @@ import { PAGE_SERVER_RENDERING_TYPE } from '@sentry/conventions/attributes';
 import { PAGELOAD } from '@sentry/conventions/op';
 import { waitForInitialPageload } from './utils';
 
+const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';
+
 function sentryMetaTagNames(html: string): string[] {
   return [...html.matchAll(/<meta name="(sentry-[\w-]+|baggage)"/g)].map(match => match[1] ?? '');
 }
@@ -22,7 +24,7 @@ test.describe('SDK-internal behavior', () => {
   });
 
   [
-    { path: '/prerendered', kind: 'a prerendered page', expected: ['sentry-cache-origin'] },
+    { path: '/prerendered', kind: 'a prerendered page', expected: ['sentry-cache-origin', 'sentry-render-start'] },
     { path: '/prerendered-shell', kind: 'a prerendered client-side shell', expected: [] },
     { path: '/', kind: 'a server-rendered page', expected: ['sentry-trace', 'baggage'] },
   ].forEach(({ path, kind, expected }) => {
@@ -39,9 +41,14 @@ test.describe('SDK-internal behavior', () => {
     });
 
     await page.goto('/prerendered');
+    const renderStart = Number(await page.locator('meta[name="sentry-render-start"]').getAttribute('content'));
     const pageloadTxn = await pageloadTxnPromise;
 
     expect(pageloadTxn.contexts?.trace?.data?.[PAGE_SERVER_RENDERING_TYPE]).toBe('static');
+    // The build rendered the page, so the age is the time since the build.
+    expect(pageloadTxn.contexts?.trace?.data?.[PAGE_SERVER_RENDERING_AGE]).toBe(
+      Math.max(0, Math.floor(pageloadTxn.start_timestamp! - renderStart)),
+    );
     expect(pageloadTxn.contexts?.trace?.links).toBeUndefined();
     expect(pageloadTxn.contexts?.trace?.parent_span_id).toBeUndefined();
   });
@@ -55,6 +62,7 @@ test.describe('SDK-internal behavior', () => {
     const pageloadTxn = await pageloadTxnPromise;
 
     expect(pageloadTxn.contexts?.trace?.data?.[PAGE_SERVER_RENDERING_TYPE]).toBeUndefined();
+    expect(pageloadTxn.contexts?.trace?.data?.[PAGE_SERVER_RENDERING_AGE]).toBeUndefined();
     expect(pageloadTxn.contexts?.trace?.parent_span_id).toBeUndefined();
   });
 });

@@ -37,6 +37,7 @@ export { filenameIsInApp, node, nodeStackLineParser } from './utils/node-stack-t
 export { vercelWaitUntil } from './utils/vercelWaitUntil';
 export {
   _INTERNAL_getCacheOriginMetaTag,
+  _INTERNAL_getCacheOriginMetaTags,
   _INTERNAL_getRenderStart,
   _INTERNAL_getRootSpanSentryTrace,
 } from './utils/cacheOrigin';
