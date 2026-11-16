@@ -66,14 +66,16 @@ function shuffle(items) {
 
 /**
  * Picks reviewers to top the PR up to `REQUIRED_REVIEWERS`, preferring the codeowner pool and falling back
- * to the whole team. Logins are compared case-insensitively, as GitHub does.
+ * to the whole team. Within a pool, people with the fewest pending review requests (`load`, keyed by lowercase
+ * login) go first, ties are broken randomly. Logins are compared case-insensitively, as GitHub does.
  */
-export function pickReviewers({ existing, codeownerPool, teamPool, exclude }) {
+export function pickReviewers({ existing, codeownerPool, teamPool, exclude, load = new Map() }) {
   const taken = new Set([...existing, ...exclude].map(login => login.toLowerCase()));
   const picked = [];
+  const loadOf = login => load.get(login.toLowerCase()) ?? 0;
 
   for (const pool of [codeownerPool, teamPool]) {
-    for (const login of shuffle(pool)) {
+    for (const login of shuffle(pool).sort((a, b) => loadOf(a) - loadOf(b))) {
       if (existing.length + picked.length >= REQUIRED_REVIEWERS) {
         return picked;
       }
@@ -111,6 +113,26 @@ export async function getBusyLogins({ github, core, logins }) {
     core.warning(`Could not read reviewer availability, not skipping busy users: ${error.message}`);
     return [];
   }
+}
+
+/**
+ * Counts the pending review requests each user has across the repo's open PRs, keyed by lowercase login.
+ * Requests made through a team aren't counted, as they aren't assigned to anyone yet.
+ */
+export async function getReviewLoad({ github, core, owner, repo }) {
+  const load = new Map();
+  try {
+    const pulls = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
+    for (const pull of pulls) {
+      for (const reviewer of pull.requested_reviewers ?? []) {
+        const login = reviewer.login.toLowerCase();
+        load.set(login, (load.get(login) ?? 0) + 1);
+      }
+    }
+  } catch (error) {
+    core.warning(`Could not read open review requests, not balancing reviewer load: ${error.message}`);
+  }
+  return load;
 }
 
 export async function assignReviewers({ github, context, core }) {
@@ -165,12 +187,14 @@ export async function assignReviewers({ github, context, core }) {
 
   const teamPool = await listTeamMembers(TEAM_SLUG);
   const busy = await getBusyLogins({ github, core, logins: [...codeownerPool, ...teamPool] });
+  const load = await getReviewLoad({ github, core, owner, repo });
 
   const reviewers = pickReviewers({
     existing,
     codeownerPool,
     teamPool,
     exclude: [author, ...requesters, ...NEVER_REQUEST, ...busy],
+    load,
   });
 
   core.info(`Codeowners: ${codeowners.join(', ') || '(none)'}`);
@@ -182,6 +206,8 @@ export async function assignReviewers({ github, context, core }) {
     return;
   }
 
-  core.info(`Requesting reviews from: ${reviewers.join(', ')}`);
+  core.info(
+    `Requesting reviews from: ${reviewers.map(login => `${login} (${load.get(login.toLowerCase()) ?? 0} pending)`).join(', ')}`,
+  );
   await github.rest.pulls.requestReviewers({ owner, repo, pull_number, reviewers });
 }

@@ -4,6 +4,7 @@ import {
   assignReviewers,
   getBusyLogins,
   getOwnersForFiles,
+  getReviewLoad,
   parseCodeowners,
   pickReviewers,
 } from './assign-reviewers.mjs';
@@ -84,6 +85,61 @@ describe('pickReviewers', () => {
   it('returns fewer reviewers when not enough people are eligible', () => {
     expect(pickReviewers({ existing: [], codeownerPool: [], teamPool: ['a'], exclude: [] })).toEqual(['a']);
   });
+
+  it('prefers the people with the fewest pending review requests', () => {
+    const load = new Map([
+      ['a', 4],
+      ['b', 0],
+      ['c', 2],
+      ['d', 1],
+      ['e', 3],
+    ]);
+    const picked = pickReviewers({
+      existing: [],
+      codeownerPool: [],
+      teamPool: ['A', 'b', 'c', 'd', 'e'],
+      exclude: [],
+      load,
+    });
+    expect(picked).toEqual(['b', 'd', 'c']);
+  });
+
+  it('still prefers codeowners over less loaded team members', () => {
+    const load = new Map([['x1', 5]]);
+    const picked = pickReviewers({ existing: [], codeownerPool: ['x1'], teamPool: ['a', 'b'], exclude: [], load });
+    expect(picked[0]).toBe('x1');
+  });
+});
+
+describe('getReviewLoad', () => {
+  it('counts pending review requests per user across open PRs', async () => {
+    const github = {
+      paginate: vi.fn(async () => [
+        { requested_reviewers: [{ login: 'A' }, { login: 'b' }] },
+        { requested_reviewers: [{ login: 'a' }] },
+        { requested_reviewers: [] },
+      ]),
+      rest: { pulls: { list: vi.fn() } },
+    };
+    const load = await getReviewLoad({ github, core: { warning: vi.fn() }, owner: 'o', repo: 'r' });
+    expect(load).toEqual(
+      new Map([
+        ['a', 2],
+        ['b', 1],
+      ]),
+    );
+    expect(github.paginate).toHaveBeenCalledWith(github.rest.pulls.list, expect.objectContaining({ state: 'open' }));
+  });
+
+  it('treats everyone as unloaded when listing PRs fails', async () => {
+    const core = { warning: vi.fn() };
+    const github = {
+      paginate: vi.fn(async () => Promise.reject(new Error('boom'))),
+      rest: { pulls: { list: vi.fn() } },
+    };
+    expect(await getReviewLoad({ github, core, owner: 'o', repo: 'r' })).toEqual(new Map());
+    expect(core.warning).toHaveBeenCalledWith(expect.stringContaining('boom'));
+  });
 });
 
 describe('getBusyLogins', () => {
@@ -132,6 +188,24 @@ describe('assignReviewers', () => {
     await run();
     expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
       expect.objectContaining({ reviewers: expect.arrayContaining(['b', 'c', 'd']) }),
+    );
+  });
+
+  it('requests reviews from the least loaded team members', async () => {
+    const { github, run } = setup(assignReviewers, { user: { login: 'author', type: 'User' } });
+    const listMembers = github.paginate.getMockImplementation();
+    github.paginate.mockImplementation(async method =>
+      method === github.rest.pulls.list
+        ? [
+            { requested_reviewers: [{ login: 'a' }, { login: 'b' }, { login: 'c' }] },
+            { requested_reviewers: [{ login: 'a' }, { login: 'b' }] },
+            { requested_reviewers: [{ login: 'a' }] },
+          ]
+        : listMembers(method),
+    );
+    await run();
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: ['d', 'c', 'b'] }),
     );
   });
 
