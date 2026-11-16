@@ -1,7 +1,9 @@
 import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import type { SpanLink } from '../types/link';
+import type { Span } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
-import { getActiveSpan, getRootSpan, TRACE_FLAG_SAMPLED } from './spanUtils';
+import { getActiveSpan, getRootSpan, spanToJSON, TRACE_FLAG_SAMPLED } from './spanUtils';
+import { browserPerformanceTimeOrigin } from './time';
 import { getTraceData } from './traceData';
 import { extractTraceparentData } from './tracing';
 import { GLOBAL_OBJ } from './worldwide';
@@ -15,6 +17,15 @@ import { GLOBAL_OBJ } from './worldwide';
  * - A `sentry-trace` value: the client links the render
  */
 export const _INTERNAL_CACHE_ORIGIN_META_TAG_NAME = 'sentry-cache-origin';
+
+/**
+ * Holds the start of the render of a cached or prerendered page, as UNIX time in whole seconds. The server writes it
+ * next to `sentry-cache-origin`, also when that tag is empty. The client turns it into `page.server_rendering.age`.
+ */
+export const _INTERNAL_RENDER_START_META_TAG_NAME = 'sentry-render-start';
+
+// TODO: Use the constant from `@sentry/conventions` when https://github.com/getsentry/sentry-conventions/pull/799 is released.
+const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';
 
 /** Returns the `sentry-cache-origin` meta tag. Without `renderTrace`, the tag is empty. */
 export function _INTERNAL_getCacheOriginMetaTag(renderTrace: string | undefined): string {
@@ -31,8 +42,18 @@ export function _INTERNAL_getRootSpanSentryTrace(): string | undefined {
 }
 
 /**
+ * Returns the start of a render as UNIX time in whole seconds: the start of `span` if it records, because the
+ * `cache_origin` link points to it, else `startWithoutSpan` (in seconds), for example in the build or in an unsampled
+ * request. The age needs no more precision, and whole seconds make the server clock harder to fingerprint.
+ */
+export function _INTERNAL_getRenderStart(span: Span | undefined, startWithoutSpan: number): number {
+  return Math.floor(span?.isRecording() ? spanToJSON(span).start_timestamp : startWithoutSpan);
+}
+
+/**
  * Sets `page.server_rendering.type` on a pageload whose document has a `sentry-cache-origin` tag, even an
- * empty one. Links the render if the tag holds the `sentry-trace` of a sampled render. Pass `undefined` as
+ * empty one. Links the render if the tag holds the `sentry-trace` of a sampled render, and sets
+ * `page.server_rendering.age` if the document has a `sentry-render-start` tag. Pass `undefined` as
  * `serverRenderingType` while the type is not known.
  *
  * Call it before the span starts, so `tracesSampler` and `ignoreSpans` see the attribute.
@@ -41,22 +62,38 @@ export function _INTERNAL_withCacheOrigin(
   spanOptions: StartSpanOptions,
   serverRenderingType: 'static' | 'partially_static' | undefined,
 ): StartSpanOptions {
-  const renderTrace = (GLOBAL_OBJ as { document?: Document }).document
-    ?.querySelector(`meta[name="${_INTERNAL_CACHE_ORIGIN_META_TAG_NAME}"]`)
-    ?.getAttribute('content');
+  const renderTrace = getMetaTagContent(_INTERNAL_CACHE_ORIGIN_META_TAG_NAME);
   if (renderTrace == null) {
     return spanOptions;
   }
 
   const link = getSampledRenderLink(renderTrace);
+  const renderAge = getRenderAge(getMetaTagContent(_INTERNAL_RENDER_START_META_TAG_NAME));
   return {
     ...spanOptions,
     attributes: {
       ...spanOptions.attributes,
       ...(serverRenderingType && { [PAGE_SERVER_RENDERING_TYPE]: serverRenderingType }),
+      ...(renderAge !== undefined && { [PAGE_SERVER_RENDERING_AGE]: renderAge }),
     },
     ...(link && { links: [...(spanOptions.links ?? []), link] }),
   };
+}
+
+function getMetaTagContent(name: string): string | null | undefined {
+  return (GLOBAL_OBJ as { document?: Document }).document
+    ?.querySelector(`meta[name="${name}"]`)
+    ?.getAttribute('content');
+}
+
+// A pageload starts at the time origin. The server and the browser clocks differ, so a render shortly before the
+// pageload can seem to start after it.
+function getRenderAge(renderStart: string | null | undefined): number | undefined {
+  const timeOrigin = browserPerformanceTimeOrigin();
+  if (!renderStart || !/^\d+$/.test(renderStart) || !timeOrigin) {
+    return undefined;
+  }
+  return Math.max(0, Math.floor(timeOrigin / 1000 - Number(renderStart)));
 }
 
 // Only a sampled render sent spans, so a link to any other render would point at nothing.
