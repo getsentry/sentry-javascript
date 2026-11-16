@@ -20,7 +20,7 @@
     "astro": "^5.17.1"
   },
   "devDependencies": {
-    "@sentry/conventions": "0.31.0",
+    "@sentry/conventions": "0.33.0",
     "wrangler": "^4.63.0"
   },
   "sentryTest": {
