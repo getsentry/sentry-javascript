@@ -892,8 +892,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
-        shards: [4]
+        shard: [1, 2, 3, 4, 5, 6]
+        shards: [6]
     steps: &cloudflare_integration_tests_steps
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
