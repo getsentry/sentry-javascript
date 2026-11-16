@@ -63,6 +63,9 @@
         "build-command": "pnpm test:build-canary",
         "label": "nuxt-4 (canary)"
       }
-    ]
+    ],
+    "baseVariant": {
+      "test-shards": 2
+    }
   }
 }
