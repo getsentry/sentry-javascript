@@ -381,7 +381,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     }
 
     if (linkPreviousTrace !== 'off') {
-      client.addIntegration(linkedTracesIntegration({ linkPreviousTrace, consistentTraceSampling }));
+      client.addIntegration(linkedTracesIntegration({ storage: linkPreviousTrace, consistentTraceSampling }));
     }
   });
 }) satisfies IntegrationFn;

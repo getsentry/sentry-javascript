@@ -1,3 +1,4 @@
+import { isBotUserAgent } from '@sentry/browser-utils';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { linkTraces } from '../tracing/linkedTraces';
@@ -9,7 +10,7 @@ interface LinkedTracesOptions {
    *
    * Default: 'in-memory'
    */
-  linkPreviousTrace?: 'in-memory' | 'session-storage';
+  storage?: 'in-memory' | 'session-storage';
 
   /**
    * If true, subsequent traces are sampled consistently with the sampling decision of the initial trace.
@@ -20,12 +21,16 @@ interface LinkedTracesOptions {
 }
 
 const _linkedTracesIntegration = ((options: LinkedTracesOptions = {}) => {
-  const { linkPreviousTrace = 'in-memory', consistentTraceSampling = false } = options;
+  const { storage = 'in-memory', consistentTraceSampling = false } = options;
 
   return {
     name: 'LinkedTraces',
     setup(client) {
-      linkTraces(client, { linkPreviousTrace, consistentTraceSampling });
+      if (isBotUserAgent()) {
+        return;
+      }
+
+      linkTraces(client, { linkPreviousTrace: storage, consistentTraceSampling });
     },
   };
 }) satisfies IntegrationFn;
