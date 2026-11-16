@@ -975,7 +975,7 @@ jobs:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
-          ref: ${{ env.HEAD_COMMIT }}
+          ref: ${{ github.sha }}
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
@@ -988,8 +988,6 @@ jobs:
       - name: Run integration tests
         working-directory: dev-packages/bundler-plugin-integration-tests
         run: pnpm run test
-        env:
-          GITHUB_SHA: ${{ env.HEAD_COMMIT }}
 
   job_bun_integration_tests:
     name: Bun (${{ matrix.bun }}) Integration Tests (${{ matrix.shard }}/4)
