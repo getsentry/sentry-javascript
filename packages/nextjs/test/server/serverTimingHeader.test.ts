@@ -23,7 +23,9 @@ function setup(options: { enabled?: boolean } = {}): NodeClient {
 // Without a socket the response buffers what it writes, which is all these tests need.
 function createResponse(client: NodeClient, headers: Record<string, string> = {}): ServerResponse {
   const response = new ServerResponse(new IncomingMessage(new Socket()));
-  Object.entries(headers).forEach(([name, value]) => response.setHeader(name, value));
+  Object.entries({ 'Content-Type': 'text/html; charset=utf-8', ...headers }).forEach(([name, value]) =>
+    response.setHeader(name, value),
+  );
   client.emit('httpServerRequest', {}, response, {});
   return response;
 }
@@ -35,7 +37,7 @@ describe('addServerTimingTraceHeader', () => {
 
   it('sends the trace that is active when the headers go out with the first chunk', () => {
     const client = setup();
-    const response = createResponse(client, { 'Content-Type': 'text/html; charset=utf-8' });
+    const response = createResponse(client);
 
     const { trace_id: traceId, span_id: spanId } = startSpan({ name: 'GET /page' }, span => {
       response.end('<html></html>');
@@ -145,6 +147,25 @@ describe('addServerTimingTraceHeader', () => {
       expect(response.getHeader('Server-Timing')).toBeUndefined();
     },
   );
+
+  it('sends no trace with a response without a content type', () => {
+    const client = setup();
+    const response = createResponse(client);
+    response.removeHeader('Content-Type');
+
+    response.writeHead(200);
+
+    expect(response.getHeader('Server-Timing')).toBeUndefined();
+  });
+
+  it('reads the content type case-insensitively', () => {
+    const client = setup();
+    const response = createResponse(client, { 'Content-Type': 'TEXT/HTML' });
+
+    response.writeHead(200);
+
+    expect(response.getHeader('Server-Timing')).toMatch(/^sentry-trace;desc="/);
+  });
 
   it('sends no trace when the SDK is disabled', () => {
     const client = setup({ enabled: false });

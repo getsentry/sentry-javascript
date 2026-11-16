@@ -1,5 +1,5 @@
 import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
-import type { Span } from '@sentry/core';
+import type { Client, Span } from '@sentry/core';
 import { _INTERNAL_CACHE_ORIGIN_META_TAG_NAME, extractTraceparentData, GLOBAL_OBJ } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
 
@@ -153,9 +153,10 @@ export function addTraceMetaTagLink(span: Span, { sentryTrace }: TraceMetaTagVal
  * Watches for a `sentry-trace` meta tag that arrives after the pageload span started, which can no
  * longer be continued. It still settles how the server rendered a document with a
  * `sentry-cache-origin` tag, and links the server request unless a `Server-Timing` header already
- * connected the pageload to it.
+ * connected the pageload to it. Stops watching when the span ends: a dynamic part that outlasts the
+ * pageload leaves the type unset.
  */
-export function observeLateTraceMetaTag(span: Span): void {
+export function observeLateTraceMetaTag(client: Client, span: Span): void {
   const document = getDocument();
   if (!document || !canObserveTraceMetaTag()) {
     return;
@@ -163,21 +164,28 @@ export function observeLateTraceMetaTag(span: Span): void {
 
   const hasCacheOrigin = !!document.querySelector(`meta[name="${_INTERNAL_CACHE_ORIGIN_META_TAG_NAME}"]`);
   const isConnected = hasServerTimingTraceContext();
-  const setServerRenderingType = (type: string): void => {
+  let stopListening: (() => void) | undefined;
+  const settle = (type: string): void => {
+    stopListening?.();
     if (hasCacheOrigin && span.isRecording()) {
       span.setAttribute(PAGE_SERVER_RENDERING_TYPE, type);
     }
   };
 
-  waitForTraceMetaTag(
+  const wait = waitForTraceMetaTag(
     values => {
       if (!isConnected && span.isRecording()) {
         addTraceMetaTagLink(span, values);
       }
-      setServerRenderingType('partially_static');
+      settle('partially_static');
     },
-    () => setServerRenderingType('static'),
+    () => settle('static'),
   );
+  stopListening = client.on('spanEnd', endedSpan => {
+    if (endedSpan === span) {
+      wait.giveUp();
+    }
+  });
 }
 
 /**

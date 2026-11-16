@@ -64,7 +64,7 @@ function startPageloadSpan(
     scope.setSDKProcessingMetadata({ normalizedRequest: { ...normalizedRequest, url: documentUrl } });
   }
   if (span && !traceMetaTags) {
-    observeLateTraceMetaTag(span);
+    observeLateTraceMetaTag(client, span);
   }
   return span;
 }

@@ -473,6 +473,29 @@ describe('appRouterInstrumentPageLoad', () => {
     expect(spanJson.links).toEqual([PRERENDER_LINK]);
   });
 
+  it('leaves the type unset when the pageload ends before the resumed part arrives', async () => {
+    const { core, pageload } = await setup('static');
+    vi.spyOn(performance, 'getEntriesByType').mockReturnValue([
+      {
+        serverTiming: [
+          { name: 'sentry-trace', description: '33333333333333333333333333333333-3333333333333333-1', duration: 0 },
+        ],
+      } as unknown as PerformanceEntry,
+    ]);
+    appendMeta(document.head, 'sentry-cache-origin', PRERENDER_SENTRY_TRACE);
+
+    pageload.appRouterInstrumentPageLoad(core.getClient()!);
+    const span = core.getActiveSpan()!;
+    span.end();
+    appendMeta(document.body, 'sentry-trace', '33333333333333333333333333333333-4444444444444444-1');
+    await Promise.resolve();
+
+    const spanJson = core.spanToJSON(span);
+    expect(spanJson.parent_span_id).toBe('3333333333333333');
+    expect(spanJson.attributes).not.toHaveProperty(PAGE_SERVER_RENDERING_TYPE);
+    expect(spanJson.links).toEqual([PRERENDER_LINK]);
+  });
+
   it('links the server request when its trace meta tag arrives after the wait gave up', async () => {
     const { core, pageload } = await setup('static');
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });

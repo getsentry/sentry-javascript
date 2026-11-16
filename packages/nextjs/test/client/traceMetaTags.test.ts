@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
-import type { Span } from '@sentry/core';
+import type { Client, Span } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addTraceMetaTagLink,
@@ -259,11 +259,23 @@ describe('observeLateTraceMetaTag', () => {
     attributes: { [SENTRY_LINK_TYPE]: 'server_request' },
   };
 
-  function createSpan(): Span & { setAttribute: ReturnType<typeof vi.fn>; addLink: ReturnType<typeof vi.fn> } {
-    return { isRecording: () => true, setAttribute: vi.fn(), addLink: vi.fn() } as unknown as Span & {
-      setAttribute: ReturnType<typeof vi.fn>;
-      addLink: ReturnType<typeof vi.fn>;
-    };
+  type MockSpan = Span & { setAttribute: ReturnType<typeof vi.fn>; addLink: ReturnType<typeof vi.fn> };
+
+  function createSpan(): MockSpan {
+    return { isRecording: () => true, setAttribute: vi.fn(), addLink: vi.fn() } as unknown as MockSpan;
+  }
+
+  /** A client whose `spanEnd` listeners this test can fire and whose unsubscribe it can observe. */
+  function createClient(): { client: Client; endSpan: (span: Span) => void; stopListening: ReturnType<typeof vi.fn> } {
+    const listeners: Array<(span: Span) => void> = [];
+    const stopListening = vi.fn();
+    const client = {
+      on: (_hook: string, callback: (span: Span) => void) => {
+        listeners.push(callback);
+        return stopListening;
+      },
+    } as unknown as Client;
+    return { client, endSpan: span => listeners.forEach(listener => listener(span)), stopListening };
   }
 
   beforeEach(() => {
@@ -275,13 +287,33 @@ describe('observeLateTraceMetaTag', () => {
     setServerTimingTrace(BODY_TRACE);
     const span = createSpan();
 
-    observeLateTraceMetaTag(span);
+    const { client, stopListening } = createClient();
+
+    observeLateTraceMetaTag(client, span);
     appendMeta(document.body, 'sentry-trace', BODY_TRACE);
     // MutationObserver callbacks run as microtasks.
     await Promise.resolve();
 
     expect(span.setAttribute).toHaveBeenCalledWith(PAGE_SERVER_RENDERING_TYPE, 'partially_static');
     expect(span.addLink).not.toHaveBeenCalled();
+    expect(stopListening).toHaveBeenCalled();
+  });
+
+  it('leaves the type unset and stops watching when the pageload ends before the tag arrives', async () => {
+    appendMeta(document.head, 'sentry-cache-origin', HEAD_TRACE);
+    setServerTimingTrace(BODY_TRACE);
+    const span = createSpan();
+    const { client, endSpan, stopListening } = createClient();
+
+    observeLateTraceMetaTag(client, span);
+    span.isRecording = () => false;
+    endSpan(span);
+    appendMeta(document.body, 'sentry-trace', BODY_TRACE);
+    await Promise.resolve();
+
+    expect(span.setAttribute).not.toHaveBeenCalled();
+    expect(span.addLink).not.toHaveBeenCalled();
+    expect(stopListening).toHaveBeenCalled();
   });
 
   it('marks a page as static when the document finishes without a tag', () => {
@@ -289,7 +321,7 @@ describe('observeLateTraceMetaTag', () => {
     setServerTimingTrace(BODY_TRACE);
     const span = createSpan();
 
-    observeLateTraceMetaTag(span);
+    observeLateTraceMetaTag(createClient().client, span);
     setReadyState('interactive');
     document.dispatchEvent(new Event('DOMContentLoaded'));
 
@@ -302,7 +334,7 @@ describe('observeLateTraceMetaTag', () => {
     vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
     const span = createSpan();
 
-    observeLateTraceMetaTag(span);
+    observeLateTraceMetaTag(createClient().client, span);
     appendMeta(document.body, 'sentry-trace', BODY_TRACE);
     await Promise.resolve();
 
@@ -314,7 +346,7 @@ describe('observeLateTraceMetaTag', () => {
     vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
     const span = createSpan();
 
-    observeLateTraceMetaTag(span);
+    observeLateTraceMetaTag(createClient().client, span);
     appendMeta(document.body, 'sentry-trace', BODY_TRACE);
     await Promise.resolve();
     setReadyState('interactive');
@@ -329,7 +361,7 @@ describe('observeLateTraceMetaTag', () => {
     setReadyState('interactive');
     const span = createSpan();
 
-    observeLateTraceMetaTag(span);
+    observeLateTraceMetaTag(createClient().client, span);
     document.dispatchEvent(new Event('DOMContentLoaded'));
 
     expect(span.setAttribute).not.toHaveBeenCalled();

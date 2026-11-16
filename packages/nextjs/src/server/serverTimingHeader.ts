@@ -62,8 +62,7 @@ function readHeader(response: HttpServerResponse, headers: HeaderObject | undefi
 
 // Only the navigation entry of a document exposes the header to the browser SDK.
 function isDocument(response: HttpServerResponse, headers: HeaderObject | undefined): boolean {
-  const contentType = readHeader(response, headers, 'content-type');
-  return !contentType || contentType.startsWith('text/html');
+  return !!readHeader(response, headers, 'content-type')?.toLowerCase().startsWith('text/html');
 }
 
 /**
