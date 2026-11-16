@@ -33,12 +33,10 @@ import {
   appendStreamPart,
   contentBlocksToParts,
   getClaudeInputAttributes,
-  getClaudeOutputParts,
   getConverseInputAttributes,
   getPromptInputAttributes,
   setOutputMessages,
   startStreamToolCall,
-  textParts,
 } from './bedrock-runtime-content';
 import type { RequestMetadata, ServiceExtension } from './ServiceExtension';
 
@@ -396,7 +394,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
         }
       }
       if (resolveAIRecordingOptions().recordOutputs) {
-        setOutputMessages(span, getInvokeModelOutputParts(currentModelId, responseBody), finishReason);
+        setOutputMessages(span, getInvokeModelOutputParts(responseBody), finishReason);
       }
     }
   }
@@ -423,6 +421,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
         if (processChunk) {
           const parsedChunk = parseChunk(item?.chunk?.bytes);
           if (parsedChunk) {
+            appendStreamPart(state.parts, 0, 'text', getResponseText(parsedChunk));
             processChunk(parsedChunk, state);
           }
         }
@@ -431,16 +430,22 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
   }
 }
 
-function getInvokeModelOutputParts(modelId: string, responseBody: ParsedChunk): GenAiMessagePart[] {
-  if (modelId.includes('amazon.nova')) return contentBlocksToParts(responseBody.output?.message?.content);
-  if (modelId.includes('anthropic.claude')) return getClaudeOutputParts(responseBody.content);
-  // The other families return one text: Titan, Llama, Cohere Command R, Cohere Command, Mistral.
-  return textParts(
-    responseBody.results?.[0]?.outputText ??
-      responseBody.generation ??
-      responseBody.text ??
-      responseBody.generations?.[0]?.text ??
-      responseBody.outputs?.[0]?.text,
+function getInvokeModelOutputParts(responseBody: ParsedChunk): GenAiMessagePart[] {
+  // Nova and Claude return content blocks, the other families one text.
+  return contentBlocksToParts(
+    responseBody.output?.message?.content ?? responseBody.content ?? [{ text: getResponseText(responseBody) }],
+  );
+}
+
+/** The text of a Titan, Llama, Cohere Command R, Cohere Command, or Mistral response body or stream chunk. */
+function getResponseText(body: ParsedChunk): unknown {
+  return (
+    body.outputText ??
+    body.results?.[0]?.outputText ??
+    body.generation ??
+    body.text ??
+    body.generations?.[0]?.text ??
+    body.outputs?.[0]?.text
   );
 }
 
@@ -604,7 +609,6 @@ function processClaudeChunk(parsedChunk: ParsedChunk, state: BedrockStreamState)
 }
 
 function processTitanChunk(parsedChunk: ParsedChunk, state: BedrockStreamState): void {
-  appendStreamPart(state.parts, 0, 'text', parsedChunk.outputText);
   if (typeof parsedChunk.inputTextTokenCount === 'number') {
     state.promptTokens = parsedChunk.inputTextTokenCount;
   }
@@ -615,7 +619,6 @@ function processTitanChunk(parsedChunk: ParsedChunk, state: BedrockStreamState):
 }
 
 function processLlamaChunk(parsedChunk: ParsedChunk, state: BedrockStreamState): void {
-  appendStreamPart(state.parts, 0, 'text', parsedChunk.generation);
   if (typeof parsedChunk.prompt_token_count === 'number') {
     state.promptTokens = parsedChunk.prompt_token_count;
   }
@@ -640,19 +643,16 @@ function processInvocationMetrics(parsedChunk: ParsedChunk, state: StreamRespons
 }
 
 function processMistralChunk(parsedChunk: ParsedChunk, state: BedrockStreamState): void {
-  appendStreamPart(state.parts, 0, 'text', parsedChunk.outputs?.[0]?.text);
   processInvocationMetrics(parsedChunk, state);
   pushFinishReason(state, parsedChunk.outputs?.[0]?.stop_reason);
 }
 
 function processCohereChunk(parsedChunk: ParsedChunk, state: BedrockStreamState): void {
-  appendStreamPart(state.parts, 0, 'text', parsedChunk.generations?.[0]?.text);
   processInvocationMetrics(parsedChunk, state);
   pushFinishReason(state, parsedChunk.generations?.[0]?.finish_reason);
 }
 
 function processCohereRChunk(parsedChunk: ParsedChunk, state: BedrockStreamState): void {
-  appendStreamPart(state.parts, 0, 'text', parsedChunk.text);
   processInvocationMetrics(parsedChunk, state);
   pushFinishReason(state, parsedChunk.finish_reason);
 }

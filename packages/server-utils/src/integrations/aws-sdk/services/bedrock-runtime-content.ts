@@ -10,7 +10,8 @@ import { getMessagesAttributes, messagesFromParams } from '../../../ai/anthropic
 import type { GenAiMessagePart } from '../../../ai/types';
 
 /**
- * Translate Converse `ContentBlock`s (also used by Amazon Nova `InvokeModel` bodies) into message parts.
+ * Translate Converse `ContentBlock`s (also used by Amazon Nova `InvokeModel` bodies) and the Anthropic Messages
+ * blocks of Claude `InvokeModel` responses into message parts.
  * The conventions require a `type` on each part, and Bedrock's blocks (`{ text }`, `{ toolUse }`, ...) have none.
  *
  * Media is reported by modality only: inline media is raw bytes, which would serialize as a large array of
@@ -30,13 +31,23 @@ function contentBlockToParts(block: unknown): GenAiMessagePart[] {
     return [{ type: 'text', content: block.text }];
   }
 
-  const { toolUse, toolResult, reasoningContent, guardContent, citationsContent } = block;
+  if (typeof block.thinking === 'string') {
+    return [{ type: 'reasoning', content: block.thinking }];
+  }
+
+  const {
+    toolUse = block.type === 'tool_use' ? block : undefined,
+    toolResult,
+    reasoningContent,
+    guardContent,
+    citationsContent,
+  } = block;
 
   if (isObjectLike(toolUse)) {
     return [
       {
         type: 'tool_call',
-        id: toolUse.toolUseId,
+        id: toolUse.toolUseId ?? toolUse.id,
         name: toolUse.name,
         arguments: stringify(toolUse.input ?? {}, String),
       },
@@ -157,33 +168,6 @@ export function getPromptInputAttributes(prompt: unknown): Record<string, unknow
     return {};
   }
   return { [GEN_AI_INPUT_MESSAGES]: JSON.stringify([{ role: 'user', parts: [{ type: 'text', content: prompt }] }]) };
-}
-
-/** Output parts of an Anthropic Messages response body (Claude `InvokeModel`). */
-export function getClaudeOutputParts(content: unknown): GenAiMessagePart[] {
-  if (!Array.isArray(content)) {
-    return [];
-  }
-
-  return content.flatMap((block): GenAiMessagePart[] => {
-    if (!isObjectLike(block)) {
-      return [];
-    }
-    if (block.type === 'text') {
-      return textParts(block.text);
-    }
-    if (block.type === 'thinking') {
-      return typeof block.thinking === 'string' ? [{ type: 'reasoning', content: block.thinking }] : [];
-    }
-    if (block.type === 'tool_use') {
-      return [{ type: 'tool_call', id: block.id, name: block.name, arguments: stringify(block.input ?? {}, String) }];
-    }
-    return [];
-  });
-}
-
-export function textParts(text: unknown): GenAiMessagePart[] {
-  return typeof text === 'string' ? [{ type: 'text', content: text }] : [];
 }
 
 /** Record the parts as one assistant message. Parts of a stream are kept at their block index, so skip the gaps. */
