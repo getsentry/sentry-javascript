@@ -72,7 +72,7 @@ const NOT_TRIAGED = [
   'suites/tracing/mongodb/test.ts',
   'suites/tracing/mongoose-v5/test.ts',
   'suites/tracing/mysql/test.ts',
-  'suites/tracing/openai/test.ts',
+  'suites/tracing/openai/v5/**',
   'suites/tracing/openai/v7/test.ts',
   'suites/tracing/orchestrion-lazy-registration/test.ts',
   'suites/tracing/prisma-orm-v7/test.ts',
