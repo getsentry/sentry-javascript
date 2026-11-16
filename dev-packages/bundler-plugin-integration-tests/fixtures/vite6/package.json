@@ -5,6 +5,6 @@
   "type": "module",
   "dependencies": {
     "vite": "6.4.1",
-    "@sentry/bundler-plugins": "11.11.0"
+    "@sentry/bundler-plugins": "11.12.0"
   }
 }

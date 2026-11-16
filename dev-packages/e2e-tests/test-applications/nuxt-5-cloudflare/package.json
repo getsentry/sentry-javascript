@@ -1,0 +1,41 @@
+{
+  "name": "nuxt-5-cloudflare",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --port 3030 --log-level=$(test $CI && echo 'none' || echo 'log')",
+    "test": "playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test",
+    "test:build:tunnel": "pnpm install && E2E_TEST_TUNNEL=1 pnpm build",
+    "test:assert:tunnel": "E2E_TEST_TUNNEL=1 pnpm test tunnel"
+  },
+  "//": [
+    "Nuxt v5 is only on the Nuxt nightlies, like the `nuxt-5` app.",
+    "`ofetch` is a dependency of `nuxt`, which Nuxt's virtual `fetch.server.mjs` can't resolve from the app, see `nuxt-5`."
+  ],
+  "dependencies": {
+    "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
+    "nuxt": "npm:nuxt-nightly@5x",
+    "ofetch": "^2.0.0-alpha.3",
+    "vue": "^3.5.41"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
+    "wrangler": "^4.72.0"
+  },
+  "sentryTest": {
+    "optional": true,
+    "variants": [
+      {
+        "build-command": "pnpm test:build:tunnel",
+        "assert-command": "pnpm test:assert:tunnel",
+        "label": "nuxt-5-cloudflare (tunnel)"
+      }
+    ]
+  }
+}

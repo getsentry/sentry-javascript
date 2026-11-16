@@ -10,8 +10,7 @@
     "test:assert": "node ./assert.mjs"
   },
   "dependencies": {
-    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
-    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz"
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz"
   },
   "devDependencies": {
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",

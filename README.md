@@ -66,7 +66,7 @@ package. Please refer to the README and instructions of those SDKs for more deta
 - [`@sentry/remix`](https://github.com/getsentry/sentry-javascript/tree/master/packages/remix): SDK for Remix
 - [`@sentry/tanstackstart-react`](https://github.com/getsentry/sentry-javascript/tree/master/packages/tanstackstart-react): SDK for TanStack Start React
 - [`@sentry/aws-serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/aws-serverless): SDK
-  for AWS Lambda Functions
+  for AWS Lambda Event Functions
 - [`@sentry/google-cloud-serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/google-cloud-serverless):
   SDK for Google Cloud Functions
 - [`@sentry/electron`](https://github.com/getsentry/sentry-electron): SDK for Electron with support for native crashes

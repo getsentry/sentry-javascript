@@ -666,7 +666,7 @@ function buildTextMessage(type: 'generateText' | 'streamText' | 'generateObject'
       // The `ai` SDK takes the system prompt as a top-level `system` option (all of v4/v5/v6); the
       // shared core lifts `event.instructions` into the system-instructions attribute, matching v7's
       // native channel (which carries it as a distinct field rather than inside the messages array).
-      instructions: asString(options.system),
+      instructions: options.system,
       // Normalize to the message-array shape the shared core (and v7's channel) expects: a bare string
       // `prompt` becomes a single user message, matching the SDK's own normalization.
       messages: normalizePromptMessages(options),

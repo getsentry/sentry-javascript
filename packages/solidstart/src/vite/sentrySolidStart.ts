@@ -44,9 +44,9 @@ export type SentrySolidStartOptions = BuildTimeOptionsBase;
 export function sentrySolidStart(options: SentrySolidStartOptions = {}): Plugin[] {
   warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions']);
 
-  const plugins: Plugin[] = [makeSentryNitroPlugin(options)];
+  const plugins: Plugin[] = [makeSentryNitroPlugin(options), makeServerEntryPlugin()];
 
-  // Only the Nitro plugin is dev-safe; its module handles `dev` itself.
+  // Only the Nitro and server entry plugins are dev-safe; the Nitro module handles `dev` itself.
   if (process.env.NODE_ENV === 'development') {
     return plugins;
   }
@@ -60,6 +60,29 @@ export function sentrySolidStart(options: SentrySolidStartOptions = {}): Plugin[
   }
 
   return plugins;
+}
+
+const SERVER_RUNTIME_CONDITION = 'sentry-solidstart-runtime';
+
+/**
+ * Resolves `@sentry/solidstart` in server environments to the entry without the deprecated SolidStart 1
+ * `withSentry`. Its build-time imports (Sentry CLI, oxc-parser) otherwise end up in the server output:
+ * Nitro traces their native files, and Rolldown still emits the CLI's dynamic-import chunks after
+ * tree-shaking the code that imports them.
+ */
+function makeServerEntryPlugin(): Plugin {
+  return {
+    name: 'sentry-solidstart-server-entry',
+    configEnvironment(name, config) {
+      // Vite concatenates the returned conditions onto these. If none are set yet, returning one would
+      // replace Vite's defaults, so leave resolution alone.
+      if (name === 'client' || config.consumer === 'client' || !config.resolve?.conditions) {
+        return;
+      }
+
+      return { resolve: { conditions: [SERVER_RUNTIME_CONDITION] } };
+    },
+  };
 }
 
 // Nitro's `NitroConfig` only matches `@sentry/nitro`'s when both resolve the same `nitro` install,

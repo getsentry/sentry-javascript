@@ -6,6 +6,7 @@ import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PIPELINE_NAME,
+  GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TEXT,
@@ -114,6 +115,7 @@ describe('LangGraph integration', () => {
             expect(toolAgentInvokeSpan!.attributes[GEN_AI_TOOL_DEFINITIONS].value).toContain('get_weather');
             expect(toolAgentInvokeSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('What is the weather?');
             expect(toolAgentInvokeSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gpt-4-0613');
+            expect(toolAgentInvokeSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["stop"]');
             expect(toolAgentInvokeSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toContain(
               'Response without calling tools',
             );

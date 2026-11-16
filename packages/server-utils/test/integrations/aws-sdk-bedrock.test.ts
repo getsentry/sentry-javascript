@@ -1,9 +1,13 @@
 import {
+  GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
@@ -27,12 +31,16 @@ const CLAUDE_REQUEST_BODY = {
   messages: [{ role: 'user', content: 'What is the capital of France?' }],
 };
 
-function invokeModelPreSpanHook(commandInput: Record<string, unknown>): RequestMetadata {
+function preSpanHook(commandName: string, commandInput: Record<string, unknown>): RequestMetadata {
   return new BedrockRuntimeServiceExtension().requestPreSpanHook({
     serviceName: 'BedrockRuntime',
-    commandName: 'InvokeModel',
+    commandName,
     commandInput,
   });
+}
+
+function invokeModelPreSpanHook(commandInput: Record<string, unknown>): RequestMetadata {
+  return preSpanHook('InvokeModel', commandInput);
 }
 
 describe('BedrockRuntimeServiceExtension InvokeModel request', () => {
@@ -47,6 +55,7 @@ describe('BedrockRuntimeServiceExtension InvokeModel request', () => {
       [GEN_AI_REQUEST_MODEL]: CLAUDE_MODEL_ID,
       [GEN_AI_REQUEST_MAX_TOKENS]: 1024,
       [GEN_AI_REQUEST_TEMPERATURE]: 0.5,
+      [GEN_AI_INPUT_MESSAGES]: JSON.stringify(CLAUDE_REQUEST_BODY.messages),
     });
   });
 
@@ -77,6 +86,148 @@ describe('BedrockRuntimeServiceExtension InvokeModel request', () => {
         [GEN_AI_OPERATION_NAME]: 'generate_content',
       },
     });
+  });
+});
+
+const WEATHER_TOOL_SPEC = {
+  name: 'get_weather',
+  description: 'Get the weather for a city',
+  inputSchema: { json: { type: 'object', properties: { city: { type: 'string' } } } },
+};
+
+describe('BedrockRuntimeServiceExtension input recording', () => {
+  afterEach(() => {
+    setCurrentClient(undefined as never);
+  });
+
+  it('records Converse system instructions, messages, and tool definitions as message parts', () => {
+    const { spanAttributes } = preSpanHook('Converse', {
+      modelId: 'amazon.nova-pro-v1:0',
+      system: [{ text: 'You are a weather bot.' }, { cachePoint: { type: 'default' } }],
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { text: 'What is the weather in Kawasaki?' },
+            { image: { format: 'png', source: { bytes: new Uint8Array([1, 2, 3]) } } },
+            { image: { source: { bytes: new Uint8Array([1]) } } },
+            { document: { name: 'forecast', source: { bytes: new Uint8Array([1]) } } },
+            { guardContent: { text: { text: 'Guarded text' } } },
+            { guardContent: { image: { format: 'jpeg', source: { bytes: new Uint8Array([1]) } } } },
+            { cachePoint: { type: 'default' } },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            { reasoningContent: { reasoningText: { text: 'I need the weather tool.' } } },
+            { reasoningContent: { redactedContent: new Uint8Array([1]) } },
+            { toolUse: { toolUseId: 'tooluse_1', name: 'get_weather', input: { city: 'Kawasaki' } } },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              toolResult: {
+                toolUseId: 'tooluse_1',
+                content: [{ text: 'Sunny' }, { json: { celsius: 21 } }, { image: { format: 'png' } }],
+              },
+            },
+            { citationsContent: { content: [{ text: 'Cited text' }] } },
+          ],
+        },
+        { role: 'user', content: [{ cachePoint: { type: 'default' } }] },
+      ],
+      toolConfig: { tools: [{ toolSpec: WEATHER_TOOL_SPEC }, { cachePoint: { type: 'default' } }] },
+    });
+
+    expect(spanAttributes).toEqual({
+      [GEN_AI_PROVIDER_NAME]: 'aws.bedrock',
+      [GEN_AI_OPERATION_NAME]: 'chat',
+      [GEN_AI_REQUEST_MODEL]: 'amazon.nova-pro-v1:0',
+      [GEN_AI_SYSTEM_INSTRUCTIONS]: JSON.stringify([{ type: 'text', content: 'You are a weather bot.' }]),
+      [GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+        {
+          role: 'user',
+          parts: [
+            { type: 'text', content: 'What is the weather in Kawasaki?' },
+            { type: 'blob', modality: 'image', mime_type: 'image/png' },
+            { type: 'blob', modality: 'image' },
+            { type: 'blob', modality: 'document' },
+            { type: 'text', content: 'Guarded text' },
+            { type: 'blob', modality: 'image', mime_type: 'image/jpeg' },
+          ],
+        },
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'reasoning', content: 'I need the weather tool.' },
+            { type: 'tool_call', id: 'tooluse_1', name: 'get_weather', arguments: '{"city":"Kawasaki"}' },
+          ],
+        },
+        {
+          role: 'user',
+          parts: [
+            { type: 'tool_call_response', id: 'tooluse_1', result: 'Sunny\n{"celsius":21}' },
+            { type: 'text', content: 'Cited text' },
+          ],
+        },
+      ]),
+      [GEN_AI_TOOL_DEFINITIONS]: JSON.stringify([WEATHER_TOOL_SPEC]),
+    });
+  });
+
+  it('records Claude InvokeModel system instructions, messages, and tool definitions like the Anthropic integration', () => {
+    const tools = [{ name: 'get_weather', input_schema: { type: 'object' } }];
+    const messages = [{ role: 'user', content: [{ type: 'text', text: 'What is the weather in Kawasaki?' }] }];
+    const body = { system: [{ type: 'text', text: 'You are a weather bot.' }], messages, tools };
+
+    const { spanAttributes } = invokeModelPreSpanHook({ modelId: CLAUDE_MODEL_ID, body: JSON.stringify(body) });
+
+    expect(spanAttributes).toEqual({
+      [GEN_AI_PROVIDER_NAME]: 'aws.bedrock',
+      [GEN_AI_OPERATION_NAME]: 'generate_content',
+      [GEN_AI_REQUEST_MODEL]: CLAUDE_MODEL_ID,
+      [GEN_AI_SYSTEM_INSTRUCTIONS]: JSON.stringify([{ type: 'text', content: 'You are a weather bot.' }]),
+      [GEN_AI_INPUT_MESSAGES]: JSON.stringify(messages),
+      [GEN_AI_TOOL_DEFINITIONS]: JSON.stringify(tools),
+    });
+  });
+
+  it.each([
+    { family: 'Titan', modelId: 'amazon.titan-text-express-v1', body: { inputText: 'Kawasaki' } },
+    { family: 'Llama', modelId: 'meta.llama3-8b-instruct-v1:0', body: { prompt: 'Kawasaki' } },
+    { family: 'Cohere Command R', modelId: 'cohere.command-r-v1:0', body: { message: 'Kawasaki' } },
+    { family: 'Cohere Command', modelId: 'cohere.command-text-v14', body: { prompt: 'Kawasaki' } },
+    { family: 'Mistral', modelId: 'mistral.mistral-7b-instruct-v0:2', body: { prompt: 'Kawasaki' } },
+    {
+      family: 'Nova',
+      modelId: 'amazon.nova-lite-v1:0',
+      body: { messages: [{ role: 'user', content: [{ text: 'Kawasaki' }] }] },
+    },
+  ])('records the $family InvokeModel prompt as a user message', ({ modelId, body }) => {
+    const { spanAttributes } = invokeModelPreSpanHook({ modelId, body: JSON.stringify(body) });
+
+    expect(spanAttributes?.[GEN_AI_INPUT_MESSAGES]).toBe(
+      JSON.stringify([{ role: 'user', parts: [{ type: 'text', content: 'Kawasaki' }] }]),
+    );
+  });
+
+  it.each([
+    { commandName: 'Converse', commandInput: { messages: [{ role: 'user', content: [{ text: 'Kawasaki' }] }] } },
+    {
+      commandName: 'InvokeModel',
+      commandInput: { modelId: CLAUDE_MODEL_ID, body: JSON.stringify(CLAUDE_REQUEST_BODY) },
+    },
+  ])('records no $commandName input when dataCollection.genAI.inputs is off', ({ commandName, commandInput }) => {
+    const client = new TestClient(getDefaultTestClientOptions({ dataCollection: { genAI: { inputs: false } } }));
+    setCurrentClient(client);
+    client.init();
+
+    const { spanAttributes } = preSpanHook(commandName, commandInput);
+
+    expect(spanAttributes).not.toHaveProperty(GEN_AI_INPUT_MESSAGES);
   });
 });
 
@@ -172,6 +323,106 @@ describe('BedrockRuntimeServiceExtension stream spans', () => {
     expect(spanToJSON(span).attributes?.[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(42);
   });
 
+  const INVOCATION_METRICS = {
+    inputTokenCount: 11,
+    outputTokenCount: 3,
+    invocationLatency: 412,
+    firstByteLatency: 198,
+  };
+
+  it.each(
+    [
+      { modelId: 'mistral.mistral-large-2402-v1:0', toChunk: (text: string) => ({ outputs: [{ text }] }) },
+      { modelId: 'cohere.command-text-v14', toChunk: (text: string) => ({ generations: [{ text }] }) },
+      { modelId: 'cohere.command-r-plus-v1:0', toChunk: (text: string) => ({ text }) },
+    ].flatMap(family => [
+      {
+        ...family,
+        when: 'has invocation metrics',
+        metrics: INVOCATION_METRICS,
+        expected: { [GEN_AI_USAGE_INPUT_TOKENS]: 11, [GEN_AI_USAGE_OUTPUT_TOKENS]: 3 },
+      },
+      {
+        ...family,
+        when: 'has no invocation metrics',
+        metrics: undefined,
+        expected: { [GEN_AI_USAGE_INPUT_TOKENS]: undefined, [GEN_AI_USAGE_OUTPUT_TOKENS]: undefined },
+      },
+    ]),
+  )('records only real token counts when a $modelId stream $when', async ({ modelId, toChunk, metrics, expected }) => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const encoder = new TextEncoder();
+    const chunks = [toChunk('The capital'), { ...toChunk(' is Paris.'), 'amazon-bedrock-invocationMetrics': metrics }];
+    const data = {
+      body: (async function* () {
+        for (const chunk of chunks) {
+          yield { chunk: { bytes: encoder.encode(JSON.stringify(chunk)) } };
+        }
+      })(),
+    };
+
+    respond(span, 'InvokeModelWithResponseStream', { modelId }, data);
+    await drain(data.body);
+
+    const attributes = spanToJSON(span).attributes;
+    expect({
+      [GEN_AI_USAGE_INPUT_TOKENS]: attributes?.[GEN_AI_USAGE_INPUT_TOKENS],
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: attributes?.[GEN_AI_USAGE_OUTPUT_TOKENS],
+    }).toEqual(expected);
+  });
+
+  it.each([
+    {
+      family: 'Llama',
+      modelId: 'meta.llama3-8b-instruct-v1:0',
+      chunks: [
+        { generation: 'Kawasaki', prompt_token_count: 12, generation_token_count: 1, stop_reason: null },
+        { generation: '.', prompt_token_count: null, generation_token_count: 2, stop_reason: 'stop' },
+      ],
+      expected: { input: 12, output: 2, total: 14, finishReasons: '["stop"]' },
+    },
+    {
+      family: 'Titan',
+      modelId: 'amazon.titan-text-express-v1',
+      chunks: [
+        { outputText: 'Kawasaki', totalOutputTextTokenCount: null, completionReason: null, inputTextTokenCount: 5 },
+        { outputText: '.', totalOutputTextTokenCount: 2, completionReason: 'FINISH', inputTextTokenCount: null },
+      ],
+      expected: { input: 5, output: 2, total: 7, finishReasons: '["FINISH"]' },
+    },
+    {
+      family: 'Nova',
+      modelId: 'amazon.nova-lite-v1:0',
+      chunks: [
+        { contentBlockDelta: { delta: { text: 'Kawasaki' }, contentBlockIndex: 0 } },
+        { messageStop: { stopReason: 'end_turn' } },
+        { metadata: { usage: { inputTokens: 7, outputTokens: 2 }, metrics: {}, trace: {} } },
+      ],
+      expected: { input: 7, output: 2, total: 9, finishReasons: '["end_turn"]' },
+    },
+  ])('records token usage and finish reasons for a $family stream', async ({ modelId, chunks, expected }) => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const encoder = new TextEncoder();
+    const data = {
+      body: (async function* () {
+        for (const chunk of chunks) {
+          yield { chunk: { bytes: encoder.encode(JSON.stringify(chunk)) } };
+        }
+      })(),
+    };
+
+    respond(span, 'InvokeModelWithResponseStream', { modelId }, data);
+    await drain(data.body);
+
+    const attributes = spanToJSON(span).attributes;
+    expect({
+      input: attributes?.[GEN_AI_USAGE_INPUT_TOKENS],
+      output: attributes?.[GEN_AI_USAGE_OUTPUT_TOKENS],
+      total: attributes?.[GEN_AI_USAGE_TOTAL_TOKENS],
+      finishReasons: attributes?.[GEN_AI_RESPONSE_FINISH_REASONS],
+    }).toEqual(expected);
+  });
+
   it('ends an InvokeModelWithResponseStream span without a modelId when the stream is drained', async () => {
     const span = startInactiveSpan({ name: 'bedrock' });
     const data = { body: (async function* () {})() };
@@ -243,6 +494,31 @@ describe('BedrockRuntimeServiceExtension token usage with prompt caching', () =>
     expect(usageAttributes(span, EXPECTED_USAGE)).toEqual(EXPECTED_USAGE);
   });
 
+  it('counts cache reads and writes in the total tokens for ConverseStream', async () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const data = {
+      stream: (async function* () {
+        yield {
+          metadata: {
+            // The total comes from the cache-adjusted input, like for Converse, not from `totalTokens`.
+            usage: {
+              inputTokens: 20,
+              outputTokens: 50,
+              totalTokens: 70,
+              cacheReadInputTokens: 1800,
+              cacheWriteInputTokens: 300,
+            },
+          },
+        };
+      })(),
+    };
+
+    respond(span, 'ConverseStream', { modelId: CLAUDE_MODEL_ID }, data);
+    await drain(data.stream);
+
+    expect(usageAttributes(span, EXPECTED_USAGE)).toEqual(EXPECTED_USAGE);
+  });
+
   it('counts cache reads and writes as input tokens for Claude InvokeModel', () => {
     const span = startInactiveSpan({ name: 'bedrock' });
     const body = encoder.encode(
@@ -267,17 +543,17 @@ describe('BedrockRuntimeServiceExtension token usage with prompt caching', () =>
       type: 'message_start',
       message: { id: 'msg_bdrk_01Fv2yWBqLQ8Pp4q9kJbDxXz', role: 'assistant', usage: CLAUDE_USAGE },
     };
+    const messageDelta = { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 50 } };
     const data = {
       body: (async function* () {
         yield { chunk: { bytes: encoder.encode(JSON.stringify(messageStart)) } };
+        yield { chunk: { bytes: encoder.encode(JSON.stringify(messageDelta)) } };
       })(),
     };
 
     respond(span, 'InvokeModelWithResponseStream', { modelId: CLAUDE_MODEL_ID }, data);
     await drain(data.body);
 
-    // The total waits for the final output count, which `message_start` does not carry.
-    const expected = { ...EXPECTED_INPUT_USAGE, [GEN_AI_USAGE_TOTAL_TOKENS]: undefined };
-    expect(usageAttributes(span, expected)).toEqual(expected);
+    expect(usageAttributes(span, EXPECTED_USAGE)).toEqual(EXPECTED_USAGE);
   });
 });

@@ -22,6 +22,8 @@ export function createBasicSentryServer(onEnvelope: (env: Envelope) => void): Pr
       console.error(e);
     }
 
+    // Browsers send envelopes cross-origin, as they do to sentry.io, and reject the response without this.
+    res.set('Access-Control-Allow-Origin', '*');
     res.status(200).send();
   });
 

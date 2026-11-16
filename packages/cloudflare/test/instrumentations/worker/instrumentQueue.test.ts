@@ -2,6 +2,7 @@
 // Although this is not ideal, this is the best we can do until we have a better way to test cloudflare workers.
 
 import type { ExecutionContext, MessageBatch } from '@cloudflare/workers-types';
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
@@ -294,6 +295,108 @@ describe('instrumentQueue', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
+    });
+
+    test('links producer traces and removes transport context before invoking the handler', async () => {
+      const originalBatch = createMockQueueBatch();
+      const batch = {
+        ...originalBatch,
+        messages: [
+          {
+            ...originalBatch.messages[0]!,
+            body: {
+              invoiceId: 'inv_123',
+              __sentry_queue_trace__: '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+            },
+          },
+          {
+            ...originalBatch.messages[1]!,
+            body: {
+              invoiceId: 'inv_456',
+              __sentry_queue_trace__: 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-0',
+            },
+          },
+          {
+            ...originalBatch.messages[0]!,
+            id: '3',
+            body: {
+              invoiceId: 'inv_789',
+              __sentry_queue_trace__: '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+            },
+          },
+          {
+            ...originalBatch.messages[1]!,
+            id: '4',
+            body: {
+              invoiceId: 'inv_invalid',
+              __sentry_queue_trace__: 'not-a-valid-trace',
+            },
+          },
+        ],
+      } satisfies MessageBatch<unknown>;
+      let receivedBodies: unknown[] = [];
+      let processSpan: ReturnType<typeof SentryCore.spanToJSON> | undefined;
+      const handler = {
+        queue(receivedBatch, _env, _context) {
+          receivedBodies = receivedBatch.messages.map(message => message.body);
+          processSpan = SentryCore.spanToJSON(SentryCore.getActiveSpan()!);
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+      const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN, tracesSampleRate: 1 }), handler);
+
+      await wrappedHandler.queue?.(batch, MOCK_ENV, createMockExecutionContext());
+
+      expect(receivedBodies).toEqual([
+        { invoiceId: 'inv_123' },
+        { invoiceId: 'inv_456' },
+        { invoiceId: 'inv_789' },
+        { invoiceId: 'inv_invalid' },
+      ]);
+      expect(processSpan?.parent_span_id).toBeUndefined();
+      expect(processSpan?.links).toEqual([
+        {
+          trace_id: '1234567890abcdef1234567890abcdef',
+          span_id: '1234567890abcdef',
+          sampled: true,
+          attributes: { [SENTRY_LINK_TYPE]: 'message_origin' },
+        },
+        {
+          trace_id: 'abcdefabcdefabcdefabcdefabcdefab',
+          span_id: 'fedcbafedcbafedc',
+          sampled: false,
+          attributes: { [SENTRY_LINK_TYPE]: 'message_origin' },
+        },
+      ]);
+    });
+
+    test('does not throw when the transport context cannot be removed from a frozen body', async () => {
+      const originalBatch = createMockQueueBatch();
+      const body = Object.freeze({
+        invoiceId: 'inv_123',
+        __sentry_queue_trace__: '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+      });
+      const batch = {
+        ...originalBatch,
+        messages: [{ ...originalBatch.messages[0]!, body }],
+      } satisfies MessageBatch<unknown>;
+      let processSpan: ReturnType<typeof SentryCore.spanToJSON> | undefined;
+      const handler = {
+        queue(_batch, _env, _context) {
+          processSpan = SentryCore.spanToJSON(SentryCore.getActiveSpan()!);
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+      const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN, tracesSampleRate: 1 }), handler);
+
+      await wrappedHandler.queue?.(batch, MOCK_ENV, createMockExecutionContext());
+
+      expect(processSpan?.links).toEqual([
+        {
+          trace_id: '1234567890abcdef1234567890abcdef',
+          span_id: '1234567890abcdef',
+          sampled: true,
+          attributes: { [SENTRY_LINK_TYPE]: 'message_origin' },
+        },
+      ]);
     });
   });
 

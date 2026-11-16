@@ -6,6 +6,7 @@ import {
   findFilesWithForeignSourcemaps,
   findFilesWithMultipleDebugIds,
   findInjectedDebugIds,
+  findSourceMappingUrlComments,
   getArtifactBundles,
   getChunkUploadPosts,
   getDebugIdPairs,
@@ -145,6 +146,13 @@ assert.deepEqual(
 for (const outputDir of [CLIENT_OUTPUT, SERVER_OUTPUT]) {
   assert.deepEqual(sourceMapsIn(outputDir), [], `Expected no source maps in ${outputDir}`);
 }
+
+// A surviving comment points browsers at a map that no longer exists.
+assert.deepEqual(
+  findSourceMappingUrlComments({ outputDir: CLIENT_OUTPUT }),
+  [],
+  `Expected no sourceMappingURL comments in ${CLIENT_OUTPUT}`,
+);
 
 const clientChunkUrls = emittedJsFiles(CLIENT_OUTPUT).map(
   file => `/${path.relative(CLIENT_OUTPUT, file).split(path.sep).join('/')}`,

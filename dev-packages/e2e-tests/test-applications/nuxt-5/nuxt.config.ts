@@ -28,9 +28,7 @@ export default defineNuxtConfig({
     },
   },
   nitro: {
-    // Nitro v3 only routes `defineCachedFunction`/`defineCachedHandler` through KV storage (which the SDK
-    // instruments) with the `kv` cache driver. The default `memory` driver bypasses KV storage entirely.
-    cache: { driver: 'kv' },
+    ...(process.env.E2E_TEST_CACHE_DRIVER && { cache: { driver: process.env.E2E_TEST_CACHE_DRIVER } }),
     experimental: {
       database: true,
     },

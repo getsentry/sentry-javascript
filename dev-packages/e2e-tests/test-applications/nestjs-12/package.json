@@ -6,13 +6,18 @@
   "scripts": {
     "build": "nest build",
     "start": "node --import ./dist/instrument.js dist/main.js",
+    "start:bun": "bun dist-bun/main.js",
+    "start:deno": "deno run -A --preload=@sentry/deno/import --preload=./dist/instrument.js dist/main.js",
+    "start:cloudflare": "wrangler dev --config ./dist-cloudflare/nestjs_12/wrangler.json --port 3030",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:build-latest": "pnpm install && pnpm add @nestjs/common@latest @nestjs/core@latest @nestjs/platform-express@latest @nestjs/microservices@latest && pnpm add -D @nestjs/cli@latest @nestjs/testing@latest && pnpm build",
+    "test:build:bun": "pnpm install && pnpm build && bun ./bun-build.mjs",
+    "test:build:cloudflare": "pnpm install && pnpm build && vite build",
+    "test:build-latest": "pnpm install && pnpm add @nestjs/common@latest @nestjs/core@latest @nestjs/platform-express@latest @nestjs/microservices@latest && pnpm add -D @nestjs/cli@latest && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
@@ -21,6 +26,9 @@
     "@nestjs/microservices": "^12.0.0",
     "@nestjs/schedule": "^12.0.0",
     "@nestjs/platform-express": "^12.0.0",
+    "@sentry/bun": "file:../../packed/sentry-bun-packed.tgz",
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
+    "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
     "@sentry/nestjs": "file:../../packed/sentry-nestjs-packed.tgz",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1"
@@ -30,24 +38,34 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@nestjs/cli": "^12.0.0",
     "@nestjs/schematics": "^12.0.0",
-    "@nestjs/testing": "^12.0.0",
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
-    "@types/supertest": "^6.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "eslint": "^8.42.0",
-    "source-map-support": "^0.5.21",
-    "supertest": "^6.3.3",
-    "ts-loader": "^9.4.3",
-    "tsconfig-paths": "^4.2.0",
-    "typescript": "~5.9.0"
+    "typescript": "~5.9.0",
+    "@cloudflare/vite-plugin": "^1.47.0",
+    "vite": "^8.1.5",
+    "wrangler": "^4.120.0"
   },
   "sentryTest": {
     "optionalVariants": [
       {
         "build-command": "pnpm test:build-latest",
         "label": "nestjs-12 (latest)"
+      },
+      {
+        "runtime": "bun",
+        "bun-version": "1.4.4",
+        "build-command": "pnpm test:build:bun",
+        "label": "nestjs-12 (bun)"
+      },
+      {
+        "runtime": "deno",
+        "deno-version": "v2.9.0",
+        "label": "nestjs-12 (deno)"
+      },
+      {
+        "runtime": "cloudflare",
+        "build-command": "pnpm test:build:cloudflare",
+        "label": "nestjs-12 (cloudflare)"
       }
     ]
   }

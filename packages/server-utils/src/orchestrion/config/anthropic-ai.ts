@@ -38,6 +38,13 @@ export const anthropicAiConfig = [
     module: { name: '@anthropic-ai/sdk', versionRange: '>=0.97.0 <2', filePath },
     functionQuery: { className: 'SessionToolRunner' },
   })),
+  // Thread and tool-runner streams parse the response of their `create()` call themselves, so the chat channel
+  // never sees that stream.
+  ...['lib/BetaMessageStream.js', 'lib/BetaMessageStream.mjs'].map(filePath => ({
+    channelName: 'thread-stream',
+    module: { name: '@anthropic-ai/sdk', versionRange: '>=1.2.0 <2', filePath },
+    functionQuery: { className: 'BetaMessageStream', methodName: '_start', kind: 'Sync' as const },
+  })),
 ] satisfies InstrumentationConfig[];
 
 export const anthropicAiModuleNames = getModuleNames(anthropicAiConfig);
@@ -47,4 +54,5 @@ export const anthropicAiChannels = {
   ANTHROPIC_MESSAGES_STREAM: 'orchestrion:@anthropic-ai/sdk:messages-stream',
   ANTHROPIC_TOOL_RUNNER: 'orchestrion:@anthropic-ai/sdk:tool-runner',
   ANTHROPIC_SESSION_TOOL_RUNNER: 'orchestrion:@anthropic-ai/sdk:session-tool-runner',
+  ANTHROPIC_THREAD_STREAM: 'orchestrion:@anthropic-ai/sdk:thread-stream',
 } as const;

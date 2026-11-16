@@ -1045,6 +1045,36 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
 
   createEsmTests(
     __dirname,
+    'scenario-system-message.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('records system instructions from system message objects', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const systemInstructions = container.items
+                .filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT)
+                .map(span => span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]?.value);
+
+              expect(systemInstructions).toEqual([
+                '[{"type":"text","content":"Be brief."}]',
+                '[{"type":"text","content":"Be brief."},{"type":"text","content":"Be kind."}]',
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
     'scenario-openai-conversation.mjs',
     'instrument.mjs',
     (createRunner, test) => {

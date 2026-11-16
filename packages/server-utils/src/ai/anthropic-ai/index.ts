@@ -1,5 +1,5 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import { getClient, hasSpanStreamingEnabled, SPAN_STATUS_ERROR, startSpan, startSpanManual } from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, startSpan, startSpanManual } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
@@ -20,7 +20,9 @@ import {
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
 import {
+  getErrorStatus,
   getGenAiSpanOp,
+  getRequestSignal,
   getTokenUsageAttributes,
   resolveAIRecordingOptions,
   wrapPromiseWithMethods,
@@ -29,7 +31,7 @@ import { ANTHROPIC_AI_ORIGIN, ANTHROPIC_METHOD_REGISTRY } from './constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import { instrumentSessionToolRunner, instrumentToolRunner, instrumentToolRunnerFactory } from './tool-runner';
 import type { AnthropicAiOptions, AnthropicAiResponse, AnthropicAiStreamingEvent, ContentBlock } from './types';
-import { handleResponseError, messagesFromParams, setMessagesAttribute } from './utils';
+import { getMessagesAttributes, getProviderName, handleResponseError, messagesFromParams } from './utils';
 
 // Set only while a streaming helper (e.g. `messages.stream()`) synchronously delegates to the
 // underlying `create`. The SDK invokes that internal `create` synchronously, so a plain flag
@@ -47,9 +49,10 @@ export function extractRequestAttributes(
   args: unknown[],
   operationName: string,
   recordInputs: boolean,
+  providerName = 'anthropic',
 ): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
-    [GEN_AI_PROVIDER_NAME]: 'anthropic',
+    [GEN_AI_PROVIDER_NAME]: providerName,
     [GEN_AI_OPERATION_NAME]: operationName,
     [SENTRY_ORIGIN]: ANTHROPIC_AI_ORIGIN,
   };
@@ -80,7 +83,7 @@ export function extractRequestAttributes(
  */
 export function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   const messages = messagesFromParams(params);
-  setMessagesAttribute(span, messages);
+  span.setAttributes(getMessagesAttributes(messages));
 }
 
 /**
@@ -164,9 +167,9 @@ export function addResponseAttributes(span: Span, response: AnthropicAiResponse,
 /**
  * Handle common error catching and reporting for streaming requests
  */
-function handleStreamingError(error: unknown, span: Span): never {
+function handleStreamingError(error: unknown, span: Span, abortSignal: AbortSignal | undefined): never {
   if (span.isRecording()) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    span.setStatus(getErrorStatus(abortSignal));
     span.end();
   }
   throw error;
@@ -185,6 +188,7 @@ function handleStreamingRequest<T extends unknown[], R>(
   isStreamRequested: boolean,
   isStreamingMethod: boolean,
 ): R | Promise<R> {
+  const abortSignal = getRequestSignal(args[1]);
   // messages.stream() always returns a sync MessageStream, even with stream: true param
   if (isStreamRequested && !isStreamingMethod) {
     let originalResult!: Promise<R>;
@@ -205,7 +209,7 @@ function handleStreamingRequest<T extends unknown[], R>(
             options.recordOutputs ?? false,
           ) as unknown as R;
         } catch (error) {
-          return handleStreamingError(error, span);
+          return handleStreamingError(error, span, abortSignal);
         }
       })();
     });
@@ -222,10 +226,10 @@ function handleStreamingRequest<T extends unknown[], R>(
         suppressDelegatedCreate = true;
         const messageStream = target.apply(invocationThis, args);
         suppressDelegatedCreate = false;
-        return instrumentMessageStream(messageStream, span, options.recordOutputs ?? false);
+        return instrumentMessageStream(messageStream, span, options.recordOutputs ?? false, abortSignal);
       } catch (error) {
         suppressDelegatedCreate = false;
-        return handleStreamingError(error, span);
+        return handleStreamingError(error, span, abortSignal);
       }
     });
   }
@@ -261,7 +265,12 @@ function instrumentMethod<T extends unknown[], R>(
       }
 
       const operationName = instrumentedMethod.operation || 'unknown';
-      const requestAttributes = extractRequestAttributes(args, operationName, !!options.recordInputs);
+      const requestAttributes = extractRequestAttributes(
+        args,
+        operationName,
+        !!options.recordInputs,
+        getProviderName(invocationThis),
+      );
       const model = requestAttributes[GEN_AI_REQUEST_MODEL] || 'unknown';
       const client = getClient();
       // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
@@ -290,6 +299,7 @@ function instrumentMethod<T extends unknown[], R>(
         );
       }
 
+      const abortSignal = getRequestSignal(args[1]);
       let originalResult!: Promise<R>;
 
       const instrumentedPromise = startSpan(spanConfig, span => {
@@ -299,10 +309,16 @@ function instrumentMethod<T extends unknown[], R>(
           addPrivateRequestAttributes(span, params);
         }
 
-        return originalResult.then(result => {
-          addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs);
-          return result;
-        });
+        return originalResult.then(
+          result => {
+            addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs);
+            return result;
+          },
+          error => {
+            span.setStatus(getErrorStatus(abortSignal));
+            throw error;
+          },
+        );
       });
 
       return wrapPromiseWithMethods(originalResult, instrumentedPromise);

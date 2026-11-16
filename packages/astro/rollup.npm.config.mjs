@@ -5,10 +5,13 @@ const variants = makeNPMConfigVariants(
     entrypoints: [
       'src/index.server.ts',
       'src/index.client.ts',
+      'src/index.worker.ts',
+      'src/index.workerd.ts',
       'src/index.integration.ts',
       'src/integration/middleware/index.ts',
     ],
     packageSpecificConfig: {
+      external: ['cloudflare:workers'],
       output: {
         dynamicImportInCjs: true,
         exports: 'named',

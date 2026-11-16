@@ -12,7 +12,8 @@ module.exports = withSentryConfig(nextConfig, {
     name: 'test-release',
   },
   sourcemaps: {
-    deleteSourcemapsAfterUpload: false,
+    // The delete variants use the SDK default, which removes the client maps after the upload.
+    deleteSourcemapsAfterUpload: process.env.E2E_DELETE_SOURCEMAPS ? undefined : false,
   },
   debug: true,
 });

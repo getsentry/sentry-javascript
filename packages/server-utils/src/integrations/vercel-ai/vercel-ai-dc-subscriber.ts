@@ -26,6 +26,8 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  VERCEL_AI_SETTINGS_CONTEXT_KEY_BASE,
+  VERCEL_AI_TOOL_CALL_CONTEXT_KEY_BASE,
 } from '@sentry/conventions/attributes';
 import {
   GEN_AI_DECIDE,
@@ -70,6 +72,9 @@ const ORIGIN = 'auto.ai.vercelai';
 // `gen_ai.operation.name` values, keyed to the span op they map to.
 const GEN_AI_OPERATION_SPAN_OPS = {
   embeddings: GEN_AI_EMBEDDINGS,
+  // `GEN_AI_RERANK` is deprecated because the product doesn't support rerank spans, but we keep
+  // emitting it so existing rerank spans keep their op.
+  // oxlint-disable-next-line typescript/no-deprecated
   rerank: GEN_AI_RERANK,
   decide: GEN_AI_DECIDE,
   invoke_agent: GEN_AI_INVOKE_AGENT,
@@ -86,8 +91,6 @@ const VERCEL_AI_OPERATION_ID_ATTRIBUTE = 'vercel.ai.operationId';
 const VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE = 'vercel.ai.model.provider';
 const VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE = 'vercel.ai.settings.maxRetries';
 const VERCEL_AI_TELEMETRY_METADATA_ATTRIBUTE_PREFIX = 'vercel.ai.telemetry.metadata.';
-const VERCEL_AI_SETTINGS_CONTEXT_ATTRIBUTE_PREFIX = 'vercel.ai.settings.context.';
-const VERCEL_AI_TOOL_CALL_CONTEXT_ATTRIBUTE_PREFIX = 'vercel.ai.tool_call.context.';
 
 // Tracks the top-level operationId (and whether it streams) per `callId` so a model-call span can
 // name its `doGenerate`/`doStream` operation the same way the OTel integration does. `isStream` is
@@ -459,7 +462,7 @@ export function createSpanFromMessage(
 
   const runtimeContextAttributes =
     (callId ? runtimeContextAttributesByCallId.get(callId) : undefined) ??
-    contextAttributes(event, event.runtimeContext, VERCEL_AI_SETTINGS_CONTEXT_ATTRIBUTE_PREFIX);
+    contextAttributes(event, event.runtimeContext, VERCEL_AI_SETTINGS_CONTEXT_KEY_BASE);
   if (callId && ROOT_OPERATION_TYPES.has(type)) {
     runtimeContextAttributesByCallId.set(callId, runtimeContextAttributes);
   }
@@ -541,7 +544,7 @@ function telemetryMetadataAttributes(metadata: unknown): Record<string, string> 
  * looks the same as an unfiltered one. `aiVersion` (added in 7.0.154) is the only reliable sign that
  * the AI SDK filtered it, so without it we record nothing.
  */
-function contextAttributes(event: Record<string, unknown>, context: unknown, prefix: string): SpanAttributes {
+function contextAttributes(event: Record<string, unknown>, context: unknown, keyBase: string): SpanAttributes {
   const attributes: SpanAttributes = {};
   if (typeof event.aiVersion !== 'string' || !isObjectLike(context)) {
     return attributes;
@@ -549,7 +552,7 @@ function contextAttributes(event: Record<string, unknown>, context: unknown, pre
   for (const [key, value] of Object.entries(context)) {
     const attributeValue = stringify(value);
     if (value !== null && attributeValue !== undefined) {
-      attributes[`${prefix}${key}`] = attributeValue;
+      attributes[`${keyBase}.${key}`] = attributeValue;
     }
   }
   return attributes;
@@ -629,7 +632,7 @@ function buildToolSpan(
   return startGenAiSpan('execute_tool', toolName, {
     [SENTRY_ORIGIN]: ORIGIN,
     ...runtimeContextAttributes,
-    ...contextAttributes(event, event.toolContext, VERCEL_AI_TOOL_CALL_CONTEXT_ATTRIBUTE_PREFIX),
+    ...contextAttributes(event, event.toolContext, VERCEL_AI_TOOL_CALL_CONTEXT_KEY_BASE),
     [GEN_AI_TOOL_NAME]: toolName,
     [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId,
     [GEN_AI_TOOL_DESCRIPTION]: description,
@@ -945,15 +948,24 @@ function resolveRecording(
   return globalDefault === true;
 }
 
+/** The `ai` SDK accepts the system prompt as `string | SystemModelMessage | SystemModelMessage[]`. */
+function getSystemInstructionParts(instructions: unknown): { type: 'text'; content: string }[] {
+  const messages = Array.isArray(instructions) ? instructions : [instructions];
+  return messages.flatMap(message => {
+    const content = asString(isObjectLike(message) ? message.content : message);
+    return content ? [{ type: 'text' as const, content }] : [];
+  });
+}
+
 function buildInputMessageAttributes(event: Record<string, unknown>): Record<string, string | number | undefined> {
   const attributes: Record<string, string | number | undefined> = {};
 
   // `ai` >= 7 forbids system messages in `messages`/`prompt` and exposes the system prompt as a
   // separate `instructions` field. The OTel path lifts the system message out of the prompt into
   // `gen_ai.system_instructions` as `[{ type: 'text', content }]`; mirror that shape here.
-  const instructions = asString(event.instructions);
-  if (instructions) {
-    attributes[GEN_AI_SYSTEM_INSTRUCTIONS] = stringify([{ type: 'text', content: instructions }]);
+  const instructions = getSystemInstructionParts(event.instructions);
+  if (instructions.length) {
+    attributes[GEN_AI_SYSTEM_INSTRUCTIONS] = stringify(instructions);
   }
 
   // The AI SDK start events extend `StandardizedPrompt`; messages live on `messages`, otherwise the

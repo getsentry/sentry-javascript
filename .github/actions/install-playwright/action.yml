@@ -38,22 +38,95 @@ runs:
 
     # We always install all browsers, if uncached
     # `npx` runs outside the repo, so it can't pick up a `playwright` that a parallel `pnpm install` is still linking.
-    - name: Install Playwright dependencies (uncached)
+    - name: Install Playwright browsers (uncached)
       env:
         PLAYWRIGHT_VERSION: ${{ steps.playwright-version.outputs.version }}
-      run: npx -y "playwright@$PLAYWRIGHT_VERSION" install chromium webkit firefox --with-deps
+      run: npx -y "playwright@$PLAYWRIGHT_VERSION" install chromium webkit firefox
       if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit != 'true'
       shell: bash
       working-directory: ${{ runner.temp }}
 
-    - name: Install Playwright system dependencies only (cached)
-      env:
-        PLAYWRIGHT_BROWSERS: ${{ inputs.browsers || 'chromium webkit firefox' }}
-        PLAYWRIGHT_VERSION: ${{ steps.playwright-version.outputs.version }}
-      run: npx -y "playwright@$PLAYWRIGHT_VERSION" install-deps $PLAYWRIGHT_BROWSERS
-      if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit == 'true'
+    - name: Resolve headless WebKit system dependencies
+      id: webkit-dependencies
+      if: steps.playwright-version.outputs.version != '' && contains(inputs.browsers, 'webkit')
+      run: |
+        packages=(
+          gstreamer1.0-plugins-base
+          gstreamer1.0-plugins-good
+          libavif16
+          libevent-2.1-7t64
+          libflite1
+          libgles2
+          libgstreamer-gl1.0-0
+          libgstreamer-plugins-bad1.0-0
+          libgstreamer-plugins-base1.0-0
+          libharfbuzz-icu0
+          libhyphen0
+          libmanette-0.2-0
+          libopus0
+          libwayland-server0
+        )
+        # Resolve now and install after restoring the cache; share the package list across both steps.
+        printf '%s\n' "${packages[@]}" > "$RUNNER_TEMP/webkit-apt-packages"
+        # runner.temp is private, so keep installers where apt's sandbox user can access them.
+        mkdir -p /var/tmp/webkit-apt-cache
+
+        sudo apt-get update
+        # Ask apt which installers it needs, including dependencies, without downloading them.
+        # Do this before restoring cached files so the key describes the full download set.
+        plan=$(sudo apt-get \
+          -o Dir::Cache::archives=/var/tmp/webkit-apt-cache \
+          --print-uris --download-only -y --no-install-recommends \
+          install "${packages[@]}")
+        # Hash only download records, in a stable order, so package updates produce a new key.
+        hash=$(printf '%s\n' "$plan" | sed -n "/^'/p" | LC_ALL=C sort | sha256sum | cut -d ' ' -f1)
+
+        # Separate Ubuntu versions and architectures, while allowing older package sets as fallbacks.
+        . /etc/os-release
+        prefix="webkit-apt-$ID-$VERSION_ID-${{ runner.arch }}-v1-"
+        echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
+        echo "key=$prefix$hash" >> "$GITHUB_OUTPUT"
       shell: bash
-      working-directory: ${{ runner.temp }}
+
+    - name: Restore cached WebKit system packages
+      id: webkit-apt-cache
+      if: steps.webkit-dependencies.outputs.key != ''
+      uses: actions/cache/restore@v6.1.0
+      with:
+        path: /var/tmp/webkit-apt-cache/*.deb
+        key: ${{ steps.webkit-dependencies.outputs.key }}
+        # If this exact package set isn't cached, reuse an older set; apt downloads only what's missing.
+        restore-keys: ${{ steps.webkit-dependencies.outputs.prefix }}
+
+    - name: Install headless WebKit system dependencies
+      if: steps.webkit-dependencies.outputs.key != ''
+      run: |
+        mapfile -t packages < "$RUNNER_TEMP/webkit-apt-packages"
+        # Install from restored .deb files where possible, retaining new downloads for the cache save.
+        sudo apt-get \
+          -o Dir::Cache::archives=/var/tmp/webkit-apt-cache \
+          -o APT::Keep-Downloaded-Packages=true \
+          install -y --no-install-recommends "${packages[@]}"
+      shell: bash
+
+    - name: Remove obsolete cached WebKit packages
+      if:
+        steps.webkit-dependencies.outputs.key != '' && steps.webkit-apt-cache.outputs.cache-hit != 'true' &&
+        github.event_name == 'push' && github.ref == 'refs/heads/develop'
+      # Fallback restores can carry obsolete installers into newer cache entries.
+      run: sudo apt-get -o Dir::Cache::archives=/var/tmp/webkit-apt-cache autoclean
+      shell: bash
+
+    # Develop populates caches shared with PRs. Save after misses or fallback restores,
+    # which may have downloaded packages absent from the restored cache.
+    - name: Store cached WebKit system packages
+      if:
+        steps.webkit-dependencies.outputs.key != '' && steps.webkit-apt-cache.outputs.cache-hit != 'true' &&
+        github.event_name == 'push' && github.ref == 'refs/heads/develop'
+      uses: actions/cache/save@v6.1.0
+      with:
+        path: /var/tmp/webkit-apt-cache/*.deb
+        key: ${{ steps.webkit-dependencies.outputs.key }}
 
     # Only store cache on develop branch
     - name: Store cached playwright binaries

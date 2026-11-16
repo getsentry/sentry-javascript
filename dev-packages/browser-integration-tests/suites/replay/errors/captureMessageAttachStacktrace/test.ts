@@ -22,7 +22,7 @@ sentryTest(
 
     const errorRequestPromise = waitForErrorRequest(page);
     const replayRequestPromise = waitForReplayRequest(page, 0);
-    await page.evaluate(() => (window as any).Sentry.captureMessage('Some message'));
+    await page.evaluate(() => (window as any).captureTestMessage());
     const event = envelopeRequestParser(await errorRequestPromise);
     await replayRequestPromise;
 

@@ -20,5 +20,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/proxy-isolation', '/api/proxy-ok', '/monitoring'],
+  // Every path, so the proxy also runs for the tunnel path, which is derived from the DSN.
+  matcher: '/:path*',
 };
