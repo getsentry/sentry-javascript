@@ -152,6 +152,9 @@ Apps like `cloudflare-workers-send-to-sentry` deploy the built app as a real Wor
   `cloudflare-flue-send-to-sentry/src/auth.ts`.
 - Add the `workerPrefix` to `.github/workflows/cleanup-e2e-workers.yml`, which deletes the Worker of a PR when the PR
   closes.
+- To check what Cloudflare stored for a request (for example its Cloudflare trace id), read Workers Logs with
+  `fetchWorkersLogsEvents`. `CLOUDFLARE_API_TOKEN` then also needs "Workers Observability: Edit". See
+  `cloudflare-workers-without-tracing-send-to-sentry`.
 - Set `"sentryTest": { "optional": true }` in `package.json`, because only the optional CI job has the Cloudflare
   secrets.
 
