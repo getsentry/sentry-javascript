@@ -1,6 +1,6 @@
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import type { Event } from '@sentry/node';
-import { afterAll, describe, expect } from 'vitest';
+import { afterAll, expect } from 'vitest';
 import {
   GEN_AI_CONVERSATION_ID,
   GEN_AI_EMBEDDINGS_INPUT,
@@ -35,12 +35,7 @@ import {
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../utils/runner';
 
-const matrix = [
-  ['6', '^6.0.0'],
-  ['7', '^7.0.0'],
-] as const;
-
-describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVersion) => {
+export function registerVercelAiTests(version: '6' | '7', vercelAiVersion: string): void {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -1388,9 +1383,9 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
       },
     },
   );
-});
+}
 
-describe('Vercel AI integration experimental_decide', () => {
+export function registerDecideTests(): void {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -1493,9 +1488,9 @@ describe('Vercel AI integration experimental_decide', () => {
       },
     },
   );
-});
+}
 
-describe('Vercel AI telemetry metadata (v6)', () => {
+export function registerMetadataTests(): void {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -1542,9 +1537,9 @@ describe('Vercel AI telemetry metadata (v6)', () => {
     },
     { additionalDependencies: { ai: '^6.0.0' } },
   );
-});
+}
 
-describe('Vercel AI runtime and tool context (v7)', () => {
+export function registerRuntimeTests(): void {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -1601,9 +1596,9 @@ describe('Vercel AI runtime and tool context (v7)', () => {
     },
     { additionalDependencies: { ai: '^7.0.154' } },
   );
-});
+}
 
-describe('Vercel AI calls with recording off (v7)', () => {
+export function registerRecordingOffTests(): void {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -1768,4 +1763,4 @@ describe('Vercel AI calls with recording off (v7)', () => {
     },
     { additionalDependencies: { ai: '^7.0.163' } },
   );
-});
+}

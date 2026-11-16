@@ -260,7 +260,7 @@ const BUN_BUILD_NOT_TRIAGED = [
   'suites/tracing/mysql/test.ts',
   'suites/tracing/prisma-orm-v8/test.ts',
   'suites/tracing/together-ai/test.ts',
-  'suites/tracing/vercelai/v6_v7/test.ts',
+  'suites/tracing/vercelai/v6_v7/**',
 ];
 
 export const BUN_BUILD_EXCLUDE = [

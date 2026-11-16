@@ -77,7 +77,7 @@ const NOT_TRIAGED = [
   'suites/tracing/orchestrion-lazy-registration/test.ts',
   'suites/tracing/prisma-orm-v7/test.ts',
   'suites/tracing/together-ai/test.ts',
-  'suites/tracing/vercelai/v6_v7/test.ts',
+  'suites/tracing/vercelai/v6_v7/**',
 ];
 
 // Passes on Deno when run alone, but failed in about 1 of 3 full runs of this package.
