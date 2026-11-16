@@ -21,8 +21,7 @@ import {
   URL_FULL,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_DECIDE, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
-import { afterAll, describe, expect } from 'vitest';
-import { supports } from '../../../utils';
+import { afterAll, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // `@mastra/core` declares `engines.node >= 22.13`, so it can't live in the package's root
@@ -52,7 +51,7 @@ const MASTRA_CLASSIFIER_DEPENDENCIES = {
   },
 };
 
-describe.runIf(supports({ min: 22 }))('Mastra integration', () => {
+export function registerMastraCoreTests(): void {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -218,6 +217,79 @@ describe.runIf(supports({ min: 22 }))('Mastra integration', () => {
 
   createEsmAndCjsTests(
     __dirname,
+    'scenario-auto.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('auto-instruments a Mastra app that configured no observability at all', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+              expect(spans.map(span => span.name).sort()).toEqual(['chat gpt-4o-mini', 'invoke_agent weather_agent']);
+              for (const span of spans) {
+                expect(span.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
+              }
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    MASTRA_DEPENDENCIES,
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-community-exporter.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('still exports its own spans when the community @mastra/sentry exporter is present', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+              expect(spans.map(span => span.name).sort()).toEqual(['chat gpt-4o-mini', 'invoke_agent weather_agent']);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    MASTRA_DEPENDENCIES,
+  );
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-auto.mjs',
+    'instrument-no-bootstrap.mjs',
+    (createRunner, test) => {
+      test('leaves an unconfigured app alone when bootstrapObservability is false', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              const genAiSpans = container.items.filter(span =>
+                String(span.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'),
+              );
+              expect(genAiSpans).toEqual([]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    MASTRA_DEPENDENCIES,
+  );
+}
+
+export function registerMastraClassifierTests(): void {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmAndCjsTests(
+    __dirname,
     'scenario-classifier.mjs',
     'instrument.mjs',
     (createRunner, test) => {
@@ -307,73 +379,12 @@ describe.runIf(supports({ min: 22 }))('Mastra integration', () => {
     },
     MASTRA_CLASSIFIER_DEPENDENCIES,
   );
+}
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-auto.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('auto-instruments a Mastra app that configured no observability at all', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
-              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
-              expect(spans.map(span => span.name).sort()).toEqual(['chat gpt-4o-mini', 'invoke_agent weather_agent']);
-              for (const span of spans) {
-                expect(span.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
-              }
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    MASTRA_DEPENDENCIES,
-  );
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-community-exporter.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('still exports its own spans when the community @mastra/sentry exporter is present', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
-              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
-              expect(spans.map(span => span.name).sort()).toEqual(['chat gpt-4o-mini', 'invoke_agent weather_agent']);
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    MASTRA_DEPENDENCIES,
-  );
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-auto.mjs',
-    'instrument-no-bootstrap.mjs',
-    (createRunner, test) => {
-      test('leaves an unconfigured app alone when bootstrapObservability is false', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
-              const genAiSpans = container.items.filter(span =>
-                String(span.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'),
-              );
-              expect(genAiSpans).toEqual([]);
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    MASTRA_DEPENDENCIES,
-  );
+export function registerMastraNestingTests(): void {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
 
   createEsmAndCjsTests(
     __dirname,
@@ -550,4 +561,4 @@ describe.runIf(supports({ min: 22 }))('Mastra integration', () => {
     },
     MASTRA_NESTING_DEPENDENCIES,
   );
-});
+}

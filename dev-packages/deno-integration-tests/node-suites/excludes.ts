@@ -47,7 +47,7 @@ const PRISMA_ESM_INTEROP = ['suites/tracing/prisma-orm-v5/test.ts', 'suites/trac
 // which any module load hook breaks on Deno 2.8.3 (the CI version); it passes on Deno 2.9.0.
 const REQUIRE_OF_ESM_ONLY_DEPENDENCY = [
   'suites/tracing/graphql-tracing-channel/**',
-  'suites/tracing/mastra/test.ts',
+  'suites/tracing/mastra/**',
   'suites/tracing/prisma-orm-v8/test.ts',
 ];
 
