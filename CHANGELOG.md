@@ -24,6 +24,18 @@ Work in this release was contributed by @kunal649, @bardrop, @DomWane, @Vivek189
 
   The `parent_span_id` of these events is the id of a Cloudflare span. This span is in Sentry only when you export your Workers traces to Sentry.
 
+- **feat(server-utils): Record Bedrock prompts and responses ([#26249](https://github.com/getsentry/sentry-javascript/pull/26249), [#26362](https://github.com/getsentry/sentry-javascript/pull/26362), [#26414](https://github.com/getsentry/sentry-javascript/pull/26414))**
+
+  Amazon Bedrock spans from `awsIntegration` now record prompts, system instructions, tool definitions and responses by default, as the other AI integrations do. This applies to the `Converse`, `ConverseStream`, `InvokeModel` and `InvokeModelWithResponseStream` commands.
+
+  To stop recording prompts or responses for all AI integrations, set `dataCollection: { genAI: { inputs: false, outputs: false } }`. To stop it only for Bedrock, use the new `awsIntegration` options, which take precedence over `dataCollection.genAI`:
+
+  ```js
+  Sentry.init({
+    integrations: [Sentry.awsIntegration({ recordInputs: false, recordOutputs: false })],
+  });
+  ```
+
 ## 11.12.0
 
 ### Important Changes
