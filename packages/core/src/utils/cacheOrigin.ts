@@ -86,6 +86,9 @@ function getMetaTagContent(name: string): string | null | undefined {
     ?.getAttribute('content');
 }
 
+// Cap at 1 year. It's unlikely that an older server time is still correct
+const MAX_RENDER_AGE = 365 * 24 * 60 * 60;
+
 // A pageload starts at the time origin. The server and the browser clocks differ, so a render shortly before the
 // pageload can seem to start after it.
 function getRenderAge(renderStart: string | null | undefined): number | undefined {
@@ -93,7 +96,8 @@ function getRenderAge(renderStart: string | null | undefined): number | undefine
   if (!renderStart || !/^\d+$/.test(renderStart) || !timeOrigin) {
     return undefined;
   }
-  return Math.max(0, Math.floor(timeOrigin / 1000 - Number(renderStart)));
+  const age = Math.max(0, Math.floor(timeOrigin / 1000 - Number(renderStart)));
+  return age <= MAX_RENDER_AGE ? age : undefined;
 }
 
 // Only a sampled render sent spans, so a link to any other render would point at nothing.
