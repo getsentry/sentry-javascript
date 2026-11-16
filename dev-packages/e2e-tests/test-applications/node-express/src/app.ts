@@ -33,6 +33,7 @@ Sentry.init({
   ],
 });
 
+import { trace } from '@opentelemetry/api';
 import { TRPCError, initTRPC } from '@trpc/server';
 import * as trpcExpress from '@trpc/server/adapters/express';
 import express from 'express';
@@ -73,6 +74,16 @@ app.get('/test-param/:param', function (req, res) {
 
 app.get('/test-transaction', function (_req, res) {
   Sentry.startSpan({ name: 'test-span' }, () => undefined);
+
+  res.send({ status: 'ok' });
+});
+
+app.get('/test-otel-api-span', function (_req, res) {
+  const tracer = trace.getTracer('node-express');
+  tracer.startActiveSpan('otel-api-span', span => {
+    tracer.startActiveSpan('otel-api-child-span', childSpan => childSpan.end());
+    span.end();
+  });
 
   res.send({ status: 'ok' });
 });

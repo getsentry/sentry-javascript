@@ -30,13 +30,6 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz"
   },
   "sentryTest": {
-    "variants": [
-      {
-        "build-command": "E2E_TEST_OTEL_SETUP=true pnpm test:build",
-        "assert-command": "E2E_TEST_OTEL_SETUP=true pnpm test:assert",
-        "label": "nuxt-4-static (tracer provider)"
-      }
-    ],
     "canaryVariants": [
       {
         "build-command": "pnpm test:build-canary",
