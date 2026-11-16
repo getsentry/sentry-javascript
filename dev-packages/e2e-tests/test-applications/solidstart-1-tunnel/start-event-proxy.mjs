@@ -2,5 +2,5 @@ import { startEventProxyServer } from '@sentry-internal/test-utils';
 
 startEventProxyServer({
   port: 3031,
-  proxyServerName: 'solidstart-tunnel',
+  proxyServerName: 'solidstart-1-tunnel',
 });
