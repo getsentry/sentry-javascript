@@ -294,7 +294,9 @@ function getSpanAttributesFromParsedUrl(
         attributes[URL_PORT] = parsedUrl.port;
       }
       if (parsedUrl.protocol) {
-        attributes[URL_SCHEME] = parsedUrl.protocol;
+        // URL.protocol includes a trailing colon (e.g. 'https:') but the OTel
+        // url.scheme attribute must not (e.g. 'https').
+        attributes[URL_SCHEME] = parsedUrl.protocol.replace(':', '');
       }
       if (parsedUrl.hostname) {
         attributes[URL_DOMAIN] = parsedUrl.hostname;

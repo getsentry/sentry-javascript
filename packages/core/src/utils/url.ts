@@ -226,7 +226,9 @@ export function getHttpSpanDetailsFromUrlObject(
         attributes[URL_PORT] = urlObject.port;
       }
       if (urlObject.protocol) {
-        attributes[URL_SCHEME] = urlObject.protocol;
+        // URL.protocol includes a trailing colon (e.g. 'https:') but the OTel
+        // url.scheme attribute must not (e.g. 'https').
+        attributes[URL_SCHEME] = urlObject.protocol.replace(':', '');
       }
       if (urlObject.hostname) {
         attributes[kind === 'server' ? SERVER_ADDRESS : URL_DOMAIN] = urlObject.hostname;
