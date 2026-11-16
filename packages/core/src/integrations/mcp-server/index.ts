@@ -2,7 +2,7 @@ import { fill } from '../../utils/object';
 import { wrapAllMCPHandlers, wrapExistingHandlers } from './handlers';
 import { wrapTransportError, wrapTransportOnClose, wrapTransportOnMessage, wrapTransportSend } from './transport';
 import type { MCPServerInstance, McpServerWrapperOptions, MCPTransport } from './types';
-import { decorateUpstreamInstrumentation } from './upstreamInstrumentation';
+import { hookUpstreamInstrumentation } from './upstreamInstrumentation';
 import { validateMcpServerInstance } from './validation';
 
 /**
@@ -38,10 +38,10 @@ function applyMissingMcpOptions(target: McpServerWrapperOptions, source: McpServ
 function instrumentTransport(
   transport: MCPTransport,
   options: McpServerWrapperOptions,
-  upstreamInstrumented: boolean,
+  hasUpstreamInstrumentation: boolean,
 ): void {
-  wrapTransportOnMessage(transport, options, upstreamInstrumented);
-  wrapTransportSend(transport, options, upstreamInstrumented);
+  wrapTransportOnMessage(transport, options, hasUpstreamInstrumentation);
+  wrapTransportSend(transport, options, hasUpstreamInstrumentation);
   wrapTransportOnClose(transport);
   wrapTransportError(transport);
 }
@@ -182,7 +182,7 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
   const serverInstance = mcpServerInstance as MCPServerInstance;
   const wrapperOptions: McpServerWrapperOptions = { ...options };
   wrappedMcpServerOptions.set(mcpServerInstance, wrapperOptions);
-  const upstreamInstrumented = decorateUpstreamInstrumentation(serverInstance);
+  const hasUpstreamInstrumentation = hookUpstreamInstrumentation(serverInstance);
 
   fill(serverInstance, 'connect', originalConnect => {
     return async function (this: MCPServerInstance, transport: MCPTransport, ...restArgs: unknown[]) {
@@ -193,7 +193,7 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
         }
 
         isTransportInstrumented = true;
-        instrumentTransport(transport, wrapperOptions, upstreamInstrumented);
+        instrumentTransport(transport, wrapperOptions, hasUpstreamInstrumentation);
       };
       const restoreStart = interceptTransportStart(transport, instrumentTransportOnce);
 

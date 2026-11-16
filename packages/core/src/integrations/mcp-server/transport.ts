@@ -32,7 +32,7 @@ import {
   startMcpNotificationSpan,
 } from './spans';
 import type { ExtraHandlerData, McpServerWrapperOptions, MCPTransport, ResolvedMcpOptions, SessionData } from './types';
-import { withInboundHandoff } from './upstreamInstrumentation';
+import { withUpstreamSpanHandoff } from './upstreamInstrumentation';
 import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse } from './validation';
 
 function resolveMcpOptions(options: McpServerWrapperOptions): ResolvedMcpOptions {
@@ -80,12 +80,12 @@ function resolveOAuthClientName(options: McpServerWrapperOptions, extra?: ExtraH
  * Modern request metadata is read directly when building each message's span.
  * @param transport - MCP transport instance to wrap
  * @param options - MCP instrumentation options
- * @param upstreamInstrumented - Whether the server has the MCP SDK's built-in instrumentation
+ * @param hasUpstreamInstrumentation - Whether the MCP SDK may start its own span (see `upstreamInstrumentation.ts`)
  */
 export function wrapTransportOnMessage(
   transport: MCPTransport,
   options: McpServerWrapperOptions,
-  upstreamInstrumented = false,
+  hasUpstreamInstrumentation = false,
 ): void {
   if (transport.onmessage) {
     fill(transport, 'onmessage', originalOnMessage => {
@@ -123,27 +123,29 @@ export function wrapTransportOnMessage(
             }
             const callOriginal = (): unknown =>
               (originalOnMessage as (...args: unknown[]) => unknown).call(this, request, extra);
-            const startOwnSpan = (): Span => {
+            // Ended in `transport.send` once the response goes out.
+            const startRequestSpan = (): Span => {
               const span = startInactiveSpan(spanConfig);
               storeSpanForRequest(transport, request.id, span, request.method, resolvedOptions);
               return span;
             };
 
-            if (upstreamInstrumented) {
-              return withInboundHandoff(
+            // Whether the MCP SDK's span or `startRequestSpan` is used is decided once the SDK calls `receive`.
+            if (hasUpstreamInstrumentation) {
+              return withUpstreamSpanHandoff(
                 {
                   method: request.method,
                   id: request.id,
                   attributes: spanConfig.attributes,
                   onResponse: (span, result, error) =>
                     applyResponseToSpan(transport, span, request.method, result, error, resolvedOptions),
-                  startOwnSpan,
+                  startFallbackSpan: startRequestSpan,
                 },
                 callOriginal,
               );
             }
 
-            return withActiveSpan(startOwnSpan(), callOriginal);
+            return withActiveSpan(startRequestSpan(), callOriginal);
           });
         }
 
@@ -159,12 +161,12 @@ export function wrapTransportOnMessage(
             extra as ExtraHandlerData,
           );
 
-          if (upstreamInstrumented) {
-            return withInboundHandoff(
+          if (hasUpstreamInstrumentation) {
+            return withUpstreamSpanHandoff(
               {
                 method: notification.method,
                 attributes: spanConfig.attributes,
-                startOwnSpan: () => startInactiveMcpNotificationSpan(spanConfig),
+                startFallbackSpan: () => startInactiveMcpNotificationSpan(spanConfig),
               },
               callOriginal,
             );
@@ -185,12 +187,12 @@ export function wrapTransportOnMessage(
  * the corresponding request span.
  * @param transport - MCP transport instance to wrap
  * @param options - MCP capture overrides
- * @param upstreamInstrumented - Whether the server has the MCP SDK's built-in instrumentation
+ * @param hasUpstreamInstrumentation - Whether the MCP SDK may start its own span (see `upstreamInstrumentation.ts`)
  */
 export function wrapTransportSend(
   transport: MCPTransport,
   options: McpServerWrapperOptions,
-  upstreamInstrumented = false,
+  hasUpstreamInstrumentation = false,
 ): void {
   if (transport.send) {
     fill(transport, 'send', originalSend => {
@@ -199,8 +201,10 @@ export function wrapTransportSend(
 
         if (isJsonRpcNotification(message)) {
           const resolvedOptions = resolveMcpOptions(options);
-          // The MCP SDK sends a notification inside its own scope, so its span is the active one.
-          const upstreamSpan = upstreamInstrumented ? getActiveSpan() : undefined;
+          // The MCP SDK sends a notification inside the scope of its own span, so when that span reaches
+          // Sentry it is the active one. The method check tells it apart from e.g. the request span of the
+          // handler that sends the notification.
+          const upstreamSpan = hasUpstreamInstrumentation ? getActiveSpan() : undefined;
           if (upstreamSpan && spanToJSON(upstreamSpan).attributes[MCP_METHOD_NAME] === message.method) {
             upstreamSpan.setAttributes(
               buildMcpNotificationSpanConfig('notification-outgoing', message, transport, resolvedOptions).attributes,

@@ -1,14 +1,18 @@
 /**
  * Newer `@modelcontextprotocol/server` versions start their own OpenTelemetry span for every inbound
  * message. When that span reaches Sentry, we add our attributes to it instead of starting a second one.
+ *
+ * The SDK starts that span in `_instrumentation.receive`, which it calls synchronously from
+ * `transport.onmessage`. So our `onmessage` wrapper parks the message's span data in `pendingHandoff`
+ * (see `withUpstreamSpanHandoff`), and our wrapped `receive` picks it up and decides per message:
+ * - The SDK's span reaches Sentry: enrich it.
+ * - It doesn't (a non-Sentry tracer provider, or none at all): start our own span instead.
  */
 
-import { MCP_METHOD_NAME } from '@sentry/conventions/attributes';
 import { getClient } from '../../currentScopes';
 import { withActiveSpan } from '../../tracing';
 import type { Span } from '../../types/span';
 import { isObjectLike } from '../../utils/is';
-import { spanToJSON } from '../../utils/spanUtils';
 import type { JsonRpcError, RequestId } from './types';
 
 interface UpstreamOutcome {
@@ -26,22 +30,23 @@ interface UpstreamInstrumentation {
   receive?: (operation: { method: string; id?: RequestId }) => UpstreamScope | undefined;
 }
 
-export interface InboundHandoff {
+/** Span data for one inbound message, for whichever span ends up representing it. */
+export interface UpstreamSpanHandoff {
   method: string;
+  /** Unset for notifications. */
   id?: RequestId;
   attributes: Record<string, string | number>;
   onResponse?: (span: Span, result: unknown, error: JsonRpcError | undefined) => void;
-  /** Used when the MCP SDK's span does not reach Sentry, e.g. because no Sentry tracer provider is registered. */
-  startOwnSpan: () => Span;
+  startFallbackSpan: () => Span;
 }
 
-let pendingHandoff: InboundHandoff | undefined;
+let pendingHandoff: UpstreamSpanHandoff | undefined;
 
 /**
- * Hooks into the MCP SDK's built-in instrumentation (the package-internal `_instrumentation`).
- * Returns `false` when the server has none.
+ * Wraps the MCP SDK's package-internal `_instrumentation.receive`.
+ * Returns `false` when the server has no such instrumentation (MCP SDK v1, v2 <= 2.4, or `openTelemetry: false`).
  */
-export function decorateUpstreamInstrumentation(serverInstance: object): boolean {
+export function hookUpstreamInstrumentation(serverInstance: object): boolean {
   const inner = (serverInstance as { server?: unknown }).server;
   const protocol = (isObjectLike(inner) ? inner : serverInstance) as { _instrumentation?: UpstreamInstrumentation };
   const original = protocol._instrumentation;
@@ -53,6 +58,7 @@ export function decorateUpstreamInstrumentation(serverInstance: object): boolean
     ...original,
     receive: operation => {
       const handoff = pendingHandoff;
+      // Only take a handoff that was parked for this exact message.
       if (handoff?.method !== operation.method || handoff.id !== operation.id) {
         return original.receive?.(operation);
       }
@@ -63,25 +69,25 @@ export function decorateUpstreamInstrumentation(serverInstance: object): boolean
   return true;
 }
 
-/** Runs the original `transport.onmessage`, during which the MCP SDK starts its scope synchronously. */
-export function withInboundHandoff<T>(handoff: InboundHandoff, callback: () => T): T {
+/** Runs the MCP SDK's `onmessage` with `handoff` parked for its `receive` call. */
+export function withUpstreamSpanHandoff<T>(handoff: UpstreamSpanHandoff, onMessage: () => T): T {
   pendingHandoff = handoff;
   try {
-    return callback();
+    return onMessage();
   } finally {
+    // The SDK skips `receive` for messages it drops, e.g. notifications without a handler.
     pendingHandoff = undefined;
   }
 }
 
 function receiveWithHandoff(
-  handoff: InboundHandoff,
+  handoff: UpstreamSpanHandoff,
   receive: () => UpstreamScope | undefined,
 ): UpstreamScope | undefined {
-  let span: Span | undefined;
-  const unsubscribe = getClient()?.on('spanStart', startedSpan => {
-    if (!span && spanToJSON(startedSpan).attributes[MCP_METHOD_NAME]) {
-      span = startedSpan;
-    }
+  // The span the SDK starts in `receive` only reaches `spanStart` if it is a Sentry span.
+  let upstreamSpan: Span | undefined;
+  const unsubscribe = getClient()?.on('spanStart', span => {
+    upstreamSpan ??= span;
   });
   let scope: UpstreamScope | undefined;
   try {
@@ -90,30 +96,30 @@ function receiveWithHandoff(
     unsubscribe?.();
   }
 
-  if (!scope || !span) {
-    // Started here rather than in `run`, because the MCP SDK rejects some requests without running a handler.
-    const ownSpan = handoff.startOwnSpan();
+  if (!scope || !upstreamSpan) {
+    // Started now rather than in `run`, because the SDK answers some requests without running a handler.
+    const fallbackSpan = handoff.startFallbackSpan();
     return {
-      run: fn => withActiveSpan(ownSpan, () => (scope ? scope.run(fn) : fn())),
+      run: fn => withActiveSpan(fallbackSpan, () => (scope ? scope.run(fn) : fn())),
       end: outcome => {
         scope?.end(outcome);
-        // A request span ends once its response is sent.
+        // A request span is ended when its response is sent; a notification has no response.
         if (handoff.id === undefined) {
-          ownSpan.end();
+          fallbackSpan.end();
         }
       },
     };
   }
 
-  const upstreamSpan = span;
+  const span = upstreamSpan;
   const upstreamScope = scope;
-  upstreamSpan.setAttributes(handoff.attributes);
+  span.setAttributes(handoff.attributes);
   return {
     run: fn => upstreamScope.run(fn),
-    // The MCP SDK ends its span before the response is sent, so the response is recorded here.
+    // The SDK ends its span before sending the response, so the response is recorded here.
     end: outcome => {
       if (outcome.type === 'result' || outcome.type === 'error') {
-        handoff.onResponse?.(upstreamSpan, outcome.result, outcome.error);
+        handoff.onResponse?.(span, outcome.result, outcome.error);
       }
       upstreamScope.end(outcome);
     },
