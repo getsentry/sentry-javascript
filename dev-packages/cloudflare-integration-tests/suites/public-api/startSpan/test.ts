@@ -224,12 +224,12 @@ it('sends a streamed span envelope with correct spans for a manually started spa
         value: '/',
       },
       'url.port': {
-        type: 'string',
-        value: expect.stringMatching(/^\d{4,5}$/),
+        type: 'integer',
+        value: expect.any(Number),
       },
       'url.scheme': {
         type: 'string',
-        value: 'http:',
+        value: 'http',
       },
       'user_agent.original': {
         type: 'string',

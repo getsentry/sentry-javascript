@@ -64,6 +64,19 @@ describe('request utils', () => {
         'x-string': 'hello',
       });
     });
+
+    it('drops HTTP/2 pseudo-headers', () => {
+      expect(
+        headersToDict({
+          ':method': 'GET',
+          ':path': '/users',
+          ':authority': 'example.com',
+          'user-agent': 'test',
+        }),
+      ).toEqual({
+        'user-agent': 'test',
+      });
+    });
   });
 
   describe('winterCGRequestToRequestData', () => {
@@ -140,6 +153,27 @@ describe('request utils', () => {
           key1: 'value1',
           key3: 'value3',
         },
+      });
+    });
+
+    it('uses the HTTP/2 :authority pseudo-header as the host', () => {
+      const actual = httpRequestToRequestData({
+        method: 'GET',
+        url: '/blabla?xx=a',
+        headers: {
+          ':method': 'GET',
+          ':path': '/blabla?xx=a',
+          ':authority': 'example.com:8443',
+          ':scheme': 'https',
+        },
+        socket: { encrypted: true },
+      });
+
+      expect(actual).toEqual({
+        method: 'GET',
+        url: 'https://example.com:8443/blabla?xx=a',
+        query_string: 'xx=a',
+        headers: {},
       });
     });
 

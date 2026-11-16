@@ -43,6 +43,53 @@ describe('sourcemaps.disable: "disable-upload"', () => {
     expect(bundle).toContain(`//# debugId=${debugId}`);
   });
 
+  it('keeps the stamped source map with `deleteSourcemapsAfterUpload: true`', async () => {
+    const outDir = path.join(tmpDir, 'dist');
+
+    await esbuild.build({
+      entryPoints: [entry],
+      bundle: true,
+      sourcemap: 'external',
+      outdir: outDir,
+      absWorkingDir: tmpDir,
+      plugins: [
+        sentryEsbuildPlugin({
+          telemetry: false,
+          sourcemaps: { disable: 'disable-upload', deleteSourcemapsAfterUpload: true },
+        }),
+      ],
+    });
+
+    const bundle = fs.readFileSync(path.join(outDir, 'entry.js'), 'utf8');
+    const map = JSON.parse(fs.readFileSync(path.join(outDir, 'entry.js.map'), 'utf8'));
+    expect(map.debug_id).toBe(bundle.match(DEBUG_ID_MARKER)?.[1]);
+  });
+
+  it('stamps the bundle before it deletes a source map the SDK turned on', async () => {
+    const outDir = path.join(tmpDir, 'dist');
+
+    await esbuild.build({
+      entryPoints: [entry],
+      bundle: true,
+      sourcemap: 'external',
+      outdir: outDir,
+      absWorkingDir: tmpDir,
+      plugins: [
+        sentryEsbuildPlugin({
+          telemetry: false,
+          sourcemaps: { disable: 'disable-upload', deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: true },
+        }),
+      ],
+    });
+
+    const bundle = fs.readFileSync(path.join(outDir, 'entry.js'), 'utf8');
+    const debugId = bundle.match(DEBUG_ID_MARKER)?.[1];
+
+    expect(debugId).toBeDefined();
+    expect(bundle).toContain(`//# debugId=${debugId}`);
+    expect(fs.existsSync(path.join(outDir, 'entry.js.map'))).toBe(false);
+  });
+
   it('does not stamp emitted source maps when uploading is enabled', async () => {
     const outDir = path.join(tmpDir, 'dist');
 

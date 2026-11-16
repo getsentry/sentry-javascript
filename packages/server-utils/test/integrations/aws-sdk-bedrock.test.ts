@@ -1,9 +1,14 @@
 import {
+  GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
@@ -14,6 +19,7 @@ import { GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import { setCurrentClient, spanToJSON, startInactiveSpan } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { GenAiOptions } from '../../src/ai/core/utils';
 import { BedrockRuntimeServiceExtension } from '../../src/integrations/aws-sdk/services/bedrock-runtime';
 import type { NormalizedResponse, RequestMetadata } from '../../src/integrations/aws-sdk/types';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
@@ -27,12 +33,20 @@ const CLAUDE_REQUEST_BODY = {
   messages: [{ role: 'user', content: 'What is the capital of France?' }],
 };
 
-function invokeModelPreSpanHook(commandInput: Record<string, unknown>): RequestMetadata {
-  return new BedrockRuntimeServiceExtension().requestPreSpanHook({
+function preSpanHook(
+  commandName: string,
+  commandInput: Record<string, unknown>,
+  options?: GenAiOptions,
+): RequestMetadata {
+  return new BedrockRuntimeServiceExtension(options).requestPreSpanHook({
     serviceName: 'BedrockRuntime',
-    commandName: 'InvokeModel',
+    commandName,
     commandInput,
   });
+}
+
+function invokeModelPreSpanHook(commandInput: Record<string, unknown>): RequestMetadata {
+  return preSpanHook('InvokeModel', commandInput);
 }
 
 describe('BedrockRuntimeServiceExtension InvokeModel request', () => {
@@ -47,6 +61,7 @@ describe('BedrockRuntimeServiceExtension InvokeModel request', () => {
       [GEN_AI_REQUEST_MODEL]: CLAUDE_MODEL_ID,
       [GEN_AI_REQUEST_MAX_TOKENS]: 1024,
       [GEN_AI_REQUEST_TEMPERATURE]: 0.5,
+      [GEN_AI_INPUT_MESSAGES]: JSON.stringify(CLAUDE_REQUEST_BODY.messages),
     });
   });
 
@@ -80,6 +95,158 @@ describe('BedrockRuntimeServiceExtension InvokeModel request', () => {
   });
 });
 
+const WEATHER_TOOL_SPEC = {
+  name: 'get_weather',
+  description: 'Get the weather for a city',
+  inputSchema: { json: { type: 'object', properties: { city: { type: 'string' } } } },
+};
+
+describe('BedrockRuntimeServiceExtension input recording', () => {
+  afterEach(() => {
+    setCurrentClient(undefined as never);
+  });
+
+  it('records Converse system instructions, messages, and tool definitions as message parts', () => {
+    const { spanAttributes } = preSpanHook('Converse', {
+      modelId: 'amazon.nova-pro-v1:0',
+      system: [{ text: 'You are a weather bot.' }, { cachePoint: { type: 'default' } }],
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { text: 'What is the weather in Kawasaki?' },
+            { image: { format: 'png', source: { bytes: new Uint8Array([1, 2, 3]) } } },
+            { image: { source: { bytes: new Uint8Array([1]) } } },
+            { document: { name: 'forecast', source: { bytes: new Uint8Array([1]) } } },
+            { guardContent: { text: { text: 'Guarded text' } } },
+            { guardContent: { image: { format: 'jpeg', source: { bytes: new Uint8Array([1]) } } } },
+            { cachePoint: { type: 'default' } },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            { reasoningContent: { reasoningText: { text: 'I need the weather tool.' } } },
+            { reasoningContent: { redactedContent: new Uint8Array([1]) } },
+            { toolUse: { toolUseId: 'tooluse_1', name: 'get_weather', input: { city: 'Kawasaki' } } },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              toolResult: {
+                toolUseId: 'tooluse_1',
+                content: [{ text: 'Sunny' }, { json: { celsius: 21 } }, { image: { format: 'png' } }],
+              },
+            },
+            { citationsContent: { content: [{ text: 'Cited text' }] } },
+          ],
+        },
+        { role: 'user', content: [{ cachePoint: { type: 'default' } }] },
+      ],
+      toolConfig: { tools: [{ toolSpec: WEATHER_TOOL_SPEC }, { cachePoint: { type: 'default' } }] },
+    });
+
+    expect(spanAttributes).toEqual({
+      [GEN_AI_PROVIDER_NAME]: 'aws.bedrock',
+      [GEN_AI_OPERATION_NAME]: 'chat',
+      [GEN_AI_REQUEST_MODEL]: 'amazon.nova-pro-v1:0',
+      [GEN_AI_SYSTEM_INSTRUCTIONS]: JSON.stringify([{ type: 'text', content: 'You are a weather bot.' }]),
+      [GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+        {
+          role: 'user',
+          parts: [
+            { type: 'text', content: 'What is the weather in Kawasaki?' },
+            { type: 'blob', modality: 'image', mime_type: 'image/png' },
+            { type: 'blob', modality: 'image' },
+            { type: 'blob', modality: 'document' },
+            { type: 'text', content: 'Guarded text' },
+            { type: 'blob', modality: 'image', mime_type: 'image/jpeg' },
+          ],
+        },
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'reasoning', content: 'I need the weather tool.' },
+            { type: 'tool_call', id: 'tooluse_1', name: 'get_weather', arguments: '{"city":"Kawasaki"}' },
+          ],
+        },
+        {
+          role: 'user',
+          parts: [
+            { type: 'tool_call_response', id: 'tooluse_1', result: 'Sunny\n{"celsius":21}' },
+            { type: 'text', content: 'Cited text' },
+          ],
+        },
+      ]),
+      [GEN_AI_TOOL_DEFINITIONS]: JSON.stringify([WEATHER_TOOL_SPEC]),
+    });
+  });
+
+  it('records Claude InvokeModel system instructions, messages, and tool definitions like the Anthropic integration', () => {
+    const tools = [{ name: 'get_weather', input_schema: { type: 'object' } }];
+    const messages = [{ role: 'user', content: [{ type: 'text', text: 'What is the weather in Kawasaki?' }] }];
+    const body = { system: [{ type: 'text', text: 'You are a weather bot.' }], messages, tools };
+
+    const { spanAttributes } = invokeModelPreSpanHook({ modelId: CLAUDE_MODEL_ID, body: JSON.stringify(body) });
+
+    expect(spanAttributes).toEqual({
+      [GEN_AI_PROVIDER_NAME]: 'aws.bedrock',
+      [GEN_AI_OPERATION_NAME]: 'generate_content',
+      [GEN_AI_REQUEST_MODEL]: CLAUDE_MODEL_ID,
+      [GEN_AI_SYSTEM_INSTRUCTIONS]: JSON.stringify([{ type: 'text', content: 'You are a weather bot.' }]),
+      [GEN_AI_INPUT_MESSAGES]: JSON.stringify(messages),
+      [GEN_AI_TOOL_DEFINITIONS]: JSON.stringify(tools),
+    });
+  });
+
+  it.each([
+    { family: 'Titan', modelId: 'amazon.titan-text-express-v1', body: { inputText: 'Kawasaki' } },
+    { family: 'Llama', modelId: 'meta.llama3-8b-instruct-v1:0', body: { prompt: 'Kawasaki' } },
+    { family: 'Cohere Command R', modelId: 'cohere.command-r-v1:0', body: { message: 'Kawasaki' } },
+    { family: 'Cohere Command', modelId: 'cohere.command-text-v14', body: { prompt: 'Kawasaki' } },
+    { family: 'Mistral', modelId: 'mistral.mistral-7b-instruct-v0:2', body: { prompt: 'Kawasaki' } },
+    {
+      family: 'Nova',
+      modelId: 'amazon.nova-lite-v1:0',
+      body: { messages: [{ role: 'user', content: [{ text: 'Kawasaki' }] }] },
+    },
+  ])('records the $family InvokeModel prompt as a user message', ({ modelId, body }) => {
+    const { spanAttributes } = invokeModelPreSpanHook({ modelId, body: JSON.stringify(body) });
+
+    expect(spanAttributes?.[GEN_AI_INPUT_MESSAGES]).toBe(
+      JSON.stringify([{ role: 'user', parts: [{ type: 'text', content: 'Kawasaki' }] }]),
+    );
+  });
+
+  it.each(
+    [
+      { commandName: 'Converse', commandInput: { messages: [{ role: 'user', content: [{ text: 'Kawasaki' }] }] } },
+      {
+        commandName: 'InvokeModel',
+        commandInput: { modelId: CLAUDE_MODEL_ID, body: JSON.stringify(CLAUDE_REQUEST_BODY) },
+      },
+    ].flatMap(command => [
+      {
+        ...command,
+        setting: 'dataCollection.genAI.inputs',
+        dataCollection: { genAI: { inputs: false } },
+        options: undefined,
+      },
+      { ...command, setting: 'recordInputs', dataCollection: undefined, options: { recordInputs: false } },
+    ]),
+  )('records no $commandName input when $setting is off', ({ commandName, commandInput, dataCollection, options }) => {
+    const client = new TestClient(getDefaultTestClientOptions({ dataCollection }));
+    setCurrentClient(client);
+    client.init();
+
+    const { spanAttributes } = preSpanHook(commandName, commandInput, options);
+
+    expect(spanAttributes).not.toHaveProperty(GEN_AI_INPUT_MESSAGES);
+  });
+});
+
 const STREAM_COMMANDS = [
   { commandName: 'ConverseStream', streamField: 'stream' },
   { commandName: 'InvokeModelWithResponseStream', streamField: 'body' },
@@ -91,13 +258,14 @@ function respond(
   commandInput: Record<string, unknown>,
   data: unknown,
   abortSignal?: AbortSignal,
+  options?: GenAiOptions,
 ): void {
   const response: NormalizedResponse = {
     data,
     request: { serviceName: 'BedrockRuntime', commandName, commandInput, abortSignal },
     requestId: 'b0a5e5a2-2c2b-4f56-9d0e-8c7c2d3f4a10',
   };
-  new BedrockRuntimeServiceExtension().responseHook(response, span);
+  new BedrockRuntimeServiceExtension(options).responseHook(response, span);
 }
 
 async function drain(stream: AsyncIterable<unknown>): Promise<void> {
@@ -220,6 +388,58 @@ describe('BedrockRuntimeServiceExtension stream spans', () => {
     }).toEqual(expected);
   });
 
+  it.each([
+    {
+      family: 'Llama',
+      modelId: 'meta.llama3-8b-instruct-v1:0',
+      chunks: [
+        { generation: 'Kawasaki', prompt_token_count: 12, generation_token_count: 1, stop_reason: null },
+        { generation: '.', prompt_token_count: null, generation_token_count: 2, stop_reason: 'stop' },
+      ],
+      expected: { input: 12, output: 2, total: 14, finishReasons: '["stop"]' },
+    },
+    {
+      family: 'Titan',
+      modelId: 'amazon.titan-text-express-v1',
+      chunks: [
+        { outputText: 'Kawasaki', totalOutputTextTokenCount: null, completionReason: null, inputTextTokenCount: 5 },
+        { outputText: '.', totalOutputTextTokenCount: 2, completionReason: 'FINISH', inputTextTokenCount: null },
+      ],
+      expected: { input: 5, output: 2, total: 7, finishReasons: '["FINISH"]' },
+    },
+    {
+      family: 'Nova',
+      modelId: 'amazon.nova-lite-v1:0',
+      chunks: [
+        { contentBlockDelta: { delta: { text: 'Kawasaki' }, contentBlockIndex: 0 } },
+        { messageStop: { stopReason: 'end_turn' } },
+        { metadata: { usage: { inputTokens: 7, outputTokens: 2 }, metrics: {}, trace: {} } },
+      ],
+      expected: { input: 7, output: 2, total: 9, finishReasons: '["end_turn"]' },
+    },
+  ])('records token usage and finish reasons for a $family stream', async ({ modelId, chunks, expected }) => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const encoder = new TextEncoder();
+    const data = {
+      body: (async function* () {
+        for (const chunk of chunks) {
+          yield { chunk: { bytes: encoder.encode(JSON.stringify(chunk)) } };
+        }
+      })(),
+    };
+
+    respond(span, 'InvokeModelWithResponseStream', { modelId }, data);
+    await drain(data.body);
+
+    const attributes = spanToJSON(span).attributes;
+    expect({
+      input: attributes?.[GEN_AI_USAGE_INPUT_TOKENS],
+      output: attributes?.[GEN_AI_USAGE_OUTPUT_TOKENS],
+      total: attributes?.[GEN_AI_USAGE_TOTAL_TOKENS],
+      finishReasons: attributes?.[GEN_AI_RESPONSE_FINISH_REASONS],
+    }).toEqual(expected);
+  });
+
   it('ends an InvokeModelWithResponseStream span without a modelId when the stream is drained', async () => {
     const span = startInactiveSpan({ name: 'bedrock' });
     const data = { body: (async function* () {})() };
@@ -291,6 +511,31 @@ describe('BedrockRuntimeServiceExtension token usage with prompt caching', () =>
     expect(usageAttributes(span, EXPECTED_USAGE)).toEqual(EXPECTED_USAGE);
   });
 
+  it('counts cache reads and writes in the total tokens for ConverseStream', async () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const data = {
+      stream: (async function* () {
+        yield {
+          metadata: {
+            // The total comes from the cache-adjusted input, like for Converse, not from `totalTokens`.
+            usage: {
+              inputTokens: 20,
+              outputTokens: 50,
+              totalTokens: 70,
+              cacheReadInputTokens: 1800,
+              cacheWriteInputTokens: 300,
+            },
+          },
+        };
+      })(),
+    };
+
+    respond(span, 'ConverseStream', { modelId: CLAUDE_MODEL_ID }, data);
+    await drain(data.stream);
+
+    expect(usageAttributes(span, EXPECTED_USAGE)).toEqual(EXPECTED_USAGE);
+  });
+
   it('counts cache reads and writes as input tokens for Claude InvokeModel', () => {
     const span = startInactiveSpan({ name: 'bedrock' });
     const body = encoder.encode(
@@ -315,17 +560,302 @@ describe('BedrockRuntimeServiceExtension token usage with prompt caching', () =>
       type: 'message_start',
       message: { id: 'msg_bdrk_01Fv2yWBqLQ8Pp4q9kJbDxXz', role: 'assistant', usage: CLAUDE_USAGE },
     };
+    const messageDelta = { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 50 } };
     const data = {
       body: (async function* () {
         yield { chunk: { bytes: encoder.encode(JSON.stringify(messageStart)) } };
+        yield { chunk: { bytes: encoder.encode(JSON.stringify(messageDelta)) } };
       })(),
     };
 
     respond(span, 'InvokeModelWithResponseStream', { modelId: CLAUDE_MODEL_ID }, data);
     await drain(data.body);
 
-    // The total waits for the final output count, which `message_start` does not carry.
-    const expected = { ...EXPECTED_INPUT_USAGE, [GEN_AI_USAGE_TOTAL_TOKENS]: undefined };
-    expect(usageAttributes(span, expected)).toEqual(expected);
+    expect(usageAttributes(span, EXPECTED_USAGE)).toEqual(EXPECTED_USAGE);
   });
+});
+
+describe('BedrockRuntimeServiceExtension output recording', () => {
+  const encoder = new TextEncoder();
+
+  function streamOf(chunks: unknown[]): AsyncIterable<{ chunk: { bytes: Uint8Array } }> {
+    return (async function* () {
+      for (const chunk of chunks) {
+        yield { chunk: { bytes: encoder.encode(JSON.stringify(chunk)) } };
+      }
+    })();
+  }
+
+  function outputMessages(span: Span): unknown {
+    const value = spanToJSON(span).attributes?.[GEN_AI_OUTPUT_MESSAGES];
+    return typeof value === 'string' ? JSON.parse(value) : value;
+  }
+
+  const ASSISTANT_TURN = [
+    {
+      role: 'assistant',
+      parts: [
+        { type: 'reasoning', content: 'The user wants the weather.' },
+        { type: 'text', content: 'Let me check.' },
+        {
+          type: 'tool_call',
+          id: 'tooluse_kZJMlvQmRJ6eAyJE5GIl7Q',
+          name: 'get_weather',
+          arguments: '{"city":"Vienna"}',
+        },
+      ],
+    },
+  ];
+
+  beforeEach(() => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+  });
+
+  afterEach(() => {
+    setCurrentClient(undefined as never);
+  });
+
+  it('records the Converse response message as message parts', () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+
+    respond(
+      span,
+      'Converse',
+      {},
+      {
+        stopReason: 'tool_use',
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              { reasoningContent: { reasoningText: { text: 'The user wants the weather.', signature: 'c2ln' } } },
+              { text: 'Let me check.' },
+              {
+                toolUse: {
+                  toolUseId: 'tooluse_kZJMlvQmRJ6eAyJE5GIl7Q',
+                  name: 'get_weather',
+                  input: { city: 'Vienna' },
+                },
+              },
+            ],
+          },
+        },
+      },
+    );
+
+    expect(outputMessages(span)).toEqual(ASSISTANT_TURN);
+  });
+
+  it('records no output message when the response has no content', () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+
+    respond(span, 'Converse', {}, { stopReason: 'end_turn', output: { message: { role: 'assistant', content: [] } } });
+
+    expect(spanToJSON(span).attributes).not.toHaveProperty(GEN_AI_OUTPUT_MESSAGES);
+  });
+
+  it('records the Claude InvokeModel response content as message parts', () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const body = {
+      stop_reason: 'tool_use',
+      content: [
+        { type: 'thinking', thinking: 'The user wants the weather.', signature: 'c2ln' },
+        { type: 'redacted_thinking', data: 'ZW5jcnlwdGVk' },
+        { type: 'text', text: 'Let me check.' },
+        { type: 'tool_use', id: 'tooluse_kZJMlvQmRJ6eAyJE5GIl7Q', name: 'get_weather', input: { city: 'Vienna' } },
+      ],
+    };
+
+    respond(span, 'InvokeModel', { modelId: CLAUDE_MODEL_ID }, { body: encoder.encode(JSON.stringify(body)) });
+
+    expect(outputMessages(span)).toEqual(ASSISTANT_TURN);
+  });
+
+  it.each([
+    {
+      family: 'Titan',
+      modelId: 'amazon.titan-text-express-v1',
+      body: { results: [{ outputText: 'Paris.', completionReason: 'FINISH' }] },
+      finishReason: 'FINISH',
+    },
+    {
+      family: 'Llama',
+      modelId: 'meta.llama3-8b-instruct-v1:0',
+      body: { generation: 'Paris.', stop_reason: 'stop' },
+      finishReason: 'stop',
+    },
+    {
+      family: 'Cohere Command R',
+      modelId: 'cohere.command-r-v1:0',
+      body: { text: 'Paris.', finish_reason: 'COMPLETE' },
+      finishReason: 'COMPLETE',
+    },
+    {
+      family: 'Cohere Command',
+      modelId: 'cohere.command-text-v14',
+      body: { generations: [{ text: 'Paris.', finish_reason: 'COMPLETE' }] },
+      finishReason: 'COMPLETE',
+    },
+    {
+      family: 'Mistral',
+      modelId: 'mistral.mistral-7b-instruct-v0:2',
+      body: { outputs: [{ text: 'Paris.', stop_reason: 'stop' }] },
+      finishReason: 'stop',
+    },
+    {
+      family: 'Nova',
+      modelId: 'amazon.nova-lite-v1:0',
+      body: { output: { message: { role: 'assistant', content: [{ text: 'Paris.' }] } }, stopReason: 'end_turn' },
+      finishReason: 'end_turn',
+    },
+  ])('records the $family InvokeModel response text and finish reason', ({ modelId, body, finishReason }) => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+
+    respond(span, 'InvokeModel', { modelId }, { body: encoder.encode(JSON.stringify(body)) });
+
+    expect(outputMessages(span)).toEqual([{ role: 'assistant', parts: [{ type: 'text', content: 'Paris.' }] }]);
+    expect(spanToJSON(span).attributes?.[GEN_AI_RESPONSE_FINISH_REASONS]).toBe(JSON.stringify([finishReason]));
+  });
+
+  it('collects a ConverseStream response by content block', async () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const data = {
+      stream: (async function* () {
+        yield { messageStart: { role: 'assistant' } };
+        yield { contentBlockDelta: { contentBlockIndex: 0, delta: { reasoningContent: { text: 'The user wants ' } } } };
+        yield { contentBlockDelta: { contentBlockIndex: 0, delta: { reasoningContent: { text: 'the weather.' } } } };
+        yield { contentBlockDelta: { contentBlockIndex: 1, delta: { text: 'Let me ' } } };
+        yield { contentBlockDelta: { contentBlockIndex: 1, delta: { text: 'check.' } } };
+        yield {
+          contentBlockStart: {
+            contentBlockIndex: 2,
+            start: { toolUse: { toolUseId: 'tooluse_kZJMlvQmRJ6eAyJE5GIl7Q', name: 'get_weather' } },
+          },
+        };
+        yield { contentBlockDelta: { contentBlockIndex: 2, delta: { toolUse: { input: '{"city":' } } } };
+        yield { contentBlockDelta: { contentBlockIndex: 2, delta: { toolUse: { input: '"Vienna"}' } } } };
+        yield { messageStop: { stopReason: 'tool_use' } };
+      })(),
+    };
+
+    respond(span, 'ConverseStream', {}, data);
+    await drain(data.stream);
+
+    expect(outputMessages(span)).toEqual(ASSISTANT_TURN);
+  });
+
+  it('collects a Claude InvokeModelWithResponseStream response by content block', async () => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const data = {
+      body: streamOf([
+        { type: 'message_start', message: { role: 'assistant', usage: { input_tokens: 14, output_tokens: 1 } } },
+        // Redacted reasoning has no deltas, so it leaves a gap at its index.
+        { type: 'content_block_start', index: 0, content_block: { type: 'redacted_thinking', data: 'ZW5jcnlwdGVk' } },
+        { type: 'content_block_start', index: 1, content_block: { type: 'thinking', thinking: '' } },
+        { type: 'content_block_delta', index: 1, delta: { type: 'thinking_delta', thinking: 'The user wants ' } },
+        { type: 'content_block_delta', index: 1, delta: { type: 'thinking_delta', thinking: 'the weather.' } },
+        { type: 'content_block_delta', index: 1, delta: { type: 'signature_delta', signature: 'c2ln' } },
+        { type: 'content_block_start', index: 2, content_block: { type: 'text', text: '' } },
+        { type: 'content_block_delta', index: 2, delta: { type: 'text_delta', text: 'Let me ' } },
+        { type: 'content_block_delta', index: 2, delta: { type: 'text_delta', text: 'check.' } },
+        {
+          type: 'content_block_start',
+          index: 3,
+          content_block: { type: 'tool_use', id: 'tooluse_kZJMlvQmRJ6eAyJE5GIl7Q', name: 'get_weather', input: {} },
+        },
+        { type: 'content_block_delta', index: 3, delta: { type: 'input_json_delta', partial_json: '{"city":' } },
+        { type: 'content_block_delta', index: 3, delta: { type: 'input_json_delta', partial_json: '"Vienna"}' } },
+        { type: 'message_delta', delta: { stop_reason: 'tool_use' }, usage: { output_tokens: 42 } },
+      ]),
+    };
+
+    respond(span, 'InvokeModelWithResponseStream', { modelId: CLAUDE_MODEL_ID }, data);
+    await drain(data.body);
+
+    expect(outputMessages(span)).toEqual(ASSISTANT_TURN);
+  });
+
+  it.each([
+    {
+      family: 'Titan',
+      modelId: 'amazon.titan-text-express-v1',
+      toChunk: (text: string) => ({ outputText: text }),
+    },
+    { family: 'Llama', modelId: 'meta.llama3-8b-instruct-v1:0', toChunk: (text: string) => ({ generation: text }) },
+    {
+      family: 'Mistral',
+      modelId: 'mistral.mistral-large-2402-v1:0',
+      toChunk: (text: string) => ({ outputs: [{ text }] }),
+    },
+    {
+      family: 'Cohere Command',
+      modelId: 'cohere.command-text-v14',
+      toChunk: (text: string) => ({ generations: [{ text }] }),
+    },
+    { family: 'Cohere Command R', modelId: 'cohere.command-r-plus-v1:0', toChunk: (text: string) => ({ text }) },
+    {
+      family: 'Nova',
+      modelId: 'amazon.nova-lite-v1:0',
+      toChunk: (text: string) => ({ contentBlockDelta: { contentBlockIndex: 0, delta: { text } } }),
+    },
+  ])('joins the streamed $family text into one part', async ({ modelId, toChunk }) => {
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const data = { body: streamOf([toChunk('The capital'), toChunk(' is Paris.')]) };
+
+    respond(span, 'InvokeModelWithResponseStream', { modelId }, data);
+    await drain(data.body);
+
+    expect(outputMessages(span)).toEqual([
+      { role: 'assistant', parts: [{ type: 'text', content: 'The capital is Paris.' }] },
+    ]);
+  });
+
+  it.each(
+    [
+      { commandName: 'Converse', makeData: () => ({ output: { message: { content: [{ text: 'Paris.' }] } } }) },
+      {
+        commandName: 'InvokeModel',
+        makeData: () => ({ body: encoder.encode(JSON.stringify({ outputs: [{ text: 'Paris.' }] })) }),
+      },
+      {
+        commandName: 'ConverseStream',
+        makeData: () => ({
+          stream: (async function* () {
+            yield { contentBlockStart: { contentBlockIndex: 0, start: { toolUse: { toolUseId: 't', name: 'f' } } } };
+            yield { contentBlockDelta: { contentBlockIndex: 0, delta: { toolUse: { input: '{}' } } } };
+          })(),
+        }),
+      },
+      {
+        commandName: 'InvokeModelWithResponseStream',
+        makeData: () => ({ body: streamOf([{ outputs: [{ text: 'Paris.' }] }]) }),
+      },
+    ].flatMap(command => [
+      {
+        ...command,
+        setting: 'dataCollection.genAI.outputs',
+        dataCollection: { genAI: { outputs: false } },
+        options: undefined,
+      },
+      { ...command, setting: 'recordOutputs', dataCollection: undefined, options: { recordOutputs: false } },
+    ]),
+  )(
+    'records no $commandName output when $setting is off',
+    async ({ commandName, makeData, dataCollection, options }) => {
+      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1, dataCollection }));
+      setCurrentClient(client);
+      client.init();
+      const span = startInactiveSpan({ name: 'bedrock' });
+      const data = makeData() as { stream?: AsyncIterable<unknown>; body?: unknown };
+
+      respond(span, commandName, { modelId: 'mistral.mistral-large-2402-v1:0' }, data, undefined, options);
+      if (commandName.endsWith('Stream')) {
+        await drain((data.stream ?? data.body) as AsyncIterable<unknown>);
+      }
+
+      expect(spanToJSON(span).attributes).not.toHaveProperty(GEN_AI_OUTPUT_MESSAGES);
+    },
+  );
 });

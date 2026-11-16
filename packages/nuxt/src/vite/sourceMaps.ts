@@ -13,14 +13,16 @@ import {
   withoutSourceMapDeletion,
 } from './sourceMapDeletion';
 import { validateSourceMapsOptionsPlugin } from './sentryVitePlugin';
+import {
+  extractNuxtSourceMapSetting,
+  type SourceMapSetting,
+  validateDifferentSourceMapSettings,
+} from './sourceMapSettings';
 
 /**
  * Whether the user enabled (true, 'hidden', 'inline') or disabled (false) source maps
  */
 export type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
-
-/** A valid source map setting */
-export type SourceMapSetting = boolean | 'hidden' | 'inline';
 
 /**
  *  Setup source maps for Sentry inside the Nuxt module during build time (in Vite for Nuxt and Rollup for Nitro).
@@ -252,20 +254,6 @@ function resolveFilesToDeleteAfterUpload(
     Users only have to explicitly enable client source maps. Sentry only overwrites the base Nuxt source map settings as they propagate.
  */
 
-/** only exported for tests */
-export function extractNuxtSourceMapSetting(
-  nuxt: { options: { sourcemap?: SourceMapSetting | { server?: SourceMapSetting; client?: SourceMapSetting } } },
-  runtime: 'client' | 'server' | undefined,
-): SourceMapSetting | undefined {
-  if (!runtime) {
-    return undefined;
-  } else {
-    return typeof nuxt.options?.sourcemap === 'boolean' || typeof nuxt.options?.sourcemap === 'string'
-      ? nuxt.options.sourcemap
-      : nuxt.options?.sourcemap?.[runtime];
-  }
-}
-
 /** only exported for testing  */
 export function changeNuxtSourceMapSettings(
   nuxt: Nuxt,
@@ -377,31 +365,6 @@ export function validateNitroSourceMapSettings(
     // eslint-disable-next-line no-console
     console.log(
       '[Sentry] Set `sourcemapExcludeSources: false` (`nitro.rollupConfig.output`) and `sourcemapMinify: false` (`nitro.experimental`) in the Nuxt config. Source maps will now include the actual code to be able to un-minify code snippets in Sentry.',
-    );
-  }
-}
-
-/**
- * Validates that source map settings are consistent between Nuxt and Vite/Nitro configurations.
- * Logs a warning if conflicting settings are detected.
- *
- * @internal Only exported for testing.
- */
-export function validateDifferentSourceMapSettings({
-  nuxtSettingKey,
-  nuxtSettingValue,
-  otherSettingKey,
-  otherSettingValue,
-}: {
-  nuxtSettingKey: string;
-  nuxtSettingValue?: SourceMapSetting;
-  otherSettingKey: string;
-  otherSettingValue?: SourceMapSetting;
-}): void {
-  if (nuxtSettingValue !== otherSettingValue) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[Sentry] Source map generation settings are conflicting. Sentry uses \`${nuxtSettingKey}: ${nuxtSettingValue}\`. However, a conflicting setting was discovered (\`${otherSettingKey}: ${otherSettingValue}\`). This setting was probably explicitly set in your configuration. Sentry won't override this setting but it may affect source maps generation and upload. Without source maps, code snippets on the Sentry Issues page will remain minified.`,
     );
   }
 }

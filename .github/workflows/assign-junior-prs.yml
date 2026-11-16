@@ -1,0 +1,38 @@
+name: 'PR: Assign Junior PRs to requester'
+
+on:
+  pull_request_target:
+    types:
+      - opened
+
+permissions:
+  contents: read
+
+jobs:
+  assign-requester:
+    name: Assign requester
+    runs-on: ubuntu-24.04
+    if: github.event.pull_request.user.login == 'sentry-junior[bot]'
+    steps:
+      # Matching Slack names to GitHub users lists team members, which needs org `members: read`.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.GITFLOW_APP_ID }}
+          private-key: ${{ secrets.GITFLOW_APP_PRIVATE_KEY }}
+
+      - name: Checkout base branch
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            scripts/junior-requesters.mjs
+          sparse-checkout-cone-mode: false
+
+      - name: Assign requester
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const { assignJuniorRequesters } = await import('${{ github.workspace }}/scripts/junior-requesters.mjs');
+            await assignJuniorRequesters({ github, context, core });

@@ -5,7 +5,7 @@ import { EntryPlugin, SourceMapDevToolPlugin, webpack } from 'webpack';
 import type { Compiler, Configuration, Stats } from 'webpack';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { sentryWebpackPlugin } from '../../src/webpack/index';
-import type { Options } from '../../src/core';
+import type { InternalOptions, Options } from '../../src/core';
 
 const { mockSourcemapUpload, mockReleaseCreate } = vi.hoisted(() => ({
   mockSourcemapUpload: vi.fn(),
@@ -98,7 +98,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (webpack)', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  function config(pluginOptions: Options = {}, overrides: Configuration = {}): Configuration {
+  function config(pluginOptions: InternalOptions = {}, overrides: Configuration = {}): Configuration {
     return {
       mode: 'production',
       context: tmpDir,
@@ -243,6 +243,20 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (webpack)', () => {
     const stats = await build(config({ authToken: undefined }));
 
     expect(stats.compilation.options.devtool).toBe(false);
+    expect(fs.readdirSync(outDir)).toEqual(['bundle.js']);
+    expect(uploads).toHaveLength(0);
+    expect(mkdtempSpy).not.toHaveBeenCalled();
+  });
+
+  it('removes hidden source maps when the option is true and no upload runs', async () => {
+    const mkdtempSpy = vi.spyOn(fs.promises, 'mkdtemp');
+    await build(
+      config(
+        { authToken: undefined, sourcemaps: { deleteSourcemapsAfterUpload: true } },
+        { devtool: 'hidden-source-map' },
+      ),
+    );
+
     expect(fs.readdirSync(outDir)).toEqual(['bundle.js']);
     expect(uploads).toHaveLength(0);
     expect(mkdtempSpy).not.toHaveBeenCalled();
@@ -442,6 +456,55 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (webpack)', () => {
     expect(files.filter(file => file.endsWith('.css.map'))).toHaveLength(1);
     expect(files.filter(file => file.endsWith('.js.map'))).toEqual([]);
     expect(uploads).toHaveLength(1);
+  });
+
+  describe('with source maps the SDK turned on', () => {
+    const sdkSourcemaps = { deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: true };
+
+    function sdkConfig(pluginOptions: InternalOptions): Configuration {
+      fs.writeFileSync(path.join(tmpDir, 'style.css'), 'body { color: red; }\n');
+      fs.writeFileSync(path.join(tmpDir, 'entry.js'), "import './style.css';\nconsole.log(42);\n");
+      fs.writeFileSync(path.join(tmpDir, 'vendor.js'), 'console.log("vendor");\n');
+      return config(pluginOptions, {
+        devtool: 'hidden-source-map',
+        experiments: { css: true },
+        entry: { bundle: './entry.js', vendor: './vendor.js' },
+        output: { path: outDir, filename: '[name].js' },
+      });
+    }
+
+    it('removes the maps of ignored chunks and of CSS after the upload', async () => {
+      await build(sdkConfig({ sourcemaps: { ...sdkSourcemaps, ignore: ['**/vendor.js'] } }));
+
+      const files = fs.readdirSync(outDir);
+      expect(files.filter(file => file.endsWith('.map'))).toEqual([]);
+      expect(files.filter(file => file.endsWith('.css'))).toHaveLength(1);
+      expect(uploads).toHaveLength(1);
+      expectUploadedPair(uploads[0]!, fs.readFileSync(path.join(outDir, 'bundle.js'), 'utf8'));
+      expect(Object.keys(uploads[0]!.files)).toHaveLength(2);
+    });
+
+    it('removes all maps when no upload runs', async () => {
+      const mkdtempSpy = vi.spyOn(fs.promises, 'mkdtemp');
+      await build(sdkConfig({ authToken: undefined, sourcemaps: { ...sdkSourcemaps, ignore: ['**/vendor.js'] } }));
+
+      const files = fs.readdirSync(outDir);
+      expect(files.filter(file => file.endsWith('.map'))).toEqual([]);
+      expect(files.filter(file => file.endsWith('.css'))).toHaveLength(1);
+      expect(uploads).toHaveLength(0);
+      expect(mkdtempSpy).not.toHaveBeenCalled();
+    });
+
+    it('keeps the maps when `deleteSourcemapsAfterUpload` is not true', async () => {
+      await build(sdkConfig({ sourcemaps: { sdkEnabledSourceMaps: true } }));
+
+      expect(
+        fs
+          .readdirSync(outDir)
+          .filter(file => file.endsWith('.map'))
+          .sort(),
+      ).toEqual(['bundle.css.map', 'bundle.js.map', 'vendor.js.map']);
+    });
   });
 
   it('treats eval without source maps as turned off', async () => {

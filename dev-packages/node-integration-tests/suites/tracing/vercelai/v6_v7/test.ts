@@ -852,6 +852,52 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
 
   createEsmTests(
     __dirname,
+    'scenario-stream-object.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      // v7's native `ai:telemetry` channel does not publish `streamObject`, same as `generateObject`.
+      test.skipIf(version === '7')(
+        'creates streamObject spans with the model call parented to invoke_agent',
+        async () => {
+          await createRunner()
+            .expect({
+              span: container => {
+                const segment = container.items.find(span => span.is_segment && span.name === 'main');
+                expect(segment).toBeDefined();
+                const spans = container.items.filter(
+                  span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
+                );
+                const invokeAgent = spans.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT)!;
+                expect(invokeAgent.attributes['vercel.ai.operationId']?.value).toBe('ai.streamObject');
+                expect(invokeAgent.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(15);
+                expect(invokeAgent.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(25);
+                expect(invokeAgent.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(40);
+
+                const generateContent = spans.find(
+                  span => span.attributes[SENTRY_OP]?.value === GEN_AI_GENERATE_CONTENT,
+                )!;
+                expect(generateContent.parent_span_id).toBe(invokeAgent.span_id);
+                expect(generateContent.attributes['vercel.ai.operationId']?.value).toBe('ai.streamObject.doStream');
+                expect(generateContent.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(15);
+                expect(generateContent.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(25);
+                expect(generateContent.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(40);
+              },
+            })
+            .unordered()
+            .start()
+            .completed();
+        },
+      );
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
     'scenario-stream-tools.mjs',
     'instrument.mjs',
     (createRunner, test) => {
@@ -947,6 +993,39 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(output).toContain('sunny');
             },
           })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-stream-object-invalid.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      // v7's native `ai:telemetry` channel does not publish `streamObject`, same as `generateObject`.
+      test.skipIf(version === '7')('keeps streamObject usage when the object fails schema validation', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items.filter(
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
+              );
+              const invokeAgent = spans.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT)!;
+              expect(invokeAgent.attributes['vercel.ai.operationId']?.value).toBe('ai.streamObject');
+              expect(invokeAgent.status).toBe('error');
+              expect(invokeAgent.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(15);
+              expect(invokeAgent.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(25);
+              expect(invokeAgent.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(40);
+            },
+          })
+          .unordered()
           .start()
           .completed();
       });
@@ -1521,5 +1600,172 @@ describe('Vercel AI runtime and tool context (v7)', () => {
       });
     },
     { additionalDependencies: { ai: '^7.0.154' } },
+  );
+});
+
+describe('Vercel AI calls with recording off (v7)', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmTests(
+    __dirname,
+    'scenario-no-recording.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('captures usage and tool errors for calls with recordInputs/recordOutputs: false', async () => {
+        await createRunner()
+          .unordered()
+          .expect({
+            event: event => {
+              expect(event.exception?.values?.[0]).toMatchObject({
+                value: 'Error in tool',
+                mechanism: { type: 'auto.ai.vercelai', handled: false },
+              });
+            },
+          })
+          .expect({
+            span: container => {
+              const spans = container.items.filter(
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
+              );
+              const modelCalls = spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_GENERATE_CONTENT);
+              expect(modelCalls).toHaveLength(2);
+              for (const modelCall of modelCalls) {
+                expect(modelCall.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
+                expect(modelCall.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(20);
+                expect(modelCall.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value).toBe('["tool-calls"]');
+                expect(modelCall.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+                expect(modelCall.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+              }
+
+              const streamAgent = spans.find(
+                span => span.attributes['vercel.ai.operationId']?.value === 'ai.streamText',
+              )!;
+              expect(streamAgent.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
+              expect(streamAgent.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(20);
+
+              const toolSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXECUTE_TOOL);
+              expect(toolSpans).toHaveLength(2);
+              toolSpans.forEach(span => expect(span.status).toBe('error'));
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { additionalDependencies: { ai: '^7.0.163' } },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-no-recording.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('records output messages when only recordInputs is false', async () => {
+        await createRunner()
+          .withEnv({ RECORD_OUTPUTS: '1' })
+          .unordered()
+          .expect({
+            span: container => {
+              const modelCalls = container.items.filter(
+                span => span.attributes[SENTRY_OP]?.value === GEN_AI_GENERATE_CONTENT,
+              );
+              expect(modelCalls).toHaveLength(2);
+              for (const modelCall of modelCalls) {
+                expect(modelCall.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+                expect(modelCall.attributes[GEN_AI_OUTPUT_MESSAGES]?.value).toContain('getWeather');
+              }
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { additionalDependencies: { ai: '^7.0.163' } },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-no-recording.mjs',
+    'instrument-eve.mjs',
+    (createRunner, test) => {
+      test('records usage but no output messages under eve when ai withheld the result', async () => {
+        await createRunner()
+          .unordered()
+          .expect({
+            span: container => {
+              const modelCalls = container.items.filter(
+                span => span.attributes[SENTRY_OP]?.value === GEN_AI_GENERATE_CONTENT,
+              );
+              expect(modelCalls).toHaveLength(2);
+              for (const modelCall of modelCalls) {
+                expect(modelCall.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
+                expect(modelCall.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+              }
+
+              const streamAgent = container.items.find(
+                span => span.attributes['vercel.ai.operationId']?.value === 'ai.streamText',
+              )!;
+              expect(streamAgent.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
+              expect(streamAgent.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+
+              const toolSpans = container.items.filter(
+                span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXECUTE_TOOL,
+              );
+              toolSpans.forEach(span => expect(span.attributes[GEN_AI_TOOL_CALL_RESULT]).toBeUndefined());
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { additionalDependencies: { ai: '^7.0.163' } },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-no-recording.mjs',
+    'instrument-unsampled.mjs',
+    (createRunner, test) => {
+      test('captures the real tool error in an unsampled trace with recordInputs/recordOutputs: false', async () => {
+        await createRunner()
+          .withEnv({ UNSAMPLED: '1' })
+          .unordered()
+          .expect({
+            event: event => {
+              expect(event.exception?.values?.[0]).toMatchObject({
+                value: 'Error in tool',
+                mechanism: { type: 'auto.ai.vercelai', handled: false },
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { additionalDependencies: { ai: '^7.0.163' } },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-error-in-tool.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('records no tool call result for a failed tool, since the span status and error event carry it', async () => {
+        await createRunner()
+          .unordered()
+          .expect({
+            span: container => {
+              const toolSpan = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXECUTE_TOOL);
+              expect(toolSpan?.status).toBe('error');
+              expect(toolSpan?.attributes[GEN_AI_TOOL_CALL_RESULT]).toBeUndefined();
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { additionalDependencies: { ai: '^7.0.163' } },
   );
 });

@@ -241,7 +241,7 @@ describe('createUploadStaging', () => {
 
       const result = await manager.uploadSourcemaps([], { staging });
 
-      expect(result).toEqual({ uploaded: true });
+      expect(result).toEqual({ uploaded: true, uploadedSourceMapPaths: [] });
       expect(mockSourcemapUpload).toHaveBeenCalledWith(expect.objectContaining({ directory: staging.dir }));
       expect(fs.existsSync(staging.dir)).toBe(false);
     });
@@ -273,7 +273,7 @@ describe('createUploadStaging', () => {
 
       const result = await manager.uploadSourcemaps([path.join(tmpDir, '**/*.js')], { staging });
 
-      expect(result).toEqual({ uploaded: true });
+      expect(result).toEqual({ uploaded: true, uploadedSourceMapPaths: [] });
       expect(uploadedFiles).toEqual([`${DEBUG_ID}-0.js`, `${DEBUG_ID}-0.js.map`]);
       expect(uploadedMaps).not.toContain('stale.ts');
     });
@@ -332,7 +332,7 @@ describe('createUploadStaging', () => {
 
       const result = await manager.uploadSourcemaps([], { staging });
 
-      expect(result).toEqual({ uploaded: false });
+      expect(result).toEqual({ uploaded: false, uploadedSourceMapPaths: [] });
       expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(/matching sources/));
       expect(mockSourcemapUpload).not.toHaveBeenCalled();
       expect(fs.existsSync(staging.dir)).toBe(false);
@@ -353,7 +353,7 @@ describe('createUploadStaging', () => {
 
       const result = await manager.uploadSourcemaps([], { staging });
 
-      expect(result).toEqual({ uploaded: false });
+      expect(result).toEqual({ uploaded: false, uploadedSourceMapPaths: [] });
       expect(mockSourcemapUpload).not.toHaveBeenCalled();
       expect(fs.existsSync(staging.dir)).toBe(false);
     });
@@ -373,7 +373,7 @@ describe('createUploadStaging', () => {
       try {
         const result = await manager.uploadSourcemaps([], { staging });
 
-        expect(result).toEqual({ uploaded: false });
+        expect(result).toEqual({ uploaded: false, uploadedSourceMapPaths: [] });
         expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining(`sentry sourcemap upload ${staging.dir}`));
         expect(fs.existsSync(staging.dir)).toBe(true);
       } finally {
@@ -393,7 +393,7 @@ describe('createUploadStaging', () => {
 
       const result = await manager.uploadSourcemaps(['.next/server'], { staging, prepareArtifacts: false });
 
-      expect(result).toEqual({ uploaded: true });
+      expect(result).toEqual({ uploaded: true, uploadedSourceMapPaths: [] });
       expect(mockSourcemapUpload).toHaveBeenCalledTimes(2);
       expect(mockSourcemapUpload).toHaveBeenCalledWith(expect.objectContaining({ directory: '.next/server' }));
       expect(mockSourcemapUpload).toHaveBeenCalledWith(expect.objectContaining({ directory: staging.dir }));
@@ -417,7 +417,7 @@ describe('createUploadStaging', () => {
 
       const result = await manager.uploadSourcemaps([], { prepareArtifacts: false });
 
-      expect(result).toEqual({ uploaded: false });
+      expect(result).toEqual({ uploaded: false, uploadedSourceMapPaths: [] });
       expect(mockSourcemapUpload).not.toHaveBeenCalled();
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Didn't find any matching sources"));
     });
@@ -476,6 +476,6 @@ describe('sourceMaps', () => {
 
     const staging = await manager.createUploadStaging();
     expect(await staging.stage({ code: '', mapSource: undefined, mapDir: '', chunkPath: 'a.js' })).toBe('skipped');
-    expect(await manager.uploadSourcemaps([], { staging })).toEqual({ uploaded: false });
+    expect(await manager.uploadSourcemaps([], { staging })).toEqual({ uploaded: false, uploadedSourceMapPaths: [] });
   });
 });

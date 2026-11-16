@@ -2,8 +2,8 @@ import { getTraceData, GLOBAL_OBJ } from '@sentry/core';
 import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import type { H3TracingRequestEvent, NitroH3Event } from './nitroTypes';
 
-const globalWithServerTiming = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __SENTRY_NITRO_SERVER_TIMING_INSTRUMENTED__: boolean;
+type GlobalWithServerTiming = typeof GLOBAL_OBJ & {
+  __SENTRY_NITRO_SERVER_TIMING_INSTRUMENTED__?: boolean;
 };
 
 /**
@@ -15,6 +15,7 @@ const globalWithServerTiming = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
  * server records spans.
  */
 export function captureServerTimingHeaders(): void {
+  const globalWithServerTiming = GLOBAL_OBJ as GlobalWithServerTiming;
   if (globalWithServerTiming.__SENTRY_NITRO_SERVER_TIMING_INSTRUMENTED__) {
     return;
   }

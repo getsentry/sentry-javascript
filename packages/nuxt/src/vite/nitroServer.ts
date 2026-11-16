@@ -12,7 +12,7 @@ import {
 } from './addServerConfig';
 import { addDatabaseInstrumentation } from './databaseConfig';
 import { addMiddlewareImports, addMiddlewareInstrumentation } from './middlewareConfig';
-import { addStorageInstrumentation } from './storageConfig';
+import { addCacheStorageInstrumentation, addStorageInstrumentation } from './storageConfig';
 import { addRuntimeInjectionTraceDep, type ServerApi } from './utils';
 
 type NitroModuleOptions = Omit<SentryNuxtModuleOptions, 'experimental_entrypointWrappedFunctions'> &
@@ -64,6 +64,10 @@ export function setupNitroServer(
     }
 
     addMiddlewareInstrumentation(nitro, isNitroV3);
+
+    if (isNitroV3) {
+      addCacheStorageInstrumentation(nitro);
+    }
 
     if (deprecatedInjectMode) {
       setupDeprecatedInjectMode(nitro, deprecatedInjectMode, isNitroV3, serverConfigFile, moduleOptions);

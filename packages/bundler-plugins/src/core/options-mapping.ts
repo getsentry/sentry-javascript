@@ -1,7 +1,7 @@
 import { getVercelEnv } from '@sentry/core';
 import type { Logger } from './logger';
 import type {
-  Options as UserOptions,
+  InternalOptions as UserOptions,
   SetCommitsOptions,
   RewriteSourcesHook,
   ResolveSourceMapHook,
@@ -9,13 +9,13 @@ import type {
   ModuleMetadata,
   ModuleMetadataCallback,
 } from './types';
-import { determineReleaseName, readCommitEnvVar } from './utils';
+import { determineReleaseName, canAutoDetectRepository, readCommitEnvVar } from './utils';
 
 export type NormalizedOptions = {
   org: string | undefined;
   project: string | string[] | undefined;
   authToken: string | undefined;
-  url: string;
+  url: string | undefined;
   headers: Record<string, string> | undefined;
   debug: boolean;
   silent: boolean;
@@ -30,7 +30,8 @@ export type NormalizedOptions = {
         rewriteSources?: RewriteSourcesHook;
         resolveSourceMap?: ResolveSourceMapHook;
         filesToDeleteAfterUpload?: string | string[] | Promise<string | string[] | undefined>;
-        deleteSourcemapsAfterUpload?: boolean;
+        deleteSourcemapsAfterUpload?: boolean | ((environment?: string) => boolean | undefined);
+        sdkEnabledSourceMaps?: boolean | ((environment?: string) => boolean | undefined);
       }
     | undefined;
   release: {
@@ -101,7 +102,9 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
         ? process.env['SENTRY_PROJECT'].split(',').map(p => p.trim())
         : process.env['SENTRY_PROJECT']),
     authToken: userOptions.authToken ?? process.env['SENTRY_AUTH_TOKEN'],
-    url: userOptions.url ?? process.env['SENTRY_URL'] ?? SENTRY_SAAS_URL,
+    // No sentry.io default: the CLI then uses the server an `sntrys_` org token was issued for, and
+    // sentry.io otherwise. A default here would send self-hosted tokens to sentry.io.
+    url: userOptions.url ?? process.env['SENTRY_URL'],
     headers: userOptions.headers,
     debug: userOptions.debug ?? false,
     silent: userOptions.silent ?? false,
@@ -135,6 +138,8 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
     _experiments: userOptions._experiments ?? {},
   };
 
+  const vercelEnv = getVercelEnv();
+
   if (options.release.setCommits === undefined) {
     const vercelCommitSha = readCommitEnvVar('VERCEL_GIT_COMMIT_SHA');
     if (
@@ -145,7 +150,7 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
       // We only want to set commits for the production env because Sentry becomes extremely noisy (eg on slack) for
       // preview environments because the previous commit is always the "stem" commit of the preview/PR causing Sentry
       // to notify you for other people creating PRs.
-      process.env['VERCEL_TARGET_ENV'] === 'production'
+      vercelEnv === 'production'
     ) {
       options.release.setCommits = {
         shouldNotThrowOnFailure: true,
@@ -155,6 +160,10 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
         ignoreEmpty: true,
         ignoreMissing: true,
       };
+    } else if (process.env['VERCEL'] && vercelEnv !== 'production' && !canAutoDetectRepository()) {
+      // Vercel's own builders have no git remote and no other CI variables, so `--auto` can only fail there.
+      // Builds that have either, such as `vercel build` in GitHub Actions, keep `--auto` below.
+      options.release.setCommits = false;
     } else {
       options.release.setCommits = {
         shouldNotThrowOnFailure: true,
@@ -165,7 +174,6 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
     }
   }
 
-  const vercelEnv = getVercelEnv();
   if (options.release.deploy === undefined && process.env['VERCEL'] && vercelEnv) {
     options.release.deploy = {
       env: vercelEnv,
@@ -213,13 +221,6 @@ export function validateOptions(options: NormalizedOptions, logger: Logger): boo
       'Please set the `env` property.',
     );
     return false;
-  }
-
-  if (options.sourcemaps?.deleteSourcemapsAfterUpload && options.sourcemaps.disable) {
-    logger.warn(
-      'The `sourcemaps.deleteSourcemapsAfterUpload` option is set but source map upload is disabled via `sourcemaps.disable`.',
-      'Source maps will not be deleted.',
-    );
   }
 
   if (options.project && Array.isArray(options.project)) {

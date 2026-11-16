@@ -36,10 +36,18 @@ export { isNodeEnv, loadModule } from './utils/node';
 export { filenameIsInApp, node, nodeStackLineParser } from './utils/node-stack-trace';
 export { vercelWaitUntil } from './utils/vercelWaitUntil';
 export {
+  _INTERNAL_getCacheOriginMetaTags,
+  _INTERNAL_getRenderStart,
+  _INTERNAL_getRootSpanSentryTrace,
+} from './utils/cacheOrigin';
+export {
   getReleaseFromCommitEnv as _INTERNAL_getReleaseFromCommitEnv,
   readCommitEnvVar as _INTERNAL_readCommitEnvVar,
 } from './utils/commitEnv';
-export { flushIfServerless } from './utils/flushIfServerless';
+export {
+  flushIfServerless,
+  setScopeFlushedByRuntime as _INTERNAL_setScopeFlushedByRuntime,
+} from './utils/flushIfServerless';
 export { callFrameToStackFrame, watchdogTimer } from './utils/anr';
 export { safeUnref as _INTERNAL_safeUnref } from './utils/timer';
 export { patchHttpModuleClient } from './integrations/http/client-patch';
@@ -58,7 +66,7 @@ export {
   getRequestUrlFromClientRequest,
   getRequestOptions,
 } from './integrations/http/get-request-url';
-export { HTTP_ON_CLIENT_REQUEST, HTTP_ON_SERVER_REQUEST } from './integrations/http/constants';
+export { HTTP_ON_CLIENT_REQUEST, HTTP_ON_SERVER_REQUEST, HTTP2_ON_SERVER_STREAM } from './integrations/http/constants';
 export type {
   HttpInstrumentationOptions,
   HttpClientRequest,

@@ -59,21 +59,15 @@ describe('setUpBuildTimeVariables', () => {
   });
 
   describe('tunnel route', () => {
-    it('adds the tunnel path and the handler mode for a project with a tunnel route handler', () => {
+    it('adds the tunnel path with the base path', () => {
       const nextConfig = { basePath: '/docs' };
 
-      setUpBuildTimeVariables(
-        nextConfig,
-        { tunnelRoute: '/monitoring' },
-        undefined,
-        makeProject(['app/sentry-tunnel/route.ts']),
-      );
+      setUpBuildTimeVariables(nextConfig, { tunnelRoute: '/monitoring' }, undefined, makeProject(['app/page.tsx']));
 
       expect(nextConfig).toEqual({
         basePath: '/docs',
         env: expect.objectContaining({
-          _sentryRewritesTunnelPath: '/docs/monitoring',
-          _sentryTunnelRouteMode: 'handler',
+          _sentryTunnelRoute: '/docs/monitoring',
         }),
       });
     });

@@ -15,6 +15,7 @@ import { mongooseIntegration } from './mongoose';
 import { lruMemoizerIntegration } from './lru-memoizer';
 import { langChainIntegration } from './langchain';
 import { langGraphIntegration } from './langgraph';
+import { piAiIntegration } from './pi-ai';
 import { piDurableIntegration } from './pi-durable';
 import { mastraIntegration } from './mastra';
 import { mcpServerIntegration } from './mcp-server';
@@ -62,6 +63,7 @@ export function getTracingIntegrations(): Integration[] {
     langChainIntegration(),
     langGraphIntegration(),
     mastraIntegration(),
+    piAiIntegration(),
     piDurableIntegration(),
     vercelAIIntegration(),
     openAIIntegration(),

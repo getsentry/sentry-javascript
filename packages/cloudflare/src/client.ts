@@ -39,6 +39,10 @@ export class CloudflareClient extends ServerRuntimeClient {
   // and must not each start their own eager transport flush.
   private _inBoundaryFlush = false;
 
+  // Eager drains still sending. Outside an instrumented invocation (e.g. Astro on Pages) they have no `waitUntil`,
+  // so `flush()` awaits them, or the response can end first and the runtime cancels their fetches.
+  private readonly _pendingEagerDrains = new Set<Promise<void>>();
+
   /**
    * Whether this client is a cached, cross-invocation client (`cacheClient`).
    * Cached clients are never disposed at an invocation boundary, so their spans/events
@@ -172,11 +176,17 @@ export class CloudflareClient extends ServerRuntimeClient {
     // envelopes on the `flush` emit) ride its own transport drain; without the flag each
     // of them would also start an eager drain and a `waitUntil` registration.
     this._inBoundaryFlush = true;
+    let flushed: boolean;
     try {
-      return await super.flush(timeout);
+      flushed = await super.flush(timeout);
     } finally {
       this._inBoundaryFlush = false;
     }
+
+    // Each eager drain is bounded by its own transport flush timeout.
+    await Promise.all(this._pendingEagerDrains);
+
+    return flushed;
   }
 
   /**
@@ -321,9 +331,16 @@ export class CloudflareClient extends ServerRuntimeClient {
    * Attaches a promise to the `waitUntil` of the invocation that owns the current
    * async context, so the runtime keeps the send alive after the response is returned.
    * Outside any instrumented invocation (or where the context has no `waitUntil`,
-   * e.g. Astro prerendering) the send is fire-and-forget.
+   * e.g. Astro prerendering) only the next `flush()` waits for the send.
    */
   private _registerWithInvocationWaitUntil(promise: PromiseLike<unknown>): void {
+    const pending = Promise.resolve(promise).then(
+      () => undefined,
+      () => undefined,
+    );
+    this._pendingEagerDrains.add(pending);
+    void pending.then(() => this._pendingEagerDrains.delete(pending));
+
     const invocationState = getInvocationState();
     const waitUntil = invocationState && getInvocationWaitUntil(invocationState);
     if (!waitUntil) {
@@ -331,12 +348,7 @@ export class CloudflareClient extends ServerRuntimeClient {
     }
 
     try {
-      waitUntil(
-        Promise.resolve(promise).then(
-          () => undefined,
-          () => undefined,
-        ),
-      );
+      waitUntil(pending);
     } catch {
       // The owning invocation already ended; the send races isolate teardown either way.
     }

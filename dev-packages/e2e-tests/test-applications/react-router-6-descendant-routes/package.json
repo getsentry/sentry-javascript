@@ -15,7 +15,7 @@
   },
   "scripts": {
     "build": "react-scripts build",
-    "start": "run-p start:client start:server",
+    "start": "pnpm run --workspace-concurrency=Infinity \"/^start:(client|server)$/\"",
     "start:client": "node server/app.js",
     "start:server": "serve -s build",
     "test": "playwright test",
@@ -45,7 +45,6 @@
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
-    "serve": "14.0.1",
-    "npm-run-all2": "^6.2.0"
+    "serve": "14.0.1"
   }
 }

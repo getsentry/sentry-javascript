@@ -1,4 +1,7 @@
+import { getIsolationScope } from '../currentScopes';
+import { getDefaultIsolationScope } from '../defaultScopes';
 import { flush } from '../exports';
+import type { Scope } from '../scope';
 import { debug } from './debug-logger';
 import { vercelWaitUntil } from './vercelWaitUntil';
 import { GLOBAL_OBJ } from './worldwide';
@@ -7,6 +10,32 @@ type MinimalCloudflareContext = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   waitUntil(promise: Promise<any>): void;
 };
+
+/**
+ * Marks a request's isolation scope whose events a runtime wrapper flushes once the response is sent. A shared symbol,
+ * so `flushIfServerless()` sees it without depending on the wrapper's package.
+ */
+const FLUSHED_BY_RUNTIME: unique symbol = Symbol.for('sentry.flushedByRuntime');
+
+type ScopeRefsWithFlushedByRuntime = Scope['refs'] & {
+  [FLUSHED_BY_RUNTIME]?: boolean;
+};
+
+/**
+ * Tells `flushIfServerless()` to skip the flush for the request that owns `scope`, because a runtime wrapper (such as
+ * the Cloudflare `withSentry` wrap) flushes its events once the response is sent. Forked scopes keep the mark.
+ *
+ * The default isolation scope is shared by every request, so it is never marked.
+ *
+ * @internal
+ */
+export function setScopeFlushedByRuntime(scope: Scope): void {
+  if (scope === getDefaultIsolationScope()) {
+    return;
+  }
+
+  (scope.refs as ScopeRefsWithFlushedByRuntime)[FLUSHED_BY_RUNTIME] = true;
+}
 
 async function flushWithTimeout(timeout: number): Promise<void> {
   try {
@@ -31,6 +60,8 @@ async function flushWithTimeout(timeout: number): Promise<void> {
  * - Other Serverless (AWS Lambda, Google Cloud, etc.): It detects the environment via environment variables
  *   and uses a regular `await flush()`.
  *
+ * It does nothing for a request whose scope is marked with `setScopeFlushedByRuntime()`.
+ *
  *  @internal This function is supposed for internal Sentry SDK usage only.
  *  @hidden
  */
@@ -40,6 +71,10 @@ export async function flushIfServerless(
     | { timeout?: number; cloudflareCtx?: MinimalCloudflareContext } = {},
 ): Promise<void> {
   const { timeout = 2000 } = params;
+
+  if ((getIsolationScope().refs as ScopeRefsWithFlushedByRuntime)[FLUSHED_BY_RUNTIME]) {
+    return;
+  }
 
   if ('cloudflareWaitUntil' in params && typeof params?.cloudflareWaitUntil === 'function') {
     params.cloudflareWaitUntil(flushWithTimeout(timeout));

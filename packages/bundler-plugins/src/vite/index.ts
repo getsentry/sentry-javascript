@@ -1,4 +1,4 @@
-import type { SentryRollupPluginOptions } from '../rollup';
+import type { InternalOptions } from '../core';
 import { _createRollupPluginInternals } from '../rollup';
 import { createRequire } from 'node:module';
 
@@ -22,7 +22,7 @@ function getViteMajorVersion(): string | undefined {
   return undefined;
 }
 
-export const sentryVitePlugin = (options?: SentryRollupPluginOptions): SentryVitePlugin[] => {
+export const sentryVitePlugin = (options?: InternalOptions): SentryVitePlugin[] => {
   const { main, post } = _createRollupPluginInternals(options, 'vite', getViteMajorVersion());
 
   const plugins: SentryVitePlugin[] = [{ enforce: 'pre', ...main }];
@@ -34,4 +34,4 @@ export const sentryVitePlugin = (options?: SentryRollupPluginOptions): SentryVit
   return plugins;
 };
 
-export type { Options as SentryVitePluginOptions } from '../core';
+export type { Options as SentryVitePluginOptions, InternalOptions as SentryVitePluginInternalOptions } from '../core';

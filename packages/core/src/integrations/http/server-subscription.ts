@@ -19,7 +19,7 @@
 
 import type { ServerSubscriptionName } from './constants';
 type ChannelListener = (message: unknown, name: string | symbol) => void;
-import { HTTP_ON_SERVER_REQUEST } from './constants';
+import { HTTP2_ON_SERVER_STREAM, HTTP_ON_SERVER_REQUEST } from './constants';
 import type { HttpIncomingMessage, HttpInstrumentationOptions, HttpServer, HttpServerResponse } from './types';
 import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
@@ -30,6 +30,7 @@ import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } fro
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
 import {
   getContentLengthFromHeaders,
+  getHostFromHeaders,
   headersToDict,
   httpHeadersToSpanAttributes,
   httpRequestToRequestData,
@@ -280,7 +281,17 @@ export function getHttpServerSubscriptions(options: HttpInstrumentationOptions):
     instrumentServer(effectiveOptions, server);
   };
 
-  return { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequest };
+  // HTTP/2 servers emit the compat API's `'request'` event from inside their
+  // `'stream'` listener, so the same emit wrapper covers them. Servers that
+  // use only the raw `'stream'` API (e.g. gRPC) are not instrumented.
+  const onHttp2ServerStream: ChannelListener = (data: unknown): void => {
+    const server = (data as { stream?: { session?: { server?: HttpServer } } }).stream?.session?.server;
+    if (server) {
+      instrumentServer(effectiveOptions, server);
+    }
+  };
+
+  return { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequest, [HTTP2_ON_SERVER_STREAM]: onHttp2ServerStream };
 }
 
 function buildServerSpanWrap(
@@ -335,7 +346,7 @@ function buildServerSpanWrap(
       const headers = request.headers;
       const userAgent = headers['user-agent'];
       const httpVersion = request.httpVersion;
-      const host = headers.host as undefined | string;
+      const host = getHostFromHeaders(headers);
       const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
       const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
       const { socket } = request;
@@ -398,7 +409,9 @@ function buildServerSpanWrap(
             isEnded = true;
             // set attributes that come from the response
             span.setAttributes({
-              [HTTP_RESPONSE_STATUS_TEXT]: response.statusMessage?.toUpperCase(),
+              // HTTP/2 has no status text, and reading it emits a process warning.
+              [HTTP_RESPONSE_STATUS_TEXT]:
+                request.httpVersion === '2.0' ? undefined : response.statusMessage?.toUpperCase(),
               [HTTP_RESPONSE_STATUS_CODE]: response.statusCode,
               ...httpHeadersToSpanAttributes(headersToDict(response.headers), dataCollectionOptions, 'response'),
             });

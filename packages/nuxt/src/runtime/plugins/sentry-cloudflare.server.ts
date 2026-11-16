@@ -9,8 +9,8 @@ import type { NitroApp, NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
 import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
-import { addSentryTracingMetaTags } from '../utils';
 import { getCfProperties, getCloudflareProperties, hasCfProperty, isEventType } from '../utils/event-type-check';
+import { addSentryPageMetaTags, recordRequestStart } from '../utils/pageMetaTags';
 
 /**
  * Sentry Cloudflare Nitro plugin for when using the "cloudflare-pages" preset in Nuxt.
@@ -145,6 +145,7 @@ export const sentryCloudflareNitroPlugin =
 
     nitroApp.hooks.hook('beforeResponse', updateRouteBeforeResponse);
 
+    nitroApp.hooks.hook('request', recordRequestStart);
     nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext, { event }: { event: H3Event }) => {
       let storedTraceData: ReturnType<typeof getTraceData> | undefined = undefined;
 
@@ -162,9 +163,9 @@ export const sentryCloudflareNitroPlugin =
 
       if (storedTraceData && Object.keys(storedTraceData).length > 0) {
         debug.log('Using stored trace data for HTML meta-tags: ', storedTraceData);
-        addSentryTracingMetaTags(html.head, storedTraceData);
+        addSentryPageMetaTags(html.head, event, storedTraceData);
       } else {
-        addSentryTracingMetaTags(html.head);
+        addSentryPageMetaTags(html.head, event);
       }
     });
 

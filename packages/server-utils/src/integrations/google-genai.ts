@@ -2,7 +2,6 @@ import { GEN_AI_REQUEST_MODEL, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventi
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
-  _INTERNAL_shouldSkipAiProviderWrapping,
   defineIntegration,
   getActiveSpan,
   getClient,
@@ -10,13 +9,15 @@ import {
   spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
-import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
+import { getGenAiSpanOp, markCancelledIfAborted, resolveAIRecordingOptions } from '../ai/core/utils';
 import {
   addPrivateRequestAttributes,
   addResponseAttributes,
   extractRequestAttributes,
+  getAbortSignal,
   resolveChatParams,
 } from '../ai/google-genai';
+import { shouldSkipAiProviderSpan } from '../ai/pi-ai/providers';
 import { instrumentStream } from '../ai/google-genai/streaming';
 import type { GoogleGenAIOptions, GoogleGenAIResponse } from '../ai/google-genai/types';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
@@ -54,6 +55,14 @@ function instrumentGoogleGenai(options: GoogleGenAIOptions): void {
       data => createGenAiSpan(data, operation, options),
       {
         beforeSpanEnd: (span, data) => {
+          if ('error' in data) {
+            const params = resolveChatParams(
+              operation,
+              data.arguments?.[0] as Record<string, unknown> | undefined,
+              data.self,
+            );
+            markCancelledIfAborted(span, getAbortSignal(params));
+          }
           // Embeddings responses carry no content attributes.
           if (operation !== 'embeddings') {
             addResponseAttributes(
@@ -78,9 +87,7 @@ function createGenAiSpan(
   operation: string,
   options: GoogleGenAIOptions,
 ): Span | undefined {
-  // When another provider (e.g. LangChain) is driving the SDK, it records the spans itself and marks this
-  // provider as skipped; skip here to avoid double spans.
-  if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME)) {
+  if (shouldSkipAiProviderSpan(INTEGRATION_NAME)) {
     return undefined;
   }
 
@@ -154,7 +161,7 @@ function wrapStreamResult(
     { [Symbol.asyncIterator]: iterate },
     span,
     recordOutputs ?? false,
-    (params?.config as { abortSignal?: AbortSignal } | undefined)?.abortSignal,
+    getAbortSignal(params),
   );
   result[Symbol.asyncIterator] = () => instrumented;
 

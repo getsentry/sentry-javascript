@@ -17,24 +17,33 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.join(__dirname, '../../..');
 const FIXTURE_DIR = path.join(__dirname, '..', 'dist', 'runtime-entries');
 
-const BUILD_TIME_PATTERNS: RegExp[] = [
-  /(^|\/)packages\/bundler-plugins\//,
-  /(^|\/)node_modules\/@sentry\/bundler-plugins(\/|$)/,
-  /(^|\/)packages\/server-utils\/build\/[^/]+\/orchestrion\/bundler\//,
+/** Third-party build tools. No Sentry code is reachable through them. */
+const BUILD_TOOL_PATTERNS: RegExp[] = [
   /(^|\/)node_modules\/(vite|webpack|rollup|esbuild|oxc-parser)\//,
   /(^|\/)node_modules\/@(babel|rollup|oxc-parser)\//,
   /\.wasm$/,
 ];
 
-const KNOWN_VIOLATIONS = new Set([
-  // These root entries also re-export config-time code (`sentryAstro`,
-  // `withSentry`). They must keep it until v12 for backwards compatibility.
-  '@sentry/astro',
-  '@sentry/solidstart',
-  // Remix 3 has no bundler. Its asset server runs the orchestrion
-  // transform on browser modules at request time.
-  '@sentry/remix/v3',
-  '@sentry/remix/v3/node',
+const BUILD_TIME_PATTERNS: RegExp[] = [
+  /(^|\/)packages\/bundler-plugins\//,
+  /(^|\/)node_modules\/@sentry\/bundler-plugins(\/|$)/,
+  /(^|\/)packages\/server-utils\/build\/[^/]+\/orchestrion\/bundler\//,
+  ...BUILD_TOOL_PATTERNS,
+];
+
+const RUNTIME_INJECTION_PATTERNS: RegExp[] = [
+  /(^|\/)packages\/server-runtime-injection\//,
+  /(^|\/)node_modules\/@sentry\/server-runtime-injection(\/|$)/,
+];
+
+// These config entries import the `@sentry/node` root, which installs
+// runtime injection when a client is made.
+const KNOWN_RUNTIME_INJECTION_VIOLATIONS = new Set([
+  // `getSentryRelease`
+  '@sentry/nextjs/config',
+  '@sentry/sveltekit/vite',
+  // `setupSentryNitroModule`, through the `@sentry/nitro` root
+  '@sentry/solidstart/vite',
 ]);
 
 type Format = 'esm' | 'cjs';
@@ -43,6 +52,8 @@ interface Case {
   specifier: string;
   conditions: string[];
   formats: Format[];
+  /** The entry reaches build-time tooling on purpose. Drop this when the test fails. */
+  knownViolation?: true;
 }
 
 const NODE = ['node'];
@@ -81,7 +92,11 @@ const CASES: Case[] = [
   { specifier: '@sentry/sveltekit', conditions: ['worker'], formats: BOTH },
   { specifier: '@sentry/sveltekit/opentelemetry-api', conditions: NODE, formats: BOTH },
 
-  { specifier: '@sentry/astro', conditions: NODE, formats: BOTH },
+  // The Node root entry also re-exports config-time code (`sentryAstro`). It must keep it until v12
+  // for backwards compatibility.
+  { specifier: '@sentry/astro', conditions: NODE, formats: BOTH, knownViolation: true },
+  { specifier: '@sentry/astro', conditions: WORKERD, formats: BOTH },
+  { specifier: '@sentry/astro', conditions: ['worker'], formats: BOTH },
   { specifier: '@sentry/astro/middleware', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/astro/import', conditions: NODE, formats: ESM },
 
@@ -93,10 +108,14 @@ const CASES: Case[] = [
   { specifier: '@sentry/remix', conditions: ['worker'], formats: BOTH },
   { specifier: '@sentry/remix/cloudflare', conditions: WORKERD, formats: BOTH },
   { specifier: '@sentry/remix/import', conditions: NODE, formats: ESM },
-  { specifier: '@sentry/remix/v3', conditions: NODE, formats: ESM },
-  { specifier: '@sentry/remix/v3/node', conditions: NODE, formats: ESM },
+  // Remix 3 has no bundler. Its asset server runs the orchestrion transform on browser modules at
+  // request time.
+  { specifier: '@sentry/remix/v3', conditions: NODE, formats: ESM, knownViolation: true },
+  { specifier: '@sentry/remix/v3/node', conditions: NODE, formats: ESM, knownViolation: true },
 
-  { specifier: '@sentry/solidstart', conditions: NODE, formats: BOTH },
+  // The root entry also re-exports config-time code (`withSentry`). It must keep it until v12 for
+  // backwards compatibility.
+  { specifier: '@sentry/solidstart', conditions: NODE, formats: BOTH, knownViolation: true },
 
   { specifier: '@sentry/tanstackstart-react', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/tanstackstart-react/import', conditions: NODE, formats: ESM },
@@ -138,8 +157,8 @@ function writeFixture(specifier: string, conditions: string[], format: Format): 
   return file;
 }
 
-function isBuildTime(file: string): boolean {
-  return BUILD_TIME_PATTERNS.some(pattern => pattern.test(file));
+function matches(file: string, patterns: RegExp[]): boolean {
+  return patterns.some(pattern => pattern.test(file));
 }
 
 type Reasons = Awaited<ReturnType<typeof nodeFileTrace>>['reasons'];
@@ -173,10 +192,10 @@ function importChain(reasons: Reasons, entry: string, file: string): string[] {
 }
 
 /**
- * Each place where a runtime module imports a build-time module, as the
- * import chain from the entry.
+ * Each place where a module imports a module that matches `targets`, as
+ * the import chain from the entry.
  */
-async function findBuildTimeImports(fixture: string, conditions: string[]): Promise<string[]> {
+async function findImports(fixture: string, conditions: string[], targets: RegExp[]): Promise<string[]> {
   const imports: [importer: string, file: string][] = [];
 
   const { fileList, reasons } = await nodeFileTrace([fixture], {
@@ -186,14 +205,14 @@ async function findBuildTimeImports(fixture: string, conditions: string[]): Prom
     // A dynamic `fs` path in config code makes nft glob the whole repo.
     // That is slow and finds user files, not package code.
     analysis: { emitGlobs: false },
-    // Stop at the first build-time module, instead of tracing all of Vite
-    // or Babel. `.wasm` files are assets, so they stay in the trace with
-    // their importer.
-    ignore: file => isBuildTime(file) && !file.endsWith('.wasm'),
+    // Stop at the first target, and do not trace all of Vite or Babel.
+    // `.wasm` files are assets, so they stay in the trace with their
+    // importer.
+    ignore: file => matches(file, [...targets, ...BUILD_TOOL_PATTERNS]) && !file.endsWith('.wasm'),
     async resolve(id, parent, job, cjsResolve) {
       const resolved = await resolve(id, parent, job, cjsResolve);
       for (const file of [resolved].flat()) {
-        if (isBuildTime(file)) {
+        if (matches(file, targets)) {
           imports.push([path.relative(ROOT_DIR, parent), path.relative(ROOT_DIR, file)]);
         }
       }
@@ -202,7 +221,7 @@ async function findBuildTimeImports(fixture: string, conditions: string[]): Prom
   });
 
   for (const file of fileList) {
-    if (file.endsWith('.wasm')) {
+    if (file.endsWith('.wasm') && matches(file, targets)) {
       for (const parent of reasons.get(file)?.parents ?? []) {
         imports.push([parent, file]);
       }
@@ -217,19 +236,26 @@ async function findBuildTimeImports(fixture: string, conditions: string[]): Prom
 }
 
 describe('server runtime entries do not reach build-time tooling', () => {
-  for (const { specifier, conditions, formats } of CASES) {
+  for (const { specifier, conditions, formats, knownViolation } of CASES) {
     for (const format of formats) {
       const name = `${specifier} (${format}, conditions: ${conditions.join(', ')})`;
 
-      if (KNOWN_VIOLATIONS.has(specifier)) {
+      if (knownViolation) {
         test(`${name} is a known violation`, async () => {
-          const violations = await findBuildTimeImports(writeFixture(specifier, conditions, format), conditions);
-          // Remove the entry from KNOWN_VIOLATIONS when this fails.
+          const violations = await findImports(
+            writeFixture(specifier, conditions, format),
+            conditions,
+            BUILD_TIME_PATTERNS,
+          );
           expect(violations).not.toEqual([]);
         });
       } else {
         test(name, async () => {
-          const violations = await findBuildTimeImports(writeFixture(specifier, conditions, format), conditions);
+          const violations = await findImports(
+            writeFixture(specifier, conditions, format),
+            conditions,
+            BUILD_TIME_PATTERNS,
+          );
           expect(violations).toEqual([]);
         });
       }
@@ -241,9 +267,34 @@ describe('build-time entries reach build-time tooling', () => {
   for (const { specifier, conditions, formats } of BUILD_TIME_CASES) {
     for (const format of formats) {
       test(`${specifier} (${format}, conditions: ${conditions.join(', ')})`, async () => {
-        const violations = await findBuildTimeImports(writeFixture(specifier, conditions, format), conditions);
+        const violations = await findImports(
+          writeFixture(specifier, conditions, format),
+          conditions,
+          BUILD_TIME_PATTERNS,
+        );
         expect(violations).not.toEqual([]);
       });
+    }
+  }
+});
+
+describe('build-time entries do not reach runtime injection', () => {
+  for (const { specifier, conditions, formats } of BUILD_TIME_CASES) {
+    for (const format of formats) {
+      const name = `${specifier} (${format}, conditions: ${conditions.join(', ')})`;
+      const find = (): Promise<string[]> =>
+        findImports(writeFixture(specifier, conditions, format), conditions, RUNTIME_INJECTION_PATTERNS);
+
+      if (KNOWN_RUNTIME_INJECTION_VIOLATIONS.has(specifier)) {
+        test(`${name} is a known violation`, async () => {
+          // Remove the entry from KNOWN_RUNTIME_INJECTION_VIOLATIONS when this fails.
+          expect(await find()).not.toEqual([]);
+        });
+      } else {
+        test(name, async () => {
+          expect(await find()).toEqual([]);
+        });
+      }
     }
   }
 });

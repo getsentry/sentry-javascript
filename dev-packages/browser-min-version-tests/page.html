@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="/bundle.js"></script>
+    <script>
+      Sentry.init({
+        dsn: '__DSN__',
+        integrations: [Sentry.browserTracingIntegration()],
+        tracesSampleRate: 1,
+        debug: true,
+      });
+    </script>
+  </head>
+  <body>
+    <h1 style="font-size: 64px">Largest contentful paint</h1>
+    <p id="shift" style="position: absolute; top: 200px; width: 800px; height: 100px; background: #aaa">Shifting</p>
+    <button id="button" style="position: absolute; top: 800px">Click me</button>
+    <script>
+      document.getElementById('button').addEventListener('click', event => {
+        const start = Date.now();
+        while (Date.now() - start < 100) {
+          // Block long enough for the click to count as an interaction.
+        }
+        event.target.dataset.clicked = 'true';
+      });
+    </script>
+  </body>
+</html>

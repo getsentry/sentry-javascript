@@ -2,7 +2,10 @@ import type { CfProperties, IncomingRequestCfProperties } from '@cloudflare/work
 import { NETWORK_PROTOCOL_NAME, NETWORK_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
 import { getIsolationScope, safeCallback } from '@sentry/core';
-import { _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest } from '@sentry/core/server';
+import {
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+  _INTERNAL_setScopeFlushedByRuntime as setScopeFlushedByRuntime,
+} from '@sentry/core/server';
 import { wrapServerRequestHandler } from '@sentry/server-utils/request-handler';
 import { DEBUG_BUILD } from './debug-build';
 import { getHttpServerRequestOptions } from './integrations/httpServer';
@@ -11,6 +14,7 @@ import type { CloudflareClient, CloudflareOptions } from './client';
 import type { ExecutionContextCompat } from './executionContext';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { addCloudResourceContext, addCultureContext } from './scope-utils';
+import { continueCloudflareTrace } from './utils/cloudflareTrace';
 import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
 import { withInvocationIsolationScope } from './utils/invocationScope';
 
@@ -72,6 +76,12 @@ export function wrapRequestHandlerWithInit(
     const client = initSdk({ ...options, ctx: context });
     isolationScope.setClient(client);
 
+    // This wrap flushes through `waitUntil` once the response is sent, so a framework's own `flushIfServerless()`
+    // (e.g. the Astro middleware on Pages) would only hold the response for a flush that is coming anyway.
+    if (waitUntil) {
+      setScopeFlushedByRuntime(isolationScope);
+    }
+
     // Emit any orchestrion channel events deferred at module scope (e.g. a top-level
     // `const app = new Hono()` wrapped by build-time instrumentation): we're now in a
     // request, where workerd allows publish, and init() above has registered subscribers.
@@ -119,6 +129,7 @@ export function wrapRequestHandlerWithInit(
         origin: 'auto.http.cloudflare',
         mechanism: captureErrors ? { handled: false, type: getRequestErrorMechanismType(context) } : undefined,
         attributes,
+        onTraceContinued: () => continueCloudflareTrace(context),
         isStreamingResponse: response => {
           const classification = safeCallback(
             DEBUG_BUILD ? 'Error in `isStreamingResponse`, using the default classification:' : '',

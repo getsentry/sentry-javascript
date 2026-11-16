@@ -74,6 +74,10 @@ export function headersToDict(
 
   try {
     Object.entries(reqHeaders).forEach(([key, value]) => {
+      // HTTP/2 pseudo-headers (`:method`, `:path`, ...) are not headers.
+      if (key.startsWith(':')) {
+        return;
+      }
       if (typeof value === 'string') {
         headers[key] = value;
       } else if (typeof value === 'number') {
@@ -85,6 +89,14 @@ export function headersToDict(
   }
 
   return headers;
+}
+
+/**
+ * The `host` header, or the HTTP/2 `:authority` pseudo-header that replaces it.
+ */
+export function getHostFromHeaders(headers: Record<string, string | string[] | undefined>): string | undefined {
+  const host = headers.host ?? headers[':authority'];
+  return typeof host === 'string' ? host : undefined;
 }
 
 /**
@@ -213,7 +225,7 @@ export function httpRequestToRequestData(request: {
 
   // Check for x-forwarded-host first, then fall back to host header
   const forwardedHost = typeof headers['x-forwarded-host'] === 'string' ? headers['x-forwarded-host'] : undefined;
-  const host = forwardedHost || (typeof headers.host === 'string' ? headers.host : undefined);
+  const host = forwardedHost || getHostFromHeaders(headers);
 
   // Check for x-forwarded-proto first, then fall back to existing protocol detection
   const forwardedProto = typeof headers['x-forwarded-proto'] === 'string' ? headers['x-forwarded-proto'] : undefined;
