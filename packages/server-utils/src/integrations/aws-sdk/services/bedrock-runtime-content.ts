@@ -171,14 +171,10 @@ export function getPromptInputAttributes(prompt: unknown): Record<string, unknow
 }
 
 /** Record the parts as one assistant message. Parts of a stream are kept at their block index, so skip the gaps. */
-export function setOutputMessages(span: Span, parts: GenAiMessagePart[], finishReason: unknown): void {
+export function setOutputMessages(span: Span, parts: GenAiMessagePart[]): void {
   const filledParts = parts.filter(Boolean);
   if (filledParts.length) {
-    // An `undefined` finish reason is left out of the JSON.
-    span.setAttribute(
-      GEN_AI_OUTPUT_MESSAGES,
-      JSON.stringify([{ role: 'assistant', parts: filledParts, finish_reason: finishReason }]),
-    );
+    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, JSON.stringify([{ role: 'assistant', parts: filledParts }]));
   }
 }
 

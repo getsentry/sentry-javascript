@@ -588,7 +588,6 @@ describe('BedrockRuntimeServiceExtension output recording', () => {
           arguments: '{"city":"Vienna"}',
         },
       ],
-      finish_reason: 'tool_use',
     },
   ];
 
@@ -695,14 +694,13 @@ describe('BedrockRuntimeServiceExtension output recording', () => {
       body: { output: { message: { role: 'assistant', content: [{ text: 'Paris.' }] } }, stopReason: 'end_turn' },
       finishReason: 'end_turn',
     },
-  ])('records the $family InvokeModel response text', ({ modelId, body, finishReason }) => {
+  ])('records the $family InvokeModel response text and finish reason', ({ modelId, body, finishReason }) => {
     const span = startInactiveSpan({ name: 'bedrock' });
 
     respond(span, 'InvokeModel', { modelId }, { body: encoder.encode(JSON.stringify(body)) });
 
-    expect(outputMessages(span)).toEqual([
-      { role: 'assistant', parts: [{ type: 'text', content: 'Paris.' }], finish_reason: finishReason },
-    ]);
+    expect(outputMessages(span)).toEqual([{ role: 'assistant', parts: [{ type: 'text', content: 'Paris.' }] }]);
+    expect(spanToJSON(span).attributes?.[GEN_AI_RESPONSE_FINISH_REASONS]).toBe(JSON.stringify([finishReason]));
   });
 
   it('collects a ConverseStream response by content block', async () => {

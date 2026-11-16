@@ -299,7 +299,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
 
     setStopReason(span, stopReason);
     if (resolveAIRecordingOptions().recordOutputs) {
-      setOutputMessages(span, contentBlocksToParts(output?.message?.content), stopReason);
+      setOutputMessages(span, contentBlocksToParts(output?.message?.content));
     }
     span.setAttributes(
       getTokenUsageAttributes(
@@ -394,7 +394,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
         }
       }
       if (resolveAIRecordingOptions().recordOutputs) {
-        setOutputMessages(span, getInvokeModelOutputParts(responseBody), finishReason);
+        setOutputMessages(span, getInvokeModelOutputParts(responseBody));
       }
     }
   }
@@ -492,7 +492,7 @@ async function* instrumentStream<T>(
     throw error;
   } finally {
     if (state.parts) {
-      setOutputMessages(span, state.parts, state.finishReasons[0]);
+      setOutputMessages(span, state.parts);
     }
     endStreamSpan(span, state, false);
   }

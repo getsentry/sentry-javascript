@@ -61,7 +61,7 @@ function assertBedrockSpans(container: SerializedStreamedSpanContainer): void {
 const SYSTEM_INSTRUCTIONS = JSON.stringify([{ type: 'text', content: 'You are a weather bot.' }]);
 
 const OUTPUT_MESSAGES = JSON.stringify([
-  { role: 'assistant', parts: [{ type: 'text', content: 'Hello from Bedrock' }], finish_reason: 'end_turn' },
+  { role: 'assistant', parts: [{ type: 'text', content: 'Hello from Bedrock' }] },
 ]);
 
 function assertBedrockContent(container: SerializedStreamedSpanContainer): void {
