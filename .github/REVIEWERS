@@ -84,13 +84,12 @@
 /dev-packages/e2e-tests/test-applications/hono-*/ @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/hydrogen-*/ @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/nestjs-*/ @getsentry/team-javascript-sdks-framework
-/dev-packages/e2e-tests/test-applications/nextjs-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/*nextjs*/ @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/nitro-*/ @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/nuxt-*/ @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/react-*/ @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/*remix*/ @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/solid*/ @getsentry/team-javascript-sdks-framework
-/dev-packages/e2e-tests/test-applications/supabase-nextjs/ @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/svelte*/ @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/tanstack*/ @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/vinext-*/ @getsentry/team-javascript-sdks-framework
