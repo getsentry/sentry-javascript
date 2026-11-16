@@ -61,29 +61,31 @@ export function makeNodeTransport(options: NodeTransportOptions): Transport {
   const isHttps = urlSegments.protocol === 'https:';
 
   const nativeHttpModule = isHttps ? https : http;
-  const keepAlive = options.keepAlive ?? true;
-  const agent =
-    getProxyAgent(urlSegments, options.proxy) ??
-    new nativeHttpModule.Agent({ keepAlive, maxSockets: 30, timeout: 2000 });
+  const agent = getHttpAgent(urlSegments, { proxy: options.proxy, keepAlive: options.keepAlive });
 
   const requestExecutor = createRequestExecutor(options, options.httpModule ?? nativeHttpModule, agent);
   return createTransport(options, requestExecutor);
 }
 
 /**
- * Returns an agent that tunnels requests to `url` through a proxy, or `undefined` when no proxy applies.
+ * Returns the agent for requests to `url`: a proxy agent when a proxy applies, otherwise a plain keep-alive agent.
  *
- * Proxy prioritization: http => `proxy` | `process.env.http_proxy`
- * Proxy prioritization: https => `proxy` | `process.env.https_proxy` | `process.env.http_proxy`
+ * Proxy prioritization: http => `options.proxy` | `process.env.http_proxy`
+ * Proxy prioritization: https => `options.proxy` | `process.env.https_proxy` | `process.env.http_proxy`
  * Hosts listed in `process.env.no_proxy` are never proxied.
  */
-export function getProxyAgent(url: URL, proxy?: string): http.Agent | undefined {
+export function getHttpAgent(url: URL, options: { proxy?: string; keepAlive?: boolean } = {}): http.Agent {
   const isHttps = url.protocol === 'https:';
-  const resolvedProxy = applyNoProxyOption(
+  const proxy = applyNoProxyOption(
     url,
-    proxy || (isHttps ? process.env.https_proxy : undefined) || process.env.http_proxy,
+    options.proxy || (isHttps ? process.env.https_proxy : undefined) || process.env.http_proxy,
   );
-  return resolvedProxy ? new HttpsProxyAgent(resolvedProxy) : undefined;
+
+  if (proxy) {
+    return new HttpsProxyAgent(proxy);
+  }
+
+  return new (isHttps ? https : http).Agent({ keepAlive: options.keepAlive ?? true, maxSockets: 30, timeout: 2000 });
 }
 
 /**

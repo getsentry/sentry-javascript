@@ -9,7 +9,7 @@ import {
   getEnvelopeEndpointWithUrlEncodedAuth,
   makeDsn,
 } from '@sentry/core';
-import { _INTERNAL_getProxyAgent as getProxyAgent } from '@sentry/node';
+import { getHttpAgent } from '@sentry/node';
 import { DEBUG_BUILD } from './debug-build';
 
 /**
@@ -195,7 +195,8 @@ export class AwsLambdaExtension {
 function forwardEnvelope(url: URL, body: Buffer): void {
   const req = (url.protocol === 'https:' ? https : http).request(
     url,
-    { method: 'POST', agent: getProxyAgent(url) },
+    // Without a retry on ECONNRESET, a keep-alive socket left stale by a freeze would drop the envelope.
+    { method: 'POST', agent: getHttpAgent(url, { keepAlive: false }) },
     res => {
       res.resume();
     },
