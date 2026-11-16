@@ -1,6 +1,6 @@
 import type { SerializedTraceData } from '@sentry/core';
-import { debug, GLOBAL_OBJ } from '@sentry/core';
-import { _INTERNAL_getCacheOriginMetaTag, _INTERNAL_getRootSpanSentryTrace } from '@sentry/core/server';
+import { debug, GLOBAL_OBJ, timestampInSeconds } from '@sentry/core';
+import { _INTERNAL_getCacheOriginMetaTags, _INTERNAL_getRootSpanSentryTrace } from '@sentry/core/server';
 import type { H3Event } from 'h3';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { addSentryTracingMetaTags, getEventRequestInfo } from '../utils';
@@ -12,6 +12,11 @@ export const NUXT_NITRO_PRESET_FLAG = '__SENTRY_NUXT_NITRO_PRESET__';
 // `netlify-edge`), Nitro ignores `isr` and renders the page for each request.
 const PLATFORM_ISR_PRESETS = new Set(['vercel', 'netlify', 'netlify-legacy', 'netlify-builder']);
 
+interface RequestStartContext {
+  // In seconds.
+  _sentryRequestStart?: number;
+}
+
 interface RouteRulesContext {
   // Nitro v2: the Nuxt renderer writes the merged rules here before `render:html`.
   _nitro?: { routeRules?: RouteRules };
@@ -22,6 +27,15 @@ interface RouteRulesContext {
 interface RouteRules {
   cache?: unknown;
   isr?: unknown;
+}
+
+/**
+ * Records when a request started. Nitro calls `render:html` only after the whole render, so the render start has to be
+ * taken earlier. The `request` hook also fires for the requests of the prerenderer, and a background revalidation of a
+ * cached route sees the context of the request that started it.
+ */
+export function recordRequestStart(event: H3Event): void {
+  (event.context as RequestStartContext)._sentryRequestStart = timestampInSeconds();
 }
 
 /**
@@ -43,7 +57,8 @@ export function addSentryPageMetaTags(
   debug.log(`Adding the Sentry cache origin meta tag to the reused page ${getEventRequestInfo(event).path}.`);
   // Sentry skips its server init in the prerender build, so a prerendered page has no trace to link.
   const renderTrace = isPrerender ? undefined : (traceData?.['sentry-trace'] ?? _INTERNAL_getRootSpanSentryTrace());
-  head.push(_INTERNAL_getCacheOriginMetaTag(renderTrace));
+  const requestStart = (event.context as RequestStartContext | undefined)?._sentryRequestStart ?? timestampInSeconds();
+  head.push(_INTERNAL_getCacheOriginMetaTags(renderTrace, requestStart));
 }
 
 // The Nitro prerenderer sends this header with each route it renders (Nitro v2 and v3). h3 v2 deprecates

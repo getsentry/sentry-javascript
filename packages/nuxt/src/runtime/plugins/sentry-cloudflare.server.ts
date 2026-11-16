@@ -10,7 +10,7 @@ import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
 import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
 import { getCfProperties, getCloudflareProperties, hasCfProperty, isEventType } from '../utils/event-type-check';
-import { addSentryPageMetaTags } from '../utils/pageMetaTags';
+import { addSentryPageMetaTags, recordRequestStart } from '../utils/pageMetaTags';
 
 /**
  * Sentry Cloudflare Nitro plugin for when using the "cloudflare-pages" preset in Nuxt.
@@ -145,6 +145,7 @@ export const sentryCloudflareNitroPlugin =
 
     nitroApp.hooks.hook('beforeResponse', updateRouteBeforeResponse);
 
+    nitroApp.hooks.hook('request', recordRequestStart);
     nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext, { event }: { event: H3Event }) => {
       let storedTraceData: ReturnType<typeof getTraceData> | undefined = undefined;
 
