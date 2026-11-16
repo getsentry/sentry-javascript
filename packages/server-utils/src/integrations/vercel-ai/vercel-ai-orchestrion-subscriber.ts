@@ -318,7 +318,7 @@ function bindOperation(
       // before the stream drains — losing the aggregate usage/output. Defer the end and await the result's
       // completion promises (`totalUsage`/`text`/…, which resolve on drain), mirroring how v7's channel
       // defers the operation span on the SDK's total-usage promise.
-      deferSpanEnd: ({ data, end }) => deferStreamTextOperationEnd(data, end),
+      deferSpanEnd: ({ span, data, end }) => deferStreamTextOperationEnd(span, data, end, options),
     },
   );
 }
@@ -328,27 +328,54 @@ function bindOperation(
  * from the result's completion promises (usage/output/finish reason) and end it. `streamObject` resolves
  * `object` rather than `text`; `getOutputMessages` reads `text`, so a resolved object is stringified into
  * that field. Returns `false` for anything that isn't a streamed result, so the helper ends the span as usual.
+ *
+ * `streamObject`'s `object` rejects when the output fails schema validation, even though the model call
+ * succeeded and `usage` resolved. It's awaited separately so that case still records the token usage on
+ * the span before ending it as an error.
  */
 function deferStreamTextOperationEnd(
+  span: Span,
   data: TracingChannelPayloadWithSpan<OrchestrionChannelContext>,
   end: (error?: unknown) => void,
+  options: VercelAiChannelOptions,
 ): boolean {
-  const type = messages.get(data)?.type;
-  if ((type !== 'streamText' && type !== 'streamObject') || 'error' in data || !isStreamingResult(data.result)) {
+  const message = messages.get(data);
+  const type = message?.type;
+  if (
+    !message ||
+    (type !== 'streamText' && type !== 'streamObject') ||
+    'error' in data ||
+    !isStreamingResult(data.result)
+  ) {
     return false;
   }
 
   const streamResult = data.result;
   void (async () => {
     try {
-      const [usage, text, object, toolCalls, finishReason, response] = await Promise.all([
+      const [usage, text, objectOutcome, toolCalls, finishReason, response] = await Promise.all([
         streamResult.totalUsage ?? streamResult.usage,
         streamResult.text,
-        type === 'streamObject' ? streamResult.object : undefined,
+        // Settle `object` into an outcome so a validation failure can't short-circuit the usage read.
+        type === 'streamObject'
+          ? Promise.resolve(streamResult.object).then(
+              value => ({ value }),
+              (error: unknown) => ({ value: undefined, error }),
+            )
+          : { value: undefined },
         streamResult.toolCalls,
         streamResult.finishReason,
         streamResult.response,
       ]);
+      if ('error' in objectOutcome) {
+        // The model call itself succeeded, so keep its usage on the span; `beforeSpanEnd` skips
+        // enrichment once `end(error)` marks the payload as errored.
+        message.result = { usage, toolCalls, finishReason, response };
+        enrichSpanOnEnd(span, message, options);
+        end(objectOutcome.error);
+        return;
+      }
+      const object = objectOutcome.value;
       // Feed the resolved values back through the shared enrichment: `beforeSpanEnd` reads `data.result`.
       data.result = {
         usage,

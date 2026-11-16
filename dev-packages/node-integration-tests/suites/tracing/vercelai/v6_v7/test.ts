@@ -1006,6 +1006,39 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
 
   createEsmTests(
     __dirname,
+    'scenario-stream-object-invalid.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      // v7's native `ai:telemetry` channel does not publish `streamObject`, same as `generateObject`.
+      test.skipIf(version === '7')('keeps streamObject usage when the object fails schema validation', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items.filter(
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
+              );
+              const invokeAgent = spans.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT)!;
+              expect(invokeAgent.attributes['vercel.ai.operationId']?.value).toBe('ai.streamObject');
+              expect(invokeAgent.status).toBe('error');
+              expect(invokeAgent.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(15);
+              expect(invokeAgent.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(25);
+              expect(invokeAgent.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(40);
+            },
+          })
+          .unordered()
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
     'scenario-rejected-model.mjs',
     'instrument.mjs',
     (createRunner, test) => {
