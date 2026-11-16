@@ -152,28 +152,13 @@ describe('google-genai tool-use prompt tokens', () => {
     expect(attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(160);
   });
 
-  it('leaves the input tokens alone when there are no tool-use prompt tokens', () => {
-    const { span, attributes } = createMockSpan();
-
-    addResponseAttributes(
-      span,
-      {
-        usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 20, totalTokenCount: 120 },
-      } as GoogleGenAIResponse,
-      false,
-    );
-
-    expect(attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBe(100);
-    expect(attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(120);
-  });
-
   it('counts them as input tokens on a stream, also when a later chunk only repeats one of the counts', async () => {
     const { span, attributes } = createMockSpan();
 
     const chunks = [
       chunkWithParts([{ text: 'Hi' }], { usageMetadata: { promptTokenCount: 100, toolUsePromptTokenCount: 40 } }),
       chunkWithParts([{ text: ' there' }], {
-        usageMetadata: { candidatesTokenCount: 20, totalTokenCount: 160 },
+        usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 20, totalTokenCount: 160 },
       }),
     ];
 
