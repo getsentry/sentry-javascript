@@ -66,5 +66,11 @@
   "analytics": false,
   "affected": {
     "legacy": true
+  },
+  "pluginsConfig": {
+    "@nx/js": {
+      "analyzeLockfile": false,
+      "analyzeSourceFiles": false
+    }
   }
 }
