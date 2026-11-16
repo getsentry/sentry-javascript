@@ -1,0 +1,18 @@
+---
+import Avatar from '../../components/Avatar.astro';
+import Layout from '../../layouts/Layout.astro';
+
+export const prerender = true;
+
+// Props this large push the island URL over Astro's 2048 character limit, so it fetches the island with POST,
+// which has no `<link rel="preload">`.
+const largeProp = 'x'.repeat(3000);
+---
+
+<Layout title="Server Island POST Page">
+  <p>This page is static, except for the avatar which is loaded dynamically from the server with a POST request</p>
+
+  <Avatar server:defer largeProp={largeProp}>
+    <p slot="fallback">Fallback</p>
+  </Avatar>
+</Layout>
