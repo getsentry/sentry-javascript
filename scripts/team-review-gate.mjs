@@ -3,6 +3,8 @@ import { getJuniorRequesters, JUNIOR_LOGIN, TEAM_SLUG } from './junior-requester
 export const TEAM_REVIEW_LABEL = 'Waiting for: Team Review';
 // Outside collaborators can't be members of a GitHub team, so contractors are listed here instead.
 const CONTRACTORS = ['timfish', 'RulaKhaled'];
+// Only the app that clears the label after a qualifying review may remove it.
+const GITFLOW_APP_LOGIN = 'javascript-sdk-gitflow[bot]';
 
 const sameLogin = (a, b) => a.toLowerCase() === b.toLowerCase();
 const hasTeamReviewLabel = pr => pr.labels.some(label => label.name === TEAM_REVIEW_LABEL);
@@ -66,8 +68,8 @@ export async function clearTeamReviewLabel({ github, context, core }) {
 }
 
 /**
- * Required check that fails while the PR has the label. A person removing the label by hand doesn't count: only the
- * workflow that sees the approval may remove it.
+ * Required check that fails while the PR has the label. Removing the label by hand doesn't count: only the workflow
+ * that sees the approval may remove it.
  */
 export async function enforceTeamReviewGate({ github, context, core }) {
   const { owner, repo } = context.repo;
@@ -75,7 +77,7 @@ export async function enforceTeamReviewGate({ github, context, core }) {
   const { action, label, sender } = context.payload;
   const failure = `This PR needs an approval from @getsentry/${TEAM_SLUG} or a contractor, which removes the "${TEAM_REVIEW_LABEL}" label.`;
 
-  if (action === 'unlabeled' && label?.name === TEAM_REVIEW_LABEL && sender.type !== 'Bot') {
+  if (action === 'unlabeled' && label?.name === TEAM_REVIEW_LABEL && sender.login !== GITFLOW_APP_LOGIN) {
     core.info(`${sender.login} removed "${TEAM_REVIEW_LABEL}" by hand, adding it back.`);
     await github.rest.issues.addLabels({ owner, repo, issue_number: pull_number, labels: [TEAM_REVIEW_LABEL] });
     core.setFailed(failure);

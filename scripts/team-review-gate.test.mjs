@@ -124,15 +124,30 @@ describe('enforceTeamReviewGate', () => {
     expect(core.setFailed).not.toHaveBeenCalled();
   });
 
-  it('passes once a bot removed the label', async () => {
+  it('passes once the gitflow app removed the label', async () => {
     const { github, core, run } = setup(
       enforceTeamReviewGate,
       {},
-      { action: 'unlabeled', label: { name: TEAM_REVIEW_LABEL }, sender: { login: 'app[bot]', type: 'Bot' } },
+      {
+        action: 'unlabeled',
+        label: { name: TEAM_REVIEW_LABEL },
+        sender: { login: 'javascript-sdk-gitflow[bot]', type: 'Bot' },
+      },
     );
     await run();
     expect(github.rest.issues.addLabels).not.toHaveBeenCalled();
     expect(core.setFailed).not.toHaveBeenCalled();
+  });
+
+  it('adds the label back and fails when another bot removed it', async () => {
+    const { github, core, run } = setup(
+      enforceTeamReviewGate,
+      {},
+      { action: 'unlabeled', label: { name: TEAM_REVIEW_LABEL }, sender: junior },
+    );
+    await run();
+    expect(github.rest.issues.addLabels).toHaveBeenCalledWith(expect.objectContaining({ labels: [TEAM_REVIEW_LABEL] }));
+    expect(core.setFailed).toHaveBeenCalled();
   });
 
   it('adds the label back and fails when a person removed it', async () => {
