@@ -1,4 +1,4 @@
-import { afterAll, describe, expect } from 'vitest';
+import { afterAll, expect } from 'vitest';
 import {
   GEN_AI_AGENT_NAME,
   GEN_AI_CONVERSATION_ID,
@@ -25,7 +25,7 @@ import { GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../../../../../../package
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { createEsmTests } from '../../../../utils/runner/createEsmAndCjsTests';
 
-describe('LangChain integration (v1)', () => {
+export function registerLangChainTracingTests(): void {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -299,6 +299,108 @@ describe('LangChain integration (v1)', () => {
     },
   );
 
+  createEsmTests(
+    __dirname,
+    'scenario-openai-before-langchain.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('demonstrates timing issue with duplicate spans', async () => {
+        const runner = createRunner().ignore('event');
+        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
+
+        await runner.start().completed();
+
+        const spans = (await spansPromise).filter(
+          span =>
+            span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain' ||
+            span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic',
+        );
+        expect(spans).toHaveLength(2);
+        const anthropicSpan = spans.find(span => span.attributes[SENTRY_ORIGIN].value === 'auto.ai.anthropic');
+        expect(anthropicSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
+
+        const langchainSpan = spans.find(span => span.attributes[SENTRY_ORIGIN].value === 'auto.ai.langchain');
+        expect(langchainSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
+      });
+    },
+    {
+      additionalDependencies: {
+        langchain: '^1.0.0',
+        '@langchain/core': '^1.0.0',
+        '@langchain/anthropic': '^1.0.0',
+      },
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-init-chat-model.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('creates langchain spans using initChatModel with OpenAI', async () => {
+        const runner = createRunner().ignore('event');
+        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
+
+        await runner.start().completed();
+
+        const spans = (await spansPromise).filter(
+          span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain',
+        );
+        expect(spans).toHaveLength(3);
+        expect(spans.map(span => span.name).sort()).toEqual(['chat error-model', 'chat gpt-3.5-turbo', 'chat gpt-4o']);
+
+        const gpt4oSpan = spans.find(span => span.name === 'chat gpt-4o');
+        expect(gpt4oSpan!.status).toBe('ok');
+        expect(gpt4oSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
+        expect(gpt4oSpan!.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
+        expect(gpt4oSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
+        expect(gpt4oSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
+        expect(gpt4oSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gpt-4o');
+        expect(gpt4oSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.7);
+        expect(gpt4oSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(100);
+        expect(gpt4oSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(8);
+        expect(gpt4oSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(12);
+        expect(gpt4oSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(20);
+        expect(gpt4oSpan!.attributes[GEN_AI_RESPONSE_ID]).toBeDefined();
+        expect(gpt4oSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gpt-4o');
+        expect(gpt4oSpan!.attributes[GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE].value).toBe('stop');
+
+        const gpt35Span = spans.find(span => span.name === 'chat gpt-3.5-turbo');
+        expect(gpt35Span!.status).toBe('ok');
+        expect(gpt35Span!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
+        expect(gpt35Span!.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
+        expect(gpt35Span!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
+        expect(gpt35Span!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gpt-3.5-turbo');
+        expect(gpt35Span!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.5);
+        expect(gpt35Span!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(8);
+        expect(gpt35Span!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(12);
+        expect(gpt35Span!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(20);
+        expect(gpt35Span!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gpt-3.5-turbo');
+        expect(gpt35Span!.attributes[GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE].value).toBe('stop');
+
+        const errorSpan = spans.find(span => span.name === 'chat error-model');
+        expect(errorSpan!.status).toBe('error');
+        expect(errorSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
+        expect(errorSpan!.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
+        expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
+        expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
+      });
+    },
+    {
+      additionalDependencies: {
+        langchain: '^1.0.0',
+        '@langchain/core': '^1.0.0',
+        '@langchain/openai': '^1.0.0',
+      },
+    },
+  );
+}
+
+export function registerLangChainDecisionTests(): void {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
   createEsmAndCjsTests(
     __dirname,
     'scenario-typesafe-classifier.mjs',
@@ -439,100 +541,4 @@ describe('LangChain integration (v1)', () => {
       },
     },
   );
-
-  createEsmTests(
-    __dirname,
-    'scenario-openai-before-langchain.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('demonstrates timing issue with duplicate spans', async () => {
-        const runner = createRunner().ignore('event');
-        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
-
-        await runner.start().completed();
-
-        const spans = (await spansPromise).filter(
-          span =>
-            span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain' ||
-            span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic',
-        );
-        expect(spans).toHaveLength(2);
-        const anthropicSpan = spans.find(span => span.attributes[SENTRY_ORIGIN].value === 'auto.ai.anthropic');
-        expect(anthropicSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-
-        const langchainSpan = spans.find(span => span.attributes[SENTRY_ORIGIN].value === 'auto.ai.langchain');
-        expect(langchainSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-      });
-    },
-    {
-      additionalDependencies: {
-        langchain: '^1.0.0',
-        '@langchain/core': '^1.0.0',
-        '@langchain/anthropic': '^1.0.0',
-      },
-    },
-  );
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-init-chat-model.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('creates langchain spans using initChatModel with OpenAI', async () => {
-        const runner = createRunner().ignore('event');
-        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
-
-        await runner.start().completed();
-
-        const spans = (await spansPromise).filter(
-          span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain',
-        );
-        expect(spans).toHaveLength(3);
-        expect(spans.map(span => span.name).sort()).toEqual(['chat error-model', 'chat gpt-3.5-turbo', 'chat gpt-4o']);
-
-        const gpt4oSpan = spans.find(span => span.name === 'chat gpt-4o');
-        expect(gpt4oSpan!.status).toBe('ok');
-        expect(gpt4oSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
-        expect(gpt4oSpan!.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
-        expect(gpt4oSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
-        expect(gpt4oSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
-        expect(gpt4oSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gpt-4o');
-        expect(gpt4oSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.7);
-        expect(gpt4oSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(100);
-        expect(gpt4oSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(8);
-        expect(gpt4oSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(12);
-        expect(gpt4oSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(20);
-        expect(gpt4oSpan!.attributes[GEN_AI_RESPONSE_ID]).toBeDefined();
-        expect(gpt4oSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gpt-4o');
-        expect(gpt4oSpan!.attributes[GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE].value).toBe('stop');
-
-        const gpt35Span = spans.find(span => span.name === 'chat gpt-3.5-turbo');
-        expect(gpt35Span!.status).toBe('ok');
-        expect(gpt35Span!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
-        expect(gpt35Span!.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
-        expect(gpt35Span!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
-        expect(gpt35Span!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gpt-3.5-turbo');
-        expect(gpt35Span!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.5);
-        expect(gpt35Span!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(8);
-        expect(gpt35Span!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(12);
-        expect(gpt35Span!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(20);
-        expect(gpt35Span!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gpt-3.5-turbo');
-        expect(gpt35Span!.attributes[GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE].value).toBe('stop');
-
-        const errorSpan = spans.find(span => span.name === 'chat error-model');
-        expect(errorSpan!.status).toBe('error');
-        expect(errorSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
-        expect(errorSpan!.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
-        expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
-        expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
-      });
-    },
-    {
-      additionalDependencies: {
-        langchain: '^1.0.0',
-        '@langchain/core': '^1.0.0',
-        '@langchain/openai': '^1.0.0',
-      },
-    },
-  );
-});
+}

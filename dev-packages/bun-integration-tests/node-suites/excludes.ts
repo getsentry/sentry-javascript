@@ -241,7 +241,7 @@ const BUN_BUILD_NOT_TRIAGED = [
   'suites/pino/test.ts',
   'suites/tracing/google-genai-v2/test.ts',
   'suites/tracing/google-genai/test.ts',
-  'suites/tracing/langchain/v1/test.ts',
+  'suites/tracing/langchain/v1/**',
   'suites/tracing/langgraph/v1/test.ts',
   'suites/tracing/mastra/**',
   'suites/tracing/mcp-handler-exact-once/test.ts',
