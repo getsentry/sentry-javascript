@@ -1,3 +1,4 @@
+import { isBotUserAgent } from '@sentry/browser-utils';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import type { RequestInstrumentationOptions } from '../tracing/request';
@@ -16,6 +17,10 @@ const _xhrTracingIntegration = ((options: XhrTracingOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
+      if (isBotUserAgent()) {
+        return;
+      }
+
       instrumentXhrRequests(client, {
         ...options,
         tracePropagationTargets: client.getOptions().tracePropagationTargets,
