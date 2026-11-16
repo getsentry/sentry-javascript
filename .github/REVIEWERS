@@ -2,6 +2,11 @@
 # This is deliberately not a CODEOWNERS file: GitHub requests every matching
 # code owner team as soon as a PR opens, before the workflow requests anyone,
 # so the whole team gets notified.
+#
+# Last match wins. Files with no rule (CI, scripts, root config, shared test
+# utils, most of packages/core) fall back to @getsentry/team-javascript-sdks.
+# Don't add a catch-all `*` rule: it would put the whole team in the codeowner
+# pool of every PR and dilute the routing below.
 
 # Browser, replay, feedback, and related packages
 /packages/browser/                  @getsentry/team-javascript-sdks-browser
@@ -11,6 +16,15 @@
 /packages/replay-canvas/            @getsentry/team-javascript-sdks-browser
 /packages/feedback/                 @getsentry/team-javascript-sdks-browser
 /dev-packages/browser-integration-tests/ @getsentry/team-javascript-sdks-browser
+/packages/wasm/                     @getsentry/team-javascript-sdks-browser
+/packages/integration-shims/        @getsentry/team-javascript-sdks-browser
+/packages/core/src/browser.ts       @getsentry/team-javascript-sdks-browser
+/packages/core/src/tracing/browserSpanApi.ts @getsentry/team-javascript-sdks-browser
+/packages/core/src/tracing/idleSpan.ts @getsentry/team-javascript-sdks-browser
+/dev-packages/browser-min-version-tests/ @getsentry/team-javascript-sdks-browser
+/dev-packages/e2e-tests/test-applications/browser-*/ @getsentry/team-javascript-sdks-browser
+/dev-packages/e2e-tests/test-applications/default-browser*/ @getsentry/team-javascript-sdks-browser
+/dev-packages/e2e-tests/test-applications/webpack-*/ @getsentry/team-javascript-sdks-browser
 
 # Node/server runtimes and related packages
 /packages/node/                     @getsentry/team-javascript-sdks-server
@@ -29,6 +43,17 @@
 /dev-packages/cloudflare-integration-tests/ @getsentry/team-javascript-sdks-server
 /dev-packages/bun-integration-tests/ @getsentry/team-javascript-sdks-server
 /dev-packages/deno-integration-tests/ @getsentry/team-javascript-sdks-server
+/packages/core/src/server.ts        @getsentry/team-javascript-sdks-server
+/packages/core/src/server-runtime-client.ts @getsentry/team-javascript-sdks-server
+/packages/core/src/integrations/http/ @getsentry/team-javascript-sdks-server
+/packages/core/src/integrations/mcp-server/ @getsentry/team-javascript-sdks-server
+/dev-packages/e2e-tests/test-applications/node-*/ @getsentry/team-javascript-sdks-server
+/dev-packages/e2e-tests/test-applications/bun-*/ @getsentry/team-javascript-sdks-server
+/dev-packages/e2e-tests/test-applications/deno/ @getsentry/team-javascript-sdks-server
+/dev-packages/e2e-tests/test-applications/cloudflare-*/ @getsentry/team-javascript-sdks-server
+/dev-packages/e2e-tests/test-applications/aws-serverless*/ @getsentry/team-javascript-sdks-server
+/dev-packages/e2e-tests/test-applications/tsx-express/ @getsentry/team-javascript-sdks-server
+/dev-packages/e2e-tests/test-applications/gen-ai-libraries/ @getsentry/team-javascript-sdks-server
 
 # Framework integration packages
 /packages/angular/                  @getsentry/team-javascript-sdks-framework
@@ -51,3 +76,24 @@
 /packages/sveltekit/                @getsentry/team-javascript-sdks-framework
 /packages/tanstackstart-react/      @getsentry/team-javascript-sdks-framework
 /packages/vue/                      @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/angular-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/astro-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/create-react-app/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/create-remix-app-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/effect-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/elysia-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/ember-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/hono-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/hydrogen-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/nestjs-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/nextjs-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/nitro-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/nuxt-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/react-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/remix-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/solid*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/supabase-nextjs/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/svelte*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/tanstack*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/vinext-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/vue-*/ @getsentry/team-javascript-sdks-framework
