@@ -51,11 +51,10 @@ const MASTRA_CLASSIFIER_DEPENDENCIES = {
   },
 };
 
-export function registerMastraCoreTests(): void {
+export function registerMastraAgentTests(): void {
   afterAll(() => {
     cleanupChildProcesses();
   });
-
   createEsmAndCjsTests(
     __dirname,
     'scenario.mjs',
@@ -117,7 +116,6 @@ export function registerMastraCoreTests(): void {
     },
     MASTRA_DEPENDENCIES,
   );
-
   createEsmAndCjsTests(
     __dirname,
     'scenario.mjs',
@@ -145,7 +143,6 @@ export function registerMastraCoreTests(): void {
     },
     MASTRA_DEPENDENCIES,
   );
-
   createEsmAndCjsTests(
     __dirname,
     'scenario-tools.mjs',
@@ -188,7 +185,6 @@ export function registerMastraCoreTests(): void {
     },
     MASTRA_DEPENDENCIES,
   );
-
   createEsmAndCjsTests(
     __dirname,
     'scenario-workflow.mjs',
@@ -214,7 +210,12 @@ export function registerMastraCoreTests(): void {
     },
     MASTRA_DEPENDENCIES,
   );
+}
 
+export function registerMastraObservabilityTests(): void {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
   createEsmAndCjsTests(
     __dirname,
     'scenario-auto.mjs',
@@ -238,7 +239,6 @@ export function registerMastraCoreTests(): void {
     },
     MASTRA_DEPENDENCIES,
   );
-
   createEsmAndCjsTests(
     __dirname,
     'scenario-community-exporter.mjs',
