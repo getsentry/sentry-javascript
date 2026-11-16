@@ -34,7 +34,7 @@ export function createTransport(
     options.bufferSize || DEFAULT_TRANSPORT_BUFFER_SIZE,
   ),
 ): Transport {
-  let rateLimits: RateLimits = {};
+  let rateLimits: Readonly<RateLimits> = {};
   const flush = (timeout?: number): PromiseLike<boolean> => buffer.drain(timeout);
 
   function recordItemLoss(reason: EventDropReason, [headers, payload]: EnvelopeItem, type: EnvelopeItemType): void {

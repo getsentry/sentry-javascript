@@ -59,9 +59,6 @@ export function updateRateLimits(
     ...limits,
   };
 
-  // The spec requires keeping the longer of two limits for the same category. This callback is the only code that
-  // writes a limit, so no update path can shorten an active one.
-  // https://develop.sentry.dev/sdk/foundations/transport/rate-limiting/#stage-2-determine-rate-limits
   forEachRateLimit(response, now, (category, until) => {
     updatedRateLimits[category] = Math.max(updatedRateLimits[category] || 0, until);
   });
