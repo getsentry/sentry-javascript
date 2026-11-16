@@ -50,7 +50,6 @@ After fixing, re-run `pnpm run build:dev` and confirm it passes before verifying
 ## 5. Final verification
 
 ```bash
-pnpm run circularDepCheck
 pnpm run fix
 pnpm run test
 ```

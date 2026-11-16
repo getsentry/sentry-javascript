@@ -92,9 +92,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
 
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
 
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
@@ -206,9 +204,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
       - name: Restore NX cache
         uses: actions/cache/restore@v6.1.0
         with:
@@ -245,9 +241,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
       - name: Restore NX cache
         uses: actions/cache/restore@v6.1.0
         with:
@@ -302,9 +296,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -334,9 +326,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -348,8 +338,6 @@ jobs:
             run: pnpm run lint:es-compatibility
           - name: Lint types
             run: pnpm run lint:types
-          - name: Check for circular dependencies
-            run: pnpm run circularDepCheck
           - name: Check for dts files that reference stuff in the temporary build folder
             run: |
               if grep -r --include "*.d.ts" --exclude-dir ".nx" 'import("@sentry(-internal)?/[^/]*/build' .; then
@@ -382,9 +370,7 @@ jobs:
       - name: Install pnpm
         uses: ./.github/actions/install-pnpm
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
       - name: Check that pnpm-lock.yaml is stable
@@ -408,9 +394,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
 
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
 
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
@@ -430,9 +414,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -488,9 +470,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -521,9 +501,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -548,9 +526,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
       - name: Set up Deno
         uses: denoland/setup-deno@v2.0.5
         with:
@@ -674,9 +650,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -737,9 +711,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -772,6 +744,39 @@ jobs:
           path: dev-packages/browser-integration-tests/test-results
           overwrite: true
           retention-days: 7
+
+  # Runs the CDN bundles in the oldest Chromium we support. Chromium snapshots only exist for x64.
+  job_browser_min_version_tests:
+    name: Minimum Chromium Version Tests
+    needs: [job_get_metadata, job_build, job_build_bundles]
+    if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: ./.github/actions/setup-node
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+
+      - name: Restore build bundle artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: build-bundle-output
+          path: ${{ env.BUNDLE_ARTIFACT_DOWNLOAD_PATH }}
+
+      # Chromium itself isn't cached: `run.mjs` downloads the 127 MB zip on each run, which is about as quick as a
+      # cache restore.
+      - name: Install Chromium dependencies
+        run: dev-packages/browser-min-version-tests/install-deps.sh
+
+      - name: Run tests
+        run: node dev-packages/browser-min-version-tests/run.mjs
 
   job_node_integration_tests:
     name: Node (${{ matrix.node }}) Integration Tests (${{ matrix.shard }}/${{ matrix.shards }})
@@ -877,9 +882,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -965,9 +968,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -997,9 +998,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
       - name: Set up Deno
         uses: denoland/setup-deno@v2.0.5
         with:
@@ -1039,9 +1038,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
       - name: Restore NX cache
         uses: actions/cache/restore@v6.1.0
         with:
@@ -1118,6 +1115,7 @@ jobs:
         with:
           test-application: ${{ matrix.test-application }}
           runtime: ${{ matrix.runtime }}
+          bun-version: ${{ matrix.bun-version }}
           deno-version: ${{ matrix.deno-version }}
 
       # Installs Playwright while the app builds. Keep it right before the build: the runner sets up a background
@@ -1209,9 +1207,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
+        uses: ./.github/actions/setup-node
       - name: Install pnpm
         uses: ./.github/actions/install-pnpm
       # Only install what the action needs
@@ -1244,6 +1240,7 @@ jobs:
         job_deno_integration_tests,
         job_browser_playwright_tests,
         job_browser_loader_tests,
+        job_browser_min_version_tests,
         job_e2e_tests_1,
         job_e2e_tests_2,
         job_e2e_aws_layer_tests,

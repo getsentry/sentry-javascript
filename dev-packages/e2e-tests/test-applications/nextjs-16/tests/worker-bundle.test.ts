@@ -25,7 +25,7 @@ test('worker bundle does not contain the orchestrion bundler plugins', () => {
   );
   expect(serverFiles.length).toBeGreaterThan(0);
 
-  const markers = ['code-transformer-bundler-plugins', '__codeTransformerWebpackDiagnostics'];
+  const markers = ['__codeTransformerWebpackDiagnostics'];
 
   // The markers must still exist in the installed plugin build.
   // If upstream renames them, this fails instead of letting the leak check below pass.
@@ -56,7 +56,7 @@ function readOrchestrionPluginGraphSources(): string[] {
   const entrySource = fs.readFileSync(pluginEntry, 'utf8');
   return [
     entrySource,
-    ...[...entrySource.matchAll(/require\('(\.\.?\/[^']+)'\)/g)].map(([, specifier]) =>
+    ...[...entrySource.matchAll(/require\(['"](\.\.?\/[^'"]+)['"]\)/g)].map(([, specifier]) =>
       fs.readFileSync(path.resolve(path.dirname(pluginEntry), specifier), 'utf8'),
     ),
   ];

@@ -1,4 +1,5 @@
 import { captureLog, type CaptureLogArgs } from './capture';
+import { fmt } from '@sentry/core';
 
 /**
  * @summary Capture a log with the `trace` level.
@@ -165,4 +166,11 @@ export function fatal(...args: CaptureLogArgs): void {
   captureLog('fatal', ...args);
 }
 
-export { fmt } from '@sentry/core';
+export { fmt };
+
+/**
+ * The public logger API.
+ *
+ * A plain object rather than a module namespace so its methods can be spied on in tests.
+ */
+export const logger = { trace, debug, info, warn, error, fatal, fmt };

@@ -1,6 +1,6 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { endStreamSpan } from '../core/utils';
+import { endStreamSpan, getErrorStatus } from '../core/utils';
 import type { GoogleGenAIResponse } from './types';
 import type { MessagePart } from './utils';
 import { candidatesToMessageParts, setOutputMessagesAttribute } from './utils';
@@ -137,7 +137,7 @@ export async function* instrumentStream(
       yield chunk;
     }
   } catch (error) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: abortSignal?.aborted ? 'cancelled' : 'internal_error' });
+    span.setStatus(getErrorStatus(abortSignal));
     throw error;
   } finally {
     if (recordOutputs) {

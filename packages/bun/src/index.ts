@@ -92,6 +92,7 @@ export {
   langChainIntegration,
   langGraphIntegration,
   mastraIntegration,
+  piAiIntegration,
   piDurableIntegration,
   mcpServerIntegration,
   SentryMastraExporter,

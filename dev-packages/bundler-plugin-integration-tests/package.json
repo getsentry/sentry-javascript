@@ -6,8 +6,8 @@
   "scripts": {
     "test": "node setup.mjs && vitest run --pool threads --test-timeout=10000",
     "check:types": "tsc --project ./tsconfig.json --noEmit",
-    "clean": "run-s clean:build",
-    "clean:all": "run-p clean clean:deps",
+    "clean": "pnpm run clean:build",
+    "clean:all": "pnpm run \"/^(clean|clean:deps)$/\"",
     "clean:build": "node ../../scripts/rm.mjs ./fixtures/*/out",
     "clean:deps": "node ../../scripts/rm.mjs node_modules"
   },

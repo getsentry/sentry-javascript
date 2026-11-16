@@ -1,6 +1,4 @@
-/* eslint-disable import/no-named-as-default */
-import nodeResolve from '@rollup/plugin-node-resolve';
-import { defineConfig } from 'rollup';
+import { defineConfig } from 'rolldown';
 import { makeBaseNPMConfig, makeNPMConfigVariants, makeOrchestrionLoader } from '@sentry-internal/rollup-utils';
 
 // `external: /.*/` keeps the `remix` import a runtime resolution against the installed package.
@@ -32,18 +30,11 @@ const v3ClientBundle = defineConfig({
   // separate subscriber registries, and instrumentation would quietly do nothing.
   external: id => /diagnosticsChannelShim/.test(id) || id === 'remix' || id.startsWith('@remix-run/'),
   treeshake: { moduleSideEffects: false, propertyReadSideEffects: false },
-  plugins: [nodeResolve({ browser: true, exportConditions: ['browser', 'import', 'default'] })],
+  platform: 'browser',
+  resolve: { conditionNames: ['browser', 'import', 'default'] },
   // Emitted inside `build/esm/v3/`, not at `build/`: the one import it keeps is the relative path to
   // the channel shim, which only resolves from there.
   output: { file: 'build/esm/v3/client-bundle.js', format: 'esm' },
-  onwarn(warning, warn) {
-    // `this` is undefined in the bundled output of some dependencies, and the graph has cycles. Both
-    // are harmless here and would otherwise bury real warnings.
-    if (warning.code === 'THIS_IS_UNDEFINED' || warning.code === 'CIRCULAR_DEPENDENCY') {
-      return;
-    }
-    warn(warning);
-  },
 });
 
 // We rely on esbuild's defaults for JSX (`jsx: 'transform'` = classic runtime, no

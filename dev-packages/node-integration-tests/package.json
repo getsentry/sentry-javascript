@@ -12,7 +12,7 @@
   "scripts": {
     "build": "pnpm run build:transpile && pnpm run build:types",
     "build:dev": "pnpm run build",
-    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:transpile": "rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "node scripts/clean.js",
     "lint": "oxlint . --type-aware",
@@ -60,7 +60,7 @@
     "@sentry-internal/rollup-utils": "11.12.0",
     "@sentry-internal/test-utils": "11.12.0",
     "@sentry/aws-serverless": "11.12.0",
-    "@sentry/conventions": "0.32.0",
+    "@sentry/conventions": "0.33.0",
     "@sentry/core": "11.12.0",
     "@sentry/hono": "11.12.0",
     "@sentry/node": "11.12.0",

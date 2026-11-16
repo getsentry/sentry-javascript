@@ -212,3 +212,33 @@ test('keeps a navigation that starts while the pageload waits for the trace meta
   expect(pageloadTx.contexts?.trace?.data?.['sentry.idle_span_finish_reason']).toBe('cancelled');
   expect(navigationTx.contexts?.trace?.data?.['sentry.idle_span_finish_reason']).toBe('idleTimeout');
 });
+
+test('links the server request when its trace meta tag arrives after the pageload stopped waiting', async ({
+  page,
+}) => {
+  test.skip(process.env.TEST_ENV !== 'production', 'Only a prerendered shell makes the trace meta tag arrive late');
+  test.setTimeout(60_000);
+
+  const pageloadTxPromise = waitForTransaction(APP, transactionEvent => {
+    return transactionEvent.transaction === '/slow-stream' && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto('/slow-stream', { waitUntil: 'commit' });
+  await expect(page.locator('#slow-content')).toBeVisible({ timeout: 20_000 });
+  const [requestTraceId, requestSpanId] = (await page
+    .locator('meta[name="sentry-trace"]')
+    .getAttribute('content'))!.split('-');
+
+  const pageloadTx = await pageloadTxPromise;
+
+  // The tag arrived after the pageload had started its own trace, so the pageload only links it.
+  expect(pageloadTx.contexts?.trace?.trace_id).not.toBe(requestTraceId);
+  expect(pageloadTx.contexts?.trace?.links).toEqual([
+    {
+      trace_id: requestTraceId,
+      span_id: requestSpanId,
+      sampled: true,
+      attributes: { [SENTRY_LINK_TYPE]: 'server_request' },
+    },
+  ]);
+});

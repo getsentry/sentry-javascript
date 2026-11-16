@@ -1,5 +1,5 @@
 import { Controller, Get, Param, ParseIntPipe, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common';
-import { flush } from '@sentry/nestjs';
+import * as Sentry from '@sentry/nestjs';
 import { AppService } from './app.service.js';
 import { AsyncInterceptor } from './async-example.interceptor.js';
 import { ExampleInterceptor1 } from './example-1.interceptor.js';
@@ -84,7 +84,34 @@ export class AppController {
 
   @Get('flush')
   async flush() {
-    await flush();
+    await Sentry.flush();
+  }
+
+  @Get('test-param/:param')
+  testParam(@Param('param') param: string) {
+    return { param };
+  }
+
+  @Get('test-isolation/:id')
+  async testIsolation(@Param('id') id: string) {
+    Sentry.setTag('isolation-id', id);
+    // Lets the concurrent requests of the isolation test overlap.
+    await new Promise(resolve => setTimeout(resolve, 200));
+    Sentry.captureException(new Error(`Isolated error ${id}`));
+    return {};
+  }
+
+  // The test runs a server on port 3040 that records the headers of the request.
+  @Get('test-outgoing-fetch')
+  async testOutgoingFetch() {
+    const response = await fetch('http://localhost:3040/outgoing');
+    return { status: response.status };
+  }
+
+  @Get('test-log')
+  testLog() {
+    Sentry.logger.info('test-log', { route: 'test-log' });
+    return {};
   }
 
   @Get('example-exception-global-filter')

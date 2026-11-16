@@ -12,6 +12,10 @@
  * - Completely reworked to no longer reference OpenTelemetry.
  * - The upstream `fs_error` span attribute (the error message) was replaced with the conventions-backed
  *   `error.type` (the syscall error code, e.g. `ENOENT`).
+ * - `fs` is default-imported rather than namespace-imported. A namespace import is read-only in native ESM
+ *   and compiles to a copied, getter-only namespace object in CJS, so patching it either throws or
+ *   leaves the real module untouched. The default export is the module itself in both output
+ *   formats, so patching it reaches every other consumer of `require('fs')` / `import 'fs'`.
  */
 
 import { ERROR_TYPE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
@@ -25,16 +29,12 @@ import {
   suppressTracing,
   withActiveSpan,
 } from '@sentry/core';
-import * as fsNamespace from 'fs';
+import fs from 'fs';
 import * as moduleNamespace from 'module';
 import { promisify } from 'util';
 import { CALLBACK_FUNCTIONS, PROMISE_FUNCTIONS, SYNC_FUNCTIONS } from './constants';
 import type { FMember, FPMember, FsInstrumentationConfig, GenericFunction } from './types';
 import { indexFs } from './utils';
-
-// In native ESM, `import * as fs` is a read-only module namespace, so we patch the mutable `fs` object
-// behind its default export instead. The CJS build has no `.default` and already gets the mutable object.
-const fs = (fsNamespace as { default?: typeof fsNamespace }).default ?? fsNamespace;
 
 // Deno before 2.8.2 has `syncBuiltinESMExports` only on the default export of `node:module`, so a named import fails to link.
 type SyncBuiltinESMExports = { syncBuiltinESMExports?: () => void };

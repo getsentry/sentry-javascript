@@ -9,6 +9,7 @@ import {
   getAssembleRequests,
   findSourceMapFiles,
   findSourceMappingUrlComments,
+  getRuntime,
 } from '@sentry-internal/test-utils';
 
 const requests = loadMockServerResults();
@@ -30,6 +31,12 @@ assert.ok(
   chunkPosts.some(r => r.bodySize > 0),
   'Expected at least one chunk upload with a non-empty body',
 );
+
+// The `sentry` CLI adds the runtime that runs it to its User-Agent, for example `bun/1.4.2`.
+const runtime = getRuntime();
+for (const req of chunkPosts) {
+  assert.match(req.requestHeaders['user-agent'] ?? '', new RegExp(` ${runtime}/`), `Expected ${runtime} to upload`);
+}
 
 // Release endpoint was called
 assert.ok(

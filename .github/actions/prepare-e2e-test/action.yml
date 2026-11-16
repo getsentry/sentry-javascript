@@ -9,6 +9,9 @@ inputs:
   runtime:
     description: 'The `runtime` of a runtime variant, see dev-packages/e2e-tests/README.md.'
     default: ''
+  bun-version:
+    description: 'The Bun version to install, if the application needs Bun.'
+    default: '1.3.14'
   deno-version:
     description: 'The Deno version to install, if the application needs Deno.'
     default: 'v2.8.3'
@@ -25,16 +28,14 @@ runs:
     # Uses the repo's root node pin for the steps before the app is copied (installing pnpm, `test:prepare`,
     # `test:validate`, `ci:copy-to-temp`). The app's own node version is set up after the copy below.
     - name: Set up Node
-      uses: actions/setup-node@v7
-      with:
-        node-version-file: 'package.json'
+      uses: ./.github/actions/setup-node
     - name: Set up Bun
       if:
         inputs.test-application == 'node-exports-test-app' || contains(inputs.test-application, 'bun') || inputs.runtime
         == 'bun'
       uses: oven-sh/setup-bun@v2
       with:
-        bun-version: '1.3.14'
+        bun-version: ${{ inputs.bun-version || '1.4.2' }}
     - name: Set up AWS SAM
       if: contains(inputs.test-application, 'aws-serverless')
       uses: aws-actions/setup-sam@v3

@@ -194,6 +194,7 @@ export {
   neonIntegration,
   nitroIntegration,
   openAIIntegration,
+  piAiIntegration,
   piDurableIntegration,
   postgresIntegration,
   postgresJsIntegration,

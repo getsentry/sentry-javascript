@@ -208,6 +208,9 @@ export interface ReactComponentAnnotationOptions {
 }
 
 interface SourceMapsOptions {
+  // TODO(v12): Replace `disable` with separate options, for example
+  // `upload`, `debugIds` and `deleteSourcemapsAfterUpload`, so that one
+  // option no longer controls several features.
   /**
    * If this flag is `true`, any functionality related to source maps will be disabled. This includes the automatic upload of source maps.
    *
@@ -260,6 +263,10 @@ interface SourceMapsOptions {
    * When the plugin turned source maps on, none of them reach the build output, not even those of chunks that
    * `sourcemaps.assets` or `sourcemaps.ignore` keep out of the upload. Source maps you enabled yourself are only
    * removed for the JavaScript chunks that were uploaded; excluded chunks keep theirs.
+   *
+   * `true` removes source maps you enabled yourself even when no upload runs, for example without an auth token.
+   * With `sourcemaps.disable` set, the plugin keeps them for a manual upload and warns. The plugin does not turn
+   * source maps on when it cannot upload them.
    *
    * With webpack's array form of `devtool`, `true` replaces the array with one hidden source map setting for
    * all asset types, because webpack hides the array from plugins.

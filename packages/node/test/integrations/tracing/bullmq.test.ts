@@ -397,6 +397,32 @@ describe('SentryBullMQSpan', () => {
       });
     });
 
+    it('captures the job error that BullMQ recorded before the "job failed" event', () => {
+      const { span } = createSpan();
+      const error = new TypeError('Cannot read properties of undefined');
+
+      span.recordException(error);
+      span.addEvent('job failed', { 'bullmq.job.failed.reason': error.message });
+
+      expect(SentryCore.captureException).toHaveBeenCalledTimes(1);
+      expect(SentryCore.captureException).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'TypeError', stack: error.stack }),
+        { mechanism: { handled: false, type: 'auto.queue.bullmq' } },
+      );
+    });
+
+    it('captures an error without a stack from the reason when BullMQ recorded only a string', () => {
+      const { span } = createSpan();
+
+      (span as any).recordException('Connection timed out');
+      span.addEvent('job failed', { 'bullmq.job.failed.reason': 'Connection refused' });
+
+      expect(SentryCore.captureException).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Connection refused', stack: undefined }),
+        { mechanism: { handled: false, type: 'auto.queue.bullmq' } },
+      );
+    });
+
     it('sets the error status on the span when the event name is "job failed"', () => {
       const { span, otelSpan } = createSpan();
 

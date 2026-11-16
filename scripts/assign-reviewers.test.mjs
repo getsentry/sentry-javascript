@@ -1,6 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { getOwnersForFiles, parseCodeowners, pickReviewers } from './assign-reviewers.mjs';
+import {
+  assignReviewers,
+  getBusyLogins,
+  getOwnersForFiles,
+  parseCodeowners,
+  pickReviewers,
+} from './assign-reviewers.mjs';
+import { attribution, junior, setup } from './github-test-utils.mjs';
 
 const CODEOWNERS = `
 # comment
@@ -56,7 +63,7 @@ describe('pickReviewers', () => {
 
   it('picks from the whole team when no codeowners match', () => {
     const picked = pickReviewers({ existing: [], codeownerPool: [], teamPool: ['a', 'b', 'c'], exclude: [] });
-    expect(picked.sort()).toEqual(['a', 'b', 'c']);
+    expect(picked.sort((a, b) => a.localeCompare(b))).toEqual(['a', 'b', 'c']);
   });
 
   it('never picks the author, excluded people, or existing reviewers, case-insensitively', () => {
@@ -66,7 +73,7 @@ describe('pickReviewers', () => {
       teamPool: ['a', 'c', 'd'],
       exclude: ['a', 'mydea'],
     });
-    expect(picked.sort()).toEqual(['c', 'd']);
+    expect(picked.sort((a, b) => a.localeCompare(b))).toEqual(['c', 'd']);
   });
 
   it('only tops up to the required number of reviewers', () => {
@@ -76,5 +83,75 @@ describe('pickReviewers', () => {
 
   it('returns fewer reviewers when not enough people are eligible', () => {
     expect(pickReviewers({ existing: [], codeownerPool: [], teamPool: ['a'], exclude: [] })).toEqual(['a']);
+  });
+});
+
+describe('getBusyLogins', () => {
+  const core = { warning: vi.fn() };
+
+  it('returns users whose status indicates limited availability', async () => {
+    const github = {
+      graphql: vi.fn(async () => ({
+        u0: { login: 'a', status: { indicatesLimitedAvailability: true } },
+        u1: { login: 'b', status: { indicatesLimitedAvailability: false } },
+        u2: { login: 'c', status: null },
+      })),
+    };
+    expect(await getBusyLogins({ github, core, logins: ['a', 'b', 'c', 'A'] })).toEqual(['a']);
+    expect(github.graphql).toHaveBeenCalledWith(expect.any(String), { l0: 'A', l1: 'b', l2: 'c' });
+  });
+
+  it('skips the query when there are no logins', async () => {
+    const github = { graphql: vi.fn() };
+    expect(await getBusyLogins({ github, core, logins: [] })).toEqual([]);
+    expect(github.graphql).not.toHaveBeenCalled();
+  });
+
+  it('treats nobody as busy when the query fails', async () => {
+    const github = { graphql: vi.fn(async () => Promise.reject(new Error('boom'))) };
+    expect(await getBusyLogins({ github, core, logins: ['a'] })).toEqual([]);
+    expect(core.warning).toHaveBeenCalledWith(expect.stringContaining('boom'));
+  });
+});
+
+describe('assignReviewers', () => {
+  it('does not request a review from busy users', async () => {
+    const { github, run } = setup(assignReviewers, { user: { login: 'author', type: 'User' } });
+    github.graphql.mockResolvedValue({ u0: { login: 'a', status: { indicatesLimitedAvailability: true } } });
+    await run();
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.arrayContaining(['b', 'c', 'd']) }),
+    );
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.not.arrayContaining(['a']) }),
+    );
+  });
+
+  it('does not request a review from the requester of a Junior PR', async () => {
+    const { github, run } = setup(assignReviewers, { user: junior, body: attribution('**Alice Example**') });
+    await run();
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.arrayContaining(['b', 'c', 'd']) }),
+    );
+  });
+
+  it('does not count pending review requests from managers towards the required reviewers', async () => {
+    const { github, run } = setup(assignReviewers, {
+      user: { login: 'author', type: 'User' },
+      requested_reviewers: [
+        { login: 'Mydea', type: 'User' },
+        { login: 'a', type: 'User' },
+      ],
+    });
+    await run();
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: [expect.any(String), expect.any(String)] }),
+    );
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.not.arrayContaining(['a']) }),
+    );
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.not.arrayContaining(['Mydea']) }),
+    );
   });
 });

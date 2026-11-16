@@ -53,7 +53,9 @@ test('traces a PiHarness prompt as invoke_agent with chat, execute_tool and prov
   // pi-ai sends the requests through `@anthropic-ai/sdk`, whose own integration must stay out so
   // each request is reported once.
   expect(spans.filter(span => String(span.attributes[SENTRY_ORIGIN]?.value).startsWith('auto.ai.'))).toEqual(
-    spans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.pi_durable'),
+    spans.filter(span =>
+      ['auto.ai.pi_durable', 'auto.ai.pi_ai'].includes(String(span.attributes[SENTRY_ORIGIN]?.value)),
+    ),
   );
 
   // One tool-calling response, then the answer.

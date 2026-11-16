@@ -9,6 +9,8 @@
     "test:assert": "pnpm ts-node --script-mode assert-build.ts",
     "test:build:delete": "pnpm install && E2E_DELETE_SOURCEMAPS=1 pnpm build",
     "test:build:delete-webpack": "pnpm install && E2E_DELETE_SOURCEMAPS=1 E2E_NEXT_WEBPACK=1 pnpm build",
+    "test:build:delete-bun": "pnpm install && E2E_DELETE_SOURCEMAPS=1 bun --bun run build",
+    "test:build:delete-webpack-bun": "pnpm install && E2E_DELETE_SOURCEMAPS=1 E2E_NEXT_WEBPACK=1 bun --bun run build",
     "test:assert:delete": "E2E_DELETE_SOURCEMAPS=1 pnpm test:assert"
   },
   "dependencies": {
@@ -37,6 +39,18 @@
         "build-command": "pnpm test:build:delete-webpack",
         "assert-command": "pnpm test:assert:delete",
         "label": "nextjs-sourcemaps (delete, webpack)"
+      },
+      {
+        "runtime": "bun",
+        "build-command": "pnpm test:build:delete-bun",
+        "assert-command": "pnpm test:assert:delete",
+        "label": "nextjs-sourcemaps (delete, turbopack, bun)"
+      },
+      {
+        "runtime": "bun",
+        "build-command": "pnpm test:build:delete-webpack-bun",
+        "assert-command": "pnpm test:assert:delete",
+        "label": "nextjs-sourcemaps (delete, webpack, bun)"
       }
     ]
   }

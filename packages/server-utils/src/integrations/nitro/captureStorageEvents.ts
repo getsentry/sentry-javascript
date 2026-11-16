@@ -25,8 +25,8 @@ import type { UnstorageTraceContext } from './nitroTypes';
 
 const ORIGIN = 'auto.cache.nitro';
 
-const globalWithStorageChannels = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __SENTRY_NITRO_STORAGE_CHANNELS_INSTRUMENTED__: boolean;
+type GlobalWithStorageChannels = typeof GLOBAL_OBJ & {
+  __SENTRY_NITRO_STORAGE_CHANNELS_INSTRUMENTED__?: boolean;
 };
 
 const TRACED_OPERATIONS = [
@@ -70,6 +70,7 @@ const CACHED_FN_HANDLERS_RE = /^nitro:(functions|handlers):/i;
  * Subscribes to unstorage tracing channels and creates Sentry spans for storage operations.
  */
 export function captureStorageEvents(): void {
+  const globalWithStorageChannels = GLOBAL_OBJ as GlobalWithStorageChannels;
   if (globalWithStorageChannels.__SENTRY_NITRO_STORAGE_CHANNELS_INSTRUMENTED__) {
     return;
   }

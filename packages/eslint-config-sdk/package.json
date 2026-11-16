@@ -40,7 +40,6 @@
   },
   "scripts": {
     "clean": "node ../../scripts/rm.mjs sentry-eslint-config-sdk-*.tgz",
-    "build:tarball": "pnpm pack",
-    "circularDepCheck": "madge --circular src/index.js"
+    "build:tarball": "pnpm pack"
   }
 }

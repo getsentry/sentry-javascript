@@ -7,6 +7,11 @@ function startMockGoogleGenAIServer() {
   app.use(express.json());
 
   app.post('/v1beta/models/:model\\:streamGenerateContent', (req, res) => {
+    // Never responds, so the request only ends when the client gives up on it.
+    if (req.params.model.endsWith('before-stream')) {
+      return;
+    }
+
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Transfer-Encoding', 'chunked');
 
@@ -77,6 +82,28 @@ async function run() {
       for await (const _ of abortedStream) {
         controller.abort();
       }
+    } catch {
+      // Error expected
+    }
+
+    const beforeStream = new AbortController();
+    setTimeout(() => beforeStream.abort(), 50);
+    try {
+      await client.models.generateContentStream({
+        model: 'caller-abort-before-stream',
+        contents: [{ role: 'user', parts: [{ text: 'The caller aborts before the first chunk' }] }],
+        config: { abortSignal: beforeStream.signal },
+      });
+    } catch {
+      // Error expected
+    }
+
+    try {
+      await client.models.generateContentStream({
+        model: 'timeout-before-stream',
+        contents: [{ role: 'user', parts: [{ text: 'The SDK timeout fires before the first chunk' }] }],
+        config: { httpOptions: { timeout: 50 } },
+      });
     } catch {
       // Error expected
     }

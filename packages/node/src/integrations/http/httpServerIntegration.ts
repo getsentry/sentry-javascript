@@ -3,7 +3,12 @@ import { context, createContextKey, propagation } from '@opentelemetry/api';
 import type { Integration, IntegrationFn } from '@sentry/core';
 import { addNonEnumerableProperty, debug, getClient } from '@sentry/core';
 import type { HttpIncomingMessage, HttpServerResponse } from '@sentry/core/server';
-import { getHttpServerSubscriptions, HTTP_ON_SERVER_REQUEST, recordRequestSession } from '@sentry/core/server';
+import {
+  getHttpServerSubscriptions,
+  HTTP2_ON_SERVER_STREAM,
+  HTTP_ON_SERVER_REQUEST,
+  recordRequestSession,
+} from '@sentry/core/server';
 import { subscribeDiagnosticsChannel } from '@sentry/server-utils';
 import type { RequestEventData } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
@@ -138,8 +143,10 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => 
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequestStart } = getHttpServerSubscriptions(_options);
+      const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequestStart, [HTTP2_ON_SERVER_STREAM]: onHttp2ServerStreamStart } =
+        getHttpServerSubscriptions(_options);
       subscribeDiagnosticsChannel(HTTP_ON_SERVER_REQUEST, onHttpServerRequestStart);
+      subscribeDiagnosticsChannel(HTTP2_ON_SERVER_STREAM, onHttp2ServerStreamStart);
     },
     afterAllSetup(client) {
       if (DEBUG_BUILD && client.getIntegrationByName('Http')) {
@@ -153,7 +160,7 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => 
 
 /**
  * This integration handles request isolation, trace continuation and other core Sentry functionality around incoming http requests
- * handled via the node `http` module.
+ * handled via the node `http` module, or via the compat API of the `http2` module.
  *
  * This version uses OpenTelemetry for context propagation and span management.
  *

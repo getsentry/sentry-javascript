@@ -1,4 +1,5 @@
 import {
+  GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
@@ -7,6 +8,8 @@ import {
   GEN_AI_REQUEST_TOP_P,
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   SENTRY_OP,
@@ -54,6 +57,25 @@ function assertBedrockSpans(container: SerializedStreamedSpanContainer): void {
   expect(invokeModelSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["end_turn"]');
 }
 
+const SYSTEM_INSTRUCTIONS = JSON.stringify([{ type: 'text', content: 'You are a weather bot.' }]);
+
+function assertBedrockInputs(container: SerializedStreamedSpanContainer): void {
+  const converseSpan = container.items.find(span => span.name === `chat ${MODEL_ID}`);
+  expect(converseSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(SYSTEM_INSTRUCTIONS);
+  expect(converseSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
+    JSON.stringify([{ role: 'user', parts: [{ type: 'text', content: 'Hello' }] }]),
+  );
+  expect(converseSpan!.attributes[GEN_AI_TOOL_DEFINITIONS].value).toBe(
+    JSON.stringify([{ name: 'get_weather', inputSchema: { json: { type: 'object' } } }]),
+  );
+
+  const invokeModelSpan = container.items.find(span => span.name === `generate_content ${MODEL_ID}`);
+  expect(invokeModelSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(SYSTEM_INSTRUCTIONS);
+  expect(invokeModelSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
+    JSON.stringify([{ role: 'user', content: 'Hello' }]),
+  );
+}
+
 function assertStreamSpans(container: SerializedStreamedSpanContainer): void {
   const converseStreamSpan = container.items.find(span => span.name === `chat ${MODEL_ID}`);
   expect(converseStreamSpan!.status).toBe('ok');
@@ -87,6 +109,12 @@ describe('awsIntegration - Bedrock', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test('auto-instruments Bedrock Converse and InvokeModel', { timeout: 90_000 }, async () => {
       await createTestRunner().ignore('event').expect({ span: assertBedrockSpans }).start().completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-gen-ai.mjs', (createTestRunner, test) => {
+    test('records Bedrock inputs by default', { timeout: 90_000 }, async () => {
+      await createTestRunner().ignore('event').expect({ span: assertBedrockInputs }).start().completed();
     });
   });
 

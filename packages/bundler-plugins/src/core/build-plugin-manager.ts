@@ -11,7 +11,7 @@ import { normalizeUserOptions, validateOptions } from './options-mapping';
 import type { Logger } from './logger';
 import { createLogger } from './logger';
 import { allowedToSendTelemetry, createSentryInstance, safeFlushTelemetry } from './sentry/telemetry';
-import type { Options, SentrySDKBuildFlags } from './types';
+import type { InternalOptions, SentrySDKBuildFlags } from './types';
 import { arrayify, getProjects, getTurborepoEnvPassthroughWarning, stripQueryAndHashFromPath } from './utils';
 import {
   defaultRewriteSourcesHook,
@@ -153,7 +153,7 @@ export type SentryBuildPluginManager = {
      * Decides how the plugin treats the user's source map setting (see `decideSourceMapHandling`).
      * Logs the decision's message once per message, unless `log` is `false`.
      */
-    decide(kind: SourceMapKind, options?: { log?: boolean }): SourceMapDecision;
+    decide(kind: SourceMapKind, options?: { log?: boolean; environment?: string }): SourceMapDecision;
     /** Logs the decision's message, once per message. */
     logDecision(decision: SourceMapDecision): void;
     /**
@@ -183,7 +183,7 @@ export type SentryBuildPluginManager = {
  * The build plugin manager's behavior strongly depends on the options that are passed in.
  */
 export function createSentryBuildPluginManager(
-  userOptions: Options,
+  userOptions: InternalOptions,
   bundlerPluginMetaContext: {
     /**
      * E.g. `webpack` or `nextjs` or `turbopack`
@@ -970,8 +970,11 @@ export function createSentryBuildPluginManager(
 
     sourceMaps: {
       uploadPossible: sourceMapUploadPossible,
-      decide(kind, { log = true } = {}) {
-        const decision = decideSourceMapHandling(kind, options, sourceMapUploadPossible);
+      decide(kind, { log = true, environment } = {}) {
+        // Watch builds in development keep their source maps.
+        const decision = isDevMode
+          ? { enableHidden: false, deleteAfterUpload: false }
+          : decideSourceMapHandling(kind, options, sourceMapUploadPossible, environment);
         if (log) {
           logDecision(decision);
         }
