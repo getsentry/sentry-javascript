@@ -28,7 +28,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
+  # Keep the SDK source fixed while benchmark commits change test-file boundaries.
+  HEAD_COMMIT: ${{ github.event.inputs.commit || github.event.pull_request.head.sha || github.sha }}
 
   CACHED_DEPENDENCY_PATHS: |
     ${{ github.workspace }}/node_modules
@@ -575,7 +576,7 @@ jobs:
         run: pnpm rebuild @sentry/node-cpu-profiler @sentry/node-native-stacktrace
 
       - name: Run affected tests
-        run: pnpm run test:pr:node --base=${{ github.event.pull_request.base.sha }}
+        run: pnpm run test:ci:node
         if: github.event_name == 'pull_request'
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -856,6 +857,16 @@ jobs:
         working-directory: dev-packages/node-integration-tests
         # Tedious runs in the dedicated SQL Server job because its database container requires x86.
         run: pnpm run test --shard=${{ matrix.shard }}/${{ matrix.shards }} --exclude '**/tracing/tedious/**'
+        env:
+          INTEGRATION_TIMINGS: ${{ runner.temp }}/integration-timings.json
+      - name: Upload integration timings
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: timings-node-${{ matrix.node }}-${{ matrix.shard }}
+          path: ${{ runner.temp }}/integration-timings.json
+          if-no-files-found: error
+          retention-days: 7
 
   job_sql_server_integration_tests:
     name: SQL Server Integration Tests (Node 24)
@@ -919,6 +930,16 @@ jobs:
       - name: Run integration tests
         working-directory: dev-packages/cloudflare-integration-tests
         run: pnpm run test --shard=${{ matrix.shard }}/${{ matrix.shards }}
+        env:
+          INTEGRATION_TIMINGS: ${{ runner.temp }}/integration-timings.json
+      - name: Upload integration timings
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: timings-cloudflare-${{ matrix.shard }}
+          path: ${{ runner.temp }}/integration-timings.json
+          if-no-files-found: error
+          retention-days: 7
 
   # Shows breakage from new wrangler and workerd releases early. It is not in `job_required_jobs_passed`, so it cannot
   # block a PR, and like the optional E2E tests it does not run on release branches.
@@ -999,6 +1020,16 @@ jobs:
       - name: Run integration tests
         working-directory: dev-packages/bun-integration-tests
         run: pnpm run test --shard=${{ matrix.shard }}/4
+        env:
+          INTEGRATION_TIMINGS: ${{ runner.temp }}/integration-timings.json
+      - name: Upload integration timings
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: timings-bun-${{ matrix.bun }}-${{ matrix.shard }}
+          path: ${{ runner.temp }}/integration-timings.json
+          if-no-files-found: error
+          retention-days: 7
 
   job_deno_integration_tests:
     name: Deno Integration Tests (${{ matrix.shard }}/4)
@@ -1039,6 +1070,16 @@ jobs:
         working-directory: dev-packages/deno-integration-tests
         # Tedious runs in the dedicated SQL Server job because its database container requires x86.
         run: pnpm run test:node-suites --shard=${{ matrix.shard }}/4 --exclude '**/tracing/tedious/**'
+        env:
+          INTEGRATION_TIMINGS: ${{ runner.temp }}/integration-timings.json
+      - name: Upload integration timings
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: timings-deno-${{ matrix.shard }}
+          path: ${{ runner.temp }}/integration-timings.json
+          if-no-files-found: error
+          retention-days: 7
 
   # GitHub Actions allows at most 256 jobs in one matrix, so the E2E tests are split into two jobs that share `env`
   # and `steps`.

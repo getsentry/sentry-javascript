@@ -33,7 +33,11 @@ export default defineConfig({
     reporters: process.env.DEBUG
       ? ['default', { summary: false }]
       : process.env.GITHUB_ACTIONS
-        ? ['dot', 'github-actions']
+        ? [
+            'dot',
+            'github-actions',
+            ...(process.env.INTEGRATION_TIMINGS ? ['../node-integration-tests/benchmark-reporter.ts'] : []),
+          ]
         : ['verbose'],
   },
 });
