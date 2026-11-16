@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  HEAD_COMMIT: ${{ github.event.inputs.commit || github.event.pull_request.head.sha || github.sha }}
+  HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
   CACHED_DEPENDENCY_PATHS: |
     ${{ github.workspace }}/node_modules
@@ -918,17 +918,7 @@ jobs:
 
       - name: Run integration tests
         working-directory: dev-packages/cloudflare-integration-tests
-        run: >-
-          pnpm run test --shard=${{ matrix.shard }}/${{ matrix.shards }} --reporter=dot --reporter=github-actions
-          --reporter=json --outputFile.json=${{ runner.temp }}/cloudflare-results.json
-
-      - name: Upload Cloudflare benchmark results
-        if: ${{ always() && matrix.wrangler != 'latest' }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: cloudflare-benchmark-${{ matrix.shard }}
-          path: ${{ runner.temp }}/cloudflare-results.json
-          if-no-files-found: error
+        run: pnpm run test --shard=${{ matrix.shard }}/${{ matrix.shards }}
 
   # Shows breakage from new wrangler and workerd releases early. It is not in `job_required_jobs_passed`, so it cannot
   # block a PR, and like the optional E2E tests it does not run on release branches.
@@ -964,7 +954,7 @@ jobs:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
