@@ -635,8 +635,6 @@ jobs:
           - bundle_tracing
           - bundle_tracing_logs_metrics
           - bundle_tracing_replay
-          - bundle_tracing_replay_logs_metrics
-          - bundle_tracing_replay_feedback
           - bundle_tracing_replay_feedback_logs_metrics
           - bundle_tracing_replay_feedback_logs_metrics_min
         project:
@@ -655,19 +653,51 @@ jobs:
           - bundle: esm
             project: chromium
             shard: 1
-            shards: 4
+            shards: 6
           - bundle: esm
             project: chromium
             shard: 2
-            shards: 4
+            shards: 6
           - bundle: esm
             project: chromium
             shard: 3
-            shards: 4
+            shards: 6
           - bundle: esm
             project: chromium
             shard: 4
-            shards: 4
+            shards: 6
+          - bundle: esm
+            project: chromium
+            shard: 5
+            shards: 6
+          - bundle: esm
+            project: chromium
+            shard: 6
+            shards: 6
+          - bundle: bundle_tracing_replay_feedback
+            project: chromium
+            shard: 1
+            shards: 3
+          - bundle: bundle_tracing_replay_feedback
+            project: chromium
+            shard: 2
+            shards: 3
+          - bundle: bundle_tracing_replay_feedback
+            project: chromium
+            shard: 3
+            shards: 3
+          - bundle: bundle_tracing_replay_logs_metrics
+            project: chromium
+            shard: 1
+            shards: 3
+          - bundle: bundle_tracing_replay_logs_metrics
+            project: chromium
+            shard: 2
+            shards: 3
+          - bundle: bundle_tracing_replay_logs_metrics
+            project: chromium
+            shard: 3
+            shards: 3
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -815,8 +845,8 @@ jobs:
       fail-fast: false
       matrix:
         node: [20.19, 22, 24, 26, '^27.0.0-0']
-        shard: [1, 2, 3, 4]
-        shards: [4]
+        shard: [1, 2, 3, 4, 5, 6]
+        shards: [6]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -966,7 +996,7 @@ jobs:
         run: pnpm run test
 
   job_bun_integration_tests:
-    name: Bun (${{ matrix.bun }}) Integration Tests (${{ matrix.shard }}/2)
+    name: Bun (${{ matrix.bun }}) Integration Tests (${{ matrix.shard }}/4)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04-arm
@@ -976,7 +1006,7 @@ jobs:
       matrix:
         # 1.3.14 is the oldest supported Bun version
         bun: ['1.3.14', '1.4']
-        shard: [1, 2]
+        shard: [1, 2, 3, 4]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -995,10 +1025,10 @@ jobs:
 
       - name: Run integration tests
         working-directory: dev-packages/bun-integration-tests
-        run: pnpm run test --shard=${{ matrix.shard }}/2
+        run: pnpm run test --shard=${{ matrix.shard }}/4
 
   job_deno_integration_tests:
-    name: Deno Integration Tests (${{ matrix.shard }}/2)
+    name: Deno Integration Tests (${{ matrix.shard }}/4)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04-arm
@@ -1006,7 +1036,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3, 4]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -1035,7 +1065,7 @@ jobs:
       - name: Run shared Node integration tests
         working-directory: dev-packages/deno-integration-tests
         # Tedious runs in the dedicated SQL Server job because its database container requires x86.
-        run: pnpm run test:node-suites --shard=${{ matrix.shard }}/2 --exclude '**/tracing/tedious/**'
+        run: pnpm run test:node-suites --shard=${{ matrix.shard }}/4 --exclude '**/tracing/tedious/**'
 
   # GitHub Actions allows at most 256 jobs in one matrix, so the E2E tests are split into two jobs that share `env`
   # and `steps`.
