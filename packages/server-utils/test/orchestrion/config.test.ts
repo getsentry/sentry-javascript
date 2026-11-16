@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
+import type { InstrumentationConfig } from '../../src/orchestrion/apmTypes';
 import { describe, expect, it } from 'vitest';
 import {
   getInstrumentedModuleNames,

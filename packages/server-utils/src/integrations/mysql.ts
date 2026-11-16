@@ -1,8 +1,6 @@
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import {
   DB_NAMESPACE,
-  DB_QUERY_SUMMARY,
-  DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
   SENTRY_KIND,
@@ -10,19 +8,12 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
   SENTRY_ORIGIN,
+  DB_CONNECTION_STRING,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
-import type { IntegrationFn, Scope } from '@sentry/core';
-import {
-  isObjectLike,
-  bindScopeToEmitter,
-  defineIntegration,
-  getClient,
-  getCurrentScope,
-  hasSpanStreamingEnabled,
-  startInactiveSpan,
-} from '@sentry/core';
-import { sanitizeSqlQueryWithSummary } from '../utils/sql';
+import type { IntegrationFn, Scope, SpanAttributes } from '@sentry/core';
+import { isObjectLike, bindScopeToEmitter, defineIntegration, getCurrentScope, startInactiveSpan } from '@sentry/core';
+import { getSqlQueryAttributes, getSqlSpanName } from '../utils/sql';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -32,10 +23,6 @@ import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation
 // NOTE: this uses the same name as the OTel integration by design.
 // When enabled, OTel 'Mysql' integration is omitted from the default set.
 const INTEGRATION_NAME = 'Mysql' as const;
-
-// `db.connection_string` is not part of `@sentry/conventions`, so it stays inlined. Matches
-// `@opentelemetry/instrumentation-mysql`'s default shape.
-const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
 
 const DB_SYSTEM_NAME_VALUE_MYSQL = 'mysql' as const;
 
@@ -84,30 +71,21 @@ function instrumentMysql(): void {
       // handler with the caller's context lost. `deferSpanEnd` replays this scope onto the emitter.
       data._sentryCallerScope = getCurrentScope();
 
-      const { queryText, querySummary } = sanitizeSqlQueryWithSummary(sql, 'mysql');
+      const attributes: SpanAttributes = {
+        [SENTRY_OP]: DB,
+        [SENTRY_KIND]: 'client',
+        [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
+        [SENTRY_ORIGIN]: 'auto.db.mysql',
+        // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+        [DB_CONNECTION_STRING]: getJDBCString(host, portIsNumber ? portNumber : undefined, database),
+        [DB_NAMESPACE]: database,
+        [DB_USER]: user,
+        ...getSqlQueryAttributes(sql, 'mysql'),
+        [SERVER_ADDRESS]: host,
+        [SERVER_PORT]: portIsNumber ? portNumber : undefined,
+      };
 
-      const client = getClient();
-      const name =
-        client && hasSpanStreamingEnabled(client)
-          ? querySummary || database || DB_SYSTEM_NAME_VALUE_MYSQL
-          : (queryText ?? 'mysql.query');
-
-      return startInactiveSpan({
-        name,
-        attributes: {
-          [SENTRY_OP]: DB,
-          [SENTRY_KIND]: 'client',
-          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
-          [SENTRY_ORIGIN]: 'auto.db.mysql',
-          [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, portIsNumber ? portNumber : undefined, database),
-          ...(database ? { [DB_NAMESPACE]: database } : {}),
-          ...(user ? { [DB_USER]: user } : {}),
-          ...(queryText ? { [DB_QUERY_TEXT]: queryText } : {}),
-          [DB_QUERY_SUMMARY]: querySummary,
-          [SERVER_ADDRESS]: host,
-          [SERVER_PORT]: portIsNumber ? portNumber : undefined,
-        },
-      });
+      return startInactiveSpan({ name: getSqlSpanName(attributes, 'mysql.query'), attributes });
     },
     {
       // No-callback `query(sql)` returns a streamable `Query` emitter as `result`; it settles on the

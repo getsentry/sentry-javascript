@@ -6,16 +6,12 @@ export const assets = createAssetServer({
   allowFiles: ['app/routes.ts', 'app/**/public/**'],
   allowPackages: ['remix', '@sentry/remix'],
   minify: true,
-  scripts: {
-    define: { 'process.env.E2E_TEST_DSN': JSON.stringify(process.env.E2E_TEST_DSN) },
-  },
   watch: false,
   scripts: {
     // No bundler means no build time env inlining, so `define` is the only way to get configuration
     // into a browser module. The asset server substitutes these when it compiles.
     define: {
       'process.env.E2E_TEST_DSN': JSON.stringify(process.env.E2E_TEST_DSN),
-      'process.env.E2E_TEST_TUNNEL': JSON.stringify(process.env.E2E_TEST_TUNNEL ?? ''),
     },
   },
 });

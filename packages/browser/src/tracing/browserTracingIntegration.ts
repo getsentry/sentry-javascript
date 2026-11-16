@@ -127,7 +127,7 @@ export interface BrowserTracingOptions {
   /**
    * If true, Sentry will capture long animation frames and add them to the corresponding transaction.
    *
-   * Default: false
+   * Default: true
    */
   enableLongAnimationFrame: boolean;
 
@@ -367,7 +367,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     const urlObject = parseStringToURLObject(url || getLocationHref());
 
     const attributes = {
-      ...(urlObject?.pathname && { [URL_PATH]: urlObject.pathname }),
+      [URL_PATH]: urlObject?.pathname,
       ...(urlObject && !isURLObjectRelative(urlObject) && { [URL_FULL]: filterCollectedUrl(urlObject.href) }),
       ...finalStartSpanOptions.attributes,
     };

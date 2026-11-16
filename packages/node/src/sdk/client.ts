@@ -1,3 +1,4 @@
+import { SERVER_ADDRESS } from '@sentry/conventions/attributes';
 import * as os from 'node:os';
 import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
@@ -68,7 +69,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       this.on('beforeCaptureLog', log => {
         log.attributes = {
           ...log.attributes,
-          'server.address': serverName,
+          [SERVER_ADDRESS]: serverName,
         };
       });
     }

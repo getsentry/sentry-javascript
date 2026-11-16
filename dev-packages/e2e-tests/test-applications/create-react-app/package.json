@@ -39,5 +39,13 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "sentryTest": {
+    "canaryVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "create-react-app (canary)"
+      }
+    ]
   }
 }

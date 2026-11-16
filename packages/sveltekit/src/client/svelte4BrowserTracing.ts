@@ -5,6 +5,7 @@ import {
   PAGELOAD_SPAN_NAME_FALLBACK,
   ROUTER_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
+import { _INTERNAL_withCacheOrigin } from '@sentry/core/browser';
 import {
   getCurrentScope,
   startBrowserTracingNavigationSpan,
@@ -12,7 +13,15 @@ import {
   startInactiveSpan,
   WINDOW,
 } from '@sentry/svelte';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  URL_TEMPLATE,
+  SENTRY_ORIGIN,
+  SENTRY_SVELTEKIT_NAVIGATION_FROM,
+  SENTRY_SVELTEKIT_NAVIGATION_TO,
+  SENTRY_SVELTEKIT_NAVIGATION_TYPE,
+} from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD, ROUTER } from '@sentry/conventions/op';
 import type { Navigation, Page } from '@sveltejs/kit';
 // eslint-disable-next-line typescript/no-deprecated
@@ -42,16 +51,22 @@ export function instrumentSvelteKitTracing(
 function _instrumentPageload(client: Client, pageStore: Readable<Page>): void {
   const initialPath = WINDOW.location?.pathname;
 
-  const pageloadSpan = startBrowserTracingPageLoadSpan(client, {
-    // With span streaming, span names have to be low cardinality. The route id is only available
-    // asynchronously, which updates the span name then.
-    name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : initialPath,
-    attributes: {
-      [SENTRY_OP]: PAGELOAD,
-      [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
-      [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    },
-  });
+  const pageloadSpan = startBrowserTracingPageLoadSpan(
+    client,
+    _INTERNAL_withCacheOrigin(
+      {
+        // With span streaming, span names have to be low cardinality. The route id is only available
+        // asynchronously, which updates the span name then.
+        name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : initialPath,
+        attributes: {
+          [SENTRY_OP]: PAGELOAD,
+          [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+        },
+      },
+      'static',
+    ),
+  );
   if (!pageloadSpan) {
     return;
   }
@@ -112,9 +127,12 @@ function _instrumentNavigations(client: Client, navigatingStore: Readable<Naviga
     }
 
     const navigationInfo = {
-      'sentry.sveltekit.navigation.type': navigation.type,
-      'sentry.sveltekit.navigation.from': parameterizedRouteOrigin || undefined,
-      'sentry.sveltekit.navigation.to': parameterizedRouteDestination || undefined,
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      [SENTRY_SVELTEKIT_NAVIGATION_TYPE]: navigation.type,
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      [SENTRY_SVELTEKIT_NAVIGATION_FROM]: parameterizedRouteOrigin || undefined,
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      [SENTRY_SVELTEKIT_NAVIGATION_TO]: parameterizedRouteDestination || undefined,
     };
 
     startBrowserTracingNavigationSpan(

@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
-    "@sentry/opentelemetry": "file:../../packed/sentry-opentelemetry-packed.tgz",
     "express": "^4.21.2"
   },
   "devDependencies": {

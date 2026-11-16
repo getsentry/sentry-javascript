@@ -2,7 +2,7 @@ import { basename, dirname, isAbsolute } from 'node:path';
 import { createIdResolver, type ResolvedConfig } from 'vite';
 import { collectAgentCandidates, detectAgentClasses, type ModuleResolver } from './agentClass';
 import { buildOptionsImport, ENV_FALLBACK_OPTIONS_FN, resolveInstrumentFile } from './instrumentFile';
-import { applyAutoInstrumentTransforms, type ClassWrapperKind, type ProgramBody } from './transform';
+import { applyAutoInstrumentTransforms, type BaseNode, type ClassWrapperKind, type ProgramBody } from './transform';
 import { resolveWranglerConfig, type WranglerConfig } from './wranglerConfig';
 
 // Vite normalizes module IDs to posix separators even on Windows, while
@@ -29,6 +29,20 @@ async function resolvesNextjsCloudflare(resolver: ModuleResolver, importer: stri
   } catch {
     return false;
   }
+}
+
+/**
+ * Whether the module re-exports everything from another module of its own file, as the shim
+ * `@sentry/tanstackstart-react` loads for the server entry does (`export * from "<entry>?sentry-tunnel-original"`).
+ * That module is transformed as the entry too, and its classes are wrapped there.
+ */
+function reexportsAllFromSameFile(ast: ProgramBody, normalizedId: string): boolean {
+  return ast.body.some(node => {
+    if (node.type !== 'ExportAllDeclaration') return false;
+    const { exported, source } = node as BaseNode & { exported?: unknown; source?: { value?: unknown } };
+    const value = source?.value;
+    return !exported && typeof value === 'string' && normalizePath(value.replace(/[?#].*$/, '')) === normalizedId;
+  });
 }
 
 type TransformContext = ModuleResolver & {
@@ -202,9 +216,9 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
 
       const wrappedClasses = result?.wrappedClasses ?? new Set<string>();
       const missing = [...classWrappers.keys()].filter(name => !wrappedClasses.has(name));
-      if (missing.length > 0) {
+      if (missing.length > 0 && !reexportsAllFromSameFile(ast, normalizedId)) {
         this.warn?.(
-          `[sentry] Could not auto-instrument ${missing.join(', ')}.` +
+          `[sentry] Could not auto-instrument ${missing.join(', ')}. ` +
             'The worker entry has no export matching them. ' +
             'Star re-exports (`export * from "./do"`) are not matched. ' +
             'Export them by name or wrap them manually with corresponding `instrument*WithSentry` helpers.',

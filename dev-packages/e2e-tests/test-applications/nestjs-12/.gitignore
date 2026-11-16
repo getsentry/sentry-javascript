@@ -1,5 +1,8 @@
 # compiled output
 /dist
+/dist-bun
+/dist-cloudflare
+/.wrangler
 /node_modules
 /build
 

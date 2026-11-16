@@ -1,14 +1,6 @@
 /* eslint-disable typescript-eslint/no-deprecated */
 import { DEBUG_BUILD } from '../../debug-build';
-import {
-  getClient,
-  hasSpanStreamingEnabled,
-  SPAN_STATUS_ERROR,
-  startSpan,
-  startSpanManual,
-  debug,
-  stringify,
-} from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, startSpan, startSpanManual, debug, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
@@ -24,7 +16,9 @@ import type { InstrumentedMethodEntry } from '../core/utils';
 import {
   buildMethodPath,
   extractSystemInstructions,
+  getErrorStatus,
   getGenAiSpanOp,
+  getRequestSignal,
   resolveAIRecordingOptions,
   wrapPromiseWithMethods,
 } from '../core/utils';
@@ -158,6 +152,7 @@ function instrumentMethod<T extends unknown[], R>(
 
     const params = args[0] as Record<string, unknown> | undefined;
     const isStreamRequested = params && typeof params === 'object' && params.stream === true;
+    const abortSignal = getRequestSignal(args[1]);
     const client = getClient();
 
     const spanConfig = {
@@ -190,7 +185,7 @@ function instrumentMethod<T extends unknown[], R>(
               options.recordOutputs ?? false,
             ) as unknown as R;
           } catch (error) {
-            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            span.setStatus(getErrorStatus(abortSignal));
             span.end();
             throw error;
           }
@@ -211,10 +206,16 @@ function instrumentMethod<T extends unknown[], R>(
         addRequestAttributes(span, params, operationName);
       }
 
-      return originalResult.then(result => {
-        addResponseAttributes(span, result, options.recordOutputs, operationName);
-        return result;
-      });
+      return originalResult.then(
+        result => {
+          addResponseAttributes(span, result, options.recordOutputs, operationName);
+          return result;
+        },
+        error => {
+          span.setStatus(getErrorStatus(abortSignal));
+          throw error;
+        },
+      );
     });
 
     return wrapPromiseWithMethods(originalResult, instrumentedPromise);

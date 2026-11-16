@@ -2,6 +2,7 @@ import type { Scope } from '../scope';
 import type { Log, LogSeverityLevel } from '../types/log';
 import type { ParameterizedString } from '../types/parameterize';
 import { _INTERNAL_captureLog } from './internal';
+import { fmt } from '../utils/parameterize';
 
 /**
  * Capture a log with the given level.
@@ -243,4 +244,11 @@ export function fatal(
   captureLog('fatal', message, attributes, scope);
 }
 
-export { fmt } from '../utils/parameterize';
+export { fmt };
+
+/**
+ * The public logger API.
+ *
+ * A plain object rather than a module namespace so its methods can be spied on in tests.
+ */
+export const logger = { trace, debug, info, warn, error, fatal, fmt };

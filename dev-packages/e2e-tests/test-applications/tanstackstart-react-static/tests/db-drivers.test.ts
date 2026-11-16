@@ -1,11 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-const usesManagedTunnelRoute =
-  (process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off') !== 'off' || process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1';
-
-test.skip(usesManagedTunnelRoute, 'Default e2e suites run only in the proxy variant');
-
 // Same spans in both runs, from two injectors: the orchestrion build-time transform that
 // `sentryTanstackStart()` auto-wires into the server bundle, and the runtime hook in `vite dev`,
 // where the drivers stay external on Node's own loader.

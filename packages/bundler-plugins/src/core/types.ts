@@ -42,7 +42,7 @@ export interface Options {
    *
    * This value can also be set via the `SENTRY_URL` environment variable.
    *
-   * @default "https://sentry.io" (correct value for SaaS customers)
+   * @default The server that a `sntrys_` organization auth token was created on, otherwise "https://sentry.io"
    */
   url?: string;
 
@@ -111,6 +111,9 @@ export interface Options {
    * Options related to source maps upload and processing.
    */
   sourcemaps?: {
+    // TODO(v12): Replace `disable` with separate options, for example
+    // `upload`, `debugIds` and `deleteSourcemapsAfterUpload`, so that one
+    // option no longer controls several features.
     /**
      * Disables all functionality related to sourcemaps if set to `true`.
      *
@@ -192,6 +195,29 @@ export interface Options {
      * Use the `debug` option to print information about which files end up being deleted.
      */
     filesToDeleteAfterUpload?: string | string[] | Promise<string | string[] | undefined>;
+
+    /**
+     * Whether source maps are removed from the build output after they are uploaded to Sentry.
+     *
+     * When unset, the plugin removes only the source maps it turned on itself, that is, when the bundler's source map
+     * setting was not set. `true` also removes source maps you enabled yourself. `false` never removes them; the plugin
+     * still turns on hidden source maps when the setting is not set, so they can be uploaded.
+     *
+     * When the plugin turned source maps on, none of them reach the build output, not even those of chunks that
+     * `sourcemaps.assets` or `sourcemaps.ignore` keep out of the upload. Source maps you enabled yourself are only
+     * removed for the JavaScript chunks that were uploaded; excluded chunks keep theirs.
+     *
+     * `true` removes source maps you enabled yourself even when no upload runs, for example without an auth token.
+     * With `sourcemaps.disable` set, the plugin keeps them for a manual upload and warns. The plugin does not turn
+     * source maps on when it cannot upload them.
+     *
+     * With webpack's array form of `devtool`, `true` replaces the array with one hidden source map setting for
+     * all asset types, because webpack hides the array from plugins.
+     *
+     * With Rollup, Vite and webpack the removed source maps are never written to the output directory. With esbuild
+     * they are deleted after the upload.
+     */
+    deleteSourcemapsAfterUpload?: boolean;
   };
 
   /**
@@ -649,3 +675,24 @@ type DeployOptions = {
 };
 
 export type HandleRecoverableErrorFn = (error: unknown, throwByDefault: boolean) => void;
+
+/**
+ * @internal For Sentry SDK packages only. It can change in any release.
+ *
+ * Like `Options`, but `sourcemaps.deleteSourcemapsAfterUpload` can also be a function, and
+ * `sourcemaps.sdkEnabledSourceMaps` is added. The plugin calls the functions when it decides how
+ * to treat the bundler's source map setting, so an SDK can give a value that it only knows after it
+ * created the plugin. Vite passes the name of an environment with its own `build.sourcemap`, and
+ * `undefined` for the top-level `build.sourcemap`.
+ */
+export type InternalOptions = Omit<Options, 'sourcemaps'> & {
+  sourcemaps?: Omit<NonNullable<Options['sourcemaps']>, 'deleteSourcemapsAfterUpload'> & {
+    deleteSourcemapsAfterUpload?: boolean | ((environment?: string) => boolean | undefined);
+    /**
+     * The SDK turned on the bundler's source maps. With `deleteSourcemapsAfterUpload: true` the
+     * plugin then removes them like source maps it turned on itself: all of them, also those of CSS
+     * and of chunks that the upload leaves out.
+     */
+    sdkEnabledSourceMaps?: boolean | ((environment?: string) => boolean | undefined);
+  };
+};

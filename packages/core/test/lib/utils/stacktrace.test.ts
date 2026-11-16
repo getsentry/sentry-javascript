@@ -232,6 +232,42 @@ describe('node', () => {
     expect(node(input)).toEqual(expectedOutput);
   });
 
+  it.each([
+    ['at /app/My App (beta)/index.js:4:11', '/app/My App (beta)/index.js'],
+    ['at async /app/My App (beta)/index.js:4:11', '/app/My App (beta)/index.js'],
+    ['at C:\\Program Files (x86)\\MyApp\\index.js:4:11', 'C:\\Program Files (x86)\\MyApp\\index.js'],
+    ['at /app/My App (beta/index.js:4:11', '/app/My App (beta/index.js'],
+    ['at /app/My App beta)/index.js:4:11', '/app/My App beta)/index.js'],
+  ])('preserves parentheses in anonymous frame paths: %s', (input, filename) => {
+    const frame = node(input);
+
+    expect(frame).toEqual({
+      filename,
+      module: undefined,
+      function: '?',
+      lineno: 4,
+      colno: 11,
+      in_app: true,
+    });
+  });
+
+  it.each([
+    ['at main (/app/My App (beta)/index.js:4:11)', '/app/My App (beta)/index.js'],
+    ['at main (/app/My App (beta/index.js:4:11)', '/app/My App (beta/index.js'],
+    ['at main (/app/My App beta)/index.js:4:11)', '/app/My App beta)/index.js'],
+  ])('preserves parentheses in named frame paths: %s', (input, filename) => {
+    const frame = node(input);
+
+    expect(frame).toEqual({
+      filename,
+      module: undefined,
+      function: 'main',
+      lineno: 4,
+      colno: 11,
+      in_app: true,
+    });
+  });
+
   it('should extract method name and type name correctly', () => {
     const input = 'at myObject.myMethod (/path/to/file.js:10:5)';
 

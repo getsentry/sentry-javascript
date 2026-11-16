@@ -1,0 +1,12 @@
+// A second Worker, so `EagerAssistant` runs in an isolate where no Worker handler has called
+// `Sentry.init()` before the Durable Object is constructed.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-pi-durable-eager",
+  "main": "src/eager.ts",
+  "compatibility_date": "2026-09-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "secrets": { "required": ["E2E_TEST_DSN", "E2E_OPENROUTER_API_KEY"] },
+  "durable_objects": { "bindings": [{ "name": "EagerAssistant", "class_name": "EagerAssistant" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["EagerAssistant"] }],
+}

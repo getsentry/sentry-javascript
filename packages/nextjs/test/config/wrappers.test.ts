@@ -99,8 +99,8 @@ describe('data-fetching function wrappers should not create manual spans', () =>
 describe('wrapMiddlewareWithSentry', () => {
   afterEach(() => {
     vi.clearAllMocks();
-    if ('_sentryRewritesTunnelPath' in globalThis) {
-      delete (globalThis as any)._sentryRewritesTunnelPath;
+    if ('_sentryTunnelRoute' in globalThis) {
+      delete (globalThis as any)._sentryTunnelRoute;
     }
   });
 
@@ -144,7 +144,7 @@ describe('wrapMiddlewareWithSentry', () => {
   });
 
   test('should run the middleware for requests to the tunnel route', async () => {
-    (globalThis as any)._sentryRewritesTunnelPath = '/monitoring';
+    (globalThis as any)._sentryTunnelRoute = '/monitoring';
 
     const mockReturnValue = { status: 200 };
     const origFunction: EdgeRouteHandler = vi.fn(async (..._args) => mockReturnValue);

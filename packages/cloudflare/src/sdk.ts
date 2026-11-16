@@ -1,5 +1,4 @@
-import type { Integration } from '@sentry/core';
-import { getBaseDefaultIntegrations, initWithDefaultIntegrations } from './baseSdk';
+import { initBaseSdk } from './baseSdk';
 import type { CloudflareClient, CloudflareOptions } from './client';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { type RequestHandlerWrapperOptions, wrapRequestHandlerWithInit } from './wrapRequestHandlerWithInit';
@@ -7,12 +6,7 @@ import { type RequestHandlerWrapperOptions, wrapRequestHandlerWithInit } from '.
 // Test-only helper, re-exported here so tests can reset the global client cache.
 export { _clearGlobalClientCache } from './clientCache';
 
-/**
- * Get the default integrations for the Cloudflare SDK.
- */
-export function getDefaultIntegrations(options: CloudflareOptions): Integration[] {
-  return getBaseDefaultIntegrations(options);
-}
+export { getDefaultIntegrations } from './baseSdk';
 
 /**
  * Initializes the cloudflare SDK.
@@ -28,13 +22,12 @@ export function init(options: CloudflareOptions): CloudflareClient | undefined {
     setupOpenTelemetryTracer();
   }
 
-  return initWithDefaultIntegrations(options, getDefaultIntegrations);
+  return initBaseSdk(options);
 }
 
 /**
- * `wrapRequestHandler` backed by `init`, so the request gets the full default integrations and
- * honors `enableOpenTelemetrySetup`. The `@sentry/cloudflare/request` variant deliberately skips
- * both to stay usable without `nodejs_compat`.
+ * `wrapRequestHandler` backed by `init`, so the request honors `enableOpenTelemetrySetup`. The
+ * `@sentry/cloudflare/request` variant deliberately skips it to stay usable without `nodejs_compat`.
  *
  * For framework SDKs building on the main entry point, e.g. SvelteKit, whose OpenTelemetry spans
  * need the tracer provider.

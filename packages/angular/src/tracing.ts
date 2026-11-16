@@ -159,9 +159,7 @@ export class TraceService implements OnDestroy {
                 [SENTRY_OP]: ROUTER,
                 [SENTRY_ORIGIN]: 'auto.ui.angular',
                 [URL_FULL]: strippedUrl,
-                ...(navigationEvent.navigationTrigger && {
-                  navigationTrigger: navigationEvent.navigationTrigger,
-                }),
+                navigationTrigger: navigationEvent.navigationTrigger,
               },
             }),
           ) || null;

@@ -345,6 +345,72 @@ describe('createSentryBuildPluginManager', () => {
       expect(mockPrepareBundleForDebugIdUpload).not.toHaveBeenCalled();
     });
 
+    it('keeps uploading the other directories when one has no source maps', async () => {
+      mockSourcemapUpload.mockResolvedValueOnce({ filesUploaded: 0 }).mockResolvedValueOnce({ filesUploaded: 4 });
+
+      const manager = createSentryBuildPluginManager(
+        { authToken: 't', org: 'o', project: 'p', release: { name: 'some-release-name' } },
+        { buildTool: 'webpack', loggerPrefix: '[sentry-webpack-plugin]' },
+      );
+      const warnSpy = vi.spyOn(manager.logger, 'warn');
+      const infoSpy = vi.spyOn(manager.logger, 'info');
+
+      const result = await manager.uploadSourcemaps(['.next/server', '.next/static/chunks'], {
+        prepareArtifacts: false,
+      });
+
+      expect(mockSourcemapUpload).toHaveBeenCalledTimes(2);
+      expect(mockSourcemapUpload).toHaveBeenCalledWith(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        expect.objectContaining({ directory: '.next/server', allowEmpty: true }),
+      );
+      expect(warnSpy).toHaveBeenCalledOnce();
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('  - .next/server\n'));
+      expect(infoSpy).toHaveBeenCalledWith('Successfully uploaded source maps to Sentry');
+      expect(result).toEqual({ uploaded: true, uploadedSourceMapPaths: [] });
+
+      vi.restoreAllMocks();
+    });
+
+    it('warns once and lists every directory without source maps', async () => {
+      mockSourcemapUpload
+        .mockResolvedValueOnce({ filesUploaded: 0 })
+        .mockResolvedValueOnce({ filesUploaded: 0 })
+        .mockResolvedValueOnce({ filesUploaded: 4 });
+
+      const manager = createSentryBuildPluginManager(
+        { authToken: 't', org: 'o', project: 'p', release: { name: 'some-release-name' } },
+        { buildTool: 'webpack', loggerPrefix: '[sentry-webpack-plugin]' },
+      );
+      const warnSpy = vi.spyOn(manager.logger, 'warn');
+
+      await manager.uploadSourcemaps(['.next/server', '.next/edge', '.next/static/chunks'], {
+        prepareArtifacts: false,
+      });
+
+      expect(warnSpy).toHaveBeenCalledOnce();
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('  - .next/server\n  - .next/edge\n'));
+
+      vi.restoreAllMocks();
+    });
+
+    it('does not report success when no directory has source maps', async () => {
+      mockSourcemapUpload.mockResolvedValue({ filesUploaded: 0 });
+
+      const manager = createSentryBuildPluginManager(
+        { authToken: 't', org: 'o', project: 'p', release: { name: 'some-release-name' } },
+        { buildTool: 'webpack', loggerPrefix: '[sentry-webpack-plugin]' },
+      );
+      const infoSpy = vi.spyOn(manager.logger, 'info');
+
+      const result = await manager.uploadSourcemaps(['.next/server'], { prepareArtifacts: false });
+
+      expect(infoSpy).not.toHaveBeenCalledWith('Successfully uploaded source maps to Sentry');
+      expect(result).toEqual({ uploaded: false, uploadedSourceMapPaths: [] });
+
+      vi.restoreAllMocks();
+    });
+
     it('exits early when assets is an empty array', async () => {
       const manager = createSentryBuildPluginManager(
         {
@@ -393,7 +459,7 @@ describe('createSentryBuildPluginManager', () => {
       vi.spyOn(fs.promises, 'stat').mockResolvedValue({ size: 10 } as fs.Stats);
       vi.spyOn(fs.promises, 'rm').mockResolvedValue(undefined as never);
 
-      mockPrepareBundleForDebugIdUpload.mockResolvedValue(undefined);
+      mockPrepareBundleForDebugIdUpload.mockResolvedValue({ sourceMapPath: '/app/dist/a.js.map' });
 
       const manager = createSentryBuildPluginManager(
         {
@@ -406,10 +472,11 @@ describe('createSentryBuildPluginManager', () => {
         { buildTool: 'webpack', loggerPrefix: '[sentry-webpack-plugin]' },
       );
 
-      await manager.uploadSourcemaps(['/unused']);
+      const result = await manager.uploadSourcemaps(['/unused']);
 
       // Should call prepare for each JS chunk discovered by glob
       expect(mockPrepareBundleForDebugIdUpload).toHaveBeenCalled();
+      expect(result).toEqual({ uploaded: true, uploadedSourceMapPaths: ['/app/dist/a.js.map'] });
       // Should upload from the temp folder, where debug IDs are already injected
       expect(mockSourcemapUpload).toHaveBeenCalledWith({
         directory: '/tmp/sentry-upload-xyz',
@@ -419,6 +486,7 @@ describe('createSentryBuildPluginManager', () => {
         ignore: undefined,
         ignoreFile: undefined,
         urlPrefix: undefined,
+        allowEmpty: true,
       });
     });
 
@@ -458,6 +526,46 @@ describe('createSentryBuildPluginManager', () => {
       expect(mockSourcemapUpload).not.toHaveBeenCalled();
 
       vi.restoreAllMocks();
+    });
+  });
+
+  describe('sourceMaps.deleteFromOutput', () => {
+    const managerOptions = {
+      authToken: 't',
+      org: 'o',
+      project: 'p',
+      release: { name: 'some-release-name' },
+      telemetry: false,
+      silent: true,
+    };
+    const meta = { buildTool: 'esbuild', loggerPrefix: '[sentry-esbuild-plugin]' };
+
+    it('deletes the source maps', async () => {
+      const rmSpy = vi.spyOn(fs.promises, 'rm').mockResolvedValue(undefined);
+      const manager = createSentryBuildPluginManager(managerOptions, meta);
+
+      await manager.sourceMaps.deleteFromOutput(['/app/dist/a.js.map', '/app/dist/b.js.map']);
+
+      expect(rmSpy).toHaveBeenCalledWith('/app/dist/a.js.map', { force: true });
+      expect(rmSpy).toHaveBeenCalledWith('/app/dist/b.js.map', { force: true });
+    });
+
+    it('throws when a source map cannot be deleted', async () => {
+      const error = new Error('EBUSY');
+      vi.spyOn(fs.promises, 'rm').mockRejectedValue(error);
+      const manager = createSentryBuildPluginManager(managerOptions, meta);
+
+      await expect(manager.sourceMaps.deleteFromOutput(['/app/dist/a.js.map'])).rejects.toBe(error);
+    });
+
+    it('passes a failed delete to the error handler', async () => {
+      const error = new Error('EBUSY');
+      vi.spyOn(fs.promises, 'rm').mockRejectedValue(error);
+      const errorHandler = vi.fn();
+      const manager = createSentryBuildPluginManager({ ...managerOptions, errorHandler }, meta);
+
+      await expect(manager.sourceMaps.deleteFromOutput(['/app/dist/a.js.map'])).resolves.toBeUndefined();
+      expect(errorHandler).toHaveBeenCalledWith(error);
     });
   });
 

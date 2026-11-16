@@ -16,6 +16,7 @@
   "dependencies": {
     "@sentry/bun": "latest || *",
     "@sentry/cloudflare": "latest || *",
+    "@sentry/core": "latest || *",
     "@sentry/deno": "latest || *",
     "@sentry/hono": "latest || *",
     "@sentry/node": "latest || *",

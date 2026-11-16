@@ -1,14 +1,7 @@
 import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
-import {
-  defineIntegration,
-  getClient,
-  hasSpanStreamingEnabled,
-  isObjectLike,
-  startInactiveSpan,
-  waitForTracingChannelBinding,
-} from '@sentry/core';
-import { sanitizeSqlQueryWithSummary } from '../../utils/sql';
+import { defineIntegration, isObjectLike, startInactiveSpan, waitForTracingChannelBinding } from '@sentry/core';
+import { getSqlQueryAttributes, getSqlSpanName } from '../../utils/sql';
 import { subscribeMysql2DiagnosticChannels } from './mysql2-dc-subscriber';
 import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import type { ChannelName } from '../../orchestrion/channels';
@@ -18,8 +11,6 @@ import { mysql2ModuleNames } from '../../orchestrion/config/mysql2';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import {
   DB_NAMESPACE,
-  DB_QUERY_SUMMARY,
-  DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
   SENTRY_KIND,
@@ -74,34 +65,19 @@ function instrumentMysql2Orchestrion(): void {
 }
 
 function subscribeQueryChannel(channelName: ChannelName): void {
-  bindTracingChannelToSpan(
-    diagnosticsChannel.tracingChannel<Mysql2QueryChannelContext>(channelName),
-    data => {
-      const statement = getQueryText(data.arguments);
-      const connectionAttributes = getConnectionAttributes(data.self?.config);
-      const { queryText, querySummary } = sanitizeSqlQueryWithSummary(statement, 'mysql');
+  bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<Mysql2QueryChannelContext>(channelName), data => {
+    const statement = getQueryText(data.arguments);
+    const attributes: SpanAttributes = {
+      [SENTRY_KIND]: 'client',
+      [SENTRY_ORIGIN]: ORIGIN,
+      [SENTRY_OP]: DB,
+      [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MYSQL,
+      ...getSqlQueryAttributes(statement, 'mysql'),
+      ...getConnectionAttributes(data.self?.config),
+    };
 
-      const client = getClient();
-      const name =
-        client && hasSpanStreamingEnabled(client)
-          ? querySummary || (connectionAttributes[DB_NAMESPACE] as string | undefined) || DB_SYSTEM_VALUE_MYSQL
-          : (queryText ?? 'mysql2.query');
-
-      return startInactiveSpan({
-        name,
-        attributes: {
-          [SENTRY_KIND]: 'client',
-          [SENTRY_ORIGIN]: ORIGIN,
-          [SENTRY_OP]: DB,
-          [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MYSQL,
-          [DB_QUERY_TEXT]: queryText || undefined,
-          [DB_QUERY_SUMMARY]: querySummary,
-          ...connectionAttributes,
-        },
-      });
-    },
-    { requiresParentSpan: true },
-  );
+    return startInactiveSpan({ name: getSqlSpanName(attributes, 'mysql2.query'), attributes, onlyIfParent: true });
+  });
 }
 
 /**

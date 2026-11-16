@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addTraceMetaTagLink,
   canWaitForTraceMetaTag,
+  getServerRenderingType,
   readTraceMetaTags,
   waitForTraceMetaTag,
 } from '../../src/client/routing/traceMetaTags';
@@ -217,5 +218,23 @@ describe('addTraceMetaTagLink', () => {
     addTraceMetaTagLink(span, { sentryTrace: 'not-a-trace', baggage: undefined });
 
     expect(span.addLink).not.toHaveBeenCalled();
+  });
+});
+
+describe('getServerRenderingType', () => {
+  it('is static for a fully reused page', () => {
+    expect(getServerRenderingType(undefined)).toBe('static');
+  });
+
+  it('is partially static when the pageload continues the trace of this request', () => {
+    expect(getServerRenderingType({ sentryTrace: BODY_TRACE, baggage: undefined })).toBe('partially_static');
+  });
+
+  // A navigation or the wait cap can start the pageload before the resumed part arrives.
+  it('is unset while a resumed part can still bring the trace of this request', () => {
+    setReadyState('loading');
+    vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
+
+    expect(getServerRenderingType(undefined)).toBeUndefined();
   });
 });

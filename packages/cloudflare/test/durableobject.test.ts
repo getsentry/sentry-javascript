@@ -274,6 +274,27 @@ describe('instrumentDurableObjectWithSentry', () => {
 
   // The only scope that all later invocations share is the default isolation scope of the isolate, so
   // data set in the constructor stays in the constructor's own scope.
+  it.each([
+    [undefined, true],
+    [false, false],
+  ])('with cacheClient: %s, has a client in the constructor: %s', (cacheClient, hasClient) => {
+    let constructorClient: unknown;
+    const testClass = class {
+      constructor() {
+        constructorClient = SentryCore.getClient();
+      }
+    };
+    Reflect.construct(
+      instrumentDurableObjectWithSentry(
+        () => ({ dsn: 'https://public@dsn.ingest.sentry.io/1337', cacheClient }),
+        testClass as any,
+      ),
+      [{ waitUntil: vi.fn() }, {}],
+    );
+
+    expect(constructorClient !== undefined).toBe(hasClient);
+  });
+
   it('does not apply scope data set in the constructor to later invocations', async () => {
     const events: Event[] = [];
     const waits: Promise<unknown>[] = [];
@@ -632,6 +653,45 @@ describe('instrumentDurableObjectWithSentry', () => {
 
       expect(frameworkDispatch.has(FrameworkLike.prototype.greet)).toBe(true);
       expect(second.greet('World')).toBe('Hello, World!');
+    });
+
+    // The `agents` SDK wraps `@callable()` methods before storage initialization, which can throw
+    // (at a storage quota limit, for example). The retry must still see the framework's wrapper as managed.
+    it('keeps excluding a framework-managed method when the first construction throws', () => {
+      const frameworkDispatch = new WeakSet<object>();
+      let failConstruction = true;
+
+      class FrameworkLike {
+        constructor() {
+          const original = FrameworkLike.prototype.greet;
+
+          if (!frameworkDispatch.has(original)) {
+            const dispatched = function (this: FrameworkLike, name: string): string {
+              return original.call(this, name);
+            };
+            frameworkDispatch.add(dispatched);
+            FrameworkLike.prototype.greet = dispatched;
+          }
+
+          if (failConstruction) {
+            throw new Error('storage initialization failed');
+          }
+        }
+
+        greet(name: string): string {
+          return `Hello, ${name}!`;
+        }
+      }
+
+      const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), FrameworkLike as any);
+
+      expect(() => Reflect.construct(instrumented, [])).toThrow('storage initialization failed');
+
+      failConstruction = false;
+      const obj = Reflect.construct(instrumented, []) as FrameworkLike;
+
+      expect(frameworkDispatch.has(FrameworkLike.prototype.greet)).toBe(true);
+      expect(obj.greet('World')).toBe('Hello, World!');
     });
   });
 

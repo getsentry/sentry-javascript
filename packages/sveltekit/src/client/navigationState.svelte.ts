@@ -1,5 +1,6 @@
 import type { Navigation } from '@sveltejs/kit';
 import { navigating, page } from '$app/state';
+import { untrack } from 'svelte';
 
 declare const $effect: {
   (callback: () => void): void;
@@ -31,9 +32,11 @@ export function onNavigationChange(callback: (navigation: Navigation | null) => 
  * Reads the current navigation synchronously. `$effect`s are always batched to a microtask, which is
  * too late to catch SvelteKit's synchronous data-request `fetch` at navigation start; a synchronous
  * rune read lets us start the navigation span before that request so it propagates the right trace.
+ * The read is untracked: the `fetch` wrapper calls this from user code, often inside a `$effect`,
+ * and a tracked read would make that effect re-run on every navigation.
  */
 export function getCurrentNavigation(): Navigation | null {
-  return _snapshot();
+  return untrack(_snapshot);
 }
 
 function _snapshot(): Navigation | null {

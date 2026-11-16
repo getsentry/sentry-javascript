@@ -1,0 +1,27 @@
+# Repo-level Warden config, layered on top of the org base config in
+# getsentry/.github/warden.toml (which already runs security-review).
+# Repo skills do not inherit the org ignorePaths, so each skill is scoped
+# with explicit paths. Model is left unset to inherit the org default.
+version = 1
+
+[defaults]
+failOn = "high"
+reportOn = "medium"
+
+[[skills]]
+name = "gha-security-review"
+remote = "getsentry/skills"
+paths = [".github/workflows/**", ".github/actions/**"]
+
+[[skills.triggers]]
+type = "pull_request"
+actions = ["opened", "synchronize", "reopened"]
+
+[[skills]]
+name = "skill-scanner"
+incremental = true
+paths = [".agents/**", ".claude/**", ".cursor/**", "agents.toml", "agents.lock"]
+
+[[skills.triggers]]
+type = "pull_request"
+actions = ["opened", "synchronize", "reopened"]

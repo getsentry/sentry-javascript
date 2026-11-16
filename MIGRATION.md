@@ -1013,7 +1013,7 @@ The process still exits with code `1` and the reason is still written to `stderr
 
 Affected SDKs: All SDKs.
 
-With [span streaming](#span-streaming-is-now-the-default) enabled (the default), span names are now **low cardinality**, following the [Sentry span name conventions](https://getsentry.github.io/sentry-conventions/names/).
+With [span streaming](#span-streaming-is-now-the-default) enabled (the default), span names are now **low cardinality**, following the [Sentry span name conventions](https://conventions.sentry.dev/names/).
 
 If you [opt out of span streaming](#opting-out-of-span-streaming), span names remain unchanged.
 

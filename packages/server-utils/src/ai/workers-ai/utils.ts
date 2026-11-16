@@ -12,6 +12,8 @@ import {
   GEN_AI_REQUEST_TEMPERATURE,
   GEN_AI_REQUEST_TOP_K,
   GEN_AI_REQUEST_TOP_P,
+  GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
@@ -32,7 +34,7 @@ import { addResponseAttributes as addDecideResponseAttributes } from '../typesaf
 // Re-exported so `workers-ai/streaming.ts` keeps importing it from this module.
 export { setOutputMessagesAttribute };
 import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from './constants';
-import type { WorkersAiInput, WorkersAiOutput } from './types';
+import type { WorkersAiChoice, WorkersAiInput, WorkersAiOutput } from './types';
 
 export type WorkersAiOperationName = 'chat' | 'embeddings' | 'decide' | 'extract';
 
@@ -209,6 +211,17 @@ export function addResponseAttributes(
     span.setAttributes(getTokenUsageAttributes(response.usage.prompt_tokens, response.usage.completion_tokens));
   }
 
+  if (Array.isArray(response.choices)) {
+    if (typeof response.id === 'string') {
+      span.setAttribute(GEN_AI_RESPONSE_ID, response.id);
+    }
+    if (typeof response.model === 'string') {
+      span.setAttribute(GEN_AI_RESPONSE_MODEL, response.model);
+    }
+    addChoicesResponseAttributes(span, response.choices, recordOutputs);
+    return;
+  }
+
   if (recordOutputs) {
     let responseText: string | undefined;
     if (typeof response.response === 'string') {
@@ -227,6 +240,27 @@ export function addResponseAttributes(
 
     setOutputMessagesAttribute(span, { responseText, toolCalls });
   }
+}
+
+function addChoicesResponseAttributes(span: Span, choices: WorkersAiChoice[], recordOutputs: boolean): void {
+  const finishReasons = choices
+    .map(choice => choice.finish_reason)
+    .filter((reason): reason is string => typeof reason === 'string');
+  if (finishReasons.length > 0) {
+    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify(finishReasons));
+  }
+
+  if (!recordOutputs) {
+    return;
+  }
+
+  const messages = choices.map(({ message, finish_reason }) => ({
+    responseText: typeof message?.content === 'string' ? message.content : undefined,
+    toolCalls: message?.tool_calls,
+    finishReason: typeof finish_reason === 'string' ? finish_reason : undefined,
+  }));
+
+  setOutputMessagesAttribute(span, messages);
 }
 
 function addExtractResponseAttributes(span: Span, body: unknown, recordOutputs: boolean): void {

@@ -22,6 +22,7 @@ import type { FirebaseApp, FirebaseOptions, FirestoreReference, FirestoreSetting
 export function startFirestoreSpan(spanName: string, reference: FirestoreReference): Span {
   return startInactiveSpan({
     name: `${spanName} ${reference.path}`,
+    onlyIfParent: true,
     attributes: {
       [SENTRY_OP]: DB_QUERY,
       [SENTRY_KIND]: 'client',

@@ -10,10 +10,7 @@
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "node assert-build.ts && pnpm test:prod && pnpm test:dev",
-    "test:dev": "TEST_ENV=development playwright test db",
-    "test:build:tunnel-basepath": "pnpm install && E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app pnpm build",
-    "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app E2E_TEST_DSN=http://public@localhost:3031/1337 TEST_ENV=production playwright test tunnel",
-    "test:assert:tunnel-basepath-dev": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app E2E_TEST_DSN=http://public@localhost:3031/1337 TEST_ENV=development playwright test tunnel"
+    "test:dev": "TEST_ENV=development playwright test db"
   },
   "type": "module",
   "dependencies": {
@@ -27,28 +24,10 @@
     "@solidjs/meta": "^0.29.4",
     "@solidjs/router": "^1.0.0",
     "@solidjs/start": "^1.0.2",
-    "@solidjs/testing-library": "^0.8.7",
     "@testing-library/jest-dom": "^6.4.2",
-    "@testing-library/user-event": "^14.5.2",
-    "jsdom": "^24.0.0",
     "solid-js": "1.9.5",
     "typescript": "^5.4.5",
     "vinxi": "^0.5.11",
-    "vite": "^6.4.4",
-    "vite-plugin-solid": "^2.11.6"
-  },
-  "sentryTest": {
-    "variants": [
-      {
-        "build-command": "pnpm test:build:tunnel-basepath",
-        "assert-command": "pnpm test:assert:tunnel-basepath",
-        "label": "solidstart (tunnel-basepath)"
-      },
-      {
-        "build-command": "pnpm install",
-        "assert-command": "pnpm test:assert:tunnel-basepath-dev",
-        "label": "solidstart (tunnel-basepath-dev)"
-      }
-    ]
+    "vite": "^6.4.4"
   }
 }

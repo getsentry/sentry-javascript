@@ -57,7 +57,7 @@ export function getOperation(spanType: MastraSpanType): { op: string; operationN
 
 /**
  * `{operation} {identifier}` per the gen_ai name templates. Mastra's own span name is never used.
- * https://getsentry.github.io/sentry-conventions/names/
+ * https://conventions.sentry.dev/names/
  */
 export function getSpanName(span: MastraExportedSpan): string {
   const operationName = getOperation(span.type)?.operationName ?? span.type;

@@ -7,14 +7,13 @@ import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.
 
 const DSN = 'https://username@domain/123';
 
-Deno.test('Deno.serve drops the server span of managed tunnel requests', async () => {
+Deno.test('Deno.serve answers managed tunnel requests before the app, without a server span', async () => {
   resetGlobals();
   const sink = spanSink();
 
   init({
     dsn: DSN,
     tracesSampleRate: 1,
-    // A meta-framework answers the tunnel requests, Deno only drops their server spans.
     integrations: [serveTunnelIntegration()],
     transport: sink.transport,
   });
@@ -33,7 +32,9 @@ Deno.test('Deno.serve drops the server span of managed tunnel requests', async (
       'segment span for /after-tunnel',
     );
 
-    await (await fetch(`${baseUrl}${getTunnelPath(DSN)}`, { method: 'POST', body: 'envelope' })).text();
+    const tunnelResponse = await fetch(`${baseUrl}${getTunnelPath(DSN)}`, { method: 'POST', body: 'envelope' });
+    // Answered by the tunnel, which rejects the body as an envelope, not by the app.
+    assertEquals(await tunnelResponse.text(), 'Invalid envelope');
     await (await fetch(`${baseUrl}/after-tunnel`)).text();
 
     await flush();

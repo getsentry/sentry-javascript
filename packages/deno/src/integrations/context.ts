@@ -1,3 +1,12 @@
+import {
+  APP_START_TIME,
+  DEVICE_ARCHS,
+  DEVICE_PROCESSOR_COUNT,
+  OS_NAME,
+  OS_VERSION,
+  PROCESS_RUNTIME_ENGINE_NAME,
+  PROCESS_RUNTIME_ENGINE_VERSION,
+} from '@sentry/conventions/attributes';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core';
 
@@ -40,20 +49,20 @@ const _denoContextIntegration = (() => {
   };
 
   const cachedSpanAttributes: Record<string, unknown> = {
-    'app.start_time': appStartTime,
+    [APP_START_TIME]: appStartTime,
     // Convention uses 'device.archs' (string[]), but array attributes are not yet serialized.
     // Once array serialization lands, this will start appearing on spans automatically.
-    'device.archs': [arch],
-    'device.processor_count': processorCount,
-    'os.name': osName,
-    'process.runtime.engine.name': 'v8',
-    'process.runtime.engine.version': v8Version,
+    [DEVICE_ARCHS]: [arch],
+    [DEVICE_PROCESSOR_COUNT]: processorCount,
+    [OS_NAME]: osName,
+    [PROCESS_RUNTIME_ENGINE_NAME]: 'v8',
+    [PROCESS_RUNTIME_ENGINE_VERSION]: v8Version,
   };
 
   getOSRelease()
     .then(release => {
       cachedContext.os.version = release;
-      cachedSpanAttributes['os.version'] = release;
+      cachedSpanAttributes[OS_VERSION] = release;
     })
     .catch(() => {
       // Ignore - os.version will be undefined

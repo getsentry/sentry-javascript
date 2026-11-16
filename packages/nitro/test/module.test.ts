@@ -1,6 +1,6 @@
 import type { Client } from '@sentry/core';
 import { getCurrentScope, makeDsn } from '@sentry/core';
-import { _INTERNAL_resetManagedTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
+import { _INTERNAL_resetTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createNitroModule } from '../src/module';
 
@@ -19,14 +19,14 @@ function setClient(managedTunnel: object): Record<string, unknown> {
   return options;
 }
 
-function setup(options: { dev: boolean; baseURL: string }): void {
-  (createNitroModule().setup as (nitro: unknown) => void)({ options });
+function setup(options: { dev: boolean; baseURL: string; runtimeConfig?: Record<string, unknown> }): void {
+  (createNitroModule().setup as (nitro: unknown) => void)({ options: { runtimeConfig: {}, ...options } });
 }
 
 describe('createNitroModule', () => {
   afterEach(() => {
     getCurrentScope().setClient(undefined);
-    _INTERNAL_resetManagedTunnelDefaults();
+    _INTERNAL_resetTunnelDefaults();
   });
 
   it("serves the dev server's managed tunnel under `baseURL`", () => {
@@ -43,5 +43,13 @@ describe('createNitroModule', () => {
     setup({ dev: false, baseURL: '/app/' });
 
     expect(options._managedTunnel).toEqual({});
+  });
+
+  it("serves the dev server's managed tunnel under a framework's `sentryTunnelBasePath`", () => {
+    const options = setClient({});
+
+    setup({ dev: true, baseURL: '/', runtimeConfig: { sentryTunnelBasePath: '/app' } });
+
+    expect(options._managedTunnel).toEqual({ basePath: '/app' });
   });
 });

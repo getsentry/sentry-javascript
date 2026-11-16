@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Nitro Tunnel E2E Test</title>
+  </head>
+  <body>
+    <script type="module">
+      import * as Sentry from '@sentry/browser';
+
+      Sentry.init({
+        dsn: 'http://public@localhost:3031/1337',
+        // Plain Nitro has no client SDK to pass `baseURL` on, so the browser names it. The server picks it up itself.
+        tunnel: { basePath: '/app' },
+        integrations: [Sentry.browserTracingIntegration()],
+        tracesSampleRate: 1,
+      });
+    </script>
+  </body>
+</html>

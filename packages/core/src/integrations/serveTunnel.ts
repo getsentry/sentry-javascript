@@ -1,14 +1,12 @@
 import { defineIntegration } from '../integration';
 import type { IntegrationFn } from '../types/integration';
 import type { ServerTunnelOptions } from '../types/options';
-import { enableManagedTunnel } from '../utils/managedTunnelDefaults';
-import { SERVE_TUNNEL_INTEGRATION_NAME } from '../utils/tunnel';
+import { enableManagedTunnel } from '../utils/tunnelDefaults';
 import { forwardTunnelRequest } from '../utils/tunnelForward';
 
 const _serveTunnelIntegration = ((options: ServerTunnelOptions = {}) => {
   return {
-    name: SERVE_TUNNEL_INTEGRATION_NAME,
-    forward: forwardTunnelRequest,
+    name: 'ServeTunnel',
     setup(client) {
       enableManagedTunnel(client, options, forwardTunnelRequest);
     },
@@ -16,18 +14,28 @@ const _serveTunnelIntegration = ((options: ServerTunnelOptions = {}) => {
 }) satisfies IntegrationFn;
 
 /**
- * Serves the managed tunnel, so a browser `init` with `tunnel: true` sends its envelopes through the app's own origin
- * instead of the Sentry ingest URL, where ad-blockers can't drop them. The meta-framework SDKs answer the tunnel
- * requests from their request hooks.
+ * Lets your server forward the events of a browser SDK set up with `tunnel: true` to Sentry.
  *
- * By default the tunnel path is derived from the DSN, under the app's base path, and only envelopes for the server's
- * own DSN are forwarded. A `path` is served as written.
+ * With this integration on the server and `tunnel: true` in the browser `init`, the browser sends its events to your
+ * own server instead of Sentry, where ad-blockers can't drop them, and your server forwards them to Sentry.
+ *
+ * The server SDKs answer the tunnel requests before the app sees them. To serve them from your own code instead, set
+ * `intercept: false` and call `handleTunnelRequestIfMatched`.
+ *
+ * By default only envelopes for the server's own DSN are forwarded.
  *
  * @example
  * ```js
+ * // Server
  * Sentry.init({
  *   dsn: '__DSN__',
  *   integrations: [Sentry.serveTunnelIntegration()],
+ * });
+ *
+ * // Browser
+ * Sentry.init({
+ *   dsn: '__DSN__',
+ *   tunnel: true,
  * });
  * ```
  */

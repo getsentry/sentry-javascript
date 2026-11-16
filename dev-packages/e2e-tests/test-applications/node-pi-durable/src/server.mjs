@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context';
-import { Type } from '@earendil-works/pi-ai';
+import { Type } from 'typebox';
 import { createModels } from '@earendil-works/pi-ai/models';
 import { openrouterProvider } from '@earendil-works/pi-ai/providers/openrouter';
 import {

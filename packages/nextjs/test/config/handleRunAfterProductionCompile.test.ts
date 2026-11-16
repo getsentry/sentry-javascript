@@ -656,6 +656,20 @@ describe('stripSourceMappingURLComments', () => {
     expect(content).not.toContain('sourceMappingURL');
   });
 
+  it.each(['\n', '\r\n'])('preserves a trailing debugId comment with %j line endings', async newline => {
+    const filePath = path.join(tmpDir, 'chunks', 'turbopack-worker.js');
+    const debugIdComment = '//# debugId=12345678-1234-4234-8234-123456789abc';
+    await fs.promises.writeFile(
+      filePath,
+      `self.onmessage = () => {};${newline}//# sourceMappingURL=worker.js.map${newline}${debugIdComment}${newline}`,
+    );
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe(`self.onmessage = () => {};${newline}${debugIdComment}${newline}`);
+  });
+
   it('strips sourceMappingURL comment from MJS files', async () => {
     const filePath = path.join(tmpDir, 'chunks', 'module.mjs');
     await fs.promises.writeFile(filePath, 'export default 42;\n//# sourceMappingURL=module.mjs.map');

@@ -7,6 +7,13 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [vinext()],
   // `app/api/d1` imports `@opennextjs/cloudflare` for the OpenNext variants. Its `import()` of a computed specifier can
-  // not be bundled.
-  environments: { rsc: { resolve: { external: ['@opennextjs/cloudflare'] } } },
+  // not be bundled. On Bun, `@sentry/nextjs` is external so that Bun resolves it at run time and loads its Bun entry.
+  // Node.js would load its CommonJS build from ESM, which hides the re-exported names.
+  environments: {
+    rsc: {
+      resolve: {
+        external: ['@opennextjs/cloudflare', ...(process.env.RUNTIME === 'bun' ? ['@sentry/nextjs'] : [])],
+      },
+    },
+  },
 });

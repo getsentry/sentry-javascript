@@ -48,6 +48,7 @@ export function withoutSourceMapDeletion(options: Options): Options {
     sourcemaps: {
       ...options.sourcemaps,
       filesToDeleteAfterUpload: undefined,
+      deleteSourcemapsAfterUpload: false,
     },
   };
 }

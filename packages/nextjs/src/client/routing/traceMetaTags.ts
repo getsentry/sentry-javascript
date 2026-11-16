@@ -1,14 +1,11 @@
 import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
-import { extractTraceparentData } from '@sentry/core';
-import { GLOBAL_OBJ } from '@sentry/core';
+import { extractTraceparentData, GLOBAL_OBJ } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
 
 // `@opentelemetry/api` `TraceFlags`, inlined because core does not export its copies.
 const TRACE_FLAG_SAMPLED = 0x1;
 const TRACE_FLAG_NONE = 0x0;
-
-const SERVER_REQUEST_LINK_TYPE = 'server_request';
 
 export interface TraceMetaTagValues {
   sentryTrace: string;
@@ -140,13 +137,25 @@ export function addTraceMetaTagLink(span: Span, { sentryTrace }: TraceMetaTagVal
   if (!traceparent?.traceId || !traceparent.parentSpanId) {
     return;
   }
-
   span.addLink({
     context: {
       traceId: traceparent.traceId,
       spanId: traceparent.parentSpanId,
       traceFlags: traceparent.parentSampled ? TRACE_FLAG_SAMPLED : TRACE_FLAG_NONE,
     },
-    attributes: { [SENTRY_LINK_TYPE]: SERVER_REQUEST_LINK_TYPE },
+    attributes: { [SENTRY_LINK_TYPE]: 'server_request' },
   });
+}
+
+/**
+ * How the server rendered a document with a `sentry-cache-origin` tag. With trace meta tags of this
+ * request, only the shell was reused. Unset while a resumed part can still bring those tags.
+ */
+export function getServerRenderingType(
+  traceMetaTags: TraceMetaTagValues | undefined,
+): 'static' | 'partially_static' | undefined {
+  if (traceMetaTags) {
+    return 'partially_static';
+  }
+  return canWaitForTraceMetaTag() ? undefined : 'static';
 }

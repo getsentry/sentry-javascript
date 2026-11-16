@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "lib": ["webworker", "scripthost"],
+    "esModuleInterop": true,
+    "target": "es2020",
+    "strictPropertyInitialization": false
+  },
+  "include": ["src/**/*.ts"]
+}

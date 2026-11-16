@@ -1,12 +1,14 @@
 import type { Client } from '../../client';
 import { DEBUG_BUILD } from '../../debug-build';
-import type { SerializedStreamedSpan } from '../../types/span';
+import type { SerializedStreamedSpan, Span } from '../../types/span';
 import { debug } from '../../utils/debug-logger';
+import { spanToJSON } from '../../utils/spanUtils';
 import { safeUnref } from '../../utils/timer';
 import { getDynamicSamplingContextFromSpan } from '../dynamicSamplingContext';
 import type { SerializedStreamedSpanWithSegmentSpan } from './captureSpan';
 import { createStreamedSpanEnvelope } from './envelope';
 import { estimateSerializedSpanSizeInBytes } from './estimateSize';
+import { SENTRY_SEGMENT_NAME } from '@sentry/conventions/attributes';
 
 /**
  * We must not send more than 1000 spans in one envelope.
@@ -168,9 +170,19 @@ export class SpanBuffer {
 
     const dsc = getDynamicSamplingContextFromSpan(segmentSpan);
 
+    const currentSegmentNames = new Map<Span, string>();
+    const getCurrentSegmentName = (span: Span): string => {
+      let name = currentSegmentNames.get(span);
+      if (name === undefined) {
+        name = spanToJSON(span).name;
+        currentSegmentNames.set(span, name);
+      }
+      return name;
+    };
+
     const cleanedSpans: SerializedStreamedSpan[] = spans.map(spanJSON => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { _segmentSpan, ...cleanSpanJSON } = spanJSON;
+      const { _segmentSpan, _segmentNameAtCapture, ...cleanSpanJSON } = spanJSON;
+      refreshSegmentName(cleanSpanJSON, _segmentNameAtCapture, () => getCurrentSegmentName(_segmentSpan));
       return cleanSpanJSON;
     });
 
@@ -191,5 +203,26 @@ export class SpanBuffer {
       clearTimeout(bucket.timeout);
     }
     this._traceBuckets.delete(traceId);
+  }
+}
+
+/**
+ * Spans are captured when they end, but the segment span can still be renamed afterwards
+ * (e.g. once the route is known). Only replace the value we set at capture time, so that
+ * values set by users or `beforeSendSpan` are kept.
+ */
+function refreshSegmentName(
+  spanJSON: SerializedStreamedSpan,
+  segmentNameAtCapture: string | undefined,
+  getCurrentSegmentName: () => string,
+): void {
+  const segmentNameAttribute = spanJSON.attributes[SENTRY_SEGMENT_NAME];
+  if (segmentNameAtCapture === undefined || segmentNameAttribute?.value !== segmentNameAtCapture) {
+    return;
+  }
+
+  const currentSegmentName = getCurrentSegmentName();
+  if (currentSegmentName !== segmentNameAtCapture) {
+    spanJSON.attributes[SENTRY_SEGMENT_NAME] = { ...segmentNameAttribute, value: currentSegmentName };
   }
 }

@@ -92,6 +92,7 @@ export {
   langChainIntegration,
   langGraphIntegration,
   mastraIntegration,
+  piAiIntegration,
   piDurableIntegration,
   mcpServerIntegration,
   SentryMastraExporter,
@@ -143,6 +144,9 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
   genericPoolIntegration,
+  cronJobIntegration,
+  nodeCronIntegration,
+  nodeScheduleIntegration,
   graphqlIntegration,
   knexIntegration,
   kafkaIntegration,
@@ -171,7 +175,6 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
-  serveTunnelIntegration,
   getTunnelPath,
   handleTunnelRequest,
   handleTunnelRequestIfMatched,
@@ -191,6 +194,7 @@ export {
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  BullMQTelemetry,
   anthropicAIIntegration,
   googleGenAIIntegration,
   vercelAIIntegration,
@@ -238,6 +242,7 @@ export {
   initWithoutDefaultIntegrations,
 } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';
+export { serveTunnelIntegration } from './integrations/serveTunnel';
 export type { BunServerIntegrationOptions } from './integrations/bunserver';
 export { bunHttpServerIntegration } from './integrations/bunHttpServer';
 export { fetchIntegration } from './integrations/fetch';

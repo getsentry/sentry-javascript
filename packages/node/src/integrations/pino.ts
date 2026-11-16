@@ -1,3 +1,4 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { IntegrationFn, LogSeverityLevel } from '@sentry/core';
 import {
   _INTERNAL_captureLog,
@@ -142,7 +143,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
         if (options.log.levels.includes(level)) {
           const attributes: Record<string, unknown> = {
             ...resultObj,
-            'sentry.origin': 'auto.log.pino',
+            [SENTRY_ORIGIN]: 'auto.log.pino',
             'pino.logger.level': levelNumber,
           };
 
