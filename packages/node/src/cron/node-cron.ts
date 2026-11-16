@@ -38,6 +38,11 @@ export interface NodeCron {
  *   { name: "my-cron-job" },
  * );
  * ```
+ *
+ * On node-cron 4, steps on `*` in the day-of-month or month field (such as every second day) aren't sent as a
+ * schedule, because this wrapper can't tell the node-cron version. `nodeCronIntegration` can.
+ *
+ * @deprecated Use `nodeCronIntegration` instead.
  */
 export function instrumentNodeCron<T>(
   lib: Partial<NodeCron> & T,
