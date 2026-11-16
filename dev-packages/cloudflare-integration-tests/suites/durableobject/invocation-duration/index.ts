@@ -15,6 +15,8 @@ export class TestDurableObject extends DurableObject<Env> {
     return 'pong';
   }
 
+  async warmUp(): Promise<void> {}
+
   async setAlarm(): Promise<void> {
     await this.ctx.storage.setAlarm(Date.now());
   }
@@ -31,6 +33,11 @@ export default {
     }
 
     const stub = env.TEST_DURABLE_OBJECT.get(env.TEST_DURABLE_OBJECT.idFromName(url.pathname));
+
+    if (url.pathname === '/warm-up') {
+      await stub.warmUp();
+      return new Response('Warmed up');
+    }
 
     if (url.pathname === '/rpc') {
       return new Response(await stub.ping());

@@ -16,6 +16,17 @@ it('does not keep Durable Object invocations open after the method returns', asy
     .withWranglerArgs('--config', join(__dirname, 'wrangler-tail.jsonc'))
     .start(signal);
 
+  // The first Durable Object invocation of a `wrangler dev` process is several times slower than the
+  // next ones, and on CI it sometimes took longer than the limit below.
+  await runner.makeRequest('get', '/warm-up');
+  await vi.waitFor(
+    async () => {
+      const invocations = (await runner.makeRequest<Invocation[]>('get', '/invocations')) ?? [];
+      expect(invocations.find(invocation => invocation.trigger === 'warmUp')).toBeDefined();
+    },
+    { timeout: 10_000, interval: 100 },
+  );
+
   await runner.makeRequest('get', '/fetch');
   await runner.makeRequest('get', '/rpc');
   await runner.makeRequest('get', '/alarm');
