@@ -27,11 +27,6 @@ export const _INTERNAL_RENDER_START_META_TAG_NAME = 'sentry-render-start';
 // TODO: Use the constant from `@sentry/conventions` when https://github.com/getsentry/sentry-conventions/pull/799 is released.
 const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';
 
-/** Returns the `sentry-cache-origin` meta tag. Without `renderTrace`, the tag is empty. */
-export function _INTERNAL_getCacheOriginMetaTag(renderTrace: string | undefined): string {
-  return `<meta name="${_INTERNAL_CACHE_ORIGIN_META_TAG_NAME}" content="${renderTrace ?? ''}"/>`;
-}
-
 /**
  * Returns the `sentry-cache-origin` meta tag and the `sentry-render-start` meta tag for the request that rendered the
  * page. Without `renderTrace`, the `sentry-cache-origin` tag is empty. `requestStart` is in seconds.

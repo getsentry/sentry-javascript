@@ -8,7 +8,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { setCurrentClient, startSpan } from '../../../src';
 import type { StartSpanOptions } from '../../../src/types/startSpanOptions';
 import {
-  _INTERNAL_getCacheOriginMetaTag,
   _INTERNAL_getCacheOriginMetaTags,
   _INTERNAL_getRenderStart,
   _INTERNAL_getRootSpanSentryTrace,
@@ -50,18 +49,6 @@ function initTestClient(tracesSampleRate: number): void {
   setCurrentClient(client);
   client.init();
 }
-
-describe('_INTERNAL_getCacheOriginMetaTag', () => {
-  it('holds the sentry-trace value of the render', () => {
-    expect(_INTERNAL_getCacheOriginMetaTag(`${TRACE_ID}-${SPAN_ID}-1`)).toBe(
-      `<meta name="sentry-cache-origin" content="${TRACE_ID}-${SPAN_ID}-1"/>`,
-    );
-  });
-
-  it('is empty without a sentry-trace value', () => {
-    expect(_INTERNAL_getCacheOriginMetaTag(undefined)).toBe('<meta name="sentry-cache-origin" content=""/>');
-  });
-});
 
 describe('_INTERNAL_getCacheOriginMetaTags', () => {
   beforeEach(() => {

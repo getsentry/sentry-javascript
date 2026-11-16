@@ -36,7 +36,6 @@ export { isNodeEnv, loadModule } from './utils/node';
 export { filenameIsInApp, node, nodeStackLineParser } from './utils/node-stack-trace';
 export { vercelWaitUntil } from './utils/vercelWaitUntil';
 export {
-  _INTERNAL_getCacheOriginMetaTag,
   _INTERNAL_getCacheOriginMetaTags,
   _INTERNAL_getRenderStart,
   _INTERNAL_getRootSpanSentryTrace,
