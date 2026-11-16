@@ -42,7 +42,15 @@
   },
   "sentryTest": {
     "optional": true,
+    "baseVariant": {
+      "assert-command": "pnpm test:prod"
+    },
     "optionalVariants": [
+      {
+        "build-command": "pnpm install",
+        "assert-command": "pnpm test:dev",
+        "label": "nuxt-5 (development)"
+      },
       {
         "build-command": "pnpm test:build:kv-cache",
         "assert-command": "pnpm test:assert:kv-cache",
