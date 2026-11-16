@@ -1,11 +1,12 @@
+import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 import type { Client, StartSpanOptions } from '@sentry/core';
 import type { isNuxtError as nuxtIsNuxtError, NuxtApp } from 'nuxt/app';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import clientPlugin from '../../../src/runtime/plugins/sentry.client';
 import * as utils from '../../../src/runtime/utils';
-import { withCacheOrigin } from '../../../src/runtime/utils/cacheOriginPageload';
 
 const getClient = vi.hoisted(() => vi.fn<() => Client | undefined>());
+const withCacheOriginMock = vi.hoisted(() => vi.fn());
 const browserTracingIntegration = vi.hoisted(() => vi.fn());
 const vueIntegration = vi.hoisted(() => vi.fn());
 const createVueRouteProvider = vi.hoisted(() => vi.fn());
@@ -29,6 +30,11 @@ vi.mock(import('@sentry/core'), async importOriginal => {
   };
 });
 
+vi.mock(import('@sentry/core/browser'), async importOriginal => ({
+  ...(await importOriginal()),
+  _INTERNAL_withCacheOrigin: withCacheOriginMock,
+}));
+
 vi.mock(import('@sentry/vue'), async importOriginal => {
   const mod = await importOriginal();
   return {
@@ -40,10 +46,6 @@ vi.mock(import('@sentry/vue'), async importOriginal => {
     setRouteProvider,
   };
 });
-
-vi.mock(import('../../../src/runtime/utils/cacheOriginPageload'), () => ({
-  withCacheOrigin: vi.fn(),
-}));
 
 vi.mock(import('nuxt/app'), () => ({
   defineNuxtPlugin: vi.fn(plugin => plugin),
@@ -139,9 +141,10 @@ describe('Sentry Nuxt client plugin', () => {
       expect(client.addIntegration).toHaveBeenCalledWith(integration);
     });
 
-    it.each([true, false])(
-      'passes `serverRendered: %s` from the Nuxt payload to the cache origin check of the pageload',
-      async serverRendered => {
+    describe('beforeStartSpan', () => {
+      async function setupBeforeStartSpan(
+        serverRendered: boolean,
+      ): Promise<(options: StartSpanOptions) => StartSpanOptions> {
         let beforeStartSpan: ((options: StartSpanOptions) => StartSpanOptions) | undefined;
         browserTracingIntegration.mockImplementation(options => {
           beforeStartSpan = options.beforeStartSpan;
@@ -150,14 +153,31 @@ describe('Sentry Nuxt client plugin', () => {
         getClient.mockReturnValue(makeClient());
         const nuxtApp = makeNuxtApp({ beforeEach: vi.fn(), onError: vi.fn() });
         nuxtApp.payload = { serverRendered } as NuxtApp['payload'];
-        const pageloadOptions = { name: '/rendering-modes/swr-cached-page', op: 'pageload' };
 
         await (clientPlugin as NuxtPluginShape).setup(nuxtApp);
-        beforeStartSpan?.(pageloadOptions);
+        return beforeStartSpan!;
+      }
 
-        expect(withCacheOrigin).toHaveBeenCalledWith(pageloadOptions, serverRendered);
-      },
-    );
+      it('passes the pageload of a server-rendered page to the cache origin helper as static', async () => {
+        const beforeStartSpan = await setupBeforeStartSpan(true);
+        const pageloadOptions = { name: '/rendering-modes/swr-cached-page', op: PAGELOAD };
+
+        beforeStartSpan(pageloadOptions);
+
+        expect(withCacheOriginMock).toHaveBeenCalledWith(pageloadOptions, 'static');
+      });
+
+      it.each([
+        { kind: 'the pageload of a client-side shell', serverRendered: false, op: PAGELOAD },
+        { kind: 'a navigation', serverRendered: true, op: NAVIGATION },
+      ])('does not change $kind', async ({ serverRendered, op }) => {
+        const beforeStartSpan = await setupBeforeStartSpan(serverRendered);
+        const options = { name: '/rendering-modes/swr-cached-page', op };
+
+        expect(beforeStartSpan(options)).toBe(options);
+        expect(withCacheOriginMock).not.toHaveBeenCalled();
+      });
+    });
 
     it('does not add browserTracingIntegration without an initialized client', async () => {
       getClient.mockReturnValue(undefined);

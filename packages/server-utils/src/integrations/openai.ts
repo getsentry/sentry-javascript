@@ -2,7 +2,7 @@ import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import { defineIntegration, getClient, hasSpanStreamingEnabled, startInactiveSpan } from '@sentry/core';
-import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
+import { getGenAiSpanOp, getRequestSignal, markCancelledIfAborted, resolveAIRecordingOptions } from '../ai/core/utils';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/openai';
 import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { instrumentStream } from '../ai/openai/streaming';
@@ -44,6 +44,9 @@ function instrumentOpenai(options: OpenAiOptions): void {
       data => createGenAiSpan(data, operation, options),
       {
         beforeSpanEnd: (span, data) => {
+          if ('error' in data) {
+            markCancelledIfAborted(span, getRequestSignal(data.arguments?.[1]));
+          }
           addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs, operation);
         },
         deferSpanEnd: ({ span, data, end }) =>
