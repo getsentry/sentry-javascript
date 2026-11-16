@@ -35,15 +35,11 @@ import {
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../utils/runner';
 
-export function registerVercelAiTests(version: '6' | '7', vercelAiVersion: string): void {
+export function registerVercelAiGenerationTests(version: '6' | '7', vercelAiVersion: string): void {
   afterAll(() => {
     cleanupChildProcesses();
   });
-
   const expectedOrigin = 'auto.ai.vercelai';
-
-  // We only run this in ESM and CJS to verify full support
-  // Other suites we only run in ESM to simplify the test setup
   createEsmAndCjsTests(
     __dirname,
     'scenario.mjs',
@@ -296,7 +292,6 @@ export function registerVercelAiTests(version: '6' | '7', vercelAiVersion: strin
       },
     },
   );
-
   createEsmTests(
     __dirname,
     'scenario.mjs',
@@ -512,7 +507,6 @@ export function registerVercelAiTests(version: '6' | '7', vercelAiVersion: strin
       },
     },
   );
-
   createEsmTests(
     __dirname,
     'scenario-error-in-tool.mjs',
@@ -598,7 +592,6 @@ export function registerVercelAiTests(version: '6' | '7', vercelAiVersion: strin
       },
     },
   );
-
   createEsmTests(
     __dirname,
     'scenario.mjs',
@@ -638,7 +631,6 @@ export function registerVercelAiTests(version: '6' | '7', vercelAiVersion: strin
       },
     },
   );
-
   createEsmTests(
     __dirname,
     'scenario-tool-loop-agent.mjs',
@@ -694,7 +686,6 @@ export function registerVercelAiTests(version: '6' | '7', vercelAiVersion: strin
       },
     },
   );
-
   createEsmTests(
     __dirname,
     'scenario-concurrent.mjs',
@@ -740,7 +731,318 @@ export function registerVercelAiTests(version: '6' | '7', vercelAiVersion: strin
       },
     },
   );
+  createEsmTests(
+    __dirname,
+    'scenario-rejected-model.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('finishes spans with an error status when the operation rejects', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              expect(segment).toBeDefined();
+              const spans = container.items.filter(
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
+              );
+              // The model throws, so the operation rejects. The spans must still be *finished* (and
+              // therefore present in the transaction) with an error status — not left open.
+              const invokeAgent = spans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent')!;
+              expect(invokeAgent.status).toBe('error');
 
+              const generateContent = spans.find(
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
+              )!;
+              expect(generateContent.status).toBe('error');
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+  createEsmTests(
+    __dirname,
+    'scenario-provider-metadata.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('derives provider-metadata token breakdown and system instructions', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              expect(segment).toBeDefined();
+              const spans = container.items.filter(
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
+              );
+              const generateContent = spans.find(
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
+              )!;
+
+              // Cache/reasoning token breakdown is derived from the model's `providerMetadata` by the
+              // channel subscriber, which v6 reaches through the orchestrion adapter, so the shape is the
+              // same on both versions.
+              expect(generateContent.attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]?.value).toBe(5);
+              expect(generateContent.attributes[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]?.value).toBe(7);
+              // The per-response `responseId` is not a conversation id and must not be recorded as one.
+              expect(generateContent.attributes[GEN_AI_CONVERSATION_ID]).toBeUndefined();
+
+              const invokeAgent = spans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent')!;
+              expect(invokeAgent).toBeDefined();
+
+              // The system prompt is supplied via the v7-only `instructions` option. Only the channel
+              // instrumentation surfaces it (as `gen_ai.system_instructions`); v6 has no such option.
+              if (version === '7') {
+                const expected = '[{"type":"text","content":"You are a helpful assistant."}]';
+                expect(invokeAgent.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]?.value).toBe(expected);
+                expect(generateContent.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]?.value).toBe(expected);
+              }
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+  createEsmTests(
+    __dirname,
+    'scenario-system-message.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('records system instructions from system message objects', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const systemInstructions = container.items
+                .filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT)
+                .map(span => span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]?.value);
+
+              expect(systemInstructions).toEqual([
+                '[{"type":"text","content":"Be brief."}]',
+                '[{"type":"text","content":"Be brief."},{"type":"text","content":"Be kind."}]',
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+  createEsmTests(
+    __dirname,
+    'scenario-openai-conversation.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('derives gen_ai.conversation.id from the OpenAI `conversation` provider option', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+              const genAiSpans = container.items.filter(s =>
+                String(s.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'),
+              );
+              const conversationIdOf = (span: (typeof genAiSpans)[number]) =>
+                span.attributes[GEN_AI_CONVERSATION_ID]?.value;
+              const invokeAgentSpans = genAiSpans.filter(s => s.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent');
+              expect(invokeAgentSpans).toHaveLength(4);
+              const [firstTurn, secondTurn, chainedTurn, apiTurn] = invokeAgentSpans.sort(
+                (a, b) => a.start_timestamp - b.start_timestamp,
+              );
+
+              // `providerOptions.openai.conversation` is the Conversations API id: the same on every turn.
+              expect(conversationIdOf(firstTurn!)).toBe('conv_abc123');
+              // The Azure Responses API uses the `azure` key for the same option.
+              expect(conversationIdOf(secondTurn!)).toBe('conv_azure');
+              // `previousResponseId` names a response rather than a thread, and the response's own
+              // `responseId` is recorded as `gen_ai.response.id` only.
+              expect(conversationIdOf(chainedTurn!)).toBeUndefined();
+              // `Sentry.setConversationId()` beats the provider option.
+              expect(conversationIdOf(apiTurn!)).toBe('conv-from-api');
+
+              // Model-call and tool spans carry their operation's id, even though their start events
+              // do not carry `providerOptions`.
+              const modelCallSpans = genAiSpans.filter(
+                s => s.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
+              );
+              expect(modelCallSpans.map(conversationIdOf).sort()).toEqual([
+                'conv-from-api',
+                'conv_abc123',
+                'conv_azure',
+                undefined,
+              ]);
+              const toolSpan = genAiSpans.find(s => s.attributes[SENTRY_OP]?.value === 'gen_ai.execute_tool')!;
+              expect(toolSpan).toBeDefined();
+              expect(conversationIdOf(toolSpan)).toBe('conv_azure');
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+  createEsmTests(
+    __dirname,
+    'scenario-cache-tokens.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('reads cache token counts from the SDK usage object', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              expect(segment).toBeDefined();
+              const spans = container.items.filter(
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
+              );
+              const generateContent = spans.find(
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
+              )!;
+              expect(generateContent.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(120);
+              expect(generateContent.attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]?.value).toBe(80);
+              expect(generateContent.attributes[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]?.value).toBe(20);
+
+              const invokeAgent = spans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent')!;
+              expect(invokeAgent.attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]?.value).toBe(80);
+              expect(invokeAgent.attributes[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]?.value).toBe(20);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+  createEsmTests(
+    __dirname,
+    'scenario-embeddings.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      // `ai` v7 only routes `embed` through its telemetry tracing channel — `embedMany` is dispatched
+      // via the callback-only path and never published — so the channel-based integration (v7 and v6
+      // orchestrion) cannot see it there. On v6 both the OTel processor and the orchestrion channels
+      // instrument `embedMany`, so its span is expected only on v6.
+      const embedManyInstrumented = version === '6';
+
+      test('creates embeddings spans for embed and embedMany', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              expect(segment).toBeDefined();
+              const spans = container.items.filter(
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
+              );
+
+              const embedSpan = spans.find(
+                span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'Embedding test!',
+              )!;
+              expect(embedSpan.name).toBe('embeddings mock-model-id');
+              expect(embedSpan.status).toBe('ok');
+              expect(embedSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.embeddings');
+              expect(embedSpan.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mock-model-id');
+              expect(embedSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
+
+              const embedManySpan = spans.find(
+                span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === '["First input","Second input"]',
+              );
+              if (embedManyInstrumented) {
+                expect(embedManySpan!.name).toBe('embeddings mock-model-id');
+                expect(embedManySpan!.status).toBe('ok');
+                expect(embedManySpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.embeddings');
+                expect(embedManySpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(20);
+              } else {
+                expect(embedManySpan).toBeUndefined();
+              }
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+  createEsmTests(
+    __dirname,
+    'scenario-generate-object.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      // ai v7's native `ai:telemetry` channel does not publish a top-level `generateObject` operation
+      // (like `embedMany`, it's dispatched via a path the channel never sees), so the channel-based
+      // integration can't surface it on v7. v4/v5/v6 use orchestrion, which injects the `generateObject`
+      // channel directly — v6 is exercised here, v4 in the base suite.
+      test.skipIf(version === '7')('creates spans for generateObject', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              expect(segment).toBeDefined();
+              const spans = container.items.filter(
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
+              );
+
+              const invokeAgentSpan = spans.find(span => span.name === 'invoke_agent');
+              expect(invokeAgentSpan!.status).toBe('ok');
+              expect(invokeAgentSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.invoke_agent');
+              expect(invokeAgentSpan!.attributes['vercel.ai.operationId']?.value).toBe('ai.generateObject');
+              expect(invokeAgentSpan!.attributes[GEN_AI_RESPONSE_MODEL]?.value).toBe('mock-model-id');
+              expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(15);
+              expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(25);
+              expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(40);
+
+              const generateContentSpan = spans.find(span => span.name === 'generate_content mock-model-id');
+              expect(generateContentSpan!.status).toBe('ok');
+              expect(generateContentSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.generate_content');
+              expect(generateContentSpan!.attributes['vercel.ai.operationId']?.value).toBe(
+                'ai.generateObject.doGenerate',
+              );
+              expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mock-model-id');
+              expect(generateContentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(15);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+}
+
+export function registerVercelAiStreamingTests(version: '6' | '7', vercelAiVersion: string): void {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
   createEsmTests(
     __dirname,
     'scenario-concurrent-stream.mjs',
@@ -789,7 +1091,6 @@ export function registerVercelAiTests(version: '6' | '7', vercelAiVersion: strin
       },
     },
   );
-
   createEsmTests(
     __dirname,
     'scenario-stream-text.mjs',
@@ -844,7 +1145,6 @@ export function registerVercelAiTests(version: '6' | '7', vercelAiVersion: strin
       },
     },
   );
-
   createEsmTests(
     __dirname,
     'scenario-stream-object.mjs',
@@ -890,7 +1190,6 @@ export function registerVercelAiTests(version: '6' | '7', vercelAiVersion: strin
       },
     },
   );
-
   createEsmTests(
     __dirname,
     'scenario-stream-tools.mjs',
@@ -954,7 +1253,6 @@ export function registerVercelAiTests(version: '6' | '7', vercelAiVersion: strin
       },
     },
   );
-
   createEsmTests(
     __dirname,
     'scenario-stream-structured-output.mjs',
@@ -998,7 +1296,6 @@ export function registerVercelAiTests(version: '6' | '7', vercelAiVersion: strin
       },
     },
   );
-
   createEsmTests(
     __dirname,
     'scenario-stream-object-invalid.mjs',
@@ -1031,320 +1328,6 @@ export function registerVercelAiTests(version: '6' | '7', vercelAiVersion: strin
       },
     },
   );
-
-  createEsmTests(
-    __dirname,
-    'scenario-rejected-model.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('finishes spans with an error status when the operation rejects', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
-              expect(segment).toBeDefined();
-              const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
-              );
-              // The model throws, so the operation rejects. The spans must still be *finished* (and
-              // therefore present in the transaction) with an error status — not left open.
-              const invokeAgent = spans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent')!;
-              expect(invokeAgent.status).toBe('error');
-
-              const generateContent = spans.find(
-                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
-              )!;
-              expect(generateContent.status).toBe('error');
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    {
-      additionalDependencies: {
-        ai: vercelAiVersion,
-      },
-    },
-  );
-
-  createEsmTests(
-    __dirname,
-    'scenario-provider-metadata.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('derives provider-metadata token breakdown and system instructions', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
-              expect(segment).toBeDefined();
-              const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
-              );
-              const generateContent = spans.find(
-                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
-              )!;
-
-              // Cache/reasoning token breakdown is derived from the model's `providerMetadata` by the
-              // channel subscriber, which v6 reaches through the orchestrion adapter, so the shape is the
-              // same on both versions.
-              expect(generateContent.attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]?.value).toBe(5);
-              expect(generateContent.attributes[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]?.value).toBe(7);
-              // The per-response `responseId` is not a conversation id and must not be recorded as one.
-              expect(generateContent.attributes[GEN_AI_CONVERSATION_ID]).toBeUndefined();
-
-              const invokeAgent = spans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent')!;
-              expect(invokeAgent).toBeDefined();
-
-              // The system prompt is supplied via the v7-only `instructions` option. Only the channel
-              // instrumentation surfaces it (as `gen_ai.system_instructions`); v6 has no such option.
-              if (version === '7') {
-                const expected = '[{"type":"text","content":"You are a helpful assistant."}]';
-                expect(invokeAgent.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]?.value).toBe(expected);
-                expect(generateContent.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]?.value).toBe(expected);
-              }
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    {
-      additionalDependencies: {
-        ai: vercelAiVersion,
-      },
-    },
-  );
-
-  createEsmTests(
-    __dirname,
-    'scenario-system-message.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('records system instructions from system message objects', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const systemInstructions = container.items
-                .filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT)
-                .map(span => span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]?.value);
-
-              expect(systemInstructions).toEqual([
-                '[{"type":"text","content":"Be brief."}]',
-                '[{"type":"text","content":"Be brief."},{"type":"text","content":"Be kind."}]',
-              ]);
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    {
-      additionalDependencies: {
-        ai: vercelAiVersion,
-      },
-    },
-  );
-
-  createEsmTests(
-    __dirname,
-    'scenario-openai-conversation.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('derives gen_ai.conversation.id from the OpenAI `conversation` provider option', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
-              const genAiSpans = container.items.filter(s =>
-                String(s.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'),
-              );
-              const conversationIdOf = (span: (typeof genAiSpans)[number]) =>
-                span.attributes[GEN_AI_CONVERSATION_ID]?.value;
-              const invokeAgentSpans = genAiSpans.filter(s => s.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent');
-              expect(invokeAgentSpans).toHaveLength(4);
-              const [firstTurn, secondTurn, chainedTurn, apiTurn] = invokeAgentSpans.sort(
-                (a, b) => a.start_timestamp - b.start_timestamp,
-              );
-
-              // `providerOptions.openai.conversation` is the Conversations API id: the same on every turn.
-              expect(conversationIdOf(firstTurn!)).toBe('conv_abc123');
-              // The Azure Responses API uses the `azure` key for the same option.
-              expect(conversationIdOf(secondTurn!)).toBe('conv_azure');
-              // `previousResponseId` names a response rather than a thread, and the response's own
-              // `responseId` is recorded as `gen_ai.response.id` only.
-              expect(conversationIdOf(chainedTurn!)).toBeUndefined();
-              // `Sentry.setConversationId()` beats the provider option.
-              expect(conversationIdOf(apiTurn!)).toBe('conv-from-api');
-
-              // Model-call and tool spans carry their operation's id, even though their start events
-              // do not carry `providerOptions`.
-              const modelCallSpans = genAiSpans.filter(
-                s => s.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
-              );
-              expect(modelCallSpans.map(conversationIdOf).sort()).toEqual([
-                'conv-from-api',
-                'conv_abc123',
-                'conv_azure',
-                undefined,
-              ]);
-              const toolSpan = genAiSpans.find(s => s.attributes[SENTRY_OP]?.value === 'gen_ai.execute_tool')!;
-              expect(toolSpan).toBeDefined();
-              expect(conversationIdOf(toolSpan)).toBe('conv_azure');
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    {
-      additionalDependencies: {
-        ai: vercelAiVersion,
-      },
-    },
-  );
-
-  createEsmTests(
-    __dirname,
-    'scenario-cache-tokens.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('reads cache token counts from the SDK usage object', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
-              expect(segment).toBeDefined();
-              const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
-              );
-              const generateContent = spans.find(
-                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
-              )!;
-              expect(generateContent.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(120);
-              expect(generateContent.attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]?.value).toBe(80);
-              expect(generateContent.attributes[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]?.value).toBe(20);
-
-              const invokeAgent = spans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent')!;
-              expect(invokeAgent.attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]?.value).toBe(80);
-              expect(invokeAgent.attributes[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]?.value).toBe(20);
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    {
-      additionalDependencies: {
-        ai: vercelAiVersion,
-      },
-    },
-  );
-
-  createEsmTests(
-    __dirname,
-    'scenario-embeddings.mjs',
-    'instrument-with-pii.mjs',
-    (createRunner, test) => {
-      // `ai` v7 only routes `embed` through its telemetry tracing channel — `embedMany` is dispatched
-      // via the callback-only path and never published — so the channel-based integration (v7 and v6
-      // orchestrion) cannot see it there. On v6 both the OTel processor and the orchestrion channels
-      // instrument `embedMany`, so its span is expected only on v6.
-      const embedManyInstrumented = version === '6';
-
-      test('creates embeddings spans for embed and embedMany', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
-              expect(segment).toBeDefined();
-              const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
-              );
-
-              const embedSpan = spans.find(
-                span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'Embedding test!',
-              )!;
-              expect(embedSpan.name).toBe('embeddings mock-model-id');
-              expect(embedSpan.status).toBe('ok');
-              expect(embedSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.embeddings');
-              expect(embedSpan.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mock-model-id');
-              expect(embedSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
-
-              const embedManySpan = spans.find(
-                span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === '["First input","Second input"]',
-              );
-              if (embedManyInstrumented) {
-                expect(embedManySpan!.name).toBe('embeddings mock-model-id');
-                expect(embedManySpan!.status).toBe('ok');
-                expect(embedManySpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.embeddings');
-                expect(embedManySpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(20);
-              } else {
-                expect(embedManySpan).toBeUndefined();
-              }
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    {
-      additionalDependencies: {
-        ai: vercelAiVersion,
-      },
-    },
-  );
-
-  createEsmTests(
-    __dirname,
-    'scenario-generate-object.mjs',
-    'instrument-with-pii.mjs',
-    (createRunner, test) => {
-      // ai v7's native `ai:telemetry` channel does not publish a top-level `generateObject` operation
-      // (like `embedMany`, it's dispatched via a path the channel never sees), so the channel-based
-      // integration can't surface it on v7. v4/v5/v6 use orchestrion, which injects the `generateObject`
-      // channel directly — v6 is exercised here, v4 in the base suite.
-      test.skipIf(version === '7')('creates spans for generateObject', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
-              expect(segment).toBeDefined();
-              const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
-              );
-
-              const invokeAgentSpan = spans.find(span => span.name === 'invoke_agent');
-              expect(invokeAgentSpan!.status).toBe('ok');
-              expect(invokeAgentSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.invoke_agent');
-              expect(invokeAgentSpan!.attributes['vercel.ai.operationId']?.value).toBe('ai.generateObject');
-              expect(invokeAgentSpan!.attributes[GEN_AI_RESPONSE_MODEL]?.value).toBe('mock-model-id');
-              expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(15);
-              expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(25);
-              expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(40);
-
-              const generateContentSpan = spans.find(span => span.name === 'generate_content mock-model-id');
-              expect(generateContentSpan!.status).toBe('ok');
-              expect(generateContentSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.generate_content');
-              expect(generateContentSpan!.attributes['vercel.ai.operationId']?.value).toBe(
-                'ai.generateObject.doGenerate',
-              );
-              expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mock-model-id');
-              expect(generateContentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(15);
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    {
-      additionalDependencies: {
-        ai: vercelAiVersion,
-      },
-    },
-  );
-
   createEsmTests(
     __dirname,
     'scenario-aborted-stream-text.mjs',

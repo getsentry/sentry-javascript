@@ -1,8 +1,13 @@
 import { describe } from 'vitest';
-import { registerVercelAiTests, registerDecideTests, registerRuntimeTests, registerRecordingOffTests } from '../suite';
+import {
+  registerVercelAiGenerationTests,
+  registerDecideTests,
+  registerRuntimeTests,
+  registerRecordingOffTests,
+} from '../../suite';
 
 describe('Vercel AI integration (version 7)', () => {
-  registerVercelAiTests('7', '^7.0.0');
+  registerVercelAiGenerationTests('7', '^7.0.0');
 });
 
 describe('Vercel AI integration experimental_decide', registerDecideTests);
