@@ -1,4 +1,11 @@
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  GEN_AI_AGENT_NAME,
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OUTPUT_MESSAGES,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { afterAll, expect, describe } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../../utils/runner';
 import { supports } from '../../../../../utils';
@@ -66,6 +73,42 @@ describe.runIf(supports({ min: 22 }))('Mastra integration', () => {
                 String(span.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'),
               );
               expect(genAiSpans).toEqual([]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    MASTRA_DEPENDENCIES,
+  );
+
+  createEsmAndCjsTests(
+    join(__dirname, '../..'),
+    'scenario-recording-functions.mjs',
+    'instrument-with-recording-functions.mjs',
+    (createRunner, test) => {
+      test('decides content recording per span when the options are functions', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const agentSpans = container.items.filter(
+                span =>
+                  span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra' &&
+                  span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT,
+              );
+              const recordedByAgent = Object.fromEntries(
+                agentSpans.map(span => [
+                  span.attributes[GEN_AI_AGENT_NAME]?.value,
+                  {
+                    inputs: GEN_AI_INPUT_MESSAGES in span.attributes,
+                    outputs: GEN_AI_OUTPUT_MESSAGES in span.attributes,
+                  },
+                ]),
+              );
+              expect(recordedByAgent).toEqual({
+                public_agent: { inputs: true, outputs: true },
+                private_agent: { inputs: false, outputs: true },
+              });
             },
           })
           .start()

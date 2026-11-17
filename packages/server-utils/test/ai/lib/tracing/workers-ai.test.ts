@@ -168,82 +168,61 @@ describe('instrumentWorkersAiClient', () => {
       expect(spanToStaticSpanJSON(endedSpans[0]!).data).toEqual(expected);
     });
 
-    describe('per-call recording options', () => {
-      const messages = [
-        { role: 'system', content: 'Answer in one word.' },
-        { role: 'user', content: 'Capital of France?' },
-      ];
-
-      function recorded(span: Span): { inputs: boolean; outputs: boolean } {
-        const { data } = spanToStaticSpanJSON(span);
-        return { inputs: GEN_AI_INPUT_MESSAGES in data, outputs: GEN_AI_OUTPUT_MESSAGES in data };
-      }
-
-      it('decides for each call from the run() arguments', async () => {
-        const endedSpans = setupClient();
-        const calls: WorkersAiCallInfo[] = [];
-        const decide = (call: WorkersAiCallInfo): boolean => {
-          calls.push(call);
-          return (call.inputs as { privacy?: string }).privacy === 'public';
-        };
-        const client = { run: vi.fn().mockResolvedValue({ response: 'Paris' }) };
-        const instrumented = instrumentWorkersAiClient(client, { recordInputs: decide, recordOutputs: decide });
-
-        const publicInputs = { messages, privacy: 'public' };
-        const runOptions = { gateway: { id: 'my-gateway' } };
-        await instrumented.run(MODEL, publicInputs, runOptions);
-        await instrumented.run(MODEL, { messages, privacy: 'private' });
-
-        expect(calls[0]).toEqual({ operation: 'chat', model: MODEL, inputs: publicInputs, options: runOptions });
-        expect(endedSpans.map(recorded)).toEqual([
-          { inputs: true, outputs: true },
-          { inputs: false, outputs: false },
-        ]);
+    // Workers AI has no node integration suite (it runs on Cloudflare), so this covers the per-call options here.
+    it('decides content recording per call when the options are functions', async () => {
+      setAsyncLocalStorageAsyncContextStrategy();
+      const endedSpans = setupClient();
+      const messages = [{ role: 'user', content: 'Capital of France?' }];
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('data: {"response":"Paris"}\n\ndata: [DONE]\n\n'));
+          controller.close();
+        },
+      });
+      const client = {
+        run: vi.fn((_model: string, inputs: { stream?: boolean }) =>
+          Promise.resolve(inputs.stream ? stream : { response: 'Paris' }),
+        ),
+      };
+      const recordInputs = vi.fn(({ inputs }: WorkersAiCallInfo) => (inputs as { user?: string }).user === 'public');
+      const instrumented = instrumentWorkersAiClient(client, {
+        recordInputs,
+        recordOutputs: () => getCurrentScope().getScopeData().tags.privacy === 'public',
       });
 
-      it("runs the functions in the caller's async context", async () => {
-        setAsyncLocalStorageAsyncContextStrategy();
-        const endedSpans = setupClient();
-        const decide = (): boolean => getCurrentScope().getScopeData().tags.privacy === 'public';
-        const client = { run: vi.fn().mockResolvedValue({ response: 'Paris' }) };
-        const instrumented = instrumentWorkersAiClient(client, { recordInputs: decide, recordOutputs: decide });
-
-        await withScope(async scope => {
-          scope.setTag('privacy', 'public');
-          await instrumented.run(MODEL, { messages });
-        });
-        await withScope(async scope => {
-          scope.setTag('privacy', 'private');
-          await instrumented.run(MODEL, { messages });
-        });
-
-        expect(endedSpans.map(recorded)).toEqual([
-          { inputs: true, outputs: true },
-          { inputs: false, outputs: false },
-        ]);
+      await withScope(async scope => {
+        scope.setTag('privacy', 'public');
+        await instrumented.run(MODEL, { messages, user: 'public' }, { gateway: { id: 'gw' } });
       });
+      await withScope(async scope => {
+        scope.setTag('privacy', 'private');
+        await instrumented.run(MODEL, { messages, user: 'private' });
 
-      it('decides inputs and outputs separately, once per call, for streams too', async () => {
-        const endedSpans = setupClient();
-        const recordOutputs = vi.fn(() => true);
-        const stream = new ReadableStream<Uint8Array>({
-          start(controller) {
-            controller.enqueue(new TextEncoder().encode('data: {"response":"Paris"}\n\ndata: [DONE]\n\n'));
-            controller.close();
-          },
-        });
-        const client = { run: vi.fn().mockResolvedValue(stream) };
-        const instrumented = instrumentWorkersAiClient(client, { recordInputs: () => false, recordOutputs });
-
-        const result = (await instrumented.run(MODEL, { messages, stream: true })) as ReadableStream<Uint8Array>;
-        const reader = result.getReader();
+        // Changing the tag after the call started must not change its outputs decision.
+        const result = instrumented.run(MODEL, { messages, user: 'public', stream: true });
+        scope.setTag('privacy', 'public');
+        const reader = ((await result) as ReadableStream<Uint8Array>).getReader();
         while (!(await reader.read()).done) {
           // drain
         }
-
-        expect(recordOutputs).toHaveBeenCalledTimes(1);
-        expect(endedSpans.map(recorded)).toEqual([{ inputs: false, outputs: true }]);
       });
+
+      expect(recordInputs).toHaveBeenCalledWith({
+        operation: 'chat',
+        model: MODEL,
+        inputs: { messages, user: 'public' },
+        options: { gateway: { id: 'gw' } },
+      });
+      expect(
+        endedSpans.map(span => {
+          const { data } = spanToStaticSpanJSON(span);
+          return { inputs: GEN_AI_INPUT_MESSAGES in data, outputs: GEN_AI_OUTPUT_MESSAGES in data };
+        }),
+      ).toEqual([
+        { inputs: true, outputs: true },
+        { inputs: false, outputs: false },
+        { inputs: true, outputs: false },
+      ]);
     });
   });
 
