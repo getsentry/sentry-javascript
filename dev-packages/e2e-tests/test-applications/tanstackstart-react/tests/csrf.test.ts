@@ -7,6 +7,7 @@ async function captureServerFnRequest(page: Page): Promise<Request> {
   );
 
   await page.goto('/test-serverFn');
+  await page.locator('html[data-hydrated="true"]').waitFor();
   await page.getByText('Call server function', { exact: true }).click();
 
   return serverFnRequestPromise;
