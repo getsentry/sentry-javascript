@@ -541,7 +541,7 @@ jobs:
           pnpm run test
 
   job_node_unit_tests:
-    name: Node (${{ matrix.node }}) Unit Tests
+    name: Node (${{ matrix.node }}) Unit Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
     runs-on: ubuntu-24.04-arm
@@ -551,6 +551,7 @@ jobs:
       fail-fast: false
       matrix:
         node: [20.19, 22, 24, 26, '^27.0.0-0']
+        shard: [1, 2]
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v7
@@ -580,6 +581,7 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           NODE_VERSION: ${{ matrix.node }}
+          UNIT_TEST_SHARD: ${{ matrix.shard }}
           NX_OUTPUT_STYLE: static
 
       - name: Run all tests
@@ -587,13 +589,14 @@ jobs:
         if: github.event_name != 'pull_request'
         env:
           NODE_VERSION: ${{ matrix.node }}
+          UNIT_TEST_SHARD: ${{ matrix.shard }}
           NX_OUTPUT_STYLE: static
 
       - name: Upload unit-test results for benchmark verification
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: node-unit-results-${{ matrix.node }}
+          name: node-unit-results-${{ matrix.node }}-${{ matrix.shard }}
           path: packages/*/vitest.junit.xml
           if-no-files-found: error
           retention-days: 4
