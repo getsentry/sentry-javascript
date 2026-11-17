@@ -1,7 +1,6 @@
-import { SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { getToolCallKey } from '../core/streaming-tool-calls';
-import { endStreamSpan, recordTimeToFirstChunk, type StreamResponseState } from '../core/utils';
+import { endStreamSpan, getErrorStatus, recordTimeToFirstChunk, type StreamResponseState } from '../core/utils';
 import type { WorkersAiUsage } from './types';
 import { setOutputMessagesAttribute } from './utils';
 
@@ -164,6 +163,7 @@ export function instrumentWorkersAiStream(
   stream: ReadableStream<Uint8Array>,
   span: Span,
   recordOutputs: boolean,
+  abortSignal?: AbortSignal,
 ): ReadableStream<Uint8Array> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
@@ -237,7 +237,7 @@ export function instrumentWorkersAiStream(
         flushBuffer(false);
         controller.enqueue(value);
       } catch (error) {
-        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+        span.setStatus(getErrorStatus(abortSignal));
         finish();
         controller.error(error);
       }

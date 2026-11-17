@@ -3,7 +3,9 @@ import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/
 import type { Span } from '@sentry/core';
 import { instrumentAnthropicAiClient } from '../../../../src/ai/anthropic-ai';
 import { instrumentGoogleGenAIClient } from '../../../../src/ai/google-genai';
+import { instrumentMistralAiClient } from '../../../../src/ai/mistral';
 import { instrumentOpenAiClient } from '../../../../src/ai/openai';
+import { instrumentWorkersAiClient } from '../../../../src/ai/workers-ai';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 type Call = (signal: AbortSignal, stream: boolean) => Promise<unknown>;
@@ -39,6 +41,34 @@ const providers: Array<{ name: string; call: () => Call }> = [
         const params = { model: 'gemini-2.5-flash', contents: 'Hello', config: { abortSignal: signal } };
         return stream ? client.models.generateContentStream(params) : client.models.generateContent(params);
       };
+    },
+  },
+  {
+    name: 'mistral',
+    call: () => {
+      const client = instrumentMistralAiClient({ chat: { complete: rejectingMethod(), stream: rejectingMethod() } });
+      return (signal, stream) => {
+        const params = { model: 'mistral-small-latest', messages: [] };
+        return stream ? client.chat.stream(params, { signal }) : client.chat.complete(params, { signal });
+      };
+    },
+  },
+  {
+    name: 'mistral with fetchOptions.signal',
+    call: () => {
+      const client = instrumentMistralAiClient({ chat: { complete: rejectingMethod(), stream: rejectingMethod() } });
+      return (signal, stream) => {
+        const params = { model: 'mistral-small-latest', messages: [] };
+        const requestOptions = { fetchOptions: { signal } };
+        return stream ? client.chat.stream(params, requestOptions) : client.chat.complete(params, requestOptions);
+      };
+    },
+  },
+  {
+    name: 'workers-ai',
+    call: () => {
+      const client = instrumentWorkersAiClient({ run: rejectingMethod() });
+      return (signal, stream) => client.run('@cf/meta/llama-3.1-8b-instruct', { prompt: 'Hello', stream }, { signal });
     },
   },
 ];
