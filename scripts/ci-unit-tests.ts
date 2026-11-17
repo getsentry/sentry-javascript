@@ -4,6 +4,7 @@ import * as path from 'path';
 
 const UNIT_TEST_ENV = process.env.UNIT_TEST_ENV as 'node' | 'browser' | undefined;
 const RUN_AFFECTED = process.argv.includes('--affected');
+const UNIT_TEST_SHARD = process.env.UNIT_TEST_SHARD;
 
 // These packages are tested separately in CI, so no need to run them here
 const DEFAULT_SKIP_PACKAGES = ['@sentry/bun', '@sentry/deno'];
@@ -56,6 +57,21 @@ function runTests(): void {
     });
   } else if (UNIT_TEST_ENV === 'node') {
     BROWSER_TEST_PACKAGES.forEach(pkg => ignores.add(pkg));
+  }
+
+  if (UNIT_TEST_SHARD) {
+    if (UNIT_TEST_SHARD !== '1' && UNIT_TEST_SHARD !== '2') {
+      throw new Error(`Invalid unit-test shard: ${UNIT_TEST_SHARD}`);
+    }
+
+    packages
+      .filter(pkg => !ignores.has(pkg))
+      .sort()
+      .forEach((pkg, index) => {
+        if (index % 2 !== Number(UNIT_TEST_SHARD) - 1) {
+          ignores.add(pkg);
+        }
+      });
   }
 
   if (RUN_AFFECTED) {

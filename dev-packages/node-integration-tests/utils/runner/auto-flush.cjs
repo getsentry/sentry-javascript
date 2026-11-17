@@ -13,7 +13,10 @@
 // `auto-flush.mjs` whose `import` resolves to the ESM client. They don't
 // conflict — only the active module-system's client has events to flush; the
 // other no-ops because `getClient()` returns undefined there.
-process.on('beforeExit', () => {
+//
+// `flush()` always sets a timer, so `beforeExit` fires again after each flush. `once` lets the
+// process exit after the first flush.
+process.once('beforeExit', () => {
   let Sentry;
   try {
     Sentry = require('@sentry/node');

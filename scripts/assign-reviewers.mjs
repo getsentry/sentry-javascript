@@ -1,10 +1,10 @@
 import * as fs from 'fs';
 
-import { getJuniorRequesters, TEAM_SLUG } from './junior-requesters.mjs';
+import { CONTRACTORS, getJuniorRequesters, TEAM_SLUG } from './junior-requesters.mjs';
 
 const REQUIRED_REVIEWERS = 3;
 // Managers who are members of the SDK teams, but should never be auto-requested for review.
-// GitHub's team auto-assignment can still pick them, so their pending requests don't count towards the required reviewers.
+// GitHub's team auto-assignment can still pick them, so their requests and reviews don't count towards the required reviewers.
 const NEVER_REQUEST = ['mydea', 'stephanie-anderson', 'HazAT'];
 const REVIEWERS_PATH = '.github/REVIEWERS';
 const REVIEW_LOAD_DAYS = 7;
@@ -41,17 +41,24 @@ export function parseCodeowners(content) {
     .map(line => line.trim())
     .filter(line => line && !line.startsWith('#'))
     .map(line => {
-      const [pattern, ...owners] = line.split(/\s+/);
-      return { regexp: patternToRegExp(pattern), owners };
+      const additive = line.startsWith('+');
+      const [pattern, ...owners] = line.replace(/^\+/, '').split(/\s+/);
+      return { regexp: patternToRegExp(pattern), owners, additive };
     });
 }
 
-/** CODEOWNERS semantics: the last matching rule wins for each file. */
+/**
+ * CODEOWNERS semantics: the last matching rule wins for each file. Rules prefixed with `+` are an extension: they
+ * never win, but add their owners on top of the winning rule.
+ */
 export function getOwnersForFiles(rules, files) {
   const owners = new Set();
   for (const file of files) {
-    const rule = rules.findLast(r => r.regexp.test(file));
-    rule?.owners.forEach(owner => owners.add(owner));
+    const matching = rules.filter(r => r.regexp.test(file));
+    const winner = matching.findLast(r => !r.additive);
+    for (const rule of [winner, ...matching.filter(r => r.additive)]) {
+      rule?.owners.forEach(owner => owners.add(owner));
+    }
   }
   return [...owners];
 }
@@ -67,8 +74,9 @@ function shuffle(items) {
 
 /**
  * Picks reviewers to top the PR up to `REQUIRED_REVIEWERS`, preferring the codeowner pool and falling back
- * to the whole team. Within a pool, people who were asked for the fewest reviews recently (`load`, keyed by
- * lowercase login) go first, ties are broken randomly. Logins are compared case-insensitively, as GitHub does.
+ * to the whole team plus the contractors. Within a pool, people who were asked for the fewest reviews recently
+ * (`load`, keyed by lowercase login) go first, ties are broken randomly. Logins are compared case-insensitively,
+ * as GitHub does.
  */
 export function pickReviewers({ existing, codeownerPool, teamPool, exclude, load = new Map() }) {
   const taken = new Set([...existing, ...exclude].map(login => login.toLowerCase()));
@@ -208,16 +216,17 @@ export async function assignReviewers({ github, context, core }) {
   // Whoever asked Junior for the PR is its de facto author.
   const requesters = await getJuniorRequesters({ github, core, pr: currentPr });
 
-  const neverRequest = new Set(NEVER_REQUEST.map(login => login.toLowerCase()));
-  const requestedReviewers = currentPr.requested_reviewers.filter(user => !neverRequest.has(user.login.toLowerCase()));
+  // The people who own the PR comment on it while iterating, and that isn't a review.
+  const notReviewers = [author, ...requesters, ...currentPr.assignees.map(user => user.login), ...NEVER_REQUEST];
+  const notCounted = new Set(notReviewers.map(login => login.toLowerCase()));
 
   const reviews = await github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number });
   // Requested reviewers drop off `requested_reviewers` once they submit a review, so count both.
   // Bots (AI reviewers) don't count towards the required reviewers.
   const existing = [
     ...new Set(
-      [...requestedReviewers, ...reviews.map(r => r.user)]
-        .filter(user => user && user.type !== 'Bot' && user.login.toLowerCase() !== author.toLowerCase())
+      [...currentPr.requested_reviewers, ...reviews.map(r => r.user)]
+        .filter(user => user && user.type !== 'Bot' && !notCounted.has(user.login.toLowerCase()))
         .map(user => user.login),
     ),
   ];
@@ -244,7 +253,7 @@ export async function assignReviewers({ github, context, core }) {
     }
   }
 
-  const teamPool = await listTeamMembers(TEAM_SLUG);
+  const teamPool = [...(await listTeamMembers(TEAM_SLUG)), ...CONTRACTORS];
   const busy = await getBusyLogins({ github, core, logins: [...codeownerPool, ...teamPool] });
   const load = await getReviewLoad({ github, core, owner, repo });
 
@@ -252,7 +261,7 @@ export async function assignReviewers({ github, context, core }) {
     existing,
     codeownerPool,
     teamPool,
-    exclude: [author, ...requesters, ...NEVER_REQUEST, ...busy],
+    exclude: [...notReviewers, ...busy],
     load,
   });
 

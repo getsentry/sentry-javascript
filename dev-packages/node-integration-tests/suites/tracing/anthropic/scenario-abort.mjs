@@ -34,26 +34,26 @@ async function run() {
     const messages = [{ role: 'user', content: 'Aborted by the caller' }];
 
     const requests = [
-      [{ model: 'abort-before-stream', stream: true }, { signal: abortAfter(50) }],
-      [{ model: 'abort-non-streaming' }, { signal: abortAfter(50) }],
-      [{ model: 'timeout-before-stream', stream: true }, { timeout: 50 }],
-      [{ model: 'timeout-non-streaming' }, { timeout: 50 }],
+      [{ model: 'abort-before-stream', stream: true }, () => ({ signal: abortAfter(50) })],
+      [{ model: 'abort-non-streaming' }, () => ({ signal: abortAfter(50) })],
+      [{ model: 'timeout-before-stream', stream: true }, () => ({ timeout: 50 })],
+      [{ model: 'timeout-non-streaming' }, () => ({ timeout: 50 })],
     ];
     for (const [params, requestOptions] of requests) {
       try {
-        await client.messages.create({ ...params, max_tokens: 100, messages }, requestOptions);
+        await client.messages.create({ ...params, max_tokens: 100, messages }, requestOptions());
       } catch {
         // Error expected
       }
     }
 
     const streamRequests = [
-      [{ model: 'stream-helper-abort' }, { signal: abortAfter(50) }],
-      [{ model: 'stream-helper-signal-timeout' }, { signal: AbortSignal.timeout(50) }],
+      [{ model: 'stream-helper-abort' }, () => ({ signal: abortAfter(50) })],
+      [{ model: 'stream-helper-signal-timeout' }, () => ({ signal: AbortSignal.timeout(50) })],
     ];
     for (const [params, requestOptions] of streamRequests) {
       try {
-        await client.messages.stream({ ...params, max_tokens: 100, messages }, requestOptions).finalMessage();
+        await client.messages.stream({ ...params, max_tokens: 100, messages }, requestOptions()).finalMessage();
       } catch {
         // Error expected
       }

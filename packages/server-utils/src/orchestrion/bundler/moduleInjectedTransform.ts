@@ -2,6 +2,7 @@ import type { CustomTransform } from '../apmTypes';
 import { parse } from 'meriyah';
 import { subscriberExportForModule } from '../config/channel-integration-definitions';
 import { MODULE_REGISTRATION_TRANSFORM } from '../config/registration-only';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 // Tracks Program nodes we already injected into, so a package with several
 // instrumented files (or several configs pointing at one file) is injected only
@@ -55,8 +56,8 @@ export const ORCHESTRION_BUNDLER_MARKER_BANNER =
  *
  * The specifier is parameterized for bundlers where the bare import emitted
  * inside a transformed `node_modules` file can't resolve (Turbopack under
- * isolated installs); it's embedded via `JSON.stringify` so absolute Windows
- * paths survive.
+ * isolated installs); it's embedded via `stringifyForCodeInjection` so
+ * absolute Windows paths survive.
  *
  * The call result is assigned to a global rather than discarded. The helper
  * returns `void` and `@sentry/server-utils` is `sideEffects: false`, so a bare
@@ -73,12 +74,14 @@ function moduleInjectedSnippet(
 ): string {
   const bindings = exportName ? `orchestrionModuleInjected, ${exportName}` : 'orchestrionModuleInjected';
   const importStmt = esm
-    ? `import { ${bindings} } from ${JSON.stringify(importSpecifier)};`
-    : `const { ${bindings} } = require(${JSON.stringify(importSpecifier)});`;
+    ? `import { ${bindings} } from ${stringifyForCodeInjection(importSpecifier)};`
+    : `const { ${bindings} } = require(${stringifyForCodeInjection(importSpecifier)});`;
 
   // The arrow defers reading `exportName` to `init()`. `@sentry/*/vite` imports some packages into
   // their own integration module (e.g. Mastra's), and in that cycle a direct read would hit the TDZ.
-  const args = exportName ? `${JSON.stringify(moduleName)}, () => ${exportName}()` : JSON.stringify(moduleName);
+  const args = exportName
+    ? `${stringifyForCodeInjection(moduleName)}, () => ${exportName}()`
+    : stringifyForCodeInjection(moduleName);
   return `${importStmt}\n${MODULE_INJECTED_SINK} = orchestrionModuleInjected(${args});`;
 }
 
@@ -98,10 +101,10 @@ function selfProvidedSnippet(moduleName: string, filePath: string): string {
   const marker = 'globalThis.__SENTRY_ORCHESTRION__';
   const self = `./${filePath.split('/').pop()}`;
   return (
-    `import * as __SENTRY_SELF_PROVIDED__ from ${JSON.stringify(self)};\n` +
+    `import * as __SENTRY_SELF_PROVIDED__ from ${stringifyForCodeInjection(self)};\n` +
     `(${marker} = ${marker} || {});\n` +
     `(${marker}.providedModules = ${marker}.providedModules || {});\n` +
-    `Object.defineProperty(${marker}.providedModules, ${JSON.stringify(moduleName)}, ` +
+    `Object.defineProperty(${marker}.providedModules, ${stringifyForCodeInjection(moduleName)}, ` +
     '{ configurable: true, enumerable: true, get() { return __SENTRY_SELF_PROVIDED__; } });'
   );
 }

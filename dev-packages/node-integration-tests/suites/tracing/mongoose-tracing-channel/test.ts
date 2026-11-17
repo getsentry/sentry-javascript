@@ -12,8 +12,9 @@ import {
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
-import { MongoMemoryServer } from 'mongodb-memory-server-global';
+import type { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
+import { createMongoMemoryServer } from '../../../utils/mongoMemoryServer';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // mongoose >= 9.7.0 publishes its operations via `node:diagnostics_channel`, so the SDK subscribes
@@ -26,7 +27,7 @@ describe('Mongoose tracing channel Test', () => {
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await createMongoMemoryServer('mongoose-tracing-channel');
     process.env.MONGO_URL = mongoServer.getUri();
   }, 30000);
 

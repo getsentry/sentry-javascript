@@ -7,8 +7,9 @@ import {
   SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
-import { MongoMemoryServer } from 'mongodb-memory-server-global';
+import type { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
+import { createMongoMemoryServer } from '../../../utils/mongoMemoryServer';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Pins mongoose 5.9.7
@@ -19,7 +20,7 @@ describe('Mongoose v5 Test', () => {
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await createMongoMemoryServer('mongoose-v5');
     process.env.MONGO_URL = mongoServer.getUri();
   }, 30000);
 

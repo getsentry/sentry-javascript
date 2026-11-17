@@ -34,10 +34,12 @@ import {
   buildMethodPath,
   getErrorStatus,
   getGenAiSpanOp,
+  getRequestSignal,
   getTokenUsageAttributes,
   resolveAIRecordingOptions,
 } from '../core/utils';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
+import { addDecisionResponseAttributes, getDecisionInputMessages } from './decisions';
 import { instrumentStream } from './streaming';
 import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
 import type { ContentListUnion, Message, PartListUnion } from './utils';
@@ -135,6 +137,11 @@ export function extractRequestAttributes(
         attributes[GEN_AI_TOOL_DEFINITIONS] = JSON.stringify(functionDeclarations);
       }
     }
+
+    const decisionInput = recordInputs && operationName === 'decide' ? getDecisionInputMessages(params) : undefined;
+    if (decisionInput) {
+      attributes[GEN_AI_INPUT_MESSAGES] = decisionInput;
+    }
   } else {
     attributes[GEN_AI_REQUEST_MODEL] = extractModel({}, context);
   }
@@ -198,8 +205,18 @@ export function addPrivateRequestAttributes(span: Span, params: Record<string, u
  * Add response attributes from the Google GenAI response
  * @see https://github.com/googleapis/js-genai/blob/v1.19.0/src/types.ts#L2313
  */
-export function addResponseAttributes(span: Span, response: GoogleGenAIResponse, recordOutputs?: boolean): void {
+export function addResponseAttributes(
+  span: Span,
+  response: GoogleGenAIResponse,
+  recordOutputs?: boolean,
+  operationName?: string,
+): void {
   if (!response || typeof response !== 'object') return;
+
+  if (operationName === 'decide') {
+    addDecisionResponseAttributes(span, response, !!recordOutputs);
+    return;
+  }
 
   if (response.modelVersion) {
     span.setAttribute(GEN_AI_RESPONSE_MODEL, response.modelVersion);
@@ -299,6 +316,15 @@ export function getAbortSignal(params: Record<string, unknown> | undefined): Abo
   return (params?.config as { abortSignal?: AbortSignal } | undefined)?.abortSignal;
 }
 
+/** `decisions.create` takes its abort signal in its request options, not in a `config`. */
+export function getCallAbortSignal(
+  operationName: string,
+  params: Record<string, unknown> | undefined,
+  requestOptions: unknown,
+): AbortSignal | undefined {
+  return operationName === 'decide' ? getRequestSignal(requestOptions) : getAbortSignal(params);
+}
+
 /**
  * Instrument any async or synchronous genai method with Sentry spans
  * Handles operations like models.generateContent and chat.sendMessage and chats.create
@@ -318,7 +344,7 @@ function instrumentMethod<T extends unknown[], R>(
       const operationName = instrumentedMethod.operation || 'unknown';
       const params = args[0] as Record<string, unknown> | undefined;
       const attributeParams = resolveChatParams(operationName, params, context);
-      const abortSignal = getAbortSignal(attributeParams);
+      const abortSignal = getCallAbortSignal(operationName, attributeParams, args[1]);
       const requestAttributes = extractRequestAttributes(
         operationName,
         attributeParams,
@@ -377,7 +403,7 @@ function instrumentMethod<T extends unknown[], R>(
             result => {
               // Only add response attributes for content-producing methods, not for embeddings
               if (!isEmbeddings) {
-                addResponseAttributes(span, result, options.recordOutputs);
+                addResponseAttributes(span, result, options.recordOutputs, operationName);
               }
             },
           );

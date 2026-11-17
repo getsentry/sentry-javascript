@@ -3,10 +3,14 @@ import { spawn } from 'node:child_process';
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isViteServer, NO_IMPORT_CONFIG } from './isViteServer';
+import { getServerCommand, NO_PROCESS, RUNTIME } from './runtime';
 
-// `node --import` start commands must keep working now that the config is bundled: the emitted
-// config file is a shim that only prints a removal hint, and a preload that really initializes
-// the SDK must not cause a second init. Each test spawns its own server on a dedicated port.
+test.skip(RUNTIME === 'cloudflare', NO_PROCESS);
+
+// `node --import` start commands (and their `--preload` counterparts on Bun and Deno) must keep
+// working now that the config is bundled: the emitted config file is a shim that only prints a
+// removal hint, and a preload that really initializes the SDK must not cause a second init. Each
+// test spawns its own server on a dedicated port.
 
 interface PreloadedServer {
   child: ChildProcess;
@@ -14,7 +18,8 @@ interface PreloadedServer {
 }
 
 async function startServerWithPreload(preloadPath: string, port: string): Promise<PreloadedServer> {
-  const child = spawn('node', ['--import', preloadPath, '.output/server/index.mjs'], {
+  const [command, args] = getServerCommand(preloadPath);
+  const child = spawn(command, args, {
     env: { ...process.env, PORT: port },
   });
 
