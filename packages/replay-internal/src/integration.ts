@@ -92,9 +92,6 @@ export class Replay implements Integration {
    */
   public name: string;
 
-  /** @internal Options captured for SDK configuration reporting. */
-  public readonly _options: ReplayConfiguration;
-
   /**
    * Options to pass to `rrweb.record()`
    */
@@ -111,48 +108,44 @@ export class Replay implements Integration {
 
   private _replay?: ReplayContainer;
 
-  public constructor(options: ReplayConfiguration = {}) {
-    this._options = options;
+  public constructor({
+    flushMinDelay = DEFAULT_FLUSH_MIN_DELAY,
+    flushMaxDelay = DEFAULT_FLUSH_MAX_DELAY,
+    minReplayDuration = MIN_REPLAY_DURATION,
+    maxReplayDuration = MAX_REPLAY_DURATION,
+    stickySession = true,
+    useCompression = true,
+    workerUrl,
+    _experiments = {},
+    maskAllText = true,
+    maskAllInputs = true,
+    blockAllMedia = true,
 
-    const {
-      flushMinDelay = DEFAULT_FLUSH_MIN_DELAY,
-      flushMaxDelay = DEFAULT_FLUSH_MAX_DELAY,
-      minReplayDuration = MIN_REPLAY_DURATION,
-      maxReplayDuration = MAX_REPLAY_DURATION,
-      stickySession = true,
-      useCompression = true,
-      workerUrl,
-      _experiments = {},
-      maskAllText = true,
-      maskAllInputs = true,
-      blockAllMedia = true,
+    mutationBreadcrumbLimit = 750,
+    mutationLimit = 10_000,
 
-      mutationBreadcrumbLimit = 750,
-      mutationLimit = 10_000,
+    slowClickTimeout = 7_000,
+    slowClickIgnoreSelectors = [],
 
-      slowClickTimeout = 7_000,
-      slowClickIgnoreSelectors = [],
+    networkDetailAllowUrls = [],
+    networkDetailDenyUrls = [],
+    networkCaptureBodies = true,
+    networkRequestHeaders = [],
+    networkResponseHeaders = [],
 
-      networkDetailAllowUrls = [],
-      networkDetailDenyUrls = [],
-      networkCaptureBodies = true,
-      networkRequestHeaders = [],
-      networkResponseHeaders = [],
+    mask = [],
+    maskAttributes = ['title', 'placeholder', 'aria-label'],
+    unmask = [],
+    block = [],
+    unblock = [],
+    ignore = [],
+    maskFn,
 
-      mask = [],
-      maskAttributes = ['title', 'placeholder', 'aria-label'],
-      unmask = [],
-      block = [],
-      unblock = [],
-      ignore = [],
-      maskFn,
-
-      beforeAddRecordingEvent,
-      beforeErrorSampling,
-      onError,
-      attachRawBodyFromRequest = false,
-    } = options;
-
+    beforeAddRecordingEvent,
+    beforeErrorSampling,
+    onError,
+    attachRawBodyFromRequest = false,
+  }: ReplayConfiguration = {}) {
     this.name = 'Replay';
 
     const privacyOptions = getPrivacyOptions({

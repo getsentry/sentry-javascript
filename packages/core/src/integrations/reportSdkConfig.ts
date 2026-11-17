@@ -118,10 +118,7 @@ function buildConfigAttributes(client: Client): Record<string, string> {
       dataCollection: client.getDataCollectionOptions(),
     }) as Record<string, unknown>,
     options_set_by_user: client.getSdkMetadata()?.optionsSetByUser,
-    integrations: client.getIntegrationNames().map(name => ({
-      name,
-      options: serialize(client.getIntegrationByName(name)?._options),
-    })),
+    integrations: client.getIntegrationNames().map(name => ({ name })),
   };
 
   const metadata = {
