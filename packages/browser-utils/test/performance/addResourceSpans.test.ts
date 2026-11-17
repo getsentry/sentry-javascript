@@ -3,7 +3,7 @@ import type { Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { getClient, getMainCarrier, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { addPerformanceEntries } from '../../src/performance/entries';
+import { addResourceSpans } from '../../src/performance/entries';
 import { WINDOW } from '../../src/types';
 import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
 
@@ -23,7 +23,7 @@ const sleepDurationMs = 3_600_000;
 // The `performance.now()` time from which the corrected time origin applies.
 const correctionFromMs = 10_000;
 
-describe('addPerformanceEntries', () => {
+describe('addResourceSpans', () => {
   beforeEach(() => {
     getMainCarrier().__SENTRY__ = undefined;
     const client = new TestClient(getDefaultClientOptions({ tracesSampleRate: 1 }));
@@ -67,7 +67,7 @@ describe('addPerformanceEntries', () => {
     const endedSpans: Span[] = [];
     getClient()?.on('spanEnd', endedSpan => void endedSpans.push(endedSpan));
 
-    addPerformanceEntries(span, { ignoreResourceSpans: [] });
+    addResourceSpans(span, { ignoreResourceSpans: [] });
 
     expect(endedSpans.map(spanToJSON)).toEqual([
       expect.objectContaining({

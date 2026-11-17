@@ -105,6 +105,7 @@ interface NavigatorDeviceMemory {
 const MAX_INT_AS_BYTES = 2147483647;
 
 let _performanceCursor: number = 0;
+let _resourceCursor: number = 0;
 
 /**
  * Start tracking long tasks.
@@ -211,33 +212,91 @@ export function startTrackingLongAnimationFrames(): void {
 
 interface AddPerformanceEntriesOptions {
   /**
-   * Resource spans with `op`s matching strings in the array will not be emitted.
-   *
-   * Default: []
-   */
-  ignoreResourceSpans: Array<'resource.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
-
-  /**
    * Whether span streaming is enabled.
    */
   spanStreamingEnabled?: boolean;
 }
 
+interface AddResourceSpansOptions extends AddPerformanceEntriesOptions {
+  /**
+   * Resource spans with `op`s matching strings in the array will not be emitted.
+   *
+   * Default: []
+   */
+  ignoreResourceSpans?: Array<'resource.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
+}
+
 /** Add performance related spans to a transaction */
 export function addPerformanceEntries(span: Span, options: AddPerformanceEntriesOptions): void {
-  const performance = getBrowserPerformanceAPI();
-  if (!performance?.getEntries) {
-    // Gatekeeper if performance API not available
+  const { spanStreamingEnabled } = options;
+
+  const cursor = forEachPerformanceEntry(span, _performanceCursor, (entry, startTimestamp, duration) => {
+    switch (entry.entryType) {
+      case 'navigation': {
+        _addNavigationSpans(span, entry as PerformanceNavigationTiming, spanStreamingEnabled);
+        break;
+      }
+      case 'paint': {
+        _addPaintSpan(span, entry, startTimestamp, duration);
+        break;
+      }
+      // Ignore other entry types.
+    }
+  });
+
+  if (cursor === undefined) {
     return;
   }
 
+  _performanceCursor = cursor;
+
+  _trackNavigator(span, spanStreamingEnabled);
+}
+
+/**
+ * Add `resource.*` spans to a pageload or navigation span.
+ */
+export function addResourceSpans(span: Span, options: AddResourceSpansOptions): void {
   const { spanStreamingEnabled, ignoreResourceSpans } = options;
+
+  const cursor = forEachPerformanceEntry(span, _resourceCursor, (entry, startTimestamp, duration) => {
+    if (entry.entryType === 'resource') {
+      _addResourceSpans(
+        span,
+        entry as PerformanceResourceTiming,
+        entry.name,
+        startTimestamp,
+        duration,
+        ignoreResourceSpans,
+        spanStreamingEnabled,
+      );
+    }
+  });
+
+  if (cursor !== undefined) {
+    _resourceCursor = cursor;
+  }
+}
+
+/**
+ * Calls `callback` for each performance entry recorded since `cursor` that belongs to `span`, and returns
+ * the new cursor, or `undefined` when the performance API is not available.
+ */
+function forEachPerformanceEntry(
+  span: Span,
+  cursor: number,
+  callback: (entry: PerformanceEntry, startTimestamp: number, duration: number) => void,
+): number | undefined {
+  const performance = getBrowserPerformanceAPI();
+  if (!performance?.getEntries) {
+    return undefined;
+  }
 
   const performanceEntries = performance.getEntries();
 
   const { attributes, start_timestamp: transactionStartTime } = spanToJSON(span);
 
-  performanceEntries.slice(_performanceCursor).forEach(entry => {
+  performanceEntries.slice(cursor).forEach(entry => {
     const startTimestamp = _INTERNAL_performanceTimeToSeconds(entry.startTime);
     if (!startTimestamp) {
       return;
@@ -254,34 +313,10 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       return;
     }
 
-    switch (entry.entryType) {
-      case 'navigation': {
-        _addNavigationSpans(span, entry as PerformanceNavigationTiming, spanStreamingEnabled);
-        break;
-      }
-      case 'paint': {
-        _addPaintSpan(span, entry, startTimestamp, duration);
-        break;
-      }
-      case 'resource': {
-        _addResourceSpans(
-          span,
-          entry as PerformanceResourceTiming,
-          entry.name,
-          startTimestamp,
-          duration,
-          ignoreResourceSpans,
-          spanStreamingEnabled,
-        );
-        break;
-      }
-      // Ignore other entry types.
-    }
+    callback(entry, startTimestamp, duration);
   });
 
-  _performanceCursor = Math.max(performanceEntries.length - 1, 0);
-
-  _trackNavigator(span, spanStreamingEnabled);
+  return Math.max(performanceEntries.length - 1, 0);
 }
 
 /**
