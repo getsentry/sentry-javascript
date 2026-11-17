@@ -18,6 +18,8 @@ const NODE_EXPORTS_IGNORE = [
   'setOpenTelemetryContextAsyncContextStrategy',
   'getDefaultIntegrationsWithoutPerformance',
   'initWithoutDefaultIntegrations',
+  // Experimental config reporting is only exposed by selected SDKs.
+  'experimentalReportSdkConfigIntegration',
   // Internal helper only needed within integrations (e.g. bunRuntimeMetricsIntegration)
   '_INTERNAL_normalizeCollectionInterval',
   // Only needed by framework SDKs that enable the managed tunnel after `init`
