@@ -1,5 +1,4 @@
 name: 'CI: Build & Test'
-# Full-CI baseline for the Node unit-test sharding benchmark.
 # Full-CI baseline for the Nuxt production/development split benchmark.
 on:
   push:
@@ -582,7 +581,6 @@ jobs:
         env:
           NODE_VERSION: ${{ matrix.node }}
           UNIT_TEST_SHARD: ${{ matrix.shard }}
-          NX_OUTPUT_STYLE: static
 
       - name: Run all tests
         run: pnpm run test:ci:node
@@ -590,16 +588,6 @@ jobs:
         env:
           NODE_VERSION: ${{ matrix.node }}
           UNIT_TEST_SHARD: ${{ matrix.shard }}
-          NX_OUTPUT_STYLE: static
-
-      - name: Upload unit-test results for benchmark verification
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: node-unit-results-${{ matrix.node }}-${{ matrix.shard }}
-          path: packages/*/vitest.junit.xml
-          if-no-files-found: error
-          retention-days: 4
 
   job_browser_playwright_tests:
     name:
