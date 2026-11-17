@@ -40,14 +40,10 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
         // The launcher is shown by the close/submitted callback after the dialog closes.
         void Promise.resolve().then(() => {
           const active = DOCUMENT.activeElement;
-          const focusMovedElsewhere =
-            !!active && active !== DOCUMENT.body && active !== shadowRoot.host && active !== target;
           if (
             !isOpen &&
-            !focusMovedElsewhere &&
-            target === previousFocus &&
-            target instanceof HTMLElement &&
-            target.isConnected
+            (!active || active === DOCUMENT.body || active === shadowRoot.host) &&
+            target instanceof HTMLElement
           ) {
             target.focus();
           }
