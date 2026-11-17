@@ -1,7 +1,7 @@
 import type { FeedbackFormData, FeedbackInternalOptions } from '@sentry/core';
 import type { VNode } from 'preact';
 import { Fragment, h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
-import { useCallback, useMemo, useState } from 'preact/hooks';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { SUCCESS_MESSAGE_TIMEOUT } from '../../constants';
 import type { Props as HeaderProps } from './DialogHeader';
 import { DialogHeader } from './DialogHeader';
@@ -20,6 +20,36 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
   const successIconHtml = useMemo(() => ({ __html: SuccessIcon().outerHTML }), []);
 
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    if (open && dialog && !dialog.open) {
+      try {
+        dialog.showModal();
+      } catch {
+        // `showModal` is missing in older browsers and throws in iframes sandboxed without `allow-modals`.
+        dialog.setAttribute('open', '');
+      }
+      // WebKit does not always move focus to the `autofocus` control of a modal inside a shadow root.
+      dialog.querySelector<HTMLElement>('[autofocus]')?.focus();
+    }
+    return () => {
+      if (typeof dialog?.close === 'function') {
+        dialog.close();
+      } else {
+        dialog?.removeAttribute('open');
+      }
+    };
+  }, [open, timeoutId]);
+
+  useLayoutEffect(() => {
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [timeoutId]);
 
   const handleOnSuccessClick = useCallback(() => {
     if (timeoutId) {
@@ -52,7 +82,22 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
           </div>
         </div>
       ) : (
-        <dialog class="dialog" onClick={options.onFormClose} open={open}>
+        <dialog
+          class="dialog"
+          ref={dialogRef}
+          aria-label={options.formTitle}
+          onClick={options.onFormClose}
+          onCancel={event => {
+            event.preventDefault();
+            options.onFormClose?.();
+          }}
+          onKeyDown={event => {
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              options.onFormClose?.();
+            }
+          }}
+        >
           <div class="dialog__position">
             <div
               class="dialog__content"
