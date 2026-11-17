@@ -29,8 +29,7 @@ describe('orchestrion mysql instrumentation (Bun)', () => {
       const line = run.stdout.split('\n').find(l => l.startsWith('SCENARIO')) ?? '';
       expect(line).toContain('events=start');
       expect(line).toContain('statement=SELECT 1 AS solution');
-      expect(line).toContain('"runtime":[]');
-      expect(line).toContain('"bundler":["mysql"]');
+      expect(line).toContain('"runtime":["mysql"]');
     },
     SUBPROCESS_TIMEOUT_MS,
   );

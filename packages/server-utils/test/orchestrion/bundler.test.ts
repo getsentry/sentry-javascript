@@ -4,12 +4,8 @@ import type { OnResolveArgs, OnResolveResult, OnStartResult, Plugin as EsbuildPl
 import type { NormalizedInputOptions, PluginContext } from 'rollup';
 import type { ResolvedConfig, Plugin as VitePlugin } from 'vite';
 import type { Compiler } from 'webpack';
-import { GLOBAL_OBJ } from '@sentry/core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  sentryOrchestrionPlugin as bunPlugin,
-  registerBunRuntimeInstrumentation,
-} from '../../src/orchestrion/bundler/bun';
+import { describe, expect, it, vi } from 'vitest';
+import { sentryOrchestrionPlugin as bunPlugin } from '../../src/orchestrion/bundler/bun';
 import { sentryOrchestrionPlugin as esbuildPlugin } from '../../src/orchestrion/bundler/esbuild';
 import { orchestrionTransformOptions } from '../../src/orchestrion/bundler/options';
 import { sentryOrchestrionPlugin as rollupPlugin } from '../../src/orchestrion/bundler/rollup';
@@ -677,42 +673,6 @@ describe('sentryOrchestrionPlugin (bun)', () => {
 
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('my-custom-lib'));
     warn.mockRestore();
-  });
-});
-
-describe('registerBunRuntimeInstrumentation', () => {
-  afterEach(() => {
-    delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
-    vi.unstubAllGlobals();
-  });
-
-  it('registers the plugin with `Bun.plugin()` once and marks the runtime hook', () => {
-    const plugin = vi.fn();
-    vi.stubGlobal('Bun', { version: '1.4.5', plugin });
-
-    registerBunRuntimeInstrumentation();
-    registerBunRuntimeInstrumentation();
-
-    // The source has no `index.js` next to it, so only the transform plugin is registered.
-    expect(plugin).toHaveBeenCalledTimes(1);
-    expect(plugin).toHaveBeenCalledWith(expect.objectContaining({ name: 'sentry-orchestrion' }));
-    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtime).toEqual([]);
-  });
-
-  it('does not register the plugin on Bun versions that lose CommonJS exports', () => {
-    const plugin = vi.fn();
-    vi.stubGlobal('Bun', { version: '1.4.4', plugin });
-
-    registerBunRuntimeInstrumentation();
-
-    expect(plugin).not.toHaveBeenCalled();
-    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__).toEqual({ runtimeUnavailable: true });
-  });
-
-  it('does nothing outside of Bun', () => {
-    registerBunRuntimeInstrumentation();
-
-    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__).toEqual({});
   });
 });
 

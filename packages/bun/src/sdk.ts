@@ -29,9 +29,6 @@ import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 import { bunHttpServerIntegration } from './integrations/bunHttpServer';
 import { getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
-import { registerBunRuntimeInstrumentation } from '@sentry/server-utils/orchestrion/bun';
-
-declare const __SENTRY_CHANNEL_INJECTION__: boolean | undefined;
 
 /**
  * The tracing integrations for bun, added whenever spans are enabled. Most of them listen on
@@ -160,15 +157,6 @@ function _init(
 
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = getDefaultIntegrationsImpl(options);
-  }
-
-  // Only reaches modules imported after `init()`. `@sentry/bun/import` also reaches the static
-  // imports of the entry module.
-  if (
-    (typeof __SENTRY_CHANNEL_INJECTION__ === 'undefined' || __SENTRY_CHANNEL_INJECTION__) &&
-    options.enableRuntimeChannelInjection !== false
-  ) {
-    registerBunRuntimeInstrumentation();
   }
 
   return initNode(options);

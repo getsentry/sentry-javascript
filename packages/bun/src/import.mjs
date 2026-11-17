@@ -14,6 +14,4 @@
  *
  * @module
  */
-import { registerBunRuntimeInstrumentation } from '@sentry/server-utils/orchestrion/bun';
-
-registerBunRuntimeInstrumentation();
+import '@sentry/node/import';
