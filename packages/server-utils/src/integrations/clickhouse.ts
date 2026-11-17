@@ -66,13 +66,17 @@ const _clickhouseIntegration = (() => {
 }) satisfies IntegrationFn;
 
 function instrumentClickhouse(): void {
-  // `@clickhouse/client-common` (`<1.23.0`) and `@clickhouse/client` (`>=1.23.0`) publish the same
-  // calls under their own module names.
+  // The Node and web clients publish the same calls under their own module names. Before 1.23.0,
+  // both use `@clickhouse/client-common`.
   const channels: [string, ClickHouseMethod][] = [
     [CHANNELS.CLICKHOUSE_QUERY, 'query'],
     [CHANNELS.CLICKHOUSE_COMMAND, 'command'],
     [CHANNELS.CLICKHOUSE_EXEC, 'exec'],
     [CHANNELS.CLICKHOUSE_INSERT, 'insert'],
+    [CHANNELS.CLICKHOUSE_WEB_QUERY, 'query'],
+    [CHANNELS.CLICKHOUSE_WEB_COMMAND, 'command'],
+    [CHANNELS.CLICKHOUSE_WEB_EXEC, 'exec'],
+    [CHANNELS.CLICKHOUSE_WEB_INSERT, 'insert'],
     [CHANNELS.CLICKHOUSE_COMMON_QUERY, 'query'],
     [CHANNELS.CLICKHOUSE_COMMON_COMMAND, 'command'],
     [CHANNELS.CLICKHOUSE_COMMON_EXEC, 'exec'],
@@ -94,7 +98,9 @@ function instrumentClickhouse(): void {
         [SENTRY_KIND]: 'client',
         [SENTRY_ORIGIN]: ORIGIN,
         ...getConnectionAttributes(data.self?.connectionParams, params),
-        ...(method === 'insert' ? getInsertAttributes(params) : getStatementAttributes(params)),
+        ...(method === 'insert'
+          ? getInsertAttributes(params)
+          : getSqlQueryAttributes(typeof params?.query === 'string' ? params.query : undefined, 'clickhouse')),
       };
 
       return startInactiveSpan({
@@ -104,11 +110,6 @@ function instrumentClickhouse(): void {
       });
     });
   }
-}
-
-function getStatementAttributes(params: ClickHouseParams | undefined): SpanAttributes {
-  const query = params?.query;
-  return { ...getSqlQueryAttributes(typeof query === 'string' ? query : undefined, 'clickhouse') };
 }
 
 // `insert` builds its `INSERT INTO <table> FORMAT <format>` statement internally, so the span is
@@ -146,7 +147,7 @@ function getServerPort(url: URL): number {
 }
 
 /**
- * Diagnostics-channel-based `@clickhouse/client` integration.
+ * Diagnostics-channel-based `@clickhouse/client` and `@clickhouse/client-web` integration.
  *
  * Subscribes to the channels Sentry's code transform injects into `ClickHouseClient`'s `query`,
  * `command`, `exec` and `insert` methods, and emits a `db` span for each call. Requires the Sentry

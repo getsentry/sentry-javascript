@@ -113,7 +113,9 @@ describe('clickhouseIntegration', () => {
 
   beforeAll(() => {
     installTestAsyncContextStrategy();
-    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { runtime: ['@clickhouse/client', '@clickhouse/client-common'] };
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = {
+      runtime: ['@clickhouse/client', '@clickhouse/client-common', '@clickhouse/client-web'],
+    };
     clickhouseIntegration().setup?.({ on: () => () => undefined } as unknown as Client);
   });
 
@@ -147,12 +149,12 @@ describe('clickhouseIntegration', () => {
     expect(startInactiveSpanSpy).toHaveBeenCalledWith({
       name: 'SELECT events',
       onlyIfParent: true,
-      attributes: expect.objectContaining({
+      attributes: {
         ...CONNECTION_ATTRIBUTES,
         [DB_QUERY_TEXT]: 'SELECT count() FROM events WHERE name = ? AND id > ?',
         [DB_QUERY_SUMMARY]: 'SELECT events',
         [DB_OPERATION_NAME]: 'SELECT',
-      }),
+      },
     });
     expect(span.end).toHaveBeenCalledTimes(1);
   });
@@ -168,12 +170,12 @@ describe('clickhouseIntegration', () => {
     expect(startInactiveSpanSpy).toHaveBeenCalledWith({
       name: 'INSERT events',
       onlyIfParent: true,
-      attributes: expect.objectContaining({
+      attributes: {
         ...CONNECTION_ATTRIBUTES,
         [DB_OPERATION_NAME]: 'INSERT',
         [DB_COLLECTION_NAME]: 'events',
         [DB_QUERY_SUMMARY]: 'INSERT events',
-      }),
+      },
     });
     // The inserted values never reach the span.
     expect(startInactiveSpanSpy.mock.calls[0]?.[0].attributes[DB_QUERY_TEXT]).toBeUndefined();
@@ -188,36 +190,50 @@ describe('clickhouseIntegration', () => {
     expect(startInactiveSpanSpy).not.toHaveBeenCalled();
   });
 
-  it('sets an error status on a failed call without capturing the error', async () => {
-    const ctx: ChannelContext = { arguments: [{ query: 'SELECT * FROM does_not_exist' }], self: CLIENT };
+  it.each([CHANNELS.CLICKHOUSE_QUERY, CHANNELS.CLICKHOUSE_WEB_QUERY])(
+    'sets an error status on a failed call without capturing the error (%s)',
+    async channel => {
+      const ctx: ChannelContext = { arguments: [{ query: 'SELECT * FROM does_not_exist' }], self: CLIENT };
 
-    await expect(
-      tracingChannel(CHANNELS.CLICKHOUSE_QUERY).tracePromise(async () => {
-        throw new Error('Table analytics.does_not_exist does not exist');
-      }, ctx),
-    ).rejects.toThrow('Table analytics.does_not_exist does not exist');
+      await expect(
+        tracingChannel(channel).tracePromise(async () => {
+          throw new Error('Table analytics.does_not_exist does not exist');
+        }, ctx),
+      ).rejects.toThrow('Table analytics.does_not_exist does not exist');
 
-    expect(span.setStatus).toHaveBeenCalledWith({
-      code: SPAN_STATUS_ERROR,
-      message: 'Table analytics.does_not_exist does not exist',
-    });
-    expect(span.end).toHaveBeenCalledTimes(1);
-    expect(captureExceptionSpy).not.toHaveBeenCalled();
-  });
+      expect(span.setStatus).toHaveBeenCalledWith({
+        code: SPAN_STATUS_ERROR,
+        message: 'Table analytics.does_not_exist does not exist',
+      });
+      expect(span.end).toHaveBeenCalledTimes(1);
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     ['query', CHANNELS.CLICKHOUSE_COMMON_QUERY],
     ['command', CHANNELS.CLICKHOUSE_COMMON_COMMAND],
     ['exec', CHANNELS.CLICKHOUSE_COMMON_EXEC],
     ['insert', CHANNELS.CLICKHOUSE_COMMON_INSERT],
-  ])('builds a db span for `%s` from `@clickhouse/client-common`', async (_method, channel) => {
+    ['query', CHANNELS.CLICKHOUSE_WEB_QUERY],
+    ['command', CHANNELS.CLICKHOUSE_WEB_COMMAND],
+    ['exec', CHANNELS.CLICKHOUSE_WEB_EXEC],
+    ['insert', CHANNELS.CLICKHOUSE_WEB_INSERT],
+  ])('builds a db span for `%s` on %s', async (method, channel) => {
     const ctx: ChannelContext = { arguments: [{ query: 'SELECT 1', table: 'events', values: [1] }], self: CLIENT };
 
     await tracingChannel(channel).tracePromise(async () => ({}), ctx);
 
-    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ attributes: expect.objectContaining(CONNECTION_ATTRIBUTES) }),
-    );
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+      name: method === 'insert' ? 'INSERT events' : 'SELECT',
+      onlyIfParent: true,
+      attributes: {
+        ...CONNECTION_ATTRIBUTES,
+        ...(method === 'insert'
+          ? { [DB_OPERATION_NAME]: 'INSERT', [DB_COLLECTION_NAME]: 'events', [DB_QUERY_SUMMARY]: 'INSERT events' }
+          : { [DB_QUERY_TEXT]: 'SELECT ?', [DB_QUERY_SUMMARY]: 'SELECT', [DB_OPERATION_NAME]: 'SELECT' }),
+      },
+    });
     expect(span.end).toHaveBeenCalledTimes(1);
   });
 
@@ -230,15 +246,20 @@ describe('clickhouseIntegration', () => {
 
     await tracingChannel(CHANNELS.CLICKHOUSE_COMMON_QUERY).tracePromise(async () => ({}), ctx);
 
-    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        attributes: expect.objectContaining({
-          [DB_USER]: 'default',
-          [SERVER_ADDRESS]: 'ch.example.com',
-          [SERVER_PORT]: 443,
-        }),
-      }),
-    );
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+      name: 'SELECT',
+      onlyIfParent: true,
+      attributes: {
+        ...CONNECTION_ATTRIBUTES,
+        [DB_NAMESPACE]: 'default',
+        [DB_USER]: 'default',
+        [SERVER_ADDRESS]: 'ch.example.com',
+        [SERVER_PORT]: 443,
+        [DB_QUERY_TEXT]: 'SELECT ?',
+        [DB_QUERY_SUMMARY]: 'SELECT',
+        [DB_OPERATION_NAME]: 'SELECT',
+      },
+    });
   });
 
   it('prefers a per-call `auth` override for the username', async () => {
@@ -249,8 +270,16 @@ describe('clickhouseIntegration', () => {
 
     await tracingChannel(CHANNELS.CLICKHOUSE_QUERY).tracePromise(async () => ({}), ctx);
 
-    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ attributes: expect.objectContaining({ [DB_USER]: 'writer' }) }),
-    );
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+      name: 'SELECT',
+      onlyIfParent: true,
+      attributes: {
+        ...CONNECTION_ATTRIBUTES,
+        [DB_USER]: 'writer',
+        [DB_QUERY_TEXT]: 'SELECT ?',
+        [DB_QUERY_SUMMARY]: 'SELECT',
+        [DB_OPERATION_NAME]: 'SELECT',
+      },
+    });
   });
 });

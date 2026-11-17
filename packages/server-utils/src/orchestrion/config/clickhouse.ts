@@ -8,7 +8,8 @@ import { getModuleNames } from './module-names';
 //
 // Two file layouts across the supported range:
 //   - `< 1.23.0`  → the class lives in the separate `@clickhouse/client-common` package (`dist/client.js`)
-//   - `>= 1.23.0` → `@clickhouse/client` ships that code itself, in `dist/common/client.js`
+//   - `>= 1.23.0` → `@clickhouse/client` and `@clickhouse/client-web` each ship that code in
+//     `dist/common/client.js`
 //
 // Starts at 1.1.0: before it, `command` delegated to `exec` (two spans per command) and the client
 // did not keep the `connectionParams` the span attributes are read from.
@@ -20,6 +21,7 @@ const METHODS = ['query', 'command', 'exec', 'insert'] as const;
 const MODULES = [
   { name: '@clickhouse/client-common', versionRange: '>=1.1.0 <1.23.0', filePath: 'dist/client.js' },
   { name: '@clickhouse/client', versionRange: '>=1.23.0 <2', filePath: 'dist/common/client.js' },
+  { name: '@clickhouse/client-web', versionRange: '>=1.23.0 <2', filePath: 'dist/common/client.js' },
 ];
 
 export const clickhouseConfig: InstrumentationConfig[] = MODULES.flatMap(module =>
@@ -37,6 +39,10 @@ export const clickhouseChannels = {
   CLICKHOUSE_COMMAND: 'orchestrion:@clickhouse/client:command',
   CLICKHOUSE_EXEC: 'orchestrion:@clickhouse/client:exec',
   CLICKHOUSE_INSERT: 'orchestrion:@clickhouse/client:insert',
+  CLICKHOUSE_WEB_QUERY: 'orchestrion:@clickhouse/client-web:query',
+  CLICKHOUSE_WEB_COMMAND: 'orchestrion:@clickhouse/client-web:command',
+  CLICKHOUSE_WEB_EXEC: 'orchestrion:@clickhouse/client-web:exec',
+  CLICKHOUSE_WEB_INSERT: 'orchestrion:@clickhouse/client-web:insert',
   CLICKHOUSE_COMMON_QUERY: 'orchestrion:@clickhouse/client-common:query',
   CLICKHOUSE_COMMON_COMMAND: 'orchestrion:@clickhouse/client-common:command',
   CLICKHOUSE_COMMON_EXEC: 'orchestrion:@clickhouse/client-common:exec',

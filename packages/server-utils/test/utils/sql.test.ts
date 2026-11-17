@@ -85,6 +85,10 @@ describe('getSqlQuerySummary', () => {
     it.each([
       ['INSERT INTO users (name, email) VALUES (?, ?)', 'INSERT users'],
       ['insert into orders (product_id) values (?)', 'insert orders'],
+      ['INSERT INTO TABLE events VALUES (?)', 'INSERT events'],
+      ['insert into table analytics.events values (?)', 'insert analytics.events'],
+      ['INSERT INTO TABLE "events" VALUES (?)', 'INSERT "events"'],
+      ['INSERT INTO TABLE events SELECT * FROM source', 'INSERT events SELECT source'],
     ])('strips INTO: %j => %j', (input, expected) => {
       expect(getSqlQuerySummary(input)).toBe(expected);
     });

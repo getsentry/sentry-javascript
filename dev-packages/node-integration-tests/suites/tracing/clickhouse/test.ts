@@ -38,6 +38,7 @@ const EXPECTED_SPANS = [
   { name: 'CREATE TABLE events', status: 'ok', operation: 'CREATE', text: CREATE_TABLE },
   { name: 'INSERT events', status: 'ok', operation: 'INSERT', text: undefined, collection: 'events' },
   { name: 'INSERT events', status: 'ok', operation: 'INSERT', text: 'INSERT INTO events' },
+  { name: 'INSERT events', status: 'ok', operation: 'INSERT', text: 'INSERT INTO TABLE events' },
   // the string literal is sanitized out of the statement
   { name: 'SELECT events', status: 'ok', operation: 'SELECT', text: 'SELECT name FROM events WHERE name = ?' },
   // nested comments are removed before the query reaches the span

@@ -26,6 +26,7 @@ async function run() {
 
       await client.insert({ table: 'events', values: [{ id: 1, name: 'signup' }], format: 'JSONEachRow' });
       await client.command({ query: 'INSERT INTO events FORMAT CSV\n2,inline-sensitive@example.com' });
+      await client.command({ query: 'INSERT INTO TABLE events FORMAT CSV\n3,inline-sensitive@example.com' });
 
       const literal = await client.query({
         query: "SELECT name FROM events WHERE name = 'signup'",
