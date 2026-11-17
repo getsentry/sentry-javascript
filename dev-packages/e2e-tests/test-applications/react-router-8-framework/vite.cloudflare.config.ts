@@ -10,7 +10,7 @@ export default defineConfig(async config => ({
     reactRouter(),
     sentryCloudflareVitePlugin(),
     ...((await sentryReactRouter(
-      { sourcemaps: { disable: true } },
+      { release: { name: 'react-router-8-framework-e2e' }, sourcemaps: { disable: true } },
       config,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     )) as any[]),

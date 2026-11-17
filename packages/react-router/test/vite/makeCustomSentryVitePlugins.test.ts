@@ -151,4 +151,78 @@ describe('makeCustomSentryVitePlugins', () => {
 
     consoleWarnSpy.mockRestore();
   });
+
+  describe('with `releaseAtRuntime`', () => {
+    type Hook = (this: unknown, ...args: unknown[]) => unknown;
+    type PluginHooks = {
+      configResolved: Hook;
+      renderChunk: Hook;
+      generateBundle: { order: string; handler: Hook };
+    };
+
+    function mockPluginPerConsumer() {
+      const renderChunk = { client: vi.fn(), server: vi.fn() };
+      const generateBundle = { client: vi.fn(), server: vi.fn() };
+      vi.mocked(sentryVitePlugin).mockImplementation(options => {
+        const consumer = options?.release?.inject === false ? 'client' : 'server';
+        return [
+          {
+            name: 'sentry-vite-plugin',
+            enforce: 'pre',
+            renderChunk: renderChunk[consumer],
+            generateBundle: { order: 'pre', handler: generateBundle[consumer] },
+          },
+        ];
+      });
+      return { renderChunk, generateBundle };
+    }
+
+    function environment(consumer: string) {
+      return { environment: { config: { consumer } } };
+    }
+
+    it('turns off release injection for the client build only', async () => {
+      await makeCustomSentryVitePlugins({ release: { name: 'v1' } }, { releaseAtRuntime: true });
+
+      expect(sentryVitePlugin).toHaveBeenCalledTimes(2);
+      expect(sentryVitePlugin).toHaveBeenCalledWith(
+        expect.objectContaining({ release: { name: 'v1', inject: false } }),
+      );
+      expect(sentryVitePlugin).toHaveBeenCalledWith(expect.objectContaining({ release: { name: 'v1' } }));
+    });
+
+    it.each(['client', 'server'] as const)('runs only the %s plugin in the %s environment', async consumer => {
+      const hooks = mockPluginPerConsumer();
+      const other = consumer === 'client' ? 'server' : 'client';
+      const plugins = (await makeCustomSentryVitePlugins({}, { releaseAtRuntime: true })) as unknown as PluginHooks[];
+
+      for (const plugin of plugins) {
+        plugin.configResolved.call(undefined, { build: {} });
+        plugin.renderChunk.call(environment(consumer), 'code');
+        plugin.generateBundle.handler.call(environment(consumer));
+      }
+
+      expect(hooks.renderChunk[consumer]).toHaveBeenCalledWith('code');
+      expect(hooks.renderChunk[other]).not.toHaveBeenCalled();
+      expect(hooks.generateBundle[consumer]).toHaveBeenCalledTimes(1);
+      expect(hooks.generateBundle[other]).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [false, 'client'],
+      [true, 'server'],
+    ] as const)('uses `build.ssr: %s` on Vite 5, which has no environments', async (ssr, consumer) => {
+      const hooks = mockPluginPerConsumer();
+      const other = consumer === 'client' ? 'server' : 'client';
+      const plugins = (await makeCustomSentryVitePlugins({}, { releaseAtRuntime: true })) as unknown as PluginHooks[];
+
+      for (const plugin of plugins) {
+        plugin.configResolved.call(undefined, { build: { ssr } });
+        plugin.renderChunk.call({}, 'code');
+      }
+
+      expect(hooks.renderChunk[consumer]).toHaveBeenCalledTimes(1);
+      expect(hooks.renderChunk[other]).not.toHaveBeenCalled();
+    });
+  });
 });

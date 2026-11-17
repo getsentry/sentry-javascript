@@ -3,10 +3,22 @@ import { warnOnRemovedBuildOptions } from '@sentry/core';
 import { type Plugin } from 'vite';
 import type { SentryReactRouterBuildOptions } from './types';
 
+type Consumer = 'client' | 'server';
+
+type HookContext = { environment?: { config: { consumer: string } } };
+
+const BUILD_HOOKS = ['buildStart', 'transform', 'renderChunk', 'generateBundle', 'writeBundle'] as const;
+
 /**
  * Create a custom subset of sentry's vite plugins
+ *
+ * With `releaseAtRuntime`, the client build leaves the release out of its chunks, because the server passes it to
+ * the browser SDK in the page instead.
  */
-export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuildOptions): Promise<Plugin[]> {
+export async function makeCustomSentryVitePlugins(
+  options: SentryReactRouterBuildOptions,
+  { releaseAtRuntime = false }: { releaseAtRuntime?: boolean } = {},
+): Promise<Plugin[]> {
   warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions']);
 
   const {
@@ -26,7 +38,7 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
     release,
   } = options;
 
-  const sentryVitePlugins = sentryVitePlugin({
+  const pluginOptions = {
     applicationKey,
     authToken: authToken ?? process.env.SENTRY_AUTH_TOKEN,
     bundleSizeOptimizations,
@@ -57,7 +69,65 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
       // remove the maps before `sentryOnBuildEnd` gets to upload them. Deletion happens there instead.
       filesToDeleteAfterUpload: undefined,
     },
-  }) as Plugin[];
+  };
 
-  return sentryVitePlugins;
+  if (!releaseAtRuntime) {
+    return sentryVitePlugin(pluginOptions) as Plugin[];
+  }
+
+  return [
+    ...scopeToConsumer(
+      sentryVitePlugin({ ...pluginOptions, release: { ...release, inject: false } }) as Plugin[],
+      'client',
+    ),
+    ...scopeToConsumer(sentryVitePlugin(pluginOptions) as Plugin[], 'server'),
+  ];
+}
+
+/**
+ * Runs the build hooks of `plugins` only when Vite builds for `consumer`. Vite 6+ names the consumer of each
+ * environment. Vite 5 has no environments and builds the client and the server separately, so there it is the
+ * `build.ssr` setting.
+ */
+function scopeToConsumer(plugins: Plugin[], consumer: Consumer): Plugin[] {
+  let ssrBuild = false;
+  const applies = (context: HookContext | undefined): boolean =>
+    (context?.environment?.config.consumer ?? (ssrBuild ? 'server' : 'client')) === consumer;
+
+  return plugins.map(plugin => {
+    const scoped: Record<string, unknown> = {
+      ...plugin,
+      configResolved(this: unknown, config: { build: { ssr?: unknown } }) {
+        ssrBuild = !!config.build.ssr;
+        return callHook(plugin.configResolved, this, [config]);
+      },
+    };
+
+    for (const name of BUILD_HOOKS) {
+      if (plugin[name]) {
+        scoped[name] = gateHook(plugin[name], applies);
+      }
+    }
+
+    return scoped as unknown as Plugin;
+  });
+}
+
+function gateHook(hook: unknown, applies: (context: HookContext | undefined) => boolean): unknown {
+  if (typeof hook === 'function') {
+    return function (this: HookContext | undefined, ...args: unknown[]): unknown {
+      return applies(this) ? hook.apply(this, args) : null;
+    };
+  }
+
+  if (hook && typeof hook === 'object' && 'handler' in hook) {
+    return { ...hook, handler: gateHook(hook.handler, applies) };
+  }
+
+  return hook;
+}
+
+function callHook(hook: unknown, context: unknown, args: unknown[]): unknown {
+  const handler = hook && typeof hook === 'object' && 'handler' in hook ? hook.handler : hook;
+  return typeof handler === 'function' ? handler.apply(context, args) : undefined;
 }

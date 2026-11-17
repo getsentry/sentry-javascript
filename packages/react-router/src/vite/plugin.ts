@@ -1,5 +1,6 @@
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { ConfigEnv, Plugin } from 'vite';
+import { getClientRelease, makeClientReleasePlugin } from './makeClientReleasePlugin';
 import { makeConfigInjectorPlugin } from './makeConfigInjectorPlugin';
 import { makeCustomSentryVitePlugins } from './makeCustomSentryVitePlugins';
 import { makeEnableSourceMapsPlugin } from './makeEnableSourceMapsPlugin';
@@ -27,7 +28,12 @@ export async function sentryReactRouter(
   if (process.env.NODE_ENV !== 'development' && viteConfig.command === 'build' && viteConfig.mode !== 'development') {
     plugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: options.buildTimeInstrumentation }));
     plugins.push(makeEnableSourceMapsPlugin(options));
-    plugins.push(...(await makeCustomSentryVitePlugins(options)));
+
+    const clientRelease = getClientRelease(options);
+    if (clientRelease) {
+      plugins.push(makeClientReleasePlugin(clientRelease));
+    }
+    plugins.push(...(await makeCustomSentryVitePlugins(options, { releaseAtRuntime: !!clientRelease })));
   }
 
   return plugins;
