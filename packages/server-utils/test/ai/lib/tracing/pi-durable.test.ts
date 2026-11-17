@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Event, Span } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
@@ -27,12 +27,14 @@ import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/c
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../src/ai/core/gen-ai-attributes';
 import { endRunsOnClose, instrumentPiDurableHarnessOptions } from '../../../../src/ai/pi-durable';
 import { getPiAiChatSpanOptions } from '../../../../src/ai/pi-ai/chat';
+import { resolvePiAiRecordingOptions } from '../../../../src/ai/pi-ai/recording';
 import { MAX_TRACKED_PI_RUNS } from '../../../../src/ai/pi-durable/constants';
 import type { PiRuns } from '../../../../src/ai/pi-durable/runs';
 import { createRuns, startRun } from '../../../../src/ai/pi-durable/runs';
 import { instrumentTool, markBuiltInTool } from '../../../../src/ai/pi-durable/tools';
 import type {
   PiCommitChange,
+  PiDurableCallInfo,
   PiHarnessOptions,
   PiLiveState,
   PiRegistryReader,
@@ -157,6 +159,104 @@ describe('instrumentPiDurableHarnessOptions', () => {
       const recorded = endedSpans.flatMap(span => Object.keys(spanToJSON(span).attributes));
       expect(recorded).not.toContain(GEN_AI_TOOL_CALL_ARGUMENTS);
       expect(recorded).not.toContain(GEN_AI_TOOL_CALL_RESULT);
+    });
+
+    describe('decided per call', () => {
+      function recorded(): { inputs: boolean; outputs: boolean }[] {
+        return endedSpans.map(span => {
+          const { attributes } = spanToJSON(span);
+          return { inputs: GEN_AI_TOOL_CALL_ARGUMENTS in attributes, outputs: GEN_AI_TOOL_CALL_RESULT in attributes };
+        });
+      }
+
+      it('from the arguments of the tool call', async () => {
+        const decide = vi.fn(
+          (call: PiDurableCallInfo) =>
+            call.operation === 'execute_tool' && (call.args as { city: string }).city === 'Berlin',
+        );
+        const instrumented = instrumentTool(tool, createRuns(), { recordInputs: decide, recordOutputs: decide });
+
+        await instrumented.execute({ city: 'Berlin' }, { callId: 'call_1' }, 'ctx');
+        await instrumented.execute({ city: 'Paris' }, { callId: 'call_2' }, undefined);
+
+        expect(decide).toHaveBeenCalledWith({
+          operation: 'execute_tool',
+          tool,
+          args: { city: 'Berlin' },
+          api: { callId: 'call_1' },
+          context: 'ctx',
+        });
+        expect(recorded()).toEqual([
+          { inputs: true, outputs: true },
+          { inputs: false, outputs: false },
+        ]);
+      });
+
+      it("once, when the call starts, in the caller's async context", async () => {
+        const isPublic = (): boolean => getCurrentScope().getScopeData().tags.privacy === 'public';
+        const recordInputs = vi.fn(isPublic);
+        const recordOutputs = vi.fn(isPublic);
+        const instrumented = instrumentTool(tool, createRuns(), { recordInputs, recordOutputs });
+
+        await withScope(scope => {
+          scope.setTag('privacy', 'public');
+          return instrumented.execute({}, { callId: 'call_1' }, undefined);
+        });
+        await withScope(scope => {
+          scope.setTag('privacy', 'private');
+          return instrumented.execute({}, { callId: 'call_2' }, undefined);
+        });
+
+        expect(recordInputs).toHaveBeenCalledTimes(2);
+        expect(recordOutputs).toHaveBeenCalledTimes(2);
+        expect(recorded()).toEqual([
+          { inputs: true, outputs: true },
+          { inputs: false, outputs: false },
+        ]);
+      });
+
+      it('for inputs and outputs separately', async () => {
+        const options = { recordInputs: () => false, recordOutputs: () => true };
+
+        await instrumentTool(tool, createRuns(), options).execute({ city: 'Berlin' }, { callId: 'call_1' }, undefined);
+
+        expect(recorded()).toEqual([{ inputs: false, outputs: true }]);
+      });
+
+      it('hands the phase to its functions for the model requests in it, and an opt-out of pi-ai still wins', async () => {
+        const runtime: PiTaskRuntime = {
+          taskId: 1,
+          conversationId: 1,
+          agent: async () => ({}),
+          commit: async () => undefined,
+        };
+        const decide = vi.fn((_call: PiDurableCallInfo) => true);
+        let recording: unknown;
+        const task: PiTask = {
+          definition: {
+            name: 'app.job',
+            phases: {
+              run: async () => {
+                recording = resolvePiAiRecordingOptions(
+                  { recordOutputs: () => false },
+                  { model: undefined, context: undefined, options: undefined },
+                );
+              },
+            },
+          },
+        };
+        const registry: PiRegistryReader = {
+          snapshot: () => ({ task: () => task, tasks: () => [task] }),
+          subscribe: () => () => undefined,
+        };
+        const options = { recordInputs: decide, recordOutputs: decide };
+        const wrapped = instrumentPiDurableHarnessOptions({ registry }, options).registry!.snapshot().task('app.job')!;
+
+        await wrapped.definition.phases.run!(undefined, runtime, 'ctx');
+
+        expect(decide).toHaveBeenCalledWith({ operation: 'chat', runtime, context: 'ctx' });
+        expect(recording).toEqual({ recordInputs: true, recordOutputs: false });
+      });
     });
   });
 

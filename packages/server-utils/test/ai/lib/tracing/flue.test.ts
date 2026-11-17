@@ -12,16 +12,18 @@ import {
   startSpan,
   withActiveSpan,
   withIsolationScope,
+  withScope,
 } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../../../../src/async-context';
 import { createFlueInstrumentation } from '../../../../src/ai/flue';
 import { resolvePiAiRecordingOptions } from '../../../../src/ai/pi-ai/recording';
-import type { FlueInstrumentation } from '../../../../src/ai/flue/types';
+import type { FlueCallInfo, FlueInstrumentation } from '../../../../src/ai/flue/types';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 const AGENT_OP = { type: 'agent', operationId: 'op_1' };
 const AGENT_CTX = { agentName: 'Hello', submissionId: 'sub_1' };
 const INNER_CTX = { conversationId: 'conv_1' };
+const PI_AI_CALL = { model: undefined, context: undefined, options: undefined };
 
 describe('createFlueInstrumentation', () => {
   let endedSpans: Span[];
@@ -318,11 +320,24 @@ describe('createFlueInstrumentation', () => {
     let recording: unknown;
 
     await createFlueInstrumentation({ recordInputs: false }).interceptor({ type: 'model' }, {}, async () => {
-      recording = resolvePiAiRecordingOptions({});
+      recording = resolvePiAiRecordingOptions({}, PI_AI_CALL);
     });
 
     expect(recording).toEqual({ recordInputs: false, recordOutputs: true });
-    expect(resolvePiAiRecordingOptions({})).toEqual({ recordInputs: true, recordOutputs: true });
+    expect(resolvePiAiRecordingOptions({}, PI_AI_CALL)).toEqual({ recordInputs: true, recordOutputs: true });
+  });
+
+  it('hands the model operation to its recording functions, and an opt-out of pi-ai still wins', async () => {
+    const decide = vi.fn((_call: FlueCallInfo) => true);
+    const flue = createFlueInstrumentation({ recordInputs: decide, recordOutputs: decide });
+    let recording: unknown;
+
+    await flue.interceptor({ type: 'model' }, INNER_CTX, async () => {
+      recording = resolvePiAiRecordingOptions({ recordInputs: () => false }, PI_AI_CALL);
+    });
+
+    expect(decide).toHaveBeenCalledWith({ operation: 'chat', execution: { type: 'model' }, context: INNER_CTX });
+    expect(recording).toEqual({ recordInputs: false, recordOutputs: true });
   });
 
   // The `tool` operation opens no span of its own; it makes the span `observe` already opened
@@ -495,6 +510,69 @@ describe('createFlueInstrumentation', () => {
       const tool = findSpan('execute_tool get_weather');
       expect(tool?.data['gen_ai.tool.call.result']).toBeUndefined();
       expect(tool?.data['gen_ai.tool.call.arguments']).toBeDefined();
+    });
+
+    describe('decided per tool call', () => {
+      function callTool(instr: FlueInstrumentation, toolCallId: string, city: string): void {
+        instr.observe({ type: 'tool_start', toolCallId, toolName: 'get_weather', args: { city } }, { agentName: 'a' });
+        instr.observe({ type: 'tool', toolCallId, toolName: 'get_weather', effectiveResult: 'sunny' }, {});
+      }
+
+      function recorded(): { inputs: boolean; outputs: boolean }[] {
+        return endedSpans.map(span => {
+          const { data } = spanToStaticSpanJSON(span);
+          return { inputs: 'gen_ai.tool.call.arguments' in data, outputs: 'gen_ai.tool.call.result' in data };
+        });
+      }
+
+      it('from the tool_start observation', async () => {
+        const decide = vi.fn(
+          (call: FlueCallInfo) =>
+            call.operation === 'execute_tool' && (call.observation.args as { city: string }).city === 'Berlin',
+        );
+        const instr = createFlueInstrumentation({ recordInputs: decide, recordOutputs: decide });
+
+        callTool(instr, 'c1', 'Berlin');
+        callTool(instr, 'c2', 'Paris');
+
+        expect(decide).toHaveBeenCalledWith({
+          operation: 'execute_tool',
+          observation: { type: 'tool_start', toolCallId: 'c1', toolName: 'get_weather', args: { city: 'Berlin' } },
+          context: { agentName: 'a' },
+        });
+        expect(recorded()).toEqual([
+          { inputs: true, outputs: true },
+          { inputs: false, outputs: false },
+        ]);
+      });
+
+      it("once, when the tool starts, in the caller's async context", async () => {
+        setAsyncLocalStorageAsyncContextStrategy();
+        onTestFinished(() => setAsyncContextStrategy(undefined));
+        const isPublic = (): boolean => getCurrentScope().getScopeData().tags.privacy === 'public';
+        const recordInputs = vi.fn(isPublic);
+        const recordOutputs = vi.fn(isPublic);
+        const instr = createFlueInstrumentation({ recordInputs, recordOutputs });
+
+        withScope(scope => {
+          scope.setTag('privacy', 'public');
+          instr.observe({ type: 'tool_start', toolCallId: 'c1', toolName: 'get_weather', args: {} }, {});
+        });
+        withScope(scope => {
+          scope.setTag('privacy', 'private');
+          instr.observe({ type: 'tool', toolCallId: 'c1', toolName: 'get_weather', effectiveResult: 'sunny' }, {});
+        });
+
+        expect(recordInputs).toHaveBeenCalledTimes(1);
+        expect(recordOutputs).toHaveBeenCalledTimes(1);
+        expect(recorded()).toEqual([{ inputs: true, outputs: true }]);
+      });
+
+      it('for inputs and outputs separately', async () => {
+        callTool(createFlueInstrumentation({ recordInputs: () => false, recordOutputs: () => true }), 'c1', 'Berlin');
+
+        expect(recorded()).toEqual([{ inputs: false, outputs: true }]);
+      });
     });
   });
 

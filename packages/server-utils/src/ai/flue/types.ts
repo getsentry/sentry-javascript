@@ -74,3 +74,19 @@ export interface FlueInstrumentation {
   interceptor: <T>(operation: FlueExecutionOperation, ctx: FlueExecutionContext, next: () => Promise<T>) => Promise<T>;
   dispose: () => void;
 }
+
+/** The call that `recordInputs`/`recordOutputs` decide on. */
+export type FlueCallInfo =
+  | {
+      /** A model call, which pi-ai reports as a `gen_ai.chat` span. */
+      operation: 'chat';
+      /** The model operation and its context, as Flue hands them to the interceptor. */
+      execution: FlueExecutionOperation;
+      context: FlueExecutionContext;
+    }
+  | {
+      operation: 'execute_tool';
+      /** The `tool_start` observation and its context, as Flue hands them to `observe`. */
+      observation: FlueObservation;
+      context: FlueEventContext;
+    };
