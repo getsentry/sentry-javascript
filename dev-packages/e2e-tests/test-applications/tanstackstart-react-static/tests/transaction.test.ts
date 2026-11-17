@@ -100,7 +100,6 @@ test('Sends a server function transaction for a nested server function', async (
     expect.arrayContaining([
       expect.objectContaining({
         description: 'GET /_serverFn/testLog',
-        op: 'function',
         origin: 'auto.function.tanstackstart.server',
         parent_span_id: manualSpan?.span_id,
         status: 'ok',

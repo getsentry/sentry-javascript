@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { SENTRY_DESCRIPTION, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
 
 function isServerFnSegment(span: Parameters<typeof getSpanOp>[0]): boolean {
   return (
@@ -46,7 +48,7 @@ test('Sends a server function span with auto-instrumentation', async ({ page }) 
 
 test('Sends a server function span for a nested server function', async ({ page }) => {
   const isAutoSpan = (span: { name?: string; attributes: Record<string, { value?: unknown }> }, name: string) =>
-    span.name === name && span.attributes['sentry.origin']?.value === 'auto.function.tanstackstart.server';
+    span.name === name && span.attributes[SENTRY_ORIGIN]?.value === 'auto.function.tanstackstart.server';
 
   const spansPromise = collectStreamedSpans(
     'tanstackstart-react',
@@ -54,7 +56,7 @@ test('Sends a server function span for a nested server function', async ({ page 
       spans.some(isServerFnSegment) &&
       spans.some(span => isAutoSpan(span, 'testNestedLog')) &&
       spans.some(span => isAutoSpan(span, 'testLog')) &&
-      spans.some(span => span.name === 'testNestedLog' && span.attributes['sentry.origin']?.value === 'manual'),
+      spans.some(span => span.name === 'testNestedLog' && span.attributes[SENTRY_ORIGIN]?.value === 'manual'),
   );
 
   await page.goto('/test-serverFn');
@@ -67,7 +69,7 @@ test('Sends a server function span for a nested server function', async ({ page 
 
   const outerSpan = spans.find(span => isAutoSpan(span, 'testNestedLog'));
   const manualSpan = spans.find(
-    span => span.name === 'testNestedLog' && span.attributes['sentry.origin']?.value === 'manual',
+    span => span.name === 'testNestedLog' && span.attributes[SENTRY_ORIGIN]?.value === 'manual',
   );
   const nestedSpan = spans.find(span => isAutoSpan(span, 'testLog'));
 
@@ -75,8 +77,8 @@ test('Sends a server function span for a nested server function', async ({ page 
     name: 'testNestedLog',
     status: 'ok',
     attributes: expect.objectContaining({
-      'sentry.op': { type: 'string', value: 'function' },
-      'sentry.description': { type: 'string', value: 'GET /_serverFn/testNestedLog' },
+      [SENTRY_OP]: { type: 'string', value: FUNCTION },
+      [SENTRY_DESCRIPTION]: { type: 'string', value: 'GET /_serverFn/testNestedLog' },
       'tanstackstart.function.filename': { type: 'string', value: 'src/routes/test-serverFn.tsx' },
     }),
   });
@@ -86,8 +88,8 @@ test('Sends a server function span for a nested server function', async ({ page 
     status: 'ok',
     parent_span_id: manualSpan?.span_id,
     attributes: expect.objectContaining({
-      'sentry.op': { type: 'string', value: 'function' },
-      'sentry.description': { type: 'string', value: 'GET /_serverFn/testLog' },
+      [SENTRY_OP]: { type: 'string', value: FUNCTION },
+      [SENTRY_DESCRIPTION]: { type: 'string', value: 'GET /_serverFn/testLog' },
     }),
   });
 
@@ -97,7 +99,7 @@ test('Sends a server function span for a nested server function', async ({ page 
         name: 'globalFunctionMiddleware',
         parent_span_id: outerSpan?.span_id,
         attributes: expect.objectContaining({
-          'sentry.origin': { type: 'string', value: 'auto.middleware.tanstackstart' },
+          [SENTRY_ORIGIN]: { type: 'string', value: 'auto.middleware.tanstackstart' },
         }),
       }),
     ]),

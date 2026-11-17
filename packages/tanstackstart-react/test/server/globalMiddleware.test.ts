@@ -1,4 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  CODE_FUNCTION_NAME,
+  HTTP_REQUEST_METHOD,
+  SENTRY_DESCRIPTION,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
 
 const captureExceptionSpy = vi.fn();
 const startSpanSpy = vi.fn((_: unknown, callback: () => unknown) => callback());
@@ -96,11 +104,11 @@ describe('sentryGlobalFunctionMiddleware', () => {
         {
           name: 'testLog',
           attributes: {
-            'sentry.origin': 'auto.function.tanstackstart.server',
-            'sentry.op': 'function',
-            'code.function.name': 'testLog',
-            'http.request.method': 'POST',
-            'sentry.description': 'POST /_serverFn/testLog',
+            [SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
+            [SENTRY_OP]: FUNCTION,
+            [CODE_FUNCTION_NAME]: 'testLog',
+            [HTTP_REQUEST_METHOD]: 'POST',
+            [SENTRY_DESCRIPTION]: 'POST /_serverFn/testLog',
             'tanstackstart.function.id': 'abc123',
             'tanstackstart.function.filename': 'src/routes/test.tsx',
           },
@@ -120,10 +128,10 @@ describe('sentryGlobalFunctionMiddleware', () => {
         {
           name: 'GET /_serverFn/testLog',
           attributes: {
-            'sentry.origin': 'auto.function.tanstackstart.server',
-            'sentry.op': 'function',
-            'code.function.name': 'testLog',
-            'http.request.method': 'GET',
+            [SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
+            [SENTRY_OP]: FUNCTION,
+            [CODE_FUNCTION_NAME]: 'testLog',
+            [HTTP_REQUEST_METHOD]: 'GET',
           },
         },
         expect.any(Function),
@@ -139,7 +147,7 @@ describe('sentryGlobalFunctionMiddleware', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'serverFn',
-          attributes: expect.objectContaining({ 'sentry.description': 'GET /_serverFn/serverFn' }),
+          attributes: expect.objectContaining({ [SENTRY_DESCRIPTION]: 'GET /_serverFn/serverFn' }),
         }),
         expect.any(Function),
       );
