@@ -2,6 +2,7 @@ import type { BrowserTunnelOptions } from '@sentry/core';
 import type { AstroConfig } from 'astro';
 import { TUNNEL_OPTIONS_GLOBAL } from '../tunnel';
 import { WORKER_ENTRY_IDS, type VitePlugin } from './cloudflare';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 const TUNNEL_OPTIONS_MODULE = 'virtual:@sentry/astro/tunnel-options';
 const RESOLVED_TUNNEL_OPTIONS_MODULE = `\0${TUNNEL_OPTIONS_MODULE}`;
@@ -36,8 +37,8 @@ export function makeTunnelOptionsVitePlugin(tunnelOptions: BrowserTunnelOptions)
       }
 
       return options?.ssr
-        ? `import { _INTERNAL_setTunnelDefaults } from '@sentry/astro/middleware';\n_INTERNAL_setTunnelDefaults(${JSON.stringify({ basePath: tunnelOptions.basePath })});`
-        : `globalThis[${JSON.stringify(TUNNEL_OPTIONS_GLOBAL)}] = ${JSON.stringify(tunnelOptions)};`;
+        ? `import { _INTERNAL_setTunnelDefaults } from '@sentry/astro/middleware';\n_INTERNAL_setTunnelDefaults(${stringifyForCodeInjection({ basePath: tunnelOptions.basePath })});`
+        : `globalThis[${stringifyForCodeInjection(TUNNEL_OPTIONS_GLOBAL)}] = ${stringifyForCodeInjection(tunnelOptions)};`;
     },
     transform: (code, id) =>
       WORKER_ENTRY_IDS.some(entryId => id.includes(entryId)) ? TUNNEL_OPTIONS_IMPORT + code : null,

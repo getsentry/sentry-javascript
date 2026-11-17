@@ -3,6 +3,7 @@ import type { Nuxt } from '@nuxt/schema';
 import type { Nitro } from 'nitropack/types';
 import type { InputPluginOption } from 'rollup';
 import { addServerTemplate } from '../vendor/server-template';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 const NITRO_CACHE_VIRTUAL_MODULE_ID = '#nitro/virtual/cache';
 const CREATE_CACHE_STORAGE_EXPORT = 'export const createCacheStorage =';
@@ -18,7 +19,7 @@ export function addStorageInstrumentation(nuxt: Nuxt, isLegacyNitro: boolean): v
   addServerTemplate({
     filename: '#sentry/storage-config.mjs',
     getContents: () => {
-      return `export const userStorageMounts = ${JSON.stringify(userStorageMounts)};`;
+      return `export const userStorageMounts = ${stringifyForCodeInjection(userStorageMounts)};`;
     },
   });
 
