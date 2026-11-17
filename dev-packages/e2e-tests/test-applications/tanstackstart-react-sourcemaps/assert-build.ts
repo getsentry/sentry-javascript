@@ -159,9 +159,26 @@ const clientChunkUrls = emittedJsFiles(CLIENT_OUTPUT).map(
 );
 assert.ok(clientChunkUrls.length > 0, `Expected client chunks in ${CLIENT_OUTPUT}`);
 
+// --- The release reaches the client through the page, so that it changes no content hash ---
+
+/** `release.name` in `vite.config.ts`. */
+const RELEASE = 'test-release';
+
+assert.deepEqual(
+  emittedJsFiles(CLIENT_OUTPUT).filter(file => fs.readFileSync(file, 'utf8').includes(RELEASE)),
+  [],
+  `Expected no client chunk in ${CLIENT_OUTPUT} to contain the release`,
+);
+
 const server = await startNodeServer({ entry: path.join(SERVER_OUTPUT, 'index.mjs'), port: 3030 });
 
 try {
+  const html = await (await fetch(server.baseUrl)).text();
+  assert.ok(
+    html.includes(`<head><meta name="sentry-release" content="${RELEASE}"/>`),
+    'Expected the server to write the release into the head of the page',
+  );
+
   // Without this, a server that serves no public files at all would pass the 404 checks.
   const chunkStatus = (await fetch(`${server.baseUrl}${clientChunkUrls[0]}`)).status;
   assert.equal(chunkStatus, 200, `Expected the server to serve the client chunk ${clientChunkUrls[0]}`);

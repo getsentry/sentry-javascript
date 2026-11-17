@@ -5,6 +5,7 @@ import {
   _INTERNAL_setTunnelDefaults as setTunnelDefaults,
 } from '@sentry/core/server';
 import type { Plugin } from 'vite';
+import { getServerReleaseCode } from './release';
 
 export type TunnelRouteOptions =
   | true
@@ -140,16 +141,21 @@ function getRouterBasePathFromViteBase(base: string | undefined): string | undef
 const SDK_PACKAGE = '@sentry/tanstackstart-react';
 const SERVER_ENTRY_ALIAS = 'virtual:tanstack-start-server-entry';
 const ORIGINAL_SERVER_ENTRY_QUERY = '?sentry-tunnel-original';
+const RELEASE_MODULE_ID = 'virtual:sentry-tanstackstart-release';
+const RESOLVED_RELEASE_MODULE_ID = `\0${RELEASE_MODULE_ID}`;
 // The default entry is used directly when the app has no `src/server.ts`, and by Cloudflare's `main`.
 const DEFAULT_SERVER_ENTRY = /\/react-start\/dist\/(?:plugin\/)?default-entry\/(?:esm\/)?server\.[jt]s$/;
 
 /**
  * Enables `tunnelRoute` when the TanStack Start server entry loads, under the base path Start routes on. The runtime
  * then answers the tunnel requests before Start's own request middleware and routing.
+ *
+ * With a `release`, the server entry also sets it for the server SDK and writes it into each page for the client SDK.
  */
 export function makeServerEntryTunnelPlugin(
   tunnelRoute: TunnelRouteOptions | undefined,
   getBasePath: () => string,
+  release?: string,
 ): Plugin {
   const normalizedTunnelOptions = tunnelRoute ? normalizeTunnelRouteOptions(tunnelRoute) : undefined;
   const tunnelOptions = normalizedTunnelOptions ? stringifyForCodeInjection(normalizedTunnelOptions) : 'undefined';
@@ -159,6 +165,9 @@ export function makeServerEntryTunnelPlugin(
   return {
     name: 'sentry-tanstackstart-server-entry-tunnel',
     enforce: 'pre',
+    resolveId(id) {
+      return release && id === RELEASE_MODULE_ID ? RESOLVED_RELEASE_MODULE_ID : null;
+    },
     configResolved(config) {
       root = normalizePath(config.root ?? '');
       const aliases = Array.isArray(config.resolve.alias) ? config.resolve.alias : [];
@@ -177,6 +186,10 @@ export function makeServerEntryTunnelPlugin(
       });
     },
     async load(id) {
+      if (release && id === RESOLVED_RELEASE_MODULE_ID) {
+        return getServerReleaseCode(release);
+      }
+
       const normalizedId = normalizePath(id);
       if (!serverEntryIds.has(normalizedId) && !DEFAULT_SERVER_ENTRY.test(normalizedId)) {
         return null;
@@ -189,11 +202,22 @@ export function makeServerEntryTunnelPlugin(
       const resolved = await this.resolve(SDK_PACKAGE, `${root}/package.json`, { skipSelf: true });
       const sdk = resolved && !resolved.external ? resolved.id : SDK_PACKAGE;
 
-      return `import { _INTERNAL_setTunnelRoute as setTunnelRoute } from ${stringifyForCodeInjection(sdk)};
+      const setTunnelRoute = `setTunnelRoute(${tunnelOptions}, ${stringifyForCodeInjection(getBasePath())});\n`;
+
+      if (!release) {
+        return `import { _INTERNAL_setTunnelRoute as setTunnelRoute } from ${stringifyForCodeInjection(sdk)};
 export * from ${original};
 export { default } from ${original};
-setTunnelRoute(${tunnelOptions}, ${stringifyForCodeInjection(getBasePath())});
-`;
+${setTunnelRoute}`;
+      }
+
+      // The release module comes first, so the release is set when the original entry initializes the SDK.
+      return `import ${stringifyForCodeInjection(RELEASE_MODULE_ID)};
+import { _INTERNAL_addReleaseMetaTag as addReleaseMetaTag, _INTERNAL_setTunnelRoute as setTunnelRoute } from ${stringifyForCodeInjection(sdk)};
+import serverEntry from ${original};
+export * from ${original};
+export default addReleaseMetaTag(serverEntry, ${stringifyForCodeInjection(release)});
+${setTunnelRoute}`;
     },
   };
 }
