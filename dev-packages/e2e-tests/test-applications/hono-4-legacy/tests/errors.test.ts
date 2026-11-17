@@ -1,10 +1,5 @@
 import { expect, test } from '@playwright/test';
-import {
-  waitForError,
-  waitForStreamedSpan,
-  getSpanOp,
-  collectStreamedSpansUntilSegment,
-} from '@sentry-internal/test-utils';
+import { waitForError, waitForStreamedSpan, getSpanOp, collectStreamedSpans } from '@sentry-internal/test-utils';
 import { APP_NAME, RUNTIME } from './constants';
 
 test.describe('route handler errors', () => {
@@ -188,10 +183,16 @@ test.describe('middleware errors', () => {
       return event.exception?.values?.[0]?.value === 'Service Unavailable from middleware';
     });
 
-    const segmentPromise = collectStreamedSpansUntilSegment(
+    // On Cloudflare the middleware span can reach the proxy in a later envelope than the segment span.
+    const segmentPromise = collectStreamedSpans(
       APP_NAME,
-      segment =>
-        getSpanOp(segment) === 'http.server' && !!segment.name?.includes('/test-errors/middleware-http-exception'),
+      spansOfTrace =>
+        spansOfTrace.some(
+          span =>
+            span.is_segment &&
+            getSpanOp(span) === 'http.server' &&
+            !!span.name?.includes('/test-errors/middleware-http-exception'),
+        ) && spansOfTrace.some(span => getSpanOp(span) === 'middleware'),
     );
 
     const response = await fetch(`${baseURL}/test-errors/middleware-http-exception`);
@@ -226,13 +227,18 @@ test.describe('middleware errors', () => {
       return false;
     });
 
-    const segmentPromise = collectStreamedSpansUntilSegment(APP_NAME, segment => {
+    const segmentPromise = collectStreamedSpans(APP_NAME, spansOfTrace => {
       if (RUNTIME === 'cloudflare') {
         return (
-          getSpanOp(segment) === 'http.server' && !!segment.name?.includes('/test-errors/middleware-http-exception-4xx')
+          spansOfTrace.some(
+            span =>
+              span.is_segment &&
+              getSpanOp(span) === 'http.server' &&
+              !!span.name?.includes('/test-errors/middleware-http-exception-4xx'),
+          ) && spansOfTrace.some(span => getSpanOp(span) === 'middleware')
         );
       }
-      return getSpanOp(segment) === 'http.server' && segment.name === 'GET /';
+      return spansOfTrace.some(span => span.is_segment && getSpanOp(span) === 'http.server' && span.name === 'GET /');
     });
 
     const response = await fetch(`${baseURL}/test-errors/middleware-http-exception-4xx`);
