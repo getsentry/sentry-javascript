@@ -353,7 +353,7 @@ jobs:
   job_check_lockfile:
     name: Check lockfile
     needs: [job_get_metadata]
-    # `pnpm dedupe --check` fetches metadata for every package from npm, so this job can take 8+ min on PRs.
+    # `pnpm dedupe` fetches metadata for every package from npm, so this job can take 8+ min on PRs.
     timeout-minutes: 20
     runs-on: ubuntu-24.04
     if: |
@@ -371,14 +371,21 @@ jobs:
         uses: ./.github/actions/setup-node
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
+      # The lockfile stores the deprecation message of each package. A maintainer can deprecate a locked version on
+      # npm at any time, which changes the lockfile without a change in this repository. Both checks ignore these lines.
       - name: Check that pnpm-lock.yaml is stable
         run: |
-          if ! git diff --exit-code pnpm-lock.yaml; then
+          if ! git diff --exit-code -I'^ +deprecated: ' pnpm-lock.yaml; then
             echo "::error::pnpm-lock.yaml has uncommitted changes after running 'pnpm install'. Please run 'pnpm install' locally and commit the updated pnpm-lock.yaml."
             exit 1
           fi
       - name: Check for duplicate dependencies in lockfile
-        run: pnpm run dedupe-deps:check
+        run: |
+          pnpm dedupe --lockfile-only
+          if ! git diff --exit-code -I'^ +deprecated: ' pnpm-lock.yaml; then
+            echo "::error::pnpm-lock.yaml has duplicate dependencies. Please run 'pnpm run dedupe-deps:fix' locally and commit the updated pnpm-lock.yaml."
+            exit 1
+          fi
 
   job_check_format:
     name: Check file formatting
@@ -540,7 +547,7 @@ jobs:
           pnpm run test
 
   job_node_unit_tests:
-    name: Node (${{ matrix.node }}) Unit Tests
+    name: Node (${{ matrix.node }}) Unit Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
     runs-on: ubuntu-24.04-arm
@@ -550,6 +557,7 @@ jobs:
       fail-fast: false
       matrix:
         node: [20.19, 22, 24, 26, '^27.0.0-0']
+        shard: [1, 2]
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v7
@@ -579,12 +587,14 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           NODE_VERSION: ${{ matrix.node }}
+          UNIT_TEST_SHARD: ${{ matrix.shard }}
 
       - name: Run all tests
         run: pnpm run test:ci:node
         if: github.event_name != 'pull_request'
         env:
           NODE_VERSION: ${{ matrix.node }}
+          UNIT_TEST_SHARD: ${{ matrix.shard }}
 
   job_browser_playwright_tests:
     name:
@@ -887,13 +897,13 @@ jobs:
     name: Cloudflare Integration Tests (${{ matrix.shard }}/${{ matrix.shards }})
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
-        shards: [4]
+        shard: [1, 2, 3, 4, 5, 6]
+        shards: [6]
     steps: &cloudflare_integration_tests_steps
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7

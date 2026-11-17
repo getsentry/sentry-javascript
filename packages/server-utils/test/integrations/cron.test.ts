@@ -22,7 +22,7 @@ describe('onSetTime', () => {
     const onTick = wrapScheduledJob(
       () => {},
       'my-job',
-      cronExpressionToMonitorConfig('0 9 * * *', 'UTC', 'or'),
+      cronExpressionToMonitorConfig('0 9 * * *', 'UTC', 'cron'),
       'auto.function.cron',
     );
     return { cronTime: {} as unknown, _callbacks: [onTick], onTick };

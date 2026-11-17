@@ -179,8 +179,12 @@ for (const { name, prefix } of SCENARIOS) {
       // Other tests request the same route and only wait for the error event, so their segment can
       // still arrive while this test listens. Pin the trace to tell this request's spans apart.
       const traceId = randomBytes(16).toString('hex');
-      const segmentPromise = collectStreamedSpans(APP_NAME, spansOfTrace =>
-        spansOfTrace.some(span => span.is_segment && span.trace_id === traceId),
+      // On Cloudflare the middleware span can reach the proxy in a later envelope than the segment span.
+      const segmentPromise = collectStreamedSpans(
+        APP_NAME,
+        spansOfTrace =>
+          spansOfTrace.some(span => span.is_segment && span.trace_id === traceId) &&
+          spansOfTrace.some(span => getSpanOp(span) === 'middleware'),
       );
 
       await fetch(`${baseURL}${prefix}/error`, {

@@ -6,6 +6,7 @@ export const GOOGLE_GENAI_INTEGRATION_NAME = 'Google_GenAI' as const;
 // https://ai.google.dev/api/rest/v1/chats/sendMessage
 // https://googleapis.github.io/js-genai/release_docs/classes/models.Models.html#generatecontentstream
 // https://googleapis.github.io/js-genai/release_docs/classes/chats.Chat.html#sendmessagestream
+// https://ai.google.dev/api/decisions
 export const GOOGLE_GENAI_METHOD_REGISTRY = {
   'models.generateContent': { operation: 'generate_content' },
   'models.generateContentStream': { operation: 'generate_content', streaming: true },
@@ -13,6 +14,7 @@ export const GOOGLE_GENAI_METHOD_REGISTRY = {
   'chats.create': { proxyResultPath: 'chat' },
   'chat.sendMessage': { operation: 'chat' },
   'chat.sendMessageStream': { operation: 'chat', streaming: true },
+  'decisions.create': { operation: 'decide' },
 } as const satisfies InstrumentedMethodRegistry;
 
 // Constants for internal use

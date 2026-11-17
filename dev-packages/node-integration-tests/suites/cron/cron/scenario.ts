@@ -10,32 +10,26 @@ const CronJobWithCheckIn = Sentry.cron.instrumentCron(CronJob, 'my-cron-job');
 
 let closeNext = false;
 
-const cron = new CronJobWithCheckIn('* * * * * *', () => {
-  if (closeNext) {
-    cron.stop();
-    throw new Error('Error in cron job');
-  }
+const cron = new CronJobWithCheckIn(
+  '0 9 * * 1-5',
+  () => {
+    if (closeNext) {
+      throw new Error('Error in cron job');
+    }
 
-  // eslint-disable-next-line no-console
-  console.log('You will see this message every second');
-  closeNext = true;
-});
+    closeNext = true;
+  },
+  undefined,
+  false,
+  'Europe/Vienna',
+);
 
-cron.start();
-
-// `cron` sizes the delay to the next tick from two clock reads, clamps a negative result to -1 and
-// then treats that -1 as "stop". A pause between those two reads that straddles a second boundary
-// is enough to hit it, and the job is left scheduled for nothing: no ticks, no check-ins, and the
-// scenario exits on the timeout below having sent nothing at all. Starting again re-reads the clock
-// away from the boundary.
-for (let attempt = 0; attempt < 5 && !cron.isActive; attempt++) {
-  cron.start();
-}
-
-if (!cron.isActive) {
-  throw new Error('`cron` refused to schedule the job');
-}
+// Run the job without waiting for its schedule.
+(async () => {
+  await cron.fireOnTick();
+  await cron.fireOnTick();
+})();
 
 setTimeout(() => {
   process.exit();
-}, 15_000);
+}, 10_000);

@@ -1,45 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  assignReviewers,
-  getBusyLogins,
-  getOwnersForFiles,
-  getReviewLoad,
-  parseCodeowners,
-  pickReviewers,
-} from './assign-reviewers.mjs';
+import { assignReviewers, getBusyLogins, getReviewLoad, pickReviewers } from './assign-reviewers.mjs';
 import { attribution, junior, setup } from './github-test-utils.mjs';
-
-const CODEOWNERS = `
-# comment
-/packages/browser/      @getsentry/browser
-/packages/node/         @getsentry/server
-/packages/node/src/x.ts @someone
-*.md                    @getsentry/docs
-`;
-
-describe('getOwnersForFiles', () => {
-  const rules = parseCodeowners(CODEOWNERS);
-
-  it('collects owners across all touched files', () => {
-    expect(getOwnersForFiles(rules, ['packages/browser/src/index.ts', 'packages/node/src/sdk.ts'])).toEqual([
-      '@getsentry/browser',
-      '@getsentry/server',
-    ]);
-  });
-
-  it('uses the last matching rule for a file', () => {
-    expect(getOwnersForFiles(rules, ['packages/node/src/x.ts'])).toEqual(['@someone']);
-  });
-
-  it('matches unanchored patterns at any depth', () => {
-    expect(getOwnersForFiles(rules, ['packages/node/README.md'])).toEqual(['@getsentry/docs']);
-  });
-
-  it('does not match sibling directories that share a prefix', () => {
-    expect(getOwnersForFiles(rules, ['packages/browser-utils/src/index.ts', 'packages/nodejs/a.ts'])).toEqual([]);
-  });
-});
 
 describe('pickReviewers', () => {
   const teamPool = ['a', 'b', 'c', 'd', 'e', 'mydea'];
@@ -232,10 +194,20 @@ describe('assignReviewers', () => {
     github.graphql.mockResolvedValue({ u0: { login: 'a', status: { indicatesLimitedAvailability: true } } });
     await run();
     expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
-      expect.objectContaining({ reviewers: expect.arrayContaining(['b', 'c', 'd']) }),
+      expect.objectContaining({ reviewers: [expect.any(String), expect.any(String), expect.any(String)] }),
     );
     expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
       expect.objectContaining({ reviewers: expect.not.arrayContaining(['a']) }),
+    );
+  });
+
+  it('falls back to the contractors as well as the team', async () => {
+    const { github, run } = setup(assignReviewers, { user: { login: 'author', type: 'User' } });
+    const busy = login => ({ login, status: { indicatesLimitedAvailability: true } });
+    github.graphql.mockResolvedValue({ u0: busy('a'), u1: busy('b'), u2: busy('c') });
+    await run();
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.arrayContaining(['d', 'timfish', 'RulaKhaled']) }),
     );
   });
 
@@ -243,7 +215,10 @@ describe('assignReviewers', () => {
     const { github, run } = setup(assignReviewers, { user: junior, body: attribution('**Alice Example**') });
     await run();
     expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
-      expect.objectContaining({ reviewers: expect.arrayContaining(['b', 'c', 'd']) }),
+      expect.objectContaining({ reviewers: [expect.any(String), expect.any(String), expect.any(String)] }),
+    );
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.not.arrayContaining(['a']) }),
     );
   });
 
@@ -261,7 +236,11 @@ describe('assignReviewers', () => {
             repository: {
               pullRequests: {
                 pageInfo: { hasNextPage: false },
-                nodes: [pr(['a', 'b', 'c']), pr(['a', 'b']), pr(['a'])],
+                nodes: [
+                  pr(['a', 'b', 'c', 'timfish', 'RulaKhaled']),
+                  pr(['a', 'b', 'timfish', 'RulaKhaled']),
+                  pr(['a', 'timfish', 'RulaKhaled']),
+                ],
               },
             },
           }
@@ -290,6 +269,38 @@ describe('assignReviewers', () => {
     );
     expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
       expect.objectContaining({ reviewers: expect.not.arrayContaining(['Mydea']) }),
+    );
+  });
+
+  it('does not count the assignee towards the required reviewers, nor request their review', async () => {
+    const { github, run } = setup(assignReviewers, {
+      user: { login: 'author', type: 'User' },
+      assignees: [{ login: 'A', type: 'User' }],
+      requested_reviewers: [{ login: 'a', type: 'User' }],
+    });
+    await run();
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: [expect.any(String), expect.any(String), expect.any(String)] }),
+    );
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.not.arrayContaining(['a']) }),
+    );
+  });
+
+  it('does not count reviews from the requester of a Junior PR towards the required reviewers', async () => {
+    const { github, run } = setup(assignReviewers, { user: junior, body: attribution('@a') });
+    const paginate = github.paginate.getMockImplementation();
+    github.paginate.mockImplementation(async method =>
+      method === github.rest.pulls.listReviews
+        ? [{ user: { login: 'a', type: 'User' } }, { user: { login: 'mydea', type: 'User' } }]
+        : paginate(method),
+    );
+    await run();
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: [expect.any(String), expect.any(String), expect.any(String)] }),
+    );
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.not.arrayContaining(['a']) }),
     );
   });
 });

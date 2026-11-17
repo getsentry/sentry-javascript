@@ -29,6 +29,8 @@ btnMakeRequest.addEventListener('click', () => {
   fetch('https://sentry-test-site.example/api');
 });
 
+let errorCnt = 0;
 btnCaptureError.addEventListener('click', () => {
-  Sentry.captureException(new Error('test-error'));
+  // Each error has its own message, because the Dedupe integration drops an error that is equal to the previous one.
+  Sentry.captureException(new Error(`test-error-${++errorCnt}`));
 });

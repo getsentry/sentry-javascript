@@ -7,6 +7,8 @@ interface Invocation {
   durationMs: number;
 }
 
+const INVOCATIONS_PER_TRIGGER = 5;
+
 // Regression test for https://github.com/getsentry/sentry-javascript/issues/25489
 // workerd keeps a Durable Object invocation open until its pending timers fire, so an SDK timer
 // that is still pending when the method returns makes the invocation longer, and billed.
@@ -16,31 +18,37 @@ it('does not keep Durable Object invocations open after the method returns', asy
     .withWranglerArgs('--config', join(__dirname, 'wrangler-tail.jsonc'))
     .start(signal);
 
-  await runner.makeRequest('get', '/fetch');
-  await runner.makeRequest('get', '/rpc');
-  await runner.makeRequest('get', '/alarm');
+  // A pending SDK timer delays every invocation. A busy CI machine delays only some of them, by as
+  // much as the timer does. Only the fastest of several invocations tells the two apart.
+  async function measureFastestInvocation(path: string, trigger: string): Promise<number> {
+    // Each request invokes a new instance, because the first invocation of an instance also sets up the SDK.
+    for (let instance = 0; instance < INVOCATIONS_PER_TRIGGER; instance++) {
+      await runner.makeRequest('get', `${path}?instance=${instance}`);
+    }
 
-  const { fetchInvocation, rpcInvocation, alarmInvocation } = await vi.waitFor(
-    async () => {
-      const invocations = (await runner.makeRequest<Invocation[]>('get', '/invocations')) ?? [];
-      const result = {
-        fetchInvocation: invocations.find(invocation => invocation.trigger === 'fetch'),
-        rpcInvocation: invocations.find(invocation => invocation.trigger === 'ping'),
-        alarmInvocation: invocations.find(invocation => invocation.trigger === 'alarm'),
-      };
+    const durations = await vi.waitFor(
+      async () => {
+        const invocations = (await runner.makeRequest<Invocation[]>('get', '/invocations')) ?? [];
+        const durationsOfTrigger = invocations
+          .filter(invocation => invocation.trigger === trigger)
+          .map(invocation => invocation.durationMs);
 
-      expect(result.fetchInvocation).toBeDefined();
-      expect(result.rpcInvocation).toBeDefined();
-      expect(result.alarmInvocation).toBeDefined();
+        expect(durationsOfTrigger).toHaveLength(INVOCATIONS_PER_TRIGGER);
 
-      return result;
-    },
-    { timeout: 10_000, interval: 100 },
-  );
+        return durationsOfTrigger;
+      },
+      { timeout: 10_000, interval: 100 },
+    );
 
-  // An invocation takes a few ms locally. The limit leaves room for slow CI machines and still
-  // fails for a 500 ms timer.
-  expect(fetchInvocation?.durationMs).toBeLessThan(250);
-  expect(rpcInvocation?.durationMs).toBeLessThan(250);
-  expect(alarmInvocation?.durationMs).toBeLessThan(250);
+    return Math.min(...durations);
+  }
+
+  const fetchDuration = await measureFastestInvocation('/fetch', 'fetch');
+  const rpcDuration = await measureFastestInvocation('/rpc', 'ping');
+  const alarmDuration = await measureFastestInvocation('/alarm', 'alarm');
+
+  // An invocation takes a few ms locally, and 500 ms with the timer of the regression.
+  expect(fetchDuration).toBeLessThan(250);
+  expect(rpcDuration).toBeLessThan(250);
+  expect(alarmDuration).toBeLessThan(250);
 });

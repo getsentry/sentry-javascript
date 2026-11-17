@@ -39,12 +39,6 @@ sentryTest(
     const reqPromise1 = waitForReplayRequest(page, 1);
     const reqPromise2 = waitForReplayRequest(page, 2);
     const reqPromise3 = waitForReplayRequest(page, 3);
-    const reqPromise4 = waitForReplayRequest(page, 4);
-    const reqPromise5 = waitForReplayRequest(page, 5);
-    const reqPromise6 = waitForReplayRequest(page, 6);
-    const reqPromise7 = waitForReplayRequest(page, 7);
-    const reqPromise8 = waitForReplayRequest(page, 8);
-    const reqPromise9 = waitForReplayRequest(page, 9);
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -127,14 +121,21 @@ sentryTest(
     // -----------------------------------------------------------------------------------------
     // Test subsequent link navigation to another page
 
-    const [req4] = await Promise.all([reqPromise4, page.locator('a').click()]);
+    // The link click is also recorded on the old page. If the old page starts to flush it before it unloads,
+    // that flush takes the next segment id. So we wait for the first segment of the new page.
+    const [req4] = await Promise.all([
+      waitForReplayRequest(page, event => !!event.request?.url?.includes('page-0.html')),
+      page.locator('a').click(),
+    ]);
 
     const replayEvent4 = getReplayEvent(req4);
     const recording4 = getReplayRecordingContent(req4);
+    const page0SegmentId = replayEvent4.segment_id;
 
+    expect([4, 5]).toContain(page0SegmentId);
     expect(replayEvent4).toEqual(
       getExpectedReplayEvent({
-        segment_id: 4,
+        segment_id: page0SegmentId,
         // @ts-expect-error this is fine
         urls: [expect.stringContaining('page-0.html')],
         request: {
@@ -151,14 +152,17 @@ sentryTest(
     expect(normalize(recording4.fullSnapshots)).toMatchSnapshot('seg-4-snap-full');
     expect(recording4.incrementalSnapshots.length).toEqual(0);
 
-    const [req5] = await Promise.all([reqPromise5, page.locator('#go-background').click()]);
+    const [req5] = await Promise.all([
+      waitForReplayRequest(page, page0SegmentId + 1),
+      page.locator('#go-background').click(),
+    ]);
 
     const replayEvent5 = getReplayEvent(req5);
     const recording5 = getReplayRecordingContent(req5);
 
     expect(replayEvent5).toEqual(
       getExpectedReplayEvent({
-        segment_id: 5,
+        segment_id: page0SegmentId + 1,
         urls: [],
         request: {
           // @ts-expect-error this is fine
@@ -198,14 +202,17 @@ sentryTest(
     // -----------------------------------------------------------------------------------------
     // Test subsequent navigation without a page reload (i.e. SPA navigation)
 
-    const [req6] = await Promise.all([reqPromise6, page.locator('#spa-navigation').click()]);
+    const [req6] = await Promise.all([
+      waitForReplayRequest(page, page0SegmentId + 2),
+      page.locator('#spa-navigation').click(),
+    ]);
 
     const replayEvent6 = getReplayEvent(req6);
     const recording6 = getReplayRecordingContent(req6);
 
     expect(replayEvent6).toEqual(
       getExpectedReplayEvent({
-        segment_id: 6,
+        segment_id: page0SegmentId + 2,
         urls: [`${TEST_HOST}/spa`],
         request: {
           url: `${TEST_HOST}/spa`,
@@ -220,14 +227,17 @@ sentryTest(
     expect(recording6.fullSnapshots.length).toEqual(0);
     expect(normalize(recording6.incrementalSnapshots)).toMatchSnapshot('seg-6-snap-incremental');
 
-    const [req7] = await Promise.all([reqPromise7, page.locator('#go-background').click()]);
+    const [req7] = await Promise.all([
+      waitForReplayRequest(page, page0SegmentId + 3),
+      page.locator('#go-background').click(),
+    ]);
 
     const replayEvent7 = getReplayEvent(req7);
     const recording7 = getReplayRecordingContent(req7);
 
     expect(replayEvent7).toEqual(
       getExpectedReplayEvent({
-        segment_id: 7,
+        segment_id: page0SegmentId + 3,
         urls: [],
 
         request: {
@@ -267,14 +277,19 @@ sentryTest(
     //   // -----------------------------------------------------------------------------------------
     //   // And just to finish this off, let's go back to the index page
 
-    const [req8] = await Promise.all([reqPromise8, page.locator('a').click()]);
+    const [req8] = await Promise.all([
+      waitForReplayRequest(page, event => event.request?.url === `${TEST_HOST}/index.html`),
+      page.locator('a').click(),
+    ]);
 
     const replayEvent8 = getReplayEvent(req8);
     const recording8 = getReplayRecordingContent(req8);
+    const indexPageSegmentId = replayEvent8.segment_id;
 
+    expect([page0SegmentId + 4, page0SegmentId + 5]).toContain(indexPageSegmentId);
     expect(replayEvent8).toEqual(
       getExpectedReplayEvent({
-        segment_id: 8,
+        segment_id: indexPageSegmentId,
         request: {
           url: `${TEST_HOST}/index.html`,
           headers: {
@@ -288,14 +303,17 @@ sentryTest(
     expect(normalize(recording8.fullSnapshots)).toMatchSnapshot('seg-8-snap-full');
     expect(recording8.incrementalSnapshots.length).toEqual(0);
 
-    const [req9] = await Promise.all([reqPromise9, page.locator('#go-background').click()]);
+    const [req9] = await Promise.all([
+      waitForReplayRequest(page, indexPageSegmentId + 1),
+      page.locator('#go-background').click(),
+    ]);
 
     const replayEvent9 = getReplayEvent(req9);
     const recording9 = getReplayRecordingContent(req9);
 
     expect(replayEvent9).toEqual(
       getExpectedReplayEvent({
-        segment_id: 9,
+        segment_id: indexPageSegmentId + 1,
         urls: [],
         request: {
           url: `${TEST_HOST}/index.html`,

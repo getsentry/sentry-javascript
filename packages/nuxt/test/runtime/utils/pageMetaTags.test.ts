@@ -2,7 +2,11 @@ import { getTraceMetaTags } from '@sentry/core';
 import { _INTERNAL_getRootSpanSentryTrace } from '@sentry/core/server';
 import type { H3Event } from 'h3';
 import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
-import { addSentryPageMetaTags, NUXT_NITRO_PRESET_FLAG } from '../../../src/runtime/utils/pageMetaTags';
+import {
+  addSentryPageMetaTags,
+  NUXT_NITRO_PRESET_FLAG,
+  recordRequestStart,
+} from '../../../src/runtime/utils/pageMetaTags';
 
 vi.mock(import('@sentry/core'), async importOriginal => {
   const mod = await importOriginal();
@@ -22,8 +26,13 @@ const LIVE_TRACE_META_TAGS = [
   `<meta name="sentry-trace" content="${SENTRY_TRACE}"/>`,
   '<meta name="baggage" content="sentry-environment=production,sentry-trace_id=4c79f60c11214eb38604f4ae0781bfb2"/>',
 ].join('\n');
-const CACHE_ORIGIN_META_TAG = `<meta name="sentry-cache-origin" content="${SENTRY_TRACE}"/>`;
-const EMPTY_CACHE_ORIGIN_META_TAG = '<meta name="sentry-cache-origin" content=""/>';
+
+const REQUEST_START = 1_700_000_000;
+
+// No span is active, so the render start is the request start.
+function cacheOriginMetaTags(cacheOrigin: string): string {
+  return `<meta name="sentry-cache-origin" content="${cacheOrigin}"/>\n<meta name="sentry-render-start" content="${REQUEST_START}"/>`;
+}
 
 const PATH = '/rendering-modes/swr-cached-page';
 
@@ -37,7 +46,7 @@ function h3v1Event(routeRules: Record<string, unknown> = {}, headers: Record<str
     get headers() {
       return new Headers(nodeReq.headers);
     },
-    context: { _nitro: { routeRules } },
+    context: { _nitro: { routeRules }, _sentryRequestStart: REQUEST_START },
   } as unknown as H3Event;
 }
 
@@ -51,7 +60,7 @@ function h3v2Event(routeRules: Record<string, unknown> = {}, headers: Record<str
     get headers() {
       return req.headers;
     },
-    context: { routeRules },
+    context: { routeRules, _sentryRequestStart: REQUEST_START },
   } as unknown as H3Event;
 }
 
@@ -83,7 +92,7 @@ describe('addSentryPageMetaTags', () => {
 
     addSentryPageMetaTags(head, event);
 
-    expect(head).toEqual([CACHE_ORIGIN_META_TAG]);
+    expect(head).toEqual([cacheOriginMetaTags(SENTRY_TRACE)]);
   });
 
   it('adds the tracing meta tags when the route opts out of caching with `cache: false`', () => {
@@ -101,7 +110,7 @@ describe('addSentryPageMetaTags', () => {
 
     addSentryPageMetaTags(head, h3v1Event({ cache: {} }), { 'sentry-trace': storedSentryTrace });
 
-    expect(head).toEqual([`<meta name="sentry-cache-origin" content="${storedSentryTrace}"/>`]);
+    expect(head).toEqual([cacheOriginMetaTags(storedSentryTrace)]);
     expect(_INTERNAL_getRootSpanSentryTrace).not.toHaveBeenCalled();
   });
 
@@ -111,7 +120,7 @@ describe('addSentryPageMetaTags', () => {
 
     addSentryPageMetaTags(head, h3v1Event({ cache: {} }));
 
-    expect(head).toEqual([EMPTY_CACHE_ORIGIN_META_TAG]);
+    expect(head).toEqual([cacheOriginMetaTags('')]);
   });
 
   it.each([
@@ -122,7 +131,7 @@ describe('addSentryPageMetaTags', () => {
 
     addSentryPageMetaTags(head, event, { 'sentry-trace': SENTRY_TRACE });
 
-    expect(head).toEqual([EMPTY_CACHE_ORIGIN_META_TAG]);
+    expect(head).toEqual([cacheOriginMetaTags('')]);
   });
 
   it('adds the tracing meta tags when the event has no `headers` getter', () => {
@@ -141,7 +150,7 @@ describe('addSentryPageMetaTags', () => {
 
     addSentryPageMetaTags(head, h3v1Event({ isr: 3600 }));
 
-    expect(head).toEqual([CACHE_ORIGIN_META_TAG]);
+    expect(head).toEqual([cacheOriginMetaTags(SENTRY_TRACE)]);
   });
 
   it.each([
@@ -156,5 +165,23 @@ describe('addSentryPageMetaTags', () => {
     addSentryPageMetaTags(head, h3v2Event(nitroV3Rule('isr', true)));
 
     expect(head).toEqual([LIVE_TRACE_META_TAGS]);
+  });
+});
+
+describe('recordRequestStart', () => {
+  it('records the request start that the cache origin tags of the page use', () => {
+    const event = h3v1Event({ cache: {} });
+    (_INTERNAL_getRootSpanSentryTrace as Mock).mockReturnValue(SENTRY_TRACE);
+    const before = Date.now() / 1000;
+
+    recordRequestStart(event);
+    const requestStart = (event.context as { _sentryRequestStart?: number })._sentryRequestStart;
+    const head: string[] = [];
+    addSentryPageMetaTags(head, event);
+
+    expect(requestStart).toBeGreaterThanOrEqual(Math.floor(before));
+    expect(head).toEqual([
+      `<meta name="sentry-cache-origin" content="${SENTRY_TRACE}"/>\n<meta name="sentry-render-start" content="${Math.floor(requestStart!)}"/>`,
+    ]);
   });
 });

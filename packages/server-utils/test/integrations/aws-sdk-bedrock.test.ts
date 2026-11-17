@@ -19,6 +19,7 @@ import { GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import { setCurrentClient, spanToJSON, startInactiveSpan } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { GenAiOptions } from '../../src/ai/core/utils';
 import { BedrockRuntimeServiceExtension } from '../../src/integrations/aws-sdk/services/bedrock-runtime';
 import type { NormalizedResponse, RequestMetadata } from '../../src/integrations/aws-sdk/types';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
@@ -32,8 +33,12 @@ const CLAUDE_REQUEST_BODY = {
   messages: [{ role: 'user', content: 'What is the capital of France?' }],
 };
 
-function preSpanHook(commandName: string, commandInput: Record<string, unknown>): RequestMetadata {
-  return new BedrockRuntimeServiceExtension().requestPreSpanHook({
+function preSpanHook(
+  commandName: string,
+  commandInput: Record<string, unknown>,
+  options?: GenAiOptions,
+): RequestMetadata {
+  return new BedrockRuntimeServiceExtension(options).requestPreSpanHook({
     serviceName: 'BedrockRuntime',
     commandName,
     commandInput,
@@ -215,18 +220,28 @@ describe('BedrockRuntimeServiceExtension input recording', () => {
     );
   });
 
-  it.each([
-    { commandName: 'Converse', commandInput: { messages: [{ role: 'user', content: [{ text: 'Kawasaki' }] }] } },
-    {
-      commandName: 'InvokeModel',
-      commandInput: { modelId: CLAUDE_MODEL_ID, body: JSON.stringify(CLAUDE_REQUEST_BODY) },
-    },
-  ])('records no $commandName input when dataCollection.genAI.inputs is off', ({ commandName, commandInput }) => {
-    const client = new TestClient(getDefaultTestClientOptions({ dataCollection: { genAI: { inputs: false } } }));
+  it.each(
+    [
+      { commandName: 'Converse', commandInput: { messages: [{ role: 'user', content: [{ text: 'Kawasaki' }] }] } },
+      {
+        commandName: 'InvokeModel',
+        commandInput: { modelId: CLAUDE_MODEL_ID, body: JSON.stringify(CLAUDE_REQUEST_BODY) },
+      },
+    ].flatMap(command => [
+      {
+        ...command,
+        setting: 'dataCollection.genAI.inputs',
+        dataCollection: { genAI: { inputs: false } },
+        options: undefined,
+      },
+      { ...command, setting: 'recordInputs', dataCollection: undefined, options: { recordInputs: false } },
+    ]),
+  )('records no $commandName input when $setting is off', ({ commandName, commandInput, dataCollection, options }) => {
+    const client = new TestClient(getDefaultTestClientOptions({ dataCollection }));
     setCurrentClient(client);
     client.init();
 
-    const { spanAttributes } = preSpanHook(commandName, commandInput);
+    const { spanAttributes } = preSpanHook(commandName, commandInput, options);
 
     expect(spanAttributes).not.toHaveProperty(GEN_AI_INPUT_MESSAGES);
   });
@@ -243,13 +258,14 @@ function respond(
   commandInput: Record<string, unknown>,
   data: unknown,
   abortSignal?: AbortSignal,
+  options?: GenAiOptions,
 ): void {
   const response: NormalizedResponse = {
     data,
     request: { serviceName: 'BedrockRuntime', commandName, commandInput, abortSignal },
     requestId: 'b0a5e5a2-2c2b-4f56-9d0e-8c7c2d3f4a10',
   };
-  new BedrockRuntimeServiceExtension().responseHook(response, span);
+  new BedrockRuntimeServiceExtension(options).responseHook(response, span);
 }
 
 async function drain(stream: AsyncIterable<unknown>): Promise<void> {
@@ -796,35 +812,50 @@ describe('BedrockRuntimeServiceExtension output recording', () => {
     ]);
   });
 
-  it.each([
-    { commandName: 'Converse', makeData: () => ({ output: { message: { content: [{ text: 'Paris.' }] } } }) },
-    {
-      commandName: 'InvokeModel',
-      makeData: () => ({ body: encoder.encode(JSON.stringify({ outputs: [{ text: 'Paris.' }] })) }),
-    },
-    {
-      commandName: 'ConverseStream',
-      makeData: () => ({
-        stream: (async function* () {
-          yield { contentBlockStart: { contentBlockIndex: 0, start: { toolUse: { toolUseId: 't', name: 'f' } } } };
-          yield { contentBlockDelta: { contentBlockIndex: 0, delta: { toolUse: { input: '{}' } } } };
-        })(),
-      }),
-    },
-  ])('records no $commandName output when dataCollection.genAI.outputs is off', async ({ commandName, makeData }) => {
-    const client = new TestClient(
-      getDefaultTestClientOptions({ tracesSampleRate: 1, dataCollection: { genAI: { outputs: false } } }),
-    );
-    setCurrentClient(client);
-    client.init();
-    const span = startInactiveSpan({ name: 'bedrock' });
-    const data = makeData();
+  it.each(
+    [
+      { commandName: 'Converse', makeData: () => ({ output: { message: { content: [{ text: 'Paris.' }] } } }) },
+      {
+        commandName: 'InvokeModel',
+        makeData: () => ({ body: encoder.encode(JSON.stringify({ outputs: [{ text: 'Paris.' }] })) }),
+      },
+      {
+        commandName: 'ConverseStream',
+        makeData: () => ({
+          stream: (async function* () {
+            yield { contentBlockStart: { contentBlockIndex: 0, start: { toolUse: { toolUseId: 't', name: 'f' } } } };
+            yield { contentBlockDelta: { contentBlockIndex: 0, delta: { toolUse: { input: '{}' } } } };
+          })(),
+        }),
+      },
+      {
+        commandName: 'InvokeModelWithResponseStream',
+        makeData: () => ({ body: streamOf([{ outputs: [{ text: 'Paris.' }] }]) }),
+      },
+    ].flatMap(command => [
+      {
+        ...command,
+        setting: 'dataCollection.genAI.outputs',
+        dataCollection: { genAI: { outputs: false } },
+        options: undefined,
+      },
+      { ...command, setting: 'recordOutputs', dataCollection: undefined, options: { recordOutputs: false } },
+    ]),
+  )(
+    'records no $commandName output when $setting is off',
+    async ({ commandName, makeData, dataCollection, options }) => {
+      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1, dataCollection }));
+      setCurrentClient(client);
+      client.init();
+      const span = startInactiveSpan({ name: 'bedrock' });
+      const data = makeData() as { stream?: AsyncIterable<unknown>; body?: unknown };
 
-    respond(span, commandName, { modelId: 'mistral.mistral-large-2402-v1:0' }, data);
-    if ('stream' in data) {
-      await drain(data.stream);
-    }
+      respond(span, commandName, { modelId: 'mistral.mistral-large-2402-v1:0' }, data, undefined, options);
+      if (commandName.endsWith('Stream')) {
+        await drain((data.stream ?? data.body) as AsyncIterable<unknown>);
+      }
 
-    expect(spanToJSON(span).attributes).not.toHaveProperty(GEN_AI_OUTPUT_MESSAGES);
-  });
+      expect(spanToJSON(span).attributes).not.toHaveProperty(GEN_AI_OUTPUT_MESSAGES);
+    },
+  );
 });

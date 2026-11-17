@@ -13,7 +13,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
-import type { StreamResponseState } from '../../../ai/core/utils';
+import type { GenAiOptions, StreamResponseState } from '../../../ai/core/utils';
 import type { GenAiMessagePart } from '../../../ai/types';
 import {
   endStreamSpan,
@@ -70,6 +70,12 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
   // Requests pi-ai sends, which its own `gen_ai.chat` span already reports. They keep the plain AWS
   // client span, without the model call on it.
   private _piAiRequests: WeakSet<NormalizedRequest> = new WeakSet();
+
+  public constructor(private readonly _options: GenAiOptions = {}) {}
+
+  private _recordingOptions(): Required<GenAiOptions> {
+    return resolveAIRecordingOptions(this._options);
+  }
 
   public requestPreSpanHook(request: NormalizedRequest): RequestMetadata {
     if (isInsidePiAiSpan()) {
@@ -152,7 +158,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       }
     }
 
-    if (resolveAIRecordingOptions().recordInputs) {
+    if (this._recordingOptions().recordInputs) {
       Object.assign(spanAttributes, getConverseInputAttributes(request.commandInput));
     }
 
@@ -281,7 +287,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
         }
       }
 
-      if (resolveAIRecordingOptions().recordInputs) {
+      if (this._recordingOptions().recordInputs) {
         Object.assign(spanAttributes, getInvokeModelInputAttributes(modelId, requestBody));
       }
     }
@@ -298,7 +304,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     const { stopReason, usage, output } = response.data;
 
     setStopReason(span, stopReason);
-    if (resolveAIRecordingOptions().recordOutputs) {
+    if (this._recordingOptions().recordOutputs) {
       setOutputMessages(span, contentBlocksToParts(output?.message?.content));
     }
     span.setAttributes(
@@ -326,6 +332,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       response.data.stream as AsyncIterable<ConverseStreamOutput>,
       span,
       response.request.abortSignal,
+      this._recordingOptions().recordOutputs,
       processConverseStreamEvent,
     );
   }
@@ -393,7 +400,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
           span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(responseBody.outputs[0].text.length / 6));
         }
       }
-      if (resolveAIRecordingOptions().recordOutputs) {
+      if (this._recordingOptions().recordOutputs) {
         setOutputMessages(span, getInvokeModelOutputParts(responseBody));
       }
     }
@@ -417,6 +424,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       stream as AsyncIterable<{ chunk?: { bytes?: Uint8Array } }>,
       span,
       response.request.abortSignal,
+      this._recordingOptions().recordOutputs,
       (item, state) => {
         if (processChunk) {
           const parsedChunk = parseChunk(item?.chunk?.bytes);
@@ -474,13 +482,14 @@ async function* instrumentStream<T>(
   stream: AsyncIterable<T>,
   span: Span,
   abortSignal: AbortSignal | undefined,
+  recordOutputs: boolean,
   processItem: (item: T, state: BedrockStreamState) => void,
 ): AsyncGenerator<T> {
   const state: BedrockStreamState = {
     finishReasons: [],
     responseTexts: [],
     toolCalls: [],
-    parts: resolveAIRecordingOptions().recordOutputs ? [] : undefined,
+    parts: recordOutputs ? [] : undefined,
   };
   try {
     for await (const item of stream) {

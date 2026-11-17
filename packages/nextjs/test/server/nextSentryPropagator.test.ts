@@ -14,6 +14,8 @@ const PRERENDER_SPAN_OPTIONS = {
   },
 };
 
+const RENDER_START = 1_700_000_000;
+
 const RENDER_SPAN_OPTIONS = {
   attributes: {
     [ATTR_NEXT_SPAN_TYPE]: 'AppRender.getBodyResult',
@@ -82,11 +84,13 @@ describe('NextSentryPropagator', () => {
     });
   });
 
-  it('hands out only the trace of the prerender as cache origin while a route is prerendered', () => {
-    trace.getTracer('next.js').startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, span => {
+  it('hands out only the trace and the start of the prerender while a route is prerendered', () => {
+    const options = { ...PRERENDER_SPAN_OPTIONS, startTime: (RENDER_START + 0.9) * 1000 };
+    trace.getTracer('next.js').startActiveSpan('prerender route (app) /[id]', options, span => {
       expect(isPrerenderContext(context.active())).toBe(true);
       expect(inject()).toEqual({
         'sentry-cache-origin': `${span.spanContext().traceId}-${span.spanContext().spanId}-1`,
+        'sentry-render-start': String(RENDER_START),
       });
       span.end();
     });
@@ -94,7 +98,10 @@ describe('NextSentryPropagator', () => {
 
   it('keeps propagating to outgoing requests while a route is prerendered', () => {
     trace.getTracer('next.js').startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, span => {
-      expect(inject()).toEqual({ 'sentry-cache-origin': expect.stringMatching(/-1$/) });
+      expect(inject()).toEqual({
+        'sentry-cache-origin': expect.stringMatching(/-1$/),
+        'sentry-render-start': expect.stringMatching(/^\d+$/),
+      });
       expect(injectHeaders()['sentry-trace']).toBe(`${span.spanContext().traceId}-${span.spanContext().spanId}-1`);
       span.end();
     });
@@ -103,14 +110,15 @@ describe('NextSentryPropagator', () => {
   it('hands out only the cache origin inside a span nested in a prerender', () => {
     trace.getTracer('next.js').startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, span => {
       startSpan({ name: 'server component' }, () => {
-        expect(Object.keys(inject())).toEqual(['sentry-cache-origin']);
+        expect(Object.keys(inject())).toEqual(['sentry-cache-origin', 'sentry-render-start']);
       });
       span.end();
     });
   });
 
-  it('hands out only the cache origin while a route is prerendered in an unsampled trace', () => {
+  it('hands out only the cache origin and the current time while a route is prerendered in an unsampled trace', () => {
     setup(0);
+    const before = Math.floor(Date.now() / 1000);
 
     trace.getTracer('next.js').startActiveSpan('GET /[id]', span => {
       expect(span.isRecording()).toBe(false);
@@ -120,7 +128,9 @@ describe('NextSentryPropagator', () => {
         .getTracer('next.js')
         .startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, prerenderSpan => {
           expect(prerenderSpan.isRecording()).toBe(false);
-          expect(inject()).toEqual({ 'sentry-cache-origin': expect.stringMatching(/-0$/) });
+          const { 'sentry-render-start': renderStart, ...tags } = inject();
+          expect(tags).toEqual({ 'sentry-cache-origin': expect.stringMatching(/-0$/) });
+          expect(Number(renderStart)).toBeGreaterThanOrEqual(before);
           prerenderSpan.end();
         });
       span.end();
@@ -131,7 +141,7 @@ describe('NextSentryPropagator', () => {
     const span = trace.getTracer('next.js').startSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS);
     context.with(trace.setSpan(context.active(), span), () => {
       expect(isPrerenderContext(context.active())).toBe(true);
-      expect(Object.keys(inject())).toEqual(['sentry-cache-origin']);
+      expect(Object.keys(inject())).toEqual(['sentry-cache-origin', 'sentry-render-start']);
     });
     span.end();
 
@@ -147,7 +157,7 @@ describe('NextSentryPropagator', () => {
       .getTracer('next.js')
       .startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, context.active(), span => {
         expect(isPrerenderContext(context.active())).toBe(true);
-        expect(Object.keys(inject())).toEqual(['sentry-cache-origin']);
+        expect(Object.keys(inject())).toEqual(['sentry-cache-origin', 'sentry-render-start']);
         span.end();
       });
   });

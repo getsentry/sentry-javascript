@@ -9,7 +9,14 @@ import type {
   ProfileChunkItem,
   SdkInfo,
 } from '@sentry/core';
-import { createEnvelope, debug, dsnToString, getDebugImagesForResources, uuid4 } from '@sentry/core';
+import {
+  _INTERNAL_safeDateNow as safeDateNow,
+  createEnvelope,
+  debug,
+  dsnToString,
+  getDebugImagesForResources,
+  uuid4,
+} from '@sentry/core';
 import type { RawChunkCpuProfile } from '@sentry/node-cpu-profiler';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from './debug-build';
@@ -164,7 +171,7 @@ export function createEventEnvelopeHeaders(
 ): EventEnvelopeHeaders {
   return {
     event_id: uuid4(),
-    sent_at: new Date().toISOString(),
+    sent_at: new Date(safeDateNow()).toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
     ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };

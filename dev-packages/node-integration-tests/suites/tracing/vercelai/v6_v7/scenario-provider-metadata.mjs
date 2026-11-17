@@ -23,6 +23,7 @@ async function run() {
               reasoningTokens: 7,
               responseId: 'resp_abc123',
             },
+            gateway: { cost: '0.0000074' },
           },
         }),
       }),
