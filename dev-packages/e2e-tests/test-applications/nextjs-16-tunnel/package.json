@@ -29,7 +29,7 @@
     "@opennextjs/cloudflare": "^1.14.9",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
-    "next": "16.3.8",
+    "next": "16.4.5",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
