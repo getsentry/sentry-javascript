@@ -1,5 +1,5 @@
 import { consoleSandbox, debug, GLOBAL_OBJ } from '@sentry/core';
-import { isBun } from '../utils/runtime';
+import { isBun, isBunRuntimeInstrumentationSupported } from '../utils/runtime';
 
 /**
  * The module names (e.g. `mysql`, `@hapi/hapi`) orchestrion has already injected
@@ -44,8 +44,11 @@ export function detectOrchestrionSetup(): void {
           // oxlint-disable-next-line no-console
           console.warn(
             '[Sentry] No diagnostics-channel injection detected. Channel-based integrations will not record ' +
-              'spans or capture errors, because Bun cannot instrument modules at runtime. Build your app with ' +
-              '`@sentry/bun/plugin` to enable them.',
+              `spans or capture errors. ${
+                isBunRuntimeInstrumentationSupported()
+                  ? 'Run your app with `bun --preload @sentry/bun/import` or'
+                  : 'Bun before 1.4.5 cannot instrument modules at runtime. Upgrade Bun, or'
+              } build your app with \`@sentry/bun/plugin\`.`,
           );
         });
       }

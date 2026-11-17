@@ -62,8 +62,9 @@ const NO_FETCH_INSTRUMENTATION = [
   'suites/tracing/requests/traceparent/test.ts',
 ];
 
-// `bun run` cannot inject the diagnostics channels into libraries, so framework, database and AI
-// instrumentation creates no spans. Apps must be built with `@sentry/bun/plugin`.
+// Before Bun 1.4.5, `bun run` cannot inject the diagnostics channels into libraries, so framework,
+// database and AI instrumentation creates no spans. Apps must be built with `@sentry/bun/plugin`.
+// The `node-suites-bun-build` and `node-suites-bun-run` projects run these suites.
 // See https://github.com/getsentry/sentry-javascript/issues/23882
 export const NO_AUTO_INSTRUMENTATION = [
   'suites/cron/cron-integration/test.ts',
@@ -274,4 +275,30 @@ export const BUN_BUILD_EXCLUDE = [
   ...BUN_BUILD_NO_HTTP_SERVER_INTEGRATION,
   ...BUN_BUILD_UNBUNDLEABLE_DEPENDENCY,
   ...BUN_BUILD_NOT_TRIAGED,
+];
+
+// The `bun run` project (`node-suites-bun-run`) runs the suites of `NO_AUTO_INSTRUMENTATION` with
+// `@sentry/bun/import` preloaded, on Bun 1.4.5 or later. These do not run there.
+
+// The expected spans have `sentry.javascript.node` as the SDK name.
+const BUN_RUN_EXPECTS_SENTRY_NODE = ['suites/tracing/mongodb/test.ts', 'suites/tracing/mysql/test.ts'];
+
+// Some or all tests fail under `bun run`. The cause is not investigated yet. They also fail with the
+// bundled scenarios.
+const BUN_RUN_NOT_TRIAGED = [
+  'suites/express/tracing/request-data/test.ts',
+  'suites/express/with-http/maxIncomingRequestBodySize/test.ts',
+  'suites/hono-sdk/test.ts',
+  'suites/pino/test.ts',
+];
+
+export const BUN_RUN_EXCLUDE = [
+  '**/node_modules/**',
+  // SQL Server runs in the dedicated Node/x86 CI job.
+  'suites/tracing/tedious/test.ts',
+  // These fail for the same reasons as with the bundled scenarios.
+  ...BUN_BUILD_EAGER_SUBSCRIPTION,
+  ...BUN_BUILD_NO_HTTP_SERVER_INTEGRATION,
+  ...BUN_RUN_EXPECTS_SENTRY_NODE,
+  ...BUN_RUN_NOT_TRIAGED,
 ];

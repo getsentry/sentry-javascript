@@ -29,11 +29,15 @@ import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 import { bunHttpServerIntegration } from './integrations/bunHttpServer';
 import { getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
+import { registerBunRuntimeInstrumentation } from '@sentry/server-utils/orchestrion/bun';
+
+declare const __SENTRY_CHANNEL_INJECTION__: boolean | undefined;
 
 /**
  * The tracing integrations for bun, added whenever spans are enabled. Most of them listen on
  * the orchestrion diagnostics channels, which only exist when the app is built with
- * `@sentry/bun/plugin`. Without the plugin, those integrations stay installed but create no spans.
+ * `@sentry/bun/plugin`, or runs in `bun run` on Bun 1.4.5 or later. Otherwise, those
+ * integrations stay installed but create no spans.
  */
 function getPerformanceIntegrations(options: Options): Integration[] {
   if (!hasSpansEnabled(options)) {
@@ -156,6 +160,15 @@ function _init(
 
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = getDefaultIntegrationsImpl(options);
+  }
+
+  // Only reaches modules imported after `init()`. `@sentry/bun/import` also reaches the static
+  // imports of the entry module.
+  if (
+    (typeof __SENTRY_CHANNEL_INJECTION__ === 'undefined' || __SENTRY_CHANNEL_INJECTION__) &&
+    options.enableRuntimeChannelInjection !== false
+  ) {
+    registerBunRuntimeInstrumentation();
   }
 
   return initNode(options);
