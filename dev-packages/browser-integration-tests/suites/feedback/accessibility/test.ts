@@ -40,18 +40,6 @@ for (const { description, role, name, key } of keyboardDismissals) {
   });
 }
 
-sentryTest('keeps keyboard navigation inside the modal @firefox', async ({ page }) => {
-  await page.getByRole('button', { name: 'Report a Bug', exact: true }).click();
-  const cancel = page.getByRole('button', { name: 'Cancel', exact: true });
-  await cancel.focus();
-  await page.keyboard.press('Tab');
-  await expect(page.getByRole('link', { name: 'Powered by Sentry' })).toBeFocused();
-  await page.keyboard.press('Shift+Tab');
-  await expect(cancel).toBeFocused();
-  await page.keyboard.press('Escape');
-  await expect(page.locator('dialog')).not.toBeVisible();
-});
-
 sentryTest('returns to a custom launcher inside another native modal @firefox', async ({ page }) => {
   await page.evaluate(() => {
     const { Sentry } = window as unknown as { Sentry: typeof SentrySDK };
@@ -72,11 +60,6 @@ sentryTest('returns to a custom launcher inside another native modal @firefox', 
   await launcher.click();
   await expect(page.getByRole('dialog', { name: 'Custom feedback title' })).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Description' })).toBeFocused();
-  await page.getByRole('button', { name: 'Cancel', exact: true }).focus();
-  await page.keyboard.press('Tab');
-  await expect(page.getByRole('textbox', { name: 'Description' })).toBeFocused();
-  await page.keyboard.press('Shift+Tab');
-  await expect(page.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(launcher).toBeFocused();
   expect(await page.locator('#parent-modal').evaluate(el => el.matches(':modal'))).toBe(true);
@@ -156,9 +139,6 @@ for (const key of ['Escape', 'Enter'] as const) {
     await expect(page.getByRole('dialog', { name: 'Report a Bug' })).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Description' })).toBeFocused();
     await page.getByRole('button', { name: 'Cancel', exact: true }).focus();
-    await page.keyboard.press('Tab');
-    await expect(page.getByRole('link', { name: 'Powered by Sentry' })).toBeFocused();
-    await page.keyboard.press('Shift+Tab');
     await page.keyboard.press(key);
     await expect(page.locator('dialog')).not.toBeVisible();
     await expect(launcher).toBeFocused();

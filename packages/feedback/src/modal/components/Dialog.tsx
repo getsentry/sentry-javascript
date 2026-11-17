@@ -98,24 +98,6 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
             if (event.key === 'Escape' && !isModalRef.current) {
               event.preventDefault();
               options.onFormClose?.();
-              return;
-            }
-            if (event.key !== 'Tab') {
-              return;
-            }
-            const controls = Array.from(
-              event.currentTarget.querySelectorAll<HTMLElement>('a[href], button, input, textarea, select, [tabindex]'),
-            ).filter(
-              control => control.tabIndex >= 0 && !control.matches(':disabled') && control.getClientRects().length > 0,
-            );
-            const first = controls[0];
-            const last = controls[controls.length - 1];
-            if (event.shiftKey && event.target === first) {
-              event.preventDefault();
-              last?.focus();
-            } else if (!event.shiftKey && event.target === last) {
-              event.preventDefault();
-              first?.focus();
             }
           }}
         >
