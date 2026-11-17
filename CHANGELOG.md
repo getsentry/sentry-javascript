@@ -14,6 +14,10 @@
 
   Server function spans now set the file of the server function in `code.file.path` instead of `tanstackstart.function.filename`. The `tanstackstart.function.id` attribute is removed.
 
+- **fix: Add ESM types to all packages so a default import fails in TypeScript ([#26342](https://github.com/getsentry/sentry-javascript/pull/26342))**
+
+  TypeScript now reports an error for a default import such as `import Sentry from '@sentry/node'` in ESM files. The packages have no default export, so this import failed at runtime. Use `import * as Sentry from '@sentry/node'` instead.
+
 ## 11.14.0
 
 ### Important Changes
