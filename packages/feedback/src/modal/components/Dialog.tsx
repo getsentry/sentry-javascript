@@ -89,15 +89,15 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
           class="dialog"
           ref={dialogRef}
           aria-labelledby={props.titleId}
-          onClick={props.onFormClose}
+          onClick={options.onFormClose}
           onCancel={event => {
             event.preventDefault();
-            props.onFormClose();
+            options.onFormClose?.();
           }}
           onKeyDown={event => {
             if (event.key === 'Escape' && !isModalRef.current) {
               event.preventDefault();
-              props.onFormClose();
+              options.onFormClose?.();
               return;
             }
             if (event.key !== 'Tab') {
