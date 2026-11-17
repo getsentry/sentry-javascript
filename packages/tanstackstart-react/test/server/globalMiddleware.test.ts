@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  CODE_FILE_PATH,
   CODE_FUNCTION_NAME,
   HTTP_REQUEST_METHOD,
   SENTRY_DESCRIPTION,
@@ -109,8 +110,7 @@ describe('sentryGlobalFunctionMiddleware', () => {
             [CODE_FUNCTION_NAME]: 'testLog',
             [HTTP_REQUEST_METHOD]: 'POST',
             [SENTRY_DESCRIPTION]: 'POST /_serverFn/testLog',
-            'tanstackstart.function.id': 'abc123',
-            'tanstackstart.function.filename': 'src/routes/test.tsx',
+            [CODE_FILE_PATH]: 'src/routes/test.tsx',
           },
         },
         expect.any(Function),

@@ -8,6 +8,7 @@ import {
 import type { SentryGlobalFunctionMiddleware, SentryGlobalRequestMiddleware } from '../common/types';
 import { SENTRY_INTERNAL } from './middleware';
 import {
+  CODE_FILE_PATH,
   CODE_FUNCTION_NAME,
   HTTP_REQUEST_METHOD,
   SENTRY_DESCRIPTION,
@@ -17,7 +18,6 @@ import {
 import { FUNCTION } from '@sentry/conventions/op';
 
 type ServerFnMeta = {
-  id?: string;
   name?: string;
   filename?: string;
 };
@@ -61,8 +61,7 @@ function createSentryFunctionMiddlewareHandler(mechanismType: string) {
           [HTTP_REQUEST_METHOD]: method,
           // Relay infers a `function` span's description from `code.function.name` alone, which drops the path.
           ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
-          ...(serverFnMeta?.id && { 'tanstackstart.function.id': serverFnMeta.id }),
-          ...(serverFnMeta?.filename && { 'tanstackstart.function.filename': serverFnMeta.filename }),
+          ...(serverFnMeta?.filename && { [CODE_FILE_PATH]: serverFnMeta.filename }),
         },
       },
       async () => {
