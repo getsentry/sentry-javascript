@@ -11,7 +11,7 @@
  * runtimes without `nodejs_compat` — there the queue is always empty (no channels were ever
  * injected) and the flush is a no-op.
  */
-import { debug } from '@sentry/core';
+import { debug, GLOBAL_OBJ } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 
 type Ctx = Record<string, unknown>;
@@ -32,8 +32,15 @@ interface DeferredChannelEvent {
   hadError: boolean;
 }
 
-const deferred: DeferredChannelEvent[] = [];
 const DEFERRED = Symbol('sentryOrchestrionDeferred');
+
+// The queue is on the global marker, not in this module: a bundle can hold both builds of this module. Transformed
+// CommonJS packages (`express`, `mysql`) `require` the façade, so they defer through the CommonJS build, while the
+// request wrapper that flushes is usually the ES module build.
+function getDeferredEvents(): DeferredChannelEvent[] {
+  const marker = (GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ??= {});
+  return (marker.deferredChannelEvents ??= []) as DeferredChannelEvent[];
+}
 
 /** workerd's global-scope guard is the only error we degrade on; anything else is a real fault. */
 export function isGlobalScopeError(error: unknown): boolean {
@@ -46,7 +53,7 @@ export function deferChannelEvent(channel: PublishableTracingChannel, ctx: Ctx):
     return;
   }
   (ctx as Record<symbol, unknown>)[DEFERRED] = true;
-  deferred.push({ channel, ctx, hadError: 'error' in ctx });
+  getDeferredEvents().push({ channel, ctx, hadError: 'error' in ctx });
 }
 
 /**
@@ -57,6 +64,7 @@ export function deferChannelEvent(channel: PublishableTracingChannel, ctx: Ctx):
  * and re-entrant calls are no-ops.
  */
 export function flushDeferredChannelEvents(): void {
+  const deferred = getDeferredEvents();
   if (deferred.length === 0) {
     return;
   }
