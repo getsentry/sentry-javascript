@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **feat(core): Continue MCP server traces from `params._meta` ([#26308](https://github.com/getsentry/sentry-javascript/pull/26308))**
+
+  MCP server spans now continue the caller's trace from the `sentry-trace` and `baggage` keys in a request's or notification's `params._meta`, so they connect to the agent that called the tool, including over stdio. Set `propagateTraceparent: true` to also continue from a W3C `traceparent` key. On Streamable HTTP, the MCP span is no longer a child of the `http.server` span when the client sends trace context in `_meta`. It has a span link to that span instead. Messages without valid trace context in `_meta`, or with trace context from another Sentry org, still join the transport's trace.
+
 ## 11.14.0
 
 ### Important Changes
