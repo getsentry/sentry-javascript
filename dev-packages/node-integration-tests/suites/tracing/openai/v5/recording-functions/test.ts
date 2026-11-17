@@ -20,7 +20,6 @@ describe('OpenAI integration', () => {
     (createRunner, test) => {
       test('decides content recording per call when the options are functions', async () => {
         await createRunner()
-          .unordered()
           .expect({
             span: container => {
               const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
