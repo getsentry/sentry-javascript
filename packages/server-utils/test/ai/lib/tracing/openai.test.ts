@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { GEN_AI_OUTPUT_MESSAGES } from '@sentry/conventions/attributes';
+import { GEN_AI_INPUT_MESSAGES, GEN_AI_OUTPUT_MESSAGES } from '@sentry/conventions/attributes';
 import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { instrumentOpenAiClient } from '../../../../src/ai/openai';
+import type { OpenAiCallInfo } from '../../../../src/ai/openai/types';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 describe('instrumentOpenAiClient span names', () => {
@@ -155,5 +156,18 @@ describe('instrumentOpenAiClient span names', () => {
         },
       },
     ]);
+  });
+
+  it('decides recording for each call when the options are functions', async () => {
+    const endedSpans = setupClient('stream');
+    const decide = vi.fn((call: OpenAiCallInfo) => call.request?.user === 'public');
+    const instrumented = instrumentOpenAiClient(fakeClient(), { recordInputs: decide, recordOutputs: decide });
+
+    const messages = [{ role: 'user', content: 'Hello' }];
+    await instrumented.chat.completions.create({ model: 'gpt-4', messages, user: 'public' });
+    await instrumented.chat.completions.create({ model: 'gpt-4', messages, user: 'private' });
+
+    expect(decide).toHaveBeenCalledWith({ operation: 'chat', request: { model: 'gpt-4', messages, user: 'public' } });
+    expect(endedSpans.map(span => GEN_AI_INPUT_MESSAGES in spanToStaticSpanJSON(span).data)).toEqual([true, false]);
   });
 });
