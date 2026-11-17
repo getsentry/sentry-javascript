@@ -109,6 +109,7 @@ function scopeToConsumer(plugins: Plugin[], consumer: Consumer): Plugin[] {
       }
     }
 
+    // The hooks are replaced by name, and each Vite hook has its own type, so the copy is built as a plain record.
     return scoped as unknown as Plugin;
   });
 }

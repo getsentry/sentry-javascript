@@ -99,7 +99,7 @@ describe('sentryReactRouter', () => {
     ]);
     expect(makeConfigInjectorPlugin).toHaveBeenCalledWith({});
     expect(makeServerBuildCapturePlugin).toHaveBeenCalled();
-    expect(makeCustomSentryVitePlugins).toHaveBeenCalledWith({}, { releaseAtRuntime: false });
+    expect(makeCustomSentryVitePlugins).toHaveBeenCalledWith({}, { releaseAtRuntime: true });
     expect(makeEnableSourceMapsPlugin).toHaveBeenCalledWith({});
 
     process.env.NODE_ENV = originalNodeEnv;
@@ -119,6 +119,31 @@ describe('sentryReactRouter', () => {
     process.env.NODE_ENV = originalNodeEnv;
   });
 
+  it('resolves the release after building the Sentry plugins, which load `.env.sentry-build-plugin`', async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+
+    await sentryReactRouter({}, { command: 'build', mode: 'production' });
+
+    expect(vi.mocked(makeCustomSentryVitePlugins).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(getClientRelease).mock.invocationCallOrder[0]!,
+    );
+
+    process.env.NODE_ENV = originalNodeEnv;
+  });
+
+  it('keeps the release in the client chunks when release injection is turned off', async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+
+    const options = { release: { inject: false } };
+    await sentryReactRouter(options, { command: 'build', mode: 'production' });
+
+    expect(makeCustomSentryVitePlugins).toHaveBeenCalledWith(options, { releaseAtRuntime: false });
+
+    process.env.NODE_ENV = originalNodeEnv;
+  });
+
   it('should pass release configuration to plugins', async () => {
     const originalNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';
@@ -132,7 +157,7 @@ describe('sentryReactRouter', () => {
     await sentryReactRouter(options, { command: 'build', mode: 'production' });
 
     expect(makeConfigInjectorPlugin).toHaveBeenCalledWith(options);
-    expect(makeCustomSentryVitePlugins).toHaveBeenCalledWith(options, { releaseAtRuntime: false });
+    expect(makeCustomSentryVitePlugins).toHaveBeenCalledWith(options, { releaseAtRuntime: true });
     expect(makeEnableSourceMapsPlugin).toHaveBeenCalledWith(options);
 
     process.env.NODE_ENV = originalNodeEnv;
