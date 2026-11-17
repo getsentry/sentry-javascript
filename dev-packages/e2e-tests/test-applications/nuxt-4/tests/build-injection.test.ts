@@ -57,7 +57,7 @@ test.describe('Orchestrion build-time injection', () => {
   });
 });
 
-const NO_SERVER_CONFIG = 'Cloudflare: `sentryCloudflareNitroPlugin` sets up the SDK, not `sentry.server.config.ts`';
+const NO_SERVER_CONFIG = 'Cloudflare: `instrument.server.ts` sets up the SDK, not `sentry.server.config.ts`';
 
 test.describe('Sentry server config injection', () => {
   test('evaluates Sentry.init before nitro runs its plugins', () => {

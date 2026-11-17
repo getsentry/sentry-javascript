@@ -179,8 +179,8 @@ is the reference setup.
   the integrations of `@sentry/bun` or `@sentry/deno`. Nuxt is similar: `@sentry/nuxt` bundles `sentry.server.config.ts`
   into the Nitro output, so `nuxt-4` calls `init()` of `@sentry/nuxt` on Bun and Deno too. `sentry.server.config.bun.ts`
   and `sentry.server.config.deno.ts` add the integrations of `@sentry/bun` or `@sentry/deno`. On Cloudflare, `nuxt-4`
-  builds with the `cloudflare_module` preset and sets up the SDK with `sentryCloudflareNitroPlugin`, which
-  `nuxt.config.ts` adds only for that runtime. Like the documented Cloudflare setup, that build has no
+  builds with the `cloudflare_durable` preset, and `@sentry/nuxt` wraps the Worker with `withSentry` and the options of
+  the root `instrument.server.ts`. Like the documented Cloudflare setup, that build has no
   `sentry.server.config.ts`: a runtime-specific file can replace a file but not remove it, so the build command deletes
   it. Nitro turns every file under `server/api` into a route, so
   `nuxt.config.ts` lists the runtime-specific files there (such as `db-mongoose.cloudflare.ts`) in Nitro's `ignore`.
