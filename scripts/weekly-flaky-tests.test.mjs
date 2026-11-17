@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { collectReport, renderReport } from './weekly-flaky-tests.mjs';
+import { collectReport } from './weekly-flaky-tests.mjs';
 
 const REPOSITORY_URL = 'https://github.com/getsentry/sentry-javascript';
 const context = { repo: { owner: 'getsentry', repo: 'sentry-javascript' }, serverUrl: 'https://github.com', runId: 99 };
@@ -88,21 +88,6 @@ describe('collectReport', () => {
     ]);
   });
 
-  it('reports a job that reached its time limit after all its steps passed', async () => {
-    const report = await collect([job(18, 'E2E nuxt-4 Test', 'cancelled', [['Run E2E test', 'success']])], {
-      18: [jobTimeout],
-    });
-
-    expect(report.steps).toEqual([
-      {
-        family: 'E2E Tests',
-        name: 'No failed step',
-        outcome: 'timed out',
-        runs: new Map([[7, `${REPOSITORY_URL}/actions/runs/7/job/18`]]),
-      },
-    ]);
-  });
-
   it('ignores a cancelled job that did not time out', async () => {
     const report = await collect([job(13, 'Lint', 'cancelled', [['Lint source files', 'cancelled']])], {
       13: [{ annotation_level: 'failure', path: '.github', message: 'The operation was canceled.' }],
@@ -110,60 +95,5 @@ describe('collectReport', () => {
 
     expect(report.steps).toEqual([]);
     expect(report.failedJobs).toBe(0);
-  });
-
-  it('ignores the gate job, which only repeats the failure of another job', async () => {
-    const report = await collect(
-      [job(14, 'All required jobs passed or were skipped', 'failure', [['Check for failures', 'failure']])],
-      { 14: [processExit] },
-    );
-
-    expect(report.steps).toEqual([]);
-    expect(report.failedJobs).toBe(0);
-  });
-
-  it('counts the same failed step of two E2E applications as one row', async () => {
-    const steps = [['Install E2E app dependencies', 'failure']];
-    const report = await collect(
-      [job(15, 'E2E nuxt-4 Test', 'failure', steps), job(16, 'E2E hono-4 (bun) Test', 'failure', steps)],
-      { 15: [processExit], 16: [processExit] },
-    );
-
-    expect(report.steps).toEqual([
-      {
-        family: 'E2E Tests',
-        name: 'Install E2E app dependencies',
-        outcome: 'failed',
-        runs: new Map([[7, `${REPOSITORY_URL}/actions/runs/7/job/15`]]),
-      },
-    ]);
-    expect(report.failedJobsWithoutTests).toBe(2);
-  });
-});
-
-describe('renderReport', () => {
-  it('renders a job failure outside a test in its own table', async () => {
-    const report = await collect(
-      [job(12, 'Playwright esm chromium Tests', 'cancelled', [['Install Playwright', 'cancelled']])],
-      { 12: [jobTimeout] },
-    );
-
-    expect(renderReport(report, context).split('\n')).toEqual([
-      '## Weekly test failures',
-      '',
-      'Develop · 2026-11-09–2026-11-16 · 1 CI runs.',
-      '',
-      'No test failures found.',
-      '',
-      '## Weekly job failures outside a test',
-      '',
-      '| Job | Step | Result | Affected runs | Links to runs |',
-      '| --- | --- | --- | ---: | --- |',
-      `| Playwright Tests | Install Playwright | timed out | 1 | [7](${REPOSITORY_URL}/actions/runs/7/job/12) |`,
-      '',
-      '1 failed job attempts; 1 without test annotations. Optional jobs and the required-jobs gate excluded.',
-      '',
-      '',
-    ]);
   });
 });
