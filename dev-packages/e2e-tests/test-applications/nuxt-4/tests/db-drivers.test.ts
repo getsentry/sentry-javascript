@@ -122,6 +122,9 @@ test('Instruments mysql automatically', async ({ baseURL }) => {
 
   const spans = await spansPromise;
 
+  const rootSpan = spans.find(span => span.is_segment);
+  expect(rootSpan!.attributes['sentry.sdk.name']).toEqual({ type: 'string', value: 'sentry.javascript.nuxt' });
+
   // Neither query has a FROM target, so the low-cardinality summary (and streamed
   // span name) is just the operation. The raw SQL stays on `db.query.text`.
   expect(spans).toContainEqual(

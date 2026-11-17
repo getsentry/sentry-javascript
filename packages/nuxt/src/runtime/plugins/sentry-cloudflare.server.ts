@@ -3,6 +3,7 @@ import type { CloudflareOptions } from '@sentry/cloudflare';
 import { getDefaultIntegrations, setAsyncLocalStorageAsyncContextStrategy } from '@sentry/cloudflare';
 import { wrapRequestHandler } from '@sentry/cloudflare/request';
 import {
+  applySdkMetadata,
   debug,
   getDefaultIsolationScope,
   getIsolationScope,
@@ -20,6 +21,18 @@ import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
 import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
 import { getCfProperties, getCloudflareProperties, hasCfProperty, isEventType } from '../utils/event-type-check';
 import { addSentryPageMetaTags, recordRequestStart } from '../utils/pageMetaTags';
+
+function getRequestHandlerOptions(cloudflareOptions: CloudflareOptions): CloudflareOptions {
+  const options: CloudflareOptions = {
+    // `wrapRequestHandler` only sets up the integrations that work without `nodejs_compat`.
+    // Nitro's Cloudflare presets require the flag anyway, so opt into the full set.
+    defaultIntegrations: getDefaultIntegrations(cloudflareOptions),
+    _extendsDefaultIntegrations: cloudflareOptions.defaultIntegrations === undefined,
+    ...cloudflareOptions,
+  };
+  applySdkMetadata(options, 'nuxt', ['nuxt', 'cloudflare']);
+  return options;
+}
 
 /**
  * Sentry Cloudflare Nitro plugin for when using the "cloudflare-pages" preset in Nuxt.
@@ -76,11 +89,7 @@ export const sentryCloudflareNitroPlugin =
 
         return wrapRequestHandler(
           {
-            options: {
-              defaultIntegrations: getDefaultIntegrations(cloudflareOptions),
-              _extendsDefaultIntegrations: cloudflareOptions.defaultIntegrations === undefined,
-              ...cloudflareOptions,
-            },
+            options: getRequestHandlerOptions(cloudflareOptions),
             request,
             context: runtime.cloudflare.context,
           },
@@ -119,13 +128,7 @@ export const sentryCloudflareNitroPlugin =
           });
 
           const requestHandlerOptions = {
-            // `wrapRequestHandler` only sets up the integrations that work without `nodejs_compat`.
-            // Nitro's Cloudflare presets require the flag anyway, so opt into the full set.
-            options: {
-              defaultIntegrations: getDefaultIntegrations(cloudflareOptions),
-              _extendsDefaultIntegrations: cloudflareOptions.defaultIntegrations === undefined,
-              ...cloudflareOptions,
-            },
+            options: getRequestHandlerOptions(cloudflareOptions),
             request,
             context: getCloudflareProperties(event).context,
           };
