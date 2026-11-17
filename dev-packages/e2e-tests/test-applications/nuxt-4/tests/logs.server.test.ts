@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { URL_PATH } from '@sentry/conventions/attributes';
 import { waitForEnvelopeItem, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isViteServer, NITRO_ONLY } from './isViteServer';
 
@@ -11,7 +12,7 @@ interface LogContainer {
 test('sends a log of a server route in the trace of the request', async ({ request }) => {
   const segmentPromise = waitForStreamedSpan(
     'nuxt-4',
-    span => span.is_segment && span.attributes['url.path']?.value === '/api/log',
+    span => span.is_segment && span.attributes[URL_PATH]?.value === '/api/log',
   );
 
   await request.get('/api/log');

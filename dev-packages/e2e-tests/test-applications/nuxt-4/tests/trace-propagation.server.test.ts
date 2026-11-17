@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import { HTTP_CLIENT, HTTP_SERVER } from '@sentry/conventions/op';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { collectStreamedSpans, getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
@@ -24,18 +25,18 @@ test('continues an incoming trace in the server segment and its events', async (
 
   expect(getSpanOp(segment)).toBe(HTTP_SERVER);
   expect(segment.parent_span_id).toBe(parentSpanId);
-  expect(segment.attributes['url.path']?.value).toBe('/api/trace-continuation');
+  expect(segment.attributes[URL_PATH]?.value).toBe('/api/trace-continuation');
   expect(event.contexts?.trace?.trace_id).toBe(traceId);
   expect(event.contexts?.trace?.span_id).toBe(segment.span_id);
 });
 
 test('propagates the trace to an outgoing `fetch` request', async ({ request }) => {
   const isOutgoingSegment = (span: SerializedStreamedSpan) =>
-    span.is_segment && span.attributes['url.path']?.value === '/api/outgoing-fetch';
+    span.is_segment && span.attributes[URL_PATH]?.value === '/api/outgoing-fetch';
   const isIncomingSegment = (span: SerializedStreamedSpan) =>
-    span.is_segment && span.attributes['url.path']?.value === '/api/echo-headers';
+    span.is_segment && span.attributes[URL_PATH]?.value === '/api/echo-headers';
   const isHttpClientSpan = (span: SerializedStreamedSpan) =>
-    getSpanOp(span) === HTTP_CLIENT && String(span.attributes['url.full']?.value).endsWith('/api/echo-headers');
+    getSpanOp(span) === HTTP_CLIENT && String(span.attributes[URL_FULL]?.value).endsWith('/api/echo-headers');
 
   // Both segments and the http.client span in between share one trace, and `collectStreamedSpans`
   // evaluates one trace at a time, so requiring all three keeps them paired.
