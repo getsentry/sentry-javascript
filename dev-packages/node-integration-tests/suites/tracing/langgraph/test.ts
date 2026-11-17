@@ -12,6 +12,8 @@ import {
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_NAME,
   GEN_AI_USAGE_INPUT_TOKENS,
@@ -453,4 +455,43 @@ describe('LangGraph integration', () => {
       },
     );
   });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-recording-functions.mjs',
+    (createRunner, test) => {
+      test('applies the graph call decision to every span of the run', { timeout: 30000 }, async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const recorded: Record<string, { inputs: boolean; outputs: boolean }> = {};
+              for (const span of container.items) {
+                const op = String(span.attributes[SENTRY_OP]?.value);
+                if (op.startsWith('gen_ai.')) {
+                  recorded[`${span.attributes[GEN_AI_CONVERSATION_ID]?.value} ${op}`] = {
+                    inputs: GEN_AI_INPUT_MESSAGES in span.attributes || GEN_AI_TOOL_CALL_ARGUMENTS in span.attributes,
+                    outputs: [GEN_AI_RESPONSE_TEXT, GEN_AI_OUTPUT_MESSAGES, GEN_AI_TOOL_CALL_RESULT].some(
+                      key => key in span.attributes,
+                    ),
+                  };
+                }
+              }
+              const all = { inputs: true, outputs: true };
+              const none = { inputs: false, outputs: false };
+              expect(recorded).toEqual({
+                'public gen_ai.invoke_agent': all,
+                'public gen_ai.chat': all,
+                'public gen_ai.execute_tool': all,
+                'private gen_ai.invoke_agent': none,
+                'private gen_ai.chat': none,
+                'private gen_ai.execute_tool': none,
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });
