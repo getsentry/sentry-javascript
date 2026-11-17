@@ -41,17 +41,24 @@ export function parseCodeowners(content) {
     .map(line => line.trim())
     .filter(line => line && !line.startsWith('#'))
     .map(line => {
-      const [pattern, ...owners] = line.split(/\s+/);
-      return { regexp: patternToRegExp(pattern), owners };
+      const additive = line.startsWith('+');
+      const [pattern, ...owners] = line.replace(/^\+/, '').split(/\s+/);
+      return { regexp: patternToRegExp(pattern), owners, additive };
     });
 }
 
-/** CODEOWNERS semantics: the last matching rule wins for each file. */
+/**
+ * CODEOWNERS semantics: the last matching rule wins for each file. Rules prefixed with `+` are an extension: they
+ * never win, but add their owners on top of the winning rule.
+ */
 export function getOwnersForFiles(rules, files) {
   const owners = new Set();
   for (const file of files) {
-    const rule = rules.findLast(r => r.regexp.test(file));
-    rule?.owners.forEach(owner => owners.add(owner));
+    const matching = rules.filter(r => r.regexp.test(file));
+    const winner = matching.findLast(r => !r.additive);
+    for (const rule of [winner, ...matching.filter(r => r.additive)]) {
+      rule?.owners.forEach(owner => owners.add(owner));
+    }
   }
   return [...owners];
 }

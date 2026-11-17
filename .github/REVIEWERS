@@ -3,9 +3,11 @@
 # code owner team as soon as a PR opens, before the workflow requests anyone,
 # so the whole team gets notified.
 #
-# Last match wins. Files with no rule (CI, scripts, root config, shared test
-# utils, most of packages/core) fall back to @getsentry/team-javascript-sdks
-# plus the contractors listed in scripts/junior-requesters.mjs.
+# Last match wins. A rule prefixed with `+` doesn't replace that match but adds
+# its owners on top of it, wherever it sits in the file. Files with no rule (CI,
+# scripts, root config, shared test utils, most of packages/core) fall back to
+# @getsentry/team-javascript-sdks plus the contractors listed in
+# scripts/junior-requesters.mjs.
 # Don't add a catch-all `*` rule: it would put the whole team in the codeowner
 # pool of every PR and dilute the routing below.
 
@@ -104,57 +106,56 @@
 /dev-packages/e2e-tests/test-applications/vinext-*/ @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/vue-*/ @getsentry/team-javascript-sdks-framework
 
-# AI integrations. These come last so they win over the rules above; each rule
-# keeps the owners the path would otherwise have.
-/packages/server-utils/src/ai/      @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
-/packages/server-utils/test/ai/     @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
-/packages/server-utils/*/integrations/anthropic* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
-/packages/server-utils/*/integrations/flue* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
-/packages/server-utils/*/integrations/google-genai* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
-/packages/server-utils/*/integrations/groq* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
-/packages/server-utils/*/integrations/langchain* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
-/packages/server-utils/*/integrations/langgraph* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
-/packages/server-utils/*/integrations/mastra* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
-/packages/server-utils/*/integrations/mistral* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
-/packages/server-utils/*/integrations/openai* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
-/packages/server-utils/*/integrations/pi-* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
-/packages/server-utils/*/integrations/together-ai* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
-/packages/server-utils/*/integrations/typesafe* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
-/packages/server-utils/*/integrations/vercel-ai/ @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
-/packages/server-utils/*/integrations/aws-sdk/services/bedrock-runtime* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
-/packages/server-utils/src/orchestrion/config/openai-compatible.ts @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
-/packages/cloudflare/src/instrumentations/agents/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/packages/core/src/integrations/mcp-server/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/packages/core/src/integrations/conversationId.ts @RulaKhaled
-/packages/core/src/tracing/spans/extractGenAiSpans.ts @RulaKhaled
-/packages/core/test/lib/tracing/spans/extractGenAiSpans.test.ts @RulaKhaled
-/packages/core/src/utils/ai/         @RulaKhaled
-/packages/core/test/lib/utils/ai/    @RulaKhaled
-/dev-packages/node-integration-tests/suites/tracing/anthropic/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/node-integration-tests/suites/tracing/flue/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/node-integration-tests/suites/tracing/google-genai/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/node-integration-tests/suites/tracing/groq/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/node-integration-tests/suites/tracing/langchain/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/node-integration-tests/suites/tracing/langgraph/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/node-integration-tests/suites/tracing/mastra/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/node-integration-tests/suites/tracing/mcp-server/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/node-integration-tests/suites/tracing/mistral/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/node-integration-tests/suites/tracing/openai/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/node-integration-tests/suites/tracing/pi-ai/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/node-integration-tests/suites/tracing/pi-durable/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/node-integration-tests/suites/tracing/together-ai/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/node-integration-tests/suites/tracing/typesafe/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/node-integration-tests/suites/tracing/vercelai/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/cloudflare-integration-tests/suites/tracing/google-genai/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/cloudflare-integration-tests/suites/tracing/langchain/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/cloudflare-integration-tests/suites/tracing/langgraph/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/cloudflare-integration-tests/suites/tracing/openai/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/cloudflare-integration-tests/suites/tracing/workers-ai/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/e2e-tests/test-applications/gen-ai-libraries/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/e2e-tests/test-applications/node-openai-decisions/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/e2e-tests/test-applications/node-mastra/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/e2e-tests/test-applications/cloudflare-mastra/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/e2e-tests/test-applications/cloudflare-vercelai-v7/ @getsentry/team-javascript-sdks-server @RulaKhaled
-/dev-packages/e2e-tests/test-applications/*nextjs*/app/ai-*/ @getsentry/team-javascript-sdks-framework @RulaKhaled
-/dev-packages/e2e-tests/test-applications/*nextjs*/app/api/openai/ @getsentry/team-javascript-sdks-framework @RulaKhaled
-/.agents/skills/add-ai-integration/ @RulaKhaled
+# AI integrations, on top of the owners above
++/packages/server-utils/src/ai/ @RulaKhaled
++/packages/server-utils/test/ai/ @RulaKhaled
++/packages/server-utils/*/integrations/anthropic* @RulaKhaled
++/packages/server-utils/*/integrations/flue* @RulaKhaled
++/packages/server-utils/*/integrations/google-genai* @RulaKhaled
++/packages/server-utils/*/integrations/groq* @RulaKhaled
++/packages/server-utils/*/integrations/langchain* @RulaKhaled
++/packages/server-utils/*/integrations/langgraph* @RulaKhaled
++/packages/server-utils/*/integrations/mastra* @RulaKhaled
++/packages/server-utils/*/integrations/mistral* @RulaKhaled
++/packages/server-utils/*/integrations/openai* @RulaKhaled
++/packages/server-utils/*/integrations/pi-* @RulaKhaled
++/packages/server-utils/*/integrations/together-ai* @RulaKhaled
++/packages/server-utils/*/integrations/typesafe* @RulaKhaled
++/packages/server-utils/*/integrations/vercel-ai/ @RulaKhaled
++/packages/server-utils/*/integrations/aws-sdk/services/bedrock-runtime* @RulaKhaled
++/packages/server-utils/src/orchestrion/config/openai-compatible.ts @RulaKhaled
++/packages/cloudflare/src/instrumentations/agents/ @RulaKhaled
++/packages/core/src/integrations/mcp-server/ @RulaKhaled
++/packages/core/src/integrations/conversationId.ts @RulaKhaled
++/packages/core/src/tracing/spans/extractGenAiSpans.ts @RulaKhaled
++/packages/core/test/lib/tracing/spans/extractGenAiSpans.test.ts @RulaKhaled
++/packages/core/src/utils/ai/ @RulaKhaled
++/packages/core/test/lib/utils/ai/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/anthropic/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/flue/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/google-genai/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/groq/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/langchain/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/langgraph/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/mastra/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/mcp-server/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/mistral/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/openai/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/pi-ai/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/pi-durable/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/together-ai/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/typesafe/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/vercelai/ @RulaKhaled
++/dev-packages/cloudflare-integration-tests/suites/tracing/google-genai/ @RulaKhaled
++/dev-packages/cloudflare-integration-tests/suites/tracing/langchain/ @RulaKhaled
++/dev-packages/cloudflare-integration-tests/suites/tracing/langgraph/ @RulaKhaled
++/dev-packages/cloudflare-integration-tests/suites/tracing/openai/ @RulaKhaled
++/dev-packages/cloudflare-integration-tests/suites/tracing/workers-ai/ @RulaKhaled
++/dev-packages/e2e-tests/test-applications/gen-ai-libraries/ @RulaKhaled
++/dev-packages/e2e-tests/test-applications/node-openai-decisions/ @RulaKhaled
++/dev-packages/e2e-tests/test-applications/node-mastra/ @RulaKhaled
++/dev-packages/e2e-tests/test-applications/cloudflare-mastra/ @RulaKhaled
++/dev-packages/e2e-tests/test-applications/cloudflare-vercelai-v7/ @RulaKhaled
++/dev-packages/e2e-tests/test-applications/*nextjs*/app/ai-*/ @RulaKhaled
++/dev-packages/e2e-tests/test-applications/*nextjs*/app/api/openai/ @RulaKhaled
++/.agents/skills/add-ai-integration/ @RulaKhaled
