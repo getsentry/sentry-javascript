@@ -142,28 +142,30 @@ describe('TypeSafe integration', () => {
     'instrument-with-recording-functions.mjs',
     (createRunner, test) => {
       test('decides content recording per call when the options are functions', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const spans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_DECIDE);
-              const recordedByModel = Object.fromEntries(
-                spans.map(span => [
-                  span.attributes[GEN_AI_REQUEST_MODEL]?.value,
-                  {
-                    inputs: GEN_AI_INPUT_MESSAGES in span.attributes,
-                    outputs: GEN_AI_OUTPUT_MESSAGES in span.attributes,
-                  },
-                ]),
-              );
-              expect(recordedByModel).toEqual({
-                public: { inputs: true, outputs: true },
-                private: { inputs: false, outputs: false },
-                'public-late': { inputs: true, outputs: false },
-              });
+        const runner = createRunner();
+        const spansPromise = runner.collectStreamedSpans(
+          spans =>
+            spans.some(span => span.is_segment && span.name === 'main') &&
+            spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_DECIDE).length >= 3,
+        );
+
+        await runner.start().completed();
+
+        const decideSpans = (await spansPromise).filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_DECIDE);
+        const recordedByModel = Object.fromEntries(
+          decideSpans.map(span => [
+            span.attributes[GEN_AI_REQUEST_MODEL]?.value,
+            {
+              inputs: GEN_AI_INPUT_MESSAGES in span.attributes,
+              outputs: GEN_AI_OUTPUT_MESSAGES in span.attributes,
             },
-          })
-          .start()
-          .completed();
+          ]),
+        );
+        expect(recordedByModel).toEqual({
+          public: { inputs: true, outputs: true },
+          private: { inputs: false, outputs: false },
+          'public-late': { inputs: true, outputs: false },
+        });
       });
     },
   );
