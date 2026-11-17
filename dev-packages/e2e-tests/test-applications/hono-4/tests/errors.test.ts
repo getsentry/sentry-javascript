@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForStreamedSpan, getSpanOp, collectStreamedSpans } from '@sentry-internal/test-utils';
+import {
+  waitForError,
+  waitForStreamedSpan,
+  getSpanOp,
+  collectStreamedSpansUntilSegment,
+} from '@sentry-internal/test-utils';
 import { APP_NAME } from './constants';
 
 test.describe('route handler errors', () => {
@@ -140,15 +145,11 @@ test.describe('middleware errors', () => {
     });
 
     // On Cloudflare the middleware span can reach the proxy in a later envelope than the segment span.
-    const segmentPromise = collectStreamedSpans(
+    const segmentPromise = collectStreamedSpansUntilSegment(
       APP_NAME,
-      spansOfTrace =>
-        spansOfTrace.some(
-          span =>
-            span.is_segment &&
-            getSpanOp(span) === 'http.server' &&
-            !!span.name?.includes('/test-errors/middleware-http-exception'),
-        ) && spansOfTrace.some(span => getSpanOp(span) === 'middleware'),
+      segment =>
+        getSpanOp(segment) === 'http.server' && !!segment.name?.includes('/test-errors/middleware-http-exception'),
+      span => getSpanOp(span) === 'middleware',
     );
 
     const response = await fetch(`${baseURL}/test-errors/middleware-http-exception`);
