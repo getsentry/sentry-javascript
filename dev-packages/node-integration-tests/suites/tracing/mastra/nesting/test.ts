@@ -125,36 +125,33 @@ describe.runIf(supports({ min: 22 }))('Mastra integration', () => {
         // that instance's own `execute_tool` span — if the registry cross-talked, one tool span would
         // have no dataloader child.
 
-        await createRunner()
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'mastra-multi')).toBeDefined();
-              const loadSpans = container.items.filter(
-                span =>
-                  span.attributes[SENTRY_OP]?.value === 'cache.get' &&
-                  span.attributes[DB_OPERATION_NAME]?.value === 'load',
-              );
-              const loadParentIds = loadSpans.map(span => span.parent_span_id);
-              const toolSpanIds: Record<string, string> = {};
-              for (const toolName of ['count_a', 'count_b']) {
-                const toolSpan = container.items.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === toolName)!;
-                expect(toolSpan).toBeDefined();
-                toolSpanIds[toolName] = toolSpan.span_id;
-              }
+        const runner = createRunner();
+        const spansPromise = runner.collectStreamedSpansUntilSegment('mastra-multi');
 
-              // Each instance's tool span parents at least one dataloader load — neither is starved.
-              for (const toolName of ['count_a', 'count_b']) {
-                expect(loadParentIds).toContain(toolSpanIds[toolName]);
-              }
-              // And every load parents onto one of the two tool spans (no stray reparenting).
-              const toolIds = new Set(Object.values(toolSpanIds));
-              for (const parent of loadParentIds) {
-                expect(toolIds.has(parent!)).toBe(true);
-              }
-            },
-          })
-          .start()
-          .completed();
+        await runner.start().completed();
+
+        const spans = await spansPromise;
+        const loadSpans = spans.filter(
+          span =>
+            span.attributes[SENTRY_OP]?.value === 'cache.get' && span.attributes[DB_OPERATION_NAME]?.value === 'load',
+        );
+        const loadParentIds = loadSpans.map(span => span.parent_span_id);
+        const toolSpanIds: Record<string, string> = {};
+        for (const toolName of ['count_a', 'count_b']) {
+          const toolSpan = spans.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === toolName)!;
+          expect(toolSpan).toBeDefined();
+          toolSpanIds[toolName] = toolSpan.span_id;
+        }
+
+        // Each instance's tool span parents at least one dataloader load — neither is starved.
+        for (const toolName of ['count_a', 'count_b']) {
+          expect(loadParentIds).toContain(toolSpanIds[toolName]);
+        }
+        // And every load parents onto one of the two tool spans (no stray reparenting).
+        const toolIds = new Set(Object.values(toolSpanIds));
+        for (const parent of loadParentIds) {
+          expect(toolIds.has(parent!)).toBe(true);
+        }
       });
     },
     MASTRA_NESTING_DEPENDENCIES,
