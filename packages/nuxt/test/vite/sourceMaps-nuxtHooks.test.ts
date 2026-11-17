@@ -241,6 +241,17 @@ describe('setupSourceMaps hooks', () => {
       expect(mockNuxt.options.runtimeConfig.public).toEqual({ [NUXT_RELEASE_RUNTIME_CONFIG_KEY]: 'env-release' });
     });
 
+    it('passes the resolved release name to the client plugin so the upload matches the runtime config', () => {
+      vi.stubEnv('SENTRY_RELEASE', 'env-release');
+      const mockNuxt = createMockNuxt({});
+
+      setupSourceMaps({}, mockNuxt as unknown as Nuxt, vi.fn(), true);
+
+      expect(mockSentryVitePlugin).toHaveBeenCalledWith(
+        expect.objectContaining({ release: { name: 'env-release', inject: false } }),
+      );
+    });
+
     it('turns off release injection in the client build only', async () => {
       const mockNuxt = createMockNuxt({});
 

@@ -181,7 +181,8 @@ function moveClientReleaseToRuntimeConfig(
     nuxt.options.runtimeConfig.public[NUXT_RELEASE_RUNTIME_CONFIG_KEY] = release;
   }
 
-  return { ...pluginOptions, release: { ...pluginOptions.release, inject: false } };
+  // Pass the resolved name on so the plugin uploads under the same release the client reports.
+  return { ...pluginOptions, release: { ...pluginOptions.release, ...(release && { name: release }), inject: false } };
 }
 
 /**
