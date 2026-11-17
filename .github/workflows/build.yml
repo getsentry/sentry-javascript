@@ -353,7 +353,7 @@ jobs:
   job_check_lockfile:
     name: Check lockfile
     needs: [job_get_metadata]
-    # `pnpm dedupe --check` fetches metadata for every package from npm, so this job can take 8+ min on PRs.
+    # `pnpm dedupe` fetches metadata for every package from npm, so this job can take 8+ min on PRs.
     timeout-minutes: 20
     runs-on: ubuntu-24.04
     if: |
@@ -371,14 +371,21 @@ jobs:
         uses: ./.github/actions/setup-node
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
+      # The lockfile stores the deprecation message of each package. A maintainer can deprecate a locked version on
+      # npm at any time, which changes the lockfile without a change in this repository. Both checks ignore these lines.
       - name: Check that pnpm-lock.yaml is stable
         run: |
-          if ! git diff --exit-code pnpm-lock.yaml; then
+          if ! git diff --exit-code -I'^ +deprecated: ' pnpm-lock.yaml; then
             echo "::error::pnpm-lock.yaml has uncommitted changes after running 'pnpm install'. Please run 'pnpm install' locally and commit the updated pnpm-lock.yaml."
             exit 1
           fi
       - name: Check for duplicate dependencies in lockfile
-        run: pnpm run dedupe-deps:check
+        run: |
+          pnpm dedupe --lockfile-only
+          if ! git diff --exit-code -I'^ +deprecated: ' pnpm-lock.yaml; then
+            echo "::error::pnpm-lock.yaml has duplicate dependencies. Please run 'pnpm run dedupe-deps:fix' locally and commit the updated pnpm-lock.yaml."
+            exit 1
+          fi
 
   job_check_format:
     name: Check file formatting
