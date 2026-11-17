@@ -237,6 +237,7 @@ describe('applyDefaultOptions', () => {
 
   describe('`sentry-release` meta tag', () => {
     afterEach(() => {
+      vi.unstubAllGlobals();
       document.head.innerHTML = '';
     });
 
@@ -267,6 +268,19 @@ describe('applyDefaultOptions', () => {
       addReleaseMetaTag('page-release');
 
       expect(applyDefaultOptions({ release: '2.0.0' }).release).toBe('2.0.0');
+    });
+
+    it('lets a `__SENTRY_RELEASE__` define take precedence over the meta tag', () => {
+      vi.stubGlobal('__SENTRY_RELEASE__', 'bundle-release');
+      addReleaseMetaTag('page-release');
+
+      expect(applyDefaultOptions({}).release).toBe('bundle-release');
+    });
+
+    it('does not throw when `document` has no `querySelector`', () => {
+      vi.stubGlobal('document', {});
+
+      expect(() => applyDefaultOptions({})).not.toThrow();
     });
 
     it('ignores an empty meta tag', () => {

@@ -255,10 +255,9 @@ export class BrowserClient extends Client<ResolvedBrowserClientOptions> {
 export function applyDefaultOptions<T extends Partial<BrowserClientOptions>>(optionsArg: T): T {
   return {
     release:
-      getReleaseFromMetaTag() ??
-      (typeof __SENTRY_RELEASE__ === 'string' // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
+      typeof __SENTRY_RELEASE__ === 'string' // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
         ? __SENTRY_RELEASE__
-        : WINDOW.SENTRY_RELEASE?.id), // This supports the variable that sentry-webpack-plugin injects
+        : (getReleaseFromMetaTag() ?? WINDOW.SENTRY_RELEASE?.id), // This supports the variable that sentry-webpack-plugin injects
     sendClientReports: true,
     // We default this to true, as it is the safer scenario
     parentSpanIsAlwaysRootSpan: true,
@@ -268,7 +267,9 @@ export function applyDefaultOptions<T extends Partial<BrowserClientOptions>>(opt
 
 /**
  * Framework SDKs render the release into each page, so the content-hashed client chunks don't change on every
- * release. The page comes from the server on every request, so it wins over a release that a cached chunk carries.
+ * release. The page comes from the server on every request, so it wins over `WINDOW.SENTRY_RELEASE`, which a cached
+ * chunk can set. It loses to `__SENTRY_RELEASE__`, which belongs to the one bundle that defined it, so a script
+ * embedded in another app's page keeps its own release.
  */
 function getReleaseFromMetaTag(): string | undefined {
   return (
