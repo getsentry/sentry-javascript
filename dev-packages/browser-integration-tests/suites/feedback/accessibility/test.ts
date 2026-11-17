@@ -207,3 +207,21 @@ sentryTest('names each dialog after its own title @firefox', async ({ page }) =>
   });
   await expect(page.getByRole('dialog', { name: 'Second form' })).toBeVisible();
 });
+
+sentryTest('falls back to a non-modal dialog when showModal throws @firefox', async ({ page }) => {
+  await page.evaluate(() => {
+    HTMLDialogElement.prototype.showModal = () => {
+      throw new DOMException('The document is sandboxed', 'InvalidStateError');
+    };
+  });
+  const launcher = page.getByRole('button', { name: 'Report a Bug', exact: true });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await launcher.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('dialog', { name: 'Report a Bug' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Description' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('dialog')).not.toBeVisible();
+    await expect(launcher).toBeFocused();
+  }
+});
