@@ -88,7 +88,6 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
         <dialog
           class="dialog"
           ref={dialogRef}
-          role="dialog"
           aria-labelledby={props.titleId}
           onClick={props.onFormClose}
           onCancel={event => {
