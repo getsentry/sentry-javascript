@@ -10,6 +10,7 @@ import {
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_CALL_ARGUMENTS,
@@ -827,6 +828,9 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(generateContent.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value).toBe('["stop"]');
               expect(generateContent.attributes[GEN_AI_OUTPUT_MESSAGES]?.value).toBe(
                 '[{"role":"assistant","parts":[{"type":"text","content":"Stream response!"}],"finish_reason":"stop"}]',
+              );
+              expect(generateContent.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]?.value).toEqual(
+                expect.any(Number),
               );
 
               // The summed usage and output also land on the parent invoke_agent span, whose own

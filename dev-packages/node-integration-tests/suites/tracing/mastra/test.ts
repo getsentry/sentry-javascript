@@ -8,6 +8,7 @@ import {
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_CALL_ARGUMENTS,
   GEN_AI_TOOL_CALL_RESULT,
@@ -458,6 +459,7 @@ describe.runIf(supports({ min: 22 }))('Mastra integration', () => {
               const cacheGetParentIds = loadSpans.map(span => span.parent_span_id);
               const chat = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT)!;
               expect(chat).toBeDefined();
+              expect(chat.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]?.value).toEqual(expect.any(Number));
               const chatSpanId = chat.span_id;
 
               const executeTool = container.items.find(

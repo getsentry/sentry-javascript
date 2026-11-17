@@ -11,6 +11,7 @@ import {
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
@@ -70,6 +71,7 @@ describe('Mistral integration', () => {
             expect(streamSpan!.name).toBe('chat mistral-large-latest');
             expect(streamSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
             expect(streamSpan!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+            expect(streamSpan!.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]?.value).toEqual(expect.any(Number));
             expect(streamSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(30);
 
             // `chat.stream()` takes no `stream` request field, so the flag has to come from the method.
