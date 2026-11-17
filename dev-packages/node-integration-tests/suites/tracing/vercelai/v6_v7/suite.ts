@@ -3,6 +3,7 @@ import type { Event } from '@sentry/node';
 import { afterAll, expect } from 'vitest';
 import {
   GEN_AI_CONVERSATION_ID,
+  GEN_AI_COST_TOTAL_TOKENS,
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
@@ -786,9 +787,12 @@ export function registerVercelAiGenerationTests(version: '6' | '7', vercelAiVers
               expect(generateContent.attributes[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]?.value).toBe(7);
               // The per-response `responseId` is not a conversation id and must not be recorded as one.
               expect(generateContent.attributes[GEN_AI_CONVERSATION_ID]).toBeUndefined();
+              expect(generateContent.attributes[GEN_AI_COST_TOTAL_TOKENS]?.value).toBe(0.0000074);
 
               const invokeAgent = spans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent')!;
               expect(invokeAgent).toBeDefined();
+              // `providerMetadata` holds only the last step's cost, which the model-call span already carries.
+              expect(invokeAgent.attributes[GEN_AI_COST_TOTAL_TOKENS]).toBeUndefined();
 
               // The system prompt is supplied via the v7-only `instructions` option. Only the channel
               // instrumentation surfaces it (as `gen_ai.system_instructions`); v6 has no such option.
