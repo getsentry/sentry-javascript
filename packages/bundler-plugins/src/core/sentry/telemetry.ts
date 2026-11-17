@@ -115,6 +115,9 @@ export function setTelemetryDataOnScope(
         : String(sourcemaps.deleteSourcemapsAfterUpload),
   );
   scope.setTag('sourcemaps-disabled', !!sourcemaps?.disable);
+  scope.setTag('sourcemaps-upload', String(sourcemaps?.upload));
+  scope.setTag('sourcemaps-inject-debug-ids', String(sourcemaps?.injectDebugIds));
+  scope.setTag('sourcemaps-delete', String(sourcemaps?.delete));
 
   scope.setTag('react-annotate', !!reactComponentAnnotation?.enabled);
 
