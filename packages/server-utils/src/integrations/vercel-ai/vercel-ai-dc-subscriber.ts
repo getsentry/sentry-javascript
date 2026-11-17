@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import {
   GEN_AI_CONVERSATION_ID,
+  GEN_AI_COST_TOTAL_TOKENS,
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_FUNCTION_ID,
   GEN_AI_INPUT_MESSAGES,
@@ -130,6 +131,16 @@ const ROOT_OPERATION_TYPES = new Set<ChannelEventType>([
   'rerank',
 ]);
 
+// Operations whose `providerMetadata` cost covers only one of their provider calls: the last step of a
+// text or object operation, whose cost the `generate_content` spans carry, or one `embedMany` chunk.
+const PARTIAL_COST_OPERATION_TYPES = new Set<ChannelEventType>([
+  'generateText',
+  'streamText',
+  'streamObject',
+  'generateObject',
+  'embedMany',
+]);
+
 /** Drop the per-operation `callId` maps once the owning top-level operation settles (success or error). */
 export function clearOperationId(data: VercelAiChannelMessage): void {
   if (!ROOT_OPERATION_TYPES.has(data.type)) {
@@ -200,6 +211,10 @@ function dropLastStepOnlyUsage(providerAttributes: Record<string, number | strin
   if (hasRecomputedOutput) {
     // oxlint-disable-next-line typescript/no-dynamic-delete
     delete providerAttributes[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS];
+  }
+  if (PARTIAL_COST_OPERATION_TYPES.has(type)) {
+    // oxlint-disable-next-line typescript/no-dynamic-delete
+    delete providerAttributes[GEN_AI_COST_TOTAL_TOKENS];
   }
 }
 
