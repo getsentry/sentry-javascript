@@ -92,6 +92,7 @@ export class CloudflareClient extends ServerRuntimeClient {
 
     super(clientOptions);
     this._flushLock = flushLock;
+    // oxlint-disable-next-line typescript/no-deprecated
     this.isCachedClient = options.cacheClient === true;
 
     // Track span lifecycle to know when to flush. Skipped for cached clients
@@ -537,6 +538,7 @@ interface BaseCloudflareOptions {
    */
   spotlight?: boolean | string;
 
+  // TODO(v12): Remove `cacheClient` and the per-invocation client code paths it enables.
   /**
    * Cache the client and reuse it across invocations within the same isolate.
    *
@@ -557,6 +559,10 @@ interface BaseCloudflareOptions {
    * handler completes.
    *
    * @default true
+   *
+   * @deprecated `cacheClient` will be removed in the next major version (v12), and the client will always be cached.
+   * If you set `cacheClient: false`, please open an issue at https://github.com/getsentry/sentry-javascript/issues
+   * and tell us why `cacheClient: true` does not work for your use case.
    */
   cacheClient?: boolean;
 
