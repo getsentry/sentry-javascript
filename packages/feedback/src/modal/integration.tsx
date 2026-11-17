@@ -119,7 +119,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
             }}
             onSubmit={sendFeedback}
             onSubmitSuccess={(data: FeedbackFormData, eventId: string) => {
-              // Focus is restored once the success message goes away and `onFormSubmitted` closes the dialog.
+              // A launcher hidden while the form is open gets focus back when `onFormSubmitted` closes the dialog.
               hide();
               options.onSubmitSuccess?.(data, eventId);
             }}
