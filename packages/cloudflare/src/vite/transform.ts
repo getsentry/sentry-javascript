@@ -5,6 +5,9 @@ import { detectWorkerEntrypointClasses } from './workerEntrypoint';
 
 const MERGED_OPTIONS_IDENTIFIER = '__SENTRY_OPTIONS__';
 
+// Read by `CloudflareClient` for the default `serverName` and the runtime version.
+const WORKER_INFO_GLOBAL = '__SENTRY_CLOUDFLARE_WORKER__';
+
 // ---------------------------------------------------------------------------
 // Minimal ESTree node types for the AST nodes we inspect.
 // ---------------------------------------------------------------------------
@@ -122,6 +125,12 @@ export interface TransformContext {
   sentryModule?: string;
   /** @see {@link import('./wranglerConfig').WranglerConfig.sameWorkerBindings} */
   sameWorkerBindings?: readonly SameWorkerBinding[];
+  /**
+   * The Worker name and compatibility date, stored on `globalThis` as the default `serverName` and
+   * the runtime version. The entry stores them also when nothing is wrapped, so hand-wrapped
+   * handlers get them too.
+   */
+  workerInfo?: { name?: string; compatibilityDate?: string };
 }
 
 export interface TransformResult {
@@ -149,8 +158,9 @@ export interface TransformResult {
  * {@link TransformResult.wrappedClasses}.
  *
  * Exported (rather than inlined into the plugin) so it can be unit-tested with a
- * plain AST and no Vite context. Returns `undefined` when nothing was wrapped and
- * there are no already-manually-wrapped classes to report.
+ * plain AST and no Vite context. Returns `undefined` when nothing was wrapped,
+ * there are no already-manually-wrapped classes to report, and there is no
+ * {@link TransformContext.workerInfo} to store.
  */
 export function applyAutoInstrumentTransforms(
   code: string,
@@ -192,20 +202,22 @@ export function applyAutoInstrumentTransforms(
     }
   }
 
-  if (!state.needsImport) {
-    // Nothing was rewritten. Still surface any classes found already wrapped
-    // manually (via `wrappedClasses`) so the caller doesn't warn about them;
-    // return undefined only when there was nothing to report either.
-    if (wrappedClasses.size === 0) return undefined;
-    return { code, map: ms.generateMap({ hires: true }), wrappedClasses };
+  if (state.needsImport) {
+    // `prepend` inserts before earlier prepends, yielding: Sentry import, options import, declaration.
+    if (sameWorkerBindings.length > 0) {
+      ms.prepend(buildMergedOptionsDeclaration(sameWorkerBindings, ctx.optionsFn, state));
+    }
+    if (ctx.optionsImport) ms.prepend(ctx.optionsImport);
+    ms.prepend(`import * as __SENTRY__ from '${ctx.sentryModule ?? '@sentry/cloudflare'}';\n`);
   }
 
-  // `prepend` inserts before earlier prepends, yielding: Sentry import, options import, declaration.
-  if (sameWorkerBindings.length > 0) {
-    ms.prepend(buildMergedOptionsDeclaration(sameWorkerBindings, ctx.optionsFn, state));
+  if (ctx.workerInfo?.name || ctx.workerInfo?.compatibilityDate) {
+    ms.prepend(`globalThis.${WORKER_INFO_GLOBAL} = ${JSON.stringify(ctx.workerInfo)};\n`);
+  } else if (!state.needsImport && wrappedClasses.size === 0) {
+    // Nothing was rewritten. Classes found already wrapped manually are still
+    // reported (via `wrappedClasses`) so the caller doesn't warn about them.
+    return undefined;
   }
-  if (ctx.optionsImport) ms.prepend(ctx.optionsImport);
-  ms.prepend(`import * as __SENTRY__ from '${ctx.sentryModule ?? '@sentry/cloudflare'}';\n`);
 
   return {
     code: ms.toString(),

@@ -67,6 +67,7 @@ export function getFinalOptions(userOptions: CloudflareOptions = {}, env: unknow
     ...userOptions,
     dsn: userOptions.dsn ?? getEnvVar(env, 'SENTRY_DSN'),
     environment: userOptions.environment ?? getEnvVar(env, 'SENTRY_ENVIRONMENT'),
+    serverName: userOptions.serverName ?? getEnvVar(env, 'SENTRY_NAME'),
     tracesSampleRate: isFinite(tracesSampleRate) ? tracesSampleRate : undefined,
     debug: userOptions.debug ?? envToBool(getEnvVar(env, 'SENTRY_DEBUG')),
     tunnel: userOptions.tunnel ?? getEnvVar(env, 'SENTRY_TUNNEL'),
