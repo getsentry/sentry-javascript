@@ -218,6 +218,13 @@ interface AddPerformanceEntriesOptions {
   ignoreResourceSpans: Array<'resource.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
 
   /**
+   * Minimum duration in milliseconds a resource span must have to be emitted.
+   *
+   * @default 0. By default, all resource spans are emitted, regardless of their duration.
+   */
+  resourceMinDuration?: number;
+
+  /**
    * Whether span streaming is enabled.
    */
   spanStreamingEnabled?: boolean;
@@ -231,7 +238,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
     return;
   }
 
-  const { spanStreamingEnabled, ignoreResourceSpans } = options;
+  const { spanStreamingEnabled, ignoreResourceSpans, resourceMinDuration } = options;
 
   const performanceEntries = performance.getEntries();
 
@@ -272,6 +279,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
           duration,
           ignoreResourceSpans,
           spanStreamingEnabled,
+          resourceMinDuration,
         );
         break;
       }
@@ -446,15 +454,18 @@ export function _addResourceSpans(
   duration: number,
   ignoredResourceSpanOps?: Array<string>,
   spanStreamingEnabled?: boolean,
+  resourceMinDuration = 0,
 ): void {
-  // we already instrument based on fetch and xhr, so we don't need to
-  // duplicate spans here.
-  if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
-    return;
-  }
+  const { initiatorType } = entry;
+  const op = initiatorType ? `resource.${initiatorType}` : RESOURCE_OTHER;
 
-  const op = entry.initiatorType ? `resource.${entry.initiatorType}` : RESOURCE_OTHER;
-  if (ignoredResourceSpanOps?.includes(op)) {
+  if (
+    // we already instrument based on fetch and xhr, so we don't need to duplicate spans here.
+    initiatorType === 'xmlhttprequest' ||
+    initiatorType === 'fetch' ||
+    ignoredResourceSpanOps?.includes(op) ||
+    duration < msToSec(resourceMinDuration)
+  ) {
     return;
   }
 

@@ -181,6 +181,13 @@ export interface BrowserTracingOptions {
   ignoreResourceSpans: Array<'resource.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
 
   /**
+   * Resource spans shorter than this duration (in milliseconds) will not be emitted.
+   *
+   * @default 0. By default, all resource spans are emitted, regardless of their duration.
+   */
+  resourceMinDuration: number;
+
+  /**
    * By default, the SDK will try to detect redirects and avoid creating separate spans for them.
    * If you want to opt-out of this behavior, you can set this option to `false`.
    *
@@ -285,6 +292,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   // oxlint-disable-next-line typescript/no-deprecated -- still honoured until it is removed
   enableInp: true,
   ignoreResourceSpans: [],
+  resourceMinDuration: 0,
   detectRedirects: true,
   linkPreviousTrace: 'in-memory',
   consistentTraceSampling: false,
@@ -333,6 +341,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     shouldCreateSpanForRequest,
     enableHTTPTimings,
     ignoreResourceSpans,
+    resourceMinDuration,
     instrumentPageLoad,
     instrumentNavigation,
     instrumentBfcacheRestore,
@@ -475,6 +484,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
         addPerformanceEntries(span, {
           ignoreResourceSpans,
+          resourceMinDuration,
           spanStreamingEnabled: hasSpanStreamingEnabled(client),
         });
         setActiveIdleSpan(client, undefined);

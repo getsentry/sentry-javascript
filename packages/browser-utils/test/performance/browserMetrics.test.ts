@@ -419,6 +419,38 @@ describe('_addResourceSpans', () => {
     expect(spanOps).toEqual(new Set(['resource.css', 'resource.image']));
   });
 
+  it('only creates resource spans with a duration >= resourceMinDuration', () => {
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    for (const [name, duration] of [
+      ['short', 0.05],
+      ['exact', 0.1],
+      ['long', 0.2],
+    ] as const) {
+      const entry = mockPerformanceResourceTiming({ initiatorType: 'script' });
+      _addResourceSpans(span, entry, `https://example.com/${name}.js`, 100, duration, undefined, false, 100);
+    }
+
+    expect(spans.map(s => spanToJSON(s).name)).toEqual(['/exact.js', '/long.js']);
+  });
+
+  it('creates resource spans of any duration when resourceMinDuration is 0', () => {
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const entry = mockPerformanceResourceTiming({ initiatorType: 'script' });
+    _addResourceSpans(span, entry, 'https://example.com/instant.js', 100, 0, undefined, false, 0);
+
+    expect(spans).toHaveLength(1);
+  });
+
   it('allows for enter size of 0', () => {
     const spans: Span[] = [];
 
