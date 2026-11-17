@@ -23,6 +23,12 @@ describe('labelJuniorPrForTeamReview', () => {
     expect(github.rest.issues.addLabels).not.toHaveBeenCalled();
   });
 
+  it('does not label a Junior PR requested by a contractor who is named, not linked', async () => {
+    const { github, run } = setup(labelJuniorPrForTeamReview, { user: junior, body: attribution('**Rola Abuhasna**') });
+    await run();
+    expect(github.rest.issues.addLabels).not.toHaveBeenCalled();
+  });
+
   it('labels a Junior PR when any requester is outside the SDK team', async () => {
     const { github, run } = setup(labelJuniorPrForTeamReview, { user: junior, body: attribution('@a, @outsider') });
     await run();
