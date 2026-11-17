@@ -50,7 +50,13 @@ function instrumentMistral(options: MistralOptions): void {
         },
         // Streaming: the result is an `EventStream` consumed later, so instrument it and let it end the span.
         deferSpanEnd: ({ span, data }) =>
-          streaming && instrumentEventStream(data.result, span, resolveAIRecordingOptions(options).recordOutputs),
+          streaming &&
+          instrumentEventStream(
+            data.result,
+            span,
+            resolveAIRecordingOptions(options).recordOutputs,
+            getMistralRequestSignal(data.arguments?.[1]),
+          ),
       },
     );
   }

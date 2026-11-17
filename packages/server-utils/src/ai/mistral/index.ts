@@ -136,7 +136,7 @@ function instrumentMethod<T extends unknown[], R>(
           result => {
             // Patched in place so the caller keeps the real `EventStream`; `instrumentEventStream`
             // takes over ending the span once the stream is drained.
-            if (!instrumentEventStream(result, span, options.recordOutputs ?? false)) {
+            if (!instrumentEventStream(result, span, options.recordOutputs ?? false, abortSignal)) {
               span.end();
             }
             return result;

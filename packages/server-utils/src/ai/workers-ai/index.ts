@@ -78,7 +78,7 @@ function instrumentRun(
 
         return originalResult.then(result => {
           if (isReadableStream<Uint8Array>(result)) {
-            return instrumentWorkersAiStream(result, span, options.recordOutputs);
+            return instrumentWorkersAiStream(result, span, options.recordOutputs, abortSignal);
           }
 
           // The model did not actually return a stream — finalize the span eagerly.

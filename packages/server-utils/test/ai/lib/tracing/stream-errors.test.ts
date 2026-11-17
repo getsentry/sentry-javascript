@@ -6,7 +6,9 @@ import { EventEmitter } from 'node:events';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from '../../../../src/ai/anthropic-ai/streaming';
 import { instrumentStream as instrumentGoogleGenAIStream } from '../../../../src/ai/google-genai/streaming';
 import type { GoogleGenAIResponse } from '../../../../src/ai/google-genai/types';
+import { instrumentEventStream as instrumentMistralStream } from '../../../../src/ai/mistral/streaming';
 import { instrumentStream as instrumentOpenAIStream } from '../../../../src/ai/openai/streaming';
+import { instrumentWorkersAiStream } from '../../../../src/ai/workers-ai/streaming';
 
 function createMockSpan(): { span: Span; attributes: Record<string, unknown>; setStatus: ReturnType<typeof vi.fn> } {
   const attributes: Record<string, unknown> = {};
@@ -194,6 +196,65 @@ describe('google-genai stream aborts', () => {
     await expect(
       drain(instrumentGoogleGenAIStream(abortedStream(), span, false, new AbortController().signal)),
     ).rejects.toBe(abortError);
+
+    expect(setStatus).toHaveBeenCalledTimes(1);
+    expect(setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+  });
+});
+
+const midStreamAbortError = new DOMException('This operation was aborted', 'AbortError');
+
+const midStreamAbortProviders: Array<{
+  name: string;
+  drainAborted: (span: Span, signal: AbortSignal) => Promise<void>;
+}> = [
+  {
+    name: 'mistral',
+    drainAborted: (span, signal) => {
+      const stream = {
+        async *[Symbol.asyncIterator]() {
+          yield { data: { id: 'cmpl-1', choices: [{ index: 0, delta: { content: 'Hi' } }] } };
+          throw midStreamAbortError;
+        },
+      };
+      instrumentMistralStream(stream, span, false, signal);
+      return drain(stream);
+    },
+  },
+  {
+    name: 'workers-ai',
+    drainAborted: (span, signal) => {
+      let sentChunk = false;
+      const source = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (sentChunk) {
+            controller.error(midStreamAbortError);
+            return;
+          }
+          sentChunk = true;
+          controller.enqueue(new TextEncoder().encode('data: {"response":"Hi"}\n\n'));
+        },
+      });
+      return drain(instrumentWorkersAiStream(source, span, false, signal) as unknown as AsyncIterable<unknown>);
+    },
+  },
+];
+
+describe.each(midStreamAbortProviders)('$name mid-stream aborts', ({ drainAborted }) => {
+  it("marks the span as cancelled when the caller's signal fired", async () => {
+    const { span, setStatus } = createMockSpan();
+
+    await expect(drainAborted(span, AbortSignal.abort())).rejects.toBe(midStreamAbortError);
+
+    expect(setStatus).toHaveBeenCalledTimes(1);
+    expect(setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
+  });
+
+  it("marks the span as errored when the caller's own timeout fired", async () => {
+    const { span, setStatus } = createMockSpan();
+    const timeoutSignal = AbortSignal.abort(new DOMException('The operation timed out', 'TimeoutError'));
+
+    await expect(drainAborted(span, timeoutSignal)).rejects.toBe(midStreamAbortError);
 
     expect(setStatus).toHaveBeenCalledTimes(1);
     expect(setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
