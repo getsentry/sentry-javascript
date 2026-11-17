@@ -18,13 +18,13 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
-import type { InstrumentedMethodEntry } from '../core/utils';
+import type { GenAiOptions, InstrumentedMethodEntry } from '../core/utils';
 import {
   getErrorStatus,
   getGenAiSpanOp,
   getRequestSignal,
   getTokenUsageAttributes,
-  resolveAIRecordingOptions,
+  resolveGenAiCallRecording,
   wrapPromiseWithMethods,
 } from '../core/utils';
 import { ANTHROPIC_AI_ORIGIN, ANTHROPIC_METHOD_REGISTRY } from './constants';
@@ -184,7 +184,7 @@ function handleStreamingRequest<T extends unknown[], R>(
   args: T,
   spanConfig: { name: string; op: string; attributes: Record<string, SpanAttributeValue> },
   params: Record<string, unknown> | undefined,
-  options: AnthropicAiOptions,
+  { recordInputs, recordOutputs }: Required<GenAiOptions>,
   isStreamRequested: boolean,
   isStreamingMethod: boolean,
 ): R | Promise<R> {
@@ -196,7 +196,7 @@ function handleStreamingRequest<T extends unknown[], R>(
     const instrumentedPromise = startSpanManual(spanConfig, (span: Span) => {
       originalResult = target.apply(invocationThis, args) as Promise<R>;
 
-      if (options.recordInputs && params) {
+      if (recordInputs && params) {
         addPrivateRequestAttributes(span, params);
       }
 
@@ -206,7 +206,7 @@ function handleStreamingRequest<T extends unknown[], R>(
           return instrumentAsyncIterableStream(
             result as AsyncIterable<AnthropicAiStreamingEvent>,
             span,
-            options.recordOutputs ?? false,
+            recordOutputs,
           ) as unknown as R;
         } catch (error) {
           return handleStreamingError(error, span, abortSignal);
@@ -218,7 +218,7 @@ function handleStreamingRequest<T extends unknown[], R>(
   } else {
     return startSpanManual(spanConfig, span => {
       try {
-        if (options.recordInputs && params) {
+        if (recordInputs && params) {
           addPrivateRequestAttributes(span, params);
         }
         // The helper synchronously delegates to `create`; suppress that one internal call so it
@@ -226,7 +226,7 @@ function handleStreamingRequest<T extends unknown[], R>(
         suppressDelegatedCreate = true;
         const messageStream = target.apply(invocationThis, args);
         suppressDelegatedCreate = false;
-        return instrumentMessageStream(messageStream, span, options.recordOutputs ?? false, abortSignal);
+        return instrumentMessageStream(messageStream, span, recordOutputs, abortSignal);
       } catch (error) {
         suppressDelegatedCreate = false;
         return handleStreamingError(error, span, abortSignal);
@@ -265,10 +265,12 @@ function instrumentMethod<T extends unknown[], R>(
       }
 
       const operationName = instrumentedMethod.operation || 'unknown';
+      const params = typeof args[0] === 'object' && args[0] !== null ? (args[0] as Record<string, unknown>) : undefined;
+      const recording = resolveGenAiCallRecording(options, { operation: 'chat', request: params });
       const requestAttributes = extractRequestAttributes(
         args,
         operationName,
-        !!options.recordInputs,
+        recording.recordInputs,
         getProviderName(invocationThis),
       );
       const model = requestAttributes[GEN_AI_REQUEST_MODEL] || 'unknown';
@@ -283,7 +285,6 @@ function instrumentMethod<T extends unknown[], R>(
         attributes: requestAttributes as Record<string, SpanAttributeValue>,
       };
 
-      const params = typeof args[0] === 'object' ? (args[0] as Record<string, unknown>) : undefined;
       const isStreamRequested = Boolean(params?.stream);
 
       if (isStreamRequested || isStreamingMethod) {
@@ -293,7 +294,7 @@ function instrumentMethod<T extends unknown[], R>(
           args,
           spanConfig,
           params,
-          options,
+          recording,
           isStreamRequested,
           isStreamingMethod,
         );
@@ -305,13 +306,13 @@ function instrumentMethod<T extends unknown[], R>(
       const instrumentedPromise = startSpan(spanConfig, span => {
         originalResult = target.apply(invocationThis, args) as Promise<R>;
 
-        if (options.recordInputs && params) {
+        if (recording.recordInputs && params) {
           addPrivateRequestAttributes(span, params);
         }
 
         return originalResult.then(
           result => {
-            addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs);
+            addResponseAttributes(span, result as AnthropicAiResponse, recording.recordOutputs);
             return result;
           },
           error => {
@@ -388,5 +389,5 @@ function instrumentClientInPlace<T extends object>(client: T, options: Anthropic
  * @returns The instrumented client with the same type as the input
  */
 export function instrumentAnthropicAiClient<T extends object>(anthropicAiClient: T, options?: AnthropicAiOptions): T {
-  return instrumentClientInPlace(anthropicAiClient, resolveAIRecordingOptions(options));
+  return instrumentClientInPlace(anthropicAiClient, options ?? {});
 }
