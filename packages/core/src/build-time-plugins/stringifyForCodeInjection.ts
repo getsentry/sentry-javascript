@@ -22,11 +22,12 @@ const ESCAPED_CHARS: Record<string, string> = {
  */
 export function stringifyForCodeInjection(
   value: unknown,
-  // oxlint-disable-next-line typescript/no-explicit-any
-  replacer?: ((this: any, key: string, value: any) => any) | (number | string)[] | null,
+  replacer?: ((this: unknown, key: string, value: unknown) => unknown) | (number | string)[] | null,
   space?: string | number,
 ): string {
+  // Each branch matches one `JSON.stringify` overload.
+  const json =
+    typeof replacer === 'function' ? JSON.stringify(value, replacer, space) : JSON.stringify(value, replacer, space);
   // `JSON.stringify` returns `undefined` for `undefined` and functions, although its type says `string`.
-  // oxlint-disable-next-line typescript/no-explicit-any
-  return JSON.stringify(value, replacer as any, space)?.replace(UNSAFE_CHARS, char => ESCAPED_CHARS[char] as string);
+  return json?.replace(UNSAFE_CHARS, char => ESCAPED_CHARS[char] as string);
 }
