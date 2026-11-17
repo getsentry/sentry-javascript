@@ -56,11 +56,13 @@ const REQUIRE_OF_ESM_ONLY_DEPENDENCY = [
 // version) and pass on Deno 2.9.0.
 const NOT_TRIAGED = [
   'suites/tracing/anthropic/test.ts',
+  'suites/tracing/anthropic/recording-functions/test.ts',
   'suites/tracing/anthropic/v0.129/test.ts',
   'suites/tracing/apollo-graphql/**',
   'suites/tracing/fastify/test.ts',
   'suites/tracing/flue/test.ts',
   'suites/tracing/google-genai/test.ts',
+  'suites/tracing/google-genai/recording-functions/test.ts',
   'suites/tracing/groq/test.ts',
   'suites/tracing/http-client-spans/http-strip-query/test.ts',
   'suites/tracing/ioredis-dc/test.ts',
@@ -69,6 +71,7 @@ const NOT_TRIAGED = [
   'suites/tracing/langgraph/test.ts',
   'suites/tracing/mistral-v2/test.ts',
   'suites/tracing/mistral/test.ts',
+  'suites/tracing/mistral/recording-functions/test.ts',
   'suites/tracing/mongodb/test.ts',
   'suites/tracing/mongoose-v5/test.ts',
   'suites/tracing/mysql/test.ts',

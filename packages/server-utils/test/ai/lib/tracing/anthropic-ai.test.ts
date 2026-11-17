@@ -1,9 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { GEN_AI_INPUT_MESSAGES, GEN_AI_RESPONSE_TEXT } from '@sentry/conventions/attributes';
-import { getCurrentScope, getMainCarrier, setCurrentClient, spanToStaticSpanJSON, withScope } from '@sentry/core';
+import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { instrumentAnthropicAiClient } from '../../../../src/ai/anthropic-ai';
-import type { AnthropicAiCallInfo } from '../../../../src/ai/anthropic-ai/types';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 describe('instrumentAnthropicAiClient span names', () => {
@@ -125,60 +123,5 @@ describe('instrumentAnthropicAiClient provider name', () => {
     });
 
     expect(spanToStaticSpanJSON(endedSpans[0]!).data['gen_ai.provider.name']).toBe(expected);
-  });
-});
-
-describe('instrumentAnthropicAiClient per-call recording', () => {
-  afterEach(() => {
-    getMainCarrier().__SENTRY__ = undefined;
-  });
-
-  it("decides inputs and outputs separately for each call, in the caller's async context", async () => {
-    getMainCarrier().__SENTRY__ = undefined;
-    const client = new TestClient(
-      getDefaultTestClientOptions({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 }),
-    );
-    setCurrentClient(client);
-    client.init();
-    const endedSpans: Span[] = [];
-    client.on('spanEnd', span => endedSpans.push(span));
-
-    const recordInputs = vi.fn(
-      (call: AnthropicAiCallInfo) =>
-        call.operation === 'chat' && (call.request?.metadata as { user_id: string }).user_id === 'public',
-    );
-    const recordOutputs = () => getCurrentScope().getScopeData().tags.outputs === 'on';
-    const anthropic = instrumentAnthropicAiClient(
-      {
-        messages: {
-          create: vi.fn().mockResolvedValue({ id: 'msg', model: 'claude', content: [{ type: 'text', text: 'Hi' }] }),
-        },
-      },
-      { recordInputs, recordOutputs },
-    );
-
-    const messages = [{ role: 'user', content: 'Hello' }];
-    await withScope(scope => {
-      scope.setTag('outputs', 'off');
-      return anthropic.messages.create({ model: 'claude', messages, metadata: { user_id: 'public' } });
-    });
-    await withScope(scope => {
-      scope.setTag('outputs', 'on');
-      return anthropic.messages.create({ model: 'claude', messages, metadata: { user_id: 'private' } });
-    });
-
-    expect(recordInputs).toHaveBeenCalledWith({
-      operation: 'chat',
-      request: { model: 'claude', messages, metadata: { user_id: 'public' } },
-    });
-    expect(
-      endedSpans.map(span => {
-        const { data } = spanToStaticSpanJSON(span);
-        return { inputs: GEN_AI_INPUT_MESSAGES in data, outputs: GEN_AI_RESPONSE_TEXT in data };
-      }),
-    ).toEqual([
-      { inputs: true, outputs: false },
-      { inputs: false, outputs: true },
-    ]);
   });
 });

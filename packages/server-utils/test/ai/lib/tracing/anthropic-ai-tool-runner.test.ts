@@ -31,7 +31,6 @@ import { instrumentAnthropicAiClient } from '../../../../src/ai/anthropic-ai';
 import { instrumentSessionToolRunner } from '../../../../src/ai/anthropic-ai/tool-runner';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../../../../src/async-context';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../src/ai/core/gen-ai-attributes';
-import type { AnthropicAiCallInfo } from '../../../../src/ai/anthropic-ai/types';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 type Tool = { name: string; description?: string; input_schema: object; run: (...args: unknown[]) => unknown };
@@ -190,38 +189,6 @@ describe('instrumentAnthropicAiClient tool runner', () => {
           [GEN_AI_TOOL_CALL_RESULT]: 'sunny',
         }),
       }),
-    ]);
-  });
-
-  it("decides recording for each tool call, in the caller's async context", async () => {
-    const weather = tool('weather', async () => 'sunny');
-    const recordInputs = vi.fn(
-      (call: AnthropicAiCallInfo) =>
-        call.operation === 'execute_tool' && (call.input as { city: string }).city === 'Vienna',
-    );
-    const recordOutputs = () => getCurrentScope().getScopeData().tags.outputs === 'on';
-    instrumentAnthropicAiClient(fakeClient(), { recordInputs, recordOutputs }).beta.messages.toolRunner({
-      tools: [weather],
-    });
-
-    await withScope(scope => {
-      scope.setTag('outputs', 'off');
-      return weather.run({ city: 'Vienna' }, { toolUse: { id: 'toolu_1' } });
-    });
-    await withScope(scope => {
-      scope.setTag('outputs', 'on');
-      return weather.run({ city: 'Paris' }, { toolUse: { id: 'toolu_2' } });
-    });
-
-    expect(recordInputs).toHaveBeenCalledWith({ operation: 'execute_tool', tool: weather, input: { city: 'Vienna' } });
-    expect(
-      toolSpans().map(({ data }) => ({
-        inputs: GEN_AI_TOOL_CALL_ARGUMENTS in data,
-        outputs: GEN_AI_TOOL_CALL_RESULT in data,
-      })),
-    ).toEqual([
-      { inputs: true, outputs: false },
-      { inputs: false, outputs: true },
     ]);
   });
 

@@ -1,9 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getCurrentScope, getMainCarrier, setCurrentClient, spanToStaticSpanJSON, withScope } from '@sentry/core';
+import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
-  GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_RESPONSE_STREAMING,
@@ -13,7 +12,6 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { instrumentMistralAiClient } from '../../../../src/ai/mistral';
-import type { MistralCallInfo } from '../../../../src/ai/mistral/types';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 const GEN_AI_REQUEST_STREAM = 'gen_ai.request.stream';
@@ -637,36 +635,5 @@ describe('instrumentMistralAiClient', () => {
       expect(endedSpans).toHaveLength(1);
       expect(spanToStaticSpanJSON(endedSpans[0]!).status).toBe('internal_error');
     });
-  });
-
-  it("decides inputs and outputs separately for each call, in the caller's async context", async () => {
-    const endedSpans = setupClient('stream');
-    const recordInputs = vi.fn((call: MistralCallInfo) => call.request?.user === 'public');
-    const recordOutputs = () => getCurrentScope().getScopeData().tags.outputs === 'on';
-    const client = instrumentMistralAiClient(fakeClient(), { recordInputs, recordOutputs });
-
-    const messages = [{ role: 'user', content: 'Hello' }];
-    await withScope(scope => {
-      scope.setTag('outputs', 'off');
-      return client.chat.complete({ model: 'mistral-small-latest', messages, user: 'public' });
-    });
-    await withScope(scope => {
-      scope.setTag('outputs', 'on');
-      return client.chat.complete({ model: 'mistral-small-latest', messages, user: 'private' });
-    });
-
-    expect(recordInputs).toHaveBeenCalledWith({
-      operation: 'chat',
-      request: { model: 'mistral-small-latest', messages, user: 'public' },
-    });
-    expect(
-      endedSpans.map(span => {
-        const { data } = spanToStaticSpanJSON(span);
-        return { inputs: GEN_AI_INPUT_MESSAGES in data, outputs: GEN_AI_RESPONSE_TEXT in data };
-      }),
-    ).toEqual([
-      { inputs: true, outputs: false },
-      { inputs: false, outputs: true },
-    ]);
   });
 });
