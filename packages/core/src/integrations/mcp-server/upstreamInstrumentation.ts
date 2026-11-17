@@ -27,6 +27,7 @@ interface UpstreamScope {
 }
 
 interface UpstreamInstrumentation {
+  send?: (operation: { method: string; id?: RequestId }) => UpstreamScope | undefined;
   receive?: (operation: { method: string; id?: RequestId }) => UpstreamScope | undefined;
 }
 
@@ -43,7 +44,7 @@ export interface UpstreamSpanHandoff {
 let pendingHandoff: UpstreamSpanHandoff | undefined;
 
 /**
- * Wraps the MCP SDK's package-internal `_instrumentation.receive`.
+ * Wraps the MCP SDK's package-internal `_instrumentation.receive` and `_instrumentation.send`.
  * Returns `false` when the server has no such instrumentation (MCP SDK v1, v2 <= 2.4, or `openTelemetry: false`).
  */
 export function hookUpstreamInstrumentation(serverInstance: object): boolean {
@@ -65,6 +66,8 @@ export function hookUpstreamInstrumentation(serverInstance: object): boolean {
       pendingHandoff = undefined;
       return receiveWithHandoff(handoff, () => original.receive?.(operation));
     },
+    // Outgoing notifications are enriched in `transport.send`, which finds the SDK's span as the active span.
+    send: original.send && (operation => activateUpstreamSpan(() => original.send?.(operation))),
   };
   return true;
 }
@@ -80,21 +83,41 @@ export function withUpstreamSpanHandoff<T>(handoff: UpstreamSpanHandoff, onMessa
   }
 }
 
-function receiveWithHandoff(
-  handoff: UpstreamSpanHandoff,
-  receive: () => UpstreamScope | undefined,
-): UpstreamScope | undefined {
-  // The span the SDK starts in `receive` only reaches `spanStart` if it is a Sentry span.
+function startUpstreamScope(start: () => UpstreamScope | undefined): {
+  scope: UpstreamScope | undefined;
+  upstreamSpan: Span | undefined;
+} {
+  // The span the SDK starts here only reaches `spanStart` if it is a Sentry span.
   let upstreamSpan: Span | undefined;
   const unsubscribe = getClient()?.on('spanStart', span => {
     upstreamSpan ??= span;
   });
-  let scope: UpstreamScope | undefined;
   try {
-    scope = receive();
+    return { scope: start(), upstreamSpan };
   } finally {
     unsubscribe?.();
   }
+}
+
+// The SDK activates its span through the OpenTelemetry context, which is not Sentry's scope on every
+// runtime (e.g. Deno, which has no OpenTelemetry context manager).
+function runInUpstreamSpan<T>(span: Span, scope: UpstreamScope, fn: () => T): T {
+  return withActiveSpan(span, () => scope.run(fn));
+}
+
+function activateUpstreamSpan(send: () => UpstreamScope | undefined): UpstreamScope | undefined {
+  const { scope, upstreamSpan } = startUpstreamScope(send);
+  if (!scope || !upstreamSpan) {
+    return scope;
+  }
+  return { run: fn => runInUpstreamSpan(upstreamSpan, scope, fn), end: outcome => scope.end(outcome) };
+}
+
+function receiveWithHandoff(
+  handoff: UpstreamSpanHandoff,
+  receive: () => UpstreamScope | undefined,
+): UpstreamScope | undefined {
+  const { scope, upstreamSpan } = startUpstreamScope(receive);
 
   if (!scope || !upstreamSpan) {
     // Started now rather than in `run`, because the SDK answers some requests without running a handler.
@@ -115,9 +138,7 @@ function receiveWithHandoff(
   const upstreamScope = scope;
   span.setAttributes(handoff.attributes);
   return {
-    // The SDK activates its span through the OpenTelemetry context, which is not Sentry's scope on every
-    // runtime (e.g. Deno, which has no OpenTelemetry context manager).
-    run: fn => withActiveSpan(span, () => upstreamScope.run(fn)),
+    run: fn => runInUpstreamSpan(span, upstreamScope, fn),
     // The SDK ends its span before sending the response, so the response is recorded here.
     end: outcome => {
       if (outcome.type === 'result' || outcome.type === 'error') {

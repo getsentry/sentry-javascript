@@ -265,6 +265,18 @@ describe('MCP server hand-off to the MCP SDK instrumentation', () => {
     });
   });
 
+  it('enriches the MCP SDK span of an outgoing notification when the SDK scope does not activate it', async () => {
+    const server = wrapMcpServerWithSentry(createServer(sentryTracedInstrumentation({ activatesSpan: false })));
+    const transport = new InMemoryTransport();
+    await server.connect(transport);
+
+    await server.notify('notifications/tools/list_changed');
+
+    const spans = mcpSpans();
+    expect(spans).toHaveLength(1);
+    expect(spans[0]!.attributes).toMatchObject({ [SENTRY_OP]: MCP_NOTIFICATION_SERVER_TO_CLIENT });
+  });
+
   it('starts its own span when the MCP SDK span does not reach Sentry', async () => {
     const server = wrapMcpServerWithSentry(createServer(foreignTracedInstrumentation()));
     let handlerSpan: Span | undefined;
