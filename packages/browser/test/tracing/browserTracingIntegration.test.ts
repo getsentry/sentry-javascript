@@ -257,6 +257,8 @@ describe('browserTracingIntegration', () => {
     ['leaves the ignore list alone when INP is enabled', {}, []],
     // oxlint-disable-next-line typescript/no-deprecated
     ['appends inp to the ignore list when disabled', { enableInp: false }, ['inp']],
+    // oxlint-disable-next-line typescript/no-deprecated
+    ['appends inp to the ignore list when explicitly undefined', { enableInp: undefined }, ['inp']],
     [
       'keeps user-provided entries when appending inp',
       // oxlint-disable-next-line typescript/no-deprecated

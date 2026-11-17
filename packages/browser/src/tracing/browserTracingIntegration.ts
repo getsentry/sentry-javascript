@@ -305,6 +305,15 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingCoreOptions = {
 };
 
 /**
+ * Defaults for the options that `browserTracingIntegration` forwards to the integrations it registers.
+ * They are spread rather than destructured, so an explicit `undefined` still overrides them.
+ */
+const DEFAULT_FORWARDED_OPTIONS = {
+  // oxlint-disable-next-line typescript/no-deprecated -- still honoured until it is removed
+  enableInp: true,
+} satisfies Partial<BrowserTracingOptions>;
+
+/**
  * The Browser Tracing integration automatically instruments browser pageload/navigation
  * actions as transactions, and captures requests, metrics and errors as spans.
  *
@@ -323,8 +332,11 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     });
   }
 
-  // oxlint-disable-next-line typescript/no-deprecated -- still honoured until it is removed
-  const { enableInp = true, webVitals } = options;
+  const {
+    // oxlint-disable-next-line typescript/no-deprecated -- still honoured until it is removed
+    enableInp,
+    webVitals,
+  } = { ...DEFAULT_FORWARDED_OPTIONS, ...options };
 
   return _browserTracingIntegration(options, client => {
     // Custom clients and test doubles may not implement it.
