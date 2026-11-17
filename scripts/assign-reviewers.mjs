@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 
-import { getJuniorRequesters, TEAM_SLUG } from './junior-requesters.mjs';
+import { CONTRACTORS, getJuniorRequesters, TEAM_SLUG } from './junior-requesters.mjs';
 
 const REQUIRED_REVIEWERS = 3;
 // Managers who are members of the SDK teams, but should never be auto-requested for review.
@@ -67,8 +67,9 @@ function shuffle(items) {
 
 /**
  * Picks reviewers to top the PR up to `REQUIRED_REVIEWERS`, preferring the codeowner pool and falling back
- * to the whole team. Within a pool, people who were asked for the fewest reviews recently (`load`, keyed by
- * lowercase login) go first, ties are broken randomly. Logins are compared case-insensitively, as GitHub does.
+ * to the whole team plus the contractors. Within a pool, people who were asked for the fewest reviews recently
+ * (`load`, keyed by lowercase login) go first, ties are broken randomly. Logins are compared case-insensitively,
+ * as GitHub does.
  */
 export function pickReviewers({ existing, codeownerPool, teamPool, exclude, load = new Map() }) {
   const taken = new Set([...existing, ...exclude].map(login => login.toLowerCase()));
@@ -245,7 +246,7 @@ export async function assignReviewers({ github, context, core }) {
     }
   }
 
-  const teamPool = await listTeamMembers(TEAM_SLUG);
+  const teamPool = [...(await listTeamMembers(TEAM_SLUG)), ...CONTRACTORS];
   const busy = await getBusyLogins({ github, core, logins: [...codeownerPool, ...teamPool] });
   const load = await getReviewLoad({ github, core, owner, repo });
 

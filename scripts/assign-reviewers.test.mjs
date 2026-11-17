@@ -232,10 +232,20 @@ describe('assignReviewers', () => {
     github.graphql.mockResolvedValue({ u0: { login: 'a', status: { indicatesLimitedAvailability: true } } });
     await run();
     expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
-      expect.objectContaining({ reviewers: expect.arrayContaining(['b', 'c', 'd']) }),
+      expect.objectContaining({ reviewers: [expect.any(String), expect.any(String), expect.any(String)] }),
     );
     expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
       expect.objectContaining({ reviewers: expect.not.arrayContaining(['a']) }),
+    );
+  });
+
+  it('falls back to the contractors as well as the team', async () => {
+    const { github, run } = setup(assignReviewers, { user: { login: 'author', type: 'User' } });
+    const busy = login => ({ login, status: { indicatesLimitedAvailability: true } });
+    github.graphql.mockResolvedValue({ u0: busy('a'), u1: busy('b'), u2: busy('c') });
+    await run();
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.arrayContaining(['d', 'timfish', 'RulaKhaled']) }),
     );
   });
 
@@ -243,7 +253,10 @@ describe('assignReviewers', () => {
     const { github, run } = setup(assignReviewers, { user: junior, body: attribution('**Alice Example**') });
     await run();
     expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
-      expect.objectContaining({ reviewers: expect.arrayContaining(['b', 'c', 'd']) }),
+      expect.objectContaining({ reviewers: [expect.any(String), expect.any(String), expect.any(String)] }),
+    );
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.not.arrayContaining(['a']) }),
     );
   });
 
@@ -261,7 +274,11 @@ describe('assignReviewers', () => {
             repository: {
               pullRequests: {
                 pageInfo: { hasNextPage: false },
-                nodes: [pr(['a', 'b', 'c']), pr(['a', 'b']), pr(['a'])],
+                nodes: [
+                  pr(['a', 'b', 'c', 'timfish', 'RulaKhaled']),
+                  pr(['a', 'b', 'timfish', 'RulaKhaled']),
+                  pr(['a', 'timfish', 'RulaKhaled']),
+                ],
               },
             },
           }
@@ -301,7 +318,10 @@ describe('assignReviewers', () => {
     });
     await run();
     expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
-      expect.objectContaining({ reviewers: expect.arrayContaining(['b', 'c', 'd']) }),
+      expect.objectContaining({ reviewers: [expect.any(String), expect.any(String), expect.any(String)] }),
+    );
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.not.arrayContaining(['a']) }),
     );
   });
 
@@ -315,7 +335,10 @@ describe('assignReviewers', () => {
     );
     await run();
     expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
-      expect.objectContaining({ reviewers: expect.arrayContaining(['b', 'c', 'd']) }),
+      expect.objectContaining({ reviewers: [expect.any(String), expect.any(String), expect.any(String)] }),
+    );
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.not.arrayContaining(['a']) }),
     );
   });
 });

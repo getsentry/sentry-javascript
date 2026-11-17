@@ -4,7 +4,8 @@
 # so the whole team gets notified.
 #
 # Last match wins. Files with no rule (CI, scripts, root config, shared test
-# utils, most of packages/core) fall back to @getsentry/team-javascript-sdks.
+# utils, most of packages/core) fall back to @getsentry/team-javascript-sdks
+# plus the contractors listed in scripts/junior-requesters.mjs.
 # Don't add a catch-all `*` rule: it would put the whole team in the codeowner
 # pool of every PR and dilute the routing below.
 
@@ -26,9 +27,9 @@
 /dev-packages/e2e-tests/test-applications/webpack-*/ @getsentry/team-javascript-sdks-browser
 
 # Node/server runtimes and related packages
-/packages/node/                     @getsentry/team-javascript-sdks-server
+/packages/node/                     @getsentry/team-javascript-sdks-server @timfish
 /packages/server-runtime-injection/ @getsentry/team-javascript-sdks-server
-/packages/server-utils/             @getsentry/team-javascript-sdks-server
+/packages/server-utils/             @getsentry/team-javascript-sdks-server @timfish
 /packages/node-native/              @getsentry/team-javascript-sdks-server
 /packages/profiling-node/           @getsentry/team-javascript-sdks-server
 /packages/opentelemetry/            @getsentry/team-javascript-sdks-server
@@ -53,6 +54,14 @@
 /dev-packages/e2e-tests/test-applications/aws-serverless*/ @getsentry/team-javascript-sdks-server
 /dev-packages/e2e-tests/test-applications/tsx-express/ @getsentry/team-javascript-sdks-server
 /dev-packages/e2e-tests/test-applications/gen-ai-libraries/ @getsentry/team-javascript-sdks-server
+
+# Bundler plugins
+/packages/bundler-plugins/          @getsentry/team-javascript-sdks-framework @timfish
+/packages/esbuild-plugin/           @getsentry/team-javascript-sdks-framework @timfish
+/packages/rollup-plugin/            @getsentry/team-javascript-sdks-framework @timfish
+/packages/vite-plugin/              @getsentry/team-javascript-sdks-framework @timfish
+/packages/webpack-plugin/           @getsentry/team-javascript-sdks-framework @timfish
+/dev-packages/bundler-plugin-integration-tests/ @getsentry/team-javascript-sdks-framework @timfish
 
 # Framework integration packages
 /packages/angular/                  @getsentry/team-javascript-sdks-framework
@@ -94,3 +103,58 @@
 /dev-packages/e2e-tests/test-applications/tanstack*/ @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/vinext-*/ @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/vue-*/ @getsentry/team-javascript-sdks-framework
+
+# AI integrations. These come last so they win over the rules above; each rule
+# keeps the owners the path would otherwise have.
+/packages/server-utils/src/ai/      @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
+/packages/server-utils/test/ai/     @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
+/packages/server-utils/*/integrations/anthropic* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
+/packages/server-utils/*/integrations/flue* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
+/packages/server-utils/*/integrations/google-genai* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
+/packages/server-utils/*/integrations/groq* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
+/packages/server-utils/*/integrations/langchain* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
+/packages/server-utils/*/integrations/langgraph* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
+/packages/server-utils/*/integrations/mastra* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
+/packages/server-utils/*/integrations/mistral* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
+/packages/server-utils/*/integrations/openai* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
+/packages/server-utils/*/integrations/pi-* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
+/packages/server-utils/*/integrations/together-ai* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
+/packages/server-utils/*/integrations/typesafe* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
+/packages/server-utils/*/integrations/vercel-ai/ @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
+/packages/server-utils/*/integrations/aws-sdk/services/bedrock-runtime* @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
+/packages/server-utils/src/orchestrion/config/openai-compatible.ts @getsentry/team-javascript-sdks-server @timfish @RulaKhaled
+/packages/cloudflare/src/instrumentations/agents/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/packages/core/src/integrations/mcp-server/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/packages/core/src/integrations/conversationId.ts @RulaKhaled
+/packages/core/src/tracing/spans/extractGenAiSpans.ts @RulaKhaled
+/packages/core/test/lib/tracing/spans/extractGenAiSpans.test.ts @RulaKhaled
+/packages/core/src/utils/ai/         @RulaKhaled
+/packages/core/test/lib/utils/ai/    @RulaKhaled
+/dev-packages/node-integration-tests/suites/tracing/anthropic/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/node-integration-tests/suites/tracing/flue/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/node-integration-tests/suites/tracing/google-genai/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/node-integration-tests/suites/tracing/groq/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/node-integration-tests/suites/tracing/langchain/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/node-integration-tests/suites/tracing/langgraph/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/node-integration-tests/suites/tracing/mastra/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/node-integration-tests/suites/tracing/mcp-server/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/node-integration-tests/suites/tracing/mistral/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/node-integration-tests/suites/tracing/openai/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/node-integration-tests/suites/tracing/pi-ai/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/node-integration-tests/suites/tracing/pi-durable/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/node-integration-tests/suites/tracing/together-ai/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/node-integration-tests/suites/tracing/typesafe/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/node-integration-tests/suites/tracing/vercelai/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/cloudflare-integration-tests/suites/tracing/google-genai/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/cloudflare-integration-tests/suites/tracing/langchain/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/cloudflare-integration-tests/suites/tracing/langgraph/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/cloudflare-integration-tests/suites/tracing/openai/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/cloudflare-integration-tests/suites/tracing/workers-ai/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/e2e-tests/test-applications/gen-ai-libraries/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/e2e-tests/test-applications/node-openai-decisions/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/e2e-tests/test-applications/node-mastra/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/e2e-tests/test-applications/cloudflare-mastra/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/e2e-tests/test-applications/cloudflare-vercelai-v7/ @getsentry/team-javascript-sdks-server @RulaKhaled
+/dev-packages/e2e-tests/test-applications/*nextjs*/app/ai-*/ @getsentry/team-javascript-sdks-framework @RulaKhaled
+/dev-packages/e2e-tests/test-applications/*nextjs*/app/api/openai/ @getsentry/team-javascript-sdks-framework @RulaKhaled
+/.agents/skills/add-ai-integration/ @RulaKhaled
