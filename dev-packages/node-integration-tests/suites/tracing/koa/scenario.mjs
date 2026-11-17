@@ -2,8 +2,6 @@ import Router from '@koa/router';
 import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
 import Koa from 'koa';
 
-const port = 5698;
-
 const app = new Koa();
 
 // The error handler is auto-registered by the koa instrumentation on app start,
@@ -30,6 +28,6 @@ router.get('/error', () => {
 
 app.use(router.routes()).use(router.allowedMethods());
 
-app.listen(port, () => {
-  sendPortToRunner(port);
+const server = app.listen(0, () => {
+  sendPortToRunner(server.address().port);
 });

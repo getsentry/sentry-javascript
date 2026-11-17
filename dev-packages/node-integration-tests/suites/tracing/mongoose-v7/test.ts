@@ -7,8 +7,9 @@ import {
   SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
-import { MongoMemoryServer } from 'mongodb-memory-server-global';
+import type { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
+import { createMongoMemoryServer } from '../../../utils/mongoMemoryServer';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Pins mongoose 7 so the `contextCaptureFunctions7` version branch is exercised against a real mongoose.
@@ -17,7 +18,7 @@ describe('Mongoose v7 Test', () => {
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await createMongoMemoryServer('mongoose-v7');
     process.env.MONGO_URL = mongoServer.getUri();
   }, 30000);
 
