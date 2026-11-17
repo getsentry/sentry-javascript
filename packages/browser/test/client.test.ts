@@ -235,6 +235,51 @@ describe('applyDefaultOptions', () => {
     WINDOW.SENTRY_RELEASE = releaseBefore;
   });
 
+  describe('`sentry-release` meta tag', () => {
+    afterEach(() => {
+      document.head.innerHTML = '';
+    });
+
+    function addReleaseMetaTag(content: string): void {
+      const meta = document.createElement('meta');
+      meta.name = 'sentry-release';
+      meta.content = content;
+      document.head.appendChild(meta);
+    }
+
+    it('picks up the release from the meta tag that framework SDKs render into the page', () => {
+      addReleaseMetaTag('page-release');
+
+      expect(applyDefaultOptions({}).release).toBe('page-release');
+    });
+
+    it('prefers the meta tag over WINDOW.SENTRY_RELEASE.id', () => {
+      const releaseBefore = WINDOW.SENTRY_RELEASE;
+      WINDOW.SENTRY_RELEASE = { id: 'chunk-release' };
+      addReleaseMetaTag('page-release');
+
+      expect(applyDefaultOptions({}).release).toBe('page-release');
+
+      WINDOW.SENTRY_RELEASE = releaseBefore;
+    });
+
+    it('lets a passed in release take precedence over the meta tag', () => {
+      addReleaseMetaTag('page-release');
+
+      expect(applyDefaultOptions({ release: '2.0.0' }).release).toBe('2.0.0');
+    });
+
+    it('ignores an empty meta tag', () => {
+      const releaseBefore = WINDOW.SENTRY_RELEASE;
+      WINDOW.SENTRY_RELEASE = { id: 'chunk-release' };
+      addReleaseMetaTag('');
+
+      expect(applyDefaultOptions({}).release).toBe('chunk-release');
+
+      WINDOW.SENTRY_RELEASE = releaseBefore;
+    });
+  });
+
   it('passed in release takes precedence over WINDOW.SENTRY_RELEASE.id', () => {
     const releaseBefore = WINDOW.SENTRY_RELEASE;
 

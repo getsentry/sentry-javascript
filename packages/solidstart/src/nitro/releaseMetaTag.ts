@@ -1,4 +1,4 @@
-import { RELEASE_META_TAG_NAME } from '../common/release';
+import { _INTERNAL_getReleaseMetaTag as getReleaseMetaTag } from '@sentry/core/server';
 
 const HEAD_OPENING_TAG = /<head(?:\s[^>]*)?>/i;
 
@@ -57,7 +57,7 @@ function injectIntoHtml(html: string, release: string): string | undefined {
   }
 
   const end = match.index + match[0].length;
-  return `${html.slice(0, end)}<meta name="${RELEASE_META_TAG_NAME}" content="${escapeAttribute(release)}">${html.slice(end)}`;
+  return `${html.slice(0, end)}${getReleaseMetaTag(release)}${html.slice(end)}`;
 }
 
 function injectIntoHtmlStream(body: ReadableStream<Uint8Array | string>, release: string): ReadableStream<Uint8Array> {
@@ -91,8 +91,4 @@ function injectIntoHtmlStream(body: ReadableStream<Uint8Array | string>, release
       },
     }),
   );
-}
-
-function escapeAttribute(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }

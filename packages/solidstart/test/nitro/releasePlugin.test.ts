@@ -34,7 +34,7 @@ describe('releasePlugin', () => {
 
     beforeResponse(event, response);
 
-    expect(response.body).toBe('<head><meta name="sentry-release" content="1.0.0"></head>');
+    expect(response.body).toBe('<head><meta name="sentry-release" content="1.0.0"/></head>');
     expect(event.node.res.removeHeader).toHaveBeenCalledWith('content-length');
   });
 

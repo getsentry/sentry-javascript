@@ -24,12 +24,12 @@ import {
 import {
   flushIfServerless,
   _INTERNAL_getCacheOriginMetaTags,
+  _INTERNAL_getReleaseMetaTag as renderReleaseMetaTag,
   _INTERNAL_getRootSpanSentryTrace,
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
   _INTERNAL_setTunnelDefaults as setTunnelDefaults,
 } from '@sentry/core/server';
 import { getTunnelBasePath } from '../common/tunnel';
-import { RELEASE_META_TAG_NAME } from '../common/utils';
 import type { GlobalWithSentryValues } from '../vite/injectGlobalValues';
 import type { Handle, ResolveOptions } from './handleTypes';
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -109,11 +109,7 @@ export function addSentryCodeToPage(options: {
  */
 function getReleaseMetaTag(): string {
   const release = (GLOBAL_OBJ as GlobalWithSentryValues).__sentry_sveltekit_release;
-  return release ? `<meta name="${RELEASE_META_TAG_NAME}" content="${escapeHtmlAttribute(release)}"/>` : '';
-}
-
-function escapeHtmlAttribute(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return release ? renderReleaseMetaTag(release) : '';
 }
 
 /**

@@ -16,7 +16,7 @@ describe('releaseMiddleware', () => {
     );
 
     await expect((response as Response).text()).resolves.toBe(
-      '<head><meta name="sentry-release" content="1.0.0"></head>',
+      '<head><meta name="sentry-release" content="1.0.0"/></head>',
     );
   });
 

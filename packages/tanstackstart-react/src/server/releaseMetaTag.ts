@@ -1,4 +1,4 @@
-import { RELEASE_META_TAG_NAME } from '../common/release';
+import { _INTERNAL_getReleaseMetaTag as getReleaseMetaTag } from '@sentry/core/server';
 import type { ServerEntry } from './wrapFetchWithSentry';
 
 const HEAD_CLOSING_TAG = new TextEncoder().encode('</head>');
@@ -18,9 +18,7 @@ export function addReleaseMetaTag<T extends ServerEntry>(serverEntry: T, release
     return serverEntry;
   }
 
-  const metaTag = new TextEncoder().encode(
-    `<meta name="${RELEASE_META_TAG_NAME}" content="${escapeAttribute(release)}"/>`,
-  );
+  const metaTag = new TextEncoder().encode(getReleaseMetaTag(release));
 
   return {
     ...serverEntry,
@@ -132,8 +130,4 @@ function concat(a: Uint8Array, b: Uint8Array): Uint8Array {
   result.set(a);
   result.set(b, a.length);
   return result;
-}
-
-function escapeAttribute(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
