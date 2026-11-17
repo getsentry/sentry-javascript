@@ -13,6 +13,7 @@ import {
   setHttpStatus,
   spanToJSON,
   startSpan,
+  timestampInSeconds,
   updateSpanName,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
@@ -21,7 +22,7 @@ import {
 } from '@sentry/core';
 import {
   flushIfServerless,
-  _INTERNAL_getCacheOriginMetaTag,
+  _INTERNAL_getCacheOriginMetaTags,
   _INTERNAL_getRootSpanSentryTrace,
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
   _INTERNAL_setTunnelDefaults as setTunnelDefaults,
@@ -84,9 +85,11 @@ export const FETCH_PROXY_SCRIPT = `
 export function addSentryCodeToPage(options: {
   injectFetchProxyScript: boolean;
   isVercelIsrRender?: boolean;
+  /** When the request started, in seconds. Kit calls `transformPageChunk` only after the whole render. */
+  requestStart: number;
 }): NonNullable<ResolveOptions['transformPageChunk']> {
   return ({ html }) => {
-    const metaTags = getPageMetaTags(html, !!options.isVercelIsrRender);
+    const metaTags = getPageMetaTags(html, !!options.isVercelIsrRender, options.requestStart);
     const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
 
     const headWithFetchScript = options.injectFetchProxyScript ? `\n<script>${FETCH_PROXY_SCRIPT}</script>` : '';
@@ -102,7 +105,7 @@ export function addSentryCodeToPage(options: {
  * that many visitors get, such as a prerendered or ISR page, gets `sentry-cache-origin` instead, so each
  * pageload starts its own trace.
  */
-function getPageMetaTags(html: string, isVercelIsrRender: boolean): string {
+function getPageMetaTags(html: string, isVercelIsrRender: boolean, requestStart: number): string {
   if (!isVercelIsrRender && !isSvelteKitBuilding()) {
     return getTraceMetaTags();
   }
@@ -115,7 +118,10 @@ function getPageMetaTags(html: string, isVercelIsrRender: boolean): string {
 
   // The build does not reliably send spans, so a prerendered page has no trace to link.
   // The empty tag still marks the pageload as static.
-  return _INTERNAL_getCacheOriginMetaTag(isVercelIsrRender ? _INTERNAL_getRootSpanSentryTrace() : undefined);
+  return _INTERNAL_getCacheOriginMetaTags(
+    isVercelIsrRender ? _INTERNAL_getRootSpanSentryTrace() : undefined,
+    requestStart,
+  );
 }
 
 /** Kit writes `node_ids` only if the server rendered content, not for `ssr = false` or the SPA fallback. */
@@ -174,6 +180,7 @@ async function instrumentHandle(
   },
   options: SentryHandleOptions,
 ): Promise<Response> {
+  const requestStart = timestampInSeconds();
   const routeId = event.route?.id;
 
   if (!routeId && !options.handleUnknownRoutes) {
@@ -258,6 +265,7 @@ async function instrumentHandle(
           // Vercel sets this on every ISR invocation, also on revalidation.
           // A client that sends it changes only its own response.
           isVercelIsrRender: event.request.headers.has('x-vercel-isr'),
+          requestStart,
         }),
       });
 

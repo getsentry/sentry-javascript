@@ -11,9 +11,6 @@ import { isDevMode } from './isDevMode';
 const nextPackageJson = require('next/package.json');
 
 test('Sends a pageload span', async ({ page }) => {
-  const nextjsVersion = nextPackageJson.version;
-  const nextjsMajor = Number(nextjsVersion.split('.')[0]);
-
   const pageloadSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
     return getSpanOp(span) === 'pageload' && span.name === '/' && span.is_segment;
   });
@@ -22,9 +19,9 @@ test('Sends a pageload span', async ({ page }) => {
 
   const span = await pageloadSpanPromise;
 
-  // Next.js >= 15 propagates a trace ID to the client via a meta tag. Also, only dev mode emits a meta tag because
-  // the requested page is static and only in dev mode SSR is kicked off.
-  if (nextjsMajor >= 15 && isDevMode) {
+  // The server sends the trace in a `Server-Timing` header, except with a document a shared cache may store. In
+  // production the requested page is static, so only dev mode, which renders it per request, connects the pageload.
+  if (isDevMode) {
     expect(span.parent_span_id).toEqual(expect.any(String));
   } else {
     expect(span.parent_span_id).toBeUndefined();

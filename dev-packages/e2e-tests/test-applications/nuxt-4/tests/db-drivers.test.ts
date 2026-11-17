@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 import { isViteServer, NITRO_ONLY } from './isViteServer';
+import { MONGOOSE_UNSUPPORTED, RUNTIME } from './runtime';
 
 test.skip(isViteServer, NITRO_ONLY);
 
@@ -73,6 +74,8 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
 // The Nitro bundle force-inlines the instrumented drivers while their CommonJS dependencies and
 // Node builtins stay external, and every `require()` across that boundary needs working interop.
 test('Instruments mongoose automatically', async ({ baseURL }) => {
+  test.skip(RUNTIME === 'cloudflare', MONGOOSE_UNSUPPORTED);
+
   const spansPromise = collectRequestSpans('/api/db-mongoose');
 
   const response = await fetch(`${baseURL}/api/db-mongoose`);
@@ -118,6 +121,9 @@ test('Instruments mysql automatically', async ({ baseURL }) => {
   await expect(response.json()).resolves.toEqual({ status: 'ok' });
 
   const spans = await spansPromise;
+
+  const rootSpan = spans.find(span => span.is_segment);
+  expect(rootSpan!.attributes['sentry.sdk.name']).toEqual({ type: 'string', value: 'sentry.javascript.nuxt' });
 
   // Neither query has a FROM target, so the low-cardinality summary (and streamed
   // span name) is just the operation. The raw SQL stays on `db.query.text`.

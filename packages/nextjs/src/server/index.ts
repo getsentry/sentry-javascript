@@ -3,6 +3,7 @@
 /* eslint-disable import/export */
 import type { Scope } from '@sentry/core';
 import {
+  _INTERNAL_captureOptionsSetByUser,
   _INTERNAL_getActiveClient,
   applySdkMetadata,
   debug,
@@ -37,6 +38,7 @@ import {
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { registerNextSentryPropagator } from './nextSentryPropagator';
 import { addNextjsServerSpanHooks, NEXTJS_SERVER_IGNORE_SPANS } from './serverSpanHooks';
+import { addServerTimingTraceHeader } from './serverTimingHeader';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
 import { nextjsUseCacheIntegration } from './useCacheInstrumentation';
 
@@ -115,11 +117,13 @@ function getCloudflareRuntimeConfig(): { runtime: { name: string } } | undefined
 
 /** Inits the Sentry NextJS SDK on node. */
 // eslint-disable-next-line complexity
-export function init(options: NodeOptions): NodeClient | undefined {
+export function init(userOptions: NodeOptions): NodeClient | undefined {
   prepareSafeIdGeneratorContext();
   if (isBuild()) {
     return;
   }
+
+  const options = _INTERNAL_captureOptionsSetByUser(userOptions);
 
   if (!DEBUG_BUILD && options.debug) {
     // TODO(v12): Remove the `webpack.treeshake` mention together with that option
@@ -200,6 +204,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   if (client) {
     addNextjsServerSpanHooks(client);
+    addServerTimingTraceHeader(client);
     const clientOptions = client.getOptions();
     clientOptions.ignoreSpans = [...(clientOptions.ignoreSpans || []), ...getTunnelRouteIgnoreSpans(client)];
   } else if (isOwnedByCloudflare) {

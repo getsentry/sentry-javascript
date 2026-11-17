@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/browser';
 
 window.Sentry = Sentry;
 window._testBaseTimestamp = performance.timeOrigin / 1000;
+window._testInitTimestamp = (performance.timeOrigin + performance.now()) / 1000;
 
 Sentry.init({
   traceLifecycle: 'static',

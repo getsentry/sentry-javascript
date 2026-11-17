@@ -3,6 +3,6 @@
 // the SDK instance we flush is the same one the scenario's `import` resolves.
 import * as Sentry from '@sentry/node';
 
-process.on('beforeExit', () => {
+process.once('beforeExit', () => {
   Sentry.flush(2000).catch(() => {});
 });

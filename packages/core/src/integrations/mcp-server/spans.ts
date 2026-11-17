@@ -15,6 +15,7 @@ import { getClient } from '../../currentScopes';
 import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
 import { MCP_NOTIFICATION_SPAN_NAME_FALLBACK, MCP_SERVER_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
 import { startInactiveSpan, startSpan } from '../../tracing/trace';
+import type { SpanLink } from '../../types/link';
 import type { Span } from '../../types/span';
 import type { StartSpanOptions } from '../../types/startSpanOptions';
 import { buildTransportAttributes, buildTypeSpecificAttributes } from './attributeExtraction';
@@ -106,11 +107,11 @@ export function buildMcpNotificationSpanConfig(
   return { name, attributes };
 }
 
-type McpNotificationSpanConfig = { name: string; attributes: Record<string, string | number> };
+type McpNotificationSpanConfig = { name: string; attributes: Record<string, string | number>; links?: SpanLink[] };
 
-function notificationSpanOptions({ name, attributes }: McpNotificationSpanConfig): StartSpanOptions {
+function notificationSpanOptions({ name, attributes, links }: McpNotificationSpanConfig): StartSpanOptions {
   // oxlint-disable-next-line typescript/no-deprecated
-  return { name, forceTransaction: true, attributes };
+  return { name, forceTransaction: true, attributes, links };
 }
 
 /** Starts an MCP notification span around `callback`. */

@@ -126,6 +126,17 @@ async function getCacheOriginMetaTag(page: Page): Promise<string | null> {
   return page.locator('meta[name="sentry-cache-origin"]').getAttribute('content');
 }
 
+async function getRenderStart(page: Page): Promise<number> {
+  await expect(page.locator('meta[name="sentry-render-start"]')).toHaveCount(1);
+  return Number(await page.locator('meta[name="sentry-render-start"]').getAttribute('content'));
+}
+
+const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';
+
+function expectedRenderAge(pageloadStart: number, renderStart: number): number {
+  return Math.max(0, Math.floor(pageloadStart - renderStart));
+}
+
 /**
  * Tests a page that a route rule caches at runtime. The cached HTML holds the `sentry-trace` value of
  * the render in a `sentry-cache-origin` tag. Every pageload starts its own trace, is static, and links
@@ -147,6 +158,7 @@ export async function testCacheOriginOnRuntimeCachedPage(
     expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
   ]);
   const cacheOrigin1 = await getCacheOriginMetaTag(page);
+  const renderStart1 = await getRenderStart(page);
 
   // === 2. Request (served from the cache) ===
   const clientSpanPromise2 = waitForPageloadSegment(routePath);
@@ -157,6 +169,7 @@ export async function testCacheOriginOnRuntimeCachedPage(
     expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
   ]);
   const cacheOrigin2 = await getCacheOriginMetaTag(page);
+  const renderStart2 = await getRenderStart(page);
 
   const [originTraceId, originSpanId, originSampled] = cacheOrigin1?.split('-') ?? [];
   const cacheOriginLink = {
@@ -187,6 +200,19 @@ export async function testCacheOriginOnRuntimeCachedPage(
     expect(clientSpan1.links).toEqual([cacheOriginLink]);
     expect(clientSpan2.links).toEqual([cacheOriginLink]);
   });
+
+  await test.step('Every pageload has the age of the render, which started with the 1. request', () => {
+    expect(renderStart1).toBe(Math.floor(serverSpan1.start_timestamp));
+    expect(renderStart2).toBe(renderStart1);
+    expect(clientSpan1.attributes?.[PAGE_SERVER_RENDERING_AGE]).toEqual({
+      type: 'integer',
+      value: expectedRenderAge(clientSpan1.start_timestamp, renderStart1),
+    });
+    expect(clientSpan2.attributes?.[PAGE_SERVER_RENDERING_AGE]).toEqual({
+      type: 'integer',
+      value: expectedRenderAge(clientSpan2.start_timestamp, renderStart1),
+    });
+  });
 }
 
 /**
@@ -205,6 +231,7 @@ export async function testEmptyCacheOriginOnPrerenderedPage(
     expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
   ]);
   const cacheOrigin1 = await getCacheOriginMetaTag(page);
+  const renderStart1 = await getRenderStart(page);
 
   const clientSpanPromise2 = waitForPageloadSegment(routePath);
   const [_2, clientSpan2] = await Promise.all([
@@ -213,6 +240,7 @@ export async function testEmptyCacheOriginOnPrerenderedPage(
     expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
   ]);
   const cacheOrigin2 = await getCacheOriginMetaTag(page);
+  const renderStart2 = await getRenderStart(page);
 
   expect(cacheOrigin1).toBe('');
   expect(cacheOrigin2).toBe('');
@@ -223,4 +251,14 @@ export async function testEmptyCacheOriginOnPrerenderedPage(
   expect(clientSpan2.attributes?.[PAGE_SERVER_RENDERING_TYPE]).toEqual({ type: 'string', value: 'static' });
   expect(clientSpan1.links).toBeUndefined();
   expect(clientSpan2.links).toBeUndefined();
+  // The build rendered the page, so the render start is the time of the build.
+  expect(renderStart2).toBe(renderStart1);
+  expect(clientSpan1.attributes?.[PAGE_SERVER_RENDERING_AGE]).toEqual({
+    type: 'integer',
+    value: expectedRenderAge(clientSpan1.start_timestamp, renderStart1),
+  });
+  expect(clientSpan2.attributes?.[PAGE_SERVER_RENDERING_AGE]).toEqual({
+    type: 'integer',
+    value: expectedRenderAge(clientSpan2.start_timestamp, renderStart1),
+  });
 }

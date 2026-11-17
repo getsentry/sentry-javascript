@@ -100,6 +100,19 @@ export function propagationContextFromHeaders(
 }
 
 /**
+ * Converts a W3C `traceparent` value to the `sentry-trace` format, so carriers that only hold W3C
+ * Trace Context can be passed to `continueTrace`.
+ */
+export function sentryTraceFromTraceparent(traceparent: string): string | undefined {
+  const [version, traceId, spanId, flags] = traceparent.split('-');
+  if (version !== '00' || !traceId || !spanId || !flags) {
+    return undefined;
+  }
+  // The sampled bit is the low bit of the flags byte; `% 2` avoids a bitwise operator.
+  return `${traceId}-${spanId}-${parseInt(flags, 16) % 2 === 1 ? '1' : '0'}`;
+}
+
+/**
  * Create sentry-trace header from span context values.
  */
 export function generateSentryTraceHeader(

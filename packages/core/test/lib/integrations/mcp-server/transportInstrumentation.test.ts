@@ -898,6 +898,7 @@ describe('MCP Server Transport Instrumentation', () => {
           }),
         }),
       );
+      expect(mockSpan.setAttributes).not.toHaveBeenCalled();
     });
 
     it('should add server info to initialize span on response', async () => {

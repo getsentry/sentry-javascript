@@ -10,9 +10,6 @@ export default defineConfig({
   test: {
     ...baseConfig.test,
     root: fileURLToPath(new URL('../node-integration-tests', import.meta.url)),
-    coverage: {
-      enabled: false,
-    },
     isolate: false,
     include: ['suites/**/test.ts'],
     exclude: NODE_SUITES_EXCLUDE,

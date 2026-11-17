@@ -660,24 +660,34 @@ export function collectStreamedSpans(
  * segment span's exact name or a predicate over the segment span, for cases where the name alone is
  * not unique (e.g. matching on `url.path` or the op).
  *
- * Use {@link collectStreamedSpans} directly when the trace is only complete once specific child
- * spans have arrived as well.
+ * On Cloudflare, a child span can arrive after its segment span. If the test checks a child span,
+ * pass `childToWaitFor` to wait for that span too. For any other condition, use
+ * {@link collectStreamedSpans} directly.
  *
  * @example
  * ```ts
  * const spans = await collectStreamedSpansUntilSegment(PROXY_SERVER_NAME, 'GET /nested-layout');
  * const spans = await collectStreamedSpansUntilSegment(PROXY_SERVER_NAME, span => getSpanOp(span) === 'pageload');
+ * const spans = await collectStreamedSpansUntilSegment(
+ *   PROXY_SERVER_NAME,
+ *   'GET /users',
+ *   span => getSpanOp(span) === 'middleware',
+ * );
  * ```
  */
 export function collectStreamedSpansUntilSegment(
   proxyServerName: string,
   segment: string | ((segmentSpan: SerializedStreamedSpan) => boolean),
+  childToWaitFor?: (span: SerializedStreamedSpan) => boolean,
 ): Promise<SerializedStreamedSpan[]> {
   const matchesSegment =
     typeof segment === 'string' ? (span: SerializedStreamedSpan) => span.name === segment : segment;
 
-  return collectStreamedSpans(proxyServerName, spansOfTrace =>
-    spansOfTrace.some(span => span.is_segment && matchesSegment(span)),
+  return collectStreamedSpans(
+    proxyServerName,
+    spansOfTrace =>
+      spansOfTrace.some(span => span.is_segment && matchesSegment(span)) &&
+      (!childToWaitFor || spansOfTrace.some(span => childToWaitFor(span))),
   );
 }
 

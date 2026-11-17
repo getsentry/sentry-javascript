@@ -1,9 +1,8 @@
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { getOtlpTracesEndpoint } from '@sentry/nextjs';
 import { OTLP_RECEIVER_PORT, startOtlpReceiver } from './otel-receiver';
+import { registerTracerProvider } from './otel-tracer-provider';
 
 // Next.js can run `register()` more than once in dev, which would leave a second receiver fighting
 // for the port and a second set of providers losing the race to register globally.
@@ -27,13 +26,8 @@ if (!globalWithOtelFlag.__otelRegistered) {
   // The app owns tracing: this registers the global tracer provider, context manager and
   // propagator. Sentry is initialized afterwards with `enableOpenTelemetrySetup: false` so it does
   // not contend for any of them.
-  new NodeTracerProvider({
+  registerTracerProvider(
+    new OTLPTraceExporter({ url: `${otlpBaseUrl}/v1/traces`, headers: otlpTracesEndpoint.headers }),
     resource,
-    spanProcessors: [
-      new BatchSpanProcessor(
-        new OTLPTraceExporter({ url: `${otlpBaseUrl}/v1/traces`, headers: otlpTracesEndpoint.headers }),
-        { scheduledDelayMillis: 100 },
-      ),
-    ],
-  }).register();
+  );
 }

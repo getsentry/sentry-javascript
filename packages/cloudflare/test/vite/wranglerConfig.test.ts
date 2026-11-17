@@ -266,6 +266,44 @@ describe('resolveWranglerConfig', () => {
     }
   });
 
+  it('reads the worker name', () => {
+    const dir = writeTempDir({
+      'wrangler.json': JSON.stringify({ name: 'my-worker', main: 'src/index.ts' }),
+    });
+
+    expect(resolveWranglerConfig(dir)!.config.name).toBe('my-worker');
+  });
+
+  it('reads the compatibility date', () => {
+    const dir = writeTempDir({
+      'wrangler.json': JSON.stringify({ name: 'my-worker', main: 'src/index.ts', compatibility_date: '2025-06-17' }),
+    });
+
+    expect(resolveWranglerConfig(dir)!.config.compatibilityDate).toBe('2025-06-17');
+  });
+
+  it('reads the deployed worker name and compatibility date of the CLOUDFLARE_ENV environment', () => {
+    const dir = writeTempDir({
+      'wrangler.json': JSON.stringify({
+        name: 'my-worker',
+        main: 'src/index.ts',
+        compatibility_date: '2025-01-01',
+        env: { staging: { compatibility_date: '2025-03-10' } },
+      }),
+    });
+
+    const previous = process.env.CLOUDFLARE_ENV;
+    process.env.CLOUDFLARE_ENV = 'staging';
+    try {
+      const { config } = resolveWranglerConfig(dir)!;
+      expect(config.name).toBe('my-worker-staging');
+      expect(config.compatibilityDate).toBe('2025-03-10');
+    } finally {
+      if (previous === undefined) delete process.env.CLOUDFLARE_ENV;
+      else process.env.CLOUDFLARE_ENV = previous;
+    }
+  });
+
   it('parses workflow bindings', () => {
     const dir = writeTempDir({
       'wrangler.json': JSON.stringify({

@@ -17,10 +17,10 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 const EXPECTED_ORIGIN = 'auto.ai.google_genai';
 
 // `@google/genai` v2 restructured the `Models` class so `embedContent` is a constructor-assigned arrow
-// property rather than a class method (v1 shape). The orchestrion config caps at `<3`, so the code
-// transformer only injects the diagnostics channels for v2 when the range includes it — this suite pins
-// `^2` and re-runs the core auto-instrumentation assertions to guard that path. The v1 suite lives in
-// `../google-genai`; the scenario files are byte-identical because v2 kept the public API surface.
+// property rather than a class method (v1 shape). The code transformer only injects the diagnostics
+// channels for v2 when the orchestrion range includes it, so this suite pins `^2` and re-runs the core
+// auto-instrumentation assertions to guard that path. The v1 suite lives in `../google-genai`; the
+// scenario files are byte-identical because v2 kept the public API surface.
 describe('Google GenAI integration (v2)', () => {
   afterAll(() => {
     cleanupChildProcesses();

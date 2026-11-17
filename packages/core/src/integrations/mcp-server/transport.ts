@@ -31,6 +31,7 @@ import {
   startInactiveMcpNotificationSpan,
   startMcpNotificationSpan,
 } from './spans';
+import { continueMcpTrace } from './tracePropagation';
 import type { ExtraHandlerData, McpServerWrapperOptions, MCPTransport, ResolvedMcpOptions, SessionData } from './types';
 import { withUpstreamSpanHandoff } from './upstreamInstrumentation';
 import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse } from './validation';
@@ -109,70 +110,80 @@ export function wrapTransportOnMessage(
           const resolvedOptions = resolveMcpOptions(options);
           const isolationScope = getIsolationScope().clone();
 
-          return withIsolationScope(isolationScope, () => {
-            const spanConfig = buildMcpServerSpanConfig(request, transport, extra as ExtraHandlerData, resolvedOptions);
-            const oauthClientName = resolveOAuthClientName(options, extra as ExtraHandlerData);
-            if (oauthClientName) {
-              spanConfig.attributes[MCP_AUTH_CLIENT_NAME] = oauthClientName;
-            }
-            if (request.method === 'initialize' && messageSessionData) {
-              Object.assign(spanConfig.attributes, buildClientAttributesFromInfo(messageSessionData.clientInfo));
-              if (messageSessionData.protocolVersion) {
-                spanConfig.attributes[MCP_PROTOCOL_VERSION] = messageSessionData.protocolVersion;
+          return withIsolationScope(isolationScope, () =>
+            continueMcpTrace(request.params, links => {
+              const spanConfig = {
+                ...buildMcpServerSpanConfig(request, transport, extra as ExtraHandlerData, resolvedOptions),
+                links,
+              };
+              const oauthClientName = resolveOAuthClientName(options, extra as ExtraHandlerData);
+              if (oauthClientName) {
+                spanConfig.attributes[MCP_AUTH_CLIENT_NAME] = oauthClientName;
               }
-            }
-            const callOriginal = (): unknown =>
-              (originalOnMessage as (...args: unknown[]) => unknown).call(this, request, extra);
-            // Ended in `transport.send` once the response goes out.
-            const startRequestSpan = (): Span => {
-              const span = startInactiveSpan(spanConfig);
-              storeSpanForRequest(transport, request.id, span, request.method, resolvedOptions);
-              return span;
-            };
+              if (request.method === 'initialize' && messageSessionData) {
+                Object.assign(spanConfig.attributes, buildClientAttributesFromInfo(messageSessionData.clientInfo));
+                if (messageSessionData.protocolVersion) {
+                  spanConfig.attributes[MCP_PROTOCOL_VERSION] = messageSessionData.protocolVersion;
+                }
+              }
+              const callOriginal = (): unknown =>
+                (originalOnMessage as (...args: unknown[]) => unknown).call(this, request, extra);
+              // Ended in `transport.send` once the response goes out.
+              const startRequestSpan = (): Span => {
+                const span = startInactiveSpan(spanConfig);
+                storeSpanForRequest(transport, request.id, span, request.method, resolvedOptions);
+                return span;
+              };
 
-            // Whether the MCP SDK's span or `startRequestSpan` is used is decided once the SDK calls `receive`.
-            if (hasUpstreamInstrumentation) {
-              return withUpstreamSpanHandoff(
-                {
-                  method: request.method,
-                  id: request.id,
-                  attributes: spanConfig.attributes,
-                  onResponse: (span, result, error) =>
-                    applyResponseToSpan(transport, span, request.method, result, error, resolvedOptions),
-                  startFallbackSpan: startRequestSpan,
-                },
-                callOriginal,
-              );
-            }
+              // Whether the MCP SDK's span or `startRequestSpan` is used is decided once the SDK calls `receive`.
+              if (hasUpstreamInstrumentation) {
+                return withUpstreamSpanHandoff(
+                  {
+                    method: request.method,
+                    id: request.id,
+                    attributes: spanConfig.attributes,
+                    onResponse: (span, result, error) =>
+                      applyResponseToSpan(transport, span, request.method, result, error, resolvedOptions),
+                    startFallbackSpan: startRequestSpan,
+                  },
+                  callOriginal,
+                );
+              }
 
-            return withActiveSpan(startRequestSpan(), callOriginal);
-          });
+              return withActiveSpan(startRequestSpan(), callOriginal);
+            }),
+          );
         }
 
         if (notification) {
           const resolvedOptions = resolveMcpOptions(options);
           const callOriginal = (): unknown =>
             (originalOnMessage as (...args: unknown[]) => unknown).call(this, notification, extra);
-          const spanConfig = buildMcpNotificationSpanConfig(
-            'notification-incoming',
-            notification,
-            transport,
-            resolvedOptions,
-            extra as ExtraHandlerData,
-          );
+          return continueMcpTrace(notification.params, links => {
+            const spanConfig = {
+              ...buildMcpNotificationSpanConfig(
+                'notification-incoming',
+                notification,
+                transport,
+                resolvedOptions,
+                extra as ExtraHandlerData,
+              ),
+              links,
+            };
 
-          if (hasUpstreamInstrumentation) {
-            return withUpstreamSpanHandoff(
-              {
-                method: notification.method,
-                attributes: spanConfig.attributes,
-                startFallbackSpan: () => startInactiveMcpNotificationSpan(spanConfig),
-              },
-              callOriginal,
-            );
-          }
+            if (hasUpstreamInstrumentation) {
+              return withUpstreamSpanHandoff(
+                {
+                  method: notification.method,
+                  attributes: spanConfig.attributes,
+                  startFallbackSpan: () => startInactiveMcpNotificationSpan(spanConfig),
+                },
+                callOriginal,
+              );
+            }
 
-          return startMcpNotificationSpan(spanConfig, callOriginal);
+            return startMcpNotificationSpan(spanConfig, callOriginal);
+          });
         }
 
         return (originalOnMessage as (...args: unknown[]) => unknown).call(this, message, extra);
