@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { startInactiveSpan } from '@sentry/core';
+import { startInactiveSpan } from '@sentry/browser';
 import type { CallEvent, CallLive, FrameEvent, FrameLive } from '@solidjs/web';
 import { describeOrigin } from '../common/target';
 import { epochSeconds, round } from '../common/time';

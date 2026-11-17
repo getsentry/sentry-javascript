@@ -1,4 +1,9 @@
-import { HTTP_ROUTE, URL_PATH_PARAMETER_KEY_BASE } from '@sentry/conventions/attributes';
+import {
+  HTTP_ROUTE,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  URL_PATH_PARAMETER_KEY_BASE,
+} from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   debug,
@@ -8,12 +13,11 @@ import {
   getIsolationScope,
   getRootSpan,
   getTraceData,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SENTRY_SEGMENT_NAME_SOURCE,
   spanToJSON,
-  startInactiveSpan,
   updateSpanName,
 } from '@sentry/core';
+// The plain span API: this is server code (the lint rule treats all of packages/solid as browser-facing).
+import { startInactiveSpan } from '@sentry/node';
 import type {
   FrameEvent,
   FrameLive,
@@ -129,7 +133,7 @@ function nameRequestByRoute(event: RenderEvent, live: RenderLive): void {
   const active = getActiveSpan();
   if (active === undefined) return;
   const root = getRootSpan(active);
-  if (spanToJSON(root).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] !== 'http.server') return;
+  if (spanToJSON(root).attributes[SENTRY_OP] !== 'http.server') return;
   const method = live.event?.request.method ?? 'GET';
   const transactionName = `${method} ${name}`;
   updateSpanName(root, transactionName);

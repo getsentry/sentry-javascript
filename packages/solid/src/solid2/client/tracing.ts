@@ -1,5 +1,6 @@
 import type { Client, Span, SpanContextData, SpanLink } from '@sentry/core';
-import { debug, defineIntegration, hasSpansEnabled, startInactiveSpan } from '@sentry/core';
+import { startInactiveSpan } from '@sentry/browser';
+import { debug, defineIntegration, hasSpansEnabled } from '@sentry/core';
 import type { CallEvent, CallLive } from '@solidjs/web';
 import { OBSERVE } from 'solid-js';
 import type {

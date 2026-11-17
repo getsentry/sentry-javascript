@@ -1,5 +1,11 @@
-import { getAbsoluteUrl, startBrowserTracingNavigationSpan } from '@sentry/browser';
-import { PARAMS_KEY_BASE, URL_PATH_PARAMETER_KEY_BASE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { getAbsoluteUrl, startBrowserTracingNavigationSpan, startInactiveSpan } from '@sentry/browser';
+import {
+  PARAMS_KEY_BASE,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  URL_PATH_PARAMETER_KEY_BASE,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
 import type { Client, Span, SpanAttributes, SpanLink } from '@sentry/core';
 import {
   getActiveSpan,
@@ -7,10 +13,7 @@ import {
   getRootSpan,
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SENTRY_SEGMENT_NAME_SOURCE,
   spanToJSON,
-  startInactiveSpan,
 } from '@sentry/core';
 import type { HoldEvent, NavigationEvent } from 'solid-js/attribution';
 import { describeOrigin } from '../common/target';
@@ -137,11 +140,7 @@ export function browserNavigationSpan(
   );
   // `startBrowserTracingNavigationSpan` answers with whatever idle span is
   // active; only one that appeared for this call is ours to fill and end.
-  if (
-    span === undefined ||
-    span === before ||
-    spanToJSON(span).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] !== 'navigation'
-  ) {
+  if (span === undefined || span === before || spanToJSON(span).attributes[SENTRY_OP] !== 'navigation') {
     return undefined;
   }
   return fill(span, nav, children);
@@ -160,7 +159,7 @@ export function nameInitialRoute(nav: NavigationEvent): void {
   const active = getActiveSpan();
   if (active === undefined) return;
   const root = getRootSpan(active);
-  if (spanToJSON(root).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] !== 'pageload') return;
+  if (spanToJSON(root).attributes[SENTRY_OP] !== 'pageload') return;
   root.updateName(name);
   root.setAttributes({
     [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
