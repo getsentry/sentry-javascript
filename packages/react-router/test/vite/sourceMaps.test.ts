@@ -64,6 +64,45 @@ describe('makeEnableSourceMapsPlugin()', () => {
   );
 });
 
+describe('getUpdatedSourceMapSettings with the source map options', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  it.each([
+    [{ upload: false }, undefined],
+    [{ injectDebugIds: false }, undefined],
+    [{ upload: false, delete: false }, 'hidden'],
+    [{ injectDebugIds: false, delete: false }, undefined],
+    [{ delete: false }, 'hidden'],
+    [{ delete: true }, 'hidden'],
+    [{ disable: true }, 'hidden'],
+    [{ disable: 'disable-upload' }, 'hidden'],
+    [{ disable: true, injectDebugIds: false }, undefined],
+  ] as const)('with an unset setting and %j it returns %s', (sourcemaps, expected) => {
+    expect(getUpdatedSourceMapSettings({}, { sourcemaps })).toBe(expected);
+  });
+
+  it.each([
+    [true, { delete: true }, 'hidden'],
+    ['hidden', { delete: true }, 'hidden'],
+    ['inline', { delete: true }, 'inline'],
+    [true, { delete: false }, true],
+    [true, { upload: false }, true],
+    [false, { delete: true }, false],
+  ] as const)('with the setting %s and %j it returns %s', (sourcemap, sourcemaps, expected) => {
+    expect(getUpdatedSourceMapSettings({ build: { sourcemap } }, { sourcemaps })).toBe(expected);
+  });
+
+  it('leaves the Vite config alone when it turns no source maps on', () => {
+    const plugin = makeEnableSourceMapsPlugin({ sourcemaps: { upload: false } });
+    const configHook = plugin.config as (config: UserConfig) => UserConfig;
+
+    expect(configHook({})).toEqual({});
+  });
+});
+
 describe('getUpdatedSourceMapSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();

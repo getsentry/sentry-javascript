@@ -220,6 +220,101 @@ describe('sentryOnBuildEnd', () => {
     expect(globFiles).not.toHaveBeenCalled();
   });
 
+  function withSentryConfig(sentryConfig: SentryReactRouterBuildOptions, sourcemap: boolean | 'hidden' = true) {
+    return {
+      ...defaultConfig,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        build: { sourcemap },
+        sentryConfig: { ...defaultConfig.viteConfig.sentryConfig, ...sentryConfig },
+      } as unknown as TestConfig,
+    };
+  }
+
+  it('does not create the release with `release.create: false`', async () => {
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(withSentryConfig({ release: { name: 'v1.0.0', create: false } }));
+
+    expect(mockSentrySdkInstance.release.create).not.toHaveBeenCalled();
+  });
+
+  it('injects debug IDs but skips upload and deletion with `upload: false`', async () => {
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(withSentryConfig({ sourcemaps: { upload: false } }));
+
+    expect(mockSentrySdkInstance.sourcemap.inject).toHaveBeenCalledWith({ directory: '/build' });
+    expect(mockSentrySdkInstance.sourcemap.upload).not.toHaveBeenCalled();
+    expect(globFiles).not.toHaveBeenCalled();
+  });
+
+  it.each([{ injectDebugIds: false }, { injectDebugIds: false, upload: true }])(
+    'does not inject, upload or delete with %j',
+    async sourcemaps => {
+      // @ts-expect-error - mocking the React config
+      await sentryOnBuildEnd(withSentryConfig({ sourcemaps }));
+
+      expect(mockSentrySdkInstance.sourcemap.inject).not.toHaveBeenCalled();
+      expect(mockSentrySdkInstance.sourcemap.upload).not.toHaveBeenCalled();
+      expect(globFiles).not.toHaveBeenCalled();
+    },
+  );
+
+  it('ignores `sourcemaps.disable` when a new option is set', async () => {
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(withSentryConfig({ sourcemaps: { upload: true, disable: true } }));
+
+    expect(mockSentrySdkInstance.sourcemap.inject).toHaveBeenCalledTimes(1);
+    expect(mockSentrySdkInstance.sourcemap.upload).toHaveBeenCalledTimes(1);
+  });
+
+  it('uploads and keeps the source maps with `delete: false`', async () => {
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(withSentryConfig({ sourcemaps: { delete: false } }));
+
+    expect(mockSentrySdkInstance.sourcemap.upload).toHaveBeenCalledTimes(1);
+    expect(globFiles).not.toHaveBeenCalled();
+    expect(rm).not.toHaveBeenCalled();
+  });
+
+  it('still deletes the files of a user glob with `delete: false`', async () => {
+    await sentryOnBuildEnd(
+      // @ts-expect-error - mocking the React config
+      withSentryConfig({ sourcemaps: { delete: false, filesToDeleteAfterUpload: '/custom/**/*.txt' } }),
+    );
+
+    expect(globFiles).toHaveBeenCalledWith('/custom/**/*.txt');
+  });
+
+  it.each([{ delete: true }, { delete: true, upload: false }, { delete: true, injectDebugIds: false }])(
+    'deletes the source maps in the build directory with %j',
+    async sourcemaps => {
+      // @ts-expect-error - mocking the React config
+      await sentryOnBuildEnd(withSentryConfig({ sourcemaps }));
+
+      expect(globFiles).toHaveBeenCalledWith(['/build/**/*.map']);
+      expect(rm).toHaveBeenCalledWith('/build/file1.map', { force: true });
+    },
+  );
+
+  it('adds the user glob to the default with `delete: true`', async () => {
+    await sentryOnBuildEnd(
+      // @ts-expect-error - mocking the React config
+      withSentryConfig({ sourcemaps: { delete: true, filesToDeleteAfterUpload: ['/custom/**/*.txt'] } }),
+    );
+
+    expect(globFiles).toHaveBeenCalledWith(['/build/**/*.map', '/custom/**/*.txt']);
+  });
+
+  it('deletes the source maps with `delete: true` after a failed upload', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockSentrySdkInstance.sourcemap.upload.mockRejectedValue(new Error('upload failed'));
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(withSentryConfig({ sourcemaps: { delete: true } }));
+
+    expect(globFiles).toHaveBeenCalledWith(['/build/**/*.map']);
+  });
+
   it('deletes the source maps in the build directory by default', async () => {
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(defaultConfig);
