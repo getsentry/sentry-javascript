@@ -142,6 +142,7 @@ export function wrapTransportOnMessage(
                     method: request.method,
                     id: request.id,
                     attributes: spanConfig.attributes,
+                    links: spanConfig.links,
                     onResponse: (span, result, error) =>
                       applyResponseToSpan(transport, span, request.method, result, error, resolvedOptions),
                     startFallbackSpan: startRequestSpan,
@@ -176,6 +177,7 @@ export function wrapTransportOnMessage(
                 {
                   method: notification.method,
                   attributes: spanConfig.attributes,
+                  links: spanConfig.links,
                   startFallbackSpan: () => startInactiveMcpNotificationSpan(spanConfig),
                 },
                 callOriginal,

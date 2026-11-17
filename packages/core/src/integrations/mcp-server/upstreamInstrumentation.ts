@@ -11,6 +11,7 @@
 
 import { getClient } from '../../currentScopes';
 import { withActiveSpan } from '../../tracing';
+import type { SpanLink } from '../../types/link';
 import type { Span } from '../../types/span';
 import { isObjectLike } from '../../utils/is';
 import type { JsonRpcError, RequestId } from './types';
@@ -37,6 +38,7 @@ export interface UpstreamSpanHandoff {
   /** Unset for notifications. */
   id?: RequestId;
   attributes: Record<string, string | number>;
+  links?: SpanLink[];
   onResponse?: (span: Span, result: unknown, error: JsonRpcError | undefined) => void;
   startFallbackSpan: () => Span;
 }
@@ -137,6 +139,9 @@ function receiveWithHandoff(
   const span = upstreamSpan;
   const upstreamScope = scope;
   span.setAttributes(handoff.attributes);
+  if (handoff.links) {
+    span.addLinks(handoff.links);
+  }
   return {
     run: fn => runInUpstreamSpan(span, upstreamScope, fn),
     // The SDK ends its span before sending the response, so the response is recorded here.

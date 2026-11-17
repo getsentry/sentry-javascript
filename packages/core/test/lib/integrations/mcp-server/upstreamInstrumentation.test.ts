@@ -209,6 +209,37 @@ describe('MCP server hand-off to the MCP SDK instrumentation', () => {
     expect(spanToJSON(handlerParent!).span_id).toBe(spans[0]!.span_id);
   });
 
+  it('links the MCP SDK span to the transport span when continuing the trace from `_meta`', async () => {
+    const server = wrapMcpServerWithSentry(createServer(sentryTracedInstrumentation()));
+    server.registerTool('echo', {}, async () => ({ content: [{ type: 'text', text: 'echo' }] }));
+    const transport = new InMemoryTransport();
+    await server.connect(transport);
+
+    const remoteTraceId = '12312012123120121231201212312012';
+    const httpSpanId = startSpan({ name: 'http.server' }, span => {
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'tools/call',
+          params: {
+            name: 'echo',
+            arguments: {},
+            _meta: { 'sentry-trace': `${remoteTraceId}-1121201211212012-1` },
+          },
+        },
+        {},
+      );
+      return span.spanContext().spanId;
+    });
+    await vi.waitFor(() => expect(transport.sent.length).toBeGreaterThan(0));
+
+    const spans = mcpSpans();
+    expect(spans).toHaveLength(1);
+    expect(spans[0]!.trace_id).toBe(remoteTraceId);
+    expect(spans[0]!.links).toEqual([expect.objectContaining({ span_id: httpSpanId })]);
+  });
+
   it('records initialize session data on the MCP SDK span', async () => {
     const server = wrapMcpServerWithSentry(createServer(sentryTracedInstrumentation()));
     const transport = new InMemoryTransport();
