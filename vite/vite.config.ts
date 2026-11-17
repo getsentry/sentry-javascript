@@ -22,7 +22,6 @@ export default defineConfig({
   },
   test: {
     coverage: {
-      enabled: true,
       reportsDirectory: './coverage',
       exclude: [
         '**/node_modules/**',
@@ -34,12 +33,6 @@ export default defineConfig({
         '.eslint*',
         'vite.config.*',
       ],
-    },
-    reporters: process.env.CI
-      ? ['default', 'github-actions', ['junit', { classnameTemplate: '{filepath}' }]]
-      : ['default'],
-    outputFile: {
-      junit: 'vitest.junit.xml',
     },
     typecheck: {
       tsconfig: './tsconfig.test.json',
