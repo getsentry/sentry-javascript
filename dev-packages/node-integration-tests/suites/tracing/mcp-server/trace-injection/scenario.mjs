@@ -21,7 +21,7 @@ async function run() {
   const continueFromMeta = (params, name) => {
     const meta = params._meta ?? {};
     Sentry.continueTrace({ sentryTrace: meta['sentry-trace'], baggage: meta.baggage }, () => {
-      Sentry.startSpan({ name, op: 'test.client', forceTransaction: true }, () => undefined);
+      Sentry.startSpan({ name, op: 'test.client' }, () => undefined);
     });
   };
 
