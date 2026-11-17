@@ -94,9 +94,7 @@ function serialize(value: unknown, ancestors = new Set<object>()): unknown {
   const result: Record<string, unknown> = {};
   for (const key of Object.keys(value).sort()) {
     const item: unknown = value[key];
-    if (item !== undefined) {
-      result[key] = serialize(item, nextAncestors);
-    }
+    result[key] = item === undefined ? '[undefined]' : serialize(item, nextAncestors);
   }
   return result;
 }
