@@ -1,10 +1,27 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { addXhrInstrumentationHandler, instrumentXHR } from '../../src/instrumentation/xhr';
-import type { HandlerDataXhr } from '../../src/types';
+import type { HandlerDataXhr, SentryWrappedXMLHttpRequest } from '../../src/types';
 import { WINDOW } from '../../src/types';
 
 const win = WINDOW as typeof WINDOW & { XMLHttpRequest?: typeof XMLHttpRequest };
 const originalXMLHttpRequest = win.XMLHttpRequest;
+
+function openWithUrl(url: unknown): SentryWrappedXMLHttpRequest['__sentry_xhr_v3__'] {
+  class MockXMLHttpRequest {
+    public addEventListener(): void {}
+    public removeEventListener(): void {}
+    public open(_method: string, _url: string): void {}
+    public send(): void {}
+    public setRequestHeader(_header: string, _value: string): void {}
+  }
+
+  win.XMLHttpRequest = MockXMLHttpRequest as unknown as typeof XMLHttpRequest;
+  instrumentXHR();
+
+  const xhr = new MockXMLHttpRequest();
+  xhr.open('GET', url as string);
+  return (xhr as unknown as SentryWrappedXMLHttpRequest).__sentry_xhr_v3__;
+}
 
 describe('instrumentXHR', () => {
   afterEach(() => {
@@ -14,6 +31,14 @@ describe('instrumentXHR', () => {
   it('does not throw if XMLHttpRequest is a key on window but not defined', () => {
     win.XMLHttpRequest = undefined;
     expect(instrumentXHR).not.toThrow();
+  });
+
+  it('instruments requests with an empty URL', () => {
+    expect(openWithUrl('')).toMatchObject({ method: 'GET', url: '' });
+  });
+
+  it('does not instrument requests whose URL cannot be parsed', () => {
+    expect(openWithUrl(undefined)).toBeUndefined();
   });
 
   it('removes readystatechange event listener on readyState 4 when registered with addEventListener', () => {

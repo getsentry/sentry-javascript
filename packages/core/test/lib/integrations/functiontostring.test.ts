@@ -120,6 +120,51 @@ describe('FunctionToString', () => {
     expect(Reflect.apply(Function.prototype.toString, inspectedFunction, new Array(100_000))).toBe(expected);
   });
 
+  it('does not overflow the stack when the prototype chain loops back through a Proxy', () => {
+    function inspectedFunction(): void {}
+    const expected = inspectedFunction.toString();
+    Object.setPrototypeOf(inspectedFunction, Object.create(new Proxy(inspectedFunction, {})));
+    const foo = {
+      bar(): void {},
+    };
+    const originalBar = foo.bar.toString();
+    fill(foo, 'bar', () => function wrapped(): void {});
+
+    const fts = functionToStringIntegration();
+    getClient()?.addIntegration(fts);
+
+    expect(Function.prototype.toString.call(inspectedFunction)).toBe(expected);
+    expect(foo.bar.toString()).toBe(originalBar);
+  });
+
+  it('does not unwrap a function that only inherits the original from a wrapped function', () => {
+    const foo = {
+      bar(): void {},
+    };
+    fill(foo, 'bar', () => function wrapped(): void {});
+    function inheriting(): void {}
+    const expected = inheriting.toString();
+    Object.setPrototypeOf(inheriting, foo.bar);
+
+    const fts = functionToStringIntegration();
+    getClient()?.addIntegration(fts);
+
+    expect(Function.prototype.toString.call(inheriting)).toBe(expected);
+  });
+
+  it('falls back to native toString when the original function lookup throws', () => {
+    function inspectedFunction(): void {}
+    const throwingTrap = (): never => {
+      throw new Error('trap');
+    };
+    const proxy = new Proxy(inspectedFunction, { get: throwingTrap, getOwnPropertyDescriptor: throwingTrap });
+
+    const fts = functionToStringIntegration();
+    getClient()?.addIntegration(fts);
+
+    expect(Function.prototype.toString.call(proxy)).toBe('function () { [native code] }');
+  });
+
   it('falls back to native toString and does not throw when the carrier read throws', () => {
     const foo = {
       bar(wat: boolean): boolean {

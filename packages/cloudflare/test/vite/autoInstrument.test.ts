@@ -507,6 +507,40 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain('MyDO');
   });
+
+  it('does not warn for a shim that re-exports everything from a query variant of the entry', async () => {
+    const dir = writeTempDir({
+      'wrangler.toml': [
+        'main = "index.ts"',
+        '',
+        '[[durable_objects.bindings]]',
+        'name = "MY_DO"',
+        'class_name = "MyDO"',
+      ].join('\n'),
+    });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir });
+
+    const entry = join(dir, 'index.ts').replace(/\\/g, '/');
+    const original = JSON.stringify(`${entry}?sentry-tunnel-original`);
+    const warnings: string[] = [];
+    const ctx = { parse: (c: string) => parseJS(c), warn: (msg: string) => warnings.push(msg) };
+
+    const originalResult = await plugin.transform.call(
+      ctx,
+      'export class MyDO {}\nexport default { fetch() {} };',
+      `${entry}?sentry-tunnel-original`,
+    );
+    const shimResult = await plugin.transform.call(
+      ctx,
+      `export * from ${original};\nexport { default } from ${original};`,
+      entry,
+    );
+
+    expect(originalResult.code).toContain('instrumentDurableObjectWithSentry(');
+    expect(shimResult.code).toContain('_INTERNAL_wrapUnlessInstrumented(');
+    expect(warnings).toEqual([]);
+  });
 });
 
 describe('wranglerConfigPath option', () => {

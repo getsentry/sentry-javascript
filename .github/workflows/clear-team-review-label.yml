@@ -1,0 +1,42 @@
+name: 'PR: Clear team review label'
+
+on:
+  pull_request_review:
+    types:
+      - submitted
+
+permissions:
+  contents: read
+
+jobs:
+  clear-team-review-label:
+    name: Clear team review label
+    runs-on: ubuntu-24.04
+    if: |
+      github.event.review.state == 'approved'
+      && github.event.pull_request.user.login == 'sentry-junior[bot]'
+    steps:
+      # Labels removed with GITHUB_TOKEN don't trigger the gate again, and listing team members needs org `members: read`.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.GITFLOW_APP_ID }}
+          private-key: ${{ secrets.GITFLOW_APP_PRIVATE_KEY }}
+
+      - name: Checkout base branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          sparse-checkout: |
+            scripts/team-review-gate.mjs
+            scripts/junior-requesters.mjs
+          sparse-checkout-cone-mode: false
+
+      - name: Clear team review label
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const { clearTeamReviewLabel } = await import('${{ github.workspace }}/scripts/team-review-gate.mjs');
+            await clearTeamReviewLabel({ github, context, core });

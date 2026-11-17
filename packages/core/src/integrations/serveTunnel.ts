@@ -1,14 +1,12 @@
 import { defineIntegration } from '../integration';
 import type { IntegrationFn } from '../types/integration';
 import type { ServerTunnelOptions } from '../types/options';
-import { enableManagedTunnel } from '../utils/managedTunnelDefaults';
-import { SERVE_TUNNEL_INTEGRATION_NAME } from '../utils/tunnel';
+import { enableManagedTunnel } from '../utils/tunnelDefaults';
 import { forwardTunnelRequest } from '../utils/tunnelForward';
 
 const _serveTunnelIntegration = ((options: ServerTunnelOptions = {}) => {
   return {
-    name: SERVE_TUNNEL_INTEGRATION_NAME,
-    forward: forwardTunnelRequest,
+    name: 'ServeTunnel',
     setup(client) {
       enableManagedTunnel(client, options, forwardTunnelRequest);
     },
@@ -21,8 +19,8 @@ const _serveTunnelIntegration = ((options: ServerTunnelOptions = {}) => {
  * With this integration on the server and `tunnel: true` in the browser `init`, the browser sends its events to your
  * own server instead of Sentry, where ad-blockers can't drop them, and your server forwards them to Sentry.
  *
- * Meta-framework SDKs (e.g. Next.js, Nuxt or SvelteKit) answer the tunnel requests for you. On a standalone server
- * (e.g. Express or Fastify), also call `handleTunnelRequestIfMatched` in your request handling.
+ * The server SDKs answer the tunnel requests before the app sees them. To serve them from your own code instead, set
+ * `intercept: false` and call `handleTunnelRequestIfMatched`.
  *
  * By default only envelopes for the server's own DSN are forwarded.
  *

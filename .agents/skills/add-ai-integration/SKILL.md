@@ -10,7 +10,7 @@ argument-hint: <provider-name>
 
 Span ops and attributes are specified outside this repo. Never invent or hardcode either:
 
-- [gen_ai attributes](https://getsentry.github.io/sentry-conventions/attributes/gen_ai/) and [gen_ai ops](https://getsentry.github.io/sentry-conventions/ops/#gen_ai) — normative; import from `@sentry/conventions/attributes` and `@sentry/conventions/op`
+- [gen_ai attributes](https://conventions.sentry.dev/attributes/gen_ai/) and [gen_ai ops](https://conventions.sentry.dev/ops/#gen_ai) — normative; import from `@sentry/conventions/attributes` and `@sentry/conventions/op`
 - [RFC 0153](https://github.com/getsentry/rfcs/blob/main/text/0153-decoupling-sentrys-generative-ai-conventions-from-open-telemetry.md) — why Sentry's gen-AI conventions diverge from the [OTel gen-ai semconv](https://opentelemetry.io/docs/specs/semconv/gen-ai/)
 
 Derive the op with `getGenAiSpanOp()` from `ai/core/utils.ts` rather than picking one by hand. `ai/core/gen-ai-attributes.ts` is for gap-fillers only — keys with no `@sentry/conventions` equivalent — so check it last, not first.

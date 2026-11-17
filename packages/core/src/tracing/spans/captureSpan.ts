@@ -32,6 +32,7 @@ import {
 
 export type SerializedStreamedSpanWithSegmentSpan = SerializedStreamedSpan & {
   _segmentSpan: Span;
+  _segmentNameAtCapture?: string;
 };
 
 /**
@@ -41,7 +42,7 @@ export type SerializedStreamedSpanWithSegmentSpan = SerializedStreamedSpan & {
  * to an already-ended OTel span instance (which is blocked by the OTel Span class).
  *
  * @returns the final serialized span with a reference to its segment span. This reference
- * is needed later on to compute the DSC for the span envelope.
+ * is needed later on to compute the DSC and the final segment name for the span envelope.
  */
 export function captureSpan(span: Span, client: Client): SerializedStreamedSpanWithSegmentSpan {
   // Convert to JSON FIRST - we cannot write to an already-ended span
@@ -88,6 +89,7 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
   return {
     ...streamedSpanJsonToSerializedSpan(processedSpan),
     _segmentSpan: segmentSpan,
+    _segmentNameAtCapture: serializedSegmentSpan.name,
   };
 }
 

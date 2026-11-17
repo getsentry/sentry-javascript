@@ -14,7 +14,7 @@ export const googleGenAiConfig = [
   ...NODE_DIST_FILES.flatMap(filePath =>
     (['generateContent', 'generateContentStream'] as const).map(expressionName => ({
       channelName: 'generate-content',
-      module: { name: '@google/genai', versionRange: '>=0.10.0 <3', filePath },
+      module: { name: '@google/genai', versionRange: '>=0.10.0 <4', filePath },
       functionQuery: { expressionName, kind: 'Auto' as const },
     })),
   ),
@@ -22,7 +22,7 @@ export const googleGenAiConfig = [
   // `className`/`methodName` selector matches both shapes.
   ...NODE_DIST_FILES.map(filePath => ({
     channelName: 'embed-content',
-    module: { name: '@google/genai', versionRange: '>=0.10.0 <3', filePath },
+    module: { name: '@google/genai', versionRange: '>=0.10.0 <4', filePath },
     functionQuery: { className: 'Models', methodName: 'embedContent', kind: 'Auto' as const },
   })),
   // `sendMessage`/`sendMessageStream` internally delegate to `Models.generateContent(Stream)`; the
@@ -30,7 +30,7 @@ export const googleGenAiConfig = [
   ...NODE_DIST_FILES.flatMap(filePath =>
     (['sendMessage', 'sendMessageStream'] as const).map(methodName => ({
       channelName: 'chat',
-      module: { name: '@google/genai', versionRange: '>=0.10.0 <3', filePath },
+      module: { name: '@google/genai', versionRange: '>=0.10.0 <4', filePath },
       functionQuery: { className: 'Chat', methodName, kind: 'Auto' as const },
     })),
   ),

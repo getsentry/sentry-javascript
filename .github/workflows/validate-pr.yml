@@ -6,11 +6,11 @@ on:
 
 jobs:
   validate-pr:
-    runs-on: namespace-profile-sentry-javascript-small
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
     steps:
-      - uses: getsentry/github-workflows/validate-pr@01bcb7fe69bb48bacd83e675840e3dc95b33c730
+      - uses: getsentry/github-workflows/validate-pr@6bf4a27612e388f9c113d64f75e25190e814b414
         with:
           app-id: ${{ vars.SDK_MAINTAINER_BOT_APP_ID }}
           private-key: ${{ secrets.SDK_MAINTAINER_BOT_PRIVATE_KEY }}

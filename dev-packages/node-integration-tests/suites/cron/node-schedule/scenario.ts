@@ -12,17 +12,19 @@ const scheduleWithCheckIn = Sentry.cron.instrumentNodeSchedule(schedule);
 
 let closeNext = false;
 
-const job = scheduleWithCheckIn.scheduleJob('my-cron-job', '* * * * * *', () => {
+const job = scheduleWithCheckIn.scheduleJob('my-cron-job', '0 9 * * 1-5', () => {
   if (closeNext) {
-    job.cancel();
     throw new Error('Error in cron job');
   }
 
-  // eslint-disable-next-line no-console
-  console.log('You will see this message every second');
   closeNext = true;
 });
 
+// Run the job without waiting for its schedule.
+job.cancel();
+// The second run's error is unhandled, like when node-schedule runs the job.
+void Promise.resolve(job.invoke()).then(() => job.invoke());
+
 setTimeout(() => {
   process.exit();
-}, 15_000);
+}, 10_000);

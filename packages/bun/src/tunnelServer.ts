@@ -1,0 +1,202 @@
+import * as http from 'node:http';
+import * as https from 'node:https';
+import { _INTERNAL_normalizeTunnelBasePath, debug } from '@sentry/core';
+import {
+  _INTERNAL_getServedTunnel as getServedTunnel,
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+} from '@sentry/core/server';
+import { _INTERNAL_instrumentTunnelServer as instrumentTunnelServer } from '@sentry/server-utils';
+import type { Server } from 'bun';
+
+type BunServeOptions = Parameters<typeof Bun.serve>[0] & { routes?: Record<string, unknown> };
+type BunHandler = (request: Request, server: Server) => Response | Promise<Response>;
+
+let hasPatchedBunServe = false;
+let hasPatchedHttpServer = false;
+
+/**
+ * Lets `Bun.serve` (including a default-exported server) and `node:http` servers answer managed tunnel requests
+ * before the app sees them. Nothing is answered unless the tunnel is on, through `serveTunnelIntegration` or a
+ * framework SDK. A server started before `init` isn't covered.
+ */
+export function instrumentBunServers(): void {
+  patchBunServe();
+  patchHttpServer();
+}
+
+/**
+ * Answers tunnel requests ahead of every `Bun.serve` app, including after `server.reload`. Bun starts a
+ * default-exported server through the same global, so it's covered too.
+ */
+function patchBunServe(): void {
+  if (hasPatchedBunServe) {
+    return;
+  }
+
+  try {
+    const originalServe = Bun.serve;
+    Bun.serve = function (this: unknown, serveOptions: BunServeOptions) {
+      const server = originalServe.call(this, withTunnel(serveOptions)) as Server;
+      try {
+        const originalReload = server.reload.bind(server);
+        server.reload = (reloadOptions: BunServeOptions) => originalReload(withTunnel(reloadOptions));
+      } catch (error) {
+        debug.warn('Sentry tunnel: could not wrap server.reload', error);
+      }
+
+      return server;
+    };
+    hasPatchedBunServe = true;
+  } catch (error) {
+    debug.warn('Sentry tunnel: could not patch Bun.serve', error);
+  }
+}
+
+/**
+ * Adds a `POST` route per tunnel path and answers tunnel requests ahead of `fetch`, on a copy of the options. The app's
+ * own options stay as they were, so passing them again, e.g. to `server.reload`, doesn't wrap our wrappers. Returns
+ * the app's options if anything goes wrong, so the server still starts.
+ *
+ * Routes, not only `fetch`: Bun answers a POST under a `'/*'` HTML import or static `Response` without running any
+ * JavaScript, so only an exact route reaches the tunnel there. A `POST`-only route leaves every other method to the
+ * app's routes.
+ */
+function withTunnel(serveOptions: BunServeOptions): BunServeOptions {
+  try {
+    if (!serveOptions || typeof serveOptions !== 'object') {
+      return serveOptions;
+    }
+
+    // Keeps the prototype and the getters, which class-based options read Bun's settings through.
+    const patchedOptions = Object.create(
+      Object.getPrototypeOf(serveOptions),
+      Object.getOwnPropertyDescriptors(serveOptions),
+    ) as BunServeOptions;
+    const userFetch = serveOptions.fetch as BunHandler | undefined;
+    if (typeof userFetch === 'function') {
+      setOption(patchedOptions, 'fetch', function (this: Server, request: Request, server: Server) {
+        return handleServedTunnelRequest(request) ?? userFetch.call(this, request, server);
+      });
+    }
+
+    const tunnelPaths = getTunnelRoutePaths();
+    if (tunnelPaths.length) {
+      const routes: Record<string, unknown> = { ...serveOptions.routes };
+      for (const path of tunnelPaths) {
+        routes[path] = makeTunnelRoute(routes[path], userFetch);
+      }
+      setOption(patchedOptions, 'routes', routes);
+    }
+
+    return patchedOptions;
+  } catch (error) {
+    debug.warn('Sentry tunnel: could not add the tunnel to Bun.serve', error);
+
+    return serveOptions;
+  }
+}
+
+/**
+ * Sets an option on our copy as its own property, which also replaces an option the app's class reads through a
+ * getter.
+ */
+function setOption(options: BunServeOptions, name: 'fetch' | 'routes', value: unknown): void {
+  Object.defineProperty(options, name, { value, writable: true, enumerable: true, configurable: true });
+}
+
+/**
+ * The full tunnel paths, with and without a trailing slash, since Bun routes match exactly.
+ */
+function getTunnelRoutePaths(): string[] {
+  const servedTunnel = getServedTunnel();
+  if (!servedTunnel) {
+    return [];
+  }
+
+  const basePath = _INTERNAL_normalizeTunnelBasePath(servedTunnel.basePath);
+
+  return servedTunnel.paths.flatMap(path => [`${basePath}${path}`, `${basePath}${path}/`]);
+}
+
+/**
+ * Our `POST` handler, merged with whatever the app has on the same path. An app route that is neither a handler nor
+ * a handler per method (a static `Response` or an HTML import) is left as it is.
+ */
+function makeTunnelRoute(existing: unknown, appFetch: BunHandler | undefined): unknown {
+  if (typeof existing === 'function') {
+    const appRoute = existing as BunHandler;
+
+    return (request: Request, server: Server) =>
+      (request.method === 'POST' && handleServedTunnelRequest(request)) || appRoute(request, server);
+  }
+
+  if (existing !== undefined && Object.getPrototypeOf(existing) !== Object.prototype) {
+    return existing;
+  }
+
+  const methods = (existing ?? {}) as Record<string, unknown>;
+  const appPost = methods.POST;
+
+  return {
+    ...methods,
+    POST: (request: Request, server: Server) =>
+      handleServedTunnelRequest(request) ?? toApp(request, server, appPost, appFetch),
+  };
+}
+
+/**
+ * Where a POST on a tunnel path goes when the tunnel doesn't answer it. Bun can't hand a request back to its router,
+ * so the app's route on the same path, else `fetch`, else a 404.
+ */
+function toApp(
+  request: Request,
+  server: Server,
+  appPost: unknown,
+  appFetch: BunHandler | undefined,
+): Response | Promise<Response> {
+  if (appPost instanceof Response) {
+    return appPost.clone();
+  }
+
+  if (typeof appPost === 'function') {
+    return (appPost as BunHandler)(request, server);
+  }
+
+  if (appFetch) {
+    return appFetch.call(server, request, server);
+  }
+
+  return new Response('Not Found', { status: 404 });
+}
+
+/**
+ * Bun publishes no `http.server.request.start` channel, so the first request of each `node:http` server hands it to
+ * the same `emit` wrapper Node uses, then goes through it.
+ */
+function patchHttpServer(): void {
+  if (hasPatchedHttpServer) {
+    return;
+  }
+
+  hasPatchedHttpServer = true;
+  const instrumented = new WeakSet<object>();
+  // In Bun `https.Server` reuses `http.Server`.
+  for (const ServerClass of new Set([http.Server, https.Server])) {
+    try {
+      // oxlint-disable-next-line typescript/unbound-method -- called with the server as `this` below
+      const originalEmit = ServerClass.prototype.emit;
+      ServerClass.prototype.emit = function (this: http.Server, event: string, ...args: unknown[]): boolean {
+        if (event === 'request' && !instrumented.has(this)) {
+          instrumented.add(this);
+          instrumentTunnelServer({ server: this });
+
+          return this.emit(event, ...args);
+        }
+
+        return originalEmit.call(this, event, ...args) as boolean;
+      } as typeof originalEmit;
+    } catch (error) {
+      debug.warn('Sentry tunnel: could not patch the node:http server', error);
+    }
+  }
+}

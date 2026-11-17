@@ -13,10 +13,17 @@ concurrency:
   group: size-check-label-${{ github.event.pull_request.number }}-${{ github.event.label.name }}
   cancel-in-progress: true
 
+env:
+  CACHED_DEPENDENCY_PATHS: |
+    ${{ github.workspace }}/node_modules
+    ${{ github.workspace }}/packages/*/node_modules
+    ${{ github.workspace }}/dev-packages/*/node_modules
+    ~/.cache/mongodb-binaries/
+
 jobs:
   rerun:
     if: github.event.label.name == 'Accept Bundlesize Increase'
-    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - name: Check out workflow commit

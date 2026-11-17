@@ -13,11 +13,17 @@ export function generateValueInjectionRules({
   nextJsVersion,
   tunnelRouteValues,
   vercelCronsConfig,
+  releaseName,
+  distDirName,
+  basePath,
 }: {
   routeManifest?: RouteManifest;
   nextJsVersion?: string;
   tunnelRouteValues?: TunnelRouteInjectedValues;
   vercelCronsConfig?: VercelCronsConfig;
+  releaseName?: string;
+  distDirName?: string;
+  basePath?: string;
 }): TurbopackMatcherWithRule[] {
   const rules: TurbopackMatcherWithRule[] = [];
   const isomorphicValues: Record<string, JSONValue> = { ...tunnelRouteValues };
@@ -29,6 +35,11 @@ export function generateValueInjectionRules({
     isomorphicValues._sentryNextJsVersion = nextJsVersion;
   }
 
+  // The server reads it to serve the managed tunnel under the base path.
+  if (basePath) {
+    isomorphicValues._sentryBasePath = basePath;
+  }
+
   if (routeManifest) {
     clientValues._sentryRouteManifest = JSON.stringify(routeManifest);
   }
@@ -37,6 +48,16 @@ export function generateValueInjectionRules({
   if (vercelCronsConfig) {
     serverValues._sentryVercelCronsConfig = JSON.stringify(vercelCronsConfig);
   }
+  // Next.js inlines the values of `nextConfig.env` and `process.turbopack` only into code it compiles. These globals are
+  // for a server SDK that Next.js does not compile, e.g. one in `serverExternalPackages`.
+  serverValues._sentryTurbopack = true;
+  if (releaseName) {
+    serverValues._sentryRelease = releaseName;
+  }
+  if (distDirName) {
+    serverValues._sentryRewriteFramesDistDir = distDirName;
+  }
+
   // Inject server modules (matching webpack's __SENTRY_SERVER_MODULES__ behavior)
   // Use process.cwd() to get the project directory at build time
   serverValues.__SENTRY_SERVER_MODULES__ = getPackageModules(process.cwd());

@@ -180,8 +180,12 @@ export function startTrackingLongAnimationFrames(): void {
         [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       };
 
-      const initialScript = entry.scripts[0];
-      const { invoker, invokerType, sourceURL, sourceFunctionName, sourceCharPosition } = initialScript;
+      // The first script can be a short listener (e.g. the SDK's own INP listener on `mousedown`)
+      // that runs before the script that actually blocked the frame.
+      const longestScript = entry.scripts.reduce((longest, script) =>
+        script.duration > longest.duration ? script : longest,
+      );
+      const { invoker, invokerType, sourceURL, sourceFunctionName, sourceCharPosition } = longestScript;
       attributes[BROWSER_SCRIPT_INVOKER] = invoker;
       attributes[BROWSER_SCRIPT_INVOKER_TYPE] = invokerType;
       if (sourceURL) {

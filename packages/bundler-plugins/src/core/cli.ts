@@ -120,14 +120,20 @@ export class SentryCliAdapter {
    * array; the new `sourcemap upload` command takes a single directory, so we upload each target
    * separately. A client is created per project because project selection is bound at client
    * creation time.
+   *
+   * Empty directories must not abort the loop: `@sentry/nextjs` uploads `.next/server` first, and
+   * a server build without source maps would otherwise skip every client directory after it.
+   *
+   * @returns The directories that had no source maps to upload.
    */
-  public async uploadSourcemaps(name: string, targets: UploadTarget[]): Promise<void> {
+  public async uploadSourcemaps(name: string, targets: UploadTarget[]): Promise<string[]> {
     const projects = getProjects(this.#options.project) ?? [undefined];
+    const emptyDirectories = new Set<string>();
 
     for (const project of projects) {
       const sdk = this.#createClient(project);
       for (const target of targets) {
-        await sdk.sourcemap.upload({
+        const result = (await sdk.sourcemap.upload({
           directory: target.directory,
           release: name,
           dist: target.dist ?? this.#options.release.dist,
@@ -135,9 +141,15 @@ export class SentryCliAdapter {
           ignore: serializeIgnore(target.ignore),
           ignoreFile: target.ignoreFile,
           urlPrefix: target.urlPrefix,
-        });
+          allowEmpty: true,
+        })) as { filesUploaded?: number } | undefined;
+        if (result?.filesUploaded === 0) {
+          emptyDirectories.add(target.directory);
+        }
       }
     }
+
+    return [...emptyDirectories];
   }
 
   /** Inject debug IDs into the given build artifacts. */

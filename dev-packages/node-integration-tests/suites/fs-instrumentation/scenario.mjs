@@ -1,15 +1,21 @@
 import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import express from 'express';
 import * as fs from 'fs';
+import { readFileSync } from 'fs';
+import { readFile } from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
 import * as util from 'util';
+
+// `__dirname` does not exist in ESM, `import.meta` breaks the CJS variant of this file, and the Bun
+// build project runs a bundle outside the test's tmp dir, so the test passes the fixtures dir in.
+const fixturesDir = process.env.FIXTURES_DIR;
 
 const app = express();
 
 app.get('/readFile-error', async (_, res) => {
   try {
-    await fs.promises.readFile(path.join(__dirname, 'fixtures', 'some-file-that-doesnt-exist.txt'), 'utf-8');
+    await fs.promises.readFile(path.join(fixturesDir, 'some-file-that-doesnt-exist.txt'), 'utf-8');
   } catch {
     // noop
   }
@@ -18,59 +24,57 @@ app.get('/readFile-error', async (_, res) => {
 
 app.get('/readFile', async (_, res) => {
   await new Promise(resolve => {
-    fs.readFile(path.join(__dirname, 'fixtures', 'some-file.txt'), 'utf-8', () => {
+    fs.readFile(path.join(fixturesDir, 'some-file.txt'), 'utf-8', () => {
       resolve();
     });
   });
-  await fs.promises.readFile(path.join(__dirname, 'fixtures', 'some-file-promises.txt'), 'utf-8');
-  await util.promisify(fs.readFile)(path.join(__dirname, 'fixtures', 'some-file-promisify.txt'), 'utf-8');
+  await fs.promises.readFile(path.join(fixturesDir, 'some-file-promises.txt'), 'utf-8');
+  await util.promisify(fs.readFile)(path.join(fixturesDir, 'some-file-promisify.txt'), 'utf-8');
+  res.send('done');
+});
+
+app.get('/named-imports', async (_, res) => {
+  readFileSync(path.join(fixturesDir, 'some-file.txt'), 'utf-8');
+  await readFile(path.join(fixturesDir, 'some-file-promises.txt'), 'utf-8');
   res.send('done');
 });
 
 app.get('/copyFile', async (_, res) => {
   await new Promise(resolve => {
-    fs.copyFile(
-      path.join(__dirname, 'fixtures', 'some-file.txt'),
-      path.join(__dirname, 'fixtures', 'some-file.txt.copy'),
-      () => {
-        resolve();
-      },
-    );
+    fs.copyFile(path.join(fixturesDir, 'some-file.txt'), path.join(fixturesDir, 'some-file.txt.copy'), () => {
+      resolve();
+    });
   });
   await fs.promises.copyFile(
-    path.join(__dirname, 'fixtures', 'some-file-promises.txt'),
-    path.join(__dirname, 'fixtures', 'some-file-promises.txt.copy'),
+    path.join(fixturesDir, 'some-file-promises.txt'),
+    path.join(fixturesDir, 'some-file-promises.txt.copy'),
   );
   await util.promisify(fs.copyFile)(
-    path.join(__dirname, 'fixtures', 'some-file-promisify.txt'),
-    path.join(__dirname, 'fixtures', 'some-file-promisify.txt.copy'),
+    path.join(fixturesDir, 'some-file-promisify.txt'),
+    path.join(fixturesDir, 'some-file-promisify.txt.copy'),
   );
   res.send('done');
 });
 
 app.get('/link', async (_, res) => {
   await new Promise(resolve => {
-    fs.link(
-      path.join(__dirname, 'fixtures', 'some-file.txt'),
-      path.join(__dirname, 'fixtures', 'some-file.txt.link'),
-      () => {
-        resolve();
-      },
-    );
+    fs.link(path.join(fixturesDir, 'some-file.txt'), path.join(fixturesDir, 'some-file.txt.link'), () => {
+      resolve();
+    });
   });
   await fs.promises.link(
-    path.join(__dirname, 'fixtures', 'some-file-promises.txt'),
-    path.join(__dirname, 'fixtures', 'some-file-promises.txt.link'),
+    path.join(fixturesDir, 'some-file-promises.txt'),
+    path.join(fixturesDir, 'some-file-promises.txt.link'),
   );
   await util.promisify(fs.link)(
-    path.join(__dirname, 'fixtures', 'some-file-promisify.txt'),
-    path.join(__dirname, 'fixtures', 'some-file-promisify.txt.link'),
+    path.join(fixturesDir, 'some-file-promisify.txt'),
+    path.join(fixturesDir, 'some-file-promisify.txt.link'),
   );
 
   await Promise.all([
-    fs.promises.unlink(path.join(__dirname, 'fixtures', 'some-file.txt.link')),
-    fs.promises.unlink(path.join(__dirname, 'fixtures', 'some-file-promises.txt.link')),
-    fs.promises.unlink(path.join(__dirname, 'fixtures', 'some-file-promisify.txt.link')),
+    fs.promises.unlink(path.join(fixturesDir, 'some-file.txt.link')),
+    fs.promises.unlink(path.join(fixturesDir, 'some-file-promises.txt.link')),
+    fs.promises.unlink(path.join(fixturesDir, 'some-file-promisify.txt.link')),
   ]);
 
   res.send('done');
@@ -90,37 +94,33 @@ app.get('/mkdtemp', async (_, res) => {
 
 app.get('/exists', async (_, res) => {
   await new Promise(resolve => {
-    fs.exists(path.join(__dirname, 'fixtures', 'some-file.txt'), () => {
+    fs.exists(path.join(fixturesDir, 'some-file.txt'), () => {
       resolve();
     });
   });
-  await util.promisify(fs.exists)(path.join(__dirname, 'fixtures', 'some-file-promisify.txt'));
+  await util.promisify(fs.exists)(path.join(fixturesDir, 'some-file-promisify.txt'));
   res.send('done');
 });
 
 app.get('/symlink', async (_, res) => {
   await new Promise(resolve => {
-    fs.symlink(
-      path.join(__dirname, 'fixtures', 'some-file.txt'),
-      path.join(__dirname, 'fixtures', 'some-file.txt.symlink'),
-      () => {
-        resolve();
-      },
-    );
+    fs.symlink(path.join(fixturesDir, 'some-file.txt'), path.join(fixturesDir, 'some-file.txt.symlink'), () => {
+      resolve();
+    });
   });
   await fs.promises.symlink(
-    path.join(__dirname, 'fixtures', 'some-file-promises.txt'),
-    path.join(__dirname, 'fixtures', 'some-file-promises.txt.symlink'),
+    path.join(fixturesDir, 'some-file-promises.txt'),
+    path.join(fixturesDir, 'some-file-promises.txt.symlink'),
   );
   await util.promisify(fs.symlink)(
-    path.join(__dirname, 'fixtures', 'some-file-promisify.txt'),
-    path.join(__dirname, 'fixtures', 'some-file-promisify.txt.symlink'),
+    path.join(fixturesDir, 'some-file-promisify.txt'),
+    path.join(fixturesDir, 'some-file-promisify.txt.symlink'),
   );
 
   await Promise.all([
-    fs.promises.unlink(path.join(__dirname, 'fixtures', 'some-file.txt.symlink')),
-    fs.promises.unlink(path.join(__dirname, 'fixtures', 'some-file-promises.txt.symlink')),
-    fs.promises.unlink(path.join(__dirname, 'fixtures', 'some-file-promisify.txt.symlink')),
+    fs.promises.unlink(path.join(fixturesDir, 'some-file.txt.symlink')),
+    fs.promises.unlink(path.join(fixturesDir, 'some-file-promises.txt.symlink')),
+    fs.promises.unlink(path.join(fixturesDir, 'some-file-promisify.txt.symlink')),
   ]);
 
   res.send('done');

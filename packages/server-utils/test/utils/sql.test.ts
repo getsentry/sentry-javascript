@@ -1,12 +1,22 @@
-import { DB_OPERATION_NAME, DB_QUERY_SUMMARY, DB_QUERY_TEXT } from '@sentry/conventions/attributes';
-import { describe, expect, it } from 'vitest';
+import {
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+} from '@sentry/conventions/attributes';
+import { setCurrentClient } from '@sentry/core';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   getSqlOperationName,
   getSqlQuerySummary,
   getSqlQueryAttributes,
+  getLowCardinalitySqlSpanName,
+  getSqlSpanName,
   sanitizeSqlQuery,
   toSqlDialect,
 } from '../../src/utils/sql';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('getSqlQuerySummary', () => {
   it.each([undefined, ''])('returns undefined for %j', input => {
@@ -964,6 +974,77 @@ describe('getSqlQueryAttributes', () => {
       [DB_QUERY_TEXT]: undefined,
       [DB_QUERY_SUMMARY]: undefined,
       [DB_OPERATION_NAME]: undefined,
+    });
+  });
+});
+
+describe('getLowCardinalitySqlSpanName', () => {
+  const query = getSqlQueryAttributes("SELECT * FROM users WHERE id = 'x'");
+  const noQuery = getSqlQueryAttributes(undefined);
+
+  afterEach(() => {
+    setCurrentClient(undefined as never);
+  });
+
+  it.each([
+    ['the query summary', { ...query, [DB_NAMESPACE]: 'mydb', [DB_SYSTEM_NAME]: 'postgresql' }, 'SELECT users'],
+    [
+      'db.namespace without a statement',
+      { ...noQuery, [DB_NAMESPACE]: 'mydb', [DB_SYSTEM_NAME]: 'postgresql' },
+      'mydb',
+    ],
+    ['db.system.name without a namespace', { ...noQuery, [DB_SYSTEM_NAME]: 'postgresql' }, 'postgresql'],
+    ['the fallback without any of those', noQuery, 'neon.query'],
+  ])('uses %s', (_, attributes, expected) => {
+    expect(getLowCardinalitySqlSpanName(attributes, 'neon.query')).toBe(expected);
+  });
+
+  it('stays low cardinality when spans are not streamed', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'static', tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+
+    expect(getLowCardinalitySqlSpanName(query, 'neon.query')).toBe('SELECT users');
+  });
+});
+
+describe('getSqlSpanName', () => {
+  const query = getSqlQueryAttributes("SELECT * FROM users WHERE id = 'x'");
+  const noQuery = getSqlQueryAttributes(undefined);
+
+  function setUpClient(traceLifecycle: 'stream' | 'static'): void {
+    const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle, tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+  }
+
+  afterEach(() => {
+    setCurrentClient(undefined as never);
+  });
+
+  describe('with span streaming', () => {
+    it.each([
+      ['the query summary', { ...query, [DB_NAMESPACE]: 'mydb', [DB_SYSTEM_NAME]: 'mysql' }, 'SELECT users'],
+      ['db.namespace without a statement', { ...noQuery, [DB_NAMESPACE]: 'mydb', [DB_SYSTEM_NAME]: 'mysql' }, 'mydb'],
+      ['db.system.name without a namespace', { ...noQuery, [DB_NAMESPACE]: '', [DB_SYSTEM_NAME]: 'mysql' }, 'mysql'],
+      ['the fallback without any of those', noQuery, 'mysql.query'],
+    ])('uses %s', (_, attributes, expected) => {
+      setUpClient('stream');
+      expect(getSqlSpanName(attributes, 'mysql.query')).toBe(expected);
+    });
+  });
+
+  describe('without span streaming', () => {
+    it.each([
+      ['the sanitized statement', { ...query, [DB_NAMESPACE]: 'mydb' }, 'SELECT * FROM users WHERE id = ?'],
+      [
+        'the fallback without a statement',
+        { ...noQuery, [DB_NAMESPACE]: 'mydb', [DB_SYSTEM_NAME]: 'mysql' },
+        'mysql.query',
+      ],
+    ])('uses %s', (_, attributes, expected) => {
+      setUpClient('static');
+      expect(getSqlSpanName(attributes, 'mysql.query')).toBe(expected);
     });
   });
 });

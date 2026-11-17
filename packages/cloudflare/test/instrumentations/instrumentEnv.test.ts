@@ -223,6 +223,34 @@ describe('instrumentEnv', () => {
     expect(send.mock.calls[0]?.[0]).toBe('hello');
   });
 
+  it('propagates Queue trace context only to the configured bindings', async () => {
+    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+      'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+      baggage: 'sentry-release=1.0.0',
+    });
+    const billingSend = vi.fn().mockResolvedValue(undefined);
+    const otherSend = vi.fn().mockResolvedValue(undefined);
+    const instrumented = instrumentEnv(
+      {
+        BILLING_QUEUE: { send: billingSend, sendBatch: vi.fn() },
+        OTHER_QUEUE: { send: otherSend, sendBatch: vi.fn() },
+      },
+      { queueTracePropagationBindings: ['billing_queue'] },
+    );
+
+    await instrumented.BILLING_QUEUE.send({ invoiceId: 'inv_123' });
+    await instrumented.OTHER_QUEUE.send({ invoiceId: 'inv_456' });
+
+    expect(billingSend).toHaveBeenCalledExactlyOnceWith(
+      {
+        invoiceId: 'inv_123',
+        __sentry_queue_trace__: '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+      },
+      undefined,
+    );
+    expect(otherSend).toHaveBeenCalledExactlyOnceWith({ invoiceId: 'inv_456' }, undefined);
+  });
+
   it('wraps Workers KV bindings in a proxy', async () => {
     const get = vi.fn().mockResolvedValue('value');
     const put = vi.fn().mockResolvedValue(undefined);

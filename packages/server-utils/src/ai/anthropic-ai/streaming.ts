@@ -1,6 +1,6 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { endStreamSpan } from '../core/utils';
+import { endStreamSpan, getErrorStatus } from '../core/utils';
 import type { AnthropicAiStreamingEvent } from './types';
 import { mapAnthropicErrorToStatusMessage } from './utils';
 
@@ -247,6 +247,9 @@ export async function* instrumentAsyncIterableStream(
       processEvent(event, state, recordOutputs, span);
       yield event;
     }
+  } catch (error) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    throw error;
   } finally {
     endStreamSpan(span, state, recordOutputs);
   }
@@ -255,10 +258,11 @@ export async function* instrumentAsyncIterableStream(
 /**
  * Instruments a MessageStream by registering event handlers and preserving the original stream API.
  */
-export function instrumentMessageStream<R extends { on: (...args: unknown[]) => void }>(
+export function instrumentMessageStream<R extends { on: (...args: unknown[]) => void; aborted?: boolean }>(
   stream: R,
   span: Span,
   recordOutputs: boolean,
+  abortSignal?: AbortSignal,
 ): R {
   const state: StreamingState = {
     responseTexts: [],
@@ -284,6 +288,18 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
     endStreamSpan(span, state, recordOutputs);
   });
 
+  // Fires last on every stream, so a stream that stops without 'message' (aborted, or the body closed early) still
+  // ends its span. An 'abort' listener would also stop the SDK from raising an unobserved abort as a rejection.
+  stream.on('end', () => {
+    if (span.isRecording() && stream.aborted) {
+      // `aborted` is also set when the caller's `AbortSignal.timeout()` fires, which is a timeout, not a cancellation.
+      span.setStatus(
+        abortSignal?.aborted ? getErrorStatus(abortSignal) : { code: SPAN_STATUS_ERROR, message: 'cancelled' },
+      );
+    }
+    endStreamSpan(span, state, recordOutputs);
+  });
+
   stream.on('error', (error: unknown) => {
     // Attaching this listener stops the stream error from being raised as an unhandled rejection, so
     // we capture it here to avoid swallowing it (e.g. for callers that don't await/iterate the stream).
@@ -296,7 +312,7 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
 
     if (span.isRecording()) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-      span.end();
+      endStreamSpan(span, state, recordOutputs);
     }
   });
 

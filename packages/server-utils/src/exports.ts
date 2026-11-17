@@ -3,8 +3,9 @@ export { setHttpServerSpanRouteAttribute } from './utils/setHttpServerSpanRouteA
 export { setAsyncLocalStorageAsyncContextStrategy } from './async-context';
 export { openTelemetryIntegration, getOtlpTracesEndpoint } from './opentelemetry';
 export * from './ai';
-export { getSqlQuerySummary, sanitizeSqlQuery, getSqlQueryAttributes } from './utils/sql';
+export { getSqlQuerySummary, sanitizeSqlQuery, getSqlQueryAttributes, getSqlSpanName } from './utils/sql';
 export type { SqlDialect } from './utils/sql';
+export { isBun, isCloudflareWorkers, isDeno } from './utils/runtime';
 export { instrumentPostgresJsSql } from './integrations/postgresjs-wrapper';
 export type { PostgresConnectionContext } from './integrations/postgresjs-wrapper';
 

@@ -56,7 +56,11 @@ function runWebpackSourceInjection(
   compilationCallback(compilation);
   processAssets(assets);
 
-  return assets[assetName];
+  const result = assets[assetName];
+  if (!result) {
+    throw new Error(`Asset ${assetName} was removed during injection`);
+  }
+  return result;
 }
 
 function runWebpackInjection(assetName: string, code: string, chunks?: TestChunk[]): string {

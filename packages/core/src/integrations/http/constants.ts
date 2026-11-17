@@ -1,5 +1,6 @@
 export const LOG_PREFIX = '@sentry/instrumentation-http';
 export const HTTP_ON_CLIENT_REQUEST = 'http.client.request.created';
 export const HTTP_ON_SERVER_REQUEST = 'http.server.request.start';
+export const HTTP2_ON_SERVER_STREAM = 'http2.server.stream.start';
 export type ClientSubscriptionName = typeof HTTP_ON_CLIENT_REQUEST;
-export type ServerSubscriptionName = typeof HTTP_ON_SERVER_REQUEST;
+export type ServerSubscriptionName = typeof HTTP_ON_SERVER_REQUEST | typeof HTTP2_ON_SERVER_STREAM;

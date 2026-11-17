@@ -27,6 +27,7 @@ const NO_HTTP_SERVER_SPANS = [
   'suites/tracing/httpServerSpans-unrouted/test.ts',
   'suites/tracing/ignoreSpans/**',
   'suites/tracing/managed-tunnel/test.ts',
+  'suites/tunnel/hardening/test.ts',
   'suites/tracing/meta-tags-twp-errors/test.ts',
   'suites/tracing/meta-tags/test.ts',
   'suites/tracing/requestData/test.ts',
@@ -75,7 +76,9 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/pino/test.ts',
   'suites/tracing/amqplib/test.ts',
   'suites/tracing/anthropic/test.ts',
+  'suites/tracing/anthropic/v0/test.ts',
   'suites/tracing/anthropic/v0.129/test.ts',
+  'suites/tracing/anthropic/v1/test.ts',
   'suites/tracing/apollo-graphql/**',
   'suites/tracing/dataloader/test.ts',
   'suites/tracing/fastify/test.ts',
@@ -83,6 +86,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/genericPool/test.ts',
   'suites/tracing/is-localhost/test.ts',
   'suites/tracing/google-genai-v2/test.ts',
+  'suites/tracing/google-genai-v3/test.ts',
   'suites/tracing/google-genai/test.ts',
   'suites/tracing/groq/test.ts',
   'suites/tracing/hapi/test.ts',
@@ -117,6 +121,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/openai/v6/test.ts',
   'suites/tracing/openai/v7/test.ts',
   'suites/tracing/orchestrion-lazy-registration/test.ts',
+  'suites/tracing/pi-ai/test.ts',
   'suites/tracing/pi-durable/test.ts',
   'suites/tracing/postgres/test.ts',
   'suites/tracing/postgresjs/test.ts',
@@ -197,7 +202,13 @@ export const NODE_SUITES_EXCLUDE = ['**/node_modules/**', ...NODE_ONLY, ...NO_AU
 export const SENTRY_NODE_EXCLUDE = [...NO_HTTP_SERVER_SPANS, ...NO_FETCH_INSTRUMENTATION];
 
 // Excluded only in the `node-suites-sentry-bun` project, which maps `@sentry/node` to `@sentry/bun`.
+// Bun answers nothing on a connection whose first request awaits anything while a second one is
+// queued behind it, which the pipelined cases need. `packages/bun` runs the same cases against Bun's
+// servers without those.
+const BUN_DROPS_PIPELINED_REQUESTS = ['suites/tunnel/hardening/test.ts'];
+
 export const SENTRY_BUN_EXCLUDE = [
+  ...BUN_DROPS_PIPELINED_REQUESTS,
   ...HTTP_SERVER_OPTIONS_IGNORED,
   ...NO_EXPRESS_INSTRUMENTATION,
   ...NO_NATIVE_NODE_FETCH_INTEGRATION,
@@ -230,6 +241,7 @@ const BUN_BUILD_NOT_TRIAGED = [
   'suites/hono-sdk/test.ts',
   'suites/pino/test.ts',
   'suites/tracing/google-genai-v2/test.ts',
+  'suites/tracing/google-genai-v3/test.ts',
   'suites/tracing/google-genai/test.ts',
   'suites/tracing/langchain/v1/test.ts',
   'suites/tracing/langgraph/v1/test.ts',
@@ -255,6 +267,8 @@ const BUN_BUILD_NOT_TRIAGED = [
 
 export const BUN_BUILD_EXCLUDE = [
   '**/node_modules/**',
+  // SQL Server runs in the dedicated Node/x86 CI job.
+  'suites/tracing/tedious/test.ts',
   ...BUN_BUILD_EAGER_SUBSCRIPTION,
   ...BUN_BUILD_NO_HTTP_SERVER_INTEGRATION,
   ...BUN_BUILD_UNBUNDLEABLE_DEPENDENCY,

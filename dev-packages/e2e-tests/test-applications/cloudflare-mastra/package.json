@@ -30,8 +30,7 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "typescript": "^5.5.2",
     "vite": "7.3.5",
-    "wrangler": "^4.86.0",
-    "ws": "^8.18.3"
+    "wrangler": "^4.86.0"
   },
   "sentryTest": {
     "optional": true

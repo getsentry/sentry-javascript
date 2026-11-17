@@ -2,11 +2,11 @@
  * @vitest-environment jsdom
  */
 
-import { CanvasManager } from '@sentry/rrweb';
+import { CanvasManager } from '@sentry/rrweb/canvas-manager';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { _replayCanvasIntegration, replayCanvasIntegration } from '../src/canvas';
 
-vi.mock('@sentry/rrweb');
+vi.mock('@sentry/rrweb/canvas-manager');
 
 beforeEach(() => {
   vi.clearAllMocks();

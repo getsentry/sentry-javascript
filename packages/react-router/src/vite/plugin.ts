@@ -4,7 +4,7 @@ import { makeConfigInjectorPlugin } from './makeConfigInjectorPlugin';
 import { makeCustomSentryVitePlugins } from './makeCustomSentryVitePlugins';
 import { makeEnableSourceMapsPlugin } from './makeEnableSourceMapsPlugin';
 import { makeServerBuildCapturePlugin } from './makeServerBuildCapturePlugin';
-import { makeTunnelRoutePlugin } from './makeTunnelRoutePlugin';
+import { makeTunnelBasePathPlugin } from './makeTunnelBasePathPlugin';
 import type { SentryReactRouterBuildOptions } from './types';
 
 /**
@@ -22,7 +22,7 @@ export async function sentryReactRouter(
 
   plugins.push(makeConfigInjectorPlugin(options));
   plugins.push(makeServerBuildCapturePlugin());
-  plugins.push(makeTunnelRoutePlugin());
+  plugins.push(makeTunnelBasePathPlugin());
 
   if (process.env.NODE_ENV !== 'development' && viteConfig.command === 'build' && viteConfig.mode !== 'development') {
     plugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: options.buildTimeInstrumentation }));

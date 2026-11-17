@@ -108,7 +108,11 @@ export function setTelemetryDataOnScope(
   scope.setTag('delete-after-upload', !!sourcemaps?.filesToDeleteAfterUpload);
   scope.setTag(
     'delete-sourcemaps-after-upload',
-    sourcemaps?.deleteSourcemapsAfterUpload === undefined ? 'auto' : String(sourcemaps.deleteSourcemapsAfterUpload),
+    typeof sourcemaps?.deleteSourcemapsAfterUpload === 'function'
+      ? 'function'
+      : sourcemaps?.deleteSourcemapsAfterUpload === undefined
+        ? 'auto'
+        : String(sourcemaps.deleteSourcemapsAfterUpload),
   );
   scope.setTag('sourcemaps-disabled', !!sourcemaps?.disable);
 
@@ -137,7 +141,8 @@ export function setTelemetryDataOnScope(
 }
 
 export async function allowedToSendTelemetry(options: NormalizedOptions): Promise<boolean> {
-  const { telemetry, url } = options;
+  const { telemetry } = options;
+  const url = options.url ?? SENTRY_SAAS_URL;
 
   // `options.telemetry` defaults to true
   if (telemetry === false) {

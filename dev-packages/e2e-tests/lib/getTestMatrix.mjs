@@ -37,6 +37,7 @@ function run() {
       head: { type: 'string' },
       variant: { type: 'string', default: 'required' },
       shards: { type: 'string' },
+      'separate-aws-layer': { type: 'boolean', default: false },
     },
   });
 
@@ -62,11 +63,17 @@ function run() {
     ? getAffectedTestApplications(testApplications, { base, head })
     : testApplications;
 
-  const includes = [];
+  let includes = [];
 
   includedTestApplications.forEach(testApp => {
     addIncludesForTestApp(testApp, includes, { variant });
   });
+
+  if (values['separate-aws-layer']) {
+    const layerIncludes = includes.filter(row => row['test-application'] === 'aws-serverless-layer');
+    includes = includes.filter(row => row['test-application'] !== 'aws-serverless-layer');
+    process.stdout.write(`matrix-aws-layer=${JSON.stringify({ include: layerIncludes })}\n`);
+  }
 
   if (!shards) {
     // We print this to the output, so the GHA can use it for the matrix
@@ -108,8 +115,7 @@ function addIncludesForTestApp(testApp, includes, { variant }) {
   const shouldSkip = packageJson.sentryTest?.skip || false;
   const isOptional = packageJson.sentryTest?.optional || false;
   const variants = packageJson.sentryTest?.[VARIANT_FIELDS[variant]] || [];
-  const runner = packageJson.sentryTest?.runner;
-  const baseInclude = { 'test-application': testApp, ...(runner ? { runner } : {}) };
+  const baseInclude = { 'test-application': testApp };
 
   if (shouldSkip) {
     return;
@@ -118,10 +124,12 @@ function addIncludesForTestApp(testApp, includes, { variant }) {
   // The test application itself is either required or optional, never canary, and only runs in the matrix of its mode.
   const appVariant = isOptional ? 'optional' : 'required';
   if (appVariant === variant) {
-    includes.push({ ...baseInclude, ...packageJson.sentryTest?.baseVariant });
+    addVariant(packageJson.sentryTest?.baseVariant);
   }
 
-  variants.forEach(variant => {
+  variants.forEach(addVariant);
+
+  function addVariant(variant = {}) {
     // Allow skipping an individual variant (e.g. one blocked by an upstream bug) while keeping the
     // others. `sentryTest.skip` above skips the whole app; this is the per-variant equivalent.
     if (variant.skip) {
@@ -129,12 +137,25 @@ function addIncludesForTestApp(testApp, includes, { variant }) {
     }
 
     // Don't leak the `skip` flag into the matrix include.
-    const { skip: _skip, ...variantConfig } = variant;
-    includes.push({
-      ...baseInclude,
-      ...variantConfig,
-    });
-  });
+    const { skip: _skip, 'test-shards': testShards, ...variantConfig } = variant;
+    if (testShards === undefined) {
+      includes.push({ ...baseInclude, ...variantConfig });
+      return;
+    }
+
+    if (!Number.isInteger(testShards) || testShards < 1) {
+      throw new Error(`Invalid test-shards for ${testApp}: ${testShards}`);
+    }
+
+    for (let shard = 1; shard <= testShards; shard++) {
+      includes.push({
+        ...baseInclude,
+        ...variantConfig,
+        label: `${variantConfig.label || testApp} (${shard}/${testShards})`,
+        'test-shard': `${shard}/${testShards}`,
+      });
+    }
+  }
 }
 
 function getSentryDependencies(appName) {

@@ -7,15 +7,16 @@ export default makeNPMConfigVariants(
       output: {
         // set exports to 'named' or 'auto' so that rollup doesn't warn
         exports: 'named',
-        // set preserveModules to false because for feedback we actually want
-        // to bundle everything into one file.
-        preserveModules: false,
+        // preact is bundled, and `preserveModules` names its files by their pnpm store path
+        // (`node_modules/.pnpm/preact@x/...`), so emit them under `vendored/` instead. A single-file
+        // build would avoid that, but the CDN bundles that consume it tree-shake it much worse.
+        entryFileNames: info => `${info.name.replace(/^.*node_modules\//, 'vendored/')}.js`,
       },
-    },
-    esbuild: {
-      // The feedback widget uses preact, so override esbuild's React defaults.
-      jsxFactory: 'h',
-      jsxFragment: 'Fragment',
+      // The widget's `.tsx` files import `h`/`Fragment` from preact directly and rely on the
+      // classic transform, the way the rollup build's esbuild `jsxFactory` override did. Rolldown
+      // would otherwise read `jsx: "react-jsx"` from tsconfig, pull in `preact/jsx-runtime` and
+      // leave those imports dead.
+      transform: { jsx: { runtime: 'classic', pragma: 'h', pragmaFrag: 'Fragment' } },
     },
   }),
 );

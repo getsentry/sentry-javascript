@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nextjs-16-cachecomponents",
+  "main": "./worker.ts",
+  // From 2025-06-16 on, workerd binds an `AsyncLocalStorage` snapshot to the request that took it, which
+  // tests/prefetchOverlap.spec.ts relies on.
+  "compatibility_date": "2026-02-19",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": ".open-next/assets",
+  },
+  "services": [
+    {
+      // Self-reference service binding, the service name must match the worker name
+      // see https://opennext.js.org/cloudflare/caching
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "nextjs-16-cachecomponents",
+    },
+  ],
+}

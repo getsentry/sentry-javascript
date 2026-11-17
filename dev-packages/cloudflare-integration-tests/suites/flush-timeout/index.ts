@@ -12,13 +12,17 @@ interface Env {
 // ingest that never answers. The run reports to SERVER_URL once the SDK has aborted one of those pending sends.
 export class IssueWorkflow extends WorkflowEntrypoint<Env> {
   async run(_event: WorkflowEvent<unknown>, step: WorkflowStep): Promise<void> {
-    const stepSendAborted = new Promise<void>(resolve => (lastSend.onAbort = resolve));
+    lastSend.aborted = false;
 
     for (let index = 0; index < 100; index++) {
       await step.do(`step-${index}`, async () => index);
     }
 
-    await stepSendAborted;
+    // The abort happens in the I/O context of a step. Resolving a promise of the run from there does not reliably
+    // wake the run, so the run polls with its own timer instead.
+    while (!lastSend.aborted) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
     await fetch(`${this.env.SERVER_URL}/result`, { method: 'POST', body: JSON.stringify({ send: 'aborted' }) });
   }
 }

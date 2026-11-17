@@ -19,7 +19,6 @@
   },
   "devDependencies": {
     "@babel/core": "^8.0.1",
-    "@babel/plugin-proposal-decorators": "^8.0.2",
     "@cloudflare/vite-plugin": "^1.47.0",
     "@cloudflare/workers-types": "^5.20260727.1",
     "@playwright/test": "1.64.1",

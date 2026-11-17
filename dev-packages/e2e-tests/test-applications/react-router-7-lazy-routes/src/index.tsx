@@ -200,9 +200,14 @@ const router = sentryCreateBrowserRouter(
 declare global {
   interface Window {
     __REACT_ROUTER__: typeof router;
+    __SENTRY_HAS_ACTIVE_NAVIGATION__: () => boolean;
   }
 }
 window.__REACT_ROUTER__ = router;
+window.__SENTRY_HAS_ACTIVE_NAVIGATION__ = () => {
+  const span = Sentry.getActiveSpan();
+  return !!span && Sentry.spanToJSON(span).attributes['sentry.op'] === 'navigation';
+};
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(<RouterProvider router={router} />);

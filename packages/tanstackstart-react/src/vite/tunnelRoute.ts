@@ -2,7 +2,7 @@ import type { ServerTunnelOptions } from '@sentry/core';
 import { _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath } from '@sentry/core';
 import {
   _INTERNAL_forwardTunnelRequest as forwardTunnelRequest,
-  _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
+  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
 } from '@sentry/core/server';
 import type { Plugin } from 'vite';
 
@@ -67,7 +67,7 @@ function hasRouteConflict(source: string, tunnelPath: string): boolean {
 }
 
 /**
- * Tells the client SDK which tunnel to use. The server entry wrapper serves it.
+ * Tells the client SDK which tunnel to use. The runtime serves it.
  */
 export function makeTunnelRoutePlugin(options: TunnelRouteOptions, debug?: boolean): Plugin {
   const { path } = normalizeTunnelRouteOptions(options);
@@ -82,7 +82,7 @@ export function makeTunnelRoutePlugin(options: TunnelRouteOptions, debug?: boole
     config() {
       return { define: { __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__: path ? JSON.stringify(path) : 'true' } };
     },
-    // The server entry wrapper answers POSTs to a fixed path before Start's routing, so an app route on that path
+    // The runtime answers POSTs to a fixed path before Start's routing, so an app route on that path
     // would silently lose them.
     transform(source, id) {
       if (path && /[\\/]routeTree\.gen\.ts$/.test(id) && hasRouteConflict(source, path)) {
@@ -99,7 +99,7 @@ export function makeTunnelRoutePlugin(options: TunnelRouteOptions, debug?: boole
 const START_BASE_PATH_DEFINE = 'process.env.TSS_ROUTER_BASEPATH';
 
 /**
- * Reads the base path TanStack Start routes on and hands it to the client SDK and the server entry wrapper, so the
+ * Reads the base path TanStack Start routes on and hands it to the client SDK and the server entry, so the
  * managed tunnel is served under it without the user repeating it. Start resolves it from `router.basepath`, or from
  * Vite's `base`, and defines it for every environment. This runs after Start's own `config` hook to see that define.
  */
@@ -144,9 +144,8 @@ const ORIGINAL_SERVER_ENTRY_QUERY = '?sentry-tunnel-original';
 const DEFAULT_SERVER_ENTRY = /\/react-start\/dist\/(?:plugin\/)?default-entry\/(?:esm\/)?server\.[jt]s$/;
 
 /**
- * Wraps the TanStack Start server entry so tunnel requests are answered before Start's own request middleware and
- * routing. It does nothing unless the managed tunnel is enabled, either here via `tunnelRoute` or at runtime via
- * `Sentry.init({ tunnel: true })`.
+ * Enables `tunnelRoute` when the TanStack Start server entry loads, under the base path Start routes on. The runtime
+ * then answers the tunnel requests before Start's own request middleware and routing.
  */
 export function makeServerEntryTunnelPlugin(
   tunnelRoute: TunnelRouteOptions | undefined,
@@ -171,7 +170,7 @@ export function makeServerEntryTunnelPlugin(
     // `vite dev` takes each request in this process and passes it on to where the server entry runs, so its
     // `http.server` span comes from the SDK `--import` set up here, which the server entry never reaches.
     configureServer() {
-      setManagedTunnelDefaults({
+      setTunnelDefaults({
         tunnel: normalizedTunnelOptions,
         forward: forwardTunnelRequest,
         basePath: getBasePath(),
@@ -190,10 +189,10 @@ export function makeServerEntryTunnelPlugin(
       const resolved = await this.resolve(SDK_PACKAGE, `${root}/package.json`, { skipSelf: true });
       const sdk = resolved && !resolved.external ? resolved.id : SDK_PACKAGE;
 
-      return `import entry from ${original};
-import { _INTERNAL_wrapServerEntryWithSentryTunnel as wrapServerEntryWithSentryTunnel } from ${JSON.stringify(sdk)};
+      return `import { _INTERNAL_setTunnelRoute as setTunnelRoute } from ${JSON.stringify(sdk)};
 export * from ${original};
-export default wrapServerEntryWithSentryTunnel(entry, ${tunnelOptions}, ${JSON.stringify(getBasePath())});
+export { default } from ${original};
+setTunnelRoute(${tunnelOptions}, ${JSON.stringify(getBasePath())});
 `;
     },
   };

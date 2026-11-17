@@ -18,7 +18,11 @@ import { isError, isEvent, isObjectLike, isPrimitive } from './is';
  * @returns void
  */
 
-export function fill(source: { [key: string]: any }, name: string, replacementFactory: (...args: any[]) => any): void {
+export function fill(
+  source: { [key: string | symbol]: any },
+  name: string | symbol,
+  replacementFactory: (...args: any[]) => any,
+): void {
   if (!(name in source)) {
     return;
   }
@@ -41,7 +45,7 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
   try {
     source[name] = wrapped;
   } catch {
-    DEBUG_BUILD && debug.log(`Failed to replace method "${name}" in object`, source);
+    DEBUG_BUILD && debug.log(`Failed to replace method "${String(name)}" in object`, source);
   }
 }
 

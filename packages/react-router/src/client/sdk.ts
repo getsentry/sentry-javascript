@@ -3,7 +3,7 @@ import { init as browserInit } from '@sentry/browser';
 import type { Client } from '@sentry/core';
 import {
   applySdkMetadata,
-  _INTERNAL_applyTunnelDefaults as applyTunnelDefaults,
+  _INTERNAL_applyBrowserTunnelDefaults as applyBrowserTunnelDefaults,
   consoleSandbox,
   GLOBAL_OBJ,
   setTag,
@@ -37,7 +37,7 @@ export function init(options: BrowserOptions): Client | undefined {
   }
 
   // The managed tunnel is served under the app's `basename`, like every other route. A `basePath` the user set wins.
-  options.tunnel = applyTunnelDefaults(options.tunnel, {
+  options.tunnel = applyBrowserTunnelDefaults(options.tunnel, {
     basePath: GLOBAL_OBJ_WITH_ROUTER_CONTEXT.__reactRouterContext?.basename,
   });
 
