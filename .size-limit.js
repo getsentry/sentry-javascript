@@ -1,3 +1,4 @@
+// Trigger the full unit-test baseline for the sharding benchmark.
 const builtinModules = require('module').builtinModules;
 const nodePrefixedBuiltinModules = builtinModules.map(m => `node:${m}`);
 
