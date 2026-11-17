@@ -107,7 +107,7 @@ function instrumentNavigationApi(client: Client): void {
         name: route ?? (hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : pathname),
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: route ? 'route' : 'url',
-          ...(route && { [URL_TEMPLATE]: route }),
+          [URL_TEMPLATE]: route,
           [SENTRY_ORIGIN]: 'auto.navigation.remix_v3',
         },
       },

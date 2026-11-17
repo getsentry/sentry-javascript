@@ -1,3 +1,4 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { LogSeverityLevel } from '@sentry/core';
 import { debug, isObjectLike } from '@sentry/core';
@@ -109,7 +110,7 @@ export function createSentryWinstonTransport<TransportStreamInstance extends obj
         if (this._levels.has(logSeverityLevel)) {
           captureLog(logSeverityLevel, message as string, {
             ...attributes,
-            'sentry.origin': 'auto.log.winston',
+            [SENTRY_ORIGIN]: 'auto.log.winston',
           });
         } else if (!customLevel && !winstonLogLevel) {
           DEBUG_BUILD &&

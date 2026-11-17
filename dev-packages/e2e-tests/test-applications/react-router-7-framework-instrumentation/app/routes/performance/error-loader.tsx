@@ -1,5 +1,7 @@
-export function loader(): never {
-  throw new Error('Loader error for testing');
+import type { Route } from './+types/error-loader';
+
+export function loader({ params }: Route.LoaderArgs): never {
+  throw new Error(`Loader error for testing (${params.id})`);
 }
 
 export default function ErrorLoaderPage() {

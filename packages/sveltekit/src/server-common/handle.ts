@@ -13,14 +13,22 @@ import {
   setHttpStatus,
   spanToJSON,
   startSpan,
+  timestampInSeconds,
   updateSpanName,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
   withIsolationScope,
   filterCollectedUrl,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
-import type { Handle, ResolveOptions } from '@sveltejs/kit';
+import {
+  flushIfServerless,
+  _INTERNAL_getCacheOriginMetaTags,
+  _INTERNAL_getRootSpanSentryTrace,
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
+} from '@sentry/core/server';
+import { getTunnelBasePath } from '../common/tunnel';
+import type { Handle, ResolveOptions } from './handleTypes';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
 import {
@@ -31,6 +39,7 @@ import {
   URL_FULL,
   URL_PATH,
   SENTRY_ORIGIN,
+  SVELTEKIT_TRACING_ORIGINAL_NAME,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 
@@ -75,9 +84,12 @@ export const FETCH_PROXY_SCRIPT = `
  */
 export function addSentryCodeToPage(options: {
   injectFetchProxyScript: boolean;
+  isVercelIsrRender?: boolean;
+  /** When the request started, in seconds. Kit calls `transformPageChunk` only after the whole render. */
+  requestStart: number;
 }): NonNullable<ResolveOptions['transformPageChunk']> {
   return ({ html }) => {
-    const metaTags = isSvelteKitBuilding() ? '' : getTraceMetaTags();
+    const metaTags = getPageMetaTags(html, !!options.isVercelIsrRender, options.requestStart);
     const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
 
     const headWithFetchScript = options.injectFetchProxyScript ? `\n<script>${FETCH_PROXY_SCRIPT}</script>` : '';
@@ -89,8 +101,35 @@ export function addSentryCodeToPage(options: {
 }
 
 /**
- * Prerendered pages would bake one trace id and sampling decision into the HTML for every visitor.
- *
+ * Returns the meta tags for the pageload. A page rendered for this request gets the trace meta tags. A page
+ * that many visitors get, such as a prerendered or ISR page, gets `sentry-cache-origin` instead, so each
+ * pageload starts its own trace.
+ */
+function getPageMetaTags(html: string, isVercelIsrRender: boolean, requestStart: number): string {
+  if (!isVercelIsrRender && !isSvelteKitBuilding()) {
+    return getTraceMetaTags();
+  }
+
+  // An `ssr = false` page has no server-rendered content, so `page.server_rendering.type` does not apply.
+  // Many visitors get the same HTML, so it gets no trace tags either.
+  if (!isServerRenderedPage(html)) {
+    return '';
+  }
+
+  // The build does not reliably send spans, so a prerendered page has no trace to link.
+  // The empty tag still marks the pageload as static.
+  return _INTERNAL_getCacheOriginMetaTags(
+    isVercelIsrRender ? _INTERNAL_getRootSpanSentryTrace() : undefined,
+    requestStart,
+  );
+}
+
+/** Kit writes `node_ids` only if the server rendered content, not for `ssr = false` or the SPA fallback. */
+function isServerRenderedPage(html: string): boolean {
+  return html.includes('node_ids:');
+}
+
+/**
  * `building` from `$app/environment` isn't available here (the SDK is loaded from node_modules at
  * runtime), so we rely on `_SENTRY_SVELTEKIT_BUILDING`, which our Vite plugin sets during `vite build`
  * and SvelteKit copies into the worker it prerenders in.
@@ -141,6 +180,7 @@ async function instrumentHandle(
   },
   options: SentryHandleOptions,
 ): Promise<Response> {
+  const requestStart = timestampInSeconds();
   const routeId = event.route?.id;
 
   if (!routeId && !options.handleUnknownRoutes) {
@@ -207,7 +247,7 @@ async function instrumentHandle(
           [SENTRY_OP]: HTTP_SERVER,
           [SENTRY_ORIGIN]: 'auto.http.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: routeName ? 'route' : 'url',
-          'sveltekit.tracing.original_name': originalName,
+          [SVELTEKIT_TRACING_ORIGINAL_NAME]: originalName,
           [URL_FULL]: kitRootSpanAttributes[URL_FULL] ?? filterCollectedUrl(event.url.href),
           [URL_PATH]: kitRootSpanAttributes[URL_PATH] ?? event.url.pathname,
           ...(routeName && {
@@ -222,6 +262,10 @@ async function instrumentHandle(
       const res = await resolve(event, {
         transformPageChunk: addSentryCodeToPage({
           injectFetchProxyScript: options.injectFetchProxyScript ?? true,
+          // Vercel sets this on every ISR invocation, also on revalidation.
+          // A client that sends it changes only its own response.
+          isVercelIsrRender: event.request.headers.has('x-vercel-isr'),
+          requestStart,
         }),
       });
 
@@ -284,6 +328,10 @@ async function instrumentHandle(
  * ```
  */
 export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
+  // The hooks file creates this after the `sentrySvelteKit()` base path module ran, however the SDK was started
+  // (`--import`, a custom server), and later per-request clients (Cloudflare) start with it too.
+  setTunnelDefaults({ basePath: getTunnelBasePath() });
+
   const { handleUnknownRoutes, ...rest } = handlerOptions ?? {};
   const options = {
     handleUnknownRoutes: handleUnknownRoutes ?? false,
@@ -291,6 +339,11 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   };
 
   const sentryRequestHandler: Handle = input => {
+    const tunnelResponse = handleServedTunnelRequest(input.event.request);
+    if (tunnelResponse) {
+      return tunnelResponse;
+    }
+
     const backwardsForwardsCompatibleEvent = input.event as typeof input.event & BackwardsForwardsCompatibleEvent;
 
     // Escape hatch to suppress request isolation and trace continuation (see initCloudflareSentryHandle)

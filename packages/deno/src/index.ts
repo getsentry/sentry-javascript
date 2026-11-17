@@ -111,7 +111,16 @@ export {
   consoleLoggingIntegration,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export {
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
+  trpcMiddleware,
+  wrapMcpServerWithSentry,
+} from '@sentry/core/server';
+export type { TunnelRequestLike } from '@sentry/core/server';
+export { serveTunnelIntegration } from './integrations/serveTunnel';
+export { getTunnelPath, handleTunnelRequest } from '@sentry/core';
+export type { HandleTunnelRequestOptions, ServerTunnelOptions } from '@sentry/core';
 export {
   instrumentPostgresJsSql,
   prismaIntegration,
@@ -168,6 +177,7 @@ export {
   langChainIntegration,
   langGraphIntegration,
   mastraIntegration,
+  piAiIntegration,
   piDurableIntegration,
   mcpServerIntegration,
   SentryMastraExporter,
@@ -186,6 +196,9 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   neonIntegration,
+  cronJobIntegration,
+  nodeCronIntegration,
+  nodeScheduleIntegration,
   tediousIntegration,
   eveConversationHook,
   eveIntegration,

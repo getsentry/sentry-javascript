@@ -7,6 +7,6 @@ import { createStoragePlugin } from '../utils/instrumentStorage';
 /**
  * Nitro plugin that instruments storage driver calls for Nuxt v5+ (Nitro v3+)
  */
-export default (async _nitroApp => {
-  await createStoragePlugin(useStorage, userStorageMounts as string[]);
+export default (_nitroApp => {
+  createStoragePlugin(useStorage, userStorageMounts as string[]);
 }) satisfies NitroAppPlugin;

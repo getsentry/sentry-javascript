@@ -9,6 +9,7 @@ export default defineConfig({
       // @ts-expect-error
       withSentryConfig({
         serverDir: './server',
+        experimental: { tasks: true },
       }),
     ),
   ],

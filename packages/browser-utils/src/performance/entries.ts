@@ -28,6 +28,17 @@ import {
   URL_FULL,
   URL_SCHEME,
   SENTRY_ORIGIN,
+  BROWSER_SCRIPT_INVOKER,
+  BROWSER_SCRIPT_INVOKER_TYPE,
+  BROWSER_SCRIPT_SOURCE_CHAR_POSITION,
+  CONNECTIONTYPE,
+  DEVICEMEMORY,
+  DEVICE_MEMORY_ESTIMATED_CAPACITY,
+  DEVICE_PROCESSOR_COUNT,
+  EFFECTIVECONNECTIONTYPE,
+  HARDWARECONCURRENCY,
+  HTTP_RESPONSE_BODY_DECODED_SIZE,
+  RESOURCE_RENDER_BLOCKING_STATUS,
 } from '@sentry/conventions/attributes';
 import {
   BROWSER_CACHE,
@@ -94,6 +105,7 @@ interface NavigatorDeviceMemory {
 const MAX_INT_AS_BYTES = 2147483647;
 
 let _performanceCursor: number = 0;
+let _resourceCursor: number = 0;
 
 /**
  * Start tracking long tasks.
@@ -169,10 +181,14 @@ export function startTrackingLongAnimationFrames(): void {
         [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       };
 
-      const initialScript = entry.scripts[0];
-      const { invoker, invokerType, sourceURL, sourceFunctionName, sourceCharPosition } = initialScript;
-      attributes['browser.script.invoker'] = invoker;
-      attributes['browser.script.invoker_type'] = invokerType;
+      // The first script can be a short listener (e.g. the SDK's own INP listener on `mousedown`)
+      // that runs before the script that actually blocked the frame.
+      const longestScript = entry.scripts.reduce((longest, script) =>
+        script.duration > longest.duration ? script : longest,
+      );
+      const { invoker, invokerType, sourceURL, sourceFunctionName, sourceCharPosition } = longestScript;
+      attributes[BROWSER_SCRIPT_INVOKER] = invoker;
+      attributes[BROWSER_SCRIPT_INVOKER_TYPE] = invokerType;
       if (sourceURL) {
         attributes[CODE_FILE_PATH] = sourceURL;
       }
@@ -180,7 +196,7 @@ export function startTrackingLongAnimationFrames(): void {
         attributes[CODE_FUNCTION_NAME] = sourceFunctionName;
       }
       if (sourceCharPosition !== -1) {
-        attributes['browser.script.source_char_position'] = sourceCharPosition;
+        attributes[BROWSER_SCRIPT_SOURCE_CHAR_POSITION] = sourceCharPosition;
       }
 
       startAndEndSpan(parent, startTime, startTime + duration, {
@@ -196,33 +212,91 @@ export function startTrackingLongAnimationFrames(): void {
 
 interface AddPerformanceEntriesOptions {
   /**
-   * Resource spans with `op`s matching strings in the array will not be emitted.
-   *
-   * Default: []
-   */
-  ignoreResourceSpans: Array<'resource.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
-
-  /**
    * Whether span streaming is enabled.
    */
   spanStreamingEnabled?: boolean;
 }
 
+interface AddResourceSpansOptions extends AddPerformanceEntriesOptions {
+  /**
+   * Resource spans with `op`s matching strings in the array will not be emitted.
+   *
+   * Default: []
+   */
+  ignoreResourceSpans?: Array<'resource.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
+}
+
 /** Add performance related spans to a transaction */
 export function addPerformanceEntries(span: Span, options: AddPerformanceEntriesOptions): void {
-  const performance = getBrowserPerformanceAPI();
-  if (!performance?.getEntries) {
-    // Gatekeeper if performance API not available
+  const { spanStreamingEnabled } = options;
+
+  const cursor = forEachPerformanceEntry(span, _performanceCursor, (entry, startTimestamp, duration) => {
+    switch (entry.entryType) {
+      case 'navigation': {
+        _addNavigationSpans(span, entry as PerformanceNavigationTiming, spanStreamingEnabled);
+        break;
+      }
+      case 'paint': {
+        _addPaintSpan(span, entry, startTimestamp, duration);
+        break;
+      }
+      // Ignore other entry types.
+    }
+  });
+
+  if (cursor === undefined) {
     return;
   }
 
+  _performanceCursor = cursor;
+
+  _trackNavigator(span, spanStreamingEnabled);
+}
+
+/**
+ * Add `resource.*` spans to a pageload or navigation span.
+ */
+export function addResourceSpans(span: Span, options: AddResourceSpansOptions): void {
   const { spanStreamingEnabled, ignoreResourceSpans } = options;
+
+  const cursor = forEachPerformanceEntry(span, _resourceCursor, (entry, startTimestamp, duration) => {
+    if (entry.entryType === 'resource') {
+      _addResourceSpans(
+        span,
+        entry as PerformanceResourceTiming,
+        entry.name,
+        startTimestamp,
+        duration,
+        ignoreResourceSpans,
+        spanStreamingEnabled,
+      );
+    }
+  });
+
+  if (cursor !== undefined) {
+    _resourceCursor = cursor;
+  }
+}
+
+/**
+ * Calls `callback` for each performance entry recorded since `cursor` that belongs to `span`, and returns
+ * the new cursor, or `undefined` when the performance API is not available.
+ */
+function forEachPerformanceEntry(
+  span: Span,
+  cursor: number,
+  callback: (entry: PerformanceEntry, startTimestamp: number, duration: number) => void,
+): number | undefined {
+  const performance = getBrowserPerformanceAPI();
+  if (!performance?.getEntries) {
+    return undefined;
+  }
 
   const performanceEntries = performance.getEntries();
 
   const { attributes, start_timestamp: transactionStartTime } = spanToJSON(span);
 
-  performanceEntries.slice(_performanceCursor).forEach(entry => {
+  performanceEntries.slice(cursor).forEach(entry => {
     const startTimestamp = _INTERNAL_performanceTimeToSeconds(entry.startTime);
     if (!startTimestamp) {
       return;
@@ -239,34 +313,10 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       return;
     }
 
-    switch (entry.entryType) {
-      case 'navigation': {
-        _addNavigationSpans(span, entry as PerformanceNavigationTiming, spanStreamingEnabled);
-        break;
-      }
-      case 'paint': {
-        _addPaintSpan(span, entry, startTimestamp, duration);
-        break;
-      }
-      case 'resource': {
-        _addResourceSpans(
-          span,
-          entry as PerformanceResourceTiming,
-          entry.name,
-          startTimestamp,
-          duration,
-          ignoreResourceSpans,
-          spanStreamingEnabled,
-        );
-        break;
-      }
-      // Ignore other entry types.
-    }
+    callback(entry, startTimestamp, duration);
   });
 
-  _performanceCursor = Math.max(performanceEntries.length - 1, 0);
-
-  _trackNavigator(span, spanStreamingEnabled);
+  return Math.max(performanceEntries.length - 1, 0);
 }
 
 /**
@@ -478,10 +528,10 @@ export function _addResourceSpans(
 
     ['transferSize', HTTP_RESPONSE_SIZE],
     ['encodedBodySize', HTTP_RESPONSE_BODY_SIZE],
-    ['decodedBodySize', 'http.response.body.decoded_size'],
+    ['decodedBodySize', HTTP_RESPONSE_BODY_DECODED_SIZE],
 
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/renderBlockingStatus
-    ['renderBlockingStatus', 'resource.render_blocking_status'],
+    ['renderBlockingStatus', RESOURCE_RENDER_BLOCKING_STATUS],
 
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/deliveryType
     ['deliveryType', 'http.response_delivery_type'],
@@ -516,13 +566,15 @@ function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined):
   if (connection) {
     if (connection.effectiveType) {
       span.setAttribute(
-        spanStreamingEnabled ? NETWORK_CONNECTION_EFFECTIVE_TYPE : 'effectiveConnectionType',
+        // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+        spanStreamingEnabled ? NETWORK_CONNECTION_EFFECTIVE_TYPE : EFFECTIVECONNECTIONTYPE,
         connection.effectiveType,
       );
     }
 
     if (connection.type) {
-      span.setAttribute(spanStreamingEnabled ? NETWORK_CONNECTION_TYPE : 'connectionType', connection.type);
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      span.setAttribute(spanStreamingEnabled ? NETWORK_CONNECTION_TYPE : CONNECTIONTYPE, connection.type);
     }
 
     if (isMeasurementValue(connection.rtt)) {
@@ -538,17 +590,19 @@ function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined):
 
   if (isMeasurementValue(navigator.deviceMemory)) {
     if (spanStreamingEnabled) {
-      span.setAttribute('device.memory.estimated_capacity', navigator.deviceMemory);
+      span.setAttribute(DEVICE_MEMORY_ESTIMATED_CAPACITY, navigator.deviceMemory);
     } else {
-      span.setAttribute('deviceMemory', `${navigator.deviceMemory} GB`);
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      span.setAttribute(DEVICEMEMORY, `${navigator.deviceMemory} GB`);
     }
   }
 
   if (isMeasurementValue(navigator.hardwareConcurrency)) {
     if (spanStreamingEnabled) {
-      span.setAttribute('device.processor_count', navigator.hardwareConcurrency);
+      span.setAttribute(DEVICE_PROCESSOR_COUNT, navigator.hardwareConcurrency);
     } else {
-      span.setAttribute('hardwareConcurrency', String(navigator.hardwareConcurrency));
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      span.setAttribute(HARDWARECONCURRENCY, String(navigator.hardwareConcurrency));
     }
   }
 }

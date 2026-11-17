@@ -2,8 +2,13 @@
 // fails on Deno runs only on the other runtimes, with `test.runIf(supports({ runtimes }))` in the
 // Node suite, and is not listed here.
 
-// Node-only features: ANR and native thread watchdogs, child process and worker thread breadcrumbs.
-const NODE_ONLY = ['suites/anr/test.ts', 'suites/breadcrumbs/**', 'suites/thread-blocked-native/test.ts'];
+// Node-only features: ANR and native thread watchdogs, child process and worker thread breadcrumbs, and the AWS Lambda Node runtime.
+const NODE_ONLY = [
+  'suites/anr/test.ts',
+  'suites/aws-lambda-web/**',
+  'suites/breadcrumbs/**',
+  'suites/thread-blocked-native/test.ts',
+];
 
 // `@sentry/node` instruments `fetch` through undici's diagnostics channels, which Deno's `fetch`
 // does not publish. `@sentry/deno` has its own `fetchIntegration` for this. These suites check
@@ -42,7 +47,7 @@ const PRISMA_ESM_INTEROP = ['suites/tracing/prisma-orm-v5/test.ts', 'suites/trac
 // which any module load hook breaks on Deno 2.8.3 (the CI version); it passes on Deno 2.9.0.
 const REQUIRE_OF_ESM_ONLY_DEPENDENCY = [
   'suites/tracing/graphql-tracing-channel/**',
-  'suites/tracing/mastra/test.ts',
+  'suites/tracing/mastra/**',
   'suites/tracing/prisma-orm-v8/test.ts',
 ];
 
@@ -62,16 +67,17 @@ const NOT_TRIAGED = [
   'suites/tracing/koa/test.ts',
   'suites/tracing/langchain/test.ts',
   'suites/tracing/langgraph/test.ts',
+  'suites/tracing/mistral-v2/test.ts',
   'suites/tracing/mistral/test.ts',
   'suites/tracing/mongodb/test.ts',
   'suites/tracing/mongoose-v5/test.ts',
   'suites/tracing/mysql/test.ts',
-  'suites/tracing/openai/test.ts',
+  'suites/tracing/openai/v5/**',
   'suites/tracing/openai/v7/test.ts',
   'suites/tracing/orchestrion-lazy-registration/test.ts',
   'suites/tracing/prisma-orm-v7/test.ts',
   'suites/tracing/together-ai/test.ts',
-  'suites/tracing/vercelai/v6_v7/test.ts',
+  'suites/tracing/vercelai/v6_v7/**',
 ];
 
 // Passes on Deno when run alone, but failed in about 1 of 3 full runs of this package.

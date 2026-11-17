@@ -1,0 +1,14 @@
+import * as Sentry from '@sentry/bun';
+import { nestIntegration } from '@sentry/nestjs';
+
+Sentry.init({
+  environment: 'qa', // dynamic sampling bias to keep transactions
+  dsn: process.env.E2E_TEST_DSN,
+  tunnel: `http://localhost:3031/`, // proxy server
+  tracesSampleRate: 1,
+  // The cron job throws the same error on every run, which Dedupe would drop after the first run.
+  integrations: integrations => [
+    ...integrations.filter(integration => integration.name !== 'Dedupe'),
+    nestIntegration(),
+  ],
+});

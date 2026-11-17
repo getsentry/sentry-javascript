@@ -1,5 +1,11 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+
 const LOOKBACK_DAYS = 7;
 const CONCURRENT_RUNS = 4;
+const REPORT_DIR = 'flaky-tests-report';
+// This job fails when another job fails. It has no failure of its own.
+const GATE_JOB_NAME = 'All required jobs passed or were skipped';
+const JOB_TIMEOUT_MESSAGE = 'exceeded the maximum execution time';
 
 function normalizeJobName(name) {
   return name
@@ -19,6 +25,14 @@ function normalizeTestName(name) {
     .replace(/\s*\[(?:esm|cjs)\]/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function newestFirst(runs) {
+  return [...runs].sort(([a], [b]) => b - a);
+}
+
+function runLinks(sortedRuns) {
+  return sortedRuns.map(([id, url]) => `[${id}](${url})`).join(', ');
 }
 
 function markdownCell(value) {
@@ -48,6 +62,7 @@ export async function collectReport({ github, context, core, now = new Date() })
   }
   const runs = listedRuns.filter(run => ['push', 'schedule', 'workflow_dispatch'].includes(run.event));
   const tests = new Map();
+  const steps = new Map();
   let failedJobsWithoutTests = 0;
   let failedJobs = 0;
   let completedRuns = 0;
@@ -68,11 +83,15 @@ export async function collectReport({ github, context, core, now = new Date() })
         filter: 'all',
         per_page: 100,
       });
-      const jobsToInspect = jobs.filter(job => job.conclusion === 'failure' && !job.name.includes('(optional)'));
+      // GitHub reports a job that reached `timeout-minutes` as cancelled.
+      const jobsToInspect = jobs.filter(
+        job =>
+          ['failure', 'cancelled'].includes(job.conclusion) &&
+          !job.name.includes('(optional)') &&
+          job.name !== GATE_JOB_NAME,
+      );
       core.info(`Run ${run.id}: ${jobs.length} job attempts, ${jobsToInspect.length} failures to inspect.`);
       for (const job of jobsToInspect) {
-        failedJobs++;
-
         let annotations;
         try {
           annotations = await github.paginate(github.rest.checks.listAnnotations, {
@@ -88,6 +107,13 @@ export async function collectReport({ github, context, core, now = new Date() })
           continue;
         }
 
+        const timedOut = annotations.some(annotation => annotation.message?.includes(JOB_TIMEOUT_MESSAGE));
+        // A cancelled job that did not time out was stopped from outside (a person, fail-fast).
+        if (job.conclusion === 'cancelled' && !timedOut) {
+          continue;
+        }
+        failedJobs++;
+
         const failures = annotations.filter(
           annotation =>
             annotation.annotation_level === 'failure' &&
@@ -96,6 +122,20 @@ export async function collectReport({ github, context, core, now = new Date() })
         );
         if (failures.length === 0) {
           failedJobsWithoutTests++;
+          // A setup step fails in the same way for all E2E applications, so they share one row.
+          const family = normalizeJobName(job.name).replace(/^E2E .+ Test$/, 'E2E Tests');
+          const name =
+            job.steps?.find(step => ['failure', 'cancelled'].includes(step.conclusion))?.name ?? 'No failed step';
+          const outcome = timedOut ? 'timed out' : 'failed';
+          const key = JSON.stringify([family, name, outcome]);
+          let step = steps.get(key);
+          if (!step) {
+            step = { family, name, outcome, runs: new Map() };
+            steps.set(key, step);
+          }
+          if (!step.runs.has(run.id)) {
+            step.runs.set(run.id, job.html_url);
+          }
         }
 
         for (const annotation of failures) {
@@ -134,6 +174,9 @@ export async function collectReport({ github, context, core, now = new Date() })
         a.family.localeCompare(b.family) ||
         a.path.localeCompare(b.path),
     ),
+    steps: [...steps.values()].sort(
+      (a, b) => b.runs.size - a.runs.size || a.family.localeCompare(b.family) || a.name.localeCompare(b.name),
+    ),
   };
 }
 
@@ -152,8 +195,7 @@ export function renderReport(report, context) {
   } else {
     lines.push('| Test | Job | Affected runs | Links to runs | Issue |', '| --- | --- | ---: | --- | --- |');
     for (const test of report.tests) {
-      const runs = [...test.runs].sort(([a], [b]) => b - a);
-      const links = runs.map(([id, url]) => `[${id}](${url})`).join(', ');
+      const runs = newestFirst(test.runs);
       const issueParams = new URLSearchParams({
         template: 'flaky.yml',
         title: `[Flaky CI]: ${test.name}`,
@@ -164,14 +206,29 @@ export function renderReport(report, context) {
       });
       const issueUrl = `${repositoryUrl}/issues/new?${issueParams}`;
       lines.push(
-        `| ${markdownCell(test.name)} | ${markdownCell(test.family)} | ${test.runs.size} | ${links} | [Create issue](${issueUrl}) |`,
+        `| ${markdownCell(test.name)} | ${markdownCell(test.family)} | ${test.runs.size} | ${runLinks(runs)} | [Create issue](${issueUrl}) |`,
       );
     }
   }
 
+  // A failure outside a test has no test annotation: a setup step, a crash of the test runner, or a job timeout.
+  if (report.steps.length > 0) {
+    lines.push(
+      '',
+      '## Weekly job failures outside a test',
+      '',
+      '| Job | Step | Result | Affected runs | Links to runs |',
+      '| --- | --- | --- | ---: | --- |',
+      ...report.steps.map(
+        step =>
+          `| ${markdownCell(step.family)} | ${markdownCell(step.name)} | ${step.outcome} | ${step.runs.size} | ${runLinks(newestFirst(step.runs))} |`,
+      ),
+    );
+  }
+
   lines.push(
     '',
-    `${report.failedJobs} failed job attempts; ${report.failedJobsWithoutTests} without test annotations. Optional jobs excluded.`,
+    `${report.failedJobs} failed job attempts; ${report.failedJobsWithoutTests} without test annotations. Optional jobs and the required-jobs gate excluded.`,
     '',
     ...report.warnings.map(warning => `- ${markdownCell(warning)}`),
   );
@@ -183,6 +240,9 @@ export default async function run({ github, context, core }) {
   for (const warning of report.warnings) {
     core.warning(warning);
   }
-  await core.summary.addRaw(renderReport(report, context)).write();
+  const markdown = renderReport(report, context);
+  await core.summary.addRaw(markdown).write();
+  await mkdir(REPORT_DIR, { recursive: true });
+  await writeFile(`${REPORT_DIR}/report.md`, markdown);
   return report;
 }

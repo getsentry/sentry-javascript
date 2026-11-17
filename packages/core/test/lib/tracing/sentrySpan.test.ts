@@ -19,7 +19,7 @@ import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
 } from '../../../src/utils/spanUtils';
-import { timestampInSeconds } from '../../../src/utils/time';
+import { browserPerformanceTimeOrigin, timestampInSeconds } from '../../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 
@@ -169,12 +169,53 @@ describe('SentrySpan', () => {
       });
       markSpanAsTracerProviderSpan(span);
 
-      span.end(2);
-      span.end(3);
+      span.end([2, 0]);
+      span.end([3, 0]);
 
       span.setAttribute('key', 'after');
       expect(spanToStaticSpanJSON(span).data?.['key']).toBe('before');
       expect(spanToStaticSpanJSON(span).timestamp).toBe(2);
+    });
+  });
+
+  describe('tracer-provider span timestamps', () => {
+    it('reads numbers as OpenTelemetry milliseconds', () => {
+      const origin = browserPerformanceTimeOrigin()!;
+      const span = new SentrySpan({ name: 'span' });
+      markSpanAsTracerProviderSpan(span);
+
+      span.updateStartTime(1_000);
+      span.addEvent('event', 1_010);
+      span.end(1_025);
+
+      const json = spanToStaticSpanJSON(span);
+      expect(json.start_timestamp).toBe((origin + 1_000) / 1000);
+      expect(json.timestamp).toBe((origin + 1_025) / 1000);
+      expect(span['_events'][0]?.time).toBe((origin + 1_010) / 1000);
+    });
+
+    it('defaults an event without a time to now', () => {
+      const span = new SentrySpan({ name: 'span' });
+      markSpanAsTracerProviderSpan(span);
+
+      const before = timestampInSeconds();
+      span.addEvent('event');
+
+      expect(span['_events'][0]?.time).toBeGreaterThanOrEqual(before);
+      expect(span['_events'][0]?.time).toBeLessThanOrEqual(timestampInSeconds());
+    });
+
+    it('keeps reading numbers as seconds on other spans', () => {
+      const span = new SentrySpan({ name: 'span' });
+
+      span.updateStartTime(1_000);
+      span.addEvent('event', 1_010);
+      span.end(1_025);
+
+      const json = spanToStaticSpanJSON(span);
+      expect(json.start_timestamp).toBe(1_000);
+      expect(json.timestamp).toBe(1_025);
+      expect(span['_events'][0]?.time).toBe(1_010);
     });
   });
 
@@ -661,13 +702,14 @@ describe('SentrySpan', () => {
 
   describe('end', () => {
     it('works without endTimestamp', () => {
+      vi.useFakeTimers();
       const span = new SentrySpan();
-      const now = timestampInSeconds();
+      vi.advanceTimersByTime(500);
       span.end();
+      vi.useRealTimers();
 
       const { start_timestamp, end_timestamp } = spanToJSON(span);
-      expect(end_timestamp).toBeGreaterThanOrEqual(start_timestamp);
-      expect(end_timestamp).toBeCloseTo(now, 2);
+      expect(end_timestamp).toBe(start_timestamp + 0.5);
     });
 
     it('works with endTimestamp in seconds', () => {
@@ -722,20 +764,26 @@ describe('SentrySpan', () => {
     });
 
     it('uses the current time as end if the span was started with a start time', () => {
-      const startTimestamp = timestampInSeconds() - 10;
-      const span = new SentrySpan({ startTimestamp });
+      const before = timestampInSeconds();
+      const span = new SentrySpan({ startTimestamp: before - 10 });
       span.end();
+      const after = timestampInSeconds();
 
-      expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(10, 1);
+      const endTimestamp = spanToStaticSpanJSON(span).timestamp;
+      expect(endTimestamp).toBeGreaterThanOrEqual(before);
+      expect(endTimestamp).toBeLessThanOrEqual(after);
     });
 
     it('uses the current time as end if the start time was updated', () => {
       const span = new SentrySpan();
-      const startTimestamp = timestampInSeconds() - 10;
-      span.updateStartTime(startTimestamp);
+      const before = timestampInSeconds();
+      span.updateStartTime(before - 10);
       span.end();
+      const after = timestampInSeconds();
 
-      expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(10, 1);
+      const endTimestamp = spanToStaticSpanJSON(span).timestamp;
+      expect(endTimestamp).toBeGreaterThanOrEqual(before);
+      expect(endTimestamp).toBeLessThanOrEqual(after);
     });
 
     it('skips if span is already ended', () => {

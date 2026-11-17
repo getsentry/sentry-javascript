@@ -68,6 +68,7 @@ export {
   langChainIntegration,
   langGraphIntegration,
   mastraIntegration,
+  piAiIntegration,
   piDurableIntegration,
   mcpServerIntegration,
   SentryMastraExporter,
@@ -78,6 +79,7 @@ export {
   type NodeRuntimeMetricsOptions,
   contextLinesIntegration,
   nodeContextIntegration,
+  awsLambdaWebIntegration,
   localVariablesIntegration,
   requestDataIntegration,
   fsIntegration,
@@ -118,6 +120,9 @@ export {
   fastifyIntegration,
   firebaseIntegration,
   genericPoolIntegration,
+  cronJobIntegration,
+  nodeCronIntegration,
+  nodeScheduleIntegration,
   graphqlIntegration,
   knexIntegration,
   kafkaIntegration,
@@ -147,6 +152,11 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
+  serveTunnelIntegration,
+  getTunnelPath,
+  handleTunnelRequest,
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
   updateSpanName,
   supabaseIntegration,
   systemErrorIntegration,
@@ -163,6 +173,7 @@ export {
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  BullMQTelemetry,
   anthropicAIIntegration,
   googleGenAIIntegration,
   childProcessIntegration,
@@ -193,6 +204,7 @@ export {
   eveIntegration,
   getInstrumentedModuleNames,
 } from '@sentry/node';
+export type { HandleTunnelRequestOptions, ServerTunnelOptions, TunnelRequestLike } from '@sentry/node';
 
 export {
   captureConsoleIntegration,

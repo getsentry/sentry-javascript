@@ -24,13 +24,13 @@ export interface ProvidedModulePlugin {
 }
 
 export interface ProvidedModulePluginOptions {
-  /** Vite plugin name, e.g. `sentry-cloudflare-flue-runtime-provider`. */
+  /** Vite plugin name, e.g. `sentry-cloudflare-mastra-observability-provider`. */
   name: string;
-  /** Bare specifier of the package to provide, e.g. `@flue/runtime`. */
+  /** Bare specifier of the package to provide, e.g. `@mastra/observability`. */
   moduleName: string;
-  /** Namespace binding the injected import uses, e.g. `__SENTRY_FLUE_RUNTIME__`. */
+  /** Namespace binding the injected import uses, e.g. `__SENTRY_MASTRA_OBSERVABILITY__`. */
   identifier: string;
-  /** Basename of the `@sentry/server-utils` integration module to inject into, e.g. `flue`. */
+  /** Basename of the `@sentry/server-utils` integration module to inject into, e.g. `mastra`. */
   integrationModule: string;
 }
 
@@ -55,9 +55,7 @@ export function createIntegrationModuleMatcher(integrationModule: string): (id: 
 function buildProviderSnippet({ moduleName, identifier }: ProvidedModulePluginOptions): string {
   const marker = 'globalThis.__SENTRY_ORCHESTRION__';
 
-  // A getter, not an assignment: assigning reads the binding at injection time, so it stores
-  // `undefined` whenever the bundler evaluates Sentry's module before the provided package
-  // finished initializing. Enumerable so the entry shows up in `Object.keys` and a spread.
+  // A getter: Sentry's module can evaluate before the provided package has initialized.
   return (
     `import * as ${identifier} from '${moduleName}';\n` +
     `(${marker} = ${marker} || {});\n` +
@@ -68,14 +66,18 @@ function buildProviderSnippet({ moduleName, identifier }: ProvidedModulePluginOp
 }
 
 /**
- * Build a Vite plugin that splices a static `import * as … from '<moduleName>'` into one of
- * Sentry's own integration modules and exposes the namespace on the global orchestrion marker.
+ * Build a Vite plugin that hands a package to one of Sentry's integration modules in a bundled
+ * worker, which has no `node_modules` to resolve it from. For Mastra, this prepends roughly the
+ * following to `@sentry/server-utils/build/esm/integrations/mastra.js`:
  *
- * Some packages are instrumented by registration rather than by patching, so instrumenting them
- * needs a reference to that module's own binding and no channel payload carries one. On Node the
- * integration resolves it itself; a bundled worker has no `node_modules` to resolve from, so the
- * binding is supplied at build time instead. The import is static, lands in Sentry's module rather
- * than the user's code, and is only emitted when the package actually resolves.
+ * ```js
+ * import * as __SENTRY_MASTRA_OBSERVABILITY__ from '@mastra/observability';
+ * globalThis.__SENTRY_ORCHESTRION__.providedModules['@mastra/observability'] = __SENTRY_MASTRA_OBSERVABILITY__; // as a getter
+ * ```
+ *
+ * Only for packages the app doesn't import itself: this import is what brings them into the bundle.
+ * A package the app loads anyway publishes itself instead (`selfProvidedModules`), which adds no
+ * edge to Sentry's module and so can't close a cycle.
  */
 export function createProvidedModulePlugin(options: ProvidedModulePluginOptions): ProvidedModulePlugin {
   const isIntegrationModuleId = createIntegrationModuleMatcher(options.integrationModule);

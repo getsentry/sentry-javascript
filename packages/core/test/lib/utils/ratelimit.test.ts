@@ -110,15 +110,29 @@ describe('updateRateLimits()', () => {
     expect(updatedRateLimits.transaction).toEqual(15 * 1000);
   });
 
-  test('should use last entry from multi `x-sentry-rate-limits` header for a given category', () => {
+  test('should use longest entry from multi `x-sentry-rate-limits` header for a given category', () => {
     const rateLimits: RateLimits = {};
     const headers = {
       'retry-after': null,
-      'x-sentry-rate-limits': '13:error,15:transaction;error',
+      'x-sentry-rate-limits': '15:error,22:error,13:transaction;error',
     };
     const updatedRateLimits = updateRateLimits(rateLimits, { headers }, 0);
-    expect(updatedRateLimits.error).toEqual(15 * 1000);
-    expect(updatedRateLimits.transaction).toEqual(15 * 1000);
+    expect(updatedRateLimits.error).toEqual(22 * 1000);
+    expect(updatedRateLimits.transaction).toEqual(13 * 1000);
+  });
+
+  test('should keep a stored limit when a new one is shorter, and replace it when a new one is longer', () => {
+    const rateLimits: RateLimits = { error: 15 * 1000 };
+    const shorterHeaders = {
+      'retry-after': null,
+      'x-sentry-rate-limits': '13:error',
+    };
+    const longerHeaders = {
+      'retry-after': null,
+      'x-sentry-rate-limits': '20:error',
+    };
+    expect(updateRateLimits(rateLimits, { headers: shorterHeaders }, 0).error).toEqual(15 * 1000);
+    expect(updateRateLimits(rateLimits, { headers: longerHeaders }, 0).error).toEqual(20 * 1000);
   });
 
   test('should fallback to `all` if `x-sentry-rate-limits` header is missing a category', () => {

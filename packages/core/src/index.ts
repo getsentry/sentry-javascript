@@ -101,13 +101,12 @@ export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { safeCallback } from './utils/safeCallback';
 export { parameterize, fmt } from './utils/parameterize';
-export type { HandleTunnelRequestOptions } from './utils/tunnel';
+export type { HandleTunnelRequestOptions } from './utils/tunnelForward';
+export { handleTunnelRequest } from './utils/tunnelForward';
 export {
-  applyTunnelDefaults as _INTERNAL_applyTunnelDefaults,
+  applyBrowserTunnelDefaults as _INTERNAL_applyBrowserTunnelDefaults,
   getTunnelPath,
-  handleTunnelRequest,
   normalizeTunnelBasePath as _INTERNAL_normalizeTunnelBasePath,
-  TUNNEL_RESPONSE_HEADER,
 } from './utils/tunnel';
 export { addAutoIpAddressToSession } from './utils/ipAddress';
 export {
@@ -125,15 +124,18 @@ export {
   getActiveSpan,
   addChildSpanToSpan,
   spanTimeInputToSeconds,
+  otelTimeInputToSeconds,
   updateSpanName,
   INTERNAL_setSegmentNameSourceIfSegment,
 } from './utils/spanUtils';
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
 export { parseSampleRate } from './utils/parseSampleRate';
-export { applySdkMetadata } from './utils/sdkMetadata';
+export { applySdkMetadata, captureOptionsSetByUser as _INTERNAL_captureOptionsSetByUser } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
 export { matchesTracePropagationTargets, shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';
+export { _INTERNAL_CACHE_ORIGIN_META_TAG_NAME, _INTERNAL_RENDER_START_META_TAG_NAME } from './utils/cacheOrigin';
+export { getTraceServerTimingHeader, isSharedCacheable } from './utils/serverTiming';
 export { debounce } from './utils/debounce';
 export { uniq } from './utils/array';
 export { makeWeakRef, derefWeakRef } from './utils/weakRef';
@@ -146,6 +148,7 @@ export {
   httpRequestToRequestData,
   extractQueryParamsFromUrl,
   headersToDict,
+  getHostFromHeaders,
   httpHeadersToSpanAttributes,
   getContentLengthFromHeaders,
   getMaxBodyByteLength,
@@ -164,6 +167,7 @@ export { requestDataIntegration } from './integrations/requestdata';
 export { captureConsoleIntegration } from './integrations/captureconsole';
 export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
+export { experimentalReportSdkConfigIntegration } from './integrations/reportSdkConfig';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { supabaseIntegration, instrumentSupabaseClient } from './integrations/supabase';
 export { zodErrorsIntegration } from './integrations/zoderrors';
@@ -184,14 +188,14 @@ export { instrumentFetchRequest, _INTERNAL_getTracingHeadersForFetchRequest } fr
 export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';
 export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/internal';
-export * as logger from './logs/public-api';
+export { logger } from './logs/public-api';
 export { consoleLoggingIntegration } from './logs/console-integration';
 export {
   _INTERNAL_captureMetric,
   _INTERNAL_flushMetricsBuffer,
   _INTERNAL_captureSerializedMetric,
 } from './metrics/internal';
-export * as metrics from './metrics/public-api';
+export { metrics } from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
 export { SpanBuffer } from './tracing/spans/spanBuffer';
@@ -563,4 +567,5 @@ export {
   safeDateNow as _INTERNAL_safeDateNow,
 } from './utils/randomSafeContext';
 export { warnOnRemovedBuildOptions } from './build-time-plugins/warnOnRemovedBuildOptions';
+export { stringifyForCodeInjection } from './build-time-plugins/stringifyForCodeInjection';
 export { startSpan, startInactiveSpan, startSpanManual } from './tracing/trace';

@@ -18,7 +18,10 @@ const sinkAvailable = await new Promise(resolve => {
   sink.listen(3031, () => resolve(true));
 });
 
-const build = spawn('nuxt', ['build'], { stdio: 'inherit', shell: true });
+// The prerenderer runs the server bundle in the build process, and the Bun build has to run on Bun to load the
+// `bun-sqlite` connector there.
+const nuxt = process.env.RUNTIME === 'bun' ? 'bun --bun nuxt' : 'nuxt';
+const build = spawn(nuxt, ['build'], { stdio: 'inherit', shell: true });
 const exitCode = await new Promise(resolve => build.on('exit', resolve));
 
 sink.close();

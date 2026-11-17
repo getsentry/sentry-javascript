@@ -1,5 +1,6 @@
 import {
   DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
   DB_STATEMENT,
   DB_SYSTEM,
   SENTRY_KIND,
@@ -14,6 +15,13 @@ import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose 
 afterAll(() => {
   cleanupChildProcesses();
 });
+
+// Prisma 5 only reports the raw `db.statement`; `db.query.text` is the SDK's sanitized copy of it.
+const INSERT_USER_QUERY_TEXT =
+  'INSERT INTO "public"."User" ("createdAt","email","name") VALUES ($1,$2,$3) RETURNING "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name"';
+const SELECT_USER_QUERY_TEXT =
+  'SELECT "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name" FROM "public"."User" WHERE ?=? OFFSET $1';
+const DELETE_USER_QUERY_TEXT = 'DELETE FROM "public"."User" WHERE "public"."User"."email"::text LIKE $1';
 
 const ADDITIONAL_DEPENDENCIES = {
   '@prisma/client': '5.22.0',
@@ -82,6 +90,7 @@ function expectPrismaV5Spans(container: SerializedStreamedSpanContainer): void {
       expect.objectContaining({
         attributes: expect.objectContaining({
           [DB_STATEMENT]: { type: 'string', value: expect.stringContaining('INSERT INTO') },
+          [DB_QUERY_TEXT]: { type: 'string', value: INSERT_USER_QUERY_TEXT },
           [DB_QUERY_SUMMARY]: { type: 'string', value: 'INSERT "public"."User"' },
           [DB_SYSTEM]: { type: 'string', value: 'postgresql' },
           [SENTRY_KIND]: { type: 'string', value: 'client' },
@@ -94,6 +103,7 @@ function expectPrismaV5Spans(container: SerializedStreamedSpanContainer): void {
       expect.objectContaining({
         attributes: expect.objectContaining({
           [DB_STATEMENT]: { type: 'string', value: expect.stringContaining('SELECT') },
+          [DB_QUERY_TEXT]: { type: 'string', value: SELECT_USER_QUERY_TEXT },
           [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "public"."User"' },
           [DB_SYSTEM]: { type: 'string', value: 'postgresql' },
           [SENTRY_KIND]: { type: 'string', value: 'client' },
@@ -106,6 +116,7 @@ function expectPrismaV5Spans(container: SerializedStreamedSpanContainer): void {
       expect.objectContaining({
         attributes: expect.objectContaining({
           [DB_STATEMENT]: { type: 'string', value: expect.stringContaining('DELETE') },
+          [DB_QUERY_TEXT]: { type: 'string', value: DELETE_USER_QUERY_TEXT },
           [DB_QUERY_SUMMARY]: { type: 'string', value: 'DELETE "public"."User"' },
           [DB_SYSTEM]: { type: 'string', value: 'postgresql' },
           [SENTRY_KIND]: { type: 'string', value: 'client' },
@@ -124,15 +135,16 @@ function expectPrismaV5Spans(container: SerializedStreamedSpanContainer): void {
     querySpans.map(span => ({
       name: span.name,
       summary: span.attributes[DB_QUERY_SUMMARY]?.value,
+      text: span.attributes[DB_QUERY_TEXT]?.value,
     })),
   ).toEqual([
-    { name: 'INSERT "public"."User"', summary: 'INSERT "public"."User"' },
-    { name: 'SELECT "public"."User"', summary: 'SELECT "public"."User"' },
-    { name: 'BEGIN', summary: 'BEGIN' },
-    { name: 'INSERT "public"."User"', summary: 'INSERT "public"."User"' },
-    { name: 'SELECT "public"."User"', summary: 'SELECT "public"."User"' },
-    { name: 'COMMIT', summary: 'COMMIT' },
-    { name: 'DELETE "public"."User"', summary: 'DELETE "public"."User"' },
+    { name: 'INSERT "public"."User"', summary: 'INSERT "public"."User"', text: INSERT_USER_QUERY_TEXT },
+    { name: 'SELECT "public"."User"', summary: 'SELECT "public"."User"', text: SELECT_USER_QUERY_TEXT },
+    { name: 'BEGIN', summary: 'BEGIN', text: 'BEGIN' },
+    { name: 'INSERT "public"."User"', summary: 'INSERT "public"."User"', text: INSERT_USER_QUERY_TEXT },
+    { name: 'SELECT "public"."User"', summary: 'SELECT "public"."User"', text: SELECT_USER_QUERY_TEXT },
+    { name: 'COMMIT', summary: 'COMMIT', text: 'COMMIT' },
+    { name: 'DELETE "public"."User"', summary: 'DELETE "public"."User"', text: DELETE_USER_QUERY_TEXT },
   ]);
 
   // The raw engine span name must never leak through.

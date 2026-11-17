@@ -1,7 +1,40 @@
-import { describe, expect, it, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { getCurrentScope } from '../../src/currentScopes';
+import { startSession } from '../../src/exports';
 import { closeSession, makeSession, updateSession } from '../../src/session';
 import type { SessionContext } from '../../src/types/session';
 import { timestampInSeconds } from '../../src/utils/time';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
+import { resetGlobals } from '../testutils';
+
+describe('startSession', () => {
+  const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36';
+
+  beforeEach(() => {
+    resetGlobals();
+    vi.stubGlobal('navigator', { userAgent });
+    getCurrentScope().setClient(
+      new TestClient(getDefaultTestClientOptions({ dataCollection: { httpHeaders: { request: false } } })),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    resetGlobals();
+  });
+
+  it('omits the automatic user agent when request header collection is disabled', () => {
+    const session = startSession();
+
+    expect(session.toJSON().attrs?.user_agent).toBeUndefined();
+  });
+
+  it('preserves an explicit user agent when request header collection is disabled', () => {
+    const session = startSession({ userAgent: 'custom-user-agent' });
+
+    expect(session.toJSON().attrs?.user_agent).toBe('custom-user-agent');
+  });
+});
 
 describe('Session', () => {
   it('initializes with the proper defaults', () => {

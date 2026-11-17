@@ -1,14 +1,22 @@
 // import/export got a false positive, and affects most of our index barrel files
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
-import type { Client, EventProcessor, Integration } from '@sentry/core';
-import { applySdkMetadata, consoleSandbox, getGlobalScope, GLOBAL_OBJ } from '@sentry/core';
+import type { BrowserTunnelOptions, Client, EventProcessor, Integration } from '@sentry/core';
+import {
+  _INTERNAL_applyBrowserTunnelDefaults as applyBrowserTunnelDefaults,
+  _INTERNAL_captureOptionsSetByUser,
+  applySdkMetadata,
+  consoleSandbox,
+  getGlobalScope,
+  GLOBAL_OBJ,
+} from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getClientVercelEnv } from '../common/getVercelEnv';
 import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
+import { getInjectedBasePath } from '../common/utils/basePath';
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { nextjsClientStackFrameNormalizationIntegration } from './clientNormalizationIntegration';
 import { createNextRouteProvider } from './routing/routeProvider';
@@ -24,7 +32,6 @@ export { captureRouterTransitionStart } from './routing/appRouterRoutingInstrume
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesAssetPrefixPath: string;
   _sentryAssetPrefix?: string;
-  _sentryBasePath?: string;
   _sentryRelease?: string;
   _experimentalThirdPartyOriginStackFrames?: string;
 };
@@ -33,7 +40,9 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 declare const __SENTRY_TRACING__: boolean;
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
-export function init(options: BrowserOptions): Client | undefined {
+export function init(userOptions: BrowserOptions): Client | undefined {
+  const options = _INTERNAL_captureOptionsSetByUser(userOptions);
+
   if (!DEBUG_BUILD && options.debug) {
     consoleSandbox(() => {
       // TODO(v12): Remove the `webpack.treeshake` mention together with that option
@@ -55,6 +64,13 @@ export function init(options: BrowserOptions): Client | undefined {
   } satisfies BrowserOptions;
 
   applyTunnelRouteOption(opts);
+  // The managed tunnel is served under the app's `basePath` and `trailingSlash`, like every other route. Options the
+  // user set win.
+  const tunnelDefaults: BrowserTunnelOptions = { basePath: getInjectedBasePath() };
+  if (process.env._sentryTrailingSlash) {
+    tunnelDefaults.trailingSlash = true;
+  }
+  opts.tunnel = applyBrowserTunnelDefaults(opts.tunnel, tunnelDefaults);
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'react']);
 
   opts.ignoreSpans = [
@@ -104,7 +120,7 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
     globalWithInjectedValues._sentryRewriteFramesAssetPrefixPath ||
     '';
   const assetPrefix = process.env._sentryAssetPrefix || globalWithInjectedValues._sentryAssetPrefix;
-  const basePath = process.env._sentryBasePath || globalWithInjectedValues._sentryBasePath;
+  const basePath = getInjectedBasePath();
   const experimentalThirdPartyOriginStackFrames =
     process.env._experimentalThirdPartyOriginStackFrames === 'true' ||
     globalWithInjectedValues._experimentalThirdPartyOriginStackFrames === 'true';

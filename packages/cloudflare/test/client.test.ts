@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import { CloudflareClient, type CloudflareClientOptions } from '../src/client';
 import { makeFlushLock } from '../src/flush';
@@ -222,6 +222,40 @@ describe('CloudflareClient', () => {
         client.emit('spanStart', {} as any);
         client.emit('spanEnd', {} as any);
       }).not.toThrow();
+    });
+  });
+
+  describe('worker info stored by the Vite plugin', () => {
+    const globalWithWorkerInfo = globalThis as {
+      __SENTRY_CLOUDFLARE_WORKER__?: { name?: string; compatibilityDate?: string };
+    };
+
+    afterEach(() => {
+      delete globalWithWorkerInfo.__SENTRY_CLOUDFLARE_WORKER__;
+    });
+
+    it('uses the worker name as serverName and the compatibility date as runtime version', () => {
+      globalWithWorkerInfo.__SENTRY_CLOUDFLARE_WORKER__ = { name: 'my-worker', compatibilityDate: '2025-06-17' };
+
+      const client = new CloudflareClient(MOCK_CLIENT_OPTIONS);
+
+      expect(client.getOptions().serverName).toBe('my-worker');
+      expect(client.getOptions().runtime).toEqual({ name: 'cloudflare', version: '2025-06-17' });
+    });
+
+    it('prefers the serverName option over the worker name', () => {
+      globalWithWorkerInfo.__SENTRY_CLOUDFLARE_WORKER__ = { name: 'my-worker' };
+
+      const client = new CloudflareClient({ ...MOCK_CLIENT_OPTIONS, serverName: 'user-server' });
+
+      expect(client.getOptions().serverName).toBe('user-server');
+    });
+
+    it('has no serverName and no runtime version without stored worker info', () => {
+      const client = new CloudflareClient(MOCK_CLIENT_OPTIONS);
+
+      expect(client.getOptions().serverName).toBeUndefined();
+      expect(client.getOptions().runtime).toEqual({ name: 'cloudflare' });
     });
   });
 
@@ -495,6 +529,34 @@ describe('CloudflareClient', () => {
       client.emit('afterEnvelope', {});
 
       expect(flushMock).toHaveBeenCalledTimes(1);
+    });
+
+    // The transport's drain hands its queued requests off and doesn't track them, so the transport drain inside
+    // `flush()` finds an empty queue while the eager drain's request is still in flight.
+    it('waits in flush() for a request an eager drain started outside any invocation', async () => {
+      let respond: () => void = () => undefined;
+      const fetch = vi.fn(() => new Promise<Response>(resolve => (respond = () => resolve(new Response('')))));
+      const client = new CloudflareClient({
+        ...MOCK_CLIENT_OPTIONS,
+        cacheClient: true,
+        transport: makeCloudflareTransport,
+        transportOptions: { fetch },
+      });
+      client.init();
+
+      client.captureMessage('foo');
+      await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+
+      const flushPromise = client.flush(2000);
+      const settled = await Promise.race([
+        flushPromise.then(() => 'flushed'),
+        new Promise(resolve => setTimeout(() => resolve('pending'), 100)),
+      ]);
+      expect(settled).toBe('pending');
+
+      respond();
+      await expect(flushPromise).resolves.toBe(true);
+      expect(fetch).toHaveBeenCalledTimes(1);
     });
 
     it('does not register a waitUntil when no context is known', () => {

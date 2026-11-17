@@ -12,6 +12,9 @@ export const PI_TASK = {
 /** Kind of the built-in document that holds a conversation's run control. */
 export const PI_LIVE_DOC_KIND = 'pi.live';
 
+/** Kind of the built-in document that holds a conversation's provider session id. */
+export const PI_PROVIDER_DOC_KIND = 'pi.provider';
+
 /** Kind of the transcript entry that holds the tool result the model receives. */
 export const PI_TOOL_RESULT_ENTRY_KIND = 'pi.tool-result';
 

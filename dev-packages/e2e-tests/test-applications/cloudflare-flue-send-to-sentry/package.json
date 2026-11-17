@@ -32,9 +32,6 @@
     "vite": "7.3.5",
     "wrangler": "^4.114.0"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "optional": true
   }

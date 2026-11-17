@@ -283,7 +283,7 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
             // operation that internally makes the respective request to the database.
             // So I think we can interpret this as a "db.query.summary"-esque span name.
             // Either way, it's definitely low-cardinality.
-            // see: https://getsentry.github.io/sentry-conventions/names/#db-queries
+            // see: https://conventions.sentry.dev/names/#db-queries
             operationName
           : // This name makes little sense semantically but preserving it for now to
             // avoid a breaking change in the transaction path. Will be removed once we remove
@@ -295,6 +295,7 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
       return startSpanManual(
         {
           name,
+          onlyIfParent: true,
           attributes: {
             [SENTRY_ORIGIN]: 'auto.db.supabase',
             [SENTRY_OP]: DB,
@@ -479,6 +480,7 @@ function instrumentPostgRESTFilterBuilder(
         return startSpanManual(
           {
             name,
+            onlyIfParent: true,
             attributes,
           },
           span => {

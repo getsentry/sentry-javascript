@@ -26,6 +26,7 @@ sentryTest('tags event if contains at least one third-party frame', async ({ get
   );
 
   await page.goto(url);
+  await page.click('#thirdPartyErrBtn');
 
   const errorEvent = envelopeRequestParser(await errorEventPromise);
   expect(errorEvent.tags?.third_party_code).toBe(true);

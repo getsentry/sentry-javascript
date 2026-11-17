@@ -1,33 +1,154 @@
 import type { MonitorConfig } from '@sentry/core';
 import { CODE_FUNCTION_NAME, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
-import { captureException } from '@sentry/core';
+import { captureException, debug } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import { startSpan } from '@sentry/node';
+import { _INTERNAL_cronExpressionToMonitorConfig as cronExpressionToMonitorConfig } from '@sentry/server-utils';
+import { DEBUG_BUILD } from './debug-build';
 import { isExpectedError } from './helpers';
-import { copyReflectMetadata } from './integrations/helpers';
+import type { ReflectWithMetadata } from './integrations/helpers';
+import { copyReflectMetadata, getNestScheduleVersion, markSentryCronMethod } from './integrations/helpers';
+
+/**
+ * Monitor settings for `@SentryCron` whose schedule and time zone come from the `@Cron()` decorator
+ * of `@nestjs/schedule` on the same method. Set `fromCronDecorator: false` to not send them.
+ */
+export type SentryCronMonitorSettings = Omit<MonitorConfig, 'schedule' | 'timezone'> & {
+  schedule?: never;
+  timezone?: never;
+  fromCronDecorator?: boolean;
+};
 
 /**
  * A decorator wrapping the native nest Cron decorator, sending check-ins to Sentry.
+ *
+ * Unless a monitor config with a `schedule` is passed, the schedule and time zone of the method's
+ * `@Cron()` decorator are sent with each check-in, so Sentry can create the monitor on the first run.
  */
-export const SentryCron = (monitorSlug: string, monitorConfig?: MonitorConfig): MethodDecorator => {
+export const SentryCron = (
+  monitorSlug: string,
+  monitorConfig?: (MonitorConfig & { fromCronDecorator?: never }) | SentryCronMonitorSettings,
+): MethodDecorator => {
   return (target: unknown, propertyKey, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value as (...args: unknown[]) => Promise<unknown>;
 
-    descriptor.value = function (...args: unknown[]) {
-      return Sentry.withMonitor(
-        monitorSlug,
-        () => {
-          return originalMethod.apply(this, args);
-        },
-        monitorConfig,
-      );
+    let resolvedMonitorConfig: MonitorConfig | undefined;
+    let isolateTraceWithoutConfig = false;
+    let resolved = false;
+
+    const wrappedMethod = function (this: unknown, ...args: unknown[]): unknown {
+      if (!resolved) {
+        resolved = true;
+        // A `@Cron()` applied after `@SentryCron()` puts its metadata on this wrapper, so read it at call time.
+        resolvedMonitorConfig = resolveMonitorConfig(monitorSlug, monitorConfig, [
+          wrappedMethod,
+          (target as Record<PropertyKey, unknown> | undefined)?.[propertyKey],
+        ]);
+        isolateTraceWithoutConfig = !resolvedMonitorConfig && !!monitorConfig?.isolateTrace;
+      }
+
+      const runWithMonitor = (): unknown =>
+        Sentry.withMonitor(
+          monitorSlug,
+          () => {
+            return originalMethod.apply(this, args);
+          },
+          resolvedMonitorConfig,
+        );
+
+      // `withMonitor` reads `isolateTrace` from the monitor config, which is not sent without a schedule.
+      return isolateTraceWithoutConfig ? Sentry.startNewTrace(runWithMonitor) : runWithMonitor();
     };
 
+    descriptor.value = wrappedMethod;
+
     copyFunctionNameAndMetadata({ originalMethod, descriptor });
+    markSentryCronMethod(wrappedMethod);
 
     return descriptor;
   };
 };
+
+function resolveMonitorConfig(
+  monitorSlug: string,
+  monitorConfig: MonitorConfig | SentryCronMonitorSettings | undefined,
+  candidates: unknown[],
+): MonitorConfig | undefined {
+  if (monitorConfig?.schedule) {
+    return monitorConfig;
+  }
+
+  const { fromCronDecorator = true, ...monitorSettings } = monitorConfig || {};
+  const cronConfig = fromCronDecorator ? getMonitorConfigFromNestCron(candidates) : undefined;
+
+  if (!cronConfig) {
+    const { isolateTrace: _isolateTrace, ...unsentSettings } = monitorSettings;
+    if (DEBUG_BUILD && Object.keys(unsentSettings).length) {
+      const reason = fromCronDecorator
+        ? 'no schedule could be taken from @Cron()'
+        : 'fromCronDecorator is false and no schedule was passed';
+      debug.warn(
+        `[SentryCron] The monitor settings for "${monitorSlug}" are not sent, because ${reason}. A monitor config needs a schedule.`,
+      );
+    }
+    return undefined;
+  }
+
+  return { ...monitorSettings, ...cronConfig };
+}
+
+const SCHEDULE_CRON_OPTIONS = 'SCHEDULE_CRON_OPTIONS';
+
+interface NestCronOptions {
+  cronTime?: unknown;
+  timeZone?: unknown;
+  utcOffset?: unknown;
+}
+
+function getMonitorConfigFromNestCron(candidates: unknown[]): MonitorConfig | undefined {
+  const R = Reflect as ReflectWithMetadata;
+  if (typeof R.getMetadata !== 'function') {
+    return undefined;
+  }
+
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'function') {
+      continue;
+    }
+    const cronOptions = R.getMetadata(SCHEDULE_CRON_OPTIONS, candidate);
+    if (cronOptions && typeof cronOptions === 'object') {
+      return nestCronOptionsToMonitorConfig(cronOptions, getNestScheduleVersion(cronOptions));
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Converts the options `@Cron()` stores as metadata into a Sentry monitor config.
+ * Returns `undefined` for schedules Sentry can't represent.
+ */
+export function nestCronOptionsToMonitorConfig(
+  cronOptions: NestCronOptions,
+  scheduleVersion: string | undefined,
+): MonitorConfig | undefined {
+  const { cronTime, timeZone, utcOffset } = cronOptions;
+
+  // A fixed UTC offset has no IANA time zone equivalent.
+  if (typeof cronTime !== 'string' || utcOffset != null) {
+    return undefined;
+  }
+
+  // `cron` 2.x (`@nestjs/schedule` 2 and 3) counts months from 0. Steps and names don't depend on that.
+  const fields = cronTime.trim().split(/\s+/);
+  const month = fields.length >= 5 ? (fields[fields.length - 2] as string) : '';
+  const countsMonthsFromOne = parseInt(scheduleVersion ?? '', 10) >= 4;
+  if (!countsMonthsFromOne && /\d/.test(month.replace(/\/\d+/g, ''))) {
+    return undefined;
+  }
+
+  return cronExpressionToMonitorConfig(cronTime, timeZone, 'cron');
+}
 
 /**
  * A decorator usable to wrap arbitrary functions with spans.

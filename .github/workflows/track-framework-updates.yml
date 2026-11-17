@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   track-updates:
-    runs-on: namespace-profile-sentry-javascript-small
+    runs-on: ubuntu-latest
     environment: ci-triage
     permissions:
       contents: read
@@ -43,7 +43,7 @@ jobs:
 
       - name: Run Claude digest
         id: digest
-        uses: anthropics/claude-code-action@8ce9314fa9a404564fa7e954cd84f25bcba2b829 # v1
+        uses: anthropics/claude-code-action@f3b070c88125d33dbae5653df5f143101d4ea9dc # v1
         env:
           ANTHROPIC_BASE_URL: https://openrouter.ai/api
         with:

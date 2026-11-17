@@ -131,6 +131,12 @@ Apps use the pnpm version of `packageManager` in the root `package.json`. To use
 `package.json` (for example `"packageManager": "pnpm@10.34.6"`), and use the settings of that version in its
 `pnpm-workspace.yaml`. pnpm then switches to that version, locally and in CI. The lowest supported version is pnpm 10.
 
+Apps use the Node.js version of `devEngines.runtime` in the root `package.json`. To use another version, set
+`devEngines.runtime` in the app's `package.json` (for example `{ "name": "node", "version": "24.15.0", "onFail": "warn" }`).
+Because the apps run in a temporary directory without the repo's `package.json` files above it, the copy step writes the
+app's Node.js and pnpm versions into the copied `package.json`. pnpm's `node` and `actions/setup-node` in CI read them
+from there.
+
 ### Test apps that deploy a real Cloudflare Worker
 
 Apps like `cloudflare-workers-send-to-sentry` deploy the built app as a real Worker and check what arrives in Sentry:
@@ -146,6 +152,9 @@ Apps like `cloudflare-workers-send-to-sentry` deploy the built app as a real Wor
   `cloudflare-flue-send-to-sentry/src/auth.ts`.
 - Add the `workerPrefix` to `.github/workflows/cleanup-e2e-workers.yml`, which deletes the Worker of a PR when the PR
   closes.
+- To check what Cloudflare stored for a request (for example its Cloudflare trace id), read Workers Logs with
+  `fetchWorkersLogsEvents`. `CLOUDFLARE_API_TOKEN` then also needs "Workers Observability: Edit". See
+  `cloudflare-workers-without-tracing-send-to-sentry`.
 - Set `"sentryTest": { "optional": true }` in `package.json`, because only the optional CI job has the Cloudflare
   secrets.
 
@@ -167,15 +176,23 @@ is the reference setup.
   (`instrument.mjs`), Bun `@sentry/bun` (`instrument.bun.mjs`), Deno `@sentry/deno` (`instrument.deno.mjs`) and
   Cloudflare `@sentry/cloudflare`. The framework SDK only provides the framework wrappers on the other runtimes, so
   values that come from its `init()` (`sdk.name`, default integrations) are Node-only. Next.js is different: it loads
-  `instrumentation.ts` on every runtime, so `nextjs-16` calls `init()` of `@sentry/nextjs` on Bun and Deno too, and
-  adds the integrations of `@sentry/bun` or `@sentry/deno` that replace the Node instrumentation those runtimes do not
-  trigger.
+  `instrumentation.ts` on every runtime, so `nextjs-16` calls `init()` of `@sentry/nextjs` on Bun and Deno too. Its
+  Bun and Deno variants build the app on that runtime, so `@sentry/nextjs` loads its `bun` or `deno` entry, which adds
+  the integrations of `@sentry/bun` or `@sentry/deno`. Nuxt is similar: `@sentry/nuxt` bundles `sentry.server.config.ts`
+  into the Nitro output, so `nuxt-4` calls `init()` of `@sentry/nuxt` on Bun and Deno too. `sentry.server.config.bun.ts`
+  and `sentry.server.config.deno.ts` add the integrations of `@sentry/bun` or `@sentry/deno`. On Cloudflare, `nuxt-4`
+  builds with the `cloudflare_module` preset and sets up the SDK with `sentryCloudflareNitroPlugin`, which
+  `nuxt.config.ts` adds only for that runtime. Like the documented Cloudflare setup, that build has no
+  `sentry.server.config.ts`: a runtime-specific file can replace a file but not remove it, so the build command deletes
+  it. Nitro turns every file under `server/api` into a route, so
+  `nuxt.config.ts` lists the runtime-specific files there (such as `db-mongoose.cloudflare.ts`) in Nitro's `ignore`.
 - **Start commands**: `playwright.config.mjs` selects the start command with `getRuntime()`. Bun and Deno use the same build
   as Node and only change the start command, for example
   `bun --bun --preload ./instrument.bun.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js` and
   `deno run -A --preload=@sentry/deno/import --preload=./instrument.deno.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js`.
   The app's `deno.json` maps `@sentry/deno/import` to `node_modules`, because the e2e dependencies are `file:` tarballs
-  that `npm:@sentry/deno/import` does not resolve.
+  that `npm:@sentry/deno/import` does not resolve. `nuxt-4` starts the Nitro output with no preload:
+  `bun .output/server/index.mjs` and `deno run -A .output/server/index.mjs`.
 - **Cloudflare**: the app has the Cloudflare dependencies installed all the time. The Cloudflare build has its own
   `vite.cloudflare.config.ts` with `@cloudflare/vite-plugin` and `sentryCloudflareVitePlugin` from
   `@sentry/cloudflare/vite`, which the runner uses in place of `vite.config.ts` (see runtime-specific files). List the
@@ -187,6 +204,12 @@ is the reference setup.
   because workerd does not allow it. `nextjs-16` has no Vite build: its Cloudflare variant builds with
   `opennextjs-cloudflare build --config wrangler.opennext.jsonc` and wraps the generated Worker in `worker.ts` with
   `withSentry` from `@sentry/nextjs/cloudflare`.
+- **Cloudflare in `vite dev`**: to run the Worker in `vite dev` (for example the dev tests of the `hono-4` Cloudflare
+  variant), start it with `CLOUDFLARE_INCLUDE_PROCESS_ENV=true vite dev`. The runner gives `E2E_TEST_DSN` to the app
+  only as a process env var. `wrangler dev` adds it to the Worker `env` with `--var "E2E_TEST_DSN:$E2E_TEST_DSN"`, but
+  `@cloudflare/vite-plugin` has no such option. It fills the Worker `env` from the `vars` of the wrangler config and
+  from `.dev.vars` or `.env`, and adds process env vars only when `CLOUDFLARE_INCLUDE_PROCESS_ENV` is `true`. Without
+  it, `env.E2E_TEST_DSN` is `undefined`, the SDK sends no events, and the tests fail.
 - **Build flavors**: a variant can also build the same app with another tool, for example `nextjs-16 (vinext)` builds
   `nextjs-16` with vinext. A build flavor is not a runtime: its assert script sets its own env var (`VINEXT=1`, read by
   `tests/isVinext.ts`). It sets `runtime` only to run on another runtime, for example `nextjs-16 (vinext, bun)`.
@@ -195,10 +218,14 @@ is the reference setup.
   replaces `vite.config.ts`. For a variant with `runtime`, the runner copies these files over the others in the
   temporary copy of the app, before the build. This needs no framework or bundler config. A build in the app folder
   itself does not get these files, so run a variant with `pnpm run test:run <app> --variant <runtime>`.
-- **Deno version**: a variant can pin the Deno version, for example `"deno-version": "v2.9.0"`.
+- **Bun and Deno versions**: a variant can pin the Bun or Deno version, for example `"bun-version": "1.4.4"` or
+  `"deno-version": "v2.9.0"`.
 - **Bun**: under `bun run` the SDK cannot inject diagnostics channels into packages that stay outside the build (for
   example Express behind `react-router-serve`), so those produce no spans on Bun. Where a test depends on them, branch
-  on `RUNTIME` and say why in a comment.
+  on `RUNTIME` and say why in a comment. An app that starts its own server can instead bundle it with
+  `@sentry/bun/plugin`, as `nestjs-12/bun-build.mjs` does. Bun 1.3 renames classes in bundles (`class Foo2`), which
+  changes span names taken from class names, so `nestjs-12` pins Bun 1.4 (see #26289). `nuxt-4` builds with
+  `bun --bun nuxt build` on Bun, because the Nitro prerenderer loads its `bun-sqlite` connector in the build process.
 
 ```json
 "sentryTest": {
@@ -280,9 +307,25 @@ For example, if something is changed in the browser package, only E2E test apps 
 You can add additional information about the test (e.g. canary versions, optional in CI) by adding `sentryTest` in the `package.json`
 of a test application.
 
-The required E2E jobs run on 2 vCPUs (`namespace-profile-sentry-javascript-small`). If an app's job takes longer than
-about 90 seconds, set `"sentryTest": { "runner": "namespace-profile-sentry-javascript" }` to run it and its variants on
-4 vCPUs.
+`sentryTest.baseVariant` overrides the default matrix entry using the same fields as an entry in `variants`. For example,
+set its `assert-command` to run production tests and add a development variant to run both environments in parallel.
+The local `test:assert` script can still run both; select the base variant locally with `--variant <label>`.
+
+Set `"test-shards": 2` on a variant or `baseVariant` to split its Playwright test files across two CI jobs.
+The shared Playwright config reads `SENTRY_E2E_TEST_SHARD`, so each invocation in a combined production/development script
+runs its part of the suite without changing the number of workers.
+
+Variants that build against upstream prereleases (for example `canary`, `next` or nightly builds of a framework) go into
+`canaryVariants`. They do not run on PRs, only in the nightly `CI: Canary Tests` workflow (`.github/workflows/canary.yml`),
+so failures caused by an upstream prerelease do not show up on unrelated PRs. Run one locally with
+`pnpm run test:run <app> --variant <label>`. Variants that build against the `latest` release belong in
+`optionalVariants`.
+
+```json
+"sentryTest": {
+  "canaryVariants": [{ "build-command": "pnpm test:build-canary", "label": "my-app (canary)" }]
+}
+```
 
 If you add Sentry dependencies to your test application, set the dependency versions to `latest || *` in order
 for it to work with both regular and prerelease versions:

@@ -1,5 +1,6 @@
 import type { Client, Integration, Options } from '@sentry/core';
 import {
+  _INTERNAL_captureOptionsSetByUser,
   consoleIntegration,
   conversationIdIntegration,
   dedupeIntegration,
@@ -10,7 +11,7 @@ import {
   setNormalizeStringifier,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import type { BrowserClientOptions, BrowserOptions } from './client';
+import type { BrowserOptions, ResolvedBrowserClientOptions } from './client';
 import { BrowserClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { browserApiErrorsIntegration } from './integrations/browserapierrors';
@@ -24,6 +25,7 @@ import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 import { normalizeStringifyValue } from './normalizeStringifyValue';
 import { checkAndWarnIfIsEmbeddedBrowserExtension } from './utils/detectBrowserExtension';
+import { resolveBrowserTunnelOption } from './utils/managedTunnel';
 
 /** Get the default integrations for the browser SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
@@ -93,7 +95,9 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  *
  * @see {@link BrowserOptions} for documentation on configuration options.
  */
-export function init(options: BrowserOptions = {}): Client | undefined {
+export function init(userOptions: BrowserOptions = {}): Client | undefined {
+  const options = _INTERNAL_captureOptionsSetByUser(userOptions);
+
   const shouldDisableBecauseIsBrowserExtenstion =
     !options.skipBrowserExtensionCheck && checkAndWarnIfIsEmbeddedBrowserExtension();
 
@@ -115,8 +119,9 @@ export function init(options: BrowserOptions = {}): Client | undefined {
     defaultIntegrations,
   });
 
-  const clientOptions: BrowserClientOptions = {
+  const clientOptions: ResolvedBrowserClientOptions = {
     ...options,
+    ...resolveBrowserTunnelOption(options),
     enabled: shouldDisableBecauseIsBrowserExtenstion ? false : options.enabled,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations,

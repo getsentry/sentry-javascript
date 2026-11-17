@@ -1,5 +1,12 @@
-import { captureException, type MonitorConfig, withMonitor } from '@sentry/core';
-import { replaceCronNames } from './common';
+import {
+  addNonEnumerableProperty,
+  captureException,
+  type MonitorConfig,
+  startNewTrace,
+  withMonitor,
+} from '@sentry/core';
+import { _INTERNAL_isReadAlikeByNodeCron3 as isReadAlikeByNodeCron3 } from '@sentry/server-utils';
+import { getCronMonitorConfig } from './common';
 
 export interface NodeCronOptions {
   name: string;
@@ -31,6 +38,11 @@ export interface NodeCron {
  *   { name: "my-cron-job" },
  * );
  * ```
+ *
+ * On node-cron 4, steps on `*` in the day-of-month or month field (such as every second day) aren't sent as a
+ * schedule, because this wrapper can't tell the node-cron version. `nodeCronIntegration` can.
+ *
+ * @deprecated Use `nodeCronIntegration` instead.
  */
 export function instrumentNodeCron<T>(
   lib: Partial<NodeCron> & T,
@@ -51,32 +63,40 @@ export function instrumentNodeCron<T>(
               throw new Error('Missing "name" for scheduled job. A name is required for Sentry check-in monitoring.');
             }
 
+            // The node-cron version is unknown here, so check for node-cron 3 quirks, which include those before 4.6.
+            const cronConfig = getCronMonitorConfig(expression, timezone, 'node-cron', isReadAlikeByNodeCron3);
+            const upsertMonitorConfig = cronConfig && { ...cronConfig, ...monitorConfig };
+
             const monitoredCallback = async (...args: Parameters<typeof callback>): Promise<void> => {
-              return withMonitor(
-                name,
-                async () => {
-                  // We have to manually catch here and capture the exception because node-cron swallows errors
-                  // https://github.com/node-cron/node-cron/issues/399
-                  try {
-                    // oxlint-disable-next-line typescript/await-thenable, typescript/return-await -- callback may be async at runtime; awaiting inside the try lets us capture its rejection
-                    return await callback(...args);
-                  } catch (e) {
-                    captureException(e, {
-                      mechanism: {
-                        handled: false,
-                        type: 'auto.function.node-cron.instrumentNodeCron',
-                      },
-                    });
-                    throw e;
-                  }
-                },
-                {
-                  schedule: { type: 'crontab', value: replaceCronNames(expression) },
-                  timezone,
-                  ...monitorConfig,
-                },
-              );
+              const runWithMonitor = (): Promise<void> =>
+                withMonitor(
+                  name,
+                  async () => {
+                    // We have to manually catch here and capture the exception because node-cron swallows errors
+                    // https://github.com/node-cron/node-cron/issues/399
+                    try {
+                      // oxlint-disable-next-line typescript/await-thenable, typescript/return-await -- callback may be async at runtime; awaiting inside the try lets us capture its rejection
+                      return await callback(...args);
+                    } catch (e) {
+                      captureException(e, {
+                        mechanism: {
+                          handled: false,
+                          type: 'auto.function.node-cron.instrumentNodeCron',
+                        },
+                      });
+                      throw e;
+                    }
+                  },
+                  upsertMonitorConfig,
+                );
+              // `withMonitor` reads `isolateTrace` from the monitor config, which is not sent without a schedule.
+              return !upsertMonitorConfig && monitorConfig.isolateTrace
+                ? startNewTrace(runWithMonitor)
+                : runWithMonitor();
             };
+
+            // Tells `nodeCronIntegration` that this task is already monitored.
+            addNonEnumerableProperty(monitoredCallback, Symbol.for('sentry.cron.monitored'), true);
 
             return target.apply(thisArg, [expression, monitoredCallback, options]);
           },

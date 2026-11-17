@@ -9,7 +9,12 @@ import { _INTERNAL_getTracingHeadersForFetchRequest } from '@sentry/core';
  * (e.g. Durable Object stubs, Service bindings).
  */
 export function instrumentFetcher(fetchFn: Fetcher['fetch']): Fetcher['fetch'] {
-  return function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  return function (originalInput: RequestInfo | URL, originalInit?: RequestInit): Promise<Response> {
+    // A Request's fields are prototype getters, so the object spread below would drop them.
+    const initIsRequest = originalInit instanceof Request;
+    const input = initIsRequest ? new Request(originalInput, originalInit) : originalInput;
+    const init = initIsRequest ? undefined : originalInit;
+
     const headers = _INTERNAL_getTracingHeadersForFetchRequest(input, { headers: init?.headers });
 
     if (input instanceof Request && init === undefined) {

@@ -1,8 +1,8 @@
-import { GEN_AI_INPUT_MESSAGES } from '@sentry/conventions/attributes';
+import { GEN_AI_EMBEDDINGS_INPUT, GEN_AI_INPUT_MESSAGES, GEN_AI_OUTPUT_MESSAGES } from '@sentry/conventions/attributes';
 import { getClient, getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { markEveGenAiRecordingDefault } from '../../../src/integrations/vercel-ai/gen-ai-recording-mode';
-import { createSpanFromMessage } from '../../../src/integrations/vercel-ai/vercel-ai-dc-subscriber';
+import { createSpanFromMessage, enrichSpanOnEnd } from '../../../src/integrations/vercel-ai/vercel-ai-dc-subscriber';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 // eve stamps every AI SDK call with `recordInputs: false`, which the channel subscriber otherwise
@@ -30,11 +30,13 @@ describe('Vercel AI recording under eve', () => {
   }
 
   // A `generateText` operation carrying input messages and eve's per-call `recordInputs: false`.
-  function recordedInputMessages(): unknown {
+  function recordedInputMessages(
+    messages: unknown[] = [{ role: 'user', content: 'What is the weather in Paris?' }],
+  ): unknown {
     const message = {
       type: 'generateText',
       event: {
-        messages: [{ role: 'user', content: 'What is the weather in Paris?' }],
+        messages,
         recordInputs: false,
       },
     } as Parameters<typeof createSpanFromMessage>[0];
@@ -55,10 +57,50 @@ describe('Vercel AI recording under eve', () => {
     expect(recordedInputMessages()).toContain('What is the weather in Paris?');
   });
 
+  it('records no input messages when ai emptied them', () => {
+    setupClient();
+    markEveGenAiRecordingDefault(getClient()!);
+
+    expect(recordedInputMessages([])).toBeUndefined();
+  });
+
+  it.each([
+    ['embed', { value: '' }, GEN_AI_EMBEDDINGS_INPUT],
+    ['embedMany', { values: [] }, GEN_AI_EMBEDDINGS_INPUT],
+    ['experimental_decide', { state: {}, questions: {} }, GEN_AI_INPUT_MESSAGES],
+  ])('records no input when ai emptied it on %s', (type, event, attribute) => {
+    setupClient();
+    markEveGenAiRecordingDefault(getClient()!);
+
+    const message = { type, event: { ...event, recordInputs: false } } as Parameters<typeof createSpanFromMessage>[0];
+    const span = createSpanFromMessage(message, {});
+
+    expect(spanToStaticSpanJSON(span!).data?.[attribute]).toBeUndefined();
+  });
+
   it('still honors an explicit dataCollection.genAI opt-out under eve', () => {
     setupClient({ genAI: { inputs: false } });
     markEveGenAiRecordingDefault(getClient()!);
 
     expect(recordedInputMessages()).toBeUndefined();
+  });
+
+  // When `ai` still published the result, eve's per-call `recordOutputs: false` is only its default.
+  it('records outputs under eve from a result ai published', () => {
+    setupClient();
+    markEveGenAiRecordingDefault(getClient()!);
+
+    const message = {
+      type: 'languageModelCall',
+      event: { modelId: 'gpt-4o-mini', provider: 'openai', recordOutputs: false },
+      result: {
+        content: [{ type: 'text', text: 'It is sunny in Paris.' }],
+        finishReason: { unified: 'stop', raw: 'stop' },
+      },
+    } as Parameters<typeof createSpanFromMessage>[0];
+    const span = createSpanFromMessage(message, {})!;
+    enrichSpanOnEnd(span, message, {});
+
+    expect(spanToStaticSpanJSON(span).data?.[GEN_AI_OUTPUT_MESSAGES]).toContain('It is sunny in Paris.');
   });
 });

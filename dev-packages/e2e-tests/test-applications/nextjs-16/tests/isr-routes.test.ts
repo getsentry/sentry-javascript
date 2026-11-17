@@ -51,7 +51,7 @@ test.describe('prerendered ISR pages', () => {
     await expect(page.locator('meta[name="baggage"]')).toHaveCount(0);
   });
 
-  test('does not carry trace meta tags on an ISR page that was prerendered again at runtime', async ({ page }) => {
+  test('carries only the cache origin on an ISR page that was prerendered again at runtime', async ({ page }) => {
     // The first visit serves the shell from the build. Once its revalidation window passed, a visit serves the stale
     // shell and makes the server prerender the page again, inside that request, with the SDK running. The visits after
     // that serve the shell from that prerender.
@@ -71,6 +71,7 @@ test.describe('prerendered ISR pages', () => {
 
     await expect(page.locator('meta[name="sentry-trace"]')).toHaveCount(0);
     await expect(page.locator('meta[name="baggage"]')).toHaveCount(0);
+    await expect(page.locator('meta[name="sentry-cache-origin"]')).toHaveCount(1);
   });
 });
 

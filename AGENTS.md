@@ -4,10 +4,9 @@ Monorepo with 40+ packages in `@sentry/*`, managed with pnpm workspaces and Nx.
 
 ## Setup
 
-- [Volta](https://volta.sh/) for Node.js/pnpm version management
-- Requires `VOLTA_FEATURE_PNPM=1`
+- pnpm manages Node.js and pnpm versions (see `CONTRIBUTING.md`): Node.js in `devEngines.runtime`, pnpm in `packageManager`
 - After cloning: `pnpm install && pnpm run build`
-- Never change Volta, pnpm, or package manager versions unless explicitly asked
+- Never change Node.js, pnpm, or package manager versions unless explicitly asked
 
 ### Code Intelligence
 
@@ -62,6 +61,7 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 
 - Use `.github/PULL_REQUEST_TEMPLATE.md` for the body (`gh pr create --body` skips it). Ideally 1-2 sentences per field, no AI walkthrough.
 - Always open PRs as draft.
+- Never apply the `Accept Bundlesize Increase` label.
 - **Keep PR descriptions condensed** — usually a few sentences. Explain the _reasoning_: why the change is needed, and any non-obvious decisions or tradeoffs made along the way. Do **not** walk through the implementation or describe what changed file-by-file — the diff already shows that. Only go longer when the decisions genuinely warrant it.
 
 ## Architecture
@@ -95,6 +95,7 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 
 - Follow existing conventions — check neighboring files
 - Reach for existing utils before writing a new one. Most shared helpers live in `@sentry/core` (`packages/core/src/utils/`), with browser helpers in `packages/browser-utils/`. Search first (LSP `workspaceSymbol` or grep) for common needs (type guards in `is.ts`, object/array helpers, `normalize`, `dsn`, `merge`, string/url helpers). Reuse or extend the existing util rather than adding a near-duplicate; only introduce a new util when nothing fits.
+- When `JSON.stringify` output goes into generated code (bundler plugins, loaders, virtual modules, `define`), use `stringifyForCodeInjection` from `@sentry/core` instead. It escapes `<`, `>`, U+2028 and U+2029, so the code stays safe when inlined in a `<script>` element.
 - Only use libraries already in the codebase
 - Never expose secrets or keys
 - When modifying files, cover all occurrences (including `src/` and `test/`)

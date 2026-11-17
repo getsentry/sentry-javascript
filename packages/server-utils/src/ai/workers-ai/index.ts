@@ -1,14 +1,8 @@
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import {
-  _INTERNAL_shouldSkipAiProviderWrapping,
-  getClient,
-  hasSpanStreamingEnabled,
-  SPAN_STATUS_ERROR,
-  startSpan,
-  startSpanManual,
-} from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, startSpan, startSpanManual } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { isReadableStream, resolveAIRecordingOptions } from '../core/utils';
+import { getErrorStatus, getRequestSignal, isReadableStream, resolveAIRecordingOptions } from '../core/utils';
+import { shouldSkipAiProviderSpan } from '../pi-ai/providers';
 import { WORKERS_AI_INTEGRATION_NAME } from './constants';
 import { instrumentWorkersAiStream } from './streaming';
 import type { WorkersAiOptions } from './types';
@@ -29,9 +23,7 @@ function instrumentRun(
   options: WorkersAiOptions & Required<Pick<WorkersAiOptions, 'recordInputs' | 'recordOutputs'>>,
 ): (...args: unknown[]) => Promise<unknown> {
   return function instrumentedRun(...args: unknown[]): Promise<unknown> {
-    // When another integration (e.g. Vercel AI via `workers-ai-provider`) is driving this binding,
-    // it records the spans itself and marks this provider as skipped; skip here to avoid double spans.
-    if (_INTERNAL_shouldSkipAiProviderWrapping(WORKERS_AI_INTEGRATION_NAME)) {
+    if (shouldSkipAiProviderSpan(WORKERS_AI_INTEGRATION_NAME)) {
       return originalRun.apply(context, args);
     }
 
@@ -40,6 +32,7 @@ function instrumentRun(
     const operationName = getOperationName(model, inputs);
     const requestAttributes = extractRequestAttributes(model, inputs, operationName);
     const modelName = typeof model === 'string' && model ? model : 'unknown';
+    const abortSignal = getRequestSignal(runOptions);
     const client = getClient();
 
     const isStreamRequested =
@@ -66,7 +59,7 @@ function instrumentRun(
         // `startSpanManual` does not auto-end the span, so we must end it on every exit path,
         // including a synchronous throw from `run`.
         const handleError = (error: unknown): never => {
-          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+          span.setStatus(getErrorStatus(abortSignal));
           span.end();
           throw error;
         };
@@ -85,7 +78,7 @@ function instrumentRun(
 
         return originalResult.then(result => {
           if (isReadableStream<Uint8Array>(result)) {
-            return instrumentWorkersAiStream(result, span, options.recordOutputs);
+            return instrumentWorkersAiStream(result, span, options.recordOutputs, abortSignal);
           }
 
           // The model did not actually return a stream — finalize the span eagerly.
@@ -103,12 +96,18 @@ function instrumentRun(
         addRequestAttributes(span, inputs, operationName);
       }
 
-      return originalResult.then(result => {
-        if (!returnsRawResponse) {
-          addResponseAttributes(span, result, options.recordOutputs, operationName);
-        }
-        return result;
-      });
+      return originalResult.then(
+        result => {
+          if (!returnsRawResponse) {
+            addResponseAttributes(span, result, options.recordOutputs, operationName);
+          }
+          return result;
+        },
+        error => {
+          span.setStatus(getErrorStatus(abortSignal));
+          throw error;
+        },
+      );
     });
   };
 }

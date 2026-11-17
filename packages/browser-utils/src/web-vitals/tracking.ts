@@ -1,6 +1,20 @@
 import type { Client, Measurements, Span } from '@sentry/core';
 import { browserPerformanceTimeOrigin, debug, filterCollectedUrl, setMeasurement, spanToJSON } from '@sentry/core';
-import { BROWSER_NAVIGATION_TYPE, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  BROWSER_NAVIGATION_TYPE,
+  SENTRY_OP,
+  BROWSER_PERFORMANCE_NAVIGATION_ACTIVATION_START,
+  BROWSER_PERFORMANCE_TIME_ORIGIN,
+  BROWSER_WEB_VITAL_TTFB_REQUEST_TIME,
+  LCP_ELEMENT,
+  LCP_ID,
+  LCP_LOADTIME,
+  LCP_RENDERTIME,
+  LCP_SIZE,
+  LCP_URL,
+  PERFORMANCE_ACTIVATIONSTART,
+  PERFORMANCE_TIMEORIGIN,
+} from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import type { MetricNavigationType } from '../instrumentation/performanceObserver';
@@ -186,7 +200,7 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
         }
       });
       if (_measurements['ttfb.requestTime']) {
-        setAttr('ttfb.requestTime', _measurements['ttfb.requestTime'].value, 'browser.web_vital.ttfb.request_time');
+        setAttr('ttfb.requestTime', _measurements['ttfb.requestTime'].value, BROWSER_WEB_VITAL_TTFB_REQUEST_TIME);
       }
     } else {
       // If CLS is tracked as a span (span streaming), don't record CLS as a measurement
@@ -213,7 +227,8 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
     }
 
     // Set timeOrigin which denotes the timestamp which to base the LCP/FCP/FP/TTFB measurements on
-    span.setAttribute(spanStreamingEnabled ? 'browser.performance.time_origin' : 'performance.timeOrigin', timeOrigin);
+    // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+    span.setAttribute(spanStreamingEnabled ? BROWSER_PERFORMANCE_TIME_ORIGIN : PERFORMANCE_TIMEORIGIN, timeOrigin);
 
     // In prerendering scenarios, where a page might be prefetched and pre-rendered before the user clicks the link,
     // the navigation starts earlier than when the user clicks it. Web Vitals should always be based on the
@@ -222,7 +237,8 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
     // This is user action is called "activation" and the time between navigation and activation is stored in
     // the `activationStart` attribute of the "navigation" PerformanceEntry.
     span.setAttribute(
-      spanStreamingEnabled ? 'browser.performance.navigation.activation_start' : 'performance.activationStart',
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      spanStreamingEnabled ? BROWSER_PERFORMANCE_NAVIGATION_ACTIVATION_START : PERFORMANCE_ACTIVATIONSTART,
       getActivationStart(),
     );
   }
@@ -244,31 +260,37 @@ function _setWebVitalAttributes(span: Span, options: AddWebVitalsToSpanOptions):
     // Capture Properties of the LCP element that contributes to the LCP.
 
     if (_lcpEntry.element) {
-      span.setAttribute('lcp.element', htmlTreeAsString(_lcpEntry.element));
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      span.setAttribute(LCP_ELEMENT, htmlTreeAsString(_lcpEntry.element));
     }
 
     if (_lcpEntry.id) {
-      span.setAttribute('lcp.id', _lcpEntry.id);
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      span.setAttribute(LCP_ID, _lcpEntry.id);
     }
 
     if (_lcpEntry.url) {
       // Trim URL to the first 200 characters.
-      span.setAttribute('lcp.url', filterCollectedUrl(_lcpEntry.url.trim()).slice(0, 200));
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      span.setAttribute(LCP_URL, filterCollectedUrl(_lcpEntry.url.trim()).slice(0, 200));
     }
 
     if (_lcpEntry.loadTime != null) {
       // loadTime is the time of LCP that's related to receiving the LCP element response..
-      span.setAttribute('lcp.loadTime', _lcpEntry.loadTime);
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      span.setAttribute(LCP_LOADTIME, _lcpEntry.loadTime);
     }
 
     if (_lcpEntry.renderTime != null) {
       // renderTime is loadTime + rendering time
       // it's 0 if the LCP element is loaded from a 3rd party origin that doesn't send the
       // `Timing-Allow-Origin` header.
-      span.setAttribute('lcp.renderTime', _lcpEntry.renderTime);
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+      span.setAttribute(LCP_RENDERTIME, _lcpEntry.renderTime);
     }
 
-    span.setAttribute('lcp.size', _lcpEntry.size);
+    // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+    span.setAttribute(LCP_SIZE, _lcpEntry.size);
   }
 
   // Only add CLS attributes if CLS is being recorded on the pageload span

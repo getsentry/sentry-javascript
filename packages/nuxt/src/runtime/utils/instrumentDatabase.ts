@@ -5,18 +5,17 @@ import {
   captureException,
   DB_SPAN_NAME_FALLBACK,
   debug,
-  getClient,
-  hasSpanStreamingEnabled,
   type Span,
+  type SpanAttributes,
   SPAN_STATUS_ERROR,
   startSpan,
   type StartSpanOptions,
 } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
-import { sanitizeSqlQuery, sanitizeSqlQueryWithSummary, type SqlDialect } from '@sentry/server-utils';
+import { getSqlQueryAttributes, getSqlSpanName, sanitizeSqlQuery, type SqlDialect } from '@sentry/server-utils';
 import type { Database, PreparedStatement } from 'db0';
 import { type DatabaseConnectionConfig, type DatabaseSpanData, getDatabaseSpanData } from './database-span-data';
-import { DB_NAMESPACE, DB_QUERY_SUMMARY, DB_QUERY_TEXT, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
+import { DB_QUERY_TEXT, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
 
 type MaybeInstrumentedDatabase = Database & {
   __sentry_instrumented__?: boolean;
@@ -74,7 +73,8 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConn
   }
 
   const metadata: DatabaseSpanData = {
-    [DB_SYSTEM_NAME]: config?.connector ?? db.dialect,
+    // A connector name like `bun-sqlite` or `mysql2` names the driver, the dialect names the database system.
+    [DB_SYSTEM_NAME]: db.dialect ?? config?.connector,
     ...getDatabaseSpanData(config),
   };
 
@@ -86,7 +86,18 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConn
     apply(target, thisArg, args: Parameters<typeof db.prepare>) {
       const [query] = args;
 
-      return instrumentPreparedStatement(target.apply(thisArg, args), query, metadata, dialect);
+      let statement: PreparedStatement;
+      try {
+        statement = target.apply(thisArg, args);
+      } catch (error) {
+        // Connectors like `bun-sqlite` and `better-sqlite3` compile the statement in `prepare`, so an invalid query
+        // throws here and not when the statement runs.
+        startSpan(createStartSpanOptions(query, metadata, dialect), span => captureDatabaseError(span, error));
+        void flushIfServerless();
+        throw error;
+      }
+
+      return instrumentPreparedStatement(statement, query, metadata, dialect);
     },
   });
 
@@ -225,13 +236,7 @@ function handleSpanStart(fn: () => unknown, breadcrumbOpts?: { query: string; di
 
       return result;
     } catch (error) {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-      captureException(error, {
-        mechanism: {
-          handled: false,
-          type: NUXT_DATABASE_ORIGIN,
-        },
-      });
+      captureDatabaseError(span, error);
 
       // Re-throw the error to be handled by the caller
       throw error;
@@ -241,6 +246,16 @@ function handleSpanStart(fn: () => unknown, breadcrumbOpts?: { query: string; di
   };
 }
 
+function captureDatabaseError(span: Span, error: unknown): void {
+  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+  captureException(error, {
+    mechanism: {
+      handled: false,
+      type: NUXT_DATABASE_ORIGIN,
+    },
+  });
+}
+
 function createBreadcrumb(query: string, dialect: SqlDialect | undefined): void {
   // The breadcrumb carries the same query text as the span, so it is sanitized and guarded the same way.
   const queryText = query ? sanitizeSqlQuery(query, dialect) : undefined;
@@ -248,7 +263,7 @@ function createBreadcrumb(query: string, dialect: SqlDialect | undefined): void 
     category: 'query',
     message: queryText,
     data: {
-      'db.query.text': queryText,
+      [DB_QUERY_TEXT]: queryText,
     },
   });
 }
@@ -261,22 +276,12 @@ function createStartSpanOptions(
   data: DatabaseSpanData,
   dialect: SqlDialect | undefined,
 ): StartSpanOptions {
-  const { queryText, querySummary } = sanitizeSqlQueryWithSummary(query, dialect);
-
-  const client = getClient();
-  const name =
-    client && hasSpanStreamingEnabled(client)
-      ? querySummary || (data[DB_NAMESPACE] as string | undefined) || DB_SPAN_NAME_FALLBACK
-      : (queryText ?? DB_SPAN_NAME_FALLBACK);
-
-  return {
-    name,
-    attributes: {
-      [DB_QUERY_TEXT]: queryText,
-      [DB_QUERY_SUMMARY]: querySummary,
-      [SENTRY_ORIGIN]: NUXT_DATABASE_ORIGIN,
-      [SENTRY_OP]: DB_QUERY,
-      ...data,
-    },
+  const attributes: SpanAttributes = {
+    ...getSqlQueryAttributes(query, dialect),
+    [SENTRY_ORIGIN]: NUXT_DATABASE_ORIGIN,
+    [SENTRY_OP]: DB_QUERY,
+    ...data,
   };
+
+  return { name: getSqlSpanName(attributes, DB_SPAN_NAME_FALLBACK), attributes };
 }

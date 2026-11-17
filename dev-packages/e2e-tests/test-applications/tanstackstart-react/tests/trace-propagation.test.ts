@@ -1,11 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 
-const usesManagedTunnelRoute =
-  (process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off') !== 'off' || process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1';
-
-test.skip(usesManagedTunnelRoute, 'Default e2e suites run only in the proxy variant');
-
 test.describe('Trace propagation', () => {
   test('should inject metatags in ssr pageload', async ({ page }) => {
     await page.goto('/');

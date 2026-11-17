@@ -66,6 +66,25 @@ describe('OpenAI Tool Calls integration', () => {
     },
   ]);
 
+  const CHAT_GEMINI_STREAM_TOOL_CALLS = JSON.stringify([
+    {
+      id: 'call_paris',
+      type: 'function',
+      function: {
+        name: 'get_weather',
+        arguments: '{"latitude":48.8566,"longitude":2.3522}',
+      },
+    },
+    {
+      id: 'call_london',
+      type: 'function',
+      function: {
+        name: 'get_weather',
+        arguments: '{"latitude":51.5072,"longitude":-0.1276}',
+      },
+    },
+  ]);
+
   const RESPONSES_TOOL_CALLS = JSON.stringify([
     {
       type: 'function_call',
@@ -84,7 +103,7 @@ describe('OpenAI Tool Calls integration', () => {
             const segment = container.items.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
             const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
-            expect(spans).toHaveLength(4);
+            expect(spans).toHaveLength(5);
             const chatToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-tools-123',
             );
@@ -192,6 +211,12 @@ describe('OpenAI Tool Calls integration', () => {
               type: 'integer',
               value: 40,
             });
+
+            const geminiStreamSpan = spans.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-gemini-tools-123',
+            );
+            expect(geminiStreamSpan).toBeDefined();
+            expect(geminiStreamSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeUndefined();
 
             const responsesToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_tools_789',
@@ -318,7 +343,7 @@ describe('OpenAI Tool Calls integration', () => {
             const segment = container.items.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
             const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
-            expect(spans).toHaveLength(4);
+            expect(spans).toHaveLength(5);
             const chatToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-tools-123',
             );
@@ -450,6 +475,15 @@ describe('OpenAI Tool Calls integration', () => {
             expect(streamingChatToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
               type: 'integer',
               value: 40,
+            });
+
+            const geminiStreamSpan = spans.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-gemini-tools-123',
+            );
+            expect(geminiStreamSpan).toBeDefined();
+            expect(geminiStreamSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toEqual({
+              type: 'string',
+              value: CHAT_GEMINI_STREAM_TOOL_CALLS,
             });
 
             const responsesToolsSpan = spans.find(

@@ -1,5 +1,6 @@
 import type { SpanAttributeValue } from '@sentry/core';
 import {
+  GEN_AI_COST_TOTAL_TOKENS,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
@@ -80,6 +81,12 @@ export function getProviderMetadataAttributes(providerMetadata: unknown): Record
     attributes[GEN_AI_USAGE_OUTPUT_TOKENS] = (googleUsage.candidatesTokenCount ?? 0) + googleUsage.thoughtsTokenCount;
     setAttributeIfDefined(attributes, GEN_AI_USAGE_TOTAL_TOKENS, googleUsage.totalTokenCount);
     setAttributeIfDefined(attributes, GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, googleUsage.thoughtsTokenCount);
+  }
+
+  // Vercel AI Gateway reports the billed USD cost of the call, as a decimal string.
+  const gatewayCost = Number(metadata.gateway?.cost);
+  if (metadata.gateway?.cost != null && Number.isFinite(gatewayCost)) {
+    attributes[GEN_AI_COST_TOTAL_TOKENS] = gatewayCost;
   }
 
   return attributes;

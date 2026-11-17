@@ -23,8 +23,5 @@
     "typescript": "^5.5.2",
     "wrangler": "^4.61.0",
     "ws": "^8.18.3"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

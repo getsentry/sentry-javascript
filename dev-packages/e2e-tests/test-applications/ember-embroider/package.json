@@ -65,8 +65,5 @@
   },
   "ember": {
     "edition": "octane"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

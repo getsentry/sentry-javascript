@@ -2,7 +2,7 @@ import { HTTP_REQUEST_METHOD, SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH } f
 import type { Client, Span } from '@sentry/core';
 
 import * as SentryCore from '@sentry/core';
-import * as SentryNode from '@sentry/node';
+import * as SentryCoreServer from '@sentry/core/server';
 import type { APIContext } from 'astro';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
@@ -33,8 +33,29 @@ const STATIC_REQUEST_CONTEXT = {
   url: new URL('https://myDomain.io/users/'),
 };
 
+describe('sentryMiddleware with the managed tunnel', () => {
+  it('answers tunnel requests without calling the rest of the middleware chain', async () => {
+    const getClientSpy = vi.spyOn(SentryCore, 'getClient').mockReturnValue({} as Client);
+    const tunnelResponse = new Response('forwarded');
+    const matcherSpy = vi
+      .spyOn(SentryCoreServer, '_INTERNAL_handleServedTunnelRequest')
+      .mockReturnValue(Promise.resolve(tunnelResponse));
+    const next = vi.fn();
+    const request = new Request('https://myDomain.io/abc123', { method: 'POST' });
+
+    const response = await handleRequest()({ ...DYNAMIC_REQUEST_CONTEXT, request } as unknown as APIContext, next);
+
+    expect(response).toBe(tunnelResponse);
+    expect(matcherSpy).toHaveBeenCalledWith(request);
+    expect(next).not.toHaveBeenCalled();
+
+    getClientSpy.mockRestore();
+    matcherSpy.mockRestore();
+  });
+});
+
 describe('sentryMiddleware', () => {
-  const startSpanSpy = vi.spyOn(SentryNode, 'startSpan');
+  const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
 
   const getSpanMock = vi.fn(() => {
     return {
@@ -61,7 +82,7 @@ describe('sentryMiddleware', () => {
   };
 
   function mockClientWith(dataCollection: Partial<typeof DATA_COLLECTION_DEFAULTS>): void {
-    vi.spyOn(SentryNode, 'getClient').mockImplementation(
+    vi.spyOn(SentryCore, 'getClient').mockImplementation(
       () =>
         ({
           getOptions: () => ({}),
@@ -71,7 +92,7 @@ describe('sentryMiddleware', () => {
   }
 
   beforeEach(() => {
-    vi.spyOn(SentryNode, 'getCurrentScope').mockImplementation(() => {
+    vi.spyOn(SentryCore, 'getCurrentScope').mockImplementation(() => {
       return {
         setPropagationContext: vi.fn(),
         getSpan: getSpanMock,
@@ -79,9 +100,9 @@ describe('sentryMiddleware', () => {
         getPropagationContext: () => ({}),
       } as any;
     });
-    vi.spyOn(SentryNode, 'getActiveSpan').mockImplementation(getSpanMock);
+    vi.spyOn(SentryCore, 'getActiveSpan').mockImplementation(getSpanMock);
     mockClientWith({ userInfo: false });
-    vi.spyOn(SentryNode, 'getTraceMetaTags').mockImplementation(
+    vi.spyOn(SentryCore, 'getTraceMetaTags').mockImplementation(
       () => `
     <meta name="sentry-trace" content="123">
     <meta name="baggage" content="abc">
@@ -149,7 +170,7 @@ describe('sentryMiddleware', () => {
     }
 
     beforeEach(() => {
-      vi.spyOn(SentryNode, 'getClient').mockImplementation(
+      vi.spyOn(SentryCore, 'getClient').mockImplementation(
         () =>
           ({
             getOptions: () => ({ traceLifecycle: 'stream' }),
@@ -244,7 +265,7 @@ describe('sentryMiddleware', () => {
   });
 
   it('throws and sends an error to sentry if `next()` throws', async () => {
-    const captureExceptionSpy = vi.spyOn(SentryNode, 'captureException');
+    const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
 
     const middleware = handleRequest();
     const ctx = {
@@ -266,7 +287,7 @@ describe('sentryMiddleware', () => {
   });
 
   it('throws and sends an error to sentry if response streaming throws', async () => {
-    const captureExceptionSpy = vi.spyOn(SentryNode, 'captureException');
+    const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
 
     const middleware = handleRequest();
     const ctx = {
@@ -448,7 +469,7 @@ describe('sentryMiddleware', () => {
   });
 
   it('injects routing <meta> tag into the HTML of a pageload response without Sentry being initialized', async () => {
-    vi.spyOn(SentryNode, 'getClient').mockImplementation(() => undefined);
+    vi.spyOn(SentryCore, 'getClient').mockImplementation(() => undefined);
 
     const middleware = handleRequest();
 
@@ -636,7 +657,7 @@ describe('sentryMiddleware', () => {
   });
 
   describe('async context isolation', () => {
-    const withIsolationScopeSpy = vi.spyOn(SentryNode, 'withIsolationScope');
+    const withIsolationScopeSpy = vi.spyOn(SentryCore, 'withIsolationScope');
     afterEach(() => {
       vi.clearAllMocks();
       withIsolationScopeSpy.mockRestore();
@@ -694,10 +715,10 @@ describe('sentryMiddleware', () => {
 });
 
 describe('parametrized route resolution', () => {
-  const startSpanSpy = vi.spyOn(SentryNode, 'startSpan');
+  const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
 
   beforeEach(() => {
-    vi.spyOn(SentryNode, 'getCurrentScope').mockImplementation(
+    vi.spyOn(SentryCore, 'getCurrentScope').mockImplementation(
       () =>
         ({
           setPropagationContext: vi.fn(),
@@ -706,15 +727,15 @@ describe('parametrized route resolution', () => {
           getPropagationContext: () => ({}),
         }) as any,
     );
-    vi.spyOn(SentryNode, 'getActiveSpan').mockImplementation(() => undefined);
-    vi.spyOn(SentryNode, 'getClient').mockImplementation(
+    vi.spyOn(SentryCore, 'getActiveSpan').mockImplementation(() => undefined);
+    vi.spyOn(SentryCore, 'getClient').mockImplementation(
       () =>
         ({
           getOptions: () => ({}),
           getDataCollectionOptions: () => ({ httpHeaders: { request: false, response: false } }),
         }) as unknown as Client,
     );
-    vi.spyOn(SentryNode, 'getTraceMetaTags').mockImplementation(() => '');
+    vi.spyOn(SentryCore, 'getTraceMetaTags').mockImplementation(() => '');
   });
 
   afterEach(() => {

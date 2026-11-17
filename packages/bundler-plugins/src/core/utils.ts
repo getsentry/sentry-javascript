@@ -10,6 +10,7 @@ import {
   _INTERNAL_getReleaseFromCommitEnv as getReleaseFromCommitEnv,
   _INTERNAL_readCommitEnvVar as readCoreCommitEnvVar,
 } from '@sentry/core/server';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 /**
  * Checks whether the given input is already an array, and if it isn't, wraps it in one.
@@ -216,6 +217,37 @@ function gitRevision(): string | undefined {
   return gitRevision;
 }
 
+// Mirrors the CLI's `set-commits --auto` fallback for builds without an `origin` remote. Vercel is left out
+// because the CLI only reads `VERCEL_GIT_*` on production builds.
+const CI_REPOSITORY_ENV_VARS = [
+  'GITHUB_REPOSITORY',
+  'CI_PROJECT_PATH',
+  'BITBUCKET_REPO_FULL_NAME',
+  'RENDER_GIT_REPO_SLUG',
+  'RAILWAY_GIT_REPO_NAME',
+  'CIRCLE_PROJECT_REPONAME',
+  'BUILDKITE_REPO',
+  'BUILD_REPOSITORY_URI',
+] as const;
+
+/**
+ * Whether `set-commits --auto` can find the repository: from the `origin` git remote, or from CI variables.
+ */
+export function canAutoDetectRepository(): boolean {
+  if (
+    CI_REPOSITORY_ENV_VARS.some(name => process.env[name]) ||
+    (process.env['NETLIFY'] && process.env['REPOSITORY_URL'])
+  ) {
+    return true;
+  }
+  try {
+    childProcess.execSync('git remote get-url origin', { stdio: 'ignore', windowsHide: true });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Tries to guess a release name based on environmental data.
  */
@@ -245,11 +277,6 @@ function warnAboutPlaceholderCommitEnvVar(name: string): void {
  */
 export function readCommitEnvVar(name: string): string | undefined {
   return readCoreCommitEnvVar(name, warnAboutPlaceholderCommitEnvVar);
-}
-
-function stringifyForCodeInjection(value: unknown): string | undefined {
-  // Bundles may be inlined in HTML, where JSON quoting does not escape script tags or HTML comments.
-  return JSON.stringify(value)?.replace(/</g, '\\u003c');
 }
 
 /**

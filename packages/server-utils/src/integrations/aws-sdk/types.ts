@@ -11,6 +11,8 @@ export interface NormalizedRequest {
   commandName: string;
   commandInput: CommandInput;
   region?: string;
+  /** The `abortSignal` the caller passed to `send`, if any. */
+  abortSignal?: AbortSignal;
 }
 
 export interface NormalizedResponse {

@@ -1,5 +1,5 @@
 import { addNitroPlugin, createResolver } from '@nuxt/kit';
-import { consoleSandbox } from '@sentry/core';
+import { consoleSandbox, stringifyForCodeInjection } from '@sentry/core';
 import type { NitroConfig } from 'nitropack/types';
 import type { SentryNuxtModuleOptions } from '../common/types';
 import { addServerTemplate } from '../vendor/server-template';
@@ -38,7 +38,7 @@ export function addDatabaseInstrumentation(
   addServerTemplate({
     filename: '#sentry/database-config.mjs',
     getContents: () => {
-      return `export const databaseConfig = ${JSON.stringify(databaseConfig)};`;
+      return `export const databaseConfig = ${stringifyForCodeInjection(databaseConfig)};`;
     },
   });
 

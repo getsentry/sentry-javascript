@@ -23,6 +23,10 @@ test('sends a streamed server span for a Worker-rendered route', async ({ page }
   expect(serverSpan.name).toBe('GET /');
   expect(serverSpan.status).toBe('ok');
   expect(serverSpan.trace_id).toMatch(/[a-f0-9]{32}/);
+  expect(serverSpan.attributes['sentry.sdk.name']).toEqual({
+    type: 'string',
+    value: 'sentry.javascript.sveltekit',
+  });
 });
 
 test('captures a server load error thrown in the Worker', async ({ page }) => {
@@ -38,6 +42,7 @@ test('captures a server load error thrown in the Worker', async ({ page }) => {
     value: 'Server Load Error on Cloudflare',
     mechanism: expect.objectContaining({ handled: false }),
   });
+  expect(errorEvent.sdk?.name).toBe('sentry.javascript.sveltekit');
 });
 
 // `handleError` runs after `wrapRequestHandler` has already returned for streamed responses, so it

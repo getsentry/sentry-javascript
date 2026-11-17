@@ -243,10 +243,10 @@ export function getHttpSpanDetailsFromUrlObject(
 
     if (!isURLObjectRelative(urlObject)) {
       if (urlObject.port) {
-        attributes[URL_PORT] = urlObject.port;
+        attributes[URL_PORT] = Number(urlObject.port);
       }
       if (urlObject.protocol) {
-        attributes[URL_SCHEME] = urlObject.protocol;
+        attributes[URL_SCHEME] = urlObject.protocol.replace(/:$/, '');
       }
       if (urlObject.hostname) {
         attributes[kind === 'server' ? SERVER_ADDRESS : URL_DOMAIN] = urlObject.hostname;

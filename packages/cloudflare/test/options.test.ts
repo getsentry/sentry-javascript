@@ -84,6 +84,24 @@ describe('getFinalOptions', () => {
     expect(result.environment).toBe('staging');
   });
 
+  it('uses SENTRY_NAME from env when user serverName is undefined', () => {
+    const userOptions = { dsn: 'test-dsn' };
+    const env = { SENTRY_NAME: 'my-worker' };
+
+    const result = getFinalOptions(userOptions, env);
+
+    expect(result.serverName).toBe('my-worker');
+  });
+
+  it('prefers user serverName over env SENTRY_NAME', () => {
+    const userOptions = { dsn: 'test-dsn', serverName: 'user-server' };
+    const env = { SENTRY_NAME: 'my-worker' };
+
+    const result = getFinalOptions(userOptions, env);
+
+    expect(result.serverName).toBe('user-server');
+  });
+
   it('uses SENTRY_TRACES_SAMPLE_RATE from env when user tracesSampleRate is undefined', () => {
     const userOptions = { dsn: 'test-dsn' };
     const env = { SENTRY_TRACES_SAMPLE_RATE: '0.5' };

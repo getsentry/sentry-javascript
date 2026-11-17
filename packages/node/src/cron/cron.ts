@@ -1,5 +1,5 @@
-import { captureException, withMonitor } from '@sentry/core';
-import { replaceCronNames } from './common';
+import { addNonEnumerableProperty, captureException, withMonitor } from '@sentry/core';
+import { getCronMonitorConfig } from './common';
 
 export type CronJobParams = {
   cronTime: string | Date;
@@ -51,6 +51,8 @@ export type CronJobConstructor = {
   ): CronJob;
 };
 
+const MONITORED = Symbol.for('sentry.cron.monitored');
+
 const ERROR_TEXT = 'Automatic instrumentation of CronJob only supports crontab string';
 
 /**
@@ -72,6 +74,8 @@ const ERROR_TEXT = 'Automatic instrumentation of CronJob only supports crontab s
  *   console.log('You will see this message every minute');
  * });
  * ```
+ *
+ * @deprecated Use `cronJobIntegration` instead.
  */
 export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: string): T {
   let jobScheduled = false;
@@ -90,7 +94,8 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
 
       jobScheduled = true;
 
-      const cronString = replaceCronNames(cronTime);
+      const utcOffset = args[7];
+      const monitorConfig = utcOffset == null ? getCronMonitorConfig(cronTime, timeZone, 'cron') : undefined;
 
       async function monitoredTick(context: unknown, onComplete?: unknown): Promise<void> {
         return withMonitor(
@@ -108,19 +113,19 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
               throw e;
             }
           },
-          {
-            schedule: { type: 'crontab', value: cronString },
-            timezone: timeZone || undefined,
-          },
+          monitorConfig,
         );
       }
+
+      // Tells `cronJobIntegration` that this job is already monitored.
+      addNonEnumerableProperty(monitoredTick, MONITORED, true);
 
       return new target(cronTime, monitoredTick, onComplete, start, timeZone, ...rest);
     },
     get(target, prop: keyof CronJobConstructor) {
       if (prop === 'from') {
         return (param: CronJobParams) => {
-          const { cronTime, onTick, timeZone } = param;
+          const { cronTime, onTick, timeZone, utcOffset } = param;
 
           if (typeof cronTime !== 'string') {
             throw new Error(ERROR_TEXT);
@@ -132,7 +137,7 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
 
           jobScheduled = true;
 
-          const cronString = replaceCronNames(cronTime);
+          const monitorConfig = utcOffset == null ? getCronMonitorConfig(cronTime, timeZone, 'cron') : undefined;
 
           param.onTick = async (context: unknown, onComplete?: unknown) => {
             return withMonitor(
@@ -150,12 +155,11 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
                   throw e;
                 }
               },
-              {
-                schedule: { type: 'crontab', value: cronString },
-                timezone: timeZone || undefined,
-              },
+              monitorConfig,
             );
           };
+
+          addNonEnumerableProperty(param.onTick, MONITORED, true);
 
           return target.from(param);
         };

@@ -3,12 +3,14 @@ import { addPlugin, addPluginTemplate, addTemplate, addVitePlugin, createResolve
 import type {} from '@nuxt/nitro-server';
 
 import * as path from 'path';
+import { NUXT_TUNNEL_BASE_PATH_GLOBAL } from './common/tunnel';
 import type { SentryNuxtModuleOptions } from './common/types';
-import { setupNitroServer } from './vite/nitroServer';
+import { addTunnelPlugin, setupNitroServer } from './vite/nitroServer';
 import { setupOrchestrion } from './vite/orchestrion';
 import { setupSourceMaps } from './vite/sourceMaps';
 import { findDefaultSdkInitFile, resolveServerApi } from './vite/utils';
 import { setupViteServer } from './vite/viteServer';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 type NuxtPageSubset = { file?: string; path: string };
@@ -56,11 +58,12 @@ export default defineNuxtModule<ModuleOptions>({
         // Dynamic import of config file to wrap it within a Nuxt context (here: defineNuxtPlugin)
         // Makes it possible to call useRuntimeConfig() in the user-defined sentry config file
         getContents: () => `
-          import { defineNuxtPlugin } from "#imports";
+          import { defineNuxtPlugin, useRuntimeConfig } from "#imports";
 
           export default defineNuxtPlugin({
             name: 'sentry-client-config',
             async setup() {
+              globalThis.${NUXT_TUNNEL_BASE_PATH_GLOBAL} = useRuntimeConfig().app.baseURL;
               await import("${buildDirResolver.resolve(`/${clientConfigFile}`)}")
             }
           });`,
@@ -90,12 +93,17 @@ export default defineNuxtModule<ModuleOptions>({
       } else {
         setupNitroServer(nuxt, serverApi, serverConfigFile, moduleOptions);
       }
+    } else {
+      // The Cloudflare setup initializes the SDK from `sentryCloudflareNitroPlugin`, so it needs the tunnel too.
+      addTunnelPlugin(serverApi);
+    }
 
-      if (isMinNuxtV4) {
-        addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'), mode: 'server' });
-      } else {
-        addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector-legacy.server'), mode: 'server' });
-      }
+    // Names the server spans of pages after their route, with the SDK set up from the server config or from
+    // `sentryCloudflareNitroPlugin`.
+    if (isMinNuxtV4) {
+      addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'), mode: 'server' });
+    } else {
+      addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector-legacy.server'), mode: 'server' });
     }
 
     if (clientConfigFile || serverConfigFile) {
@@ -121,13 +129,15 @@ export default defineNuxtModule<ModuleOptions>({
         name: 'sentry-nuxt-pages-data-virtual',
         resolveId: (id: string) => (id === pagesDataVirtualModuleId ? `\0${pagesDataVirtualModuleId}` : null),
         load: (id: string) =>
-          id === `\0${pagesDataVirtualModuleId}` ? `export default ${JSON.stringify(pagesData, null, 2)};` : undefined,
+          id === `\0${pagesDataVirtualModuleId}`
+            ? `export default ${stringifyForCodeInjection(pagesData, null, 2)};`
+            : undefined,
       });
     } else {
       // Nuxt v3: register as a build template (accessible via #build/)
       addTemplate({
         filename: 'sentry--nuxt-pages-data.mjs',
-        getContents: () => `export default ${JSON.stringify(pagesData, null, 2)};`,
+        getContents: () => `export default ${stringifyForCodeInjection(pagesData, null, 2)};`,
       });
     }
 

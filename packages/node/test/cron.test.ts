@@ -4,6 +4,8 @@ import { cron } from '../src';
 import type { CronJob, CronJobParams } from '../src/cron/cron';
 import type { NodeCron, NodeCronOptions } from '../src/cron/node-cron';
 
+const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 describe('cron check-ins', () => {
   let withMonitorSpy: MockInstance;
 
@@ -82,7 +84,22 @@ describe('cron check-ins', () => {
             expect(withMonitorSpy).toHaveBeenCalledTimes(1);
             expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), {
               schedule: { type: 'crontab', value: '* * * 1,9 0' },
+              timezone: localTimezone,
             });
+            done();
+          },
+        });
+      }));
+
+    test('sends no monitor config with a utc offset', () =>
+      new Promise<void>(done => {
+        const CronJobWithCheckIn = cron.instrumentCron(CronJobMock, 'my-cron-job');
+
+        CronJobWithCheckIn.from({
+          cronTime: '* * * Jan,Sep Sun',
+          utcOffset: 60,
+          onTick: () => {
+            expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), undefined);
             done();
           },
         });
@@ -131,10 +148,66 @@ describe('cron check-ins', () => {
             expect(withMonitorSpy).toHaveBeenCalledTimes(1);
             expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), {
               schedule: { type: 'crontab', value: '* * * 1,9 0' },
+              timezone: localTimezone,
             });
             done();
           },
           { name: 'my-cron-job' },
+        );
+      }));
+
+    test('sends no monitor config for a schedule Sentry would read differently', () =>
+      new Promise<void>(done => {
+        const nodeCron: NodeCron = {
+          schedule: (_expression: string, callback: () => void): unknown => callback(),
+        };
+
+        cron.instrumentNodeCron(nodeCron).schedule(
+          '*/10 * * * * *',
+          () => {
+            expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), undefined);
+            done();
+          },
+          { name: 'my-cron-job' },
+        );
+      }));
+
+    test.each(['0 9 * * 5-0', '0 9 * * sat-sun', '0 9 * * 1-7', '0 9 */2 * 1'])(
+      'sends no monitor config for %s, which node-cron before 4.6 reads differently',
+      expression =>
+        new Promise<void>(done => {
+          const nodeCron: NodeCron = {
+            schedule: (_expression: string, callback: () => void): unknown => callback(),
+          };
+
+          cron.instrumentNodeCron(nodeCron).schedule(
+            expression,
+            () => {
+              expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), undefined);
+              done();
+            },
+            { name: 'my-cron-job' },
+          );
+        }),
+    );
+
+    test('keeps isolateTrace in the monitor config', () =>
+      new Promise<void>(done => {
+        const nodeCron: NodeCron = {
+          schedule: (_expression: string, callback: () => void): unknown => callback(),
+        };
+
+        cron.instrumentNodeCron(nodeCron, { isolateTrace: true }).schedule(
+          '0 9 * * *',
+          () => {
+            expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), {
+              schedule: { type: 'crontab', value: '0 9 * * *' },
+              timezone: 'Europe/Vienna',
+              isolateTrace: true,
+            });
+            done();
+          },
+          { name: 'my-cron-job', timezone: 'Europe/Vienna' },
         );
       }));
 
@@ -180,6 +253,7 @@ describe('cron check-ins', () => {
           expect(withMonitorSpy).toHaveBeenCalledTimes(1);
           expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), {
             schedule: { type: 'crontab', value: '* * * 1,9 0' },
+            timezone: localTimezone,
           });
           done();
         });
@@ -219,6 +293,15 @@ describe('cron check-ins', () => {
       }).toThrowError(
         "Automatic instrumentation of 'node-schedule' requires the first parameter of 'scheduleJob' to be a job name string and the second parameter to be a crontab string",
       );
+    });
+
+    test('marks the callback as monitored, so nodeScheduleIntegration skips it', () => {
+      const scheduleWithCheckIn = cron.instrumentNodeSchedule({
+        scheduleJob: (_name: unknown, _expression: unknown, callback: unknown) => callback,
+      });
+
+      const callback = scheduleWithCheckIn.scheduleJob('my-cron-job', '* * * * *', () => {}) as Record<symbol, unknown>;
+      expect(callback[Symbol.for('sentry.cron.monitored')]).toBe(true);
     });
   });
 });

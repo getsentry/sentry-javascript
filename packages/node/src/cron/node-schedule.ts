@@ -1,5 +1,5 @@
-import { withMonitor } from '@sentry/core';
-import { replaceCronNames } from './common';
+import { addNonEnumerableProperty, withMonitor } from '@sentry/core';
+import { getCronMonitorConfig } from './common';
 
 export interface NodeSchedule {
   scheduleJob(
@@ -44,6 +44,7 @@ export function instrumentNodeSchedule<T>(lib: T & NodeSchedule): T {
 
             const monitorSlug = nameOrExpression;
             const expression = expressionOrCallback;
+            const monitorConfig = getCronMonitorConfig(expression, undefined, 'cron-parser');
 
             async function monitoredCallback(): Promise<void> {
               return withMonitor(
@@ -52,11 +53,12 @@ export function instrumentNodeSchedule<T>(lib: T & NodeSchedule): T {
                   // oxlint-disable-next-line typescript/await-thenable -- callback may be async at runtime
                   await callback?.();
                 },
-                {
-                  schedule: { type: 'crontab', value: replaceCronNames(expression) },
-                },
+                monitorConfig,
               );
             }
+
+            // Tells `nodeScheduleIntegration` that this job is already monitored.
+            addNonEnumerableProperty(monitoredCallback, Symbol.for('sentry.cron.monitored'), true);
 
             return target.apply(thisArg, [monitorSlug, expression, monitoredCallback]);
           },

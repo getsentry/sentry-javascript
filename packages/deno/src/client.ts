@@ -1,3 +1,4 @@
+import { SERVER_ADDRESS } from '@sentry/conventions/attributes';
 import type { ServerRuntimeClientOptions } from '@sentry/core/server';
 import { SDK_VERSION } from '@sentry/core';
 import { ServerRuntimeClient } from '@sentry/core/server';
@@ -65,7 +66,7 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
       this.on('beforeCaptureLog', log => {
         log.attributes = {
           ...log.attributes,
-          'server.address': serverName,
+          [SERVER_ADDRESS]: serverName,
         };
       });
     }

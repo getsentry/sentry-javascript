@@ -73,15 +73,9 @@ describe('MCP server spans (streamed, manual instrumentation)', () => {
     });
   });
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-v1.mjs',
-    'instrument.mjs',
-    (createTestRunner, test) => {
-      test('captures an MCP v1 initialize request queued before transport start once', async () => {
-        await createTestRunner().unordered().expect({ span: assertInitializeSpan }).start().completed();
-      });
-    },
-    { additionalDependencies: { '@modelcontextprotocol/sdk': '1.30.0' } },
-  );
+  createEsmAndCjsTests(__dirname, 'scenario-v1.mjs', 'instrument.mjs', (createTestRunner, test) => {
+    test('captures an MCP v1 initialize request queued before transport start once', async () => {
+      await createTestRunner().unordered().expect({ span: assertInitializeSpan }).start().completed();
+    });
+  });
 });

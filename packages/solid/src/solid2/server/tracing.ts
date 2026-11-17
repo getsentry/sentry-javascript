@@ -14,10 +14,11 @@ import {
   getRootSpan,
   getTraceData,
   spanToJSON,
+  // Server code: the plain variant is right here (the rule treats all of packages/solid as browser-facing).
+  // oxlint-disable-next-line sdk/no-unguarded-span-apis
+  startInactiveSpan,
   updateSpanName,
 } from '@sentry/core';
-// The plain span API: this is server code (the lint rule treats all of packages/solid as browser-facing).
-import { startInactiveSpan } from '@sentry/node';
 import type {
   FrameEvent,
   FrameLive,

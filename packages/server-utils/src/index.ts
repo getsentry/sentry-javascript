@@ -18,7 +18,7 @@ export {
   subscribe as subscribeDiagnosticsChannel,
   tracingChannel as diagnosticsTracingChannel,
 } from './utils/diagnosticsChannel';
-export { eveConversationHook, eveIntegration } from './eve';
+export { eveConversationHook, eveIntegration, eveTracePolicy } from './eve';
 export { getInstrumentedModuleNames } from './orchestrion/config';
 export {
   fastifyIntegration,
@@ -38,6 +38,17 @@ export { anthropicAIIntegration } from './integrations/anthropic';
 export { awsIntegration } from './integrations/aws-sdk';
 export { dataloaderIntegration } from './integrations/dataloader';
 export { genericPoolIntegration } from './integrations/generic-pool';
+export { cronJobIntegration } from './integrations/cron';
+export type { CronJobIntegrationOptions } from './integrations/cron';
+export {
+  isReadAlikeByNodeCron3 as _INTERNAL_isReadAlikeByNodeCron3,
+  nodeCronIntegration,
+} from './integrations/node-cron';
+export type { NodeCronIntegrationOptions } from './integrations/node-cron';
+export { nodeScheduleIntegration } from './integrations/node-schedule';
+export type { NodeScheduleIntegrationOptions } from './integrations/node-schedule';
+export { cronExpressionToMonitorConfig as _INTERNAL_cronExpressionToMonitorConfig } from './utils/cronMonitoring';
+export type { CronDialect as _INTERNAL_CronDialect } from './utils/cronMonitoring';
 export { googleGenAIIntegration } from './integrations/google-genai';
 export { graphqlIntegration } from './integrations/graphql';
 export { hapiIntegration } from './integrations/hapi';
@@ -51,10 +62,16 @@ export { langChainIntegration } from './integrations/langchain';
 export { langGraphIntegration } from './integrations/langgraph';
 export { createFlueInstrumentation } from './ai/flue';
 export { flueIntegration } from './integrations/flue';
+export { piAiIntegration } from './integrations/pi-ai';
 export { piDurableIntegration } from './integrations/pi-durable';
 export type { FlueOptions } from './ai/flue';
 export { mastraIntegration } from './integrations/mastra';
 export { mcpServerIntegration } from './integrations/mcp-server';
+export {
+  instrumentTunnelServers as _INTERNAL_instrumentTunnelServers,
+  makeServeTunnelIntegration,
+} from './integrations/serveTunnel';
+export { instrumentTunnelServer as _INTERNAL_instrumentTunnelServer } from './utils/tunnelServer';
 export { SentryMastraExporter } from './ai/mastra';
 export { lruMemoizerIntegration } from './integrations/lru-memoizer';
 export { mongoIntegration } from './integrations/mongodb';
@@ -66,8 +83,8 @@ export { typesafeIntegration } from './integrations/typesafe';
 export { mysqlIntegration } from './integrations/mysql';
 export { mysql2Integration } from './integrations/mysql2';
 export { openAIIntegration } from './integrations/openai';
-export { postgresIntegration } from './integrations/postgres';
-export { postgresJsIntegration } from './integrations/postgres-js';
+export { postgresIntegration } from './integrations/pg';
+export { postgresJsIntegration } from './integrations/postgresjs';
 export { neonIntegration } from './integrations/neon';
 export { tediousIntegration } from './integrations/tedious';
 export { vercelAIIntegration } from './integrations/vercel-ai';

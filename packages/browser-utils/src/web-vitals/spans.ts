@@ -37,6 +37,12 @@ import {
   BROWSER_WEB_VITAL_INP_TARGET,
   UI_COMPONENT_NAME,
   SENTRY_OP,
+  BROWSER_WEB_VITAL_LCP_ELEMENT,
+  BROWSER_WEB_VITAL_LCP_ID,
+  BROWSER_WEB_VITAL_LCP_LOAD_TIME,
+  BROWSER_WEB_VITAL_LCP_RENDER_TIME,
+  BROWSER_WEB_VITAL_LCP_SIZE,
+  BROWSER_WEB_VITAL_LCP_URL,
 } from '@sentry/conventions/attributes';
 import { _emitWebVitalSpan } from './emitSpan';
 import { isValidLcpMetric } from './lcp';
@@ -214,16 +220,16 @@ export function _sendLcpSpan(
   const attributes: SpanAttributes = {};
 
   if (selector) {
-    attributes['browser.web_vital.lcp.element'] = selector;
+    attributes[BROWSER_WEB_VITAL_LCP_ELEMENT] = selector;
   }
   if (componentName) {
     attributes[UI_COMPONENT_NAME] = componentName;
   }
-  entry?.id && (attributes['browser.web_vital.lcp.id'] = entry.id);
-  entry?.url && (attributes['browser.web_vital.lcp.url'] = filterCollectedUrl(entry.url, client));
-  entry?.loadTime != null && (attributes['browser.web_vital.lcp.load_time'] = entry.loadTime);
-  entry?.renderTime != null && (attributes['browser.web_vital.lcp.render_time'] = entry.renderTime);
-  entry?.size != null && (attributes['browser.web_vital.lcp.size'] = entry.size);
+  entry?.id && (attributes[BROWSER_WEB_VITAL_LCP_ID] = entry.id);
+  entry?.url && (attributes[BROWSER_WEB_VITAL_LCP_URL] = filterCollectedUrl(entry.url, client));
+  entry?.loadTime != null && (attributes[BROWSER_WEB_VITAL_LCP_LOAD_TIME] = entry.loadTime);
+  entry?.renderTime != null && (attributes[BROWSER_WEB_VITAL_LCP_RENDER_TIME] = entry.renderTime);
+  entry?.size != null && (attributes[BROWSER_WEB_VITAL_LCP_SIZE] = entry.size);
 
   _emitWebVitalSpan({
     name,

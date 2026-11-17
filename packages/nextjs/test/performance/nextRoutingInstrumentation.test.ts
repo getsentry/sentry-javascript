@@ -2,10 +2,8 @@ import type { Client } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
 import { JSDOM } from 'jsdom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  appRouterInstrumentNavigation,
-  appRouterInstrumentPageLoad,
-} from '../../src/client/routing/appRouterRoutingInstrumentation';
+import { appRouterInstrumentNavigation } from '../../src/client/routing/appRouterRoutingInstrumentation';
+import { appRouterInstrumentPageLoad } from '../../src/client/routing/appRouterPageloadInstrumentation';
 import {
   nextRouterInstrumentNavigation,
   nextRouterInstrumentPageLoad,
@@ -13,9 +11,12 @@ import {
 import { pagesRouterInstrumentNavigation } from '../../src/client/routing/pagesRouterNavigationInstrumentation';
 import { pagesRouterInstrumentPageLoad } from '../../src/client/routing/pagesRouterRoutingInstrumentation';
 
+vi.mock('../../src/client/routing/appRouterPageloadInstrumentation', () => ({
+  appRouterInstrumentPageLoad: vi.fn(),
+}));
+
 vi.mock('../../src/client/routing/appRouterRoutingInstrumentation', () => ({
   appRouterInstrumentNavigation: vi.fn(),
-  appRouterInstrumentPageLoad: vi.fn(),
 }));
 vi.mock('../../src/client/routing/pagesRouterNavigationInstrumentation', () => ({
   pagesRouterInstrumentNavigation: vi.fn(),

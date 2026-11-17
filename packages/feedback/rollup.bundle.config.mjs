@@ -1,5 +1,12 @@
 import { makeBaseBundleConfig, makeBundleConfigVariants } from '@sentry-internal/rollup-utils';
 
+// The widget's `.tsx` files import `h`/`Fragment` from preact directly and rely on the classic
+// transform, the way the rollup build's esbuild `jsxFactory` override did. Rolldown would otherwise
+// read `jsx: "react-jsx"` from tsconfig and pull in `preact/jsx-runtime`.
+const preactJsx = {
+  transform: { jsx: { runtime: 'classic', pragma: 'h', pragmaFrag: 'Fragment' } },
+};
+
 export default [
   // The core `feedback` bundle is built in the browser package
   // Sub-bundles are built here
@@ -10,11 +17,7 @@ export default [
       jsVersion: 'es6',
       licenseTitle: '@sentry/feedback',
       outputFileBase: () => 'bundles/feedback-screenshot',
-      esbuild: {
-        // The feedback widget uses preact, so override esbuild's React defaults.
-        jsxFactory: 'h',
-        jsxFragment: 'Fragment',
-      },
+      packageSpecificConfig: preactJsx,
     }),
   ),
   ...makeBundleConfigVariants(
@@ -24,11 +27,7 @@ export default [
       jsVersion: 'es6',
       licenseTitle: '@sentry/feedback',
       outputFileBase: () => 'bundles/feedback-modal',
-      esbuild: {
-        // The feedback widget uses preact, so override esbuild's React defaults.
-        jsxFactory: 'h',
-        jsxFragment: 'Fragment',
-      },
+      packageSpecificConfig: preactJsx,
     }),
   ),
 ];

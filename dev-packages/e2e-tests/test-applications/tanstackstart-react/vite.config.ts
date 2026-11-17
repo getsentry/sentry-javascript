@@ -26,43 +26,9 @@ function recordChunksWithoutSourceMap() {
   };
 }
 
-const tunnelRouteMode = process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off';
-const useManagedTunnelRoute = tunnelRouteMode !== 'off';
-const useCustomTunnelRoute = process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1';
-
-const appDsn =
-  useManagedTunnelRoute || useCustomTunnelRoute
-    ? 'http://public@localhost:3031/1337'
-    : 'https://public@dsn.ingest.sentry.io/1337';
-
-const appTunnel = useManagedTunnelRoute
-  ? undefined
-  : useCustomTunnelRoute
-    ? '/custom-monitor'
-    : 'http://localhost:3031/';
-
-function resolveTunnelRouteOption() {
-  switch (tunnelRouteMode) {
-    case 'dynamic':
-      return true;
-    case 'static':
-      return '/monitor';
-    case 'object':
-      return { path: '/object-monitor', allowedDsns: [appDsn] };
-    default:
-      return undefined;
-  }
-}
-
-const tunnelRoute = resolveTunnelRouteOption();
-
 export default defineConfig({
   server: {
     port: 3000,
-  },
-  define: {
-    __APP_DSN__: JSON.stringify(appDsn),
-    __APP_TUNNEL__: appTunnel === undefined ? 'undefined' : JSON.stringify(appTunnel),
   },
   plugins: [
     tsConfigPaths(),
@@ -77,7 +43,6 @@ export default defineConfig({
       project: 'test-project',
       release: { name: 'test-release' },
       debug: true,
-      tunnelRoute,
     }),
     recordChunksWithoutSourceMap(),
   ],

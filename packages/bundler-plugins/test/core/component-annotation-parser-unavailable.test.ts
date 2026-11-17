@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as ComponentAnnotateHooks from '../../src/core/component-annotate-hooks';
 import type * as ComponentAnnotation from '../../src/core/component-annotation-oxc';
 
 vi.mock('../../src/core/component-annotation-oxc', async importOriginal => {
@@ -12,8 +13,11 @@ vi.mock('../../src/core/component-annotation-oxc', async importOriginal => {
 const MESSAGE = 'Could not load `oxc-parser` for this platform. React components will not be annotated.';
 
 describe('createComponentNameAnnotateHooks without a parser', () => {
-  beforeEach(() => {
+  let hooks: typeof ComponentAnnotateHooks;
+
+  beforeEach(async () => {
     vi.resetModules();
+    hooks = await import('../../src/core/component-annotate-hooks');
   });
 
   afterEach(() => {
@@ -21,9 +25,8 @@ describe('createComponentNameAnnotateHooks without a parser', () => {
   });
 
   it('leaves files unchanged and warns once through the logger', async () => {
-    const { createComponentNameAnnotateHooks } = await import('../../src/core');
     const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
-    const { transform } = createComponentNameAnnotateHooks([], false, { logger });
+    const { transform } = hooks.createComponentNameAnnotateHooks([], false, { logger });
 
     await expect(transform('export const App = () => <div />;', '/src/app.jsx')).resolves.toBeNull();
     await expect(transform('export const Other = () => <span />;', '/src/other.jsx')).resolves.toBeNull();
@@ -33,11 +36,10 @@ describe('createComponentNameAnnotateHooks without a parser', () => {
   });
 
   it('warns once through the console across hooks created without a logger', async () => {
-    const { createComponentNameAnnotateHooks } = await import('../../src/core');
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     for (const id of ['/src/app.jsx', '/src/other.jsx']) {
-      const { transform } = createComponentNameAnnotateHooks([], false);
+      const { transform } = hooks.createComponentNameAnnotateHooks([], false);
       await expect(transform('export const App = () => <div />;', id)).resolves.toBeNull();
     }
 

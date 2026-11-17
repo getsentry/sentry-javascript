@@ -250,4 +250,5 @@ export interface ProviderMetadata {
   vertex?: GoogleGenerativeAIProviderMetadata; // v6: Google Vertex uses 'vertex' key instead of 'google'
   deepseek?: DeepSeekProviderMetadata;
   perplexity?: PerplexityProviderMetadata;
+  gateway?: { cost?: string | number };
 }

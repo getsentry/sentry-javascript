@@ -5,7 +5,6 @@
 // expose it — same setup as `@sentry/server-utils/orchestrion/vite` itself.
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import { sentryCloudflareAutoInstrumentPlugin } from './autoInstrument';
-import { sentryFlueRuntimeProviderPlugin } from './flueRuntime';
 import { sentryMastraObservabilityProviderPlugin } from './mastraObservability';
 
 /**
@@ -51,6 +50,9 @@ export interface SentryCloudflareVitePluginOptions {
    * Durable Objects and self service bindings) to `rpcTracePropagationBindings`. Bindings to
    * other workers stay opt-in, their receivers may not run Sentry.
    *
+   * The plugin also sets the `name` of your wrangler config as the default `serverName` and the
+   * `compatibility_date` as the runtime version, also for handlers you wrap yourself.
+   *
    * @default true
    */
   autoInstrumentation?: boolean;
@@ -90,9 +92,11 @@ export function sentryCloudflareVitePlugin(options: SentryCloudflareVitePluginOp
       // Route the injected `tracingChannel` imports through the workerd-safe façade so a
       // dependency wrapped at module scope (`const app = new Hono()`) doesn't throw on workerd.
       dcModule: '@sentry/cloudflare/orchestrion-diagnostics-channel',
+      transformOptimizedDeps: true,
+      // `flueIntegration` needs Flue's own `instrument()`, which a bundled worker can't resolve.
+      selfProvidedModules: ['@flue/runtime'],
     }),
     sentryMastraObservabilityProviderPlugin(),
-    sentryFlueRuntimeProviderPlugin(),
     ...(options.autoInstrumentation !== false
       ? [sentryCloudflareAutoInstrumentPlugin({ wranglerConfigPath: options.wranglerConfigPath })]
       : []),

@@ -210,11 +210,14 @@ describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ variant, tracer, spa
 
       // `it.effect` runs on Effect's `TestClock`, which is far from the wall clock.
       yield* TestClock.adjust('1 hour');
+      const before = sentryCore.timestampInSeconds();
       const span = yield* Effect.makeSpan('manual-span');
+      const after = sentryCore.timestampInSeconds();
       span.event('my-event', span.status.startTime + BigInt(1_000_000_000));
       span.end(span.status.startTime + BigInt(2_500_000_000), Exit.void);
 
-      expect(sentryStartTime).toBeCloseTo(Date.now() / 1000, 0);
+      expect(sentryStartTime).toBeGreaterThanOrEqual(before);
+      expect(sentryStartTime).toBeLessThanOrEqual(after);
       expect(addEvent).toHaveBeenCalledWith('my-event', undefined, sentryStartTime! + 1);
       expect(end).toHaveBeenCalledWith(sentryStartTime! + 2.5);
     }).pipe(withSentryTracer),

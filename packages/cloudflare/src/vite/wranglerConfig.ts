@@ -8,6 +8,14 @@ import { type Unstable_Config, unstable_readConfig } from 'wrangler';
  */
 export interface WranglerConfig {
   /**
+   * The name of the deployed Worker, `<name>-<environment>` for a wrangler environment.
+   */
+  name?: string;
+  /**
+   * The `compatibility_date` that selects the workerd behavior of the Worker.
+   */
+  compatibilityDate?: string;
+  /**
    * An absolute path when `main` names a JS or TS file, otherwise the
    * original value (a package export or virtual module) for Vite to resolve.
    */
@@ -83,6 +91,8 @@ export function resolveWranglerConfig(
 
   return {
     config: {
+      name: raw.name,
+      compatibilityDate: raw.compatibility_date,
       main: raw.main && ENTRY_FILE_REGEX.test(raw.main) ? resolve(configDir, raw.main) : raw.main,
       durableObjects: collectClassBindings(raw.durable_objects?.bindings),
       workflows: collectClassBindings(raw.workflows),

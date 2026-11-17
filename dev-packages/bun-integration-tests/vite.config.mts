@@ -26,9 +26,6 @@ export default defineConfig({
   ...baseConfig,
   test: {
     ...baseConfig.test,
-    coverage: {
-      enabled: false,
-    },
     isolate: false,
     testTimeout: 20_000,
     ...(process.env.DEBUG

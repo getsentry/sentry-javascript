@@ -8,7 +8,6 @@ import {
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
   getMainCarrier,
-  metrics,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   setCurrentClient,
   spanIsSampled,
@@ -24,6 +23,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vites
 import { BrowserClient } from '../../src/client';
 import { WINDOW } from '../../src/helpers';
 import {
+  browserTracingCoreIntegration,
   browserTracingIntegration,
   getServerTiming,
   startBrowserTracingNavigationSpan,
@@ -210,10 +210,119 @@ describe('browserTracingIntegration', () => {
     expect(client.getIntegrationByName('WebVitals')).toBeDefined();
   });
 
-  it('does not auto-register when the user supplies their own webVitalsIntegration', () => {
-    const webVitalsSpy = vi.spyOn(webVitalsModule, 'webVitalsIntegration');
+  it('does not register webVitalsIntegration in browserTracingCoreIntegration', () => {
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingCoreIntegration()],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(client.getIntegrationByName('BrowserTracing')).toBeDefined();
+    expect(client.getIntegrationByName('WebVitals')).toBeUndefined();
+  });
+
+  it.each([
+    ['registers longTasksIntegration by default', {}, true],
+    ['registers longTasksIntegration with only long tasks enabled', { enableLongAnimationFrame: false }, true],
+    [
+      'does not register longTasksIntegration when both options are off',
+      { enableLongTask: false, enableLongAnimationFrame: false },
+      false,
+    ],
+    [
+      'does not register longTasksIntegration when both options are explicitly undefined',
+      { enableLongTask: undefined, enableLongAnimationFrame: undefined },
+      false,
+    ],
+  ])('%s', (_name, options, registered) => {
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingIntegration(options)],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(!!client.getIntegrationByName('LongTasks')).toBe(registered);
+  });
+
+  it('registers resourcesIntegration', () => {
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingIntegration()],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(client.getIntegrationByName('Resources')).toBeDefined();
+  });
+
+  it.each([
+    ['registers fetchTracingIntegration by default', {}, true],
+    ['does not register fetchTracingIntegration when traceFetch is off', { traceFetch: false }, false],
+    [
+      'does not register fetchTracingIntegration when traceFetch is explicitly undefined',
+      { traceFetch: undefined },
+      false,
+    ],
+  ])('%s', (_name, options, registered) => {
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingIntegration(options)],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(!!client.getIntegrationByName('FetchTracing')).toBe(registered);
+  });
+
+  it.each([
+    ['registers xhrTracingIntegration by default', {}, true],
+    ['does not register xhrTracingIntegration when traceXHR is off', { traceXHR: false }, false],
+    ['does not register xhrTracingIntegration when traceXHR is explicitly undefined', { traceXHR: undefined }, false],
+  ])('%s', (_name, options, registered) => {
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingIntegration(options)],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(!!client.getIntegrationByName('XhrTracing')).toBe(registered);
+  });
+
+  it.each([
+    ['registers linkedTracesIntegration by default', {}, true],
+    [
+      'does not register linkedTracesIntegration when linkPreviousTrace is off',
+      { linkPreviousTrace: 'off' as const },
+      false,
+    ],
+  ])('%s', (_name, options, registered) => {
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingIntegration(options)],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(!!client.getIntegrationByName('LinkedTraces')).toBe(registered);
+  });
+
+  it('keeps the webVitalsIntegration the user supplies', () => {
     const userWebVitals = webVitalsModule.webVitalsIntegration({ softNavigations: false });
-    webVitalsSpy.mockClear();
 
     const client = new BrowserClient(
       getDefaultBrowserClientOptions({
@@ -224,7 +333,7 @@ describe('browserTracingIntegration', () => {
     setCurrentClient(client);
     client.init();
 
-    expect(webVitalsSpy).not.toHaveBeenCalled();
+    expect(client.getIntegrationByName('WebVitals')).toBe(userWebVitals);
   });
 
   it('forwards webVitals options to the auto-registered integration', () => {
@@ -245,6 +354,8 @@ describe('browserTracingIntegration', () => {
     ['leaves the ignore list alone when INP is enabled', {}, []],
     // oxlint-disable-next-line typescript/no-deprecated
     ['appends inp to the ignore list when disabled', { enableInp: false }, ['inp']],
+    // oxlint-disable-next-line typescript/no-deprecated
+    ['appends inp to the ignore list when explicitly undefined', { enableInp: undefined }, ['inp']],
     [
       'keeps user-provided entries when appending inp',
       // oxlint-disable-next-line typescript/no-deprecated
@@ -976,7 +1087,6 @@ describe('browserTracingIntegration', () => {
     // so its hit/miss metric is emitted before this navigation span exists and lands on the trace
     // the page had before it was frozen. See the note on the pageshow handler.
     it('emits the bfcache metric on the pre-freeze trace, before the navigation span exists', () => {
-      const countSpy = vi.spyOn(metrics, 'count').mockImplementation(() => {});
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
@@ -989,7 +1099,7 @@ describe('browserTracingIntegration', () => {
       const traceIdBeforeRestore = getCurrentScope().getPropagationContext().traceId;
 
       let traceIdAtMetricTime: string | undefined;
-      countSpy.mockImplementation(() => {
+      client.on('processMetric', () => {
         traceIdAtMetricTime = getCurrentScope().getPropagationContext().traceId;
       });
 

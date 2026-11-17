@@ -2,6 +2,7 @@ import type { CustomTransform } from '../apmTypes';
 import { parse } from 'meriyah';
 import { subscriberExportForModule } from '../config/channel-integration-definitions';
 import { MODULE_REGISTRATION_TRANSFORM } from '../config/registration-only';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 // Tracks Program nodes we already injected into, so a package with several
 // instrumented files (or several configs pointing at one file) is injected only
@@ -55,8 +56,8 @@ export const ORCHESTRION_BUNDLER_MARKER_BANNER =
  *
  * The specifier is parameterized for bundlers where the bare import emitted
  * inside a transformed `node_modules` file can't resolve (Turbopack under
- * isolated installs); it's embedded via `JSON.stringify` so absolute Windows
- * paths survive.
+ * isolated installs); it's embedded via `stringifyForCodeInjection` so
+ * absolute Windows paths survive.
  *
  * The call result is assigned to a global rather than discarded. The helper
  * returns `void` and `@sentry/server-utils` is `sideEffects: false`, so a bare
@@ -73,18 +74,44 @@ function moduleInjectedSnippet(
 ): string {
   const bindings = exportName ? `orchestrionModuleInjected, ${exportName}` : 'orchestrionModuleInjected';
   const importStmt = esm
-    ? `import { ${bindings} } from ${JSON.stringify(importSpecifier)};`
-    : `const { ${bindings} } = require(${JSON.stringify(importSpecifier)});`;
+    ? `import { ${bindings} } from ${stringifyForCodeInjection(importSpecifier)};`
+    : `const { ${bindings} } = require(${stringifyForCodeInjection(importSpecifier)});`;
 
-  // `exportName` is itself an integration factory, invoked inside the arrow (`() => exportName()`), so
-  // `orchestrionModuleInjected`'s consumer still gets an Integration back from calling the stored
-  // thunk. The point of the arrow is to defer the read of the `exportName` binding to when that thunk
-  // runs (at `init()`), instead of reading it by reference the moment this snippet evaluates. A
-  // provided-module integration (e.g. `flueIntegration`) is imported back into its own instrumented
-  // package by `@sentry/*/vite`, so a direct reference here would close an import cycle and touch the
-  // binding in its TDZ ("Cannot access '…' before initialization"); deferring the read breaks that.
-  const args = exportName ? `${JSON.stringify(moduleName)}, () => ${exportName}()` : JSON.stringify(moduleName);
+  // The arrow defers reading `exportName` to `init()`. `@sentry/*/vite` imports some packages into
+  // their own integration module (e.g. Mastra's), and in that cycle a direct read would hit the TDZ.
+  const args = exportName
+    ? `${stringifyForCodeInjection(moduleName)}, () => ${exportName}()`
+    : stringifyForCodeInjection(moduleName);
   return `${importStmt}\n${MODULE_INJECTED_SINK} = orchestrionModuleInjected(${args});`;
+}
+
+/**
+ * Publishes the module's own namespace on `providedModules`. For `@flue/runtime`'s `dist/index.mjs`,
+ * this prepends roughly:
+ *
+ * ```js
+ * import * as __SENTRY_SELF_PROVIDED__ from "./index.mjs";
+ * globalThis.__SENTRY_ORCHESTRION__.providedModules["@flue/runtime"] = __SENTRY_SELF_PROVIDED__; // as a getter
+ * ```
+ *
+ * A self-import adds no edge to the module graph; importing the package into a Sentry module would
+ * close a cycle through every instrumented dependency, since those all import `@sentry/server-utils`.
+ */
+function selfProvidedSnippet(moduleName: string, filePath: string): string {
+  const marker = 'globalThis.__SENTRY_ORCHESTRION__';
+  const self = `./${filePath.split('/').pop()}`;
+  return (
+    `import * as __SENTRY_SELF_PROVIDED__ from ${stringifyForCodeInjection(self)};\n` +
+    `(${marker} = ${marker} || {});\n` +
+    `(${marker}.providedModules = ${marker}.providedModules || {});\n` +
+    `Object.defineProperty(${marker}.providedModules, ${stringifyForCodeInjection(moduleName)}, ` +
+    '{ configurable: true, enumerable: true, get() { return __SENTRY_SELF_PROVIDED__; } });'
+  );
+}
+
+export interface ModuleInjectedTransformsOptions {
+  /** Packages whose ESM entry publishes its own namespace on `providedModules`. */
+  selfProvidedModules?: readonly string[];
 }
 
 /**
@@ -112,11 +139,12 @@ export function moduleInjectedTransforms(
   // absolute-path imports nor bare specifiers that don't resolve from the
   // importing file's location).
   importSpecifier?: string | (() => string | undefined),
+  { selfProvidedModules = [] }: ModuleInjectedTransformsOptions = {},
 ): Record<string, CustomTransform> {
   const spliceModuleInjected = (state: unknown, program: unknown): void => {
     const { moduleType, module } = state as {
       moduleType?: string;
-      module?: { name?: string };
+      module?: { name?: string; filePath?: string | RegExp };
     };
 
     const node = program as ProgramNode;
@@ -134,8 +162,13 @@ export function moduleInjectedTransforms(
     const specifier =
       (typeof importSpecifier === 'function' ? importSpecifier() : importSpecifier) ?? DEFAULT_IMPORT_SPECIFIER;
     const exportName = subscriberExportForModule(moduleName);
-    const statements = parse(moduleInjectedSnippet(moduleName, exportName, moduleType === 'esm', specifier), {
-      module: moduleType === 'esm',
+    const esm = moduleType === 'esm';
+    const selfProvided =
+      esm && typeof module?.filePath === 'string' && selfProvidedModules.includes(moduleName)
+        ? `${selfProvidedSnippet(moduleName, module.filePath)}\n`
+        : '';
+    const statements = parse(selfProvided + moduleInjectedSnippet(moduleName, exportName, esm, specifier), {
+      module: esm,
       next: true,
     }).body as ProgramNode['body'];
 

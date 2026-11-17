@@ -59,6 +59,33 @@ it('With step context, only one error is captured on final retry attempt', async
   await runner.completed();
 });
 
+it('Captures a NonRetryableError thrown before the final attempt', async ({ signal }) => {
+  const runner = createRunner(__dirname)
+    .expect((envelope: Envelope): void => {
+      const [, items] = envelope;
+      const [itemHeader, itemBody] = items[0] as [{ type: string }, Record<string, unknown>];
+
+      expect(itemHeader.type).toBe('event');
+
+      const exception = itemBody.exception as { values?: Array<{ type?: string; value?: string }> };
+      expect(exception?.values?.[0]).toMatchObject({
+        type: 'NonRetryableError',
+        value: 'Intentional non-retryable failure',
+      });
+    })
+    .expect(flushMarkerMatcher)
+    .start(signal);
+
+  const trigger = await runner.makeRequest<TriggerResponse>('get', '/trigger-workflow?nonRetryable=true');
+  expect(trigger?.id).toBeDefined();
+
+  const status = await waitForWorkflowStatus(runner.makeRequest.bind(runner), trigger!.id);
+  expect(status?.status?.status).toBe('errored');
+
+  await runner.makeRequest('get', '/flush-marker');
+  await runner.completed();
+});
+
 it('No error event when step eventually succeeds within retry limit', async ({ signal }) => {
   const runner = createRunner(__dirname).expect(flushMarkerMatcher).start(signal);
 

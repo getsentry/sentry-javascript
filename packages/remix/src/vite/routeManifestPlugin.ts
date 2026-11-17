@@ -1,17 +1,8 @@
+import { stringifyForCodeInjection } from '@sentry/core';
 import * as path from 'path';
 import type { Plugin } from 'vite';
 import { createRemixRouteManifest } from '../config/createRemixRouteManifest';
 import type { SentryRemixVitePluginOptions } from './types';
-
-/**
- * Escapes a JSON string for safe embedding in HTML script tags.
- * JSON.stringify alone doesn't escape </script> or <!-- which can break out of script context.
- */
-function escapeJsonForHtml(jsonString: string): string {
-  return jsonString
-    .replace(/<\//g, '<\\/') // Escape </ to prevent </script> injection
-    .replace(/<!--/g, '<\\!--'); // Escape <!-- to prevent HTML comment injection
-}
 
 // Global variable key used to store the route manifest
 const MANIFEST_GLOBAL_KEY = '_sentryRemixRouteManifest' as const;
@@ -69,7 +60,7 @@ export function makeRouteManifestPlugin(options: Pick<SentryRemixVitePluginOptio
          * XSS Prevention: JSON.stringify escapes quotes/backslashes, but we also need to escape
          * HTML-dangerous sequences like </script> and <!-- that could break out of the script context.
          */
-        const safeJsonValue = escapeJsonForHtml(JSON.stringify(routeManifestJson));
+        const safeJsonValue = stringifyForCodeInjection(routeManifestJson);
         const script = `<script>window.${MANIFEST_GLOBAL_KEY} = ${safeJsonValue};</script>`;
 
         if (/<head>/i.test(html)) {
@@ -105,7 +96,7 @@ export function makeRouteManifestPlugin(options: Pick<SentryRemixVitePluginOptio
 
       if (isClientEntry) {
         // XSS Prevention: Escape HTML-dangerous sequences in addition to JSON escaping
-        const safeJsonValue = escapeJsonForHtml(JSON.stringify(routeManifestJson));
+        const safeJsonValue = stringifyForCodeInjection(routeManifestJson);
         const injectedCode = `
 // Sentry Remix Route Manifest - Auto-injected
 if (typeof window !== 'undefined') {
@@ -123,7 +114,7 @@ ${code}`;
         // Inject into server entry for server-side transaction naming
         // Use globalThis for Cloudflare Workers/Hydrogen compatibility
         // XSS Prevention: Escape HTML-dangerous sequences (important if server renders this)
-        const safeJsonValue = escapeJsonForHtml(JSON.stringify(routeManifestJson));
+        const safeJsonValue = stringifyForCodeInjection(routeManifestJson);
         const injectedCode = `
 // Sentry Remix Route Manifest - Auto-injected
 if (typeof globalThis !== 'undefined') {

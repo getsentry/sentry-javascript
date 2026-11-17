@@ -1,28 +1,35 @@
-import { captureException, SPAN_STATUS_ERROR, stringify } from '@sentry/core';
+import { captureException, isObjectLike, SPAN_STATUS_ERROR, stringify } from '@sentry/core';
 import type { Span, SpanStatusType } from '@sentry/core';
 import { GEN_AI_INPUT_MESSAGES, GEN_AI_SYSTEM_INSTRUCTIONS } from '@sentry/conventions/attributes';
 import { extractSystemInstructions } from '../core/utils';
 import type { AnthropicAiResponse } from './types';
 
 /**
- * Set the input messages attribute, extracting system instructions into their own attribute.
+ * The `gen_ai.provider.name` of the client that owns an SDK resource such as `messages`. The SDK's clients
+ * for other platforms set their own, e.g. `aws.bedrock` for `AnthropicBedrock`.
  */
-export function setMessagesAttribute(span: Span, messages: unknown): void {
+export function getProviderName(resource: unknown): string {
+  const name = (resource as { _client?: { _genAIProviderName?: unknown } } | null | undefined)?._client
+    ?._genAIProviderName;
+  return typeof name === 'string' && name ? name : 'anthropic';
+}
+
+/**
+ * Get the input messages attribute, with system instructions extracted into their own attribute.
+ */
+export function getMessagesAttributes(messages: unknown): Record<string, string | undefined> {
   if (Array.isArray(messages) && messages.length === 0) {
-    return;
+    return {};
   }
 
   const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
 
+  const attributes: Record<string, string | undefined> = {};
   if (systemInstructions) {
-    span.setAttributes({
-      [GEN_AI_SYSTEM_INSTRUCTIONS]: systemInstructions,
-    });
+    attributes[GEN_AI_SYSTEM_INSTRUCTIONS] = systemInstructions;
   }
-
-  span.setAttributes({
-    [GEN_AI_INPUT_MESSAGES]: stringify(filteredMessages),
-  });
+  attributes[GEN_AI_INPUT_MESSAGES] = stringify(filteredMessages);
+  return attributes;
 }
 
 const ANTHROPIC_ERROR_TYPE_TO_SPAN_STATUS: Record<string, SpanStatusType> = {
@@ -64,13 +71,25 @@ export function handleResponseError(span: Span, response: AnthropicAiResponse): 
   }
 }
 
+/** Anthropic accepts the system prompt as a string or as an array of text blocks. */
+function systemToText(system: unknown): string | undefined {
+  if (!Array.isArray(system)) {
+    return typeof system === 'string' ? system : undefined;
+  }
+  return system
+    .map(block => (isObjectLike(block) ? block.text : undefined))
+    .filter(text => typeof text === 'string' && text)
+    .join('\n');
+}
+
 /**
  * Include the system prompt in the messages list, if available
  */
 export function messagesFromParams(params: Record<string, unknown>): unknown[] {
   const { system, messages, input, prompt } = params;
 
-  const systemMessages = typeof system === 'string' ? [{ role: 'system', content: params.system }] : [];
+  const systemText = systemToText(system);
+  const systemMessages = systemText ? [{ role: 'system', content: systemText }] : [];
 
   const inputParamMessages = Array.isArray(input) ? input : input != null ? [input] : undefined;
 

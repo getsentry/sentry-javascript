@@ -30,7 +30,8 @@ export default {
       return env.TAIL.fetch(request);
     }
 
-    const stub = env.TEST_DURABLE_OBJECT.get(env.TEST_DURABLE_OBJECT.idFromName(url.pathname));
+    // The query selects the instance, so a test can invoke a new instance with each request.
+    const stub = env.TEST_DURABLE_OBJECT.get(env.TEST_DURABLE_OBJECT.idFromName(url.pathname + url.search));
 
     if (url.pathname === '/rpc') {
       return new Response(await stub.ping());

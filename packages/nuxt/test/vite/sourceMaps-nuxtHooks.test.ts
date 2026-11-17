@@ -5,7 +5,8 @@ import * as os from 'os';
 import * as path from 'path';
 import type { ConfigEnv, Plugin, UserConfig } from 'vite';
 import { afterAll, afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
-import { setupSourceMaps, type SourceMapSetting } from '../../src/vite/sourceMaps';
+import { setupSourceMaps } from '../../src/vite/sourceMaps';
+import type { SourceMapSetting } from '../../src/vite/sourceMapSettings';
 
 const { mockSentryVitePlugin, mockSentryRollupPlugin, mockDeleteArtifacts, mockCreateSentryBuildPluginManager } =
   vi.hoisted(() => {
@@ -247,6 +248,7 @@ describe('setupSourceMaps hooks', () => {
           assets: undefined,
           ignore: undefined,
           filesToDeleteAfterUpload: undefined,
+          deleteSourcemapsAfterUpload: false,
           rewriteSources: expect.any(Function),
         },
       });

@@ -1,5 +1,6 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
+import { getToolCallKey } from '../core/streaming-tool-calls';
 import { endStreamSpan } from '../core/utils';
 import { RESPONSE_EVENT_TYPES } from './constants';
 import type {
@@ -34,10 +35,14 @@ interface StreamingState {
   cacheReadInputTokens: number | undefined;
   cacheCreationInputTokens: number | undefined;
   /**
-   * Accumulated tool calls from Chat Completion streaming, indexed by tool call index.
+   * Accumulated tool calls from Chat Completion streaming, keyed by string in the order they were opened.
    * @see https://platform.openai.com/docs/guides/function-calling?api-mode=chat#streaming
    */
-  chatCompletionToolCalls: Record<number, ChatCompletionToolCall>;
+  chatCompletionToolCalls: Map<string, ChatCompletionToolCall>;
+  /** Key of the latest tool call, which unindexed argument fragments continue. */
+  lastChatCompletionToolCallKey?: string;
+  /** Key of the call currently open for a reported `index`, when a new `id` reused that index. */
+  chatCompletionToolCallKeyByIndex?: Map<number, string>;
   /**
    * Accumulated function calls from Responses API streaming.
    * @see https://platform.openai.com/docs/guides/function-calling?api-mode=responses#streaming
@@ -56,25 +61,30 @@ interface StreamingState {
  */
 function processChatCompletionToolCalls(toolCalls: ChatCompletionToolCall[], state: StreamingState): void {
   for (const toolCall of toolCalls) {
-    const index = toolCall.index;
-    if (index === undefined || !toolCall.function) continue;
+    if (!toolCall.function) continue;
+    const index = getToolCallKey(toolCall, toolCall.function.name, {
+      calls: state.chatCompletionToolCalls,
+      keyByIndex: (state.chatCompletionToolCallKeyByIndex ??= new Map()),
+      lastKey: state.lastChatCompletionToolCallKey,
+    });
 
     // Initialize tool call if this is the first chunk for this index
-    if (!(index in state.chatCompletionToolCalls)) {
-      state.chatCompletionToolCalls[index] = {
+    const existingToolCall = state.chatCompletionToolCalls.get(index);
+    if (!existingToolCall) {
+      state.chatCompletionToolCalls.set(index, {
         ...toolCall,
         function: {
           name: toolCall.function.name,
           arguments: toolCall.function.arguments || '',
         },
-      };
+      });
     } else {
       // Accumulate function arguments from subsequent chunks
-      const existingToolCall = state.chatCompletionToolCalls[index];
-      if (toolCall.function.arguments && existingToolCall?.function) {
+      if (toolCall.function.arguments && existingToolCall.function) {
         existingToolCall.function.arguments += toolCall.function.arguments;
       }
     }
+    state.lastChatCompletionToolCallKey = index;
   }
 }
 
@@ -225,7 +235,7 @@ export async function* instrumentStream<T>(
     totalTokens: undefined,
     cacheReadInputTokens: undefined,
     cacheCreationInputTokens: undefined,
-    chatCompletionToolCalls: {},
+    chatCompletionToolCalls: new Map(),
     responsesApiToolCalls: [],
   };
 
@@ -238,8 +248,11 @@ export async function* instrumentStream<T>(
       }
       yield event;
     }
+  } catch (error) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    throw error;
   } finally {
-    const allToolCalls = [...Object.values(state.chatCompletionToolCalls), ...state.responsesApiToolCalls];
+    const allToolCalls = [...state.chatCompletionToolCalls.values(), ...state.responsesApiToolCalls];
     endStreamSpan(span, { ...state, toolCalls: allToolCalls }, recordOutputs);
   }
 }

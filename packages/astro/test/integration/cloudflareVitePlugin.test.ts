@@ -1,8 +1,22 @@
+import { SDK_VERSION, stringifyForCodeInjection } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { sentryCloudflareVitePlugin } from '../../src/integration/cloudflare';
 
-function transform(code: string, id: string) {
-  const plugin = sentryCloudflareVitePlugin() as { transform: (code: string, id: string) => unknown };
+const OPTIONS = stringifyForCodeInjection({
+  _metadata: {
+    sdk: {
+      name: 'sentry.javascript.astro',
+      packages: [
+        { name: 'npm:@sentry/astro', version: SDK_VERSION },
+        { name: 'npm:@sentry/cloudflare', version: SDK_VERSION },
+      ],
+      version: SDK_VERSION,
+    },
+  },
+});
+
+function transform(code: string, id: string, options?: { importServerInit?: boolean }) {
+  const plugin = sentryCloudflareVitePlugin(options) as { transform: (code: string, id: string) => unknown };
   return plugin.transform(code, id);
 }
 
@@ -14,7 +28,7 @@ describe('sentryCloudflareVitePlugin', () => {
       code: [
         "import { withSentry } from '@sentry/cloudflare';",
         'const _exports = createExports(manifest);',
-        'export default withSentry(() => undefined, _exports.default);',
+        `export default withSentry(() => (${OPTIONS}), _exports.default);`,
       ].join('\n'),
       map: null,
     });
@@ -35,8 +49,22 @@ describe('sentryCloudflareVitePlugin', () => {
         'import { getExportTypes } from "virtual:cloudflare/export-types";',
         'import * as mod from "virtual:cloudflare/user-entry";',
         'export * from "virtual:cloudflare/user-entry";',
-        'export default withSentry(() => undefined, mod.default ?? {});',
+        `export default withSentry(() => (${OPTIONS}), mod.default ?? {});`,
         'if (import.meta.hot) { import.meta.hot.accept(); }',
+      ].join('\n'),
+      map: null,
+    });
+  });
+
+  it('imports the server init above the wrap when asked to', () => {
+    const code = ['const _exports = createExports(manifest);', 'export default _exports.default;'].join('\n');
+
+    expect(transform(code, '\0@astrojs-ssr-virtual-entry', { importServerInit: true })).toEqual({
+      code: [
+        'import "virtual:@sentry/astro/server-init";',
+        "import { withSentry } from '@sentry/cloudflare';",
+        'const _exports = createExports(manifest);',
+        `export default withSentry(() => (${OPTIONS}), _exports.default);`,
       ].join('\n'),
       map: null,
     });

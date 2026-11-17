@@ -11,6 +11,7 @@ import {
   USER_AGENT_ORIGINAL,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  SENTRY_PAGELOAD_SPAN_ID,
 } from '@sentry/conventions/attributes';
 import { WINDOW } from '../types';
 import type { MetricNavigationType } from '../instrumentation/performanceObserver';
@@ -100,7 +101,7 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
 
   if (parentSpan && spanToJSON(parentSpan).attributes[SENTRY_OP] === 'pageload') {
     // for LCP and CLS, we collect the pageload span id as an attribute
-    attributes['sentry.pageload.span_id'] = parentSpan.spanContext().spanId;
+    attributes[SENTRY_PAGELOAD_SPAN_ID] = parentSpan.spanContext().spanId;
   }
 
   if (softNavigationId != null) {

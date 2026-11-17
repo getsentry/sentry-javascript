@@ -1,4 +1,5 @@
-import { debug, GLOBAL_OBJ } from '@sentry/core';
+import { consoleSandbox, debug, GLOBAL_OBJ } from '@sentry/core';
+import { isBun } from '../utils/runtime';
 
 /**
  * The module names (e.g. `mysql`, `@hapi/hapi`) orchestrion has already injected
@@ -32,9 +33,25 @@ export function getOrchestrionInjectedModules(): string[] {
  * is fine.
  */
 export function detectOrchestrionSetup(): void {
-  const { runtime, bundler } = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ?? {};
+  const marker = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ?? {};
+  const { runtime, bundler, channelIntegrations } = marker;
 
   if (!runtime && !bundler) {
+    if (channelIntegrations && isBun()) {
+      if (!marker.warnedBunRunNotInjected) {
+        marker.warnedBunRunNotInjected = true;
+        consoleSandbox(() => {
+          // oxlint-disable-next-line no-console
+          console.warn(
+            '[Sentry] No diagnostics-channel injection detected. Channel-based integrations will not record ' +
+              'spans or capture errors, because Bun cannot instrument modules at runtime. Build your app with ' +
+              '`@sentry/bun/plugin` to enable them.',
+          );
+        });
+      }
+      return;
+    }
+
     debug.warn(
       '[Sentry] No diagnostics-channel injection detected. Channel-based integrations ' +
         'will not record spans. Make sure the diagnostics channels are injected ' +

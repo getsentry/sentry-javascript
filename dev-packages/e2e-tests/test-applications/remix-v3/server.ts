@@ -12,16 +12,16 @@ Sentry.init({
 
 const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3060;
 
-const server = http.createServer(
-  createRequestListener(request => {
-    // Handled outside the router on purpose: the only hook that can see this is the listener's
-    // `onError`, which is the case the router middleware cannot cover.
-    if (new URL(request.url).pathname === '/plain-throw') {
-      throw new Error('Plain handler failed');
-    }
-    return router.fetch(request);
-  }),
-);
+function handle(request: Request): Response | Promise<Response> {
+  // Handled outside the router on purpose: the only hook that can see this is the listener's
+  // `onError`, which is the case the router middleware cannot cover.
+  if (new URL(request.url).pathname === '/plain-throw') {
+    throw new Error('Plain handler failed');
+  }
+  return router.fetch(request);
+}
+
+const server = http.createServer(createRequestListener(handle));
 
 server.listen(port, () => {
   console.log(`Server listening on http://localhost:${port}`);

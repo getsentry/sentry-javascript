@@ -1,6 +1,17 @@
 import { expect } from '@playwright/test';
+import { IncrementalSource } from '@sentry/rrweb';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getReplayRecordingContent, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
+import type { RecordingSnapshot } from '../../../../utils/replayHelpers';
+import {
+  collectReplayRequests,
+  getReplayRecordingContent,
+  shouldSkipReplayTest,
+  waitForReplayRequest,
+} from '../../../../utils/replayHelpers';
+
+function isCanvasMutation(snapshot: RecordingSnapshot): boolean {
+  return 'source' in snapshot.data && snapshot.data.source === IncrementalSource.CanvasMutation;
+}
 
 sentryTest('can record canvas', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipReplayTest() || browserName === 'webkit' || (process.env.PW_BUNDLE || '').startsWith('bundle')) {
@@ -8,8 +19,6 @@ sentryTest('can record canvas', async ({ getLocalTestUrl, page, browserName }) =
   }
 
   const reqPromise0 = waitForReplayRequest(page, 0);
-  const reqPromise1 = waitForReplayRequest(page, 1);
-  const reqPromise2 = waitForReplayRequest(page, 2);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -25,10 +34,13 @@ sentryTest('can record canvas', async ({ getLocalTestUrl, page, browserName }) =
     },
   ]);
 
-  await Promise.all([page.click('#draw'), reqPromise1]);
+  // The canvas is sampled on a timer, so its snapshot is in the segment of the click or in a later one.
+  const canvasRequestsPromise = collectReplayRequests(page, snapshots => snapshots.some(isCanvasMutation));
 
-  const { incrementalSnapshots } = getReplayRecordingContent(await reqPromise2);
-  expect(incrementalSnapshots).toEqual(
+  await page.click('#draw');
+
+  const { replayRecordingSnapshots } = await canvasRequestsPromise;
+  expect(replayRecordingSnapshots).toEqual(
     expect.arrayContaining([
       {
         data: {

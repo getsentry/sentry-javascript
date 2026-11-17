@@ -32,7 +32,7 @@ sentryTest(
     await page.focus('#btn1');
     await page.keyboard.press('Enter');
 
-    await page.waitForTimeout(500);
+    await page.waitForURL('**/sub-page-redirect');
 
     await page.focus('#btn2');
     await page.keyboard.press('Enter');
