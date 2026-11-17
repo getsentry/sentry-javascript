@@ -272,7 +272,7 @@ export function applyDefaultOptions<T extends Partial<BrowserClientOptions>>(opt
  */
 function getReleaseFromMetaTag(): string | undefined {
   return (
-    WINDOW.document?.querySelector(`meta[name="${_INTERNAL_RELEASE_META_TAG_NAME}"]`)?.getAttribute('content') ||
+    WINDOW.document?.querySelector?.(`meta[name="${_INTERNAL_RELEASE_META_TAG_NAME}"]`)?.getAttribute('content') ||
     undefined
   );
 }

@@ -19,7 +19,6 @@ describe('httpContextIntegration', () => {
   vi.stubGlobal('document', {
     referrer: 'https://example.com',
     addEventListener: vi.fn(),
-    querySelector: () => null,
     location: {
       href: 'https://example.com',
     },
