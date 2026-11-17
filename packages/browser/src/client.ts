@@ -254,15 +254,20 @@ export class BrowserClient extends Client<ResolvedBrowserClientOptions> {
 /** Exported only for tests. */
 export function applyDefaultOptions<T extends Partial<BrowserClientOptions>>(optionsArg: T): T {
   return {
-    release:
-      typeof __SENTRY_RELEASE__ === 'string' // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
-        ? __SENTRY_RELEASE__
-        : (getReleaseFromMetaTag() ?? WINDOW.SENTRY_RELEASE?.id), // This supports the variable that sentry-webpack-plugin injects
     sendClientReports: true,
     // We default this to true, as it is the safer scenario
     parentSpanIsAlwaysRootSpan: true,
     ...optionsArg,
+    // `release: undefined` still gets the default, so `release: import.meta.env.VITE_SENTRY_RELEASE` with the variable
+    // unset doesn't drop the release that the page carries.
+    release: optionsArg.release ?? getDefaultRelease(),
   };
+}
+
+function getDefaultRelease(): string | undefined {
+  return typeof __SENTRY_RELEASE__ === 'string' // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
+    ? __SENTRY_RELEASE__
+    : (getReleaseFromMetaTag() ?? WINDOW.SENTRY_RELEASE?.id); // This supports the variable that sentry-webpack-plugin injects
 }
 
 /**

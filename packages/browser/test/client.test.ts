@@ -270,6 +270,12 @@ describe('applyDefaultOptions', () => {
       expect(applyDefaultOptions({ release: '2.0.0' }).release).toBe('2.0.0');
     });
 
+    it('still reads the meta tag when the release option is explicitly `undefined`', () => {
+      addReleaseMetaTag('page-release');
+
+      expect(applyDefaultOptions({ release: undefined }).release).toBe('page-release');
+    });
+
     it('lets a `__SENTRY_RELEASE__` define take precedence over the meta tag', () => {
       vi.stubGlobal('__SENTRY_RELEASE__', 'bundle-release');
       addReleaseMetaTag('page-release');
