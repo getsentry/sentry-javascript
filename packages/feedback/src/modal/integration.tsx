@@ -43,10 +43,26 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
         const target = previousFocus;
         // The launcher is shown by the close/submitted callback after the dialog closes.
         void Promise.resolve().then(() => {
-          if (!isOpen && target === previousFocus && target instanceof HTMLElement && target.isConnected) {
+          const active = DOCUMENT.activeElement;
+          const focusMovedElsewhere =
+            !!active && active !== DOCUMENT.body && active !== shadowRoot.host && active !== target;
+          if (
+            !isOpen &&
+            !focusMovedElsewhere &&
+            target === previousFocus &&
+            target instanceof HTMLElement &&
+            target.isConnected
+          ) {
             target.focus();
           }
         });
+      };
+      const hide = (): void => {
+        if (isOpen) {
+          isOpen = false;
+          DOCUMENT.body.style.overflow = originalOverflow;
+        }
+        renderContent(false);
       };
       const dialog: ReturnType<FeedbackModalIntegration['createDialog']> = {
         get el() {
@@ -80,11 +96,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
           DOCUMENT.body.style.overflow = 'hidden';
         },
         close() {
-          if (isOpen) {
-            isOpen = false;
-            DOCUMENT.body.style.overflow = originalOverflow;
-          }
-          renderContent(false);
+          hide();
           restoreFocus();
         },
       };
@@ -107,7 +119,8 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
             }}
             onSubmit={sendFeedback}
             onSubmitSuccess={(data: FeedbackFormData, eventId: string) => {
-              dialog.close();
+              // Focus is restored once the success message goes away and `onFormSubmitted` closes the dialog.
+              hide();
               options.onSubmitSuccess?.(data, eventId);
             }}
             onSubmitError={(error: Error) => {

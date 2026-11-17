@@ -225,3 +225,15 @@ sentryTest('falls back to a non-modal dialog when showModal throws @firefox', as
     await expect(launcher).toBeFocused();
   }
 });
+
+sentryTest('does not take focus back when the success message times out @firefox', async ({ page }) => {
+  await page.getByRole('button', { name: 'Report a Bug', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Description' }).fill('Feedback sent to the local test transport');
+  await page.getByRole('button', { name: 'Send Bug Report' }).click();
+  await expect(page.locator('.success__content')).toBeVisible();
+  const background = page.locator('#background');
+  await background.focus();
+  await expect(page.locator('.success__content')).not.toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole('button', { name: 'Report a Bug', exact: true })).toBeVisible();
+  await expect(background).toBeFocused();
+});
