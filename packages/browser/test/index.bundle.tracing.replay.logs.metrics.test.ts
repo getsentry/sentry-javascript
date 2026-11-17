@@ -1,11 +1,29 @@
 import { logger as coreLogger, metrics as coreMetrics } from '@sentry/core';
 import { feedbackIntegrationShim } from '@sentry-internal/integration-shims';
 import { describe, expect, it } from 'vitest';
-import { browserTracingIntegration, replayIntegration, spanStreamingIntegration, webVitalsIntegration } from '../src';
+import {
+  browserTracingCoreIntegration,
+  browserTracingIntegration,
+  fetchTracingIntegration,
+  linkedTracesIntegration,
+  longTasksIntegration,
+  replayIntegration,
+  resourcesIntegration,
+  spanStreamingIntegration,
+  webVitalsIntegration,
+  xhrTracingIntegration,
+} from '../src';
 import * as TracingReplayLogsMetricsBundle from '../src/index.bundle.tracing.replay.logs.metrics';
 
 describe('index.bundle.tracing.replay.logs.metrics', () => {
   it('has correct exports', () => {
+    expect(TracingReplayLogsMetricsBundle.browserTracingCoreIntegration).toBe(browserTracingCoreIntegration);
+    expect(TracingReplayLogsMetricsBundle.longTasksIntegration).toBe(longTasksIntegration);
+    expect(TracingReplayLogsMetricsBundle.resourcesIntegration).toBe(resourcesIntegration);
+    expect(TracingReplayLogsMetricsBundle.fetchTracingIntegration).toBe(fetchTracingIntegration);
+    expect(TracingReplayLogsMetricsBundle.xhrTracingIntegration).toBe(xhrTracingIntegration);
+    expect(TracingReplayLogsMetricsBundle.linkedTracesIntegration).toBe(linkedTracesIntegration);
+
     expect(TracingReplayLogsMetricsBundle.browserTracingIntegration).toBe(browserTracingIntegration);
     expect(TracingReplayLogsMetricsBundle.feedbackAsyncIntegration).toBe(feedbackIntegrationShim);
     expect(TracingReplayLogsMetricsBundle.feedbackIntegration).toBe(feedbackIntegrationShim);
