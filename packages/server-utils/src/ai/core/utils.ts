@@ -120,7 +120,8 @@ export function resolveGenAiCallRecording<TCall>(
   };
 }
 
-function resolveRecordingOption<TCall>(
+/** Calls `option` with `call` when it is a function; `undefined` means the option does not decide. */
+export function resolveRecordingOption<TCall>(
   option: GenAiRecordingOption<TCall> | undefined,
   call: TCall,
 ): boolean | undefined {
