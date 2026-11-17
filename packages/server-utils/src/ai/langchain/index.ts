@@ -269,19 +269,10 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       );
     },
 
-    // Called for each streamed chunk. A tool call chunk arrives with an empty token.
-    handleLLMNewToken(
-      token: string,
-      _idx: unknown,
-      runId: string,
-      _parentRunId?: string,
-      _tags?: string[],
-      fields?: unknown,
-    ) {
+    // Called for each streamed chunk.
+    handleLLMNewToken(_token: string, _idx: unknown, runId: string) {
       const span = runs.get(runId)?.span;
-      const toolCallChunks = (fields as { chunk?: { message?: { tool_call_chunks?: unknown[] } } } | undefined)?.chunk
-        ?.message?.tool_call_chunks;
-      if (span && (token || toolCallChunks?.length)) {
+      if (span) {
         recordTimeToFirstChunk(span);
       }
     },

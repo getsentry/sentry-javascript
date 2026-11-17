@@ -41,8 +41,6 @@ interface StreamChunk {
   delta?: unknown;
   // v4 text-delta chunks carry the text on `textDelta`; v5+ uses `delta`.
   textDelta?: unknown;
-  // v4 tool-call-delta chunks carry argument text on `argsTextDelta`.
-  argsTextDelta?: unknown;
   id?: unknown;
   modelId?: unknown;
   toolCallId?: unknown;
@@ -118,7 +116,8 @@ export function tapModelCallStream(
 
           return;
         }
-        if (isOutputChunk(value)) {
+        // The model emits `stream-start` before the response arrives.
+        if ((value as StreamChunk | undefined)?.type !== 'stream-start') {
           recordTimeToFirstChunk(span);
         }
         text += accumulateChunk(state, value) ?? '';
@@ -136,30 +135,6 @@ export function tapModelCallStream(
       return reader.cancel(reason);
     },
   });
-}
-
-// Text, reasoning, tool-call, and file stream parts carry output. `tool-input-start` carries the tool
-// name. Metadata, usage, finish, and the other `*-start`/`*-end` parts do not.
-function isOutputChunk(chunk: unknown): boolean {
-  if (!isObjectLike(chunk)) {
-    return false;
-  }
-  const { type, delta, textDelta, argsTextDelta } = chunk as StreamChunk;
-  switch (type) {
-    case 'text-delta':
-    case 'reasoning-delta':
-    case 'tool-input-delta':
-    case 'reasoning':
-      return !!(delta || textDelta);
-    case 'tool-call-delta':
-      return !!argsTextDelta;
-    case 'tool-input-start':
-    case 'tool-call':
-    case 'file':
-      return true;
-    default:
-      return false;
-  }
 }
 
 /**

@@ -94,7 +94,6 @@ function processLine(
   state: StreamResponseState,
   recordOutputs: boolean,
   toolCallAccumulator: ToolCallAccumulator,
-  span: Span,
 ): void {
   const trimmed = line.trim();
   if (!trimmed.startsWith('data:')) {
@@ -111,10 +110,6 @@ function processLine(
     parsed = JSON.parse(data) as WorkersAiStreamChunk;
   } catch {
     return;
-  }
-
-  if (hasOutput(parsed)) {
-    recordTimeToFirstChunk(span);
   }
 
   if (parsed.usage) {
@@ -157,16 +152,6 @@ function processLine(
       }
     }
   }
-}
-
-// Native models stream text on `response`; OpenAI-compatible models stream it on `choices[].delta`.
-function hasOutput(chunk: WorkersAiStreamChunk): boolean {
-  return (
-    (typeof chunk.response === 'string' && chunk.response.length > 0) ||
-    (Array.isArray(chunk.tool_calls) && chunk.tool_calls.length > 0) ||
-    (Array.isArray(chunk.choices) &&
-      chunk.choices.some(({ delta }) => !!delta && (!!delta.content || !!delta.tool_calls?.length)))
-  );
 }
 
 /**
@@ -230,7 +215,7 @@ export function instrumentWorkersAiStream(
     // Keep the last (potentially incomplete) line in the buffer unless the stream is done.
     buffer = isDone ? '' : (lines.pop() ?? '');
     for (const line of lines) {
-      processLine(line, state, recordOutputs, toolCallAccumulator, span);
+      processLine(line, state, recordOutputs, toolCallAccumulator);
     }
   };
 
@@ -247,6 +232,7 @@ export function instrumentWorkersAiStream(
           return;
         }
 
+        recordTimeToFirstChunk(span);
         buffer += decoder.decode(value, { stream: true });
         flushBuffer(false);
         controller.enqueue(value);

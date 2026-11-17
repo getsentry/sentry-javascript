@@ -277,9 +277,7 @@ const spansWithFirstChunk = new WeakSet<Span>();
 
 /**
  * Sets `gen_ai.response.time_to_first_chunk` on a streamed span, in seconds from the span start.
- * Call it for each chunk that carries new output (text, reasoning, refusals, or tool-call names or
- * arguments), not for chunks with only metadata, usage, or an empty block start. Only the first call
- * per span records a value.
+ * Call it for each received chunk. Only the first call per span records a value.
  */
 export function recordTimeToFirstChunk(span: Span): void {
   if (spansWithFirstChunk.has(span)) {

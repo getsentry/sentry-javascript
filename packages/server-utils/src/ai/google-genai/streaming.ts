@@ -1,7 +1,7 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { endStreamSpan, getErrorStatus, recordTimeToFirstChunk } from '../core/utils';
-import type { ContentPart, GoogleGenAIResponse } from './types';
+import type { GoogleGenAIResponse } from './types';
 import type { MessagePart } from './utils';
 import { candidatesToMessageParts, setOutputMessagesAttribute } from './utils';
 
@@ -102,12 +102,6 @@ function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingStat
   }
 }
 
-// A part carries text (also thoughts), a function call, inline data such as audio or images, or
-// generated code. Parts with only a thought signature carry no output.
-function hasOutput(part: ContentPart | undefined): boolean {
-  return !!part && !!(part.text || part.functionCall || part.inlineData || part.executableCode);
-}
-
 /**
  * Processes a single chunk from the Google GenAI stream
  * @param chunk - The chunk to process
@@ -117,9 +111,7 @@ function hasOutput(part: ContentPart | undefined): boolean {
  */
 function processChunk(chunk: GoogleGenAIResponse, state: StreamingState, recordOutputs: boolean, span: Span): void {
   if (!chunk || isErrorChunk(chunk, span)) return;
-  if (chunk.candidates?.some(candidate => candidate?.content?.parts?.some(hasOutput))) {
-    recordTimeToFirstChunk(span);
-  }
+  recordTimeToFirstChunk(span);
   handleResponseMetadata(chunk, state);
   handleCandidateContent(chunk, state, recordOutputs);
 }
