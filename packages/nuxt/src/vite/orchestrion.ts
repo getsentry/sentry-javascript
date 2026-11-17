@@ -12,14 +12,16 @@ import { isCloudflarePreset } from './utils';
 // external makes Nitro resolve the default export as a namespace object.
 const IORedisDependencies = ['standard-as-callback'];
 
+const CLOUDFLARE_DC_MODULE = '@sentry/cloudflare/orchestrion-diagnostics-channel';
+
 /**
  * Configures Nitro to bundle and transform dependencies that publish tracing
  * events through diagnostics channels.
  *
  * `hasServerConfig` reflects whether a `sentry.server.config` file was found. On Node the SDK is
  * initialized from that file, so orchestrion only makes sense when it exists. On Cloudflare the SDK
- * is initialized through `sentryCloudflareNitroPlugin` instead (no server config file), so the
- * transform must still run there — detected via the Nitro preset.
+ * is initialized through `withSentry` or `sentryCloudflareNitroPlugin` instead (no server config file), so the
+ * transform must still run there, detected via the Nitro preset.
  */
 export function setupOrchestrion(nuxt: Nuxt, hasServerConfig: boolean, buildTimeInstrumentation?: boolean): void {
   if (buildTimeInstrumentation === false) {
@@ -37,8 +39,8 @@ export function setupOrchestrion(nuxt: Nuxt, hasServerConfig: boolean, buildTime
       return;
     }
 
-    // On Cloudflare (workerd) the SDK is initialized through `sentryCloudflareNitroPlugin` (no
-    // server config file), so the transform must still run there — detected via the Nitro preset.
+    // On Cloudflare (workerd) the SDK is initialized through `withSentry` or `sentryCloudflareNitroPlugin` (no
+    // server config file), so the transform must still run there, detected via the Nitro preset.
     const isCloudflare = isCloudflarePreset(nitroConfig.preset);
 
     if (!hasServerConfig && !isCloudflare) {
@@ -53,7 +55,11 @@ export function setupOrchestrion(nuxt: Nuxt, hasServerConfig: boolean, buildTime
       nitroConfig.rollupConfig.plugins = [nitroConfig.rollupConfig.plugins];
     }
 
-    nitroConfig.rollupConfig.plugins.push(sentryOrchestrionPlugin({}), sentryCommonJSInteropPlugin());
+    nitroConfig.rollupConfig.plugins.push(
+      // On workerd, the façade defers the channel events of module-scope calls until a request runs.
+      sentryOrchestrionPlugin(isCloudflare ? { dcModule: CLOUDFLARE_DC_MODULE } : {}),
+      sentryCommonJSInteropPlugin(),
+    );
 
     const externals = (nitroConfig.externals ||= {});
     const inline = externals.inline;

@@ -4,7 +4,13 @@ import { wrapRequestHandler } from '@sentry/cloudflare/request';
 import { getTunnelPath, SDK_VERSION } from '@sentry/core';
 import type { NitroApp } from 'nitropack';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import cloudflareEntryPlugin from '../../../src/runtime/plugins/cloudflare-entry.server';
 import { sentryCloudflareNitroPlugin } from '../../../src/runtime/plugins/sentry-cloudflare.server';
+
+vi.mock('@sentry/core', async () => ({
+  ...(await vi.importActual<object>('@sentry/core')),
+  consoleSandbox: (callback: () => void) => callback(),
+}));
 
 vi.mock('@sentry/cloudflare/request', () => ({
   wrapRequestHandler: vi.fn((_options: unknown, callback: () => unknown) => callback()),
@@ -52,6 +58,8 @@ describe('sentryCloudflareNitroPlugin', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    delete (globalThis as { __SENTRY_NUXT_CLOUDFLARE_ENTRY_WRAPPED__?: boolean })
+      .__SENTRY_NUXT_CLOUDFLARE_ENTRY_WRAPPED__;
   });
 
   it('passes a defaultIntegrations list that extends the SDK defaults', async () => {
@@ -122,5 +130,33 @@ describe('sentryCloudflareNitroPlugin', () => {
       expect.objectContaining({ options: expect.objectContaining({ _metadata: NUXT_SDK_METADATA }) }),
       expect.any(Function),
     );
+  });
+
+  it('does not wrap an internal `$fetch` on Nitro v3, which has no Worker context', async () => {
+    const fetch = vi.fn(() => Promise.resolve(new Response('app')));
+    const nitroApp = { fetch, hooks: { hook: vi.fn() } } as unknown as NitroApp & {
+      fetch: (request: Request) => Promise<Response>;
+    };
+    sentryCloudflareNitroPlugin({ dsn: DSN })(nitroApp);
+
+    const request = new Request('https://example.com/api/internal');
+    await nitroApp.fetch(request);
+
+    expect(fetch).toHaveBeenCalledWith(request);
+    expect(wrapRequestHandler).not.toHaveBeenCalled();
+  });
+
+  it('does nothing after the Nitro plugin of the `instrument.server.ts` setup ran', () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const localFetch = vi.fn();
+    const hook = vi.fn();
+    const nitroApp = { localFetch, hooks: { hook } } as unknown as NitroApp;
+
+    cloudflareEntryPlugin({ hooks: { hook: vi.fn() } } as unknown as NitroApp);
+    sentryCloudflareNitroPlugin({ dsn: DSN })(nitroApp);
+
+    expect(nitroApp.localFetch).toBe(localFetch);
+    expect(hook).not.toHaveBeenCalled();
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('`sentryCloudflareNitroPlugin` does nothing'));
   });
 });
