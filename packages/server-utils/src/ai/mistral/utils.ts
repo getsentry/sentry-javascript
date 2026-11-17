@@ -1,7 +1,7 @@
 /* eslint-disable typescript-eslint/no-deprecated */
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import type { GenAiOutputMessage } from '../core/utils';
-import { getRequestSignal, setOutputMessagesAttribute } from '../core/utils';
+import { setOutputMessagesAttribute } from '../core/utils';
 import {
   GEN_AI_REQUEST_FREQUENCY_PENALTY,
   GEN_AI_REQUEST_MAX_TOKENS,
@@ -58,10 +58,8 @@ export function getSpanName(operationName: string, attributes: Record<string, un
  * `options.fetchOptions`, so a top-level `signal` wins.
  */
 export function getMistralRequestSignal(requestOptions: unknown): AbortSignal | undefined {
-  return (
-    getRequestSignal(requestOptions) ??
-    getRequestSignal((requestOptions as { fetchOptions?: unknown } | undefined)?.fetchOptions)
-  );
+  const options = requestOptions as { signal?: AbortSignal; fetchOptions?: { signal?: AbortSignal } } | undefined;
+  return options?.signal ?? options?.fetchOptions?.signal;
 }
 
 /**
