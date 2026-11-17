@@ -1,3 +1,4 @@
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import {
   GEN_AI_CONVERSATION_ID,
   GEN_AI_INPUT_MESSAGES,
@@ -36,6 +37,20 @@ const CONTENT_ATTRIBUTES = [
   GEN_AI_TOOL_CALL_ARGUMENTS,
   GEN_AI_TOOL_CALL_RESULT,
 ];
+
+type Recorded = { span: string; inputs: boolean; outputs: boolean };
+
+/** What each span of the run records, in start order. Each run is a trace of its own. */
+function recorded(container: SerializedStreamedSpanContainer): Recorded[] {
+  return container.items
+    .filter(span => !span.is_segment)
+    .sort((a, b) => a.start_timestamp - b.start_timestamp)
+    .map(({ name, attributes }) => ({
+      span: name,
+      inputs: GEN_AI_INPUT_MESSAGES in attributes || GEN_AI_TOOL_CALL_ARGUMENTS in attributes,
+      outputs: GEN_AI_OUTPUT_MESSAGES in attributes || GEN_AI_TOOL_CALL_RESULT in attributes,
+    }));
+}
 
 // The pi packages declare `engines.node >= 22.19`.
 describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
@@ -651,4 +666,34 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
         .completed();
     });
   });
+
+  createEsmTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-recording-functions.mjs',
+    (createRunner, test) => {
+      test('decides content recording per call when the options are functions', async () => {
+        const runs: Recorded[][] = [];
+
+        await createRunner()
+          .expect({ span: container => void runs.push(recorded(container)) })
+          .expect({ span: container => void runs.push(recorded(container)) })
+          .start()
+          .completed();
+
+        expect(runs).toEqual([
+          [
+            { span: 'chat faux-model', inputs: true, outputs: true },
+            { span: 'execute_tool get_weather', inputs: true, outputs: false },
+            { span: 'chat faux-model', inputs: true, outputs: true },
+          ],
+          [
+            { span: 'chat faux-model', inputs: false, outputs: false },
+            { span: 'execute_tool get_weather', inputs: false, outputs: false },
+            { span: 'chat faux-model', inputs: false, outputs: false },
+          ],
+        ]);
+      });
+    },
+  );
 });
