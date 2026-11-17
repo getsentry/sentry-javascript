@@ -144,10 +144,12 @@ test.describe('middleware errors', () => {
       return event.exception?.values?.[0]?.value === 'Service Unavailable from middleware';
     });
 
+    // On Cloudflare the middleware span can reach the proxy in a later envelope than the segment span.
     const segmentPromise = collectStreamedSpansUntilSegment(
       APP_NAME,
       segment =>
         getSpanOp(segment) === 'http.server' && !!segment.name?.includes('/test-errors/middleware-http-exception'),
+      span => getSpanOp(span) === 'middleware',
     );
 
     const response = await fetch(`${baseURL}/test-errors/middleware-http-exception`);
