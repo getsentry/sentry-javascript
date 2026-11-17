@@ -1,5 +1,11 @@
 import {
   browserTracingIntegrationShim,
+  browserTracingCoreIntegrationShim,
+  longTasksIntegrationShim,
+  resourcesIntegrationShim,
+  fetchTracingIntegrationShim,
+  xhrTracingIntegrationShim,
+  linkedTracesIntegrationShim,
   feedbackIntegrationShim,
   spanStreamingIntegrationShim,
   fetchStreamPerformanceIntegrationShim,
@@ -15,6 +21,12 @@ export { elementTimingIntegration } from '@sentry/browser-utils';
 
 export {
   browserTracingIntegrationShim as browserTracingIntegration,
+  browserTracingCoreIntegrationShim as browserTracingCoreIntegration,
+  longTasksIntegrationShim as longTasksIntegration,
+  resourcesIntegrationShim as resourcesIntegration,
+  fetchTracingIntegrationShim as fetchTracingIntegration,
+  xhrTracingIntegrationShim as xhrTracingIntegration,
+  linkedTracesIntegrationShim as linkedTracesIntegration,
   feedbackIntegrationShim as feedbackAsyncIntegration,
   feedbackIntegrationShim as feedbackIntegration,
   spanStreamingIntegrationShim as spanStreamingIntegration,
