@@ -1,3 +1,4 @@
+import { resolveSourceMapsFeatures } from '@sentry/core';
 import type { NormalizedOptions } from './options-mapping';
 
 /**
@@ -47,22 +48,14 @@ export type SourceMapFeatures = {
   stampEmittedFiles: boolean;
 };
 
-function usesFeatureOptions(options: NormalizedOptions): boolean {
-  return options.sourcemaps?.upload !== undefined || options.sourcemaps?.injectDebugIds !== undefined;
-}
-
 /**
  * Reads `sourcemaps.upload` and `sourcemaps.injectDebugIds`. When neither is set,
  * `sourcemaps.disable` decides.
  */
 export function getSourceMapFeatures(options: NormalizedOptions): SourceMapFeatures {
-  const { upload, injectDebugIds, disable } = options.sourcemaps ?? {};
+  const { injectDebugIds, upload } = resolveSourceMapsFeatures(options.sourcemaps);
 
-  const inject = usesFeatureOptions(options) ? injectDebugIds !== false : disable !== true;
-  // The upload matches files by debug ID, so it cannot run without them.
-  const uploadEnabled = inject && (usesFeatureOptions(options) ? upload !== false : !disable);
-
-  return { injectDebugIds: inject, upload: uploadEnabled, stampEmittedFiles: inject && !uploadEnabled };
+  return { injectDebugIds, upload, stampEmittedFiles: injectDebugIds && !upload };
 }
 
 /** Reads `sourcemaps.deleteSourcemapsAfterUpload`, calling the internal function form if given. */
@@ -114,7 +107,9 @@ export function decideSourceMapHandling(
         log: {
           level: 'warn',
           message: `\`sourcemaps.deleteSourcemapsAfterUpload\` is set, but source map upload is disabled with ${
-            usesFeatureOptions(options) ? '`sourcemaps.upload` or `sourcemaps.injectDebugIds`' : '`sourcemaps.disable`'
+            resolveSourceMapsFeatures(options.sourcemaps).legacyDisable
+              ? '`sourcemaps.disable`'
+              : '`sourcemaps.upload` or `sourcemaps.injectDebugIds`'
           }, so the source maps are not removed.`,
         },
       };
