@@ -1,4 +1,6 @@
 export const TEAM_SLUG = 'team-javascript-sdks';
+// Outside collaborators can't be members of a GitHub team, so contractors are listed here instead.
+export const CONTRACTORS = ['timfish', 'RulaKhaled'];
 export const JUNIOR_LOGIN = 'sentry-junior[bot]';
 // Junior writes `via **Slack Name**` when the requester has no GitHub account linked in Junior. These people's
 // GitHub profile name can't be matched to their Slack name.

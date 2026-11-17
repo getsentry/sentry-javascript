@@ -1,8 +1,6 @@
-import { getJuniorRequesters, JUNIOR_LOGIN, TEAM_SLUG } from './junior-requesters.mjs';
+import { CONTRACTORS, getJuniorRequesters, JUNIOR_LOGIN, TEAM_SLUG } from './junior-requesters.mjs';
 
 export const TEAM_REVIEW_LABEL = 'Waiting for: Team Review';
-// Outside collaborators can't be members of a GitHub team, so contractors are listed here instead.
-const CONTRACTORS = ['timfish', 'RulaKhaled'];
 // Only the app that clears the label after a qualifying review may remove it.
 const GITFLOW_APP_LOGIN = 'javascript-sdk-gitflow[bot]';
 
