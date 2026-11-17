@@ -88,7 +88,7 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
         <dialog
           class="dialog"
           ref={dialogRef}
-          aria-labelledby={props.titleId}
+          aria-label={options.formTitle}
           onClick={options.onFormClose}
           onCancel={event => {
             event.preventDefault();
@@ -109,7 +109,7 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
                 e.stopPropagation();
               }}
             >
-              <DialogHeader options={options} titleId={props.titleId} />
+              <DialogHeader options={options} />
               <Form {...props} onSubmitSuccess={onSubmitSuccess} />
             </div>
           </div>

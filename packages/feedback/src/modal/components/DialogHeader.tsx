@@ -6,17 +6,14 @@ import { SentryLogo } from './SentryLogo';
 
 export interface Props {
   options: FeedbackInternalOptions;
-  titleId: string;
 }
 
-export function DialogHeader({ options, titleId }: Props): VNode {
+export function DialogHeader({ options }: Props): VNode {
   const logoHtml = useMemo(() => ({ __html: SentryLogo().outerHTML }), []);
 
   return (
     <h2 class="dialog__header">
-      <span class="dialog__title" id={titleId}>
-        {options.formTitle}
-      </span>
+      <span class="dialog__title">{options.formTitle}</span>
       {options.showBranding ? (
         <a
           class="brand-link"

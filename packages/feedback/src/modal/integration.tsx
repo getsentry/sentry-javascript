@@ -19,8 +19,6 @@ function getUser(): User | undefined {
   return globalUser;
 }
 
-let dialogCount = 0;
-
 export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
   return {
     name: 'FeedbackModal' as const,
@@ -32,8 +30,6 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
 
       const el = DOCUMENT.createElement('div');
       const style = createDialogStyles(options.styleNonce);
-      // Preact's `useId` restarts for every `render()` root, and all dialogs share one shadow root.
-      const titleId = `sentry-feedback-title-${++dialogCount}`;
 
       let originalOverflow = '';
       let isOpen = false;
@@ -107,7 +103,6 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
         render(
           <Dialog
             options={options}
-            titleId={titleId}
             screenshotInput={screenshotInput}
             showName={options.showName || options.isNameRequired}
             showEmail={options.showEmail || options.isEmailRequired}
