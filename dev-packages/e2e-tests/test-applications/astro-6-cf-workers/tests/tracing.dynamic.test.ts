@@ -58,7 +58,7 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
       'sentry.sample_rate': { value: 1, type: 'integer' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'sentry.environment': { value: 'qa', type: 'string' },
-      'sentry.sdk.name': { value: 'sentry.javascript.cloudflare', type: 'string' },
+      'sentry.sdk.name': { value: 'sentry.javascript.astro', type: 'string' },
       // demonstrates that the request data integration can extract headers
       'http.request.header.accept': { value: [expect.any(String)], type: 'array' },
       'http.request.header.accept-encoding': { value: ['br, gzip'], type: 'array' },
