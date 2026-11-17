@@ -7,6 +7,11 @@ const profiles = {
   d: { login: 'd', name: 'Dan Example' },
 };
 
+const contractorProfiles = {
+  timfish: { login: 'timfish', name: 'Tim Fish' },
+  RulaKhaled: { login: 'RulaKhaled', name: 'Rola Abuhasna' },
+};
+
 export function setup(run, pr, payload) {
   const github = {
     paginate: vi.fn(async method => (method === github.rest.teams.listMembersInOrg ? Object.values(profiles) : [])),
@@ -29,7 +34,9 @@ export function setup(run, pr, payload) {
         requestReviewers: vi.fn(),
       },
       teams: { listMembersInOrg: vi.fn() },
-      users: { getByUsername: vi.fn(async ({ username }) => ({ data: profiles[username] })) },
+      users: {
+        getByUsername: vi.fn(async ({ username }) => ({ data: profiles[username] ?? contractorProfiles[username] })),
+      },
       issues: { addAssignees: vi.fn(), addLabels: vi.fn(), removeLabel: vi.fn() },
     },
   };
