@@ -5,9 +5,6 @@ export default defineConfig({
   ...baseConfig,
   test: {
     ...baseConfig.test,
-    coverage: {
-      enabled: false,
-    },
     isolate: false,
     include: ['./suites/**/test.ts'],
     // Each test spawns its own `wrangler dev` (cold workerd boot) and waits for envelopes to be
