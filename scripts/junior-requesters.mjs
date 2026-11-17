@@ -70,7 +70,7 @@ export function resolveLoginByName(name, members) {
 
 /**
  * Returns the GitHub logins of the people who asked Junior for this PR, or nothing for other PRs. Names are only
- * matched against the SDK team, so a Slack name can't resolve to an unrelated GitHub user.
+ * matched against the SDK team and contractors, so a Slack name can't resolve to an unrelated GitHub user.
  */
 export async function getJuniorRequesters({ github, core, pr }) {
   if (pr.user.login !== JUNIOR_LOGIN) {
@@ -86,12 +86,15 @@ export async function getJuniorRequesters({ github, core, pr }) {
       continue;
     }
     members ??= await Promise.all(
-      (
-        await github.paginate(github.rest.teams.listMembersInOrg, {
-          org: pr.base.repo.owner.login,
-          team_slug: TEAM_SLUG,
-        })
-      ).map(async ({ login }) => (await github.rest.users.getByUsername({ username: login })).data),
+      [
+        ...(
+          await github.paginate(github.rest.teams.listMembersInOrg, {
+            org: pr.base.repo.owner.login,
+            team_slug: TEAM_SLUG,
+          })
+        ).map(({ login }) => login),
+        ...CONTRACTORS,
+      ].map(async username => (await github.rest.users.getByUsername({ username })).data),
     );
     const login = resolveLoginByName(requester.name, members);
     if (login) {
