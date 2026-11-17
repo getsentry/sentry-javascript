@@ -351,13 +351,19 @@ interface ReleaseOptions {
    * commit, so these chunks get new content hashes, and new file names, on every release, even when their code did not
    * change. The chunks that import them get new file names too, so returning visitors download all of them again.
    *
-   * To keep these file names stable, set this to `false` and pass `release` to `Sentry.init` at runtime, from a value
-   * that is not part of your bundled code, such as your HTML page. A release written into bundled code, for example with
-   * `define`, changes the content hashes in the same way.
+   * To keep these file names stable, set this to `'html'`. The plugin then adds the release to the `<head>` of each
+   * emitted HTML page, in an inline `<script>`, and not to any chunk. The Vite plugin supports this for builds with
+   * HTML entry points. A Content Security Policy must allow the inline script, for example with Vite's `html.cspNonce`
+   * or a hash of the script. Where the plugin cannot add the release to HTML, it warns and injects it into the startup
+   * chunks.
+   *
+   * You can also set this to `false` and pass `release` to `Sentry.init` at runtime, from a value that is not part of
+   * your bundled code. A release written into bundled code, for example with `define`, changes the content hashes in
+   * the same way.
    *
    * @default true
    */
-  inject?: boolean;
+  inject?: boolean | 'html';
 
   /**
    * Whether to create a new release.
