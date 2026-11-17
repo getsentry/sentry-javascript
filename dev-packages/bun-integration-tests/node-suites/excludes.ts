@@ -76,7 +76,6 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/pino/test.ts',
   'suites/tracing/amqplib/test.ts',
   'suites/tracing/anthropic/test.ts',
-  'suites/tracing/anthropic/recording-functions/test.ts',
   'suites/tracing/anthropic/v0/test.ts',
   'suites/tracing/anthropic/v0.129/test.ts',
   'suites/tracing/anthropic/v1/test.ts',
@@ -89,7 +88,6 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/google-genai-v2/test.ts',
   'suites/tracing/google-genai-v3/test.ts',
   'suites/tracing/google-genai/test.ts',
-  'suites/tracing/google-genai/recording-functions/test.ts',
   'suites/tracing/groq/test.ts',
   'suites/tracing/hapi/test.ts',
   'suites/tracing/ioredis-dc/test.ts',
@@ -104,7 +102,6 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/mcp-server/**',
   'suites/tracing/mistral-v2/test.ts',
   'suites/tracing/mistral/test.ts',
-  'suites/tracing/mistral/recording-functions/test.ts',
   'suites/tracing/mongodb-v4/test.ts',
   'suites/tracing/mongodb-v5/test.ts',
   'suites/tracing/mongodb-v6/test.ts',
@@ -232,10 +229,7 @@ const BUN_BUILD_NO_HTTP_SERVER_INTEGRATION = ['suites/express/multiple-init/test
 
 // `@mistralai/mistralai` v3 statically imports its optional peer `@livekit/rtc-node`, so Bun cannot
 // bundle the scenarios. `mistral-v2` still covers Mistral here.
-const BUN_BUILD_UNBUNDLEABLE_DEPENDENCY = [
-  'suites/tracing/mistral/recording-functions/test.ts',
-  'suites/tracing/mistral/test.ts',
-];
+const BUN_BUILD_UNBUNDLEABLE_DEPENDENCY = ['suites/tracing/mistral/test.ts'];
 
 // Some or all tests fail with the bundled scenarios. The cause is not investigated yet. In
 // `express/tracing` only the request data tests fail: they set `httpIntegration` options, and with
@@ -250,7 +244,6 @@ const BUN_BUILD_NOT_TRIAGED = [
   'suites/tracing/google-genai-v2/test.ts',
   'suites/tracing/google-genai-v3/test.ts',
   'suites/tracing/google-genai/test.ts',
-  'suites/tracing/google-genai/recording-functions/test.ts',
   'suites/tracing/langchain/v1/**',
   'suites/tracing/langgraph/v1/test.ts',
   'suites/tracing/mastra/**',
