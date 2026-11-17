@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @JavierCane. Thank you for your contribution!
+
 ### Important Changes
 
 - **ref(server-utils): Share one cron converter across cron integrations ([#25918](https://github.com/getsentry/sentry-javascript/pull/25918))**
