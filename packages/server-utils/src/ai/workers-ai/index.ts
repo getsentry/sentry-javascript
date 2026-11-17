@@ -1,7 +1,7 @@
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { getClient, hasSpanStreamingEnabled, startSpan, startSpanManual } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { getErrorStatus, getRequestSignal, isReadableStream, resolveAIRecordingOptions } from '../core/utils';
+import { getErrorStatus, getRequestSignal, isReadableStream, resolveGenAiCallRecording } from '../core/utils';
 import { shouldSkipAiProviderSpan } from '../pi-ai/providers';
 import { WORKERS_AI_INTEGRATION_NAME } from './constants';
 import { instrumentWorkersAiStream } from './streaming';
@@ -20,7 +20,7 @@ import {
 function instrumentRun(
   originalRun: (...args: unknown[]) => Promise<unknown>,
   context: unknown,
-  options: WorkersAiOptions & Required<Pick<WorkersAiOptions, 'recordInputs' | 'recordOutputs'>>,
+  options: WorkersAiOptions,
 ): (...args: unknown[]) => Promise<unknown> {
   return function instrumentedRun(...args: unknown[]): Promise<unknown> {
     if (shouldSkipAiProviderSpan(WORKERS_AI_INTEGRATION_NAME)) {
@@ -30,6 +30,12 @@ function instrumentRun(
     const [model, inputs, runOptions] = args as [unknown, unknown, Record<string, unknown> | undefined];
 
     const operationName = getOperationName(model, inputs);
+    const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, {
+      operation: operationName,
+      model,
+      inputs,
+      options: runOptions,
+    });
     const requestAttributes = extractRequestAttributes(model, inputs, operationName);
     const modelName = typeof model === 'string' && model ? model : 'unknown';
     const abortSignal = getRequestSignal(runOptions);
@@ -72,17 +78,17 @@ function instrumentRun(
           return handleError(error);
         }
 
-        if (options.recordInputs) {
+        if (recordInputs) {
           addRequestAttributes(span, inputs, operationName);
         }
 
         return originalResult.then(result => {
           if (isReadableStream<Uint8Array>(result)) {
-            return instrumentWorkersAiStream(result, span, options.recordOutputs, abortSignal);
+            return instrumentWorkersAiStream(result, span, recordOutputs, abortSignal);
           }
 
           // The model did not actually return a stream — finalize the span eagerly.
-          addResponseAttributes(span, result, options.recordOutputs, operationName);
+          addResponseAttributes(span, result, recordOutputs, operationName);
           span.end();
           return result;
         }, handleError);
@@ -92,14 +98,14 @@ function instrumentRun(
     return startSpan(spanConfig, (span: Span) => {
       const originalResult = originalRun.apply(context, args) as Promise<unknown>;
 
-      if (options.recordInputs) {
+      if (recordInputs) {
         addRequestAttributes(span, inputs, operationName);
       }
 
       return originalResult.then(
         result => {
           if (!returnsRawResponse) {
-            addResponseAttributes(span, result, options.recordOutputs, operationName);
+            addResponseAttributes(span, result, recordOutputs, operationName);
           }
           return result;
         },
@@ -128,14 +134,12 @@ function instrumentRun(
  * ```
  */
 export function instrumentWorkersAiClient<T extends object>(client: T, options?: WorkersAiOptions): T {
-  const resolvedOptions = resolveAIRecordingOptions(options);
-
   const instrumented = new Proxy(client, {
     get(target: object, prop: string | symbol, receiver: unknown): unknown {
       const value = Reflect.get(target, prop, receiver);
 
       if (prop === 'run' && typeof value === 'function') {
-        return instrumentRun(value as (...args: unknown[]) => Promise<unknown>, target, resolvedOptions);
+        return instrumentRun(value as (...args: unknown[]) => Promise<unknown>, target, options ?? {});
       }
 
       // Bind passed-through functions to the original target to preserve `this` (e.g. private fields).

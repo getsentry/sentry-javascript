@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ERROR_TYPE,
   GEN_AI_AGENT_NAME,
@@ -40,6 +40,7 @@ import {
   setCurrentClient,
   spanToStaticSpanJSON,
 } from '@sentry/core';
+import type { MastraCallInfo } from '../../../../src/ai/mastra';
 import { SentryMastraExporter } from '../../../../src/ai/mastra';
 import type { ClassifierEvaluationCall } from '../../../../src/ai/mastra/classifier-evaluation';
 import { setStartingClassifierEvaluation } from '../../../../src/ai/mastra/classifier-evaluation';
@@ -270,6 +271,57 @@ describe('SentryMastraExporter', () => {
     expect(json.data[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
     expect(json.data[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
     expect(JSON.stringify(json.data)).not.toContain('pii');
+  });
+
+  describe('per-span recording options', () => {
+    function recorded(span: Span): { inputs: boolean; outputs: boolean } {
+      const { data } = spanToStaticSpanJSON(span);
+      return { inputs: GEN_AI_INPUT_MESSAGES in data, outputs: GEN_AI_OUTPUT_MESSAGES in data };
+    }
+
+    const isPublicAgent = ({ span }: MastraCallInfo): boolean => span.entityName === 'public_agent';
+
+    it('decides for each Mastra span from the span at export time', async () => {
+      const calls: MastraCallInfo[] = [];
+      exporter = new SentryMastraExporter({
+        recordInputs: call => {
+          calls.push(call);
+          return isPublicAgent(call);
+        },
+        recordOutputs: isPublicAgent,
+      });
+      const publicSpan = makeSpan({ id: 'a', entityName: 'public_agent', input: 'hi', output: { text: 'hello' } });
+      const privateSpan = makeSpan({ id: 'b', entityName: 'private_agent', input: 'hi', output: { text: 'hello' } });
+
+      await run(started(publicSpan), ended(publicSpan), started(privateSpan), ended(privateSpan));
+
+      expect(calls[0]).toEqual({ span: publicSpan });
+      expect(endedSpans.map(recorded)).toEqual([
+        { inputs: true, outputs: true },
+        { inputs: false, outputs: false },
+      ]);
+    });
+
+    it('decides inputs and outputs separately, once per span, and keeps the decision until the span ends', async () => {
+      const recordOutputs = vi.fn().mockReturnValueOnce(true).mockReturnValue(false);
+      exporter = new SentryMastraExporter({ recordInputs: () => false, recordOutputs });
+      const span = makeSpan({ entityName: 'agent', input: 'hi', output: { text: 'hello' } });
+
+      await run(started(span), { type: 'span_updated', exportedSpan: span }, ended(span));
+
+      expect(recordOutputs).toHaveBeenCalledTimes(1);
+      expect(endedSpans.map(recorded)).toEqual([{ inputs: false, outputs: true }]);
+    });
+
+    it('passes the per-span decision to the classifier evaluation call', async () => {
+      exporter = new SentryMastraExporter({ recordInputs: () => true, recordOutputs: () => false });
+      const call: ClassifierEvaluationCall = {};
+
+      setStartingClassifierEvaluation(call);
+      await run(started(makeSpan({ id: 'eval-1', type: 'classifier_evaluation' })));
+
+      expect(call).toMatchObject({ recordInputs: true, recordOutputs: false });
+    });
   });
 
   it('re-parents a tool onto the generation across a dropped model_step', async () => {

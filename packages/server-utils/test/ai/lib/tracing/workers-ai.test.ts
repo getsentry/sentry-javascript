@@ -17,13 +17,17 @@ import {
 import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  getCurrentScope,
   getMainCarrier,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   setCurrentClient,
   spanToStaticSpanJSON,
+  withScope,
 } from '@sentry/core';
 import type { DataCollection, Span } from '@sentry/core';
+import { setAsyncLocalStorageAsyncContextStrategy } from '../../../../src/async-context';
 import { instrumentWorkersAiClient } from '../../../../src/ai/workers-ai';
+import type { WorkersAiCallInfo } from '../../../../src/ai/workers-ai/types';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 const MODEL = '@cf/meta/llama-3.1-8b-instruct';
@@ -162,6 +166,84 @@ describe('instrumentWorkersAiClient', () => {
 
       expect(endedSpans).toHaveLength(1);
       expect(spanToStaticSpanJSON(endedSpans[0]!).data).toEqual(expected);
+    });
+
+    describe('per-call recording options', () => {
+      const messages = [
+        { role: 'system', content: 'Answer in one word.' },
+        { role: 'user', content: 'Capital of France?' },
+      ];
+
+      function recorded(span: Span): { inputs: boolean; outputs: boolean } {
+        const { data } = spanToStaticSpanJSON(span);
+        return { inputs: GEN_AI_INPUT_MESSAGES in data, outputs: GEN_AI_OUTPUT_MESSAGES in data };
+      }
+
+      it('decides for each call from the run() arguments', async () => {
+        const endedSpans = setupClient();
+        const calls: WorkersAiCallInfo[] = [];
+        const decide = (call: WorkersAiCallInfo): boolean => {
+          calls.push(call);
+          return (call.inputs as { privacy?: string }).privacy === 'public';
+        };
+        const client = { run: vi.fn().mockResolvedValue({ response: 'Paris' }) };
+        const instrumented = instrumentWorkersAiClient(client, { recordInputs: decide, recordOutputs: decide });
+
+        const publicInputs = { messages, privacy: 'public' };
+        const runOptions = { gateway: { id: 'my-gateway' } };
+        await instrumented.run(MODEL, publicInputs, runOptions);
+        await instrumented.run(MODEL, { messages, privacy: 'private' });
+
+        expect(calls[0]).toEqual({ operation: 'chat', model: MODEL, inputs: publicInputs, options: runOptions });
+        expect(endedSpans.map(recorded)).toEqual([
+          { inputs: true, outputs: true },
+          { inputs: false, outputs: false },
+        ]);
+      });
+
+      it("runs the functions in the caller's async context", async () => {
+        setAsyncLocalStorageAsyncContextStrategy();
+        const endedSpans = setupClient();
+        const decide = (): boolean => getCurrentScope().getScopeData().tags.privacy === 'public';
+        const client = { run: vi.fn().mockResolvedValue({ response: 'Paris' }) };
+        const instrumented = instrumentWorkersAiClient(client, { recordInputs: decide, recordOutputs: decide });
+
+        await withScope(async scope => {
+          scope.setTag('privacy', 'public');
+          await instrumented.run(MODEL, { messages });
+        });
+        await withScope(async scope => {
+          scope.setTag('privacy', 'private');
+          await instrumented.run(MODEL, { messages });
+        });
+
+        expect(endedSpans.map(recorded)).toEqual([
+          { inputs: true, outputs: true },
+          { inputs: false, outputs: false },
+        ]);
+      });
+
+      it('decides inputs and outputs separately, once per call, for streams too', async () => {
+        const endedSpans = setupClient();
+        const recordOutputs = vi.fn(() => true);
+        const stream = new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('data: {"response":"Paris"}\n\ndata: [DONE]\n\n'));
+            controller.close();
+          },
+        });
+        const client = { run: vi.fn().mockResolvedValue(stream) };
+        const instrumented = instrumentWorkersAiClient(client, { recordInputs: () => false, recordOutputs });
+
+        const result = (await instrumented.run(MODEL, { messages, stream: true })) as ReadableStream<Uint8Array>;
+        const reader = result.getReader();
+        while (!(await reader.read()).done) {
+          // drain
+        }
+
+        expect(recordOutputs).toHaveBeenCalledTimes(1);
+        expect(endedSpans.map(recorded)).toEqual([{ inputs: false, outputs: true }]);
+      });
     });
   });
 

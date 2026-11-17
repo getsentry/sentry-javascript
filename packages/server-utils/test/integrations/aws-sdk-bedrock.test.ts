@@ -17,11 +17,14 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
-import { setCurrentClient, spanToJSON, startInactiveSpan } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { GenAiOptions } from '../../src/ai/core/utils';
+import { getCurrentScope, setCurrentClient, spanToJSON, startInactiveSpan, withScope } from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type {
+  BedrockRuntimeCallInfo,
+  BedrockRuntimeOptions,
+} from '../../src/integrations/aws-sdk/services/bedrock-runtime';
 import { BedrockRuntimeServiceExtension } from '../../src/integrations/aws-sdk/services/bedrock-runtime';
-import type { NormalizedResponse, RequestMetadata } from '../../src/integrations/aws-sdk/types';
+import type { NormalizedRequest, RequestMetadata } from '../../src/integrations/aws-sdk/types';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 const CLAUDE_MODEL_ID = 'anthropic.claude-3-5-sonnet-20240620-v1:0';
@@ -36,7 +39,7 @@ const CLAUDE_REQUEST_BODY = {
 function preSpanHook(
   commandName: string,
   commandInput: Record<string, unknown>,
-  options?: GenAiOptions,
+  options?: BedrockRuntimeOptions,
 ): RequestMetadata {
   return new BedrockRuntimeServiceExtension(options).requestPreSpanHook({
     serviceName: 'BedrockRuntime',
@@ -258,14 +261,12 @@ function respond(
   commandInput: Record<string, unknown>,
   data: unknown,
   abortSignal?: AbortSignal,
-  options?: GenAiOptions,
+  options?: BedrockRuntimeOptions,
 ): void {
-  const response: NormalizedResponse = {
-    data,
-    request: { serviceName: 'BedrockRuntime', commandName, commandInput, abortSignal },
-    requestId: 'b0a5e5a2-2c2b-4f56-9d0e-8c7c2d3f4a10',
-  };
-  new BedrockRuntimeServiceExtension(options).responseHook(response, span);
+  const extension = new BedrockRuntimeServiceExtension(options);
+  const request: NormalizedRequest = { serviceName: 'BedrockRuntime', commandName, commandInput, abortSignal };
+  extension.requestPreSpanHook(request);
+  extension.responseHook({ data, request, requestId: 'b0a5e5a2-2c2b-4f56-9d0e-8c7c2d3f4a10' }, span);
 }
 
 async function drain(stream: AsyncIterable<unknown>): Promise<void> {
@@ -858,4 +859,106 @@ describe('BedrockRuntimeServiceExtension output recording', () => {
       expect(spanToJSON(span).attributes).not.toHaveProperty(GEN_AI_OUTPUT_MESSAGES);
     },
   );
+});
+
+describe('BedrockRuntimeServiceExtension per-call recording options', () => {
+  const CONVERSE_RESPONSE = { output: { message: { role: 'assistant', content: [{ text: 'Paris.' }] } } };
+
+  beforeEach(() => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+  });
+
+  afterEach(() => {
+    setCurrentClient(undefined as never);
+  });
+
+  function converse(
+    extension: BedrockRuntimeServiceExtension,
+    commandInput: Record<string, unknown>,
+  ): { inputs: boolean; outputs: boolean } {
+    const request: NormalizedRequest = { serviceName: 'BedrockRuntime', commandName: 'Converse', commandInput };
+    const { spanAttributes } = extension.requestPreSpanHook(request);
+    const span = startInactiveSpan({ name: 'bedrock' });
+    extension.responseHook({ data: CONVERSE_RESPONSE, request, requestId: 'id' }, span);
+    return {
+      inputs: GEN_AI_INPUT_MESSAGES in spanAttributes!,
+      outputs: GEN_AI_OUTPUT_MESSAGES in spanToJSON(span).attributes,
+    };
+  }
+
+  const input = (privacy: string): Record<string, unknown> => ({
+    modelId: 'amazon.nova-pro-v1:0',
+    messages: [{ role: 'user', content: [{ text: 'Capital of France?' }] }],
+    requestMetadata: { privacy },
+  });
+
+  const isPublic = (call: BedrockRuntimeCallInfo): boolean => call.input.requestMetadata.privacy === 'public';
+
+  it('decides for each call from the command name and input', () => {
+    const calls: BedrockRuntimeCallInfo[] = [];
+    const recordInputs = (call: BedrockRuntimeCallInfo): boolean => {
+      calls.push(call);
+      return isPublic(call);
+    };
+    const extension = new BedrockRuntimeServiceExtension({ recordInputs, recordOutputs: isPublic });
+
+    const publicInput = input('public');
+    const results = [converse(extension, publicInput), converse(extension, input('private'))];
+
+    expect(calls[0]).toEqual({ commandName: 'Converse', input: publicInput });
+    expect(results).toEqual([
+      { inputs: true, outputs: true },
+      { inputs: false, outputs: false },
+    ]);
+  });
+
+  it("runs the functions in the caller's async context", () => {
+    const decide = (): boolean => getCurrentScope().getScopeData().tags.privacy === 'public';
+    const extension = new BedrockRuntimeServiceExtension({ recordInputs: decide, recordOutputs: decide });
+
+    const results = ['public', 'private'].map(privacy =>
+      withScope(scope => {
+        scope.setTag('privacy', privacy);
+        return converse(extension, input(''));
+      }),
+    );
+
+    expect(results).toEqual([
+      { inputs: true, outputs: true },
+      { inputs: false, outputs: false },
+    ]);
+  });
+
+  it('decides inputs and outputs separately, once, and keeps the decision for the response', () => {
+    const recordOutputs = vi.fn().mockReturnValueOnce(true).mockReturnValue(false);
+    const extension = new BedrockRuntimeServiceExtension({ recordInputs: () => false, recordOutputs });
+
+    expect(converse(extension, input(''))).toEqual({ inputs: false, outputs: true });
+    expect(recordOutputs).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the request-time decision until a stream is drained', async () => {
+    const recordOutputs = vi.fn().mockReturnValueOnce(true).mockReturnValue(false);
+    const extension = new BedrockRuntimeServiceExtension({ recordOutputs });
+    const request: NormalizedRequest = {
+      serviceName: 'BedrockRuntime',
+      commandName: 'ConverseStream',
+      commandInput: input(''),
+    };
+    extension.requestPreSpanHook(request);
+    const span = startInactiveSpan({ name: 'bedrock' });
+    const data = {
+      stream: (async function* () {
+        yield { contentBlockDelta: { contentBlockIndex: 0, delta: { text: 'Paris.' } } };
+      })(),
+    };
+
+    extension.responseHook({ data, request, requestId: 'id' }, span);
+    await drain(data.stream);
+
+    expect(recordOutputs).toHaveBeenCalledTimes(1);
+    expect(spanToJSON(span).attributes).toHaveProperty(GEN_AI_OUTPUT_MESSAGES);
+  });
 });
