@@ -71,7 +71,7 @@ function assertBedrockContent(container: SerializedStreamedSpanContainer): void 
     JSON.stringify([{ role: 'user', parts: [{ type: 'text', content: 'Hello' }] }]),
   );
   expect(converseSpan!.attributes[GEN_AI_TOOL_DEFINITIONS].value).toBe(
-    JSON.stringify([{ name: 'get_weather', inputSchema: { json: { type: 'object' } } }]),
+    JSON.stringify([{ type: 'function', name: 'get_weather', parameters: { type: 'object' } }]),
   );
   expect(converseSpan!.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(OUTPUT_MESSAGES);
 

@@ -26,6 +26,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../core/gen-ai-attributes';
 import { extractSystemInstructions, getTokenUsageAttributes } from '../core/utils';
+import { getToolDefinitionsAttribute } from '../core/tool-definitions';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
 import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from './types';
 
@@ -552,16 +553,7 @@ export function extractToolDefinitions(extraParams?: Record<string, unknown>): s
   const tools =
     (extraParams?.invocation_params as Record<string, unknown>)?.tools ??
     (extraParams?.options as Record<string, unknown>)?.tools;
-  if (!Array.isArray(tools) || tools.length === 0) return undefined;
-  const toolDefs = tools.map((tool: Record<string, unknown>) => {
-    const fn = tool.function as Record<string, unknown> | undefined;
-    return {
-      type: 'function',
-      name: tool.name ?? fn?.name ?? '',
-      description: tool.description ?? fn?.description,
-    };
-  });
-  return JSON.stringify(toolDefs);
+  return getToolDefinitionsAttribute(tools);
 }
 
 // A run started without config inherits the parent run's config, which LangChain keeps in a global

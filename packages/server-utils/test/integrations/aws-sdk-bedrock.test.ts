@@ -180,7 +180,14 @@ describe('BedrockRuntimeServiceExtension input recording', () => {
           ],
         },
       ]),
-      [GEN_AI_TOOL_DEFINITIONS]: JSON.stringify([WEATHER_TOOL_SPEC]),
+      [GEN_AI_TOOL_DEFINITIONS]: JSON.stringify([
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: 'Get the weather for a city',
+          parameters: { type: 'object', properties: { city: { type: 'string' } } },
+        },
+      ]),
     });
   });
 
@@ -197,7 +204,9 @@ describe('BedrockRuntimeServiceExtension input recording', () => {
       [GEN_AI_REQUEST_MODEL]: CLAUDE_MODEL_ID,
       [GEN_AI_SYSTEM_INSTRUCTIONS]: JSON.stringify([{ type: 'text', content: 'You are a weather bot.' }]),
       [GEN_AI_INPUT_MESSAGES]: JSON.stringify(messages),
-      [GEN_AI_TOOL_DEFINITIONS]: JSON.stringify(tools),
+      [GEN_AI_TOOL_DEFINITIONS]: JSON.stringify([
+        { type: 'function', name: 'get_weather', parameters: { type: 'object' } },
+      ]),
     });
   });
 

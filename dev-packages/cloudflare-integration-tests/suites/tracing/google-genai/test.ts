@@ -72,7 +72,7 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
           [GEN_AI_REQUEST_PRESENCE_PENALTY]: { value: 0.3, type: 'double' },
           [GEN_AI_TOOL_DEFINITIONS]: {
             value:
-              '[{"name":"controlLight","parametersJsonSchema":{"type":"object","properties":{"brightness":{"type":"number"},"colorTemperature":{"type":"string"}},"required":["brightness","colorTemperature"]}}]',
+              '[{"type":"function","name":"controlLight","parameters":{"type":"object","properties":{"brightness":{"type":"number"},"colorTemperature":{"type":"string"}},"required":["brightness","colorTemperature"]}}]',
             type: 'string',
           },
           // collect LLM input and outputs (default true)

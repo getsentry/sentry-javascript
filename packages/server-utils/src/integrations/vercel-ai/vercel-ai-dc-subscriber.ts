@@ -56,6 +56,7 @@ import type { TracingChannel } from 'node:diagnostics_channel';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../ai/core/gen-ai-attributes';
 import { isEveGenAiRecordingDefault } from './gen-ai-recording-mode';
 import { getEvaluationOutputMessages, type GenAiOptions } from '../../ai/core/utils';
+import { getToolDefinitionsAttribute } from '../../ai/core/tool-definitions';
 import { getProviderMetadataAttributes, LAST_STEP_ONLY_USAGE_KEYS } from '../../ai/vercel-ai';
 import { WORKERS_AI_INTEGRATION_NAME } from '../../ai/workers-ai/constants';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
@@ -628,7 +629,7 @@ function buildModelCallSpan(
     ...baseAttributes,
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
     ...(recordInputs ? buildInputMessageAttributes(event) : {}),
-    ...(recordInputs && Array.isArray(event.tools) ? { [GEN_AI_TOOL_DEFINITIONS]: stringify(event.tools) } : {}),
+    ...(recordInputs ? { [GEN_AI_TOOL_DEFINITIONS]: getToolDefinitionsAttribute(event.tools) } : {}),
   });
 }
 

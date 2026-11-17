@@ -184,7 +184,7 @@ describe('instrumentGoogleGenAIClient chat config propagation', () => {
     expect(data[GEN_AI_REQUEST_MAX_TOKENS]).toBe(150);
     expect(data[GEN_AI_REQUEST_FREQUENCY_PENALTY]).toBe(0.5);
     expect(data[GEN_AI_REQUEST_PRESENCE_PENALTY]).toBe(0.3);
-    expect(data[GEN_AI_TOOL_DEFINITIONS]).toBe('[{"name":"getWeather"}]');
+    expect(data[GEN_AI_TOOL_DEFINITIONS]).toBe('[{"type":"function","name":"getWeather"}]');
     expect(data[GEN_AI_SYSTEM_INSTRUCTIONS]).toBe('[{"type":"text","content":"You are a friendly robot."}]');
     // The chat message stays as the only input message; the system instruction is split out above.
     expect(data[GEN_AI_INPUT_MESSAGES]).toBe('[{"role":"user","parts":[{"type":"text","content":"Tell me a joke"}]}]');
@@ -210,7 +210,7 @@ describe('instrumentGoogleGenAIClient chat config propagation', () => {
     expect(data[GEN_AI_REQUEST_MAX_TOKENS]).toBe(150);
     expect(data[GEN_AI_REQUEST_FREQUENCY_PENALTY]).toBe(0.5);
     expect(data[GEN_AI_REQUEST_PRESENCE_PENALTY]).toBe(0.3);
-    expect(data[GEN_AI_TOOL_DEFINITIONS]).toBe('[{"name":"getWeather"}]');
+    expect(data[GEN_AI_TOOL_DEFINITIONS]).toBe('[{"type":"function","name":"getWeather"}]');
     expect(data[GEN_AI_SYSTEM_INSTRUCTIONS]).toBe('[{"type":"text","content":"You are a friendly robot."}]');
   });
 

@@ -13,6 +13,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { extractSystemInstructions } from '../core/utils';
+import { getToolDefinitionsAttribute } from '../core/tool-definitions';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import {
   _INTERNAL_mergeLangChainCallbackHandler,
@@ -110,9 +111,11 @@ export function prepareAgentSpan(
 
   const recordInputs = options.recordInputs;
 
-  const tools = recordInputs ? extractToolsFromCompiledGraph(graphInstance) : null;
-  if (tools) {
-    span.setAttribute(GEN_AI_TOOL_DEFINITIONS, JSON.stringify(tools));
+  const toolDefinitions = recordInputs
+    ? getToolDefinitionsAttribute(extractToolsFromCompiledGraph(graphInstance))
+    : undefined;
+  if (toolDefinitions) {
+    span.setAttribute(GEN_AI_TOOL_DEFINITIONS, toolDefinitions);
   }
 
   // Custom state annotations have no `messages` array, the whole state is recorded instead.

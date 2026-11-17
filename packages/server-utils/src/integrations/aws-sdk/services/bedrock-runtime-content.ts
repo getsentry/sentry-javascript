@@ -7,6 +7,7 @@ import {
   GEN_AI_TOOL_DEFINITIONS,
 } from '@sentry/conventions/attributes';
 import { getMessagesAttributes, messagesFromParams } from '../../../ai/anthropic-ai/utils';
+import { getToolDefinitionsAttribute } from '../../../ai/core/tool-definitions';
 import type { GenAiMessagePart } from '../../../ai/types';
 
 /**
@@ -142,8 +143,9 @@ export function getConverseInputAttributes(input: Record<string, unknown>): Reco
     const toolSpecs = toolConfig.tools
       .map(tool => (isObjectLike(tool) ? tool.toolSpec : undefined))
       .filter(isObjectLike);
-    if (toolSpecs.length) {
-      attributes[GEN_AI_TOOL_DEFINITIONS] = JSON.stringify(toolSpecs);
+    const toolDefinitions = getToolDefinitionsAttribute(toolSpecs);
+    if (toolDefinitions) {
+      attributes[GEN_AI_TOOL_DEFINITIONS] = toolDefinitions;
     }
   }
 
@@ -156,8 +158,9 @@ export function getConverseInputAttributes(input: Record<string, unknown>): Reco
  */
 export function getClaudeInputAttributes(body: Record<string, unknown>): Record<string, unknown> {
   const attributes = getMessagesAttributes(messagesFromParams(body));
-  if (Array.isArray(body.tools)) {
-    attributes[GEN_AI_TOOL_DEFINITIONS] = JSON.stringify(body.tools);
+  const toolDefinitions = getToolDefinitionsAttribute(body.tools);
+  if (toolDefinitions) {
+    attributes[GEN_AI_TOOL_DEFINITIONS] = toolDefinitions;
   }
   return attributes;
 }
