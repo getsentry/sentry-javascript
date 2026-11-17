@@ -23,6 +23,7 @@ import {
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
@@ -120,6 +121,41 @@ describe('piAiIntegration', () => {
     settle(ANSWER);
     await events.result();
     expect(endedSpans).toHaveLength(1);
+  });
+
+  it('records the time to the first output event that the provider pushes', async () => {
+    let settle!: (message: unknown) => void;
+    const result = new Promise(resolve => {
+      settle = resolve;
+    });
+    const pushed: unknown[] = [];
+    const events = stream(() => ({ result: () => result, push: (event: unknown) => pushed.push(event) }), MODEL, {
+      messages: [],
+    });
+
+    events.push({ type: 'start' });
+    events.push({ type: 'text_start' });
+    events.push({ type: 'text_delta', delta: '' });
+    await new Promise(resolve => setTimeout(resolve, 50));
+    events.push({ type: 'text_delta', delta: 'Par' });
+    events.push({ type: 'text_delta', delta: 'is.' });
+    settle(ANSWER);
+    await events.result();
+
+    expect(pushed).toHaveLength(5);
+    const { attributes, start_timestamp, end_timestamp } = spanToJSON(endedSpans[0]!);
+    const timeToFirstChunk = attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK] as number;
+    expect(timeToFirstChunk).toBeGreaterThanOrEqual(0.04);
+    expect(timeToFirstChunk).toBeLessThanOrEqual(end_timestamp! - start_timestamp);
+  });
+
+  it('records no time to first chunk for a stream without output', async () => {
+    const events = stream(() => ({ result: async () => ANSWER, push: () => {} }), MODEL, { messages: [] });
+    events.push({ type: 'start' });
+    events.push({ type: 'done' });
+    await events.result();
+
+    expect(spanToJSON(endedSpans[0]!).attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]).toBeUndefined();
   });
 
   it.each([true, false])('traces a request with its options and response identity (streaming: %s)', async streaming => {

@@ -28,6 +28,7 @@ import {
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT } from '@sentry/conventions/op';
+import { recordTimeToFirstChunk } from '../core/utils';
 import { PI_AI_ORIGIN } from './constants';
 import type { PiAiContext } from './messages';
 import {
@@ -37,7 +38,7 @@ import {
   piAiSystemInstructions,
   piAiToolDefinitions,
 } from './messages';
-import type { PiAssistantMessage, PiModel, PiStreamOptions } from './types';
+import type { PiAssistantMessage, PiEventStream, PiModel, PiStreamOptions } from './types';
 import { setPiAiUsageAttributes } from './usage';
 
 interface PiAiChatRequest {
@@ -117,4 +118,40 @@ function getRequestContentAttributes(context: PiAiContext): Record<string, strin
     [GEN_AI_INPUT_MESSAGES]: messages.length ? stringify(messages) : undefined,
     [GEN_AI_TOOL_DEFINITIONS]: tools.length ? stringify(tools) : undefined,
   };
+}
+
+/**
+ * Records `gen_ai.response.time_to_first_chunk` for a streamed request. The stream has one consumer,
+ * so instead of reading it, this wraps `push`, which the provider calls for each event as it decodes
+ * it. The wrapper is removed after the first output event.
+ */
+export function observePiAiFirstChunk(span: Span, events: Partial<PiEventStream> | undefined): void {
+  const push = events?.push;
+  if (!events || typeof push !== 'function') {
+    return;
+  }
+  events.push = function (this: unknown, event: unknown) {
+    if (isPiAiOutputEvent(event)) {
+      recordTimeToFirstChunk(span);
+      events.push = push;
+    }
+    return push.call(this, event);
+  };
+}
+
+// `text_start` and `thinking_start` open an empty block, so they are not output. A tool call
+// start carries the tool name, which is.
+function isPiAiOutputEvent(event: unknown): boolean {
+  if (!event || typeof event !== 'object') {
+    return false;
+  }
+  const { type, delta } = event as { type?: unknown; delta?: unknown };
+  if (type === 'toolcall_start') {
+    return true;
+  }
+  return (
+    (type === 'text_delta' || type === 'thinking_delta' || type === 'toolcall_delta') &&
+    typeof delta === 'string' &&
+    delta.length > 0
+  );
 }

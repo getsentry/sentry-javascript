@@ -1,7 +1,7 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { getToolCallKey } from '../core/streaming-tool-calls';
-import { endStreamSpan } from '../core/utils';
+import { endStreamSpan, recordTimeToFirstChunk } from '../core/utils';
 import { RESPONSE_EVENT_TYPES } from './constants';
 import type {
   ChatCompletionChunk,
@@ -209,6 +209,23 @@ function processResponsesApiEvent(
   }
 }
 
+function hasChatCompletionOutput(chunk: ChatCompletionChunk): boolean {
+  return (chunk.choices ?? []).some(
+    ({ delta }) =>
+      !!delta && (!!delta.content || !!delta.refusal || !!delta.tool_calls?.length || !!delta.function_call),
+  );
+}
+
+// Output arrives on the `*.delta` events (text, refusals, reasoning, tool-call arguments, audio). A
+// function call's name arrives on the `response.output_item.added` event that opens it.
+function hasResponsesApiOutput(event: { type: string }): boolean {
+  const { type, delta, item } = event as { type: string; delta?: unknown; item?: { type?: unknown } };
+  if (type === 'response.output_item.added') {
+    return item?.type === 'function_call';
+  }
+  return type.endsWith('.delta') && typeof delta === 'string' && delta.length > 0;
+}
+
 /**
  * Instruments a stream of OpenAI events, updating the provided span with relevant attributes and
  * optionally recording output text. This function yields each event from the input stream as it is processed.
@@ -242,8 +259,10 @@ export async function* instrumentStream<T>(
   try {
     for await (const event of stream) {
       if (isChatCompletionChunk(event)) {
+        if (hasChatCompletionOutput(event)) recordTimeToFirstChunk(span);
         processChatCompletionChunk(event, state, recordOutputs);
       } else if (isResponsesApiStreamEvent(event)) {
+        if (hasResponsesApiOutput(event)) recordTimeToFirstChunk(span);
         processResponsesApiEvent(event, state, recordOutputs, span);
       }
       yield event;

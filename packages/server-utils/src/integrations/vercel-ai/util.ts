@@ -1,6 +1,8 @@
 /** Shared, state-free helpers for the Vercel AI (`ai`) channel subscribers, plus the streamed model-call tap. */
 
+import type { Span } from '@sentry/core';
 import { isObjectLike } from '@sentry/core';
+import { recordTimeToFirstChunk } from '../../ai/core/utils';
 
 /** Narrow to a string, or `undefined` for anything else. */
 export function asString(value: unknown): string | undefined {
@@ -39,6 +41,8 @@ interface StreamChunk {
   delta?: unknown;
   // v4 text-delta chunks carry the text on `textDelta`; v5+ uses `delta`.
   textDelta?: unknown;
+  // v4 tool-call-delta chunks carry argument text on `argsTextDelta`.
+  argsTextDelta?: unknown;
   id?: unknown;
   modelId?: unknown;
   toolCallId?: unknown;
@@ -75,6 +79,7 @@ export { isReadableStream } from '../../ai/core/utils';
  * mid-stream failure would be worse than a slightly-less-enriched one.
  */
 export function tapModelCallStream(
+  span: Span,
   stream: ReadableStream<unknown>,
   onFinal: (result: StreamedModelCallResult) => void,
   onError: (error: unknown) => void,
@@ -113,6 +118,9 @@ export function tapModelCallStream(
 
           return;
         }
+        if (isOutputChunk(value)) {
+          recordTimeToFirstChunk(span);
+        }
         text += accumulateChunk(state, value) ?? '';
         controller.enqueue(value);
       } catch (error) {
@@ -128,6 +136,30 @@ export function tapModelCallStream(
       return reader.cancel(reason);
     },
   });
+}
+
+// Text, reasoning, tool-call, and file stream parts carry output. `tool-input-start` carries the tool
+// name. Metadata, usage, finish, and the other `*-start`/`*-end` parts do not.
+function isOutputChunk(chunk: unknown): boolean {
+  if (!isObjectLike(chunk)) {
+    return false;
+  }
+  const { type, delta, textDelta, argsTextDelta } = chunk as StreamChunk;
+  switch (type) {
+    case 'text-delta':
+    case 'reasoning-delta':
+    case 'tool-input-delta':
+    case 'reasoning':
+      return !!(delta || textDelta);
+    case 'tool-call-delta':
+      return !!argsTextDelta;
+    case 'tool-input-start':
+    case 'tool-call':
+    case 'file':
+      return true;
+    default:
+      return false;
+  }
 }
 
 /**

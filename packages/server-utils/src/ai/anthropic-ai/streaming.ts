@@ -1,6 +1,6 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { endStreamSpan, getErrorStatus } from '../core/utils';
+import { endStreamSpan, getErrorStatus, recordTimeToFirstChunk } from '../core/utils';
 import type { AnthropicAiStreamingEvent } from './types';
 import { mapAnthropicErrorToStatusMessage } from './utils';
 
@@ -186,6 +186,19 @@ function handleContentBlockStop(event: AnthropicAiStreamingEvent, state: Streami
   delete state.activeToolBlocks[event.index];
 }
 
+// A text block opens empty, so only its deltas are output. A tool use block opens with the tool name.
+// A `signature_delta` only signs the thinking that came before it.
+function hasOutput(event: AnthropicAiStreamingEvent): boolean {
+  if (event.type === 'content_block_start') {
+    return !!event.content_block?.name;
+  }
+  if (event.type === 'content_block_delta' && event.delta) {
+    const delta = event.delta as { text?: unknown; partial_json?: unknown; thinking?: unknown };
+    return !!(delta.text || delta.partial_json || delta.thinking);
+  }
+  return false;
+}
+
 /**
  * Processes an event
  * @param event - The event to process
@@ -205,6 +218,10 @@ function processEvent(
 
   const isError = isErrorEvent(event, span);
   if (isError) return;
+
+  if (hasOutput(event)) {
+    recordTimeToFirstChunk(span);
+  }
 
   handleMessageMetadata(event, state);
 

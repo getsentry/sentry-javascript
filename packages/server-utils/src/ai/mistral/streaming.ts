@@ -1,6 +1,6 @@
 import type { Span } from '@sentry/core';
 import { SPAN_STATUS_ERROR } from '@sentry/core';
-import { endStreamSpan, setOutputMessagesAttribute } from '../core/utils';
+import { endStreamSpan, recordTimeToFirstChunk, setOutputMessagesAttribute } from '../core/utils';
 import type { MistralCompletionChunk, MistralToolCall } from './types';
 import { contentToString } from './utils';
 
@@ -74,7 +74,10 @@ function processToolCalls(toolCalls: MistralToolCall[], state: StreamingState): 
   }
 }
 
-function processChunk(chunk: MistralCompletionChunk, state: StreamingState, recordOutputs: boolean): void {
+function processChunk(chunk: MistralCompletionChunk, state: StreamingState, recordOutputs: boolean, span: Span): void {
+  if (chunk.choices?.some(({ delta }) => !!delta && (!!contentToString(delta.content) || !!delta.toolCalls?.length))) {
+    recordTimeToFirstChunk(span);
+  }
   state.responseId = chunk.id ?? state.responseId;
   state.responseModel = chunk.model ?? state.responseModel;
 
@@ -105,10 +108,10 @@ function processChunk(chunk: MistralCompletionChunk, state: StreamingState, reco
 }
 
 /** Mistral yields `CompletionEvent` objects that wrap the chunk under `data`. */
-function processEvent(event: unknown, state: StreamingState, recordOutputs: boolean): void {
+function processEvent(event: unknown, state: StreamingState, recordOutputs: boolean, span: Span): void {
   const chunk = (event as { data?: MistralCompletionChunk } | undefined)?.data;
   if (chunk && typeof chunk === 'object') {
-    processChunk(chunk, state, recordOutputs);
+    processChunk(chunk, state, recordOutputs, span);
   }
 }
 
@@ -116,13 +119,14 @@ async function* instrumentIterator(
   iterate: () => AsyncIterator<unknown>,
   state: StreamingState,
   recordOutputs: boolean,
+  span: Span,
   claim: (consumer: StreamConsumer) => boolean,
   settle: (error?: unknown) => void,
 ): AsyncGenerator<unknown, void, unknown> {
   try {
     for await (const event of { [Symbol.asyncIterator]: iterate }) {
       if (claim('iterator')) {
-        processEvent(event, state, recordOutputs);
+        processEvent(event, state, recordOutputs, span);
       }
       yield event;
     }
@@ -138,6 +142,7 @@ function wrapReader(
   reader: StreamReaderLike,
   state: StreamingState,
   recordOutputs: boolean,
+  span: Span,
   claim: (consumer: StreamConsumer) => boolean,
   settle: (error?: unknown) => void,
   markCancelled: () => void,
@@ -160,7 +165,7 @@ function wrapReader(
             if (result.done) {
               settle();
             } else if (claim('reader')) {
-              processEvent(result.value, state, recordOutputs);
+              processEvent(result.value, state, recordOutputs, span);
             }
             return result;
           } catch (error) {
@@ -282,7 +287,7 @@ export function instrumentEventStream(stream: unknown, span: Span, recordOutputs
   };
 
   const iterate = stream[Symbol.asyncIterator].bind(stream);
-  const instrumented = instrumentIterator(iterate, state, recordOutputs, claim, settle);
+  const instrumented = instrumentIterator(iterate, state, recordOutputs, span, claim, settle);
   stream[Symbol.asyncIterator] = () => instrumented;
 
   const readable = stream as ReadableStreamLike;
@@ -290,7 +295,7 @@ export function instrumentEventStream(stream: unknown, span: Span, recordOutputs
   if (typeof readable.getReader === 'function') {
     const getReader = readable.getReader.bind(readable);
     readable.getReader = (...args: unknown[]) =>
-      wrapReader(getReader(...args), state, recordOutputs, claim, settle, markCancelled);
+      wrapReader(getReader(...args), state, recordOutputs, span, claim, settle, markCancelled);
   }
 
   if (typeof readable.cancel === 'function') {

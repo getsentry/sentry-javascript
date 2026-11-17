@@ -28,7 +28,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
-import { resolveAIRecordingOptions } from '../core/utils';
+import { recordTimeToFirstChunk, resolveAIRecordingOptions } from '../core/utils';
 import { LANGCHAIN_ORIGIN, MAX_TRACKED_LANGCHAIN_RUNS } from './constants';
 import {
   addTypeSafeClassifierResponseAttributes,
@@ -267,6 +267,23 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           },
         }),
       );
+    },
+
+    // Called for each streamed chunk. A tool call chunk arrives with an empty token.
+    handleLLMNewToken(
+      token: string,
+      _idx: unknown,
+      runId: string,
+      _parentRunId?: string,
+      _tags?: string[],
+      fields?: unknown,
+    ) {
+      const span = runs.get(runId)?.span;
+      const toolCallChunks = (fields as { chunk?: { message?: { tool_call_chunks?: unknown[] } } } | undefined)?.chunk
+        ?.message?.tool_call_chunks;
+      if (span && (token || toolCallChunks?.length)) {
+        recordTimeToFirstChunk(span);
+      }
     },
 
     // LLM End Handler - note: handleLLMEnd with capital LLM (used by both LLMs and chat models!)

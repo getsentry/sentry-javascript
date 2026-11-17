@@ -348,6 +348,7 @@ function deferStreamedModelCallEnd(
   const callId = asString(data.event.callId);
   const { recordOutputs } = getRecordingOptions(data.event, options, data.result === undefined);
   result.stream = tapModelCallStream(
+    span,
     stream,
     final => {
       // Reshape the aggregate into the result `enrichSpanOnEnd` expects, then let `end` run it (it calls
