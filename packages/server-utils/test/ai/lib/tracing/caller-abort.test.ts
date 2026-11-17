@@ -41,6 +41,15 @@ const providers: Array<{ name: string; call: () => Call }> = [
       };
     },
   },
+  {
+    // `decisions.create` has no streaming variant, so `stream` is ignored.
+    name: 'google-genai decisions',
+    call: () => {
+      const client = instrumentGoogleGenAIClient({ decisions: { create: rejectingMethod() } });
+      return signal =>
+        client.decisions.create({ model: 'models/gemini-3-flash', input: 'Hello', questions: {} }, { signal });
+    },
+  },
 ];
 
 describe.each(providers)('$name caller aborts', ({ call }) => {
