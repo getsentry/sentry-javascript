@@ -1,11 +1,9 @@
 import {
   addNonEnumerableProperty,
   captureException,
-  getActiveSpan,
   getClient,
   hasSpanStreamingEnabled,
-  spanToJSON,
-  updateSpanName,
+  startSpan,
 } from '@sentry/core';
 import type { SentryGlobalFunctionMiddleware, SentryGlobalRequestMiddleware } from '../common/types';
 import { SENTRY_INTERNAL } from './middleware';
@@ -13,9 +11,10 @@ import {
   CODE_FUNCTION_NAME,
   HTTP_REQUEST_METHOD,
   SENTRY_DESCRIPTION,
-  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
 
 type ServerFnMeta = {
   id?: string;
@@ -37,48 +36,46 @@ function createSentryMiddlewareHandler(mechanismType: string) {
 }
 
 function createSentryFunctionMiddlewareHandler(mechanismType: string) {
-  return async function sentryFunctionMiddlewareHandler({
+  return function sentryFunctionMiddlewareHandler({
     next,
     serverFnMeta,
+    method = 'GET',
   }: {
     next: () => Promise<unknown>;
     serverFnMeta?: ServerFnMeta;
+    method?: string;
   }): Promise<unknown> {
-    const activeSpan = getActiveSpan();
-    const spanData = activeSpan ? spanToJSON(activeSpan) : undefined;
-    if (activeSpan && spanData?.attributes[SENTRY_ORIGIN] === 'auto.function.tanstackstart.server') {
-      if (serverFnMeta?.name) {
-        // Read off the attribute rather than the span name, which is low cardinality with span streaming.
-        const method = (spanData.attributes[HTTP_REQUEST_METHOD] as string | undefined) || 'GET';
-        const description = `${method} /_serverFn/${serverFnMeta.name}`;
-        const client = getClient();
-        const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+    const functionName = serverFnMeta?.name || 'serverFn';
+    const description = `${method} /_serverFn/${functionName}`;
+    const client = getClient();
+    const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
 
+    return startSpan(
+      {
         // With span streaming, a `function` span is named after the function it wraps.
-        updateSpanName(activeSpan, hasSpanStreaming ? serverFnMeta.name : description);
-        activeSpan.setAttribute(CODE_FUNCTION_NAME, serverFnMeta.name);
-        if (hasSpanStreaming) {
-          // Relay infers a `function` span's description from `code.function.name` alone.
-          activeSpan.setAttribute(SENTRY_DESCRIPTION, description);
+        name: hasSpanStreaming ? functionName : description,
+        attributes: {
+          [SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
+          [SENTRY_OP]: FUNCTION,
+          [CODE_FUNCTION_NAME]: functionName,
+          [HTTP_REQUEST_METHOD]: method,
+          // Relay infers a `function` span's description from `code.function.name` alone, which drops the path.
+          ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
+          ...(serverFnMeta?.id && { 'tanstackstart.function.id': serverFnMeta.id }),
+          ...(serverFnMeta?.filename && { 'tanstackstart.function.filename': serverFnMeta.filename }),
+        },
+      },
+      async () => {
+        try {
+          return await next();
+        } catch (e) {
+          captureException(e, {
+            mechanism: { type: mechanismType, handled: false },
+          });
+          throw e;
         }
-        activeSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'route');
-      }
-      if (serverFnMeta?.id) {
-        activeSpan.setAttribute('tanstackstart.function.id', serverFnMeta.id);
-      }
-      if (serverFnMeta?.filename) {
-        activeSpan.setAttribute('tanstackstart.function.filename', serverFnMeta.filename);
-      }
-    }
-
-    try {
-      return await next();
-    } catch (e) {
-      captureException(e, {
-        mechanism: { type: mechanismType, handled: false },
-      });
-      throw e;
-    }
+      },
+    );
   };
 }
 
@@ -98,7 +95,7 @@ export const sentryGlobalRequestMiddleware: SentryGlobalRequestMiddleware = {
 };
 
 /**
- * Global function middleware that captures errors from server function invocations.
+ * Global function middleware that creates a span for each server function invocation and captures its errors.
  * Should be added as the first entry in the `functionMiddleware` array of `createStart()`.
  */
 export const sentryGlobalFunctionMiddleware: SentryGlobalFunctionMiddleware = {

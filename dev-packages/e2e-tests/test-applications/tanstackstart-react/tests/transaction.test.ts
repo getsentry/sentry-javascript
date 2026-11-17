@@ -44,20 +44,17 @@ test('Sends a server function span with auto-instrumentation', async ({ page }) 
   );
 });
 
-test('Sends a server function span for a nested server function only if it is manually instrumented', async ({
-  page,
-}) => {
+test('Sends a server function span for a nested server function', async ({ page }) => {
+  const isAutoSpan = (span: { name?: string; attributes: Record<string, { value?: unknown }> }, name: string) =>
+    span.name === name && span.attributes['sentry.origin']?.value === 'auto.function.tanstackstart.server';
+
   const spansPromise = collectStreamedSpans(
     'tanstackstart-react',
     spans =>
       spans.some(isServerFnSegment) &&
-      spans.some(
-        span =>
-          span.name === 'testNestedLog' &&
-          span.attributes['sentry.origin']?.value === 'auto.function.tanstackstart.server',
-      ) &&
-      spans.some(span => span.name === 'testNestedLog') &&
-      spans.some(span => span.name === 'globalFunctionMiddleware'),
+      spans.some(span => isAutoSpan(span, 'testNestedLog')) &&
+      spans.some(span => isAutoSpan(span, 'testLog')) &&
+      spans.some(span => span.name === 'testNestedLog' && span.attributes['sentry.origin']?.value === 'manual'),
   );
 
   await page.goto('/test-serverFn');
@@ -68,43 +65,41 @@ test('Sends a server function span for a nested server function only if it is ma
 
   const spans = await spansPromise;
 
-  expect(spans).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        name: 'testNestedLog',
-        status: 'ok',
-        attributes: expect.objectContaining({
-          'sentry.op': { type: 'string', value: 'function' },
-          'sentry.origin': { type: 'string', value: 'auto.function.tanstackstart.server' },
-          'sentry.description': { type: 'string', value: 'GET /_serverFn/testNestedLog' },
-          'tanstackstart.function.filename': { type: 'string', value: 'src/routes/test-serverFn.tsx' },
-        }),
-      }),
-    ]),
-  );
-
-  expect(spans).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        name: 'testNestedLog',
-        status: 'ok',
-        attributes: expect.objectContaining({
-          'sentry.origin': { type: 'string', value: 'manual' },
-        }),
-      }),
-    ]),
-  );
-
-  const functionMiddlewareSpan = spans.find(
-    span =>
-      span.name === 'globalFunctionMiddleware' &&
-      span.attributes['sentry.origin']?.value === 'auto.middleware.tanstackstart',
-  );
-  const nestedSpan = spans.find(
+  const outerSpan = spans.find(span => isAutoSpan(span, 'testNestedLog'));
+  const manualSpan = spans.find(
     span => span.name === 'testNestedLog' && span.attributes['sentry.origin']?.value === 'manual',
   );
+  const nestedSpan = spans.find(span => isAutoSpan(span, 'testLog'));
 
-  expect(functionMiddlewareSpan).toBeDefined();
-  expect(nestedSpan).toBeDefined();
-  expect(nestedSpan?.parent_span_id).toBe(functionMiddlewareSpan?.parent_span_id);
+  expect(outerSpan).toMatchObject({
+    name: 'testNestedLog',
+    status: 'ok',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'function' },
+      'sentry.description': { type: 'string', value: 'GET /_serverFn/testNestedLog' },
+      'tanstackstart.function.filename': { type: 'string', value: 'src/routes/test-serverFn.tsx' },
+    }),
+  });
+  expect(manualSpan).toMatchObject({ status: 'ok', parent_span_id: outerSpan?.span_id });
+  expect(nestedSpan).toMatchObject({
+    name: 'testLog',
+    status: 'ok',
+    parent_span_id: manualSpan?.span_id,
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'function' },
+      'sentry.description': { type: 'string', value: 'GET /_serverFn/testLog' },
+    }),
+  });
+
+  expect(spans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        name: 'globalFunctionMiddleware',
+        parent_span_id: outerSpan?.span_id,
+        attributes: expect.objectContaining({
+          'sentry.origin': { type: 'string', value: 'auto.middleware.tanstackstart' },
+        }),
+      }),
+    ]),
+  );
 });
