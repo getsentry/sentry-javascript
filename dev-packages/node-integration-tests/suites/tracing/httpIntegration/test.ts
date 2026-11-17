@@ -211,7 +211,7 @@ describe('httpIntegration', () => {
 
   describe('http.server spans', () => {
     createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument.mjs', (createRunner, test) => {
-      test('captures correct attributes for GET requests', async () => {
+      test('captures attributes for GET, POST and forwarded requests', async () => {
         const runner = createRunner()
           .expect({
             transaction: transaction => {
@@ -247,14 +247,6 @@ describe('httpIntegration', () => {
               });
             },
           })
-          .start();
-
-        runner.makeRequest('get', '/test?a=1&b=2#hash');
-        await runner.completed();
-      });
-
-      test('captures correct attributes for POST requests', async () => {
-        const runner = createRunner()
           .expect({
             transaction: transaction => {
               const port = runner.getPort();
@@ -292,14 +284,6 @@ describe('httpIntegration', () => {
               });
             },
           })
-          .start();
-
-        runner.makeRequest('post', '/test?a=1&b=2#hash', { data: 'test body' });
-        await runner.completed();
-      });
-
-      test('prefers the forwarded client address, without the socket port', async () => {
-        const runner = createRunner()
           .expect({
             transaction: transaction => {
               const data = transaction.contexts?.trace?.data;
@@ -315,7 +299,9 @@ describe('httpIntegration', () => {
           })
           .start();
 
-        runner.makeRequest('get', '/test', { headers: { 'X-Forwarded-For': '203.0.113.7, 10.0.0.1' } });
+        await runner.makeRequest('get', '/test?a=1&b=2#hash');
+        await runner.makeRequest('post', '/test?a=1&b=2#hash', { data: 'test body' });
+        await runner.makeRequest('get', '/test', { headers: { 'X-Forwarded-For': '203.0.113.7, 10.0.0.1' } });
         await runner.completed();
       });
     });

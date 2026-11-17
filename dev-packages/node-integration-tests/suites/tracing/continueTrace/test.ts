@@ -86,68 +86,62 @@ describe('continueTrace', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     describe.each(CONFIGS)('$name', config => {
-      test.each(VARIANTS)('continues the $key', async variant => {
-        const wantsSpan = expectsSpan(config.rate, variant);
+      test('continues each incoming-header variant with isolated scopes', async () => {
+        const runner = createRunner()
+          .withEnv({
+            TRACES_SAMPLE_RATE: config.rate,
+            INCOMING_TRACE_VARIANTS: JSON.stringify(VARIANTS),
+          })
+          .unordered();
+        const observedErrorTraceIds = new Map<string, string | undefined>();
+        const spanCollections = new Map(
+          VARIANTS.filter(variant => expectsSpan(config.rate, variant)).map(variant => [
+            variant.key,
+            runner.collectStreamedSpansUntilSegment(span => span.attributes['test.variant']?.value === variant.key),
+          ]),
+        );
 
-        const runner = createRunner().withEnv({
-          TRACES_SAMPLE_RATE: config.rate,
-          INCOMING_SENTRY_TRACE: variant.sentryTrace,
-          INCOMING_BAGGAGE: variant.baggage,
-        });
-
-        let observedErrorTraceId: string | undefined;
-        let observedSpanTraceId: string | undefined;
-
-        // The error event is delayed by async enrichment (context lines, local variables) while the
-        // span buffer flushes after span end, so the two envelopes can arrive in either
-        // order. Match them by type rather than by position.
-        runner.unordered();
-
-        runner.expect({
-          event: event => {
-            const trace = event.contexts?.trace;
-            observedErrorTraceId = trace?.trace_id;
-
-            if (variant.traceId) {
-              expect(trace?.trace_id).toBe(variant.traceId);
-            } else {
-              expect(trace?.trace_id).toMatch(/^[a-f0-9]{32}$/);
-            }
-            expect(trace?.span_id).toMatch(/^[a-f0-9]{16}$/);
-
-            // getTraceData() observed inside the callback carries the continued trace id.
-            const traceData = (event.contexts?.traceData ?? {}) as { 'sentry-trace'?: string; baggage?: string };
-            expect(traceData['sentry-trace']).toMatch(new RegExp(`^${trace?.trace_id}-[a-f0-9]{16}`));
-            if (variant.hasIncomingBaggage) {
-              expect(traceData.baggage).toContain(`sentry-trace_id=${variant.traceId}`);
-            }
-          },
-        });
-
-        if (wantsSpan) {
+        for (const variant of VARIANTS) {
           runner.expect({
-            span: container => {
-              const segment = container.items.find(span => span.is_segment);
-              observedSpanTraceId = segment?.trace_id;
+            event: event => {
+              expect(event.tags?.['test.variant']).toBe(variant.key);
+              expect(event.exception?.values?.[0]?.value).toBe(`continued-trace-error: ${variant.key}`);
+              const trace = event.contexts?.trace;
+              observedErrorTraceIds.set(variant.key, trace?.trace_id);
 
               if (variant.traceId) {
-                expect(segment?.trace_id).toBe(variant.traceId);
+                expect(trace?.trace_id).toBe(variant.traceId);
               } else {
-                expect(segment?.trace_id).toMatch(/^[a-f0-9]{32}$/);
+                expect(trace?.trace_id).toMatch(/^[a-f0-9]{32}$/);
               }
-              if (variant.parentSpanId) {
-                expect(segment?.parent_span_id).toBe(variant.parentSpanId);
+              expect(trace?.span_id).toMatch(/^[a-f0-9]{16}$/);
+
+              // getTraceData() observed inside the callback carries the continued trace id.
+              const traceData = (event.contexts?.traceData ?? {}) as { 'sentry-trace'?: string; baggage?: string };
+              expect(traceData['sentry-trace']).toMatch(new RegExp(`^${trace?.trace_id}-[a-f0-9]{16}`));
+              if (variant.hasIncomingBaggage) {
+                expect(traceData.baggage).toContain(`sentry-trace_id=${variant.traceId}`);
               }
-              expect(segment?.name).toBe('continued-root-span');
             },
           });
         }
 
         await runner.start().completed();
 
-        if (wantsSpan) {
-          // Error and span share the (continued or freshly generated) trace id.
-          expect(observedSpanTraceId).toBe(observedErrorTraceId);
+        for (const variant of VARIANTS.filter(variant => expectsSpan(config.rate, variant))) {
+          const spans = await spanCollections.get(variant.key)!;
+          const segment = spans.find(span => span.is_segment);
+
+          if (variant.traceId) {
+            expect(segment?.trace_id, variant.key).toBe(variant.traceId);
+          } else {
+            expect(segment?.trace_id, variant.key).toMatch(/^[a-f0-9]{32}$/);
+          }
+          if (variant.parentSpanId) {
+            expect(segment?.parent_span_id, variant.key).toBe(variant.parentSpanId);
+          }
+          expect(segment?.name, variant.key).toBe('continued-root-span');
+          expect(segment?.trace_id, variant.key).toBe(observedErrorTraceIds.get(variant.key));
         }
       });
     });

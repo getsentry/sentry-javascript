@@ -4,6 +4,15 @@ import cors from 'cors';
 import express from 'express';
 import http from 'http';
 
+function getOutgoingHeaders(options) {
+  const request = http.get(options);
+  const headers = request.getHeaders();
+  // Only header construction is under test; don't leave requests to the placeholder host running.
+  request.on('error', () => {});
+  request.destroy();
+  return headers;
+}
+
 const app = express();
 
 // Set globally so we can assert user data is not leaked into propagated baggage.
@@ -13,7 +22,7 @@ app.use(cors());
 
 // Plain outgoing request — used to assert propagated `sentry-trace`/`baggage` headers.
 app.get('/test/express', (_req, res) => {
-  const headers = http.get('http://somewhere.not.sentry/').getHeaders();
+  const headers = getOutgoingHeaders('http://somewhere.not.sentry/');
   res.send({ test_data: headers });
 });
 
@@ -22,7 +31,7 @@ app.get('/test/express', (_req, res) => {
 app.get('/test/express-replace-trace-id', (_req, res) => {
   const span = Sentry.getActiveSpan();
   const traceId = span?.spanContext().traceId;
-  const headers = http.get('http://somewhere.not.sentry/').getHeaders();
+  const headers = getOutgoingHeaders('http://somewhere.not.sentry/');
   if (traceId) {
     headers['baggage'] = headers['baggage'].replace(traceId, '__SENTRY_TRACE_ID__');
   }
@@ -32,24 +41,23 @@ app.get('/test/express-replace-trace-id', (_req, res) => {
 // Sets a third-party baggage header on the outgoing request, which the SDK should
 // merge with the Sentry DSC entries.
 app.get('/test/express-third-party-baggage', (_req, res) => {
-  const headers = http
-    .get({ hostname: 'somewhere.not.sentry', headers: { baggage: 'other=vendor,foo=bar,third=party' } })
-    .getHeaders();
+  const headers = getOutgoingHeaders({
+    hostname: 'somewhere.not.sentry',
+    headers: { baggage: 'other=vendor,foo=bar,third=party' },
+  });
   res.send({ test_data: headers });
 });
 
 // Sets a third-party baggage header that also contains sentry-* entries, which the
 // SDK should ignore/overwrite with the actual DSC.
 app.get('/test/express-third-party-baggage-with-sentry', (_req, res) => {
-  const headers = http
-    .get({
-      hostname: 'somewhere.not.sentry',
-      headers: {
-        baggage:
-          'other=vendor,foo=bar,third=party,sentry-release=9.9.9,sentry-environment=staging,sentry-sample_rate=0.54,last=item',
-      },
-    })
-    .getHeaders();
+  const headers = getOutgoingHeaders({
+    hostname: 'somewhere.not.sentry',
+    headers: {
+      baggage:
+        'other=vendor,foo=bar,third=party,sentry-release=9.9.9,sentry-environment=staging,sentry-sample_rate=0.54,last=item',
+    },
+  });
   res.send({ test_data: headers });
 });
 
@@ -57,7 +65,7 @@ app.get('/test/express-third-party-baggage-with-sentry', (_req, res) => {
 // property values with `=` signs are preserved during parsing & re-serialization.
 app.get('/test/express-property-values', (req, res) => {
   const incomingBaggage = req.headers.baggage;
-  const headers = http.get({ hostname: 'somewhere.not.sentry', headers: { baggage: incomingBaggage } }).getHeaders();
+  const headers = getOutgoingHeaders({ hostname: 'somewhere.not.sentry', headers: { baggage: incomingBaggage } });
   res.send({ test_data: headers });
 });
 
