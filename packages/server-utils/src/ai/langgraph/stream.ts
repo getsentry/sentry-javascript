@@ -2,7 +2,7 @@ import { SPAN_STATUS_ERROR, startSpanManual } from '@sentry/core';
 import { GEN_AI_RESPONSE_STREAMING } from '@sentry/conventions/attributes';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { _INTERNAL_addLangChainCallbackHandler } from '../langchain/utils';
-import { getAgentSpanOptions, isInvokeInternalStream, prepareAgentSpan } from './agent-span';
+import { getAgentSpanOptions, isInvokeInternalStream, prepareAgentSpan, resolveGraphCallRecording } from './agent-span';
 import type { CompiledGraph, LangGraphOptions } from './types';
 import { setResponseAttributes } from './utils';
 
@@ -26,6 +26,7 @@ export function instrumentCompiledGraphStream(
         return Reflect.apply(target, thisArg, args);
       }
 
+      const recording = resolveGraphCallRecording(options, args);
       return startSpanManual(getAgentSpanOptions(args, { [GEN_AI_RESPONSE_STREAMING]: true }), async span => {
         let inputMessages: LangChainMessage[] | null = null;
         let stream: { signal?: AbortSignal } | undefined;
@@ -42,7 +43,7 @@ export function instrumentCompiledGraphStream(
               if (!stream?.signal?.aborted && !(args[1] as { signal?: AbortSignal } | undefined)?.signal?.aborted) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
               }
-            } else if (outcome && options.recordOutputs) {
+            } else if (outcome && recording.recordOutputs) {
               setResponseAttributes(span, inputMessages, outcome.outputs);
             }
           } catch {
@@ -81,7 +82,7 @@ export function instrumentCompiledGraphStream(
             args,
             graphInstance,
             compileOptions,
-            options,
+            recording,
             llm,
             sentryCallbackHandler,
           );
