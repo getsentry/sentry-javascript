@@ -83,6 +83,7 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
  */
 export function initBaseSdk(options: CloudflareOptions): CloudflareClient | undefined {
   const cached = getCachedClient();
+  // oxlint-disable-next-line typescript/no-deprecated
   const cacheEnabled = options.cacheClient !== false;
 
   // A closed client drops all data. `close()` marks the client before it
@@ -114,6 +115,7 @@ export function initBaseSdk(options: CloudflareOptions): CloudflareClient | unde
 
   const clientOptions: CloudflareClientOptions = {
     ...options,
+    // oxlint-disable-next-line typescript/no-deprecated
     cacheClient: cacheEnabled,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup(options),

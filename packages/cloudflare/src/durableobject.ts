@@ -77,6 +77,7 @@ export function constructInstrumentedDurableObject<E, T extends DurableObject<E>
     // `blockConcurrencyWhile`. Their channel integrations only subscribe in `init()`, and an isolate
     // that runs only this Durable Object has no earlier handler that called it. A per-invocation
     // client (`cacheClient: false`) would have no invocation to flush it, so it waits for one.
+    // oxlint-disable-next-line typescript/no-deprecated
     if (options.cacheClient !== false) {
       init({ ...options });
       flushDeferredChannelEvents();
