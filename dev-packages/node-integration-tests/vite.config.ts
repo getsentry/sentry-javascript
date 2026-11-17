@@ -25,7 +25,7 @@ export default defineConfig({
     reporters: process.env.DEBUG
       ? [['default', { summary: false }]]
       : process.env.GITHUB_ACTIONS
-        ? ['dot', 'github-actions', ...(process.env.INTEGRATION_TIMINGS ? ['./benchmark-reporter.ts'] : [])]
+        ? ['dot', 'github-actions']
         : ['verbose'],
   },
 });
