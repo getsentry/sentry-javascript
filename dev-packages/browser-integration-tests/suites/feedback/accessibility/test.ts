@@ -193,3 +193,17 @@ for (const scheme of ['light', 'dark'] as const) {
     }
   });
 }
+
+sentryTest('names each dialog after its own title @firefox', async ({ page }) => {
+  await page.evaluate(async () => {
+    const { Sentry } = window as unknown as { Sentry: typeof SentrySDK };
+    const first = await Sentry.getFeedback()!.createForm({ formTitle: 'First form' });
+    first.appendToDom();
+    first.open();
+    first.close();
+    const second = await Sentry.getFeedback()!.createForm({ formTitle: 'Second form' });
+    second.appendToDom();
+    second.open();
+  });
+  await expect(page.getByRole('dialog', { name: 'Second form' })).toBeVisible();
+});

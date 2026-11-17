@@ -1,7 +1,7 @@
 import type { FeedbackFormData, FeedbackInternalOptions } from '@sentry/core';
 import type { VNode } from 'preact';
 import { Fragment, h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
-import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { SUCCESS_MESSAGE_TIMEOUT } from '../../constants';
 import type { Props as HeaderProps } from './DialogHeader';
 import { DialogHeader } from './DialogHeader';
@@ -21,7 +21,6 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
 
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const titleId = useId();
 
   useLayoutEffect(() => {
     const dialog = dialogRef.current;
@@ -85,7 +84,7 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
           class="dialog"
           ref={dialogRef}
           role="dialog"
-          aria-labelledby={titleId}
+          aria-labelledby={props.titleId}
           onClick={props.onFormClose}
           onCancel={event => {
             event.preventDefault();
@@ -124,7 +123,7 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
                 e.stopPropagation();
               }}
             >
-              <DialogHeader options={options} titleId={titleId} />
+              <DialogHeader options={options} titleId={props.titleId} />
               <Form {...props} onSubmitSuccess={onSubmitSuccess} />
             </div>
           </div>
