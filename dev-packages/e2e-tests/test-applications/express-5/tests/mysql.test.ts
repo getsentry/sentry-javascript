@@ -3,7 +3,7 @@ import { getSpanOp, collectStreamedSpansUntilSegment } from '@sentry-internal/te
 
 test('Instruments MySQL via Orchestrion', async ({ baseURL }) => {
   const segmentEventPromise = collectStreamedSpansUntilSegment(
-    'node-express-v5',
+    'express-5',
     segment => getSpanOp(segment) === 'http.server' && segment.name === 'GET /test-mysql',
   );
 

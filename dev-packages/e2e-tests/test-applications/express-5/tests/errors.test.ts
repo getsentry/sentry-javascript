@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
+import { RUNTIME } from './constants';
 
 test('Sends correct error event', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('node-express-v5', event => {
+  const errorEventPromise = waitForError('express-5', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
 
-  const segmentEventPromise = collectStreamedSpansUntilSegment('node-express-v5', 'GET /test-exception/:id');
+  const segmentEventPromise = collectStreamedSpansUntilSegment('express-5', 'GET /test-exception/:id');
 
   await fetch(`${baseURL}/test-exception/123`);
 
@@ -49,7 +50,12 @@ test('Sends correct error event', async ({ baseURL }) => {
 });
 
 test('Should record caught exceptions with local variable', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('node-express-v5', event => {
+  test.skip(
+    RUNTIME !== 'node',
+    '`includeLocalVariables` reads the variables with `node:inspector`, which works on Node only.',
+  );
+
+  const errorEventPromise = waitForError('express-5', event => {
     return event.transaction === 'GET /test-local-variables-caught';
   });
 

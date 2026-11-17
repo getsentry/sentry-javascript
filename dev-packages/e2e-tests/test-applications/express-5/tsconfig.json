@@ -7,5 +7,6 @@
     "outDir": "dist",
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.bun.ts", "src/**/*.deno.ts", "src/**/*.cloudflare.ts"]
 }
