@@ -25,6 +25,7 @@ import {
   getConstructedRoute,
   getLayerPath,
   getLayerRegisteredPath,
+  hasLayerRegisteredPath,
   popLayerPath,
   pushLayerPath,
   setLayerRegisteredPath,
@@ -73,11 +74,14 @@ export function instrumentExpress(
 
   // Record each layer's registered path *pattern* as it is registered, so the
   // matched route can be reconstructed with its parameters intact at request
-  // time. Only the `end` event matters (the layer is on the router's stack by
-  // then); the others are required by the subscriber type, so no-op them.
+  // time. The `end` event records the path (the layer is on the router's stack
+  // by then), and `start` keeps the stack length to find that layer. The others
+  // are required by the subscriber type, so no-op them.
   for (const channelName of [CHANNELS.EXPRESS_REGISTER, CHANNELS.ROUTER_REGISTER]) {
     tracingChannel<RegistrationChannelContext>(channelName).subscribe({
-      start: NOOP,
+      start: data => {
+        data._sentryStackLength = data.self?.stack?.length;
+      },
       asyncStart: NOOP,
       asyncEnd: NOOP,
       error: NOOP,
@@ -180,16 +184,43 @@ export function captureLayerError(
   }
 }
 
-/** Record the freshly-registered layer's path pattern from a `route`/`use` call. */
+/** Record the path pattern of the layer that a `route`/`use` call added. */
 function captureRegisteredLayerPath(data: RegistrationChannelContext): void {
   const stack = data.self?.stack;
   if (!Array.isArray(stack)) {
     return;
   }
-  const layer = stack[stack.length - 1];
+  const layer = getRegisteredLayer(stack, data);
   if (layer) {
     setLayerRegisteredPath(layer, getLayerPath(data.arguments ?? []));
   }
+}
+
+/** The layer that a `route`/`use` call added to the router's stack. */
+function getRegisteredLayer(stack: ExpressLayer[], data: RegistrationChannelContext): ExpressLayer | undefined {
+  // The stack grew between `start` and `end`, so the events arrived during the call and the new layer is the last one.
+  if (data._sentryStackLength !== undefined && data._sentryStackLength < stack.length) {
+    return stack[stack.length - 1];
+  }
+
+  // Otherwise the events arrived late: Cloudflare delivers the events of calls at module scope with the first
+  // request, when the stack already has the layers of all later calls.
+
+  // `use` returns the router.
+  if (data.result === data.self) {
+    const handlers = (data.arguments ?? []).flat(Infinity).filter(arg => typeof arg === 'function');
+    const lastHandler = handlers[handlers.length - 1];
+    // A handler can be on the stack more than once (`use('/a', fn)`, `use('/b', fn)`), and the events arrive in
+    // call order, so this call's layer is the first one that no earlier event has recorded.
+    return stack.find(layer => layer.handle === lastHandler && !hasLayerRegisteredPath(layer));
+  }
+
+  // `route` returns the new `Route`, which its layer references.
+  if (data.result) {
+    return stack.find(layer => layer.route === data.result);
+  }
+
+  return undefined;
 }
 
 /** Pop the path a layer pushed once it hands control onward via `next`. */
