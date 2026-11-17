@@ -114,10 +114,10 @@ describe('updateRateLimits()', () => {
     const rateLimits: RateLimits = {};
     const headers = {
       'retry-after': null,
-      'x-sentry-rate-limits': '15:error,13:transaction;error',
+      'x-sentry-rate-limits': '15:error,22:error,13:transaction;error',
     };
     const updatedRateLimits = updateRateLimits(rateLimits, { headers }, 0);
-    expect(updatedRateLimits.error).toEqual(15 * 1000);
+    expect(updatedRateLimits.error).toEqual(22 * 1000);
     expect(updatedRateLimits.transaction).toEqual(13 * 1000);
   });
 
