@@ -292,4 +292,30 @@ describe('assignReviewers', () => {
       expect.objectContaining({ reviewers: expect.not.arrayContaining(['Mydea']) }),
     );
   });
+
+  it('does not count the assignee towards the required reviewers, nor request their review', async () => {
+    const { github, run } = setup(assignReviewers, {
+      user: { login: 'author', type: 'User' },
+      assignees: [{ login: 'A', type: 'User' }],
+      requested_reviewers: [{ login: 'a', type: 'User' }],
+    });
+    await run();
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.arrayContaining(['b', 'c', 'd']) }),
+    );
+  });
+
+  it('does not count reviews from the requester of a Junior PR towards the required reviewers', async () => {
+    const { github, run } = setup(assignReviewers, { user: junior, body: attribution('@a') });
+    const paginate = github.paginate.getMockImplementation();
+    github.paginate.mockImplementation(async method =>
+      method === github.rest.pulls.listReviews
+        ? [{ user: { login: 'a', type: 'User' } }, { user: { login: 'mydea', type: 'User' } }]
+        : paginate(method),
+    );
+    await run();
+    expect(github.rest.pulls.requestReviewers).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewers: expect.arrayContaining(['b', 'c', 'd']) }),
+    );
+  });
 });
