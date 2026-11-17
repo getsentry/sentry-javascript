@@ -128,3 +128,14 @@ updates:
       - 'dev-packages/deno-integration-tests/**'
       - 'dev-packages/cloudflare-integration-tests/**'
       - 'dev-packages/e2e-tests/test-applications/**'
+  # E2E test apps pin framework versions on purpose, so never update them.
+  # `exclude-paths` above only stops version updates. Security updates only read an entry
+  # whose directories match the manifest, and `ignore` is one of the options they honor.
+  - package-ecosystem: 'npm'
+    directories:
+      - '/dev-packages/e2e-tests/test-applications/**'
+    schedule:
+      interval: 'monthly'
+    open-pull-requests-limit: 0
+    ignore:
+      - dependency-name: '*'
