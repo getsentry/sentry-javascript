@@ -31,6 +31,7 @@ import {
   setHttpStatus,
   spanToJSON,
   startSpan,
+  timestampInSeconds,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
   withIsolationScope,
@@ -39,7 +40,7 @@ import {
 } from '@sentry/core';
 import {
   flushIfServerless,
-  _INTERNAL_getCacheOriginMetaTag,
+  _INTERNAL_getCacheOriginMetaTags,
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
 } from '@sentry/core/server';
 import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
@@ -113,10 +114,11 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler =
 
 async function handleStaticRoute(ctx: APIContext, next: MiddlewareNext): Promise<Response> {
   const parametrizedRoute = getParametrizedRoute(ctx);
+  const requestStart = timestampInSeconds();
   try {
     const originalResponse = await next();
 
-    const metaTagsStr = getMetaTagsStr({ isPrerendered: true, parametrizedRoute });
+    const metaTagsStr = getMetaTagsStr({ prerenderStart: requestStart, parametrizedRoute });
     return injectMetaTagsInResponse(originalResponse, metaTagsStr);
   } catch (e) {
     sendErrorToSentry(e);
@@ -154,7 +156,7 @@ async function enhanceHttpServerSpan(ctx: APIContext, next: MiddlewareNext, root
 
     try {
       const originalResponse = await next();
-      const metaTagsStr = getMetaTagsStr({ isPrerendered: false, parametrizedRoute });
+      const metaTagsStr = getMetaTagsStr({ parametrizedRoute });
       return injectMetaTagsInResponse(originalResponse, metaTagsStr);
     } catch (e) {
       sendErrorToSentry(e);
@@ -256,7 +258,7 @@ async function instrumentRequestStartHttpServerSpan(
                   setHttpStatus(span, originalResponse.status);
                 }
 
-                const metaTagsStr = getMetaTagsStr({ isPrerendered: false, parametrizedRoute });
+                const metaTagsStr = getMetaTagsStr({ parametrizedRoute });
                 return injectMetaTagsInResponse(originalResponse, metaTagsStr);
               } catch (e) {
                 sendErrorToSentry(e);
@@ -294,16 +296,21 @@ function addMetaTagToHead(htmlChunk: string, metaTagsStr: string): string {
   });
 }
 
+/**
+ * `prerenderStart` is set for a prerendered page, in seconds. Every visitor gets the same prerendered HTML, so it
+ * must not carry the trace of the render. The empty `sentry-cache-origin` tag marks the pageload as static without a
+ * link, because the build sends no spans.
+ */
 function getMetaTagsStr({
-  isPrerendered,
+  prerenderStart,
   parametrizedRoute,
 }: {
-  isPrerendered: boolean;
+  prerenderStart?: number;
   parametrizedRoute: string | undefined;
 }): string {
-  // Every visitor gets the same prerendered HTML, so it must not carry the trace of the render. The empty
-  // `sentry-cache-origin` tag marks the pageload as static without a link, because the build sends no spans.
-  const parts = [isPrerendered ? _INTERNAL_getCacheOriginMetaTag(undefined) : getTraceMetaTags()];
+  const parts = [
+    prerenderStart === undefined ? getTraceMetaTags() : _INTERNAL_getCacheOriginMetaTags(undefined, prerenderStart),
+  ];
   if (parametrizedRoute) {
     parts.push(`<meta name="sentry-route-name" content="${encodeURIComponent(parametrizedRoute)}"/>`);
   }

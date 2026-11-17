@@ -464,6 +464,7 @@ describe('sentryMiddleware', () => {
     // parametrized route is injected
     expect(html).toContain('<meta name="sentry-route-name" content="%2Fusers"/>');
     expect(html).toContain('<meta name="sentry-cache-origin" content=""/>');
+    expect(html).toMatch(/<meta name="sentry-render-start" content="\d+"\/>/);
     expect(html).not.toContain('<meta name="sentry-trace" content="');
     expect(html).not.toContain('<meta name="baggage" content="');
   });
@@ -551,6 +552,7 @@ describe('sentryMiddleware', () => {
     expect(html).toContain('<meta name="sentry-trace" content="');
     expect(html).toContain('<meta name="baggage" content="');
     expect(html).not.toContain('sentry-cache-origin');
+    expect(html).not.toContain('sentry-render-start');
   });
 
   it('preserves response status, statusText, and all headers when injecting meta tags', async () => {
