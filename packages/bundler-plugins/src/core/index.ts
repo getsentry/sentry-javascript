@@ -108,6 +108,7 @@ export {
   stringToUUID,
   generateReleaseInjectorCode,
   generateModuleMetadataInjectorCode,
+  resolveReleaseName,
 } from './utils';
 export { createSentryBuildPluginManager } from './build-plugin-manager';
 export type { SentryBuildPluginManager, UploadResult, UploadStaging } from './build-plugin-manager';
