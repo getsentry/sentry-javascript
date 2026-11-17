@@ -1,7 +1,7 @@
 /* eslint-disable typescript-eslint/no-deprecated */
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import type { GenAiOutputMessage } from '../core/utils';
-import { setOutputMessagesAttribute } from '../core/utils';
+import { getRequestSignal, setOutputMessagesAttribute } from '../core/utils';
 import {
   GEN_AI_REQUEST_FREQUENCY_PENALTY,
   GEN_AI_REQUEST_MAX_TOKENS,
@@ -51,6 +51,17 @@ export function getSpanName(operationName: string, attributes: Record<string, un
   }
 
   return `${operationName} ${model}`;
+}
+
+/**
+ * Reads the caller's signal from Mistral's request options. The SDK spreads `options` over
+ * `options.fetchOptions`, so a top-level `signal` wins.
+ */
+export function getMistralRequestSignal(requestOptions: unknown): AbortSignal | undefined {
+  return (
+    getRequestSignal(requestOptions) ??
+    getRequestSignal((requestOptions as { fetchOptions?: unknown } | undefined)?.fetchOptions)
+  );
 }
 
 /**
