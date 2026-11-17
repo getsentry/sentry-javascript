@@ -36,7 +36,7 @@ function initClient(options: Parameters<typeof getDefaultTestClientOptions>[0]):
 
 describe('MCP server trace propagation via params._meta', () => {
   beforeEach(() => {
-    initClient({ propagateTraceparent: true });
+    initClient({ propagateTraceparent: true, orgId: '1' });
   });
 
   afterEach(() => {
@@ -125,6 +125,10 @@ describe('MCP server trace propagation via params._meta', () => {
     ['a malformed traceparent', { traceparent: '00-not-a-trace-01' }],
     ['a malformed sentry-trace', { 'sentry-trace': 'garbage' }],
     ['a non-string traceparent', { traceparent: 42 }],
+    [
+      'baggage from another org',
+      { 'sentry-trace': `${TRACE_ID}-${PARENT_SPAN_ID}-1`, baggage: `sentry-trace_id=${TRACE_ID},sentry-org_id=999` },
+    ],
   ])('keeps the transport trace for %s', (_, meta) => {
     let httpServerSpan: Span | undefined;
     const span = startSpan({ name: 'POST /mcp', op: 'http.server' }, ambient => {

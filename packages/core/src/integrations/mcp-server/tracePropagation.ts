@@ -6,9 +6,10 @@
 import { getClient } from '../../currentScopes';
 import { continueTrace } from '../../tracing/trace';
 import type { SpanLink } from '../../types/link';
+import { baggageHeaderToDynamicSamplingContext } from '../../utils/baggage';
 import { isObjectLike } from '../../utils/is';
 import { getActiveSpan } from '../../utils/spanUtils';
-import { extractTraceparentData, sentryTraceFromTraceparent } from '../../utils/tracing';
+import { extractTraceparentData, sentryTraceFromTraceparent, shouldContinueTrace } from '../../utils/tracing';
 
 function getSentryTraceFromMeta(meta: Record<PropertyKey, unknown>): string | undefined {
   const sentryTrace = meta['sentry-trace'];
@@ -34,15 +35,21 @@ export function continueMcpTrace<T>(params: unknown, callback: (links: SpanLink[
   const meta = isObjectLike(params) && isObjectLike(params._meta) ? params._meta : undefined;
   const sentryTrace = meta ? getSentryTraceFromMeta(meta) : undefined;
 
-  // `continueTrace` starts a fresh trace for a malformed value, which would detach the span from the transport trace
-  // it would otherwise have joined.
+  // `continueTrace` starts a fresh trace for a malformed value or for baggage it refuses to continue (another org, or a
+  // missing org ID under `strictTraceContinuation`), which would detach the span from the transport trace it would
+  // otherwise have joined.
   if (!meta || !sentryTrace || !extractTraceparentData(sentryTrace)?.traceId) {
+    return callback(undefined);
+  }
+
+  const baggage = typeof meta.baggage === 'string' ? meta.baggage : undefined;
+  const client = getClient();
+  if (client && !shouldContinueTrace(client, baggageHeaderToDynamicSamplingContext(baggage)?.org_id)) {
     return callback(undefined);
   }
 
   const ambientSpan = getActiveSpan();
   const links = ambientSpan ? [{ context: ambientSpan.spanContext() }] : undefined;
-  const baggage = typeof meta.baggage === 'string' ? meta.baggage : undefined;
 
   return continueTrace({ sentryTrace, baggage }, () => callback(links));
 }
