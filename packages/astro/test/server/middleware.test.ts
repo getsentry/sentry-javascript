@@ -440,7 +440,7 @@ describe('sentryMiddleware', () => {
     });
   });
 
-  it('does not inject tracing <meta> tags if route is static', async () => {
+  it('injects an empty cache origin <meta> tag instead of tracing <meta> tags if route is static', async () => {
     const middleware = handleRequest();
 
     const ctx = STATIC_REQUEST_CONTEXT;
@@ -463,9 +463,35 @@ describe('sentryMiddleware', () => {
     expect(html).toContain('<meta name="something" content=""/></head>');
     // parametrized route is injected
     expect(html).toContain('<meta name="sentry-route-name" content="%2Fusers"/>');
-    // trace data is not injected
+    expect(html).toContain('<meta name="sentry-cache-origin" content=""/>');
     expect(html).not.toContain('<meta name="sentry-trace" content="');
     expect(html).not.toContain('<meta name="baggage" content="');
+  });
+
+  it.each([
+    [
+      'an on-demand page on an adapter without a client address',
+      {
+        ...DYNAMIC_REQUEST_CONTEXT,
+        isPrerendered: false,
+        get clientAddress(): string {
+          throw new Error('This adapter has no client address');
+        },
+      },
+      false,
+    ],
+    ['a prerendered page that has a client address', { ...DYNAMIC_REQUEST_CONTEXT, isPrerendered: true }, true],
+  ])('decides by `isPrerendered` for %s', async (_, ctx, isPrerendered) => {
+    const middleware = handleRequest({ trackClientIp: true });
+    const next = vi.fn(() =>
+      Promise.resolve(new Response('<head></head>', { headers: new Headers({ 'content-type': 'text/html' }) })),
+    );
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const html = await (await middleware(ctx, next))?.text();
+
+    expect(html?.includes('<meta name="sentry-cache-origin" content=""/>')).toBe(isPrerendered);
+    expect(html?.includes('<meta name="sentry-trace" content="')).toBe(!isPrerendered);
   });
 
   it('injects routing <meta> tag into the HTML of a pageload response without Sentry being initialized', async () => {
@@ -524,6 +550,7 @@ describe('sentryMiddleware', () => {
     expect(html).toContain('<meta name="sentry-route-name" content="%2Fusers"/>');
     expect(html).toContain('<meta name="sentry-trace" content="');
     expect(html).toContain('<meta name="baggage" content="');
+    expect(html).not.toContain('sentry-cache-origin');
   });
 
   it('preserves response status, statusText, and all headers when injecting meta tags', async () => {
