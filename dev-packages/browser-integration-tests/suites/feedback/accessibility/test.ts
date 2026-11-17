@@ -221,3 +221,22 @@ sentryTest('does not take focus back when the success message times out @firefox
   await expect(page.getByRole('button', { name: 'Report a Bug', exact: true })).toBeVisible();
   await expect(background).toBeFocused();
 });
+
+sentryTest('calls onFormClose once when Escape closes the modal @firefox', async ({ page }) => {
+  await page.evaluate(async () => {
+    const { Sentry } = window as unknown as { Sentry: typeof SentrySDK };
+    const win = window as unknown as { closeCount: number };
+    win.closeCount = 0;
+    const form = await Sentry.getFeedback()!.createForm({
+      onFormClose: () => {
+        win.closeCount++;
+      },
+    });
+    form.appendToDom();
+    form.open();
+  });
+  await expect(page.getByRole('textbox', { name: 'Description' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('dialog:modal')).toHaveCount(0);
+  expect(await page.evaluate(() => (window as unknown as { closeCount: number }).closeCount)).toBe(1);
+});

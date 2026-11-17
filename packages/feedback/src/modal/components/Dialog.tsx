@@ -21,17 +21,14 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
 
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const isModalRef = useRef(false);
 
   useLayoutEffect(() => {
     const dialog = dialogRef.current;
     if (open && dialog && !dialog.open) {
       try {
         dialog.showModal();
-        isModalRef.current = true;
       } catch {
         // `showModal` is missing in older browsers and throws in iframes sandboxed without `allow-modals`.
-        isModalRef.current = false;
         dialog.setAttribute('open', '');
       }
       // WebKit does not always move focus to the `autofocus` control of a modal inside a shadow root.
@@ -95,7 +92,7 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
             options.onFormClose?.();
           }}
           onKeyDown={event => {
-            if (event.key === 'Escape' && !isModalRef.current) {
+            if (event.key === 'Escape') {
               event.preventDefault();
               options.onFormClose?.();
             }
