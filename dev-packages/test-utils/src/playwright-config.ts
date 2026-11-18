@@ -18,15 +18,13 @@ export function getPlaywrightConfig(
   // Apply the shard to every invocation, including scripts that run production and development tests.
   const testShard = process.env.SENTRY_E2E_TEST_SHARD;
   const [current, total] = testShard?.split('/') ?? [];
-  // Apps that test both trace lifecycles set `E2E_TEST_TRACE_LIFECYCLE` to `stream` or `static` and keep
-  // lifecycle-specific tests in `*.streaming-lifecycle.*` and `*.static-lifecycle.*` files.
-  const traceLifecycle = process.env.E2E_TEST_TRACE_LIFECYCLE;
 
   /**
    * See https://playwright.dev/docs/test-configuration.
    */
   const config: PlaywrightTestConfig = {
     testDir: './tests',
+    testIgnore: getTestIgnore(),
     /* Maximum time one test can run for. */
     timeout: 30_000,
     expect: {
@@ -86,10 +84,6 @@ export function getPlaywrightConfig(
     ],
   };
 
-  if (traceLifecycle) {
-    config.testIgnore = traceLifecycle === 'static' ? '**/*.streaming-lifecycle.*' : '**/*.static-lifecycle.*';
-  }
-
   if (startCommand) {
     // @ts-expect-error - we set `config.webserver` to an array above.
     // TS just can't infer that and thinks it could also be undefined or an object.
@@ -108,4 +102,19 @@ export function getPlaywrightConfig(
     ...config,
     ...overwriteConfig,
   };
+}
+
+/**
+ * Apps that test both trace lifecycles set `E2E_TEST_TRACE_LIFECYCLE` to `stream` or `static` and keep
+ * lifecycle-specific tests in `*.streaming-lifecycle.*` and `*.static-lifecycle.*` files.
+ */
+function getTestIgnore(): string | undefined {
+  switch (process.env.E2E_TEST_TRACE_LIFECYCLE) {
+    case 'static':
+      return '**/*.streaming-lifecycle.*';
+    case 'stream':
+      return '**/*.static-lifecycle.*';
+    default:
+      return undefined;
+  }
 }
