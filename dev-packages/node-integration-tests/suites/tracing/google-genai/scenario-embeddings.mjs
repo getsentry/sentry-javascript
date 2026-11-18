@@ -6,7 +6,7 @@ function startMockGoogleGenAIServer() {
   const app = express();
   app.use(express.json());
 
-  app.post('/v1beta/models/:model\\:batchEmbedContents', (req, res) => {
+  app.post('/:apiVersion/models/:model\\:batchEmbedContents', (req, res) => {
     const model = req.params.model;
 
     if (model === 'error-model') {
