@@ -175,6 +175,7 @@ const FETCH_INTEGRATION_DIFFERS = [
 // no effect. Its spans also differ: response headers become attributes, and there is no
 // `http.response.status_text`. And a server
 // that sets `emit` back to the `emit` it had before its first request gets no spans after that.
+// See https://github.com/getsentry/sentry-javascript/issues/26609
 const HTTP_SERVER_OPTIONS_IGNORED = [
   'suites/sessions/exited-session-aggregate/test.ts',
   'suites/sessions/server-without-process-session/test.ts',
@@ -230,7 +231,11 @@ const BUN_BUILD_NO_HTTP_SERVER_INTEGRATION = ['suites/express/multiple-init/test
 
 // `@mistralai/mistralai` v3 statically imports its optional peer `@livekit/rtc-node`, so Bun cannot
 // bundle the scenarios. `mistral-v2` still covers Mistral here.
-const BUN_BUILD_UNBUNDLEABLE_DEPENDENCY = ['suites/tracing/mistral/test.ts'];
+//
+// `mongodb` v3 loads `optional-require`, whose `require-at` dependency calls `eval("require")`. Bun's
+// ESM output gives a direct `eval` in a bundled CommonJS file no `require`, so the bundle throws
+// `require is not defined`. See https://github.com/oven-sh/bun/issues/14891
+const BUN_BUILD_UNBUNDLEABLE_DEPENDENCY = ['suites/tracing/mistral/test.ts', 'suites/tracing/mongodb/test.ts'];
 
 // Some or all tests fail with the bundled scenarios. The cause is not investigated yet. In
 // `express/tracing` only the request data tests fail: they set `httpIntegration` options, and with
@@ -241,7 +246,6 @@ const BUN_BUILD_NOT_TRIAGED = [
   'suites/express/tracing/request-data/test.ts',
   'suites/express/with-http/**',
   'suites/hono-sdk/test.ts',
-  'suites/pino/test.ts',
   'suites/tracing/google-genai-v2/test.ts',
   'suites/tracing/google-genai-v3/test.ts',
   'suites/tracing/google-genai/test.ts',
@@ -254,14 +258,12 @@ const BUN_BUILD_NOT_TRIAGED = [
   'suites/tracing/mongodb-v5/test.ts',
   'suites/tracing/mongodb-v6/test.ts',
   'suites/tracing/mongodb-v7/test.ts',
-  'suites/tracing/mongodb/test.ts',
   'suites/tracing/mongoose-tracing-channel/test.ts',
   'suites/tracing/mongoose-v5/test.ts',
   'suites/tracing/mongoose-v7/test.ts',
   'suites/tracing/mongoose-v8/test.ts',
   'suites/tracing/mongoose-v9/test.ts',
   'suites/tracing/mongoose/test.ts',
-  'suites/tracing/mysql/test.ts',
   'suites/tracing/prisma-orm-v8/test.ts',
   'suites/tracing/together-ai/test.ts',
   'suites/tracing/vercelai/v6_v7/**',
@@ -280,17 +282,19 @@ export const BUN_BUILD_EXCLUDE = [
 // The `bun run` project (`node-suites-bun-run`) runs the suites of `NO_AUTO_INSTRUMENTATION` with
 // `@sentry/bun/import` preloaded, on Bun 1.4.5 or later. These do not run there.
 
-// The expected spans have `sentry.javascript.node` as the SDK name.
-const BUN_RUN_EXPECTS_SENTRY_NODE = ['suites/tracing/mongodb/test.ts', 'suites/tracing/mysql/test.ts'];
-
-// Some or all tests fail under `bun run`. The cause is not investigated yet. They also fail with the
-// bundled scenarios.
-const BUN_RUN_NOT_TRIAGED = [
+// The scenarios pass the incoming-request options (`maxRequestBodySize`, `ignoreIncomingRequestBody`)
+// to `httpIntegration`. With `@sentry/bun`, `bunHttpServerIntegration` creates the `http.server` spans
+// and takes these options itself, so the tests that set them fail.
+// See https://github.com/getsentry/sentry-javascript/issues/26609
+const BUN_RUN_HTTP_INTEGRATION_OPTIONS_IGNORED = [
   'suites/express/tracing/request-data/test.ts',
   'suites/express/with-http/maxIncomingRequestBodySize/test.ts',
-  'suites/hono-sdk/test.ts',
-  'suites/pino/test.ts',
 ];
+
+// The suite tests `@sentry/hono/node`, which builds on `@sentry/node` and creates no `http.server`
+// spans on Bun. `@sentry/hono/bun` takes its options in `sentry(app, options)` instead of a separate
+// `init()`, so the scenario cannot use it. `suites/hono-sdk` in this package tests `@sentry/hono/bun`.
+const BUN_RUN_HONO_NODE_SDK = ['suites/hono-sdk/test.ts'];
 
 export const BUN_RUN_EXCLUDE = [
   '**/node_modules/**',
@@ -299,6 +303,6 @@ export const BUN_RUN_EXCLUDE = [
   // These fail for the same reasons as with the bundled scenarios.
   ...BUN_BUILD_EAGER_SUBSCRIPTION,
   ...BUN_BUILD_NO_HTTP_SERVER_INTEGRATION,
-  ...BUN_RUN_EXPECTS_SENTRY_NODE,
-  ...BUN_RUN_NOT_TRIAGED,
+  ...BUN_RUN_HTTP_INTEGRATION_OPTIONS_IGNORED,
+  ...BUN_RUN_HONO_NODE_SDK,
 ];
