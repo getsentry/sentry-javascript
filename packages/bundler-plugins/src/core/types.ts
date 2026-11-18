@@ -242,6 +242,14 @@ export interface Options {
     /**
      * Whether the plugin should inject release information into the build for the SDK to pick it up when sending events. (recommended)
      *
+     * The plugin injects the release into the chunks that load at startup. The release name usually changes on every
+     * commit, so these chunks get new content hashes, and new file names, on every release, even when their code did not
+     * change. The chunks that import them get new file names too, so returning visitors download all of them again.
+     *
+     * To keep these file names stable, set this to `false` and pass `release` to `Sentry.init` at runtime, from a value
+     * that is not part of your bundled code, such as your HTML page. A release written into bundled code, for example with
+     * `define`, changes the content hashes in the same way.
+     *
      * Defaults to `true`.
      */
     inject?: boolean;
