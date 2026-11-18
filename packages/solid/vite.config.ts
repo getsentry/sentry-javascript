@@ -43,9 +43,36 @@ export default defineConfig({
         test: {
           name: 'solid2',
           environment: 'jsdom',
-          include: ['test/solid2/**/*.test.ts'],
+          include: ['test/solid2/*.test.ts'],
           typecheck: { tsconfig: './test/solid2/tsconfig.json' },
           // Process Solid's packages with Vite, so the aliases above also apply to their own imports.
+          server: { deps: { inline: [/solid-js/, /@solidjs/] } },
+        },
+      },
+      {
+        extends: true,
+        // Same as above, with Solid's server builds.
+        resolve: {
+          alias: [
+            {
+              find: /^solid-js$/,
+              replacement: fileURLToPath(new URL('./node_modules/solid-js-2/dist/server.js', import.meta.url)),
+            },
+            {
+              find: /^solid-js\/internal$/,
+              replacement: fileURLToPath(new URL('./node_modules/solid-js-2/dist/internal.js', import.meta.url)),
+            },
+            {
+              find: /^@solidjs\/web$/,
+              replacement: fileURLToPath(new URL('./node_modules/@solidjs/web/dist/server.js', import.meta.url)),
+            },
+          ],
+        },
+        test: {
+          name: 'solid2-server',
+          environment: 'node',
+          include: ['test/solid2/server/**/*.test.ts'],
+          typecheck: { tsconfig: './test/solid2/tsconfig.json' },
           server: { deps: { inline: [/solid-js/, /@solidjs/] } },
         },
       },

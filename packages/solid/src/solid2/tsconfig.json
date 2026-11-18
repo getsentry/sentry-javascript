@@ -8,6 +8,7 @@
     "lib": ["DOM", "es2020"],
     "paths": {
       "solid-js": ["../../node_modules/solid-js-2/types/index.d.ts"],
+      "solid-js/internal": ["../../node_modules/solid-js-2/types/internal.d.ts"],
       "@solidjs/router": ["../../node_modules/@solidjs/router-2/dist/index.d.ts"]
     }
   }
