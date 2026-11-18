@@ -124,6 +124,11 @@ export type SourceMapHandling = {
   /** Records the decision for an output, for bundlers that decide outside `outputOptions`. */
   setDecision: (destination: string, record: DecisionRecord) => void;
   /**
+   * Vite's `outputOptions` hook: switches an output with its own visible setting to hidden source
+   * maps when its recorded decision removes them.
+   */
+  applyHiddenDecision: (rawOutputOptions: OutputOptions) => OutputOptions | null;
+  /**
    * `generateBundle` with `order: 'post'`: copies each chunk and its source map into a staging folder
    * and drops the map asset from the bundle, so the bundler never writes it.
    */
@@ -205,6 +210,20 @@ export function createSourceMapHandling(sentryBuildPluginManager: SentryBuildPlu
     },
 
     setDecision,
+
+    applyHiddenDecision: rawOutputOptions => {
+      if (rawOutputOptions.sourcemap !== true) {
+        return null;
+      }
+      const destination = getOutputDestination(rawOutputOptions);
+      const record = findDecision(destination, rawOutputOptions);
+      if (!record?.decision.enableHidden) {
+        return null;
+      }
+      // Later hooks see the hidden setting, so the record has to match it.
+      setDecision(destination, { ...record, match: { ...record.match, sourcemap: 'hidden' } });
+      return { ...rawOutputOptions, sourcemap: 'hidden' };
+    },
 
     stageSourceMaps: async (outputOptions, bundle, isWrite) => {
       const destination = getOutputDestination(outputOptions);

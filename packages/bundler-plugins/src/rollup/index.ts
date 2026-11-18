@@ -326,7 +326,7 @@ export function _createRollupPluginInternals(
     buildStart,
     ...(shouldTransform ? { transform: transformHook } : {}),
     ...(viteSourceMapHooks
-      ? { configResolved: viteSourceMapHooks.configResolved }
+      ? { configResolved: viteSourceMapHooks.configResolved, outputOptions: viteSourceMapHooks.outputOptions }
       : { outputOptions: sourceMapHandling.outputOptions }),
     renderChunk,
     generateBundle: { order: 'pre' as const, handler: generateBundle },
