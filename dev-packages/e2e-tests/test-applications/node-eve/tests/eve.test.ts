@@ -14,7 +14,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_DECIDE, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { collectStreamedSpans, getSpanOp, waitForError } from '@sentry-internal/test-utils';
-import { runAgentTurn } from './utils';
+import { IS_EVE_0X, runAgentTurn } from './utils';
 
 const APP = 'node-eve';
 
@@ -110,9 +110,12 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
   }
 });
 
-// `on`: eve >= 1.0.0-rc.10 takes `Sentry.eveInstrumentation()`'s trace policy, so content reaches `ai`'s channel.
-// `off`: Sentry's `dataCollection.genAI` turns content off.
-const genAIContent = process.env.SENTRY_GENAI_CONTENT;
+// eve >= 1.0.0-rc.10 takes `Sentry.eveInstrumentation()`'s trace policy, so content reaches `ai`'s channel and only
+// Sentry's `dataCollection.genAI` (`SENTRY_GENAI_CONTENT=off`) turns it off. eve 0.x ignores the trace policy and
+// withholds content in production.
+const genAIContentOff = process.env.SENTRY_GENAI_CONTENT === 'off';
+const expectContent = !genAIContentOff && !IS_EVE_0X;
+const expectNoContent = genAIContentOff || (IS_EVE_0X && process.env.TEST_ENV === 'production');
 
 async function runWeatherTurn(baseURL: string) {
   const traceSpansPromise = collectStreamedSpans(APP, spansOfTrace =>
@@ -128,7 +131,7 @@ async function runWeatherTurn(baseURL: string) {
 }
 
 test('records input and output messages and tool data when content is allowed', async ({ baseURL }) => {
-  test.skip(genAIContent !== 'on', 'needs SENTRY_GENAI_CONTENT=on');
+  test.skip(!expectContent, 'needs gen_ai content');
 
   const { invokeAgent, executeTool } = await runWeatherTurn(baseURL!);
 
@@ -140,11 +143,7 @@ test('records input and output messages and tool data when content is allowed', 
 });
 
 test('records usage but no messages when content is not allowed', async ({ baseURL }) => {
-  // eve allows content in development, so without Sentry's opt-out only production shows the default.
-  test.skip(
-    genAIContent === 'on' || (genAIContent !== 'off' && process.env.TEST_ENV !== 'production'),
-    'only without content',
-  );
+  test.skip(!expectNoContent, 'only without content');
 
   const { invokeAgent } = await runWeatherTurn(baseURL!);
 
@@ -185,7 +184,7 @@ test('captures errors thrown inside an eve tool', async ({ baseURL }) => {
 
 test('captures a gen_ai.decide span for a Jev call inside an eve tool', async ({ baseURL }) => {
   // `ai` keeps no usage or input on decide spans for calls with recording off.
-  test.skip(genAIContent === 'off', 'needs gen_ai content');
+  test.skip(genAIContentOff, 'needs gen_ai content');
 
   const traceSpansPromise = collectStreamedSpans(APP, spansOfTrace =>
     [GEN_AI_EXECUTE_TOOL, GEN_AI_DECIDE].every(op => spansOfTrace.some(span => getSpanOp(span) === op)),
