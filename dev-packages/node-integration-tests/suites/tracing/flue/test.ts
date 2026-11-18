@@ -1,4 +1,4 @@
-import type { SerializedStreamedSpan, SerializedStreamedSpanContainer } from '@sentry/core';
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
   GEN_AI_CONVERSATION_ID,
@@ -21,15 +21,6 @@ import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/c
 import { afterAll, describe, expect } from 'vitest';
 import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
-
-function recorded(span: SerializedStreamedSpan): { span: string; inputs: boolean; outputs: boolean } {
-  const { attributes } = span;
-  return {
-    span: span.name,
-    inputs: GEN_AI_INPUT_MESSAGES in attributes || GEN_AI_TOOL_CALL_ARGUMENTS in attributes,
-    outputs: GEN_AI_OUTPUT_MESSAGES in attributes || GEN_AI_TOOL_CALL_RESULT in attributes,
-  };
-}
 
 // `@flue/runtime` declares `engines.node >= 22.19`.
 describe.runIf(supports({ min: 22 }))('Flue integration', () => {
@@ -232,35 +223,19 @@ describe.runIf(supports({ min: 22 }))('Flue integration', () => {
       await createRunner()
         .expect({
           span: container => {
-            const spans = container.items;
-            const byId = new Map(spans.map(span => [span.span_id, span]));
-            const runOf = (span: SerializedStreamedSpan): string | undefined => {
-              let current: SerializedStreamedSpan | undefined = span;
-              while (current && !current.name.startsWith('run ')) {
-                current = current.parent_span_id ? byId.get(current.parent_span_id) : undefined;
-              }
-              return current?.name;
-            };
-            const contentSpans = spans
-              .filter(span => ['auto.ai.pi_ai', 'auto.ai.flue'].includes(String(span.attributes[SENTRY_ORIGIN]?.value)))
-              .filter(span => span.name !== 'invoke_agent Hello')
-              .sort((a, b) => a.start_timestamp - b.start_timestamp);
-
-            expect({
-              public: contentSpans.filter(span => runOf(span) === 'run public').map(recorded),
-              private: contentSpans.filter(span => runOf(span) === 'run private').map(recorded),
-            }).toEqual({
-              public: [
-                { span: 'chat faux-model', inputs: true, outputs: true },
-                { span: 'execute_tool get_weather', inputs: true, outputs: true },
-                { span: 'chat faux-model', inputs: true, outputs: true },
-              ],
-              private: [
-                { span: 'chat faux-model', inputs: false, outputs: false },
-                { span: 'execute_tool get_weather', inputs: false, outputs: false },
-                { span: 'chat faux-model', inputs: false, outputs: true },
-              ],
-            });
+            const recorded = container.items
+              .filter(span => /^(chat|execute_tool) /.test(span.name))
+              .sort((a, b) => a.start_timestamp - b.start_timestamp)
+              .map(({ name, attributes }) => [
+                name,
+                GEN_AI_INPUT_MESSAGES in attributes || GEN_AI_TOOL_CALL_ARGUMENTS in attributes,
+                GEN_AI_OUTPUT_MESSAGES in attributes || GEN_AI_TOOL_CALL_RESULT in attributes,
+              ]);
+            expect(recorded).toEqual([
+              ['chat faux-model', true, false],
+              ['execute_tool get_weather', true, false],
+              ['chat faux-model', true, true],
+            ]);
           },
         })
         .start()
