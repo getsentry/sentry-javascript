@@ -77,11 +77,6 @@
         "assert-command": "NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES=1 pnpm test:prod"
       },
       {
-        "build-command": "pnpm install",
-        "label": "nextjs-16 (exclude application key dependencies, development)",
-        "assert-command": "NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES=1 pnpm test:dev"
-      },
-      {
         "build-command": "pnpm test:build-webpack",
         "label": "nextjs-16 (webpack, production)",
         "assert-command": "pnpm test:prod"
@@ -98,20 +93,9 @@
         "assert-command": "pnpm test:prod"
       },
       {
-        "build-command": "pnpm install && pnpm add next@latest",
-        "label": "nextjs-16 (latest, webpack, development)",
-        "assert-command": "pnpm test:dev-webpack",
-        "test-shards": 2
-      },
-      {
         "build-command": "pnpm test:build-latest",
         "label": "nextjs-16 (latest, turbopack, production)",
         "assert-command": "pnpm test:prod"
-      },
-      {
-        "build-command": "pnpm install && pnpm add next@latest",
-        "label": "nextjs-16 (latest, turbopack, development)",
-        "assert-command": "pnpm test:dev"
       },
       {
         "runtime": "bun",

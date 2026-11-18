@@ -12,9 +12,9 @@ This skill runs end-to-end tests for Sentry JavaScript SDK test applications. It
 
 The user provides a test application name and optionally a variant:
 
-- `e2e-tests/test-applications/nextjs-app-dir` (full path)
-- `nextjs-app-dir` (just the app name)
-- `nextjs-app-dir --variant nextjs-15` (with variant)
+- `e2e-tests/test-applications/nextjs-14` (full path)
+- `nextjs-14` (just the app name)
+- `nextjs-16 --variant "nextjs-16 (webpack, production)"` (with variant)
 
 ## Workflow
 
@@ -23,8 +23,8 @@ The user provides a test application name and optionally a variant:
 Extract the test app name from user input:
 
 - Strip `e2e-tests/test-applications/` prefix if present
-- Extract variant flag if provided (e.g., `--variant nextjs-15`)
-- Store the clean app name (e.g., `nextjs-app-dir`)
+- Extract variant flag if provided (e.g., `--variant "nextjs-16 (webpack, production)"`)
+- Store the clean app name (e.g., `nextjs-14`)
 
 ### Step 2: Determine Which Packages Need Rebuilding
 
@@ -124,7 +124,7 @@ All tests completed successfully. Your SDK changes work correctly with this test
 
 Here are frequently tested applications:
 
-- `nextjs-app-dir` - Next.js App Router
+- `nextjs-14` - Next.js 14 App Router
 - `nextjs-15` - Next.js 15.x
 - `react-create-hash-router` - React with React Router
 - `node-express-esm-loader` - Node.js Express with ESM
@@ -159,7 +159,7 @@ pnpm run test:run node-express-esm-loader
 ### Example 2: First-time test run
 
 ```bash
-# User: "Run e2e tests for nextjs-app-dir"
+# User: "Run e2e tests for nextjs-14"
 
 # Step 1: Check for existing tarballs
 # Step 2: None found, build all packages
@@ -167,18 +167,18 @@ pnpm run build && pnpm run build:tarball
 
 # Step 3: Run the test
 cd dev-packages/e2e-tests
-pnpm run test:run nextjs-app-dir
+pnpm run test:run nextjs-14
 ```
 
 ### Example 3: With variant
 
 ```bash
-# User: "Run e2e tests for nextjs-app-dir with nextjs-15 variant"
+# User: "Run e2e tests for nextjs-16 with the webpack production variant"
 
 # Step 1: Rebuild if needed
 # Step 2: Run with variant
 cd dev-packages/e2e-tests
-pnpm run test:run nextjs-app-dir --variant nextjs-15
+pnpm run test:run nextjs-16 --variant "nextjs-16 (webpack, production)"
 ```
 
 ## Tips

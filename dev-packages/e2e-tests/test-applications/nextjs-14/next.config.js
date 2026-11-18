@@ -1,8 +1,16 @@
 const { withSentryConfig } = require('@sentry/nextjs/config');
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  experimental: {
+    appDir: true,
+    serverActions: true,
+  },
+};
 
 module.exports = withSentryConfig(nextConfig, {
-  silent: true,
+  debug: true,
+  sourcemaps: {
+    deleteSourcemapsAfterUpload: true,
+  },
 });

@@ -30,6 +30,11 @@
     "ts-node": "10.9.1"
   },
   "sentryTest": {
+    "baseVariant": {
+      "build-command": "pnpm test:build",
+      "label": "nextjs-pages-dir (next@14)",
+      "assert-command": "pnpm test:assert"
+    },
     "variants": [
       {
         "build-command": "pnpm test:build-15",
