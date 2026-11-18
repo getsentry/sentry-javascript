@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { assignReviewers, getBusyLogins, getReviewLoad, pickReviewers } from './assign-reviewers.mjs';
+import { assignReviewers, getBusyLogins, getReviewLoad, isApproved, pickReviewers } from './assign-reviewers.mjs';
 import { attribution, junior, setup } from './github-test-utils.mjs';
 
 describe('pickReviewers', () => {
@@ -188,7 +188,40 @@ describe('getBusyLogins', () => {
   });
 });
 
+describe('isApproved', () => {
+  const review = (login, state, type = 'User') => ({ user: { login, type }, state });
+
+  it('is approved when a human approved', () => {
+    expect(isApproved([review('a', 'COMMENTED'), review('b', 'APPROVED')])).toBe(true);
+  });
+
+  it('keeps an approval when the reviewer comments afterwards', () => {
+    expect(isApproved([review('a', 'APPROVED'), review('A', 'COMMENTED')])).toBe(true);
+  });
+
+  it('is not approved when the approval was superseded by a change request or dismissed', () => {
+    expect(isApproved([review('a', 'APPROVED'), review('A', 'CHANGES_REQUESTED')])).toBe(false);
+    expect(isApproved([review('a', 'DISMISSED')])).toBe(false);
+  });
+
+  it('ignores approvals from bots', () => {
+    expect(isApproved([review('some-ai[bot]', 'APPROVED', 'Bot')])).toBe(false);
+  });
+});
+
 describe('assignReviewers', () => {
+  it('does not request reviews when the PR is already approved', async () => {
+    const { github, run } = setup(assignReviewers, { user: { login: 'author', type: 'User' } });
+    const paginate = github.paginate.getMockImplementation();
+    github.paginate.mockImplementation(async method =>
+      method === github.rest.pulls.listReviews
+        ? [{ user: { login: 'a', type: 'User' }, state: 'APPROVED' }]
+        : paginate(method),
+    );
+    await run();
+    expect(github.rest.pulls.requestReviewers).not.toHaveBeenCalled();
+  });
+
   it('does not request a review from busy users', async () => {
     const { github, run } = setup(assignReviewers, { user: { login: 'author', type: 'User' } });
     github.graphql.mockResolvedValue({ u0: { login: 'a', status: { indicatesLimitedAvailability: true } } });
