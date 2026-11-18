@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { getSpanOp, waitForStreamedSpans } from '@sentry-internal/test-utils';
 
-const APP_NAME = 'remix-server-timing';
+const APP_NAME = 'create-remix-app-v2';
 
 test('propagates trace context from server-timing header to client pageload', async ({ page }) => {
   const testTag = crypto.randomUUID();
@@ -20,7 +20,7 @@ test('propagates trace context from server-timing header to client pageload', as
     response => response.url().includes(`tag=${testTag}`) && response.status() === 200,
   );
 
-  await page.goto(`/?tag=${testTag}`);
+  await page.goto(`/server-timing?tag=${testTag}`);
 
   const response = await responsePromise;
   const serverTimingHeader = response.headers()['server-timing'];
@@ -48,7 +48,7 @@ test('propagates trace context from server-timing header to client pageload', as
   const findPageloadSpan = () =>
     streamedSpans.find(span => getSpanOp(span) === 'pageload' && span.is_segment && span.trace_id === headerTraceId);
   await expect.poll(findPageloadSpan).toBeDefined();
-  expect(findPageloadSpan()!.name).toBe('/');
+  expect(findPageloadSpan()!.name).toBe('/server-timing');
   expect(findPageloadSpan()!.parent_span_id).toBe(headerSpanId);
 });
 
@@ -59,12 +59,12 @@ test('includes server-timing header on redirect responses', async ({ page }) => 
     return false;
   });
 
-  const redirectResponsePromise = page.waitForResponse(response => response.url().includes('/redirect-test'));
+  const redirectResponsePromise = page.waitForResponse(response => response.url().includes('/server-timing/redirect'));
   const redirectedPageloadResponsePromise = page.waitForResponse(response =>
-    response.url().includes('/user/redirected'),
+    response.url().includes('/server-timing/user/redirected'),
   );
 
-  await page.goto('/redirect-test');
+  await page.goto('/server-timing/redirect');
 
   const redirectResponse = await redirectResponsePromise;
   const redirectServerTimingHeader = redirectResponse.headers()['server-timing'];
@@ -86,23 +86,24 @@ test('includes server-timing header on redirect responses', async ({ page }) => 
   expect(traceId).toHaveLength(32);
   expect(spanId).toHaveLength(16);
 
-  await page.waitForURL(/\/user\/redirected/);
+  await page.waitForURL(/\/server-timing\/user\/redirected/);
   await expect(page.locator('h1')).toContainText('User redirected');
 
   const findPageloadSpan = () =>
     streamedSpans.find(span => getSpanOp(span) === 'pageload' && span.is_segment && span.trace_id === traceId);
   await expect.poll(findPageloadSpan).toBeDefined();
-  expect(findPageloadSpan()!.name).toBe('/user/:id');
+  expect(findPageloadSpan()!.name).toBe('/server-timing/user/:id');
   expect(findPageloadSpan()!.parent_span_id).toBe(spanId);
 });
 
 test('excludes server-timing header from client-side navigation data fetches', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/server-timing');
   await page.locator('#navigation').waitFor({ state: 'visible' });
 
   const navDataFetchPromise = page.waitForResponse(
     response =>
-      response.url().includes('/user/123') && (response.url().includes('_data=') || response.url().endsWith('.data')),
+      response.url().includes('/server-timing/user/123') &&
+      (response.url().includes('_data=') || response.url().endsWith('.data')),
   );
   await page.click('#navigation');
   const navDataFetch = await navDataFetchPromise;
