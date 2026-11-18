@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import type { BrowserClient } from '@sentry/svelte';
 import { getMainCarrier } from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
@@ -75,6 +79,35 @@ describe('Sentry client SDK', () => {
 
     it('returns client from init', () => {
       expect(init({})).not.toBeUndefined();
+    });
+
+    describe('release', () => {
+      afterEach(() => {
+        document.head.innerHTML = '';
+      });
+
+      it('uses the release that `sentryHandle` added to the page', () => {
+        document.head.innerHTML = '<meta name="sentry-release" content="1.2.3"/>';
+
+        init({});
+
+        expect(svelteInit).toHaveBeenCalledWith(expect.objectContaining({ release: '1.2.3' }));
+      });
+
+      it('prefers an explicitly passed release over the one on the page', () => {
+        document.head.innerHTML = '<meta name="sentry-release" content="1.2.3"/>';
+
+        init({ release: 'explicit' });
+
+        expect(svelteInit).toHaveBeenCalledWith(expect.objectContaining({ release: 'explicit' }));
+      });
+
+      // An own `release: undefined` key would shadow the browser SDK's `SENTRY_RELEASE` fallback
+      it('leaves the release unset if the page has none', () => {
+        init({});
+
+        expect(svelteInit).toHaveBeenCalledWith(expect.not.objectContaining({ release: undefined }));
+      });
     });
   });
 });
