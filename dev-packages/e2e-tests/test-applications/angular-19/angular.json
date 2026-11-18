@@ -47,6 +47,14 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "streamed": {
+              "fileReplacements": [
+                {
+                  "replace": "src/trace-lifecycle.ts",
+                  "with": "src/trace-lifecycle.streamed.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
