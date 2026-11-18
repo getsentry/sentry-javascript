@@ -213,6 +213,11 @@ export const SENTRY_NODE_EXCLUDE = [...NO_HTTP_SERVER_SPANS, ...NO_FETCH_INSTRUM
 // servers without those.
 const BUN_DROPS_PIPELINED_REQUESTS = ['suites/tunnel/hardening/test.ts'];
 
+// Before Bun 1.4, `require('../package.json')` in an ES module of `proxy` fails with `Cannot find
+// module '../package.json' from ''` when `alias-sentry-bun.ts` wraps `Module._resolveFilename`.
+// Excluded in `node-suites-sentry-bun` only before Bun 1.4.
+export const SENTRY_BUN_BEFORE_1_4_EXCLUDE = ['suites/proxy/test.ts'];
+
 export const SENTRY_BUN_EXCLUDE = [
   ...BUN_DROPS_PIPELINED_REQUESTS,
   ...HTTP_SERVER_SPANS_DIFFER,
@@ -270,8 +275,15 @@ const HONO_NODE_SDK = ['suites/hono-sdk/test.ts'];
 // See https://github.com/getsentry/sentry-javascript/issues/26614
 const BUN_1_3_NO_HTTP_CLIENT_CHANNEL = ['suites/express/with-http/base/test.ts'];
 
+// Bun 1.3 bundles these CommonJS scenarios into code that calls a `require_*` helper before it is
+// defined, so the scenario throws `require_ai is not a function`. The ESM tests still pass.
+const BUN_1_3_BUNDLES_CJS_OUT_OF_ORDER = [
+  'suites/tracing/langchain/v1/decisions/test.ts',
+  'suites/tracing/langgraph/v1/test.ts',
+];
+
 // Excluded in `node-suites-bun-build` only before Bun 1.4.
-export const BUN_BUILD_BEFORE_1_4_EXCLUDE = [...BUN_1_3_NO_HTTP_CLIENT_CHANNEL];
+export const BUN_BUILD_BEFORE_1_4_EXCLUDE = [...BUN_1_3_NO_HTTP_CLIENT_CHANNEL, ...BUN_1_3_BUNDLES_CJS_OUT_OF_ORDER];
 
 export const BUN_BUILD_EXCLUDE = [
   '**/node_modules/**',
