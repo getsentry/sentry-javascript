@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
@@ -16,12 +17,6 @@ function startMockAnthropicServer() {
 
     // Check if streaming is requested
     if (req.body.stream === true) {
-      res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
-      });
-
       // Send streaming events
       const events = [
         {
@@ -48,16 +43,7 @@ function startMockAnthropicServer() {
         { type: 'message_stop' },
       ];
 
-      events.forEach((event, index) => {
-        setTimeout(() => {
-          res.write(`event: ${event.type}\n`);
-          res.write(`data: ${JSON.stringify(event)}\n\n`);
-
-          if (index === events.length - 1) {
-            res.end();
-          }
-        }, index * 10); // Small delay between events
-      });
+      streamSseEvents(res, events, { eventNames: true });
 
       return;
     }
@@ -83,11 +69,7 @@ function startMockAnthropicServer() {
     });
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
@@ -96,7 +78,7 @@ async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Anthropic({
       apiKey: 'mock-api-key',
-      baseURL: `http://localhost:${server.address().port}/anthropic`,
+      baseURL: `${server.url}/anthropic`,
     });
 
     // First test: basic message completion

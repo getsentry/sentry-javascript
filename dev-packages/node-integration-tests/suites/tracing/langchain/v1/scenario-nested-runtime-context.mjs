@@ -5,6 +5,7 @@ import { tool } from '@langchain/core/tools';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { startMockServer } from '@sentry-internal/node-integration-tests';
 
 // LangGraph does this on import. Plain `@langchain/core` keeps a no-op store, so runs started
 // without a config would see no ambient config at all.
@@ -27,16 +28,12 @@ function startMockAnthropicServer() {
     });
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
   const server = await startMockAnthropicServer();
-  const baseUrl = `http://localhost:${server.address().port}`;
+  const baseUrl = server.url;
 
   const model = new ChatAnthropic({
     model: 'claude-3-5-sonnet-20241022',

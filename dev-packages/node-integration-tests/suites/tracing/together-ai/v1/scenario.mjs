@@ -1,8 +1,9 @@
 import Together from 'together-ai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
 
-function startMockServer() {
+function startMockApi() {
   const app = express();
   app.use(express.json());
 
@@ -16,7 +17,6 @@ function startMockServer() {
     }
 
     if (stream) {
-      res.setHeader('Content-Type', 'text/event-stream');
       const chunks = [
         {
           id: 'chatcmpl-stream-123',
@@ -34,10 +34,7 @@ function startMockServer() {
           usage: { prompt_tokens: 12, completion_tokens: 18, total_tokens: 30 },
         },
       ];
-      for (const chunk of chunks) {
-        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-      }
-      res.end('data: [DONE]\n\n');
+      streamSseEvents(res, chunks, { done: true });
       return;
     }
 
@@ -63,20 +60,16 @@ function startMockServer() {
     });
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
-  const server = await startMockServer();
+  const server = await startMockApi();
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Together({
       apiKey: 'mock-api-key',
-      baseURL: `http://localhost:${server.address().port}`,
+      baseURL: server.url,
     });
 
     await client.chat.completions.create({
