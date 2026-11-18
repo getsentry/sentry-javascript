@@ -4,10 +4,6 @@ import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 
-const usesManagedTunnelRoute =
-  (process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off') !== 'off' || process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1';
-
-test.skip(usesManagedTunnelRoute, 'Default e2e suites run only in the proxy variant');
 test.skip(process.env.TEST_ENV === 'development', 'Needs the production build');
 
 // The server that Playwright starts has already handled requests, so this test starts one of its own. Nitro imports

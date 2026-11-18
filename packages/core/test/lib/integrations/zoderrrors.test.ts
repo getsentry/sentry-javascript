@@ -1,5 +1,7 @@
 import { describe, expect, it, test } from 'vitest';
 import { z } from 'zod';
+import { z as z4 } from 'zod/v4';
+import * as z4mini from 'zod/v4/mini';
 import {
   applyZodErrorsToEvent,
   flattenIssue,
@@ -509,5 +511,43 @@ describe('formatIssueMessage()', () => {
       const message = formatIssueMessage(zodError);
       expect(message).toMatchInlineSnapshot('"Failed to validate keys: <array>"');
     });
+  });
+});
+
+describe('Zod 4 errors', () => {
+  function createEvent(originalException: Error): Event {
+    return { exception: { values: [{ type: originalException.name, value: originalException.message }] } };
+  }
+
+  test('processes errors thrown by `zod/mini`', () => {
+    const zodError = z4mini.object({ foo: z4mini.string() }).safeParse({ foo: 123 }).error;
+    if (zodError === undefined) {
+      throw new Error('zodError is undefined');
+    }
+    expect(zodError.name).toBe('$ZodError');
+
+    const processedEvent = applyZodErrorsToEvent(100, false, createEvent(zodError), { originalException: zodError });
+
+    expect(processedEvent.exception?.values?.[0]?.value).toBe('Failed to validate keys: foo');
+    expect(processedEvent.extra?.['zoderror.issues']).toEqual([
+      expect.objectContaining({ code: 'invalid_type', expected: 'string', path: 'foo' }),
+    ]);
+  });
+
+  test('flattens nested union errors to a string', () => {
+    const zodError = z4.object({ value: z4.union([z4.string(), z4.number()]) }).safeParse({ value: true }).error;
+    if (zodError === undefined) {
+      throw new Error('zodError is undefined');
+    }
+
+    const processedEvent = applyZodErrorsToEvent(100, false, createEvent(zodError), { originalException: zodError });
+
+    expect(processedEvent.exception?.values?.[0]?.value).toBe('Failed to validate keys: value');
+    const [issue] = processedEvent.extra?.['zoderror.issues'] as Array<Record<string, unknown>>;
+    expect(issue).toEqual(expect.objectContaining({ code: 'invalid_union', path: 'value' }));
+    expect(JSON.parse(issue?.errors as string)).toEqual([
+      [expect.objectContaining({ code: 'invalid_type', expected: 'string' })],
+      [expect.objectContaining({ code: 'invalid_type', expected: 'number' })],
+    ]);
   });
 });

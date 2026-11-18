@@ -55,7 +55,7 @@ jobs:
           node-version-file: 'package.json'
 
       - name: Prepare release
-        uses: getsentry/craft@3f1f02d50b08b8c509a28d2cc2abf594e9a28011 # v3.5.0
+        uses: getsentry/craft@0da9309228741a4c300d3c87ed7dcafa8f703525 # v3.12.0
         if:
           github.event.pull_request.merged == true && steps.version-regex.outputs.match != '' &&
           steps.get_version.outputs.version != ''

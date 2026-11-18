@@ -128,8 +128,8 @@ function injectMetaTagsInResponse(originalResponse: Response): Response {
  * import type { ServerEntry } from '@tanstack/react-start/server-entry';
  *
  * const requestHandler: ServerEntry = wrapFetchWithSentry({
- *  fetch(request: Request) {
- *    return handler.fetch(request);
+ *  fetch(request, opts) {
+ *    return handler.fetch(request, opts);
  *  },
  * });
  *

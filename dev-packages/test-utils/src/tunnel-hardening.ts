@@ -2,6 +2,7 @@
 // app keeps serving after each one. The tunnel must never break the app, whatever the client, the envelope or the
 // ingest does. Only Node built-ins, so Bun and Deno tests can import this file directly.
 import { Buffer } from 'node:buffer';
+import { once } from 'node:events';
 import * as http from 'node:http';
 import * as net from 'node:net';
 import * as zlib from 'node:zlib';
@@ -45,23 +46,28 @@ export interface FakeIngests {
  * Starts the fake ingests on free ports.
  */
 export async function startFakeIngests(): Promise<FakeIngests> {
-  const servers: http.Server[] = [];
+  const servers: net.Server[] = [];
   const sockets = new Set<net.Socket>();
   const ports: Record<string, number> = {};
 
   for (const [name, handler] of Object.entries(INGEST_HANDLERS)) {
-    const server = http.createServer(handler ?? (() => undefined));
+    const server: net.Server = handler ? http.createServer(handler) : net.createServer();
     server.on('connection', socket => {
       sockets.add(socket);
       socket.on('close', () => sockets.delete(socket));
     });
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-    ports[name] = (server.address() as net.AddressInfo).port;
+    servers.push(server);
+    const { port } = server.address() as net.AddressInfo;
     if (handler) {
-      servers.push(server);
+      ports[name] = port;
     } else {
-      // Keep the port, refuse connections.
-      await new Promise<void>(resolve => server.close(() => resolve()));
+      // The OS can give a closed port to the next listener, for example the app under test. The local port of an
+      // open connection has no listener either, and the OS gives it to no one until the connection closes.
+      const socket = net.connect(port, '127.0.0.1');
+      await once(socket, 'connect');
+      sockets.add(socket);
+      ports[name] = socket.localPort!;
     }
   }
 

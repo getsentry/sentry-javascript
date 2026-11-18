@@ -7,7 +7,7 @@
     "start": "docker compose up -d --wait && bun run dist/app.js",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml dist",
-    "test:build": "pnpm install && bun run build.ts",
+    "test:build": "pnpm install && bun run build.ts && docker compose pull --quiet",
     "test:assert": "pnpm test"
   },
   "dependencies": {

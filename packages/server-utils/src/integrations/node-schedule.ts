@@ -105,8 +105,10 @@ function isCronShaped(value: string): boolean {
 // Only cron strings convert; recurrence rules and rules limited by `start` or `end` don't.
 export function getMonitorConfig(spec: unknown): MonitorConfig | undefined {
   if (typeof spec === 'string') {
-    return cronExpressionToMonitorConfig(spec, undefined, 'or');
+    return cronExpressionToMonitorConfig(spec, undefined, 'cron-parser');
   }
   const { rule, tz, start, end } = (spec || {}) as { rule?: unknown; tz?: unknown; start?: unknown; end?: unknown };
-  return typeof rule === 'string' && !start && !end ? cronExpressionToMonitorConfig(rule, tz, 'or') : undefined;
+  return typeof rule === 'string' && !start && !end
+    ? cronExpressionToMonitorConfig(rule, tz, 'cron-parser')
+    : undefined;
 }

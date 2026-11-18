@@ -1,4 +1,4 @@
-import { debug, getTraceData } from '@sentry/core';
+import { debug, getTraceServerTimingHeader } from '@sentry/core';
 import { isNodeEnv } from '@sentry/core/server';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { isCloudflareEnv } from '../utils/utils';
@@ -10,23 +10,7 @@ export function generateSentryServerTimingHeader(): string | null {
   }
 
   try {
-    const traceData = getTraceData();
-    const sentryTrace = traceData['sentry-trace'];
-    const baggage = traceData.baggage;
-
-    if (!sentryTrace) {
-      return null;
-    }
-
-    const parts: string[] = [];
-
-    parts.push(`sentry-trace;desc="${sentryTrace}"`);
-
-    if (baggage) {
-      parts.push(`baggage;desc="${baggage}"`);
-    }
-
-    return parts.join(', ');
+    return getTraceServerTimingHeader() || null;
   } catch (e) {
     DEBUG_BUILD && debug.warn('Failed to generate Server-Timing header', e);
     return null;

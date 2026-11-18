@@ -63,6 +63,21 @@ describe('wrapFetchWithSentry', () => {
     expect(flushIfServerlessSpy).toHaveBeenCalledTimes(1);
   });
 
+  it.each(['http://localhost:3000/page', 'http://localhost:3000/_serverFn/abc123'])(
+    'forwards the request options to the wrapped handler for %s',
+    async url => {
+      const fetchFn = vi.fn().mockResolvedValue(new Response('ok'));
+
+      const serverEntry = wrapFetchWithSentry({ fetch: fetchFn });
+      const request = new Request(url);
+      const opts = { context: { user: 'test' } };
+
+      await serverEntry.fetch(request, opts);
+
+      expect(fetchFn).toHaveBeenCalledWith(request, opts);
+    },
+  );
+
   it('creates a function span for server function requests', async () => {
     const mockResponse = new Response('ok');
     const fetchFn = vi.fn().mockResolvedValue(mockResponse);

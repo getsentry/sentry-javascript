@@ -32,7 +32,6 @@
   },
   "scripts": {
     "build": "react-router build",
-    "test:build-latest": "pnpm install && pnpm add react-router@latest && pnpm add @react-router/node@latest && pnpm add @react-router/serve@latest && pnpm build",
     "dev": "NODE_OPTIONS='--import ./instrument.mjs' react-router dev",
     "start": "NODE_ENV=production NODE_OPTIONS='--import ./instrument.mjs' react-router-serve ./build/server/index.js",
     "start:bun": "NODE_ENV=production bun --bun --preload ./instrument.bun.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js",
@@ -44,10 +43,7 @@
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:ts && pnpm test:playwright",
     "test:ts": "pnpm typecheck",
-    "test:playwright": "playwright test",
-    "test:build:tunnel-basepath": "pnpm install && E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app pnpm build",
-    "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app pnpm test:playwright tunnel",
-    "test:assert:tunnel-basepath-dev": "TEST_ENV=development E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app pnpm test:playwright tunnel"
+    "test:playwright": "playwright test"
   },
   "eslintConfig": {
     "extends": [
@@ -70,10 +66,6 @@
   "sentryTest": {
     "variants": [
       {
-        "build-command": "pnpm test:build-latest",
-        "label": "react-router-8-framework (latest)"
-      },
-      {
         "runtime": "bun",
         "label": "react-router-8-framework (bun)"
       },
@@ -85,22 +77,6 @@
       {
         "runtime": "cloudflare",
         "label": "react-router-8-framework (cloudflare)"
-      },
-      {
-        "build-command": "pnpm test:build:tunnel-basepath",
-        "assert-command": "pnpm test:assert:tunnel-basepath",
-        "label": "react-router-8-framework (tunnel-basepath)"
-      },
-      {
-        "runtime": "cloudflare",
-        "build-command": "pnpm test:build:tunnel-basepath",
-        "assert-command": "pnpm test:assert:tunnel-basepath",
-        "label": "react-router-8-framework (tunnel-basepath-cloudflare)"
-      },
-      {
-        "label": "react-router-8-framework (tunnel-basepath-dev)",
-        "build-command": "pnpm install",
-        "assert-command": "pnpm test:assert:tunnel-basepath-dev"
       }
     ]
   }

@@ -1,4 +1,10 @@
-import { _INTERNAL_CACHE_ORIGIN_META_TAG_NAME, debug, isMatchingPattern, parseSemver } from '@sentry/core';
+import {
+  _INTERNAL_CACHE_ORIGIN_META_TAG_NAME,
+  _INTERNAL_RENDER_START_META_TAG_NAME,
+  debug,
+  isMatchingPattern,
+  parseSemver,
+} from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -188,12 +194,13 @@ export function maybeSetClientTraceMetadataOption(
         'baggage',
         'sentry-trace',
         _INTERNAL_CACHE_ORIGIN_META_TAG_NAME,
+        _INTERNAL_RENDER_START_META_TAG_NAME,
         ...(incomingUserNextConfigObject.experimental?.clientTraceMetadata || []),
       ];
     }
   } else {
     getBuildLogger(silent).log(
-      "[@sentry/nextjs] The Sentry SDK was not able to determine your Next.js version. If you are using Next.js version 15 or greater, please add `experimental.clientTraceMetadata: ['sentry-trace', 'baggage', 'sentry-cache-origin']` to your Next.js config to enable pageload tracing for App Router.",
+      "[@sentry/nextjs] The Sentry SDK was not able to determine your Next.js version. If you are using Next.js version 15 or greater, please add `experimental.clientTraceMetadata: ['sentry-trace', 'baggage', 'sentry-cache-origin', 'sentry-render-start']` to your Next.js config to enable pageload tracing for App Router.",
     );
   }
 }

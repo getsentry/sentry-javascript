@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
@@ -9,11 +10,7 @@ function startMockAnthropicServer() {
   // Never responds, so each request only ends when the client gives up on it.
   app.post('/anthropic/v1/messages', () => {});
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 function abortAfter(ms) {
@@ -28,32 +25,32 @@ async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Anthropic({
       apiKey: 'mock-api-key',
-      baseURL: `http://localhost:${server.address().port}/anthropic`,
+      baseURL: `${server.url}/anthropic`,
       maxRetries: 0,
     });
     const messages = [{ role: 'user', content: 'Aborted by the caller' }];
 
     const requests = [
-      [{ model: 'abort-before-stream', stream: true }, { signal: abortAfter(50) }],
-      [{ model: 'abort-non-streaming' }, { signal: abortAfter(50) }],
-      [{ model: 'timeout-before-stream', stream: true }, { timeout: 50 }],
-      [{ model: 'timeout-non-streaming' }, { timeout: 50 }],
+      [{ model: 'abort-before-stream', stream: true }, () => ({ signal: abortAfter(50) })],
+      [{ model: 'abort-non-streaming' }, () => ({ signal: abortAfter(50) })],
+      [{ model: 'timeout-before-stream', stream: true }, () => ({ timeout: 50 })],
+      [{ model: 'timeout-non-streaming' }, () => ({ timeout: 50 })],
     ];
     for (const [params, requestOptions] of requests) {
       try {
-        await client.messages.create({ ...params, max_tokens: 100, messages }, requestOptions);
+        await client.messages.create({ ...params, max_tokens: 100, messages }, requestOptions());
       } catch {
         // Error expected
       }
     }
 
     const streamRequests = [
-      [{ model: 'stream-helper-abort' }, { signal: abortAfter(50) }],
-      [{ model: 'stream-helper-signal-timeout' }, { signal: AbortSignal.timeout(50) }],
+      [{ model: 'stream-helper-abort' }, () => ({ signal: abortAfter(50) })],
+      [{ model: 'stream-helper-signal-timeout' }, () => ({ signal: AbortSignal.timeout(50) })],
     ];
     for (const [params, requestOptions] of streamRequests) {
       try {
-        await client.messages.stream({ ...params, max_tokens: 100, messages }, requestOptions).finalMessage();
+        await client.messages.stream({ ...params, max_tokens: 100, messages }, requestOptions()).finalMessage();
       } catch {
         // Error expected
       }

@@ -35,8 +35,6 @@ Sentry.init({
   tracesSampleRate: 1,
   tunnel: 'http://localhost:3031/', // proxy server
   tracePropagationTargets: ['http://localhost:3030', '/external-allowed'],
-  // Only the "(tracer provider)" variant opts in; `undefined` keeps the SDK default
-  enableOpenTelemetrySetup: process.env.E2E_TEST_OTEL_SETUP === 'true' ? true : undefined,
 });
 
 import type * as H from 'http';

@@ -29,9 +29,9 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
   expect(errorEvent.transaction).toEqual('/');
 
   expect(errorEvent.contexts?.trace).toEqual({
-    // Next.js >= 15 propagates a trace ID to the client via a meta tag. Also, only dev mode emits a meta tag because
-    // the requested page is static and only in dev mode SSR is kicked off.
-    parent_span_id: nextjsMajor >= 15 && isDevMode ? expect.any(String) : undefined,
+    // The server sends the trace in a `Server-Timing` header, except with a document a shared cache may store. In
+    // production the requested page is static, so only dev mode, which renders it per request, connects the pageload.
+    parent_span_id: isDevMode ? expect.any(String) : undefined,
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
