@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 const APP_NAME = 'astro-7';
 
 function isSegmentNamed(op: string, name: string): (span: SerializedStreamedSpan) => boolean {

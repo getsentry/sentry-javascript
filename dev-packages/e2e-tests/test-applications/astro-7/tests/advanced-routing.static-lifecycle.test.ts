@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
+
 // Astro 7 "advanced routing": the app owns the request pipeline via `src/fetch.ts`.
 // These tests verify Sentry behaves correctly both when the app delegates to
 // Astro's full pipeline and when it short-circuits a request entirely.
@@ -17,7 +19,7 @@ test.describe('astro 7 advanced routing (src/fetch.ts)', () => {
   test('Sentry middleware still parametrizes routes when run through the full pipeline', async ({ page }) => {
     // Hit a dynamic route so we exercise the actual URL -> route parametrization
     // (`/user-page/myUsername123` -> `/user-page/[userId]`), not just a static route name.
-    const serverPageRequestTxnPromise = waitForTransaction('astro-7-static', txnEvent => {
+    const serverPageRequestTxnPromise = waitForTransaction('astro-7', txnEvent => {
       return txnEvent?.transaction === 'GET /user-page/[userId]';
     });
 

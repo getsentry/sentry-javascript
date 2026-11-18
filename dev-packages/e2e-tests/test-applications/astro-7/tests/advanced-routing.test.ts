@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 const APP_NAME = 'astro-7';
 
 // Astro 7 "advanced routing": the app owns the request pipeline via `src/fetch.ts`.

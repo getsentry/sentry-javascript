@@ -1,13 +1,15 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
+
 test.describe('tracing in dynamically rendered (ssr) routes', () => {
   test('sends server and client pageload spans with the same trace id', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('astro-7-static', txnEvent => {
+    const clientPageloadTxnPromise = waitForTransaction('astro-7', txnEvent => {
       return txnEvent?.transaction === '/test-ssr';
     });
 
-    const serverPageRequestTxnPromise = waitForTransaction('astro-7-static', txnEvent => {
+    const serverPageRequestTxnPromise = waitForTransaction('astro-7', txnEvent => {
       return txnEvent?.transaction === 'GET /test-ssr';
     });
 
@@ -134,15 +136,15 @@ test.describe('nested SSR routes (client, server, server request)', () => {
    *             └── http.server — GET /api/user/myUsername123.json   (server request)
    */
   test('sends connected server and client pageload and request spans with the same trace id', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('astro-7-static', txnEvent => {
+    const clientPageloadTxnPromise = waitForTransaction('astro-7', txnEvent => {
       return txnEvent?.transaction?.startsWith('/user-page/') ?? false;
     });
 
-    const serverPageRequestTxnPromise = waitForTransaction('astro-7-static', txnEvent => {
+    const serverPageRequestTxnPromise = waitForTransaction('astro-7', txnEvent => {
       return txnEvent?.transaction?.startsWith('GET /user-page/') ?? false;
     });
 
-    const serverHTTPServerRequestTxnPromise = waitForTransaction('astro-7-static', txnEvent => {
+    const serverHTTPServerRequestTxnPromise = waitForTransaction('astro-7', txnEvent => {
       return txnEvent?.transaction?.startsWith('GET /api/user/') ?? false;
     });
 
@@ -175,15 +177,15 @@ test.describe('nested SSR routes (client, server, server request)', () => {
   });
 
   test('sends parametrized pageload, server and API request transaction names', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('astro-7-static', txnEvent => {
+    const clientPageloadTxnPromise = waitForTransaction('astro-7', txnEvent => {
       return txnEvent?.transaction?.startsWith('/user-page/') ?? false;
     });
 
-    const serverPageRequestTxnPromise = waitForTransaction('astro-7-static', txnEvent => {
+    const serverPageRequestTxnPromise = waitForTransaction('astro-7', txnEvent => {
       return txnEvent?.transaction?.startsWith('GET /user-page/') ?? false;
     });
 
-    const serverHTTPServerRequestTxnPromise = waitForTransaction('astro-7-static', txnEvent => {
+    const serverHTTPServerRequestTxnPromise = waitForTransaction('astro-7', txnEvent => {
       return txnEvent?.transaction?.startsWith('GET /api/user/') ?? false;
     });
 
@@ -281,11 +283,11 @@ test.describe('nested SSR routes (client, server, server request)', () => {
   });
 
   test('sends parametrized pageload and server transaction names for catch-all routes', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('astro-7-static', txnEvent => {
+    const clientPageloadTxnPromise = waitForTransaction('astro-7', txnEvent => {
       return txnEvent?.transaction?.startsWith('/catchAll/') ?? false;
     });
 
-    const serverPageRequestTxnPromise = waitForTransaction('astro-7-static', txnEvent => {
+    const serverPageRequestTxnPromise = waitForTransaction('astro-7', txnEvent => {
       return txnEvent?.transaction?.startsWith('GET /catchAll/') ?? false;
     });
 
@@ -341,11 +343,11 @@ test.describe('nested SSR routes (client, server, server request)', () => {
 // Case for `user-page/[id]` vs. `user-page/settings` static routes
 test.describe('parametrized vs static paths', () => {
   test('should use static route name for static route in parametrized path', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('astro-7-static', txnEvent => {
+    const clientPageloadTxnPromise = waitForTransaction('astro-7', txnEvent => {
       return txnEvent?.transaction?.startsWith('/user-page/') ?? false;
     });
 
-    const serverPageRequestTxnPromise = waitForTransaction('astro-7-static', txnEvent => {
+    const serverPageRequestTxnPromise = waitForTransaction('astro-7', txnEvent => {
       return txnEvent?.transaction?.startsWith('GET /user-page/') ?? false;
     });
 
@@ -395,7 +397,7 @@ test.describe('parametrized vs static paths', () => {
   });
 
   test('allows for span name override via beforeStartSpan', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('astro-7-static', txnEvent => {
+    const clientPageloadTxnPromise = waitForTransaction('astro-7', txnEvent => {
       return txnEvent?.transaction?.startsWith('/blog/') ?? false;
     });
 

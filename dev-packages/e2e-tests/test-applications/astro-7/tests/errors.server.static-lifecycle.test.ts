@@ -1,13 +1,15 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
+
 test.describe('server-side errors', () => {
   test('captures SSR error', async ({ page }) => {
-    const errorEventPromise = waitForError('astro-7-static', errorEvent => {
+    const errorEventPromise = waitForError('astro-7', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === "Cannot read properties of undefined (reading 'x')";
     });
 
-    const transactionEventPromise = waitForTransaction('astro-7-static', transactionEvent => {
+    const transactionEventPromise = waitForTransaction('astro-7', transactionEvent => {
       return transactionEvent.transaction === 'GET /ssr-error';
     });
 
@@ -83,13 +85,13 @@ test.describe('server-side errors', () => {
   });
 
   test('captures endpoint error', async ({ page }) => {
-    const errorEventPromise = waitForError('astro-7-static', errorEvent => {
+    const errorEventPromise = waitForError('astro-7', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Endpoint Error';
     });
-    const transactionEventApiPromise = waitForTransaction('astro-7-static', transactionEvent => {
+    const transactionEventApiPromise = waitForTransaction('astro-7', transactionEvent => {
       return transactionEvent.transaction === 'GET /endpoint-error/api';
     });
-    const transactionEventEndpointPromise = waitForTransaction('astro-7-static', transactionEvent => {
+    const transactionEventEndpointPromise = waitForTransaction('astro-7', transactionEvent => {
       return transactionEvent.transaction === 'GET /endpoint-error';
     });
 

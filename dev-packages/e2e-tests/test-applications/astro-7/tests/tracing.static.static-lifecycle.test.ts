@@ -1,13 +1,15 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
+
 test.describe('tracing in static/pre-rendered routes', () => {
   test('only sends client pageload span with traceId from pre-rendered <meta> tags', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('astro-7-static', txnEvent => {
+    const clientPageloadTxnPromise = waitForTransaction('astro-7', txnEvent => {
       return txnEvent?.transaction === '/test-static';
     });
 
-    waitForTransaction('astro-7-static', evt => {
+    waitForTransaction('astro-7', evt => {
       if (evt.platform !== 'javascript') {
         throw new Error('Server transaction should not be sent');
       }
