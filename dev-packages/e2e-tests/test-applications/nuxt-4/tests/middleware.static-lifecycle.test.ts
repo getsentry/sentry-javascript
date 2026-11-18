@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction, waitForError } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test.describe('Server Middleware Instrumentation', () => {
   test('should create separate spans for each server middleware', async ({ request }) => {
     const serverTxnEventPromise = waitForTransaction('nuxt-4', txnEvent => {
@@ -21,8 +19,9 @@ test.describe('Server Middleware Instrumentation', () => {
     // Verify that we have spans for each middleware
     const middlewareSpans = serverTxnEvent.spans?.filter(span => span.op === 'middleware') || [];
 
-    // 3 simple + 3 hooks (onRequest+handler+onBeforeResponse) + 5 array hooks (2 onRequest + 1 handler + 2 onBeforeResponse
-    expect(middlewareSpans).toHaveLength(11);
+    // 3 simple + 3 hooks (onRequest+handler+onBeforeResponse) + 5 array hooks (2 onRequest + 1 handler + 2 onBeforeResponse)
+    // + 2 `nuxt/server` middleware
+    expect(middlewareSpans).toHaveLength(13);
 
     // Check for specific middleware spans
     const firstMiddlewareSpan = middlewareSpans.find(span => span.data?.['nuxt.middleware.name'] === '01.first');
