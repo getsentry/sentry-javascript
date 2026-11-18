@@ -22,9 +22,10 @@ import {
   resolveGenAiCallRecording,
   wrapPromiseWithMethods,
 } from '../core/utils';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
 import { OPENAI_METHOD_REGISTRY } from './constants';
 import { instrumentStream } from './streaming';
-import type { ChatCompletionChunk, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';
+import type { ChatCompletionChunk, OpenAiCallInfo, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';
 import { getDecisionInputMessages } from './mapping';
 import { addResponseAttributes, extractRequestParameters } from './utils';
 
@@ -148,10 +149,8 @@ function instrumentMethod<T extends unknown[], R>(
   return function instrumentedCall(...args: T): Promise<R> {
     const operationName = instrumentedMethod.operation || 'unknown';
     const params = args[0] as Record<string, unknown> | undefined;
-    const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, {
-      operation: operationName,
-      request: params,
-    });
+    const call: OpenAiCallInfo = { operation: operationName, request: params };
+    const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
     const requestAttributes = extractRequestAttributes(args, operationName, recordInputs);
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
 
@@ -178,6 +177,7 @@ function instrumentMethod<T extends unknown[], R>(
         if (recordInputs && params) {
           addRequestAttributes(span, params, operationName);
         }
+        runGenAiSpanStart(options, span, call);
 
         // Return async processing
         return (async () => {
@@ -187,9 +187,11 @@ function instrumentMethod<T extends unknown[], R>(
               result as OpenAIStream<ChatCompletionChunk | ResponseStreamingEvent>,
               span,
               recordOutputs,
+              streamResult => runGenAiSpanEnd(options, span, call, streamResult),
             ) as unknown as R;
           } catch (error) {
             span.setStatus(getErrorStatus(abortSignal));
+            runGenAiSpanEnd(options, span, call, { error });
             span.end();
             throw error;
           }
@@ -209,14 +211,17 @@ function instrumentMethod<T extends unknown[], R>(
       if (recordInputs && params) {
         addRequestAttributes(span, params, operationName);
       }
+      runGenAiSpanStart(options, span, call);
 
       return originalResult.then(
         result => {
           addResponseAttributes(span, result, recordOutputs, operationName);
+          runGenAiSpanEnd(options, span, call, { response: result });
           return result;
         },
         error => {
           span.setStatus(getErrorStatus(abortSignal));
+          runGenAiSpanEnd(options, span, call, { error });
           throw error;
         },
       );
