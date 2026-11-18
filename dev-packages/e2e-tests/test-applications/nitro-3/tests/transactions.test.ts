@@ -34,20 +34,22 @@ test('Sends a segment span for a successful route', async ({ request }) => {
 });
 
 test('Sends a single http.server span for a request', async ({ request }) => {
+  const traceId = crypto.randomUUID().replace(/-/g, '');
+  const laterTraceId = crypto.randomUUID().replace(/-/g, '');
   const httpServerSpans: SerializedStreamedSpan[] = [];
   const spansPromise = waitForStreamedSpans('nitro-3', spans => {
-    httpServerSpans.push(...spans.filter(span => getSpanOp(span) === HTTP_SERVER));
-    return spans.some(span => span.is_segment && span.name === 'GET /api/test-param/:id');
+    httpServerSpans.push(...spans.filter(span => getSpanOp(span) === HTTP_SERVER && span.trace_id === traceId));
+    return spans.some(span => span.is_segment && span.trace_id === laterTraceId);
   });
 
-  await request.get('/api/test-transaction');
+  await request.get('/api/test-transaction', { headers: { 'sentry-trace': `${traceId}-1234567890123456-1` } });
   // A dev server in front of Nitro would send its span after Nitro's, so a later request gives it time to arrive
-  await request.get('/api/test-param/123');
+  await request.get('/api/test-param/123', { headers: { 'sentry-trace': `${laterTraceId}-1234567890123456-1` } });
   await spansPromise;
 
-  const segmentSpan = httpServerSpans.find(span => span.is_segment && span.name === 'GET /api/test-transaction');
-  expect(segmentSpan).toBeDefined();
-  expect(httpServerSpans.filter(span => span.trace_id === segmentSpan?.trace_id)).toEqual([segmentSpan]);
+  expect(httpServerSpans).toEqual([
+    expect.objectContaining({ is_segment: true, name: 'GET /api/test-transaction', trace_id: traceId }),
+  ]);
 });
 
 test('Sets correct HTTP status code on the segment span', async ({ request }) => {
