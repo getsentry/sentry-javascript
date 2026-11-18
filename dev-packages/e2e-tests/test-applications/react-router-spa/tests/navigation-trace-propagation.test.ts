@@ -15,11 +15,11 @@ test('propagates the navigation trace (not the stale pageload trace) for a fetch
     });
   });
 
-  const pageloadSpanPromise = waitForStreamedSpan('react-router-8-router-entry', span => {
+  const pageloadSpanPromise = waitForStreamedSpan('react-router-spa', span => {
     return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
-  const navigationSpanPromise = waitForStreamedSpan('react-router-8-router-entry', span => {
+  const navigationSpanPromise = waitForStreamedSpan('react-router-spa', span => {
     return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/products';
   });
 

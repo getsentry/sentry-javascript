@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('Sends correct error event', async ({ page, baseURL }) => {
-  const errorEventPromise = waitForError('react-router-8-spa', event => {
+test('Sends correct error event', async ({ page }) => {
+  const errorEventPromise = waitForError('react-router-router-entry', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
   });
 
@@ -30,11 +30,11 @@ test('Sends correct error event', async ({ page, baseURL }) => {
 });
 
 test('Sets correct transactionName', async ({ page }) => {
-  const pageloadSpanPromise = waitForStreamedSpan('react-router-8-spa', span => {
+  const pageloadSpanPromise = waitForStreamedSpan('react-router-router-entry', span => {
     return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
-  const errorEventPromise = waitForError('react-router-8-spa', event => {
+  const errorEventPromise = waitForError('react-router-router-entry', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
   });
 

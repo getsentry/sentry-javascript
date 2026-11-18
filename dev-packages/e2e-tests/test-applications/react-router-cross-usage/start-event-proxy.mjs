@@ -2,5 +2,5 @@ import { startEventProxyServer } from '@sentry-internal/test-utils';
 
 startEventProxyServer({
   port: 3031,
-  proxyServerName: 'react-router-8-router-entry',
+  proxyServerName: 'react-router-cross-usage',
 });

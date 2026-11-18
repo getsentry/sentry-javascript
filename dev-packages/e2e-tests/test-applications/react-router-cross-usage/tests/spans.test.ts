@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('sends a pageload span with a parameterized URL', async ({ page }) => {
-  const spanPromise = waitForStreamedSpan('react-router-8-cross-usage', span => {
+  const spanPromise = waitForStreamedSpan('react-router-cross-usage', span => {
     return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
@@ -26,7 +26,7 @@ test('sends a pageload span with a parameterized URL', async ({ page }) => {
 });
 
 test('sends a pageload span with a parameterized URL - alternative route', async ({ page }) => {
-  const spanPromise = waitForStreamedSpan('react-router-8-cross-usage', span => {
+  const spanPromise = waitForStreamedSpan('react-router-cross-usage', span => {
     return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
@@ -50,11 +50,11 @@ test('sends a pageload span with a parameterized URL - alternative route', async
 });
 
 test('sends a navigation span with a parameterized URL', async ({ page }) => {
-  const pageloadSpanPromise = waitForStreamedSpan('react-router-8-cross-usage', span => {
+  const pageloadSpanPromise = waitForStreamedSpan('react-router-cross-usage', span => {
     return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
-  const navigationSpanPromise = waitForStreamedSpan('react-router-8-cross-usage', span => {
+  const navigationSpanPromise = waitForStreamedSpan('react-router-cross-usage', span => {
     return getSpanOp(span) === 'navigation' && span.is_segment;
   });
 
@@ -91,11 +91,11 @@ test('sends a navigation span with a parameterized URL', async ({ page }) => {
 });
 
 test('sends a navigation span with a parameterized URL - alternative route', async ({ page }) => {
-  const pageloadSpanPromise = waitForStreamedSpan('react-router-8-cross-usage', span => {
+  const pageloadSpanPromise = waitForStreamedSpan('react-router-cross-usage', span => {
     return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
-  const navigationSpanPromise = waitForStreamedSpan('react-router-8-cross-usage', span => {
+  const navigationSpanPromise = waitForStreamedSpan('react-router-cross-usage', span => {
     return getSpanOp(span) === 'navigation' && span.is_segment;
   });
 

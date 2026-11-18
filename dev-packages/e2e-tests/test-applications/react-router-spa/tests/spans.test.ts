@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { getSpanOp, hidePage, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('sends a pageload span with a parameterized URL', async ({ page }) => {
-  const spanPromise = waitForStreamedSpan('react-router-8-spa', span => {
+  const spanPromise = waitForStreamedSpan('react-router-spa', span => {
     return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
@@ -23,11 +23,11 @@ test('sends a pageload span with a parameterized URL', async ({ page }) => {
 
 test('sends a navigation span with a parameterized URL', async ({ page }) => {
   page.on('console', msg => console.log(msg.text()));
-  const pageloadSpanPromise = waitForStreamedSpan('react-router-8-spa', span => {
+  const pageloadSpanPromise = waitForStreamedSpan('react-router-spa', span => {
     return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
-  const navigationSpanPromise = waitForStreamedSpan('react-router-8-spa', span => {
+  const navigationSpanPromise = waitForStreamedSpan('react-router-spa', span => {
     return getSpanOp(span) === 'navigation' && span.is_segment;
   });
 
@@ -50,7 +50,7 @@ test('sends a navigation span with a parameterized URL', async ({ page }) => {
 });
 
 test('sends an INP span', async ({ page }) => {
-  const inpSpanPromise = waitForStreamedSpan('react-router-8-spa', span => {
+  const inpSpanPromise = waitForStreamedSpan('react-router-spa', span => {
     return getSpanOp(span) === 'ui.interaction.click';
   });
 

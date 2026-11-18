@@ -6,7 +6,7 @@ import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 // `@sentry/react/react-router` setup is order-independent w.r.t. init - see MIGRATION.md.
 
 test('sends a pageload span with a parameterized route name (no hooks passed to the integration)', async ({ page }) => {
-  const spanPromise = waitForStreamedSpan('react-router-8-router-entry', span => {
+  const spanPromise = waitForStreamedSpan('react-router-router-entry', span => {
     return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
@@ -26,11 +26,11 @@ test('sends a pageload span with a parameterized route name (no hooks passed to 
 });
 
 test('sends a navigation span with a parameterized route name', async ({ page }) => {
-  const pageloadSpanPromise = waitForStreamedSpan('react-router-8-router-entry', span => {
+  const pageloadSpanPromise = waitForStreamedSpan('react-router-router-entry', span => {
     return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
-  const navigationSpanPromise = waitForStreamedSpan('react-router-8-router-entry', span => {
+  const navigationSpanPromise = waitForStreamedSpan('react-router-router-entry', span => {
     return getSpanOp(span) === 'navigation' && span.is_segment;
   });
 
