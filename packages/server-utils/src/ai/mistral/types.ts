@@ -1,7 +1,15 @@
-import type { GenAiOptions } from '../core/utils';
+import type { GenAiCallOptions } from '../core/utils';
+
+/** The call that `recordInputs`/`recordOutputs` decide on. */
+export interface MistralCallInfo {
+  /** The gen_ai operation of the call: `chat`, `embeddings` or `invoke_agent`. */
+  operation: string;
+  /** The request params, the first argument of the method (such as `chat.complete`) as passed. */
+  request: Record<string, unknown> | undefined;
+}
 
 /** Options for the Mistral integration. */
-export type MistralOptions = GenAiOptions;
+export type MistralOptions = GenAiCallOptions<MistralCallInfo>;
 
 /**
  * A tool call as it appears in a response/stream delta. During streaming the `function.arguments`

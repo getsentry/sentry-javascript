@@ -8,7 +8,7 @@ test.describe('Cache Instrumentation', () => {
   async function collectCacheSpans() {
     const spans = await collectStreamedSpansUntilSegment(
       'nitro-3',
-      span => span.attributes['url.path']?.value === '/api/test-cache',
+      span => span.attributes['http.route']?.value === '/api/test-cache',
     );
 
     return spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.cache.nitro');

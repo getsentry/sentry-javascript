@@ -3,22 +3,20 @@ import { modelRouterMiddleware } from '@langchain/typesafe/middleware';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import { createAgent } from 'langchain';
+import { anthropicMessage, startMockServer } from '@sentry-internal/node-integration-tests';
 
-function startMockServer() {
+function startMockApi() {
   const app = express();
   app.use(express.json());
 
   app.post('/v1/messages', (req, res) => {
-    res.json({
-      id: 'msg_router_test',
-      type: 'message',
-      role: 'assistant',
-      content: [{ type: 'text', text: 'A refund is on its way.' }],
-      model: req.body.model,
-      stop_reason: 'end_turn',
-      stop_sequence: null,
-      usage: { input_tokens: 10, output_tokens: 5 },
-    });
+    res.json(
+      anthropicMessage(req.body.model, {
+        id: 'msg_router_test',
+        content: 'A refund is on its way.',
+        usage: { input_tokens: 10, output_tokens: 5 },
+      }),
+    );
   });
 
   app.post('/v1/systemone', (req, res) => {
@@ -31,16 +29,12 @@ function startMockServer() {
     });
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
-  const server = await startMockServer();
-  const baseUrl = `http://localhost:${server.address().port}`;
+  const server = await startMockApi();
+  const baseUrl = server.url;
 
   const model = name => new ChatAnthropic({ model: name, apiKey: 'mock-api-key', clientOptions: { baseURL: baseUrl } });
 

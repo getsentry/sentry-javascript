@@ -691,6 +691,42 @@ describe('addSentryCodeToPage', () => {
     });
   });
 
+  describe('with a release from the build', () => {
+    beforeEach(() => {
+      (globalThis as { __sentry_sveltekit_release?: string }).__sentry_sveltekit_release = '1.0.0"><script>x</script>';
+    });
+
+    afterEach(() => {
+      delete (globalThis as { __sentry_sveltekit_release?: string }).__sentry_sveltekit_release;
+      vi.unstubAllEnvs();
+    });
+
+    it('adds the escaped release meta tag', () => {
+      const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false, requestStart: REQUEST_START });
+
+      const transformed = transformPageChunk({ html, done: true });
+
+      expect(transformed).toContain(
+        '<head>\n<meta name="sentry-release" content="1.0.0&quot;&gt;&lt;script&gt;x&lt;/script&gt;"/><meta name="sentry-trace"',
+      );
+    });
+
+    // Every visitor gets the same build, so pages SvelteKit renders at build time need the release too
+    it('adds the release meta tag to a client-side shell while SvelteKit builds the app', () => {
+      vi.stubEnv('_SENTRY_SVELTEKIT_BUILDING', 'true');
+      const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false, requestStart: REQUEST_START });
+
+      const transformed = transformPageChunk({ html: clientShellHtml, done: true });
+
+      expect(transformed).toBe(
+        clientShellHtml.replace(
+          '<head>',
+          '<head>\n<meta name="sentry-release" content="1.0.0&quot;&gt;&lt;script&gt;x&lt;/script&gt;"/>',
+        ),
+      );
+    });
+  });
+
   describe('while Vercel renders a page for its ISR cache', () => {
     it('replaces the trace meta tags of a server-rendered page with the cache origin of this render', () => {
       const transformPageChunk = addSentryCodeToPage({

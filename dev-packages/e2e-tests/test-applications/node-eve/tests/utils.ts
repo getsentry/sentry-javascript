@@ -1,4 +1,10 @@
 import { expect } from '@playwright/test';
+import { createRequire } from 'node:module';
+
+const { version: eveVersion } = createRequire(import.meta.url)('eve/package.json') as { version: string };
+
+/** The `node-eve (0.x)` variant installs eve 0.x, which ignores the trace policy. */
+export const IS_EVE_0X = eveVersion.startsWith('0.');
 
 /**
  * Drive one agent turn through eve's default HTTP channel and wait for it to

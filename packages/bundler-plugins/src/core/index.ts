@@ -108,10 +108,17 @@ export {
   stringToUUID,
   generateReleaseInjectorCode,
   generateModuleMetadataInjectorCode,
+  resolveReleaseName,
 } from './utils';
 export { createSentryBuildPluginManager } from './build-plugin-manager';
 export type { SentryBuildPluginManager, UploadResult, UploadStaging } from './build-plugin-manager';
 export { createDebugIdUploadFunction, addDebugIdToEmittedArtifacts, stampDebugId } from './debug-id-upload';
-export { decideSourceMapHandling, getDeleteSourcemapsAfterUpload, getSdkEnabledSourceMaps } from './sourcemap-settings';
+export {
+  decideSourceMapHandling,
+  getDeleteOption,
+  getDeleteSourcemapsAfterUpload,
+  getSdkEnabledSourceMaps,
+  getSourceMapFeatures,
+} from './sourcemap-settings';
 export type { SourceMapDecision, SourceMapKind } from './sourcemap-settings';
 export type { UploadFilter } from './upload-filter';

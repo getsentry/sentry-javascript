@@ -1133,6 +1133,9 @@ importers:
       '@sentry/node':
         specifier: 11.14.0
         version: link:../node
+      '@sentry/server-runtime-injection':
+        specifier: 11.14.0
+        version: link:../server-runtime-injection
       '@sentry/server-utils':
         specifier: 11.14.0
         version: link:../server-utils

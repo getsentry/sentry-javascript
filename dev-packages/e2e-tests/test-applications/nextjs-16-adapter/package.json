@@ -30,11 +30,6 @@
     "runner": "namespace-profile-sentry-javascript",
     "variants": [
       {
-        "build-command": "pnpm test:build",
-        "label": "nextjs-16-adapter (turbopack)",
-        "assert-command": "pnpm test:assert"
-      },
-      {
         "build-command": "pnpm test:build-latest",
         "label": "nextjs-16-adapter (latest, turbopack)",
         "assert-command": "pnpm test:assert"

@@ -31,6 +31,7 @@ vi.mock('@sentry/server-utils/orchestrion/vite', () => ({
 type CapturedSentryOptions = {
   applicationKey?: string;
   bundleSizeOptimizations?: { excludeTracing?: boolean };
+  release?: { name?: string; inject?: boolean };
   sourcemaps?: { filesToDeleteAfterUpload?: Promise<unknown> };
 };
 
@@ -46,6 +47,7 @@ vi.mock('@sentry/bundler-plugins/vite', () => ({
 const SOURCE_MAP_PLUGINS = [
   'sentry-remix-files-to-delete-after-upload',
   'sentry-vite-plugin',
+  'sentry-remix-release',
   'sentry-remix-update-source-map-setting',
 ];
 
@@ -129,7 +131,23 @@ describe('sentryRemixVitePlugin', () => {
       'code-transformer',
       'sentry-remix-files-to-delete-after-upload',
       'sentry-vite-plugin',
+      'sentry-remix-release',
     ]);
+  });
+
+  // A release in the client chunks changes their content hash on every release.
+  it('turns off release injection and delivers the release through the rendered page', () => {
+    const plugins = sentryRemixVitePlugin({ release: { name: 'my-release' } });
+
+    expect(capturedSentryOptions?.release).toEqual({ name: 'my-release', inject: false });
+    expect(plugins.map(plugin => plugin.name)).toContain('sentry-remix-release');
+  });
+
+  it('delivers nothing at runtime when the user turned off release injection', () => {
+    const plugins = sentryRemixVitePlugin({ release: { name: 'my-release', inject: false } });
+
+    expect(capturedSentryOptions?.release).toEqual({ name: 'my-release', inject: false });
+    expect(plugins.map(plugin => plugin.name)).not.toContain('sentry-remix-release');
   });
 
   it('forwards the non-source-map options when source maps are disabled', () => {

@@ -21,7 +21,7 @@ import {
 } from './debug-id-upload';
 import { globFiles } from './glob';
 import type { SourceMapDecision, SourceMapKind } from './sourcemap-settings';
-import { decideSourceMapHandling } from './sourcemap-settings';
+import { decideSourceMapHandling, getSourceMapFeatures } from './sourcemap-settings';
 import type { UploadFilter } from './upload-filter';
 import { createUploadFilter } from './upload-filter';
 import { LIB_VERSION } from './version';
@@ -641,6 +641,11 @@ export function createSentryBuildPluginManager(
       Only use this if you need to manually inject debug IDs into the build artifacts.
     */
     async injectDebugIds(buildArtifactPaths: string[]) {
+      if (!getSourceMapFeatures(options).injectDebugIds) {
+        logger.debug('Debug ID injection was disabled. Will not inject debug IDs.');
+        return;
+      }
+
       // oxlint-disable-next-line typescript/no-deprecated
       await startSpan({ name: 'inject-debug-ids', scope: sentryScope, forceTransaction: true }, async () => {
         try {
@@ -1051,7 +1056,7 @@ async function createTempUploadFolder(): Promise<string> {
 type SourceMapUploadBlocker = 'disabled' | 'no-assets' | 'dev-mode' | 'no-auth-token' | 'no-org' | 'no-project';
 
 function getSourceMapUploadBlocker(options: NormalizedOptions, isDevMode: boolean): SourceMapUploadBlocker | undefined {
-  if (options.sourcemaps?.disable) {
+  if (!getSourceMapFeatures(options).upload) {
     return 'disabled';
   }
   if (Array.isArray(options.sourcemaps?.assets) && options.sourcemaps.assets.length === 0) {

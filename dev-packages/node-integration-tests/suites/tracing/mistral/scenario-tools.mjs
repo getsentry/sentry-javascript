@@ -1,6 +1,7 @@
 import { Mistral } from '@mistralai/mistralai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { openAiChatCompletion, startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
 
 const weatherTool = {
   type: 'function',
@@ -15,7 +16,7 @@ const weatherTool = {
   },
 };
 
-function startMockServer() {
+function startMockApi() {
   const app = express();
   app.use(express.json());
 
@@ -23,10 +24,6 @@ function startMockServer() {
     const { model, stream } = req.body;
 
     if (stream) {
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-
       // Tool call streamed across chunks — the argument string arrives fragmented.
       const toolCall = frag => [
         { index: 0, id: 'call_1', type: 'function', function: { name: 'get_weather', arguments: frag } },
@@ -63,53 +60,31 @@ function startMockServer() {
         },
       ];
 
-      chunks.forEach((chunk, index) => {
-        setTimeout(() => {
-          res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-          if (index === chunks.length - 1) {
-            res.write('data: [DONE]\n\n');
-            res.end();
-          }
-        }, index * 10);
-      });
+      streamSseEvents(res, chunks, { done: true });
     } else {
-      res.send({
-        id: 'chatcmpl-tools-123',
-        object: 'chat.completion',
-        created: 1677652288,
-        model,
-        choices: [
-          {
-            index: 0,
-            message: {
-              role: 'assistant',
-              content: '',
-              tool_calls: [
-                { id: 'call_1', type: 'function', function: { name: 'get_weather', arguments: '{"city":"Paris"}' } },
-              ],
-            },
-            finish_reason: 'tool_calls',
-          },
-        ],
-        usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 },
-      });
+      res.send(
+        openAiChatCompletion(model, {
+          id: 'chatcmpl-tools-123',
+          content: '',
+          toolCalls: [
+            { id: 'call_1', type: 'function', function: { name: 'get_weather', arguments: '{"city":"Paris"}' } },
+          ],
+          usage: { prompt_tokens: 12, completion_tokens: 8 },
+        }),
+      );
     }
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
-  const server = await startMockServer();
+  const server = await startMockApi();
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Mistral({
       apiKey: 'mock-api-key',
-      serverURL: `http://localhost:${server.address().port}`,
+      serverURL: server.url,
     });
 
     await client.chat.complete({

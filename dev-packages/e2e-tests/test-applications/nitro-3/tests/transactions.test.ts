@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpans,
+  getSpanOp,
+  waitForStreamedSpan,
+  waitForStreamedSpans,
+} from '@sentry-internal/test-utils';
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { HANDLER, HTTP_SERVER } from '@sentry/conventions/op';
 
@@ -25,6 +31,25 @@ test('Sends a segment span for a successful route', async ({ request }) => {
     span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.http.nitro.h3' && getSpanOp(span) === HANDLER,
   );
   expect(h3HandlerSpan?.parent_span_id).toBe(segmentSpan?.span_id);
+});
+
+test('Sends a single http.server span for a request', async ({ request }) => {
+  const traceId = crypto.randomUUID().replace(/-/g, '');
+  const laterTraceId = crypto.randomUUID().replace(/-/g, '');
+  const httpServerSpans: SerializedStreamedSpan[] = [];
+  const spansPromise = waitForStreamedSpans('nitro-3', spans => {
+    httpServerSpans.push(...spans.filter(span => getSpanOp(span) === HTTP_SERVER && span.trace_id === traceId));
+    return spans.some(span => span.is_segment && span.trace_id === laterTraceId);
+  });
+
+  await request.get('/api/test-transaction', { headers: { 'sentry-trace': `${traceId}-1234567890123456-1` } });
+  // A dev server in front of Nitro would send its span after Nitro's, so a later request gives it time to arrive
+  await request.get('/api/test-param/123', { headers: { 'sentry-trace': `${laterTraceId}-1234567890123456-1` } });
+  await spansPromise;
+
+  expect(httpServerSpans).toEqual([
+    expect.objectContaining({ is_segment: true, name: 'GET /api/test-transaction', trace_id: traceId }),
+  ]);
 });
 
 test('Sets correct HTTP status code on the segment span', async ({ request }) => {

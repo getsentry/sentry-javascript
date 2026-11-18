@@ -1,46 +1,22 @@
 import express from 'express';
 import OpenAI from 'openai';
+import { openAiChatCompletion, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockOpenAiServer() {
   const app = express();
   app.use(express.json());
 
   app.post('/openai/chat/completions', (req, res) => {
-    res.send({
-      id: 'chatcmpl-mock123',
-      object: 'chat.completion',
-      created: 1677652288,
-      model: req.body.model,
-      system_fingerprint: 'fp_44709d6fcb',
-      choices: [
-        {
-          index: 0,
-          message: {
-            role: 'assistant',
-            content: 'Hello from OpenAI mock!',
-          },
-          finish_reason: 'stop',
-        },
-      ],
-      usage: {
-        prompt_tokens: 10,
-        completion_tokens: 15,
-        total_tokens: 25,
-      },
-    });
+    res.send(openAiChatCompletion(req.body.model));
   });
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
   const server = await startMockOpenAiServer();
 
   const client = new OpenAI({
-    baseURL: `http://localhost:${server.address().port}/openai`,
+    baseURL: `${server.url}/openai`,
     apiKey: 'mock-api-key',
   });
 

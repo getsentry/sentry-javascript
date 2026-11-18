@@ -31,7 +31,7 @@ import {
   startInactiveMcpNotificationSpan,
   startMcpNotificationSpan,
 } from './spans';
-import { continueMcpTrace } from './tracePropagation';
+import { continueMcpTrace, injectMcpTraceContext } from './tracePropagation';
 import type { ExtraHandlerData, McpServerWrapperOptions, MCPTransport, ResolvedMcpOptions, SessionData } from './types';
 import { withUpstreamSpanHandoff } from './upstreamInstrumentation';
 import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse } from './validation';
@@ -210,7 +210,7 @@ export function wrapTransportSend(
   if (transport.send) {
     fill(transport, 'send', originalSend => {
       return async function (this: MCPTransport, ...args: unknown[]) {
-        const [message] = args;
+        const [message, ...restArgs] = args;
 
         if (isJsonRpcNotification(message)) {
           const resolvedOptions = resolveMcpOptions(options);
@@ -222,11 +222,27 @@ export function wrapTransportSend(
             upstreamSpan.setAttributes(
               buildMcpNotificationSpanConfig('notification-outgoing', message, transport, resolvedOptions).attributes,
             );
-            return (originalSend as (...args: unknown[]) => unknown).call(this, ...args);
+            return (originalSend as (...args: unknown[]) => unknown).call(
+              this,
+              injectMcpTraceContext(message),
+              ...restArgs,
+            );
           }
           return createMcpOutgoingNotificationSpan(message, transport, resolvedOptions, () => {
-            return (originalSend as (...args: unknown[]) => unknown).call(this, ...args);
+            return (originalSend as (...args: unknown[]) => unknown).call(
+              this,
+              injectMcpTraceContext(message),
+              ...restArgs,
+            );
           });
+        }
+
+        if (isJsonRpcRequest(message)) {
+          return (originalSend as (...args: unknown[]) => unknown).call(
+            this,
+            injectMcpTraceContext(message),
+            ...restArgs,
+          );
         }
 
         if (isJsonRpcResponse(message)) {

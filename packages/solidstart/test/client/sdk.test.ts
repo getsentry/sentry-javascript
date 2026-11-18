@@ -39,6 +39,38 @@ describe('Initialize Solid Start SDK', () => {
   });
 });
 
+describe('release', () => {
+  beforeEach(() => {
+    SentrySolid.getCurrentScope().setClient(undefined);
+    document.head.innerHTML = '';
+    delete SentrySolid.WINDOW.SENTRY_RELEASE;
+  });
+
+  it('reads the release from the `<meta>` tag the server adds to the page', () => {
+    document.head.innerHTML = '<meta name="sentry-release" content="page-release">';
+
+    const client = solidStartInit({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+    expect(client?.getOptions().release).toBe('page-release');
+  });
+
+  it('prefers the release passed to `init` over the page', () => {
+    document.head.innerHTML = '<meta name="sentry-release" content="page-release">';
+
+    const client = solidStartInit({ dsn: 'https://public@dsn.ingest.sentry.io/1337', release: 'init-release' });
+
+    expect(client?.getOptions().release).toBe('init-release');
+  });
+
+  it('keeps the release injected into the bundle when the page has none', () => {
+    SentrySolid.WINDOW.SENTRY_RELEASE = { id: 'injected-release' };
+
+    const client = solidStartInit({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+    expect(client?.getOptions().release).toBe('injected-release');
+  });
+});
+
 describe('browserTracingIntegration', () => {
   beforeEach(() => {
     SentrySolid.getCurrentScope().setClient(undefined);

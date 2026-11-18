@@ -1,41 +1,21 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { anthropicMessage, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
   app.use(express.json());
 
   app.post('/v1/messages', (req, res) => {
-    res.json({
-      id: 'msg_test123',
-      type: 'message',
-      role: 'assistant',
-      content: [
-        {
-          type: 'text',
-          text: 'Mock response from Anthropic!',
-        },
-      ],
-      model: req.body.model,
-      stop_reason: 'end_turn',
-      stop_sequence: null,
-      usage: {
-        input_tokens: 10,
-        output_tokens: 15,
-      },
-    });
+    res.json(anthropicMessage(req.body.model, { id: 'msg_test123', content: 'Mock response from Anthropic!' }));
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
   const server = await startMockAnthropicServer();
-  const baseURL = `http://localhost:${server.address().port}`;
+  const baseURL = server.url;
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     // EDGE CASE: Import and instantiate Anthropic client BEFORE LangChain is imported

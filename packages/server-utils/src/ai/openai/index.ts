@@ -19,12 +19,13 @@ import {
   getErrorStatus,
   getGenAiSpanOp,
   getRequestSignal,
-  resolveAIRecordingOptions,
+  resolveGenAiCallRecording,
   wrapPromiseWithMethods,
 } from '../core/utils';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
 import { OPENAI_METHOD_REGISTRY } from './constants';
 import { instrumentStream } from './streaming';
-import type { ChatCompletionChunk, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';
+import type { ChatCompletionChunk, OpenAiCallInfo, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';
 import { getDecisionInputMessages } from './mapping';
 import { addResponseAttributes, extractRequestParameters } from './utils';
 
@@ -147,10 +148,12 @@ function instrumentMethod<T extends unknown[], R>(
 ): (...args: T) => Promise<R> {
   return function instrumentedCall(...args: T): Promise<R> {
     const operationName = instrumentedMethod.operation || 'unknown';
-    const requestAttributes = extractRequestAttributes(args, operationName, !!options.recordInputs);
+    const params = args[0] as Record<string, unknown> | undefined;
+    const call: OpenAiCallInfo = { operation: operationName, request: params };
+    const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
+    const requestAttributes = extractRequestAttributes(args, operationName, recordInputs);
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
 
-    const params = args[0] as Record<string, unknown> | undefined;
     const isStreamRequested = params && typeof params === 'object' && params.stream === true;
     const abortSignal = getRequestSignal(args[1]);
     const client = getClient();
@@ -171,9 +174,10 @@ function instrumentMethod<T extends unknown[], R>(
       const instrumentedPromise = startSpanManual(spanConfig, (span: Span) => {
         originalResult = originalMethod.apply(context, args);
 
-        if (options.recordInputs && params) {
+        if (recordInputs && params) {
           addRequestAttributes(span, params, operationName);
         }
+        runGenAiSpanStart(options, span, call);
 
         // Return async processing
         return (async () => {
@@ -182,10 +186,12 @@ function instrumentMethod<T extends unknown[], R>(
             return instrumentStream(
               result as OpenAIStream<ChatCompletionChunk | ResponseStreamingEvent>,
               span,
-              options.recordOutputs ?? false,
+              recordOutputs,
+              streamResult => runGenAiSpanEnd(options, span, call, streamResult),
             ) as unknown as R;
           } catch (error) {
             span.setStatus(getErrorStatus(abortSignal));
+            runGenAiSpanEnd(options, span, call, { error });
             span.end();
             throw error;
           }
@@ -202,17 +208,20 @@ function instrumentMethod<T extends unknown[], R>(
       // Call synchronously to capture the promise
       originalResult = originalMethod.apply(context, args);
 
-      if (options.recordInputs && params) {
+      if (recordInputs && params) {
         addRequestAttributes(span, params, operationName);
       }
+      runGenAiSpanStart(options, span, call);
 
       return originalResult.then(
         result => {
-          addResponseAttributes(span, result, options.recordOutputs, operationName);
+          addResponseAttributes(span, result, recordOutputs, operationName);
+          runGenAiSpanEnd(options, span, call, { response: result });
           return result;
         },
         error => {
           span.setStatus(getErrorStatus(abortSignal));
+          runGenAiSpanEnd(options, span, call, { error });
           throw error;
         },
       );
@@ -278,5 +287,5 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  * Can be used across Node.js, Cloudflare Workers, and Vercel Edge
  */
 export function instrumentOpenAiClient<T extends object>(client: T, options?: OpenAiOptions): T {
-  return createDeepProxy(client, '', resolveAIRecordingOptions(options));
+  return createDeepProxy(client, '', options ?? {});
 }

@@ -1,8 +1,9 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import OpenAI from 'openai';
+import { openAiChatCompletion, startMockServer } from '@sentry-internal/node-integration-tests';
 
-function startMockServer() {
+function startMockApi() {
   const app = express();
   app.use(express.json());
 
@@ -10,43 +11,19 @@ function startMockServer() {
   app.post('/openai/chat/completions', (req, res) => {
     const { model } = req.body;
 
-    res.send({
-      id: 'chatcmpl-mock123',
-      object: 'chat.completion',
-      created: 1677652288,
-      model: model,
-      choices: [
-        {
-          index: 0,
-          message: {
-            role: 'assistant',
-            content: 'Mock response from OpenAI',
-          },
-          finish_reason: 'stop',
-        },
-      ],
-      usage: {
-        prompt_tokens: 10,
-        completion_tokens: 15,
-        total_tokens: 25,
-      },
-    });
+    res.send(openAiChatCompletion(model, { content: 'Mock response from OpenAI' }));
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
-  const server = await startMockServer();
+  const server = await startMockApi();
 
   // Test: Multiple chat completions in the same conversation with manual conversation ID
   await Sentry.startSpan({ op: 'function', name: 'chat-with-manual-conversation-id' }, async () => {
     const client = new OpenAI({
-      baseURL: `http://localhost:${server.address().port}/openai`,
+      baseURL: `${server.url}/openai`,
       apiKey: 'mock-api-key',
     });
 

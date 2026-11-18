@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { anthropicMessage, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
@@ -15,23 +16,16 @@ function startMockAnthropicServer() {
       return;
     }
 
-    res.send({
-      id: 'msg_ok',
-      type: 'message',
-      model: req.body.model,
-      role: 'assistant',
-      content: [{ type: 'tool_use', id: 'tool_ok_1', name: 'calculator', input: { expression: '2+2' } }],
-      stop_reason: 'tool_use',
-      stop_sequence: null,
-      usage: { input_tokens: 7, output_tokens: 9 },
-    });
+    res.send(
+      anthropicMessage(req.body.model, {
+        id: 'msg_ok',
+        content: [{ type: 'tool_use', id: 'tool_ok_1', name: 'calculator', input: { expression: '2+2' } }],
+        usage: { input_tokens: 7, output_tokens: 9 },
+      }),
+    );
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
@@ -40,7 +34,7 @@ async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Anthropic({
       apiKey: 'mock-api-key',
-      baseURL: `http://localhost:${server.address().port}/anthropic`,
+      baseURL: `${server.url}/anthropic`,
     });
 
     // 1. Invalid format error

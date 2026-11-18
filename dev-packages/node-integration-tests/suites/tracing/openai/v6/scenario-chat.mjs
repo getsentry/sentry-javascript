@@ -1,8 +1,15 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import OpenAI from 'openai';
+import {
+  openAiChatCompletion,
+  openAiChatCompletionChunks,
+  openAiResponse,
+  startMockServer,
+  streamSseEvents,
+} from '@sentry-internal/node-integration-tests';
 
-function startMockServer() {
+function startMockApi() {
   const app = express();
   app.use(express.json());
 
@@ -17,72 +24,9 @@ function startMockServer() {
     }
 
     if (stream) {
-      // Streaming response
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-
-      const chunks = [
-        {
-          id: 'chatcmpl-stream-123',
-          object: 'chat.completion.chunk',
-          created: 1677652300,
-          model: model,
-          choices: [{ delta: { role: 'assistant', content: '' }, index: 0 }],
-        },
-        {
-          id: 'chatcmpl-stream-123',
-          object: 'chat.completion.chunk',
-          created: 1677652300,
-          model: model,
-          choices: [{ delta: { content: 'Hello from OpenAI streaming!' }, index: 0 }],
-        },
-        {
-          id: 'chatcmpl-stream-123',
-          object: 'chat.completion.chunk',
-          created: 1677652300,
-          model: model,
-          choices: [{ delta: {}, index: 0, finish_reason: 'stop' }],
-          usage: {
-            prompt_tokens: 12,
-            completion_tokens: 18,
-            total_tokens: 30,
-          },
-        },
-      ];
-
-      chunks.forEach((chunk, index) => {
-        setTimeout(() => {
-          res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-          if (index === chunks.length - 1) {
-            res.write('data: [DONE]\n\n');
-            res.end();
-          }
-        }, index * 10);
-      });
+      streamSseEvents(res, openAiChatCompletionChunks(model), { done: true });
     } else {
-      // Non-streaming response
-      res.send({
-        id: 'chatcmpl-mock123',
-        object: 'chat.completion',
-        created: 1677652288,
-        model: model,
-        choices: [
-          {
-            index: 0,
-            message: {
-              role: 'assistant',
-              content: 'Hello from OpenAI mock!',
-            },
-            finish_reason: 'stop',
-          },
-        ],
-        usage: {
-          prompt_tokens: 10,
-          completion_tokens: 15,
-          total_tokens: 25,
-        },
-      });
+      res.send(openAiChatCompletion(model));
     }
   });
 
@@ -98,9 +42,6 @@ function startMockServer() {
 
     if (stream) {
       // Streaming response - using event-based format with 'response' field
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
 
       const events = [
         {
@@ -140,61 +81,22 @@ function startMockServer() {
         },
       ];
 
-      events.forEach((event, index) => {
-        setTimeout(() => {
-          res.write(`data: ${JSON.stringify(event)}\n\n`);
-          if (index === events.length - 1) {
-            res.write('data: [DONE]\n\n');
-            res.end();
-          }
-        }, index * 10);
-      });
+      streamSseEvents(res, events, { done: true });
     } else {
       // Non-streaming response
-      res.send({
-        id: 'resp_mock456',
-        object: 'response',
-        created_at: 1677652290,
-        model: model,
-        output: [
-          {
-            type: 'message',
-            id: 'msg_mock_output_1',
-            status: 'completed',
-            role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: `Response to: ${req.body.input}`,
-                annotations: [],
-              },
-            ],
-          },
-        ],
-        output_text: `Response to: ${req.body.input}`,
-        status: 'completed',
-        usage: {
-          input_tokens: 5,
-          output_tokens: 8,
-          total_tokens: 13,
-        },
-      });
+      res.send(openAiResponse(model, { text: `Response to: ${req.body.input}` }));
     }
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
-  const server = await startMockServer();
+  const server = await startMockApi();
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new OpenAI({
-      baseURL: `http://localhost:${server.address().port}/openai`,
+      baseURL: `${server.url}/openai`,
       apiKey: 'mock-api-key',
     });
 

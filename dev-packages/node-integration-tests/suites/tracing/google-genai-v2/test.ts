@@ -28,7 +28,7 @@ describe('Google GenAI integration (v2)', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario.mjs',
+    '../google-genai/scenario.mjs',
     'instrument.mjs',
     (createRunner, test) => {
       test('auto-instruments chat and generateContent on @google/genai v2', async () => {
@@ -84,7 +84,7 @@ describe('Google GenAI integration (v2)', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario-embeddings.mjs',
+    '../google-genai/scenario-embeddings.mjs',
     'instrument.mjs',
     (createRunner, test) => {
       // `embedContent` is the member that changed shape in v2; asserting its span proves the
