@@ -41,6 +41,11 @@
         "build-command": "E2E_TEST_INJECT_MODE=experimental_dynamic-import pnpm test:build",
         "assert-command": "E2E_TEST_INJECT_MODE=experimental_dynamic-import pnpm test:prod",
         "label": "solidstart (dynamic-import)"
+      },
+      {
+        "build-command": "VITE_E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build",
+        "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:prod",
+        "label": "solidstart (static trace lifecycle)"
       }
     ]
   }

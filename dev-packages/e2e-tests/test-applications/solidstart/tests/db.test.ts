@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('Instruments ioredis automatically via build-time orchestrion', async ({ baseURL }) => {
   const spansPromise = collectStreamedSpans(
     'solidstart',

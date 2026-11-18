@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
+
 test('sends a pageload transaction', async ({ page }) => {
-  const transactionPromise = waitForTransaction('solidstart-static', async transactionEvent => {
+  const transactionPromise = waitForTransaction('solidstart', async transactionEvent => {
     return transactionEvent?.transaction === '/' && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
@@ -30,7 +32,7 @@ test('sends a pageload transaction', async ({ page }) => {
 });
 
 test('sends a navigation transaction with parametrized route', async ({ page }) => {
-  const transactionPromise = waitForTransaction('solidstart-static', async transactionEvent => {
+  const transactionPromise = waitForTransaction('solidstart', async transactionEvent => {
     return transactionEvent?.transaction === '/users/:id' && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -62,7 +64,7 @@ test('updates the transaction when using the back button', async ({ page }) => {
   // Solid Router sends a `-1` navigation when using the back button.
   // The sentry solidRouterBrowserTracingIntegration tries to update such
   // transactions with the proper name once the `useLocation` hook triggers.
-  const navigationTxnPromise = waitForTransaction('solidstart-static', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('solidstart', async transactionEvent => {
     return transactionEvent?.transaction === '/users/:id' && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -89,7 +91,7 @@ test('updates the transaction when using the back button', async ({ page }) => {
     },
   });
 
-  const backNavigationTxnPromise = waitForTransaction('solidstart-static', async transactionEvent => {
+  const backNavigationTxnPromise = waitForTransaction('solidstart', async transactionEvent => {
     return (
       transactionEvent?.transaction === '/back-navigation' && transactionEvent.contexts?.trace?.op === 'navigation'
     );
