@@ -5,7 +5,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 // are booted via docker-compose in the Playwright global setup.
 test.describe('orchestrion DB instrumentation', () => {
   test('Instruments ioredis automatically via orchestrion', async ({ baseURL }) => {
-    const transactionEventPromise = waitForTransaction('create-remix-app-v2-static', transactionEvent => {
+    const transactionEventPromise = waitForTransaction('create-remix-app-v2', transactionEvent => {
       return (
         transactionEvent.contexts?.trace?.op === 'http.server' && !!transactionEvent.transaction?.includes('db-ioredis')
       );
@@ -46,7 +46,7 @@ test.describe('orchestrion DB instrumentation', () => {
   });
 
   test('Instruments mysql automatically via orchestrion', async ({ baseURL }) => {
-    const transactionEventPromise = waitForTransaction('create-remix-app-v2-static', transactionEvent => {
+    const transactionEventPromise = waitForTransaction('create-remix-app-v2', transactionEvent => {
       return (
         transactionEvent.contexts?.trace?.op === 'http.server' && !!transactionEvent.transaction?.includes('db-mysql')
       );

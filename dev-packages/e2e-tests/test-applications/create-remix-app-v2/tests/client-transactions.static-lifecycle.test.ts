@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends a pageload transaction to Sentry', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-v2-static', transactionEvent => {
+  const transactionPromise = waitForTransaction('create-remix-app-v2', transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/';
   });
 
@@ -22,7 +22,7 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
 });
 
 test('Sends a navigation transaction to Sentry', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-v2-static', transactionEvent => {
+  const transactionPromise = waitForTransaction('create-remix-app-v2', transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'navigation' && transactionEvent.transaction === '/user/:id';
   });
 
