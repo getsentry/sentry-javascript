@@ -8,7 +8,7 @@ Sentry.init({
   transport: loggingTransport,
   integrations: [
     Sentry.mastraIntegration({
-      recordInputs: ({ span }) => span.entityName === 'public_agent',
+      recordInputs: ({ span }) => span.type === 'agent_run',
       // Mastra sets `output` only when the span ends, so this records outputs only if decided at start.
       recordOutputs: ({ span }) => span.output === undefined,
     }),

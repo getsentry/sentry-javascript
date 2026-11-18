@@ -8,7 +8,7 @@ Sentry.init({
   transport: loggingTransport,
   integrations: [
     Sentry.typesafeIntegration({
-      recordInputs: ({ request }) => request?.model?.startsWith('public'),
+      recordInputs: ({ request }) => request?.model === 'public',
       recordOutputs: () => Sentry.getCurrentScope().getScopeData().tags.privacy === 'public',
     }),
   ],

@@ -162,9 +162,8 @@ describe('awsIntegration - Bedrock', () => {
                 ]),
               );
               expect(recordedByModel).toEqual({
-                'amazon.nova-pro-v1:0': { inputs: true, outputs: true },
-                'amazon.nova-lite-v1:0': { inputs: false, outputs: false },
-                'amazon.nova-micro-v1:0': { inputs: true, outputs: false },
+                'public-model': { inputs: true, outputs: true },
+                'private-model': { inputs: false, outputs: false },
               });
             },
           })

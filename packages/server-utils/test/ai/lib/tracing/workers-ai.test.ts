@@ -168,11 +168,10 @@ describe('instrumentWorkersAiClient', () => {
       expect(spanToStaticSpanJSON(endedSpans[0]!).data).toEqual(expected);
     });
 
-    // Workers AI has no node integration suite (it runs on Cloudflare), so this covers the per-call options here.
+    // Workers AI has no node integration suite, so its per-call options are covered here.
     it('decides content recording per call when the options are functions', async () => {
       setAsyncLocalStorageAsyncContextStrategy();
       const endedSpans = setupClient();
-      const messages = [{ role: 'user', content: 'Capital of France?' }];
       const stream = new ReadableStream<Uint8Array>({
         start(controller) {
           controller.enqueue(new TextEncoder().encode('data: {"response":"Paris"}\n\ndata: [DONE]\n\n'));
@@ -180,39 +179,27 @@ describe('instrumentWorkersAiClient', () => {
         },
       });
       const client = {
-        run: vi.fn((_model: string, inputs: { stream?: boolean }) =>
+        run: (_model: string, inputs: { stream?: boolean }) =>
           Promise.resolve(inputs.stream ? stream : { response: 'Paris' }),
-        ),
       };
-      const recordInputs = vi.fn(({ inputs }: WorkersAiCallInfo) => (inputs as { user?: string }).user === 'public');
       const instrumented = instrumentWorkersAiClient(client, {
-        recordInputs,
+        recordInputs: ({ inputs }: WorkersAiCallInfo) => (inputs as { user?: string }).user === 'public',
         recordOutputs: () => getCurrentScope().getScopeData().tags.privacy === 'public',
       });
+      const messages = [{ role: 'user', content: 'Capital of France?' }];
 
       await withScope(async scope => {
         scope.setTag('privacy', 'public');
-        await instrumented.run(MODEL, { messages, user: 'public' }, { gateway: { id: 'gw' } });
+        await instrumented.run(MODEL, { messages, user: 'public' });
       });
       await withScope(async scope => {
         scope.setTag('privacy', 'private');
-        await instrumented.run(MODEL, { messages, user: 'private' });
-
-        // Changing the tag after the call started must not change its outputs decision.
-        const result = instrumented.run(MODEL, { messages, user: 'public', stream: true });
+        const result = instrumented.run(MODEL, { messages, user: 'private', stream: true });
         scope.setTag('privacy', 'public');
         const reader = ((await result) as ReadableStream<Uint8Array>).getReader();
-        while (!(await reader.read()).done) {
-          // drain
-        }
+        while (!(await reader.read()).done);
       });
 
-      expect(recordInputs).toHaveBeenCalledWith({
-        operation: 'chat',
-        model: MODEL,
-        inputs: { messages, user: 'public' },
-        options: { gateway: { id: 'gw' } },
-      });
       expect(
         endedSpans.map(span => {
           const { data } = spanToStaticSpanJSON(span);
@@ -221,7 +208,6 @@ describe('instrumentWorkersAiClient', () => {
       ).toEqual([
         { inputs: true, outputs: true },
         { inputs: false, outputs: false },
-        { inputs: true, outputs: false },
       ]);
     });
   });

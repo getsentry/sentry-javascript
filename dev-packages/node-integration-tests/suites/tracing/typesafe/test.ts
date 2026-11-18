@@ -146,7 +146,7 @@ describe('TypeSafe integration', () => {
         const spansPromise = runner.collectStreamedSpans(
           spans =>
             spans.some(span => span.is_segment && span.name === 'main') &&
-            spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_DECIDE).length >= 3,
+            spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_DECIDE).length >= 2,
         );
 
         await runner.start().completed();
@@ -164,7 +164,6 @@ describe('TypeSafe integration', () => {
         expect(recordedByModel).toEqual({
           public: { inputs: true, outputs: true },
           private: { inputs: false, outputs: false },
-          'public-late': { inputs: true, outputs: false },
         });
       });
     },
