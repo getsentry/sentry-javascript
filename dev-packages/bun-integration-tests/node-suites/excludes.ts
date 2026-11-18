@@ -261,6 +261,14 @@ const BUN_BUILD_NOT_TRIAGED = [
   'suites/tracing/vercelai/v6_v7/**',
 ];
 
+// Before Bun 1.4, Bun does not publish `http.client.request.created`, and `@sentry/node` picks the
+// channel from the Node version that Bun reports. So outgoing `node:http` requests get no
+// `sentry-trace` header, and the `/test2` request starts its own trace.
+const BUN_1_3_NO_HTTP_CLIENT_CHANNEL = ['suites/express/with-http/base/test.ts'];
+
+// Excluded in `node-suites-bun-build` only before Bun 1.4.
+export const BUN_BUILD_BEFORE_1_4_EXCLUDE = [...BUN_1_3_NO_HTTP_CLIENT_CHANNEL];
+
 export const BUN_BUILD_EXCLUDE = [
   '**/node_modules/**',
   // SQL Server runs in the dedicated Node/x86 CI job.
