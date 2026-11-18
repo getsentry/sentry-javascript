@@ -1088,8 +1088,10 @@ jobs:
           bun-version: ${{ matrix.bun-version }}
           deno-version: ${{ matrix.deno-version }}
 
-      - name: Start Nuxt databases
-        if: startsWith(matrix.test-application, 'nuxt-')
+      - name: Start E2E databases
+        if:
+          startsWith(matrix.test-application, 'nuxt-') || matrix.test-application == 'astro-6-cf-workers' ||
+          matrix.test-application == 'astro-7'
         background: true
         working-directory: ${{ runner.temp }}/test-application
         run: |
