@@ -12,8 +12,8 @@
     "test:assert": "pnpm test:test-build && pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
-    "@orpc/client": "latest",
-    "@orpc/server": "latest",
+    "@orpc/client": "^1.16.3",
+    "@orpc/server": "^1.16.3",
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@types/node": "^18.19.1",
