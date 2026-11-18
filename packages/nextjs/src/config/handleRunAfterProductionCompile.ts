@@ -1,9 +1,11 @@
 import type { createSentryBuildPluginManager as createSentryBuildPluginManagerType } from '@sentry/bundler-plugins/core';
+import { resolveSourceMapsFeatures } from '@sentry/core';
 import { loadModule } from '@sentry/core/server';
 import * as fs from 'fs';
 import * as path from 'path';
 import { getBuildLogger } from './buildLogger';
 import { getBuildPluginOptions } from './getBuildPluginOptions';
+import { getDeleteSourceMapsOption } from './sourceMapOptions';
 import type { SentryBuildOptions } from './types';
 
 /**
@@ -59,7 +61,9 @@ export async function handleRunAfterProductionCompile(
   await sentryBuildPluginManager.createRelease();
 
   // Skip debug ID injection if sourcemaps are disabled which are only relevant for sourcemap correlation
-  if (!usesNativeDebugIds && sentryBuildOptions.sourcemaps?.disable !== true) {
+  const { injectDebugIds } = resolveSourceMapsFeatures(sentryBuildOptions.sourcemaps);
+
+  if (!usesNativeDebugIds && injectDebugIds) {
     await sentryBuildPluginManager.injectDebugIds([distDir]);
   }
 
@@ -68,7 +72,7 @@ export async function handleRunAfterProductionCompile(
     prepareArtifacts: false,
   });
 
-  const deleteSourcemapsAfterUpload = sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload ?? false;
+  const deleteSourcemapsAfterUpload = getDeleteSourceMapsOption(sentryBuildOptions.sourcemaps) ?? false;
 
   // Deletion covers all of `static/`, so if Next.js emits chunks outside the upload
   // patterns, their maps would be deleted without ever having been uploaded — warn instead
@@ -77,7 +81,7 @@ export async function handleRunAfterProductionCompile(
     deleteSourcemapsAfterUpload &&
     buildTool === 'turbopack' &&
     !sentryBuildOptions.sourcemaps?.assets &&
-    options.sourcemaps?.disable !== true
+    resolveSourceMapsFeatures(options.sourcemaps).injectDebugIds
   ) {
     await warnAboutUncoveredSourcemaps(
       path.join(distDir, 'static'),

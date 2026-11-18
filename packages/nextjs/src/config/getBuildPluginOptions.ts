@@ -2,6 +2,11 @@ import type { InternalOptions as SentryBuildPluginOptions } from '@sentry/bundle
 import * as fs from 'fs';
 import * as path from 'path';
 import { getBuildLogger } from './buildLogger';
+import {
+  getDeleteSourceMapsOption,
+  getSourceMapFeatureOptions,
+  mergeFilesToDeleteAfterUpload,
+} from './sourceMapOptions';
 import type { SentryBuildOptions } from './types';
 
 const LOGGER_PREFIXES = {
@@ -296,7 +301,10 @@ export function getBuildPluginOptions({
   const normalizedDistDirAbsPath = normalizePathForGlob(distDirAbsPath);
   const loggerPrefix = LOGGER_PREFIXES[buildTool];
   const widenClientFileUpload = sentryBuildOptions.widenClientFileUpload ?? false;
-  const deleteSourcemapsAfterUpload = sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload ?? false;
+  const userSourcemaps = sentryBuildOptions.sourcemaps;
+  const deleteSourcemapsAfterUpload = getDeleteSourceMapsOption(userSourcemaps) ?? false;
+  // `sourcemaps.delete: true` removes the source maps next to the user's `filesToDeleteAfterUpload`.
+  const userFilesReplaceDeletion = userSourcemaps?.delete !== true;
 
   const sourcemapUploadAssets = createSourcemapUploadAssetPatterns(
     normalizedDistDirAbsPath,
@@ -310,19 +318,18 @@ export function getBuildPluginOptions({
 
   const userFilesToDeleteAfterUpload = sentryBuildOptions.sourcemaps?.filesToDeleteAfterUpload;
 
-  if (sentryBuildOptions.debug && userFilesToDeleteAfterUpload !== undefined) {
+  if (sentryBuildOptions.debug && userFilesToDeleteAfterUpload !== undefined && userFilesReplaceDeletion) {
     logger.debug(
       '[@sentry/nextjs] Skipping auto-deletion of source maps as user has provided filesToDeleteAfterUpload:',
       userFilesToDeleteAfterUpload,
     );
   }
 
-  const filesToDeleteAfterUpload =
-    userFilesToDeleteAfterUpload !== undefined
-      ? Array.isArray(userFilesToDeleteAfterUpload)
-        ? userFilesToDeleteAfterUpload
-        : [userFilesToDeleteAfterUpload]
-      : createFilesToDeleteAfterUploadPattern(normalizedDistDirAbsPath, buildTool, deleteSourcemapsAfterUpload);
+  const filesToDeleteAfterUpload = mergeFilesToDeleteAfterUpload(
+    createFilesToDeleteAfterUploadPattern(normalizedDistDirAbsPath, buildTool, deleteSourcemapsAfterUpload),
+    userFilesToDeleteAfterUpload,
+    userFilesReplaceDeletion,
+  );
 
   const skipSourcemapsUpload = shouldSkipSourcemapUpload(buildTool, useRunAfterProductionCompileHook);
 
@@ -330,7 +337,7 @@ export function getBuildPluginOptions({
     ? shouldWebpackPluginDeleteSourcemaps(
         buildTool,
         deleteSourcemapsAfterUpload,
-        userFilesToDeleteAfterUpload,
+        userFilesReplaceDeletion ? userFilesToDeleteAfterUpload : undefined,
         useRunAfterProductionCompileHook,
       )
     : undefined;
@@ -356,7 +363,8 @@ export function getBuildPluginOptions({
     silent: sentryBuildOptions.silent,
     url: sentryBuildOptions.sentryUrl,
     sourcemaps: {
-      disable: skipSourcemapsUpload ? true : (sentryBuildOptions.sourcemaps?.disable ?? false),
+      ...getSourceMapFeatureOptions(userSourcemaps, skipSourcemapsUpload),
+      // `sourcemaps.delete` does not reach the plugin, which would also remove the server source maps.
       rewriteSources: sentryBuildOptions.sourcemaps?.rewriteSources ?? rewriteWebpackSources,
       assets: sentryBuildOptions.sourcemaps?.assets ?? sourcemapUploadAssets,
       ignore: finalIgnorePatterns,

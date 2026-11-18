@@ -142,6 +142,48 @@ describe('constructWebpackConfigFunction()', () => {
     );
   });
 
+  // Each row: the client `devtool` that Next.js hands over, the user's `sourcemaps` options, the
+  // `devtool` of the final config, and whether the plugin removes every client map.
+  it.each([
+    [undefined, { upload: false }, undefined, false],
+    [undefined, { injectDebugIds: false }, undefined, false],
+    [undefined, { upload: false, delete: false }, 'hidden-source-map', false],
+    ['source-map', { upload: false, delete: true }, 'source-map', true],
+    [undefined, { delete: false }, 'hidden-source-map', false],
+    ['source-map', { delete: true }, 'source-map', true],
+    ['source-map', { delete: false, deleteSourcemapsAfterUpload: true }, 'source-map', false],
+    [undefined, { delete: true, filesToDeleteAfterUpload: ['custom/**/*.map'] }, 'hidden-source-map', true],
+  ] as const)(
+    'with the client devtool %s and `sourcemaps: %j` it sets devtool %s',
+    async (devtool, sourcemaps, expectedDevtool, deletesAll) => {
+      const sentryWebpackPlugin = vi.fn(() => ({ _name: 'sentry-webpack-plugin' }));
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({ sentryWebpackPlugin }));
+
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: { ...clientWebpackConfig, devtool },
+        incomingWebpackBuildContext: clientBuildContext,
+        sentryBuildTimeOptions: { sourcemaps: { ...sourcemaps } },
+      });
+
+      expect(finalWebpackConfig.devtool).toBe(expectedDevtool);
+      expect(sentryWebpackPlugin).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sourcemaps: expect.objectContaining({
+            deleteSourcemapsAfterUpload: deletesAll,
+            sdkEnabledSourceMaps: deletesAll,
+            upload: 'upload' in sourcemaps ? sourcemaps.upload : undefined,
+            injectDebugIds: 'injectDebugIds' in sourcemaps ? sourcemaps.injectDebugIds : undefined,
+          }),
+        }),
+      );
+      // The plugin would also remove the server source maps.
+      expect(sentryWebpackPlugin).not.toHaveBeenCalledWith(
+        expect.objectContaining({ sourcemaps: expect.objectContaining({ delete: expect.anything() }) }),
+      );
+    },
+  );
+
   it('does not auto-enable source map generation when `disable` is "disable-upload"', () => {
     const finalNextConfig = materializeFinalNextConfig(
       {

@@ -769,6 +769,58 @@ describe('getBuildPluginOptions', () => {
       ]);
     });
 
+    it.each([
+      ['after-production-compile-turbopack', true, ['custom/**/*.map']],
+      ['after-production-compile-webpack', true, ['custom/**/*.map']],
+    ] as const)(
+      'deletes the static source maps next to the user files for %s with `delete: true`',
+      (buildTool, deleteOption, userFiles) => {
+        const result = getBuildPluginOptions({
+          sentryBuildOptions: { sourcemaps: { delete: deleteOption, filesToDeleteAfterUpload: [...userFiles] } },
+          releaseName: mockReleaseName,
+          distDirAbsPath: mockDistDirAbsPath,
+          buildTool,
+        });
+
+        expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual([
+          '/path/to/.next/static/**/*.js.map',
+          '/path/to/.next/static/**/*.mjs.map',
+          '/path/to/.next/static/**/*.cjs.map',
+          '/path/to/.next/static/**/*.css.map',
+          ...userFiles,
+        ]);
+      },
+    );
+
+    it('deletes only the user files with `delete: false`', () => {
+      const result = getBuildPluginOptions({
+        sentryBuildOptions: {
+          sourcemaps: { delete: false, deleteSourcemapsAfterUpload: true, filesToDeleteAfterUpload: 'custom/**/*.map' },
+        },
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'after-production-compile-turbopack',
+      });
+
+      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['custom/**/*.map']);
+    });
+
+    // The plugin would also remove the server source maps, which broke deployments on Vercel.
+    it.each(['webpack-nodejs', 'webpack-edge'] as const)(
+      'keeps the source maps of %s with `delete: true`',
+      buildTool => {
+        const result = getBuildPluginOptions({
+          sentryBuildOptions: { sourcemaps: { delete: true } },
+          releaseName: mockReleaseName,
+          distDirAbsPath: mockDistDirAbsPath,
+          buildTool,
+        });
+
+        expect(result.sourcemaps).toMatchObject({ deleteSourcemapsAfterUpload: false, sdkEnabledSourceMaps: false });
+        expect(result.sourcemaps).not.toHaveProperty('delete');
+      },
+    );
+
     it('disables sourcemaps when disable flag is set', () => {
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',

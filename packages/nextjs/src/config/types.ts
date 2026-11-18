@@ -429,7 +429,7 @@ export type SentryBuildOptions = Omit<
 
 type SentryBuildSourceMapsOptions = Omit<
   NonNullable<BuildTimeOptionsBase['sourcemaps']>,
-  'ignore' | 'filesToDeleteAfterUpload'
+  'ignore' | 'filesToDeleteAfterUpload' | 'delete'
 > & {
   /**
    * A glob or an array of globs that specifies which build artifacts should not be uploaded to Sentry.
@@ -472,6 +472,20 @@ type SentryBuildSourceMapsOptions = Omit<
    * With `disable` set to `true` or `"disable-upload"`, nothing is deleted unless you set this option to `true`.
    */
   deleteSourcemapsAfterUpload?: boolean;
+
+  /**
+   * Whether the client source maps are removed from your Next.js build folder. Server source maps are kept.
+   *
+   * - `true`: Sentry removes every client source map, also the ones you turned on yourself (for example with
+   *   `productionBrowserSourceMaps`) and the ones that were not uploaded.
+   * - `false`: Sentry removes no source map. When the source map setting is not set, Sentry turns source maps on
+   *   and they stay in the build output.
+   *
+   * Defaults to `true` for webpack builds and for Turbopack builds in which the SDK turns on the client source maps.
+   * Without an upload (`upload: false` or `injectDebugIds: false`), nothing is removed unless you set this option
+   * to `true`.
+   */
+  delete?: boolean;
 };
 
 export type NextConfigFunction = (
