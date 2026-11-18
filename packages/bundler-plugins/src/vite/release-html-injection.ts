@@ -1,16 +1,16 @@
 import type { CodeInjection, Logger } from '../core';
 
 // Vite 6+ sets `environment` on the plugin context.
-export type BuildStartContext = { environment?: { config?: { consumer?: string } } };
+export type ViteHookContext = { environment?: { config?: { consumer?: string } } };
 
 export type BuildInputOptions = { input?: string[] | Record<string, string> };
 
 type HtmlTagDescriptor = { tag: string; children: string; injectTo: 'head' };
 
 export type ViteReleaseHtmlInjection = {
-  /** Whether the current build puts the release into its HTML pages instead of its chunks. */
-  inHtml: () => boolean;
-  buildStart: (context: BuildStartContext | undefined, inputOptions: BuildInputOptions | undefined) => void;
+  /** Whether the build of the hook's environment puts the release into its HTML pages instead of its chunks. */
+  inHtml: (context: ViteHookContext | undefined) => boolean;
+  buildStart: (context: ViteHookContext | undefined, inputOptions: BuildInputOptions | undefined) => void;
   transformIndexHtml: (html: string, ctx: { server?: unknown }) => HtmlTagDescriptor[] | undefined;
 };
 
@@ -24,14 +24,22 @@ export function createViteReleaseHtmlInjection(
 ): ViteReleaseHtmlInjection {
   // Only a build with HTML entry points runs `transformIndexHtml`. Without one, the release goes
   // into the chunks so it is not lost.
-  let inHtml = false;
+  // In Vite 6+, one plugin instance serves every environment, and environments can build in parallel.
+  const inHtmlByEnvironment = new WeakMap<object, boolean>();
+  let inHtmlWithoutEnvironment = false;
   let warned = false;
 
   return {
-    inHtml: () => inHtml,
+    inHtml: context =>
+      context?.environment ? (inHtmlByEnvironment.get(context.environment) ?? false) : inHtmlWithoutEnvironment,
 
     buildStart(context, inputOptions) {
-      inHtml = Object.values(inputOptions?.input ?? {}).some(input => /\.html$/.test(input));
+      const inHtml = Object.values(inputOptions?.input ?? {}).some(input => /\.html$/.test(input));
+      if (context?.environment) {
+        inHtmlByEnvironment.set(context.environment, inHtml);
+      } else {
+        inHtmlWithoutEnvironment = inHtml;
+      }
 
       // The server build of an SSR app has no HTML, and browsers do not cache its chunks.
       if (!inHtml && !warned && context?.environment?.config?.consumer !== 'server') {

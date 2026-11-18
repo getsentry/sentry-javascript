@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { runInNewContext } from 'node:vm';
-import { build } from 'vite';
+import { build, createBuilder } from 'vite';
 import type { InlineConfig } from 'vite';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { sentryVitePlugin } from '../../src/vite';
@@ -132,6 +132,41 @@ describe('release injection (vite)', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("`release.inject: 'html'` needs a build with HTML"));
     const mainChunk = readJs().find(chunk => chunk.includes('"main"'));
     expect(mainChunk).toMatch(RELEASE_SNIPPET);
+  });
+
+  it.each([
+    ['client', 'ssr'],
+    ['ssr', 'client'],
+  ])("with 'html', decides per environment when %s and %s build in parallel", async (...order) => {
+    const serverOutDir = path.join(root, 'dist-server');
+    fs.writeFileSync(path.join(root, 'server.js'), 'console.log("server");\n');
+
+    const builder = await createBuilder({
+      configFile: false,
+      logLevel: 'silent',
+      root,
+      plugins: sentryVitePlugin({
+        telemetry: false,
+        silent: true,
+        release: { name: '1.2.3', inject: 'html', create: false },
+      }),
+      environments: {
+        client: { build: { outDir, emptyOutDir: true, minify: false } },
+        ssr: { build: { outDir: serverOutDir, emptyOutDir: true, ssr: path.join(root, 'server.js'), minify: false } },
+      },
+      builder: {
+        buildApp: async appBuilder => {
+          await Promise.all(order.map(name => appBuilder.build(appBuilder.environments[name]!)));
+        },
+      },
+    });
+    await builder.buildApp();
+
+    expect(readHtml()).toMatch(RELEASE_SNIPPET);
+    expect(fs.readFileSync(path.join(serverOutDir, 'server.mjs'), 'utf8')).toMatch(RELEASE_SNIPPET);
+    for (const chunk of readJs()) {
+      expect(chunk).not.toContain('SENTRY_RELEASE');
+    }
   });
 
   it('with false, injects the release nowhere', async () => {

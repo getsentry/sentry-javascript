@@ -26,7 +26,7 @@ import { createViteSourceMapHooks } from '../vite/source-map-hooks';
 import {
   createViteReleaseHtmlInjection,
   type BuildInputOptions,
-  type BuildStartContext,
+  type ViteHookContext,
 } from '../vite/release-html-injection';
 
 // The subset of Rollup's `TransformResult` that this plugin's `transform`
@@ -43,7 +43,7 @@ type ViteParseAstAsync = NonNullable<ViteModule['parseAstAsync']>;
 let viteParseAstAsyncPromise: Promise<ViteParseAstAsync | null> | undefined;
 
 // Rolldown sets `meta.rolldownVersion` on the plugin context.
-type PluginContext = { meta?: { rolldownVersion?: string } };
+type PluginContext = ViteHookContext & { meta?: { rolldownVersion?: string } };
 
 const JS_MODULE_ID_FILTER = /\.[cm]?[jt]sx?(?:[?#].*)?$/;
 
@@ -179,7 +179,7 @@ export function _createRollupPluginInternals(
   const transformReplace = Object.keys(replacementValues).length > 0;
   const shouldTransform = transformAnnotations || transformReplace;
 
-  function buildStart(this: BuildStartContext | undefined, inputOptions?: BuildInputOptions): void {
+  function buildStart(this: ViteHookContext | undefined, inputOptions?: BuildInputOptions): void {
     releaseHtmlInjection?.buildStart(this, inputOptions);
 
     void sentryBuildPluginManager.telemetry.emitBundlerPluginExecutionSignal().catch(() => {
@@ -229,7 +229,7 @@ export function _createRollupPluginInternals(
 
     const injectCode = new CodeInjection();
 
-    if (!releaseHtmlInjection?.inHtml() && isInitialChunk(chunk, meta?.chunks)) {
+    if (!releaseHtmlInjection?.inHtml(this) && isInitialChunk(chunk, meta?.chunks)) {
       injectCode.append(releaseInjectionCode);
     }
 
