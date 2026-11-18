@@ -2204,9 +2204,15 @@ importers:
       '@solidjs/router':
         specifier: ^1.0.0
         version: 1.0.0(solid-js@1.9.18)
+      '@solidjs/router-2':
+        specifier: npm:@solidjs/router@^2.0.0
+        version: '@solidjs/router@2.0.0(@solidjs/web@2.0.0(solid-js@1.9.18))(solid-js@1.9.18)'
       '@solidjs/testing-library':
         specifier: 0.8.5
         version: 0.8.5(@solidjs/router@1.0.0(solid-js@1.9.18))(solid-js@1.9.18)
+      '@solidjs/web':
+        specifier: ^2.0.0
+        version: 2.0.0(solid-js@1.9.18)
       '@tanstack/solid-router':
         specifier: ^1.169.2
         version: 1.169.2(solid-js@1.9.18)
@@ -8185,6 +8191,16 @@ packages:
     peerDependencies:
       solid-js: ^1.8.6
 
+  '@solidjs/router@2.0.0':
+    resolution: {integrity: sha512-Zpa9djVKDigR1PYd6K32OFN3N90wymPk2yIWhV+Sdrz/aRPpMIIohI5dsAqwx5WIjQ3lBlECZHGBEzaPdcmpCA==}
+    peerDependencies:
+      '@solidjs/web': ^2.0.0
+      filesystem-routing: '>=0.4.0'
+      solid-js: ^2.0.0
+    peerDependenciesMeta:
+      filesystem-routing:
+        optional: true
+
   '@solidjs/signals@2.0.0':
     resolution: {integrity: sha512-jrcT6XTVvsYRpesRp0At/mSUnsWr6jiprK8C93Oat56B8n7X9BMSe58Rxl6qSZUhBN0L+sxm8GzeO7HdhBXvDw==}
     engines: {node: '>=22.12.0'}
@@ -8200,6 +8216,12 @@ packages:
     peerDependencies:
       '@solidjs/router': '>=0.6.0'
       solid-js: '>=1.0.0'
+
+  '@solidjs/web@2.0.0':
+    resolution: {integrity: sha512-R0+JMCD6ukEXaID/sH5PVQe9bCIN9pRzJry+F6Sb6YvtlkAp9DEyVI7AeZYiV0cd6TSL98kpbCyLDiZnaAKGrA==}
+    engines: {node: '>=22.12.0'}
+    peerDependencies:
+      solid-js: ^2.0.0
 
   '@speed-highlight/core@1.2.15':
     resolution: {integrity: sha512-BMq1K3DsElxDWawkX6eLg9+CKJrTVGCBAWVuHXVUV2u0s2711qiChLSId6ikYPfxhdYocLNt3wWwSvDiTvFabw==}
@@ -26259,6 +26281,11 @@ snapshots:
     dependencies:
       solid-js: 1.9.18
 
+  '@solidjs/router@2.0.0(@solidjs/web@2.0.0(solid-js@1.9.18))(solid-js@1.9.18)':
+    dependencies:
+      '@solidjs/web': 2.0.0(solid-js@1.9.18)
+      solid-js: 1.9.18
+
   '@solidjs/signals@2.0.0': {}
 
   '@solidjs/start@1.3.2(cc17e735cce815c73792ed1133b8d5a1)':
@@ -26289,6 +26316,13 @@ snapshots:
     dependencies:
       '@solidjs/router': 1.0.0(solid-js@1.9.18)
       '@testing-library/dom': 9.3.4
+      solid-js: 1.9.18
+
+  '@solidjs/web@2.0.0(solid-js@1.9.18)':
+    dependencies:
+      csstype: 3.2.3
+      seroval: 1.8.1
+      seroval-plugins: 1.8.0(seroval@1.8.1)
       solid-js: 1.9.18
 
   '@speed-highlight/core@1.2.15': {}

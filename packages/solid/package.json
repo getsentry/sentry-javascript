@@ -58,6 +58,16 @@
         "types": "./build/types/solid2/index.d.ts",
         "default": "./build/cjs/solid2/index.js"
       }
+    },
+    "./solid2/solidrouter": {
+      "import": {
+        "types": "./build/types/solid2/solidrouter.d.ts",
+        "default": "./build/esm/solid2/solidrouter.js"
+      },
+      "require": {
+        "types": "./build/types/solid2/solidrouter.d.ts",
+        "default": "./build/cjs/solid2/solidrouter.js"
+      }
     }
   },
   "publishConfig": {
@@ -69,7 +79,7 @@
     "@sentry/conventions": "^0.33.0"
   },
   "peerDependencies": {
-    "@solidjs/router": ">=0.13.4 <2.0.0-0",
+    "@solidjs/router": ">=0.13.4 <2.0.0-0 || ^2.0.0",
     "@tanstack/solid-router": "^1.132.27",
     "solid-js": "^1.8.4 || ^2.0.0"
   },
@@ -84,7 +94,9 @@
   "devDependencies": {
     "@sentry-internal/rollup-utils": "11.14.0",
     "@solidjs/router": "^1.0.0",
+    "@solidjs/router-2": "npm:@solidjs/router@^2.0.0",
     "@solidjs/testing-library": "0.8.5",
+    "@solidjs/web": "^2.0.0",
     "@tanstack/solid-router": "^1.169.2",
     "@testing-library/dom": "^7.21.4",
     "@testing-library/jest-dom": "^6.9.1",

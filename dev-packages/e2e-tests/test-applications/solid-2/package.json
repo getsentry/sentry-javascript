@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@sentry/solid": "file:../../packed/sentry-solid-packed.tgz",
+    "@solidjs/router": "^2.0.0",
     "@solidjs/web": "^2.0.0",
     "solid-js": "^2.0.0"
   },
