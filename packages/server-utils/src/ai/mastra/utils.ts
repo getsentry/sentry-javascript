@@ -37,6 +37,7 @@ import {
   GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
+import { getToolDefinitionsAttribute } from '../core/tool-definitions';
 import { AGENT_SPAN_TYPES, MODEL_SPAN_TYPES, SPAN_TYPE_OPS, TOOL_SPAN_TYPES } from './constants';
 import type { MastraExportedSpan, MastraSpanType, MastraUsageStats } from './types';
 
@@ -186,7 +187,7 @@ function addAgentAttributes(
 
   attributes[GEN_AI_AGENT_NAME] = name;
   attributes[GEN_AI_PIPELINE_NAME] = name;
-  attributes[GEN_AI_TOOL_DEFINITIONS] = serialize(attrs.availableTools);
+  attributes[GEN_AI_TOOL_DEFINITIONS] = getToolDefinitionsAttribute(attrs.availableTools);
 
   if (options.recordInputs) {
     // `prompt` is Mastra's legacy alias for the system prompt.

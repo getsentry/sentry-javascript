@@ -29,6 +29,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT } from '@sentry/conventions/op';
 import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
+import { getToolDefinitionsAttribute } from '../core/tool-definitions';
 import { PI_AI_ORIGIN } from './constants';
 import type { PiAiContext } from './messages';
 import {
@@ -112,11 +113,11 @@ function getServerAttributes(model: PiModel): Record<string, string | number | u
 
 function getRequestContentAttributes(context: PiAiContext): Record<string, string | undefined> {
   const messages = piAiMessagesToGenAiMessages(context.messages);
-  const tools = piAiToolDefinitions(context);
+  const tools = getToolDefinitionsAttribute(piAiToolDefinitions(context));
   return {
     [GEN_AI_SYSTEM_INSTRUCTIONS]: piAiSystemInstructions(context),
     [GEN_AI_INPUT_MESSAGES]: messages.length ? stringify(messages) : undefined,
-    [GEN_AI_TOOL_DEFINITIONS]: tools.length ? stringify(tools) : undefined,
+    [GEN_AI_TOOL_DEFINITIONS]: tools,
   };
 }
 
