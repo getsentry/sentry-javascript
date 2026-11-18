@@ -24,8 +24,14 @@ function initWithClientReports(options: Partial<DenoOptions> = {}): ClientReport
   return clientReports;
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+async function waitForClientReport(clientReports: ClientReport[]): Promise<void> {
+  const deadline = Date.now() + 5_000;
+  while (clientReports.length === 0) {
+    if (Date.now() > deadline) {
+      throw new Error('Timed out waiting for a client report');
+    }
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
 }
 
 Deno.test('sends a client report for dropped events on flush', async () => {
@@ -44,7 +50,22 @@ Deno.test('sends client reports on the flush interval', async () => {
   const clientReports = initWithClientReports({ clientReportFlushInterval: 50 });
 
   getCurrentScope().captureMessage('dropped');
-  await delay(200);
+  await waitForClientReport(clientReports);
+
+  assertEquals(
+    clientReports.map(report => report.discarded_events),
+    [[{ reason: 'before_send', category: 'error', quantity: 1 }]],
+  );
+
+  await close();
+});
+
+Deno.test('sends client reports on unload', async () => {
+  const clientReports = initWithClientReports();
+
+  getCurrentScope().captureMessage('dropped');
+  globalThis.dispatchEvent(new Event('unload'));
+  await waitForClientReport(clientReports);
 
   assertEquals(
     clientReports.map(report => report.discarded_events),
@@ -55,10 +76,9 @@ Deno.test('sends client reports on the flush interval', async () => {
 });
 
 Deno.test('does not send client reports when sendClientReports is false', async () => {
-  const clientReports = initWithClientReports({ sendClientReports: false, clientReportFlushInterval: 50 });
+  const clientReports = initWithClientReports({ sendClientReports: false });
 
   getCurrentScope().captureMessage('dropped');
-  await delay(200);
   await close();
 
   assertEquals(clientReports, []);

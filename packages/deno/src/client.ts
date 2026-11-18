@@ -117,6 +117,7 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
 
     if (this._clientReportOnExitFlushListener) {
       process.off('beforeExit', this._clientReportOnExitFlushListener);
+      globalThis.removeEventListener('unload', this._clientReportOnExitFlushListener);
     }
 
     if (this._onExitFlushListener) {
@@ -151,5 +152,6 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
     Deno.unrefTimer(this._clientReportInterval);
 
     process.on('beforeExit', this._clientReportOnExitFlushListener);
+    globalThis.addEventListener('unload', this._clientReportOnExitFlushListener);
   }
 }
