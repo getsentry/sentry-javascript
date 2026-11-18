@@ -21,17 +21,50 @@
  *    buys nothing — and disabling it is what lets the wrapper run (and reach us) at module scope,
  *    before the per-request cached `init()` has subscribed.
  * 2. When a delegated `publish`/`runStores` throws the global-scope error, the event is queued via
- *    {@link deferChannelEvent} instead. {@link flushDeferredChannelEvents}, called at the top of
- *    the request handler after `init()`, emits it via the real channel — now inside a request,
- *    where publish works.
+ *    {@link deferChannelEvent} instead. `flushDeferredChannelEvents` (see
+ *    `./orchestrion-deferred-channels`), called at the top of the request handler after `init()`,
+ *    emits it via the real channel — now inside a request, where publish works.
  *
  * In a request handler nothing throws, so every call is a transparent pass-through to the real
  * channel: lifecycle channels (spans, context binding) behave exactly as on Node.
+ *
+ * Transformed CommonJS packages (`express`, `mysql`) `require` this module, so a bundle takes its
+ * CommonJS build. That is why this module must not import `@sentry/core` at runtime: it would add the
+ * CommonJS build of `@sentry/core` next to the ES module build that the SDK already uses.
  */
+import type { InternalGlobal } from '@sentry/core';
 import * as realDc from 'node:diagnostics_channel';
-import { deferChannelEvent, isGlobalScopeError } from './orchestrion-deferred-channels';
 
 type Ctx = Record<string, unknown>;
+
+interface DeferredChannelEvent {
+  channel: realDc.TracingChannel;
+  ctx: Ctx;
+  hadError: boolean;
+}
+
+const DEFERRED = Symbol('sentryOrchestrionDeferred');
+
+// The queue is on the global marker, not in this module: the deferring build of this module (often CommonJS) is not
+// the build of `./orchestrion-deferred-channels` that the request wrapper flushes with (usually ES module).
+function getDeferredEvents(): DeferredChannelEvent[] {
+  const marker = ((globalThis as unknown as InternalGlobal).__SENTRY_ORCHESTRION__ ??= {});
+  return (marker.deferredChannelEvents ??= []) as DeferredChannelEvent[];
+}
+
+/** workerd's global-scope guard is the only error we degrade on; anything else is a real fault. */
+function isGlobalScopeError(error: unknown): boolean {
+  return error instanceof Error && /within global scope/.test(error.message);
+}
+
+/** Queue a channel event that could not be published now, at most once per context object. */
+function deferChannelEvent(channel: realDc.TracingChannel, ctx: Ctx): void {
+  if ((ctx as Record<symbol, unknown>)[DEFERRED]) {
+    return;
+  }
+  (ctx as Record<symbol, unknown>)[DEFERRED] = true;
+  getDeferredEvents().push({ channel, ctx, hadError: 'error' in ctx });
+}
 
 // One façade per channel name (node's `tracingChannel` is itself a per-name singleton), built
 // once when the transformed module declares `const CH = tracingChannel(name)`.

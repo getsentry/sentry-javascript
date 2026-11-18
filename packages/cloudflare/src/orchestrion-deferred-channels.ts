@@ -3,7 +3,7 @@
  *
  * On workerd, `channel.publish()`/`runStores()` throw at module/global scope, so a library
  * instantiated at module scope (`const app = new Hono()`) cannot emit its wrapping event
- * there. {@link ./orchestrion-diagnostics-channel} defers those events here;
+ * there. `./orchestrion-diagnostics-channel` defers those events on the global marker;
  * {@link flushDeferredChannelEvents} emits them once a request is being handled (where
  * publish works) and the SDK's `init()` has registered subscribers.
  *
@@ -32,28 +32,12 @@ interface DeferredChannelEvent {
   hadError: boolean;
 }
 
-const DEFERRED = Symbol('sentryOrchestrionDeferred');
-
-// The queue is on the global marker, not in this module: a bundle can hold both builds of this module. A transformed
-// CommonJS package (`express`) `require`s the facade, so it defers through the CommonJS build, while the request
-// wrapper that flushes is usually the ES module build.
+// The queue is on the global marker, not in this module: a bundle can hold both builds of the SDK. Transformed
+// CommonJS packages (`express`, `mysql`) `require` the facade, so they defer through its CommonJS build, while the
+// request wrapper that flushes is usually the ES module build.
 function getDeferredEvents(): DeferredChannelEvent[] {
   const marker = (GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ??= {});
   return (marker.deferredChannelEvents ??= []) as DeferredChannelEvent[];
-}
-
-/** workerd's global-scope guard is the only error we degrade on; anything else is a real fault. */
-export function isGlobalScopeError(error: unknown): boolean {
-  return error instanceof Error && /within global scope/.test(error.message);
-}
-
-/** Queue a channel event that could not be published now, at most once per context object. */
-export function deferChannelEvent(channel: PublishableTracingChannel, ctx: Ctx): void {
-  if ((ctx as Record<symbol, unknown>)[DEFERRED]) {
-    return;
-  }
-  (ctx as Record<symbol, unknown>)[DEFERRED] = true;
-  getDeferredEvents().push({ channel, ctx, hadError: 'error' in ctx });
 }
 
 /**
