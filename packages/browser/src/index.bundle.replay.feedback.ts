@@ -1,5 +1,11 @@
 import {
   browserTracingIntegrationShim,
+  browserTracingCoreIntegrationShim,
+  longTasksIntegrationShim,
+  resourcesIntegrationShim,
+  fetchTracingIntegrationShim,
+  xhrTracingIntegrationShim,
+  linkedTracesIntegrationShim,
   consoleLoggingIntegrationShim,
   elementTimingIntegrationShim,
   loggerShim,
@@ -17,6 +23,12 @@ export { getFeedback, sendFeedback } from '@sentry/feedback';
 
 export {
   browserTracingIntegrationShim as browserTracingIntegration,
+  browserTracingCoreIntegrationShim as browserTracingCoreIntegration,
+  longTasksIntegrationShim as longTasksIntegration,
+  resourcesIntegrationShim as resourcesIntegration,
+  fetchTracingIntegrationShim as fetchTracingIntegration,
+  xhrTracingIntegrationShim as xhrTracingIntegration,
+  linkedTracesIntegrationShim as linkedTracesIntegration,
   elementTimingIntegrationShim as elementTimingIntegration,
   feedbackAsyncIntegration as feedbackAsyncIntegration,
   feedbackAsyncIntegration as feedbackIntegration,

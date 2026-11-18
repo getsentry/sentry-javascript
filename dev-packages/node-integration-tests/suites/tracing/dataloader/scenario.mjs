@@ -2,8 +2,6 @@ import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-int
 import Dataloader from 'dataloader';
 import express from 'express';
 
-const PORT = 8008;
-
 const batchLoadFn = async keys => keys.map((_, idx) => idx);
 
 const run = async () => {
@@ -35,7 +33,7 @@ const run = async () => {
     res.send({ user });
   });
 
-  startExpressServerAndSendPortToRunner(app, PORT);
+  startExpressServerAndSendPortToRunner(app);
 };
 
 run();

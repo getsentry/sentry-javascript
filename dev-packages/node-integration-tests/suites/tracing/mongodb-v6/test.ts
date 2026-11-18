@@ -10,8 +10,9 @@ import {
   SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
-import { MongoMemoryServer } from 'mongodb-memory-server-global';
+import type { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
+import { createMongoMemoryServer } from '../../../utils/mongoMemoryServer';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Pins mongodb 6 so the >= 6.4 promise-based `Connection.prototype.command`
@@ -20,7 +21,7 @@ describe('MongoDB v6 auto-instrumentation', () => {
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await createMongoMemoryServer('mongodb-v6');
     process.env.MONGO_URL = mongoServer.getUri();
   }, 30000);
 

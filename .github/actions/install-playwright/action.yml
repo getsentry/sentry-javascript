@@ -109,6 +109,14 @@ runs:
           install -y --no-install-recommends "${packages[@]}"
       shell: bash
 
+    # Before a launch, Playwright also checks the libraries of the GTK executable, which headless tests do not start
+    # and the list above does not have. Without this, a launch only works while the browser cache holds Playwright's
+    # `DEPENDENCIES_VALIDATED` marker, which expires after 30 days.
+    - name: Skip Playwright's host validation
+      if: steps.webkit-dependencies.outputs.key != ''
+      run: echo "PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1" >> "$GITHUB_ENV"
+      shell: bash
+
     - name: Remove obsolete cached WebKit packages
       if:
         steps.webkit-dependencies.outputs.key != '' && steps.webkit-apt-cache.outputs.cache-hit != 'true' &&

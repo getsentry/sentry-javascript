@@ -2,8 +2,18 @@ import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import { getDefaultIntegrations, setAsyncLocalStorageAsyncContextStrategy } from '@sentry/cloudflare';
 import { wrapRequestHandler } from '@sentry/cloudflare/request';
-import { debug, getDefaultIsolationScope, getIsolationScope, getTraceData } from '@sentry/core';
-import { _INTERNAL_isServedTunnelRequest as isServedTunnelRequest } from '@sentry/core/server';
+import {
+  applySdkMetadata,
+  debug,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  getTraceData,
+  stripUrlQueryAndFragment,
+} from '@sentry/core';
+import {
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+  _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
+} from '@sentry/core/server';
 import type { H3Event } from 'h3';
 import type { NitroApp, NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
@@ -11,6 +21,18 @@ import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
 import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
 import { getCfProperties, getCloudflareProperties, hasCfProperty, isEventType } from '../utils/event-type-check';
 import { addSentryPageMetaTags, recordRequestStart } from '../utils/pageMetaTags';
+
+function getRequestHandlerOptions(cloudflareOptions: CloudflareOptions): CloudflareOptions {
+  const options: CloudflareOptions = {
+    // `wrapRequestHandler` only sets up the integrations that work without `nodejs_compat`.
+    // Nitro's Cloudflare presets require the flag anyway, so opt into the full set.
+    defaultIntegrations: getDefaultIntegrations(cloudflareOptions),
+    _extendsDefaultIntegrations: cloudflareOptions.defaultIntegrations === undefined,
+    ...cloudflareOptions,
+  };
+  applySdkMetadata(options, 'nuxt', ['nuxt', 'cloudflare']);
+  return options;
+}
 
 /**
  * Sentry Cloudflare Nitro plugin for when using the "cloudflare-pages" preset in Nuxt.
@@ -67,15 +89,14 @@ export const sentryCloudflareNitroPlugin =
 
         return wrapRequestHandler(
           {
-            options: {
-              defaultIntegrations: getDefaultIntegrations(cloudflareOptions),
-              _extendsDefaultIntegrations: cloudflareOptions.defaultIntegrations === undefined,
-              ...cloudflareOptions,
-            },
+            options: getRequestHandlerOptions(cloudflareOptions),
             request,
             context: runtime.cloudflare.context,
           },
-          () => appFetch(request),
+          () => {
+            setRequestTransactionName(request.method, new URL(request.url).pathname);
+            return appFetch(request);
+          },
         );
       };
       nitroApp.hooks.hook('error', sentryCaptureErrorHook);
@@ -97,29 +118,35 @@ export const sentryCloudflareNitroPlugin =
         } else {
           // Usually, the protocol already includes ":"
           const url = `${event.protocol}${event.protocol.endsWith(':') ? '' : ':'}//${event.host}${pathname}`;
+          // Nitro read the body before calling `localFetch`. This request has no body, so other requests' bodies
+          // don't end up on events. Only the managed tunnel needs it, see below.
           const request = new Request(url, {
             method: event.method,
             headers: event.headers,
-            // Nitro read the body before calling `localFetch`. Only the managed tunnel answers from this request, so
-            // only its requests get the body, and other requests' bodies don't end up on events.
-            body: isServedTunnelRequest({ method: event.method, url: pathname }) ? event.body : undefined,
             // @ts-expect-error - 'cf' is a valid property in the RequestInit type for Cloudflare
             cf: getCfProperties(event),
           });
 
           const requestHandlerOptions = {
-            // `wrapRequestHandler` only sets up the integrations that work without `nodejs_compat`.
-            // Nitro's Cloudflare presets require the flag anyway, so opt into the full set.
-            options: {
-              defaultIntegrations: getDefaultIntegrations(cloudflareOptions),
-              _extendsDefaultIntegrations: cloudflareOptions.defaultIntegrations === undefined,
-              ...cloudflareOptions,
-            },
+            options: getRequestHandlerOptions(cloudflareOptions),
             request,
             context: getCloudflareProperties(event).context,
           };
 
           return wrapRequestHandler(requestHandlerOptions, () => {
+            // The served tunnel belongs to the client `wrapRequestHandler` creates, so it can only match from here.
+            // The wrapper records no span, session or body for a tunnel request.
+            if (event.body && isServedTunnelRequest(request)) {
+              const tunnelResponse = handleServedTunnelRequest(
+                new Request(url, { method: event.method, headers: event.headers, body: event.body }),
+              );
+              if (tunnelResponse) {
+                return tunnelResponse;
+              }
+            }
+
+            setRequestTransactionName(event.method, pathname);
+
             const isolationScope = getIsolationScope();
             const newIsolationScope =
               isolationScope === getDefaultIsolationScope() ? isolationScope.clone() : isolationScope;
@@ -171,3 +198,11 @@ export const sentryCloudflareNitroPlugin =
 
     nitroApp.hooks.hook('error', sentryCaptureErrorHook);
   };
+
+/**
+ * Names the events of the request after its method and path until a route names them, like the `node:http`
+ * instrumentation does on Node. Without it, events captured outside Nitro's `error` hook have no transaction.
+ */
+function setRequestTransactionName(method: string, path: string): void {
+  getIsolationScope().setTransactionName(`${method.toUpperCase()} ${stripUrlQueryAndFragment(path)}`);
+}

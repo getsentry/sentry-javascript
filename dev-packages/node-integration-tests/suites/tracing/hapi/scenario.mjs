@@ -2,12 +2,10 @@ import Boom from '@hapi/boom';
 import Hapi from '@hapi/hapi';
 import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
 
-const port = 5999;
-
 const run = async () => {
   const server = Hapi.server({
     host: 'localhost',
-    port,
+    port: 0,
   });
 
   server.route({
@@ -88,7 +86,7 @@ const run = async () => {
 
   await server.start();
 
-  sendPortToRunner(port);
+  sendPortToRunner(server.info.port);
 };
 
 run();

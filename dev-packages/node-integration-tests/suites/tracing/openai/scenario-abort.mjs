@@ -34,14 +34,14 @@ async function run() {
     const messages = [{ role: 'user', content: 'Aborted by the caller' }];
 
     const requests = [
-      [{ model: 'abort-before-stream', stream: true }, { signal: abortAfter(50) }],
-      [{ model: 'abort-non-streaming' }, { signal: abortAfter(50) }],
-      [{ model: 'timeout-before-stream', stream: true }, { timeout: 50 }],
-      [{ model: 'timeout-non-streaming' }, { timeout: 50 }],
+      [{ model: 'abort-before-stream', stream: true }, () => ({ signal: abortAfter(50) })],
+      [{ model: 'abort-non-streaming' }, () => ({ signal: abortAfter(50) })],
+      [{ model: 'timeout-before-stream', stream: true }, () => ({ timeout: 50 })],
+      [{ model: 'timeout-non-streaming' }, () => ({ timeout: 50 })],
     ];
     for (const [params, requestOptions] of requests) {
       try {
-        await client.chat.completions.create({ ...params, messages }, requestOptions);
+        await client.chat.completions.create({ ...params, messages }, requestOptions());
       } catch {
         // Error expected
       }
