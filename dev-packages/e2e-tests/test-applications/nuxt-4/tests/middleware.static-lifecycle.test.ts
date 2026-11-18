@@ -60,7 +60,8 @@ test.describe('Server Middleware Instrumentation', () => {
     const spanIds = middlewareSpans.map(span => span.span_id);
     const uniqueSpanIds = new Set(spanIds);
     // 3 simple + 3 hooks (onRequest+handler+onBeforeResponse) + 5 array hooks (2 onRequest + 1 handler + 2 onBeforeResponse)
-    expect(uniqueSpanIds.size).toBe(11);
+    // + 2 `nuxt/server` middleware
+    expect(uniqueSpanIds.size).toBe(13);
 
     // Verify spans share the same trace ID
     const traceIds = middlewareSpans.map(span => span.trace_id);
