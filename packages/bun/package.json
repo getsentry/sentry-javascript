@@ -75,5 +75,16 @@
   },
   "sideEffects": [
     "./build/import.mjs"
-  ]
+  ],
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "outputs": [
+          "{projectRoot}/build/esm",
+          "{projectRoot}/build/cjs",
+          "{projectRoot}/build/import.mjs"
+        ]
+      }
+    }
+  }
 }
