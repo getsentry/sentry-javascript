@@ -1,5 +1,13 @@
 {
   "imports": {
     "@sentry-internal/node-integration-tests": "../../node-integration-tests/build/esm/index.js"
+  },
+  "scopes": {
+    "../../node-integration-tests/suites/": {
+      "@sentry/node": "../../../packages/deno/build/esm/index.js"
+    },
+    "../../node-integration-tests/utils/": {
+      "@sentry/node": "../../../packages/deno/build/esm/index.js"
+    }
   }
 }
