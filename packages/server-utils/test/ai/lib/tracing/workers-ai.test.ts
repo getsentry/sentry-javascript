@@ -17,13 +17,17 @@ import {
 import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  getCurrentScope,
   getMainCarrier,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   setCurrentClient,
   spanToStaticSpanJSON,
+  withScope,
 } from '@sentry/core';
 import type { DataCollection, Span } from '@sentry/core';
+import { setAsyncLocalStorageAsyncContextStrategy } from '../../../../src/async-context';
 import { instrumentWorkersAiClient } from '../../../../src/ai/workers-ai';
+import type { WorkersAiCallInfo } from '../../../../src/ai/workers-ai/types';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 const MODEL = '@cf/meta/llama-3.1-8b-instruct';
@@ -162,6 +166,49 @@ describe('instrumentWorkersAiClient', () => {
 
       expect(endedSpans).toHaveLength(1);
       expect(spanToStaticSpanJSON(endedSpans[0]!).data).toEqual(expected);
+    });
+
+    // Workers AI has no node integration suite, so its per-call options are covered here.
+    it('decides content recording per call when the options are functions', async () => {
+      setAsyncLocalStorageAsyncContextStrategy();
+      const endedSpans = setupClient();
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('data: {"response":"Paris"}\n\ndata: [DONE]\n\n'));
+          controller.close();
+        },
+      });
+      const client = {
+        run: (_model: string, inputs: { stream?: boolean }) =>
+          Promise.resolve(inputs.stream ? stream : { response: 'Paris' }),
+      };
+      const instrumented = instrumentWorkersAiClient(client, {
+        recordInputs: ({ inputs }: WorkersAiCallInfo) => (inputs as { user?: string }).user === 'public',
+        recordOutputs: () => getCurrentScope().getScopeData().tags.privacy === 'public',
+      });
+      const messages = [{ role: 'user', content: 'Capital of France?' }];
+
+      await withScope(async scope => {
+        scope.setTag('privacy', 'public');
+        await instrumented.run(MODEL, { messages, user: 'public' });
+      });
+      await withScope(async scope => {
+        scope.setTag('privacy', 'private');
+        const result = instrumented.run(MODEL, { messages, user: 'private', stream: true });
+        scope.setTag('privacy', 'public');
+        const reader = ((await result) as ReadableStream<Uint8Array>).getReader();
+        while (!(await reader.read()).done);
+      });
+
+      expect(
+        endedSpans.map(span => {
+          const { data } = spanToStaticSpanJSON(span);
+          return { inputs: GEN_AI_INPUT_MESSAGES in data, outputs: GEN_AI_OUTPUT_MESSAGES in data };
+        }),
+      ).toEqual([
+        { inputs: true, outputs: true },
+        { inputs: false, outputs: false },
+      ]);
     });
   });
 

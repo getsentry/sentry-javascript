@@ -70,6 +70,7 @@ export {
   linkedErrorsIntegration,
   localVariablesIntegration,
   makeNodeTransport,
+  getHttpAgent,
   modulesIntegration,
   mongoIntegration,
   mongooseIntegration,

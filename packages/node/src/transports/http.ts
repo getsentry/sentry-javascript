@@ -14,8 +14,11 @@ import { HttpsProxyAgent } from '../proxy';
 import type { HTTPModule } from './http-module';
 
 export interface NodeTransportOptions extends BaseTransportOptions {
-  /** Set a proxy that should be used for outbound requests. */
-  proxy?: string;
+  /**
+   * Set a proxy that should be used for outbound requests.
+   * Set to `false` to never use a proxy, even when `http_proxy` or `https_proxy` are set.
+   */
+  proxy?: string | false;
   /** HTTPS proxy CA certificates */
   caCerts?: string | Buffer | Array<string | Buffer>;
   /** Custom HTTP module. Defaults to the native 'http' and 'https' modules. */
@@ -60,21 +63,35 @@ export function makeNodeTransport(options: NodeTransportOptions): Transport {
 
   const isHttps = urlSegments.protocol === 'https:';
 
-  // Proxy prioritization: http => `options.proxy` | `process.env.http_proxy`
-  // Proxy prioritization: https => `options.proxy` | `process.env.https_proxy` | `process.env.http_proxy`
-  const proxy = applyNoProxyOption(
-    urlSegments,
-    options.proxy || (isHttps ? process.env.https_proxy : undefined) || process.env.http_proxy,
-  );
-
   const nativeHttpModule = isHttps ? https : http;
-  const keepAlive = options.keepAlive ?? true;
-  const agent = proxy
-    ? (new HttpsProxyAgent(proxy) as http.Agent)
-    : new nativeHttpModule.Agent({ keepAlive, maxSockets: 30, timeout: 2000 });
+  const agent = getHttpAgent(urlSegments, { proxy: options.proxy, keepAlive: options.keepAlive });
 
   const requestExecutor = createRequestExecutor(options, options.httpModule ?? nativeHttpModule, agent);
   return createTransport(options, requestExecutor);
+}
+
+/**
+ * Returns the agent for requests to `url`: a proxy agent when a proxy applies, otherwise a plain keep-alive agent.
+ *
+ * Proxy prioritization: http => `options.proxy` | `process.env.http_proxy`
+ * Proxy prioritization: https => `options.proxy` | `process.env.https_proxy` | `process.env.http_proxy`
+ * Hosts listed in `process.env.no_proxy` are never proxied, and `options.proxy: false` disables proxying entirely.
+ */
+export function getHttpAgent(url: URL, options: { proxy?: string | false; keepAlive?: boolean } = {}): http.Agent {
+  const isHttps = url.protocol === 'https:';
+  const proxy =
+    options.proxy === false
+      ? undefined
+      : applyNoProxyOption(
+          url,
+          options.proxy || (isHttps ? process.env.https_proxy : undefined) || process.env.http_proxy,
+        );
+
+  if (proxy) {
+    return new HttpsProxyAgent(proxy);
+  }
+
+  return new (isHttps ? https : http).Agent({ keepAlive: options.keepAlive ?? true, maxSockets: 30, timeout: 2000 });
 }
 
 /**
