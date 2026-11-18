@@ -40,15 +40,13 @@ export { dataloaderIntegration } from './integrations/dataloader';
 export { genericPoolIntegration } from './integrations/generic-pool';
 export { cronJobIntegration } from './integrations/cron';
 export type { CronJobIntegrationOptions } from './integrations/cron';
-export {
-  isReadAlikeByNodeCron3 as _INTERNAL_isReadAlikeByNodeCron3,
-  nodeCronIntegration,
-} from './integrations/node-cron';
+export { nodeCronIntegration } from './integrations/node-cron';
 export type { NodeCronIntegrationOptions } from './integrations/node-cron';
 export { nodeScheduleIntegration } from './integrations/node-schedule';
 export type { NodeScheduleIntegrationOptions } from './integrations/node-schedule';
 export { cronExpressionToMonitorConfig as _INTERNAL_cronExpressionToMonitorConfig } from './utils/cronMonitoring';
-export type { CronDialect as _INTERNAL_CronDialect } from './utils/cronMonitoring';
+export { cron } from './cron';
+export { BullMQTelemetry } from './integrations/bullmq';
 export { googleGenAIIntegration } from './integrations/google-genai';
 export { graphqlIntegration } from './integrations/graphql';
 export { hapiIntegration } from './integrations/hapi';
@@ -82,6 +80,7 @@ export { togetherAIIntegration } from './integrations/together-ai';
 export { typesafeIntegration } from './integrations/typesafe';
 export { mysqlIntegration } from './integrations/mysql';
 export { mysql2Integration } from './integrations/mysql2';
+export { pinoIntegration } from './integrations/pino';
 export { openAIIntegration } from './integrations/openai';
 export { postgresIntegration } from './integrations/pg';
 export { postgresJsIntegration } from './integrations/postgresjs';
