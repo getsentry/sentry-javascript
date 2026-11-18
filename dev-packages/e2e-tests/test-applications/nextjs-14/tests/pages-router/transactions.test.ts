@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
-import { isDevMode } from './isDevMode';
+import { isDevMode } from '../isDevMode';
 
 test('Sends a pageload span', async ({ page }) => {
-  const pageloadSpanPromise = waitForStreamedSpan('nextjs-pages-dir', span => {
-    return getSpanOp(span) === 'pageload' && span.name === '/' && span.is_segment;
+  const pageloadSpanPromise = waitForStreamedSpan('nextjs-14', span => {
+    return getSpanOp(span) === 'pageload' && span.name === '/pages-router' && span.is_segment;
   });
 
-  await page.goto('/');
+  await page.goto('/pages-router');
 
   const span = await pageloadSpanPromise;
 
@@ -22,21 +22,21 @@ test('Sends a pageload span', async ({ page }) => {
     'sentry.op': { value: 'pageload', type: 'string' },
     'sentry.origin': { value: 'auto.pageload.nextjs.pages_router_instrumentation', type: 'string' },
     'sentry.segment.name.source': { value: 'route', type: 'string' },
-    'url.path': { value: '/', type: 'string' },
-    'url.template': { value: '/', type: 'string' },
+    'url.path': { value: '/pages-router', type: 'string' },
+    'url.template': { value: '/pages-router', type: 'string' },
     'react.version': { value: expect.any(String), type: 'string' },
     'user_agent.original': { value: expect.any(String), type: 'string' },
   });
-  expect(String(span.attributes['url.full']?.value)).toMatch(/^https?:\/\/localhost:\d+\/$/);
+  expect(String(span.attributes['url.full']?.value)).toMatch(/^https?:\/\/localhost:\d+\/pages-router$/);
 });
 
 test('Sends a navigation span', async ({ page }) => {
   // Skip in dev mode - flaky due to slow compilation affecting span timing
   test.skip(isDevMode, 'Skipped in dev mode due to flakiness from slow compilation');
 
-  await page.goto('/');
+  await page.goto('/pages-router');
 
-  const clientNavigationSpanPromise = waitForStreamedSpan('nextjs-pages-dir', span => {
+  const clientNavigationSpanPromise = waitForStreamedSpan('nextjs-14', span => {
     return getSpanOp(span) === 'navigation' && span.name === '/user/[id]' && span.is_segment;
   });
 

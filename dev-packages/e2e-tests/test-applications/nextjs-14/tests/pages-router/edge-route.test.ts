@@ -4,7 +4,7 @@ import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/t
 test('Should create a span for edge routes', async ({ request }) => {
   // The route is only served by the edge runtime, so the span name identifies it on its own. The
   // transaction-based test additionally matched on `contexts.runtime.name`, which span v2 does not carry.
-  const edgerouteSpanPromise = waitForStreamedSpan('nextjs-pages-dir', span => {
+  const edgerouteSpanPromise = waitForStreamedSpan('nextjs-14', span => {
     return span.name === 'GET /api/edge-endpoint' && span.is_segment;
   });
 
@@ -24,11 +24,11 @@ test('Should create a span for edge routes', async ({ request }) => {
 });
 
 test('Faulty edge routes', async ({ request }) => {
-  const edgerouteSpanPromise = waitForStreamedSpan('nextjs-pages-dir', span => {
+  const edgerouteSpanPromise = waitForStreamedSpan('nextjs-14', span => {
     return span.name === 'GET /api/error-edge-endpoint' && span.is_segment;
   });
 
-  const errorEventPromise = waitForError('nextjs-pages-dir', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-14', errorEvent => {
     return (
       errorEvent?.exception?.values?.[0]?.value === 'Edge Route Error' &&
       errorEvent.contexts?.runtime?.name === 'vercel-edge'
