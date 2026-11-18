@@ -30,10 +30,8 @@ export async function sentryReactRouter(
     plugins.push(makeEnableSourceMapsPlugin(options));
 
     // Building the Sentry plugins loads `.env.sentry-build-plugin`, which can set `SENTRY_RELEASE`, so the release is
-    // resolved only after that. Without a release, the client build has nothing to inject anyway.
-    const sentryVitePlugins = await makeCustomSentryVitePlugins(options, {
-      releaseAtRuntime: options.release?.inject !== false,
-    });
+    // resolved only after that.
+    const sentryVitePlugins = await makeCustomSentryVitePlugins(options);
     const clientRelease = getClientRelease(options);
     if (clientRelease) {
       plugins.push(makeClientReleasePlugin(clientRelease));

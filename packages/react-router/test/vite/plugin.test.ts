@@ -99,7 +99,7 @@ describe('sentryReactRouter', () => {
     ]);
     expect(makeConfigInjectorPlugin).toHaveBeenCalledWith({});
     expect(makeServerBuildCapturePlugin).toHaveBeenCalled();
-    expect(makeCustomSentryVitePlugins).toHaveBeenCalledWith({}, { releaseAtRuntime: true });
+    expect(makeCustomSentryVitePlugins).toHaveBeenCalledWith({});
     expect(makeEnableSourceMapsPlugin).toHaveBeenCalledWith({});
 
     process.env.NODE_ENV = originalNodeEnv;
@@ -114,7 +114,7 @@ describe('sentryReactRouter', () => {
 
     expect(makeClientReleasePlugin).toHaveBeenCalledWith('v1.0.0');
     expect(result).toContain(mockClientReleasePlugin);
-    expect(makeCustomSentryVitePlugins).toHaveBeenCalledWith({}, { releaseAtRuntime: true });
+    expect(makeCustomSentryVitePlugins).toHaveBeenCalledWith({});
 
     process.env.NODE_ENV = originalNodeEnv;
   });
@@ -132,18 +132,6 @@ describe('sentryReactRouter', () => {
     process.env.NODE_ENV = originalNodeEnv;
   });
 
-  it('keeps the release in the client chunks when release injection is turned off', async () => {
-    const originalNodeEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'production';
-
-    const options = { release: { inject: false } };
-    await sentryReactRouter(options, { command: 'build', mode: 'production' });
-
-    expect(makeCustomSentryVitePlugins).toHaveBeenCalledWith(options, { releaseAtRuntime: false });
-
-    process.env.NODE_ENV = originalNodeEnv;
-  });
-
   it('should pass release configuration to plugins', async () => {
     const originalNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';
@@ -157,7 +145,7 @@ describe('sentryReactRouter', () => {
     await sentryReactRouter(options, { command: 'build', mode: 'production' });
 
     expect(makeConfigInjectorPlugin).toHaveBeenCalledWith(options);
-    expect(makeCustomSentryVitePlugins).toHaveBeenCalledWith(options, { releaseAtRuntime: true });
+    expect(makeCustomSentryVitePlugins).toHaveBeenCalledWith(options);
     expect(makeEnableSourceMapsPlugin).toHaveBeenCalledWith(options);
 
     process.env.NODE_ENV = originalNodeEnv;

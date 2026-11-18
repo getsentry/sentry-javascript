@@ -1,6 +1,15 @@
 import { reactRouter } from '@react-router/dev/vite';
+import { sentryReactRouter } from '@sentry/react-router/vite';
 import { defineConfig } from 'vite';
 
-export default defineConfig({
-  plugins: [reactRouter()],
+export default defineConfig(config => {
+  return {
+    plugins: [
+      reactRouter(),
+      sentryReactRouter(
+        { release: { name: 'react-router-7-framework-spa-e2e' }, sourcemaps: { disable: true } },
+        config,
+      ),
+    ],
+  };
 });

@@ -8,8 +8,8 @@ type ServerBuildEntry = { module: { default?: unknown } };
 
 /**
  * Wraps the server build's document request handler, so every HTML document it renders carries the release in a
- * meta tag. The Vite plugin calls this from the server build, after it turned off release injection for the client
- * build, so the release stays out of the content-hashed client chunks.
+ * meta tag. The Vite plugin calls this from the server build, after it turned off the bundler plugin's release
+ * injection, so the release stays out of the content-hashed client chunks.
  *
  * Any `handleRequest` gets the tag, including the default one and one that does not use the SDK's helpers. SPA mode
  * and prerendering render their HTML through the same handler at build time.
