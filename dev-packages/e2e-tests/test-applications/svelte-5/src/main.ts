@@ -5,6 +5,7 @@ import './app.css';
 import * as Sentry from '@sentry/svelte';
 
 Sentry.init({
+  traceLifecycle: import.meta.env.PUBLIC_E2E_TEST_TRACE_LIFECYCLE === 'static' ? 'static' : undefined,
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,
   tracesSampleRate: 1.0,

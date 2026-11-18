@@ -16,7 +16,7 @@ import {
   extractSystemInstructions,
   getErrorStatus,
   getGenAiSpanOp,
-  resolveAIRecordingOptions,
+  resolveGenAiCallRecording,
   wrapPromiseWithMethods,
 } from '../core/utils';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
@@ -111,10 +111,13 @@ function instrumentMethod<T extends unknown[], R>(
   return function instrumentedCall(...args: T): Promise<R> {
     const operationName = instrumentedMethod.operation || 'unknown';
     const isStreamRequested = !!instrumentedMethod.streaming;
-    const requestAttributes = extractRequestAttributes(args, operationName, !!options.recordInputs, isStreamRequested);
-
     const params = args[0] as Record<string, unknown> | undefined;
     const abortSignal = getMistralRequestSignal(args[1]);
+    const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, {
+      operation: operationName,
+      request: params,
+    });
+    const requestAttributes = extractRequestAttributes(args, operationName, recordInputs, isStreamRequested);
 
     const spanConfig = {
       name: getSpanName(operationName, requestAttributes),
@@ -128,7 +131,7 @@ function instrumentMethod<T extends unknown[], R>(
       const instrumentedPromise = startSpanManual(spanConfig, (span: Span) => {
         originalResult = originalMethod.apply(context, args);
 
-        if (options.recordInputs && params) {
+        if (recordInputs && params) {
           addRequestAttributes(span, params, operationName);
         }
 
@@ -136,7 +139,7 @@ function instrumentMethod<T extends unknown[], R>(
           result => {
             // Patched in place so the caller keeps the real `EventStream`; `instrumentEventStream`
             // takes over ending the span once the stream is drained.
-            if (!instrumentEventStream(result, span, options.recordOutputs ?? false, abortSignal)) {
+            if (!instrumentEventStream(result, span, recordOutputs, abortSignal)) {
               span.end();
             }
             return result;
@@ -157,13 +160,13 @@ function instrumentMethod<T extends unknown[], R>(
     const instrumentedPromise = startSpan(spanConfig, (span: Span) => {
       originalResult = originalMethod.apply(context, args);
 
-      if (options.recordInputs && params) {
+      if (recordInputs && params) {
         addRequestAttributes(span, params, operationName);
       }
 
       return originalResult.then(
         result => {
-          addResponseAttributes(span, result, options.recordOutputs);
+          addResponseAttributes(span, result, recordOutputs);
           return result;
         },
         error => {
@@ -210,5 +213,5 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  * Can be used across Node.js, Cloudflare Workers, and Vercel Edge.
  */
 export function instrumentMistralAiClient<T extends object>(client: T, options?: MistralOptions): T {
-  return createDeepProxy(client, '', resolveAIRecordingOptions(options));
+  return createDeepProxy(client, '', options ?? {});
 }

@@ -1023,7 +1023,7 @@ describe('OpenAI integration (V6)', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario-root-span.mjs',
+    '../scenario-root-span.mjs',
     'instrument.mjs',
     (createRunner, test) => {
       test('it works without a wrapping span (v6)', async () => {
@@ -1071,7 +1071,7 @@ describe('OpenAI integration (V6)', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario-azure-openai.mjs',
+    '../scenario-azure-openai.mjs',
     'instrument.mjs',
     (createRunner, test) => {
       test('it works with Azure OpenAI (v6)', async () => {

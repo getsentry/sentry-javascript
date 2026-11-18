@@ -1,5 +1,8 @@
 import { getPlaywrightConfig, getRuntime } from '@sentry-internal/test-utils';
 
+// The static trace lifecycle variant sets this to `static`.
+process.env.E2E_TEST_TRACE_LIFECYCLE ??= 'stream';
+
 const testEnv = process.env.TEST_ENV;
 
 if (!testEnv) {

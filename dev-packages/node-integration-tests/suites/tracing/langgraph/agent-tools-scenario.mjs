@@ -5,6 +5,7 @@ import { HumanMessage } from '@langchain/core/messages';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import { z } from 'zod';
+import { startMockServer } from '@sentry-internal/node-integration-tests';
 
 let callCount = 0;
 
@@ -66,14 +67,12 @@ function startMockAnthropicServer() {
     }
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => resolve(server));
-  });
+  return startMockServer(app);
 }
 
 async function run() {
   const server = await startMockAnthropicServer();
-  const baseUrl = `http://localhost:${server.address().port}`;
+  const baseUrl = server.url;
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const llm = new ChatAnthropic({

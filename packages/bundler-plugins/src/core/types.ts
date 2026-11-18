@@ -111,9 +111,49 @@ export interface Options {
    * Options related to source maps upload and processing.
    */
   sourcemaps?: {
-    // TODO(v12): Replace `disable` with separate options, for example
-    // `upload`, `debugIds` and `deleteSourcemapsAfterUpload`, so that one
-    // option no longer controls several features.
+    /**
+     * Whether the plugin uploads source maps to Sentry.
+     *
+     * With `false` the plugin uploads nothing, but it still injects debug IDs: the bundles get the debug ID snippet and
+     * a `//# debugId=` comment, and the emitted source maps get the matching `debug_id` field. Use this to upload the
+     * source maps yourself later, for example with `sentry sourcemap upload`. No `inject` step is needed.
+     *
+     * With `false` the plugin only turns source maps on when `sourcemaps.delete` is `false`.
+     *
+     * @default true
+     */
+    upload?: boolean;
+
+    /**
+     * Whether the plugin injects debug IDs into the bundles and their source maps.
+     *
+     * With `false` the plugin adds no debug IDs and uploads no source maps, because the upload matches files by debug
+     * ID. Use this when another tool injects the debug IDs and uploads the source maps, for example the Sentry CLI.
+     *
+     * @default true
+     */
+    injectDebugIds?: boolean;
+
+    /**
+     * Whether source maps are removed from the build output.
+     *
+     * - Unset: the plugin removes the source maps it turned on itself, that is, when the bundler's source map setting
+     *   was not set. Source maps you turned on stay.
+     * - `true`: the plugin removes every source map of the build, also the ones you turned on, and also those of
+     *   chunks that `sourcemaps.assets` or `sourcemaps.ignore` keep out of the upload. Visible source maps are
+     *   switched to hidden ones, so that no `sourceMappingURL` comment points to a removed file.
+     * - `false`: the plugin removes no source map. When the bundler's source map setting is not set, the plugin turns
+     *   hidden source maps on and they stay in the build output.
+     *
+     * `true` and `false` do not depend on an upload. They also apply when the upload is switched off, when it cannot
+     * run (for example without an auth token) and when it fails.
+     *
+     * With Rollup, Vite and webpack the removed source maps are never written to the output directory. With esbuild
+     * they are deleted after the build.
+     */
+    delete?: boolean;
+
+    // TODO(v12): Remove `disable`. `upload` and `injectDebugIds` replace it.
     /**
      * Disables all functionality related to sourcemaps if set to `true`.
      *

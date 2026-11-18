@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
 
 function streamEvents(id, model) {
   return [
@@ -38,17 +39,8 @@ function startMockAnthropicServer() {
       return;
     }
 
-    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
     const events = streamEvents(id, req.body.model);
-    events.forEach((event, index) => {
-      setTimeout(() => {
-        res.write(`event: ${event.type}\n`);
-        res.write(`data: ${JSON.stringify(event)}\n\n`);
-        if (index === events.length - 1) {
-          res.end();
-        }
-      }, index * 10);
-    });
+    streamSseEvents(res, events, { eventNames: true });
   });
 
   app.post('/anthropic/v1/complete', (req, res) => {
@@ -61,11 +53,7 @@ function startMockAnthropicServer() {
     });
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
@@ -74,7 +62,7 @@ async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Anthropic({
       apiKey: 'mock-api-key',
-      baseURL: `http://localhost:${server.address().port}/anthropic`,
+      baseURL: `${server.url}/anthropic`,
     });
     const model = 'claude-3-haiku-20240307';
 

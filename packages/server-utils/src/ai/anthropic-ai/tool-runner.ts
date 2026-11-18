@@ -29,7 +29,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
-import { getErrorStatus, resolveAIRecordingOptions } from '../core/utils';
+import { getErrorStatus, resolveGenAiCallRecording } from '../core/utils';
 import { withCleanScopes } from '../../utils/withCleanScopes';
 import { ANTHROPIC_AI_ORIGIN } from './constants';
 import type { AnthropicAiOptions } from './types';
@@ -188,8 +188,12 @@ function runWithSpan(
   args: unknown[],
   options: AnthropicAiOptions,
 ): unknown {
-  const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
   const [input, context] = args as [unknown, RunContext];
+  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, {
+    operation: 'execute_tool',
+    tool,
+    input,
+  });
   // SDK versions before `toolUse` existed pass only `toolUseBlock`.
   const callId = (context?.toolUse ?? context?.toolUseBlock)?.id;
 

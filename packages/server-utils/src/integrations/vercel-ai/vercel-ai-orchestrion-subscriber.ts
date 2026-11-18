@@ -304,7 +304,7 @@ function bindOperation(
           // v6's `executeToolCall` returns the tool result/error object directly, whereas the shared core
           // (matching v7) expects it nested under `output`; wrap it so tool-error detection works.
           message.result = message.type === 'executeTool' ? { output: data.result } : data.result;
-          enrichSpanOnEnd(span, message, options);
+          enrichSpanOnEnd(span, message);
         }
         // A `streamText`/`streamObject` model call runs after this (synchronously-returning) operation's
         // span has already ended, so its `callId` entry must outlive the operation — it's cleared once the
@@ -318,7 +318,7 @@ function bindOperation(
       // before the stream drains — losing the aggregate usage/output. Defer the end and await the result's
       // completion promises (`totalUsage`/`text`/…, which resolve on drain), mirroring how v7's channel
       // defers the operation span on the SDK's total-usage promise.
-      deferSpanEnd: ({ span, data, end }) => deferStreamTextOperationEnd(span, data, end, options),
+      deferSpanEnd: ({ span, data, end }) => deferStreamTextOperationEnd(span, data, end),
     },
   );
 }
@@ -337,7 +337,6 @@ function deferStreamTextOperationEnd(
   span: Span,
   data: TracingChannelPayloadWithSpan<OrchestrionChannelContext>,
   end: (error?: unknown) => void,
-  options: VercelAiChannelOptions,
 ): boolean {
   const message = messages.get(data);
   const type = message?.type;
@@ -371,7 +370,7 @@ function deferStreamTextOperationEnd(
         // The model call itself succeeded, so keep its usage on the span; `beforeSpanEnd` skips
         // enrichment once `end(error)` marks the payload as errored.
         message.result = { usage, toolCalls, finishReason, response };
-        enrichSpanOnEnd(span, message, options);
+        enrichSpanOnEnd(span, message);
         end(objectOutcome.error);
         return;
       }
@@ -565,10 +564,11 @@ function patchModelMethod(
         // separately by `deferStreamTextOperationEnd`, which awaits the operation's own result promises.
         if (method === 'doStream' && isObjectLike(value) && isReadableStream(value.stream)) {
           value.stream = tapModelCallStream(
+            span,
             value.stream,
             final => {
               message.result = { ...value, ...streamedResultToChannelResult(final) };
-              enrichSpanOnEnd(span, message, options);
+              enrichSpanOnEnd(span, message);
               span.end();
               clearStreamCallId();
             },
@@ -587,7 +587,7 @@ function patchModelMethod(
         // `doGenerate` (and any non-stream result) settles with the full result; end here, start/end
         // bracket the call to match the channel timing.
         message.result = value;
-        enrichSpanOnEnd(span, message, options);
+        enrichSpanOnEnd(span, message);
         span.end();
         clearStreamCallId();
 
@@ -681,7 +681,7 @@ function patchToolExecute(
       return result.then(value => {
         // The shared core (matching v6/v7) expects the tool result nested under `output`.
         message.result = { output: value };
-        enrichSpanOnEnd(span, message, options);
+        enrichSpanOnEnd(span, message);
         span.end();
         return value;
       }, failSpan);

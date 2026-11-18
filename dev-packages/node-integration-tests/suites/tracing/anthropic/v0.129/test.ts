@@ -183,7 +183,7 @@ describe('Anthropic integration (0.129)', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario-session-tool-runner.mjs',
+    '../v1/scenario-session-tool-runner.mjs',
     'instrument.mjs',
     (createRunner, test) => {
       test('parents the execute_tool spans of each session runner to one invoke_agent span', async () => {

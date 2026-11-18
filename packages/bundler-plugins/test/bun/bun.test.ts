@@ -193,6 +193,44 @@ describe('sentryBunPlugin', () => {
     expect(uploadSpy).not.toHaveBeenCalled();
   });
 
+  it('stamps but does not upload with `sourcemaps.upload: false`', async () => {
+    const config: Config = { sourcemap: 'external', outdir: outDir };
+    const { end } = setupPlugin(
+      sentryBunPlugin({ telemetry: false, sourcemaps: { upload: false } }) as BunPlugin,
+      config,
+    );
+
+    const entry = writeBundle('index.js', config.banner!);
+
+    await end([{ path: entry, kind: 'entry-point' }]);
+
+    expect(fs.readFileSync(entry, 'utf8').match(DEBUG_ID_MARKER)?.[1]).toBe(UUID);
+    expect(uploadSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not inject or upload with `sourcemaps.injectDebugIds: false`', async () => {
+    const config: Config = { sourcemap: 'external', outdir: outDir };
+    const { end } = setupPlugin(
+      sentryBunPlugin({ telemetry: false, sourcemaps: { injectDebugIds: false } }) as BunPlugin,
+      config,
+    );
+
+    expect(config.banner ?? '').not.toContain('sentry-dbid-');
+
+    await end([]);
+
+    expect(uploadSpy).not.toHaveBeenCalled();
+  });
+
+  it('warns that `sourcemaps.delete` is not supported', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    sentryBunPlugin({ telemetry: false, sourcemaps: { delete: true } });
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('does not support `sourcemaps.delete`'));
+    warn.mockRestore();
+  });
+
   it('does not inject or upload with `sourcemaps.disable: true`', async () => {
     const config: Config = { sourcemap: 'external', outdir: outDir };
     const { end } = setupPlugin(

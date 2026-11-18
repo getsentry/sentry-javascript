@@ -32,4 +32,5 @@ export interface PiStreamOptions {
 
 export interface PiEventStream {
   result(): Promise<PiAssistantMessage>;
+  push(event: unknown): void;
 }
