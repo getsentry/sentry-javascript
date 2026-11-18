@@ -1,7 +1,8 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { getToolCallKey } from '../core/streaming-tool-calls';
-import { endStreamSpan, recordTimeToFirstChunk } from '../core/utils';
+import { endStreamSpan } from '../core/utils';
+import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
 import { RESPONSE_EVENT_TYPES } from './constants';
 import type {
   ChatCompletionChunk,

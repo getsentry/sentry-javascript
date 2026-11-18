@@ -2,16 +2,7 @@
 /**
  * Shared utils for AI integrations (OpenAI, Anthropic, Verce.AI, etc.)
  */
-import {
-  debug,
-  getClient,
-  isObjectLike,
-  isThenable,
-  SPAN_STATUS_ERROR,
-  spanToJSON,
-  stringify,
-  timestampInSeconds,
-} from '@sentry/core';
+import { debug, getClient, isObjectLike, isThenable, SPAN_STATUS_ERROR, stringify } from '@sentry/core';
 import type { Span, SpanStatus } from '@sentry/core';
 import {
   GEN_AI_OUTPUT_MESSAGES,
@@ -20,7 +11,6 @@ import {
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TEXT,
-  GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
@@ -327,17 +317,6 @@ export function getErrorStatus(abortSignal: AbortSignal | undefined): SpanStatus
 export function markCancelledIfAborted(span: Span, abortSignal: AbortSignal | undefined): void {
   if (isCallerAbort(abortSignal)) {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
-  }
-}
-
-/**
- * Sets `gen_ai.response.time_to_first_chunk` on a streamed span, in seconds from the span start.
- * Call it for each received chunk. Only the first call per span records a value.
- */
-export function recordTimeToFirstChunk(span: Span): void {
-  const { attributes, start_timestamp } = spanToJSON(span);
-  if (attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK] === undefined) {
-    span.setAttribute(GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK, timestampInSeconds() - start_timestamp);
   }
 }
 

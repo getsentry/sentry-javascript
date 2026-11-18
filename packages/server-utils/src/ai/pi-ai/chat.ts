@@ -28,7 +28,7 @@ import {
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT } from '@sentry/conventions/op';
-import { recordTimeToFirstChunk } from '../core/utils';
+import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
 import { PI_AI_ORIGIN } from './constants';
 import type { PiAiContext } from './messages';
 import {

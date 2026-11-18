@@ -1,5 +1,6 @@
 import type { Span } from '@sentry/core';
-import { endStreamSpan, getErrorStatus, recordTimeToFirstChunk, setOutputMessagesAttribute } from '../core/utils';
+import { endStreamSpan, getErrorStatus, setOutputMessagesAttribute } from '../core/utils';
+import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
 import type { MistralCompletionChunk, MistralToolCall } from './types';
 import { contentToString } from './utils';
 

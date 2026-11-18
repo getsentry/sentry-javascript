@@ -2,7 +2,7 @@
 
 import type { Span } from '@sentry/core';
 import { isObjectLike } from '@sentry/core';
-import { recordTimeToFirstChunk } from '../../ai/core/utils';
+import { recordTimeToFirstChunk } from '../../ai/core/time-to-first-chunk';
 
 /** Narrow to a string, or `undefined` for anything else. */
 export function asString(value: unknown): string | undefined {

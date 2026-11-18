@@ -28,7 +28,8 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
-import { recordTimeToFirstChunk, resolveAIRecordingOptions } from '../core/utils';
+import { resolveAIRecordingOptions } from '../core/utils';
+import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
 import { LANGCHAIN_ORIGIN, MAX_TRACKED_LANGCHAIN_RUNS } from './constants';
 import {
   addTypeSafeClassifierResponseAttributes,
