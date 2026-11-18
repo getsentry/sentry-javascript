@@ -25,25 +25,43 @@ function startMockApi() {
 
     if (stream) {
       // Gemini's OpenAI-compatible endpoint streams whole, parallel tool calls without an `index`
-      const chunks =
-        model === 'gemini-compat'
-          ? openAiChatCompletionChunks(model, {
-              id: 'chatcmpl-stream-gemini-456',
-              toolCalls: [
-                {
-                  id: 'call_paris',
-                  type: 'function',
-                  function: { name: 'get_weather', arguments: '{"city":"Paris"}' },
-                },
-                {
-                  id: 'call_london',
-                  type: 'function',
-                  function: { name: 'get_weather', arguments: '{"city":"London"}' },
-                },
-              ],
-              usage: { prompt_tokens: 15, completion_tokens: 25 },
-            })
-          : openAiChatCompletionChunks(model);
+      const geminiToolCallChunks = [
+        {
+          id: 'chatcmpl-stream-gemini-456',
+          object: 'chat.completion.chunk',
+          created: 1677652305,
+          model: model,
+          choices: [
+            {
+              index: 0,
+              delta: {
+                role: 'assistant',
+                tool_calls: [
+                  {
+                    id: 'call_paris',
+                    type: 'function',
+                    function: { name: 'get_weather', arguments: '{"city":"Paris"}' },
+                  },
+                  {
+                    id: 'call_london',
+                    type: 'function',
+                    function: { name: 'get_weather', arguments: '{"city":"London"}' },
+                  },
+                ],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
+          usage: {
+            prompt_tokens: 15,
+            completion_tokens: 25,
+            total_tokens: 40,
+          },
+        },
+      ];
+
+      const chunks = model === 'gemini-compat' ? geminiToolCallChunks : openAiChatCompletionChunks(model);
+
       streamSseEvents(res, chunks, { done: true });
     } else {
       res.send(openAiChatCompletion(model));

@@ -1,12 +1,7 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import OpenAI from 'openai';
-import {
-  openAiChatCompletion,
-  openAiChatCompletionChunks,
-  startMockServer,
-  streamSseEvents,
-} from '@sentry-internal/node-integration-tests';
+import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
 
 function startMockApi() {
   const app = express();
@@ -16,11 +11,34 @@ function startMockApi() {
     const { model, stream, user } = req.body;
     const id = `chatcmpl-${user}${stream ? '-stream' : ''}`;
 
-    if (stream) {
-      streamSseEvents(res, openAiChatCompletionChunks(model, { id, content: 'Paris.' }), { done: true });
-    } else {
-      res.send(openAiChatCompletion(model, { id, content: 'Paris.' }));
+    if (!stream) {
+      res.send({
+        id,
+        object: 'chat.completion',
+        created: 1677652288,
+        model,
+        choices: [{ index: 0, message: { role: 'assistant', content: 'Paris.' }, finish_reason: 'stop' }],
+      });
+      return;
     }
+
+    const chunks = [
+      {
+        id,
+        object: 'chat.completion.chunk',
+        created: 1677652300,
+        model,
+        choices: [{ index: 0, delta: { content: 'Paris.' } }],
+      },
+      {
+        id,
+        object: 'chat.completion.chunk',
+        created: 1677652300,
+        model,
+        choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+      },
+    ];
+    streamSseEvents(res, chunks, { done: true });
   });
 
   return startMockServer(app);

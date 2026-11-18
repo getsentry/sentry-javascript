@@ -33,18 +33,14 @@ export function openAiChatCompletion(
   };
 }
 
-/**
- * The chunks of a streamed OpenAI-compatible chat completion: role, then content (or all of `toolCalls`
- * in one delta), then finish reason and usage.
- */
+/** The chunks of a streamed OpenAI-compatible chat completion: role, then content, then finish reason and usage. */
 export function openAiChatCompletionChunks(
   model: string,
   {
     id = 'chatcmpl-stream-123',
     content = 'Hello from OpenAI streaming!',
-    toolCalls,
     usage = { prompt_tokens: 12, completion_tokens: 18 },
-  }: { id?: string; content?: string; toolCalls?: unknown[]; usage?: OpenAiUsage } = {},
+  }: { id?: string; content?: string; usage?: OpenAiUsage } = {},
 ): Record<string, unknown>[] {
   const chunk = (choice: Record<string, unknown>, extra: Record<string, unknown> = {}): Record<string, unknown> => ({
     id,
@@ -57,8 +53,8 @@ export function openAiChatCompletionChunks(
 
   return [
     chunk({ delta: { role: 'assistant', content: '' } }),
-    chunk({ delta: toolCalls ? { tool_calls: toolCalls } : { content } }),
-    chunk({ delta: {}, finish_reason: toolCalls ? 'tool_calls' : 'stop' }, { usage: withTotal(usage) }),
+    chunk({ delta: { content } }),
+    chunk({ delta: {}, finish_reason: 'stop' }, { usage: withTotal(usage) }),
   ];
 }
 
