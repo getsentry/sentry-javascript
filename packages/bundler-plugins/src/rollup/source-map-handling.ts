@@ -229,8 +229,10 @@ export function createSourceMapHandling(sentryBuildPluginManager: SentryBuildPlu
 
       const removeAll = record.decision.removeAllSourceMaps === true;
       // With `unset` the plugin only turned on the chunk maps. Asset maps
-      // come from other plugins' own settings.
-      if (removeAll && record.kind !== 'unset') {
+      // come from other plugins' own settings. `sourcemaps.delete: true`
+      // removes them too, because it applies to every map of the build.
+      const deleteAll = sentryBuildPluginManager.normalizedOptions.sourcemaps?.delete === true;
+      if (removeAll && (record.kind !== 'unset' || deleteAll)) {
         dropAssetSourceMaps(bundle);
       }
 
