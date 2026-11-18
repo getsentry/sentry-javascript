@@ -19,6 +19,7 @@ export const loader = () => {
   return json({
     ENV: {
       SENTRY_DSN: process.env.E2E_TEST_DSN,
+      E2E_TEST_TRACE_LIFECYCLE: process.env.E2E_TEST_TRACE_LIFECYCLE,
     },
   });
 };

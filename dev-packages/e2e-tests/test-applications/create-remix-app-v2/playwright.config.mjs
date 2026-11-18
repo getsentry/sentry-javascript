@@ -1,6 +1,9 @@
 import { getPlaywrightConfig } from '@sentry-internal/test-utils';
 import { fileURLToPath } from 'url';
 
+// The static trace lifecycle variant sets this to `static`.
+process.env.E2E_TEST_TRACE_LIFECYCLE ??= 'stream';
+
 // `remix vite:dev` ignores PORT, so the port goes on the command. The dev server has no
 // bundle, so the SDK is loaded through `--import` the way `pnpm start` does it.
 const startCommand =

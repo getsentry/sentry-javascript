@@ -99,7 +99,7 @@ describe('Vercel AI recording under eve', () => {
       },
     } as Parameters<typeof createSpanFromMessage>[0];
     const span = createSpanFromMessage(message, {})!;
-    enrichSpanOnEnd(span, message, {});
+    enrichSpanOnEnd(span, message);
 
     expect(spanToStaticSpanJSON(span).data?.[GEN_AI_OUTPUT_MESSAGES]).toContain('It is sunny in Paris.');
   });

@@ -47,7 +47,7 @@ describe('Vercel AI SDK conversation id', () => {
 
   function run(message: Message): Record<string, unknown> {
     const span = createSpanFromMessage(message, channelOptions)!;
-    enrichSpanOnEnd(span, message, {} as Parameters<typeof enrichSpanOnEnd>[2]);
+    enrichSpanOnEnd(span, message);
     span.end();
     return spanToStaticSpanJSON(endedSpans[endedSpans.length - 1]!).data ?? {};
   }

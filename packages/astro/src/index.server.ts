@@ -86,6 +86,7 @@ export {
   localVariablesIntegration,
   lruMemoizerIntegration,
   makeNodeTransport,
+  getHttpAgent,
   modulesIntegration,
   nodeRuntimeMetricsIntegration,
   type NodeRuntimeMetricsOptions,

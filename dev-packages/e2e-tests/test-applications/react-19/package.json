@@ -5,10 +5,10 @@
   "dependencies": {
     "@sentry/react": "file:../../packed/sentry-react-packed.tgz",
     "@types/node": "^18.19.1",
-    "@types/react": "npm:types-react@rc",
-    "@types/react-dom": "npm:types-react-dom@rc",
-    "react": "19.0.0-rc-935180c7e0-20240524",
-    "react-dom": "19.0.0-rc-935180c7e0-20240524",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "react-scripts": "5.0.1",
     "typescript": "~5.0.0"
   },

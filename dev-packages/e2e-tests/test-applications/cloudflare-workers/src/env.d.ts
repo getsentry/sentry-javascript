@@ -3,5 +3,6 @@
 
 interface Env {
   E2E_TEST_DSN: '';
+  E2E_TEST_TRACE_LIFECYCLE?: string;
   MY_DURABLE_OBJECT: DurableObjectNamespace;
 }
