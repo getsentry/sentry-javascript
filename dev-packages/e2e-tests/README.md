@@ -43,7 +43,7 @@ Or you can run a single E2E test app with a specific variant:
 pnpm run test:run <app-name> --variant <variant-name>
 ```
 
-Variant name matching is case-insensitive and partial. For example, `--variant 13` will match `nextjs-14-pages-dir (next@13)` if a matching variant is present in the test app's `package.json`.
+Pass the variant's full label from the test app's `package.json`, for example `--variant "nextjs-16 (webpack, production)"`.
 
 ### Using the Makefile
 
@@ -69,28 +69,26 @@ This will display a fuzzy-finder menu of all available test applications. Select
 make list
 ```
 
-For example, if you have the following variants in your test app's `package.json`:
+For example, `nextjs-16` has these variants in its `package.json` (shortened):
 
 ```json
 "sentryTest": {
   "variants": [
     {
-      "build-command": "pnpm test:build-13",
-      "label": "nextjs-14-pages-dir (next@13)"
+      "build-command": "pnpm test:build-webpack",
+      "label": "nextjs-16 (webpack, production)",
+      "assert-command": "pnpm test:prod"
     },
     {
-      "build-command": "pnpm test:build-13-canary",
-      "label": "nextjs-14-pages-dir (next@13-canary)"
-    },
-    {
-      "build-command": "pnpm test:build-15",
-      "label": "nextjs-14-pages-dir (next@15)"
+      "build-command": "pnpm install",
+      "label": "nextjs-16 (webpack, development)",
+      "assert-command": "pnpm test:dev-webpack"
     }
   ]
 }
 ```
 
-If you run `pnpm run test:run nextjs-14-pages-dir --variant 13`, it will match against the very first matching variant, which is `nextjs-14-pages-dir (next@13)`. If you need to target the second variant in the example, you need to be more specific and use `--variant 13-canary`.
+To run one of them, pass its full label: `pnpm run test:run nextjs-16 --variant "nextjs-16 (webpack, production)"`.
 
 A variant runs its `build-command` and `assert-command`. Without them, it runs the app's `test:build` and `test:assert` scripts, like the app's default job.
 

@@ -14,7 +14,7 @@ The user provides a test application name and optionally a variant:
 
 - `e2e-tests/test-applications/nextjs-14` (full path)
 - `nextjs-14` (just the app name)
-- `nextjs-14-pages-dir --variant 15` (with variant)
+- `nextjs-16 --variant "nextjs-16 (webpack, production)"` (with variant)
 
 ## Workflow
 
@@ -23,7 +23,7 @@ The user provides a test application name and optionally a variant:
 Extract the test app name from user input:
 
 - Strip `e2e-tests/test-applications/` prefix if present
-- Extract variant flag if provided (e.g., `--variant 15`)
+- Extract variant flag if provided (e.g., `--variant "nextjs-16 (webpack, production)"`)
 - Store the clean app name (e.g., `nextjs-14`)
 
 ### Step 2: Determine Which Packages Need Rebuilding
@@ -173,12 +173,12 @@ pnpm run test:run nextjs-14
 ### Example 3: With variant
 
 ```bash
-# User: "Run e2e tests for nextjs-14-pages-dir with the next@15 variant"
+# User: "Run e2e tests for nextjs-16 with the webpack production variant"
 
 # Step 1: Rebuild if needed
 # Step 2: Run with variant
 cd dev-packages/e2e-tests
-pnpm run test:run nextjs-14-pages-dir --variant 15
+pnpm run test:run nextjs-16 --variant "nextjs-16 (webpack, production)"
 ```
 
 ## Tips

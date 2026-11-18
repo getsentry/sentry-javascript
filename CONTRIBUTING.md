@@ -131,7 +131,7 @@ E2E tests verify SDK behavior in real-world framework scenarios.
 5. **Run with a specific variant:**
    ```bash
    pnpm run test:run <app-name> --variant <variant-name>
-   # Example: pnpm run test:run nextjs-14-pages-dir --variant 15
+   # Example: pnpm run test:run nextjs-16 --variant "nextjs-16 (webpack, production)"
    ```
 
 ### Common Issues and Troubleshooting
