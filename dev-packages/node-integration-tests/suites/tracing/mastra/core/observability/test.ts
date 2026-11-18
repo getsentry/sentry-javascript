@@ -4,6 +4,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { afterAll, expect, describe } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../../utils/runner';
 import { supports } from '../../../../../utils';
@@ -101,8 +102,8 @@ describe.runIf(supports({ min: 22 }))('Mastra integration', () => {
                   ]),
               );
               expect(recordedByOp).toEqual({
-                'gen_ai.invoke_agent': { inputs: true, outputs: true },
-                'gen_ai.chat': { inputs: false, outputs: true },
+                [GEN_AI_INVOKE_AGENT]: { inputs: true, outputs: true },
+                [GEN_AI_CHAT]: { inputs: false, outputs: true },
               });
             },
           })
