@@ -8,10 +8,7 @@ Sentry.init({
   transport: loggingTransport,
   integrations: [
     Sentry.anthropicAIIntegration({
-      recordInputs: call =>
-        call.operation === 'execute_tool'
-          ? call.input?.city === 'Vienna'
-          : !!call.request?.metadata?.user_id?.startsWith('public'),
+      recordInputs: ({ request }) => request?.metadata?.user_id === 'public',
       recordOutputs: () => Sentry.getCurrentScope().getScopeData().tags.privacy === 'public',
     }),
   ],

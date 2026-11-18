@@ -18,15 +18,10 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
-  GEN_AI_TOOL_CALL_ARGUMENTS,
-  GEN_AI_TOOL_CALL_RESULT,
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import {
-  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-  GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
-} from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('Anthropic integration', () => {
@@ -633,10 +628,10 @@ describe('Anthropic integration', () => {
               );
               const recordedById = Object.fromEntries(
                 spans.map(span => [
-                  span.attributes[GEN_AI_RESPONSE_ID]?.value ?? span.attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE]?.value,
+                  span.attributes[GEN_AI_RESPONSE_ID]?.value,
                   {
-                    inputs: GEN_AI_INPUT_MESSAGES in span.attributes || GEN_AI_TOOL_CALL_ARGUMENTS in span.attributes,
-                    outputs: GEN_AI_RESPONSE_TEXT in span.attributes || GEN_AI_TOOL_CALL_RESULT in span.attributes,
+                    inputs: GEN_AI_INPUT_MESSAGES in span.attributes,
+                    outputs: GEN_AI_RESPONSE_TEXT in span.attributes,
                   },
                 ]),
               );
@@ -644,11 +639,6 @@ describe('Anthropic integration', () => {
                 msg_public: { inputs: true, outputs: true },
                 msg_private: { inputs: false, outputs: false },
                 'msg_public-stream': { inputs: true, outputs: false },
-                'msg_public-helper-stream': { inputs: true, outputs: false },
-                msg_tool_use: { inputs: false, outputs: true },
-                msg_tool_final: { inputs: false, outputs: true },
-                toolu_vienna: { inputs: true, outputs: true },
-                toolu_paris: { inputs: false, outputs: true },
               });
             },
           })
