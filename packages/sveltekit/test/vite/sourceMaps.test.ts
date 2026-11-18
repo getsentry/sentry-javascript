@@ -54,7 +54,7 @@ async function getSentryViteSubPlugin(name: string): Promise<Plugin | undefined>
       org: 'org',
       project: 'project',
     },
-    { getAdapterOutputDir: async () => '.svelte-kit/output' },
+    { getAdapterOutputDir: async () => '.svelte-kit/output', getKitConfig: async () => ({}) },
   );
 
   return plugins.find(plugin => plugin.name === name);
@@ -264,6 +264,33 @@ describe('makeCustomSentryVitePlugins()', () => {
       await plugin.closeBundle();
 
       expect(mockedMainPlugin.writeBundle).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('release injection', () => {
+    async function getPlugins(release?: { name?: string; inject?: boolean }): Promise<Plugin[]> {
+      return makeCustomSentryVitePlugins(
+        { authToken: 'token', org: 'org', project: 'project', release },
+        { getAdapterOutputDir: async () => '.svelte-kit/output', getKitConfig: async () => ({}) },
+      );
+    }
+
+    it('turns off build-time injection and injects the release itself', async () => {
+      const plugins = await getPlugins({ name: '1.0.0' });
+
+      expect(sentryVitePlugin).toHaveBeenCalledWith(
+        expect.objectContaining({ release: { name: '1.0.0', inject: false } }),
+      );
+      expect(plugins.map(plugin => plugin.name)).toContain('sentry-sveltekit-release-injection-plugin');
+    });
+
+    it('injects no release if the user turned injection off', async () => {
+      const plugins = await getPlugins({ name: '1.0.0', inject: false });
+
+      expect(sentryVitePlugin).toHaveBeenCalledWith(
+        expect.objectContaining({ release: { name: '1.0.0', inject: false } }),
+      );
+      expect(plugins.map(plugin => plugin.name)).not.toContain('sentry-sveltekit-release-injection-plugin');
     });
   });
 
@@ -539,7 +566,7 @@ describe('deleteFilesAfterUpload', () => {
         org: 'org',
         project: 'project',
       },
-      { getAdapterOutputDir: async () => '.svelte-kit/output' },
+      { getAdapterOutputDir: async () => '.svelte-kit/output', getKitConfig: async () => ({}) },
     );
 
     // @ts-expect-error this function exists!
@@ -556,6 +583,7 @@ describe('deleteFilesAfterUpload', () => {
       project: 'project',
       release: {
         name: expect.any(String),
+        inject: false,
       },
       sourcemaps: {
         filesToDeleteAfterUpload: expect.any(Promise),
@@ -618,7 +646,7 @@ describe('deleteFilesAfterUpload', () => {
             filesToDeleteAfterUpload,
           },
         },
-        { getAdapterOutputDir: async () => '.svelte-kit/output' },
+        { getAdapterOutputDir: async () => '.svelte-kit/output', getKitConfig: async () => ({}) },
       );
 
       // @ts-expect-error this function exists!
@@ -635,6 +663,7 @@ describe('deleteFilesAfterUpload', () => {
         project: 'project',
         release: {
           name: expect.any(String),
+          inject: false,
         },
         sourcemaps: {
           filesToDeleteAfterUpload: expect.any(Promise),

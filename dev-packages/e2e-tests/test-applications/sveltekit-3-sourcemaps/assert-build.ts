@@ -1,4 +1,5 @@
 import * as assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
@@ -81,3 +82,31 @@ if (process.env.E2E_VARIANT === 'manual-upload') {
 }
 
 console.log('All sourcemap assertions passed!');
+
+// A release in a content-hashed client chunk renames it on every release, so the SDK hands the release to
+// the browser through the server-rendered page instead.
+const clientFilesWithRelease = fs
+  .readdirSync(CLIENT_OUTPUT, { recursive: true, encoding: 'utf8' })
+  .filter(
+    file => /\.js$/.test(file) && fs.readFileSync(path.join(CLIENT_OUTPUT, file), 'utf8').includes('test-release'),
+  );
+assert.deepEqual(clientFilesWithRelease, [], 'Expected no client chunk to contain the release');
+
+const server = spawn('node', [BUILD_OUTPUT], { env: { ...process.env, PORT: '3033' }, stdio: 'ignore' });
+try {
+  let html = '';
+  for (let attempt = 0; attempt < 50 && !html; attempt++) {
+    html = await fetch('http://localhost:3033/').then(
+      res => res.text(),
+      () => new Promise<string>(resolve => setTimeout(() => resolve(''), 100)),
+    );
+  }
+  assert.ok(
+    html.includes('<meta name="sentry-release" content="test-release"/>'),
+    'Expected the page to carry the release',
+  );
+} finally {
+  server.kill();
+}
+
+console.log('All release assertions passed!');

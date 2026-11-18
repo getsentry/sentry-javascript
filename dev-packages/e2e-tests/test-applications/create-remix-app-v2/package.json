@@ -37,7 +37,7 @@
   "sentryTest": {
     "variants": [
       {
-        "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert",
+        "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm playwright test",
         "label": "create-remix-app-v2 (static trace lifecycle)"
       }
     ]

@@ -28,6 +28,7 @@ export type ViteResolvedConfig = {
 export type ViteSourceMapHooks = {
   config: (userConfig: ViteUserConfig, env: { command: string }) => ViteUserConfig | null;
   configResolved: (config: ViteResolvedConfig) => void;
+  outputOptions: SourceMapHandling['applyHiddenDecision'];
 };
 
 const NO_CHANGE: SourceMapDecision = { enableHidden: false, deleteAfterUpload: false };
@@ -124,18 +125,20 @@ export function createViteSourceMapHooks(
           normalizedOptions.sourcemaps?.delete === true || getSdkEnabledSourceMaps(normalizedOptions, environmentName);
 
         for (const output of getOutputs(config.root, environment.build)) {
-          // The plugin never changes an output's own setting. Hidden maps are
-          // removed when the user asks for it, visible ones only when every
-          // source map is removed.
+          // Hidden maps of an output's own setting are removed when the user
+          // asks for it, visible ones only when every source map is removed.
+          // Removed visible maps switch to hidden in `outputOptions`, so no
+          // `sourceMappingURL` comment points at a removed file.
           if (output.ownSetting) {
             const outputKind = sourceMapKindFromRollupSetting(output.sourcemap);
             const removeAllSourceMaps = removeAll && (outputKind === 'hidden' || outputKind === 'visible');
+            const deleteAfterUpload = deleteOption === true && (outputKind === 'hidden' || removeAllSourceMaps);
             sourceMapHandling.setDecision(output.destination, {
               match: output.match,
               kind: outputKind,
               decision: {
-                enableHidden: false,
-                deleteAfterUpload: deleteOption === true && (outputKind === 'hidden' || removeAllSourceMaps),
+                enableHidden: outputKind === 'visible' && deleteAfterUpload,
+                deleteAfterUpload,
                 removeAllSourceMaps,
               },
             });
@@ -154,5 +157,7 @@ export function createViteSourceMapHooks(
         }
       }
     },
+
+    outputOptions: sourceMapHandling.applyHiddenDecision,
   };
 }

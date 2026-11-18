@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer } from '@sentry-internal/node-integration-tests';
+import { anthropicMessage, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
@@ -16,16 +16,13 @@ function startMockAnthropicServer() {
       return;
     }
 
-    res.send({
-      id: 'msg_ok',
-      type: 'message',
-      model: req.body.model,
-      role: 'assistant',
-      content: [{ type: 'tool_use', id: 'tool_ok_1', name: 'calculator', input: { expression: '2+2' } }],
-      stop_reason: 'tool_use',
-      stop_sequence: null,
-      usage: { input_tokens: 7, output_tokens: 9 },
-    });
+    res.send(
+      anthropicMessage(req.body.model, {
+        id: 'msg_ok',
+        content: [{ type: 'tool_use', id: 'tool_ok_1', name: 'calculator', input: { expression: '2+2' } }],
+        usage: { input_tokens: 7, output_tokens: 9 },
+      }),
+    );
   });
 
   return startMockServer(app);

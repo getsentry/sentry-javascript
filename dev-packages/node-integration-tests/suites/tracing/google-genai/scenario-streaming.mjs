@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer } from '@sentry-internal/node-integration-tests';
+import { googleGenAiStreamChunks, startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
 
 function startMockGoogleGenAIServer() {
   const app = express();
@@ -16,120 +16,32 @@ function startMockGoogleGenAIServer() {
       return;
     }
 
-    // Set headers for streaming response
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Transfer-Encoding', 'chunked');
-
-    // Create a mock stream
-    const mockStream = createMockStream(model);
-
-    // Send chunks
-    const sendChunk = async () => {
-      const { value, done } = await mockStream.next();
-      if (done) {
-        res.end();
-        return;
-      }
-
-      res.write(`data: ${JSON.stringify(value)}\n\n`);
-      setTimeout(sendChunk, 10); // Small delay between chunks
-    };
-
-    sendChunk();
+    const chunks =
+      model === 'blocked-model'
+        ? BLOCKED_CHUNKS
+        : googleGenAiStreamChunks({
+            parts: ['Hello! ', 'This is a streaming ', 'response from Google GenAI!'],
+            responseId: 'mock-response-streaming-id',
+            modelVersion: 'gemini-1.5-pro',
+          });
+    streamSseEvents(res, chunks);
   });
 
   return startMockServer(app);
 }
 
-// Helper function to create mock stream
-async function* createMockStream(model) {
-  if (model === 'blocked-model') {
-    // First chunk: Contains promptFeedback with blockReason
-    yield {
-      promptFeedback: {
-        blockReason: 'SAFETY',
-        blockReasonMessage: 'The prompt was blocked due to safety concerns',
-      },
-      responseId: 'mock-blocked-response-streaming-id',
-      modelVersion: 'gemini-1.5-pro',
-    };
-
-    // Note: In a real blocked scenario, there would typically be no more chunks
-    // But we'll add one more to test that processing stops after the error
-    yield {
-      candidates: [
-        {
-          content: {
-            parts: [{ text: 'This should not be processed' }],
-            role: 'model',
-          },
-          index: 0,
-        },
-      ],
-    };
-    return;
-  }
-
-  // First chunk: Start of response with initial text
-  yield {
-    candidates: [
-      {
-        content: {
-          parts: [{ text: 'Hello! ' }],
-          role: 'model',
-        },
-        index: 0,
-      },
-    ],
-    responseId: 'mock-response-streaming-id',
-    modelVersion: 'gemini-1.5-pro',
-  };
-
-  // Second chunk: More text content
-  yield {
-    candidates: [
-      {
-        content: {
-          parts: [{ text: 'This is a streaming ' }],
-          role: 'model',
-        },
-        index: 0,
-      },
-    ],
-  };
-
-  // Third chunk: Final text content
-  yield {
-    candidates: [
-      {
-        content: {
-          parts: [{ text: 'response from Google GenAI!' }],
-          role: 'model',
-        },
-        index: 0,
-      },
-    ],
-  };
-
-  // Final chunk: End with finish reason and usage metadata
-  yield {
-    candidates: [
-      {
-        content: {
-          parts: [{ text: '' }], // Empty text in final chunk
-          role: 'model',
-        },
-        finishReason: 'STOP',
-        index: 0,
-      },
-    ],
-    usageMetadata: {
-      promptTokenCount: 10,
-      candidatesTokenCount: 12,
-      totalTokenCount: 22,
+// The second chunk follows a blocked prompt, so its text must not be recorded.
+const BLOCKED_CHUNKS = [
+  {
+    promptFeedback: {
+      blockReason: 'SAFETY',
+      blockReasonMessage: 'The prompt was blocked due to safety concerns',
     },
-  };
-}
+    responseId: 'mock-blocked-response-streaming-id',
+    modelVersion: 'gemini-1.5-pro',
+  },
+  { candidates: [{ content: { parts: [{ text: 'This should not be processed' }], role: 'model' }, index: 0 }] },
+];
 
 async function run() {
   const server = await startMockGoogleGenAIServer();

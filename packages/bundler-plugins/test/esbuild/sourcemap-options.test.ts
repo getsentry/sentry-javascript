@@ -150,6 +150,25 @@ describe('sourcemaps.upload, sourcemaps.injectDebugIds and sourcemaps.delete (es
       expect(files).toEqual(['entry.js']);
       expect(mockSourcemapUpload).toHaveBeenCalledTimes(1);
     });
+
+    it('removes the source maps when the error handler throws', async () => {
+      mockSourcemapUpload.mockRejectedValue(new Error('upload failed'));
+
+      await expect(
+        build(
+          {
+            ...credentials,
+            errorHandler: error => {
+              throw error;
+            },
+            sourcemaps: { delete: true },
+          },
+          'external',
+        ),
+      ).rejects.toThrow();
+
+      expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js']);
+    });
   });
 
   describe('delete: false', () => {

@@ -1,8 +1,12 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import type { BrowserClient } from '@sentry/svelte';
 import { getMainCarrier } from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
 import { getClient, SDK_VERSION } from '@sentry/svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/client';
 
 const svelteInit = vi.spyOn(SentrySvelte, 'init');
@@ -75,6 +79,32 @@ describe('Sentry client SDK', () => {
 
     it('returns client from init', () => {
       expect(init({})).not.toBeUndefined();
+    });
+
+    describe('release', () => {
+      beforeEach(() => {
+        SentrySvelte.getCurrentScope().setClient(undefined);
+      });
+
+      afterEach(() => {
+        document.head.innerHTML = '';
+      });
+
+      it('uses the release that `sentryHandle` added to the page', () => {
+        document.head.innerHTML = '<meta name="sentry-release" content="1.2.3"/>';
+
+        const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+        expect(client?.getOptions().release).toBe('1.2.3');
+      });
+
+      it('prefers an explicitly passed release over the one on the page', () => {
+        document.head.innerHTML = '<meta name="sentry-release" content="1.2.3"/>';
+
+        const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', release: 'explicit' });
+
+        expect(client?.getOptions().release).toBe('explicit');
+      });
     });
   });
 });

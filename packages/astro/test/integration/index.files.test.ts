@@ -8,6 +8,11 @@ vi.mock('fs', async requireActual => {
   };
 });
 
+// Without a configured name, the real resolver falls back to the git revision of this checkout.
+vi.mock('@sentry/bundler-plugins/core', () => ({
+  resolveReleaseName: (name?: string) => name,
+}));
+
 const updateConfig = vi.fn();
 const injectScript = vi.fn();
 const config = {

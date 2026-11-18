@@ -9,16 +9,20 @@ import {
 import { GEN_AI_PROVIDER_NAME, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { getGenAiSpanOp, getRequestSignal, markCancelledIfAborted, resolveGenAiCallRecording } from '../ai/core/utils';
 import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
+import { type GenAiSpanResult, runGenAiSpanEnd, runGenAiSpanStart } from '../ai/core/span-hooks';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/openai';
 import { instrumentStream } from '../ai/openai/streaming';
-import type { OpenAiOptions } from '../ai/openai/types';
+import type { OpenAiCallInfo, OpenAiOptions } from '../ai/openai/types';
 import { addResponseAttributes } from '../ai/openai/utils';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 
 // The recording decision is made once, when the span starts, in the caller's async context.
-type OpenAiChannelContext = OrchestrionChannelContext & { _sentryRecordOutputs?: boolean };
+type OpenAiChannelContext = OrchestrionChannelContext & {
+  _sentryRecordOutputs?: boolean;
+  _sentryOnSpanEnd?: (result: GenAiSpanResult<unknown>) => void;
+};
 
 /**
  * Describes an OpenAI-compatible provider whose SDK mirrors the openai wire format (Groq, Together, ...),
@@ -63,6 +67,7 @@ export function createOpenAiCompatibleIntegration<T extends OpenAiCompatibleProv
               markCancelledIfAborted(span, getRequestSignal(data.arguments?.[1]));
             }
             addResponseAttributes(span, data.result, !!data._sentryRecordOutputs);
+            data._sentryOnSpanEnd?.('error' in data ? { error: data.error } : { response: data.result });
           },
           deferSpanEnd: ({ span, data, end }) =>
             wrapApiPromiseResponse(
@@ -109,7 +114,8 @@ function createGenAiSpan(
   const args = data.arguments ?? [];
   const params = args[0] as Record<string, unknown> | undefined;
 
-  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, { operation, request: params });
+  const call: OpenAiCallInfo = { operation, request: params };
+  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
   data._sentryRecordOutputs = recordOutputs;
 
   // `extractRequestAttributes` defaults the provider to openai; override it for the concrete provider.
@@ -129,6 +135,9 @@ function createGenAiSpan(
   if (recordInputs && params) {
     addRequestAttributes(span, params, operation);
   }
+
+  runGenAiSpanStart(options, span, call);
+  data._sentryOnSpanEnd = result => runGenAiSpanEnd(options, span, call, result);
 
   return span;
 }
@@ -155,7 +164,12 @@ function wrapStreamResult(span: Span, data: OpenAiChannelContext): boolean {
   }
 
   const iterate = result[Symbol.asyncIterator].bind(result);
-  const instrumented = instrumentStream({ [Symbol.asyncIterator]: iterate }, span, !!data._sentryRecordOutputs);
+  const instrumented = instrumentStream(
+    { [Symbol.asyncIterator]: iterate },
+    span,
+    !!data._sentryRecordOutputs,
+    data._sentryOnSpanEnd,
+  );
   result[Symbol.asyncIterator] = () => instrumented;
 
   return true;

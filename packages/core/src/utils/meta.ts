@@ -31,3 +31,21 @@ export function getTraceMetaTags(traceData?: SerializedTraceData): string {
       .join('')
   );
 }
+
+/**
+ * The name of the meta tag that gives the release to the browser SDK. Framework SDKs write it into each page
+ * instead of injecting the release into the client chunks, where it would change their content hashes on every
+ * release.
+ */
+export const RELEASE_META_TAG_NAME = 'sentry-release';
+
+/**
+ * Returns the meta tag that gives `release` to the browser SDK.
+ */
+export function getReleaseMetaTag(release: string): string {
+  return `<meta name="${RELEASE_META_TAG_NAME}" content="${escapeHtmlAttribute(release)}"/>`;
+}
+
+function escapeHtmlAttribute(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}

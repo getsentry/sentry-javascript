@@ -14,6 +14,8 @@ export default makeNPMConfigVariants(
       'src/server/solidrouter.ts',
       'src/vite/index.ts',
       'src/nitro/tunnelPlugin.ts',
+      'src/nitro/releasePlugin.ts',
+      'src/nitro/releaseMiddleware.ts',
     ],
     // prevent this internal code from ending up in our built package (this doesn't happen automatically because
     // the name doesn't match an SDK dependency)
