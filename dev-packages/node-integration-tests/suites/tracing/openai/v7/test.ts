@@ -35,7 +35,7 @@ describe.runIf(supports({ min: 22 }))('OpenAI integration (V7)', () => {
   // all, so these assert that each instrumented `create` produces a span with the right shape.
   createEsmAndCjsTests(
     __dirname,
-    'scenario-chat.mjs',
+    '../v6/scenario-chat.mjs',
     'instrument.mjs',
     (createRunner, test) => {
       test('instruments chat completions, the responses API and streaming on openai v7', async () => {
@@ -115,7 +115,7 @@ describe.runIf(supports({ min: 22 }))('OpenAI integration (V7)', () => {
   // root rather than under a nested directory, so they need their own coverage.
   createEsmAndCjsTests(
     __dirname,
-    'scenario-embeddings.mjs',
+    '../v6/scenario-embeddings.mjs',
     'instrument.mjs',
     (createRunner, test) => {
       test('instruments the embeddings API on openai v7', async () => {

@@ -18,7 +18,7 @@ webpack(
       minimizer: [new TerserPlugin()],
     },
     plugins: [
-      new webpack.EnvironmentPlugin(['E2E_TEST_DSN']),
+      new webpack.EnvironmentPlugin({ E2E_TEST_DSN: undefined, E2E_TEST_TRACE_LIFECYCLE: '' }),
       new HtmlWebpackPlugin({
         template: path.join(__dirname, 'public/index.html'),
       }),

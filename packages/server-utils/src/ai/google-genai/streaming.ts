@@ -1,6 +1,7 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { endStreamSpan, getErrorStatus } from '../core/utils';
+import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
 import type { GoogleGenAIResponse } from './types';
 import type { MessagePart } from './utils';
 import { candidatesToMessageParts, setOutputMessagesAttribute } from './utils';
@@ -111,6 +112,7 @@ function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingStat
  */
 function processChunk(chunk: GoogleGenAIResponse, state: StreamingState, recordOutputs: boolean, span: Span): void {
   if (!chunk || isErrorChunk(chunk, span)) return;
+  recordTimeToFirstChunk(span);
   handleResponseMetadata(chunk, state);
   handleCandidateContent(chunk, state, recordOutputs);
 }

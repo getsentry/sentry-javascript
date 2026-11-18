@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/browser';
 
 Sentry.init({
+  traceLifecycle: process.env.E2E_TEST_TRACE_LIFECYCLE === 'static' ? 'static' : undefined,
   dsn: process.env.E2E_TEST_DSN,
   integrations: [Sentry.browserTracingIntegration()],
   tracesSampleRate: 1.0,

@@ -6,6 +6,7 @@ import {
   getDebugIdSnippet,
   createDebugIdUploadFunction,
   CodeInjection,
+  getSourceMapFeatures,
 } from '../core';
 import * as fs from 'node:fs';
 
@@ -66,6 +67,11 @@ export function sentryBunPlugin(userOptions: Options = {}): BunPlugin {
     return { name: 'sentry-bun-noop-plugin', setup: () => undefined };
   }
 
+  const sourceMapFeatures = getSourceMapFeatures(options);
+  if (options.sourcemaps?.delete !== undefined) {
+    logger.warn('The Sentry Bun plugin does not support `sourcemaps.delete`. It removes no source maps.');
+  }
+
   const staticInjectionCode = new CodeInjection();
 
   if (!options.release.inject) {
@@ -117,7 +123,7 @@ export function sentryBunPlugin(userOptions: Options = {}): BunPlugin {
       // Without `outdir`, Bun writes no files that the placeholder can be
       // replaced in.
       const injectDebugIds =
-        options.sourcemaps?.disable !== true && !!config.outdir && !!config.sourcemap && config.sourcemap !== 'none';
+        sourceMapFeatures.injectDebugIds && !!config.outdir && !!config.sourcemap && config.sourcemap !== 'none';
 
       const injectionCode = new CodeInjection();
       injectionCode.append(staticInjectionCode);
@@ -152,7 +158,7 @@ export function sentryBunPlugin(userOptions: Options = {}): BunPlugin {
 
             await Promise.all(bundlePaths.map(replaceDebugIdPlaceholder));
 
-            if (options.sourcemaps?.disable !== 'disable-upload') {
+            if (sourceMapFeatures.upload) {
               await upload(bundlePaths);
             }
           }

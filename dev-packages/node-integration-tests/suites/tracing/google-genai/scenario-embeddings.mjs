@@ -1,12 +1,13 @@
 import { GoogleGenAI } from '@google/genai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockGoogleGenAIServer() {
   const app = express();
   app.use(express.json());
 
-  app.post('/v1beta/models/:model\\:batchEmbedContents', (req, res) => {
+  app.post('/:apiVersion/models/:model\\:batchEmbedContents', (req, res) => {
     const model = req.params.model;
 
     if (model === 'error-model') {
@@ -23,11 +24,7 @@ function startMockGoogleGenAIServer() {
     });
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
@@ -36,7 +33,7 @@ async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new GoogleGenAI({
       apiKey: 'mock-api-key',
-      httpOptions: { baseUrl: `http://localhost:${server.address().port}` },
+      httpOptions: { baseUrl: server.url },
     });
 
     // Test 1: Basic embedContent with string contents

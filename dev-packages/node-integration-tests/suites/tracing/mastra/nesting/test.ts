@@ -1,4 +1,10 @@
-import { DB_OPERATION_NAME, GEN_AI_TOOL_NAME, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
+import {
+  DB_OPERATION_NAME,
+  GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,
+  GEN_AI_TOOL_NAME,
+  SENTRY_OP,
+  URL_FULL,
+} from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
 import { afterAll, expect, describe } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
@@ -94,6 +100,7 @@ describe.runIf(supports({ min: 22 }))('Mastra integration', () => {
               const cacheGetParentIds = loadSpans.map(span => span.parent_span_id);
               const chat = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT)!;
               expect(chat).toBeDefined();
+              expect(chat.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]?.value).toEqual(expect.any(Number));
               const chatSpanId = chat.span_id;
 
               const executeTool = container.items.find(

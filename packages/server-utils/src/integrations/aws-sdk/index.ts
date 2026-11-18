@@ -10,7 +10,6 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { RPC } from '@sentry/conventions/op';
-import type { GenAiOptions } from '../../ai/core/utils';
 import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { awsSdkModuleNames } from '../../orchestrion/config/aws-sdk';
@@ -19,6 +18,7 @@ import type { TracingChannelLifeCycleOptions } from '../../tracing-channel';
 import { bindTracingChannelToSpan, safeChannelCallback } from '../../tracing-channel';
 import { AWS_SDK_ORIGIN_INTEGRATION_NAME } from './constants';
 import { ServicesExtensions } from './services';
+import type { BedrockRuntimeOptions } from './services/bedrock-runtime';
 import type { NormalizedRequest, NormalizedResponse, RequestMetadata } from './types';
 import { extractAttributesFromNormalizedRequest, normalizeV3Request, removeSuffixFromStringIfExists } from './utils';
 
@@ -65,7 +65,7 @@ function setMetadataAttributes(span: Span, metadata: Record<string, any> | undef
 }
 
 // `recordInputs` and `recordOutputs` apply to Bedrock Runtime calls, the only AWS calls that carry prompts and responses.
-export type AwsIntegrationOptions = GenAiOptions;
+export type AwsIntegrationOptions = BedrockRuntimeOptions;
 
 const _awsIntegration = ((options?: AwsIntegrationOptions) => {
   const servicesExtensions = new ServicesExtensions(options);

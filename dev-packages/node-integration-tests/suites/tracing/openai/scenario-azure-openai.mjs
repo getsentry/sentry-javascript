@@ -1,5 +1,6 @@
 import express from 'express';
 import { AzureOpenAI } from 'openai';
+import { startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockOpenAiServer() {
   const app = express();
@@ -29,18 +30,14 @@ function startMockOpenAiServer() {
       },
     });
   });
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
   const server = await startMockOpenAiServer();
 
   const client = new AzureOpenAI({
-    baseURL: `http://localhost:${server.address().port}/azureopenai`,
+    baseURL: `${server.url}/azureopenai`,
     apiKey: 'mock-api-key',
     apiVersion: '2024-02-15-preview',
   });

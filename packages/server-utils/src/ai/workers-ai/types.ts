@@ -1,7 +1,16 @@
-import type { GenAiOptions } from '../core/utils';
+import type { GenAiCallOptions } from '../core/utils';
+
+/** The call that `recordInputs`/`recordOutputs` decide on: the arguments of `run()` as passed. */
+export interface WorkersAiCallInfo {
+  /** The gen_ai operation of the call, such as `chat` or `embeddings`. */
+  operation: string;
+  model: unknown;
+  inputs: unknown;
+  options: Record<string, unknown> | undefined;
+}
 
 /** Options for the Workers AI integration. */
-export type WorkersAiOptions = GenAiOptions;
+export type WorkersAiOptions = GenAiCallOptions<WorkersAiCallInfo>;
 
 /**
  * The token usage reported by Workers AI text generation models.

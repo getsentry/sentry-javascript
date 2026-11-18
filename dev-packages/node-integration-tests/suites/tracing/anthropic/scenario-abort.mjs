@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
@@ -9,11 +10,7 @@ function startMockAnthropicServer() {
   // Never responds, so each request only ends when the client gives up on it.
   app.post('/anthropic/v1/messages', () => {});
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 function abortAfter(ms) {
@@ -28,7 +25,7 @@ async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Anthropic({
       apiKey: 'mock-api-key',
-      baseURL: `http://localhost:${server.address().port}/anthropic`,
+      baseURL: `${server.url}/anthropic`,
       maxRetries: 0,
     });
     const messages = [{ role: 'user', content: 'Aborted by the caller' }];

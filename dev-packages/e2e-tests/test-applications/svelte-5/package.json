@@ -24,5 +24,14 @@
   },
   "dependencies": {
     "@sentry/svelte": "file:../../packed/sentry-svelte-packed.tgz"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build",
+        "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert",
+        "label": "svelte-5 (static trace lifecycle)"
+      }
+    ]
   }
 }

@@ -21,8 +21,8 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 
 const EXPECTED_ORIGIN = 'auto.ai.google_genai';
 
-// `@google/genai` v3 needs Node 22 and calls the `v1` API instead of `v1beta`, so the scenarios here
-// differ from `../google-genai-v2` only in the mock server routes.
+// `@google/genai` v3 needs Node 22. It calls the `v1` API instead of `v1beta`, which the shared
+// `../google-genai` scenarios also serve.
 describe.runIf(supports({ min: 22 }))('Google GenAI integration (v3)', () => {
   afterAll(() => {
     cleanupChildProcesses();
@@ -30,7 +30,7 @@ describe.runIf(supports({ min: 22 }))('Google GenAI integration (v3)', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario.mjs',
+    '../google-genai/scenario.mjs',
     'instrument.mjs',
     (createRunner, test) => {
       test('auto-instruments chat and generateContent on @google/genai v3', async () => {
@@ -84,7 +84,7 @@ describe.runIf(supports({ min: 22 }))('Google GenAI integration (v3)', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario-embeddings.mjs',
+    '../google-genai/scenario-embeddings.mjs',
     'instrument.mjs',
     (createRunner, test) => {
       test('auto-instruments embedContent on @google/genai v3', async () => {

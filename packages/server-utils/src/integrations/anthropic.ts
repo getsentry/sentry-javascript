@@ -2,7 +2,7 @@ import { GEN_AI_REQUEST_MODEL, SENTRY_ORIGIN } from '@sentry/conventions/attribu
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import { defineIntegration, getActiveSpan, getClient, hasSpanStreamingEnabled, startInactiveSpan } from '@sentry/core';
-import { getGenAiSpanOp, getRequestSignal, markCancelledIfAborted, resolveAIRecordingOptions } from '../ai/core/utils';
+import { getGenAiSpanOp, getRequestSignal, markCancelledIfAborted, resolveGenAiCallRecording } from '../ai/core/utils';
 import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../ai/anthropic-ai';
 import { ANTHROPIC_AI_ORIGIN } from '../ai/anthropic-ai/constants';
@@ -20,6 +20,9 @@ import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation
 // Same name as the OTel integration by design, so the OTel 'Anthropic_AI'
 // integration is deduplicated out of the default set.
 const INTEGRATION_NAME = 'Anthropic_AI' as const;
+
+// The recording decision is made once, when the span starts, in the caller's async context.
+type AnthropicChannelContext = OrchestrionChannelContext & { _sentryRecordOutputs?: boolean };
 
 // `stream` determines how the span is ended
 const INSTRUMENTED_CHANNELS = [
@@ -57,32 +60,28 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
   disableNativeTracing();
   for (const { channel, operation, stream } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
-      diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channel),
+      diagnosticsChannel.tracingChannel<AnthropicChannelContext>(channel),
       data => createGenAiSpan(data, operation, options, stream),
       {
         beforeSpanEnd: (span, data) => {
           if ('error' in data) {
             markCancelledIfAborted(span, getRequestSignal(data.arguments?.[1]));
           }
-          addResponseAttributes(
-            span,
-            data.result as AnthropicAiResponse,
-            resolveAIRecordingOptions(options).recordOutputs,
-          );
+          addResponseAttributes(span, data.result as AnthropicAiResponse, !!data._sentryRecordOutputs);
         },
         deferSpanEnd: ({ span, data, end }) =>
-          wrapThreadStreamRequest(span, data, end, options) ||
+          wrapThreadStreamRequest(span, data, end) ||
           wrapApiPromiseResponse(
             data.result,
             response => {
               data.result = response;
-              if (!wrapStreamResult(span, data, stream, options)) {
+              if (!wrapStreamResult(span, data, stream)) {
                 end();
               }
             },
             end,
           ) ||
-          wrapStreamResult(span, data, stream, options),
+          wrapStreamResult(span, data, stream),
       },
     );
   }
@@ -116,8 +115,8 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
  * Returning `undefined` opts the payload out so no span is opened.
  */
 function createGenAiSpan(
-  data: OrchestrionChannelContext,
-  operation: string,
+  data: AnthropicChannelContext,
+  operation: 'chat',
   options: AnthropicAiOptions,
   stream: StreamMode,
 ): Span | undefined {
@@ -139,7 +138,8 @@ function createGenAiSpan(
 
   const params = typeof args[0] === 'object' && args[0] !== null ? (args[0] as Record<string, unknown>) : undefined;
 
-  const { recordInputs } = resolveAIRecordingOptions(options);
+  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, { operation, request: params });
+  data._sentryRecordOutputs = recordOutputs;
 
   const attributes = extractRequestAttributes(args, operation, recordInputs, getProviderName(data.self));
   const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
@@ -222,12 +222,7 @@ const threadStreams = new WeakMap<AbortSignal, { stream: ThreadStream; callerSig
  * End the span of a thread stream's `create()` call from the stream once the response arrives. A thread may
  * retry a rejected call, so a failed call ends its own span and only the one that succeeds reads the stream.
  */
-function wrapThreadStreamRequest(
-  span: Span,
-  data: OrchestrionChannelContext,
-  end: (error?: unknown) => void,
-  options: AnthropicAiOptions,
-): boolean {
+function wrapThreadStreamRequest(span: Span, data: AnthropicChannelContext, end: (error?: unknown) => void): boolean {
   const signal = (data.arguments?.[1] as { signal?: AbortSignal } | undefined)?.signal;
   const threadStream = signal && threadStreams.get(signal);
   const request = data.result as { _responseProps?: () => Promise<unknown> } | undefined;
@@ -237,7 +232,7 @@ function wrapThreadStreamRequest(
   }
   const { stream, callerSignal } = threadStream;
 
-  const { recordOutputs } = resolveAIRecordingOptions(options);
+  const recordOutputs = !!data._sentryRecordOutputs;
   // Not `asResponse()`, which on 1.x also ends the SDK's own span when the user turned its tracing on.
   void request._responseProps().then(
     () => {
@@ -265,13 +260,8 @@ function wrapThreadStreamRequest(
  *   the span when iteration finishes.
  * - `message-stream`: `instrumentMessageStream` attaches `'message'`/`'error'`/`'end'` listeners that end the span.
  */
-function wrapStreamResult(
-  span: Span,
-  data: OrchestrionChannelContext,
-  stream: StreamMode,
-  options: AnthropicAiOptions,
-): boolean {
-  const { recordOutputs } = resolveAIRecordingOptions(options);
+function wrapStreamResult(span: Span, data: AnthropicChannelContext, stream: StreamMode): boolean {
+  const recordOutputs = !!data._sentryRecordOutputs;
   const result = data.result;
 
   if (stream === 'async-iterable' && isAsyncIterable(result)) {

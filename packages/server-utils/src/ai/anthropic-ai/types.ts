@@ -1,7 +1,22 @@
-import type { GenAiOptions } from '../core/utils';
+import type { GenAiCallOptions } from '../core/utils';
+
+/** The call that `recordInputs`/`recordOutputs` decide on: a model call, or a tool call of a tool runner. */
+export type AnthropicAiCallInfo =
+  | {
+      operation: 'chat';
+      /** The request params, the first argument of the method (such as `messages.create`) as passed. */
+      request: Record<string, unknown> | undefined;
+    }
+  | {
+      operation: 'execute_tool';
+      /** The runnable tool, as passed to the tool runner. */
+      tool: { name: string };
+      /** The input the model called the tool with. */
+      input: unknown;
+    };
 
 /** Options for the Anthropic AI integration. */
-export type AnthropicAiOptions = GenAiOptions;
+export type AnthropicAiOptions = GenAiCallOptions<AnthropicAiCallInfo>;
 
 export type Message = {
   role: 'user' | 'assistant';

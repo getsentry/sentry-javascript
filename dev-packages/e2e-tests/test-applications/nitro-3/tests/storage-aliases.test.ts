@@ -2,7 +2,10 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
 async function collectStorageSpans(route: string) {
-  const spans = await collectStreamedSpansUntilSegment('nitro-3', span => span.attributes['url.path']?.value === route);
+  const spans = await collectStreamedSpansUntilSegment(
+    'nitro-3',
+    span => span.attributes['http.route']?.value === route,
+  );
 
   return spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.cache.nitro');
 }

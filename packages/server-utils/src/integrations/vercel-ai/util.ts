@@ -1,6 +1,8 @@
 /** Shared, state-free helpers for the Vercel AI (`ai`) channel subscribers, plus the streamed model-call tap. */
 
+import type { Span } from '@sentry/core';
 import { isObjectLike } from '@sentry/core';
+import { recordTimeToFirstChunk } from '../../ai/core/time-to-first-chunk';
 
 /** Narrow to a string, or `undefined` for anything else. */
 export function asString(value: unknown): string | undefined {
@@ -75,6 +77,7 @@ export { isReadableStream } from '../../ai/core/utils';
  * mid-stream failure would be worse than a slightly-less-enriched one.
  */
 export function tapModelCallStream(
+  span: Span,
   stream: ReadableStream<unknown>,
   onFinal: (result: StreamedModelCallResult) => void,
   onError: (error: unknown) => void,
@@ -112,6 +115,10 @@ export function tapModelCallStream(
           controller.close();
 
           return;
+        }
+        // The model emits `stream-start` before the response arrives.
+        if ((value as StreamChunk | undefined)?.type !== 'stream-start') {
+          recordTimeToFirstChunk(span);
         }
         text += accumulateChunk(state, value) ?? '';
         controller.enqueue(value);
