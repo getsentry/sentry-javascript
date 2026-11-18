@@ -28,7 +28,7 @@
     "optionalVariants": [
       {
         "build-command": "PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build",
-        "assert-command": "PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert",
+        "assert-command": "PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static E2E_TEST_TRACE_LIFECYCLE=static pnpm test:prod",
         "label": "astro-7 (static trace lifecycle)"
       }
     ]

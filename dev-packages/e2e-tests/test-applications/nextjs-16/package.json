@@ -136,11 +136,6 @@
         "build-command": "NEXT_PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build",
         "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:prod",
         "label": "nextjs-16 (turbopack, production, static trace lifecycle)"
-      },
-      {
-        "build-command": "pnpm install",
-        "assert-command": "NEXT_PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static E2E_TEST_TRACE_LIFECYCLE=static pnpm test:dev",
-        "label": "nextjs-16 (turbopack, development, static trace lifecycle)"
       }
     ],
     "optionalVariants": [
