@@ -381,6 +381,7 @@ function deferStreamedModelCallEnd(span: Span, data: VercelAiChannelMessage, end
     data.result === undefined,
   );
   result.stream = tapModelCallStream(
+    span,
     stream,
     final => {
       // Reshape the aggregate into the result `enrichSpanOnEnd` expects, then let `end` run it (it calls
