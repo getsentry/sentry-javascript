@@ -5,6 +5,7 @@ export function getPlaywrightConfig(
   options?: {
     startCommand?: string;
     port?: number;
+    url?: string;
     eventProxyPort?: number;
     eventProxyFile?: string;
   },
@@ -89,7 +90,7 @@ export function getPlaywrightConfig(
     // TS just can't infer that and thinks it could also be undefined or an object.
     config.webServer.push({
       command: startCommand,
-      port: appPort,
+      ...(options?.url ? { url: options.url } : { port: appPort }),
       stdout: 'pipe',
       stderr: 'pipe',
       env: {

@@ -37,17 +37,9 @@ const getStartCommand = () => {
 
 const config = getPlaywrightConfig({
   startCommand: getStartCommand(),
+  // Nuxt opens its port before the development server can handle requests.
+  url: 'http://localhost:3030',
 });
-
-if (Array.isArray(config.webServer)) {
-  for (const server of config.webServer) {
-    if (server.port === 3030) {
-      // Nuxt opens its port before the development server can handle requests.
-      delete server.port;
-      server.url = 'http://localhost:3030';
-    }
-  }
-}
 
 export default {
   ...config,
