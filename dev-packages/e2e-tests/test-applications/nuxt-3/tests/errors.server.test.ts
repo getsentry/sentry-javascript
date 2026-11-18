@@ -54,31 +54,6 @@ test.describe('server-side errors', async () => {
     expect(error.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
   });
 
-  test('isolates requests', async ({ page }) => {
-    const serverSpanPromise = waitForStreamedSpan('nuxt-3', span => {
-      return (
-        span.is_segment &&
-        getSpanOp(span) === 'http.server' &&
-        span.attributes['url.path']?.value === '/api/server-error'
-      );
-    });
-
-    const errorPromise = waitForError('nuxt-3', async errorEvent => {
-      return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 3 Server error';
-    });
-
-    await page.goto(`/fetch-server-error`);
-    await waitForHydration(page);
-    await page.getByText('Fetch Server API Error', { exact: true }).click();
-
-    await serverSpanPromise;
-    const error = await errorPromise;
-
-    // Streamed spans carry no scope tags, so isolation is asserted on the error event only
-    expect(error.tags?.['my-isolated-tag']).toBe(true);
-    expect(error.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
-  });
-
   test('captures api fetch error (fetched on click) with parametrized route', async ({ page }) => {
     const errorPromise = waitForError('nuxt-3', async errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 3 Param Server error';
