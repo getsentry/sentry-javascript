@@ -1,7 +1,7 @@
 import { Mistral } from '@mistralai/mistralai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer } from '@sentry-internal/node-integration-tests';
+import { openAiEmbeddings, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockApi() {
   const app = express();
@@ -16,13 +16,7 @@ function startMockApi() {
     }
 
     // Distinct id per call shape so tests can target the single-input span unambiguously.
-    res.send({
-      id: Array.isArray(inputs) ? 'embd-mock-multi' : 'embd-mock123',
-      object: 'list',
-      model,
-      data: [{ object: 'embedding', embedding: [0.1, 0.2, 0.3], index: 0 }],
-      usage: { prompt_tokens: 8, total_tokens: 8 },
-    });
+    res.send(openAiEmbeddings(model, { id: Array.isArray(inputs) ? 'embd-mock-multi' : 'embd-mock123' }));
   });
 
   return startMockServer(app);
