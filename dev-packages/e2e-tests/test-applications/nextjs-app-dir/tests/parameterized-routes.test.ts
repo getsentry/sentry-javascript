@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('should create a parameterized pageload span when the `app` directory is used', async ({ page }) => {
-  const spanPromise = waitForStreamedSpan('nextjs-14', span => {
+  const spanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
     return span.name === '/parameterized/:one' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
@@ -25,7 +25,7 @@ test('should create a parameterized pageload span when the `app` directory is us
 });
 
 test('should create a span named after the static route when the `app` directory is used', async ({ page }) => {
-  const spanPromise = waitForStreamedSpan('nextjs-14', span => {
+  const spanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
     return span.name === '/parameterized/static' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
@@ -48,7 +48,7 @@ test('should create a span named after the static route when the `app` directory
 });
 
 test('should create a partially parameterized pageload span when the `app` directory is used', async ({ page }) => {
-  const spanPromise = waitForStreamedSpan('nextjs-14', span => {
+  const spanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
     return span.name === '/parameterized/:one/beep' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
@@ -73,7 +73,7 @@ test('should create a partially parameterized pageload span when the `app` direc
 });
 
 test('should create a nested parameterized pageload span when the `app` directory is used', async ({ page }) => {
-  const spanPromise = waitForStreamedSpan('nextjs-14', span => {
+  const spanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
     return span.name === '/parameterized/:one/beep/:two' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 

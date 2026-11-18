@@ -5,7 +5,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL, request })
   // Inbound span, outbound span and the http.client span in between all share one trace, and
   // `collectStreamedSpans` evaluates a single trace at a time, so requiring all three together
   // keeps them paired.
-  const spansPromise = collectStreamedSpans('nextjs-14', spans => {
+  const spansPromise = collectStreamedSpans('nextjs-app-dir', spans => {
     return (
       spans.some(span => span.name === 'GET /propagation/test-outgoing-http' && span.is_segment) &&
       spans.some(span => span.name === 'GET /propagation/test-outgoing-http/check' && span.is_segment) &&
@@ -34,7 +34,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL, request })
 });
 
 test('Propagates trace for outgoing fetch requests', async ({ baseURL, request }) => {
-  const spansPromise = collectStreamedSpans('nextjs-14', spans => {
+  const spansPromise = collectStreamedSpans('nextjs-app-dir', spans => {
     return (
       spans.some(span => span.name === 'GET /propagation/test-outgoing-fetch' && span.is_segment) &&
       spans.some(span => span.name === 'GET /propagation/test-outgoing-fetch/check' && span.is_segment) &&
@@ -74,11 +74,11 @@ test('Does not propagate outgoing http requests not covered by tracePropagationT
   request,
 }) => {
   // These two spans are deliberately in different traces, so they are matched by their unique names.
-  const inboundSpanPromise = waitForStreamedSpan('nextjs-14', span => {
+  const inboundSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
     return span.name === 'GET /propagation/test-outgoing-http-external-disallowed/check' && span.is_segment;
   });
 
-  const outboundSpanPromise = waitForStreamedSpan('nextjs-14', span => {
+  const outboundSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
     return span.name === 'GET /propagation/test-outgoing-http-external-disallowed' && span.is_segment;
   });
 
@@ -98,11 +98,11 @@ test('Does not propagate outgoing fetch requests not covered by tracePropagation
   baseURL,
   request,
 }) => {
-  const inboundSpanPromise = waitForStreamedSpan('nextjs-14', span => {
+  const inboundSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
     return span.name === 'GET /propagation/test-outgoing-fetch-external-disallowed/check' && span.is_segment;
   });
 
-  const outboundSpanPromise = waitForStreamedSpan('nextjs-14', span => {
+  const outboundSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
     return span.name === 'GET /propagation/test-outgoing-fetch-external-disallowed' && span.is_segment;
   });
 

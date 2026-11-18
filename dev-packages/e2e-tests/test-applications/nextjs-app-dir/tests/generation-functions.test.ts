@@ -2,7 +2,10 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 function collectSpansForTarget(httpTarget: string) {
-  return collectStreamedSpansUntilSegment('nextjs-14', span => span.attributes['http.target']?.value === httpTarget);
+  return collectStreamedSpansUntilSegment(
+    'nextjs-app-dir',
+    span => span.attributes['http.target']?.value === httpTarget,
+  );
 }
 
 test('Should emit a span for a generateMetadata() function invocation', async ({ page }) => {
@@ -37,11 +40,11 @@ test('Should send a span and an error event for a faulty generateMetadata() func
   const testTitle = 'should-emit-error';
   const httpTarget = `/generation-functions?metadataTitle=${testTitle}&shouldThrowInGenerateMetadata=1`;
 
-  const spanPromise = waitForStreamedSpan('nextjs-14', span => {
+  const spanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
     return span.is_segment && span.attributes['http.target']?.value === httpTarget;
   });
 
-  const errorEventPromise = waitForError('nextjs-14', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
     return (
       errorEvent?.exception?.values?.[0]?.value === 'generateMetadata Error' &&
       errorEvent.transaction === 'Page.generateMetadata (/generation-functions)'
@@ -88,11 +91,11 @@ test('Should send a span and an error event for a faulty generateViewport() func
   const testTitle = 'blargh';
   const httpTarget = `/generation-functions?viewportThemeColor=${testTitle}&shouldThrowInGenerateViewport=1`;
 
-  const spanPromise = waitForStreamedSpan('nextjs-14', span => {
+  const spanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
     return span.is_segment && span.attributes['http.target']?.value === httpTarget;
   });
 
-  const errorEventPromise = waitForError('nextjs-14', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'generateViewport Error';
   });
 
