@@ -69,7 +69,7 @@ test('attaches Solid component paths to boundary errors', async ({ page }) => {
   await page.locator('#caughtErrorBtn').click();
 
   expect((await errorPromise).contexts?.solid).toEqual({
-    owner_path: expect.arrayContaining([expect.stringContaining('Thrower')]),
-    boundary_path: expect.arrayContaining([expect.stringContaining('Errored')]),
+    owner_path: expect.arrayContaining(['<App>', '<Errored>']),
+    boundary_path: expect.arrayContaining(['<Errored>']),
   });
 });
