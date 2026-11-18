@@ -3,7 +3,7 @@ import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 for (const locale of ['en', 'ar']) {
   test(`should create consistent parameterized span for i18n routes - locale: ${locale}`, async ({ page }) => {
-    const spanPromise = waitForStreamedSpan('nextjs-15', span => {
+    const spanPromise = waitForStreamedSpan('nextjs-16', span => {
       return span.name === '/:locale/i18n-test' && getSpanOp(span) === 'pageload' && span.is_segment;
     });
 

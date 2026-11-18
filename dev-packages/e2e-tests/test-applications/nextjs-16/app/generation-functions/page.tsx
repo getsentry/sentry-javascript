@@ -3,29 +3,35 @@ import * as Sentry from '@sentry/nextjs';
 
 export const dynamic = 'force-dynamic';
 
+type SearchParams = Promise<Record<string, string | undefined>>;
+
 export default function Page() {
   return <p>Hello World!</p>;
 }
 
-export async function generateMetadata({ searchParams }: { searchParams: any }) {
+export async function generateMetadata({ searchParams }: { searchParams: SearchParams }) {
+  const params = await searchParams;
+
   Sentry.setTag('my-isolated-tag', true);
   Sentry.setTag('my-global-scope-isolated-tag', getDefaultIsolationScope().getScopeData().tags['my-isolated-tag']); // We set this tag to be able to assert that the previously set tag has not leaked into the global isolation scope
 
-  if (searchParams['shouldThrowInGenerateMetadata']) {
+  if (params['shouldThrowInGenerateMetadata']) {
     throw new Error('generateMetadata Error');
   }
 
   return {
-    title: searchParams['metadataTitle'] ?? 'not set',
+    title: params['metadataTitle'] ?? 'not set',
   };
 }
 
-export async function generateViewport({ searchParams }: { searchParams: any }) {
-  if (searchParams['shouldThrowInGenerateViewport']) {
+export async function generateViewport({ searchParams }: { searchParams: SearchParams }) {
+  const params = await searchParams;
+
+  if (params['shouldThrowInGenerateViewport']) {
     throw new Error('generateViewport Error');
   }
 
   return {
-    themeColor: searchParams['viewportThemeColor'] ?? 'black',
+    themeColor: params['viewportThemeColor'] ?? 'black',
   };
 }

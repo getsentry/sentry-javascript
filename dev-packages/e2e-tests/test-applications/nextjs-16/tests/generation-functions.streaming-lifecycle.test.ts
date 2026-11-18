@@ -1,20 +1,31 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { isVinext } from './isVinext';
 
-function collectSpansForTarget(httpTarget: string) {
-  return collectStreamedSpansUntilSegment('nextjs-14', span => span.attributes['http.target']?.value === httpTarget);
+// The request span of `withSentry` on Workers has no `http.target`, so the segment is matched by name. Tests run
+// one at a time, so a segment of another test can't match.
+const SEGMENT_NAME = 'GET /generation-functions';
+
+function isSegment(span: { name: string; is_segment?: boolean }): boolean {
+  return span.name === SEGMENT_NAME && !!span.is_segment;
+}
+
+// The SDK wraps generation functions only in webpack builds. Turbopack and vinext builds report their errors
+// through `onRequestError`, under the name of the request.
+function expectedTransaction(errorEvent: { tags?: Record<string, unknown> }, wrapperName: string): string {
+  return errorEvent.tags?.turbopack || isVinext ? SEGMENT_NAME : wrapperName;
 }
 
 test('Should emit a span for a generateMetadata() function invocation', async ({ page }) => {
   const testTitle = 'should-emit-span';
   const httpTarget = `/generation-functions?metadataTitle=${testTitle}`;
 
-  const spansPromise = collectSpansForTarget(httpTarget);
+  const spansPromise = collectStreamedSpansUntilSegment('nextjs-16', SEGMENT_NAME);
 
   await page.goto(httpTarget);
 
   const spans = await spansPromise;
-  const segmentSpan = spans.find(span => span.is_segment && span.attributes['http.target']?.value === httpTarget)!;
+  const segmentSpan = spans.find(isSegment)!;
 
   expect(spans).toContainEqual(
     expect.objectContaining({
@@ -37,15 +48,10 @@ test('Should send a span and an error event for a faulty generateMetadata() func
   const testTitle = 'should-emit-error';
   const httpTarget = `/generation-functions?metadataTitle=${testTitle}&shouldThrowInGenerateMetadata=1`;
 
-  const spanPromise = waitForStreamedSpan('nextjs-14', span => {
-    return span.is_segment && span.attributes['http.target']?.value === httpTarget;
-  });
+  const spanPromise = waitForStreamedSpan('nextjs-16', isSegment);
 
-  const errorEventPromise = waitForError('nextjs-14', errorEvent => {
-    return (
-      errorEvent?.exception?.values?.[0]?.value === 'generateMetadata Error' &&
-      errorEvent.transaction === 'Page.generateMetadata (/generation-functions)'
-    );
+  const errorEventPromise = waitForError('nextjs-16', errorEvent => {
+    return errorEvent?.exception?.values?.[0]?.value === 'generateMetadata Error';
   });
 
   await page.goto(httpTarget);
@@ -53,22 +59,26 @@ test('Should send a span and an error event for a faulty generateMetadata() func
   const errorEvent = await errorEventPromise;
   expect(await spanPromise).toBeDefined();
 
+  expect(errorEvent.transaction).toBe(expectedTransaction(errorEvent, 'Page.generateMetadata (/generation-functions)'));
+
   // Assert that isolation scope works properly. Span v2 carries no scope tags, so this is only
-  // asserted on the error event; the span-side assertions were dropped in the streaming port.
+  // asserted on the error event.
   expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
   expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 });
 
 test('Should send a span for a generateViewport() function invocation', async ({ page }) => {
+  test.skip(isVinext, 'vinext emits no `generateViewport` span');
+
   const testTitle = 'floob';
   const httpTarget = `/generation-functions?viewportThemeColor=${testTitle}`;
 
-  const spansPromise = collectSpansForTarget(httpTarget);
+  const spansPromise = collectStreamedSpansUntilSegment('nextjs-16', SEGMENT_NAME);
 
   await page.goto(httpTarget);
 
   const spans = await spansPromise;
-  const segmentSpan = spans.find(span => span.is_segment && span.attributes['http.target']?.value === httpTarget)!;
+  const segmentSpan = spans.find(isSegment)!;
 
   expect(spans).toContainEqual(
     expect.objectContaining({
@@ -88,20 +98,17 @@ test('Should send a span and an error event for a faulty generateViewport() func
   const testTitle = 'blargh';
   const httpTarget = `/generation-functions?viewportThemeColor=${testTitle}&shouldThrowInGenerateViewport=1`;
 
-  const spanPromise = waitForStreamedSpan('nextjs-14', span => {
-    return span.is_segment && span.attributes['http.target']?.value === httpTarget;
-  });
+  const spanPromise = waitForStreamedSpan('nextjs-16', isSegment);
 
-  const errorEventPromise = waitForError('nextjs-14', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-16', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'generateViewport Error';
   });
 
   await page.goto(httpTarget);
 
   expect(await spanPromise).toBeDefined();
-  expect(await errorEventPromise).toBeDefined();
 
   const errorEvent = await errorEventPromise;
 
-  expect(errorEvent.transaction).toBe('Page.generateViewport (/generation-functions)');
+  expect(errorEvent.transaction).toBe(expectedTransaction(errorEvent, 'Page.generateViewport (/generation-functions)'));
 });

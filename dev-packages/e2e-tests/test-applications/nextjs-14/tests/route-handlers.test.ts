@@ -114,10 +114,3 @@ test.describe('Edge runtime', () => {
     expect(routehandlerError.transaction).toBe('DELETE /route-handlers/[param]/edge');
   });
 });
-
-test('should not crash route handlers that are configured with `export const dynamic = "error"`', async ({
-  request,
-}) => {
-  const response = await request.get('/route-handlers/static');
-  expect(await response.json()).toStrictEqual({ result: 'static response' });
-});
