@@ -258,8 +258,6 @@ export function applyDefaultOptions<T extends Partial<BrowserClientOptions>>(opt
     // We default this to true, as it is the safer scenario
     parentSpanIsAlwaysRootSpan: true,
     ...optionsArg,
-    // `release: undefined` still gets the default, so `release: import.meta.env.VITE_SENTRY_RELEASE` with the variable
-    // unset doesn't drop the release that the page carries.
     release: optionsArg.release ?? getDefaultRelease(),
   };
 }
