@@ -1,65 +1,38 @@
 import { Mistral } from '@mistralai/mistralai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import {
+  openAiChatCompletion,
+  openAiChatCompletionChunks,
+  startMockServer,
+  streamSseEvents,
+} from '@sentry-internal/node-integration-tests';
 
-function startMockServer() {
+function startMockApi() {
   const app = express();
   app.use(express.json());
 
   app.post('/v1/chat/completions', (req, res) => {
     const { model, stream } = req.body;
-    const id = `cmpl-${model}`;
+    const options = { id: `cmpl-${model}`, content: 'Paris.' };
 
-    if (!stream) {
-      res.send({
-        id,
-        object: 'chat.completion',
-        created: 1677652288,
-        model,
-        choices: [{ index: 0, message: { role: 'assistant', content: 'Paris.' }, finish_reason: 'stop' }],
-        usage: { prompt_tokens: 10, completion_tokens: 2, total_tokens: 12 },
-      });
-      return;
+    if (stream) {
+      streamSseEvents(res, openAiChatCompletionChunks(model, options), { done: true });
+    } else {
+      res.send(openAiChatCompletion(model, options));
     }
-
-    res.setHeader('Content-Type', 'text/event-stream');
-    const chunks = [
-      {
-        id,
-        object: 'chat.completion.chunk',
-        created: 1677652300,
-        model,
-        choices: [{ index: 0, delta: { content: 'Paris.' }, finish_reason: null }],
-      },
-      {
-        id,
-        object: 'chat.completion.chunk',
-        created: 1677652300,
-        model,
-        choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
-      },
-    ];
-    for (const chunk of chunks) {
-      res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-    }
-    res.write('data: [DONE]\n\n');
-    res.end();
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
-  const server = await startMockServer();
+  const server = await startMockApi();
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Mistral({
       apiKey: 'mock-api-key',
-      serverURL: `http://localhost:${server.address().port}`,
+      serverURL: server.url,
     });
     const messages = privacy => [{ role: 'user', content: `${privacy}: capital of France?` }];
 

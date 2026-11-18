@@ -144,6 +144,34 @@ type WebpackCompilation = {
   };
 };
 
+type HtmlTagObject = {
+  tagName: string;
+  voidTag: boolean;
+  attributes: Record<string, string | boolean>;
+  meta: Record<string, unknown>;
+  innerHTML?: string;
+};
+
+// The part of `html-webpack-plugin`'s API (v4 and later) that the plugin uses. Found among the
+// configured plugins instead of imported, because it is an optional dependency of the user.
+type HtmlWebpackPluginClass = {
+  getHooks: (compilation: WebpackCompilation) => {
+    alterAssetTagGroups: {
+      tap: (name: string, callback: <T extends { headTags: HtmlTagObject[] }>(data: T) => T) => void;
+    };
+  };
+};
+
+function findHtmlWebpackPlugin(compiler: WebpackCompiler): HtmlWebpackPluginClass | undefined {
+  for (const plugin of compiler.options.plugins ?? []) {
+    const pluginClass = (plugin as { constructor?: { name?: string; getHooks?: unknown } } | undefined)?.constructor;
+    if (pluginClass?.name === 'HtmlWebpackPlugin' && typeof pluginClass.getHooks === 'function') {
+      return pluginClass as HtmlWebpackPluginClass;
+    }
+  }
+  return undefined;
+}
+
 /**
  * Maps webpack's `devtool` onto the plugin's source map kinds. A user who sets `devtool: false`
  * and adds a `SourceMapDevToolPlugin` manages source maps themselves.
@@ -373,8 +401,39 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptio
     return { kind, decision };
   }
 
-  function addCodeInjection(compiler: WebpackCompiler): void {
-    if (releaseInjectionCode.isEmpty() && chunkInjectionCode.isEmpty() && !injectDebugIds) {
+  /**
+   * Adds the release snippet to the `<head>` of every page that `html-webpack-plugin` generates.
+   * Returns `false` when the build has no `html-webpack-plugin`.
+   */
+  function addReleaseToHtml(compiler: WebpackCompiler): boolean {
+    const HtmlWebpackPlugin = findHtmlWebpackPlugin(compiler);
+    if (!HtmlWebpackPlugin) {
+      logger.warn(
+        "`release.inject: 'html'` needs `html-webpack-plugin` to generate the HTML, and this build does not use it. Injecting the release into the startup chunks instead.",
+      );
+      return false;
+    }
+
+    const tag: HtmlTagObject = {
+      tagName: 'script',
+      voidTag: false,
+      attributes: {},
+      meta: { plugin: 'sentry-webpack-plugin' },
+      innerHTML: releaseInjectionCode.code(),
+    };
+
+    // All instances of the plugin share the hooks of a compilation, so one tap covers every page.
+    compiler.hooks.thisCompilation.tap('sentry-webpack-plugin', compilation => {
+      HtmlWebpackPlugin.getHooks(compilation).alterAssetTagGroups.tap('sentry-webpack-plugin', data => {
+        data.headTags.unshift(tag);
+        return data;
+      });
+    });
+    return true;
+  }
+
+  function addCodeInjection(compiler: WebpackCompiler, injectRelease: boolean): void {
+    if ((!injectRelease || releaseInjectionCode.isEmpty()) && chunkInjectionCode.isEmpty() && !injectDebugIds) {
       return;
     }
 
@@ -412,7 +471,7 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptio
               const sourceContents = source.source();
               const code = typeof sourceContents === 'string' ? sourceContents : Buffer.from(sourceContents).toString();
               const codeToInject = new CodeInjection();
-              if (chunk.canBeInitial?.() ?? true) {
+              if (injectRelease && (chunk.canBeInitial?.() ?? true)) {
                 codeToInject.append(releaseInjectionCode);
               }
               codeToInject.append(chunkInjectionCode);
@@ -492,8 +551,11 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptio
         compiler.hooks.failed?.tap('sentry-webpack-plugin', settlePendingStagings);
       }
 
+      const releaseInHtml =
+        options.release.inject === 'html' && !releaseInjectionCode.isEmpty() && addReleaseToHtml(compiler);
+
       // BannerPlugin prepends executable code before directive prologues.
-      addCodeInjection(compiler);
+      addCodeInjection(compiler, !releaseInHtml);
 
       if (stampEmittedFiles) {
         const RawSource = compiler.webpack?.sources?.RawSource;

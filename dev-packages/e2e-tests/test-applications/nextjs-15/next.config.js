@@ -10,6 +10,7 @@ module.exports = withSentryConfig(nextConfig, {
   silent: true,
   release: {
     name: 'foobar123',
+    inject: !process.env.E2E_RELEASE_NOT_INJECTED,
   },
   _experimental: {
     vercelCronsMonitoring: true,

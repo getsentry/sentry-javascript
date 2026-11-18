@@ -26,6 +26,12 @@ vi.mock('@sentry/server-utils/orchestrion/rollup', () => ({
   sentryCommonJSInteropPlugin: () => ({ name: 'sentry-commonjs-interop' }),
   commonJSInteropOptions: () => commonJSInteropOptionsMock,
 }));
+// Without a configured name, the real function falls back to the git SHA of this repository.
+vi.mock('@sentry/bundler-plugins/core', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  resolveReleaseName: (name?: string) => name,
+}));
+
 vi.mock('@sentry/server-utils/orchestrion/config', () => ({
   INSTRUMENTED_MODULE_NAMES: ['mysql', 'ioredis'],
 }));
@@ -86,6 +92,33 @@ describe('withSentry()', () => {
       // Vitest serves the source file, the built package the transpiled one.
       expect.stringMatching(/\/nitro\/tunnelPlugin\.[jt]s$/),
     ]);
+  });
+
+  it('adds the release to the pages through a Nitro plugin that reads it from the server bundle', async () => {
+    const config = withSentry({}, { release: { name: 'my-release' } });
+    const { hookFn } = callSentryNitroModule(config);
+    const plugins: Array<{ name: string; banner?: string }> = [];
+    await hookFn(nitroOptions, { plugins });
+
+    expect((config?.server as { plugins?: string[] }).plugins).toContainEqual(
+      expect.stringMatching(/\/nitro\/releasePlugin\.[jt]s$/),
+    );
+    expect(plugins).toContainEqual({
+      name: 'sentry-solidstart-release',
+      banner: 'globalThis.__sentry_solidstart_release = "my-release";',
+    });
+  });
+
+  it('does not add the release to the pages when `release.inject` is false', async () => {
+    const config = withSentry({}, { release: { name: 'my-release', inject: false } });
+    const { hookFn } = callSentryNitroModule(config);
+    const plugins: Array<{ name: string }> = [];
+    await hookFn(nitroOptions, { plugins });
+
+    expect((config?.server as { plugins?: string[] }).plugins).not.toContainEqual(
+      expect.stringMatching(/releasePlugin/),
+    );
+    expect(plugins.map(plugin => plugin.name)).not.toContain('sentry-solidstart-release');
   });
 
   it('does not override user-defined hooks in server.hooks', () => {

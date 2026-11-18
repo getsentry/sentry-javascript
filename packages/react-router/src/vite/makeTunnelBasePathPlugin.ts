@@ -1,6 +1,5 @@
 import type { Plugin } from 'vite';
-
-const SERVER_BUILD_MODULE_ID = 'virtual:react-router/server-build';
+import { SERVER_BUILD_MODULE_ID } from './makeServerBuildCapturePlugin';
 
 /**
  * Passes the app's `basename` from the server build to the managed tunnel, which serves under it. Only applies when

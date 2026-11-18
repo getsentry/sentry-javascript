@@ -214,6 +214,55 @@ describe('makeAddSentryVitePluginSolidStart2()', () => {
   });
 });
 
+describe('release injection when the server adds the release to the page', () => {
+  function applies(plugin: Plugin, config: UserConfig): boolean {
+    return (plugin.apply as (config: UserConfig, env: unknown) => boolean)(config, { command: 'build' });
+  }
+
+  function appliesToEnvironment(plugin: Plugin, consumer: 'client' | 'server'): boolean {
+    return plugin.applyToEnvironment?.({ config: { consumer } } as never) as boolean;
+  }
+
+  it('injects the release into the SolidStart 1 server builds only', () => {
+    const [clientPlugin, serverPlugin] = makeAddSentryVitePlugin(
+      { release: { name: 'my-release' } },
+      { sdkEnabledSourceMaps: false },
+      'my-release',
+    );
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ release: { name: 'my-release', inject: false } }),
+    );
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(expect.objectContaining({ release: { name: 'my-release' } }));
+    expect(applies(clientPlugin!, { router: { target: 'browser' } } as UserConfig)).toBe(true);
+    expect(applies(clientPlugin!, { router: { target: 'server' } } as UserConfig)).toBe(false);
+    expect(applies(serverPlugin!, { router: { target: 'server' } } as UserConfig)).toBe(true);
+    expect(applies(serverPlugin!, { router: { target: 'browser' } } as UserConfig)).toBe(false);
+  });
+
+  it('injects the release into the SolidStart 2 server environments only', () => {
+    const [clientPlugin, serverPlugin] = makeAddSentryVitePluginSolidStart2(
+      {},
+      { sdkEnabledSourceMaps: false },
+      'my-release',
+    );
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(expect.objectContaining({ release: { inject: false } }));
+    expect(appliesToEnvironment(clientPlugin!, 'client')).toBe(true);
+    expect(appliesToEnvironment(clientPlugin!, 'server')).toBe(false);
+    expect(appliesToEnvironment(serverPlugin!, 'server')).toBe(true);
+    expect(appliesToEnvironment(serverPlugin!, 'client')).toBe(false);
+  });
+
+  it('keeps one plugin for all builds when the server adds no release', () => {
+    const plugins = makeAddSentryVitePlugin({ release: { name: 'my-release', inject: false } });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
+    expect(plugins).toEqual([expect.objectContaining({ name: 'sentry-vite-debug-id-upload-plugin' })]);
+    expect(plugins[0]).not.toHaveProperty('apply');
+  });
+});
+
 describe.each([
   ['makeAddSentryVitePlugin', makeAddSentryVitePlugin],
   ['makeAddSentryVitePluginSolidStart2', makeAddSentryVitePluginSolidStart2],

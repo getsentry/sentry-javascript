@@ -53,11 +53,6 @@
         "assert-command": "pnpm test:assert-webpack"
       },
       {
-        "build-command": "pnpm test:build",
-        "label": "nextjs-16-tunnel (tunnelRoute: true, turbopack)",
-        "assert-command": "pnpm test:assert"
-      },
-      {
         "build-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=path pnpm test:build",
         "label": "nextjs-16-tunnel (tunnelRoute path, turbopack)",
         "assert-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=path pnpm test:assert"

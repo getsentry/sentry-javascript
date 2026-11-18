@@ -442,7 +442,7 @@ describe('piAiIntegration', () => {
       const result = new Promise(resolve => (settle = resolve));
 
       const events = withScope(scope => {
-        setPiAiRecordingOptions(scope, { recordInputs: false, recordOutputs: false });
+        setPiAiRecordingOptions(scope, { recordInputs: false, recordOutputs: false }, {});
         return stream(() => ({ result: () => result }), MODEL, context);
       });
       settle(message);
@@ -469,8 +469,11 @@ describe('piAiIntegration', () => {
       useClient({ dataCollection: { genAI: { inputs: genAI, outputs: genAI } } });
 
       const resolved = withScope(scope => {
-        setPiAiRecordingOptions(scope, { recordInputs: driver, recordOutputs: driver });
-        return resolvePiAiRecordingOptions({ recordInputs: piAi, recordOutputs: piAi });
+        setPiAiRecordingOptions(scope, { recordInputs: driver, recordOutputs: driver }, {});
+        return resolvePiAiRecordingOptions(
+          { recordInputs: piAi, recordOutputs: piAi },
+          { model: MODEL, context: undefined, options: undefined },
+        );
       });
 
       expect(resolved).toEqual({ recordInputs: expected, recordOutputs: expected });

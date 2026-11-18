@@ -3,7 +3,7 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer } from '@sentry-internal/node-integration-tests';
+import { anthropicMessage, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
@@ -12,24 +12,13 @@ function startMockAnthropicServer() {
   app.post('/v1/messages', (req, res) => {
     const model = req.body.model;
 
-    res.json({
-      id: 'msg_react_agent_123',
-      type: 'message',
-      role: 'assistant',
-      content: [
-        {
-          type: 'text',
-          text: 'Paris is the capital of France.',
-        },
-      ],
-      model: model,
-      stop_reason: 'end_turn',
-      stop_sequence: null,
-      usage: {
-        input_tokens: 20,
-        output_tokens: 10,
-      },
-    });
+    res.json(
+      anthropicMessage(model, {
+        id: 'msg_react_agent_123',
+        content: 'Paris is the capital of France.',
+        usage: { input_tokens: 20, output_tokens: 10 },
+      }),
+    );
   });
 
   return startMockServer(app);

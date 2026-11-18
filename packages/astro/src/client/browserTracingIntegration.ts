@@ -5,6 +5,7 @@ import {
 } from '@sentry/browser';
 import type { Client, Integration, TransactionSource } from '@sentry/core';
 import { debug, hasSpanStreamingEnabled, PAGELOAD_SPAN_NAME_FALLBACK } from '@sentry/core';
+import { _INTERNAL_withCacheOrigin } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 
@@ -35,14 +36,20 @@ export function browserTracingIntegration(
         if (options.instrumentPageLoad != false) {
           const { name, source } = getPageloadSpanName(client);
 
-          startBrowserTracingPageLoadSpan(client, {
-            name,
-            attributes: {
-              [SENTRY_SEGMENT_NAME_SOURCE]: source,
-              [SENTRY_ORIGIN]: 'auto.pageload.astro',
-              ...(source === 'route' && { [URL_TEMPLATE]: name }),
-            },
-          });
+          startBrowserTracingPageLoadSpan(
+            client,
+            _INTERNAL_withCacheOrigin(
+              {
+                name,
+                attributes: {
+                  [SENTRY_SEGMENT_NAME_SOURCE]: source,
+                  [SENTRY_ORIGIN]: 'auto.pageload.astro',
+                  ...(source === 'route' && { [URL_TEMPLATE]: name }),
+                },
+              },
+              'static',
+            ),
+          );
         }
       }
     },

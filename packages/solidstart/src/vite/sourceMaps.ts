@@ -1,4 +1,4 @@
-import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
+import { type SentryVitePluginInternalOptions, sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import { resolveSourceMapsFeatures } from '@sentry/core';
 import type { Plugin, UserConfig } from 'vite';
 import type { SentrySolidStartOptions } from './sentrySolidStart';
@@ -56,10 +56,14 @@ function makeSourceMapDeletionOptions(
 
 /**
  * A Sentry plugin for adding the @sentry/bundler-plugins/vite plugin to automatically upload source maps to Sentry.
+ *
+ * @param runtimeRelease The release the server adds to the page (see `getRuntimeRelease`). When set, the release is
+ * only injected into the server builds.
  */
 export function makeAddSentryVitePlugin(
   options: SentrySolidStartPluginOptions,
   state: SourceMapState = { sdkEnabledSourceMaps: false },
+  runtimeRelease?: string,
 ): Plugin[] {
   const {
     applicationKey,
@@ -78,7 +82,7 @@ export function makeAddSentryVitePlugin(
     telemetry,
   } = options;
 
-  return sentryVitePlugin({
+  const pluginOptions: SentryVitePluginInternalOptions = {
     applicationKey,
     authToken: authToken ?? process.env.SENTRY_AUTH_TOKEN,
     bundleSizeOptimizations,
@@ -101,7 +105,20 @@ export function makeAddSentryVitePlugin(
         metaFramework: 'solidstart',
       },
     },
-  });
+  };
+
+  if (!runtimeRelease) {
+    return sentryVitePlugin(pluginOptions) as Plugin[];
+  }
+
+  // Vinxi runs one Vite build per router, with the router in the config.
+  const isClientBuild = (config: UserConfig): boolean =>
+    (config as UserConfig & { router?: { target?: string } }).router?.target === 'browser';
+
+  return [
+    ...scopePlugins(sentryVitePlugin(withoutReleaseInjection(pluginOptions)), { apply: isClientBuild }),
+    ...scopePlugins(sentryVitePlugin(pluginOptions), { apply: config => !isClientBuild(config) }),
+  ];
 }
 
 /**
@@ -110,10 +127,14 @@ export function makeAddSentryVitePlugin(
  *
  * Covers the Vite-built client assets only; Nitro emits the server bundle outside Vite's output dir
  * and the Sentry Nitro module uploads that.
+ *
+ * @param runtimeRelease The release the server adds to the page (see `getRuntimeRelease`). When set, the release is
+ * only injected into the server environments.
  */
 export function makeAddSentryVitePluginSolidStart2(
   options: SentrySolidStartOptions,
   state: SourceMapState = { sdkEnabledSourceMaps: false },
+  runtimeRelease?: string,
 ): Plugin[] {
   // Everything not destructured out is field-for-field what `sentryVitePlugin` accepts, so it is
   // spread through — a new shared option then reaches the plugin without editing a list here.
@@ -129,7 +150,7 @@ export function makeAddSentryVitePluginSolidStart2(
     ...passthroughOptions
   } = options;
 
-  return sentryVitePlugin({
+  const pluginOptions: SentryVitePluginInternalOptions = {
     ...passthroughOptions,
     authToken: authToken ?? process.env.SENTRY_AUTH_TOKEN,
     debug: debug ?? false,
@@ -147,7 +168,31 @@ export function makeAddSentryVitePluginSolidStart2(
         metaFramework: 'solidstart',
       },
     },
-  });
+  };
+
+  if (!runtimeRelease) {
+    return sentryVitePlugin(pluginOptions) as Plugin[];
+  }
+
+  return [
+    ...scopePlugins(sentryVitePlugin(withoutReleaseInjection(pluginOptions)), {
+      applyToEnvironment: environment => environment.config.consumer === 'client',
+    }),
+    ...scopePlugins(sentryVitePlugin(pluginOptions), {
+      applyToEnvironment: environment => environment.config.consumer !== 'client',
+    }),
+  ];
+}
+
+function withoutReleaseInjection(options: SentryVitePluginInternalOptions): SentryVitePluginInternalOptions {
+  return { ...options, release: { ...options.release, inject: false } };
+}
+
+function scopePlugins(
+  plugins: ReturnType<typeof sentryVitePlugin>,
+  scope: Pick<Plugin, 'apply' | 'applyToEnvironment'>,
+): Plugin[] {
+  return plugins.map(plugin => ({ ...plugin, ...scope }) as Plugin);
 }
 
 /**

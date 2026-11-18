@@ -8,7 +8,11 @@ import type { SentrySolidStartPluginOptions } from './types';
 /**
  * Various Sentry vite plugins to be used for SolidStart.
  */
-export const sentrySolidStartVite = (options: SentrySolidStartPluginOptions = {}, tunnelBasePath = ''): Plugin[] => {
+export const sentrySolidStartVite = (
+  options: SentrySolidStartPluginOptions = {},
+  tunnelBasePath = '',
+  runtimeRelease?: string,
+): Plugin[] => {
   warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions']);
 
   const sentryPlugins: Plugin[] = [
@@ -34,7 +38,7 @@ export const sentrySolidStartVite = (options: SentrySolidStartPluginOptions = {}
       // so the plugin that sets it has to come first.
       sentryPlugins.push(
         ...makeEnableSourceMapsVitePlugin(options, sourceMapState),
-        ...makeAddSentryVitePlugin(options, sourceMapState),
+        ...makeAddSentryVitePlugin(options, sourceMapState, runtimeRelease),
       );
     }
   }
@@ -49,9 +53,10 @@ export const addSentryPluginToVite = (
   config: UserConfig = {},
   options: SentrySolidStartPluginOptions,
   tunnelBasePath?: string,
+  runtimeRelease?: string,
 ): UserConfig => {
   const plugins = Array.isArray(config.plugins) ? [...config.plugins] : [];
-  plugins.unshift(sentrySolidStartVite(options, tunnelBasePath));
+  plugins.unshift(sentrySolidStartVite(options, tunnelBasePath, runtimeRelease));
 
   return {
     ...config,
