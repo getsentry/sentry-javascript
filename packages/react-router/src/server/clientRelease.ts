@@ -1,5 +1,5 @@
 import { consoleSandbox } from '@sentry/core';
-import { RELEASE_META_TAG_NAME } from '../common/utils';
+import { _INTERNAL_getReleaseMetaTag as getReleaseMetaTag } from '@sentry/core/server';
 import { injectIntoHead } from './headTagInjector';
 
 type HandleDocumentRequest = (...args: unknown[]) => unknown;
@@ -27,7 +27,7 @@ export function injectClientRelease(entry: ServerBuildEntry | undefined, release
     return;
   }
 
-  const tag = `<meta name="${RELEASE_META_TAG_NAME}" content="${escapeAttribute(release)}"/>`;
+  const tag = getReleaseMetaTag(release);
 
   async function sentryHandleRequestWithRelease(this: unknown, ...args: unknown[]): Promise<unknown> {
     const response = await (handleRequest as HandleDocumentRequest).apply(this, args);
@@ -55,8 +55,4 @@ function addTagToDocument(response: unknown, tag: string): unknown {
     statusText: response.statusText,
     headers,
   });
-}
-
-function escapeAttribute(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }

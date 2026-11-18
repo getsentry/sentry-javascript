@@ -2,14 +2,11 @@
  * @vitest-environment jsdom
  */
 import * as SentryReact from '@sentry/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { init } from '../../src/client';
-
-const reactInit = vi.spyOn(SentryReact, 'init');
 
 describe('release from the page', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     SentryReact.getCurrentScope().setClient(undefined);
   });
 
@@ -20,17 +17,17 @@ describe('release from the page', () => {
   it('takes the release the server wrote into the page', () => {
     document.head.innerHTML = '<meta name="sentry-release" content="my-app@1.2.3+abc"/>';
 
-    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+    const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-    expect(reactInit).toHaveBeenLastCalledWith(expect.objectContaining({ release: 'my-app@1.2.3+abc' }));
+    expect(client?.getOptions().release).toBe('my-app@1.2.3+abc');
   });
 
   it('keeps the release passed to `init`', () => {
     document.head.innerHTML = '<meta name="sentry-release" content="from-the-page"/>';
 
-    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', release: 'from-init' });
+    const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', release: 'from-init' });
 
-    expect(reactInit).toHaveBeenLastCalledWith(expect.objectContaining({ release: 'from-init' }));
+    expect(client?.getOptions().release).toBe('from-init');
   });
 
   it.each([
@@ -39,8 +36,8 @@ describe('release from the page', () => {
   ])('sets no release with $label', ({ head }) => {
     document.head.innerHTML = head;
 
-    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+    const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-    expect(reactInit).toHaveBeenLastCalledWith(expect.not.objectContaining({ release: expect.anything() }));
+    expect(client?.getOptions().release).toBeUndefined();
   });
 });

@@ -1,5 +1,5 @@
 import type { BrowserOptions } from '@sentry/browser';
-import { init as browserInit, WINDOW } from '@sentry/browser';
+import { init as browserInit } from '@sentry/browser';
 import type { Client } from '@sentry/core';
 import {
   applySdkMetadata,
@@ -8,7 +8,6 @@ import {
   GLOBAL_OBJ,
   setTag,
 } from '@sentry/core';
-import { RELEASE_META_TAG_NAME } from '../common/utils';
 
 const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
@@ -41,16 +40,6 @@ export function init(options: BrowserOptions): Client | undefined {
   options.tunnel = applyBrowserTunnelDefaults(options.tunnel, {
     basePath: GLOBAL_OBJ_WITH_ROUTER_CONTEXT.__reactRouterContext?.basename,
   });
-
-  // The Vite plugin keeps the release out of the content-hashed client chunks and has the server put it in the page.
-  if (options.release === undefined) {
-    const release = WINDOW.document
-      ?.querySelector<HTMLMetaElement>(`meta[name="${RELEASE_META_TAG_NAME}"]`)
-      ?.getAttribute('content');
-    if (release) {
-      options.release = release;
-    }
-  }
 
   applySdkMetadata(options, 'react-router', ['react-router', 'browser']);
 

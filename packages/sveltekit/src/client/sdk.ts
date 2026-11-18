@@ -3,7 +3,6 @@ import { applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/svelte';
 import { getDefaultIntegrations as getDefaultSvelteIntegrations, init as initSvelteSdk, WINDOW } from '@sentry/svelte';
 import { applyTunnelBasePath } from '../common/tunnel';
-import { RELEASE_META_TAG_NAME } from '../common/utils';
 import { browserTracingIntegration as svelteKitBrowserTracingIntegration } from './browserTracingIntegration';
 
 type WindowWithSentryFetchProxy = typeof WINDOW & {
@@ -24,11 +23,6 @@ export function init(options: BrowserOptions): Client | undefined {
     ...options,
   };
 
-  const releaseFromPage = options.release === undefined ? getReleaseFromPage() : undefined;
-  if (releaseFromPage) {
-    opts.release = releaseFromPage;
-  }
-
   applySdkMetadata(opts, 'sveltekit', ['sveltekit', 'svelte']);
   applyTunnelBasePath(opts);
 
@@ -44,10 +38,6 @@ export function init(options: BrowserOptions): Client | undefined {
   }
 
   return client;
-}
-
-function getReleaseFromPage(): string | undefined {
-  return WINDOW.document?.querySelector<HTMLMetaElement>(`meta[name="${RELEASE_META_TAG_NAME}"]`)?.content || undefined;
 }
 
 function getDefaultIntegrations(options: BrowserOptions): Integration[] | undefined {

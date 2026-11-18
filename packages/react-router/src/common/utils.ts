@@ -1,9 +1,6 @@
 import { captureException, debug } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 
-/** The `name` of the meta tag that carries the release from the server to the browser SDK. */
-export const RELEASE_META_TAG_NAME = 'sentry-release';
-
 /**
  * Extracts pathname from request URL.
  * Falls back to '<unknown>' with DEBUG warning if URL cannot be parsed.

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { addReleaseMetaTag } from '../../src/nitro/releaseMetaTag';
 
-const META_TAG = '<meta name="sentry-release" content="1.0.0">';
+const META_TAG = '<meta name="sentry-release" content="1.0.0"/>';
 
 function streamOf(...chunks: string[]): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
@@ -25,7 +25,7 @@ describe('addReleaseMetaTag', () => {
     const body = addReleaseMetaTag('<head></head>', '"><script>alert(1)</script>&', 'text/html');
 
     expect(body).toBe(
-      '<head><meta name="sentry-release" content="&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;&amp;"></head>',
+      '<head><meta name="sentry-release" content="&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;&amp;"/></head>',
     );
   });
 

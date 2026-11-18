@@ -3,9 +3,6 @@ import { isObjectLike } from '@sentry/core';
 
 export const WRAPPED_MODULE_SUFFIX = '?sentry-auto-wrap';
 
-/** `sentryHandle` puts the release into a `<meta>` tag with this name, where the client SDK reads it. */
-export const RELEASE_META_TAG_NAME = 'sentry-release';
-
 export type SentryWrappedFlag = {
   /**
    * If this flag is set, we know that the load event was already wrapped once
