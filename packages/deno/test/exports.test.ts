@@ -46,7 +46,7 @@ for (const name of EXPECTED_FUNCTION_EXPORTS) {
 }
 
 // Shared with `@sentry/node`, for libraries that run on Deno through npm.
-for (const name of ['pinoIntegration', 'BullMQTelemetry']) {
+for (const name of ['pinoIntegration', 'createSentryWinstonTransport', 'BullMQTelemetry']) {
   Deno.test(`exports ${name}`, () => {
     assertEquals(typeof (Sentry as Record<string, unknown>)[name], 'function');
   });

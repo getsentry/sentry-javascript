@@ -81,6 +81,7 @@ export { typesafeIntegration } from './integrations/typesafe';
 export { mysqlIntegration } from './integrations/mysql';
 export { mysql2Integration } from './integrations/mysql2';
 export { pinoIntegration } from './integrations/pino';
+export { createSentryWinstonTransport } from './integrations/winston';
 export { openAIIntegration } from './integrations/openai';
 export { postgresIntegration } from './integrations/pg';
 export { postgresJsIntegration } from './integrations/postgresjs';

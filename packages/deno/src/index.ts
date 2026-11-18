@@ -161,6 +161,7 @@ export {
   anthropicAIIntegration,
   awsIntegration,
   BullMQTelemetry,
+  createSentryWinstonTransport,
   cron,
   dataloaderIntegration,
   redisIntegration,
