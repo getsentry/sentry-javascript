@@ -502,6 +502,9 @@ importers:
       '@opentelemetry/api':
         specifier: ^1.9.1
         version: 1.10.0
+      '@orpc/server':
+        specifier: 2.0.0-beta.51
+        version: 2.0.0-beta.51(crossws@0.4.10(srvx@1.0.8))(fastify@5.12.7)
       '@prisma/adapter-d1':
         specifier: 6.15.0
         version: 6.15.0
@@ -547,6 +550,12 @@ importers:
 
   dev-packages/deno-integration-tests:
     devDependencies:
+      '@orpc/client':
+        specifier: 2.0.0-beta.51
+        version: 2.0.0-beta.51
+      '@orpc/server':
+        specifier: 2.0.0-beta.51
+        version: 2.0.0-beta.51(crossws@0.4.10(srvx@1.0.8))(fastify@5.12.7)
       '@sentry-internal/node-integration-tests':
         specifier: 11.14.0
         version: link:../node-integration-tests
@@ -24875,6 +24884,22 @@ snapshots:
       crossws: 0.4.10(srvx@0.11.22)
       fastify: 5.12.7
 
+  '@orpc/server@2.0.0-beta.51(crossws@0.4.10(srvx@1.0.8))(fastify@5.12.7)':
+    dependencies:
+      '@orpc/client': 2.0.0-beta.51
+      '@orpc/contract': 2.0.0-beta.51
+      '@orpc/shared': 2.0.0-beta.51
+      '@standard-server/aws-lambda': 0.16.0
+      '@standard-server/core': 0.16.0
+      '@standard-server/fastify': 0.16.0(fastify@5.12.7)
+      '@standard-server/fetch': 0.16.0
+      '@standard-server/node': 0.16.0
+      '@standard-server/peer': 0.16.0
+      cookie: 2.0.2
+    optionalDependencies:
+      crossws: 0.4.10(srvx@1.0.8)
+      fastify: 5.12.7
+
   '@orpc/shared@2.0.0-beta.51':
     dependencies:
       '@standard-server/shared': 0.16.0
@@ -29489,6 +29514,11 @@ snapshots:
   crossws@0.4.10(srvx@0.11.22):
     optionalDependencies:
       srvx: 0.11.22
+
+  crossws@0.4.10(srvx@1.0.8):
+    optionalDependencies:
+      srvx: 1.0.8
+    optional: true
 
   css-blank-pseudo@3.0.3(postcss@8.4.31):
     dependencies:

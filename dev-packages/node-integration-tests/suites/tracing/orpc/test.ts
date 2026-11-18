@@ -110,7 +110,7 @@ describe('oRPC integration', () => {
       await runner.completed();
     });
 
-    // Deno's `fetch` creates no `http.client` span with `@sentry/node`.
+    // `@sentry/node` doesn't instrument Deno's `fetch` (see `NO_FETCH_INSTRUMENTATION` in the Deno excludes).
     test.runIf(supports({ runtimes: ['node', 'bun'] }))(
       'continues the trace of an oRPC client call on the server',
       async () => {

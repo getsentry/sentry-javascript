@@ -192,6 +192,7 @@ export {
   mysql2Integration,
   nitroIntegration,
   mistralAIIntegration,
+  orpcIntegration,
   openAIIntegration,
   pinoIntegration,
   groqIntegration,
