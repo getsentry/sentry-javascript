@@ -155,7 +155,7 @@ describe('withSentryRouterRouting (Solid Router 2)', () => {
     });
   });
 
-  it('does not start a navigation span with `instrumentNavigation: false`', async () => {
+  it('does not start a navigation span with `instrumentNavigation: false`', () => {
     setUpClient({ instrumentNavigation: false });
 
     const { navigate, dispose } = renderRouter('/');
@@ -163,8 +163,8 @@ describe('withSentryRouterRouting (Solid Router 2)', () => {
 
     navigate('/about');
     flush();
-    await new Promise(resolve => setTimeout(resolve, 0));
 
+    // Navigation spans start synchronously in `beforeLeave`, so there is nothing to wait for.
     expect(findSpan(spans, NAVIGATION)).toBeUndefined();
   });
 
