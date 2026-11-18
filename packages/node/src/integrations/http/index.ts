@@ -13,6 +13,7 @@ import type {
   CheckServerRequestOptions,
   HttpIncomingMessage,
   HttpServerResponse,
+  ServerRequestOptions,
 } from '@sentry/core/server';
 import { getRequestUrlFromClientRequest } from '@sentry/core/server';
 import type { NodeClient } from '../../sdk/client';
@@ -96,6 +97,12 @@ type _ServerRequestOptionsCheck = AssertTrue<
   CheckServerRequestOptions<HttpOptions, HttpIncomingMessage, HttpServerResponse>
 >;
 
+// Every shared option is a required key, so a new one fails to compile
+// below until the integration passes it on.
+type HttpServerRequestOptions = {
+  [K in keyof Required<ServerRequestOptions<HttpIncomingMessage, HttpServerResponse>>]: HttpOptions[K];
+};
+
 /**
  * The http integration instruments Node's internal http and https modules.
  * It creates breadcrumbs and spans for outgoing HTTP requests which will be attached to the currently active span.
@@ -107,22 +114,24 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
   const server = httpServerIntegration(options);
   const serverSpans = httpServerSpansIntegration(options);
 
+  // Runtimes that do not publish `http.server.request.start` (such as
+  // Bun) create incoming-request spans in another integration, which
+  // reads these options.
+  const serverRequestOptions: HttpServerRequestOptions = {
+    spans: enableServerSpans ? undefined : false,
+    sessions: options.sessions,
+    sessionFlushingDelayMS: options.sessionFlushingDelayMS,
+    maxRequestBodySize: options.maxRequestBodySize,
+    ignoreRequestBody: options.ignoreRequestBody,
+    ignoreIncomingRequests: options.ignoreIncomingRequests,
+    ignoreStaticAssets: options.ignoreStaticAssets,
+    onSpanCreated: options.onSpanCreated,
+    onSpanEnd: options.onSpanEnd,
+  };
+
   return {
     name: INTEGRATION_NAME,
-    // Runtimes that do not publish `http.server.request.start` (such as
-    // Bun) create incoming-request spans in another integration, which
-    // reads these options.
-    serverRequestOptions: {
-      spans: enableServerSpans ? undefined : false,
-      sessions: options.sessions,
-      sessionFlushingDelayMS: options.sessionFlushingDelayMS,
-      maxRequestBodySize: options.maxRequestBodySize,
-      ignoreRequestBody: options.ignoreRequestBody,
-      ignoreIncomingRequests: options.ignoreIncomingRequests,
-      ignoreStaticAssets: options.ignoreStaticAssets,
-      onSpanCreated: options.onSpanCreated,
-      onSpanEnd: options.onSpanEnd,
-    },
+    serverRequestOptions,
     setup(client: NodeClient) {
       const clientOptions = client.getOptions();
 

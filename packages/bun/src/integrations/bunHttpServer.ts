@@ -8,6 +8,7 @@ import type {
   CheckServerRequestOptions,
   HttpIncomingMessage,
   HttpServerResponse,
+  ServerRequestOptions,
 } from '@sentry/core/server';
 import { getHttpServerSubscriptions, HTTP_ON_SERVER_REQUEST } from '@sentry/core/server';
 import { isBun } from '@sentry/server-utils';
@@ -90,6 +91,16 @@ type _ServerRequestOptionsCheck = AssertTrue<
   CheckServerRequestOptions<BunHttpServerOptions, HttpIncomingMessage, HttpServerResponse>
 >;
 
+// Every shared option is a required key, so a new one fails to compile
+// below until the integration passes it on.
+type BunHttpServerRequestOptions = {
+  [K in keyof Required<ServerRequestOptions<HttpIncomingMessage, HttpServerResponse>>]: BunHttpServerOptions[K];
+};
+
+interface HttpIntegration extends Integration {
+  serverRequestOptions: BunHttpServerRequestOptions;
+}
+
 let hasPatched = false;
 
 /**
@@ -97,10 +108,9 @@ let hasPatched = false;
  * under the given options. Bun does not publish
  * `http.server.request.start`, so `httpIntegration` never applies them.
  */
-function resolveOptions(options: BunHttpServerOptions, client: Client): BunHttpServerOptions {
-  const httpOptions =
-    client.getIntegrationByName<Integration & { serverRequestOptions?: BunHttpServerOptions }>('Http')
-      ?.serverRequestOptions ?? {};
+function resolveOptions(options: BunHttpServerOptions, client: Client): BunHttpServerRequestOptions {
+  const httpOptions: Partial<BunHttpServerRequestOptions> =
+    client.getIntegrationByName<HttpIntegration>('Http')?.serverRequestOptions ?? {};
   return {
     spans: options.spans ?? httpOptions.spans,
     sessions: options.sessions ?? httpOptions.sessions,

@@ -264,6 +264,7 @@ const BUN_BUILD_NOT_TRIAGED = [
 // Before Bun 1.4, Bun does not publish `http.client.request.created`, and `@sentry/node` picks the
 // channel from the Node version that Bun reports. So outgoing `node:http` requests get no
 // `sentry-trace` header, and the `/test2` request starts its own trace.
+// See https://github.com/getsentry/sentry-javascript/issues/26614
 const BUN_1_3_NO_HTTP_CLIENT_CHANNEL = ['suites/express/with-http/base/test.ts'];
 
 // Excluded in `node-suites-bun-build` only before Bun 1.4.
