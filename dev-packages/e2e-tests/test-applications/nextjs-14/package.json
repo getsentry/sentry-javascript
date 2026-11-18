@@ -12,6 +12,8 @@
     "test:assert": "pnpm test:test-build && pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
+    "@orpc/client": "^1.16.3",
+    "@orpc/server": "^1.16.3",
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@types/node": "^18.19.1",
@@ -20,7 +22,8 @@
     "next": "14.2.35",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "typescript": "~5.0.0"
+    "typescript": "~5.0.0",
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
@@ -32,7 +35,8 @@
       {
         "build-command": "pnpm install",
         "label": "nextjs-14 (development)",
-        "assert-command": "pnpm test:dev"
+        "assert-command": "pnpm test:dev",
+        "test-shards": 2
       }
     ],
     "baseVariant": {
