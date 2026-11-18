@@ -25,7 +25,6 @@ import {
   getConstructedRoute,
   getLayerPath,
   getLayerRegisteredPath,
-  hasLayerRegisteredPath,
   popLayerPath,
   pushLayerPath,
   setLayerRegisteredPath,
@@ -74,14 +73,11 @@ export function instrumentExpress(
 
   // Record each layer's registered path *pattern* as it is registered, so the
   // matched route can be reconstructed with its parameters intact at request
-  // time. The `end` event records the path (the layer is on the router's stack
-  // by then), and `start` keeps the stack length to find that layer. The others
-  // are required by the subscriber type, so no-op them.
+  // time. Only the `end` event matters (the layer is on the router's stack by
+  // then); the others are required by the subscriber type, so no-op them.
   for (const channelName of [CHANNELS.EXPRESS_REGISTER, CHANNELS.ROUTER_REGISTER]) {
     tracingChannel<RegistrationChannelContext>(channelName).subscribe({
-      start: data => {
-        data._sentryStackLength = data.self?.stack?.length;
-      },
+      start: NOOP,
       asyncStart: NOOP,
       asyncEnd: NOOP,
       error: NOOP,
@@ -184,43 +180,16 @@ export function captureLayerError(
   }
 }
 
-/** Record the path pattern of the layer that a `route`/`use` call added. */
+/** Record the freshly-registered layer's path pattern from a `route`/`use` call. */
 function captureRegisteredLayerPath(data: RegistrationChannelContext): void {
   const stack = data.self?.stack;
   if (!Array.isArray(stack)) {
     return;
   }
-  const layer = getRegisteredLayer(stack, data);
+  const layer = stack[stack.length - 1];
   if (layer) {
     setLayerRegisteredPath(layer, getLayerPath(data.arguments ?? []));
   }
-}
-
-/** The layer that a `route`/`use` call added to the router's stack. */
-function getRegisteredLayer(stack: ExpressLayer[], data: RegistrationChannelContext): ExpressLayer | undefined {
-  // The stack grew between `start` and `end`, so the events arrived during the call and the new layer is the last one.
-  if (data._sentryStackLength !== undefined && data._sentryStackLength < stack.length) {
-    return stack[stack.length - 1];
-  }
-
-  // Otherwise the events arrived late: Cloudflare delivers the events of calls at module scope with the first
-  // request, when the stack already has the layers of all later calls.
-
-  // `use` returns the router.
-  if (data.result === data.self) {
-    const handlers = (data.arguments ?? []).flat(Infinity).filter(arg => typeof arg === 'function');
-    const lastHandler = handlers[handlers.length - 1];
-    // A handler can be on the stack more than once (`use('/a', fn)`, `use('/b', fn)`), and the events arrive in
-    // call order, so this call's layer is the first one that no earlier event has recorded.
-    return stack.find(layer => layer.handle === lastHandler && !hasLayerRegisteredPath(layer));
-  }
-
-  // `route` returns the new `Route`, which its layer references.
-  if (data.result) {
-    return stack.find(layer => layer.route === data.result);
-  }
-
-  return undefined;
 }
 
 /** Pop the path a layer pushed once it hands control onward via `next`. */
@@ -300,7 +269,7 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
   // `request_handler` can reconstruct the full route with parameters intact
   // (`req.baseUrl` only exposes the *resolved* mount prefix). The matching pop
   // happens on `asyncStart` when the layer hands off via `next`.
-  const registeredPath = getLayerRegisteredPath(layer);
+  const registeredPath = getLayerRegisteredPath(layer) ?? getMatchedLayerPath(layer);
   if (registeredPath != null) {
     pushLayerPath(req, registeredPath);
     data._sentryStoredLayer = true;
@@ -406,6 +375,19 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
   }
 
   return span;
+}
+
+/**
+ * The path of a matched layer for which no registration event recorded a path. That is the case when the events
+ * arrive after the registration calls: Cloudflare delivers the events of calls at module scope with the first
+ * request.
+ */
+function getMatchedLayerPath(layer: ExpressLayer): string | undefined {
+  if (layer.route) {
+    return getLayerPath([layer.route.path]);
+  }
+  // A mount path without parameters is equal to the part of the URL that the layer matched.
+  return layer.keys?.length ? undefined : layer.path || undefined;
 }
 
 function getLayerType(layer: ExpressLayer): ExpressLayerType {

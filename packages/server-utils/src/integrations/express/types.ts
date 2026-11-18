@@ -9,9 +9,10 @@ export type ExpressLayerType = 'router' | 'middleware' | 'request_handler';
  * (and carries the parameterized path).
  */
 export interface ExpressLayer {
-  handle?: (...args: never[]) => unknown;
+  handle?: { length?: number };
   name?: string;
   path?: string;
+  keys?: unknown[];
   route?: { path?: unknown };
   // Only set on a Route's *inner* method-handler layers (e.g. `'get'`), which
   // run inside the route-dispatch layer we already span.
@@ -50,14 +51,12 @@ export interface HandleChannelContext extends OrchestrionChannelContext {
 
 /**
  * The context orchestrion attaches to the `route`/`use` registration channels:
- * `self` is the router the method was invoked on, `arguments` are the
- * registration args (the first of which is the path pattern), and `result` is
- * the new `Route` for `route` and the router for `use`.
+ * `self` is the router the method was invoked on (its freshly-pushed layer is
+ * the last entry in `stack`) and `arguments` are the registration args (the
+ * first of which is the path pattern).
  */
 export interface RegistrationChannelContext extends OrchestrionChannelContext {
   self?: { stack?: ExpressLayer[] };
-  /** Length of the router's stack at the `start` event. */
-  _sentryStackLength?: number;
 }
 
 /** An Express error carrying an optional HTTP status, in the various shapes middleware use. */

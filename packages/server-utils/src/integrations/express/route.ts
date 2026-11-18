@@ -17,11 +17,6 @@ export function setLayerRegisteredPath(layer: ExpressLayer, path: string | undef
   layerRegisteredPaths.set(layer, path);
 }
 
-/** Whether a registration was recorded for the layer, with or without a path. */
-export function hasLayerRegisteredPath(layer: ExpressLayer): boolean {
-  return layerRegisteredPaths.has(layer);
-}
-
 /** Read the path pattern a layer was registered with, if any. */
 export function getLayerRegisteredPath(layer: ExpressLayer): string | undefined {
   return layerRegisteredPaths.get(layer);
