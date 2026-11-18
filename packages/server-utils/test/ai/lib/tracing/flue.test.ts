@@ -22,6 +22,7 @@ import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 const AGENT_OP = { type: 'agent', operationId: 'op_1' };
 const AGENT_CTX = { agentName: 'Hello', submissionId: 'sub_1' };
 const INNER_CTX = { conversationId: 'conv_1' };
+const PI_AI_CALL = { model: undefined, context: undefined, options: undefined };
 
 describe('createFlueInstrumentation', () => {
   let endedSpans: Span[];
@@ -318,11 +319,11 @@ describe('createFlueInstrumentation', () => {
     let recording: unknown;
 
     await createFlueInstrumentation({ recordInputs: false }).interceptor({ type: 'model' }, {}, async () => {
-      recording = resolvePiAiRecordingOptions({});
+      recording = resolvePiAiRecordingOptions({}, PI_AI_CALL);
     });
 
     expect(recording).toEqual({ recordInputs: false, recordOutputs: true });
-    expect(resolvePiAiRecordingOptions({})).toEqual({ recordInputs: true, recordOutputs: true });
+    expect(resolvePiAiRecordingOptions({}, PI_AI_CALL)).toEqual({ recordInputs: true, recordOutputs: true });
   });
 
   // The `tool` operation opens no span of its own; it makes the span `observe` already opened
