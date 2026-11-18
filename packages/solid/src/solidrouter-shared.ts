@@ -140,7 +140,7 @@ export function createRouterSpanUpdater(): {
         const { attributes, name: spanName } = spanToJSON(rootSpan);
         // With span streaming, a history traversal span is already named `Navigation` (there is no
         // target URL upfront), so only the static lifecycle still has the delta to replace here.
-        if (attributes[SENTRY_OP] === 'navigation' && spanName === historyTraversalSpanName) {
+        if (attributes[SENTRY_OP] === NAVIGATION && spanName === historyTraversalSpanName) {
           rootSpan.updateName(name);
         }
         rootSpan.setAttributes({ [SENTRY_SEGMENT_NAME_SOURCE]: 'url', ...urlAttributes });

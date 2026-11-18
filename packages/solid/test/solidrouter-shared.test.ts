@@ -1,5 +1,6 @@
 import { spanToJSON } from '@sentry/browser';
 import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_FULL } from '@sentry/conventions/attributes';
+import { NAVIGATION } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import { createTransport, getCurrentScope, setCurrentClient } from '@sentry/core';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -25,7 +26,7 @@ describe('createRouterSpanUpdater', () => {
   });
 
   function lastNavigationSpan(): ReturnType<typeof spanToJSON> | undefined {
-    const span = spans.filter(s => spanToJSON(s).attributes?.[SENTRY_OP] === 'navigation').pop();
+    const span = spans.filter(s => spanToJSON(s).attributes?.[SENTRY_OP] === NAVIGATION).pop();
     return span ? spanToJSON(span) : undefined;
   }
 

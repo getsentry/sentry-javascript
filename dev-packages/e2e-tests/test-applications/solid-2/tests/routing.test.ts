@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
+import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('sends a pageload span named after the matched route', async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('solid-2', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment;
+    return getSpanOp(span) === PAGELOAD && span.is_segment;
   });
 
   await page.goto('/user/5');
@@ -13,7 +14,7 @@ test('sends a pageload span named after the matched route', async ({ page }) => 
   expect(pageloadSpan.name).toBe('/user/:id');
   expect(pageloadSpan.attributes).toMatchObject({
     'sentry.segment.name.source': { value: 'route', type: 'string' },
-    'sentry.op': { value: 'pageload', type: 'string' },
+    'sentry.op': { value: PAGELOAD, type: 'string' },
     'url.template': { value: '/user/:id', type: 'string' },
     'url.path.parameter.id': { value: '5', type: 'string' },
     'url.path': { value: '/user/5', type: 'string' },
@@ -22,10 +23,10 @@ test('sends a pageload span named after the matched route', async ({ page }) => 
 
 test('sends a navigation span for a link click', async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('solid-2', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment;
+    return getSpanOp(span) === PAGELOAD && span.is_segment;
   });
   const navigationSpanPromise = waitForStreamedSpan('solid-2', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment;
+    return getSpanOp(span) === NAVIGATION && span.is_segment;
   });
 
   await page.goto('/');
@@ -38,7 +39,7 @@ test('sends a navigation span for a link click', async ({ page }) => {
   expect(navigationSpan.attributes).toMatchObject({
     'sentry.segment.name.source': { value: 'route', type: 'string' },
     'sentry.origin': { value: 'auto.navigation.solid.solidrouter', type: 'string' },
-    'sentry.op': { value: 'navigation', type: 'string' },
+    'sentry.op': { value: NAVIGATION, type: 'string' },
     'url.template': { value: '/user/:id', type: 'string' },
     'url.path.parameter.id': { value: '5', type: 'string' },
     'url.path': { value: '/user/5', type: 'string' },
@@ -47,10 +48,10 @@ test('sends a navigation span for a link click', async ({ page }) => {
 
 test('sends a navigation span for a programmatic navigation', async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('solid-2', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment;
+    return getSpanOp(span) === PAGELOAD && span.is_segment;
   });
   const navigationSpanPromise = waitForStreamedSpan('solid-2', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment;
+    return getSpanOp(span) === NAVIGATION && span.is_segment;
   });
 
   await page.goto('/user/5');

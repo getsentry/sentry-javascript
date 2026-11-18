@@ -7,6 +7,7 @@ import {
   URL_PATH_PARAMETER_KEY_BASE,
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
+import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import { createTransport, getCurrentScope, setCurrentClient } from '@sentry/core';
 import type { Navigator, RouteSectionProps } from '@solidjs/router';
@@ -99,7 +100,7 @@ describe('withSentryRouterRouting (Solid Router 2)', () => {
     cleanup = dispose;
 
     await vi.waitFor(() => {
-      expect(findSpan(spans, 'pageload')).toMatchObject({
+      expect(findSpan(spans, PAGELOAD)).toMatchObject({
         name: '/user/:id',
         attributes: expect.objectContaining({
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
@@ -121,7 +122,7 @@ describe('withSentryRouterRouting (Solid Router 2)', () => {
     flush();
 
     await vi.waitFor(() => {
-      expect(findSpan(spans, 'navigation')).toMatchObject({
+      expect(findSpan(spans, NAVIGATION)).toMatchObject({
         name: '/user/:id/post/:postId',
         attributes: expect.objectContaining({
           [SENTRY_ORIGIN]: 'auto.navigation.solid.solidrouter',
@@ -144,7 +145,7 @@ describe('withSentryRouterRouting (Solid Router 2)', () => {
     flush();
 
     await vi.waitFor(() => {
-      expect(findLastSpan(spans, 'navigation')).toMatchObject({
+      expect(findLastSpan(spans, NAVIGATION)).toMatchObject({
         name: '/user/:id',
         attributes: expect.objectContaining({
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
@@ -164,7 +165,7 @@ describe('withSentryRouterRouting (Solid Router 2)', () => {
     flush();
     await new Promise(resolve => setTimeout(resolve, 0));
 
-    expect(findSpan(spans, 'navigation')).toBeUndefined();
+    expect(findSpan(spans, NAVIGATION)).toBeUndefined();
   });
 
   it('keeps the properties of the router instance', () => {
