@@ -5,6 +5,8 @@ import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { collectStreamedSpans, getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isViteServer, NITRO_ONLY } from './isViteServer';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test.skip(isViteServer, NITRO_ONLY);
 
 test('continues an incoming trace in the server segment and its events', async ({ request }) => {

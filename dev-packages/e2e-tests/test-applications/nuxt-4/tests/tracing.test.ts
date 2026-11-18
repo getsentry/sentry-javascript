@@ -5,6 +5,8 @@ import { IMPORT_SURFACES } from './importSurfaces';
 import { isViteServer, NITRO_ONLY, NO_META_TAGS } from './isViteServer';
 import { RUNTIME, SERVER_ORIGIN } from './runtime';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 // `sentryCloudflareNitroPlugin` takes the trace data of the meta tags when the request starts, before the route
 // names the segment.
 const CLOUDFLARE_META_TAGS_BEFORE_ROUTE = 'Cloudflare meta tags are created before the route is known';

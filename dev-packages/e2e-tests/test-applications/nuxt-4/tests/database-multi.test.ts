@@ -3,6 +3,8 @@ import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/te
 import { isViteServer, NITRO_ONLY } from './isViteServer';
 import { NO_SERVER_CONFIG_INSTRUMENTATION, RUNTIME } from './runtime';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test.skip(isViteServer, NITRO_ONLY);
 test.skip(RUNTIME === 'cloudflare', NO_SERVER_CONFIG_INSTRUMENTATION);
 

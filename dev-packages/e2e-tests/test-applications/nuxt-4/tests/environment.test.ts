@@ -3,6 +3,8 @@ import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/t
 import { isDevMode } from './isDevMode';
 import { isViteServer, NITRO_ONLY } from './isViteServer';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test.describe('environment detection', async () => {
   test('sets correct environment for client-side errors', async ({ page }) => {
     const errorPromise = waitForError('nuxt-4', async errorEvent => {

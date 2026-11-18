@@ -3,6 +3,8 @@ import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE } from '@sentry/convention
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isViteServer, NO_META_TAGS } from './isViteServer';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test.describe('Rendering Modes with Cached HTML', () => {
   test('changes tracing meta tags with multiple requests on Client-Side only page', async ({ page }) => {
     test.fail(isViteServer, NO_META_TAGS);

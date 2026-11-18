@@ -3,6 +3,8 @@ import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/te
 import { isViteServer, NITRO_ONLY } from './isViteServer';
 import { MONGOOSE_UNSUPPORTED, RUNTIME } from './runtime';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test.skip(isViteServer, NITRO_ONLY);
 
 // The Nuxt module auto-wires the orchestrion build-time transform, which injects

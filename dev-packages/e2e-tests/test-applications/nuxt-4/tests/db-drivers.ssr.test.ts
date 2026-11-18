@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('Instruments mysql in a page that queries the database while it renders', async ({ baseURL }) => {
   const spansPromise = collectStreamedSpansUntilSegment(
     'nuxt-4',

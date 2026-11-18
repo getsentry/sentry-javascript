@@ -5,6 +5,8 @@ import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isViteServer, NO_IMPORT_CONFIG } from './isViteServer';
 import { getServerCommand, NO_PROCESS, RUNTIME } from './runtime';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test.skip(RUNTIME === 'cloudflare', NO_PROCESS);
 
 // `node --import` start commands (and their `--preload` counterparts on Bun and Deno) must keep

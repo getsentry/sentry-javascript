@@ -4,6 +4,8 @@ import { IMPORT_SURFACES } from './importSurfaces';
 import { isViteServer, NITRO_ONLY } from './isViteServer';
 import { SERVER_ORIGIN } from './runtime';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('sends a server root span on pageload', async ({ page }) => {
   const serverSpanPromise = waitForStreamedSpan('nuxt-4', span => {
     return span.is_segment && span.name.includes('GET /test-param/');
