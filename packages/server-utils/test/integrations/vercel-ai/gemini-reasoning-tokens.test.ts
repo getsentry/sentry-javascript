@@ -48,7 +48,7 @@ describe('Vercel AI Gemini reasoning tokens', () => {
     const endedSpans = setupClient();
     const message = { type, event: {}, result } as Parameters<typeof createSpanFromMessage>[0];
     const span = createSpanFromMessage(message, {} as Parameters<typeof createSpanFromMessage>[1]);
-    enrichSpanOnEnd(span!, message, {} as Parameters<typeof enrichSpanOnEnd>[2]);
+    enrichSpanOnEnd(span!, message);
     span?.end();
     return spanToStaticSpanJSON(endedSpans[0]!).data ?? {};
   }
