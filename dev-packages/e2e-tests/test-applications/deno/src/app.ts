@@ -29,7 +29,7 @@ Sentry.init({
   tracesSampleRate: 1,
   // Left unset (so the default span streaming applies) unless the
   // `deno (static trace lifecycle)` variant asks for the other lifecycle.
-  traceLifecycle: Deno.env.get('E2E_TEST_STATIC') ? 'static' : undefined,
+  traceLifecycle: Deno.env.get('E2E_TEST_TRACE_LIFECYCLE') === 'static' ? 'static' : undefined,
 });
 
 // `mysql` and `pg` don't emit tracing signals on their own. The

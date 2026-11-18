@@ -1,7 +1,7 @@
 import { Mistral } from '@mistralai/mistralai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
+import { openAiChatCompletion, startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
 
 const weatherTool = {
   type: 'function',
@@ -62,26 +62,16 @@ function startMockApi() {
 
       streamSseEvents(res, chunks, { done: true });
     } else {
-      res.send({
-        id: 'chatcmpl-tools-123',
-        object: 'chat.completion',
-        created: 1677652288,
-        model,
-        choices: [
-          {
-            index: 0,
-            message: {
-              role: 'assistant',
-              content: '',
-              tool_calls: [
-                { id: 'call_1', type: 'function', function: { name: 'get_weather', arguments: '{"city":"Paris"}' } },
-              ],
-            },
-            finish_reason: 'tool_calls',
-          },
-        ],
-        usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 },
-      });
+      res.send(
+        openAiChatCompletion(model, {
+          id: 'chatcmpl-tools-123',
+          content: '',
+          toolCalls: [
+            { id: 'call_1', type: 'function', function: { name: 'get_weather', arguments: '{"city":"Paris"}' } },
+          ],
+          usage: { prompt_tokens: 12, completion_tokens: 8 },
+        }),
+      );
     }
   });
 

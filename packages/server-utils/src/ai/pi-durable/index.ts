@@ -9,13 +9,14 @@ import {
   withActiveSpan,
 } from '@sentry/core';
 import { GEN_AI_CONVERSATION_ID } from '@sentry/conventions/attributes';
-import type { GenAiOptions } from '../core/utils';
+import type { GenAiCallOptions } from '../core/utils';
 import { setPiAiRecordingOptions } from '../pi-ai/recording';
 import { PI_DURABLE_ORIGIN, PI_TASK } from './constants';
 import type { PiRuns } from './runs';
 import { createRuns, endRun, observeRunControl, readProviderSessionId, startRun, toSentryConversationId } from './runs';
 import { instrumentTool, instrumentToolPhase } from './tools';
 import type {
+  PiDurableCallInfo,
   PiHarness,
   PiHarnessOptions,
   PiPhaseHandler,
@@ -28,7 +29,7 @@ import type {
 import { withCleanScopes } from '../../utils/withCleanScopes';
 import { bound } from './utils';
 
-export type PiDurableOptions = GenAiOptions;
+export type PiDurableOptions = GenAiCallOptions<PiDurableCallInfo>;
 
 const INSTRUMENTED = Symbol.for('sentry.pi-durable.instrumented');
 const RUNS = Symbol.for('sentry.pi-durable.runs');
@@ -228,7 +229,7 @@ function runPhase(
       }
     }
     scope.setConversationId(sessionId ?? toSentryConversationId(runs, conversationId));
-    setPiAiRecordingOptions(scope, options);
+    setPiAiRecordingOptions(scope, options, { operation: 'chat', runtime, context });
     try {
       return await phase(observed);
     } catch (error) {

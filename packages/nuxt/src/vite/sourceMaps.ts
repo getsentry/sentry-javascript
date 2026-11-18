@@ -1,4 +1,5 @@
 import type { Nuxt } from '@nuxt/schema';
+import { resolveReleaseName } from '@sentry/bundler-plugins/core';
 import { sentryRollupPlugin, type SentryRollupPluginOptions } from '@sentry/bundler-plugins/rollup';
 import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import { warnOnRemovedBuildOptions } from '@sentry/core';
@@ -24,6 +25,9 @@ import {
  */
 export type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
 
+/** The public runtime config key that gives the release to the client SDK. */
+export const NUXT_RELEASE_RUNTIME_CONFIG_KEY = '_sentryRelease';
+
 /**
  *  Setup source maps for Sentry inside the Nuxt module during build time (in Vite for Nuxt and Rollup for Nitro).
  */
@@ -31,6 +35,7 @@ export function setupSourceMaps(
   moduleOptions: SentryNuxtModuleOptions,
   nuxt: Nuxt,
   addVitePlugin: (plugin: Plugin[], options?: { dev?: boolean; build?: boolean; server?: boolean }) => void,
+  hasClientConfigFile = false,
 ): void {
   // Warn here rather than in `getPluginOptions`, which runs once per bundler (Vite and Nitro's
   // Rollup) and would emit the same warning twice.
@@ -87,8 +92,16 @@ export function setupSourceMaps(
       build: true,
     });
 
+    const clientPluginOptions = getPluginOptions(moduleOptions, shouldDeleteFilesFallback);
     addVitePlugin(
-      sentryVitePlugin(withoutSourceMapDeletion(getPluginOptions(moduleOptions, shouldDeleteFilesFallback))),
+      sentryVitePlugin(
+        withoutSourceMapDeletion(
+          // Only the generated client config plugin reads the release from the runtime config.
+          hasClientConfigFile
+            ? moveClientReleaseToRuntimeConfig(nuxt, moduleOptions, clientPluginOptions)
+            : clientPluginOptions,
+        ),
+      ),
       // Nitro bundles the SSR output again, so debug IDs from the SSR build would point to the wrong maps.
       { dev: false, build: true, server: false },
     );
@@ -147,6 +160,29 @@ export function setupSourceMaps(
       await deleteSourceMapsAfterBuild(getPluginOptions(moduleOptions, shouldDeleteFilesFallback));
     }
   });
+}
+
+/**
+ * The release usually changes on every commit. Injected into the client's startup chunks, it gives them, and every
+ * chunk that imports them, new content hashes on every release. Nuxt serializes the public runtime config into the
+ * page instead, from where the client config plugin hands it to the SDK.
+ */
+function moveClientReleaseToRuntimeConfig(
+  nuxt: Nuxt,
+  moduleOptions: SentryNuxtModuleOptions,
+  pluginOptions: SentryVitePluginOptions,
+): SentryVitePluginOptions {
+  if (moduleOptions.release?.inject === false) {
+    return pluginOptions;
+  }
+
+  const release = resolveReleaseName(moduleOptions.release?.name);
+  if (release) {
+    nuxt.options.runtimeConfig.public[NUXT_RELEASE_RUNTIME_CONFIG_KEY] = release;
+  }
+
+  // Pass the resolved name on so the plugin uploads under the same release the client reports.
+  return { ...pluginOptions, release: { ...pluginOptions.release, ...(release && { name: release }), inject: false } };
 }
 
 /**

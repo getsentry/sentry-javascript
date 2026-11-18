@@ -1,7 +1,7 @@
 import { OpenAIEmbeddings } from '@langchain/openai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer } from '@sentry-internal/node-integration-tests';
+import { openAiEmbeddings, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockOpenAIServer() {
   const app = express();
@@ -20,20 +20,7 @@ function startMockOpenAIServer() {
       return;
     }
 
-    const inputs = Array.isArray(input) ? input : [input];
-    res.json({
-      object: 'list',
-      data: inputs.map((_, i) => ({
-        object: 'embedding',
-        embedding: [0.1, 0.2, 0.3],
-        index: i,
-      })),
-      model: model,
-      usage: {
-        prompt_tokens: 10,
-        total_tokens: 10,
-      },
-    });
+    res.json(openAiEmbeddings(model, { promptTokens: 10, count: Array.isArray(input) ? input.length : 1 }));
   });
 
   return startMockServer(app);

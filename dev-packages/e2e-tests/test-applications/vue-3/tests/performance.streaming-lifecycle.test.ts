@@ -43,8 +43,6 @@ test('sends a navigation span with a parameterized URL', async ({ page }) => {
   await page.goto(`/`);
   await pageloadSpanPromise;
 
-  await page.waitForTimeout(5000);
-
   const [_, navigationSpan] = await Promise.all([page.locator('#navLink').click(), navigationSpanPromise]);
 
   expect(navigationSpan).toMatchObject({

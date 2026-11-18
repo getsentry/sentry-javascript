@@ -131,3 +131,10 @@ test('Should set a parameterized transaction name on a captureException event in
   expect(span.name).toBe('GET /route-handler/[xoxo]/capture-exception');
   expect(span.status).toBe('ok');
 });
+
+test('should not crash route handlers that are configured with `export const dynamic = "error"`', async ({
+  request,
+}) => {
+  const response = await request.get('/route-handler/dynamic-error');
+  expect(await response.json()).toStrictEqual({ result: 'static response' });
+});

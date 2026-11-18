@@ -24,6 +24,11 @@ import { finalizeRolldownDebugIds, getDebugIdForChunk, hasExistingDebugID } from
 import { stampDebugIds, type OutputBundle } from './debug-id-stamping';
 import { createSourceMapHandling, type OutputDestinationOptions } from './source-map-handling';
 import { createViteSourceMapHooks } from '../vite/source-map-hooks';
+import {
+  createViteReleaseHtmlInjection,
+  type BuildInputOptions,
+  type ViteHookContext,
+} from '../vite/release-html-injection';
 
 // The subset of Rollup's `TransformResult` that this plugin's `transform`
 // hook actually returns. Defined locally instead of imported from `rollup`
@@ -39,7 +44,7 @@ type ViteParseAstAsync = NonNullable<ViteModule['parseAstAsync']>;
 let viteParseAstAsyncPromise: Promise<ViteParseAstAsync | null> | undefined;
 
 // Rolldown sets `meta.rolldownVersion` on the plugin context.
-type PluginContext = { meta?: { rolldownVersion?: string } };
+type PluginContext = ViteHookContext & { meta?: { rolldownVersion?: string } };
 
 const JS_MODULE_ID_FILTER = /\.[cm]?[jt]sx?(?:[?#].*)?$/;
 
@@ -149,6 +154,17 @@ export function _createRollupPluginInternals(
     chunkInjectionCode.append(generateModuleMetadataInjectorCode(bundleMetadata));
   }
 
+  const releaseHtmlInjection =
+    options.release.inject === 'html' && buildTool === 'vite' && !releaseInjectionCode.isEmpty()
+      ? createViteReleaseHtmlInjection(releaseInjectionCode, logger)
+      : undefined;
+
+  if (options.release.inject === 'html' && buildTool === 'rollup') {
+    logger.warn(
+      "`release.inject: 'html'` is not supported by the Rollup plugin, because Rollup does not emit HTML. Injecting the release into the startup chunks instead.",
+    );
+  }
+
   const transformAnnotations = options.reactComponentAnnotation?.enabled
     ? createComponentNameAnnotateHooks(
         options.reactComponentAnnotation?.ignoredComponents || [],
@@ -164,7 +180,9 @@ export function _createRollupPluginInternals(
   const transformReplace = Object.keys(replacementValues).length > 0;
   const shouldTransform = transformAnnotations || transformReplace;
 
-  function buildStart(): void {
+  function buildStart(this: ViteHookContext | undefined, inputOptions?: BuildInputOptions): void {
+    releaseHtmlInjection?.buildStart(this, inputOptions);
+
     void sentryBuildPluginManager.telemetry.emitBundlerPluginExecutionSignal().catch(() => {
       // Telemetry failures are acceptable
     });
@@ -212,7 +230,7 @@ export function _createRollupPluginInternals(
 
     const injectCode = new CodeInjection();
 
-    if (isInitialChunk(chunk, meta?.chunks)) {
+    if (!releaseHtmlInjection?.inHtml(this) && isInitialChunk(chunk, meta?.chunks)) {
       injectCode.append(releaseInjectionCode);
     }
 
@@ -328,6 +346,7 @@ export function _createRollupPluginInternals(
     ...(viteSourceMapHooks
       ? { configResolved: viteSourceMapHooks.configResolved, outputOptions: viteSourceMapHooks.outputOptions }
       : { outputOptions: sourceMapHandling.outputOptions }),
+    ...(releaseHtmlInjection ? { transformIndexHtml: releaseHtmlInjection.transformIndexHtml } : {}),
     renderChunk,
     generateBundle: { order: 'pre' as const, handler: generateBundle },
     writeBundle,

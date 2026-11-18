@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, collectStreamedSpans } from '@sentry-internal/test-utils';
-import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
+import { createTRPCClient, httpBatchLink } from '@trpc/client';
 import type { AppRouter } from '../src/app';
 
 test('Should record span for trpc query', async ({ baseURL }) => {
@@ -13,7 +13,7 @@ test('Should record span for trpc query', async ({ baseURL }) => {
     ),
   );
 
-  const trpcClient = createTRPCProxyClient<AppRouter>({
+  const trpcClient = createTRPCClient<AppRouter>({
     links: [
       httpBatchLink({
         url: `${baseURL}/trpc`,
@@ -59,7 +59,7 @@ test('Should record span for trpc mutation', async ({ baseURL }) => {
     ),
   );
 
-  const trpcClient = createTRPCProxyClient<AppRouter>({
+  const trpcClient = createTRPCClient<AppRouter>({
     links: [
       httpBatchLink({
         url: `${baseURL}/trpc`,
@@ -109,7 +109,7 @@ test('Should record span and error for a crashing trpc handler', async ({ baseUR
     return !!errorEvent?.exception?.values?.some(exception => exception.value?.includes('I crashed in a trpc handler'));
   });
 
-  const trpcClient = createTRPCProxyClient<AppRouter>({
+  const trpcClient = createTRPCClient<AppRouter>({
     links: [
       httpBatchLink({
         url: `${baseURL}/trpc`,
@@ -122,17 +122,33 @@ test('Should record span and error for a crashing trpc handler', async ({ baseUR
   await expect(segmentEventPromise).resolves.toBeDefined();
   await expect(errorEventPromise).resolves.toBeDefined();
 
-  expect((await errorEventPromise).contexts?.trpc?.['procedure_type']).toBe('mutation');
-  expect((await errorEventPromise).contexts?.trpc?.['procedure_path']).toBe('crashSomething');
+  const errorEvent = await errorEventPromise;
 
-  // Should record nested context
-  expect((await errorEventPromise).contexts?.trpc?.['input']).toEqual({
+  expect(errorEvent.contexts?.trpc?.['procedure_type']).toBe('mutation');
+  expect(errorEvent.contexts?.trpc?.['procedure_path']).toBe('crashSomething');
+
+  // tRPC v11 only passes the input via `getRawInput()`
+  expect(errorEvent.contexts?.trpc?.['input']).toEqual({
     nested: {
       nested: {
         nested: 'foobar',
       },
     },
   });
+
+  // tRPC wraps the thrown error in a `TRPCError` with the original error as its `cause`
+  expect(errorEvent.exception?.values).toEqual([
+    expect.objectContaining({
+      type: 'Error',
+      value: 'I crashed in a trpc handler',
+      mechanism: { handled: true, type: 'chained', exception_id: 1, parent_id: 0, source: 'cause' },
+    }),
+    expect.objectContaining({
+      type: 'TRPCError',
+      value: 'I crashed in a trpc handler',
+      mechanism: { handled: false, type: 'auto.rpc.trpc.middleware', exception_id: 0 },
+    }),
+  ]);
 });
 
 test('Should record span and error for a trpc handler that returns a status code', async ({ baseURL }) => {
@@ -149,7 +165,7 @@ test('Should record span and error for a trpc handler that returns a status code
     return !!errorEvent?.exception?.values?.some(exception => exception.value?.includes('Bad Request'));
   });
 
-  const trpcClient = createTRPCProxyClient<AppRouter>({
+  const trpcClient = createTRPCClient<AppRouter>({
     links: [
       httpBatchLink({
         url: `${baseURL}/trpc`,

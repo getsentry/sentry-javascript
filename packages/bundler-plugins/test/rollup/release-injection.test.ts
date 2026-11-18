@@ -3,7 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { rollup } from 'rollup';
 import { rolldown } from 'rolldown';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { sentryRollupPlugin } from '../../src/rollup';
 import { sentryVitePlugin } from '../../src/vite';
 
@@ -46,6 +46,7 @@ describe('release injection', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
@@ -99,5 +100,22 @@ describe('release injection', () => {
     expect(entryChunk).toMatch(DEBUG_ID_MARKER);
     expect(sharedChunk).toMatch(DEBUG_ID_MARKER);
     expect(routeChunk).toMatch(DEBUG_ID_MARKER);
+  });
+
+  it("warns about `inject: 'html'` and injects the release into startup chunks (rollup)", async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const outDir = path.join(tmpDir, 'dist');
+    const build = await rollup({
+      input: entries,
+      plugins: [sentryRollupPlugin({ telemetry: false, release: { name: '1.2.3', create: false, inject: 'html' } })],
+    });
+    await build.write({ dir: outDir, chunkFileNames: '[name].js' });
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("`release.inject: 'html'` is not supported by the Rollup plugin"),
+    );
+    const chunks = readChunks(outDir);
+    expect(findChunk(chunks, '"entry"')).toMatch(RELEASE_SNIPPET);
+    expect(findChunk(chunks, '"route"')).not.toMatch(RELEASE_SNIPPET);
   });
 });

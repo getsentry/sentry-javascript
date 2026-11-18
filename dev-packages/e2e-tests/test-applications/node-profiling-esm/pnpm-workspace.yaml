@@ -1,4 +1,0 @@
-allowBuilds:
-  '@sentry/node-cpu-profiler': true
-  esbuild: true
-minimumReleaseAge: 0

@@ -144,6 +144,12 @@ export function sentryEsbuildPlugin(userOptions: InternalOptions = {}): any {
   const { injectDebugIds, upload: uploadEnabled, stampEmittedFiles } = getSourceMapFeatures(options);
   const staticInjectionCode = new CodeInjection();
 
+  if (options.release.inject === 'html') {
+    logger.warn(
+      "`release.inject: 'html'` is not supported by the esbuild plugin. Injecting the release into the startup chunks instead.",
+    );
+  }
+
   if (!options.release.inject) {
     logger.debug('Release injection disabled via `release.inject` option. Will not inject release.');
   } else if (!options.release.name) {

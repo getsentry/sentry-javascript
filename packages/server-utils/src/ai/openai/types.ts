@@ -1,6 +1,7 @@
+import type { GenAiSpanHooks } from '../core/span-hooks';
 import type { GenAiCallOptions } from '../core/utils';
 
-/** The call that `recordInputs`/`recordOutputs` decide on. */
+/** The call that `recordInputs`/`recordOutputs` decide on, and that the span hooks get. */
 export interface OpenAiCallInfo {
   /** The gen_ai operation of the call, such as `chat`, `embeddings` or `decide`. */
   operation: string;
@@ -8,8 +9,11 @@ export interface OpenAiCallInfo {
   request: Record<string, unknown> | undefined;
 }
 
-/** Options for the OpenAI integration and OpenAI-compatible integrations, such as Groq. */
-export type OpenAiOptions = GenAiCallOptions<OpenAiCallInfo>;
+/**
+ * Options for the OpenAI integration and OpenAI-compatible integrations, such as Groq. `onSpanEnd` gets the
+ * response the method resolved with, such as a chat completion; for streams it is `undefined`.
+ */
+export type OpenAiOptions = GenAiCallOptions<OpenAiCallInfo> & GenAiSpanHooks<OpenAiCallInfo>;
 
 /**
  * @see https://platform.openai.com/docs/api-reference/responses/object
