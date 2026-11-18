@@ -10,8 +10,7 @@ function waitForBoundaryError(count: number) {
   });
 }
 
-// Unskipped once `@sentry/solid/solid2` lands.
-test.skip('captures an error caught by an Errored boundary', async ({ page }) => {
+test('captures an error caught by an Errored boundary', async ({ page }) => {
   const errorPromise = waitForBoundaryError(1);
 
   await page.goto('/');
@@ -33,8 +32,7 @@ test.skip('captures an error caught by an Errored boundary', async ({ page }) =>
   });
 });
 
-// Unskipped once `@sentry/solid/solid2` lands.
-test.skip('captures a second error after the boundary is reset', async ({ page }) => {
+test('captures a second error after the boundary is reset', async ({ page }) => {
   const firstErrorPromise = waitForBoundaryError(1);
 
   await page.goto('/');
