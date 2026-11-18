@@ -1,4 +1,4 @@
-import { consoleSandbox, debug, GLOBAL_OBJ } from '@sentry/core';
+import { consoleSandbox, debug, getClient, GLOBAL_OBJ, hasSpansEnabled } from '@sentry/core';
 import { isBun } from '../utils/runtime';
 
 /**
@@ -38,16 +38,16 @@ export function detectOrchestrionSetup(): void {
 
   if (!runtime && !bundler) {
     if (channelIntegrations && isBun()) {
-      if (!marker.warnedBunRunNotInjected) {
-        marker.warnedBunRunNotInjected = true;
-        consoleSandbox(() => {
-          // oxlint-disable-next-line no-console
-          console.warn(
-            '[Sentry] No diagnostics-channel injection detected. Channel-based integrations will not record ' +
-              'spans or capture errors, because Bun cannot instrument modules at runtime. Build your app with ' +
-              '`@sentry/bun/plugin` to enable them.',
-          );
+      const client = getClient();
+      if (client && hasSpansEnabled(client.getOptions())) {
+        // With `bun --preload`, `init()` runs before the app loads, and an app built with a bundler
+        // plugin sets the marker only when it loads. So wait for the first span to check.
+        const unsubscribe = client.on('spanStart', () => {
+          unsubscribe();
+          warnIfBunRunNotInjected();
         });
+      } else {
+        warnIfBunRunNotInjected();
       }
       return;
     }
@@ -72,4 +72,21 @@ export function detectOrchestrionSetup(): void {
         )}`
       : '[Sentry] Bundler plugin did not run',
   );
+}
+
+function warnIfBunRunNotInjected(): void {
+  const marker = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ?? {};
+  if (marker.runtime || marker.bundler || marker.warnedBunRunNotInjected) {
+    return;
+  }
+
+  marker.warnedBunRunNotInjected = true;
+  consoleSandbox(() => {
+    // oxlint-disable-next-line no-console
+    console.warn(
+      '[Sentry] No diagnostics-channel injection detected. Channel-based integrations will not record ' +
+        'spans or capture errors, because Bun cannot instrument modules at runtime. Build your app with ' +
+        '`@sentry/bun/plugin` to enable them.',
+    );
+  });
 }

@@ -1,6 +1,7 @@
-import { GLOBAL_OBJ } from '@sentry/core';
+import { getCurrentScope, GLOBAL_OBJ, setCurrentClient, startSpan } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { detectOrchestrionSetup, getOrchestrionInjectedModules } from '../../src/orchestrion/detect';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('getOrchestrionInjectedModules', () => {
   beforeEach(() => {
@@ -33,6 +34,7 @@ describe('detectOrchestrionSetup', () => {
 
   afterEach(() => {
     delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
+    getCurrentScope().setClient(undefined);
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -74,6 +76,40 @@ describe('detectOrchestrionSetup', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     detectOrchestrionSetup();
+
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('warns on Bun at the first span instead of at init when spans are enabled', () => {
+    vi.stubGlobal('Bun', {});
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { channelIntegrations: true };
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+
+    detectOrchestrionSetup();
+
+    expect(warn).not.toHaveBeenCalled();
+
+    startSpan({ name: 'first' }, () => undefined);
+    startSpan({ name: 'second' }, () => undefined);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('@sentry/bun/plugin'));
+  });
+
+  it('does not warn on Bun when the app sets the bundler marker after init, as with `bun --preload`', () => {
+    vi.stubGlobal('Bun', {});
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { channelIntegrations: true };
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+
+    detectOrchestrionSetup();
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__.bundler = new Set();
+    startSpan({ name: 'request' }, () => undefined);
 
     expect(warn).not.toHaveBeenCalled();
   });
