@@ -9,7 +9,8 @@
     "typecheck": "tsc",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm playwright test"
+    "test:assert": "pnpm playwright test",
+    "test:assert:dev": "TEST_ENV=development pnpm playwright test"
   },
   "dependencies": {
     "@remix-run/css-bundle": "^2.17.4",
@@ -37,5 +38,14 @@
     "typescript": "^5.1.6",
     "vite": "^5.4.11",
     "vite-tsconfig-paths": "^4.2.1"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm install",
+        "assert-command": "pnpm test:assert:dev",
+        "label": "create-remix-app-express (dev)"
+      }
+    ]
   }
 }

@@ -1,7 +1,64 @@
-import type { GenAiOptions } from '../core/utils';
+import type { GenAiCallOptions } from '../core/utils';
 
-/** Options for the LangChain integration. */
-export type LangChainOptions = GenAiOptions;
+/** What LangChain passes to every start callback of a run, besides the component's input. */
+interface LangChainRunCallInfo {
+  /** Describes the component, such as the chat model class and its constructor kwargs. */
+  serialized: LangChainSerialized;
+  runId: string;
+  parentRunId?: string;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+/** `handleChatModelStart` */
+interface LangChainChatModelCallInfo extends LangChainRunCallInfo {
+  operation: 'chat';
+  messages: LangChainMessage[][];
+  extraParams?: Record<string, unknown>;
+}
+
+/** `handleLLMStart` */
+interface LangChainLLMCallInfo extends LangChainRunCallInfo {
+  operation: 'chat';
+  prompts: string[];
+  extraParams?: Record<string, unknown>;
+}
+
+/** `handleChainStart` */
+interface LangChainChainCallInfo extends LangChainRunCallInfo {
+  operation: 'invoke_agent' | 'decide';
+  inputs: Record<string, unknown>;
+}
+
+/** `handleToolStart` */
+interface LangChainToolCallInfo extends LangChainRunCallInfo {
+  operation: 'execute_tool';
+  input: string;
+}
+
+/** `embedQuery`/`embedDocuments` */
+interface LangChainEmbeddingsCallInfo {
+  operation: 'embeddings';
+  input: unknown;
+}
+
+/**
+ * The call that `recordInputs`/`recordOutputs` decide on: the gen_ai operation and the arguments of the LangChain
+ * start callback as passed, or the argument of `embedQuery`/`embedDocuments`.
+ */
+export type LangChainCallInfo =
+  | LangChainChatModelCallInfo
+  | LangChainLLMCallInfo
+  | LangChainChainCallInfo
+  | LangChainToolCallInfo
+  | LangChainEmbeddingsCallInfo;
+
+/**
+ * Options for the LangChain integration. The handler decides in each start callback, which LangChain awaits
+ * inline in the async context of the call that started the run. Runs inside a LangGraph graph use the
+ * decision of the graph's `invoke()`/`stream()` call instead.
+ */
+export type LangChainOptions = GenAiCallOptions<LangChainCallInfo>;
 
 /**
  * LangChain Serialized type (compatible with @langchain/core)
