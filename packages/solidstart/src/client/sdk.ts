@@ -1,11 +1,13 @@
 import type { Client, Integration } from '@sentry/core';
 import { applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/solid';
+import { RELEASE_META_TAG_NAME } from '../common/release';
 import { applyTunnelBasePath } from '../common/tunnel';
 import {
   browserTracingIntegration,
   getDefaultIntegrations as getDefaultSolidIntegrations,
   init as initSolidSDK,
+  WINDOW,
 } from '@sentry/solid';
 
 // Treeshakable guard to remove all code related to tracing
@@ -20,10 +22,23 @@ export function init(options: BrowserOptions): Client | undefined {
     ...options,
   };
 
+  const releaseFromPage = opts.release === undefined ? getReleaseFromMetaTag() : undefined;
+  if (releaseFromPage) {
+    opts.release = releaseFromPage;
+  }
+
   applyTunnelBasePath(opts);
   applySdkMetadata(opts, 'solidstart', ['solidstart', 'solid']);
 
   return initSolidSDK(opts);
+}
+
+/**
+ * The Sentry SolidStart build plugins add this tag to the page, instead of writing the release into the client
+ * chunks where it would change their content hashes on every release.
+ */
+function getReleaseFromMetaTag(): string | undefined {
+  return WINDOW.document?.querySelector<HTMLMetaElement>(`meta[name="${RELEASE_META_TAG_NAME}"]`)?.content || undefined;
 }
 
 function getDefaultIntegrations(options: BrowserOptions): Integration[] {
