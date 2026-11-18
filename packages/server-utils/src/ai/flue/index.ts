@@ -23,7 +23,7 @@ import { getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
 import { getOrchestrionInjectedModules } from '../../orchestrion/detect';
 import { piAiModuleNames } from '../../orchestrion/config/pi-ai';
 import { setPiAiRecordingOptions } from '../pi-ai/recording';
-import { isBun, isBunRuntimeInstrumentationSupported, isCloudflareWorkers, isDeno } from '../../utils/runtime';
+import { isBun, isCloudflareWorkers, isDeno } from '../../utils/runtime';
 import { withCleanScopes } from '../../utils/withCleanScopes';
 import { FLUE_INSTRUMENTATION_KEY, FLUE_OPERATION, FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
 import type { SpanTracker } from './utils';
@@ -65,9 +65,7 @@ function warnIfPiAiNotInstrumented(): void {
 
 function getPiAiInstrumentationHint(): string {
   if (isBun()) {
-    return isBunRuntimeInstrumentationSupported()
-      ? 'Run your app with `bun --preload @sentry/bun/import app.ts`, or build it with `sentryBunPlugin()` from `@sentry/bun/plugin`.'
-      : 'Build your app with `sentryBunPlugin()` from `@sentry/bun/plugin`; `bun run` before Bun 1.4.5 cannot instrument it.';
+    return 'On Bun 1.4.5 or later, run your app with `bun --preload @sentry/bun/import app.ts`. Or build it with `sentryBunPlugin()` from `@sentry/bun/plugin`.';
   }
   if (isDeno()) {
     return 'Run your app with `deno run --preload=npm:@sentry/deno/import app.ts`.';

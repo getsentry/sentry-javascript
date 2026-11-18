@@ -52,6 +52,7 @@ vi.mock('@sentry/core', async importOriginal => {
 });
 
 import { GLOBAL_OBJ } from '@sentry/core';
+import type * as BunModule from '../src/bun';
 import type * as RegisterModule from '../src/register';
 
 type DiagnosticsCallback = (event: { moduleName: string; error?: unknown }) => void;
@@ -325,11 +326,11 @@ describe('registerDiagnosticsChannelInjection - Deno module formats', () => {
   });
 });
 
-describe('registerDiagnosticsChannelInjection - Bun', () => {
+describe('registerBunRuntimeInjection', () => {
   type OnLoad = (args: { path: string }) => { contents: string; loader: string } | undefined;
 
   let fixtureDir: string;
-  let registerDiagnosticsChannelInjection: typeof RegisterModule.registerDiagnosticsChannelInjection;
+  let registerBunRuntimeInjection: typeof BunModule.registerBunRuntimeInjection;
   let pluginMock: ReturnType<typeof vi.fn>;
 
   /** The `onLoad` callback of the plugin that the registration handed to `Bun.plugin()`. */
@@ -361,7 +362,7 @@ describe('registerDiagnosticsChannelInjection - Bun', () => {
     registerHooksMock.mockClear();
     pluginMock = vi.fn();
     vi.resetModules();
-    ({ registerDiagnosticsChannelInjection } = await import('../src/register'));
+    ({ registerBunRuntimeInjection } = await import('../src/bun'));
   });
 
   afterEach(() => {
@@ -372,8 +373,8 @@ describe('registerDiagnosticsChannelInjection - Bun', () => {
   it('transforms instrumented modules with `Bun.plugin()` and records them', () => {
     vi.stubGlobal('Bun', { version: '1.4.5', plugin: pluginMock });
 
-    registerDiagnosticsChannelInjection();
-    registerDiagnosticsChannelInjection();
+    registerBunRuntimeInjection();
+    registerBunRuntimeInjection();
 
     expect(pluginMock).toHaveBeenCalledTimes(1);
     expect(registerHooksMock).not.toHaveBeenCalled();
@@ -387,16 +388,35 @@ describe('registerDiagnosticsChannelInjection - Bun', () => {
   it('leaves files without a transform to Bun', () => {
     vi.stubGlobal('Bun', { version: '1.4.5', plugin: pluginMock });
 
-    registerDiagnosticsChannelInjection();
+    registerBunRuntimeInjection();
 
     expect(onLoadCallback()({ path: join(fixtureDir, 'node_modules', 'mysql', 'index.js') })).toBeUndefined();
     expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtime).toEqual([]);
   });
 
+  it('does nothing outside of Bun', () => {
+    registerBunRuntimeInjection();
+
+    expect(pluginMock).not.toHaveBeenCalled();
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__).toEqual({});
+  });
+
+  it('marks runtime injection unavailable when `Bun.plugin()` throws', () => {
+    vi.stubGlobal('Bun', {
+      version: '1.4.5',
+      plugin: () => {
+        throw new Error('boom');
+      },
+    });
+
+    expect(() => registerBunRuntimeInjection()).not.toThrow();
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__).toEqual({ runtimeUnavailable: true });
+  });
+
   it('registers nothing on Bun versions that lose CommonJS exports', () => {
     vi.stubGlobal('Bun', { version: '1.4.4', plugin: pluginMock });
 
-    registerDiagnosticsChannelInjection();
+    registerBunRuntimeInjection();
 
     expect(pluginMock).not.toHaveBeenCalled();
     expect(registerHooksMock).not.toHaveBeenCalled();

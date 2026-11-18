@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { isBun, isBunRuntimeInstrumentationSupported, isCloudflareWorkers, isDeno } from '../../src/utils/runtime';
+import { isBun, isCloudflareWorkers, isDeno } from '../../src/utils/runtime';
 
 describe('runtime detection', () => {
   afterEach(() => {
@@ -15,21 +15,6 @@ describe('runtime detection', () => {
   it('detects Bun', () => {
     vi.stubGlobal('Bun', {});
     expect(isBun()).toBe(true);
-  });
-
-  it.each([
-    ['1.4.4', false],
-    ['1.4.5', true],
-    ['1.5.0', true],
-    ['2.0.0', true],
-    ['1.3.14', false],
-  ])('detects whether Bun %s can instrument modules in `bun run`', (version, supported) => {
-    vi.stubGlobal('Bun', { version });
-    expect(isBunRuntimeInstrumentationSupported()).toBe(supported);
-  });
-
-  it('does not support `bun run` instrumentation outside of Bun', () => {
-    expect(isBunRuntimeInstrumentationSupported()).toBe(false);
   });
 
   it('detects Deno', () => {

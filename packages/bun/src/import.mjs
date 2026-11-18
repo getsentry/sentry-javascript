@@ -14,4 +14,6 @@
  *
  * @module
  */
-import '@sentry/node/import';
+import { registerBunRuntimeInjection } from '@sentry/server-runtime-injection/bun';
+
+registerBunRuntimeInjection();

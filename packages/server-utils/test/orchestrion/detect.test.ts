@@ -38,25 +38,15 @@ describe('detectOrchestrionSetup', () => {
   });
 
   it('always warns on Bun when no injection is detected', () => {
-    vi.stubGlobal('Bun', { version: '1.4.4' });
+    vi.stubGlobal('Bun', {});
     GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { channelIntegrations: true };
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     detectOrchestrionSetup();
 
     expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Bun before 1.4.5 cannot instrument modules'));
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('@sentry/bun/plugin'));
-  });
-
-  it('points to the `bun run` preload on Bun versions that support it', () => {
-    vi.stubGlobal('Bun', { version: '1.4.5' });
-    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { channelIntegrations: true };
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-    detectOrchestrionSetup();
-
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('bun --preload @sentry/bun/import'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('@sentry/bun/plugin'));
   });
 
   it('warns on Bun only once when called again, as on a repeated `init()`', () => {

@@ -6,10 +6,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { SENTRY_RUNTIME_INSTRUMENTATIONS } from '@sentry/server-utils/orchestrion/config';
 import type { register } from 'node:module';
-import { create } from '@apm-js-collab/code-transformer';
 import ModulePatch from '@apm-js-collab/tracing-hooks';
 import { initialize, load, resolve, createDiagnosticsPort } from '@apm-js-collab/tracing-hooks/hook-sync.mjs';
-import { emitDiagnostics, setDiagnosticsHook } from '@apm-js-collab/tracing-hooks/lib/diagnostics.js';
+import { setDiagnosticsHook } from '@apm-js-collab/tracing-hooks/lib/diagnostics.js';
 
 type NodeModule = {
   Module: {
@@ -35,110 +34,10 @@ function hasStableSyncModuleHooks(isDeno: boolean): boolean {
   return major > 25 || (major === 25 && minor >= 1) || (major === 24 && minor >= 13);
 }
 
-/**
- * Before Bun 1.4.5, a CommonJS module returned by a runtime `onLoad` plugin loses its named
- * exports, so the transformed modules fail to load. See https://github.com/oven-sh/bun/issues/19279
- */
-function hasBunRuntimePlugins(bunVersion: string): boolean {
-  const { major = 0, minor = 0, patch = 0 } = parseSemver(bunVersion);
-  return major > 1 || (major === 1 && (minor > 4 || (minor === 4 && patch >= 5)));
-}
-
-type BunOnLoad = (
-  options: { filter: RegExp },
-  callback: (args: { path: string }) => { contents: string; loader: 'js' } | undefined,
-) => void;
-
-interface BunRuntime {
-  version: string;
-  plugin: (plugin: { name: string; setup: (build: { onLoad: BunOnLoad }) => void }) => void;
-}
-
-/** The package name, its directory and the file path in it, for a file in `node_modules`. */
-function packageOfFile(filePath: string): { name: string; dir: string; path: string } | undefined {
-  const normalized = filePath.replace(/\\/g, '/');
-  const index = normalized.lastIndexOf('/node_modules/');
-  if (index === -1) {
-    return undefined;
-  }
-  const start = index + '/node_modules/'.length;
-  const segments = normalized.slice(start).split('/');
-  const nameLength = segments[0]?.startsWith('@') ? 2 : 1;
-  const name = segments.slice(0, nameLength).join('/');
-  return {
-    name,
-    dir: normalized.slice(0, start + name.length),
-    path: segments.slice(nameLength).join('/'),
-  };
-}
-
-const packageVersionByDir = new Map<string, string | undefined>();
-
-function getPackageVersion(dir: string): string | undefined {
-  if (!packageVersionByDir.has(dir)) {
-    let version: string | undefined;
-    try {
-      version = (JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as { version?: string }).version;
-    } catch {
-      version = undefined;
-    }
-    packageVersionByDir.set(dir, version);
-  }
-  return packageVersionByDir.get(dir);
-}
-
-/**
- * Bun runs no Node module hooks, so register the transform as a runtime `Bun.plugin()` instead. A
- * module it transforms reports itself through the same diagnostics hook as on Node.
- */
-function registerBunPlugin(bun: BunRuntime): void {
-  const matcher = create(SENTRY_RUNTIME_INSTRUMENTATIONS);
-  const names = [...new Set(SENTRY_RUNTIME_INSTRUMENTATIONS.map(config => config.module.name))].map(name =>
-    name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-  );
-  // oxlint-disable-next-line sdk/no-regexp-constructor -- built from escaped config values, not end user input
-  const filter = new RegExp(`node_modules[/\\\\](?:${names.join('|')})[/\\\\].*\\.[cm]?js$`);
-
-  bun.plugin({
-    name: 'sentry-orchestrion',
-    setup(build) {
-      build.onLoad({ filter }, ({ path }) => {
-        let transformer: ReturnType<typeof matcher.getTransformer>;
-        try {
-          const pkg = packageOfFile(path);
-          const version = pkg && getPackageVersion(pkg.dir);
-          transformer = pkg && version ? matcher.getTransformer(pkg.name, version, pkg.path) : undefined;
-        } catch (error) {
-          debug.warn(`[instrumentation] could not match ${path} to an instrumentation:`, error);
-          return undefined;
-        }
-        if (!transformer) {
-          return undefined;
-        }
-
-        const url = pathToFileURL(path).href;
-        try {
-          const moduleType =
-            path.endsWith('.mjs') || (!path.endsWith('.cjs') && getPackageType(dirname(path)) === 'module')
-              ? 'esm'
-              : 'cjs';
-          const { code } = transformer.transform(readFileSync(path, 'utf8'), moduleType);
-          emitDiagnostics({ url, moduleName: transformer.moduleName });
-          return { contents: code, loader: 'js' };
-        } catch (error) {
-          // A module that fails to transform loads as it is, as with the Node hooks.
-          emitDiagnostics({ url, moduleName: transformer.moduleName, error: error as Error });
-          return undefined;
-        }
-      });
-    },
-  });
-}
-
 /** `"type"` of the nearest `package.json`, keyed by the directory the lookup started in. */
 const packageTypeByDir = new Map<string, string | undefined>();
 
-function getPackageType(dir: string): string | undefined {
+export function getPackageType(dir: string): string | undefined {
   if (packageTypeByDir.has(dir)) {
     return packageTypeByDir.get(dir);
   }
@@ -275,32 +174,10 @@ function warnTransformFailed(moduleName: string, error: unknown): void {
 }
 
 /**
- * Synchronously register the diagnostics-channel injection module hooks.
- *
- * This is the single source of truth for the registration logic. It is used by:
- * - `Sentry.init()` (the Node SDK calls it directly — that's why this module
- *   must be CJS-compatible / dual-built, so it can be `require()`d synchronously
- *   before the app's `import`s resolve), and
- * - `import-hook.mjs`, the side-effecting `--import` entry, which just calls it.
- *
- * Libraries imported *after* this call publish the `tracingChannel` events that
- * the channel-based integrations subscribe to.
+ * Records each module that a runtime hook transformed, and warns when a transform fails. Shared by
+ * the Node and Deno hooks here and the Bun hook in `bun.ts`.
  */
-export function registerDiagnosticsChannelInjection(): void {
-  const marker = (GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ??= {});
-
-  // Already hooked, or we already ran and found runtime injection unavailable (and warned once).
-  if (marker.runtime || marker.runtimeUnavailable) {
-    return;
-  }
-
-  const globalAny = globalThis as { Bun?: BunRuntime; Deno?: { version?: { deno?: string } } };
-  const stableSyncHooks = hasStableSyncModuleHooks(Boolean(globalAny.Deno));
-
-  // `Module.registerHooks` / `Module.register` are newer than the @types/node
-  // we build against, hence the cast.
-  const mod = Module as unknown as NodeModule;
-
+export function installDiagnosticsHook(): void {
   setDiagnosticsHook(({ url, moduleName, error }): void => {
     if (error) {
       // A transform throwing a `TypeError` costs this module its instrumentation, so it is worth an
@@ -323,23 +200,43 @@ export function registerDiagnosticsChannelInjection(): void {
       getClient()?.emit('orchestrion.module-injected', moduleName);
     }
   });
+}
+
+/**
+ * Synchronously register the diagnostics-channel injection module hooks.
+ *
+ * This is the single source of truth for the registration logic. It is used by:
+ * - `Sentry.init()` (the Node SDK calls it directly — that's why this module
+ *   must be CJS-compatible / dual-built, so it can be `require()`d synchronously
+ *   before the app's `import`s resolve), and
+ * - `import-hook.mjs`, the side-effecting `--import` entry, which just calls it.
+ *
+ * Libraries imported *after* this call publish the `tracingChannel` events that
+ * the channel-based integrations subscribe to.
+ */
+export function registerDiagnosticsChannelInjection(): void {
+  const marker = (GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ??= {});
+
+  // Already hooked, or we already ran and found runtime injection unavailable (and warned once).
+  if (marker.runtime || marker.runtimeUnavailable) {
+    return;
+  }
+
+  const globalAny = globalThis as { Bun?: unknown; Deno?: { version?: { deno?: string } } };
+  const stableSyncHooks = hasStableSyncModuleHooks(Boolean(globalAny.Deno));
+
+  // `Module.registerHooks` / `Module.register` are newer than the @types/node
+  // we build against, hence the cast.
+  const mod = Module as unknown as NodeModule;
+
+  installDiagnosticsHook();
 
   // runs both at `--import` time and (synchronously) inside `Sentry.init()`,
   // so an unguarded throw would either abort startup or make `init()` throw.
   // On any failure (e.g. dep resolution, `require(esm)` / Node-compat
   // incompatibility) we warn and continue without channel injection.
   try {
-    if (globalAny.Bun) {
-      // `detectOrchestrionSetup()` warns at `init()` when no channels are injected at all, which is
-      // not the case for an app built with `@sentry/bun/plugin`.
-      if (!hasBunRuntimePlugins(globalAny.Bun.version)) {
-        marker.runtimeUnavailable = true;
-        debug.log('This Bun version cannot instrument modules at runtime; skipping diagnostics-channel injection.');
-        return;
-      }
-      registerBunPlugin(globalAny.Bun);
-      debug.log('Registered diagnostics-channel injection via Bun.plugin()');
-    } else if (typeof mod.registerHooks === 'function' && stableSyncHooks) {
+    if (typeof mod.registerHooks === 'function' && stableSyncHooks) {
       initialize({ instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS });
       const filesLoadedByHook = new Map<string, string>();
       const loadHook = globalAny.Deno ? withDenoFormats(load) : load;
@@ -381,7 +278,7 @@ export function registerDiagnosticsChannelInjection(): void {
     } else if (typeof mod.register === 'function' && !globalAny.Bun && !globalAny.Deno) {
       // `Module.register` + the `_compile` patch is Node 18.19–24.12 / 25.0
       // path. Bun/Deno are excluded: they don't support this combination and
-      // use their own paths above (or none at all).
+      // must use the stable `registerHooks` path above (or none at all).
       const diagnosticsPort = createDiagnosticsPort();
 
       let parentURL: string;

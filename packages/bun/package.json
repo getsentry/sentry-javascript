@@ -50,6 +50,7 @@
     "@sentry/core": "11.14.0",
     "@sentry/conventions": "^0.33.0",
     "@sentry/node": "11.14.0",
+    "@sentry/server-runtime-injection": "11.14.0",
     "@sentry/server-utils": "11.14.0"
   },
   "devDependencies": {
