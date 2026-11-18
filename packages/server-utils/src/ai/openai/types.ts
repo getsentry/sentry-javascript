@@ -1,7 +1,15 @@
-import type { GenAiOptions } from '../core/utils';
+import type { GenAiCallOptions } from '../core/utils';
 
-/** Options for the OpenAI integration. */
-export type OpenAiOptions = GenAiOptions;
+/** The call that `recordInputs`/`recordOutputs` decide on. */
+export interface OpenAiCallInfo {
+  /** The gen_ai operation of the call, such as `chat`, `embeddings` or `decide`. */
+  operation: string;
+  /** The request params, the first argument of the method (such as `chat.completions.create`) as passed. */
+  request: Record<string, unknown> | undefined;
+}
+
+/** Options for the OpenAI integration and OpenAI-compatible integrations, such as Groq. */
+export type OpenAiOptions = GenAiCallOptions<OpenAiCallInfo>;
 
 /**
  * @see https://platform.openai.com/docs/api-reference/responses/object
