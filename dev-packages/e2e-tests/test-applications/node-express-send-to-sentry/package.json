@@ -21,6 +21,12 @@
     "@playwright/test": "1.64.1"
   },
   "sentryTest": {
-    "optional": true
+    "optional": true,
+    "optionalVariants": [
+      {
+        "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert",
+        "label": "node-express-send-to-sentry (static trace lifecycle)"
+      }
+    ]
   }
 }

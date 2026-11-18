@@ -1,5 +1,6 @@
 import type { BaseTransportOptions, Envelope, Transport, TransportMakeRequestResponse } from '@sentry/core';
 import type { Express } from 'express';
+import type { ServerResponse } from 'http';
 import type { AddressInfo } from 'net';
 
 /**
@@ -38,6 +39,56 @@ export function startExpressServerAndSendPortToRunner(
 
     // eslint-disable-next-line no-console
     console.log(`{"port":${port || address.port}}`);
+  });
+}
+
+export interface MockServer {
+  /** `http://localhost:<port>`, without a trailing slash. */
+  url: string;
+  close: () => void;
+}
+
+/**
+ * Starts `app` on a random port, for scenarios that point a client at a mock API.
+ *
+ * Takes the app rather than creating it, so this module never loads `express` itself: instrument
+ * files import it before `Sentry.init()`, and loading express there would keep it from being
+ * instrumented.
+ */
+export function startMockServer(app: Pick<Express, 'listen'>): Promise<MockServer> {
+  return new Promise(resolve => {
+    const server = app.listen(0, () => {
+      resolve({
+        url: `http://localhost:${(server.address() as AddressInfo).port}`,
+        close: () => server.close(),
+      });
+    });
+  });
+}
+
+/**
+ * Streams `events` as server-sent events, 10ms apart, then ends the response.
+ *
+ * `eventNames` adds an `event: <event.type>` line to each event (Anthropic style). `done` sends a
+ * final `data: [DONE]` (OpenAI style).
+ */
+export function streamSseEvents(
+  res: Pick<ServerResponse, 'writeHead' | 'write' | 'end'>,
+  events: unknown[],
+  { eventNames = false, done = false }: { eventNames?: boolean; done?: boolean } = {},
+): void {
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+  events.forEach((event, index) => {
+    setTimeout(() => {
+      const name = eventNames ? `event: ${(event as { type: string }).type}\n` : '';
+      res.write(`${name}data: ${JSON.stringify(event)}\n\n`);
+      if (index === events.length - 1) {
+        if (done) {
+          res.write('data: [DONE]\n\n');
+        }
+        res.end();
+      }
+    }, index * 10);
   });
 }
 

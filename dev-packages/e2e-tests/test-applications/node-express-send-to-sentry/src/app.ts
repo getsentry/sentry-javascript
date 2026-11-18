@@ -1,9 +1,12 @@
 import * as Sentry from '@sentry/node';
 
 let lastSpanTraceId: string | undefined;
+let lastTransactionId: string | undefined;
+let lastTransactionTraceId: string | undefined;
 let lastErrorTraceId: string | undefined;
 
 Sentry.init({
+  traceLifecycle: process.env.E2E_TEST_TRACE_LIFECYCLE === 'static' ? 'static' : undefined,
   environment: 'qa', // dynamic sampling bias to keep traces
   dsn: process.env.E2E_TEST_DSN,
   includeLocalVariables: true,
@@ -17,6 +20,11 @@ Sentry.init({
       lastSpanTraceId = span.trace_id;
     }
     return span;
+  },
+  beforeSendTransaction(event) {
+    lastTransactionId = event.event_id;
+    lastTransactionTraceId = event.contexts?.trace?.trace_id;
+    return event;
   },
 });
 
@@ -43,6 +51,21 @@ app.get('/test-span', function (req, res) {
 
     res.send({
       traceId: lastSpanTraceId,
+    });
+  });
+});
+
+app.get('/test-transaction', function (req, res) {
+  Sentry.withActiveSpan(null, async () => {
+    Sentry.startSpan({ name: 'test-transaction', op: 'e2e-test' }, () => {
+      Sentry.startSpan({ name: 'test-span' }, () => undefined);
+    });
+
+    await Sentry.flush();
+
+    res.send({
+      transactionId: lastTransactionId,
+      traceId: lastTransactionTraceId,
     });
   });
 });

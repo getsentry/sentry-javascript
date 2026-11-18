@@ -1,6 +1,7 @@
 import type { Span } from '@sentry/core';
 import { getToolCallKey } from '../core/streaming-tool-calls';
 import { endStreamSpan, getErrorStatus, type StreamResponseState } from '../core/utils';
+import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
 import type { WorkersAiUsage } from './types';
 import { setOutputMessagesAttribute } from './utils';
 
@@ -232,6 +233,7 @@ export function instrumentWorkersAiStream(
           return;
         }
 
+        recordTimeToFirstChunk(span);
         buffer += decoder.decode(value, { stream: true });
         flushBuffer(false);
         controller.enqueue(value);

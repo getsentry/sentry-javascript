@@ -1,3 +1,3 @@
 export type { NodeTransportOptions } from './http';
 
-export { makeNodeTransport } from './http';
+export { getHttpAgent, makeNodeTransport } from './http';

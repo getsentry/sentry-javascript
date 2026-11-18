@@ -2,6 +2,7 @@ import { HumanMessage } from '@langchain/core/messages';
 import { TypeSafeClassifier } from '@langchain/typesafe';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockTypeSafeServer() {
   const app = express();
@@ -15,16 +16,12 @@ function startMockTypeSafeServer() {
     });
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
   const server = await startMockTypeSafeServer();
-  const baseUrl = `http://localhost:${server.address().port}`;
+  const baseUrl = server.url;
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const classifier = new TypeSafeClassifier({

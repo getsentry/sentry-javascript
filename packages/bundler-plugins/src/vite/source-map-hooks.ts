@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import type { SentryBuildPluginManager, SourceMapDecision, SourceMapKind } from '../core';
-import { getDeleteSourcemapsAfterUpload, getSdkEnabledSourceMaps } from '../core';
+import { getDeleteOption, getSdkEnabledSourceMaps } from '../core';
 import type { OutputMatch, RollupSourceMapSetting, SourceMapHandling } from '../rollup/source-map-handling';
 import { getOutputMatch, sourceMapKindFromRollupSetting } from '../rollup/source-map-handling';
 
@@ -118,16 +118,18 @@ export function createViteSourceMapHooks(
         const { kind, decision } = decisions.get(name) ?? decisions.get('*') ?? { kind: 'unset', decision: NO_CHANGE };
         const environmentName = decisions.has(name) ? name : undefined;
         const { normalizedOptions } = sentryBuildPluginManager;
-        const deleteOption = getDeleteSourcemapsAfterUpload(normalizedOptions, environmentName);
-        const sdkEnabledSourceMaps = getSdkEnabledSourceMaps(normalizedOptions, environmentName);
+        const deleteOption = getDeleteOption(normalizedOptions, environmentName);
+        // `sourcemaps.delete: true` removes every source map, like for maps the SDK turned on.
+        const removeAll =
+          normalizedOptions.sourcemaps?.delete === true || getSdkEnabledSourceMaps(normalizedOptions, environmentName);
 
         for (const output of getOutputs(config.root, environment.build)) {
           // The plugin never changes an output's own setting. Hidden maps are
-          // removed when the user asks for it, visible ones only when the SDK
-          // turned source maps on.
+          // removed when the user asks for it, visible ones only when every
+          // source map is removed.
           if (output.ownSetting) {
             const outputKind = sourceMapKindFromRollupSetting(output.sourcemap);
-            const removeAllSourceMaps = sdkEnabledSourceMaps && (outputKind === 'hidden' || outputKind === 'visible');
+            const removeAllSourceMaps = removeAll && (outputKind === 'hidden' || outputKind === 'visible');
             sourceMapHandling.setDecision(output.destination, {
               match: output.match,
               kind: outputKind,

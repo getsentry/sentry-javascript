@@ -2,6 +2,7 @@ import {
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
@@ -21,6 +22,7 @@ function createMockSpan(): { span: Span; attributes: Record<string, unknown> } {
   let ended = false;
   const span = {
     isRecording: () => !ended,
+    spanContext: () => ({ traceId: '0', spanId: '0', traceFlags: 0 }),
     setAttribute: (key: string, value: unknown) => {
       attributes[key] = value;
     },
@@ -121,7 +123,9 @@ describe.each(['response', 'async iterable', 'message stream'] as const)('Anthro
       [GEN_AI_USAGE_OUTPUT_TOKENS]: 120,
       [GEN_AI_USAGE_TOTAL_TOKENS]: totalTokens,
       ...cacheAttributes,
-      ...(mode === 'response' ? {} : { [GEN_AI_RESPONSE_STREAMING]: true }),
+      ...(mode === 'response'
+        ? {}
+        : { [GEN_AI_RESPONSE_STREAMING]: true, [GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]: expect.any(Number) }),
     });
   });
 });
@@ -305,6 +309,7 @@ describe('instrumentMessageStream', () => {
     expect(endSpy).toHaveBeenCalledTimes(1);
     expect(attributes).toEqual({
       [GEN_AI_RESPONSE_STREAMING]: true,
+      [GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]: expect.any(Number),
       [GEN_AI_RESPONSE_ID]: 'msg_aborted',
       [GEN_AI_RESPONSE_MODEL]: 'claude-sonnet-4-6',
       [GEN_AI_USAGE_INPUT_TOKENS]: 42,

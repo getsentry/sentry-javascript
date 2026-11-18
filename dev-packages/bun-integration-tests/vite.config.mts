@@ -35,6 +35,7 @@ export default defineConfig({
         }
       : {}),
     pool: 'threads',
+    maxWorkers: process.env.CI ? 4 : undefined,
     reporters: process.env.DEBUG
       ? ['default', { summary: false }]
       : process.env.GITHUB_ACTIONS
@@ -49,7 +50,7 @@ export default defineConfig({
           env: { RUNTIME: 'bun' },
           // Above the 30 second port timeout of the runner on Bun, so a slow start can still pass.
           testTimeout: 45_000,
-          maxWorkers: 1,
+          maxWorkers: 2,
           // Vitest requires projects with a different `maxWorkers` to run in their own group.
           sequence: { groupOrder: 1 },
         },

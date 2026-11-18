@@ -33,5 +33,13 @@
     "typescript": "^5.1.6",
     "vite": "^5.4.11",
     "vite-tsconfig-paths": "^4.2.1"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert",
+        "label": "create-remix-app-v2 (static trace lifecycle)"
+      }
+    ]
   }
 }

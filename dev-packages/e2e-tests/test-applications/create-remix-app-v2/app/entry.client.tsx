@@ -22,6 +22,7 @@ import { hydrateRoot } from 'react-dom/client';
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: window.ENV.SENTRY_DSN,
+  traceLifecycle: window.ENV.E2E_TEST_TRACE_LIFECYCLE === 'static' ? 'static' : undefined,
   integrations: [
     Sentry.browserTracingIntegration({
       useEffect,

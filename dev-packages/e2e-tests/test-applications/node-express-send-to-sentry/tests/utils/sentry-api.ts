@@ -15,9 +15,12 @@ export interface TraceItem {
   event_id?: string;
   event_type?: 'span' | 'error' | 'occurrence' | 'uptime_check';
   op?: string;
+  /** On spans this is the event id of the transaction the span belongs to. */
+  transaction_id?: string;
   children?: TraceItem[];
   errors?: TraceItem[];
   occurrences?: TraceItem[];
+  is_transaction?: boolean;
 }
 
 export async function fetchTrace(traceId: string): Promise<TraceItem[]> {
@@ -66,4 +69,8 @@ export async function findErrorInTrace(traceId: string, eventId: string): Promis
 
 export async function findSpanInTrace(traceId: string, op: string): Promise<TraceItem | undefined> {
   return flattenTrace(await fetchTrace(traceId)).find(item => item.op === op);
+}
+
+export async function findTransactionInTrace(traceId: string, eventId: string): Promise<TraceItem | undefined> {
+  return flattenTrace(await fetchTrace(traceId)).find(item => item.is_transaction && item.transaction_id === eventId);
 }

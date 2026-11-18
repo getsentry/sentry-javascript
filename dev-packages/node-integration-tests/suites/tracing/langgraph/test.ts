@@ -12,6 +12,8 @@ import {
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_NAME,
   GEN_AI_USAGE_INPUT_TOKENS,
@@ -20,7 +22,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_CHAT, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
+import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { getStringAttributeValue } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -453,4 +455,43 @@ describe('LangGraph integration', () => {
       },
     );
   });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-recording-functions.mjs',
+    (createRunner, test) => {
+      test('applies the graph call decision to every span of the run', { timeout: 30000 }, async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const recorded: Record<string, { inputs: boolean; outputs: boolean }> = {};
+              for (const span of container.items) {
+                const op = String(span.attributes[SENTRY_OP]?.value);
+                if (op.startsWith('gen_ai.')) {
+                  recorded[`${span.attributes[GEN_AI_CONVERSATION_ID]?.value} ${op}`] = {
+                    inputs: GEN_AI_INPUT_MESSAGES in span.attributes || GEN_AI_TOOL_CALL_ARGUMENTS in span.attributes,
+                    outputs: [GEN_AI_RESPONSE_TEXT, GEN_AI_OUTPUT_MESSAGES, GEN_AI_TOOL_CALL_RESULT].some(
+                      key => key in span.attributes,
+                    ),
+                  };
+                }
+              }
+              const all = { inputs: true, outputs: true };
+              const none = { inputs: false, outputs: false };
+              expect(recorded).toEqual({
+                [`public ${GEN_AI_INVOKE_AGENT}`]: all,
+                [`public ${GEN_AI_CHAT}`]: all,
+                [`public ${GEN_AI_EXECUTE_TOOL}`]: all,
+                [`private ${GEN_AI_INVOKE_AGENT}`]: none,
+                [`private ${GEN_AI_CHAT}`]: none,
+                [`private ${GEN_AI_EXECUTE_TOOL}`]: none,
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

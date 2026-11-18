@@ -13,6 +13,7 @@ import {
   replaceBooleanFlagsInCode,
   CodeInjection,
   getCodeInjectionPosition,
+  getSourceMapFeatures,
 } from '../core';
 import type { ComponentAnnotationTransformMeta } from '../core/component-annotation-oxc';
 import type { SourceMap } from 'magic-string';
@@ -124,7 +125,7 @@ export function _createRollupPluginInternals(
 
   const freeGlobalDependencyOnBuildArtifacts = createDependencyOnBuildArtifacts();
   const upload = createDebugIdUploadFunction({ sentryBuildPluginManager });
-  const sourcemapsEnabled = options.sourcemaps?.disable !== true;
+  const { injectDebugIds, upload: uploadEnabled, stampEmittedFiles } = getSourceMapFeatures(options);
   const sourceMapHandling = createSourceMapHandling(sentryBuildPluginManager);
   const releaseInjectionCode = new CodeInjection();
   const chunkInjectionCode = new CodeInjection();
@@ -217,7 +218,7 @@ export function _createRollupPluginInternals(
 
     injectCode.append(chunkInjectionCode);
 
-    if (sourcemapsEnabled && !hasExistingDebugID(code)) {
+    if (injectDebugIds && !hasExistingDebugID(code)) {
       const debugId = getDebugIdForChunk(code, !!this?.meta?.rolldownVersion);
       injectCode.append(getDebugIdSnippet(debugId));
     }
@@ -248,17 +249,16 @@ export function _createRollupPluginInternals(
    * Resolves Rolldown's placeholder debug IDs, then stamps debug IDs into the emitted chunks and
    * source maps.
    *
-   * `disable-upload` skips the upload routine (which stamps debug IDs into temp copies), so the emitted
-   * artifacts get stamped here instead. Not in `renderChunk`: minifiers running after it would strip the
-   * comment. Rollup computes `[hash]` file names before this hook, so only plugins that hash the final
-   * assets afterwards (e.g. subresource integrity) see the stamped content.
+   * Without an upload the emitted artifacts get stamped here. Not in `renderChunk`: minifiers running
+   * after it would strip the comment. Rollup computes `[hash]` file names before this hook, so only
+   * plugins that hash the final assets afterwards (e.g. subresource integrity) see the stamped content.
    */
   function generateBundle(this: PluginContext | undefined, _outputOptions: unknown, bundle: OutputBundle): void {
     if (this?.meta?.rolldownVersion) {
       finalizeRolldownDebugIds(bundle);
     }
 
-    if (options.sourcemaps?.disable !== 'disable-upload') {
+    if (!stampEmittedFiles) {
       return;
     }
 
@@ -272,7 +272,7 @@ export function _createRollupPluginInternals(
     try {
       await sentryBuildPluginManager.createRelease();
 
-      if (sourcemapsEnabled && options.sourcemaps?.disable !== 'disable-upload') {
+      if (uploadEnabled) {
         let buildArtifacts: string[];
         if (outputOptions.dir) {
           const outputDir = outputOptions.dir;
@@ -341,7 +341,7 @@ export function _createRollupPluginInternals(
     generateBundle: {
       order: 'post' as const,
       async handler(outputOptions: OutputDestinationOptions, bundle: OutputBundle, isWrite?: boolean): Promise<void> {
-        if (buildTool === 'vite' && options.sourcemaps?.disable === 'disable-upload') {
+        if (buildTool === 'vite' && stampEmittedFiles) {
           // Vite's module preload rewrite in `generateBundle` regenerates the source map of every
           // chunk with a dynamic import, which drops the debug ID the main plugin stamped in its
           // `pre` hook. Restore it without touching the chunk code, so file hashes stay valid.

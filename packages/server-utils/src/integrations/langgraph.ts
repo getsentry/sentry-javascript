@@ -1,12 +1,16 @@
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn } from '@sentry/core';
 import { debug, defineIntegration, isObjectLike } from '@sentry/core';
-import { resolveAIRecordingOptions } from '../ai/core/utils';
 import { createLangChainCallbackHandler } from '../ai/langchain';
 import { instrumentCompiledGraph, isInsideManualLangGraphInstrumentation } from '../ai/langgraph';
 import { LANGGRAPH_INTEGRATION_NAME } from '../ai/langgraph/constants';
 import type { LangGraphOptions } from '../ai/langgraph/types';
-import { extractAgentNameFromParams, extractLLMFromParams, wrapToolsWithSpans } from '../ai/langgraph/utils';
+import {
+  extractAgentNameFromParams,
+  extractLLMFromParams,
+  getBooleanRecordingOptions,
+  wrapToolsWithSpans,
+} from '../ai/langgraph/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
@@ -35,8 +39,7 @@ const _langGraphIntegration = ((options: LangGraphOptions = {}) => {
 }) satisfies IntegrationFn;
 
 function instrumentLanggraph(options: LangGraphOptions): void {
-  const resolvedOptions = resolveAIRecordingOptions(options);
-  const sentryHandler = createLangChainCallbackHandler(resolvedOptions);
+  const sentryHandler = createLangChainCallbackHandler(getBooleanRecordingOptions(options));
 
   // StateGraph.compile returns synchronously; wrap the returned graph's `invoke` and `stream` at `end`.
   diagnosticsChannel
@@ -46,7 +49,7 @@ function instrumentLanggraph(options: LangGraphOptions): void {
         return;
       }
       const { arguments: args, result } = message as OrchestrionChannelContext;
-      instrumentCompiledGraph(result, getFirstArgObject(args) ?? {}, resolvedOptions, null, sentryHandler);
+      instrumentCompiledGraph(result, getFirstArgObject(args) ?? {}, options, null, sentryHandler);
     });
 
   // createReactAgent only wraps tools and the returned graph's `invoke` and `stream`. Tools are wrapped at
@@ -64,7 +67,7 @@ function instrumentLanggraph(options: LangGraphOptions): void {
       const { arguments: args } = message as OrchestrionChannelContext;
       const params = getFirstArgObject(args);
       if (params && Array.isArray(params.tools) && params.tools.length > 0) {
-        wrapToolsWithSpans(params.tools, resolvedOptions, extractAgentNameFromParams(args) ?? undefined);
+        wrapToolsWithSpans(params.tools, options, extractAgentNameFromParams(args) ?? undefined);
       }
     } catch (error) {
       DEBUG_BUILD && debug.error('[instrumentation:langgraph] failed to wrap createReactAgent tools', error);
@@ -78,7 +81,7 @@ function instrumentLanggraph(options: LangGraphOptions): void {
     const { arguments: args, result } = message as OrchestrionChannelContext;
     const agentName = extractAgentNameFromParams(args) ?? undefined;
     const compileOptions = agentName ? { name: agentName } : {};
-    instrumentCompiledGraph(result, compileOptions, resolvedOptions, extractLLMFromParams(args), sentryHandler);
+    instrumentCompiledGraph(result, compileOptions, options, extractLLMFromParams(args), sentryHandler);
   });
   // Make sure a thrown `createReactAgent` doesn't leave the suppression flag stuck on.
   reactAgentChannel.error.subscribe(() => {

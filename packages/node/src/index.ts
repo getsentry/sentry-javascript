@@ -250,7 +250,7 @@ export { workerThreadsIntegration } from './integrations/workerThreads';
 export { cron } from './cron';
 export { NODE_VERSION } from './nodeVersion';
 export { defaultStackParser, getSentryRelease } from './sdk/api';
-export { makeNodeTransport } from './transports';
+export { getHttpAgent, makeNodeTransport } from './transports';
 export { createGetModuleFromFilename } from './utils/module';
 
 export { eveConversationHook, eveIntegration, getInstrumentedModuleNames } from '@sentry/server-utils';

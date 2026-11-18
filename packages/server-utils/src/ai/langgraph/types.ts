@@ -1,7 +1,19 @@
-import type { GenAiOptions } from '../core/utils';
+import type { GenAiCallOptions } from '../core/utils';
 
-/** Options for the LangGraph integration. */
-export type LangGraphOptions = GenAiOptions;
+/** The call that `recordInputs`/`recordOutputs` decide on: an `invoke()` or `stream()` call of a compiled graph. */
+export interface LangGraphCallInfo {
+  operation: 'invoke_agent';
+  /** The graph input, the first argument of `invoke()`/`stream()` as passed. */
+  input: unknown;
+  /** The run config, the second argument of `invoke()`/`stream()` as passed. */
+  config: Record<string, unknown> | undefined;
+}
+
+/**
+ * Options for the LangGraph integration. Each `invoke()`/`stream()` call decides once, and the decision covers the
+ * whole graph run, including its chat model and tool spans.
+ */
+export type LangGraphOptions = GenAiCallOptions<LangGraphCallInfo>;
 
 /**
  * LangGraph Tool definition from lc_kwargs
