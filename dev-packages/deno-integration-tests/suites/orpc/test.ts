@@ -1,6 +1,5 @@
 // <reference lib="deno.ns" />
 
-import { tracingChannel } from 'node:diagnostics_channel';
 import { createORPCClient } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
 import { os } from '@orpc/server';
@@ -25,35 +24,39 @@ Deno.test('orpc: included in default integrations', () => {
   assert(names.includes('ORPC'), `ORPC should be in defaults, got ${names.join(', ')}`);
 });
 
-// Deno has no runtime hook, so the channel that orchestrion injects into `@orpc/server` is published by hand.
-Deno.test('orpc: orchestrion:@orpc/server:executeProcedure wraps the procedure call into a span', async () => {
-  resetGlobals();
-  const sink = spanSink();
-  init({
-    dsn: 'https://username@domain/123',
-    tracesSampleRate: 1,
-    transport: sink.transport,
+Deno.test('orpc: init() instruments @orpc/server imported after it', async () => {
+  const command = new Deno.Command('deno', {
+    args: ['run', '--allow-all', new URL('./scenario-init.ts', import.meta.url).pathname],
+    cwd: new URL('../../', import.meta.url).pathname,
+    stdout: 'piped',
+    stderr: 'piped',
   });
 
-  await startSpan({ name: 'parent', op: 'test' }, () =>
-    tracingChannel('orchestrion:@orpc/server:executeProcedure').tracePromise(async () => ({ name: 'Earth' }), {
-      arguments: [{}, { path: ['planet', 'find'] }],
-    }),
-  );
+  const { code, stdout, stderr } = await command.output();
+  const out = new TextDecoder().decode(stdout);
+  const err = new TextDecoder().decode(stderr);
+  assertEquals(code, 0, `scenario exited ${code}\nstdout:\n${out}\nstderr:\n${err}`);
 
-  await flush();
+  const line = out.split('\n').find(l => l.startsWith('SCENARIO ')) ?? '';
+  assert(line, `no SCENARIO line in output:\n${out}\nstderr:\n${err}`);
+  const { spans, errors } = JSON.parse(line.slice('SCENARIO '.length));
 
-  const parent = await withTimeout(
-    sink.waitFor(span => span.is_segment && span.name === 'parent'),
-    5_000,
-    "'parent' segment span",
+  const procedureSpans = spans.filter((span: { origin?: string }) => span.origin === 'auto.rpc.orpc');
+  assertEquals(
+    procedureSpans.map((span: { name: string; op?: string }) => `${span.op} ${span.name}`),
+    ['rpc planet/find', 'rpc planet/missing', 'rpc planet/crash'],
   );
-  const children = sink.spans.filter(span => span.parent_span_id === parent.span_id);
-  assertEquals(children.length, 1);
-  assertEquals(children[0]!.name, 'planet/find');
-  assertEquals(getSpanOp(children[0]!), 'rpc');
-  assertEquals(children[0]!.attributes['sentry.origin']?.value, 'auto.rpc.orpc');
-  assertEquals(children[0]!.attributes['rpc.method']?.value, 'planet/find');
+  assertEquals(
+    spans.filter((span: { is_segment: boolean }) => span.is_segment).map((span: { name: string }) => span.name),
+    ['planet/find', 'planet/missing', 'planet/crash'],
+  );
+  assertEquals(errors, [
+    {
+      value: 'Sentry Test Error',
+      mechanism: { type: 'auto.rpc.orpc', handled: false },
+      transaction: 'planet/crash',
+    },
+  ]);
 });
 
 Deno.test('orpc: an oRPC client call continues its trace on the server', async () => {
