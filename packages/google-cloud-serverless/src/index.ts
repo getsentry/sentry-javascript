@@ -120,6 +120,7 @@ export {
   fastifyIntegration,
   firebaseIntegration,
   genericPoolIntegration,
+  bullmqJobSchedulerIntegration,
   cronJobIntegration,
   nodeCronIntegration,
   nodeScheduleIntegration,

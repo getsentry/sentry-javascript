@@ -38,6 +38,7 @@ export {
   flush,
   functionToStringIntegration,
   genericPoolIntegration,
+  bullmqJobSchedulerIntegration,
   cronJobIntegration,
   nodeCronIntegration,
   nodeScheduleIntegration,

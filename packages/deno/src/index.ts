@@ -196,6 +196,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   neonIntegration,
+  bullmqJobSchedulerIntegration,
   cronJobIntegration,
   nodeCronIntegration,
   nodeScheduleIntegration,

@@ -61,6 +61,7 @@ const DEPENDENTS: Dependent[] = [
       'childProcessIntegration',
       'workerThreadsIntegration',
       'pinoIntegration',
+      'bullmqJobSchedulerIntegration',
       // Bun will get its own runtime metrics integration
       'nodeRuntimeMetricsIntegration',
       'NodeRuntimeMetricsOptions',
