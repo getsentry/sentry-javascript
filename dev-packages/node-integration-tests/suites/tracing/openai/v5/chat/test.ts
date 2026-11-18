@@ -11,6 +11,7 @@ import {
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
@@ -236,6 +237,9 @@ describe('OpenAI integration', () => {
         type: 'boolean',
         value: true,
       });
+      expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]?.value).toEqual(
+        expect.any(Number),
+      );
 
       const streamingResponsesSpan = spans.find(
         span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_stream_456',
@@ -294,6 +298,9 @@ describe('OpenAI integration', () => {
         type: 'boolean',
         value: true,
       });
+      expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]?.value).toEqual(
+        expect.any(Number),
+      );
 
       const streamingErrorSpan = spans.find(
         span => span.name === 'chat error-model' && span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,

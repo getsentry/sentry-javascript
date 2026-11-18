@@ -16,6 +16,7 @@ function createMockSpan(): { span: Span; attributes: Record<string, unknown>; se
   let isEnded = false;
   const span = {
     isRecording: () => !isEnded,
+    spanContext: () => ({ traceId: '0', spanId: '0', traceFlags: 0 }),
     setAttribute: (key: string, value: unknown) => {
       attributes[key] = value;
     },

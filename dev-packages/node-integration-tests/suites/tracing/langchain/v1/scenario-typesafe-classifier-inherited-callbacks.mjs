@@ -5,6 +5,7 @@ import { TypeSafeClassifier } from '@langchain/typesafe';
 import '@langchain/langgraph';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockTypeSafeServer() {
   const app = express();
@@ -18,11 +19,7 @@ function startMockTypeSafeServer() {
     });
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 // Stands in for a tracer such as LangSmith, which the user passes to the parent run.
@@ -37,7 +34,7 @@ class RecordingHandler extends BaseCallbackHandler {
 
 async function run() {
   const server = await startMockTypeSafeServer();
-  const baseUrl = `http://localhost:${server.address().port}`;
+  const baseUrl = server.url;
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async span => {
     const classifier = new TypeSafeClassifier({

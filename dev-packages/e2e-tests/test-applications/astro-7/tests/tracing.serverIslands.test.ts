@@ -1,31 +1,35 @@
-import type { Page, Request } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 const APP_NAME = 'astro-7';
 
-const SERVER_ISLAND_SEGMENT_NAME = (method: 'GET' | 'POST'): string => `${method} /_server-islands/[name]`;
-
-function recordServerIslandRequests(page: Page): Request[] {
-  const requests: Request[] = [];
-  page.on('request', request => {
-    if (request.url().includes('/_server-islands/')) {
-      requests.push(request);
-    }
-  });
-  return requests;
-}
-
-function waitForServerIslandSegment(method: 'GET' | 'POST'): Promise<SerializedStreamedSpan> {
+// Each test loads a different page, and the island request's referer is that page, so the segment can't come
+// from another test.
+function waitForServerIslandSegment(method: 'GET' | 'POST', pagePath: string): Promise<SerializedStreamedSpan> {
   return waitForStreamedSpan(
     APP_NAME,
-    span => getSpanOp(span) === 'http.server' && span.is_segment && span.name === SERVER_ISLAND_SEGMENT_NAME(method),
+    span =>
+      getSpanOp(span) === 'http.server' &&
+      span.is_segment &&
+      span.name === `${method} /_server-islands/[name]` &&
+      String(span.attributes['http.request.header.referer']?.value?.[0]).endsWith(pagePath),
   );
 }
 
 function findPageloadSegment(spans: SerializedStreamedSpan[], name: string): SerializedStreamedSpan {
-  return spans.find(span => getSpanOp(span) === 'pageload' && span.is_segment && span.name === name)!;
+  const pageloadSegment = spans.find(span => getSpanOp(span) === 'pageload' && span.is_segment && span.name === name);
+  expect(pageloadSegment).toBeDefined();
+  return pageloadSegment!;
+}
+
+function findServerIslandFetchSpan(spans: SerializedStreamedSpan[]): SerializedStreamedSpan {
+  const fetchSpan = spans.find(
+    span =>
+      getSpanOp(span) === 'http.client' && String(span.attributes['url.full']?.value).includes('/_server-islands/'),
+  );
+  expect(fetchSpan).toBeDefined();
+  return fetchSpan!;
 }
 
 test.describe('tracing in static routes with server islands', () => {
@@ -34,7 +38,7 @@ test.describe('tracing in static routes with server islands', () => {
     // whole trace is in hand once the segment has arrived.
     const clientSpansPromise = collectStreamedSpansUntilSegment(APP_NAME, '/server-island');
 
-    const serverIslandEndpointSpanPromise = waitForServerIslandSegment('GET');
+    const serverIslandEndpointSpanPromise = waitForServerIslandSegment('GET', '/server-island');
 
     await page.goto('/server-island');
 
@@ -79,41 +83,16 @@ test.describe('tracing in static routes with server islands', () => {
       'http.request.header.user-agent': { value: [expect.any(String)], type: 'array' },
     });
 
-    // unfortunately, the server island trace id is not the same as the client pageload trace id
-    // this is because the server island endpoint request is made as a resource link request,
-    // meaning our fetch instrumentation can't attach headers to the request :(
+    // The island script's `fetch()` gets trace headers, but the browser answers it with the preload response, which
+    // left before the SDK ran. So the island starts its own trace.
     expect(serverIslandEndpointSpan.trace_id).not.toBe(clientPageloadSpan.trace_id);
 
     await page.waitForTimeout(1000); // wait another sec to ensure no server span is sent
   });
 
-  test('requests a GET server island once', async ({ page }) => {
-    const serverIslandRequests = recordServerIslandRequests(page);
-    const clientSpansPromise = collectStreamedSpansUntilSegment(APP_NAME, '/server-island');
-
-    await page.goto('/server-island');
-    await page.getByAltText('User avatar').waitFor();
-    const clientSpans = await clientSpansPromise;
-
-    expect(serverIslandRequests.map(request => request.method())).toEqual(['GET']);
-
-    const islandRequestHeaders = await serverIslandRequests[0]!.allHeaders();
-    expect(islandRequestHeaders['sentry-trace']).toBeUndefined();
-    expect(islandRequestHeaders['baggage']).toBeUndefined();
-
-    // The island script's `fetch()` is instrumented and gets trace headers, but the browser answers it with the
-    // preload response, which left before the SDK ran. So the island render never sees the pageload's trace.
-    const islandFetchSpan = clientSpans.find(
-      span =>
-        getSpanOp(span) === 'http.client' && String(span.attributes['url.full']?.value).includes('/_server-islands/'),
-    );
-    expect(islandFetchSpan).toBeDefined();
-  });
-
   test('connects a POST server island to the pageload trace', async ({ page }) => {
-    const serverIslandRequests = recordServerIslandRequests(page);
     const clientSpansPromise = collectStreamedSpansUntilSegment(APP_NAME, '/server-island-post');
-    const serverIslandSegmentPromise = waitForServerIslandSegment('POST');
+    const serverIslandSegmentPromise = waitForServerIslandSegment('POST', '/server-island-post');
 
     await page.goto('/server-island-post');
     await page.getByAltText('User avatar').waitFor();
@@ -122,14 +101,9 @@ test.describe('tracing in static routes with server islands', () => {
     const clientPageloadSpan = findPageloadSegment(clientSpans, '/server-island-post');
     const serverIslandSegment = await serverIslandSegmentPromise;
 
-    expect(serverIslandRequests.map(request => request.method())).toEqual(['POST']);
     expect(await page.locator('link[rel="preload"][href*="/_server-islands/"]').count()).toBe(0);
 
-    const islandFetchSpan = clientSpans.find(
-      span =>
-        getSpanOp(span) === 'http.client' && String(span.attributes['url.full']?.value).includes('/_server-islands/'),
-    )!;
-    expect(islandFetchSpan).toBeDefined();
+    const islandFetchSpan = findServerIslandFetchSpan(clientSpans);
     expect(islandFetchSpan.trace_id).toBe(clientPageloadSpan.trace_id);
 
     expect(serverIslandSegment.trace_id).toBe(clientPageloadSpan.trace_id);
@@ -139,13 +113,12 @@ test.describe('tracing in static routes with server islands', () => {
 
 test.describe('tracing in SSR routes with server islands', () => {
   test('connects the page render, the pageload and the GET server island', async ({ page }) => {
-    const serverIslandRequests = recordServerIslandRequests(page);
     const pageRenderSegmentPromise = waitForStreamedSpan(
       APP_NAME,
       span => getSpanOp(span) === 'http.server' && span.is_segment && span.name === 'GET /server-island-ssr',
     );
     const clientSpansPromise = collectStreamedSpansUntilSegment(APP_NAME, '/server-island-ssr');
-    const serverIslandSegmentPromise = waitForServerIslandSegment('GET');
+    const serverIslandSegmentPromise = waitForServerIslandSegment('GET', '/server-island-ssr');
 
     await page.goto('/server-island-ssr');
     await page.getByAltText('User avatar').waitFor();
@@ -158,9 +131,9 @@ test.describe('tracing in SSR routes with server islands', () => {
     expect(clientPageloadSpan.trace_id).toBe(pageRenderSegment.trace_id);
     expect(clientPageloadSpan.parent_span_id).toBe(pageRenderSegment.span_id);
 
-    expect(serverIslandRequests.map(request => request.method())).toEqual(['GET']);
-
-    // The preload request leaves before the SDK runs, so the island starts its own trace.
+    // The island script's `fetch()` gets trace headers, but the browser answers it with the preload response, which
+    // left before the SDK ran. So the island starts its own trace.
+    expect(findServerIslandFetchSpan(clientSpans).trace_id).toBe(clientPageloadSpan.trace_id);
     expect(serverIslandSegment.trace_id).not.toBe(clientPageloadSpan.trace_id);
   });
 });

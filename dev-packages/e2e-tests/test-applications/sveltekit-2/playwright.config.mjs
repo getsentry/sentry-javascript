@@ -7,7 +7,7 @@ if (!testEnv) {
 }
 
 const config = getPlaywrightConfig({
-  startCommand: testEnv === 'development' ? `pnpm dev --port 3030` : `node build`,
+  startCommand: testEnv === 'development' ? `pnpm dev --port 3030` : `ORIGIN=http://localhost:3030 node build`,
 });
 
 export default {

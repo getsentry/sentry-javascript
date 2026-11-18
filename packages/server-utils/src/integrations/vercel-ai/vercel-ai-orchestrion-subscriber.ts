@@ -564,6 +564,7 @@ function patchModelMethod(
         // separately by `deferStreamTextOperationEnd`, which awaits the operation's own result promises.
         if (method === 'doStream' && isObjectLike(value) && isReadableStream(value.stream)) {
           value.stream = tapModelCallStream(
+            span,
             value.stream,
             final => {
               message.result = { ...value, ...streamedResultToChannelResult(final) };
