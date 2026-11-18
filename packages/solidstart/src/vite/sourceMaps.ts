@@ -1,10 +1,14 @@
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
+import { resolveSourceMapsFeatures } from '@sentry/core';
 import type { Plugin, UserConfig } from 'vite';
 import type { SentrySolidStartOptions } from './sentrySolidStart';
 import type { SentrySolidStartPluginOptions } from './types';
 
-// `debug` is all the source map setting logic needs, and all the two majors' option types share.
-type SourceMapSettingOptions = { debug?: boolean };
+// What the source map setting logic needs, and the two majors' option types share.
+type SourceMapSettingOptions = {
+  debug?: boolean;
+  sourcemaps?: { disable?: boolean | 'disable-upload'; upload?: boolean; injectDebugIds?: boolean; delete?: boolean };
+};
 
 /** Shared by the two plugins of one build. */
 export type SourceMapState = {
@@ -21,22 +25,31 @@ type SourceMapsOptions = SentrySolidStartPluginOptions['sourcemaps'];
  * setting from Nitro, and `@sentry/nitro` handles their maps.
  *
  * With `keepWhenUploadDisabled`, maps the SDK turned on stay with `disable: 'disable-upload'`.
+ *
+ * With `sourcemaps.delete` the bundler plugin ignores `deleteSourcemapsAfterUpload` and warns if
+ * the user set it, so it only gets the user's value then.
  */
 function makeSourceMapDeletionOptions(
   sourcemaps: SourceMapsOptions,
   state: SourceMapState,
   { keepWhenUploadDisabled }: { keepWhenUploadDisabled: boolean },
 ): {
-  deleteSourcemapsAfterUpload: (environment?: string) => boolean | undefined;
+  deleteSourcemapsAfterUpload: boolean | undefined | ((environment?: string) => boolean | undefined);
   sdkEnabledSourceMaps: (environment?: string) => boolean;
 } {
   const sdkEnabledSourceMaps = (environment?: string): boolean =>
     environment === undefined && state.sdkEnabledSourceMaps;
 
+  // TODO(v12): Remove along with `sourcemaps.disable`.
+  const keepSdkEnabledSourceMaps = keepWhenUploadDisabled && !!resolveSourceMapsFeatures(sourcemaps).legacyDisable;
+
   return {
-    deleteSourcemapsAfterUpload: environment =>
-      sourcemaps?.deleteSourcemapsAfterUpload ??
-      (sdkEnabledSourceMaps(environment) && !(keepWhenUploadDisabled && sourcemaps?.disable) ? true : undefined),
+    deleteSourcemapsAfterUpload:
+      sourcemaps?.delete !== undefined
+        ? sourcemaps.deleteSourcemapsAfterUpload
+        : environment =>
+            sourcemaps?.deleteSourcemapsAfterUpload ??
+            (sdkEnabledSourceMaps(environment) && !keepSdkEnabledSourceMaps ? true : undefined),
     sdkEnabledSourceMaps,
   };
 }
@@ -156,9 +169,7 @@ export function makeEnableSourceMapsVitePlugin(
 
         // Return only what changed: Vite concatenates arrays when merging a `config` return value,
         // so echoing the whole config back would duplicate every array the user had.
-        return {
-          build: { sourcemap },
-        };
+        return sourcemap === undefined ? {} : { build: { sourcemap } };
       },
     },
   ];
@@ -174,17 +185,19 @@ export function makeEnableSourceMapsVitePlugin(
  *       - keep this setting (don't do anything - like deletion - besides uploading)
  *
  *     3. Users didn't set source maps generation
- *       - we enable 'hidden' source maps generation
- *       - pass `deleteSourcemapsAfterUpload: true`, so the maps never reach the build output
+ *       - we enable 'hidden' source maps generation when Sentry uploads the maps, or when
+ *         `sourcemaps.delete: false` keeps them for a manual upload. Otherwise we leave it unset
+ *       - without `sourcemaps.delete` we pass `deleteSourcemapsAfterUpload: true`, so the maps never
+ *         reach the build output
  *
  * --> only exported for testing
  */
 export function getUpdatedSourceMapSettings(
   viteConfig: UserConfig,
   sentryPluginOptions?: SourceMapSettingOptions,
-): boolean | 'inline' | 'hidden' {
+): boolean | 'inline' | 'hidden' | undefined {
   const viteSourceMap = viteConfig?.build?.sourcemap;
-  let updatedSourceMapSetting = viteSourceMap;
+  let updatedSourceMapSetting: boolean | 'inline' | 'hidden' | undefined = viteSourceMap;
 
   const settingKey = 'vite.build.sourcemap';
   const debug = sentryPluginOptions?.debug;
@@ -211,13 +224,22 @@ export function getUpdatedSourceMapSettings(
         `[Sentry] We discovered \`${settingKey}\` is set to \`${viteSourceMap.toString()}\`. Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
       );
   } else {
-    updatedSourceMapSetting = 'hidden';
+    updatedSourceMapSetting = undefined;
 
-    debug &&
-      //  eslint-disable-next-line no-console
-      console.log(
-        `[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`. The source maps  will be deleted after they were uploaded to Sentry.`,
-      );
+    const sourcemaps = sentryPluginOptions?.sourcemaps;
+    const { injectDebugIds, upload, legacyDisable } = resolveSourceMapsFeatures(sourcemaps);
+
+    // Without an upload, Sentry only turns source maps on when `sourcemaps.delete: false` keeps them.
+    // TODO(v12): Remove the `disable-upload` case along with `sourcemaps.disable`.
+    if (upload || legacyDisable === 'disable-upload' || (sourcemaps?.delete === false && injectDebugIds)) {
+      updatedSourceMapSetting = 'hidden';
+
+      debug &&
+        //  eslint-disable-next-line no-console
+        console.log(
+          `[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`. The source maps  will be deleted after they were uploaded to Sentry.`,
+        );
+    }
   }
 
   return updatedSourceMapSetting;

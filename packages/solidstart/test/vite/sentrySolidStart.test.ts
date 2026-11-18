@@ -66,6 +66,12 @@ describe('sentrySolidStart()', () => {
     expect(names).not.toContain('code-transformer');
   });
 
+  it.each([{ upload: false }, { injectDebugIds: false }])('keeps the source maps plugins with %j', sourcemaps => {
+    const names = sentrySolidStart({ sourcemaps }).map(plugin => plugin.name);
+
+    expect(names).toContain('sentry-solidstart-update-source-map-setting');
+  });
+
   it('omits the source maps plugins when source maps are disabled', () => {
     const names = sentrySolidStart({ sourcemaps: { disable: true } }).map(plugin => plugin.name);
 

@@ -274,6 +274,35 @@ describe.each([
   });
 });
 
+describe.each([
+  ['makeAddSentryVitePlugin', makeAddSentryVitePlugin],
+  ['makeAddSentryVitePluginSolidStart2', makeAddSentryVitePluginSolidStart2],
+] as const)('%s() with the new source map options', (_name, makePlugin) => {
+  it('passes them through', () => {
+    makePlugin({ sourcemaps: { upload: false, injectDebugIds: true, delete: false } });
+
+    expect(lastPluginOptions?.sourcemaps).toEqual(
+      expect.objectContaining({ upload: false, injectDebugIds: true, delete: false }),
+    );
+  });
+
+  // The bundler plugin warns when both options are set, so it must only see what the user set.
+  it.each([
+    [{ delete: true }, undefined],
+    [{ delete: false, deleteSourcemapsAfterUpload: true }, true],
+  ] as const)('with %j it passes `deleteSourcemapsAfterUpload: %s`', (sourcemaps, expected) => {
+    makePlugin({ sourcemaps }, { sdkEnabledSourceMaps: true });
+
+    expect(lastPluginOptions?.sourcemaps?.deleteSourcemapsAfterUpload).toBe(expected);
+  });
+
+  it("deletes the maps the SDK enabled when `upload: true` replaces `disable: 'disable-upload'`", () => {
+    makePlugin({ sourcemaps: { disable: 'disable-upload', upload: true } }, { sdkEnabledSourceMaps: true });
+
+    expect(getDeleteOption()).toBe(true);
+  });
+});
+
 it('makeAddSentryVitePlugin() asks for deletion when only the upload is disabled', () => {
   makeAddSentryVitePlugin({ sourcemaps: { disable: 'disable-upload' } }, { sdkEnabledSourceMaps: true });
 
@@ -383,6 +412,21 @@ describe('getUpdatedSourceMapSettings', () => {
         );
       },
     );
+
+    it.each([
+      [{ upload: false }, undefined],
+      [{ injectDebugIds: false }, undefined],
+      [{ upload: true }, 'hidden'],
+      [{ disable: true, upload: true }, 'hidden'],
+      [{ disable: 'disable-upload' }, 'hidden'],
+      [{ delete: true }, 'hidden'],
+      [{ delete: false }, 'hidden'],
+      [{ upload: false, delete: false }, 'hidden'],
+      [{ upload: false, delete: true }, undefined],
+      [{ injectDebugIds: false, delete: false }, undefined],
+    ] as const)('with an unset setting and %j it returns %s', (sourcemaps, expected) => {
+      expect(getUpdatedSourceMapSettings({}, { sourcemaps })).toBe(expected);
+    });
 
     it('should set sourcemap to hidden when build config is empty', () => {
       const result = getUpdatedSourceMapSettings({}, { debug: true });

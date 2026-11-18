@@ -1,6 +1,7 @@
 import {
   _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath,
   type BuildTimeOptionsBase,
+  resolveSourceMapsFeatures,
   stringifyForCodeInjection,
   warnOnRemovedBuildOptions,
 } from '@sentry/core';
@@ -57,7 +58,8 @@ export function sentrySolidStart(options: SentrySolidStartOptions = {}): Plugin[
   // lets `Sentry.init()` run from a bundled Nitro plugin rather than an `--import` preload.
   plugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: options.buildTimeInstrumentation }));
 
-  if (options.sourcemaps?.disable !== true) {
+  // TODO(v12): Add the Sentry plugin with `sourcemaps.disable: true` too, like with the options that replace it.
+  if (resolveSourceMapsFeatures(options.sourcemaps).legacyDisable !== true) {
     const sourceMapState: SourceMapState = { sdkEnabledSourceMaps: false };
 
     // The bundler plugin decides on the `build.sourcemap` it finds in its own `config` hook,

@@ -1,4 +1,4 @@
-import { stringifyForCodeInjection, warnOnRemovedBuildOptions } from '@sentry/core';
+import { resolveSourceMapsFeatures, stringifyForCodeInjection, warnOnRemovedBuildOptions } from '@sentry/core';
 import type { Plugin, UserConfig } from 'vite';
 import { makeBuildInstrumentationFilePlugin } from './buildInstrumentationFile';
 import type { SourceMapState } from './sourceMaps';
@@ -26,7 +26,8 @@ export const sentrySolidStartVite = (options: SentrySolidStartPluginOptions = {}
   }
 
   if (process.env.NODE_ENV !== 'development') {
-    if (options.sourcemaps?.disable !== true) {
+    // TODO(v12): Add the Sentry plugin with `sourcemaps.disable: true` too, like with the options that replace it.
+    if (resolveSourceMapsFeatures(options.sourcemaps).legacyDisable !== true) {
       const sourceMapState: SourceMapState = { sdkEnabledSourceMaps: false };
 
       // The bundler plugin decides on the `build.sourcemap` it finds in its own `config` hook,
