@@ -36,7 +36,7 @@ export type NormalizedOptions = {
     | undefined;
   release: {
     name: string | undefined;
-    inject: boolean;
+    inject: boolean | 'html';
     create: boolean;
     finalize: boolean;
     vcsRemote: string;

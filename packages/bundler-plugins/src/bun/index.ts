@@ -68,6 +68,12 @@ export function sentryBunPlugin(userOptions: Options = {}): BunPlugin {
 
   const staticInjectionCode = new CodeInjection();
 
+  if (options.release.inject === 'html') {
+    logger.warn(
+      "`release.inject: 'html'` is not supported by the Bun plugin. Injecting the release into the startup chunks instead.",
+    );
+  }
+
   if (!options.release.inject) {
     logger.debug('Release injection disabled via `release.inject` option. Will not inject release.');
   } else if (!options.release.name) {

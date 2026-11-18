@@ -328,6 +328,12 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptio
   const releaseInjectionCode = new CodeInjection();
   const chunkInjectionCode = new CodeInjection();
 
+  if (options.release.inject === 'html') {
+    logger.warn(
+      "`release.inject: 'html'` is not supported by the webpack plugin. Injecting the release into the startup chunks instead.",
+    );
+  }
+
   if (!options.release.inject) {
     logger.debug('Release injection disabled via `release.inject` option. Will not inject release.');
   } else if (!options.release.name) {
