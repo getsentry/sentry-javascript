@@ -379,4 +379,36 @@ describe('LangChain integration', () => {
         .completed();
     });
   });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-recording-functions.mjs',
+    (createRunner, test) => {
+      test('decides content recording per call when the options are functions', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const recorded = Object.fromEntries(
+                container.items
+                  .filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain')
+                  .map(span => [
+                    span.attributes[GEN_AI_RESPONSE_ID]?.value,
+                    {
+                      inputs: GEN_AI_INPUT_MESSAGES in span.attributes,
+                      outputs: GEN_AI_RESPONSE_TEXT in span.attributes,
+                    },
+                  ]),
+              );
+              expect(recorded).toEqual({
+                msg_public: { inputs: true, outputs: true },
+                msg_private: { inputs: false, outputs: false },
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });
