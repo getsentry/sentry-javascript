@@ -398,6 +398,48 @@ describe('sentryAstro integration', () => {
       expectSourcemapsOptions({ disable: 'disable-upload', sdkEnabledSourceMaps: true });
       expectDeleteOption(true);
     });
+
+    function expectViteSourceMapSetting(sourcemap: 'hidden' | undefined): void {
+      const viteConfigUpdate = updateConfig.mock.calls
+        .map(([astroConfigUpdate]) => astroConfigUpdate.vite)
+        .find(vite =>
+          vite?.plugins?.some((plugin: { name?: string }) => plugin?.name === 'sentry-astro-vite-build-state'),
+        );
+      expect(viteConfigUpdate?.build?.sourcemap).toBe(sourcemap);
+    }
+
+    it.each([{ upload: false }, { injectDebugIds: false }])(
+      'adds the plugin, turns no source maps on and asks for no deletion with %j',
+      async sourcemaps => {
+        await runSetup({ sourcemaps });
+        expectSourcemapsOptions({ ...sourcemaps, sdkEnabledSourceMaps: false });
+        expectDeleteOption(undefined);
+        expectViteSourceMapSetting(undefined);
+      },
+    );
+
+    // The bundler plugin must only see the `deleteSourcemapsAfterUpload` the user set, because it
+    // warns when both options are set.
+    it.each([
+      [{ delete: true }, 'hidden', undefined],
+      [{ delete: false }, 'hidden', undefined],
+      [{ upload: false, delete: false }, 'hidden', undefined],
+      [{ upload: false, delete: true }, undefined, undefined],
+      [{ injectDebugIds: false, delete: false }, undefined, undefined],
+      [{ delete: false, deleteSourcemapsAfterUpload: true }, 'hidden', true],
+    ] as const)('with %j it sets the source map setting to %s', async (sourcemaps, setting, deleteAfterUpload) => {
+      await runSetup({ sourcemaps });
+      expectSourcemapsOptions({ ...sourcemaps, sdkEnabledSourceMaps: setting === 'hidden' });
+      expect(capturedSourcemapsOptions?.deleteSourcemapsAfterUpload).toBe(deleteAfterUpload);
+      expectViteSourceMapSetting(setting);
+    });
+
+    it('enables hidden source maps when `upload: true` replaces `disable: true`', async () => {
+      await runSetup({ sourcemaps: { disable: true, upload: true } });
+      expectSourcemapsOptions({ sdkEnabledSourceMaps: true });
+      expectDeleteOption(true);
+      expectViteSourceMapSetting('hidden');
+    });
   });
 
   it('ignores the removed `sourceMapsUploadOptions` when computing the vite plugin options', async () => {
@@ -947,6 +989,22 @@ describe('_getUpdatedSourceMapSettings', () => {
     const result = _getUpdatedSourceMapSettings(astroConfig, sentryOptions, logger);
     expect(result.previousUserSourceMapSetting).toBe('unset');
     expect(result.updatedSourceMapSetting).toBe('hidden');
+  });
+
+  it.each([
+    [{ upload: false }, undefined],
+    [{ injectDebugIds: false }, undefined],
+    [{ delete: true }, 'hidden'],
+    [{ delete: false }, 'hidden'],
+    [{ upload: false, delete: false }, 'hidden'],
+    [{ upload: false, delete: true }, undefined],
+    [{ injectDebugIds: false, delete: false }, undefined],
+    [{ upload: true }, 'hidden'],
+    [{ disable: 'disable-upload' }, 'hidden'],
+  ] as const)('with unset source maps and %j it returns %s', (sourcemaps, expected) => {
+    const result = _getUpdatedSourceMapSettings(astroConfig, { sourcemaps }, logger);
+    expect(result.previousUserSourceMapSetting).toBe('unset');
+    expect(result.updatedSourceMapSetting).toBe(expected);
   });
 
   it('should log warnings and messages when debug is enabled', () => {

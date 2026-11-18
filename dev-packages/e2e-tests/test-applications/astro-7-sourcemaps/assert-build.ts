@@ -6,6 +6,8 @@ import {
   findInjectedDebugIds,
   findSourceMapFiles,
   findSourceMappingUrlComments,
+  getChunkUploadPosts,
+  loadMockServerResults,
 } from '@sentry-internal/test-utils';
 
 const isStatic = process.env.E2E_ASTRO_OUTPUT === 'static';
@@ -34,7 +36,46 @@ if (noUpload) {
     [],
     `Expected no sourceMappingURL comments in ${BUILD_OUTPUT}`,
   );
+} else if (process.env.E2E_VARIANT === 'manual-upload') {
+  // `upload: false` with `delete: false`: nothing reaches Sentry, and the hidden maps Sentry turned on
+  // stay with the debug IDs of their chunks, ready for an upload with the CLI.
+  assert.deepEqual(getChunkUploadPosts(loadMockServerResults()), [], 'Expected no source map upload');
+  assert.deepEqual(
+    findSourceMappingUrlComments({ outputDir: BUILD_OUTPUT }),
+    [],
+    `Expected no sourceMappingURL comments in ${BUILD_OUTPUT}`,
+  );
+
+  // Written by the build, see `recordSourceMaps` in `astro.config.mjs`.
+  const debugIdsWithoutSourceMap = new Set(
+    fs.existsSync('.tmp_debug_ids_without_source_map')
+      ? fs.readFileSync('.tmp_debug_ids_without_source_map', 'utf8').split('\n').filter(Boolean)
+      : [],
+  );
+
+  for (const outputDir of OUTPUT_DIRS) {
+    const mapDebugIds = new Set(
+      findSourceMapFiles({ outputDir }).map(file => {
+        const map = JSON.parse(fs.readFileSync(file, 'utf8')) as { debug_id?: string; debugId?: string };
+        return (map.debug_id ?? map.debugId)?.toLowerCase();
+      }),
+    );
+    const injectedDebugIds = findInjectedDebugIds({ outputDir });
+
+    assert.ok(injectedDebugIds.length > 0, `Expected debug IDs to be injected into ${outputDir}`);
+    assert.deepEqual(
+      injectedDebugIds.filter(debugId => !mapDebugIds.has(debugId) && !debugIdsWithoutSourceMap.has(debugId)),
+      [],
+      `Expected a source map with the same debug ID for every chunk in ${outputDir}`,
+    );
+    assert.ok(
+      injectedDebugIds.some(debugId => mapDebugIds.has(debugId)),
+      `Expected at least one chunk in ${outputDir} to have a kept source map`,
+    );
+    console.log(`  ${outputDir}: ${injectedDebugIds.length} debug ID(s), ${mapDebugIds.size} kept source map(s)`);
+  }
 } else {
+  // Also covers the `delete-all` variant: the maps the app turned on are uploaded and removed.
   assertSourceMapUpload({
     outputDirs: OUTPUT_DIRS,
     // The app does not set `build.sourcemap`, so the SDK enables hidden maps and must delete them after upload.
