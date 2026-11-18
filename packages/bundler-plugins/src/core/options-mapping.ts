@@ -238,6 +238,12 @@ export function validateOptions(options: NormalizedOptions, logger: Logger): boo
       'Please remove `sourcemaps.deleteSourcemapsAfterUpload`.',
     );
   }
+  if (sourcemaps?.delete === false && sourcemaps.filesToDeleteAfterUpload !== undefined) {
+    logger.warn(
+      '`sourcemaps.filesToDeleteAfterUpload` still deletes the files it matches, although `sourcemaps.delete` is `false`.',
+      'Remove `sourcemaps.filesToDeleteAfterUpload` to keep the source maps.',
+    );
+  }
 
   if (options.release?.deploy && typeof options.release.deploy === 'object' && !options.release.deploy.env) {
     logger.error(
