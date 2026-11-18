@@ -16,6 +16,10 @@
   },
   "dependencies": {
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
+    "@tanstack/react-query": "^5.50.0",
+    "@trpc/client": "~11.8.0",
+    "@trpc/react-query": "~11.8.0",
+    "@trpc/server": "~11.8.0",
     "@types/node": "^18.19.1",
     "@types/react": "18.0.26",
     "@types/react-dom": "18.0.9",
@@ -23,7 +27,8 @@
     "next": "15.5.24",
     "react": "latest",
     "react-dom": "latest",
-    "typescript": "~5.0.0",
+    "superjson": "^2.2.1",
+    "typescript": "^5.8.2",
     "zod": "^3.22.4"
   },
   "devDependencies": {

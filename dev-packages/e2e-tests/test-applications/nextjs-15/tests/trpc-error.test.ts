@@ -1,12 +1,15 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { isDevMode } from './isDevMode';
+
+test.slow(isDevMode, 'Next.js compiles the tRPC routes on their first request in dev mode');
 
 test('should capture error with trpc context', async ({ page }) => {
-  const errorEventPromise = waitForError('nextjs-15-t3', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-15', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Error thrown in trpc router';
   });
 
-  await page.goto('/');
+  await page.goto('/trpc');
   await page.click('#error-button');
 
   const trpcError = await errorEventPromise;
@@ -36,11 +39,11 @@ test('should capture error with trpc context', async ({ page }) => {
 });
 
 test('should create span with trpc input for error', async ({ page }) => {
-  const trpcSpanPromise = waitForStreamedSpan('nextjs-15-t3', span => {
+  const trpcSpanPromise = waitForStreamedSpan('nextjs-15', span => {
     return span.name === 'POST /api/trpc/[trpc]' && getSpanOp(span) === 'http.server' && span.is_segment;
   });
 
-  await page.goto('/');
+  await page.goto('/trpc');
   await page.click('#error-button');
 
   const trpcSpan = await trpcSpanPromise;
