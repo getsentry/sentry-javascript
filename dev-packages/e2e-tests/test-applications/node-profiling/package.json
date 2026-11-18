@@ -1,12 +1,12 @@
 {
-  "name": "node-profiling-cjs",
+  "name": "node-profiling",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "node dist/cjs/index.js",
+    "test": "node dist/cjs/index.js && node dist/esm/index.mjs",
     "clean": "npx rimraf node_modules dist",
-    "test:build": "pnpm install && node build-cjs.mjs",
+    "test:build": "pnpm install && node build.mjs",
     "test:assert": "pnpm run typecheck && pnpm run test"
   },
   "dependencies": {
@@ -14,7 +14,7 @@
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "@sentry/profiling-node": "file:../../packed/sentry-profiling-node-packed.tgz",
     "@types/node": "^18.19.1",
-    "esbuild": "0.25.0",
+    "esbuild": "0.28.1",
     "typescript": "^5.7.3"
   }
 }
