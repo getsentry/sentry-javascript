@@ -326,17 +326,17 @@ export function sentryEsbuildPlugin(userOptions: InternalOptions = {}): any {
 
       initialOptions.metafile = true;
       onEnd(async result => {
+        // The metafile lists outputs relative to `absWorkingDir`, not to the process.
+        const outputDir = initialOptions.absWorkingDir ?? process.cwd();
+        const buildArtifacts = result.metafile
+          ? Object.keys(result.metafile.outputs).map(output => path.resolve(outputDir, output))
+          : [];
+        const { sourceMaps } = sentryBuildPluginManager;
+        const allMaps = buildArtifacts.filter(artifact => artifact.endsWith('.map'));
+
         try {
           await sentryBuildPluginManager.createRelease();
 
-          // The metafile lists outputs relative to `absWorkingDir`, not to the process.
-          const outputDir = initialOptions.absWorkingDir ?? process.cwd();
-          const buildArtifacts = result.metafile
-            ? Object.keys(result.metafile.outputs).map(output => path.resolve(outputDir, output))
-            : [];
-
-          const { sourceMaps } = sentryBuildPluginManager;
-          const allMaps = buildArtifacts.filter(artifact => artifact.endsWith('.map'));
           const deleteWithoutUpload = sourceMapDecision.deleteAfterUpload && !sourceMaps.uploadPossible;
           if (stampEmittedFiles) {
             if (initialOptions.write === false) {
@@ -381,6 +381,13 @@ export function sentryEsbuildPlugin(userOptions: InternalOptions = {}): any {
               sourceMapDecision.removeAllSourceMaps ? allMaps : allMaps.filter(isUploaded),
             );
           }
+        } catch (error) {
+          // esbuild already wrote the maps, and `sourcemaps.delete: true` also
+          // applies when the release or upload step fails.
+          if (options.sourcemaps?.delete === true && sourceMapDecision.deleteAfterUpload) {
+            await sourceMaps.deleteFromOutput(allMaps);
+          }
+          throw error;
         } finally {
           freeGlobalDependencyOnBuildArtifacts();
           await sentryBuildPluginManager.deleteArtifacts();
