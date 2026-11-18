@@ -1,38 +1,57 @@
 import type { GenAiCallOptions } from '../core/utils';
 
-/** What LangChain passes to every start callback of a run, besides the component and its input. */
+/** What LangChain passes to every start callback of a run, besides the component's input. */
 interface LangChainRunCallInfo {
+  /** Describes the component, such as the chat model class and its constructor kwargs. */
+  serialized: LangChainSerialized;
   runId: string;
   parentRunId?: string;
   tags?: string[];
   metadata?: Record<string, unknown>;
 }
 
+/** `handleChatModelStart` */
+interface LangChainChatModelCallInfo extends LangChainRunCallInfo {
+  operation: 'chat';
+  messages: LangChainMessage[][];
+  extraParams?: Record<string, unknown>;
+}
+
+/** `handleLLMStart` */
+interface LangChainLLMCallInfo extends LangChainRunCallInfo {
+  operation: 'chat';
+  prompts: string[];
+  extraParams?: Record<string, unknown>;
+}
+
+/** `handleChainStart` */
+interface LangChainChainCallInfo extends LangChainRunCallInfo {
+  operation: 'invoke_agent' | 'decide';
+  inputs: Record<string, unknown>;
+}
+
+/** `handleToolStart` */
+interface LangChainToolCallInfo extends LangChainRunCallInfo {
+  operation: 'execute_tool';
+  input: string;
+}
+
+/** `embedQuery`/`embedDocuments` */
+interface LangChainEmbeddingsCallInfo {
+  operation: 'embeddings';
+  input: unknown;
+}
+
 /**
  * The call that `recordInputs`/`recordOutputs` decide on: the gen_ai operation and the arguments of the LangChain
- * start callback as passed, or the argument of `embedQuery`/`embedDocuments`. `serialized` describes the
- * component, such as the chat model class and its constructor kwargs.
+ * start callback as passed, or the argument of `embedQuery`/`embedDocuments`.
  */
 export type LangChainCallInfo =
-  | (LangChainRunCallInfo & {
-      operation: 'chat';
-      serialized: LangChainSerialized;
-      messages: LangChainMessage[][];
-      extraParams?: Record<string, unknown>;
-    })
-  | (LangChainRunCallInfo & {
-      operation: 'chat';
-      serialized: LangChainSerialized;
-      prompts: string[];
-      extraParams?: Record<string, unknown>;
-    })
-  | (LangChainRunCallInfo & {
-      operation: 'invoke_agent' | 'decide';
-      serialized: LangChainSerialized;
-      inputs: Record<string, unknown>;
-    })
-  | (LangChainRunCallInfo & { operation: 'execute_tool'; serialized: LangChainSerialized; input: string })
-  | { operation: 'embeddings'; input: unknown };
+  | LangChainChatModelCallInfo
+  | LangChainLLMCallInfo
+  | LangChainChainCallInfo
+  | LangChainToolCallInfo
+  | LangChainEmbeddingsCallInfo;
 
 /**
  * Options for the LangChain integration. The handler decides in each start callback, which LangChain awaits
