@@ -54,6 +54,8 @@
     "@modelcontextprotocol/sdk": "1.32.2",
     "@modelcontextprotocol/server": "^2.4.0",
     "@neondatabase/serverless": "1.2.0",
+    "@orpc/client": "2.0.0-beta.51",
+    "@orpc/server": "2.0.0-beta.51",
     "@prisma/adapter-pg": "7.2.0",
     "@prisma/client": "6.15.0",
     "@prisma/orm-postgres": "8.0.0-rc.17",

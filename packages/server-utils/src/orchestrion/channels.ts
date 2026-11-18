@@ -30,6 +30,7 @@ import { nestjsChannels } from './config/nestjs';
 import { nodeCronChannels } from './config/node-cron';
 import { nodeScheduleChannels } from './config/node-schedule';
 import { openaiChannels } from './config/openai';
+import { orpcChannels } from './config/orpc';
 import { pgChannels } from './config/pg';
 import { piAiChannels } from './config/pi-ai';
 import { piDurableChannels } from './config/pi-durable';
@@ -91,6 +92,7 @@ export const CHANNELS = {
   ...nodeCronChannels,
   ...nodeScheduleChannels,
   ...openaiChannels,
+  ...orpcChannels,
   ...pgChannels,
   ...piAiChannels,
   ...piDurableChannels,
