@@ -1,7 +1,18 @@
-import type { GenAiOptions } from '../core/utils';
+import type { GenAiCallOptions } from '../core/utils';
+
+/** The call that `recordInputs`/`recordOutputs` decide on. */
+export interface GoogleGenAICallInfo {
+  /** The gen_ai operation of the call: `generate_content`, `embeddings`, `chat` or `decide`. */
+  operation: string;
+  /**
+   * The request params, the first argument of the method (such as `models.generateContent` or
+   * `chat.sendMessage`) as passed. For a chat message this does not include the config of `chats.create()`.
+   */
+  request: Record<string, unknown> | undefined;
+}
 
 /** Options for the Google GenAI integration. */
-export type GoogleGenAIOptions = GenAiOptions;
+export type GoogleGenAIOptions = GenAiCallOptions<GoogleGenAICallInfo>;
 
 /**
  * Google GenAI Content Part

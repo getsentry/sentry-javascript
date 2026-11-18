@@ -8,19 +8,20 @@ declare global {
   }
 }
 
+const isStaticTraceLifecycle = process.env.E2E_TEST_TRACE_LIFECYCLE === 'static';
+const mcpContentCollection = { inputs: false, outputs: false };
+
 Sentry.init({
+  traceLifecycle: isStaticTraceLifecycle ? 'static' : undefined,
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.E2E_TEST_DSN,
   includeLocalVariables: true,
   debug: !!process.env.DEBUG,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
-  dataCollection: {
-    mcp: {
-      inputs: false,
-      outputs: false,
-    },
-  },
+  // The static trace lifecycle variant also covers the `genAI` fallback for MCP content.
+  // TODO(v12): Drop the `genAI` branch once the fallback is removed.
+  dataCollection: isStaticTraceLifecycle ? { genAI: mcpContentCollection } : { mcp: mcpContentCollection },
   // Opt into the Sentry OpenTelemetry tracer provider in the "(tracer provider)" e2e variant.
   // Leaving it `undefined` otherwise keeps the SDK's default (no provider).
   enableOpenTelemetrySetup: process.env.E2E_TEST_OTEL_SETUP === 'true' ? true : undefined,

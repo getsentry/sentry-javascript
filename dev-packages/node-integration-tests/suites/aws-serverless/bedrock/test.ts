@@ -140,4 +140,36 @@ describe('awsIntegration - Bedrock', () => {
       await createTestRunner().ignore('event').expect({ span: assertStreamSpans }).start().completed();
     });
   });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-recording-functions.mjs',
+    (createTestRunner, test) => {
+      test('decides content recording per call when the options are functions', { timeout: 90_000 }, async () => {
+        await createTestRunner()
+          .ignore('event')
+          .expect({
+            span: container => {
+              const spans = container.items.filter(span => span.attributes[GEN_AI_REQUEST_MODEL]);
+              const recordedByModel = Object.fromEntries(
+                spans.map(span => [
+                  span.attributes[GEN_AI_REQUEST_MODEL]?.value,
+                  {
+                    inputs: GEN_AI_INPUT_MESSAGES in span.attributes,
+                    outputs: GEN_AI_OUTPUT_MESSAGES in span.attributes,
+                  },
+                ]),
+              );
+              expect(recordedByModel).toEqual({
+                'public-model': { inputs: true, outputs: true },
+                'private-model': { inputs: false, outputs: false },
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

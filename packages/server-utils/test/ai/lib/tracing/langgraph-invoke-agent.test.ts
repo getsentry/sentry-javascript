@@ -127,7 +127,11 @@ describe('LangGraph conversation id', () => {
 
     await invoke({}, { configurable: { sessionId: 'session-1' }, metadata: { user: 'u' } });
 
-    expect(receivedConfig?.metadata).toEqual({ sessionId: 'session-1', user: 'u', __sentry_langgraph__: true });
+    expect(receivedConfig?.metadata).toEqual({
+      sessionId: 'session-1',
+      user: 'u',
+      __sentry_langgraph__: { recordInputs: true, recordOutputs: true },
+    });
   });
 
   it('sets the conversation id on wrapped tool spans from the call metadata', async () => {

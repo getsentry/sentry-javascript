@@ -88,7 +88,6 @@
 /packages/vue/                      @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/angular-*/ @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/astro-*/ @getsentry/team-javascript-sdks-framework
-/dev-packages/e2e-tests/test-applications/create-react-app/ @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/effect-*/ @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/elysia-*/ @getsentry/team-javascript-sdks-framework
 /dev-packages/e2e-tests/test-applications/ember-*/ @getsentry/team-javascript-sdks-framework

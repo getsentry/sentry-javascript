@@ -224,7 +224,7 @@ function parseSourceMap(sourceMapSource: string): Record<string, unknown> | unde
  * Stamps the debug ID injected into `bundleSource` into the bundle (as `//# debugId=` comment) and its
  * source map (as `debug_id`/`debugId` fields).
  *
- * This exists for `sourcemaps.disable: "disable-upload"`: the regular upload path only stamps
+ * This exists for builds without an upload (`sourcemaps.upload: false`): the regular upload path only stamps
  * temporary copies of the artifacts (see `prepareBundleForDebugIdUpload`), so without this the
  * emitted artifacts would carry no debug ID and a later manual upload could not match them.
  * Callers must apply the result inside the bundler's asset pipeline (or, for bundlers without one,

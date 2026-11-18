@@ -6,8 +6,10 @@ import type { SentryMetaArgs } from '@sentry/remix';
 
 export const links: LinksFunction = () => [...(cssBundleHref ? [{ rel: 'stylesheet', href: cssBundleHref }] : [])];
 
+// This module also runs in the browser. A production build replaces `process.env` there, the Vite
+// dev server does not, so the dev variant would throw on hydration without the guard.
 const ENV = {
-  SENTRY_DSN: process.env.E2E_TEST_DSN,
+  SENTRY_DSN: typeof process === 'undefined' ? undefined : process.env.E2E_TEST_DSN,
 };
 
 export const loader: LoaderFunction = async ({ request }) => {

@@ -2,7 +2,7 @@
 import type { Component } from 'vue';
 import { defineAsyncComponent, h } from 'vue';
 
-// Must stay in sync with `ASYNC_CHILD_DELAY_S` in `tests/performance.test.ts`.
+// Must stay in sync with `ASYNC_CHILD_DELAY_S` in `tests/performance.streaming-lifecycle.test.ts`.
 const ASYNC_CHILD_DELAY_MS = 300;
 
 // A child that mounts a fixed delay after the rest of the page, so tests can prove how each
