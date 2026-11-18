@@ -25,6 +25,18 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz"
   },
   "sentryTest": {
+    "variants": [
+      {
+        "build-command": "E2E_TEST_INJECT_MODE=top-level-import pnpm test:build",
+        "assert-command": "E2E_TEST_INJECT_MODE=top-level-import pnpm test:assert",
+        "label": "nuxt-3 (top-level-import)"
+      },
+      {
+        "build-command": "E2E_TEST_INJECT_MODE=experimental_dynamic-import pnpm test:build",
+        "assert-command": "E2E_TEST_INJECT_MODE=experimental_dynamic-import pnpm test:assert",
+        "label": "nuxt-3 (dynamic-import)"
+      }
+    ],
     "canaryVariants": [
       {
         "build-command": "pnpm test:build-canary",
