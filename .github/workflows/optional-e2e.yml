@@ -85,8 +85,7 @@ jobs:
           artifacts-run-id: ${{ inputs.build_run_id }}
           github-token: ${{ github.token }}
 
-      - name: Start Nuxt databases
-        if: startsWith(matrix.test-application, 'nuxt-')
+      - name: Start E2E databases
         background: true
         working-directory: ${{ runner.temp }}/test-application
         run: |
