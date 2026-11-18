@@ -30,7 +30,6 @@ function getHostName(): string | undefined {
 export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
   private _onExitFlushListener: (() => void) | undefined;
   private _clientReportInterval: number | undefined;
-  private _clientReportOnExitFlushListener: (() => void) | undefined;
 
   /**
    * Creates a new Deno SDK instance.
@@ -61,9 +60,12 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
     super(clientOptions);
 
     // The log, metric and span buffers drain on `flush`. Their timers are unref'd, so a natural exit
-    // would drop what they hold.
+    // would drop what they hold, and the outcomes recorded since the last client report.
     this._onExitFlushListener = () => {
       this.emit('flush');
+      if (this.getOptions().sendClientReports) {
+        this._flushOutcomes();
+      }
     };
 
     if (serverName) {
@@ -100,12 +102,19 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
   }
 
   /** @inheritDoc */
-  public flush(timeout?: number): PromiseLike<boolean> {
-    if (this.getOptions().sendClientReports) {
-      this._flushOutcomes();
+  public async flush(timeout?: number): Promise<boolean> {
+    if (!this.getOptions().sendClientReports) {
+      return super.flush(timeout);
     }
 
-    return super.flush(timeout);
+    // Events still in processing can record drops (e.g. `before_send` after an async event
+    // processor), so flush the outcomes only after them. The rest of the timeout goes to the
+    // transport.
+    const start = Date.now();
+    const processed = await this._isClientDoneProcessing(timeout);
+    this._flushOutcomes();
+    const flushed = await super.flush(timeout ? Math.max(timeout - (Date.now() - start), 1) : timeout);
+    return processed && flushed;
   }
 
   /** @inheritDoc */
@@ -113,11 +122,6 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
   public async close(timeout?: number | undefined): PromiseLike<boolean> {
     if (this._clientReportInterval !== undefined) {
       clearInterval(this._clientReportInterval);
-    }
-
-    if (this._clientReportOnExitFlushListener) {
-      process.off('beforeExit', this._clientReportOnExitFlushListener);
-      globalThis.removeEventListener('unload', this._clientReportOnExitFlushListener);
     }
 
     if (this._onExitFlushListener) {
@@ -129,10 +133,11 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
   }
 
   /**
-   * Starts sending client reports: on an interval, and before the process exits.
+   * Starts sending client reports on an interval. The exit listener and `flush()` send them too.
    *
-   * `init()` calls this. It is not in the constructor, so that creating many clients does not
-   * leak intervals and listeners. Call `close()` on a client that is no longer used.
+   * `Sentry.init()` calls this; a directly constructed client must call it itself. It is not in the
+   * constructor, so that creating many clients does not leak intervals. Call `close()` on a client
+   * that is no longer used.
    */
   public startClientReportTracking(): void {
     const options = this.getOptions();
@@ -140,18 +145,11 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
       return;
     }
 
-    this._clientReportOnExitFlushListener = () => {
-      this._flushOutcomes();
-    };
-
     // `setInterval` returns a number in Deno. `@types/node` types it as `NodeJS.Timeout`.
     this._clientReportInterval = setInterval(() => {
       this._flushOutcomes();
     }, options.clientReportFlushInterval ?? DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS) as unknown as number;
     // An unref'd interval does not keep the process alive.
     Deno.unrefTimer(this._clientReportInterval);
-
-    process.on('beforeExit', this._clientReportOnExitFlushListener);
-    globalThis.addEventListener('unload', this._clientReportOnExitFlushListener);
   }
 }
