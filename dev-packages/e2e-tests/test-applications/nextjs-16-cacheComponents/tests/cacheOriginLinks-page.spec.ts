@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { CACHE_ORIGIN_LINK_ATTRIBUTES } from './cacheOriginLinks-utils';
+
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
 
 // Origin links for `use cache` inside rendered pages (cached components and nested cached
 // functions). Target behavior: a cache hit records a `cache.get` span carrying a
@@ -13,46 +16,50 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 test('links each sibling component hit to the fill of its own entry', async ({ request }) => {
   const id = crypto.randomUUID();
 
-  const missTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
+  const missSpansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
     return (
-      transactionEvent.transaction === 'GET /cached-sibling-components' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === false)
-    );
-  });
-
-  const hitTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
-    return (
-      transactionEvent.transaction === 'GET /cached-sibling-components' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true)
+      spansOfTrace.some(span => span.name === 'GET /cached-sibling-components' && span.is_segment) &&
+      spansOfTrace.filter(span => getSpanOp(span) === 'cache.put').length >= 2
     );
   });
 
   await request.get(`/cached-sibling-components?id=${id}`);
-  const missTx = await missTxPromise;
+  const missSpans = await missSpansPromise;
+
+  const hitSpansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
+    return (
+      spansOfTrace.some(span => span.name === 'GET /cached-sibling-components' && span.is_segment) &&
+      spansOfTrace.filter(span => getSpanOp(span) === 'cache.get' && span.attributes['cache.hit']?.value === true)
+        .length >= 2
+    );
+  });
 
   await request.get(`/cached-sibling-components?id=${id}`);
-  const hitTx = await hitTxPromise;
+  const hitSpans = await hitSpansPromise;
 
-  // Without span streaming, the key digest doubles as the span description, so it pairs a hit
-  // with the put that filled the same entry.
-  const putSpansByDigest = new Map(
-    (missTx.spans ?? []).filter(span => span.op === 'cache.put').map(span => [span.description, span] as const),
+  // The key digest (`cache.key`) pairs a hit with the put that filled the same entry.
+  const putSpansByKey = new Map(
+    missSpans
+      .filter(span => getSpanOp(span) === 'cache.put')
+      .map(span => [JSON.stringify(span.attributes['cache.key']?.value), span] as const),
   );
-  expect(putSpansByDigest.size).toBe(2);
+  expect(putSpansByKey.size).toBe(2);
 
-  const hitGetSpans = (hitTx.spans ?? []).filter(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true);
+  const hitGetSpans = hitSpans.filter(
+    span => getSpanOp(span) === 'cache.get' && span.attributes['cache.hit']?.value === true,
+  );
   // Deduplicated by entry because dev mode can render (and therefore read) more than once.
-  expect(new Set(hitGetSpans.map(span => span.description)).size).toBe(2);
+  expect(new Set(hitGetSpans.map(span => JSON.stringify(span.attributes['cache.key']?.value))).size).toBe(2);
 
   for (const hitSpan of hitGetSpans) {
-    const putSpan = putSpansByDigest.get(hitSpan.description);
+    const putSpan = putSpansByKey.get(JSON.stringify(hitSpan.attributes['cache.key']?.value));
     expect(putSpan).toBeDefined();
     expect(hitSpan.links).toEqual([
       {
-        trace_id: missTx.contexts?.trace?.trace_id,
+        trace_id: putSpan!.trace_id,
         span_id: putSpan!.span_id,
         sampled: true,
-        attributes: { 'sentry.link.type': 'cache_origin' },
+        attributes: CACHE_ORIGIN_LINK_ATTRIBUTES,
       },
     ]);
   }
@@ -66,38 +73,41 @@ test("links a nested cache hit inside another entry's refill to the original fil
 
   const id = crypto.randomUUID();
 
-  const missTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
+  const missSpansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
     return (
-      transactionEvent.transaction === 'GET /nested-caches' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.put')
+      spansOfTrace.some(span => span.name === 'GET /nested-caches' && span.is_segment) &&
+      spansOfTrace.filter(span => getSpanOp(span) === 'cache.put').length >= 2
     );
   });
 
   await request.get(`/nested-caches?id=${id}`);
-  const missTx = await missTxPromise;
+  const missSpans = await missSpansPromise;
 
   // Sleep past the component entry's hard `expire` limit (2s); the nested function entry
   // (`cacheLife('hours')`) stays valid.
   await new Promise(resolve => setTimeout(resolve, 3_000));
 
-  const refillTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
+  const refillSpansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
     return (
-      transactionEvent.transaction === 'GET /nested-caches' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true)
+      spansOfTrace.some(span => span.name === 'GET /nested-caches' && span.is_segment) &&
+      spansOfTrace.some(span => getSpanOp(span) === 'cache.get' && span.attributes['cache.hit']?.value === true)
     );
   });
 
   await request.get(`/nested-caches?id=${id}`);
-  const refillTx = await refillTxPromise;
+  const refillSpans = await refillSpansPromise;
 
   // The only hit is the nested function entry, read while the expired component entry refills.
-  const hitGetSpans = (refillTx.spans ?? []).filter(
-    span => span.op === 'cache.get' && span.data?.['cache.hit'] === true,
+  const hitGetSpans = refillSpans.filter(
+    span => getSpanOp(span) === 'cache.get' && span.attributes['cache.hit']?.value === true,
   );
   expect(hitGetSpans).toHaveLength(1);
 
-  const nestedPutSpan = missTx.spans?.find(
-    span => span.op === 'cache.put' && span.description === hitGetSpans[0]!.description,
+  const nestedPutSpan = missSpans.find(
+    span =>
+      getSpanOp(span) === 'cache.put' &&
+      JSON.stringify(span.attributes['cache.key']?.value) ===
+        JSON.stringify(hitGetSpans[0]!.attributes['cache.key']?.value),
   );
   expect(nestedPutSpan).toBeDefined();
 
@@ -105,10 +115,10 @@ test("links a nested cache hit inside another entry's refill to the original fil
   // points at the trace that originally filled the nested entry.
   expect(hitGetSpans[0]!.links).toEqual([
     {
-      trace_id: missTx.contexts?.trace?.trace_id,
+      trace_id: nestedPutSpan!.trace_id,
       span_id: nestedPutSpan!.span_id,
       sampled: true,
-      attributes: { 'sentry.link.type': 'cache_origin' },
+      attributes: CACHE_ORIGIN_LINK_ATTRIBUTES,
     },
   ]);
 });

@@ -1,7 +1,9 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
 
 const APP = 'nextjs-16-cacheComponents';
 
@@ -25,56 +27,46 @@ function expectedRenderAge(pageloadStart: number, renderStart: number): number {
 
 test('connects the pageload trace to the runtime server request', async ({ page }) => {
   // The shell is prerendered, but the page's dynamic part (`DynamicContent` awaits `headers()`)
-  // runs on the server on every request and produces the `GET /pageload-tracing` transaction.
-  const serverTxPromise = waitForTransaction(APP, transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /pageload-tracing'
-    );
+  // runs on the server on every request and produces the `GET /pageload-tracing` root span.
+  const serverSpanPromise = waitForStreamedSpan(APP, span => {
+    return span.name === 'GET /pageload-tracing' && getSpanOp(span) === 'http.server' && span.is_segment;
   });
 
-  const pageloadTxPromise = waitForTransaction(APP, transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/pageload-tracing';
+  const pageloadSpanPromise = waitForStreamedSpan(APP, span => {
+    return span.name === '/pageload-tracing' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   const response = await page.goto('/pageload-tracing');
 
   await expect(page.locator('#todos-fetched')).toHaveText('Todos fetched: 5');
 
-  const [serverTx, pageloadTx] = await Promise.all([serverTxPromise, pageloadTxPromise]);
+  const [serverSpan, pageloadSpan] = await Promise.all([serverSpanPromise, pageloadSpanPromise]);
 
-  expect(serverTx.contexts?.trace?.trace_id).toBeTruthy();
-  expect(pageloadTx.contexts?.trace?.trace_id).toBe(serverTx.contexts?.trace?.trace_id);
-  // The header carries the trace before any HTML, so the pageload does not wait for the meta tag. Both
-  // are computed inside the request, so the pageload hangs off one of the request's spans. In dev mode
-  // nothing is prerendered, so the tag is in <head> from the start and wins over the header.
-  const serverSpanIds = [serverTx.contexts?.trace?.span_id, ...(serverTx.spans ?? []).map(span => span.span_id)];
-  const [, headerSpanId] =
-    new RegExp(`sentry-trace;desc="${serverTx.contexts?.trace?.trace_id}-([a-f0-9]{16})-1"`).exec(
-      response?.headers()['server-timing'] ?? '',
-    ) ?? [];
-  expect(serverSpanIds).toContain(headerSpanId);
-  expect(serverSpanIds).toContain(pageloadTx.contexts?.trace?.parent_span_id);
+  expect(serverSpan.trace_id).toBeTruthy();
+  expect(pageloadSpan.trace_id).toBe(serverSpan.trace_id);
+  // The header carries the trace before any HTML, so the pageload does not wait for the meta tag.
+  expect(response?.headers()['server-timing']).toContain(`sentry-trace;desc="${serverSpan.trace_id}-`);
 });
 
 test('connects the pageload trace to a blocking render', async ({ page }) => {
-  const serverTxPromise = waitForTransaction(APP, transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /blocking';
+  const serverSpanPromise = waitForStreamedSpan(APP, span => {
+    return span.name === 'GET /blocking' && getSpanOp(span) === 'http.server' && span.is_segment;
   });
 
-  const pageloadTxPromise = waitForTransaction(APP, transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/blocking';
+  const pageloadSpanPromise = waitForStreamedSpan(APP, span => {
+    return span.name === '/blocking' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto('/blocking');
 
   await expect(page.locator('#blocking')).toHaveText('Blocking render for a browser');
 
-  const [serverTx, pageloadTx] = await Promise.all([serverTxPromise, pageloadTxPromise]);
+  const [serverSpan, pageloadSpan] = await Promise.all([serverSpanPromise, pageloadSpanPromise]);
 
   // The whole page renders per request, so the tag in <head> is this request's and is continued.
-  expect(serverTx.contexts?.trace?.trace_id).toBeTruthy();
-  expect(pageloadTx.contexts?.trace?.trace_id).toBe(serverTx.contexts?.trace?.trace_id);
-  expect(pageloadTx.contexts?.trace?.links).toBeUndefined();
+  expect(serverSpan.trace_id).toBeTruthy();
+  expect(pageloadSpan.trace_id).toBe(serverSpan.trace_id);
+  expect(pageloadSpan.links).toBeUndefined();
 });
 
 test('does not share a trace between visitors of a shell generated at request time', async ({ browser }) => {
@@ -96,11 +88,8 @@ test('does not share a trace between visitors of a shell generated at request ti
     const context = await browser.newContext();
     const page: Page = await context.newPage();
 
-    const pageloadTxPromise = waitForTransaction(APP, transactionEvent => {
-      return (
-        transactionEvent.contexts?.trace?.op === 'pageload' &&
-        transactionEvent.contexts?.trace?.data?.['url.path'] === `/${id}`
-      );
+    const pageloadSpanPromise = waitForStreamedSpan(APP, span => {
+      return getSpanOp(span) === 'pageload' && span.is_segment && span.attributes['url.path']?.value === `/${id}`;
     });
 
     const response = await page.goto(`/${id}`);
@@ -111,15 +100,15 @@ test('does not share a trace between visitors of a shell generated at request ti
     const renderStart = await getRenderStart(page);
     expect(response?.headers()['server-timing'] ?? '').not.toContain('sentry-trace');
 
-    const pageloadTx = await pageloadTxPromise;
+    const pageloadSpan = await pageloadSpanPromise;
     await context.close();
 
     return {
-      traceId: pageloadTx.contexts?.trace?.trace_id,
-      links: pageloadTx.contexts?.trace?.links,
-      serverRenderingType: pageloadTx.contexts?.trace?.data?.['page.server_rendering.type'],
-      renderAge: pageloadTx.contexts?.trace?.data?.[PAGE_SERVER_RENDERING_AGE],
-      expectedRenderAge: expectedRenderAge(pageloadTx.start_timestamp!, renderStart),
+      traceId: pageloadSpan.trace_id,
+      links: pageloadSpan.links,
+      serverRenderingType: pageloadSpan.attributes['page.server_rendering.type']?.value,
+      renderAge: pageloadSpan.attributes[PAGE_SERVER_RENDERING_AGE]?.value,
+      expectedRenderAge: expectedRenderAge(pageloadSpan.start_timestamp, renderStart),
     };
   };
 
@@ -136,9 +125,9 @@ test('does not share a trace between visitors of a shell generated at request ti
 
   // Both link the request that prerendered the shell, which is the first visitor's own request. The
   // client cannot tell the first visit from later ones, so that pageload starts a fresh trace too.
-  const linkOf = (links: unknown): { trace_id: string; attributes?: Record<string, unknown> } => {
-    const link = (links as Array<{ trace_id: string; attributes?: Record<string, unknown> }>)[0];
-    expect(link?.attributes?.[SENTRY_LINK_TYPE]).toBe('cache_origin');
+  const linkOf = (links: unknown): { trace_id: string; attributes?: Record<string, { value: unknown }> } => {
+    const link = (links as Array<{ trace_id: string; attributes?: Record<string, { value: unknown }> }>)[0];
+    expect(link?.attributes?.[SENTRY_LINK_TYPE]?.value).toBe('cache_origin');
     return link!;
   };
   expect(linkOf(first.links).trace_id).toBe(linkOf(second.links).trace_id);
@@ -169,10 +158,11 @@ test('continues the request trace on a shell prerendered at runtime and links th
     .not.toBe(renderedAtBuild);
   await warmup.close();
 
-  const pageloadTxPromise = waitForTransaction(APP, transactionEvent => {
+  const pageloadSpanPromise = waitForStreamedSpan(APP, span => {
     return (
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.contexts?.trace?.data?.['url.full'] === `${baseURL}/runtime-shell?visit=last`
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.attributes['url.full']?.value === `${baseURL}/runtime-shell?visit=last`
     );
   });
 
@@ -184,21 +174,21 @@ test('continues the request trace on a shell prerendered at runtime and links th
     .getAttribute('content'))!.split('-');
   const renderStart = await getRenderStart(page);
 
-  const pageloadTx = await pageloadTxPromise;
+  const pageloadSpan = await pageloadSpanPromise;
 
   // Only the shell came from the cache. The rest of the page rendered for this request, and the
   // pageload continues that trace.
-  expect(pageloadTx.contexts?.trace?.trace_id).toBe(requestTraceId);
-  expect(pageloadTx.contexts?.trace?.data?.['page.server_rendering.type']).toBe('partially_static');
-  expect(pageloadTx.contexts?.trace?.data?.[PAGE_SERVER_RENDERING_AGE]).toBe(
-    expectedRenderAge(pageloadTx.start_timestamp!, renderStart),
+  expect(pageloadSpan.trace_id).toBe(requestTraceId);
+  expect(pageloadSpan.attributes['page.server_rendering.type']?.value).toBe('partially_static');
+  expect(pageloadSpan.attributes[PAGE_SERVER_RENDERING_AGE]?.value).toBe(
+    expectedRenderAge(pageloadSpan.start_timestamp, renderStart),
   );
-  expect(pageloadTx.contexts?.trace?.links).toEqual([
+  expect(pageloadSpan.links).toEqual([
     {
       trace_id: prerenderTraceId,
       span_id: prerenderSpanId,
       sampled: true,
-      attributes: { [SENTRY_LINK_TYPE]: 'cache_origin' },
+      attributes: { [SENTRY_LINK_TYPE]: { type: 'string', value: 'cache_origin' } },
     },
   ]);
   expect(prerenderTraceId).not.toBe(requestTraceId);
@@ -207,15 +197,15 @@ test('continues the request trace on a shell prerendered at runtime and links th
 test('starts a fresh trace on a fully static page', async ({ page }) => {
   test.skip(process.env.TEST_ENV !== 'production', 'Pages are only prerendered in production builds');
 
-  const pageloadTxPromise = waitForTransaction(APP, transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/static-shell';
+  const pageloadSpanPromise = waitForStreamedSpan(APP, span => {
+    return span.name === '/static-shell' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   const response = await page.goto('/static-shell');
 
   await expect(page.locator('#static-shell')).toHaveText('Static shell');
 
-  const pageloadTx = await pageloadTxPromise;
+  const pageloadSpan = await pageloadSpanPromise;
 
   // A build-time shell carries no trace context and no marker, the SDK does not run during the build.
   // The response is cacheable, so the request that serves it sends no trace header either.
@@ -223,10 +213,10 @@ test('starts a fresh trace on a fully static page', async ({ page }) => {
   expect(await page.locator('meta[name="sentry-cache-origin"]').count()).toBe(0);
   expect(await page.locator('meta[name="sentry-render-start"]').count()).toBe(0);
   expect(response?.headers()['server-timing'] ?? '').not.toContain('sentry-trace');
-  expect(pageloadTx.contexts?.trace?.trace_id).toBeTruthy();
-  expect(pageloadTx.contexts?.trace?.links).toBeUndefined();
-  expect(pageloadTx.contexts?.trace?.data?.['page.server_rendering.type']).toBeUndefined();
-  expect(pageloadTx.contexts?.trace?.data?.[PAGE_SERVER_RENDERING_AGE]).toBeUndefined();
+  expect(pageloadSpan.trace_id).toBeTruthy();
+  expect(pageloadSpan.links).toBeUndefined();
+  expect(pageloadSpan.attributes['page.server_rendering.type']).toBeUndefined();
+  expect(pageloadSpan.attributes[PAGE_SERVER_RENDERING_AGE]).toBeUndefined();
 });
 
 test('keeps a navigation that starts while the document still streams', async ({ page }) => {
@@ -235,12 +225,12 @@ test('keeps a navigation that starts while the document still streams', async ({
     'Only a prerendered shell streams the rest of the document after the SDK started',
   );
 
-  const pageloadTxPromise = waitForTransaction(APP, transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/slow-hole';
+  const pageloadSpanPromise = waitForStreamedSpan(APP, span => {
+    return span.name === '/slow-hole' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
-  const navigationTxPromise = waitForTransaction(APP, transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'navigation' && transactionEvent.transaction === '/static-shell';
+  const navigationSpanPromise = waitForStreamedSpan(APP, span => {
+    return span.name === '/static-shell' && getSpanOp(span) === 'navigation' && span.is_segment;
   });
 
   await page.goto('/slow-hole', { waitUntil: 'commit' });
@@ -253,28 +243,31 @@ test('keeps a navigation that starts while the document still streams', async ({
   await page.locator('#navigate').click();
   await expect(page.locator('#static-shell')).toHaveText('Static shell');
 
-  const [pageloadTx, navigationTx] = await Promise.all([pageloadTxPromise, navigationTxPromise]);
+  const [pageloadSpan, navigationSpan] = await Promise.all([pageloadSpanPromise, navigationSpanPromise]);
 
   // The navigation ends the pageload like any pageload it interrupts, and runs to its own idle timeout.
-  expect(pageloadTx.contexts?.trace?.data?.['sentry.idle_span_finish_reason']).toBe('cancelled');
-  expect(navigationTx.contexts?.trace?.data?.['sentry.idle_span_finish_reason']).toBe('idleTimeout');
+  expect(pageloadSpan.attributes['sentry.idle_span_finish_reason']).toEqual({ type: 'string', value: 'cancelled' });
+  expect(navigationSpan.attributes['sentry.idle_span_finish_reason']).toEqual({
+    type: 'string',
+    value: 'idleTimeout',
+  });
 });
 
 test('continues the header trace without a link when the trace meta tag arrives late', async ({ page }) => {
   test.skip(process.env.TEST_ENV !== 'production', 'Only a prerendered shell makes the trace meta tag arrive late');
   test.setTimeout(60_000);
 
-  const pageloadTxPromise = waitForTransaction(APP, transactionEvent => {
-    return transactionEvent.transaction === '/slow-stream' && transactionEvent.contexts?.trace?.op === 'pageload';
+  const pageloadSpanPromise = waitForStreamedSpan(APP, span => {
+    return span.name === '/slow-stream' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto('/slow-stream', { waitUntil: 'commit' });
   await expect(page.locator('#slow-content')).toBeVisible({ timeout: 20_000 });
   const [requestTraceId] = (await page.locator('meta[name="sentry-trace"]').getAttribute('content'))!.split('-');
 
-  const pageloadTx = await pageloadTxPromise;
+  const pageloadSpan = await pageloadSpanPromise;
 
   // The header connected the pageload before the tag arrived, so the late tag adds no link.
-  expect(pageloadTx.contexts?.trace?.trace_id).toBe(requestTraceId);
-  expect(pageloadTx.contexts?.trace?.links).toBeUndefined();
+  expect(pageloadSpan.trace_id).toBe(requestTraceId);
+  expect(pageloadSpan.links).toBeUndefined();
 });

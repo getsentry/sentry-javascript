@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
 
 const HANGING_PROMISE_DIGEST_MESSAGE = 'rejects when the prerender is complete';
 
@@ -28,16 +30,14 @@ test('does not capture hanging prerender promise rejections on a runtime prefetc
   });
   expect(prefetchResponse.ok()).toBe(true);
 
-  const serverTransactionPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /hanging-fetch'
-    );
+  const serverSpanPromise = waitForStreamedSpan('nextjs-16-cacheComponents', span => {
+    return span.name === 'GET /hanging-fetch' && getSpanOp(span) === 'http.server' && span.is_segment;
   });
 
   await page.goto('/hanging-fetch');
   await expect(page.locator('#fetched-value')).toHaveText('hanging-fetch-data');
 
-  expect(await serverTransactionPromise).toBeDefined();
+  expect(await serverSpanPromise).toBeDefined();
 
   // Drain marker instead of a sleep: request a route that deliberately captures an error, tagged with a
   // token unique to this run so it can never be served from cache. It is requested strictly after the

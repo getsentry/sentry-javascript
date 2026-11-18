@@ -1,41 +1,52 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpans } from '@sentry-internal/test-utils';
+
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
 
 test('Should render cached component', async ({ page }) => {
-  const serverTxPromise = waitForTransaction('nextjs-16-cacheComponents', async transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'http.server';
+  const spansPromise = waitForStreamedSpans('nextjs-16-cacheComponents', spans => {
+    return spans.some(
+      span => span.name.startsWith('GET /cache') && getSpanOp(span) === 'http.server' && span.is_segment,
+    );
   });
 
   await page.goto('/cache');
-  const serverTx = await serverTxPromise;
+
+  const spans = await spansPromise;
 
   // we want to skip creating spans in cached environments
-  expect(serverTx.spans?.filter(span => span.op === 'get.todos')).toHaveLength(0);
+  expect(spans.filter(span => getSpanOp(span) === 'get.todos')).toHaveLength(0);
   await expect(page.locator('#todos-fetched')).toHaveText('Todos fetched: 5');
 });
 
 test('Should render suspense component', async ({ page }) => {
-  const serverTxPromise = waitForTransaction('nextjs-16-cacheComponents', async transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'http.server';
+  const spansPromise = waitForStreamedSpans('nextjs-16-cacheComponents', spans => {
+    return spans.some(
+      span => span.name.startsWith('GET /suspense') && getSpanOp(span) === 'http.server' && span.is_segment,
+    );
   });
 
   await page.goto('/suspense');
-  const serverTx = await serverTxPromise;
+
+  const spans = await spansPromise;
 
   // this will be called several times in development mode, so we need to check for at least one span
-  expect(serverTx.spans?.filter(span => span.op === 'get.todos').length).toBeGreaterThan(0);
+  expect(spans.filter(span => getSpanOp(span) === 'get.todos').length).toBeGreaterThan(0);
   await expect(page.locator('#todos-fetched')).toHaveText('Todos fetched: 5');
 });
 
 test('Should generate metadata', async ({ page }) => {
-  const serverTxPromise = waitForTransaction('nextjs-16-cacheComponents', async transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'http.server';
+  const spansPromise = waitForStreamedSpans('nextjs-16-cacheComponents', spans => {
+    return spans.some(
+      span => span.name.startsWith('GET /metadata') && getSpanOp(span) === 'http.server' && span.is_segment,
+    );
   });
 
   await page.goto('/metadata');
-  const serverTx = await serverTxPromise;
 
-  expect(serverTx.spans?.filter(span => span.op === 'get.todos')).toHaveLength(0);
+  const spans = await spansPromise;
+
+  expect(spans.filter(span => getSpanOp(span) === 'get.todos')).toHaveLength(0);
   await expect(page.locator('#todos-fetched')).toHaveText('Todos fetched: 5');
   await expect(page).toHaveTitle('Cache Components Metadata Test');
 });
@@ -69,14 +80,17 @@ test('Should capture a message from an on-demand generated Server Component', as
 });
 
 test('Should generate metadata async', async ({ page }) => {
-  const serverTxPromise = waitForTransaction('nextjs-16-cacheComponents', async transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'http.server';
+  const spansPromise = waitForStreamedSpans('nextjs-16-cacheComponents', spans => {
+    return spans.some(
+      span => span.name.startsWith('GET /metadata-async') && getSpanOp(span) === 'http.server' && span.is_segment,
+    );
   });
 
   await page.goto('/metadata-async');
-  const serverTx = await serverTxPromise;
 
-  expect(serverTx.spans?.filter(span => span.op === 'get.todos')).toHaveLength(0);
+  const spans = await spansPromise;
+
+  expect(spans.filter(span => getSpanOp(span) === 'get.todos')).toHaveLength(0);
   await expect(page.locator('#todos-fetched')).toHaveText('Todos fetched: 5');
   await expect(page).toHaveTitle('Product: 1');
 });

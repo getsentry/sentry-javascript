@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { CACHE_ORIGIN_LINK_ATTRIBUTES, findCacheSpan } from './cacheOriginLinks-utils';
+
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
 
 // Background stale-while-revalidate refills. Target behavior: the revalidation gets its own trace,
 // separate from the request trace that served the stale value. The revalidation trace links back to
@@ -28,86 +31,91 @@ test('runs background revalidation in its own trace linked to the triggering req
 
   const id = crypto.randomUUID();
 
-  const fillTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
+  const fillSpansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
     return (
-      transactionEvent.transaction === 'GET /api/use-cache-swr' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.put')
+      spansOfTrace.some(span => span.name === 'GET /api/use-cache-swr' && span.is_segment) &&
+      spansOfTrace.some(span => getSpanOp(span) === 'cache.put')
     );
   });
 
   await request.get(`/api/use-cache-swr?id=${id}`);
-  const fillTx = await fillTxPromise;
+  const fillSpans = await fillSpansPromise;
 
-  // Sleep past `revalidate` (2s) but not `expire`, so the next read serves the stale value and triggers a background refill.
+  // Sleep past `revalidate` (2s) but not `expire`, so the next read serves the stale value and
+  // triggers a background refill.
   await new Promise(resolve => setTimeout(resolve, 3_000));
 
-  const staleHitTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
+  const staleHitSpansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
     return (
-      transactionEvent.transaction === 'GET /api/use-cache-swr' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true)
+      spansOfTrace.some(span => span.name === 'GET /api/use-cache-swr' && span.is_segment) &&
+      spansOfTrace.some(span => getSpanOp(span) === 'cache.get' && span.attributes['cache.hit']?.value === true)
     );
   });
 
-  const revalidationTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'cache.revalidate';
+  // The visitor never waited for the refill, so the refill is not part of the serving trace: the
+  // background revalidation is its own trace with a `cache.revalidate` segment.
+  const revalidationSpansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
+    return (
+      spansOfTrace.some(span => getSpanOp(span) === 'cache.revalidate' && span.is_segment) &&
+      spansOfTrace.some(span => getSpanOp(span) === 'cache.put')
+    );
   });
 
   await request.get(`/api/use-cache-swr?id=${id}`);
-  const staleHitTx = await staleHitTxPromise;
+  const staleHitSpans = await staleHitSpansPromise;
 
-  const fillPutSpan = fillTx.spans?.find(span => span.op === 'cache.put');
+  const fillPutSpan = findCacheSpan(fillSpans, 'cache.put');
   expect(fillPutSpan).toBeDefined();
 
   // The stale response still came from the original fill.
-  const staleHitGetSpan = staleHitTx.spans?.find(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true);
+  const staleHitGetSpan = findCacheSpan(staleHitSpans, 'cache.get', true);
   expect(staleHitGetSpan).toBeDefined();
   expect(staleHitGetSpan?.links).toEqual([
     {
-      trace_id: fillTx.contexts?.trace?.trace_id,
+      trace_id: fillPutSpan!.trace_id,
       span_id: fillPutSpan!.span_id,
       sampled: true,
-      attributes: { 'sentry.link.type': 'cache_origin' },
+      attributes: CACHE_ORIGIN_LINK_ATTRIBUTES,
     },
   ]);
 
-  // The visitor never waited for the refill, so the refill is not part of the serving trace: the
-  // background revalidation is its own trace, linked back to the request that triggered it.
-  const revalidationTx = await revalidationTxPromise;
-  expect(revalidationTx.contexts?.trace?.trace_id).not.toBe(staleHitTx.contexts?.trace?.trace_id);
-  expect(revalidationTx.contexts?.trace?.links).toEqual([
+  const revalidationSpans = await revalidationSpansPromise;
+  const revalidationSegment = revalidationSpans.find(span => span.is_segment && getSpanOp(span) === 'cache.revalidate');
+  expect(revalidationSegment).toBeDefined();
+  expect(revalidationSegment!.trace_id).not.toBe(staleHitGetSpan!.trace_id);
+  expect(revalidationSegment!.links).toEqual([
     {
-      trace_id: staleHitTx.contexts?.trace?.trace_id,
+      trace_id: staleHitGetSpan!.trace_id,
       span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
       sampled: true,
       // No link type for cache spans specced yet, so assert only the link target.
-      attributes: { 'sentry.link.type': expect.any(String) },
+      attributes: { 'sentry.link.type': { value: expect.any(String), type: 'string' } },
     },
   ]);
 
-  const revalidationPutSpan = revalidationTx.spans?.find(span => span.op === 'cache.put');
+  const revalidationPutSpan = findCacheSpan(revalidationSpans, 'cache.put');
   expect(revalidationPutSpan).toBeDefined();
 
   // The revalidation's `cache.put` becomes the `cache_origin` for future hits.
-  const hitAfterRefillTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
+  const hitAfterRefillSpansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
     return (
-      transactionEvent.transaction === 'GET /api/use-cache-swr' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true)
+      spansOfTrace.some(span => span.name === 'GET /api/use-cache-swr' && span.is_segment) &&
+      spansOfTrace.some(span => getSpanOp(span) === 'cache.get' && span.attributes['cache.hit']?.value === true) &&
+      spansOfTrace.every(span => span.trace_id !== staleHitGetSpan!.trace_id)
     );
   });
 
   await request.get(`/api/use-cache-swr?id=${id}`);
-  const hitAfterRefillTx = await hitAfterRefillTxPromise;
+  const hitAfterRefillSpans = await hitAfterRefillSpansPromise;
 
-  const hitAfterRefillGetSpan = hitAfterRefillTx.spans?.find(
-    span => span.op === 'cache.get' && span.data?.['cache.hit'] === true,
-  );
+  const hitAfterRefillGetSpan = findCacheSpan(hitAfterRefillSpans, 'cache.get', true);
   expect(hitAfterRefillGetSpan).toBeDefined();
   expect(hitAfterRefillGetSpan?.links).toEqual([
     {
-      trace_id: revalidationTx.contexts?.trace?.trace_id,
+      trace_id: revalidationPutSpan!.trace_id,
       span_id: revalidationPutSpan!.span_id,
       sampled: true,
-      attributes: { 'sentry.link.type': 'cache_origin' },
+      attributes: CACHE_ORIGIN_LINK_ATTRIBUTES,
     },
   ]);
 });

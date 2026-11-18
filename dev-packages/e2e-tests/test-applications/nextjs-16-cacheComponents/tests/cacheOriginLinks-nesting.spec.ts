@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { CACHE_ORIGIN_LINK_ATTRIBUTES, findCacheSpan } from './cacheOriginLinks-utils';
+
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
 
 // Origin links (`sentry.link.type: 'cache_origin'` on `cache.get` hit spans, pointing at the
 // filling `cache.put`) for `use cache` in nested layout trees under `app/(cached-nesting)/`.
@@ -11,41 +14,41 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 test('links a cached layout hit to the trace that filled the layout entry', async ({ request }) => {
   const id = crypto.randomUUID();
 
-  const missTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
+  const missSpansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
     return (
-      transactionEvent.transaction === 'GET /cached-mid-layout/[id]' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === false)
-    );
-  });
-
-  const hitTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
-    return (
-      transactionEvent.transaction === 'GET /cached-mid-layout/[id]' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true)
+      spansOfTrace.some(span => span.name === 'GET /cached-mid-layout/[id]' && span.is_segment) &&
+      spansOfTrace.some(span => getSpanOp(span) === 'cache.put')
     );
   });
 
   await request.get(`/cached-mid-layout/${id}`);
-  const missTx = await missTxPromise;
+  const missSpans = await missSpansPromise;
+
+  const hitSpansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
+    return (
+      spansOfTrace.some(span => span.name === 'GET /cached-mid-layout/[id]' && span.is_segment) &&
+      spansOfTrace.some(span => getSpanOp(span) === 'cache.get' && span.attributes['cache.hit']?.value === true)
+    );
+  });
 
   await request.get(`/cached-mid-layout/${id}`);
-  const hitTx = await hitTxPromise;
+  const hitSpans = await hitSpansPromise;
 
   // The layout is the only cached entry on this route.
-  const putSpans = (missTx.spans ?? []).filter(span => span.op === 'cache.put');
-  expect(new Set(putSpans.map(span => span.description)).size).toBe(1);
+  const putSpan = findCacheSpan(missSpans, 'cache.put');
+  expect(putSpan).toBeDefined();
 
-  expect(putSpans[0]!.data?.['code.file.path']).toBe('app/(cached-nesting)/cached-mid-layout/[id]/layout.tsx');
+  expect(putSpan!.attributes['code.file.path']?.value).toBe('app/(cached-nesting)/cached-mid-layout/[id]/layout.tsx');
 
-  const hitGetSpan = hitTx.spans?.find(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true);
+  const hitGetSpan = findCacheSpan(hitSpans, 'cache.get', true);
   expect(hitGetSpan).toBeDefined();
-  expect(hitGetSpan?.description).toBe(putSpans[0]!.description);
+  expect(hitGetSpan!.attributes['cache.key']).toEqual(putSpan!.attributes['cache.key']);
   expect(hitGetSpan?.links).toEqual([
     {
-      trace_id: missTx.contexts?.trace?.trace_id,
-      span_id: putSpans[0]!.span_id,
+      trace_id: putSpan!.trace_id,
+      span_id: putSpan!.span_id,
       sampled: true,
-      attributes: { 'sentry.link.type': 'cache_origin' },
+      attributes: CACHE_ORIGIN_LINK_ATTRIBUTES,
     },
   ]);
 });
@@ -57,38 +60,38 @@ test('links a cached leaf component under dynamic layouts to the trace that fill
 }) => {
   const id = crypto.randomUUID();
 
-  const missTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
+  const missSpansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
     return (
-      transactionEvent.transaction === 'GET /dynamic-layouts/[id]/layout-cached-leaf' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === false)
-    );
-  });
-
-  const hitTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
-    return (
-      transactionEvent.transaction === 'GET /dynamic-layouts/[id]/layout-cached-leaf' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true)
+      spansOfTrace.some(span => span.name === 'GET /dynamic-layouts/[id]/layout-cached-leaf' && span.is_segment) &&
+      spansOfTrace.some(span => getSpanOp(span) === 'cache.put')
     );
   });
 
   await request.get(`/dynamic-layouts/${id}/layout-cached-leaf`);
-  const missTx = await missTxPromise;
+  const missSpans = await missSpansPromise;
+
+  const hitSpansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
+    return (
+      spansOfTrace.some(span => span.name === 'GET /dynamic-layouts/[id]/layout-cached-leaf' && span.is_segment) &&
+      spansOfTrace.some(span => getSpanOp(span) === 'cache.get' && span.attributes['cache.hit']?.value === true)
+    );
+  });
 
   await request.get(`/dynamic-layouts/${id}/layout-cached-leaf`);
-  const hitTx = await hitTxPromise;
+  const hitSpans = await hitSpansPromise;
 
-  const putSpans = (missTx.spans ?? []).filter(span => span.op === 'cache.put');
-  expect(new Set(putSpans.map(span => span.description)).size).toBe(1);
+  const putSpan = findCacheSpan(missSpans, 'cache.put');
+  expect(putSpan).toBeDefined();
 
-  const hitGetSpan = hitTx.spans?.find(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true);
+  const hitGetSpan = findCacheSpan(hitSpans, 'cache.get', true);
   expect(hitGetSpan).toBeDefined();
-  expect(hitGetSpan?.description).toBe(putSpans[0]!.description);
+  expect(hitGetSpan!.attributes['cache.key']).toEqual(putSpan!.attributes['cache.key']);
   expect(hitGetSpan?.links).toEqual([
     {
-      trace_id: missTx.contexts?.trace?.trace_id,
-      span_id: putSpans[0]!.span_id,
+      trace_id: putSpan!.trace_id,
+      span_id: putSpan!.span_id,
       sampled: true,
-      attributes: { 'sentry.link.type': 'cache_origin' },
+      attributes: CACHE_ORIGIN_LINK_ATTRIBUTES,
     },
   ]);
 });
@@ -101,72 +104,84 @@ test('links two cached levels to different origin traces after the layout expire
 
   const id = crypto.randomUUID();
 
-  const fillTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
+  const fillSpansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
     return (
-      transactionEvent.transaction === 'GET /mixed-lifetimes/[id]' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.put')
+      spansOfTrace.some(span => span.name === 'GET /mixed-lifetimes/[id]' && span.is_segment) &&
+      spansOfTrace.filter(span => getSpanOp(span) === 'cache.put').length >= 2
     );
   });
 
   await request.get(`/mixed-lifetimes/${id}`);
-  const fillTx = await fillTxPromise;
+  const fillSpans = await fillSpansPromise;
 
   // Layout + component entry.
-  const fillPutSpans = (fillTx.spans ?? []).filter(span => span.op === 'cache.put');
-  expect(new Set(fillPutSpans.map(span => span.description)).size).toBe(2);
+  const fillPutSpans = fillSpans.filter(span => getSpanOp(span) === 'cache.put');
+  expect(new Set(fillPutSpans.map(span => JSON.stringify(span.attributes['cache.key']?.value))).size).toBe(2);
+
+  // One fill per file: the layout (multipart key) and the cached component (JSON key).
+  expect(new Set(fillPutSpans.map(span => span.attributes['code.file.path']?.value))).toEqual(
+    new Set([
+      'app/(cached-nesting)/mixed-lifetimes/[id]/layout.tsx',
+      'app/(cached-nesting)/mixed-lifetimes/[id]/page.tsx',
+    ]),
+  );
 
   // Sleep past the layout's `expire` (2s); the component entry stays valid for hours.
   await new Promise(resolve => setTimeout(resolve, 3_000));
 
-  const refillTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
+  const refillSpansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
     return (
-      transactionEvent.transaction === 'GET /mixed-lifetimes/[id]' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.put') &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true)
+      spansOfTrace.some(span => span.name === 'GET /mixed-lifetimes/[id]' && span.is_segment) &&
+      spansOfTrace.some(span => getSpanOp(span) === 'cache.put') &&
+      spansOfTrace.some(span => getSpanOp(span) === 'cache.get' && span.attributes['cache.hit']?.value === true)
     );
   });
 
   await request.get(`/mixed-lifetimes/${id}`);
-  const refillTx = await refillTxPromise;
+  const refillSpans = await refillSpansPromise;
 
-  const hitTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
+  const hitSpansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
     return (
-      transactionEvent.transaction === 'GET /mixed-lifetimes/[id]' &&
-      (transactionEvent.spans?.filter(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true).length ??
-        0) >= 2
+      spansOfTrace.some(span => span.name === 'GET /mixed-lifetimes/[id]' && span.is_segment) &&
+      spansOfTrace.filter(span => getSpanOp(span) === 'cache.get' && span.attributes['cache.hit']?.value === true)
+        .length >= 2
     );
   });
 
   await request.get(`/mixed-lifetimes/${id}`);
-  const hitTx = await hitTxPromise;
+  const hitSpans = await hitSpansPromise;
 
-  const layoutPutSpan = refillTx.spans?.find(span => span.op === 'cache.put');
+  const layoutPutSpan = findCacheSpan(refillSpans, 'cache.put');
   expect(layoutPutSpan).toBeDefined();
-  const componentPutSpan = fillPutSpans.find(span => span.description !== layoutPutSpan!.description);
+  const layoutKey = JSON.stringify(layoutPutSpan!.attributes['cache.key']?.value);
+  const componentPutSpan = fillPutSpans.find(span => JSON.stringify(span.attributes['cache.key']?.value) !== layoutKey);
   expect(componentPutSpan).toBeDefined();
-  expect(refillTx.contexts?.trace?.trace_id).not.toBe(fillTx.contexts?.trace?.trace_id);
+  expect(layoutPutSpan!.trace_id).not.toBe(componentPutSpan!.trace_id);
 
-  const layoutHitSpan = hitTx.spans?.find(
-    span => span.op === 'cache.get' && span.description === layoutPutSpan!.description,
+  const layoutHitSpan = hitSpans.find(
+    span => getSpanOp(span) === 'cache.get' && JSON.stringify(span.attributes['cache.key']?.value) === layoutKey,
   );
   expect(layoutHitSpan?.links).toEqual([
     {
-      trace_id: refillTx.contexts?.trace?.trace_id,
+      trace_id: layoutPutSpan!.trace_id,
       span_id: layoutPutSpan!.span_id,
       sampled: true,
-      attributes: { 'sentry.link.type': 'cache_origin' },
+      attributes: CACHE_ORIGIN_LINK_ATTRIBUTES,
     },
   ]);
 
-  const componentHitSpan = hitTx.spans?.find(
-    span => span.op === 'cache.get' && span.description === componentPutSpan!.description,
+  const componentHitSpan = hitSpans.find(
+    span =>
+      getSpanOp(span) === 'cache.get' &&
+      JSON.stringify(span.attributes['cache.key']?.value) ===
+        JSON.stringify(componentPutSpan!.attributes['cache.key']?.value),
   );
   expect(componentHitSpan?.links).toEqual([
     {
-      trace_id: fillTx.contexts?.trace?.trace_id,
+      trace_id: componentPutSpan!.trace_id,
       span_id: componentPutSpan!.span_id,
       sampled: true,
-      attributes: { 'sentry.link.type': 'cache_origin' },
+      attributes: CACHE_ORIGIN_LINK_ATTRIBUTES,
     },
   ]);
 });
@@ -178,38 +193,38 @@ test('links a shared layout hit on a sibling route to the trace of the route tha
 }) => {
   const id = crypto.randomUUID();
 
-  const fillTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
+  const fillSpansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
     return (
-      transactionEvent.transaction === 'GET /shared-layout/[id]/a' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.put')
+      spansOfTrace.some(span => span.name === 'GET /shared-layout/[id]/a' && span.is_segment) &&
+      spansOfTrace.some(span => getSpanOp(span) === 'cache.put')
     );
   });
 
   await request.get(`/shared-layout/${id}/a`);
-  const fillTx = await fillTxPromise;
+  const fillSpans = await fillSpansPromise;
 
-  const hitTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
+  const hitSpansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
     return (
-      transactionEvent.transaction === 'GET /shared-layout/[id]/b' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true)
+      spansOfTrace.some(span => span.name === 'GET /shared-layout/[id]/b' && span.is_segment) &&
+      spansOfTrace.some(span => getSpanOp(span) === 'cache.get' && span.attributes['cache.hit']?.value === true)
     );
   });
 
   await request.get(`/shared-layout/${id}/b`);
-  const hitTx = await hitTxPromise;
+  const hitSpans = await hitSpansPromise;
 
-  const putSpan = fillTx.spans?.find(span => span.op === 'cache.put');
+  const putSpan = findCacheSpan(fillSpans, 'cache.put');
   expect(putSpan).toBeDefined();
 
-  const hitGetSpan = hitTx.spans?.find(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true);
+  const hitGetSpan = findCacheSpan(hitSpans, 'cache.get', true);
   expect(hitGetSpan).toBeDefined();
-  expect(hitGetSpan?.description).toBe(putSpan!.description);
+  expect(hitGetSpan!.attributes['cache.key']).toEqual(putSpan!.attributes['cache.key']);
   expect(hitGetSpan?.links).toEqual([
     {
-      trace_id: fillTx.contexts?.trace?.trace_id,
+      trace_id: putSpan!.trace_id,
       span_id: putSpan!.span_id,
       sampled: true,
-      attributes: { 'sentry.link.type': 'cache_origin' },
+      attributes: CACHE_ORIGIN_LINK_ATTRIBUTES,
     },
   ]);
 });

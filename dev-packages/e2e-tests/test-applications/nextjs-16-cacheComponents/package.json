@@ -50,14 +50,24 @@
         "build-command": "pnpm test:build-webpack",
         "label": "nextjs-16-cacheComponents (webpack)",
         "assert-command": "pnpm test:assert-webpack"
+      },
+      {
+        "build-command": "NEXT_PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build",
+        "label": "nextjs-16-cacheComponents (static trace lifecycle)",
+        "assert-command": "NEXT_PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert"
+      },
+      {
+        "build-command": "NEXT_PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build-webpack",
+        "label": "nextjs-16-cacheComponents (webpack, static trace lifecycle)",
+        "assert-command": "NEXT_PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert-webpack"
       }
     ],
     "optionalVariants": [
       {
         "runtime": "cloudflare",
-        "build-command": "pnpm test:build:cloudflare",
-        "assert-command": "pnpm test:prod",
-        "label": "nextjs-16-cacheComponents (cloudflare)"
+        "build-command": "NEXT_PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build:cloudflare",
+        "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:prod",
+        "label": "nextjs-16-cacheComponents (cloudflare, static trace lifecycle)"
       }
     ]
   }

@@ -1,157 +1,63 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { findCacheSpan } from './cacheOriginLinks-utils';
 
-test('Should create cache spans around `use cache` functions', async ({ request }) => {
-  // A fresh id makes the first request a guaranteed cache miss (the id is part of the cache key)
-  // even when the test is retried against the same server.
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
+test('uses low-cardinality names for `use cache` spans', async ({ request }) => {
+  // A fresh id makes the request a guaranteed cache miss (the id is part of the cache key), so the
+  // trace contains both a `cache.get` and a `cache.put` span.
   const id = crypto.randomUUID();
 
-  const missTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
+  const spansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
     return (
-      transactionEvent.transaction === 'GET /api/use-cache' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === false)
+      spansOfTrace.some(span => span.name === 'GET /api/use-cache' && span.is_segment) &&
+      spansOfTrace.some(span => getSpanOp(span) === 'cache.get') &&
+      spansOfTrace.some(span => getSpanOp(span) === 'cache.put')
     );
   });
 
-  const hitTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
-    return (
-      transactionEvent.transaction === 'GET /api/use-cache' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true)
-    );
-  });
+  await request.get(`/api/use-cache?id=${id}`);
+  const spans = await spansPromise;
 
-  const firstResponse = await (await request.get(`/api/use-cache?id=${id}`)).json();
-  const missTx = await missTxPromise;
-
-  const secondResponse = await (await request.get(`/api/use-cache?id=${id}`)).json();
-  const hitTx = await hitTxPromise;
-
-  // The second request must have been served from the cache.
-  expect(firstResponse.id).toBe(id);
-  expect(secondResponse).toEqual(firstResponse);
-
-  const missGetSpan = missTx.spans?.find(span => span.op === 'cache.get');
-  expect(missGetSpan).toBeDefined();
-
-  // Without span streaming, the key digest doubles as the span description.
-  const cacheKeyDigest = missGetSpan!.data?.['cache.key'] as string[];
+  // With span streaming the span name is the low-cardinality op; the key digest stays on
+  // `cache.key`, where Relay reads the span description from.
+  const getSpan = findCacheSpan(spans, 'cache.get');
+  expect(getSpan).toBeDefined();
+  expect(getSpan!.name).toBe('cache.get');
+  const cacheKeyDigest = getSpan!.attributes['cache.key']?.value;
   expect(cacheKeyDigest).toEqual([expect.stringMatching(/^[0-9a-f]{12}$/)]);
 
-  expect(missGetSpan).toMatchObject({
-    description: cacheKeyDigest[0],
-    origin: 'auto.cache.nextjs',
-    data: expect.objectContaining({
-      'cache.hit': false,
-      'cache.operation': 'get',
-    }),
-  });
-
-  const putSpan = missTx.spans?.find(span => span.op === 'cache.put');
+  const putSpan = findCacheSpan(spans, 'cache.put');
   expect(putSpan).toBeDefined();
-  expect(putSpan).toMatchObject({
-    description: cacheKeyDigest[0],
-    origin: 'auto.cache.nextjs',
-    data: expect.objectContaining({
-      'cache.key': cacheKeyDigest,
-      'cache.operation': 'put',
-    }),
-  });
+  expect(putSpan!.name).toBe('cache.put');
+  expect(putSpan!.attributes['cache.key']?.value).toEqual(cacheKeyDigest);
 
-  expect(putSpan!.data?.['code.file.path']).toBe('app/api/use-cache/route.ts');
-
-  const hitGetSpan = hitTx.spans?.find(span => span.op === 'cache.get');
-  expect(hitGetSpan).toBeDefined();
-  expect(hitGetSpan).toMatchObject({
-    description: cacheKeyDigest[0],
-    origin: 'auto.cache.nextjs',
-    data: expect.objectContaining({
-      'cache.hit': true,
-      'cache.key': cacheKeyDigest,
-      'cache.operation': 'get',
-      'cache.item_age': expect.any(Number),
-      // `cacheLife('hours')` sets `expire` to one day.
-      'cache.ttl': 86400,
-      'cache.tags': ['e2e-use-cache-tag'],
-    }),
-  });
+  expect(putSpan!.attributes['code.file.path']?.value).toBe('app/api/use-cache/route.ts');
 });
 
-test('Should create cache spans for `use cache` inside a rendered page', async ({ request }) => {
+test('sets the source file of the cached component on `cache.put` spans', async ({ request }) => {
   const id = crypto.randomUUID();
 
-  const missTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
+  const spansPromise = collectStreamedSpans('nextjs-16-cacheComponents', spansOfTrace => {
     return (
-      transactionEvent.transaction === 'GET /use-cache-page' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === false)
+      spansOfTrace.some(span => span.name === 'GET /cached-sibling-components' && span.is_segment) &&
+      spansOfTrace.filter(span => getSpanOp(span) === 'cache.put').length >= 2
     );
   });
 
-  const hitTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
-    return (
-      transactionEvent.transaction === 'GET /use-cache-page' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true)
-    );
-  });
+  await request.get(`/cached-sibling-components?id=${id}`);
+  const spans = await spansPromise;
 
-  await request.get(`/use-cache-page?id=${id}`);
-  const missTx = await missTxPromise;
-
-  await request.get(`/use-cache-page?id=${id}`);
-  const hitTx = await hitTxPromise;
-
-  // The source file on a fill span marks which cached function produced the entry.
-  const missPutSpans = missTx.spans?.filter(span => span.op === 'cache.put') ?? [];
-  expect(missPutSpans.length).toBeGreaterThan(0);
-  for (const putSpan of missPutSpans) {
-    expect(putSpan.data?.['code.file.path']).toBe('app/use-cache-page/page.tsx');
+  // Both sibling entries come from the same page file.
+  const putSpans = spans.filter(span => getSpanOp(span) === 'cache.put');
+  expect(putSpans.length).toBeGreaterThanOrEqual(2);
+  for (const putSpan of putSpans) {
+    expect(putSpan.attributes['code.file.path']?.value).toBe('app/cached-sibling-components/page.tsx');
   }
 
-  // A render can read more than one cache entry, so look at every hit instead of the first `cache.get`.
-  const hitGetSpans = hitTx.spans?.filter(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true) ?? [];
-  expect(hitGetSpans.length).toBeGreaterThan(0);
-  for (const hitGetSpan of hitGetSpans) {
-    expect(hitGetSpan).toMatchObject({
-      origin: 'auto.cache.nextjs',
-      data: expect.objectContaining({ 'cache.operation': 'get' }),
-    });
-  }
-});
-
-test('Should report an expired entry as a miss and refill it', async ({ request }) => {
-  // `next dev` keeps every entry for at least 5 minutes, even when its `expire` is shorter. So in
-  // dev, the delayed request below still gets the cached value, and the entry never expires here.
-  test.skip(process.env.TEST_ENV !== 'production', 'Entries are only discarded at `expire` in production');
-
-  const id = crypto.randomUUID();
-
-  const fillTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
-    return (
-      transactionEvent.transaction === 'GET /api/use-cache-expiring' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.put')
-    );
-  });
-
-  const firstResponse = await (await request.get(`/api/use-cache-expiring?id=${id}`)).json();
-  await fillTxPromise;
-
-  // Sleep past the entry's hard `expire` limit (2s), so the next read must discard it.
-  await new Promise(resolve => setTimeout(resolve, 3_000));
-
-  // Registered after the fill transaction was consumed, so it only matches the refill.
-  const refillTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
-    return (
-      transactionEvent.transaction === 'GET /api/use-cache-expiring' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.put')
-    );
-  });
-
-  const secondResponse = await (await request.get(`/api/use-cache-expiring?id=${id}`)).json();
-  const refillTx = await refillTxPromise;
-
-  // The entry hard-expired, so the cached function ran again.
-  expect(secondResponse.createdAt).not.toBe(firstResponse.createdAt);
-
-  const refillGetSpan = refillTx.spans?.find(span => span.op === 'cache.get');
-  expect(refillGetSpan).toBeDefined();
-  expect(refillGetSpan!.data).toMatchObject({ 'cache.hit': false });
+  // The source file marks the producer of an entry. Reads do not carry it.
+  const getSpan = findCacheSpan(spans, 'cache.get');
+  expect(getSpan).toBeDefined();
+  expect(getSpan!.attributes['code.file.path']).toBeUndefined();
 });

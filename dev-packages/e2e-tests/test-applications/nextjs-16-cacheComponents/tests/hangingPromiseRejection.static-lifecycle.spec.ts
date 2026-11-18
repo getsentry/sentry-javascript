@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
 
 const HANGING_PROMISE_DIGEST_MESSAGE = 'rejects when the prerender is complete';
 
@@ -12,7 +14,7 @@ const HANGING_PROMISE_DIGEST_MESSAGE = 'rejects when the prerender is complete';
 // there. Under Turbopack the test still asserts the route renders and reports no errors.
 test('does not capture hanging prerender promise rejections on a runtime prefetch', async ({ page, request }) => {
   const capturedHangingPromiseErrors: string[] = [];
-  void waitForError('nextjs-16-streaming-cacheComponents', errorEvent => {
+  void waitForError('nextjs-16-cacheComponents', errorEvent => {
     const value = errorEvent.exception?.values?.[0]?.value ?? '';
     if (value.includes(HANGING_PROMISE_DIGEST_MESSAGE)) {
       capturedHangingPromiseErrors.push(value);
@@ -28,14 +30,16 @@ test('does not capture hanging prerender promise rejections on a runtime prefetc
   });
   expect(prefetchResponse.ok()).toBe(true);
 
-  const serverSpanPromise = waitForStreamedSpan('nextjs-16-streaming-cacheComponents', span => {
-    return span.name === 'GET /hanging-fetch' && getSpanOp(span) === 'http.server' && span.is_segment;
+  const serverTransactionPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
+    return (
+      transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /hanging-fetch'
+    );
   });
 
   await page.goto('/hanging-fetch');
   await expect(page.locator('#fetched-value')).toHaveText('hanging-fetch-data');
 
-  expect(await serverSpanPromise).toBeDefined();
+  expect(await serverTransactionPromise).toBeDefined();
 
   // Drain marker instead of a sleep: request a route that deliberately captures an error, tagged with a
   // token unique to this run so it can never be served from cache. It is requested strictly after the
@@ -43,7 +47,7 @@ test('does not capture hanging prerender promise rejections on a runtime prefetc
   // captured must already have arrived too. That makes the assertion below "nothing was captured"
   // rather than "nothing had been captured yet". It doubles as a check that errors do flow at all.
   const token = `${Date.now()}`;
-  const sentinelPromise = waitForError('nextjs-16-streaming-cacheComponents', errorEvent => {
+  const sentinelPromise = waitForError('nextjs-16-cacheComponents', errorEvent => {
     return errorEvent.exception?.values?.[0]?.value === `error-sentinel-${token}`;
   });
 
