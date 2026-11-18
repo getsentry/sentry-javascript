@@ -24,6 +24,13 @@ const routes = [
   { path: '/about', component: () => 'About' },
   { path: '/user/:id', component: () => 'User' },
   { path: '/user/:id/post/:postId', component: () => 'Post' },
+  {
+    path: '/redirect-to-user',
+    component: () => {
+      useNavigate()('/user/7', { replace: true });
+      return 'Redirecting';
+    },
+  },
 ];
 
 function createMockBrowserClient(): BrowserClient {
@@ -56,6 +63,11 @@ function renderRouter(initialPath: string): { navigate: Navigator; dispose: () =
 
 function findSpan(spans: Span[], op: string): ReturnType<typeof spanToJSON> | undefined {
   const span = spans.find(s => spanToJSON(s).attributes?.[SENTRY_OP] === op);
+  return span ? spanToJSON(span) : undefined;
+}
+
+function findLastSpan(spans: Span[], op: string): ReturnType<typeof spanToJSON> | undefined {
+  const span = spans.filter(s => spanToJSON(s).attributes?.[SENTRY_OP] === op).pop();
   return span ? spanToJSON(span) : undefined;
 }
 
@@ -116,6 +128,27 @@ describe('withSentryRouterRouting (Solid Router 2)', () => {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [`${URL_PATH_PARAMETER_KEY_BASE}.id`]: '5',
           [`${URL_PATH_PARAMETER_KEY_BASE}.postId`]: '12',
+        }),
+      });
+    });
+  });
+
+  // The redirect starts a navigation span of its own, like with Solid Router 1.
+  it('names the navigation span of a redirect after the route it lands on', async () => {
+    setUpClient();
+
+    const { navigate, dispose } = renderRouter('/');
+    cleanup = dispose;
+
+    navigate('/redirect-to-user');
+    flush();
+
+    await vi.waitFor(() => {
+      expect(findLastSpan(spans, 'navigation')).toMatchObject({
+        name: '/user/:id',
+        attributes: expect.objectContaining({
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+          [`${URL_PATH_PARAMETER_KEY_BASE}.id`]: '7',
         }),
       });
     });

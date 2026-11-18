@@ -45,7 +45,7 @@ function locationToSpanUrlAttributes(pathname: string, search: string = '', hash
   };
 }
 
-function handleNavigation(location: string): void {
+function handleNavigation(location: string, isHistoryTraversal: boolean): void {
   const client = getClient();
   if (!client || !CLIENTS_WITH_INSTRUMENT_NAVIGATION.has(client)) {
     return;
@@ -58,8 +58,6 @@ function handleNavigation(location: string): void {
   const { name } = metaData?.sdk || {};
   const framework = name?.includes('solidstart') ? 'solidstart' : 'solid';
 
-  const isBackNavigation = location === '-1';
-
   startBrowserTracingNavigationSpan(
     client,
     {
@@ -71,7 +69,7 @@ function handleNavigation(location: string): void {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
       },
     },
-    isBackNavigation ? undefined : { url: getAbsoluteUrl(location) },
+    isHistoryTraversal ? undefined : { url: getAbsoluteUrl(location) },
   );
 }
 
@@ -86,17 +84,22 @@ function getActiveRootSpan(): ReturnType<typeof getActiveSpan> {
  * that tracks the location and the route matches.
  */
 export function createRouterSpanUpdater(): {
-  onBeforeLeave: (to: string) => void;
+  onBeforeLeave: (to: string | number) => void;
   onRouteChange: (location: RouterLocation, matches: RouterMatch[]) => void;
 } {
   // Tracks the target of a pending navigation, so stale updates during <Navigate> redirects
   // can be skipped while the location signal hasn't caught up to the navigation span yet.
   let pendingNavigationTarget: string | undefined;
+  // Back and forward navigations only know the history delta (e.g. `-1` or `2`) upfront, not the target URL.
+  let historyTraversalSpanName: string | undefined;
 
   return {
     onBeforeLeave(to) {
-      pendingNavigationTarget = to;
-      handleNavigation(to);
+      const isHistoryTraversal = typeof to === 'number';
+      const location = String(to);
+      pendingNavigationTarget = isHistoryTraversal ? undefined : location;
+      historyTraversalSpanName = isHistoryTraversal ? location : undefined;
+      handleNavigation(location, isHistoryTraversal);
     },
     onRouteChange(location, matches) {
       const name = location.pathname;
@@ -109,9 +112,7 @@ export function createRouterSpanUpdater(): {
       // transition completes. In that case, location.pathname still points
       // to the old route while the active span is already the navigation span.
       // Skip the update to avoid overwriting the span with stale route data.
-      // `-1` is solid router's representation of a browser back-button
-      // navigation, where we don't know the target URL upfront.
-      if (pendingNavigationTarget && pendingNavigationTarget !== '-1' && name !== pendingNavigationTarget) {
+      if (pendingNavigationTarget && name !== pendingNavigationTarget) {
         return;
       }
       pendingNavigationTarget = undefined;
@@ -135,15 +136,16 @@ export function createRouterSpanUpdater(): {
           }
         }
       } else {
-        // No matched route - update back-button navigations and set source to url
+        // No matched route - update history traversals and set source to url
         const { attributes, name: spanName } = spanToJSON(rootSpan);
-        // With span streaming, a back navigation span is already named `Navigation` (there is no
-        // target URL upfront), so only the static lifecycle still has `-1` to replace here.
-        if (attributes[SENTRY_OP] === 'navigation' && spanName === '-1') {
+        // With span streaming, a history traversal span is already named `Navigation` (there is no
+        // target URL upfront), so only the static lifecycle still has the delta to replace here.
+        if (attributes[SENTRY_OP] === 'navigation' && spanName === historyTraversalSpanName) {
           rootSpan.updateName(name);
         }
         rootSpan.setAttributes({ [SENTRY_SEGMENT_NAME_SOURCE]: 'url', ...urlAttributes });
       }
+      historyTraversalSpanName = undefined;
     },
   };
 }

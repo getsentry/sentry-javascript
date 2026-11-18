@@ -22,7 +22,7 @@ export function withSentryRouterRouting<R extends RouterInstance<readonly RouteD
         const spanUpdater = createRouterSpanUpdater();
 
         useBeforeLeave(({ to }) => {
-          spanUpdater.onBeforeLeave(to.toString());
+          spanUpdater.onBeforeLeave(to);
         });
 
         const location = useLocation();

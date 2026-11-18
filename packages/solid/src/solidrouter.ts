@@ -28,7 +28,7 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
     const spanUpdater = createRouterSpanUpdater();
 
     useBeforeLeave(({ to }: BeforeLeaveEventArgs) => {
-      spanUpdater.onBeforeLeave(to.toString());
+      spanUpdater.onBeforeLeave(to);
     });
 
     const location = useLocation();
