@@ -94,8 +94,7 @@ test('Creates a navigation span for `router.back()`', async ({ page }) => {
 
   const navigationSpan = await navigationSpanPromise;
 
-  // back is Next.js < 15.3.0, traverse >= 15.3.0
-  expect(navigationSpan.attributes['navigation.type']?.value).toMatch(/router\.(back|traverse)/);
+  expect(navigationSpan.attributes['navigation.type']?.value).toBe('router.back');
 });
 
 test('Creates a navigation span for `router.forward()`', async ({ page }) => {
@@ -103,8 +102,7 @@ test('Creates a navigation span for `router.forward()`', async ({ page }) => {
     return (
       span.name === `/navigation/:param/router-push` &&
       getSpanOp(span) === 'navigation' &&
-      (span.attributes['navigation.type']?.value === 'router.forward' ||
-        span.attributes['navigation.type']?.value === 'router.traverse')
+      span.attributes['navigation.type']?.value === 'router.forward'
     );
   });
 
@@ -155,8 +153,7 @@ test('Creates a navigation span for browser-back', async ({ page }) => {
     return (
       span.name === `/navigation/:param/browser-back` &&
       getSpanOp(span) === 'navigation' &&
-      (span.attributes['navigation.type']?.value === 'browser.popstate' ||
-        span.attributes['navigation.type']?.value === 'router.traverse')
+      span.attributes['navigation.type']?.value === 'browser.popstate'
     );
   });
 
@@ -174,8 +171,7 @@ test('Creates a navigation span for browser-forward', async ({ page }) => {
     return (
       span.name === `/navigation/:param/router-push` &&
       getSpanOp(span) === 'navigation' &&
-      (span.attributes['navigation.type']?.value === 'browser.popstate' ||
-        span.attributes['navigation.type']?.value === 'router.traverse')
+      span.attributes['navigation.type']?.value === 'browser.popstate'
     );
   });
 
