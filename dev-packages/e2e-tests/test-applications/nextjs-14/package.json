@@ -35,7 +35,8 @@
       {
         "build-command": "pnpm install",
         "label": "nextjs-14 (development)",
-        "assert-command": "pnpm test:dev"
+        "assert-command": "pnpm test:dev",
+        "test-shards": 2
       }
     ],
     "baseVariant": {
