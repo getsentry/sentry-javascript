@@ -1,4 +1,4 @@
-import { FindPlanet } from '~/components/FindPlanet';
+import { FindPlanet } from '../../../components/FindPlanet';
 
 export default async function ClientPage() {
   return (

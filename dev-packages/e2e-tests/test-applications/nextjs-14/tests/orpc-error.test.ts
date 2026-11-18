@@ -2,16 +2,16 @@ import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
 test('should capture server-side orpc error', async ({ page }) => {
-  const orpcErrorPromise = waitForError('nextjs-14-orpc', errorEvent => {
+  const orpcErrorPromise = waitForError('nextjs-14', errorEvent => {
     return (
       errorEvent.exception?.values?.[0]?.value === 'You are hitting an error' &&
       errorEvent.contexts?.['runtime']?.name === 'node'
     );
   });
 
-  await page.goto('/');
+  await page.goto('/orpc');
   await page.waitForTimeout(500);
-  await page.getByRole('link', { name: 'Error' }).click();
+  await page.getByRole('link', { name: 'Error', exact: true }).click();
 
   const orpcError = await orpcErrorPromise;
 

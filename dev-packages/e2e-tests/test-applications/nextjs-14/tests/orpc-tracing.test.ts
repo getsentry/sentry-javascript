@@ -7,18 +7,20 @@ test('should trace orpc server component', async ({ page }) => {
   // The server component calls `planet.list` over HTTP while rendering, so the RPC span belongs to
   // the same trace as the pageload. `collectStreamedSpans` evaluates one trace at a time, so requiring
   // the pageload and the RPC spans together is what asserts the SSR request propagated its trace.
-  const spansPromise = collectStreamedSpans('nextjs-14-orpc', spans => {
+  const spansPromise = collectStreamedSpans('nextjs-14', spans => {
     return (
-      spans.some(span => span.name === '/' && getSpanOp(span) === 'pageload' && span.is_segment) &&
+      spans.some(span => span.name === '/orpc' && getSpanOp(span) === 'pageload' && span.is_segment) &&
       spans.some(span => span.name === ORPC_SEGMENT_NAME && span.is_segment) &&
       spans.some(span => span.name === 'ORPC Middleware')
     );
   });
 
-  await page.goto('/');
+  await page.goto('/orpc');
   const orpcSpans = await spansPromise;
 
-  const pageloadSpan = orpcSpans.find(span => span.name === '/' && getSpanOp(span) === 'pageload' && span.is_segment)!;
+  const pageloadSpan = orpcSpans.find(
+    span => span.name === '/orpc' && getSpanOp(span) === 'pageload' && span.is_segment,
+  )!;
   const orpcSpan = orpcSpans.find(span => span.name === ORPC_SEGMENT_NAME && span.is_segment)!;
 
   expect(pageloadSpan.parent_span_id).toEqual(expect.any(String));
@@ -56,9 +58,9 @@ test('should trace orpc client component', async ({ page }) => {
   // Awaiting the navigation and RPC spans separately could pair spans from different traces. One
   // `collectStreamedSpans` evaluates a single trace at a time, so requiring both together keeps them
   // on the same trace and makes the `trace_id` assertion below meaningful.
-  const spansPromise = collectStreamedSpans('nextjs-14-orpc', spans => {
+  const spansPromise = collectStreamedSpans('nextjs-14', spans => {
     return (
-      spans.some(span => span.name === '/client' && getSpanOp(span) === 'navigation' && span.is_segment) &&
+      spans.some(span => span.name === '/orpc/client' && getSpanOp(span) === 'navigation' && span.is_segment) &&
       spans.some(
         span =>
           span.name === ORPC_SEGMENT_NAME &&
@@ -69,13 +71,13 @@ test('should trace orpc client component', async ({ page }) => {
     );
   });
 
-  await page.goto('/');
+  await page.goto('/orpc');
   await page.waitForTimeout(500);
-  await page.getByRole('link', { name: 'Client' }).click();
+  await page.getByRole('link', { name: 'Client', exact: true }).click();
 
   const orpcSpans = await spansPromise;
   const navigationSpan = orpcSpans.find(
-    span => span.name === '/client' && getSpanOp(span) === 'navigation' && span.is_segment,
+    span => span.name === '/orpc/client' && getSpanOp(span) === 'navigation' && span.is_segment,
   )!;
   const orpcSpan = orpcSpans.find(
     span =>

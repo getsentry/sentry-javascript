@@ -1,6 +1,6 @@
 'use client';
 
-import { client } from '~/orpc/client';
+import { client } from '../orpc/client';
 import { useEffect, useState } from 'react';
 
 type Planet = {
