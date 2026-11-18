@@ -2,13 +2,18 @@ import { expect, test } from '@playwright/test';
 import { waitForEnvelopeItem } from '@sentry-internal/test-utils';
 import type { FeedbackEvent } from '@sentry/core';
 
+test.skip(
+  process.env.NEXT_PUBLIC_E2E_FEEDBACK !== '1',
+  'Feedback and replay only run in the nextjs-16 (feedback, production) variant',
+);
+
 test('FeedbackButton opens and submits feedback', async ({ page }) => {
-  const feedbackPromise = waitForEnvelopeItem('nextjs-16-userfeedback', envelopeItem => {
+  const feedbackPromise = waitForEnvelopeItem('nextjs-16', envelopeItem => {
     const [envelopeItemHeader] = envelopeItem;
     return envelopeItemHeader.type === 'feedback';
   });
 
-  await page.goto('/');
+  await page.goto('/feedback');
   await page.getByTestId('feedback-button').click();
 
   const feedbackDialog = page.locator('[data-sentry-feedback]');
@@ -32,7 +37,7 @@ test('FeedbackButton opens and submits feedback', async ({ page }) => {
 });
 
 test('createWidget adds and removes feedback trigger', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/feedback');
 
   const toggleButton = page.getByTestId('toggle-feedback-button');
   await expect(toggleButton).toHaveText('Create Widget');
@@ -47,12 +52,12 @@ test('createWidget adds and removes feedback trigger', async ({ page }) => {
 });
 
 test('createWidget trigger opens feedback form and submits', async ({ page }) => {
-  const feedbackPromise = waitForEnvelopeItem('nextjs-16-userfeedback', envelopeItem => {
+  const feedbackPromise = waitForEnvelopeItem('nextjs-16', envelopeItem => {
     const [envelopeItemHeader] = envelopeItem;
     return envelopeItemHeader.type === 'feedback';
   });
 
-  await page.goto('/');
+  await page.goto('/feedback');
   await page.getByTestId('toggle-feedback-button').click();
   await expect(page.locator('.widget__actor')).toBeVisible({ timeout: 5000 });
 
@@ -79,24 +84,24 @@ test('createWidget trigger opens feedback form and submits', async ({ page }) =>
 });
 
 test('attachTo opens feedback dialog', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/feedback');
   await page.getByTestId('attach-to-button').click();
   await expect(page.locator('[data-sentry-feedback]')).toBeVisible({ timeout: 5000 });
 });
 
 test('createForm opens feedback dialog', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/feedback');
   await page.getByTestId('create-form-button').click();
   await expect(page.locator('[data-sentry-feedback]')).toBeVisible({ timeout: 5000 });
 });
 
 test('captureFeedback sends feedback envelope', async ({ page }) => {
-  const feedbackPromise = waitForEnvelopeItem('nextjs-16-userfeedback', envelopeItem => {
+  const feedbackPromise = waitForEnvelopeItem('nextjs-16', envelopeItem => {
     const [envelopeItemHeader] = envelopeItem;
     return envelopeItemHeader.type === 'feedback';
   });
 
-  await page.goto('/');
+  await page.goto('/feedback');
 
   await page.getByTestId('my-form-name').fill('Custom Form User');
   await page.getByTestId('my-form-email').fill('custom@example.com');
@@ -115,12 +120,12 @@ test('captureFeedback sends feedback envelope', async ({ page }) => {
 });
 
 test('ThumbsUp sends feedback with positive tag', async ({ page }) => {
-  const feedbackPromise = waitForEnvelopeItem('nextjs-16-userfeedback', envelopeItem => {
+  const feedbackPromise = waitForEnvelopeItem('nextjs-16', envelopeItem => {
     const [envelopeItemHeader] = envelopeItem;
     return envelopeItemHeader.type === 'feedback';
   });
 
-  await page.goto('/');
+  await page.goto('/feedback');
   await page.getByTestId('thumbs-up-button').click();
 
   const feedbackDialog = page.locator('[data-sentry-feedback]');
@@ -145,12 +150,12 @@ test('ThumbsUp sends feedback with positive tag', async ({ page }) => {
 });
 
 test('ThumbsDown sends feedback with negative tag', async ({ page }) => {
-  const feedbackPromise = waitForEnvelopeItem('nextjs-16-userfeedback', envelopeItem => {
+  const feedbackPromise = waitForEnvelopeItem('nextjs-16', envelopeItem => {
     const [envelopeItemHeader] = envelopeItem;
     return envelopeItemHeader.type === 'feedback';
   });
 
-  await page.goto('/');
+  await page.goto('/feedback');
   await page.getByTestId('thumbs-down-button').click();
 
   const feedbackDialog = page.locator('[data-sentry-feedback]');
@@ -175,7 +180,7 @@ test('ThumbsDown sends feedback with negative tag', async ({ page }) => {
 });
 
 test('createForm supports custom labels', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/feedback');
   await page.getByTestId('translated-feedback-button').click();
 
   const feedbackDialog = page.locator('[data-sentry-feedback]');
@@ -188,7 +193,7 @@ test('createForm supports custom labels', async ({ page }) => {
 });
 
 test('feedback dialog can be cancelled', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/feedback');
   await page.getByTestId('feedback-button').click();
 
   const feedbackDialog = page.locator('[data-sentry-feedback]');
@@ -199,7 +204,7 @@ test('feedback dialog can be cancelled', async ({ page }) => {
 });
 
 test('setTheme changes the feedback widget color scheme', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/feedback');
 
   // First open a widget to force shadow DOM creation
   await page.getByTestId('toggle-feedback-button').click();
@@ -236,14 +241,14 @@ test('setTheme changes the feedback widget color scheme', async ({ page }) => {
 });
 
 test('crash report button triggers error for user feedback modal', async ({ page }) => {
-  const errorPromise = waitForEnvelopeItem('nextjs-16-userfeedback', envelopeItem => {
+  const errorPromise = waitForEnvelopeItem('nextjs-16', envelopeItem => {
     const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
     if (envelopeItemHeader.type !== 'event') return false;
     const event = envelopeItemBody as { exception?: { values?: Array<{ value?: string }> } };
     return event.exception?.values?.[0]?.value === 'Crash Report Button Clicked';
   });
 
-  await page.goto('/');
+  await page.goto('/feedback');
   await page.getByTestId('crash-report-button').click();
 
   const envelopeItem = await errorPromise;

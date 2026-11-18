@@ -77,6 +77,11 @@
         "assert-command": "NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES=1 pnpm test:prod"
       },
       {
+        "build-command": "NEXT_PUBLIC_E2E_FEEDBACK=1 pnpm test:build",
+        "label": "nextjs-16 (feedback, production)",
+        "assert-command": "NEXT_PUBLIC_E2E_FEEDBACK=1 pnpm test:prod tests/feedback.test.ts"
+      },
+      {
         "build-command": "pnpm test:build-webpack",
         "label": "nextjs-16 (webpack, production)",
         "assert-command": "pnpm test:prod"
