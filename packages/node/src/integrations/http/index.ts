@@ -109,6 +109,20 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
 
   return {
     name: INTEGRATION_NAME,
+    // Runtimes that do not publish `http.server.request.start` (such as
+    // Bun) create incoming-request spans in another integration, which
+    // reads these options.
+    serverRequestOptions: {
+      spans: enableServerSpans ? undefined : false,
+      sessions: options.sessions,
+      sessionFlushingDelayMS: options.sessionFlushingDelayMS,
+      maxRequestBodySize: options.maxRequestBodySize,
+      ignoreRequestBody: options.ignoreRequestBody,
+      ignoreIncomingRequests: options.ignoreIncomingRequests,
+      ignoreStaticAssets: options.ignoreStaticAssets,
+      onSpanCreated: options.onSpanCreated,
+      onSpanEnd: options.onSpanEnd,
+    },
     setup(client: NodeClient) {
       const clientOptions = client.getOptions();
 

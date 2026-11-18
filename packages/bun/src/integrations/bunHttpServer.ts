@@ -1,7 +1,7 @@
 import { errorMonitor } from 'node:events';
 import * as http from 'node:http';
 import * as https from 'node:https';
-import type { IntegrationFn, Span } from '@sentry/core';
+import type { Client, Integration, IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import type {
   AssertTrue,
@@ -92,11 +92,33 @@ type _ServerRequestOptionsCheck = AssertTrue<
 
 let hasPatched = false;
 
+/**
+ * Merges the incoming-request options of the client's `httpIntegration`
+ * under the given options. Bun does not publish
+ * `http.server.request.start`, so `httpIntegration` never applies them.
+ */
+function resolveOptions(options: BunHttpServerOptions, client: Client): BunHttpServerOptions {
+  const httpOptions =
+    client.getIntegrationByName<Integration & { serverRequestOptions?: BunHttpServerOptions }>('Http')
+      ?.serverRequestOptions ?? {};
+  return {
+    spans: options.spans ?? httpOptions.spans,
+    sessions: options.sessions ?? httpOptions.sessions,
+    sessionFlushingDelayMS: options.sessionFlushingDelayMS ?? httpOptions.sessionFlushingDelayMS,
+    maxRequestBodySize: options.maxRequestBodySize ?? httpOptions.maxRequestBodySize,
+    ignoreRequestBody: options.ignoreRequestBody ?? httpOptions.ignoreRequestBody,
+    ignoreIncomingRequests: options.ignoreIncomingRequests ?? httpOptions.ignoreIncomingRequests,
+    ignoreStaticAssets: options.ignoreStaticAssets ?? httpOptions.ignoreStaticAssets,
+    onSpanCreated: options.onSpanCreated ?? httpOptions.onSpanCreated,
+    onSpanEnd: options.onSpanEnd ?? httpOptions.onSpanEnd,
+  };
+}
+
 const _bunHttpServerIntegration = ((options: BunHttpServerOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      instrumentBunHttpServer(options);
+    afterAllSetup(client) {
+      instrumentBunHttpServer(resolveOptions(options, client));
     },
   };
 }) satisfies IntegrationFn;

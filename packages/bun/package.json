@@ -70,7 +70,7 @@
     "lint:es-compatibility": "node ../../scripts/es-check.mjs es2022",
     "install:bun": "node ./scripts/install-bun.js",
     "test": "pnpm run install:bun && pnpm run test:bun",
-    "test:bun": "bun test",
+    "test:bun": "bun test --isolate",
     "test:watch": "bun test --watch",
     "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },

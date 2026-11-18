@@ -169,22 +169,18 @@ const FETCH_INTEGRATION_DIFFERS = [
   'suites/tracing/requests/fetch-sampled-no-active-span/test.ts',
 ];
 
-// `@sentry/bun` creates `http.server` spans with `bunHttpServerIntegration`, not `httpIntegration`,
-// so the incoming-request options that the scenario passes to `httpIntegration` (for example
-// `sessionFlushingDelayMS`, `onSpanCreated`, `ignoreIncomingRequests`, `ignoreStaticAssets`) have
-// no effect. Its spans also differ: response headers become attributes, and there is no
-// `http.response.status_text`. And a server
-// that sets `emit` back to the `emit` it had before its first request gets no spans after that.
-// See https://github.com/getsentry/sentry-javascript/issues/26609
-const HTTP_SERVER_OPTIONS_IGNORED = [
-  'suites/sessions/exited-session-aggregate/test.ts',
+// `@sentry/bun` creates `http.server` spans with `bunHttpServerIntegration`, not `httpIntegration`.
+// Its spans differ: response headers become attributes, there is no `http.response.status_text`,
+// and the span name has no route. A server that sets `emit` back to the `emit` it had before its
+// first request gets no spans after that. And an error that reaches the server does not mark
+// the request session as crashed.
+const HTTP_SERVER_SPANS_DIFFER = [
   'suites/sessions/server-without-process-session/test.ts',
   'suites/tracing/httpIntegration/test.ts',
 ];
 
 // With `@sentry/bun`, these suites fail only because they need Express spans or route names,
-// which `bun run` does not create. The crashed and errored session suites also need
-// `sessionFlushingDelayMS` (see above).
+// which `bun run` does not create.
 // See https://github.com/getsentry/sentry-javascript/issues/23882
 const NO_EXPRESS_INSTRUMENTATION = [
   'suites/sessions/crashed-session-aggregate/test.ts',
@@ -211,7 +207,7 @@ const BUN_DROPS_PIPELINED_REQUESTS = ['suites/tunnel/hardening/test.ts'];
 
 export const SENTRY_BUN_EXCLUDE = [
   ...BUN_DROPS_PIPELINED_REQUESTS,
-  ...HTTP_SERVER_OPTIONS_IGNORED,
+  ...HTTP_SERVER_SPANS_DIFFER,
   ...NO_EXPRESS_INSTRUMENTATION,
   ...NO_NATIVE_NODE_FETCH_INTEGRATION,
   ...FETCH_INTEGRATION_DIFFERS,
@@ -237,14 +233,10 @@ const BUN_BUILD_NO_HTTP_SERVER_INTEGRATION = ['suites/express/multiple-init/test
 // `require is not defined`. See https://github.com/oven-sh/bun/issues/14891
 const BUN_BUILD_UNBUNDLEABLE_DEPENDENCY = ['suites/tracing/mistral/test.ts', 'suites/tracing/mongodb/test.ts'];
 
-// Some or all tests fail with the bundled scenarios. The cause is not investigated yet. In
-// `express/tracing` only the request data tests fail: they set `httpIntegration` options, and with
-// `@sentry/bun` the request body comes from `bunHttpServerIntegration`.
+// Some or all tests fail with the bundled scenarios. The cause is not investigated yet.
 const BUN_BUILD_NOT_TRIAGED = [
   'suites/express/sentry-trace/test.ts',
   'suites/express/tracing/routing/test.ts',
-  'suites/express/tracing/request-data/test.ts',
-  'suites/express/with-http/**',
   'suites/hono-sdk/test.ts',
   'suites/tracing/google-genai-v2/test.ts',
   'suites/tracing/google-genai-v3/test.ts',
@@ -282,15 +274,6 @@ export const BUN_BUILD_EXCLUDE = [
 // The `bun run` project (`node-suites-bun-run`) runs the suites of `NO_AUTO_INSTRUMENTATION` with
 // `@sentry/bun/import` preloaded, on Bun 1.4.6 or later. These do not run there.
 
-// The scenarios pass the incoming-request options (`maxRequestBodySize`, `ignoreIncomingRequestBody`)
-// to `httpIntegration`. With `@sentry/bun`, `bunHttpServerIntegration` creates the `http.server` spans
-// and takes these options itself, so the tests that set them fail.
-// See https://github.com/getsentry/sentry-javascript/issues/26609
-const BUN_RUN_HTTP_INTEGRATION_OPTIONS_IGNORED = [
-  'suites/express/tracing/request-data/test.ts',
-  'suites/express/with-http/maxIncomingRequestBodySize/test.ts',
-];
-
 // The suite tests `@sentry/hono/node`, which builds on `@sentry/node` and creates no `http.server`
 // spans on Bun. `@sentry/hono/bun` takes its options in `sentry(app, options)` instead of a separate
 // `init()`, so the scenario cannot use it. `suites/hono-sdk` in this package tests `@sentry/hono/bun`.
@@ -303,6 +286,5 @@ export const BUN_RUN_EXCLUDE = [
   // These fail for the same reasons as with the bundled scenarios.
   ...BUN_BUILD_EAGER_SUBSCRIPTION,
   ...BUN_BUILD_NO_HTTP_SERVER_INTEGRATION,
-  ...BUN_RUN_HTTP_INTEGRATION_OPTIONS_IGNORED,
   ...BUN_RUN_HONO_NODE_SDK,
 ];
