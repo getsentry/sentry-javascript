@@ -2,12 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
-const nextPackageJson = require('next/package.json');
-
 test('Sends a client-side exception to Sentry', async ({ page }) => {
-  const nextjsVersion = nextPackageJson.version;
-  const nextjsMajor = Number(nextjsVersion.split('.')[0]);
-
   await page.goto('/');
 
   const errorEventPromise = waitForError('nextjs-14', errorEvent => {
@@ -38,12 +33,10 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
 
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
     handled: false,
-    type: nextjsMajor >= 15 ? 'auto.browser.global_handlers.onerror' : 'auto.browser.browserapierrors.addEventListener',
-    ...(nextjsMajor < 15 && {
-      data: {
-        handler: expect.any(String), // the handler name varies in CI and locally
-        target: 'EventTarget',
-      },
-    }),
+    type: 'auto.browser.browserapierrors.addEventListener',
+    data: {
+      handler: expect.any(String), // the handler name varies in CI and locally
+      target: 'EventTarget',
+    },
   });
 });
