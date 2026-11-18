@@ -14,6 +14,7 @@ import {
   URL_FULL,
 } from '@sentry/conventions/attributes';
 import { QUEUE_PROCESS, QUEUE_PUBLISH } from '@sentry/conventions/op';
+import { randomUUID } from 'crypto';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -201,18 +202,22 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
 
   createEsmAndCjsTests(__dirname, 'scenario-callback-api.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test('instruments publish and noAck consume on the callback API', { timeout: 60_000 }, async () => {
+      // The queue is exclusive, and the broker can still hold the lock of the previous run.
+      const queueName = `callback-queue-${randomUUID()}`;
+
       await createTestRunner()
+        .withEnv({ AMQP_QUEUE_NAME: queueName })
         .expect({
           span: container => {
             const producerSpan = container.items.find(
               span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.queue.amqplib.publisher',
             );
-            expect(producerSpan?.name).toBe('send callback-queue');
+            expect(producerSpan?.name).toBe(`send ${queueName}`);
 
             const consumerSpan = container.items.find(
               span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.queue.amqplib.consumer',
             );
-            expect(consumerSpan?.name).toBe('process callback-queue');
+            expect(consumerSpan?.name).toBe(`process ${queueName}`);
             expect(consumerSpan?.status).toBe('ok');
           },
         })

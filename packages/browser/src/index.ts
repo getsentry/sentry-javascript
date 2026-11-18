@@ -28,6 +28,7 @@ export { getFeedback, sendFeedback } from '@sentry/feedback';
 
 export { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './tracing/request';
 export {
+  browserTracingCoreIntegration,
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
@@ -50,11 +51,17 @@ export {
 } from '@sentry/browser-utils';
 export type { CachedRouteProvider, RouteProvider } from '@sentry/browser-utils';
 export { interactionsIntegration } from './integrations/interactions';
+export { linkedTracesIntegration } from './integrations/linkedTraces';
+export { longTasksIntegration } from './integrations/longTasks';
+export { resourcesIntegration } from './integrations/resources';
+export { fetchTracingIntegration } from './integrations/fetchTracing';
+export { xhrTracingIntegration } from './integrations/xhrTracing';
 
 export type { RequestInstrumentationOptions } from './tracing/request';
 export {
   captureConsoleIntegration,
   extraErrorDataIntegration,
+  experimentalReportSdkConfigIntegration,
   rewriteFramesIntegration,
   consoleLoggingIntegration,
   createConsolaReporter,

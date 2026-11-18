@@ -6,9 +6,6 @@ export default defineConfig({
   test: {
     ...baseConfig.test,
     isolate: false,
-    coverage: {
-      enabled: false,
-    },
     include: ['./**/test.ts'],
     testTimeout: 15000,
     // Ensure we can see debug output when DEBUG=true

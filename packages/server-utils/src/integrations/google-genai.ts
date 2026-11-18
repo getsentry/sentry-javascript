@@ -15,6 +15,7 @@ import {
   addResponseAttributes,
   extractRequestAttributes,
   getAbortSignal,
+  getCallAbortSignal,
   resolveChatParams,
 } from '../ai/google-genai';
 import { shouldSkipAiProviderSpan } from '../ai/pi-ai/providers';
@@ -37,6 +38,7 @@ const INSTRUMENTED_CHANNELS = [
   { channel: CHANNELS.GOOGLE_GENAI_GENERATE_CONTENT, operation: 'generate_content' },
   { channel: CHANNELS.GOOGLE_GENAI_EMBED_CONTENT, operation: 'embeddings' },
   { channel: CHANNELS.GOOGLE_GENAI_CHAT, operation: 'chat' },
+  { channel: CHANNELS.GOOGLE_GENAI_DECIDE, operation: 'decide' },
 ] as const;
 
 const _googleGenAIIntegration = ((options: GoogleGenAIOptions = {}) => {
@@ -61,7 +63,7 @@ function instrumentGoogleGenai(options: GoogleGenAIOptions): void {
               data.arguments?.[0] as Record<string, unknown> | undefined,
               data.self,
             );
-            markCancelledIfAborted(span, getAbortSignal(params));
+            markCancelledIfAborted(span, getCallAbortSignal(operation, params, data.arguments?.[1]));
           }
           // Embeddings responses carry no content attributes.
           if (operation !== 'embeddings') {
@@ -69,6 +71,7 @@ function instrumentGoogleGenai(options: GoogleGenAIOptions): void {
               span,
               data.result as GoogleGenAIResponse,
               resolveAIRecordingOptions(options).recordOutputs,
+              operation,
             );
           }
         },
@@ -171,8 +174,8 @@ function wrapStreamResult(
 /**
  * Diagnostics-channel-based Google GenAI integration. Subscribes to the
  * `orchestrion:@google/genai:*` diagnostics_channels injected into the SDK's `Models`
- * (`generateContent`/`generateContentStream`/`embedContent`) and `Chat`
- * (`sendMessage`/`sendMessageStream`) methods, so it requires the Sentry runtime hook or
- * bundler plugin.
+ * (`generateContent`/`generateContentStream`/`embedContent`), `Chat`
+ * (`sendMessage`/`sendMessageStream`) and decisions (`create`) methods, so it requires the Sentry
+ * runtime hook or bundler plugin.
  */
 export const googleGenAIIntegration = defineIntegration(_googleGenAIIntegration);

@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 
-import { getJuniorRequesters, TEAM_SLUG } from './junior-requesters.mjs';
+import { CONTRACTORS, getJuniorRequesters, TEAM_SLUG } from './junior-requesters.mjs';
 
 const REQUIRED_REVIEWERS = 3;
 // Managers who are members of the SDK teams, but should never be auto-requested for review.
@@ -41,17 +41,24 @@ export function parseCodeowners(content) {
     .map(line => line.trim())
     .filter(line => line && !line.startsWith('#'))
     .map(line => {
-      const [pattern, ...owners] = line.split(/\s+/);
-      return { regexp: patternToRegExp(pattern), owners };
+      const additive = line.startsWith('+');
+      const [pattern, ...owners] = line.replace(/^\+/, '').split(/\s+/);
+      return { regexp: patternToRegExp(pattern), owners, additive };
     });
 }
 
-/** CODEOWNERS semantics: the last matching rule wins for each file. */
+/**
+ * CODEOWNERS semantics: the last matching rule wins for each file. Rules prefixed with `+` are an extension: they
+ * never win, but add their owners on top of the winning rule.
+ */
 export function getOwnersForFiles(rules, files) {
   const owners = new Set();
   for (const file of files) {
-    const rule = rules.findLast(r => r.regexp.test(file));
-    rule?.owners.forEach(owner => owners.add(owner));
+    const matching = rules.filter(r => r.regexp.test(file));
+    const winner = matching.findLast(r => !r.additive);
+    for (const rule of [winner, ...matching.filter(r => r.additive)]) {
+      rule?.owners.forEach(owner => owners.add(owner));
+    }
   }
   return [...owners];
 }
@@ -67,8 +74,9 @@ function shuffle(items) {
 
 /**
  * Picks reviewers to top the PR up to `REQUIRED_REVIEWERS`, preferring the codeowner pool and falling back
- * to the whole team. Within a pool, people who were asked for the fewest reviews recently (`load`, keyed by
- * lowercase login) go first, ties are broken randomly. Logins are compared case-insensitively, as GitHub does.
+ * to the whole team plus the contractors. Within a pool, people who were asked for the fewest reviews recently
+ * (`load`, keyed by lowercase login) go first, ties are broken randomly. Logins are compared case-insensitively,
+ * as GitHub does.
  */
 export function pickReviewers({ existing, codeownerPool, teamPool, exclude, load = new Map() }) {
   const taken = new Set([...existing, ...exclude].map(login => login.toLowerCase()));
@@ -245,7 +253,7 @@ export async function assignReviewers({ github, context, core }) {
     }
   }
 
-  const teamPool = await listTeamMembers(TEAM_SLUG);
+  const teamPool = [...(await listTeamMembers(TEAM_SLUG)), ...CONTRACTORS];
   const busy = await getBusyLogins({ github, core, logins: [...codeownerPool, ...teamPool] });
   const load = await getReviewLoad({ github, core, owner, repo });
 

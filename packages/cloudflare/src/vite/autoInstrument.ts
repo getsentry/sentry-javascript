@@ -212,6 +212,7 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
         optionsImport,
         sameWorkerBindings: wranglerConfig.sameWorkerBindings,
         sentryModule,
+        workerInfo: { name: wranglerConfig.name, compatibilityDate: wranglerConfig.compatibilityDate },
       });
 
       const wrappedClasses = result?.wrappedClasses ?? new Set<string>();

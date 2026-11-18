@@ -16,4 +16,8 @@ export default defineConfig({
       paths: { base: '/app' },
     }),
   ],
+  // `@sveltejs/adapter-cloudflare` 8.0.3 applies the Cloudflare Vite plugin's dependency optimization to the
+  // SSR environment, which pre-bundles `@sveltejs/kit/hooks` with its own copy of Kit's request store. In
+  // `vite dev`, `sequence()` then throws "Could not get the request store", with or without the SDK.
+  environments: cloudflare ? { ssr: { optimizeDeps: { exclude: ['@sveltejs/kit'] } } } : undefined,
 });

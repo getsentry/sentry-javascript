@@ -17,7 +17,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.route('http://sentry-test-site.example/**/*', route => {
+  await page.route('https://sentry-test-site.example/**/*', route => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -153,7 +153,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
   // 11
   const requestSpanPromise = waitForStreamedSpanAndTraceHeader(
     page,
-    span => span.name === 'GET sentry-test-site.example',
+    span => span.is_segment && span.name === 'GET sentry-test-site.example',
   );
   const baggageItemsAfterEnd = await makeRequestAndGetBaggageItems(page);
   expect(baggageItemsAfterEnd).toEqual([
@@ -167,7 +167,6 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     'sentry-transaction=GET%20sentry-test-site.example',
   ]);
   const [requestSpan] = await requestSpanPromise;
-  expect(requestSpan.is_segment).toBe(true);
   expect(requestSpan.trace_id).toBe(traceId);
   expect(requestSpan).not.toHaveProperty('parent_span_id');
 

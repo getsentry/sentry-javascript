@@ -326,7 +326,41 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     const code = ["import { BaseEntry } from './base';", 'export class RemoteEntry extends BaseEntry {}'].join('\n');
     const result = await plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'index.ts'));
 
-    expect(result).toBeUndefined();
+    expect(result.code).toBe(`globalThis.__SENTRY_CLOUDFLARE_WORKER__ = {"name":"worker-self"};\n${code}`);
+  });
+
+  it('stores the wrangler `name` and `compatibility_date` in the entry', async () => {
+    const dir = writeTempDir({
+      'wrangler.json': JSON.stringify({ name: 'my-worker', main: 'index.ts', compatibility_date: '2025-06-17' }),
+    });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir });
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = await plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'index.ts'));
+
+    expect(result.code).toMatch(
+      /^globalThis\.__SENTRY_CLOUDFLARE_WORKER__ = \{"name":"my-worker","compatibilityDate":"2025-06-17"\};\n/,
+    );
+    expect(result.code).toContain('__SENTRY__.withSentry(');
+  });
+
+  it('stores the wrangler `name` and `compatibility_date` in an entry that is already wrapped', async () => {
+    const dir = writeTempDir({
+      'wrangler.json': JSON.stringify({ name: 'my-worker', main: 'index.ts', compatibility_date: '2025-06-17' }),
+    });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir });
+
+    const code = [
+      "import * as Sentry from '@sentry/cloudflare';",
+      'export default Sentry.withSentry(() => ({}), { fetch() { return new Response("ok"); } });',
+    ].join('\n');
+    const result = await plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'index.ts'));
+
+    expect(result.code).toBe(
+      `globalThis.__SENTRY_CLOUDFLARE_WORKER__ = {"name":"my-worker","compatibilityDate":"2025-06-17"};\n${code}`,
+    );
   });
 
   // An Agent is a Durable Object, so wrangler can only ever list it under

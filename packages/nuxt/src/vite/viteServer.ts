@@ -1,6 +1,6 @@
 import { addVitePlugin, createResolver } from '@nuxt/kit';
 import type { Nuxt } from '@nuxt/schema';
-import { consoleSandbox } from '@sentry/core';
+import { consoleSandbox, stringifyForCodeInjection } from '@sentry/core';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
@@ -77,7 +77,7 @@ function sentryServerEntryPlugin(importPaths: string[], onBundled: () => void): 
         }
 
         onBundled();
-        const imports = importPaths.map(path => `import ${JSON.stringify(path)};`).join('');
+        const imports = importPaths.map(path => `import ${stringifyForCodeInjection(path)};`).join('');
         return { code: `${imports}${code}`, map: null };
       },
     },

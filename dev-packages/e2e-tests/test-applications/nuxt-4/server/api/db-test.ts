@@ -16,10 +16,10 @@ export default defineEventHandler(async event => {
 
     case 'prepare-all': {
       await db.exec('CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, name TEXT, price REAL)');
-      await db.exec(`INSERT OR REPLACE INTO products (id, name, price) VALUES
-        (1, 'Product A', 10.99),
-        (2, 'Product B', 20.50),
-        (3, 'Product C', 15.25)`);
+      // One line, because D1 runs every line of `exec` as a statement of its own.
+      await db.exec(
+        `INSERT OR REPLACE INTO products (id, name, price) VALUES (1, 'Product A', 10.99), (2, 'Product B', 20.50), (3, 'Product C', 15.25)`,
+      );
       const stmt = db.prepare('SELECT * FROM products WHERE price > ?');
       const results = await stmt.all(10);
       return { success: true, count: results.length, results };
@@ -34,10 +34,9 @@ export default defineEventHandler(async event => {
 
     case 'prepare-bind': {
       await db.exec('CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY, category TEXT, value INTEGER)');
-      await db.exec(`INSERT OR REPLACE INTO items (id, category, value) VALUES
-        (1, 'electronics', 100),
-        (2, 'books', 50),
-        (3, 'electronics', 200)`);
+      await db.exec(
+        `INSERT OR REPLACE INTO items (id, category, value) VALUES (1, 'electronics', 100), (2, 'books', 50), (3, 'electronics', 200)`,
+      );
       const stmt = db.prepare('SELECT * FROM items WHERE category = ?');
       const boundStmt = stmt.bind('electronics');
       const results = await boundStmt.all();

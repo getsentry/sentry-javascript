@@ -1,5 +1,6 @@
 import type { Client, Integration, Options } from '@sentry/core';
 import {
+  _INTERNAL_captureOptionsSetByUser,
   consoleIntegration,
   conversationIdIntegration,
   dedupeIntegration,
@@ -94,7 +95,9 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  *
  * @see {@link BrowserOptions} for documentation on configuration options.
  */
-export function init(options: BrowserOptions = {}): Client | undefined {
+export function init(userOptions: BrowserOptions = {}): Client | undefined {
+  const options = _INTERNAL_captureOptionsSetByUser(userOptions);
+
   const shouldDisableBecauseIsBrowserExtenstion =
     !options.skipBrowserExtensionCheck && checkAndWarnIfIsEmbeddedBrowserExtension();
 

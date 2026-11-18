@@ -18,7 +18,7 @@ import {
   getErrorStatus,
   getGenAiSpanOp,
   getRequestSignal,
-  resolveAIRecordingOptions,
+  resolveGenAiCallRecording,
   wrapPromiseWithMethods,
 } from '../core/utils';
 import { getToolDefinitionsAttribute } from '../core/tool-definitions';
@@ -137,10 +137,14 @@ function instrumentMethod<T extends unknown[], R>(
 ): (...args: T) => Promise<R> {
   return function instrumentedCall(...args: T): Promise<R> {
     const operationName = instrumentedMethod.operation || 'unknown';
-    const requestAttributes = extractRequestAttributes(args, operationName, !!options.recordInputs);
+    const params = args[0] as Record<string, unknown> | undefined;
+    const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, {
+      operation: operationName,
+      request: params,
+    });
+    const requestAttributes = extractRequestAttributes(args, operationName, recordInputs);
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
 
-    const params = args[0] as Record<string, unknown> | undefined;
     const isStreamRequested = params && typeof params === 'object' && params.stream === true;
     const abortSignal = getRequestSignal(args[1]);
     const client = getClient();
@@ -161,7 +165,7 @@ function instrumentMethod<T extends unknown[], R>(
       const instrumentedPromise = startSpanManual(spanConfig, (span: Span) => {
         originalResult = originalMethod.apply(context, args);
 
-        if (options.recordInputs && params) {
+        if (recordInputs && params) {
           addRequestAttributes(span, params, operationName);
         }
 
@@ -172,7 +176,7 @@ function instrumentMethod<T extends unknown[], R>(
             return instrumentStream(
               result as OpenAIStream<ChatCompletionChunk | ResponseStreamingEvent>,
               span,
-              options.recordOutputs ?? false,
+              recordOutputs,
             ) as unknown as R;
           } catch (error) {
             span.setStatus(getErrorStatus(abortSignal));
@@ -192,13 +196,13 @@ function instrumentMethod<T extends unknown[], R>(
       // Call synchronously to capture the promise
       originalResult = originalMethod.apply(context, args);
 
-      if (options.recordInputs && params) {
+      if (recordInputs && params) {
         addRequestAttributes(span, params, operationName);
       }
 
       return originalResult.then(
         result => {
-          addResponseAttributes(span, result, options.recordOutputs, operationName);
+          addResponseAttributes(span, result, recordOutputs, operationName);
           return result;
         },
         error => {
@@ -268,5 +272,5 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  * Can be used across Node.js, Cloudflare Workers, and Vercel Edge
  */
 export function instrumentOpenAiClient<T extends object>(client: T, options?: OpenAiOptions): T {
-  return createDeepProxy(client, '', resolveAIRecordingOptions(options));
+  return createDeepProxy(client, '', options ?? {});
 }

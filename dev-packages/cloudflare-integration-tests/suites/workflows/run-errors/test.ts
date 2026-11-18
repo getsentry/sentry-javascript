@@ -126,7 +126,11 @@ it('captures no second error when run() catches a failed step', async ({ signal 
 });
 
 it('captures the step error and the new error when run() replaces a failed step error', async ({ signal }) => {
+  // The step error and the run() error are flushed concurrently, so they can arrive in either order.
+  // `failOnUnexpected` keeps the duplicate check: a second copy of either error matches no expectation.
   const runner = createRunner(__dirname)
+    .unordered()
+    .failOnUnexpected()
     .expect((envelope: Envelope): void => {
       const [, items] = envelope;
       const [itemHeader, itemBody] = items[0] as [{ type: string }, { exception?: { values?: SentException[] } }];

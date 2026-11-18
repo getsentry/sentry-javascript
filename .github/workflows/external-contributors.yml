@@ -47,7 +47,7 @@ jobs:
           private-key: ${{ secrets.GITFLOW_APP_PRIVATE_KEY }}
 
       - name: Create PR with changes
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1
+        uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1
         with:
           token: ${{ steps.app-token.outputs.token }}
           commit-message: 'chore: Add external contributor to CHANGELOG.md'
