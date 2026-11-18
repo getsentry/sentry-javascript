@@ -47,6 +47,22 @@ test('should create a span named after the static route when the `app` directory
   expect(String(span.attributes['url.full']?.value)).toMatch(/^https?:\/\/localhost:\d+\/parameterized\/static$/);
 });
 
+test('should fall back to a low cardinality span name for routes the manifest does not know', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('nextjs-16', span => {
+    return span.name === 'Pageload' && getSpanOp(span) === 'pageload' && span.is_segment;
+  });
+
+  await page.goto('/this-route-does-not-exist');
+
+  const span = await spanPromise;
+
+  expect(span.trace_id).toEqual(expect.stringMatching(/[a-f0-9]{32}/));
+  expect(span.attributes).toMatchObject({
+    'sentry.segment.name.source': { value: 'url', type: 'string' },
+    'url.path': { value: '/this-route-does-not-exist', type: 'string' },
+  });
+});
+
 test('should create a partially parameterized pageload span when the `app` directory is used', async ({ page }) => {
   const spanPromise = waitForStreamedSpan('nextjs-16', span => {
     return span.name === '/parameterized/:one/beep' && getSpanOp(span) === 'pageload' && span.is_segment;
