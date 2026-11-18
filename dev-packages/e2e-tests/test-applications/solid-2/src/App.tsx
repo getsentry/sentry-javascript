@@ -21,8 +21,10 @@ export default function App() {
       <button
         id="caughtErrorBtn"
         onClick={() => {
-          setThrownCount(thrownCount() + 1);
-          setActiveError(thrownCount());
+          // Solid 2 holds signal writes until the next flush, so read the new count from a local.
+          const next = thrownCount() + 1;
+          setThrownCount(next);
+          setActiveError(next);
         }}
       >
         Throw error in boundary
