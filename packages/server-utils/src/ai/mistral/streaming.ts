@@ -1,5 +1,6 @@
 import type { Span } from '@sentry/core';
 import { endStreamSpan, getErrorStatus, setOutputMessagesAttribute } from '../core/utils';
+import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
 import type { MistralCompletionChunk, MistralToolCall } from './types';
 import { contentToString } from './utils';
 
@@ -248,7 +249,9 @@ export function instrumentEventStream(
   let settled = false;
   let cancelled = false;
 
+  // Called for each received event.
   const claim = (candidate: StreamConsumer): boolean => {
+    recordTimeToFirstChunk(span);
     consumer ??= candidate;
     return consumer === candidate;
   };

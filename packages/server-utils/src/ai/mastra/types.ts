@@ -48,6 +48,8 @@ export interface MastraSpanAttributes {
   responseId?: string;
   finishReason?: string;
   streaming?: boolean;
+  /** When the first streamed chunk arrived. */
+  completionStartTime?: Date;
   usage?: MastraUsageStats;
   parameters?: {
     temperature?: number;

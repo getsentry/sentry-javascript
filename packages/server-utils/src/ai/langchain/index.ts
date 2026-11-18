@@ -29,6 +29,7 @@ import {
 import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
 import { resolveAIRecordingOptions } from '../core/utils';
+import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
 import { LANGCHAIN_ORIGIN, MAX_TRACKED_LANGCHAIN_RUNS } from './constants';
 import {
   addTypeSafeClassifierResponseAttributes,
@@ -267,6 +268,14 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           },
         }),
       );
+    },
+
+    // Called for each streamed chunk.
+    handleLLMNewToken(_token: string, _idx: unknown, runId: string) {
+      const span = runs.get(runId)?.span;
+      if (span) {
+        recordTimeToFirstChunk(span);
+      }
     },
 
     // LLM End Handler - note: handleLLMEnd with capital LLM (used by both LLMs and chat models!)

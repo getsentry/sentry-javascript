@@ -1,9 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  CODE_FILE_PATH,
+  CODE_FUNCTION_NAME,
+  HTTP_REQUEST_METHOD,
+  SENTRY_DESCRIPTION,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
 
 const captureExceptionSpy = vi.fn();
-const updateSpanNameSpy = vi.fn();
-const getActiveSpanSpy = vi.fn<() => unknown>(() => undefined);
-const spanToJSONSpy = vi.fn<() => { name: string; attributes: Record<string, unknown> }>();
+const startSpanSpy = vi.fn((_: unknown, callback: () => unknown) => callback());
 // Span streaming is the default trace lifecycle; `undefined` stands for a not-yet-initialized SDK.
 const getClientSpy = vi.fn<() => { getOptions: () => { traceLifecycle: string } } | undefined>(() => undefined);
 
@@ -12,10 +19,8 @@ vi.mock('@sentry/core', async importOriginal => {
   return {
     ...original,
     captureException: (...args: unknown[]) => captureExceptionSpy(...args),
-    getActiveSpan: () => getActiveSpanSpy(),
     getClient: () => getClientSpy(),
-    spanToJSON: () => spanToJSONSpy(),
-    updateSpanName: (...args: unknown[]) => updateSpanNameSpy(...args),
+    startSpan: (options: unknown, callback: () => unknown) => startSpanSpy(options, callback),
   };
 });
 
@@ -78,45 +83,74 @@ describe('sentryGlobalFunctionMiddleware', () => {
     expect((sentryGlobalFunctionMiddleware as unknown as Record<string, unknown>)['__SENTRY_INTERNAL__']).toBe(true);
   });
 
-  describe('server function span naming', () => {
-    const setUpActiveSpan = (): { setAttribute: ReturnType<typeof vi.fn> } => {
-      const span = { setAttribute: vi.fn() };
-      getActiveSpanSpy.mockReturnValue(span);
-      spanToJSONSpy.mockReturnValue({
-        name: 'GET /_serverFn/abc123',
-        attributes: { 'sentry.origin': 'auto.function.tanstackstart.server', 'http.request.method': 'GET' },
-      });
-      return span;
-    };
-
+  describe('server function span', () => {
     afterEach(() => {
-      getActiveSpanSpy.mockReturnValue(undefined);
       getClientSpy.mockReturnValue(undefined);
     });
 
     it('names the span after the server function with span streaming', async () => {
-      const span = setUpActiveSpan();
       getClientSpy.mockReturnValue({ getOptions: () => ({ traceLifecycle: 'stream' }) });
+      const next = vi.fn().mockResolvedValue('ok');
 
       const serverFn = sentryGlobalFunctionMiddleware.options.server!;
-      await serverFn({ next: vi.fn().mockResolvedValue('ok'), serverFnMeta: { name: 'testLog' } });
+      const result = await serverFn({
+        next,
+        method: 'POST',
+        serverFnMeta: { name: 'testLog', id: 'abc123', filename: 'src/routes/test.tsx' },
+      });
 
-      expect(updateSpanNameSpy).toHaveBeenCalledWith(span, 'testLog');
-      expect(span.setAttribute).toHaveBeenCalledWith('code.function.name', 'testLog');
-      expect(span.setAttribute).toHaveBeenCalledWith('sentry.description', 'GET /_serverFn/testLog');
+      expect(result).toBe('ok');
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        {
+          name: 'testLog',
+          attributes: {
+            [SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
+            [SENTRY_OP]: FUNCTION,
+            [CODE_FUNCTION_NAME]: 'testLog',
+            [HTTP_REQUEST_METHOD]: 'POST',
+            [SENTRY_DESCRIPTION]: 'POST /_serverFn/testLog',
+            [CODE_FILE_PATH]: 'src/routes/test.tsx',
+          },
+        },
+        expect.any(Function),
+      );
     });
 
     it('keeps the request path in the span name without span streaming', async () => {
-      const span = setUpActiveSpan();
       getClientSpy.mockReturnValue({ getOptions: () => ({ traceLifecycle: 'static' }) });
 
       const serverFn = sentryGlobalFunctionMiddleware.options.server!;
-      await serverFn({ next: vi.fn().mockResolvedValue('ok'), serverFnMeta: { name: 'testLog' } });
+      await serverFn({ next: vi.fn().mockResolvedValue('ok'), method: 'GET', serverFnMeta: { name: 'testLog' } });
 
-      expect(updateSpanNameSpy).toHaveBeenCalledWith(span, 'GET /_serverFn/testLog');
       // The resolved function name is useful in both lifecycles; only the description is a streaming workaround.
-      expect(span.setAttribute).toHaveBeenCalledWith('code.function.name', 'testLog');
-      expect(span.setAttribute).not.toHaveBeenCalledWith('sentry.description', expect.anything());
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        {
+          name: 'GET /_serverFn/testLog',
+          attributes: {
+            [SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
+            [SENTRY_OP]: FUNCTION,
+            [CODE_FUNCTION_NAME]: 'testLog',
+            [HTTP_REQUEST_METHOD]: 'GET',
+          },
+        },
+        expect.any(Function),
+      );
+    });
+
+    it('falls back to a generic name without server function metadata', async () => {
+      getClientSpy.mockReturnValue({ getOptions: () => ({ traceLifecycle: 'stream' }) });
+
+      const serverFn = sentryGlobalFunctionMiddleware.options.server!;
+      await serverFn({ next: vi.fn().mockResolvedValue('ok') });
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'serverFn',
+          attributes: expect.objectContaining({ [SENTRY_DESCRIPTION]: 'GET /_serverFn/serverFn' }),
+        }),
+        expect.any(Function),
+      );
     });
   });
 });

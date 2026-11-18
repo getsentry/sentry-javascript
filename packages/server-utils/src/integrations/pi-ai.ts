@@ -2,7 +2,7 @@ import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration, isThenable, startInactiveSpan } from '@sentry/core';
 import type { GenAiOptions } from '../ai/core/utils';
-import { getPiAiChatSpanOptions, setPiAiResponseAttributes } from '../ai/pi-ai/chat';
+import { getPiAiChatSpanOptions, observePiAiFirstChunk, setPiAiResponseAttributes } from '../ai/pi-ai/chat';
 import { PI_AI_INTEGRATION_NAME } from '../ai/pi-ai/constants';
 import type { PiAiContext } from '../ai/pi-ai/messages';
 import { isInsidePiAiSpan } from '../ai/pi-ai/providers';
@@ -66,6 +66,7 @@ function instrumentPiAi(options: PiAiOptions): void {
       if (!isThenable(settled)) {
         return false;
       }
+      observePiAiFirstChunk(span, events);
       settled.then(message => {
         setResponse(span, data, message);
         end();
