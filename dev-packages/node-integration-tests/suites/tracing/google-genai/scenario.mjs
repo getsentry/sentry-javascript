@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer } from '@sentry-internal/node-integration-tests';
+import { googleGenAiResponse, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockGoogleGenAIServer() {
   const app = express();
@@ -15,27 +15,7 @@ function startMockGoogleGenAIServer() {
       return;
     }
 
-    res.send({
-      candidates: [
-        {
-          content: {
-            parts: [
-              {
-                text: 'Mock response from Google GenAI!',
-              },
-            ],
-            role: 'model',
-          },
-          finishReason: 'stop',
-          index: 0,
-        },
-      ],
-      usageMetadata: {
-        promptTokenCount: 8,
-        candidatesTokenCount: 12,
-        totalTokenCount: 20,
-      },
-    });
+    res.send(googleGenAiResponse());
   });
 
   return startMockServer(app);

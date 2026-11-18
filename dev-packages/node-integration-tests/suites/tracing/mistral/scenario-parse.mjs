@@ -2,7 +2,7 @@ import { Mistral } from '@mistralai/mistralai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import { z } from 'zod';
-import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
+import { openAiChatCompletion, startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
 
 // `chat.parse` and `chat.parseStream` are the structured-output entry points. They call the
 // underlying request functions directly rather than `this.complete` / `this.stream`, so they need
@@ -30,14 +30,13 @@ function startMockApi() {
       return;
     }
 
-    res.send({
-      id: 'chatcmpl-parse-123',
-      object: 'chat.completion',
-      created: 1677652288,
-      model,
-      choices: [{ index: 0, message: { role: 'assistant', content: '{"city":"Paris"}' }, finish_reason: 'stop' }],
-      usage: { prompt_tokens: 5, completion_tokens: 7, total_tokens: 12 },
-    });
+    res.send(
+      openAiChatCompletion(model, {
+        id: 'chatcmpl-parse-123',
+        content: '{"city":"Paris"}',
+        usage: { prompt_tokens: 5, completion_tokens: 7 },
+      }),
+    );
   });
 
   return startMockServer(app);

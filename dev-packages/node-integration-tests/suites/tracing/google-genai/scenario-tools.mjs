@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer } from '@sentry-internal/node-integration-tests';
+import { googleGenAiResponse, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockGoogleGenAIServer() {
   const app = express();
@@ -13,37 +13,19 @@ function startMockGoogleGenAIServer() {
 
     // Check if tools are provided to return function call response
     if (tools && tools.length > 0) {
-      const response = {
-        candidates: [
+      const response = googleGenAiResponse({
+        parts: [
+          { text: 'I need to check the light status first.' },
           {
-            content: {
-              parts: [
-                {
-                  text: 'I need to check the light status first.',
-                },
-                {
-                  functionCall: {
-                    id: 'call_light_control_1',
-                    name: 'controlLight',
-                    args: {
-                      brightness: 0.3,
-                      colorTemperature: 'warm',
-                    },
-                  },
-                },
-              ],
-              role: 'model',
+            functionCall: {
+              id: 'call_light_control_1',
+              name: 'controlLight',
+              args: { brightness: 0.3, colorTemperature: 'warm' },
             },
-            finishReason: 'stop',
-            index: 0,
           },
         ],
-        usageMetadata: {
-          promptTokenCount: 15,
-          candidatesTokenCount: 8,
-          totalTokenCount: 23,
-        },
-      };
+        usage: { promptTokenCount: 15, candidatesTokenCount: 8 },
+      });
 
       // Add functionCalls getter, this should exist in the response object
       Object.defineProperty(response, 'functionCalls', {
@@ -66,27 +48,7 @@ function startMockGoogleGenAIServer() {
     }
 
     // Regular response without tools
-    res.send({
-      candidates: [
-        {
-          content: {
-            parts: [
-              {
-                text: 'Mock response from Google GenAI without tools!',
-              },
-            ],
-            role: 'model',
-          },
-          finishReason: 'stop',
-          index: 0,
-        },
-      ],
-      usageMetadata: {
-        promptTokenCount: 8,
-        candidatesTokenCount: 12,
-        totalTokenCount: 20,
-      },
-    });
+    res.send(googleGenAiResponse({ parts: 'Mock response from Google GenAI without tools!' }));
   });
 
   // Streaming endpoint for models.generateContentStream

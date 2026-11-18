@@ -1,7 +1,7 @@
 import { Mistral } from '@mistralai/mistralai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
+import { openAiChatCompletion, startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
 
 function startMockApi() {
   const app = express();
@@ -31,16 +31,7 @@ function startMockApi() {
 
       streamSseEvents(res, chunks, { done: true });
     } else {
-      res.send({
-        id: 'chatcmpl-manual-123',
-        object: 'chat.completion',
-        created: 1677652288,
-        model,
-        choices: [
-          { index: 0, message: { role: 'assistant', content: 'Hello from the manual client!' }, finish_reason: 'stop' },
-        ],
-        usage: { prompt_tokens: 10, completion_tokens: 15, total_tokens: 25 },
-      });
+      res.send(openAiChatCompletion(model, { id: 'chatcmpl-manual-123', content: 'Hello from the manual client!' }));
     }
   });
 

@@ -1,7 +1,12 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import OpenAI from 'openai';
-import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
+import {
+  openAiChatCompletion,
+  openAiChatCompletionChunks,
+  startMockServer,
+  streamSseEvents,
+} from '@sentry-internal/node-integration-tests';
 
 function startMockApi() {
   const app = express();
@@ -56,62 +61,11 @@ function startMockApi() {
         },
       ];
 
-      const chunks =
-        model === 'gemini-compat'
-          ? geminiToolCallChunks
-          : [
-              {
-                id: 'chatcmpl-stream-123',
-                object: 'chat.completion.chunk',
-                created: 1677652300,
-                model: model,
-                choices: [{ delta: { role: 'assistant', content: '' }, index: 0 }],
-              },
-              {
-                id: 'chatcmpl-stream-123',
-                object: 'chat.completion.chunk',
-                created: 1677652300,
-                model: model,
-                choices: [{ delta: { content: 'Hello from OpenAI streaming!' }, index: 0 }],
-              },
-              {
-                id: 'chatcmpl-stream-123',
-                object: 'chat.completion.chunk',
-                created: 1677652300,
-                model: model,
-                choices: [{ delta: {}, index: 0, finish_reason: 'stop' }],
-                usage: {
-                  prompt_tokens: 12,
-                  completion_tokens: 18,
-                  total_tokens: 30,
-                },
-              },
-            ];
+      const chunks = model === 'gemini-compat' ? geminiToolCallChunks : openAiChatCompletionChunks(model);
 
       streamSseEvents(res, chunks, { done: true });
     } else {
-      // Non-streaming response
-      res.send({
-        id: 'chatcmpl-mock123',
-        object: 'chat.completion',
-        created: 1677652288,
-        model: model,
-        choices: [
-          {
-            index: 0,
-            message: {
-              role: 'assistant',
-              content: 'Hello from OpenAI mock!',
-            },
-            finish_reason: 'stop',
-          },
-        ],
-        usage: {
-          prompt_tokens: 10,
-          completion_tokens: 15,
-          total_tokens: 25,
-        },
-      });
+      res.send(openAiChatCompletion(model));
     }
   });
 

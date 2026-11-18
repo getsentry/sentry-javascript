@@ -1,7 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
+import {
+  anthropicMessage,
+  anthropicMessageStream,
+  startMockServer,
+  streamSseEvents,
+} from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
@@ -18,30 +23,7 @@ function startMockAnthropicServer() {
     // Check if streaming is requested
     if (req.body.stream === true) {
       // Send streaming events
-      const events = [
-        {
-          type: 'message_start',
-          message: {
-            id: 'msg_stream123',
-            type: 'message',
-            role: 'assistant',
-            model,
-            content: [],
-            usage: { input_tokens: 10 },
-          },
-        },
-        { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
-        { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Hello ' } },
-        { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'from ' } },
-        { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'stream!' } },
-        { type: 'content_block_stop', index: 0 },
-        {
-          type: 'message_delta',
-          delta: { stop_reason: 'end_turn', stop_sequence: null },
-          usage: { output_tokens: 15 },
-        },
-        { type: 'message_stop' },
-      ];
+      const events = anthropicMessageStream(model, { id: 'msg_stream123', content: ['Hello ', 'from ', 'stream!'] });
 
       streamSseEvents(res, events, { eventNames: true });
 
@@ -49,24 +31,7 @@ function startMockAnthropicServer() {
     }
 
     // Non-streaming response
-    res.send({
-      id: 'msg_mock123',
-      type: 'message',
-      model,
-      role: 'assistant',
-      content: [
-        {
-          type: 'text',
-          text: 'Hello from Anthropic mock!',
-        },
-      ],
-      stop_reason: 'end_turn',
-      stop_sequence: null,
-      usage: {
-        input_tokens: 10,
-        output_tokens: 15,
-      },
-    });
+    res.send(anthropicMessage(model));
   });
 
   return startMockServer(app);
