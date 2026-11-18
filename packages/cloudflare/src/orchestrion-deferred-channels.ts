@@ -34,9 +34,9 @@ interface DeferredChannelEvent {
 
 const DEFERRED = Symbol('sentryOrchestrionDeferred');
 
-// The queue is on the global marker, not in this module: a bundle can hold both builds of this module. Transformed
-// CommonJS packages (`express`, `mysql`) `require` the facade, so they defer through the CommonJS build, while the
-// request wrapper that flushes is usually the ES module build.
+// The queue is on the global marker, not in this module: a bundle can hold both builds of this module. A transformed
+// CommonJS package (`express`) `require`s the facade, so it defers through the CommonJS build, while the request
+// wrapper that flushes is usually the ES module build.
 function getDeferredEvents(): DeferredChannelEvent[] {
   const marker = (GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ??= {});
   return (marker.deferredChannelEvents ??= []) as DeferredChannelEvent[];

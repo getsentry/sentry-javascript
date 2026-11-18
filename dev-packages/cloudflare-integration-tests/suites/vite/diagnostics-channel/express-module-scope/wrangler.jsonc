@@ -1,5 +1,5 @@
 {
-  "name": "commonjs-module-scope-worker",
+  "name": "express-module-scope-worker",
   "compatibility_date": "2026-04-26",
   "main": "index.ts",
   "compatibility_flags": ["nodejs_compat"],
