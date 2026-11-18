@@ -20,6 +20,7 @@ import {
   getCodeInjectionPosition,
   isJsFile,
   stampDebugId,
+  getSourceMapFeatures,
 } from '../core/index';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -352,7 +353,7 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptio
     logger.warn('Running Sentry plugin from within a `node_modules` folder. Some features may not work.');
   }
 
-  const sourcemapsEnabled = options.sourcemaps?.disable !== true;
+  const { injectDebugIds, upload: uploadEnabled, stampEmittedFiles } = getSourceMapFeatures(options);
   const releaseInjectionCode = new CodeInjection();
   const chunkInjectionCode = new CodeInjection();
 
@@ -432,7 +433,7 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptio
   }
 
   function addCodeInjection(compiler: WebpackCompiler, injectRelease: boolean): void {
-    if ((!injectRelease || releaseInjectionCode.isEmpty()) && chunkInjectionCode.isEmpty() && !sourcemapsEnabled) {
+    if ((!injectRelease || releaseInjectionCode.isEmpty()) && chunkInjectionCode.isEmpty() && !injectDebugIds) {
       return;
     }
 
@@ -474,7 +475,7 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptio
                 codeToInject.append(releaseInjectionCode);
               }
               codeToInject.append(chunkInjectionCode);
-              if (sourcemapsEnabled) {
+              if (injectDebugIds) {
                 const hash = chunk.contentHash?.javascript ?? chunk.hash;
                 codeToInject.append(getDebugIdSnippet(hash ? stringToUUID(hash) : randomUUID()));
               }
@@ -556,9 +557,7 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptio
       // BannerPlugin prepends executable code before directive prologues.
       addCodeInjection(compiler, !releaseInHtml);
 
-      // The upload routine (which stamps debug IDs into temp copies of the artifacts) is skipped
-      // with `disable-upload`, so the emitted artifacts get stamped in the asset pipeline instead.
-      if (sourcemapsEnabled && options.sourcemaps?.disable === 'disable-upload') {
+      if (stampEmittedFiles) {
         const RawSource = compiler.webpack?.sources?.RawSource;
         // Right after source map generation (and thus after minification, which would strip the comment),
         // so later stages (real content hashing, subresource integrity) see the final assets.
@@ -615,7 +614,7 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptio
           const run = async (): Promise<void> => {
             try {
               await sentryBuildPluginManager.createRelease();
-              if (sourcemapsEnabled && options.sourcemaps?.disable !== 'disable-upload') {
+              if (uploadEnabled) {
                 const outputPath = compilation.outputOptions.path ?? path.resolve();
                 const buildArtifacts = Object.keys(compilation.assets).map(asset => path.join(outputPath, asset));
                 stagingHandedOver = true;

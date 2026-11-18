@@ -447,6 +447,38 @@ describe('validateOptions', () => {
     expect(mockedLogger.error).not.toHaveBeenCalled();
   });
 
+  describe('source map options', () => {
+    it.each([
+      [{ upload: false, disable: true }, /`sourcemaps\.disable` is ignored/],
+      [{ injectDebugIds: false, disable: 'disable-upload' }, /`sourcemaps\.disable` is ignored/],
+      [{ upload: true, injectDebugIds: false }, /`sourcemaps\.injectDebugIds` is `false`/],
+      [{ delete: true, deleteSourcemapsAfterUpload: false }, /`sourcemaps\.deleteSourcemapsAfterUpload` is ignored/],
+      [{ delete: false, filesToDeleteAfterUpload: ['dist/**/*.map'] }, /`sourcemaps\.filesToDeleteAfterUpload` still/],
+    ] as const)('warns about %j', (sourcemaps, message) => {
+      const options = { sourcemaps } as Partial<NormalizedOptions>;
+
+      expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(true);
+      expect(mockedLogger.warn).toHaveBeenCalledTimes(1);
+      expect(mockedLogger.warn).toHaveBeenCalledWith(expect.stringMatching(message), expect.any(String));
+    });
+
+    it.each([
+      { upload: false },
+      { injectDebugIds: false },
+      { upload: false, injectDebugIds: false },
+      { delete: false },
+      { disable: true, deleteSourcemapsAfterUpload: true },
+      { disable: true, delete: true },
+      { delete: true, filesToDeleteAfterUpload: ['extra/**'] },
+      { filesToDeleteAfterUpload: ['dist/**/*.map'] },
+    ] as const)('does not warn about %j', sourcemaps => {
+      const options = { sourcemaps } as Partial<NormalizedOptions>;
+
+      expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(true);
+      expect(mockedLogger.warn).not.toHaveBeenCalled();
+    });
+  });
+
   describe('multi-project validation', () => {
     it('should return `false` if project array is empty', () => {
       const options = { project: [] } as Partial<NormalizedOptions>;
