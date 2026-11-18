@@ -1,5 +1,5 @@
 {
-  "name": "nextjs-14-pages-dir",
+  "name": "nextjs-pages-dir",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -30,10 +30,15 @@
     "ts-node": "10.9.1"
   },
   "sentryTest": {
+    "baseVariant": {
+      "build-command": "pnpm test:build",
+      "label": "nextjs-pages-dir (next@14)",
+      "assert-command": "pnpm test:assert"
+    },
     "variants": [
       {
         "build-command": "pnpm test:build-15",
-        "label": "nextjs-14-pages-dir (next@15)"
+        "label": "nextjs-pages-dir (next@15)"
       }
     ],
     "optionalVariants": []

@@ -9,7 +9,7 @@ test('Sends exactly one segment span for a pages-router API route', async ({ req
 
   // Accumulate every matching span and assert on the total after a grace period. This predicate never
   // returns true, so the promise never resolves; we just let it collect while we wait out the grace period.
-  void waitForStreamedSpans('nextjs-14-pages-dir', spans => {
+  void waitForStreamedSpans('nextjs-pages-dir', spans => {
     for (const span of spans) {
       if (span.name === 'GET /api/endpoint' && span.is_segment) {
         apiRouteSegmentSpans.push(span.trace_id);
@@ -27,7 +27,7 @@ test('Sends exactly one segment span for a pages-router API route', async ({ req
 });
 
 test('Sends a well-formed span for a node-runtime pages-router API route', async ({ request }) => {
-  const spanPromise = waitForStreamedSpan('nextjs-14-pages-dir', span => {
+  const spanPromise = waitForStreamedSpan('nextjs-pages-dir', span => {
     return span.name === 'GET /api/endpoint' && span.is_segment;
   });
 

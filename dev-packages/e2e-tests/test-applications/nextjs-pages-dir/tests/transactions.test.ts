@@ -3,7 +3,7 @@ import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
 test('Sends a pageload span', async ({ page }) => {
-  const pageloadSpanPromise = waitForStreamedSpan('nextjs-14-pages-dir', span => {
+  const pageloadSpanPromise = waitForStreamedSpan('nextjs-pages-dir', span => {
     return getSpanOp(span) === 'pageload' && span.name === '/' && span.is_segment;
   });
 
@@ -36,7 +36,7 @@ test('Sends a navigation span', async ({ page }) => {
 
   await page.goto('/');
 
-  const clientNavigationSpanPromise = waitForStreamedSpan('nextjs-14-pages-dir', span => {
+  const clientNavigationSpanPromise = waitForStreamedSpan('nextjs-pages-dir', span => {
     return getSpanOp(span) === 'navigation' && span.name === '/user/[id]' && span.is_segment;
   });
 

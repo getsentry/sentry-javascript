@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('Should create a span for middleware', async ({ request }) => {
-  const middlewareSpanPromise = waitForStreamedSpan('nextjs-14-pages-dir', span => {
+  const middlewareSpanPromise = waitForStreamedSpan('nextjs-pages-dir', span => {
     return span.name === 'middleware GET' && span.is_segment;
   });
 
@@ -17,11 +17,11 @@ test('Should create a span for middleware', async ({ request }) => {
 });
 
 test('Faulty middlewares', async ({ request }) => {
-  const middlewareSpanPromise = waitForStreamedSpan('nextjs-14-pages-dir', span => {
+  const middlewareSpanPromise = waitForStreamedSpan('nextjs-pages-dir', span => {
     return span.name === 'middleware GET' && span.is_segment;
   });
 
-  const errorEventPromise = waitForError('nextjs-14-pages-dir', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-pages-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Middleware Error';
   });
 
@@ -50,7 +50,7 @@ test('Should trace outgoing fetch requests inside middleware', async ({ request 
   // The fetch span is a child of the middleware segment span, which ends last, so accumulate until
   // the segment arrives.
   const spansPromise = collectStreamedSpans(
-    'nextjs-14-pages-dir',
+    'nextjs-pages-dir',
     spans =>
       spans.some(span => span.name === 'middleware GET' && span.is_segment) &&
       spans.some(span => getSpanOp(span) === 'http.client'),

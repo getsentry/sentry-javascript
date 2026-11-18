@@ -5,7 +5,7 @@ import { isDevMode } from './isDevMode';
 test('lastEventId() should return the event ID after captureUnderscoreErrorException', async ({ page }) => {
   test.skip(isDevMode, 'should be skipped for non-dev mode');
 
-  const errorEventPromise = waitForError('nextjs-14-pages-dir', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-pages-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Test error to trigger _error.tsx page';
   });
 
@@ -38,7 +38,7 @@ test('lastEventId() should return the event ID after captureUnderscoreErrorExcep
 test('lastEventId() should return the event ID for component render errors', async ({ page }) => {
   test.skip(isDevMode, 'should be skipped for non-dev mode');
 
-  const errorEventPromise = waitForError('nextjs-14-pages-dir', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-pages-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Test render error to trigger _error.tsx page';
   });
 

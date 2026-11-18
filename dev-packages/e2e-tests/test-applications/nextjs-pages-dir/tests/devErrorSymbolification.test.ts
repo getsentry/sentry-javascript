@@ -6,7 +6,7 @@ test('should have symbolicated dev errors', async ({ page }) => {
 
   await page.goto('/');
 
-  const errorEventPromise = waitForError('nextjs-14-pages-dir', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-pages-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Click Error';
   });
 

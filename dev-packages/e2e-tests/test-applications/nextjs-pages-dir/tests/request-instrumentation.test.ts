@@ -5,7 +5,7 @@ import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 // Sometimes the request span was included in the handler span, more often it wasn't. I have no idea why. Maybe one day we will
 // figure it out. Today is not that day.
 test.skip('Should send a http span', async ({ request }) => {
-  const spansPromise = collectStreamedSpansUntilSegment('nextjs-14-pages-dir', 'GET /api/request-instrumentation');
+  const spansPromise = collectStreamedSpansUntilSegment('nextjs-pages-dir', 'GET /api/request-instrumentation');
 
   await request.get('/api/request-instrumentation');
 
