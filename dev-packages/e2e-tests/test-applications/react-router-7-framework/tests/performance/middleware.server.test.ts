@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test.describe('server - middleware', () => {
   test('should send middleware span on pageload', async ({ page }) => {
     const serverSpansPromise = collectStreamedSpans(

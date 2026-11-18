@@ -3,6 +3,8 @@ import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { getSpanOp, waitForStreamedSpan, waitForStreamedSpans } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test.describe('low-quality span filter', () => {
   test('does not send a server span for /__manifest? requests', async ({ page }) => {
     const streamedSpans: SerializedStreamedSpan[] = [];

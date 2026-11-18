@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
+
 test.describe('server - redis db spans', () => {
   test('server loader emits db.query child spans on the http.server transaction', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {

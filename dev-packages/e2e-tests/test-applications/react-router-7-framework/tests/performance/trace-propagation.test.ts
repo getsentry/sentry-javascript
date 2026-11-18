@@ -3,6 +3,8 @@ import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { getSpanOp, waitForStreamedSpans } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test.describe('Trace propagation', () => {
   test('should inject metatags in ssr pageload', async ({ page }) => {
     await page.goto(`/`);

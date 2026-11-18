@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test.describe('client - navigation performance', () => {
   test('should create navigation span', async ({ page }) => {
     const navigationSpanPromise = waitForStreamedSpan(APP_NAME, span => {

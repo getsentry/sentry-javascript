@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test.describe('server - redis db spans', () => {
   test('server loader emits db.query child spans on the http.server segment', async ({ page }) => {
     const spansPromise = collectStreamedSpans(
