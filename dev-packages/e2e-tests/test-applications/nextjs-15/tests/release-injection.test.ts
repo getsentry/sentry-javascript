@@ -1,14 +1,20 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { HTTP_SERVER, PAGELOAD } from '@sentry/conventions/op';
 
-test('sends App Router pageload spans with the release', async ({ page }) => {
+test('sends App Router server and pageload spans with the release', async ({ page }) => {
+  const serverSpanPromise = waitForStreamedSpan('nextjs-15', span => {
+    return span.name === 'GET /pageload-tracing' && getSpanOp(span) === HTTP_SERVER && span.is_segment;
+  });
   const pageloadSpanPromise = waitForStreamedSpan('nextjs-15', span => {
-    return span.name === '/pageload-tracing' && getSpanOp(span) === 'pageload' && span.is_segment;
+    return span.name === '/pageload-tracing' && getSpanOp(span) === PAGELOAD && span.is_segment;
   });
 
   await page.goto('/pageload-tracing');
 
-  expect((await pageloadSpanPromise).attributes['sentry.release']?.value).toBe('foobar123');
+  const [serverSpan, pageloadSpan] = await Promise.all([serverSpanPromise, pageloadSpanPromise]);
+  expect(serverSpan.attributes['sentry.release']?.value).toBe('foobar123');
+  expect(pageloadSpan.attributes['sentry.release']?.value).toBe('foobar123');
 });
 
 test('sends Pages Router client errors with the release', async ({ page }) => {
