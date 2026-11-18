@@ -130,10 +130,12 @@ export {
 } from './utils/spanUtils';
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
 export { parseSampleRate } from './utils/parseSampleRate';
-export { applySdkMetadata } from './utils/sdkMetadata';
+export { applySdkMetadata, captureOptionsSetByUser as _INTERNAL_captureOptionsSetByUser } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
 export { matchesTracePropagationTargets, shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
-export { getTraceMetaTags } from './utils/meta';
+export { getTraceMetaTags, RELEASE_META_TAG_NAME as _INTERNAL_RELEASE_META_TAG_NAME } from './utils/meta';
+export { _INTERNAL_CACHE_ORIGIN_META_TAG_NAME, _INTERNAL_RENDER_START_META_TAG_NAME } from './utils/cacheOrigin';
+export { getTraceServerTimingHeader, isSharedCacheable } from './utils/serverTiming';
 export { debounce } from './utils/debounce';
 export { uniq } from './utils/array';
 export { makeWeakRef, derefWeakRef } from './utils/weakRef';
@@ -146,6 +148,7 @@ export {
   httpRequestToRequestData,
   extractQueryParamsFromUrl,
   headersToDict,
+  getHostFromHeaders,
   httpHeadersToSpanAttributes,
   getContentLengthFromHeaders,
   getMaxBodyByteLength,
@@ -164,6 +167,7 @@ export { requestDataIntegration } from './integrations/requestdata';
 export { captureConsoleIntegration } from './integrations/captureconsole';
 export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
+export { experimentalReportSdkConfigIntegration } from './integrations/reportSdkConfig';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { supabaseIntegration, instrumentSupabaseClient } from './integrations/supabase';
 export { zodErrorsIntegration } from './integrations/zoderrors';
@@ -299,6 +303,7 @@ export {
   generateSentryTraceHeader,
   isContinuingTrace,
   propagationContextFromHeaders,
+  sentryTraceFromTraceparent,
   shouldContinueTrace,
   generateTraceparentHeader,
 } from './utils/tracing';
@@ -563,4 +568,5 @@ export {
   safeDateNow as _INTERNAL_safeDateNow,
 } from './utils/randomSafeContext';
 export { warnOnRemovedBuildOptions } from './build-time-plugins/warnOnRemovedBuildOptions';
+export { stringifyForCodeInjection } from './build-time-plugins/stringifyForCodeInjection';
 export { startSpan, startInactiveSpan, startSpanManual } from './tracing/trace';

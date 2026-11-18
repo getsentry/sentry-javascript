@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import { tmpdir } from 'node:os';
+import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
 
 const WORK_ITEMS = [
   { id: 'work_vienna', type: 'work', environment_id: 'env_1', data: { type: 'session', id: 'sesn_vienna' } },
@@ -19,7 +20,7 @@ const STREAM_EVENTS = {
   ],
 };
 
-function startMockServer(onAllStopped) {
+function startMockApi(onAllStopped) {
   const app = express();
   app.use(express.json());
 
@@ -47,18 +48,8 @@ function startMockServer(onAllStopped) {
     res.json({ id: req.params.sessionId, type: 'session', resources: [] });
   });
   app.get('/anthropic/v1/sessions/:sessionId/events/stream', (req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
-
     const events = STREAM_EVENTS[req.params.sessionId];
-    events.forEach((event, index) => {
-      setTimeout(() => {
-        res.write(`event: ${event.type}\n`);
-        res.write(`data: ${JSON.stringify(event)}\n\n`);
-        if (index === events.length - 1) {
-          res.end();
-        }
-      }, index * 10);
-    });
+    streamSseEvents(res, events, { eventNames: true });
   });
   app.get('/anthropic/v1/sessions/:sessionId/events', (_req, res) => {
     res.json({ data: [], next_page: null });
@@ -67,20 +58,16 @@ function startMockServer(onAllStopped) {
     res.json({ data: [] });
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
   const controller = new AbortController();
-  const server = await startMockServer(() => controller.abort());
+  const server = await startMockApi(() => controller.abort());
 
   const client = new Anthropic({
     apiKey: 'mock-api-key',
-    baseURL: `http://localhost:${server.address().port}/anthropic`,
+    baseURL: `${server.url}/anthropic`,
   });
   const worker = client.beta.environments.work.worker({
     environmentId: 'env_1',

@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import { initChatModel } from 'langchain';
+import { openAiChatCompletion, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockOpenAIServer() {
   const app = express();
@@ -22,40 +23,21 @@ function startMockOpenAIServer() {
     }
 
     // Simulate OpenAI response
-    res.json({
-      id: 'chatcmpl-init-test-123',
-      object: 'chat.completion',
-      created: 1677652288,
-      model: model,
-      system_fingerprint: 'fp_44709d6fcb',
-      choices: [
-        {
-          index: 0,
-          message: {
-            role: 'assistant',
-            content: 'Hello from initChatModel!',
-          },
-          finish_reason: 'stop',
-        },
-      ],
-      usage: {
-        prompt_tokens: 8,
-        completion_tokens: 12,
-        total_tokens: 20,
-      },
-    });
+    res.json(
+      openAiChatCompletion(model, {
+        id: 'chatcmpl-init-test-123',
+        content: 'Hello from initChatModel!',
+        usage: { prompt_tokens: 8, completion_tokens: 12 },
+      }),
+    );
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
   const server = await startMockOpenAIServer();
-  const baseUrl = `http://localhost:${server.address().port}/v1`;
+  const baseUrl = `${server.url}/v1`;
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     // Set OpenAI API key in environment

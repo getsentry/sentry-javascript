@@ -25,5 +25,14 @@
   "dependencies": {
     "solid-js": "^1.8.18",
     "@sentry/solid": "file:../../packed/sentry-solid-packed.tgz"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build",
+        "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert",
+        "label": "solid (static trace lifecycle)"
+      }
+    ]
   }
 }

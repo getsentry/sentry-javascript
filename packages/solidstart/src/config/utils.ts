@@ -1,3 +1,5 @@
+import { stringifyForCodeInjection } from '@sentry/core';
+
 export const SENTRY_WRAPPED_ENTRY = '?sentry-query-wrapped-entry';
 export const SENTRY_WRAPPED_FUNCTIONS = '?sentry-query-wrapped-functions=';
 export const SENTRY_REEXPORTED_FUNCTIONS = '?sentry-query-reexported-functions=';
@@ -61,7 +63,7 @@ export function constructFunctionReExport(pathWithQuery: string, entryId: string
       (functionsCode, currFunctionName) =>
         functionsCode.concat(
           `async function ${currFunctionName}_sentryWrapped(...args) {\n` +
-            `  const res = await import(${JSON.stringify(entryId)});\n` +
+            `  const res = await import(${stringifyForCodeInjection(entryId)});\n` +
             `  return res.${currFunctionName}.call(this, ...args);\n` +
             '}\n' +
             `export { ${currFunctionName}_sentryWrapped as ${currFunctionName} };\n`,
@@ -71,7 +73,7 @@ export function constructFunctionReExport(pathWithQuery: string, entryId: string
     .concat(
       reexportFunctions.reduce(
         (functionsCode, currFunctionName) =>
-          functionsCode.concat(`export { ${currFunctionName} } from ${JSON.stringify(entryId)};`),
+          functionsCode.concat(`export { ${currFunctionName} } from ${stringifyForCodeInjection(entryId)};`),
         '',
       ),
     );

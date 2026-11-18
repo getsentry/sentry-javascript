@@ -1,11 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-const usesManagedTunnelRoute =
-  (process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off') !== 'off' || process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1';
-
-test.skip(usesManagedTunnelRoute, 'Default e2e suites run only in the proxy variant');
-
 test('Sends a server function transaction with auto-instrumentation', async ({ page }) => {
   const transactionEventPromise = waitForTransaction('tanstackstart-react-static', transactionEvent => {
     return (
@@ -35,8 +30,7 @@ test('Sends a server function transaction with auto-instrumentation', async ({ p
           'sentry.origin': 'auto.function.tanstackstart.server',
           'code.function.name': 'testLog',
           'http.request.method': 'GET',
-          'tanstackstart.function.id': expect.any(String),
-          'tanstackstart.function.filename': 'app/routes/test-serverFn.tsx',
+          'code.file.path': 'app/routes/test-serverFn.tsx',
         },
         status: 'ok',
       }),
@@ -44,9 +38,7 @@ test('Sends a server function transaction with auto-instrumentation', async ({ p
   );
 });
 
-test('Sends a server function transaction for a nested server function only if it is manually instrumented', async ({
-  page,
-}) => {
+test('Sends a server function transaction for a nested server function', async ({ page }) => {
   const transactionEventPromise = waitForTransaction('tanstackstart-react-static', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
@@ -76,8 +68,7 @@ test('Sends a server function transaction for a nested server function only if i
           'sentry.origin': 'auto.function.tanstackstart.server',
           'code.function.name': 'testNestedLog',
           'http.request.method': 'GET',
-          'tanstackstart.function.id': expect.any(String),
-          'tanstackstart.function.filename': 'app/routes/test-serverFn.tsx',
+          'code.file.path': 'app/routes/test-serverFn.tsx',
         },
         status: 'ok',
       }),
@@ -95,19 +86,27 @@ test('Sends a server function transaction for a nested server function only if i
     ]),
   );
 
-  // Verify that globalFunctionMiddleware and testNestedLog are sibling spans under the root
-  const functionMiddlewareSpan = transactionEvent?.spans?.find(
-    (span: { description?: string; origin?: string }) =>
-      span.description === 'globalFunctionMiddleware' && span.origin === 'auto.middleware.tanstackstart',
-  );
-  const nestedSpan = transactionEvent?.spans?.find(
-    (span: { description?: string; origin?: string }) =>
-      span.description === 'testNestedLog' && span.origin === 'manual',
+  const outerSpan = transactionEvent?.spans?.find(span => span.description === 'GET /_serverFn/testNestedLog');
+  const manualSpan = transactionEvent?.spans?.find(
+    span => span.description === 'testNestedLog' && span.origin === 'manual',
   );
 
-  expect(functionMiddlewareSpan).toBeDefined();
-  expect(nestedSpan).toBeDefined();
+  expect(manualSpan?.parent_span_id).toBe(outerSpan?.span_id);
 
-  // Both spans should be siblings under the same parent (root transaction)
-  expect(nestedSpan?.parent_span_id).toBe(functionMiddlewareSpan?.parent_span_id);
+  // The server function called inside the manual span gets its own span
+  expect(transactionEvent?.spans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        description: 'GET /_serverFn/testLog',
+        origin: 'auto.function.tanstackstart.server',
+        parent_span_id: manualSpan?.span_id,
+        status: 'ok',
+      }),
+      expect.objectContaining({
+        description: 'globalFunctionMiddleware',
+        origin: 'auto.middleware.tanstackstart',
+        parent_span_id: outerSpan?.span_id,
+      }),
+    ]),
+  );
 });

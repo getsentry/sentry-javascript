@@ -6,10 +6,8 @@
     "start": "docker compose up -d --wait && deno run --allow-net --allow-env --allow-read --allow-sys --allow-write --preload=@sentry/deno/import src/app.ts",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
-    "test:build": "pnpm install",
-    "test:assert": "pnpm test",
-    "test:build:static": "E2E_TEST_STATIC=true pnpm install",
-    "test:assert:static": "E2E_TEST_STATIC=true pnpm test"
+    "test:build": "pnpm install && docker compose pull --quiet",
+    "test:assert": "pnpm test"
   },
   "dependencies": {
     "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
@@ -28,8 +26,7 @@
   "sentryTest": {
     "variants": [
       {
-        "build-command": "pnpm test:build:static",
-        "assert-command": "pnpm test:assert:static",
+        "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert",
         "label": "deno (static trace lifecycle)"
       }
     ],

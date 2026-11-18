@@ -28,6 +28,7 @@ import {
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT } from '@sentry/conventions/op';
+import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
 import { PI_AI_ORIGIN } from './constants';
 import type { PiAiContext } from './messages';
 import {
@@ -37,7 +38,7 @@ import {
   piAiSystemInstructions,
   piAiToolDefinitions,
 } from './messages';
-import type { PiAssistantMessage, PiModel, PiStreamOptions } from './types';
+import type { PiAssistantMessage, PiEventStream, PiModel, PiStreamOptions } from './types';
 import { setPiAiUsageAttributes } from './usage';
 
 interface PiAiChatRequest {
@@ -116,5 +117,25 @@ function getRequestContentAttributes(context: PiAiContext): Record<string, strin
     [GEN_AI_SYSTEM_INSTRUCTIONS]: piAiSystemInstructions(context),
     [GEN_AI_INPUT_MESSAGES]: messages.length ? stringify(messages) : undefined,
     [GEN_AI_TOOL_DEFINITIONS]: tools.length ? stringify(tools) : undefined,
+  };
+}
+
+/**
+ * Records `gen_ai.response.time_to_first_chunk` for a streamed request. The stream has one consumer,
+ * so instead of reading it, this wraps `push`, which the provider calls for each event as it decodes
+ * it. The wrapper is removed after the first chunk.
+ */
+export function observePiAiFirstChunk(span: Span, events: Partial<PiEventStream> | undefined): void {
+  const push = events?.push;
+  if (!events || typeof push !== 'function') {
+    return;
+  }
+  events.push = function (this: unknown, event: unknown) {
+    // Providers push `start` before the response arrives.
+    if ((event as { type?: unknown } | undefined)?.type !== 'start') {
+      recordTimeToFirstChunk(span);
+      events.push = push;
+    }
+    return push.call(this, event);
   };
 }

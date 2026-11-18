@@ -5,9 +5,6 @@ export default defineConfig({
   ...baseConfig,
   test: {
     ...baseConfig.test,
-    coverage: {
-      enabled: false,
-    },
     isolate: false,
     include: ['./suites/**/test.ts'],
     // Each test spawns its own `wrangler dev` (cold workerd boot) and waits for envelopes to be
@@ -25,8 +22,7 @@ export default defineConfig({
     // already run in their own processes. We use threads instead because the
     // overhead is significantly less.
     pool: 'threads',
-    // Run tests sequentially to avoid port conflicts with wrangler dev processes
-    maxWorkers: 1,
+    maxWorkers: 4,
     sequence: {
       shuffle: true,
     },

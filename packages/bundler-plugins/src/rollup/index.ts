@@ -1,4 +1,4 @@
-import type { ChunkGraphNode, Options } from '../core';
+import type { ChunkGraphNode, InternalOptions, Options } from '../core';
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
@@ -13,6 +13,7 @@ import {
   replaceBooleanFlagsInCode,
   CodeInjection,
   getCodeInjectionPosition,
+  getSourceMapFeatures,
 } from '../core';
 import type { ComponentAnnotationTransformMeta } from '../core/component-annotation-oxc';
 import type { SourceMap } from 'magic-string';
@@ -23,6 +24,11 @@ import { finalizeRolldownDebugIds, getDebugIdForChunk, hasExistingDebugID } from
 import { stampDebugIds, type OutputBundle } from './debug-id-stamping';
 import { createSourceMapHandling, type OutputDestinationOptions } from './source-map-handling';
 import { createViteSourceMapHooks } from '../vite/source-map-hooks';
+import {
+  createViteReleaseHtmlInjection,
+  type BuildInputOptions,
+  type ViteHookContext,
+} from '../vite/release-html-injection';
 
 // The subset of Rollup's `TransformResult` that this plugin's `transform`
 // hook actually returns. Defined locally instead of imported from `rollup`
@@ -38,7 +44,7 @@ type ViteParseAstAsync = NonNullable<ViteModule['parseAstAsync']>;
 let viteParseAstAsyncPromise: Promise<ViteParseAstAsync | null> | undefined;
 
 // Rolldown sets `meta.rolldownVersion` on the plugin context.
-type PluginContext = { meta?: { rolldownVersion?: string } };
+type PluginContext = ViteHookContext & { meta?: { rolldownVersion?: string } };
 
 const JS_MODULE_ID_FILTER = /\.[cm]?[jt]sx?(?:[?#].*)?$/;
 
@@ -91,7 +97,7 @@ function getViteParseAstAsync(): Promise<ViteParseAstAsync | null> {
  */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function _createRollupPluginInternals(
-  userOptions: Options = {},
+  userOptions: InternalOptions = {},
   buildTool: 'rollup' | 'vite',
   buildToolMajorVersion?: string,
 ) {
@@ -124,7 +130,7 @@ export function _createRollupPluginInternals(
 
   const freeGlobalDependencyOnBuildArtifacts = createDependencyOnBuildArtifacts();
   const upload = createDebugIdUploadFunction({ sentryBuildPluginManager });
-  const sourcemapsEnabled = options.sourcemaps?.disable !== true;
+  const { injectDebugIds, upload: uploadEnabled, stampEmittedFiles } = getSourceMapFeatures(options);
   const sourceMapHandling = createSourceMapHandling(sentryBuildPluginManager);
   const releaseInjectionCode = new CodeInjection();
   const chunkInjectionCode = new CodeInjection();
@@ -148,6 +154,17 @@ export function _createRollupPluginInternals(
     chunkInjectionCode.append(generateModuleMetadataInjectorCode(bundleMetadata));
   }
 
+  const releaseHtmlInjection =
+    options.release.inject === 'html' && buildTool === 'vite' && !releaseInjectionCode.isEmpty()
+      ? createViteReleaseHtmlInjection(releaseInjectionCode, logger)
+      : undefined;
+
+  if (options.release.inject === 'html' && buildTool === 'rollup') {
+    logger.warn(
+      "`release.inject: 'html'` is not supported by the Rollup plugin, because Rollup does not emit HTML. Injecting the release into the startup chunks instead.",
+    );
+  }
+
   const transformAnnotations = options.reactComponentAnnotation?.enabled
     ? createComponentNameAnnotateHooks(
         options.reactComponentAnnotation?.ignoredComponents || [],
@@ -163,7 +180,9 @@ export function _createRollupPluginInternals(
   const transformReplace = Object.keys(replacementValues).length > 0;
   const shouldTransform = transformAnnotations || transformReplace;
 
-  function buildStart(): void {
+  function buildStart(this: ViteHookContext | undefined, inputOptions?: BuildInputOptions): void {
+    releaseHtmlInjection?.buildStart(this, inputOptions);
+
     void sentryBuildPluginManager.telemetry.emitBundlerPluginExecutionSignal().catch(() => {
       // Telemetry failures are acceptable
     });
@@ -211,13 +230,13 @@ export function _createRollupPluginInternals(
 
     const injectCode = new CodeInjection();
 
-    if (isInitialChunk(chunk, meta?.chunks)) {
+    if (!releaseHtmlInjection?.inHtml(this) && isInitialChunk(chunk, meta?.chunks)) {
       injectCode.append(releaseInjectionCode);
     }
 
     injectCode.append(chunkInjectionCode);
 
-    if (sourcemapsEnabled && !hasExistingDebugID(code)) {
+    if (injectDebugIds && !hasExistingDebugID(code)) {
       const debugId = getDebugIdForChunk(code, !!this?.meta?.rolldownVersion);
       injectCode.append(getDebugIdSnippet(debugId));
     }
@@ -248,17 +267,16 @@ export function _createRollupPluginInternals(
    * Resolves Rolldown's placeholder debug IDs, then stamps debug IDs into the emitted chunks and
    * source maps.
    *
-   * `disable-upload` skips the upload routine (which stamps debug IDs into temp copies), so the emitted
-   * artifacts get stamped here instead. Not in `renderChunk`: minifiers running after it would strip the
-   * comment. Rollup computes `[hash]` file names before this hook, so only plugins that hash the final
-   * assets afterwards (e.g. subresource integrity) see the stamped content.
+   * Without an upload the emitted artifacts get stamped here. Not in `renderChunk`: minifiers running
+   * after it would strip the comment. Rollup computes `[hash]` file names before this hook, so only
+   * plugins that hash the final assets afterwards (e.g. subresource integrity) see the stamped content.
    */
   function generateBundle(this: PluginContext | undefined, _outputOptions: unknown, bundle: OutputBundle): void {
     if (this?.meta?.rolldownVersion) {
       finalizeRolldownDebugIds(bundle);
     }
 
-    if (options.sourcemaps?.disable !== 'disable-upload') {
+    if (!stampEmittedFiles) {
       return;
     }
 
@@ -272,7 +290,7 @@ export function _createRollupPluginInternals(
     try {
       await sentryBuildPluginManager.createRelease();
 
-      if (sourcemapsEnabled && options.sourcemaps?.disable !== 'disable-upload') {
+      if (uploadEnabled) {
         let buildArtifacts: string[];
         if (outputOptions.dir) {
           const outputDir = outputOptions.dir;
@@ -326,8 +344,9 @@ export function _createRollupPluginInternals(
     buildStart,
     ...(shouldTransform ? { transform: transformHook } : {}),
     ...(viteSourceMapHooks
-      ? { configResolved: viteSourceMapHooks.configResolved }
+      ? { configResolved: viteSourceMapHooks.configResolved, outputOptions: viteSourceMapHooks.outputOptions }
       : { outputOptions: sourceMapHandling.outputOptions }),
+    ...(releaseHtmlInjection ? { transformIndexHtml: releaseHtmlInjection.transformIndexHtml } : {}),
     renderChunk,
     generateBundle: { order: 'pre' as const, handler: generateBundle },
     writeBundle,
@@ -341,7 +360,7 @@ export function _createRollupPluginInternals(
     generateBundle: {
       order: 'post' as const,
       async handler(outputOptions: OutputDestinationOptions, bundle: OutputBundle, isWrite?: boolean): Promise<void> {
-        if (buildTool === 'vite' && options.sourcemaps?.disable === 'disable-upload') {
+        if (buildTool === 'vite' && stampEmittedFiles) {
           // Vite's module preload rewrite in `generateBundle` regenerates the source map of every
           // chunk with a dynamic import, which drops the debug ID the main plugin stamped in its
           // `pre` hook. Restore it without touching the chunk code, so file hashes stay valid.

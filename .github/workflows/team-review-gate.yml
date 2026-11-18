@@ -1,0 +1,41 @@
+name: 'PR: Team review gate'
+
+on:
+  # pull_request_target so a PR can't change the gate. It only checks out the base branch, never the PR's code.
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - labeled
+      - unlabeled
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  team-review-gate:
+    name: Team review gate
+    runs-on: ubuntu-24.04
+    # A skipped job counts as passing for required checks, so other PRs aren't blocked.
+    if: github.event.pull_request.user.login == 'sentry-junior[bot]'
+    steps:
+      - name: Checkout base branch
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            scripts/team-review-gate.mjs
+            scripts/junior-requesters.mjs
+          sparse-checkout-cone-mode: false
+
+      - name: Check for pending team review
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { enforceTeamReviewGate } = await import('${{ github.workspace }}/scripts/team-review-gate.mjs');
+            await enforceTeamReviewGate({ github, context, core });

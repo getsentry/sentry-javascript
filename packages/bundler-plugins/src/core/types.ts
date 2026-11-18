@@ -112,6 +112,49 @@ export interface Options {
    */
   sourcemaps?: {
     /**
+     * Whether the plugin uploads source maps to Sentry.
+     *
+     * With `false` the plugin uploads nothing, but it still injects debug IDs: the bundles get the debug ID snippet and
+     * a `//# debugId=` comment, and the emitted source maps get the matching `debug_id` field. Use this to upload the
+     * source maps yourself later, for example with `sentry sourcemap upload`. No `inject` step is needed.
+     *
+     * With `false` the plugin only turns source maps on when `sourcemaps.delete` is `false`.
+     *
+     * @default true
+     */
+    upload?: boolean;
+
+    /**
+     * Whether the plugin injects debug IDs into the bundles and their source maps.
+     *
+     * With `false` the plugin adds no debug IDs and uploads no source maps, because the upload matches files by debug
+     * ID. Use this when another tool injects the debug IDs and uploads the source maps, for example the Sentry CLI.
+     *
+     * @default true
+     */
+    injectDebugIds?: boolean;
+
+    /**
+     * Whether source maps are removed from the build output.
+     *
+     * - Unset: the plugin removes the source maps it turned on itself, that is, when the bundler's source map setting
+     *   was not set. Source maps you turned on stay.
+     * - `true`: the plugin removes every source map of the build, also the ones you turned on, and also those of
+     *   chunks that `sourcemaps.assets` or `sourcemaps.ignore` keep out of the upload. Visible source maps are
+     *   switched to hidden ones, so that no `sourceMappingURL` comment points to a removed file.
+     * - `false`: the plugin removes no source map. When the bundler's source map setting is not set, the plugin turns
+     *   hidden source maps on and they stay in the build output.
+     *
+     * `true` and `false` do not depend on an upload. They also apply when the upload is switched off, when it cannot
+     * run (for example without an auth token) and when it fails.
+     *
+     * With Rollup, Vite and webpack the removed source maps are never written to the output directory. With esbuild
+     * they are deleted after the build.
+     */
+    delete?: boolean;
+
+    // TODO(v12): Remove `disable`. `upload` and `injectDebugIds` replace it.
+    /**
      * Disables all functionality related to sourcemaps if set to `true`.
      *
      * If set to `"disable-upload"`, the plugin will not upload sourcemaps to Sentry, but will still inject debug IDs
@@ -204,6 +247,10 @@ export interface Options {
      * `sourcemaps.assets` or `sourcemaps.ignore` keep out of the upload. Source maps you enabled yourself are only
      * removed for the JavaScript chunks that were uploaded; excluded chunks keep theirs.
      *
+     * `true` removes source maps you enabled yourself even when no upload runs, for example without an auth token.
+     * With `sourcemaps.disable` set, the plugin keeps them for a manual upload and warns. The plugin does not turn
+     * source maps on when it cannot upload them.
+     *
      * With webpack's array form of `devtool`, `true` replaces the array with one hidden source map setting for
      * all asset types, because webpack hides the array from plugins.
      *
@@ -235,9 +282,23 @@ export interface Options {
     /**
      * Whether the plugin should inject release information into the build for the SDK to pick it up when sending events. (recommended)
      *
+     * The plugin injects the release into the chunks that load at startup. The release name usually changes on every
+     * commit, so these chunks get new content hashes, and new file names, on every release, even when their code did not
+     * change. The chunks that import them get new file names too, so returning visitors download all of them again.
+     *
+     * To keep these file names stable, set this to `'html'`. The plugin then adds the release to the `<head>` of each
+     * emitted HTML page, in an inline `<script>`, and not to any chunk. The Vite plugin supports this for builds with
+     * HTML entry points, and the webpack plugin for builds that generate their HTML with `html-webpack-plugin`. A
+     * Content Security Policy must allow the inline script, for example with Vite's `html.cspNonce` or a hash of the
+     * script. Where the plugin cannot add the release to HTML, it warns and injects it into the startup chunks.
+     *
+     * You can also set this to `false` and pass `release` to `Sentry.init` at runtime, from a value that is not part of
+     * your bundled code. A release written into bundled code, for example with `define`, changes the content hashes in
+     * the same way.
+     *
      * Defaults to `true`.
      */
-    inject?: boolean;
+    inject?: boolean | 'html';
 
     /**
      * Whether the plugin should create a release on Sentry during the build.
@@ -668,3 +729,24 @@ type DeployOptions = {
 };
 
 export type HandleRecoverableErrorFn = (error: unknown, throwByDefault: boolean) => void;
+
+/**
+ * @internal For Sentry SDK packages only. It can change in any release.
+ *
+ * Like `Options`, but `sourcemaps.deleteSourcemapsAfterUpload` can also be a function, and
+ * `sourcemaps.sdkEnabledSourceMaps` is added. The plugin calls the functions when it decides how
+ * to treat the bundler's source map setting, so an SDK can give a value that it only knows after it
+ * created the plugin. Vite passes the name of an environment with its own `build.sourcemap`, and
+ * `undefined` for the top-level `build.sourcemap`.
+ */
+export type InternalOptions = Omit<Options, 'sourcemaps'> & {
+  sourcemaps?: Omit<NonNullable<Options['sourcemaps']>, 'deleteSourcemapsAfterUpload'> & {
+    deleteSourcemapsAfterUpload?: boolean | ((environment?: string) => boolean | undefined);
+    /**
+     * The SDK turned on the bundler's source maps. With `deleteSourcemapsAfterUpload: true` the
+     * plugin then removes them like source maps it turned on itself: all of them, also those of CSS
+     * and of chunks that the upload leaves out.
+     */
+    sdkEnabledSourceMaps?: boolean | ((environment?: string) => boolean | undefined);
+  };
+};

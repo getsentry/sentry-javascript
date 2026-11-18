@@ -21,6 +21,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_GENERATE_CONTENT, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { getStringAttributeValue } from '../../../../utils';
@@ -692,6 +693,41 @@ describe('Vercel AI integration (v4)', () => {
             expect(generateContentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.streamText.doStream');
           },
         })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-stream-object.mjs', 'instrument-streamed.mjs', (createRunner, test) => {
+    test('creates ai spans for streamObject (doStream)', async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === expectedOrigin);
+            expect(spans).toHaveLength(2);
+
+            const invokeAgentSpan = spans.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT)!;
+            expect(invokeAgentSpan.status).toBe('ok');
+            expect(invokeAgentSpan.attributes[SENTRY_OP].value).toBe(GEN_AI_INVOKE_AGENT);
+            expect(invokeAgentSpan.attributes[SENTRY_ORIGIN].value).toBe(expectedOrigin);
+            expect(invokeAgentSpan.attributes['vercel.ai.operationId'].value).toBe('ai.streamObject');
+            expect(invokeAgentSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
+            expect(invokeAgentSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(25);
+            expect(invokeAgentSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(40);
+
+            const generateContentSpan = spans.find(
+              span => span.attributes[SENTRY_OP]?.value === GEN_AI_GENERATE_CONTENT,
+            )!;
+            expect(generateContentSpan.status).toBe('ok');
+            expect(generateContentSpan.parent_span_id).toBe(invokeAgentSpan.span_id);
+            expect(generateContentSpan.attributes['vercel.ai.operationId'].value).toBe('ai.streamObject.doStream');
+            expect(generateContentSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
+            expect(generateContentSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(25);
+          },
+        })
+        .unordered()
         .start()
         .completed();
     });

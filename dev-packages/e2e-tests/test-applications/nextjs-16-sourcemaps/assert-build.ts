@@ -1,0 +1,99 @@
+import * as assert from 'assert/strict';
+import {
+  loadMockServerResults,
+  getArtifactBundles,
+  getDebugIdPairs,
+  getSourcemaps,
+  getSourcemapSources,
+  getChunkUploadPosts,
+  getAssembleRequests,
+  findSourceMapFiles,
+  findSourceMappingUrlComments,
+  getRuntime,
+} from '@sentry-internal/test-utils';
+
+const requests = loadMockServerResults();
+
+console.log(`Captured ${requests.length} requests to mock Sentry server:\n`);
+for (const req of requests) {
+  console.log(`  ${req.method} ${req.url} (${req.bodySize} bytes)`);
+}
+console.log('');
+
+// Auth token is present
+const authenticated = requests.filter(r => r.authorization.includes('fake-auth-token'));
+assert.ok(authenticated.length > 0, 'Expected requests with the configured auth token');
+
+// Chunk uploads happened
+const chunkPosts = getChunkUploadPosts(requests);
+assert.ok(chunkPosts.length > 0, 'Expected at least one chunk upload POST');
+assert.ok(
+  chunkPosts.some(r => r.bodySize > 0),
+  'Expected at least one chunk upload with a non-empty body',
+);
+
+// The `sentry` CLI adds the runtime that runs it to its User-Agent, for example `bun/1.4.2`.
+const runtime = getRuntime();
+for (const req of chunkPosts) {
+  assert.match(req.requestHeaders['user-agent'] ?? '', new RegExp(` ${runtime}/`), `Expected ${runtime} to upload`);
+}
+
+// Release endpoint was called
+assert.ok(
+  requests.some(r => r.url?.includes('/releases/')),
+  'Expected at least one request to releases endpoint',
+);
+
+// Artifact bundles have manifests
+const bundles = getArtifactBundles(requests);
+assert.ok(bundles.length > 0, 'Expected at least one artifact bundle with a manifest');
+console.log(`Found ${bundles.length} artifact bundle(s)\n`);
+
+// Debug ID pairs exist and are valid UUIDs
+const debugIdPairs = getDebugIdPairs(bundles);
+assert.ok(debugIdPairs.length > 0, 'Expected at least one JS/sourcemap pair with matching debug IDs');
+
+const uuidRegex = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+for (const pair of debugIdPairs) {
+  assert.match(pair.debugId, uuidRegex, `Invalid debug ID: ${pair.debugId}`);
+  console.log(`  ${pair.debugId}  ${pair.jsUrl}`);
+}
+console.log('');
+
+// Sourcemaps have real content
+const sourcemaps = getSourcemaps(bundles);
+assert.ok(
+  sourcemaps.some(s => s.sourcemap.mappings && s.sourcemap.mappings.length > 0),
+  'Expected at least one sourcemap with non-empty mappings',
+);
+
+// At least one sourcemap references app source files.
+//
+// Via `getSourcemapSources`, because Turbopack emits indexed source maps: the app's paths sit in
+// `sections[].map.sources` and the top-level `sources` is empty, so reading the latter finds
+// nothing however well the upload worked.
+assert.ok(
+  sourcemaps.some(s => getSourcemapSources(s.sourcemap).some(src => /client-page|page\.tsx/.test(src))),
+  'Expected at least one sourcemap referencing app source files',
+);
+
+// Assemble requests reference the correct project
+const assembleReqs = getAssembleRequests(requests);
+assert.ok(assembleReqs.length > 0, 'Expected at least one assemble request');
+for (const req of assembleReqs) {
+  assert.ok(req.assembleBody?.projects?.includes('test-project'), 'Expected assemble request to include test-project');
+  assert.ok((req.assembleBody?.chunks?.length ?? 0) > 0, 'Expected assemble request to have chunk checksums');
+}
+
+// The browser loads everything under `.next/static`, so a map left there hands out the source.
+if (process.env.E2E_DELETE_SOURCEMAPS) {
+  const staticDir = '.next/static';
+  assert.deepEqual(findSourceMapFiles({ outputDir: staticDir }), [], `Expected no source maps in ${staticDir}`);
+  assert.deepEqual(
+    findSourceMappingUrlComments({ outputDir: staticDir }),
+    [],
+    `Expected no sourceMappingURL comments in ${staticDir}`,
+  );
+}
+
+console.log('All sourcemap upload assertions passed!');

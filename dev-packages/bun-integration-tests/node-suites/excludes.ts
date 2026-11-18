@@ -62,8 +62,9 @@ const NO_FETCH_INSTRUMENTATION = [
   'suites/tracing/requests/traceparent/test.ts',
 ];
 
-// `bun run` cannot inject the diagnostics channels into libraries, so framework, database and AI
-// instrumentation creates no spans. Apps must be built with `@sentry/bun/plugin`.
+// Before Bun 1.4.5, `bun run` cannot inject the diagnostics channels into libraries, so framework,
+// database and AI instrumentation creates no spans. Apps must be built with `@sentry/bun/plugin`.
+// The `node-suites-bun-build` and `node-suites-bun-run` projects run these suites.
 // See https://github.com/getsentry/sentry-javascript/issues/23882
 export const NO_AUTO_INSTRUMENTATION = [
   'suites/cron/cron-integration/test.ts',
@@ -86,6 +87,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/genericPool/test.ts',
   'suites/tracing/is-localhost/test.ts',
   'suites/tracing/google-genai-v2/test.ts',
+  'suites/tracing/google-genai-v3/test.ts',
   'suites/tracing/google-genai/test.ts',
   'suites/tracing/groq/test.ts',
   'suites/tracing/hapi/test.ts',
@@ -96,7 +98,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/langchain/**',
   'suites/tracing/langgraph/**',
   'suites/tracing/lru-memoizer/test.ts',
-  'suites/tracing/mastra/test.ts',
+  'suites/tracing/mastra/**',
   'suites/tracing/mcp-handler-exact-once/test.ts',
   'suites/tracing/mcp-server/**',
   'suites/tracing/mistral-v2/test.ts',
@@ -116,7 +118,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/mysql2-tracing-channel/test.ts',
   'suites/tracing/mysql2/test.ts',
   'suites/tracing/neon/test.ts',
-  'suites/tracing/openai/test.ts',
+  'suites/tracing/openai/v5/**',
   'suites/tracing/openai/v6/test.ts',
   'suites/tracing/openai/v7/test.ts',
   'suites/tracing/orchestrion-lazy-registration/test.ts',
@@ -173,6 +175,7 @@ const FETCH_INTEGRATION_DIFFERS = [
 // no effect. Its spans also differ: response headers become attributes, and there is no
 // `http.response.status_text`. And a server
 // that sets `emit` back to the `emit` it had before its first request gets no spans after that.
+// See https://github.com/getsentry/sentry-javascript/issues/26609
 const HTTP_SERVER_OPTIONS_IGNORED = [
   'suites/sessions/exited-session-aggregate/test.ts',
   'suites/sessions/server-without-process-session/test.ts',
@@ -228,39 +231,42 @@ const BUN_BUILD_NO_HTTP_SERVER_INTEGRATION = ['suites/express/multiple-init/test
 
 // `@mistralai/mistralai` v3 statically imports its optional peer `@livekit/rtc-node`, so Bun cannot
 // bundle the scenarios. `mistral-v2` still covers Mistral here.
-const BUN_BUILD_UNBUNDLEABLE_DEPENDENCY = ['suites/tracing/mistral/test.ts'];
+//
+// `mongodb` v3 loads `optional-require`, whose `require-at` dependency calls `eval("require")`. Bun's
+// ESM output gives a direct `eval` in a bundled CommonJS file no `require`, so the bundle throws
+// `require is not defined`. See https://github.com/oven-sh/bun/issues/14891
+const BUN_BUILD_UNBUNDLEABLE_DEPENDENCY = ['suites/tracing/mistral/test.ts', 'suites/tracing/mongodb/test.ts'];
 
 // Some or all tests fail with the bundled scenarios. The cause is not investigated yet. In
 // `express/tracing` only the request data tests fail: they set `httpIntegration` options, and with
 // `@sentry/bun` the request body comes from `bunHttpServerIntegration`.
 const BUN_BUILD_NOT_TRIAGED = [
   'suites/express/sentry-trace/test.ts',
-  'suites/express/tracing/test.ts',
+  'suites/express/tracing/routing/test.ts',
+  'suites/express/tracing/request-data/test.ts',
   'suites/express/with-http/**',
   'suites/hono-sdk/test.ts',
-  'suites/pino/test.ts',
   'suites/tracing/google-genai-v2/test.ts',
+  'suites/tracing/google-genai-v3/test.ts',
   'suites/tracing/google-genai/test.ts',
-  'suites/tracing/langchain/v1/test.ts',
+  'suites/tracing/langchain/v1/**',
   'suites/tracing/langgraph/v1/test.ts',
-  'suites/tracing/mastra/test.ts',
+  'suites/tracing/mastra/**',
   'suites/tracing/mcp-handler-exact-once/test.ts',
   'suites/tracing/mcp-server-streamed/test.ts',
   'suites/tracing/mongodb-v4/test.ts',
   'suites/tracing/mongodb-v5/test.ts',
   'suites/tracing/mongodb-v6/test.ts',
   'suites/tracing/mongodb-v7/test.ts',
-  'suites/tracing/mongodb/test.ts',
   'suites/tracing/mongoose-tracing-channel/test.ts',
   'suites/tracing/mongoose-v5/test.ts',
   'suites/tracing/mongoose-v7/test.ts',
   'suites/tracing/mongoose-v8/test.ts',
   'suites/tracing/mongoose-v9/test.ts',
   'suites/tracing/mongoose/test.ts',
-  'suites/tracing/mysql/test.ts',
   'suites/tracing/prisma-orm-v8/test.ts',
   'suites/tracing/together-ai/test.ts',
-  'suites/tracing/vercelai/v6_v7/test.ts',
+  'suites/tracing/vercelai/v6_v7/**',
 ];
 
 export const BUN_BUILD_EXCLUDE = [
@@ -271,4 +277,32 @@ export const BUN_BUILD_EXCLUDE = [
   ...BUN_BUILD_NO_HTTP_SERVER_INTEGRATION,
   ...BUN_BUILD_UNBUNDLEABLE_DEPENDENCY,
   ...BUN_BUILD_NOT_TRIAGED,
+];
+
+// The `bun run` project (`node-suites-bun-run`) runs the suites of `NO_AUTO_INSTRUMENTATION` with
+// `@sentry/bun/import` preloaded, on Bun 1.4.5 or later. These do not run there.
+
+// The scenarios pass the incoming-request options (`maxRequestBodySize`, `ignoreIncomingRequestBody`)
+// to `httpIntegration`. With `@sentry/bun`, `bunHttpServerIntegration` creates the `http.server` spans
+// and takes these options itself, so the tests that set them fail.
+// See https://github.com/getsentry/sentry-javascript/issues/26609
+const BUN_RUN_HTTP_INTEGRATION_OPTIONS_IGNORED = [
+  'suites/express/tracing/request-data/test.ts',
+  'suites/express/with-http/maxIncomingRequestBodySize/test.ts',
+];
+
+// The suite tests `@sentry/hono/node`, which builds on `@sentry/node` and creates no `http.server`
+// spans on Bun. `@sentry/hono/bun` takes its options in `sentry(app, options)` instead of a separate
+// `init()`, so the scenario cannot use it. `suites/hono-sdk` in this package tests `@sentry/hono/bun`.
+const BUN_RUN_HONO_NODE_SDK = ['suites/hono-sdk/test.ts'];
+
+export const BUN_RUN_EXCLUDE = [
+  '**/node_modules/**',
+  // SQL Server runs in the dedicated Node/x86 CI job.
+  'suites/tracing/tedious/test.ts',
+  // These fail for the same reasons as with the bundled scenarios.
+  ...BUN_BUILD_EAGER_SUBSCRIPTION,
+  ...BUN_BUILD_NO_HTTP_SERVER_INTEGRATION,
+  ...BUN_RUN_HTTP_INTEGRATION_OPTIONS_IGNORED,
+  ...BUN_RUN_HONO_NODE_SDK,
 ];

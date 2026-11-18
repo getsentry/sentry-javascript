@@ -1,8 +1,14 @@
 import { Mistral } from '@mistralai/mistralai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import {
+  openAiChatCompletion,
+  openAiChatCompletionChunks,
+  startMockServer,
+  streamSseEvents,
+} from '@sentry-internal/node-integration-tests';
 
-function startMockServer() {
+function startMockApi() {
   const app = express();
   app.use(express.json());
 
@@ -16,88 +22,24 @@ function startMockServer() {
     }
 
     if (stream) {
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-
-      const chunks = [
-        {
-          id: 'chatcmpl-stream-123',
-          object: 'chat.completion.chunk',
-          created: 1677652300,
-          model,
-          choices: [
-            {
-              index: 0,
-              delta: { role: 'assistant', content: '' },
-              finish_reason: null,
-            },
-          ],
-        },
-        {
-          id: 'chatcmpl-stream-123',
-          object: 'chat.completion.chunk',
-          created: 1677652300,
-          model,
-          choices: [
-            {
-              index: 0,
-              delta: { content: 'Hello from Mistral streaming!' },
-              finish_reason: null,
-            },
-          ],
-        },
-        {
-          id: 'chatcmpl-stream-123',
-          object: 'chat.completion.chunk',
-          created: 1677652300,
-          model,
-          choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
-          usage: { prompt_tokens: 12, completion_tokens: 18, total_tokens: 30 },
-        },
-      ];
-
-      chunks.forEach((chunk, index) => {
-        setTimeout(() => {
-          res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-          if (index === chunks.length - 1) {
-            res.write('data: [DONE]\n\n');
-            res.end();
-          }
-        }, index * 10);
+      streamSseEvents(res, openAiChatCompletionChunks(model, { content: 'Hello from Mistral streaming!' }), {
+        done: true,
       });
     } else {
-      res.send({
-        id: 'chatcmpl-mock123',
-        object: 'chat.completion',
-        created: 1677652288,
-        model,
-        choices: [
-          {
-            index: 0,
-            message: { role: 'assistant', content: 'Hello from Mistral mock!' },
-            finish_reason: 'stop',
-          },
-        ],
-        usage: { prompt_tokens: 10, completion_tokens: 15, total_tokens: 25 },
-      });
+      res.send(openAiChatCompletion(model, { content: 'Hello from Mistral mock!' }));
     }
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
-  const server = await startMockServer();
+  const server = await startMockApi();
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Mistral({
       apiKey: 'mock-api-key',
-      serverURL: `http://localhost:${server.address().port}`,
+      serverURL: server.url,
     });
 
     await client.chat.complete({

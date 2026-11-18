@@ -25,7 +25,7 @@ describe('the cjs build', () => {
     const traced = await traceFrom(`${buildDir}/cjs/register.js`);
 
     expect(traced).toContain(`${buildDir}/cjs/hook.js`);
-    expect(traced).toContain(`${buildDir}/cjs/vendored/@apm-js-collab/tracing-hooks/hook.js`);
+    expect(traced).toContain(`${buildDir}/cjs/chunks/hook.js`);
   });
 });
 

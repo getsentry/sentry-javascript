@@ -89,3 +89,39 @@ describe('instrumentAnthropicAiClient span names', () => {
     expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('chat');
   });
 });
+
+describe('instrumentAnthropicAiClient provider name', () => {
+  beforeEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  afterEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  it.each([
+    { name: 'uses the provider name of a platform client', providerName: 'aws.bedrock', expected: 'aws.bedrock' },
+    { name: 'falls back to anthropic', providerName: undefined, expected: 'anthropic' },
+  ])('$name', async ({ providerName, expected }) => {
+    const client = new TestClient(
+      getDefaultTestClientOptions({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 }),
+    );
+    setCurrentClient(client);
+    client.init();
+    const endedSpans: Span[] = [];
+    client.on('spanEnd', span => endedSpans.push(span));
+
+    const anthropic = {
+      _genAIProviderName: providerName,
+      messages: { create: vi.fn().mockResolvedValue({ id: 'msg', content: [] }) } as Record<string, unknown>,
+    };
+    anthropic.messages._client = anthropic;
+
+    await instrumentAnthropicAiClient(anthropic).messages.create({
+      model: 'anthropic.claude-3-5-sonnet-20240620-v1:0',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+
+    expect(spanToStaticSpanJSON(endedSpans[0]!).data['gen_ai.provider.name']).toBe(expected);
+  });
+});

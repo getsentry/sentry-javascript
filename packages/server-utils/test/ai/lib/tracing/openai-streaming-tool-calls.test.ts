@@ -9,6 +9,7 @@ function createMockSpan(): { span: Span; attributes: Record<string, unknown> } {
   let isEnded = false;
   const span = {
     isRecording: () => !isEnded,
+    spanContext: () => ({ traceId: '0', spanId: '0', traceFlags: 0 }),
     setAttribute: (key: string, value: unknown) => {
       attributes[key] = value;
     },
@@ -44,6 +45,15 @@ async function recordedToolCalls(chunks: ChatCompletionChunk[]): Promise<Array<R
 }
 
 describe('instrumentStream (openai chat completion tool calls)', () => {
+  it.each([undefined, null])('continues a known id when its index changes from %s to numeric', async index => {
+    const toolCalls = await recordedToolCalls([
+      chunkWith([{ index, id: 'call_a', function: { name: 'lookup', arguments: '{"q":' } }]),
+      chunkWith([{ index: 0, id: 'call_a', function: { name: '', arguments: '"a"' } }]),
+      chunkWith([{ index: 0, function: { name: '', arguments: '}' } }]),
+    ]);
+    expect(toolCalls).toEqual([{ index, id: 'call_a', function: { name: 'lookup', arguments: '{"q":"a"}' } }]);
+  });
+
   it('keeps whole tool calls that carry an id and no index', async () => {
     const toolCalls = await recordedToolCalls([
       chunkWith([

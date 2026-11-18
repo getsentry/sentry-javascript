@@ -32,14 +32,5 @@
     "@types/express": "^4.17.17",
     "@types/node": "^18.19.1",
     "typescript": "~5.0.0"
-  },
-  "sentryTest": {
-    "variants": [
-      {
-        "build-command": "E2E_TEST_OTEL_SETUP=true pnpm test:build",
-        "assert-command": "E2E_TEST_OTEL_SETUP=true pnpm test:assert",
-        "label": "nestjs-basic (tracer provider)"
-      }
-    ]
   }
 }

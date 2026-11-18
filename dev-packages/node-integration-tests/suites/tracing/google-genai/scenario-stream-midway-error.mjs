@@ -1,12 +1,18 @@
 import { GoogleGenAI } from '@google/genai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockGoogleGenAIServer() {
   const app = express();
   app.use(express.json());
 
   app.post('/v1beta/models/:model\\:streamGenerateContent', (req, res) => {
+    // Never responds, so the request only ends when the client gives up on it.
+    if (req.params.model.endsWith('before-stream')) {
+      return;
+    }
+
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Transfer-Encoding', 'chunked');
 
@@ -31,11 +37,7 @@ function startMockGoogleGenAIServer() {
     );
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
@@ -44,7 +46,7 @@ async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new GoogleGenAI({
       apiKey: 'mock-api-key',
-      httpOptions: { baseUrl: `http://localhost:${server.address().port}` },
+      httpOptions: { baseUrl: server.url },
     });
 
     try {
@@ -77,6 +79,28 @@ async function run() {
       for await (const _ of abortedStream) {
         controller.abort();
       }
+    } catch {
+      // Error expected
+    }
+
+    const beforeStream = new AbortController();
+    setTimeout(() => beforeStream.abort(), 50);
+    try {
+      await client.models.generateContentStream({
+        model: 'caller-abort-before-stream',
+        contents: [{ role: 'user', parts: [{ text: 'The caller aborts before the first chunk' }] }],
+        config: { abortSignal: beforeStream.signal },
+      });
+    } catch {
+      // Error expected
+    }
+
+    try {
+      await client.models.generateContentStream({
+        model: 'timeout-before-stream',
+        contents: [{ role: 'user', parts: [{ text: 'The SDK timeout fires before the first chunk' }] }],
+        config: { httpOptions: { timeout: 50 } },
+      });
     } catch {
       // Error expected
     }

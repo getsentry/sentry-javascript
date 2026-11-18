@@ -142,6 +142,7 @@ export function toSentryAttributes(attributes: Record<string, AttributeValue>): 
 export class SentryBullMQSpan implements TelemetrySpan {
   private _span: Span;
   private _scope: Scope;
+  private _recordedError: Error | undefined;
 
   public constructor(span: Span, scope: Scope) {
     this._span = span;
@@ -164,11 +165,16 @@ export class SentryBullMQSpan implements TelemetrySpan {
     if (name === 'job failed') {
       this._span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
 
-      const reason = attributes?.['bullmq.job.failed.reason'];
-      const error = new Error(String(reason || 'Unknown error'));
-      // BullMQ passes only the error message (https://github.com/taskforcesh/bullmq/issues/4902), so this stack has only
-      // BullMQ and SDK frames, the same for every job. Without it, Sentry groups the errors by their message.
-      error.stack = undefined;
+      // Since 6.7.5, BullMQ passes the job error to `recordException` right before this event
+      // (https://github.com/taskforcesh/bullmq/pull/4915). Older versions pass only the error message.
+      let error = this._recordedError;
+      this._recordedError = undefined;
+      if (!error) {
+        error = new Error(String(attributes?.['bullmq.job.failed.reason'] || 'Unknown error'));
+        // This stack has only BullMQ and SDK frames, the same for every job. Without it, Sentry groups the errors by
+        // their message.
+        error.stack = undefined;
+      }
       captureException(error, {
         mechanism: {
           handled: false,
@@ -180,13 +186,15 @@ export class SentryBullMQSpan implements TelemetrySpan {
 
   /**
    * Does not capture to Sentry. BullMQ calls this for Redis, lock and serialization errors that it
-   * retries itself, often several times for one fault. Job failures are captured in `addEvent`.
+   * retries itself, often several times for one fault, and for the job error right before the `job failed` event.
+   * Job failures are captured in `addEvent`.
    */
   public recordException(exception: Error | string | { code?: number; message?: string; name?: string }): void {
+    // BullMQ passes the retried errors as strings, so only the job error is kept.
+    this._recordedError = exception instanceof Error ? exception : undefined;
     const error =
-      exception instanceof Error
-        ? exception
-        : new Error(typeof exception === 'string' ? exception : exception.message || 'Unknown error');
+      this._recordedError ??
+      new Error(typeof exception === 'string' ? exception : exception.message || 'Unknown error');
 
     this._span.recordException(error);
   }

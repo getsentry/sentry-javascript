@@ -1,3 +1,4 @@
+import type { Server } from 'node:http';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 let extension: Awaited<ReturnType<typeof setupExtension>>;
@@ -17,7 +18,7 @@ afterEach(() => {
 async function setupExtension() {
   const { AwsLambdaExtension } = await import('../src/lambda-extension/aws-lambda-extension');
   vi.spyOn(AwsLambdaExtension.prototype, 'register').mockResolvedValue();
-  vi.spyOn(AwsLambdaExtension.prototype, 'startSentryTunnel').mockImplementation(() => {});
+  vi.spyOn(AwsLambdaExtension.prototype, 'startSentryTunnel').mockReturnValue({} as Server);
   const next = vi.spyOn(AwsLambdaExtension.prototype, 'next').mockImplementation(() => new Promise(() => {}));
   const log = vi.spyOn(console, 'error').mockImplementation(() => {});
   const exit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);

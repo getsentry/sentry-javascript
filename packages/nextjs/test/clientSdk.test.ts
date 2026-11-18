@@ -56,6 +56,7 @@ describe('Client init()', () => {
     expect(reactInit).toHaveBeenCalledWith(
       expect.objectContaining({
         _metadata: {
+          optionsSetByUser: [],
           sdk: {
             name: 'sentry.javascript.nextjs',
             version: expect.any(String),
@@ -287,6 +288,56 @@ describe('Client init()', () => {
       const client = init({ dsn: TEST_DSN });
 
       expect(client?.getOptions().tunnel).toBe(`/docs${getTunnelPath(TEST_DSN)}`);
+    });
+  });
+
+  describe('release', () => {
+    const getEntriesByType = vi.spyOn(WINDOW.performance, 'getEntriesByType');
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+      getEntriesByType.mockReset();
+    });
+
+    afterAll(() => {
+      getEntriesByType.mockRestore();
+    });
+
+    function mockDocumentServerTiming(serverTiming: { name: string; description: string }[]): void {
+      getEntriesByType.mockReturnValue([{ serverTiming } as unknown as PerformanceEntry]);
+    }
+
+    it('reads the release from the `Server-Timing` header of the document', () => {
+      mockDocumentServerTiming([{ name: 'sentry-release', description: 'my-app%401.0.0%2Bbuild' }]);
+
+      const client = init({ dsn: TEST_DSN });
+
+      expect(client?.getOptions().release).toBe('my-app@1.0.0+build');
+    });
+
+    it('prefers the release injected at build time', () => {
+      vi.stubEnv('_sentryRelease', 'injected');
+      mockDocumentServerTiming([{ name: 'sentry-release', description: 'from-header' }]);
+
+      const client = init({ dsn: TEST_DSN });
+
+      expect(client?.getOptions().release).toBe('injected');
+    });
+
+    it('keeps a release passed to init', () => {
+      mockDocumentServerTiming([{ name: 'sentry-release', description: 'from-header' }]);
+
+      const client = init({ dsn: TEST_DSN, release: 'explicit' });
+
+      expect(client?.getOptions().release).toBe('explicit');
+    });
+
+    it('ignores a malformed `Server-Timing` release', () => {
+      mockDocumentServerTiming([{ name: 'sentry-release', description: '%E0%A4%A' }]);
+
+      const client = init({ dsn: TEST_DSN });
+
+      expect(client?.getOptions().release).toBeUndefined();
     });
   });
 

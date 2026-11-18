@@ -1,5 +1,9 @@
-import { fileURLToPath } from 'node:url';
-import { debug, GLOBAL_OBJ, _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath } from '@sentry/core';
+import {
+  _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath,
+  debug,
+  GLOBAL_OBJ,
+  stringifyForCodeInjection,
+} from '@sentry/core';
 import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
 import {
   commonJSInteropOptions,
@@ -7,7 +11,9 @@ import {
   sentryOrchestrionPlugin,
 } from '@sentry/server-utils/orchestrion/rollup';
 import type { Nitro, NitroConfig } from 'nitropack';
+import { RELEASE_GLOBAL } from '../common/release';
 import { TUNNEL_BASE_PATH_GLOBAL } from '../common/tunnel';
+import { getNitroRuntimeFilePath, getRuntimeRelease } from '../vite/release';
 import { addSentryPluginToVite } from '../vite/sentrySolidStartVite';
 import type { SentrySolidStartPluginOptions } from '../vite/types';
 import {
@@ -57,12 +63,14 @@ export function withSentry(
     (GLOBAL_OBJ as { [TUNNEL_BASE_PATH_GLOBAL]?: string })[TUNNEL_BASE_PATH_GLOBAL] = tunnelBasePath;
   }
 
+  const runtimeRelease = getRuntimeRelease(sentryPluginOptions);
+
   const viteConfig = solidStartConfig.vite;
   const vite =
     typeof viteConfig === 'function'
       ? (...args: Parameters<typeof viteConfig>) =>
-          addSentryPluginToVite(viteConfig(...args), sentryPluginOptions, tunnelBasePath)
-      : addSentryPluginToVite(viteConfig, sentryPluginOptions, tunnelBasePath);
+          addSentryPluginToVite(viteConfig(...args), sentryPluginOptions, tunnelBasePath, runtimeRelease)
+      : addSentryPluginToVite(viteConfig, sentryPluginOptions, tunnelBasePath, runtimeRelease);
 
   const addBuildTimeInstrumentation = sentryPluginOptions.buildTimeInstrumentation !== false;
 
@@ -77,7 +85,15 @@ export function withSentry(
         // The built server runs in another process, so the tunnel plugin reads the base path from the bundle.
         sentryRollupConfig.plugins.push({
           name: 'sentry-solidstart-tunnel-base-path',
-          banner: `globalThis.${TUNNEL_BASE_PATH_GLOBAL} = ${JSON.stringify(tunnelBasePath)};`,
+          banner: `globalThis.${TUNNEL_BASE_PATH_GLOBAL} = ${stringifyForCodeInjection(tunnelBasePath)};`,
+        });
+      }
+
+      if (runtimeRelease) {
+        // Read by the release plugin, which adds the release to the pages for the browser SDK.
+        sentryRollupConfig.plugins.push({
+          name: 'sentry-solidstart-release',
+          banner: `globalThis.${RELEASE_GLOBAL} = ${stringifyForCodeInjection(runtimeRelease)};`,
         });
       }
 
@@ -137,14 +153,11 @@ export function withSentry(
       commonJS,
       modules: [...existingModules, sentryNitroModule],
       // Through `server.plugins`, since vinxi's dev server ignores plugins that Nitro modules add.
-      plugins: [...(server.plugins || []), getTunnelPluginPath()],
+      plugins: [
+        ...(server.plugins || []),
+        getNitroRuntimeFilePath('tunnelPlugin.js'),
+        ...(runtimeRelease ? [getNitroRuntimeFilePath('releasePlugin.js')] : []),
+      ],
     },
   };
-}
-
-function getTunnelPluginPath(): string {
-  const url = new URL('../nitro/tunnelPlugin.js', import.meta.url);
-
-  // `import.meta.url` is a file URL in the built package, but not in every test environment.
-  return url.protocol === 'file:' ? fileURLToPath(url) : url.pathname;
 }

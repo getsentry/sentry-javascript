@@ -1,6 +1,7 @@
 // inspired by https://justinribeiro.com/chronicle/2020/07/17/building-module-web-workers-for-cross-browser-compatibility-with-rollup/
 
 import { treeShakePreset } from '@sentry-internal/rollup-utils';
+import { parse } from 'acorn';
 import { defineConfig } from 'rolldown';
 import { minifySync } from 'rolldown/utils';
 
@@ -42,7 +43,11 @@ const config = defineConfig([
         // emits string literals as backticks, which would terminate the literal early and silently
         // produce an empty chunk.
         renderChunk(code) {
-          const { code: minified } = minifySync('worker.js', code, { module: true });
+          // Unlike `output.minify`, `minifySync` doesn't pick up `transform.target` and defaults to esnext.
+          const { code: minified } = minifySync('worker.js', code, { module: true, compress: { target: 'es2020' } });
+
+          // `lint:es-compatibility` can't see into the string we embed below, so check the syntax here.
+          parse(minified, { ecmaVersion: 2020, sourceType: 'module' });
 
           return `export default ${JSON.stringify(minified)};`;
         },

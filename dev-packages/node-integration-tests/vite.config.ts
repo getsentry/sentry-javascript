@@ -6,9 +6,6 @@ export default defineConfig({
   test: {
     ...baseConfig.test,
     isolate: false,
-    coverage: {
-      enabled: false,
-    },
     include: ['./**/test.ts'],
     testTimeout: 15000,
     // Ensure we can see debug output when DEBUG=true
@@ -22,6 +19,7 @@ export default defineConfig({
     // already run in their own processes. We use threads instead because the
     // overhead is significantly less.
     pool: 'threads',
+    maxWorkers: process.env.CI ? 4 : undefined,
     reporters: process.env.DEBUG
       ? [['default', { summary: false }]]
       : process.env.GITHUB_ACTIONS

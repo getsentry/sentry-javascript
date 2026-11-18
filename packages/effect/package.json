@@ -1,6 +1,6 @@
 {
   "name": "@sentry/effect",
-  "version": "11.12.0",
+  "version": "11.14.0",
   "description": "Official Sentry SDK for Effect",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/effect",
@@ -44,10 +44,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "11.12.0",
-    "@sentry/conventions": "^0.32.0",
-    "@sentry/core": "11.12.0",
-    "@sentry/node": "11.12.0"
+    "@sentry/browser": "11.14.0",
+    "@sentry/conventions": "^0.33.0",
+    "@sentry/core": "11.14.0",
+    "@sentry/node": "11.14.0"
   },
   "peerDependencies": {
     "effect": "^3.0.0 || ^4.0.0"
@@ -59,17 +59,14 @@
   },
   "devDependencies": {
     "@effect/vitest": "^4.0.0",
-    "@sentry-internal/rollup-utils": "11.12.0",
+    "@sentry-internal/rollup-utils": "11.14.0",
     "effect": "^4.0.0"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:dev": "pnpm run build",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "pnpm run build:watch",
-    "build:transpile:watch": "rolldown -c rollup.npm.config.mjs --watch",
     "build:tarball": "pnpm pack",
     "clean": "node ../../scripts/rm.mjs build coverage sentry-effect-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",

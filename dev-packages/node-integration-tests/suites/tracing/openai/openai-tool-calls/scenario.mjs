@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/node';
+import { openAiChatCompletion } from '@sentry-internal/node-integration-tests';
 
 class MockOpenAIToolCalls {
   constructor(config) {
@@ -19,38 +20,18 @@ class MockOpenAIToolCalls {
           }
 
           // Non-streaming tool calls response
-          return {
+          return openAiChatCompletion(params.model, {
             id: 'chatcmpl-tools-123',
-            object: 'chat.completion',
-            created: 1677652300,
-            model: params.model,
-            system_fingerprint: 'fp_tools_123',
-            choices: [
+            content: null,
+            toolCalls: [
               {
-                index: 0,
-                message: {
-                  role: 'assistant',
-                  content: null,
-                  tool_calls: [
-                    {
-                      id: 'call_12345xyz',
-                      type: 'function',
-                      function: {
-                        name: 'get_weather',
-                        arguments: '{"latitude":48.8566,"longitude":2.3522}',
-                      },
-                    },
-                  ],
-                },
-                finish_reason: 'tool_calls',
+                id: 'call_12345xyz',
+                type: 'function',
+                function: { name: 'get_weather', arguments: '{"latitude":48.8566,"longitude":2.3522}' },
               },
             ],
-            usage: {
-              prompt_tokens: 15,
-              completion_tokens: 25,
-              total_tokens: 40,
-            },
-          };
+            usage: { prompt_tokens: 15, completion_tokens: 25 },
+          });
         },
       },
     };

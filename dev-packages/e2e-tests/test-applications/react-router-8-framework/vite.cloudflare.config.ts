@@ -5,15 +5,12 @@ import { sentryReactRouter } from '@sentry/react-router/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig(async config => ({
-  define: {
-    __E2E_TEST_TUNNEL__: JSON.stringify(!!process.env.E2E_TEST_TUNNEL),
-  },
   plugins: [
     cloudflare({ viteEnvironment: { name: 'ssr' } }),
     reactRouter(),
     sentryCloudflareVitePlugin(),
     ...((await sentryReactRouter(
-      { sourcemaps: { disable: true } },
+      { release: { name: 'react-router-8-framework-e2e' }, sourcemaps: { disable: true } },
       config,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     )) as any[]),

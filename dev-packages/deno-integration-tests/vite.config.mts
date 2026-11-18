@@ -10,9 +10,6 @@ export default defineConfig({
   test: {
     ...baseConfig.test,
     root: fileURLToPath(new URL('../node-integration-tests', import.meta.url)),
-    coverage: {
-      enabled: false,
-    },
     isolate: false,
     include: ['suites/**/test.ts'],
     exclude: NODE_SUITES_EXCLUDE,
@@ -29,6 +26,7 @@ export default defineConfig({
         }
       : {}),
     pool: 'threads',
+    maxWorkers: process.env.CI ? 4 : undefined,
     reporters: process.env.DEBUG
       ? ['default', { summary: false }]
       : process.env.GITHUB_ACTIONS

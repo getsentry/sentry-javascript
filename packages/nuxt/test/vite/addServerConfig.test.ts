@@ -178,6 +178,7 @@ describe('addServerConfigPlugin', () => {
     const contents = templateContents('sentry-runtime-flags.mjs');
     expect(contents).toContain('globalThis.__SENTRY_NUXT_DEV_MODE__ = import.meta.dev === true;');
     expect(contents).toContain('globalThis.__SENTRY_NUXT_PRERENDER__ = import.meta.prerender === true;');
+    expect(contents).toContain('globalThis.__SENTRY_NUXT_NITRO_PRESET__ = import.meta.preset;');
   });
 
   it('marks the config and the flags as side-effectful so tree shaking cannot drop them', () => {

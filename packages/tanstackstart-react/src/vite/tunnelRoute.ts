@@ -1,10 +1,11 @@
 import type { ServerTunnelOptions } from '@sentry/core';
-import { _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath } from '@sentry/core';
+import { _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath, stringifyForCodeInjection } from '@sentry/core';
 import {
   _INTERNAL_forwardTunnelRequest as forwardTunnelRequest,
   _INTERNAL_setTunnelDefaults as setTunnelDefaults,
 } from '@sentry/core/server';
 import type { Plugin } from 'vite';
+import { getServerReleaseCode } from './release';
 
 export type TunnelRouteOptions =
   | true
@@ -80,7 +81,7 @@ export function makeTunnelRoutePlugin(options: TunnelRouteOptions, debug?: boole
   return {
     name: 'sentry-tanstackstart-tunnel-route',
     config() {
-      return { define: { __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__: path ? JSON.stringify(path) : 'true' } };
+      return { define: { __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__: path ? stringifyForCodeInjection(path) : 'true' } };
     },
     // The runtime answers POSTs to a fixed path before Start's routing, so an app route on that path
     // would silently lose them.
@@ -115,7 +116,7 @@ export function makeTunnelBasePathPlugin(): { plugin: Plugin; getBasePath: () =>
         typeof startBasePath === 'string' ? parseDefine(startBasePath) : getRouterBasePathFromViteBase(config.base),
       );
 
-      return { define: { __SENTRY_TANSTACKSTART_TUNNEL_BASE_PATH__: JSON.stringify(basePath) } };
+      return { define: { __SENTRY_TANSTACKSTART_TUNNEL_BASE_PATH__: stringifyForCodeInjection(basePath) } };
     },
   };
 
@@ -140,25 +141,33 @@ function getRouterBasePathFromViteBase(base: string | undefined): string | undef
 const SDK_PACKAGE = '@sentry/tanstackstart-react';
 const SERVER_ENTRY_ALIAS = 'virtual:tanstack-start-server-entry';
 const ORIGINAL_SERVER_ENTRY_QUERY = '?sentry-tunnel-original';
+const RELEASE_MODULE_ID = 'virtual:sentry-tanstackstart-release';
+const RESOLVED_RELEASE_MODULE_ID = `\0${RELEASE_MODULE_ID}`;
 // The default entry is used directly when the app has no `src/server.ts`, and by Cloudflare's `main`.
 const DEFAULT_SERVER_ENTRY = /\/react-start\/dist\/(?:plugin\/)?default-entry\/(?:esm\/)?server\.[jt]s$/;
 
 /**
  * Enables `tunnelRoute` when the TanStack Start server entry loads, under the base path Start routes on. The runtime
  * then answers the tunnel requests before Start's own request middleware and routing.
+ *
+ * With a `release`, the server entry also sets it for the server SDK and writes it into each page for the client SDK.
  */
 export function makeServerEntryTunnelPlugin(
   tunnelRoute: TunnelRouteOptions | undefined,
   getBasePath: () => string,
+  release?: string,
 ): Plugin {
   const normalizedTunnelOptions = tunnelRoute ? normalizeTunnelRouteOptions(tunnelRoute) : undefined;
-  const tunnelOptions = normalizedTunnelOptions ? JSON.stringify(normalizedTunnelOptions) : 'undefined';
+  const tunnelOptions = normalizedTunnelOptions ? stringifyForCodeInjection(normalizedTunnelOptions) : 'undefined';
   const serverEntryIds = new Set<string>();
   let root = '';
 
   return {
     name: 'sentry-tanstackstart-server-entry-tunnel',
     enforce: 'pre',
+    resolveId(id) {
+      return release && id === RELEASE_MODULE_ID ? RESOLVED_RELEASE_MODULE_ID : null;
+    },
     configResolved(config) {
       root = normalizePath(config.root ?? '');
       const aliases = Array.isArray(config.resolve.alias) ? config.resolve.alias : [];
@@ -177,23 +186,38 @@ export function makeServerEntryTunnelPlugin(
       });
     },
     async load(id) {
+      if (release && id === RESOLVED_RELEASE_MODULE_ID) {
+        return getServerReleaseCode(release);
+      }
+
       const normalizedId = normalizePath(id);
       if (!serverEntryIds.has(normalizedId) && !DEFAULT_SERVER_ENTRY.test(normalizedId)) {
         return null;
       }
 
-      const original = JSON.stringify(`${id}${ORIGINAL_SERVER_ENTRY_QUERY}`);
+      const original = stringifyForCodeInjection(`${id}${ORIGINAL_SERVER_ENTRY_QUERY}`);
       // The default entry lives in `@tanstack/react-start`, which doesn't depend on this SDK, so resolving the import
       // from there only works when the SDK is hoisted (not under Yarn PnP or pnpm without hoisting). The app depends
       // on it, so a bundled SDK is resolved from the app. An external one keeps its name, which the output resolves.
       const resolved = await this.resolve(SDK_PACKAGE, `${root}/package.json`, { skipSelf: true });
       const sdk = resolved && !resolved.external ? resolved.id : SDK_PACKAGE;
 
-      return `import { _INTERNAL_setTunnelRoute as setTunnelRoute } from ${JSON.stringify(sdk)};
+      const setTunnelRoute = `setTunnelRoute(${tunnelOptions}, ${stringifyForCodeInjection(getBasePath())});\n`;
+
+      if (!release) {
+        return `import { _INTERNAL_setTunnelRoute as setTunnelRoute } from ${stringifyForCodeInjection(sdk)};
 export * from ${original};
 export { default } from ${original};
-setTunnelRoute(${tunnelOptions}, ${JSON.stringify(getBasePath())});
-`;
+${setTunnelRoute}`;
+      }
+
+      // The release module comes first, so the release is set when the original entry initializes the SDK.
+      return `import ${stringifyForCodeInjection(RELEASE_MODULE_ID)};
+import { _INTERNAL_addReleaseMetaTag as addReleaseMetaTag, _INTERNAL_setTunnelRoute as setTunnelRoute } from ${stringifyForCodeInjection(sdk)};
+import serverEntry from ${original};
+export * from ${original};
+export default addReleaseMetaTag(serverEntry, ${stringifyForCodeInjection(release)});
+${setTunnelRoute}`;
     },
   };
 }

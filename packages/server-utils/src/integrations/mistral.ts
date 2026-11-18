@@ -2,12 +2,12 @@ import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import { defineIntegration, startInactiveSpan } from '@sentry/core';
-import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
+import { getGenAiSpanOp, markCancelledIfAborted, resolveGenAiCallRecording } from '../ai/core/utils';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/mistral';
 import { MISTRAL_INTEGRATION_NAME, MISTRAL_ORIGIN } from '../ai/mistral/constants';
 import { instrumentEventStream } from '../ai/mistral/streaming';
 import type { MistralOptions } from '../ai/mistral/types';
-import { addResponseAttributes, getSpanName } from '../ai/mistral/utils';
+import { addResponseAttributes, getMistralRequestSignal, getSpanName } from '../ai/mistral/utils';
 import { shouldSkipAiProviderSpan } from '../ai/pi-ai/providers';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
@@ -16,6 +16,9 @@ import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation
 import { bindTracingChannelToSpan } from '../tracing-channel';
 
 const INTEGRATION_NAME = MISTRAL_INTEGRATION_NAME;
+
+// The recording decision is made once, when the span starts, in the caller's async context.
+type MistralChannelContext = OrchestrionChannelContext & { _sentryRecordOutputs?: boolean };
 
 // Each instrumented channel maps to the gen_ai operation its span reports. Streaming methods publish
 // on their own channel, so the span knows it is a stream before the result exists.
@@ -39,15 +42,24 @@ const _mistralAIIntegration = ((options: MistralOptions = {}) => {
 function instrumentMistral(options: MistralOptions): void {
   for (const { channel, operation, streaming } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
-      diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channel),
+      diagnosticsChannel.tracingChannel<MistralChannelContext>(channel),
       data => createGenAiSpan(data, operation, streaming, options),
       {
         beforeSpanEnd: (span, data) => {
-          addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs);
+          if ('error' in data) {
+            markCancelledIfAborted(span, getMistralRequestSignal(data.arguments?.[1]));
+          }
+          addResponseAttributes(span, data.result, !!data._sentryRecordOutputs);
         },
         // Streaming: the result is an `EventStream` consumed later, so instrument it and let it end the span.
         deferSpanEnd: ({ span, data }) =>
-          streaming && instrumentEventStream(data.result, span, resolveAIRecordingOptions(options).recordOutputs),
+          streaming &&
+          instrumentEventStream(
+            data.result,
+            span,
+            !!data._sentryRecordOutputs,
+            getMistralRequestSignal(data.arguments?.[1]),
+          ),
       },
     );
   }
@@ -58,7 +70,7 @@ function instrumentMistral(options: MistralOptions): void {
  * Returning `undefined` opts the payload out so no span is opened.
  */
 function createGenAiSpan(
-  data: OrchestrionChannelContext,
+  data: MistralChannelContext,
   operation: string,
   streaming: boolean,
   options: MistralOptions,
@@ -70,7 +82,8 @@ function createGenAiSpan(
   const args = data.arguments ?? [];
   const params = args[0] as Record<string, unknown> | undefined;
 
-  const { recordInputs } = resolveAIRecordingOptions(options);
+  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, { operation, request: params });
+  data._sentryRecordOutputs = recordOutputs;
 
   const attributes = extractRequestAttributes(args, operation, recordInputs, streaming);
   attributes[SENTRY_ORIGIN] = MISTRAL_ORIGIN;

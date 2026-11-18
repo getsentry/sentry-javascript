@@ -31,6 +31,11 @@
       {
         "build-command": "pnpm test:build-latest",
         "label": "nextjs-16-trailing-slash (latest, turbopack)"
+      },
+      {
+        "build-command": "NEXT_PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build",
+        "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert",
+        "label": "nextjs-16-trailing-slash (static trace lifecycle)"
       }
     ]
   }

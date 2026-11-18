@@ -124,6 +124,11 @@ export type SourceMapHandling = {
   /** Records the decision for an output, for bundlers that decide outside `outputOptions`. */
   setDecision: (destination: string, record: DecisionRecord) => void;
   /**
+   * Vite's `outputOptions` hook: switches an output with its own visible setting to hidden source
+   * maps when its recorded decision removes them.
+   */
+  applyHiddenDecision: (rawOutputOptions: OutputOptions) => OutputOptions | null;
+  /**
    * `generateBundle` with `order: 'post'`: copies each chunk and its source map into a staging folder
    * and drops the map asset from the bundle, so the bundler never writes it.
    */
@@ -165,11 +170,28 @@ export function createSourceMapHandling(sentryBuildPluginManager: SentryBuildPlu
     return candidates.sort((a, b) => countMatchFields(b.match) - countMatchFields(a.match))[0];
   }
 
-  function dropSourceMaps(bundle: OutputBundle): void {
+  function dropSourceMaps(bundle: OutputBundle, shouldDrop: (fileName: string) => boolean = () => true): void {
     for (const output of Object.values(bundle)) {
-      if (output.type === 'chunk' && isJsFile(output.fileName)) {
+      if (output.type === 'chunk' && isJsFile(output.fileName) && shouldDrop(output.fileName)) {
         // oxlint-disable-next-line typescript/no-dynamic-delete -- Rollup drops an asset when its key is deleted from the bundle
         delete bundle[getSourceMapFileName(output)];
+      }
+    }
+  }
+
+  // Other plugins emit maps as assets, e.g. for CSS or for Vite worker
+  // bundles. Chunk maps stay here, because staging still needs them.
+  function dropAssetSourceMaps(bundle: OutputBundle): void {
+    const chunkMaps = new Set<string>();
+    for (const output of Object.values(bundle)) {
+      if (output.type === 'chunk') {
+        chunkMaps.add(getSourceMapFileName(output));
+      }
+    }
+    for (const [fileName, output] of Object.entries(bundle)) {
+      if (output.type === 'asset' && fileName.endsWith('.map') && !chunkMaps.has(fileName)) {
+        // oxlint-disable-next-line typescript/no-dynamic-delete -- Rollup drops an asset when its key is deleted from the bundle
+        delete bundle[fileName];
       }
     }
   }
@@ -189,6 +211,20 @@ export function createSourceMapHandling(sentryBuildPluginManager: SentryBuildPlu
 
     setDecision,
 
+    applyHiddenDecision: rawOutputOptions => {
+      if (rawOutputOptions.sourcemap !== true) {
+        return null;
+      }
+      const destination = getOutputDestination(rawOutputOptions);
+      const record = findDecision(destination, rawOutputOptions);
+      if (!record?.decision.enableHidden) {
+        return null;
+      }
+      // Later hooks see the hidden setting, so the record has to match it.
+      setDecision(destination, { ...record, match: { ...record.match, sourcemap: 'hidden' } });
+      return { ...rawOutputOptions, sourcemap: 'hidden' };
+    },
+
     stageSourceMaps: async (outputOptions, bundle, isWrite) => {
       const destination = getOutputDestination(outputOptions);
       const record = findDecision(destination, outputOptions);
@@ -207,6 +243,25 @@ export function createSourceMapHandling(sentryBuildPluginManager: SentryBuildPlu
 
       sentryBuildPluginManager.sourceMaps.logDecision(record.decision);
       if (!record.decision.deleteAfterUpload) {
+        return;
+      }
+
+      const removeAll = record.decision.removeAllSourceMaps === true;
+      // With `unset` the plugin only turned on the chunk maps. Asset maps
+      // come from other plugins' own settings. `sourcemaps.delete: true`
+      // removes them too, because it applies to every map of the build.
+      const deleteAll = sentryBuildPluginManager.normalizedOptions.sourcemaps?.delete === true;
+      if (removeAll && (record.kind !== 'unset' || deleteAll)) {
+        dropAssetSourceMaps(bundle);
+      }
+
+      if (!sentryBuildPluginManager.sourceMaps.uploadPossible) {
+        dropSourceMaps(
+          bundle,
+          removeAll
+            ? undefined
+            : fileName => sentryBuildPluginManager.sourceMaps.shouldUpload(path.join(destination, fileName)),
+        );
         return;
       }
 
@@ -231,16 +286,16 @@ export function createSourceMapHandling(sentryBuildPluginManager: SentryBuildPlu
             chunkPath: path.join(destination, output.fileName),
           });
 
-          // A map the plugin turned on never reaches the output, whether or
-          // not the chunk is uploaded. A map the user enabled stays unless
-          // it was staged.
-          if (result === 'staged' || record.kind === 'unset') {
+          // A map the plugin or the SDK turned on never reaches the output,
+          // whether or not the chunk is uploaded. A map the user enabled
+          // stays unless it was staged.
+          if (result === 'staged' || removeAll) {
             // oxlint-disable-next-line typescript/no-dynamic-delete -- Rollup drops an asset when its key is deleted from the bundle
             delete bundle[mapFileName];
           }
           if (result === 'skipped' || result === 'failed') {
             sentryBuildPluginManager.logger.warn(
-              record.kind === 'unset'
+              removeAll
                 ? `Could not prepare ${output.fileName} for upload, so it is not uploaded and its source map ${mapFileName} was removed from the build output.`
                 : `Could not prepare ${output.fileName} for upload, so its source map ${mapFileName} stays in the build output.`,
             );

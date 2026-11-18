@@ -1,6 +1,7 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { endStreamSpan } from '../core/utils';
+import { endStreamSpan, getErrorStatus } from '../core/utils';
+import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
 import type { GoogleGenAIResponse } from './types';
 import type { MessagePart } from './utils';
 import { candidatesToMessageParts, setOutputMessagesAttribute } from './utils';
@@ -17,8 +18,9 @@ interface StreamingState {
   responseId?: string;
   /** The model name. */
   responseModel?: string;
-  /** Number of prompt/input tokens used. */
+  /** Number of prompt/input tokens used. Tool-use prompt tokens are added when the stream ends. */
   promptTokens?: number;
+  toolUsePromptTokens?: number;
   /** Number of completion/output tokens used. */
   completionTokens?: number;
   candidateTokens?: number;
@@ -63,6 +65,7 @@ function handleResponseMetadata(chunk: GoogleGenAIResponse, state: StreamingStat
   const usage = chunk.usageMetadata;
   if (usage) {
     if (typeof usage.promptTokenCount === 'number') state.promptTokens = usage.promptTokenCount;
+    if (typeof usage.toolUsePromptTokenCount === 'number') state.toolUsePromptTokens = usage.toolUsePromptTokenCount;
     if (typeof usage.candidatesTokenCount === 'number') state.candidateTokens = usage.candidatesTokenCount;
     if (typeof usage.thoughtsTokenCount === 'number') state.reasoningOutputTokens = usage.thoughtsTokenCount;
     if (state.candidateTokens !== undefined || state.reasoningOutputTokens !== undefined) {
@@ -109,6 +112,7 @@ function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingStat
  */
 function processChunk(chunk: GoogleGenAIResponse, state: StreamingState, recordOutputs: boolean, span: Span): void {
   if (!chunk || isErrorChunk(chunk, span)) return;
+  recordTimeToFirstChunk(span);
   handleResponseMetadata(chunk, state);
   handleCandidateContent(chunk, state, recordOutputs);
 }
@@ -137,12 +141,13 @@ export async function* instrumentStream(
       yield chunk;
     }
   } catch (error) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: abortSignal?.aborted ? 'cancelled' : 'internal_error' });
+    span.setStatus(getErrorStatus(abortSignal));
     throw error;
   } finally {
     if (recordOutputs) {
       setOutputMessagesAttribute(span, state.outputParts);
     }
+    if (typeof state.promptTokens === 'number') state.promptTokens += state.toolUsePromptTokens ?? 0;
     endStreamSpan(span, state, recordOutputs);
   }
 }

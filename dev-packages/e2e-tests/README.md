@@ -43,7 +43,7 @@ Or you can run a single E2E test app with a specific variant:
 pnpm run test:run <app-name> --variant <variant-name>
 ```
 
-Variant name matching is case-insensitive and partial. For example, `--variant 13` will match `nextjs-pages-dir (next@13)` if a matching variant is present in the test app's `package.json`.
+Pass the variant's full label from the test app's `package.json`, for example `--variant "nextjs-16 (webpack, production)"`.
 
 ### Using the Makefile
 
@@ -69,28 +69,26 @@ This will display a fuzzy-finder menu of all available test applications. Select
 make list
 ```
 
-For example, if you have the following variants in your test app's `package.json`:
+For example, `nextjs-16` has these variants in its `package.json` (shortened):
 
 ```json
 "sentryTest": {
   "variants": [
     {
-      "build-command": "pnpm test:build-13",
-      "label": "nextjs-pages-dir (next@13)"
+      "build-command": "pnpm test:build-webpack",
+      "label": "nextjs-16 (webpack, production)",
+      "assert-command": "pnpm test:prod"
     },
     {
-      "build-command": "pnpm test:build-13-canary",
-      "label": "nextjs-pages-dir (next@13-canary)"
-    },
-    {
-      "build-command": "pnpm test:build-15",
-      "label": "nextjs-pages-dir (next@15)"
+      "build-command": "pnpm install",
+      "label": "nextjs-16 (webpack, development)",
+      "assert-command": "pnpm test:dev-webpack"
     }
   ]
 }
 ```
 
-If you run `pnpm run test:run nextjs-pages-dir --variant 13`, it will match against the very first matching variant, which is `nextjs-pages-dir (next@13)`. If you need to target the second variant in the example, you need to be more specific and use `--variant 13-canary`.
+To run one of them, pass its full label: `pnpm run test:run nextjs-16 --variant "nextjs-16 (webpack, production)"`.
 
 A variant runs its `build-command` and `assert-command`. Without them, it runs the app's `test:build` and `test:assert` scripts, like the app's default job.
 
@@ -152,6 +150,9 @@ Apps like `cloudflare-workers-send-to-sentry` deploy the built app as a real Wor
   `cloudflare-flue-send-to-sentry/src/auth.ts`.
 - Add the `workerPrefix` to `.github/workflows/cleanup-e2e-workers.yml`, which deletes the Worker of a PR when the PR
   closes.
+- To check what Cloudflare stored for a request (for example its Cloudflare trace id), read Workers Logs with
+  `fetchWorkersLogsEvents`. `CLOUDFLARE_API_TOKEN` then also needs "Workers Observability: Edit". See
+  `cloudflare-workers-without-tracing-send-to-sentry`.
 - Set `"sentryTest": { "optional": true }` in `package.json`, because only the optional CI job has the Cloudflare
   secrets.
 
@@ -175,13 +176,21 @@ is the reference setup.
   values that come from its `init()` (`sdk.name`, default integrations) are Node-only. Next.js is different: it loads
   `instrumentation.ts` on every runtime, so `nextjs-16` calls `init()` of `@sentry/nextjs` on Bun and Deno too. Its
   Bun and Deno variants build the app on that runtime, so `@sentry/nextjs` loads its `bun` or `deno` entry, which adds
-  the integrations of `@sentry/bun` or `@sentry/deno`.
+  the integrations of `@sentry/bun` or `@sentry/deno`. Nuxt is similar: `@sentry/nuxt` bundles `sentry.server.config.ts`
+  into the Nitro output, so `nuxt-4` calls `init()` of `@sentry/nuxt` on Bun and Deno too. `sentry.server.config.bun.ts`
+  and `sentry.server.config.deno.ts` add the integrations of `@sentry/bun` or `@sentry/deno`. On Cloudflare, `nuxt-4`
+  builds with the `cloudflare_module` preset and sets up the SDK with `sentryCloudflareNitroPlugin`, which
+  `nuxt.config.ts` adds only for that runtime. Like the documented Cloudflare setup, that build has no
+  `sentry.server.config.ts`: a runtime-specific file can replace a file but not remove it, so the build command deletes
+  it. Nitro turns every file under `server/api` into a route, so
+  `nuxt.config.ts` lists the runtime-specific files there (such as `db-mongoose.cloudflare.ts`) in Nitro's `ignore`.
 - **Start commands**: `playwright.config.mjs` selects the start command with `getRuntime()`. Bun and Deno use the same build
   as Node and only change the start command, for example
   `bun --bun --preload ./instrument.bun.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js` and
   `deno run -A --preload=@sentry/deno/import --preload=./instrument.deno.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js`.
   The app's `deno.json` maps `@sentry/deno/import` to `node_modules`, because the e2e dependencies are `file:` tarballs
-  that `npm:@sentry/deno/import` does not resolve.
+  that `npm:@sentry/deno/import` does not resolve. `nuxt-4` starts the Nitro output with no preload:
+  `bun .output/server/index.mjs` and `deno run -A .output/server/index.mjs`.
 - **Cloudflare**: the app has the Cloudflare dependencies installed all the time. The Cloudflare build has its own
   `vite.cloudflare.config.ts` with `@cloudflare/vite-plugin` and `sentryCloudflareVitePlugin` from
   `@sentry/cloudflare/vite`, which the runner uses in place of `vite.config.ts` (see runtime-specific files). List the
@@ -209,11 +218,12 @@ is the reference setup.
   itself does not get these files, so run a variant with `pnpm run test:run <app> --variant <runtime>`.
 - **Bun and Deno versions**: a variant can pin the Bun or Deno version, for example `"bun-version": "1.4.4"` or
   `"deno-version": "v2.9.0"`.
-- **Bun**: under `bun run` the SDK cannot inject diagnostics channels into packages that stay outside the build (for
-  example Express behind `react-router-serve`), so those produce no spans on Bun. Where a test depends on them, branch
+- **Bun**: under `bun run` before Bun 1.4.5 the SDK cannot inject diagnostics channels into packages that stay outside
+  the build (for example Express behind `react-router-serve`), so those produce no spans on Bun. Where a test depends on them, branch
   on `RUNTIME` and say why in a comment. An app that starts its own server can instead bundle it with
   `@sentry/bun/plugin`, as `nestjs-12/bun-build.mjs` does. Bun 1.3 renames classes in bundles (`class Foo2`), which
-  changes span names taken from class names, so `nestjs-12` pins Bun 1.4 (see #26289).
+  changes span names taken from class names, so `nestjs-12` pins Bun 1.4 (see #26289). `nuxt-4` builds with
+  `bun --bun nuxt build` on Bun, because the Nitro prerenderer loads its `bun-sqlite` connector in the build process.
 
 ```json
 "sentryTest": {
@@ -298,6 +308,10 @@ of a test application.
 `sentryTest.baseVariant` overrides the default matrix entry using the same fields as an entry in `variants`. For example,
 set its `assert-command` to run production tests and add a development variant to run both environments in parallel.
 The local `test:assert` script can still run both; select the base variant locally with `--variant <label>`.
+
+Set `"test-shards": 2` on a variant or `baseVariant` to split its Playwright test files across two CI jobs.
+The shared Playwright config reads `SENTRY_E2E_TEST_SHARD`, so each invocation in a combined production/development script
+runs its part of the suite without changing the number of workers.
 
 Variants that build against upstream prereleases (for example `canary`, `next` or nightly builds of a framework) go into
 `canaryVariants`. They do not run on PRs, only in the nightly `CI: Canary Tests` workflow (`.github/workflows/canary.yml`),

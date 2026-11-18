@@ -26,6 +26,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../core/gen-ai-attributes';
 import { extractSystemInstructions, getTokenUsageAttributes } from '../core/utils';
+import type { GenAiOptions } from '../core/utils';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
 import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from './types';
 
@@ -528,6 +529,15 @@ function findConversationIdEntry(source?: Record<string, unknown>): [string, str
     }
   }
   return undefined;
+}
+
+/**
+ * The recording decision of the LangGraph graph run that `metadata` belongs to. The graph's `invoke()`/`stream()`
+ * call decides once, and child runs inherit the decision through their metadata.
+ */
+export function getLangGraphRunRecording(metadata?: Record<string, unknown>): Required<GenAiOptions> | undefined {
+  const recording = metadata?.__sentry_langgraph__;
+  return isObjectLike(recording) ? (recording as Required<GenAiOptions>) : undefined;
 }
 
 /**

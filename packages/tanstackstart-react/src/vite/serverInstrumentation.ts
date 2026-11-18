@@ -2,11 +2,13 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { Plugin } from 'vite';
 import { logDebug } from './nitroSourceMaps';
+import { getServerReleaseCode } from './release';
 
 const FILE_NAMES = ['instrument.server.ts', 'instrument.server.mts', 'instrument.server.js', 'instrument.server.mjs'];
 const DIRECTORIES = ['', 'src'];
 
 const NITRO_PLUGIN_ID = '#sentry/tanstackstart-server-instrumentation';
+const NITRO_RELEASE_PLUGIN_ID = '#sentry/tanstackstart-release';
 
 /** The parts of the Nitro instance that this plugin uses. */
 type Nitro = {
@@ -37,7 +39,7 @@ export function findServerInstrumentationFile(root: string): string | undefined 
  * Bundles the server instrumentation file into the Nitro build and loads it from a Nitro plugin, which runs when the
  * server starts. Nitro only imports the server entry in the first request, which is too late to trace that request.
  */
-export function makeServerInstrumentationPlugin({ debug }: { debug?: boolean }): Plugin & {
+export function makeServerInstrumentationPlugin({ debug, release }: { debug?: boolean; release?: string }): Plugin & {
   nitro: { name: string; setup: (nitro: Nitro) => void };
 } {
   return {
@@ -72,6 +74,13 @@ export function makeServerInstrumentationPlugin({ debug }: { debug?: boolean }):
         nitro.options.virtual[NITRO_PLUGIN_ID] = `import ${JSON.stringify(file)};\nexport default () => {};\n`;
         // Before the plugins of the app, so they run with an initialized SDK.
         nitro.options.plugins.unshift(NITRO_PLUGIN_ID);
+
+        if (release) {
+          // A plugin of its own, as Nitro drops virtual modules that are only imported for their side effects. Nitro
+          // imports the plugins in order, so the release is set when the file initializes the SDK.
+          nitro.options.virtual[NITRO_RELEASE_PLUGIN_ID] = `${getServerReleaseCode(release)}export default () => {};\n`;
+          nitro.options.plugins.unshift(NITRO_RELEASE_PLUGIN_ID);
+        }
 
         logDebug(
           debug,

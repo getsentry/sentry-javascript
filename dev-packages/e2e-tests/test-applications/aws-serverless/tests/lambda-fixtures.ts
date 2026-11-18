@@ -14,6 +14,8 @@ const SAM_START_TIMEOUT_MS = 90_000;
 const SAM_START_ATTEMPTS = 2;
 const SAM_OUTPUT_MAX_CHARS = 20_000;
 
+const CONTAINER_REMOVAL_TIMEOUT_MS = 10_000;
+
 /** Major Node for SAM `--invoke-image`; default is the oldest major the SDK supports and matches `pull-sam-image.sh`. */
 const DEFAULT_NODE_VERSION_MAJOR = '20';
 
@@ -125,10 +127,7 @@ async function stopSam(samProcess: ChildProcess): Promise<void> {
   if (samProcess.exitCode === null && samProcess.signalCode === null) {
     samProcess.kill('SIGTERM');
     await new Promise(resolve => {
-      const timer = setTimeout(() => {
-        samProcess.kill('SIGKILL');
-        resolve(void 0);
-      }, 5000);
+      const timer = setTimeout(() => samProcess.kill('SIGKILL'), 5000);
       samProcess.once('exit', () => {
         clearTimeout(timer);
         resolve(void 0);
@@ -138,7 +137,7 @@ async function stopSam(samProcess: ChildProcess): Promise<void> {
 
   // A SAM process killed mid-start leaves its runtime containers behind, which would keep the
   // docker network in use and hold on to their ports.
-  removeNetworkContainers();
+  await removeNetworkContainers();
 }
 
 /** Avoid forcing linux/amd64 on Apple Silicon when `DOCKER_DEFAULT_PLATFORM` is set globally. */
@@ -171,13 +170,46 @@ function createDockerNetwork() {
   }
 }
 
-function removeNetworkContainers() {
-  const containerIds = execSync(`docker ps -aq --filter network=${DOCKER_NETWORK_NAME}`, { encoding: 'utf-8' })
+function listNetworkContainers(): string[] {
+  return execSync(`docker ps -aq --filter network=${DOCKER_NETWORK_NAME}`, { encoding: 'utf-8' })
     .split('\n')
     .filter(Boolean);
-  if (containerIds.length) {
-    execSync(`docker rm -f ${containerIds.join(' ')}`, { stdio: 'ignore' });
+}
+
+async function removeNetworkContainers(): Promise<void> {
+  const containerIds = listNetworkContainers();
+  if (!containerIds.length) {
+    return;
   }
+
+  try {
+    execSync(`docker rm -f ${containerIds.join(' ')}`, { stdio: 'pipe' });
+  } catch (error) {
+    // `docker rm` fails for a container whose removal is already in progress, for example on a
+    // request of a SAM process that was killed. That removal still completes, so only a container
+    // that stays is a failure.
+    const stderr = (error as { stderr?: Buffer }).stderr?.toString() ?? '';
+    const remainingIds = await waitForNetworkContainersRemoved();
+    if (remainingIds.length) {
+      throw new Error(
+        `Failed to remove containers ${remainingIds.join(' ')} from docker network ${DOCKER_NETWORK_NAME}: ${stderr}`,
+        { cause: error },
+      );
+    }
+    console.warn(`[testEnvironment fixture] docker rm failed, but the containers are gone: ${stderr}`);
+  }
+}
+
+async function waitForNetworkContainersRemoved(): Promise<string[]> {
+  const startTime = Date.now();
+  let remainingIds = listNetworkContainers();
+
+  while (remainingIds.length && Date.now() - startTime < CONTAINER_REMOVAL_TIMEOUT_MS) {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    remainingIds = listNetworkContainers();
+  }
+
+  return remainingIds;
 }
 
 function removeDockerNetwork() {

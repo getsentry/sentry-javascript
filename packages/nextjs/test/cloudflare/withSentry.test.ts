@@ -285,7 +285,10 @@ describe('withSentry', () => {
       props: {},
     } as never);
 
-    expect(carrier).toEqual([{ key: 'sentry-cache-origin', value: expect.stringMatching(/-1$/) }]);
+    expect(carrier).toEqual([
+      { key: 'sentry-cache-origin', value: expect.stringMatching(/-1$/) },
+      { key: 'sentry-render-start', value: expect.stringMatching(/^\d+$/) },
+    ]);
     expect(requestCarrier['sentry-trace']).toMatch(/^[0-9a-f]{32}-[0-9a-f]{16}-1$/);
   });
 

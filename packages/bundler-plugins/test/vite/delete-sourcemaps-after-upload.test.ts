@@ -5,7 +5,7 @@ import { build, createBuilder } from 'vite';
 import type { Plugin, ResolvedConfig } from 'vite';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { sentryVitePlugin } from '../../src/vite';
-import type { Options } from '../../src/core';
+import type { InternalOptions, Options } from '../../src/core';
 
 const { mockSourcemapUpload } = vi.hoisted(() => ({ mockSourcemapUpload: vi.fn() }));
 
@@ -70,7 +70,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (vite)', () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
-  function viteConfig(pluginOptions: Options, plugins: Plugin[] = []) {
+  function viteConfig(pluginOptions: InternalOptions, plugins: Plugin[] = []) {
     return {
       configFile: false as const,
       logLevel: 'silent' as const,
@@ -203,6 +203,91 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (vite)', () => {
     expectUploadedPairs(uploads[0]!, readChunks(outDir));
   });
 
+  it('keeps visible source maps an output enables when the option is true', async () => {
+    const config = viteConfig({ sourcemaps: { deleteSourcemapsAfterUpload: true } });
+    await build({
+      ...config,
+      build: { ...config.build, rollupOptions: { input: entry, output: { sourcemap: true } } },
+    });
+
+    expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toHaveLength(2);
+  });
+
+  it.each([true, 'hidden'] as const)(
+    'removes `%s` source maps an output enables when the SDK turned source maps on',
+    async sourcemap => {
+      const config = viteConfig({ sourcemaps: { deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: true } });
+      await build({
+        ...config,
+        build: { ...config.build, rollupOptions: { input: entry, output: { sourcemap } } },
+      });
+
+      expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toEqual([]);
+      expect(uploads).toHaveLength(1);
+      expectUploadedPairs(uploads[0]!, readChunks(outDir));
+    },
+  );
+
+  it('removes hidden source maps when the option is true and no upload runs', async () => {
+    const config = viteConfig({ authToken: undefined, sourcemaps: { deleteSourcemapsAfterUpload: true } });
+    await build({ ...config, build: { ...config.build, sourcemap: 'hidden' } });
+
+    expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toEqual([]);
+    expect(uploads).toHaveLength(0);
+  });
+
+  it('reads the option from the internal function form when it decides', async () => {
+    let deleteMaps: boolean | undefined;
+    const sdkPlugin: Plugin = {
+      name: 'sdk',
+      config() {
+        deleteMaps = true;
+        return { build: { sourcemap: 'hidden' } };
+      },
+    };
+    const config = viteConfig({});
+    await build({
+      ...config,
+      plugins: [
+        sdkPlugin,
+        ...sentryVitePlugin({ ...credentials, sourcemaps: { deleteSourcemapsAfterUpload: () => deleteMaps } }),
+      ],
+    });
+
+    expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toEqual([]);
+    expect(uploads).toHaveLength(1);
+    expectUploadedPairs(uploads[0]!, readChunks(outDir));
+  });
+
+  it('removes the maps of ignored chunks and of CSS when the SDK turned the maps on', async () => {
+    let sdkEnabled: boolean | undefined;
+    const sdkPlugin: Plugin = {
+      name: 'sdk',
+      config() {
+        sdkEnabled = true;
+        return { build: { sourcemap: 'hidden' } };
+      },
+      generateBundle() {
+        this.emitFile({ type: 'asset', fileName: 'assets/style.css.map', source: '{"version":3,"mappings":""}' });
+      },
+    };
+    const config = viteConfig(
+      {
+        sourcemaps: {
+          deleteSourcemapsAfterUpload: true,
+          sdkEnabledSourceMaps: () => sdkEnabled,
+          ignore: ['**/lazy-*'],
+        },
+      },
+      [sdkPlugin],
+    );
+    await build(config);
+
+    expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toEqual([]);
+    expect(uploads).toHaveLength(1);
+    expect(Object.keys(uploads[0]!.files).filter(file => file.endsWith('.js'))).toHaveLength(1);
+  });
+
   it('keeps hidden source maps the user enabled and uploads them from disk', async () => {
     const config = viteConfig({});
     await build({ ...config, build: { ...config.build, sourcemap: 'hidden' } });
@@ -326,6 +411,34 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (vite)', () => {
     expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toEqual([]);
     expect(listFiles(serverOutDir).filter(file => file.endsWith('.map'))).toHaveLength(2);
     expect(uploads).toHaveLength(2);
+  });
+
+  it('asks the function form per environment with its own setting', async () => {
+    const serverOutDir = path.join(root, 'dist-server');
+    const askedFor: Array<string | undefined> = [];
+    const builder = await createBuilder({
+      ...viteConfig({
+        sourcemaps: {
+          deleteSourcemapsAfterUpload: environment => {
+            askedFor.push(environment);
+            return environment === undefined ? true : undefined;
+          },
+        },
+      }),
+      build: { outDir, minify: false, sourcemap: 'hidden', rollupOptions: { input: entry } },
+      environments: {
+        ssr: {
+          build: { outDir: serverOutDir, minify: false, sourcemap: 'hidden', rollupOptions: { input: entry } },
+        },
+      },
+      builder: {},
+    });
+    await builder.buildApp();
+
+    expect(askedFor).toContain(undefined);
+    expect(askedFor).toContain('ssr');
+    expect(listFiles(outDir).filter(file => file.endsWith('.map'))).toEqual([]);
+    expect(listFiles(serverOutDir).filter(file => file.endsWith('.map'))).toHaveLength(2);
   });
 
   it('still restores debug IDs for "disable-upload" builds', async () => {

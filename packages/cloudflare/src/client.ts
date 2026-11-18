@@ -5,6 +5,7 @@ import {
   _INTERNAL_flushMetricsBuffer,
   applySdkMetadata,
   debug,
+  GLOBAL_OBJ,
   spanIsSampled,
   spanStreamingIntegration,
 } from '@sentry/core';
@@ -20,6 +21,14 @@ declare const __SENTRY_TRACING__: boolean;
 declare const __SENTRY_EXCLUDE_STATIC_LIFECYCLE__: boolean | undefined;
 
 const SPAN_STREAMING_INTEGRATION_NAME = 'SpanStreaming';
+
+type GlobalWithWorkerInfo = typeof GLOBAL_OBJ & {
+  /**
+   * The `name` and `compatibility_date` of the wrangler config. Only set when the Worker is built
+   * with `sentryCloudflareVitePlugin`.
+   */
+  __SENTRY_CLOUDFLARE_WORKER__?: { name?: string; compatibilityDate?: string };
+};
 
 /**
  * The Sentry Cloudflare SDK Client.
@@ -59,13 +68,15 @@ export class CloudflareClient extends ServerRuntimeClient {
     applySdkMetadata(options, 'cloudflare');
     options._metadata = options._metadata || {};
     const { flushLock, ...serverOptions } = options;
+    const workerInfo = (GLOBAL_OBJ as GlobalWithWorkerInfo).__SENTRY_CLOUDFLARE_WORKER__;
 
     const clientOptions: ServerRuntimeClientOptions = {
       ...serverOptions,
       platform: 'javascript',
-      // TODO: Grab version information
-      runtime: { name: 'cloudflare' },
-      // TODO: Add server name
+      // workerd exposes no version at runtime (`navigator.userAgent` is always `Cloudflare-Workers`).
+      // The compatibility date selects the workerd behavior of the Worker, so it is the version.
+      runtime: { name: 'cloudflare', version: workerInfo?.compatibilityDate },
+      serverName: serverOptions.serverName ?? workerInfo?.name,
       _flushInterval: 0,
     };
 
@@ -83,6 +94,7 @@ export class CloudflareClient extends ServerRuntimeClient {
 
     super(clientOptions);
     this._flushLock = flushLock;
+    // oxlint-disable-next-line typescript/no-deprecated
     this.isCachedClient = options.cacheClient === true;
 
     // Track span lifecycle to know when to flush. Skipped for cached clients
@@ -510,6 +522,9 @@ interface BaseCloudflareOptions {
    * Sets an optional server name (device name).
    *
    * This is useful for identifying which server or instance is sending events.
+   *
+   * @default the `SENTRY_NAME` variable of `env`, else the `name` of the wrangler config when you
+   * build with `sentryCloudflareVitePlugin`
    */
   serverName?: string;
 
@@ -525,6 +540,7 @@ interface BaseCloudflareOptions {
    */
   spotlight?: boolean | string;
 
+  // TODO(v12): Remove `cacheClient` and the per-invocation client code paths it enables.
   /**
    * Cache the client and reuse it across invocations within the same isolate.
    *
@@ -545,6 +561,10 @@ interface BaseCloudflareOptions {
    * handler completes.
    *
    * @default true
+   *
+   * @deprecated `cacheClient` will be removed in the next major version (v12), and the client will always be cached.
+   * If you set `cacheClient: false`, please open an issue at https://github.com/getsentry/sentry-javascript/issues
+   * and tell us why `cacheClient: true` does not work for your use case.
    */
   cacheClient?: boolean;
 

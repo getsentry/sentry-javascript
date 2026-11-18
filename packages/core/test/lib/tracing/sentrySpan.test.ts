@@ -702,13 +702,14 @@ describe('SentrySpan', () => {
 
   describe('end', () => {
     it('works without endTimestamp', () => {
+      vi.useFakeTimers();
       const span = new SentrySpan();
-      const now = timestampInSeconds();
+      vi.advanceTimersByTime(500);
       span.end();
+      vi.useRealTimers();
 
       const { start_timestamp, end_timestamp } = spanToJSON(span);
-      expect(end_timestamp).toBeGreaterThanOrEqual(start_timestamp);
-      expect(end_timestamp).toBeCloseTo(now, 2);
+      expect(end_timestamp).toBe(start_timestamp + 0.5);
     });
 
     it('works with endTimestamp in seconds', () => {
@@ -763,20 +764,26 @@ describe('SentrySpan', () => {
     });
 
     it('uses the current time as end if the span was started with a start time', () => {
-      const startTimestamp = timestampInSeconds() - 10;
-      const span = new SentrySpan({ startTimestamp });
+      const before = timestampInSeconds();
+      const span = new SentrySpan({ startTimestamp: before - 10 });
       span.end();
+      const after = timestampInSeconds();
 
-      expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(10, 1);
+      const endTimestamp = spanToStaticSpanJSON(span).timestamp;
+      expect(endTimestamp).toBeGreaterThanOrEqual(before);
+      expect(endTimestamp).toBeLessThanOrEqual(after);
     });
 
     it('uses the current time as end if the start time was updated', () => {
       const span = new SentrySpan();
-      const startTimestamp = timestampInSeconds() - 10;
-      span.updateStartTime(startTimestamp);
+      const before = timestampInSeconds();
+      span.updateStartTime(before - 10);
       span.end();
+      const after = timestampInSeconds();
 
-      expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(10, 1);
+      const endTimestamp = spanToStaticSpanJSON(span).timestamp;
+      expect(endTimestamp).toBeGreaterThanOrEqual(before);
+      expect(endTimestamp).toBeLessThanOrEqual(after);
     });
 
     it('skips if span is already ended', () => {

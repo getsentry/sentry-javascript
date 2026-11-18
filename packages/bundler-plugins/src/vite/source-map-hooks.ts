@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import type { SentryBuildPluginManager, SourceMapDecision, SourceMapKind } from '../core';
+import { getDeleteOption, getSdkEnabledSourceMaps } from '../core';
 import type { OutputMatch, RollupSourceMapSetting, SourceMapHandling } from '../rollup/source-map-handling';
 import { getOutputMatch, sourceMapKindFromRollupSetting } from '../rollup/source-map-handling';
 
@@ -27,6 +28,7 @@ export type ViteResolvedConfig = {
 export type ViteSourceMapHooks = {
   config: (userConfig: ViteUserConfig, env: { command: string }) => ViteUserConfig | null;
   configResolved: (config: ViteResolvedConfig) => void;
+  outputOptions: SourceMapHandling['applyHiddenDecision'];
 };
 
 const NO_CHANGE: SourceMapDecision = { enableHidden: false, deleteAfterUpload: false };
@@ -96,7 +98,10 @@ export function createViteSourceMapHooks(
         }
 
         const environmentKind = sourceMapKindFromRollupSetting(setting);
-        const environmentDecision = sentryBuildPluginManager.sourceMaps.decide(environmentKind, { log: false });
+        const environmentDecision = sentryBuildPluginManager.sourceMaps.decide(environmentKind, {
+          log: false,
+          environment: name,
+        });
         decisions.set(name, { kind: environmentKind, decision: environmentDecision });
 
         if (environmentDecision.enableHidden) {
@@ -110,22 +115,31 @@ export function createViteSourceMapHooks(
     configResolved: config => {
       const environments = config.environments ?? { client: { build: config.build } };
 
-      const { uploadPossible } = sentryBuildPluginManager.sourceMaps;
-      const deleteOption = sentryBuildPluginManager.normalizedOptions.sourcemaps?.deleteSourcemapsAfterUpload;
-
       for (const [name, environment] of Object.entries(environments)) {
         const { kind, decision } = decisions.get(name) ?? decisions.get('*') ?? { kind: 'unset', decision: NO_CHANGE };
+        const environmentName = decisions.has(name) ? name : undefined;
+        const { normalizedOptions } = sentryBuildPluginManager;
+        const deleteOption = getDeleteOption(normalizedOptions, environmentName);
+        // `sourcemaps.delete: true` removes every source map, like for maps the SDK turned on.
+        const removeAll =
+          normalizedOptions.sourcemaps?.delete === true || getSdkEnabledSourceMaps(normalizedOptions, environmentName);
 
         for (const output of getOutputs(config.root, environment.build)) {
-          // The plugin never changes an output's own setting, so the user enabled
-          // these maps: only hidden ones the user asked to delete are removed.
+          // Hidden maps of an output's own setting are removed when the user
+          // asks for it, visible ones only when every source map is removed.
+          // Removed visible maps switch to hidden in `outputOptions`, so no
+          // `sourceMappingURL` comment points at a removed file.
           if (output.ownSetting) {
+            const outputKind = sourceMapKindFromRollupSetting(output.sourcemap);
+            const removeAllSourceMaps = removeAll && (outputKind === 'hidden' || outputKind === 'visible');
+            const deleteAfterUpload = deleteOption === true && (outputKind === 'hidden' || removeAllSourceMaps);
             sourceMapHandling.setDecision(output.destination, {
               match: output.match,
-              kind: sourceMapKindFromRollupSetting(output.sourcemap),
+              kind: outputKind,
               decision: {
-                enableHidden: false,
-                deleteAfterUpload: uploadPossible && deleteOption === true && output.sourcemap === 'hidden',
+                enableHidden: outputKind === 'visible' && deleteAfterUpload,
+                deleteAfterUpload,
+                removeAllSourceMaps,
               },
             });
             continue;
@@ -143,5 +157,7 @@ export function createViteSourceMapHooks(
         }
       }
     },
+
+    outputOptions: sourceMapHandling.applyHiddenDecision,
   };
 }

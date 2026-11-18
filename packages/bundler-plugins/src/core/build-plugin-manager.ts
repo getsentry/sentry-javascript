@@ -11,7 +11,7 @@ import { normalizeUserOptions, validateOptions } from './options-mapping';
 import type { Logger } from './logger';
 import { createLogger } from './logger';
 import { allowedToSendTelemetry, createSentryInstance, safeFlushTelemetry } from './sentry/telemetry';
-import type { Options, SentrySDKBuildFlags } from './types';
+import type { InternalOptions, SentrySDKBuildFlags } from './types';
 import { arrayify, getProjects, getTurborepoEnvPassthroughWarning, stripQueryAndHashFromPath } from './utils';
 import {
   defaultRewriteSourcesHook,
@@ -21,7 +21,7 @@ import {
 } from './debug-id-upload';
 import { globFiles } from './glob';
 import type { SourceMapDecision, SourceMapKind } from './sourcemap-settings';
-import { decideSourceMapHandling } from './sourcemap-settings';
+import { decideSourceMapHandling, getSourceMapFeatures } from './sourcemap-settings';
 import type { UploadFilter } from './upload-filter';
 import { createUploadFilter } from './upload-filter';
 import { LIB_VERSION } from './version';
@@ -153,7 +153,7 @@ export type SentryBuildPluginManager = {
      * Decides how the plugin treats the user's source map setting (see `decideSourceMapHandling`).
      * Logs the decision's message once per message, unless `log` is `false`.
      */
-    decide(kind: SourceMapKind, options?: { log?: boolean }): SourceMapDecision;
+    decide(kind: SourceMapKind, options?: { log?: boolean; environment?: string }): SourceMapDecision;
     /** Logs the decision's message, once per message. */
     logDecision(decision: SourceMapDecision): void;
     /**
@@ -183,7 +183,7 @@ export type SentryBuildPluginManager = {
  * The build plugin manager's behavior strongly depends on the options that are passed in.
  */
 export function createSentryBuildPluginManager(
-  userOptions: Options,
+  userOptions: InternalOptions,
   bundlerPluginMetaContext: {
     /**
      * E.g. `webpack` or `nextjs` or `turbopack`
@@ -641,6 +641,11 @@ export function createSentryBuildPluginManager(
       Only use this if you need to manually inject debug IDs into the build artifacts.
     */
     async injectDebugIds(buildArtifactPaths: string[]) {
+      if (!getSourceMapFeatures(options).injectDebugIds) {
+        logger.debug('Debug ID injection was disabled. Will not inject debug IDs.');
+        return;
+      }
+
       // oxlint-disable-next-line typescript/no-deprecated
       await startSpan({ name: 'inject-debug-ids', scope: sentryScope, forceTransaction: true }, async () => {
         try {
@@ -970,8 +975,11 @@ export function createSentryBuildPluginManager(
 
     sourceMaps: {
       uploadPossible: sourceMapUploadPossible,
-      decide(kind, { log = true } = {}) {
-        const decision = decideSourceMapHandling(kind, options, sourceMapUploadPossible);
+      decide(kind, { log = true, environment } = {}) {
+        // Watch builds in development keep their source maps.
+        const decision = isDevMode
+          ? { enableHidden: false, deleteAfterUpload: false }
+          : decideSourceMapHandling(kind, options, sourceMapUploadPossible, environment);
         if (log) {
           logDecision(decision);
         }
@@ -1048,7 +1056,7 @@ async function createTempUploadFolder(): Promise<string> {
 type SourceMapUploadBlocker = 'disabled' | 'no-assets' | 'dev-mode' | 'no-auth-token' | 'no-org' | 'no-project';
 
 function getSourceMapUploadBlocker(options: NormalizedOptions, isDevMode: boolean): SourceMapUploadBlocker | undefined {
-  if (options.sourcemaps?.disable) {
+  if (!getSourceMapFeatures(options).upload) {
     return 'disabled';
   }
   if (Array.isArray(options.sourcemaps?.assets) && options.sourcemaps.assets.length === 0) {

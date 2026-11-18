@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import { CloudflareClient, type CloudflareClientOptions } from '../src/client';
 import { makeFlushLock } from '../src/flush';
@@ -222,6 +222,40 @@ describe('CloudflareClient', () => {
         client.emit('spanStart', {} as any);
         client.emit('spanEnd', {} as any);
       }).not.toThrow();
+    });
+  });
+
+  describe('worker info stored by the Vite plugin', () => {
+    const globalWithWorkerInfo = globalThis as {
+      __SENTRY_CLOUDFLARE_WORKER__?: { name?: string; compatibilityDate?: string };
+    };
+
+    afterEach(() => {
+      delete globalWithWorkerInfo.__SENTRY_CLOUDFLARE_WORKER__;
+    });
+
+    it('uses the worker name as serverName and the compatibility date as runtime version', () => {
+      globalWithWorkerInfo.__SENTRY_CLOUDFLARE_WORKER__ = { name: 'my-worker', compatibilityDate: '2025-06-17' };
+
+      const client = new CloudflareClient(MOCK_CLIENT_OPTIONS);
+
+      expect(client.getOptions().serverName).toBe('my-worker');
+      expect(client.getOptions().runtime).toEqual({ name: 'cloudflare', version: '2025-06-17' });
+    });
+
+    it('prefers the serverName option over the worker name', () => {
+      globalWithWorkerInfo.__SENTRY_CLOUDFLARE_WORKER__ = { name: 'my-worker' };
+
+      const client = new CloudflareClient({ ...MOCK_CLIENT_OPTIONS, serverName: 'user-server' });
+
+      expect(client.getOptions().serverName).toBe('user-server');
+    });
+
+    it('has no serverName and no runtime version without stored worker info', () => {
+      const client = new CloudflareClient(MOCK_CLIENT_OPTIONS);
+
+      expect(client.getOptions().serverName).toBeUndefined();
+      expect(client.getOptions().runtime).toEqual({ name: 'cloudflare' });
     });
   });
 

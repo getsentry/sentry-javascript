@@ -18,19 +18,20 @@ describe('workerd entry point', () => {
     const waitUntil = vi.fn();
     vi.doMock('cloudflare:workers', () => ({ waitUntil }));
 
-    const workerdSdk = await import('../src/index.workerd');
+    const { initCloudflareSentryHandle } = await import('../src/index.workerd');
+    initCloudflareSentryHandle({});
 
     const context = getCloudflareExecutionContext(undefined);
     const task = Promise.resolve();
     context?.waitUntil(task);
 
     expect(waitUntil).toHaveBeenCalledWith(task);
-    expect(workerdSdk.initCloudflareSentryHandle).toBeTypeOf('function');
   });
 
   it('still prefers the execution context on `platform`', async () => {
     vi.doMock('cloudflare:workers', () => ({ waitUntil: vi.fn() }));
-    await import('../src/index.workerd');
+    const { initCloudflareSentryHandle } = await import('../src/index.workerd');
+    initCloudflareSentryHandle({});
 
     const ctx = { waitUntil: vi.fn() };
 
@@ -39,7 +40,8 @@ describe('workerd entry point', () => {
 
   it('resolves no execution context on runtimes where `waitUntil` is not importable', async () => {
     vi.doMock('cloudflare:workers', () => ({}));
-    await import('../src/index.workerd');
+    const { initCloudflareSentryHandle } = await import('../src/index.workerd');
+    initCloudflareSentryHandle({});
 
     expect(getCloudflareExecutionContext(undefined)).toBeUndefined();
   });

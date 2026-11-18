@@ -25,7 +25,8 @@ sentryTest(
     const eventData = envelopeRequestParser(await pageloadEventPromise);
 
     const traceContextData = eventData.contexts?.trace?.data;
-    const spanDurationSeconds = eventData.timestamp! - eventData.start_timestamp!;
+    const initTimestamp = await page.evaluate<number>('window._testInitTimestamp');
+    const secondsFromInitToSpanEnd = eventData.timestamp! - initTimestamp;
 
     expect(traceContextData).toMatchObject({
       [SENTRY_ORIGIN]: 'auto.pageload.browser',
@@ -35,9 +36,9 @@ sentryTest(
       [SENTRY_IDLE_SPAN_FINISH_REASON]: 'finalTimeout',
     });
 
-    // We wait for 3 seconds before calling Sentry.reportPageLoaded()
+    // The final timeout of 3 seconds starts at `Sentry.init()`. The span starts earlier, at the time origin.
     // the margins are to account for timing weirdness in CI to avoid flakes
-    expect(spanDurationSeconds).toBeGreaterThan(2.5);
-    expect(spanDurationSeconds).toBeLessThan(3.5);
+    expect(secondsFromInitToSpanEnd).toBeGreaterThan(2.5);
+    expect(secondsFromInitToSpanEnd).toBeLessThan(3.5);
   },
 );

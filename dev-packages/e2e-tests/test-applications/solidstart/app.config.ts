@@ -1,17 +1,13 @@
 import { withSentry } from '@sentry/solidstart/vite';
 import { defineConfig } from '@solidjs/start/config';
 
+// The inject mode variants set `E2E_TEST_INJECT_MODE` for the build and the test run.
+const injectMode = process.env.E2E_TEST_INJECT_MODE as 'top-level-import' | 'experimental_dynamic-import' | undefined;
+
 export default defineConfig(
   withSentry(
     {
       middleware: './src/middleware.ts',
-      // The base-path variant serves the app, and so the tunnel, under `/app`.
-      ...(process.env.E2E_TEST_BASE_PATH && { server: { baseURL: `${process.env.E2E_TEST_BASE_PATH}/` } }),
-      vite: {
-        define: {
-          __E2E_TEST_TUNNEL__: JSON.stringify(!!process.env.E2E_TEST_TUNNEL),
-        },
-      },
     },
     {
       sentryUrl: 'http://localhost:3032',
@@ -20,6 +16,7 @@ export default defineConfig(
       project: 'test-project',
       release: { name: 'test-release' },
       debug: true,
+      autoInjectServerSentry: injectMode,
     },
   ),
 );

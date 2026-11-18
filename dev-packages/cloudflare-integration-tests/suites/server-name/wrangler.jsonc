@@ -1,0 +1,9 @@
+{
+  "name": "worker-name",
+  "compatibility_date": "2025-01-15",
+  "main": "index.ts",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "SENTRY_NAME": "my-worker",
+  },
+}

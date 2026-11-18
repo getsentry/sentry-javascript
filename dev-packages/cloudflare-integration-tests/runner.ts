@@ -503,6 +503,10 @@ export function createRunner(...paths: string[]) {
 
             childSubWorker.on('error', onChildError);
             childSubWorker.on('exit', code => {
+              // The teardown stops the sub-worker.
+              if (disposed) {
+                return;
+              }
               onChildError(new Error(`Sub-worker exited with code ${code}`));
             });
 
@@ -575,40 +579,35 @@ export function createRunner(...paths: string[]) {
 
           if (process.env.DEBUG) log('making request', method, url, headers, body);
 
+          let res: Response;
           try {
-            const res = await fetchWithRetry(url, { headers, method, body }, expectError ? { maxRetries: 1 } : {});
-
-            if (!res.ok) {
-              if (!expectError) {
-                const responseBody = await res.text().catch(() => '');
-                reject(
-                  new Error(
-                    `Expected request to "${path}" to succeed, but got a ${res.status} response: ${responseBody.slice(0, 500)}`,
-                  ),
-                );
-              }
-
-              return;
-            }
-
-            if (expectError) {
-              reject(new Error(`Expected request to "${path}" to fail, but got a ${res.status} response`));
-              return;
-            }
-
-            if (res.headers.get('content-type')?.includes('application/json')) {
-              return await res.json();
-            }
-
-            return (await res.text()) as T;
+            res = await fetchWithRetry(url, { headers, method, body }, expectError ? { maxRetries: 1 } : {});
           } catch (e) {
             if (expectError) {
-              return;
+              return undefined;
             }
-
-            reject(e);
-            return;
+            throw e;
           }
+
+          if (expectError) {
+            if (res.ok) {
+              throw new Error(`Expected request to "${path}" to fail, but got a ${res.status} response`);
+            }
+            return undefined;
+          }
+
+          if (!res.ok) {
+            const responseBody = await res.text().catch(() => '');
+            throw new Error(
+              `Expected request to "${path}" to succeed, but got a ${res.status} response: ${responseBody.slice(0, 500)}`,
+            );
+          }
+
+          if (res.headers.get('content-type')?.includes('application/json')) {
+            return res.json();
+          }
+
+          return (await res.text()) as T;
         },
         makeRequestAndWaitForEnvelope: async function <T>(
           method: 'get' | 'post',
@@ -625,13 +624,13 @@ export function createRunner(...paths: string[]) {
           await Promise.all(envelopePromises);
           return result;
         },
-        collectStreamedSpans: async function (
+        collectStreamedSpans: function (
           isDone: (spansOfTrace: SerializedStreamedSpan[]) => boolean,
         ): Promise<SerializedStreamedSpan[]> {
           const spansByTrace = new Map<string, SerializedStreamedSpan[]>();
           let matched: SerializedStreamedSpan[] = [];
 
-          await waitForSpans(spans => {
+          const collected = waitForSpans(spans => {
             for (const span of spans) {
               const spansOfTrace = spansByTrace.get(span.trace_id);
               if (spansOfTrace) {
@@ -651,9 +650,13 @@ export function createRunner(...paths: string[]) {
             }
 
             return false;
-          });
+          }).then(() => matched);
 
-          return matched;
+          // A test creates this promise before its request and awaits it after. If the test fails in
+          // between, nothing observes a rejection here, and Vitest reports a second "Unhandled error".
+          collected.catch(() => {});
+
+          return collected;
         },
         collectStreamedSpansUntilSegment: function (segment: SegmentMatcher): Promise<SerializedStreamedSpan[]> {
           const matchesSegment =

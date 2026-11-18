@@ -1,0 +1,97 @@
+/**
+ * Trace context propagation through the MCP `params._meta` property bag.
+ * @see https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/mcp.md#context-propagation
+ */
+
+import { getClient } from '../../currentScopes';
+import { continueTrace } from '../../tracing/trace';
+import type { SpanLink } from '../../types/link';
+import { baggageHeaderToDynamicSamplingContext, mergeBaggageHeaders } from '../../utils/baggage';
+import { isObjectLike } from '../../utils/is';
+import { getActiveSpan } from '../../utils/spanUtils';
+import { getTraceData } from '../../utils/traceData';
+import { extractTraceparentData, sentryTraceFromTraceparent, shouldContinueTrace } from '../../utils/tracing';
+import type { JsonRpcNotification, JsonRpcRequest } from './types';
+
+function getSentryTraceFromMeta(meta: Record<PropertyKey, unknown>): string | undefined {
+  const sentryTrace = meta['sentry-trace'];
+  if (typeof sentryTrace === 'string') {
+    return sentryTrace;
+  }
+  // W3C Trace Context is opt-in, the same way `propagateTraceparent` gates sending `traceparent` on HTTP requests.
+  const traceparent = meta.traceparent;
+  return getClient()?.getOptions().propagateTraceparent && typeof traceparent === 'string'
+    ? sentryTraceFromTraceparent(traceparent)
+    : undefined;
+}
+
+/**
+ * Runs `callback` in the trace carried by the message's `params._meta`, so the MCP server span becomes a child of the
+ * client span that sent the message. The span that was active when the message arrived (e.g. the HTTP server span of a
+ * Streamable HTTP request) is handed to `callback` as a link, because MCP and transport contexts are independent: one
+ * HTTP request can carry several MCP messages and one MCP request can be retried over several HTTP requests.
+ *
+ * Without a valid trace context in `_meta`, `callback` runs in the current context, unchanged.
+ */
+export function continueMcpTrace<T>(params: unknown, callback: (links: SpanLink[] | undefined) => T): T {
+  const meta = isObjectLike(params) && isObjectLike(params._meta) ? params._meta : undefined;
+  const sentryTrace = meta ? getSentryTraceFromMeta(meta) : undefined;
+
+  // `continueTrace` starts a fresh trace for a malformed value or for baggage it refuses to continue (another org, or a
+  // missing org ID under `strictTraceContinuation`), which would detach the span from the transport trace it would
+  // otherwise have joined.
+  if (!meta || !sentryTrace || !extractTraceparentData(sentryTrace)?.traceId) {
+    return callback(undefined);
+  }
+
+  const baggage = typeof meta.baggage === 'string' ? meta.baggage : undefined;
+  const client = getClient();
+  if (client && !shouldContinueTrace(client, baggageHeaderToDynamicSamplingContext(baggage)?.org_id)) {
+    return callback(undefined);
+  }
+
+  const ambientSpan = getActiveSpan();
+  const links = ambientSpan ? [{ context: ambientSpan.spanContext() }] : undefined;
+
+  return continueTrace({ sentryTrace, baggage }, () => callback(links));
+}
+
+/**
+ * Returns a copy of an outgoing request or notification with the active trace context added to `params._meta`, so the
+ * receiving side can continue the trace. Messages that already carry trace context are returned unchanged.
+ */
+export function injectMcpTraceContext<M extends JsonRpcRequest | JsonRpcNotification>(message: M): M {
+  const meta = message.params?._meta;
+  if (
+    meta !== undefined &&
+    (!isObjectLike(meta) || meta['sentry-trace'] !== undefined || meta.traceparent !== undefined)
+  ) {
+    return message;
+  }
+
+  const {
+    'sentry-trace': sentryTrace,
+    baggage,
+    traceparent,
+  } = getTraceData({
+    propagateTraceparent: getClient()?.getOptions().propagateTraceparent,
+  });
+  if (!sentryTrace) {
+    return message;
+  }
+
+  const existingBaggage = isObjectLike(meta) && typeof meta.baggage === 'string' ? meta.baggage : undefined;
+
+  return {
+    ...message,
+    params: {
+      ...message.params,
+      _meta: {
+        ...meta,
+        'sentry-trace': sentryTrace,
+        ...(traceparent && { traceparent }),
+        ...(baggage && { baggage: mergeBaggageHeaders(existingBaggage, baggage) }),
+      },
+    },
+  };
+}

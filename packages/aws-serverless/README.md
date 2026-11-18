@@ -10,7 +10,11 @@
 
 # Official Sentry SDK for AWS Lambda
 
-The official Sentry SDK for monitoring AWS Lambda functions.
+The official Sentry SDK for monitoring AWS Lambda Event Functions (formerly called Lambda functions).
+
+For Lambda Web Functions, which run a standard HTTP server, use [`@sentry/node`](https://github.com/getsentry/sentry-javascript/tree/master/packages/node) instead. Its default
+[`awsLambdaWebIntegration`](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/awslambdaweb/)
+adds Lambda metadata to your errors and spans.
 
 ## Documentation
 
