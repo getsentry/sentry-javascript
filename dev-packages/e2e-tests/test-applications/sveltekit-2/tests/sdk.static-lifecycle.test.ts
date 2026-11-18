@@ -2,7 +2,9 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { PAGE_SERVER_RENDERING_TYPE } from '@sentry/conventions/attributes';
 import { PAGELOAD } from '@sentry/conventions/op';
-import { waitForInitialPageload } from './utils';
+import { waitForInitialPageload } from './utils.static-lifecycle';
+
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
 
 const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';
 
@@ -36,7 +38,7 @@ test.describe('SDK-internal behavior', () => {
   });
 
   test('Marks the pageload of a prerendered page as statically rendered, without a link', async ({ page }) => {
-    const pageloadTxnPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+    const pageloadTxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.transaction === '/prerendered' && txnEvent.contexts?.trace?.op === PAGELOAD;
     });
 
@@ -54,7 +56,7 @@ test.describe('SDK-internal behavior', () => {
   });
 
   test("Doesn't mark the pageload of a prerendered client-side shell", async ({ page }) => {
-    const pageloadTxnPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+    const pageloadTxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.transaction === '/prerendered-shell' && txnEvent.contexts?.trace?.op === PAGELOAD;
     });
 

@@ -42,6 +42,10 @@
       {
         "label": "sveltekit-2 (svelte-5)",
         "build-command": "pnpm test:build:svelte-5"
+      },
+      {
+        "assert-command": "PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert",
+        "label": "sveltekit-2 (static trace lifecycle)"
       }
     ]
   }

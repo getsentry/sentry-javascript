@@ -24,7 +24,7 @@ export async function waitForInitialPageload(
   const txnName = opts?.parameterizedRoute ?? route;
   const debug = opts?.debug ?? false;
 
-  const clientPageloadTxnEventPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+  const clientPageloadTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
     debug &&
       console.log({
         txn: txnEvent?.transaction,

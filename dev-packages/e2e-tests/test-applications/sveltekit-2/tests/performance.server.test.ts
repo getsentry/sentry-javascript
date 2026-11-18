@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('server pageload request span has nested request span for sub request', async ({ page }) => {
   const serverTraceSpansPromise = collectStreamedSpansUntilSegment('sveltekit-2', 'GET /server-load-fetch');
 

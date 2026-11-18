@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { waitForInitialPageload } from './utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test.describe('client-specific performance events', () => {
   test('multiple navigations have distinct traces', async ({ page }) => {
     const navigationSpan1Promise = waitForStreamedSpan('sveltekit-2', span => {

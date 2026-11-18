@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
+
 test('server pageload request span has nested request span for sub request', async ({ page }) => {
-  const serverTxnEventPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+  const serverTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
     return txnEvent?.transaction === 'GET /server-load-fetch';
   });
 
@@ -34,7 +36,7 @@ test('server pageload request span has nested request span for sub request', asy
 });
 
 test('extracts HTTP request headers as span attributes', async ({ page, baseURL }) => {
-  const serverTxnEventPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+  const serverTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
     return txnEvent?.transaction === 'GET /api/users';
   });
 

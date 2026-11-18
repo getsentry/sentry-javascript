@@ -7,6 +7,8 @@ import {
 } from '@sentry-internal/test-utils';
 import { waitForInitialPageload } from './utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test.describe('performance events', () => {
   test('capture a distributed pageload trace', async ({ page }) => {
     const traceSpansPromise = collectStreamedSpans('sveltekit-2', spansOfTrace => {

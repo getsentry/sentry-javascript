@@ -1,18 +1,20 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-import { waitForInitialPageload } from './utils';
+import { waitForInitialPageload } from './utils.static-lifecycle';
+
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
 
 test.describe('client-specific performance events', () => {
   test('multiple navigations have distinct traces', async ({ page }) => {
-    const navigationTxn1EventPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+    const navigationTxn1EventPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.transaction === '/nav1' && txnEvent.contexts?.trace?.op === 'navigation';
     });
 
-    const navigationTxn2EventPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+    const navigationTxn2EventPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.transaction === '/' && txnEvent.contexts?.trace?.op === 'navigation';
     });
 
-    const navigationTxn3EventPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+    const navigationTxn3EventPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.transaction === '/nav2' && txnEvent.contexts?.trace?.op === 'navigation';
     });
 
@@ -83,7 +85,7 @@ test.describe('client-specific performance events', () => {
   });
 
   test('records manually added component tracking spans', async ({ page }) => {
-    const componentTxnEventPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+    const componentTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.transaction === '/components';
     });
 

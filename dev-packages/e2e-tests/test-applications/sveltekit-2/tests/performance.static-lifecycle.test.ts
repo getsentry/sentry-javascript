@@ -1,14 +1,16 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-import { waitForInitialPageload } from './utils';
+import { waitForInitialPageload } from './utils.static-lifecycle';
+
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
 
 test.describe('performance events', () => {
   test('capture a distributed pageload trace', async ({ page }) => {
-    const clientTxnEventPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+    const clientTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.transaction === '/users/[id]';
     });
 
-    const serverTxnEventPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+    const serverTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.transaction === 'GET /users/[id]';
     });
 
@@ -58,11 +60,11 @@ test.describe('performance events', () => {
   });
 
   test('capture a distributed navigation trace', async ({ page }) => {
-    const clientNavigationTxnEventPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+    const clientNavigationTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.transaction === '/users' && txnEvent.contexts?.trace?.op === 'navigation';
     });
 
-    const serverTxnEventPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+    const serverTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.transaction === 'GET /users';
     });
 
@@ -114,13 +116,13 @@ test.describe('performance events', () => {
   test('record client-side universal load fetch span and trace', async ({ page }) => {
     await waitForInitialPageload(page);
 
-    const clientNavigationTxnEventPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+    const clientNavigationTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.transaction === '/universal-load-fetch' && txnEvent.contexts?.trace?.op === 'navigation';
     });
 
     // this transaction should be created because of the fetch call
     // it should also be part of the trace
-    const serverTxnEventPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+    const serverTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.transaction === 'GET /api/users';
     });
 
@@ -194,11 +196,11 @@ test.describe('performance events', () => {
   });
 
   test('captures a navigation transaction directly after pageload', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+    const clientPageloadTxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.contexts?.trace?.op === 'pageload';
     });
 
-    const clientNavigationTxnPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+    const clientNavigationTxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.contexts?.trace?.op === 'navigation';
     });
 
@@ -267,15 +269,15 @@ test.describe('performance events', () => {
   });
 
   test('captures one navigation transaction per redirect', async ({ page }) => {
-    const clientNavigationRedirect1TxnPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+    const clientNavigationRedirect1TxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.contexts?.trace?.op === 'navigation' && txnEvent?.transaction === '/redirect1';
     });
 
-    const clientNavigationRedirect2TxnPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+    const clientNavigationRedirect2TxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.contexts?.trace?.op === 'navigation' && txnEvent?.transaction === '/redirect2';
     });
 
-    const clientNavigationRedirect3TxnPromise = waitForTransaction('sveltekit-2-static', txnEvent => {
+    const clientNavigationRedirect3TxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.contexts?.trace?.op === 'navigation' && txnEvent?.transaction === '/users/[id]';
     });
 

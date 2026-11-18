@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { waitForInitialPageload } from './utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test("doesn't rerun a wrapped layout server load that doesn't depend on the url", async ({ page }) => {
   await waitForInitialPageload(page, { route: '/load-dependencies/a' });
 
