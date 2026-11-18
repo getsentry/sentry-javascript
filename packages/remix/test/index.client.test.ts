@@ -55,6 +55,37 @@ describe('Client init()', () => {
     expect(reactInit).toHaveBeenLastCalledWith(expect.objectContaining({ routeProvider }));
   });
 
+  describe('release', () => {
+    afterEach(() => {
+      delete (globalThis as { __remixContext?: unknown }).__remixContext;
+    });
+
+    it('reads the release the server build added to the Remix context', () => {
+      (globalThis as { __remixContext?: unknown }).__remixContext = { sentryRelease: 'page-release' };
+
+      init({});
+
+      expect(reactInit).toHaveBeenLastCalledWith(expect.objectContaining({ release: 'page-release' }));
+    });
+
+    it('prefers an explicit release', () => {
+      (globalThis as { __remixContext?: unknown }).__remixContext = { sentryRelease: 'page-release' };
+
+      init({ release: 'explicit-release' });
+
+      expect(reactInit).toHaveBeenLastCalledWith(expect.objectContaining({ release: 'explicit-release' }));
+    });
+
+    // An explicit `release: undefined` would override the browser SDK's `SENTRY_RELEASE` fallback.
+    it('sets no release when the Remix context has none', () => {
+      (globalThis as { __remixContext?: unknown }).__remixContext = {};
+
+      init({});
+
+      expect(reactInit.mock.lastCall?.[0]).not.toHaveProperty('release');
+    });
+  });
+
   it('returns client from init', () => {
     expect(init({})).not.toBeUndefined();
   });

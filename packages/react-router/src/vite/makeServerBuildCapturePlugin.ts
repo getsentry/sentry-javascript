@@ -1,7 +1,7 @@
 import { type Plugin } from 'vite';
 import { GLOBAL_KEY } from '../server/serverBuild';
 
-const SERVER_BUILD_MODULE_ID = 'virtual:react-router/server-build';
+export const SERVER_BUILD_MODULE_ID = 'virtual:react-router/server-build';
 
 /**
  * A Sentry plugin for React Router to capture the server build for middleware name resolution.

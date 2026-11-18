@@ -9,7 +9,7 @@ import type {
   ModuleMetadata,
   ModuleMetadataCallback,
 } from './types';
-import { determineReleaseName, canAutoDetectRepository, readCommitEnvVar } from './utils';
+import { canAutoDetectRepository, readCommitEnvVar, resolveReleaseName } from './utils';
 
 export type NormalizedOptions = {
   org: string | undefined;
@@ -39,7 +39,7 @@ export type NormalizedOptions = {
     | undefined;
   release: {
     name: string | undefined;
-    inject: boolean;
+    inject: boolean | 'html';
     create: boolean;
     finalize: boolean;
     vcsRemote: string;
@@ -117,7 +117,7 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
     sourcemaps: userOptions.sourcemaps,
     release: {
       ...userOptions.release,
-      name: userOptions.release?.name ?? process.env['SENTRY_RELEASE'] ?? determineReleaseName(),
+      name: resolveReleaseName(userOptions.release?.name),
       inject: userOptions.release?.inject ?? true,
       create: userOptions.release?.create ?? true,
       finalize: userOptions.release?.finalize ?? true,
@@ -236,6 +236,12 @@ export function validateOptions(options: NormalizedOptions, logger: Logger): boo
     logger.warn(
       '`sourcemaps.deleteSourcemapsAfterUpload` is ignored because `sourcemaps.delete` is set.',
       'Please remove `sourcemaps.deleteSourcemapsAfterUpload`.',
+    );
+  }
+  if (sourcemaps?.delete === false && sourcemaps.filesToDeleteAfterUpload !== undefined) {
+    logger.warn(
+      '`sourcemaps.filesToDeleteAfterUpload` still deletes the files it matches, although `sourcemaps.delete` is `false`.',
+      'Remove `sourcemaps.filesToDeleteAfterUpload` to keep the source maps.',
     );
   }
 

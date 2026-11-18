@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getTraceMetaTags } from '../../../src/utils/meta';
+import { getReleaseMetaTag, getTraceMetaTags } from '../../../src/utils/meta';
 import * as TraceDataModule from '../../../src/utils/traceData';
 
 describe('getTraceMetaTags', () => {
@@ -48,5 +48,15 @@ describe('getTraceMetaTags', () => {
     );
 
     expect(getTraceDataSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('getReleaseMetaTag', () => {
+  it('renders the release as a `sentry-release` meta tag', () => {
+    expect(getReleaseMetaTag('1.2.3')).toBe('<meta name="sentry-release" content="1.2.3"/>');
+  });
+
+  it('escapes the release so it cannot end the attribute or the tag', () => {
+    expect(getReleaseMetaTag('a"b<c>&d')).toBe('<meta name="sentry-release" content="a&quot;b&lt;c&gt;&amp;d"/>');
   });
 });

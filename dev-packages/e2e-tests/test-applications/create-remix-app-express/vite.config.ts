@@ -9,7 +9,9 @@ installGlobals();
 export default defineConfig({
   plugins: [
     remix(),
-    sentryRemixVitePlugin(),
+    sentryRemixVitePlugin({
+      release: { name: 'create-remix-app-express-release', create: false },
+    }),
     tsconfigPaths({
       // The dev server config errors are not relevant to this test app
       // https://github.com/aleclarson/vite-tsconfig-paths?tab=readme-ov-file#options

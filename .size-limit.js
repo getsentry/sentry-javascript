@@ -489,6 +489,37 @@ module.exports = [
       return config;
     },
   },
+  // Cloudflare SDK with an instrumented CommonJS package (`express`, `mysql`). `sentryCloudflareVitePlugin` makes such a
+  // package `require` the orchestrion `diagnostics_channel` facade, so the Worker gets the CommonJS build of the facade
+  // next to the ES module build of the SDK. Everything that the facade loads at runtime is added to the bundle.
+  {
+    name: '@sentry/cloudflare (withSentry, instrumented CommonJS package) - minified',
+    path: [
+      'packages/cloudflare/build/esm/prod/index.js',
+      'packages/cloudflare/build/cjs/prod/orchestrion-diagnostics-channel.js',
+    ],
+    import: {
+      'packages/cloudflare/build/esm/prod/index.js': createImport(
+        'withSentry',
+        'instrumentDurableObjectWithSentry',
+        'instrumentWorkflowWithSentry',
+      ),
+      'packages/cloudflare/build/cjs/prod/orchestrion-diagnostics-channel.js': createImport('tracingChannel'),
+    },
+    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
+    gzip: false,
+    brotli: false,
+    disablePlugins: ['@size-limit/webpack'],
+    webpack: false,
+    modifyEsbuildConfig: function (config) {
+      config.keepNames = true;
+      // Match wrangler's build settings
+      config.conditions = ['workerd', 'worker', 'browser'];
+      config.platform = 'browser';
+      config.format = 'esm';
+      return config;
+    },
+  },
   // Next.js on Cloudflare Workers (ESM) - minified to match `wrangler deploy --dry-run --minify` output. An import of
   // `@sentry/node` in this entry more than doubles its size.
   {

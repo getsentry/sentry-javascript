@@ -1,7 +1,7 @@
 import { ChatAnthropic } from '@langchain/anthropic';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer } from '@sentry-internal/node-integration-tests';
+import { anthropicMessage, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
@@ -11,34 +11,22 @@ function startMockAnthropicServer() {
     const model = req.body.model;
 
     // Simulate tool call response
-    res.json({
-      id: 'msg_tool_test_123',
-      type: 'message',
-      role: 'assistant',
-      model: model,
-      content: [
-        {
-          type: 'text',
-          text: 'Let me check the weather for you.',
-        },
-        {
-          type: 'tool_use',
-          id: 'toolu_01A09q90qw90lq917835lq9',
-          name: 'get_weather',
-          input: { location: 'San Francisco, CA' },
-        },
-        {
-          type: 'text',
-          text: 'The weather looks great!',
-        },
-      ],
-      stop_reason: 'tool_use',
-      stop_sequence: null,
-      usage: {
-        input_tokens: 20,
-        output_tokens: 30,
-      },
-    });
+    res.json(
+      anthropicMessage(model, {
+        id: 'msg_tool_test_123',
+        content: [
+          { type: 'text', text: 'Let me check the weather for you.' },
+          {
+            type: 'tool_use',
+            id: 'toolu_01A09q90qw90lq917835lq9',
+            name: 'get_weather',
+            input: { location: 'San Francisco, CA' },
+          },
+          { type: 'text', text: 'The weather looks great!' },
+        ],
+        usage: { input_tokens: 20, output_tokens: 30 },
+      }),
+    );
   });
 
   return startMockServer(app);

@@ -6,6 +6,9 @@ import { getHooksFileName, makeEntryFileMatcher } from './svelteConfig';
 
 export type GlobalSentryValues = {
   __sentry_sveltekit_output_dir?: string;
+  /** The release `sentryHandle` adds to the pages it renders */
+  __sentry_sveltekit_release?: string;
+  SENTRY_RELEASE?: { id?: string };
 };
 
 /**

@@ -104,6 +104,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   if (sentryVitePluginsOptions) {
     const sentryVitePlugins = await makeCustomSentryVitePlugins(sentryVitePluginsOptions, {
       getAdapterOutputDir: getAdapterOutputDirOnce,
+      getKitConfig,
     });
     sentryPlugins.push(...sentryVitePlugins);
   }

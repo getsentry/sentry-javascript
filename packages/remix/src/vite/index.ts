@@ -1,6 +1,7 @@
 import { resolveSourceMapsFeatures } from '@sentry/core';
 import type { Plugin } from 'vite';
 import { makeOrchestrionPlugin } from './orchestrionPlugin';
+import { makeReleasePlugin } from './releasePlugin';
 import { makeRouteManifestPlugin } from './routeManifestPlugin';
 import type { SourceMapState } from './sourceMaps';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsPlugin } from './sourceMaps';
@@ -13,8 +14,9 @@ export type { SentryRemixVitePluginOptions };
  *
  * Add these to your Vite configuration to
  * - inject the Remix route manifest, so client-side transactions are parameterized,
- * - build-time instrument supported server-side dependencies (such as database clients), and
- * - inject debug IDs and upload source maps to Sentry.
+ * - build-time instrument supported server-side dependencies (such as database clients),
+ * - inject debug IDs and upload source maps to Sentry, and
+ * - pass the release to the browser SDK through the rendered page instead of the client chunks.
  *
  * @example
  * ```typescript
@@ -57,7 +59,14 @@ export function sentryRemixVitePlugin(options: SentryRemixVitePluginOptions = {}
   // Added even when source maps are disabled: the bundler plugin also applies bundle size
   // optimizations, module metadata, the application key and release management, and it already
   // skips the upload itself.
-  plugins.push(...makeAddSentryVitePlugin(options, sourceMapState));
+  if (options.release?.inject !== false) {
+    plugins.push(
+      ...makeAddSentryVitePlugin({ ...options, release: { ...options.release, inject: false } }, sourceMapState),
+    );
+    plugins.push(makeReleasePlugin(options));
+  } else {
+    plugins.push(...makeAddSentryVitePlugin(options, sourceMapState));
+  }
 
   return plugins;
 }

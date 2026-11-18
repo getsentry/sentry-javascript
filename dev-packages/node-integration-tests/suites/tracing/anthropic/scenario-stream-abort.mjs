@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer } from '@sentry-internal/node-integration-tests';
+import { anthropicMessageStream, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
@@ -19,22 +19,12 @@ function startMockAnthropicServer() {
       Connection: 'keep-alive',
     });
 
-    // Send part of a message and keep the connection open, so the caller aborts mid-stream.
-    const events = [
-      {
-        type: 'message_start',
-        message: {
-          id: 'msg_abort_midway_1',
-          type: 'message',
-          role: 'assistant',
-          model: req.body.model,
-          content: [],
-          usage: { input_tokens: 5 },
-        },
-      },
-      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
-      { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'This stream will ' } },
-    ];
+    // Send `message_start` and the first text delta, then keep the connection open, so the caller aborts mid-stream.
+    const events = anthropicMessageStream(req.body.model, {
+      id: 'msg_abort_midway_1',
+      content: 'This stream will ',
+      usage: { input_tokens: 5, output_tokens: 0 },
+    }).slice(0, 3);
     for (const event of events) {
       res.write(`event: ${event.type}\n`);
       res.write(`data: ${JSON.stringify(event)}\n\n`);
