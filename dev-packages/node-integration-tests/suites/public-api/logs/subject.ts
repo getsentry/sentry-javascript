@@ -1,17 +1,15 @@
 import * as Sentry from '@sentry/node';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
 
-const client = new Sentry.NodeClient({
+const client = Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   transport: loggingTransport,
-  stackParser: Sentry.defaultStackParser,
-  integrations: [],
+  defaultIntegrations: false,
 });
 
 const customScope = new Sentry.Scope();
 customScope.setClient(client);
 customScope.update({ user: { username: 'h4cktor' } });
-client.init();
 
 async function run(): Promise<void> {
   Sentry.logger.info('test info', { foo: 'bar1' }, { scope: customScope });

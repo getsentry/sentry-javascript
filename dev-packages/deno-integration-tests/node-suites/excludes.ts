@@ -59,15 +59,14 @@ const FLAKY = ['suites/tracing/tracePropagationTargets/**'];
 // `alias-sentry-deno.ts`. The suites below fail only because of that.
 
 // The scenario uses an `@sentry/node` export that `@sentry/deno` does not have, such as
-// `httpIntegration`, `nativeNodeFetchIntegration`, `setupExpressErrorHandler`,
-// `setupHapiErrorHandler`, `cron`, `NodeClient` or the Node logging and queue integrations.
+// `httpIntegration`, `nativeNodeFetchIntegration`, `cron` or the Node logging and queue
+// integrations.
 const NO_SENTRY_DENO_EXPORT = [
   'suites/cron/cron/test.ts',
   'suites/cron/node-cron/base/test.ts',
   'suites/cron/node-cron/isolateTrace/test.ts',
   'suites/cron/node-schedule/test.ts',
   'suites/esm/modules-integration/test.ts',
-  'suites/express/handle-error/test.ts',
   'suites/express/multiple-init/test.ts',
   'suites/express/tracing/request-data/test.ts',
   'suites/express/tracing/routing/test.ts',
@@ -75,13 +74,11 @@ const NO_SENTRY_DENO_EXPORT = [
   'suites/fs-instrumentation/test.ts',
   'suites/node-runtime-metrics/test.ts',
   'suites/pino/test.ts',
-  'suites/public-api/logs/test.ts',
   'suites/sessions/crashed-session-aggregate/test.ts',
   'suites/sessions/errored-session-aggregate/test.ts',
   'suites/sessions/exited-session-aggregate/test.ts',
   'suites/sessions/server-without-process-session/test.ts',
   'suites/tracing/bullmq/test.ts',
-  'suites/tracing/hapi/test.ts',
   'suites/tracing/http-client-spans/fetch-forward-request-hook/test.ts',
   'suites/tracing/http-client-spans/fetch-headers-to-span-attributes/test.ts',
   'suites/tracing/httpIntegration/test.ts',
@@ -89,10 +86,18 @@ const NO_SENTRY_DENO_EXPORT = [
   'suites/tracing/requests/fetch-no-tracing-no-spans/test.ts',
   'suites/tracing/requests/http-no-trace-propagation/test.ts',
   'suites/tracing/requests/http-no-tracing-no-spans/test.ts',
-  'suites/tracing/tracer-start-active-span-error/test.ts',
   'suites/vercel/keep-alive/test.ts',
   'suites/winston/test.ts',
 ];
+
+// The scenario drives the OpenTelemetry tracer of the client (`client.tracer`), which only
+// `NodeClient` has.
+const NO_CLIENT_TRACER = ['suites/tracing/tracer-start-active-span-error/test.ts'];
+
+// The `logger` of `@sentry/node` also takes a `printf`-style message with an array of parameters
+// (`logger.info('test info with %d', [1])`). `@sentry/deno` has the `logger` of `@sentry/core`,
+// which does not.
+const NO_NODE_LOGGER_PARAMETERS = ['suites/public-api/logs/test.ts'];
 
 // The test expects data that a default integration of `@sentry/node` adds and `@sentry/deno` does
 // not have: process sessions, child process breadcrumbs, the `modules` of the event, the
@@ -161,6 +166,8 @@ export const NODE_SUITES_EXCLUDE = [
   ...NOT_TRIAGED,
   ...FLAKY,
   ...NO_SENTRY_DENO_EXPORT,
+  ...NO_CLIENT_TRACER,
+  ...NO_NODE_LOGGER_PARAMETERS,
   ...NO_NODE_DEFAULT_INTEGRATION,
   ...GLOBAL_HANDLERS_DIFFER,
   ...NO_CLIENT_REPORTS,
