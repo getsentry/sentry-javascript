@@ -1,12 +1,14 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
+
 test('Sends correct error event', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('node-express-static', event => {
+  const errorEventPromise = waitForError('node-express', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
 
-  const transactionEventPromise = waitForTransaction('node-express-static', event => {
+  const transactionEventPromise = waitForTransaction('node-express', event => {
     return event.transaction === 'GET /test-exception/:id';
   });
 
@@ -48,7 +50,7 @@ test('Sends correct error event', async ({ baseURL }) => {
 });
 
 test('Should record caught exceptions with local variable', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('node-express-static', event => {
+  const errorEventPromise = waitForError('node-express', event => {
     return event.transaction === 'GET /test-local-variables-caught';
   });
 

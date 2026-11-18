@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('Sends a segment span for a successful route', async ({ baseURL, request }) => {
   const spanPromise = waitForStreamedSpan('elysia-bun', span => {
     return getSpanOp(span) === 'http.server' && span.name === 'GET /test-success' && span.is_segment;

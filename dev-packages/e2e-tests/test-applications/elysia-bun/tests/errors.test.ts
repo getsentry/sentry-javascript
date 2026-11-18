@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('Captures an error thrown in a route handler', async ({ baseURL, request }) => {
   const errorEventPromise = waitForError('elysia-bun', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';

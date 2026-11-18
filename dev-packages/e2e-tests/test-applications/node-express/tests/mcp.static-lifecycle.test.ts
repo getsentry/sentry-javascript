@@ -4,6 +4,8 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
+
 test('Should record transactions for mcp handlers', async ({ baseURL }) => {
   const transport = new SSEClientTransport(new URL(`${baseURL}/sse`));
 
@@ -12,7 +14,7 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
     version: '1.0.0',
   });
 
-  const initializeTransactionPromise = waitForTransaction('node-express-static', transactionEvent => {
+  const initializeTransactionPromise = waitForTransaction('node-express', transactionEvent => {
     return transactionEvent.transaction === 'initialize';
   });
 
@@ -28,10 +30,10 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
   });
 
   await test.step('tool handler', async () => {
-    const postTransactionPromise = waitForTransaction('node-express-static', transactionEvent => {
+    const postTransactionPromise = waitForTransaction('node-express', transactionEvent => {
       return transactionEvent.transaction === 'POST /messages';
     });
-    const toolTransactionPromise = waitForTransaction('node-express-static', transactionEvent => {
+    const toolTransactionPromise = waitForTransaction('node-express', transactionEvent => {
       return transactionEvent.transaction === 'tools/call echo';
     });
 
@@ -63,10 +65,10 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
   });
 
   await test.step('registerTool handler', async () => {
-    const postTransactionPromise = waitForTransaction('node-express-static', transactionEvent => {
+    const postTransactionPromise = waitForTransaction('node-express', transactionEvent => {
       return transactionEvent.transaction === 'POST /messages';
     });
-    const toolTransactionPromise = waitForTransaction('node-express-static', transactionEvent => {
+    const toolTransactionPromise = waitForTransaction('node-express', transactionEvent => {
       return transactionEvent.transaction === 'tools/call echo-register';
     });
 
@@ -98,10 +100,10 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
   });
 
   await test.step('resource handler', async () => {
-    const postTransactionPromise = waitForTransaction('node-express-static', transactionEvent => {
+    const postTransactionPromise = waitForTransaction('node-express', transactionEvent => {
       return transactionEvent.transaction === 'POST /messages';
     });
-    const resourceTransactionPromise = waitForTransaction('node-express-static', transactionEvent => {
+    const resourceTransactionPromise = waitForTransaction('node-express', transactionEvent => {
       return transactionEvent.transaction === 'resources/read echo://foobar';
     });
 
@@ -125,10 +127,10 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
   });
 
   await test.step('prompt handler', async () => {
-    const postTransactionPromise = waitForTransaction('node-express-static', transactionEvent => {
+    const postTransactionPromise = waitForTransaction('node-express', transactionEvent => {
       return transactionEvent.transaction === 'POST /messages';
     });
-    const promptTransactionPromise = waitForTransaction('node-express-static', transactionEvent => {
+    const promptTransactionPromise = waitForTransaction('node-express', transactionEvent => {
       return transactionEvent.transaction === 'prompts/get echo';
     });
 
@@ -163,7 +165,7 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
   });
 
   await test.step('error tool sets span status to internal_error', async () => {
-    const toolTransactionPromise = waitForTransaction('node-express-static', transactionEvent => {
+    const toolTransactionPromise = waitForTransaction('node-express', transactionEvent => {
       return transactionEvent.transaction === 'tools/call always-error';
     });
 
@@ -188,7 +190,7 @@ test('resolves capture policy when the MCP server is wrapped before Sentry.init'
   });
   await client.connect(transport);
 
-  const toolTransactionPromise = waitForTransaction('node-express-static', transactionEvent => {
+  const toolTransactionPromise = waitForTransaction('node-express', transactionEvent => {
     return transactionEvent.transaction === 'tools/call capture-policy';
   });
   const privateMessage = 'node-v1-private-capture-policy-message';
@@ -242,7 +244,7 @@ test('Should record transactions for streamable HTTP transport (wrapper transpor
     version: '1.0.0',
   });
 
-  const initializeTransactionPromise = waitForTransaction('node-express-static', transactionEvent => {
+  const initializeTransactionPromise = waitForTransaction('node-express', transactionEvent => {
     return (
       transactionEvent.transaction === 'initialize' &&
       transactionEvent.contexts?.trace?.data?.['mcp.server.name'] === 'Echo-Streamable'
@@ -265,7 +267,7 @@ test('Should record transactions for streamable HTTP transport (wrapper transpor
   await test.step('tool handler (tests wrapper transport correlation)', async () => {
     // This is the critical test - without the sessionId fix, the span would not be completed
     // because onmessage and send see different transport instances (wrapper vs inner)
-    const toolTransactionPromise = waitForTransaction('node-express-static', transactionEvent => {
+    const toolTransactionPromise = waitForTransaction('node-express', transactionEvent => {
       const transport = transactionEvent.contexts?.trace?.data?.['mcp.transport'] as string | undefined;
       return transactionEvent.transaction === 'tools/call echo' && transport?.includes('StreamableHTTPServerTransport');
     });
@@ -296,7 +298,7 @@ test('Should record transactions for streamable HTTP transport (wrapper transpor
   });
 
   await test.step('resource handler', async () => {
-    const resourceTransactionPromise = waitForTransaction('node-express-static', transactionEvent => {
+    const resourceTransactionPromise = waitForTransaction('node-express', transactionEvent => {
       const transport = transactionEvent.contexts?.trace?.data?.['mcp.transport'] as string | undefined;
       return (
         transactionEvent.transaction === 'resources/read echo://streamable-test' &&
@@ -319,7 +321,7 @@ test('Should record transactions for streamable HTTP transport (wrapper transpor
   });
 
   await test.step('prompt handler', async () => {
-    const promptTransactionPromise = waitForTransaction('node-express-static', transactionEvent => {
+    const promptTransactionPromise = waitForTransaction('node-express', transactionEvent => {
       const transport = transactionEvent.contexts?.trace?.data?.['mcp.transport'] as string | undefined;
       return (
         transactionEvent.transaction === 'prompts/get echo' && transport?.includes('StreamableHTTPServerTransport')

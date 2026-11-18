@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
+
 test('Sends an API route transaction', async ({ baseURL }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('node-express-static', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('node-express', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-transaction'
@@ -141,7 +143,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 });
 
 test('Sends an API route transaction for an errored route', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('node-express-static', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('node-express', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
       transactionEvent.transaction === 'GET /test-exception/:id' &&
@@ -220,7 +222,7 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
 test('Outgoing fetch spans include response headers when headersToSpanAttributes is configured', async ({
   baseURL,
 }) => {
-  const transactionEventPromise = waitForTransaction('node-express-static', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('node-express', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-outgoing-fetch'
@@ -247,7 +249,7 @@ test('Outgoing fetch spans include response headers when headersToSpanAttributes
 });
 
 test('Extracts HTTP request headers as span attributes', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('node-express-static', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('node-express', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-transaction'

@@ -9,6 +9,8 @@ import {
 import { SDK_VERSION } from '@sentry/cloudflare';
 import { WebSocket } from 'ws';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('Index page', async ({ baseURL }) => {
   const result = await fetch(baseURL!);
   expect(result.status).toBe(200);

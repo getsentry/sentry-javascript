@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 const APP_NAME = 'nestjs-11';
 
 test('Trace includes span and correct value for decorated async function', async ({ baseURL }) => {

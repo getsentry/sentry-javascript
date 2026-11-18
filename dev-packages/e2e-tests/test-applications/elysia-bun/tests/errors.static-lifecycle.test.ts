@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
+
 test('Captures an error thrown in a route handler', async ({ baseURL, request }) => {
-  const errorEventPromise = waitForError('elysia-bun-static', event => {
+  const errorEventPromise = waitForError('elysia-bun', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
 
@@ -29,7 +31,7 @@ test('Captures an error thrown in a route handler', async ({ baseURL, request })
 });
 
 test('Error event includes request metadata', async ({ baseURL, request }) => {
-  const errorEventPromise = waitForError('elysia-bun-static', event => {
+  const errorEventPromise = waitForError('elysia-bun', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 456';
   });
 
@@ -47,7 +49,7 @@ test('Error event includes request metadata', async ({ baseURL, request }) => {
 });
 
 test('Does not capture errors for 4xx responses', async ({ baseURL, request }) => {
-  const transactionPromise = waitForTransaction('elysia-bun-static', transactionEvent => {
+  const transactionPromise = waitForTransaction('elysia-bun', transactionEvent => {
     return transactionEvent?.transaction === 'GET /test-4xx';
   });
 
@@ -59,7 +61,7 @@ test('Does not capture errors for 4xx responses', async ({ baseURL, request }) =
 });
 
 test('Captures errors even when status is <= 299 in error handler', async ({ baseURL, request }) => {
-  const errorEventPromise = waitForError('elysia-bun-static', event => {
+  const errorEventPromise = waitForError('elysia-bun', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'Error with 200 status';
   });
 
@@ -75,7 +77,7 @@ test('Captures errors even when status is <= 299 in error handler', async ({ bas
 });
 
 test('Captures POST route errors', async ({ baseURL, request }) => {
-  const errorEventPromise = waitForError('elysia-bun-static', event => {
+  const errorEventPromise = waitForError('elysia-bun', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'Post error';
   });
 
@@ -91,7 +93,7 @@ test('Captures POST route errors', async ({ baseURL, request }) => {
 });
 
 test('Captures thrown string errors', async ({ baseURL, request }) => {
-  const errorEventPromise = waitForError('elysia-bun-static', event => {
+  const errorEventPromise = waitForError('elysia-bun', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'String error message';
   });
 

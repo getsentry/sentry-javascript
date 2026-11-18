@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test.skip(process.env.E2E_TEST_OTEL_SETUP !== 'true', 'Only runs in the tracer provider variant');
 
 test('Captures spans started via @opentelemetry/api as children of the request span', async ({ baseURL }) => {

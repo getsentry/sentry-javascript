@@ -3,6 +3,8 @@ import { waitForError, waitForRequest, waitForTransaction } from '@sentry-intern
 import { SDK_VERSION } from '@sentry/cloudflare';
 import { WebSocket } from 'ws';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
+
 test('Index page', async ({ baseURL }) => {
   const result = await fetch(baseURL!);
   expect(result.status).toBe(200);
@@ -10,7 +12,7 @@ test('Index page', async ({ baseURL }) => {
 });
 
 test("worker's withSentry", async ({ baseURL }) => {
-  const eventWaiter = waitForError('cloudflare-workers-static', event => {
+  const eventWaiter = waitForError('cloudflare-workers', event => {
     return event.exception?.values?.[0]?.mechanism?.type === 'auto.http.cloudflare';
   });
   const response = await fetch(`${baseURL}/throwException`);
@@ -20,7 +22,7 @@ test("worker's withSentry", async ({ baseURL }) => {
 });
 
 test('RPC method which throws an exception to be logged to sentry', async ({ baseURL }) => {
-  const eventWaiter = waitForError('cloudflare-workers-static', event => {
+  const eventWaiter = waitForError('cloudflare-workers', event => {
     return event.exception?.values?.[0]?.mechanism?.type === 'auto.faas.cloudflare.durable_object';
   });
   const response = await fetch(`${baseURL}/rpc/throwException`);
@@ -30,7 +32,7 @@ test('RPC method which throws an exception to be logged to sentry', async ({ bas
 });
 
 test("Request processed by DurableObject's fetch is recorded", async ({ baseURL }) => {
-  const eventWaiter = waitForError('cloudflare-workers-static', event => {
+  const eventWaiter = waitForError('cloudflare-workers', event => {
     return event.exception?.values?.[0]?.mechanism?.type === 'auto.faas.cloudflare.durable_object';
   });
   const response = await fetch(`${baseURL}/pass-to-object/throwException`);
@@ -40,7 +42,7 @@ test("Request processed by DurableObject's fetch is recorded", async ({ baseURL 
 });
 
 test('Websocket.webSocketMessage', async ({ baseURL }) => {
-  const eventWaiter = waitForError('cloudflare-workers-static', event => {
+  const eventWaiter = waitForError('cloudflare-workers', event => {
     return event.exception?.values?.[0]?.value === 'Should be recorded in Sentry: webSocketMessage';
   });
   const url = new URL('/pass-to-object/ws', baseURL);
@@ -56,7 +58,7 @@ test('Websocket.webSocketMessage', async ({ baseURL }) => {
 });
 
 test('Websocket.webSocketClose', async ({ baseURL }) => {
-  const eventWaiter = waitForError('cloudflare-workers-static', event => {
+  const eventWaiter = waitForError('cloudflare-workers', event => {
     return event.exception?.values?.[0]?.value === 'Should be recorded in Sentry: webSocketClose';
   });
   const url = new URL('/pass-to-object/ws', baseURL);
@@ -72,7 +74,7 @@ test('Websocket.webSocketClose', async ({ baseURL }) => {
 });
 
 test('sends user-agent header with SDK name and version in envelope requests', async ({ baseURL }) => {
-  const requestPromise = waitForRequest('cloudflare-workers-static', () => true);
+  const requestPromise = waitForRequest('cloudflare-workers', () => true);
 
   await fetch(`${baseURL}/throwException`);
 
@@ -82,7 +84,7 @@ test('sends user-agent header with SDK name and version in envelope requests', a
 });
 
 test('Storage operations create spans in Durable Object transactions', async ({ baseURL }) => {
-  const transactionWaiter = waitForTransaction('cloudflare-workers-static', event => {
+  const transactionWaiter = waitForTransaction('cloudflare-workers', event => {
     return event.spans?.some(span => span.op === 'db' && span.description === 'durable_object_storage_put') ?? false;
   });
 
@@ -102,7 +104,7 @@ test.describe('Alarm instrumentation', () => {
   test.describe.configure({ mode: 'serial' });
 
   test('captures error from alarm handler', async ({ baseURL }) => {
-    const errorWaiter = waitForError('cloudflare-workers-static', event => {
+    const errorWaiter = waitForError('cloudflare-workers', event => {
       return event.exception?.values?.[0]?.value === 'Alarm error captured by Sentry';
     });
 
@@ -114,11 +116,11 @@ test.describe('Alarm instrumentation', () => {
   });
 
   test('creates a transaction for alarm with new trace linked to setAlarm', async ({ baseURL }) => {
-    const setAlarmTransactionWaiter = waitForTransaction('cloudflare-workers-static', event => {
+    const setAlarmTransactionWaiter = waitForTransaction('cloudflare-workers', event => {
       return event.spans?.some(span => span.description?.includes('storage_setAlarm')) ?? false;
     });
 
-    const alarmTransactionWaiter = waitForTransaction('cloudflare-workers-static', event => {
+    const alarmTransactionWaiter = waitForTransaction('cloudflare-workers', event => {
       return event.transaction === 'alarm' && event.contexts?.trace?.op === 'function';
     });
 
