@@ -7,7 +7,7 @@ import { NUXT_TUNNEL_BASE_PATH_GLOBAL } from './common/tunnel';
 import type { SentryNuxtModuleOptions } from './common/types';
 import { addTunnelPlugin, setupNitroServer } from './vite/nitroServer';
 import { setupOrchestrion } from './vite/orchestrion';
-import { setupSourceMaps } from './vite/sourceMaps';
+import { NUXT_RELEASE_RUNTIME_CONFIG_KEY, setupSourceMaps } from './vite/sourceMaps';
 import { findDefaultSdkInitFile, resolveServerApi } from './vite/utils';
 import { setupViteServer } from './vite/viteServer';
 import { stringifyForCodeInjection } from '@sentry/core';
@@ -63,7 +63,12 @@ export default defineNuxtModule<ModuleOptions>({
           export default defineNuxtPlugin({
             name: 'sentry-client-config',
             async setup() {
-              globalThis.${NUXT_TUNNEL_BASE_PATH_GLOBAL} = useRuntimeConfig().app.baseURL;
+              const runtimeConfig = useRuntimeConfig();
+              globalThis.${NUXT_TUNNEL_BASE_PATH_GLOBAL} = runtimeConfig.app.baseURL;
+              const sentryRelease = runtimeConfig.public.${NUXT_RELEASE_RUNTIME_CONFIG_KEY};
+              if (sentryRelease) {
+                globalThis.SENTRY_RELEASE = { id: sentryRelease };
+              }
               await import("${buildDirResolver.resolve(`/${clientConfigFile}`)}")
             }
           });`,
@@ -107,7 +112,7 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     if (clientConfigFile || serverConfigFile) {
-      setupSourceMaps(moduleOptions, nuxt, addVitePlugin);
+      setupSourceMaps(moduleOptions, nuxt, addVitePlugin, !!clientConfigFile);
     }
 
     let pagesData: NuxtPageSubset[] = [];
