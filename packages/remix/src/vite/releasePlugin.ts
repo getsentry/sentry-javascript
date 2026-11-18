@@ -74,7 +74,7 @@ export function getReleaseModuleCode(release: string): string {
   const handoffField = `"sentryRelease":${stringifyForCodeInjection(release)}`;
 
   return `${generateReleaseInjectorCode({ release, injectBuildInformation: false }).code()}
-const handoffField = ${JSON.stringify(handoffField)};
+const handoffField = ${stringifyForCodeInjection(handoffField)};
 export function wrapHandleRequest(handleRequest) {
   if (typeof handleRequest !== 'function') {
     return handleRequest;

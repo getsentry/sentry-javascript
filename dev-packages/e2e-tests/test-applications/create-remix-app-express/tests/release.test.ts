@@ -5,6 +5,9 @@ import * as path from 'path';
 
 const RELEASE = 'create-remix-app-express-release';
 
+// The release only reaches the page through the production build.
+test.skip(process.env.TEST_ENV === 'development', 'Needs the production build');
+
 function listFiles(dir: string): string[] {
   return fs
     .readdirSync(dir, { withFileTypes: true })
