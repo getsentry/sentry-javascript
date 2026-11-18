@@ -1,0 +1,9 @@
+{
+  "extends": "../../src/solid2/tsconfig.json",
+
+  "include": ["./**/*"],
+
+  "compilerOptions": {
+    "types": ["vite/client"]
+  }
+}

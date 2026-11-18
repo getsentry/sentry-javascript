@@ -1,0 +1,13 @@
+{
+  "extends": "../../../../tsconfig.json",
+
+  "include": ["./**/*"],
+
+  "//": "The rest of the package uses solid-js 1.x. The Solid 2 entry resolves solid-js to the 2.x dev dependency alias.",
+  "compilerOptions": {
+    "lib": ["DOM", "es2020"],
+    "paths": {
+      "solid-js": ["../../node_modules/solid-js-2/types/index.d.ts"]
+    }
+  }
+}
