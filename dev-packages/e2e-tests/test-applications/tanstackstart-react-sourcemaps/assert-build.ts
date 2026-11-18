@@ -170,13 +170,23 @@ assert.deepEqual(
   `Expected no client chunk in ${CLIENT_OUTPUT} to contain the release`,
 );
 
+const RELEASE_META_TAG = `<meta name="sentry-release" content="${RELEASE}"/></head>`;
+
+// `vite.config.ts` prerenders `/prerendered` and renders the SPA shell at build time.
+for (const page of ['_shell.html', path.join('prerendered', 'index.html')]) {
+  assert.ok(
+    fs.readFileSync(path.join(CLIENT_OUTPUT, page), 'utf8').includes(RELEASE_META_TAG),
+    `Expected the build to write the release at the end of the head of ${page}`,
+  );
+}
+
 const server = await startNodeServer({ entry: path.join(SERVER_OUTPUT, 'index.mjs'), port: 3030 });
 
 try {
   const html = await (await fetch(server.baseUrl)).text();
   assert.ok(
-    html.includes(`<head><meta name="sentry-release" content="${RELEASE}"/>`),
-    'Expected the server to write the release into the head of the page',
+    html.includes(RELEASE_META_TAG),
+    'Expected the server to write the release at the end of the head of the page',
   );
 
   // Without this, a server that serves no public files at all would pass the 404 checks.
