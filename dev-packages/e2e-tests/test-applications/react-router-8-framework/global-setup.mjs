@@ -8,17 +8,5 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // pull happens outside Playwright's webServer startup-timeout window. `--wait`
 // blocks until the healthcheck passes;
 export default async function globalSetup() {
-  // Keep the containers CI started while the app was building.
-  if (!process.env.CI) {
-    // Each run copies this app to a fresh temp dir, so `docker compose` doesn't
-    // recognize a leftover container from a previous (e.g. interrupted) run as
-    // part of the same project - but the container name is fixed, so the daemon
-    // still refuses to create a new one. Force-remove any stale leftover first.
-    try {
-      execSync('docker rm -f e2e-tests-react-router-8-redis e2e-tests-react-router-8-mysql', { stdio: 'ignore' });
-    } catch {
-      // no stale container to remove
-    }
-  }
   execSync('docker compose up -d --wait', { cwd: __dirname, stdio: 'inherit' });
 }
