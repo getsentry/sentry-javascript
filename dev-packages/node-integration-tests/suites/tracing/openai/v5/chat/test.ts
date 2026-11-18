@@ -1172,4 +1172,34 @@ describe('OpenAI integration', () => {
       });
     },
   );
+
+  createEsmAndCjsTests(
+    join(__dirname, '../..'),
+    'scenario-recording-functions.mjs',
+    'instrument-with-span-hooks.mjs',
+    (createRunner, test) => {
+      test('runs the span hooks at start in the caller context and at end with the response', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+              const hooksById = Object.fromEntries(
+                spans.map(span => [
+                  span.attributes[GEN_AI_RESPONSE_ID]?.value,
+                  [span.attributes['test.start']?.value, span.attributes['test.end']?.value],
+                ]),
+              );
+              expect(hooksById).toEqual({
+                'chatcmpl-public': ['public:public', 'chatcmpl-public'],
+                'chatcmpl-private': ['private:private', 'chatcmpl-private'],
+                // A stream has no single response object, and its tag changes only after the call started.
+                'chatcmpl-public-stream': ['public:private', 'no response'],
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });
