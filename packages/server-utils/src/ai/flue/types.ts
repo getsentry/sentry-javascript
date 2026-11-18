@@ -18,8 +18,9 @@ export interface FlueErrorInfo {
 }
 
 /**
- * One event from Flue's observation stream. Only the fields we read are declared; Flue emits more
- * event types than are handled here, and unknown types are ignored.
+ * One event from Flue's observation stream. Only the fields we read are declared, but the index
+ * signature keeps the rest visible to `recordInputs`/`recordOutputs`. Flue emits more event types
+ * than are handled here, and unknown types are ignored.
  */
 export interface FlueObservation {
   type: string;
@@ -38,6 +39,7 @@ export interface FlueObservation {
   result?: unknown;
   /** The tool result as the model sees it, on successful `tool` events. */
   effectiveResult?: unknown;
+  [key: string]: unknown;
 }
 
 /** The execution unit an interceptor wraps. */
@@ -46,6 +48,7 @@ export interface FlueExecutionOperation {
   operationId?: string;
   operationKind?: string;
   toolCallId?: string;
+  [key: string]: unknown;
 }
 
 /** Mirrors `FlueTraceCarrier` — the W3C headers Flue persists at admission. */
@@ -61,10 +64,12 @@ export interface FlueExecutionContext {
   conversationId?: string;
   session?: string;
   taskId?: string;
+  [key: string]: unknown;
 }
 
 export interface FlueEventContext {
   agentName?: string;
+  [key: string]: unknown;
 }
 
 /** The object `instrument()` accepts. */
