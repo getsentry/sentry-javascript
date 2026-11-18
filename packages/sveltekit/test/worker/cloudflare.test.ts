@@ -1,6 +1,7 @@
 import * as SentryCloudflare from '@sentry/cloudflare';
 import { _INTERNAL_wrapRequestHandler as wrapRequestHandler } from '@sentry/cloudflare';
 import type { Carrier, GLOBAL_OBJ } from '@sentry/core';
+import { SDK_VERSION } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setCloudflareExecutionContextFallback } from '../../src/server-common/utils';
 import { initCloudflareSentryHandle } from '../../src/worker';
@@ -92,6 +93,36 @@ describe('initCloudflareSentryHandle', () => {
     expect(wrapRequestHandler).toHaveBeenCalledWith(
       expect.objectContaining({
         options: expect.objectContaining({ defaultIntegrations: [], _extendsDefaultIntegrations: false }),
+      }),
+      expect.any(Function),
+    );
+  });
+
+  it('sets the SvelteKit SDK metadata', async () => {
+    const { options, event, resolve } = getHandlerInput();
+
+    // @ts-expect-error - resolving an empty object is enough for this test
+    vi.mocked(wrapRequestHandler).mockImplementationOnce((_, cb) => cb());
+
+    const handle = initCloudflareSentryHandle(options);
+
+    // @ts-expect-error - only passing a partial event object
+    await handle({ event, resolve });
+
+    expect(wrapRequestHandler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          _metadata: {
+            sdk: {
+              name: 'sentry.javascript.sveltekit',
+              packages: [
+                { name: 'npm:@sentry/sveltekit', version: SDK_VERSION },
+                { name: 'npm:@sentry/cloudflare', version: SDK_VERSION },
+              ],
+              version: SDK_VERSION,
+            },
+          },
+        }),
       }),
       expect.any(Function),
     );

@@ -60,7 +60,7 @@ test.describe('server-side errors', () => {
       },
       sdk: {
         integrations: expect.any(Array),
-        name: 'sentry.javascript.cloudflare',
+        name: 'sentry.javascript.astro',
         packages: expect.any(Array),
         version: expect.any(String),
       },

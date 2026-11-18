@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { isViteServer, NITRO_ONLY, NO_IMPORT_CONFIG } from './isViteServer';
+import { RUNTIME } from './runtime';
 
 function readServerBundle(): string {
   const serverDir = path.join(process.cwd(), '.output/server');
@@ -9,6 +10,11 @@ function readServerBundle(): string {
     .filter(file => typeof file === 'string' && file.endsWith('.mjs'))
     .map(file => readFileSync(path.join(serverDir, file), 'utf8'))
     .join('\n');
+}
+
+// The Cloudflare preset minifies the Worker, which renames the `tracingChannel` import.
+function tracingChannelCall(name: string): RegExp {
+  return new RegExp(`${RUNTIME === 'cloudflare' ? '[\\w$]+' : 'tracingChannel'}\\(["']${name}["']\\)`);
 }
 
 function readClientBundle(): string {
@@ -34,15 +40,15 @@ test.describe('Orchestrion build-time injection', () => {
     // Each transformed module carries the module-injected snippet that records it
     // on the global marker (and registers its subscriber factory) when evaluated.
     expect(serverBundle).toContain('orchestrionModuleInjected');
-    expect(serverBundle).toMatch(/tracingChannel\(["']orchestrion:mysql:query["']\)/);
+    expect(serverBundle).toMatch(tracingChannelCall('orchestrion:mysql:query'));
   });
 
   test('injects diagnostics-channel publishers into ioredis', () => {
     // Only a server route imports ioredis.
     test.skip(isViteServer, NITRO_ONLY);
 
-    expect(serverBundle).toMatch(/tracingChannel\(["']orchestrion:ioredis:command["']\)/);
-    expect(serverBundle).toMatch(/tracingChannel\(["']orchestrion:ioredis:connect["']\)/);
+    expect(serverBundle).toMatch(tracingChannelCall('orchestrion:ioredis:command'));
+    expect(serverBundle).toMatch(tracingChannelCall('orchestrion:ioredis:connect'));
   });
 
   test('does not inject diagnostics-channel publishers into the client build', () => {
@@ -51,9 +57,12 @@ test.describe('Orchestrion build-time injection', () => {
   });
 });
 
+const NO_SERVER_CONFIG = 'Cloudflare: `sentryCloudflareNitroPlugin` sets up the SDK, not `sentry.server.config.ts`';
+
 test.describe('Sentry server config injection', () => {
   test('evaluates Sentry.init before nitro runs its plugins', () => {
     test.skip(isViteServer, NITRO_ONLY);
+    test.skip(RUNTIME === 'cloudflare', NO_SERVER_CONFIG);
 
     const nitroChunk = readFileSync(path.join(process.cwd(), '.output/server/chunks/nitro/nitro.mjs'), 'utf8');
 
@@ -71,6 +80,12 @@ test.describe('Sentry server config injection', () => {
     test.skip(isViteServer, NO_IMPORT_CONFIG);
 
     const shimPath = path.join(process.cwd(), '.output/server/sentry.server.config.mjs');
+
+    if (RUNTIME === 'cloudflare') {
+      // A Worker is never started with `--import`, so there is nothing to keep working.
+      expect(existsSync(shimPath)).toBe(false);
+      return;
+    }
 
     expect(existsSync(shimPath)).toBe(true);
     expect(readFileSync(shimPath, 'utf8')).toContain('no longer needed');

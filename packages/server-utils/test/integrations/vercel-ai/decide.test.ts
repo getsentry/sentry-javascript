@@ -44,7 +44,7 @@ describe('Vercel AI decide spans', () => {
     } satisfies Message;
 
     const span = createSpanFromMessage(message, {} as Parameters<typeof createSpanFromMessage>[1])!;
-    enrichSpanOnEnd(span, message, {} as Parameters<typeof enrichSpanOnEnd>[2]);
+    enrichSpanOnEnd(span, message);
     span.end();
 
     return JSON.parse(spanToStaticSpanJSON(endedSpans[0]!).data?.[GEN_AI_OUTPUT_MESSAGES] as string)[0].answers;
@@ -67,7 +67,7 @@ describe('Vercel AI decide spans', () => {
 
     const span = createSpanFromMessage(message, {} as Parameters<typeof createSpanFromMessage>[1])!;
     expect(span).toBeDefined();
-    enrichSpanOnEnd(span, message, {} as Parameters<typeof enrichSpanOnEnd>[2]);
+    enrichSpanOnEnd(span, message);
     span.end();
 
     const json = spanToStaticSpanJSON(endedSpans[0]!);

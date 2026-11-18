@@ -26,6 +26,7 @@ export {
 export { startSpan, startInactiveSpan, startSpanManual } from '@sentry/core/browser';
 
 export {
+  browserTracingCoreIntegration,
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
@@ -38,6 +39,11 @@ export { reportPageLoaded } from './tracing/reportPageLoaded';
 
 export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPerformance';
 export { webVitalsIntegration } from './integrations/webVitals';
+export { longTasksIntegration } from './integrations/longTasks';
+export { resourcesIntegration } from './integrations/resources';
+export { fetchTracingIntegration } from './integrations/fetchTracing';
+export { xhrTracingIntegration } from './integrations/xhrTracing';
+export { linkedTracesIntegration } from './integrations/linkedTraces';
 
 export {
   feedbackIntegrationShim as feedbackAsyncIntegration,

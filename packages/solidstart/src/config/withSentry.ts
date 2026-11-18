@@ -1,5 +1,10 @@
 import { fileURLToPath } from 'node:url';
-import { debug, GLOBAL_OBJ, _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath } from '@sentry/core';
+import {
+  _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath,
+  debug,
+  GLOBAL_OBJ,
+  stringifyForCodeInjection,
+} from '@sentry/core';
 import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
 import {
   commonJSInteropOptions,
@@ -77,7 +82,7 @@ export function withSentry(
         // The built server runs in another process, so the tunnel plugin reads the base path from the bundle.
         sentryRollupConfig.plugins.push({
           name: 'sentry-solidstart-tunnel-base-path',
-          banner: `globalThis.${TUNNEL_BASE_PATH_GLOBAL} = ${JSON.stringify(tunnelBasePath)};`,
+          banner: `globalThis.${TUNNEL_BASE_PATH_GLOBAL} = ${stringifyForCodeInjection(tunnelBasePath)};`,
         });
       }
 

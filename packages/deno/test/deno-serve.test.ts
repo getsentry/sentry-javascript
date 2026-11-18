@@ -24,7 +24,7 @@ Deno.test('Deno.serve should create http.server spans', async () => {
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -47,6 +47,7 @@ Deno.test('Deno.serve should create http.server spans', async () => {
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   assertEquals(transactionEvents.length, 1);
   const [transaction] = transactionEvents;
@@ -62,7 +63,7 @@ Deno.test('Deno.serve should instrument QUERY requests with bodies', async () =>
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -91,6 +92,7 @@ Deno.test('Deno.serve should instrument QUERY requests with bodies', async () =>
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   assertEquals(transactionEvents.length, 1);
   const [transaction] = transactionEvents;
@@ -104,7 +106,7 @@ Deno.test('Deno.serve should capture incoming request bodies by default', async 
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -133,6 +135,7 @@ Deno.test('Deno.serve should capture incoming request bodies by default', async 
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   assertEquals(transactionEvents.length, 1);
   assertEquals(transactionEvents[0]?.request?.data, requestBody);
@@ -142,7 +145,7 @@ Deno.test('Deno.serve should not capture incoming request bodies when disabled',
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -171,6 +174,7 @@ Deno.test('Deno.serve should not capture incoming request bodies when disabled',
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   assertEquals(transactionEvents.length, 1);
   assertEquals(transactionEvents[0]?.request?.data, undefined);
@@ -180,7 +184,7 @@ Deno.test('Deno.serve should truncate incoming request bodies using an explicit 
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -214,6 +218,7 @@ Deno.test('Deno.serve should truncate incoming request bodies using an explicit 
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   assertEquals(transactionEvents.length, 1);
   assertEquals(transactionEvents[0]?.request?.data, `${'a'.repeat(997)}...`);
@@ -223,7 +228,7 @@ Deno.test('Deno.serve should honor explicit none when incoming request bodies ar
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -256,6 +261,7 @@ Deno.test('Deno.serve should honor explicit none when incoming request bodies ar
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   assertEquals(transactionEvents.length, 1);
   assertEquals(transactionEvents[0]?.request?.data, undefined);
@@ -266,7 +272,7 @@ Deno.test('Deno.serve should isolate context between concurrent requests', async
   const transactionEvents: TransactionEvent[] = [];
   const errorEvents: ErrorEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -314,6 +320,7 @@ Deno.test('Deno.serve should isolate context between concurrent requests', async
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   // Should have 3 transaction events (one per request)
   assertEquals(transactionEvents.length, 3);
@@ -338,7 +345,7 @@ Deno.test('Deno.serve should capture unhandled errors', async () => {
   resetGlobals();
   const errorEvents: ErrorEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     beforeSend: (event: ErrorEvent) => {
       errorEvents.push(event);
@@ -378,8 +385,7 @@ Deno.test('Deno.serve should capture unhandled errors', async () => {
 
   abortController.abort();
   await server.finished;
-  // delay so that the error has a chance to be handled
-  await delay(100);
+  await client.flush();
 
   assertEquals(errorEvents.length, 1);
   const [errorEvent] = errorEvents;
@@ -393,7 +399,7 @@ Deno.test('Deno.serve should handle OPTIONS and HEAD requests without creating s
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -425,6 +431,7 @@ Deno.test('Deno.serve should handle OPTIONS and HEAD requests without creating s
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   // OPTIONS and HEAD requests should not create transaction spans
   // (they are handled separately in wrap-deno-request-handler.ts)
@@ -435,7 +442,7 @@ Deno.test('Deno.serve should work with handler in options object', async () => {
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -464,6 +471,7 @@ Deno.test('Deno.serve should work with handler in options object', async () => {
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   assertEquals(transactionEvents.length, 1);
   assertEquals(transactionEvents[0]?.contexts?.trace?.op, 'http.server');
@@ -473,7 +481,7 @@ Deno.test('Deno.serve should capture request headers and set response context', 
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -508,6 +516,7 @@ Deno.test('Deno.serve should capture request headers and set response context', 
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   assertEquals(transactionEvents.length, 1);
   const [transaction] = transactionEvents;
@@ -525,7 +534,7 @@ Deno.test('Deno.serve should capture client address and port by default', async 
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -548,6 +557,7 @@ Deno.test('Deno.serve should capture client address and port by default', async 
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   assertEquals(transactionEvents.length, 1);
   const [transaction] = transactionEvents;
@@ -560,7 +570,7 @@ Deno.test('Deno.serve should prefer the forwarded client address, without the so
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -585,6 +595,7 @@ Deno.test('Deno.serve should prefer the forwarded client address, without the so
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   assertEquals(transactionEvents.length, 1);
   const [transaction] = transactionEvents;
@@ -597,7 +608,7 @@ Deno.test('Deno.serve should fall back to the socket address when the forwarding
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -622,6 +633,7 @@ Deno.test('Deno.serve should fall back to the socket address when the forwarding
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   assertEquals(transactionEvents.length, 1);
   const [transaction] = transactionEvents;
@@ -634,7 +646,7 @@ Deno.test('Deno.serve should set the socket address as the user IP on error even
   resetGlobals();
   const errorEvents: ErrorEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -658,6 +670,7 @@ Deno.test('Deno.serve should set the socket address as the user IP on error even
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   assertEquals(errorEvents.length, 1);
   assertMatch(String(errorEvents[0]?.user?.ip_address), LOOPBACK_ADDRESS);
@@ -667,7 +680,7 @@ Deno.test('Deno.serve should not capture client address when userInfo collection
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -691,6 +704,7 @@ Deno.test('Deno.serve should not capture client address when userInfo collection
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   assertEquals(transactionEvents.length, 1);
   const [transaction] = transactionEvents;
@@ -703,7 +717,7 @@ Deno.test('Deno.serve should keep PII request headers by default', async () => {
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -728,6 +742,7 @@ Deno.test('Deno.serve should keep PII request headers by default', async () => {
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   assertEquals(transactionEvents.length, 1);
   const [transaction] = transactionEvents;
@@ -739,7 +754,7 @@ Deno.test('Deno.serve should filter PII request headers when configured', async 
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -765,6 +780,7 @@ Deno.test('Deno.serve should filter PII request headers when configured', async 
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   assertEquals(transactionEvents.length, 1);
   const [transaction] = transactionEvents;
@@ -776,7 +792,7 @@ Deno.test('Deno.serve should support distributed tracing with sentry-trace heade
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -811,6 +827,7 @@ Deno.test('Deno.serve should support distributed tracing with sentry-trace heade
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   assertEquals(transactionEvents.length, 1);
   const [transaction] = transactionEvents;
@@ -825,7 +842,7 @@ Deno.test('Deno.serve should handle streaming responses', async () => {
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -860,6 +877,7 @@ Deno.test('Deno.serve should handle streaming responses', async () => {
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   // Span should still be created for streaming responses
   assertEquals(transactionEvents.length, 1);
@@ -911,7 +929,7 @@ Deno.test('Deno.serve should work when manually capturing exceptions within hand
   const errorEvents: ErrorEvent[] = [];
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -947,6 +965,7 @@ Deno.test('Deno.serve should work when manually capturing exceptions within hand
 
   abortController.abort();
   await server.finished;
+  await client.flush();
 
   // Should have both transaction and manually captured error
   assertEquals(transactionEvents.length, 1);
@@ -992,7 +1011,7 @@ Deno.test('Deno.serve should not capture request bodies that ignoreRequestBody m
   const transactionEvents: TransactionEvent[] = [];
   const ignoreRequestBodyCalls: [string, string][] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -1020,6 +1039,7 @@ Deno.test('Deno.serve should not capture request bodies that ignoreRequestBody m
   await (await fetch(`${server.url}/upload?id=1`, { method: 'POST', body: 'secret' })).text();
   await (await fetch(`${server.url}/other`, { method: 'POST', body: 'public' })).text();
   await server.close();
+  await client.flush();
 
   assertEquals(handlerBodies, ['secret', 'public']);
   assertEquals(ignoreRequestBodyCalls, [
@@ -1090,7 +1110,7 @@ Deno.test('Deno.serve should not create spans for static assets by default', asy
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -1107,6 +1127,7 @@ Deno.test('Deno.serve should not create spans for static assets by default', asy
   await (await fetch(`${server.url}/assets/app.js`, { method: 'POST' })).text();
   await (await fetch(`${server.url}/page`)).text();
   await server.close();
+  await client.flush();
 
   assertEquals(transactionEvents.map(event => event.transaction).sort(), ['GET /page', 'POST /assets/app.js']);
 });
@@ -1115,7 +1136,7 @@ Deno.test('Deno.serve should create spans for static assets when ignoreStaticAss
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -1132,6 +1153,7 @@ Deno.test('Deno.serve should create spans for static assets when ignoreStaticAss
   const server = await serveForTest(() => new Response('OK'));
   await (await fetch(`${server.url}/favicon.ico`)).text();
   await server.close();
+  await client.flush();
 
   assertEquals(
     transactionEvents.map(event => event.transaction),
@@ -1210,7 +1232,7 @@ Deno.test('Deno.serve should call onSpanCreated and onSpanEnd', async () => {
   const transactionEvents: TransactionEvent[] = [];
   const hookCalls: string[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -1239,6 +1261,7 @@ Deno.test('Deno.serve should call onSpanCreated and onSpanEnd', async () => {
   });
   await (await fetch(`${server.url}/hooks`)).text();
   await server.close();
+  await client.flush();
 
   assertEquals(hookCalls, ['created /hooks', 'handler', 'end /hooks 201']);
   assertEquals(transactionEvents.length, 1);
@@ -1251,7 +1274,7 @@ Deno.test('Deno.serve should call onSpanEnd when a streamed response finishes', 
   const transactionEvents: TransactionEvent[] = [];
   const hookCalls: string[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -1282,6 +1305,7 @@ Deno.test('Deno.serve should call onSpanEnd when a streamed response finishes', 
   });
   assertEquals(await (await fetch(`${server.url}/stream`)).text(), 'chunk\n');
   await server.close();
+  await client.flush();
 
   assertEquals(hookCalls, ['chunk', 'end']);
   assertEquals(transactionEvents.length, 1);
@@ -1292,7 +1316,7 @@ Deno.test('Deno.serve should still respond and end the span when onSpanCreated t
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -1315,6 +1339,7 @@ Deno.test('Deno.serve should still respond and end the span when onSpanCreated t
   assertEquals(response.status, 200);
   assertEquals(await response.text(), 'OK');
   await server.close();
+  await client.flush();
 
   assertEquals(
     transactionEvents.map(event => event.transaction),
@@ -1342,7 +1367,7 @@ for (const [label, makeResponse] of [
     resetGlobals();
     const transactionEvents: TransactionEvent[] = [];
 
-    init({
+    const client = init({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
       traceLifecycle: 'static',
@@ -1365,6 +1390,7 @@ for (const [label, makeResponse] of [
     assertEquals(response.status, 200);
     assertEquals(await response.text(), 'OK');
     await server.close();
+    await client.flush();
 
     assertEquals(
       transactionEvents.map(event => event.transaction),
