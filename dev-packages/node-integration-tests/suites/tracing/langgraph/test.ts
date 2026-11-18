@@ -22,7 +22,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_CHAT, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
+import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { getStringAttributeValue } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -480,12 +480,12 @@ describe('LangGraph integration', () => {
               const all = { inputs: true, outputs: true };
               const none = { inputs: false, outputs: false };
               expect(recorded).toEqual({
-                'public gen_ai.invoke_agent': all,
-                'public gen_ai.chat': all,
-                'public gen_ai.execute_tool': all,
-                'private gen_ai.invoke_agent': none,
-                'private gen_ai.chat': none,
-                'private gen_ai.execute_tool': none,
+                [`public ${GEN_AI_INVOKE_AGENT}`]: all,
+                [`public ${GEN_AI_CHAT}`]: all,
+                [`public ${GEN_AI_EXECUTE_TOOL}`]: all,
+                [`private ${GEN_AI_INVOKE_AGENT}`]: none,
+                [`private ${GEN_AI_CHAT}`]: none,
+                [`private ${GEN_AI_EXECUTE_TOOL}`]: none,
               });
             },
           })
