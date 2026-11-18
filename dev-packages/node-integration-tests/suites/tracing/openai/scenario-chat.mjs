@@ -4,6 +4,7 @@ import OpenAI from 'openai';
 import {
   openAiChatCompletion,
   openAiChatCompletionChunks,
+  openAiResponse,
   startMockServer,
   streamSseEvents,
 } from '@sentry-internal/node-integration-tests';
@@ -23,46 +24,26 @@ function startMockApi() {
     }
 
     if (stream) {
-      // Streaming response
-
       // Gemini's OpenAI-compatible endpoint streams whole, parallel tool calls without an `index`
-      const geminiToolCallChunks = [
-        {
-          id: 'chatcmpl-stream-gemini-456',
-          object: 'chat.completion.chunk',
-          created: 1677652305,
-          model: model,
-          choices: [
-            {
-              index: 0,
-              delta: {
-                role: 'assistant',
-                tool_calls: [
-                  {
-                    id: 'call_paris',
-                    type: 'function',
-                    function: { name: 'get_weather', arguments: '{"city":"Paris"}' },
-                  },
-                  {
-                    id: 'call_london',
-                    type: 'function',
-                    function: { name: 'get_weather', arguments: '{"city":"London"}' },
-                  },
-                ],
-              },
-              finish_reason: 'tool_calls',
-            },
-          ],
-          usage: {
-            prompt_tokens: 15,
-            completion_tokens: 25,
-            total_tokens: 40,
-          },
-        },
-      ];
-
-      const chunks = model === 'gemini-compat' ? geminiToolCallChunks : openAiChatCompletionChunks(model);
-
+      const chunks =
+        model === 'gemini-compat'
+          ? openAiChatCompletionChunks(model, {
+              id: 'chatcmpl-stream-gemini-456',
+              toolCalls: [
+                {
+                  id: 'call_paris',
+                  type: 'function',
+                  function: { name: 'get_weather', arguments: '{"city":"Paris"}' },
+                },
+                {
+                  id: 'call_london',
+                  type: 'function',
+                  function: { name: 'get_weather', arguments: '{"city":"London"}' },
+                },
+              ],
+              usage: { prompt_tokens: 15, completion_tokens: 25 },
+            })
+          : openAiChatCompletionChunks(model);
       streamSseEvents(res, chunks, { done: true });
     } else {
       res.send(openAiChatCompletion(model));
@@ -123,34 +104,7 @@ function startMockApi() {
       streamSseEvents(res, events, { done: true });
     } else {
       // Non-streaming response
-      res.send({
-        id: 'resp_mock456',
-        object: 'response',
-        created_at: 1677652290,
-        model: model,
-        output: [
-          {
-            type: 'message',
-            id: 'msg_mock_output_1',
-            status: 'completed',
-            role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: `Response to: ${req.body.input}`,
-                annotations: [],
-              },
-            ],
-          },
-        ],
-        output_text: `Response to: ${req.body.input}`,
-        status: 'completed',
-        usage: {
-          input_tokens: 5,
-          output_tokens: 8,
-          total_tokens: 13,
-        },
-      });
+      res.send(openAiResponse(model, { text: `Response to: ${req.body.input}` }));
     }
   });
 

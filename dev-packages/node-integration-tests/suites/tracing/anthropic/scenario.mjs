@@ -23,7 +23,7 @@ function startMockAnthropicServer() {
     // Check if streaming is requested
     if (req.body.stream === true) {
       // Send streaming events
-      const events = anthropicMessageStream(model, { id: 'msg_stream123', content: ['Hello ', 'from ', 'stream!'] });
+      const events = anthropicMessageStream(model, { id: 'msg_stream123', content: 'Hello from stream!' });
 
       streamSseEvents(res, events, { eventNames: true });
 

@@ -4,6 +4,7 @@ import OpenAI from 'openai';
 import {
   openAiChatCompletion,
   openAiChatCompletionChunks,
+  openAiResponse,
   startMockServer,
   streamSseEvents,
 } from '@sentry-internal/node-integration-tests';
@@ -83,34 +84,7 @@ function startMockApi() {
       streamSseEvents(res, events, { done: true });
     } else {
       // Non-streaming response
-      res.send({
-        id: 'resp_mock456',
-        object: 'response',
-        created_at: 1677652290,
-        model: model,
-        output: [
-          {
-            type: 'message',
-            id: 'msg_mock_output_1',
-            status: 'completed',
-            role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: `Response to: ${req.body.input}`,
-                annotations: [],
-              },
-            ],
-          },
-        ],
-        output_text: `Response to: ${req.body.input}`,
-        status: 'completed',
-        usage: {
-          input_tokens: 5,
-          output_tokens: 8,
-          total_tokens: 13,
-        },
-      });
+      res.send(openAiResponse(model, { text: `Response to: ${req.body.input}` }));
     }
   });
 

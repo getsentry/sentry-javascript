@@ -2,7 +2,12 @@ import { Mistral } from '@mistralai/mistralai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import { z } from 'zod';
-import { openAiChatCompletion, startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
+import {
+  openAiChatCompletion,
+  openAiChatCompletionChunks,
+  startMockServer,
+  streamSseEvents,
+} from '@sentry-internal/node-integration-tests';
 
 // `chat.parse` and `chat.parseStream` are the structured-output entry points. They call the
 // underlying request functions directly rather than `this.complete` / `this.stream`, so they need
@@ -15,17 +20,11 @@ function startMockApi() {
     const { model, stream } = req.body;
 
     if (stream) {
-      const chunks = [
-        {
-          id: 'chatcmpl-parse-stream-123',
-          object: 'chat.completion.chunk',
-          created: 1677652300,
-          model,
-          choices: [{ index: 0, delta: { role: 'assistant', content: '{"city":"Paris"}' }, finish_reason: 'stop' }],
-          usage: { prompt_tokens: 4, completion_tokens: 6, total_tokens: 10 },
-        },
-      ];
-
+      const chunks = openAiChatCompletionChunks(model, {
+        id: 'chatcmpl-parse-stream-123',
+        content: '{"city":"Paris"}',
+        usage: { prompt_tokens: 4, completion_tokens: 6 },
+      });
       streamSseEvents(res, chunks, { done: true });
       return;
     }

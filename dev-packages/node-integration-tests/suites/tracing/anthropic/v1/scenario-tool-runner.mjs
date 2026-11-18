@@ -5,24 +5,19 @@ import { anthropicMessageStream, startMockServer, streamSseEvents } from '@sentr
 
 const MODEL = 'claude-3-haiku-20240307';
 
-function toolUseEvents() {
-  return anthropicMessageStream(MODEL, {
-    id: 'msg_tools',
-    content: [
-      { type: 'tool_use', id: 'toolu_weather', name: 'weather', input: { city: 'Vienna' } },
-      { type: 'tool_use', id: 'toolu_explode', name: 'explode', input: {} },
-    ],
-    usage: { input_tokens: 10, output_tokens: 20 },
-  });
-}
-
-function finalEvents() {
-  return anthropicMessageStream(MODEL, {
-    id: 'msg_final',
-    content: 'Sunny.',
-    usage: { input_tokens: 30, output_tokens: 5 },
-  });
-}
+const TOOL_USE_EVENTS = anthropicMessageStream(MODEL, {
+  id: 'msg_tools',
+  content: [
+    { type: 'tool_use', id: 'toolu_weather', name: 'weather', input: { city: 'Vienna' } },
+    { type: 'tool_use', id: 'toolu_explode', name: 'explode', input: {} },
+  ],
+  usage: { input_tokens: 10, output_tokens: 20 },
+});
+const FINAL_EVENTS = anthropicMessageStream(MODEL, {
+  id: 'msg_final',
+  content: 'Sunny.',
+  usage: { input_tokens: 30, output_tokens: 5 },
+});
 
 function startMockAnthropicServer() {
   const app = express();
@@ -30,8 +25,7 @@ function startMockAnthropicServer() {
 
   let requests = 0;
   app.post('/anthropic/v1/messages', (_req, res) => {
-    const events = requests++ === 0 ? toolUseEvents() : finalEvents();
-    streamSseEvents(res, events, { eventNames: true });
+    streamSseEvents(res, requests++ === 0 ? TOOL_USE_EVENTS : FINAL_EVENTS, { eventNames: true });
   });
 
   return startMockServer(app);

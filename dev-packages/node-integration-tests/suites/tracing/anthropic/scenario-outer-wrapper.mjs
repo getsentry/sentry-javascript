@@ -9,7 +9,7 @@ function startMockAnthropicServer() {
 
   app.post('/anthropic/v1/messages', (req, res) => {
     const model = req.body.model;
-    const events = anthropicMessageStream(model, { content: ['Hello ', 'from ', 'stream!'] });
+    const events = anthropicMessageStream(model, { content: 'Hello from stream!' });
 
     streamSseEvents(res, events, { eventNames: true });
   });

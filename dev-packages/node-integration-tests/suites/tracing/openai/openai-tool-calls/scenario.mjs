@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/node';
-import { openAiChatCompletion } from '@sentry-internal/node-integration-tests';
+import { openAiChatCompletion, openAiChatCompletionChunks } from '@sentry-internal/node-integration-tests';
 
 class MockOpenAIToolCalls {
   constructor(config) {
@@ -125,34 +125,22 @@ class MockOpenAIToolCalls {
 
   // Gemini's OpenAI-compatible endpoint streams whole, parallel tool calls without an `index`
   async *_createGeminiStyleToolCallsStream(params) {
-    yield {
+    yield* openAiChatCompletionChunks(params.model, {
       id: 'chatcmpl-stream-gemini-tools-123',
-      object: 'chat.completion.chunk',
-      created: 1677652310,
-      model: params.model,
-      choices: [
+      toolCalls: [
         {
-          index: 0,
-          delta: {
-            role: 'assistant',
-            tool_calls: [
-              {
-                id: 'call_paris',
-                type: 'function',
-                function: { name: 'get_weather', arguments: '{"latitude":48.8566,"longitude":2.3522}' },
-              },
-              {
-                id: 'call_london',
-                type: 'function',
-                function: { name: 'get_weather', arguments: '{"latitude":51.5072,"longitude":-0.1276}' },
-              },
-            ],
-          },
-          finish_reason: 'tool_calls',
+          id: 'call_paris',
+          type: 'function',
+          function: { name: 'get_weather', arguments: '{"latitude":48.8566,"longitude":2.3522}' },
+        },
+        {
+          id: 'call_london',
+          type: 'function',
+          function: { name: 'get_weather', arguments: '{"latitude":51.5072,"longitude":-0.1276}' },
         },
       ],
-      usage: { prompt_tokens: 15, completion_tokens: 25, total_tokens: 40 },
-    };
+      usage: { prompt_tokens: 15, completion_tokens: 25 },
+    });
   }
 
   // Create a mock streaming response for responses API with tool calls

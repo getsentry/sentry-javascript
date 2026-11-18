@@ -16,7 +16,6 @@ function startMockAnthropicServer() {
           { type: 'tool_use', id: 'tool_weather_1', name: 'weather', input: { city: 'Paris' } },
           { type: 'text', text: 'It is sunny.' },
         ],
-        stopReason: 'end_turn',
         usage: { input_tokens: 5, output_tokens: 7 },
       }),
     );

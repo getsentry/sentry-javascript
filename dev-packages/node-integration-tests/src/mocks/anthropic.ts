@@ -2,6 +2,11 @@ type AnthropicContentBlock =
   | { type: 'text'; text: string }
   | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> };
 
+interface AnthropicStreamEvent {
+  type: string;
+  [key: string]: unknown;
+}
+
 interface AnthropicUsage {
   input_tokens: number;
   output_tokens: number;
@@ -11,11 +16,7 @@ function toBlocks(content: string | AnthropicContentBlock[]): AnthropicContentBl
   return typeof content === 'string' ? [{ type: 'text', text: content }] : content;
 }
 
-function isTextDeltas(content: string | string[] | AnthropicContentBlock[]): content is string[] {
-  return Array.isArray(content) && content.every(entry => typeof entry === 'string');
-}
-
-function defaultStopReason(blocks: AnthropicContentBlock[]): string {
+function stopReason(blocks: AnthropicContentBlock[]): string {
   return blocks.some(block => block.type === 'tool_use') ? 'tool_use' : 'end_turn';
 }
 
@@ -25,9 +26,8 @@ export function anthropicMessage(
   {
     id = 'msg_mock123',
     content = 'Hello from Anthropic mock!',
-    stopReason,
     usage = { input_tokens: 10, output_tokens: 15 },
-  }: { id?: string; content?: string | AnthropicContentBlock[]; stopReason?: string; usage?: AnthropicUsage } = {},
+  }: { id?: string; content?: string | AnthropicContentBlock[]; usage?: AnthropicUsage } = {},
 ): Record<string, unknown> {
   const blocks = toBlocks(content);
   return {
@@ -36,7 +36,7 @@ export function anthropicMessage(
     role: 'assistant',
     model,
     content: blocks,
-    stop_reason: stopReason ?? defaultStopReason(blocks),
+    stop_reason: stopReason(blocks),
     stop_sequence: null,
     usage,
   };
@@ -45,28 +45,23 @@ export function anthropicMessage(
 /**
  * The server-sent events of a streamed Anthropic message, from `message_start` to `message_stop`.
  *
- * A string `content` streams as one text block; a string array streams one text block, one delta per
- * entry. A tool_use block streams its input as one `input_json_delta`.
+ * Each text block streams as one `text_delta`, each tool_use block as one `input_json_delta`.
  */
 export function anthropicMessageStream(
   model: string,
   {
     id = 'msg_stream_1',
     content = 'Hello!',
-    stopReason,
     usage = { input_tokens: 10, output_tokens: 15 },
   }: {
     id?: string;
-    content?: string | string[] | AnthropicContentBlock[];
-    stopReason?: string;
+    content?: string | AnthropicContentBlock[];
     usage?: AnthropicUsage;
   } = {},
-): Record<string, unknown>[] {
-  const blocks: AnthropicContentBlock[] = isTextDeltas(content)
-    ? [{ type: 'text', text: content.join('') }]
-    : toBlocks(content);
+): AnthropicStreamEvent[] {
+  const blocks = toBlocks(content);
 
-  const events: Record<string, unknown>[] = [
+  const events: AnthropicStreamEvent[] = [
     {
       type: 'message_start',
       message: {
@@ -82,10 +77,9 @@ export function anthropicMessageStream(
 
   blocks.forEach((block, index) => {
     if (block.type === 'text') {
-      const deltas = isTextDeltas(content) ? content : [block.text];
       events.push(
         { type: 'content_block_start', index, content_block: { type: 'text', text: '' } },
-        ...deltas.map(text => ({ type: 'content_block_delta', index, delta: { type: 'text_delta', text } })),
+        { type: 'content_block_delta', index, delta: { type: 'text_delta', text: block.text } },
       );
     } else {
       events.push(
@@ -103,7 +97,7 @@ export function anthropicMessageStream(
   events.push(
     {
       type: 'message_delta',
-      delta: { stop_reason: stopReason ?? defaultStopReason(blocks), stop_sequence: null },
+      delta: { stop_reason: stopReason(blocks), stop_sequence: null },
       usage: { output_tokens: usage.output_tokens },
     },
     { type: 'message_stop' },

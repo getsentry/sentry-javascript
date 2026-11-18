@@ -8,13 +8,7 @@ function startMockGoogleGenAIServer() {
   app.use(express.json());
 
   app.post('/v1beta/models/:model\\:generateContent', (req, res) => {
-    res.send(
-      googleGenAiResponse({
-        parts: 'Response',
-        modelVersion: req.params.model,
-        usage: { promptTokenCount: 10, candidatesTokenCount: 5 },
-      }),
-    );
+    res.send(googleGenAiResponse({ parts: ['Response'], usage: { promptTokenCount: 10, candidatesTokenCount: 5 } }));
   });
 
   return startMockServer(app);
