@@ -1,10 +1,11 @@
 import { ChatAnthropic } from '@langchain/anthropic';
 import * as Sentry from '@sentry/node';
+import { startMockServer } from '@sentry-internal/node-integration-tests';
 import express from 'express';
 
 let scopeToFlip;
 
-function startMockAnthropicServer() {
+function startMockAnthropicApi() {
   const app = express();
   app.use(express.json());
 
@@ -26,19 +27,17 @@ function startMockAnthropicServer() {
     });
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => resolve(server));
-  });
+  return startMockServer(app);
 }
 
 async function run() {
-  const server = await startMockAnthropicServer();
+  const server = await startMockAnthropicApi();
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const model = new ChatAnthropic({
       model: 'claude-3-5-sonnet-20241022',
       apiKey: 'mock-api-key',
-      clientOptions: { baseURL: `http://localhost:${server.address().port}` },
+      clientOptions: { baseURL: server.url },
     });
 
     for (const privacy of ['public', 'private']) {
