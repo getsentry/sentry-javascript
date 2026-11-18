@@ -29,5 +29,19 @@
     "typescript": "^5.4.5",
     "vinxi": "^0.5.11",
     "vite": "^6.4.4"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "E2E_TEST_INJECT_MODE=top-level-import pnpm test:build",
+        "assert-command": "E2E_TEST_INJECT_MODE=top-level-import pnpm test:prod",
+        "label": "solidstart (top-level-import)"
+      },
+      {
+        "build-command": "E2E_TEST_INJECT_MODE=experimental_dynamic-import pnpm test:build",
+        "assert-command": "E2E_TEST_INJECT_MODE=experimental_dynamic-import pnpm test:prod",
+        "label": "solidstart (dynamic-import)"
+      }
+    ]
   }
 }
