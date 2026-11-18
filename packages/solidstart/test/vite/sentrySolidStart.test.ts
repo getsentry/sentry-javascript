@@ -6,6 +6,12 @@ import { mergeConfig } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentrySolidStart } from '../../src/vite/sentrySolidStart';
 
+// Without a configured name, the real function falls back to the git SHA of this repository.
+vi.mock('@sentry/bundler-plugins/core', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  resolveReleaseName: (name?: string) => name,
+}));
+
 vi.spyOn(console, 'log').mockImplementation(() => {
   /* noop */
 });
@@ -88,6 +94,41 @@ describe('sentrySolidStart()', () => {
     const names = sentrySolidStart({ org: 'org', project: 'project' }).map(plugin => plugin.name);
 
     expect(names).toEqual(['sentry-solidstart-nitro', 'sentry-solidstart-server-entry']);
+  });
+
+  describe('the release', () => {
+    function callReleaseDefineHook(name: string, consumer: 'client' | 'server'): EnvironmentOptions | undefined {
+      const plugin = sentrySolidStart({ release: { name: 'my-release' } }).find(
+        p => p.name === 'sentry-solidstart-release',
+      );
+      const hook = plugin?.configEnvironment;
+      const handler = typeof hook === 'function' ? hook : hook?.handler;
+      return handler?.call({} as never, name, { consumer }, { command: 'build', mode: 'production' } as never) as
+        | EnvironmentOptions
+        | undefined;
+    }
+
+    it('registers the Nitro middleware that adds the release to the pages', () => {
+      const nitro = callConfigHook(getNitroPlugin(sentrySolidStart({ release: { name: 'my-release' } })))?.nitro;
+
+      expect(nitro?.handlers).toEqual([
+        { route: '/**', middleware: true, handler: expect.stringMatching(/\/nitro\/releaseMiddleware\.[jt]s$/) },
+      ]);
+    });
+
+    it('defines the release for the server environments, but not the client', () => {
+      expect(callReleaseDefineHook('nitro', 'server')).toEqual({
+        define: { __SENTRY_SOLIDSTART_RELEASE__: '"my-release"' },
+      });
+      expect(callReleaseDefineHook('client', 'client')).toBeUndefined();
+    });
+
+    it('does not add the release to the pages when `release.inject` is false', () => {
+      const plugins = sentrySolidStart({ release: { name: 'my-release', inject: false } });
+
+      expect(plugins.map(plugin => plugin.name)).not.toContain('sentry-solidstart-release');
+      expect(callConfigHook(getNitroPlugin(plugins))?.nitro?.handlers).toBeUndefined();
+    });
   });
 
   describe('the server entry plugin', () => {

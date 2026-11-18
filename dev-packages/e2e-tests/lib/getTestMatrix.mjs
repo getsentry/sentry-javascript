@@ -121,6 +121,10 @@ function addIncludesForTestApp(testApp, includes, { variant }) {
     return;
   }
 
+  if (isOptional && packageJson.sentryTest?.variants?.length) {
+    throw new Error(`${testApp} is optional, so its variants belong in \`optionalVariants\`, not \`variants\``);
+  }
+
   // The test application itself is either required or optional, never canary, and only runs in the matrix of its mode.
   const appVariant = isOptional ? 'optional' : 'required';
   if (appVariant === variant) {

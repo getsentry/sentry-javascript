@@ -19,15 +19,18 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
   filterCollectedUrl,
+  GLOBAL_OBJ,
 } from '@sentry/core';
 import {
   flushIfServerless,
   _INTERNAL_getCacheOriginMetaTags,
+  _INTERNAL_getReleaseMetaTag as renderReleaseMetaTag,
   _INTERNAL_getRootSpanSentryTrace,
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
   _INTERNAL_setTunnelDefaults as setTunnelDefaults,
 } from '@sentry/core/server';
 import { getTunnelBasePath } from '../common/tunnel';
+import type { GlobalWithSentryValues } from '../vite/injectGlobalValues';
 import type { Handle, ResolveOptions } from './handleTypes';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
@@ -89,7 +92,7 @@ export function addSentryCodeToPage(options: {
   requestStart: number;
 }): NonNullable<ResolveOptions['transformPageChunk']> {
   return ({ html }) => {
-    const metaTags = getPageMetaTags(html, !!options.isVercelIsrRender, options.requestStart);
+    const metaTags = getReleaseMetaTag() + getPageMetaTags(html, !!options.isVercelIsrRender, options.requestStart);
     const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
 
     const headWithFetchScript = options.injectFetchProxyScript ? `\n<script>${FETCH_PROXY_SCRIPT}</script>` : '';
@@ -98,6 +101,15 @@ export function addSentryCodeToPage(options: {
 
     return html.replace('<head>', modifiedHead);
   };
+}
+
+/**
+ * The release the build gave us. Unlike the trace meta tags, it's the same for every visitor, so prerendered and
+ * fallback pages get it too.
+ */
+function getReleaseMetaTag(): string {
+  const release = (GLOBAL_OBJ as GlobalWithSentryValues).__sentry_sveltekit_release;
+  return release ? renderReleaseMetaTag(release) : '';
 }
 
 /**

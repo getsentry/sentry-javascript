@@ -27,6 +27,7 @@ import type {
 import { sentryOrchestrionWebpackPlugin } from '@sentry/server-utils/orchestrion/webpack';
 import { DEFAULT_PAGE_EXTENSIONS, getNextjsVersion, getPackageModules } from './util';
 import type { VercelCronsConfigResult } from './withSentryConfig/getFinalConfigObjectUtils';
+import { shouldInjectReleaseIntoClient } from './withSentryConfig/release';
 import { getTunnelRouteInjectedValues } from './withSentryConfig/tunnel';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
@@ -721,6 +722,8 @@ function addValueInjectionLoader({
 
   const serverValues = {
     ...isomorphicValues,
+    // Without `release.inject`, `env` has no release, so the server SDK reads this one.
+    _sentryRelease: releaseName,
     // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
     // characters)
     _sentryRewriteFramesDistDir: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
@@ -730,6 +733,9 @@ function addValueInjectionLoader({
 
   const clientValues = {
     ...isomorphicValues,
+    SENTRY_RELEASE: shouldInjectReleaseIntoClient(userNextConfig, userSentryOptions)
+      ? isomorphicValues.SENTRY_RELEASE
+      : undefined,
     // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
     // `assetPrefix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
     _sentryRewriteFramesAssetPrefixPath: assetPrefix

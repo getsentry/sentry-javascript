@@ -15,6 +15,12 @@ type NextRewrite = {
   destination: string;
 };
 
+type NextHeader = {
+  source: string;
+  headers: { key: string; value: string }[];
+  locale?: false;
+};
+
 export interface WebpackPluginInstance {
   [index: string]: unknown;
   apply: (compiler: unknown) => void;
@@ -48,6 +54,8 @@ export type NextConfigObject = {
         fallback?: NextRewrite[];
       }
   >;
+  // Response headers to set on matching paths
+  headers?: () => Promise<NextHeader[]>;
   cacheComponents?: boolean;
   // Packages that Next.js compiles, also in `node_modules`
   transpilePackages?: string[];
@@ -200,12 +208,28 @@ export type SentryBuildOptions = Omit<
   /**
    * Options related to managing the Sentry releases for a build.
    *
-   * Note that `release.inject` is not configurable. The Next.js SDK always injects the release value
-   * itself, because the bundler plugin's own release injection breaks the `app` directory.
-   *
    * More info: https://docs.sentry.io/product/releases/
    */
-  release?: Omit<NonNullable<BuildTimeOptionsBase['release']>, 'inject'>;
+  release?: Omit<NonNullable<BuildTimeOptionsBase['release']>, 'inject'> & {
+    /**
+     * Whether to inject the release into the client bundles.
+     *
+     * The release name usually changes on every commit, so the chunks that contain it get new content hashes, and
+     * new file names, on every release, and returning visitors download them again.
+     *
+     * Set this to `false` to keep the release out of the client bundles. The SDK then adds a `Server-Timing` header
+     * with the release to every page response, and the browser SDK reads it from there. This needs a page served
+     * over HTTPS (or from `localhost`) to a browser that exposes `Server-Timing` to scripts (Safari 16.4 or later),
+     * and a host that applies the `headers` of `next.config.js`. Events from other browsers have no release, unless
+     * you pass `release` to `Sentry.init`. With `output: 'export'` there is no server to send the header, so the SDK
+     * injects the release anyway.
+     *
+     * The server and edge SDKs get the release either way.
+     *
+     * @default true
+     */
+    inject?: boolean;
+  };
 
   /**
    * Automatic instrumentation of server-side dependencies at build time.

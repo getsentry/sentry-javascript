@@ -31,6 +31,7 @@ import {
   warnIfMissingInstrumentationFile,
   warnIfMissingOnRouterTransitionStartHook,
 } from './getFinalConfigObjectUtils';
+import { maybeAddReleaseServerTimingHeader } from './release';
 
 /**
  * Materializes the final Next.js config object with Sentry's build-time integrations applied.
@@ -52,6 +53,7 @@ export function getFinalConfigObject(
   const routeManifest = maybeCreateRouteManifest(incomingUserNextConfigObject, userSentryOptions);
   const vercelCronsConfigResult = maybeGetVercelCronsConfig(userSentryOptions);
   setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions, releaseName);
+  maybeAddReleaseServerTimingHeader(incomingUserNextConfigObject, userSentryOptions, releaseName);
 
   const nextJsVersion = getNextjsVersion();
   const nextMajor = getNextMajor(nextJsVersion);

@@ -970,3 +970,52 @@ describe('basePath value injection', () => {
     },
   );
 });
+
+describe('release value injection', () => {
+  function getInjectedValues(config: Awaited<ReturnType<typeof materializeFinalWebpackConfig>>): unknown {
+    return config.module.rules
+      .flatMap(rule => rule.use ?? [])
+      .find(loader => String(loader.loader).endsWith('valueInjectionLoader.js'))?.options;
+  }
+
+  it('injects the release into the client bundle by default', async () => {
+    const finalWebpackConfig = await materializeFinalWebpackConfig({
+      exportedNextConfig: userNextConfig,
+      incomingWebpackConfig: clientWebpackConfig,
+      incomingWebpackBuildContext: clientBuildContext,
+      releaseName: 'my-release',
+    });
+
+    expect(getInjectedValues(finalWebpackConfig)).toMatchObject({ values: { SENTRY_RELEASE: { id: 'my-release' } } });
+  });
+
+  it('keeps the release out of the client bundle with `release.inject: false`', async () => {
+    const finalWebpackConfig = await materializeFinalWebpackConfig({
+      exportedNextConfig: userNextConfig,
+      incomingWebpackConfig: clientWebpackConfig,
+      incomingWebpackBuildContext: clientBuildContext,
+      releaseName: 'my-release',
+      sentryBuildTimeOptions: { release: { inject: false } },
+    });
+
+    expect(getInjectedValues(finalWebpackConfig)).toMatchObject({ values: { SENTRY_RELEASE: undefined } });
+  });
+
+  it.each([
+    ['server', serverBuildContext],
+    ['edge', edgeBuildContext],
+  ])(
+    'injects the release into %s builds with `release.inject: false`',
+    async (_target, incomingWebpackBuildContext) => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig: userNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext,
+        releaseName: 'my-release',
+        sentryBuildTimeOptions: { release: { inject: false } },
+      });
+
+      expect(getInjectedValues(finalWebpackConfig)).toMatchObject({ values: { _sentryRelease: 'my-release' } });
+    },
+  );
+});

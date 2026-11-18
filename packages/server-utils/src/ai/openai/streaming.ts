@@ -1,6 +1,7 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { getToolCallKey } from '../core/streaming-tool-calls';
+import type { GenAiSpanResult } from '../core/span-hooks';
 import { endStreamSpan } from '../core/utils';
 import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
 import { RESPONSE_EVENT_TYPES } from './constants';
@@ -218,12 +219,14 @@ function processResponsesApiEvent(
  * @param stream - The async iterable stream of events to instrument.
  * @param span - The span to add attributes to and to finish at the end of the stream.
  * @param recordOutputs - Whether to record output text fragments in the span.
+ * @param beforeSpanEnd - Runs right before the span ends, with the error when the stream failed.
  * @returns An async generator yielding each event from the input stream.
  */
 export async function* instrumentStream<T>(
   stream: AsyncIterable<T>,
   span: Span,
   recordOutputs: boolean,
+  beforeSpanEnd?: (result: GenAiSpanResult<never>) => void,
 ): AsyncGenerator<T, void, unknown> {
   const state: StreamingState = {
     eventTypes: [],
@@ -240,6 +243,8 @@ export async function* instrumentStream<T>(
     responsesApiToolCalls: [],
   };
 
+  const result: GenAiSpanResult<never> = {};
+
   try {
     for await (const event of stream) {
       recordTimeToFirstChunk(span);
@@ -252,9 +257,10 @@ export async function* instrumentStream<T>(
     }
   } catch (error) {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    result.error = error;
     throw error;
   } finally {
     const allToolCalls = [...state.chatCompletionToolCalls.values(), ...state.responsesApiToolCalls];
-    endStreamSpan(span, { ...state, toolCalls: allToolCalls }, recordOutputs);
+    endStreamSpan(span, { ...state, toolCalls: allToolCalls }, recordOutputs, () => beforeSpanEnd?.(result));
   }
 }

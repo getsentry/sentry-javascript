@@ -2,22 +2,20 @@ import { ChatAnthropic } from '@langchain/anthropic';
 import { END, MessagesAnnotation, START, StateGraph } from '@langchain/langgraph';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer } from '@sentry-internal/node-integration-tests';
+import { anthropicMessage, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
   app.use(express.json());
 
   app.post('/v1/messages', (req, res) => {
-    res.json({
-      id: 'msg_stategraph_chat_1',
-      type: 'message',
-      role: 'assistant',
-      content: [{ type: 'text', text: 'Hello from mock.' }],
-      model: req.body.model,
-      stop_reason: 'end_turn',
-      usage: { input_tokens: 5, output_tokens: 3 },
-    });
+    res.json(
+      anthropicMessage(req.body.model, {
+        id: 'msg_stategraph_chat_1',
+        content: 'Hello from mock.',
+        usage: { input_tokens: 5, output_tokens: 3 },
+      }),
+    );
   });
 
   return startMockServer(app);

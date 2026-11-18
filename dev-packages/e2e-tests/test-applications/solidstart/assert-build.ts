@@ -1,3 +1,4 @@
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { assertSourceMapUpload } from '@sentry-internal/test-utils';
 
@@ -13,4 +14,14 @@ assertSourceMapUpload({
   markers: { 'client source': 'SOURCEMAP_MARKER_CLIENT', 'server source': 'SOURCEMAP_MARKER_SERVER' },
 });
 
-console.log('All sourcemap assertions passed!');
+// The server adds the release to the page, so no content-hashed client file may contain it.
+const clientFilesWithRelease = fs
+  .readdirSync(CLIENT_OUTPUT, { recursive: true, withFileTypes: true })
+  .filter(entry => entry.isFile() && !entry.name.endsWith('.html'))
+  .map(entry => path.join(entry.parentPath, entry.name))
+  .filter(file => fs.readFileSync(file, 'utf8').includes('test-release'));
+if (clientFilesWithRelease.length > 0) {
+  throw new Error(`The release was written into client files: ${clientFilesWithRelease.join(', ')}`);
+}
+
+console.log('All sourcemap and release assertions passed!');

@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
+import { anthropicMessageStream, startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
 
 const TOOLS = [
   {
@@ -17,37 +17,14 @@ function startMockAnthropicServer() {
 
   app.post('/anthropic/v1/messages', (req, res) => {
     const model = req.body.model;
-    const events = [
-      {
-        type: 'message_start',
-        message: {
-          id: 'msg_stream_tool_1',
-          type: 'message',
-          role: 'assistant',
-          model,
-          content: [],
-          stop_reason: null,
-          usage: { input_tokens: 11 },
-        },
-      },
-      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
-      { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Starting tool...' } },
-      { type: 'content_block_stop', index: 0 },
-      {
-        type: 'content_block_start',
-        index: 1,
-        content_block: { type: 'tool_use', id: 'tool_weather_2', name: 'weather', input: {} },
-      },
-      { type: 'content_block_delta', index: 1, delta: { type: 'input_json_delta', partial_json: '{"city":' } },
-      { type: 'content_block_delta', index: 1, delta: { type: 'input_json_delta', partial_json: '"Paris"}' } },
-      { type: 'content_block_stop', index: 1 },
-      {
-        type: 'message_delta',
-        delta: { stop_reason: 'tool_use', stop_sequence: null },
-        usage: { output_tokens: 9 },
-      },
-      { type: 'message_stop' },
-    ];
+    const events = anthropicMessageStream(model, {
+      id: 'msg_stream_tool_1',
+      content: [
+        { type: 'text', text: 'Starting tool...' },
+        { type: 'tool_use', id: 'tool_weather_2', name: 'weather', input: { city: 'Paris' } },
+      ],
+      usage: { input_tokens: 11, output_tokens: 9 },
+    });
 
     streamSseEvents(res, events, { eventNames: true });
   });

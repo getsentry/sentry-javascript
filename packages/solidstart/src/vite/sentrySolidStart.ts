@@ -7,6 +7,7 @@ import {
 import { setupSentryNitroModule } from '@sentry/nitro';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin, UserConfig } from 'vite';
+import { getNitroRuntimeFilePath, getRuntimeRelease } from './release';
 import { makeAddSentryVitePluginSolidStart2, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 
 /**
@@ -45,7 +46,8 @@ export type SentrySolidStartOptions = BuildTimeOptionsBase;
 export function sentrySolidStart(options: SentrySolidStartOptions = {}): Plugin[] {
   warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions']);
 
-  const plugins: Plugin[] = [makeSentryNitroPlugin(options), makeServerEntryPlugin()];
+  const runtimeRelease = getRuntimeRelease(options);
+  const plugins: Plugin[] = [makeSentryNitroPlugin(options, runtimeRelease), makeServerEntryPlugin()];
 
   // Only the Nitro and server entry plugins are dev-safe; the Nitro module handles `dev` itself.
   if (process.env.NODE_ENV === 'development') {
@@ -56,8 +58,15 @@ export function sentrySolidStart(options: SentrySolidStartOptions = {}): Plugin[
   // lets `Sentry.init()` run from a bundled Nitro plugin rather than an `--import` preload.
   plugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: options.buildTimeInstrumentation }));
 
+  if (runtimeRelease) {
+    plugins.push(makeReleaseDefinePlugin(runtimeRelease));
+  }
+
   if (options.sourcemaps?.disable !== true) {
-    plugins.push(...makeAddSentryVitePluginSolidStart2(options), ...makeEnableSourceMapsVitePlugin(options));
+    plugins.push(
+      ...makeAddSentryVitePluginSolidStart2(options, runtimeRelease),
+      ...makeEnableSourceMapsVitePlugin(options),
+    );
   }
 
   return plugins;
@@ -86,6 +95,23 @@ function makeServerEntryPlugin(): Plugin {
   };
 }
 
+/**
+ * Defines the release for the release middleware, which runs on the server. The client environment stays without it:
+ * there, it would change the content hashes of the chunks on every release.
+ */
+function makeReleaseDefinePlugin(release: string): Plugin {
+  return {
+    name: 'sentry-solidstart-release',
+    configEnvironment(name, config) {
+      if (name === 'client' || config.consumer === 'client') {
+        return;
+      }
+
+      return { define: { __SENTRY_SOLIDSTART_RELEASE__: stringifyForCodeInjection(release) } };
+    },
+  };
+}
+
 // Nitro's `NitroConfig` only matches `@sentry/nitro`'s when both resolve the same `nitro` install,
 // which is not guaranteed, so the key stays opaque rather than coupling the two copies.
 type ViteConfigWithNitro = UserConfig & {
@@ -104,7 +130,7 @@ type ViteConfigWithNitro = UserConfig & {
  * `enforce: 'pre'` is load-bearing: Nitro creates its instance inside its own `config` hook, so a
  * normal-priority hook sorting after it would be read too late and silently ignored.
  */
-function makeSentryNitroPlugin(options: SentrySolidStartOptions): Plugin {
+function makeSentryNitroPlugin(options: SentrySolidStartOptions, runtimeRelease: string | undefined): Plugin {
   return {
     name: 'sentry-solidstart-nitro',
     enforce: 'pre',
@@ -126,6 +152,10 @@ function makeSentryNitroPlugin(options: SentrySolidStartOptions): Plugin {
           ) as Record<string, unknown>),
           // `@sentry/nitro` serves the tunnel under this instead of Nitro's `baseURL`.
           ...(tunnelBasePath && { runtimeConfig: { sentryTunnelBasePath: tunnelBasePath } }),
+          // Adds the release to the pages for the browser SDK.
+          ...(runtimeRelease && {
+            handlers: [{ route: '/**', middleware: true, handler: getNitroRuntimeFilePath('releaseMiddleware.js') }],
+          }),
         },
       } as Omit<UserConfig, 'plugins'>;
     },

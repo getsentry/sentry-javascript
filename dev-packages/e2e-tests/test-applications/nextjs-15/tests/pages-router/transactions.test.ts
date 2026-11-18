@@ -1,0 +1,75 @@
+import { expect, test } from '@playwright/test';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { isDevMode } from '../isDevMode';
+import { skipTurbopack } from './skipTurbopack';
+
+skipTurbopack();
+
+test('Sends a pageload span', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('nextjs-15', span => {
+    return getSpanOp(span) === 'pageload' && span.name === '/pages-router' && span.is_segment;
+  });
+
+  await page.goto('/pages-router');
+
+  const span = await pageloadSpanPromise;
+
+  // The server sends the trace in a `Server-Timing` header. The page is static, but the pages router serves it
+  // without a `Cache-Control` that lets a shared cache store it, so the header goes out in production too.
+  expect(span.parent_span_id).toEqual(expect.any(String));
+
+  expect(span.span_id).toEqual(expect.stringMatching(/[a-f0-9]{16}/));
+  expect(span.trace_id).toEqual(expect.stringMatching(/[a-f0-9]{32}/));
+  expect(span.status).toBe('ok');
+  expect(span.attributes).toMatchObject({
+    'sentry.op': { value: 'pageload', type: 'string' },
+    'sentry.origin': { value: 'auto.pageload.nextjs.pages_router_instrumentation', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'url.path': { value: '/pages-router', type: 'string' },
+    'url.template': { value: '/pages-router', type: 'string' },
+    'react.version': { value: expect.any(String), type: 'string' },
+    'user_agent.original': { value: expect.any(String), type: 'string' },
+  });
+  expect(String(span.attributes['url.full']?.value)).toMatch(/^https?:\/\/localhost:\d+\/pages-router$/);
+});
+
+test('Sends a navigation span', async ({ page }) => {
+  // Skip in dev mode - flaky due to slow compilation affecting span timing
+  test.skip(isDevMode, 'Skipped in dev mode due to flakiness from slow compilation');
+
+  await page.goto('/pages-router');
+
+  const clientNavigationSpanPromise = waitForStreamedSpan('nextjs-15', span => {
+    return getSpanOp(span) === 'navigation' && span.name === '/user/[id]' && span.is_segment;
+  });
+
+  await page.getByText('navigate').click();
+
+  const span = await clientNavigationSpanPromise;
+
+  expect(span.span_id).toEqual(expect.stringMatching(/[a-f0-9]{16}/));
+  expect(span.trace_id).toEqual(expect.stringMatching(/[a-f0-9]{32}/));
+  expect(span.status).toBe('ok');
+  expect(span.attributes).toMatchObject({
+    'sentry.idle_span_finish_reason': { value: 'idleTimeout', type: 'string' },
+    'sentry.op': { value: 'navigation', type: 'string' },
+    'sentry.origin': { value: 'auto.navigation.nextjs.pages_router_instrumentation', type: 'string' },
+    'sentry.sample_rate': { value: 1, type: 'integer' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'url.path': { value: '/user/5', type: 'string' },
+    'url.template': { value: '/user/[id]', type: 'string' },
+    'react.version': { value: expect.any(String), type: 'string' },
+    'user_agent.original': { value: expect.any(String), type: 'string' },
+  });
+  expect(String(span.attributes['url.full']?.value)).toMatch(/^https?:\/\/localhost:\d+\/user\/5$/);
+
+  expect(span.links).toEqual([
+    expect.objectContaining({
+      attributes: expect.objectContaining({
+        'sentry.link.type': { value: 'previous_trace', type: 'string' },
+      }),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    }),
+  ]);
+});

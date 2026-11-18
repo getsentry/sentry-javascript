@@ -1,6 +1,6 @@
 import { ChatAnthropic } from '@langchain/anthropic';
 import * as Sentry from '@sentry/node';
-import { startMockServer } from '@sentry-internal/node-integration-tests';
+import { anthropicMessage, startMockServer } from '@sentry-internal/node-integration-tests';
 import express from 'express';
 
 let scopeToFlip;
@@ -16,15 +16,7 @@ function startMockAnthropicApi() {
       scopeToFlip.setTag('privacy', 'public');
     }
 
-    res.json({
-      id: `msg_${prompt}`,
-      type: 'message',
-      role: 'assistant',
-      content: [{ type: 'text', text: 'Paris.' }],
-      model: req.body.model,
-      stop_reason: 'end_turn',
-      usage: { input_tokens: 10, output_tokens: 15 },
-    });
+    res.json(anthropicMessage(req.body.model, { id: `msg_${prompt}`, content: 'Paris.' }));
   });
 
   return startMockServer(app);

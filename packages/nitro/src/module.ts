@@ -1,6 +1,7 @@
 import { _INTERNAL_setTunnelDefaults as setTunnelDefaults } from '@sentry/core/server';
 import type { NitroModule } from 'nitro/types';
 import type { SentryNitroOptions } from './config';
+import { setIsNitroDevServer } from './devServer';
 import { instrumentServer } from './instruments/instrumentServer';
 import { setupSourceMaps } from './sourceMaps';
 
@@ -14,9 +15,16 @@ export function createNitroModule(sentryOptions?: SentryNitroOptions, sentryEnab
       instrumentServer(nitro);
       setupSourceMaps(nitro, sentryOptions, sentryEnabledSourcemaps);
 
-      // In dev, Vite's server takes each request in this process before Nitro handles it, and its `http.server` span
-      // comes from the SDK `--import` set up here. The runtime plugin only reaches the client where Nitro runs.
+      // In dev, this process runs the dev server (Vite's for `vite dev`), which takes each request before Nitro handles
+      // it. The SDK `--import` sets up its client, and the runtime plugin only reaches the client where Nitro runs.
       if (nitro.options.dev) {
+        // These runners run Nitro in a worker that the `--import` sets up too, and that traces each request.
+        // The `self` runner runs it in this process instead.
+        const runner = nitro.options.devServer?.runner || process.env.NITRO_DEV_RUNNER || 'node-worker';
+        if (runner === 'node-worker' || runner === 'node-process') {
+          setIsNitroDevServer();
+        }
+
         // `sentryTunnelBasePath` is set by `@sentry/solidstart`, whose app is served under Vite's `base`.
         const tunnelBasePath = nitro.options.runtimeConfig.sentryTunnelBasePath as string | undefined;
         setTunnelDefaults({ basePath: tunnelBasePath || nitro.options.baseURL });
