@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
 import { hasOnlyAppRouterPages } from './pagesRouterDetection';
+import { shouldInjectReleaseIntoClient } from './release';
 import { getTunnelRouteInjectedValues } from './tunnel';
 
 /**
@@ -61,7 +62,8 @@ export function setUpBuildTimeVariables(
     buildTimeVariables._experimentalThirdPartyOriginStackFrames = 'true';
   }
 
-  if (releaseName) {
+  // `env` is inlined into the client bundles too. The server SDK also reads the injected global.
+  if (releaseName && shouldInjectReleaseIntoClient(userNextConfig, userSentryOptions)) {
     buildTimeVariables._sentryRelease = releaseName;
   }
 

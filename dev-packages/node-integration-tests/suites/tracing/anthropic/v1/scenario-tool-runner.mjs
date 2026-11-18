@@ -1,69 +1,23 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
+import { anthropicMessageStream, startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
 
 const MODEL = 'claude-3-haiku-20240307';
 
-function toolUseEvents() {
-  const events = [
-    {
-      type: 'message_start',
-      message: {
-        id: 'msg_tools',
-        type: 'message',
-        role: 'assistant',
-        model: MODEL,
-        content: [],
-        usage: { input_tokens: 10 },
-      },
-    },
-  ];
-  [
-    { id: 'toolu_weather', name: 'weather', input: { city: 'Vienna' } },
-    { id: 'toolu_explode', name: 'explode', input: {} },
-  ].forEach((call, index) => {
-    events.push(
-      {
-        type: 'content_block_start',
-        index,
-        content_block: { type: 'tool_use', id: call.id, name: call.name, input: {} },
-      },
-      {
-        type: 'content_block_delta',
-        index,
-        delta: { type: 'input_json_delta', partial_json: JSON.stringify(call.input) },
-      },
-      { type: 'content_block_stop', index },
-    );
-  });
-  events.push(
-    { type: 'message_delta', delta: { stop_reason: 'tool_use', stop_sequence: null }, usage: { output_tokens: 20 } },
-    { type: 'message_stop' },
-  );
-  return events;
-}
-
-function finalEvents() {
-  return [
-    {
-      type: 'message_start',
-      message: {
-        id: 'msg_final',
-        type: 'message',
-        role: 'assistant',
-        model: MODEL,
-        content: [],
-        usage: { input_tokens: 30 },
-      },
-    },
-    { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
-    { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Sunny.' } },
-    { type: 'content_block_stop', index: 0 },
-    { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 5 } },
-    { type: 'message_stop' },
-  ];
-}
+const TOOL_USE_EVENTS = anthropicMessageStream(MODEL, {
+  id: 'msg_tools',
+  content: [
+    { type: 'tool_use', id: 'toolu_weather', name: 'weather', input: { city: 'Vienna' } },
+    { type: 'tool_use', id: 'toolu_explode', name: 'explode', input: {} },
+  ],
+  usage: { input_tokens: 10, output_tokens: 20 },
+});
+const FINAL_EVENTS = anthropicMessageStream(MODEL, {
+  id: 'msg_final',
+  content: 'Sunny.',
+  usage: { input_tokens: 30, output_tokens: 5 },
+});
 
 function startMockAnthropicServer() {
   const app = express();
@@ -71,8 +25,7 @@ function startMockAnthropicServer() {
 
   let requests = 0;
   app.post('/anthropic/v1/messages', (_req, res) => {
-    const events = requests++ === 0 ? toolUseEvents() : finalEvents();
-    streamSseEvents(res, events, { eventNames: true });
+    streamSseEvents(res, requests++ === 0 ? TOOL_USE_EVENTS : FINAL_EVENTS, { eventNames: true });
   });
 
   return startMockServer(app);

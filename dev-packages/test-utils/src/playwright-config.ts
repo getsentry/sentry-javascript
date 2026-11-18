@@ -5,6 +5,7 @@ export function getPlaywrightConfig(
   options?: {
     startCommand?: string;
     port?: number;
+    url?: string;
     eventProxyPort?: number;
     eventProxyFile?: string;
   },
@@ -24,7 +25,7 @@ export function getPlaywrightConfig(
    */
   const config: PlaywrightTestConfig = {
     testDir: './tests',
-    testIgnore: getTestIgnore(),
+    ...getLifecycleTestFilter(),
     /* Maximum time one test can run for. */
     timeout: 30_000,
     expect: {
@@ -89,7 +90,7 @@ export function getPlaywrightConfig(
     // TS just can't infer that and thinks it could also be undefined or an object.
     config.webServer.push({
       command: startCommand,
-      port: appPort,
+      ...(options?.url ? { url: options.url } : { port: appPort }),
       stdout: 'pipe',
       stderr: 'pipe',
       env: {
@@ -107,14 +108,15 @@ export function getPlaywrightConfig(
 /**
  * Apps that test both trace lifecycles set `E2E_TEST_TRACE_LIFECYCLE` to `stream` or `static` and keep
  * lifecycle-specific tests in `*.streaming-lifecycle.*` and `*.static-lifecycle.*` files.
+ * The streaming run also runs the unsuffixed files, so the static run only needs its own files.
  */
-function getTestIgnore(): string | undefined {
+function getLifecycleTestFilter(): Pick<PlaywrightTestConfig, 'testIgnore' | 'testMatch'> {
   switch (process.env.E2E_TEST_TRACE_LIFECYCLE) {
     case 'static':
-      return '**/*.streaming-lifecycle.*';
+      return { testMatch: '**/*.static-lifecycle.@(spec|test).?(c|m)[jt]s?(x)' };
     case 'stream':
-      return '**/*.static-lifecycle.*';
+      return { testIgnore: '**/*.static-lifecycle.*' };
     default:
-      return undefined;
+      return {};
   }
 }

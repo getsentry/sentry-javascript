@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
+import { anthropicMessageStream, startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
@@ -11,17 +11,7 @@ function startMockAnthropicServer() {
     const model = req.body.model;
     // The response id names the caller, so the test can find the span for each helper.
     const id = `msg_${req.body.messages[0].content}`;
-    const events = [
-      {
-        type: 'message_start',
-        message: { id, type: 'message', role: 'assistant', model, content: [], usage: { input_tokens: 10 } },
-      },
-      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
-      { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Hello!' } },
-      { type: 'content_block_stop', index: 0 },
-      { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 15 } },
-      { type: 'message_stop' },
-    ];
+    const events = anthropicMessageStream(model, { id });
     streamSseEvents(res, events, { eventNames: true });
   });
 

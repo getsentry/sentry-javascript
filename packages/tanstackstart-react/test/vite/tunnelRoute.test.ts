@@ -79,8 +79,9 @@ describe('server entry tunnel vite plugin', () => {
     tunnelRoute?: Parameters<typeof makeServerEntryTunnelPlugin>[0],
     basePath = '',
     resolve: (source: string, importer: string) => unknown = () => Promise.resolve({ id: SDK_ID, external: false }),
+    release?: string,
   ): (id: string) => Promise<unknown> {
-    const plugin = makeServerEntryTunnelPlugin(tunnelRoute, () => basePath);
+    const plugin = makeServerEntryTunnelPlugin(tunnelRoute, () => basePath, release);
     const config = {
       root: '/app',
       resolve: { alias: [{ find: 'virtual:tanstack-start-server-entry', replacement: USER_ENTRY }] },
@@ -113,6 +114,31 @@ describe('server entry tunnel vite plugin', () => {
 
     expect(await load(USER_ENTRY)).toContain(`export * from "${USER_ENTRY}?sentry-tunnel-original";`);
     expect(await load(USER_ENTRY)).toContain(`export { default } from "${USER_ENTRY}?sentry-tunnel-original";`);
+  });
+
+  it('sets the release before the original entry runs and writes it into the pages the entry renders', async () => {
+    const load = setup(undefined, '', undefined, 'my-app@1.2.3');
+
+    expect(await load(USER_ENTRY)).toBe(`import "virtual:sentry-tanstackstart-release";
+import { _INTERNAL_addReleaseMetaTag as addReleaseMetaTag, _INTERNAL_setTunnelRoute as setTunnelRoute } from "${SDK_ID}";
+import serverEntry from "${USER_ENTRY}?sentry-tunnel-original";
+export * from "${USER_ENTRY}?sentry-tunnel-original";
+export default addReleaseMetaTag(serverEntry, "my-app@1.2.3");
+setTunnelRoute(undefined, "");
+`);
+  });
+
+  it('serves the release module only with a release', async () => {
+    const withRelease = makeServerEntryTunnelPlugin(undefined, () => '', 'my-app@1.2.3');
+    const withoutRelease = makeServerEntryTunnelPlugin(undefined, () => '');
+    const resolveId = (plugin: Plugin): unknown =>
+      (plugin.resolveId as (id: string) => unknown)('virtual:sentry-tanstackstart-release');
+    const load = (plugin: Plugin): unknown =>
+      (plugin.load as (id: string) => unknown).call({}, '\0virtual:sentry-tanstackstart-release');
+
+    expect(resolveId(withRelease)).toBe('\0virtual:sentry-tanstackstart-release');
+    expect(await load(withRelease)).toBe('globalThis.SENTRY_RELEASE = { id: "my-app@1.2.3" };\n');
+    expect(resolveId(withoutRelease)).toBeNull();
   });
 
   it('passes the build-time options when `tunnelRoute` derives the path from the DSN', async () => {

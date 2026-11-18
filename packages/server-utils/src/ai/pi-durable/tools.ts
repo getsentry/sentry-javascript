@@ -21,8 +21,8 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
-import type { GenAiOptions } from '../core/utils';
-import { resolveAIRecordingOptions } from '../core/utils';
+import type { GenAiCallOptions } from '../core/utils';
+import { resolveGenAiCallRecording } from '../core/utils';
 import { piAiContentToString } from '../pi-ai/messages';
 import { MAX_TRACKED_PI_RUNS, PI_DURABLE_ORIGIN, PI_TOOL_RESULT_ENTRY_KIND } from './constants';
 import type { PiRuns, PiToolCall } from './runs';
@@ -30,6 +30,7 @@ import { toSentryConversationId } from './runs';
 import type {
   PiAgent,
   PiCommitChange,
+  PiDurableCallInfo,
   PiEntryToken,
   PiTaskRuntime,
   PiTool,
@@ -104,9 +105,15 @@ export function instrumentToolPhase(
 }
 
 /** Wrap a tool so each call gets a `gen_ai.execute_tool` span. */
-export function instrumentTool(tool: PiTool, runs: PiRuns, options: GenAiOptions): PiTool {
+export function instrumentTool(tool: PiTool, runs: PiRuns, options: GenAiCallOptions<PiDurableCallInfo>): PiTool {
   const execute = (args: unknown, api: PiToolExecutionApi, context: unknown): Promise<unknown> => {
-    const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
+    const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, {
+      operation: 'execute_tool',
+      tool,
+      args,
+      api,
+      context,
+    });
     const phaseCalls = runs.toolCalls.get(api?.taskId);
     // A tool that runs another tool of its agent passes its own `api` on, so the inner call shares
     // the call id. Only the outer call gets the committed result; the inner one ends with its own.

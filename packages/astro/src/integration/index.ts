@@ -7,6 +7,7 @@ import { createRequire } from 'module';
 import * as path from 'path';
 import type { VitePlugin } from './cloudflare';
 import { sentryCloudflareNodeWarningPlugin, sentryCloudflareVitePlugin } from './cloudflare';
+import { buildReleaseSnippet, getRuntimeRelease, makeServerReleaseVitePlugin } from './release';
 import { makeServerInitVitePlugin, SENTRY_MIDDLEWARE_MODULE, SERVER_INIT_IMPORT } from './serverInit';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
 import { _getUpdatedSourceMapSettings } from './sourceMaps';
@@ -68,6 +69,10 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         // TODO(v12): Add the Sentry plugin with `sourcemaps.disable: true` too, like with the options that replace it.
         const shouldUploadSourcemaps = sourceMapsNeeded && resolveSourceMapsFeatures(sourcemaps).legacyDisable !== true;
 
+        // The plugin would inject the release into the client's startup chunks, which changes their hashes on every
+        // release and invalidates cached chunks. The page HTML carries it to the browser instead.
+        const runtimeRelease = shouldUploadSourcemaps && command !== 'dev' ? getRuntimeRelease(release) : undefined;
+
         // We don't need to check for AUTH_TOKEN here, because the plugin will pick it up from the env
         if (shouldUploadSourcemaps && command !== 'dev') {
           const computedSourceMapSettings = _getUpdatedSourceMapSettings(config, options, logger);
@@ -112,7 +117,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                     },
                   },
                   debug: debug ?? false,
-                  release,
+                  release: runtimeRelease ? { ...release, name: runtimeRelease, inject: false } : release,
                   sourcemaps: {
                     ...sourcemaps,
                     assets: sourcemaps?.assets ?? getSourcemapsAssetsGlobs(config),
@@ -123,10 +128,13 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                     ...bundleSizeOptimizations,
                   },
                 }),
+                ...(runtimeRelease ? [makeServerReleaseVitePlugin(runtimeRelease)] : []),
               ],
             },
           });
         }
+
+        runtimeRelease && injectScript('head-inline', buildReleaseSnippet(runtimeRelease));
 
         const tunnelOptions = getAstroTunnelOptions(config);
         if (tunnelOptions) {
@@ -142,7 +150,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             injectScript('page', tunnelOptionsImport + buildSdkInitFileImportSnippet(pathToClientInit));
           } else {
             debug && logger.info('Using default client init.');
-            injectScript('page', tunnelOptionsImport + buildClientSnippet(options || {}));
+            injectScript('page', tunnelOptionsImport + buildClientSnippet(options, !!runtimeRelease));
           }
         }
 

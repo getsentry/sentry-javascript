@@ -102,3 +102,21 @@ export interface PiHarness {
   /** Calls `listener` when `close()` begins. */
   subscribeClose?(listener: () => void): () => void;
 }
+
+/** The call that `recordInputs`/`recordOutputs` decide on. */
+export type PiDurableCallInfo =
+  | {
+      /** A model request of a task phase, which pi-ai reports as a `gen_ai.chat` span. */
+      operation: 'chat';
+      /** The runtime and context pi-durable hands to the phase. */
+      runtime: PiTaskRuntime;
+      context: unknown;
+    }
+  | {
+      operation: 'execute_tool';
+      tool: PiTool;
+      /** The arguments of `tool.execute()`. */
+      args: unknown;
+      api: PiToolExecutionApi;
+      context: unknown;
+    };

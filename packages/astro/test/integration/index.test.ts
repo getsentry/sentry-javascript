@@ -17,6 +17,12 @@ vi.mock('@sentry/bundler-plugins/vite', () => ({
   sentryVitePlugin: vi.fn((args: { sourcemaps?: CapturedSourcemapsOptions }) => sentryVitePluginSpy(args)),
 }));
 
+// Without a configured name, the real resolver falls back to the git revision of this checkout.
+const resolveReleaseName = vi.fn((name?: string) => name);
+vi.mock('@sentry/bundler-plugins/core', () => ({
+  resolveReleaseName: (name?: string) => resolveReleaseName(name),
+}));
+
 // Stub the orchestrion plugin so these stay pure wiring tests (no apm code transformer pulled in).
 // Mirror the real plugin's contract: `buildTimeInstrumentation: false` yields the inert variant.
 const orchestrionVite = vi.fn((options?: { buildTimeInstrumentation?: boolean }) => ({
@@ -745,7 +751,7 @@ describe('sentryAstro integration', () => {
   it('passes build-time release options to the Sentry vite plugin and init snippets', async () => {
     const integration = sentryAstro({
       project: 'my-project',
-      release: { name: '1.0.0' },
+      release: { name: '1.0.0', inject: false },
       debug: true,
     });
 
@@ -755,7 +761,7 @@ describe('sentryAstro integration', () => {
 
     expect(sentryVitePluginSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        release: { name: '1.0.0' },
+        release: { name: '1.0.0', inject: false },
         debug: true,
       }),
     );
@@ -769,6 +775,71 @@ describe('sentryAstro integration', () => {
       expect.stringContaining('dsn: import.meta.env.PUBLIC_SENTRY_DSN'),
     );
     expect(getServerInit(updateConfig)).toContain('release: "1.0.0"');
+  });
+
+  describe('release delivery', () => {
+    const getVitePluginNames = (): string[] =>
+      updateConfig.mock.calls.flatMap(([viteConfig]) => viteConfig.vite?.plugins ?? []).map(plugin => plugin?.name);
+
+    it('sets the release in the page HTML and turns off the plugin release injection', async () => {
+      resolveReleaseName.mockReturnValueOnce('abc123');
+      const integration = sentryAstro({ release: { setCommits: { auto: true } } });
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
+
+      expect(resolveReleaseName).toHaveBeenCalledWith(undefined);
+      expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ release: { setCommits: { auto: true }, name: 'abc123', inject: false } }),
+      );
+      expect(injectScript).toHaveBeenCalledWith('head-inline', 'globalThis.SENTRY_RELEASE={id:"abc123"};');
+      expect(getVitePluginNames()).toContain('sentry-astro-server-release');
+    });
+
+    it('keeps the release out of the default client init', async () => {
+      const integration = sentryAstro({ release: { name: '1.0.0' } });
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
+
+      expect(injectScript).toHaveBeenCalledWith('head-inline', 'globalThis.SENTRY_RELEASE={id:"1.0.0"};');
+      expect(injectScript).toHaveBeenCalledWith('page', expect.not.stringContaining('release:'));
+      expect(getServerInit(updateConfig)).toContain('release: "1.0.0"');
+    });
+
+    it.each([
+      ['`release.inject` is `false`', { release: { name: '1.0.0', inject: false } }, 'build'],
+      ['source maps are disabled', { release: { name: '1.0.0' }, sourcemaps: { disable: true } }, 'build'],
+      ['running the dev server', { release: { name: '1.0.0' } }, 'dev'],
+    ] as const)("doesn't deliver the release when %s", async (_, options, command) => {
+      const integration = sentryAstro(options);
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        updateConfig,
+        injectScript,
+        config,
+        command,
+      });
+
+      expect(injectScript).not.toHaveBeenCalledWith('head-inline', expect.anything());
+      expect(getVitePluginNames()).not.toContain('sentry-astro-server-release');
+    });
+
+    it("doesn't deliver a release when none can be resolved", async () => {
+      const integration = sentryAstro({});
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
+
+      expect(sentryVitePluginSpy).toHaveBeenCalledWith(expect.objectContaining({ release: undefined }));
+      expect(injectScript).not.toHaveBeenCalledWith('head-inline', expect.anything());
+      expect(injectScript).toHaveBeenCalledWith(
+        'page',
+        expect.stringContaining('release: import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA'),
+      );
+    });
   });
 
   it("doesn't inject client init script if `enabled.client` is `false`", async () => {
