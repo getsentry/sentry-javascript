@@ -1,5 +1,6 @@
 import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
+import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
 
 const ORIGIN = { type: 'string', value: 'auto.rpc.orpc' };
@@ -109,29 +110,33 @@ describe('oRPC integration', () => {
       await runner.completed();
     });
 
-    test('continues the trace of an oRPC client call on the server', async () => {
-      const runner = createRunner();
-      // The plain `http` server has no route, so the segment of the outer request is named after its method.
-      const spansPromise = runner.collectStreamedSpans(
-        spans =>
-          spans.some(span => span.is_segment && span.name === 'GET') &&
-          spans.some(span => span.is_segment && span.name === 'orpc.planet/find'),
-      );
+    // Deno's `fetch` creates no `http.client` span with `@sentry/node`.
+    test.runIf(supports({ runtimes: ['node', 'bun'] }))(
+      'continues the trace of an oRPC client call on the server',
+      async () => {
+        const runner = createRunner();
+        // The plain `http` server has no route, so the segment of the outer request is named after its method.
+        const spansPromise = runner.collectStreamedSpans(
+          spans =>
+            spans.some(span => span.is_segment && span.name === 'GET') &&
+            spans.some(span => span.is_segment && span.name === 'orpc.planet/find'),
+        );
 
-      const started = runner.start();
-      await started.makeRequest('get', '/client-call');
-      const spans = await spansPromise;
+        const started = runner.start();
+        await started.makeRequest('get', '/client-call');
+        const spans = await spansPromise;
 
-      const clientCallSpan = spans.find(span => !span.is_segment && span.name === 'orpc.planet/find');
-      expect(clientCallSpan?.attributes).toMatchObject({
-        [SENTRY_OP]: { type: 'string', value: 'rpc' },
-        [SENTRY_ORIGIN]: ORIGIN,
-      });
+        const clientCallSpan = spans.find(span => !span.is_segment && span.name === 'orpc.planet/find');
+        expect(clientCallSpan?.attributes).toMatchObject({
+          [SENTRY_OP]: { type: 'string', value: 'rpc' },
+          [SENTRY_ORIGIN]: ORIGIN,
+        });
 
-      const httpClientSpan = spans.find(span => span.attributes?.[SENTRY_OP]?.value === 'http.client');
-      const serverSegment = spans.find(span => span.is_segment && span.name === 'orpc.planet/find');
-      expect(httpClientSpan).toBeDefined();
-      expect(serverSegment?.parent_span_id).toBe(httpClientSpan?.span_id);
-    });
+        const httpClientSpan = spans.find(span => span.attributes?.[SENTRY_OP]?.value === 'http.client');
+        const serverSegment = spans.find(span => span.is_segment && span.name === 'orpc.planet/find');
+        expect(httpClientSpan).toBeDefined();
+        expect(serverSegment?.parent_span_id).toBe(httpClientSpan?.span_id);
+      },
+    );
   });
 });
