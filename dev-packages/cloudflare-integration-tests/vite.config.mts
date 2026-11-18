@@ -22,7 +22,7 @@ export default defineConfig({
     // already run in their own processes. We use threads instead because the
     // overhead is significantly less.
     pool: 'threads',
-    maxWorkers: process.env.CI ? 2 : 1,
+    maxWorkers: process.env.CI ? 4 : 1,
     sequence: {
       shuffle: true,
     },
