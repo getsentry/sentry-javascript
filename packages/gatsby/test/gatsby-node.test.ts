@@ -214,5 +214,59 @@ describe('onCreateWebpackConfig', () => {
         }),
       );
     });
+
+    // Each row: the stage, the `devtool` Gatsby hands over, the `sourcemaps` options, the `devtool`
+    // of the final config, and whether the plugin removes every source map of the stage.
+    it.each([
+      ['build-javascript', undefined, { upload: false }, undefined, undefined],
+      ['build-javascript', false, { injectDebugIds: false }, false, undefined],
+      ['build-javascript', 'source-map', { upload: false }, 'source-map', undefined],
+      ['build-javascript', undefined, { upload: false, delete: false }, 'hidden-source-map', undefined],
+      ['build-javascript', undefined, { injectDebugIds: false, delete: false }, undefined, undefined],
+      ['build-javascript', 'source-map', { upload: false, delete: true }, 'source-map', true],
+      ['build-javascript', undefined, { delete: false }, 'hidden-source-map', undefined],
+      ['build-javascript', 'source-map', { delete: true }, 'source-map', true],
+      ['build-javascript', undefined, { delete: true }, 'hidden-source-map', true],
+      ['build-html', 'source-map', { delete: true }, 'source-map', undefined],
+    ] as const)(
+      '%s, devtool %s, `sourcemaps: %j`: sets devtool %s',
+      (stage, devtool, sourcemaps, expectedDevtool, deletes) => {
+        const actions = { setWebpackConfig: vi.fn() };
+        const getConfig = vi.fn().mockReturnValue(devtool === undefined ? undefined : { devtool });
+
+        onCreateWebpackConfig({ actions, getConfig, stage }, { sourcemaps });
+
+        expect(actions.setWebpackConfig).toHaveBeenCalledWith({
+          devtool: expectedDevtool,
+          plugins: [expect.any(Object)],
+        });
+        expect(sentryWebpackPlugin).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sourcemaps: {
+              assets: ['./public/**'],
+              upload: 'upload' in sourcemaps ? sourcemaps.upload : undefined,
+              injectDebugIds: 'injectDebugIds' in sourcemaps ? sourcemaps.injectDebugIds : undefined,
+              deleteSourcemapsAfterUpload: deletes,
+              sdkEnabledSourceMaps: deletes,
+              ignore: ['polyfill-*', 'framework-*', 'webpack-runtime-*'],
+            },
+          }),
+        );
+      },
+    );
+
+    it.each([
+      [{ delete: false }, { deleteSourcemapsAfterUpload: true }, undefined],
+      [{ delete: true }, { deleteSourcemapsAfterUpload: false }, true],
+    ])('lets `sourcemaps: %j` win over the flat option %j', (sourcemaps, flatOptions, deletes) => {
+      const actions = { setWebpackConfig: vi.fn() };
+      const getConfig = vi.fn().mockReturnValue({ devtool: 'source-map' });
+
+      onCreateWebpackConfig({ actions, getConfig, stage: 'build-javascript' }, { ...flatOptions, sourcemaps });
+
+      expect(sentryWebpackPlugin).toHaveBeenCalledWith(
+        expect.objectContaining({ sourcemaps: expect.objectContaining({ deleteSourcemapsAfterUpload: deletes }) }),
+      );
+    });
   });
 });
