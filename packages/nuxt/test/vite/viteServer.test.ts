@@ -1,4 +1,5 @@
 import type { Nuxt } from '@nuxt/schema';
+import { pathToFileURL } from 'node:url';
 import type { Plugin } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupViteServer } from '../../src/vite/viteServer';
@@ -19,6 +20,7 @@ vi.mock('@sentry/server-utils/orchestrion/vite', () => ({
 const APP_ROOT = '/my/app';
 const FLAGS_PATH = `${APP_ROOT}/.nuxt/sentry-runtime-flags.mjs`;
 const CONFIG_PATH = `${APP_ROOT}/sentry.server.config.ts`;
+const META_TAGS_PATH = `${pathToFileURL('src/vite/viteServer.ts').href}/./runtime/vite-server`;
 const SERVER_ENTRY_ID = 'virtual:nuxt:.nuxt%2Fvite-server%2Fserver-handler.mjs';
 const EXPERIMENTAL_WARNING =
   "[Sentry] Support for the Nuxt Vite server (`server.builder: 'vite'`) is experimental and can change in a minor release. The server SDK starts only in production builds that run on Node.js.";
@@ -82,7 +84,7 @@ describe('setupViteServer', () => {
     });
   });
 
-  it('imports the runtime flags and the config from the project root into the server entry', async () => {
+  it('imports the runtime flags, the config from the project root and the meta tag hook into the server entry', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     setupViteServer(createFakeNuxt().nuxt, 'sentry.server.config.ts', {});
     const transform = await buildServerEntryPlugin(SERVER_ENTRY_ID);
@@ -90,7 +92,7 @@ describe('setupViteServer', () => {
     const result = transform('export default {};', SERVER_ENTRY_ID);
 
     expect(result).toEqual({
-      code: `import "${FLAGS_PATH}";import "${CONFIG_PATH}";export default {};`,
+      code: `import "${FLAGS_PATH}";import "${CONFIG_PATH}";import "${META_TAGS_PATH}";export default {};`,
       map: null,
     });
   });

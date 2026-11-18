@@ -37,7 +37,9 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
     org: org ?? process.env.SENTRY_ORG,
     project: project ?? process.env.SENTRY_PROJECT,
     reactComponentAnnotation,
-    release,
+    // A release in the chunks changes their hashes on every release. `makeClientReleasePlugin` gives the server build
+    // the release itself and has the server pass it to the browser SDK in the page.
+    release: { ...release, inject: false },
     silent,
     telemetry: telemetry ?? true,
     // Release creation runs in the plugin's `writeBundle` even with the source map handling switched

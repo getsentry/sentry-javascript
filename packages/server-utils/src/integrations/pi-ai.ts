@@ -1,20 +1,20 @@
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration, isThenable, startInactiveSpan } from '@sentry/core';
-import type { GenAiOptions } from '../ai/core/utils';
+import type { GenAiCallOptions } from '../ai/core/utils';
 import { getPiAiChatSpanOptions, observePiAiFirstChunk, setPiAiResponseAttributes } from '../ai/pi-ai/chat';
 import { PI_AI_INTEGRATION_NAME } from '../ai/pi-ai/constants';
 import type { PiAiContext } from '../ai/pi-ai/messages';
 import { isInsidePiAiSpan } from '../ai/pi-ai/providers';
 import { resolvePiAiRecordingOptions } from '../ai/pi-ai/recording';
-import type { PiEventStream, PiStreamOptions } from '../ai/pi-ai/types';
+import type { PiAiCallInfo, PiEventStream, PiModel, PiStreamOptions } from '../ai/pi-ai/types';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { piAiModuleNames } from '../orchestrion/config/pi-ai';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 
-export type PiAiOptions = GenAiOptions;
+export type PiAiOptions = GenAiCallOptions<PiAiCallInfo>;
 
 type PiAiChannelContext = OrchestrionChannelContext & { _sentryRecordOutputs?: boolean };
 
@@ -37,15 +37,23 @@ function instrumentPiAi(options: PiAiOptions): void {
     if (isInsidePiAiSpan()) {
       return undefined;
     }
-    const [model, context, callOptions] = data.arguments ?? [];
-    const { recordInputs, recordOutputs } = resolvePiAiRecordingOptions(options);
+    const [model, context, callOptions] = (data.arguments ?? []) as [
+      PiModel | undefined,
+      PiAiCallInfo['context'],
+      PiStreamOptions | undefined,
+    ];
+    const { recordInputs, recordOutputs } = resolvePiAiRecordingOptions(options, {
+      model,
+      context,
+      options: callOptions,
+    });
     data._sentryRecordOutputs = recordOutputs;
     return startInactiveSpan(
       getPiAiChatSpanOptions({
         model: model ?? {},
         // The deferred calls pass a handle here, which carries no request content.
         context: context as PiAiContext | undefined,
-        callOptions: callOptions as PiStreamOptions | undefined,
+        callOptions,
         streaming,
         recordInputs,
       }),

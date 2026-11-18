@@ -1,7 +1,12 @@
 import { GoogleGenAI } from '@google/genai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer } from '@sentry-internal/node-integration-tests';
+import {
+  googleGenAiResponse,
+  googleGenAiStreamChunks,
+  startMockServer,
+  streamSseEvents,
+} from '@sentry-internal/node-integration-tests';
 
 function startMockGoogleGenAIServer() {
   const app = express();
@@ -9,214 +14,54 @@ function startMockGoogleGenAIServer() {
 
   // Non-streaming endpoint for models.generateContent
   app.post('/v1beta/models/:model\\:generateContent', (req, res) => {
-    const { tools } = req.body;
-
-    // Check if tools are provided to return function call response
-    if (tools && tools.length > 0) {
-      const response = {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  text: 'I need to check the light status first.',
-                },
-                {
-                  functionCall: {
-                    id: 'call_light_control_1',
-                    name: 'controlLight',
-                    args: {
-                      brightness: 0.3,
-                      colorTemperature: 'warm',
-                    },
-                  },
-                },
-              ],
-              role: 'model',
-            },
-            finishReason: 'stop',
-            index: 0,
-          },
-        ],
-        usageMetadata: {
-          promptTokenCount: 15,
-          candidatesTokenCount: 8,
-          totalTokenCount: 23,
-        },
-      };
-
-      // Add functionCalls getter, this should exist in the response object
-      Object.defineProperty(response, 'functionCalls', {
-        get: function () {
-          return [
+    if (req.body.tools?.length > 0) {
+      res.send(
+        googleGenAiResponse({
+          parts: [
+            'I need to check the light status first.',
             {
-              id: 'call_light_control_1',
-              name: 'controlLight',
-              args: {
-                brightness: 0.3,
-                colorTemperature: 'warm',
+              functionCall: {
+                id: 'call_light_control_1',
+                name: 'controlLight',
+                args: { brightness: 0.3, colorTemperature: 'warm' },
               },
             },
-          ];
-        },
-      });
-
-      res.send(response);
+          ],
+          usage: { promptTokenCount: 15, candidatesTokenCount: 8 },
+        }),
+      );
       return;
     }
 
     // Regular response without tools
-    res.send({
-      candidates: [
-        {
-          content: {
-            parts: [
-              {
-                text: 'Mock response from Google GenAI without tools!',
-              },
-            ],
-            role: 'model',
-          },
-          finishReason: 'stop',
-          index: 0,
-        },
-      ],
-      usageMetadata: {
-        promptTokenCount: 8,
-        candidatesTokenCount: 12,
-        totalTokenCount: 20,
-      },
-    });
+    res.send(googleGenAiResponse({ parts: ['Mock response from Google GenAI without tools!'] }));
   });
 
-  // Streaming endpoint for models.generateContentStream
-  // And chat.sendMessageStream
+  // Streaming endpoint for models.generateContentStream and chat.sendMessageStream
   app.post('/v1beta/models/:model\\:streamGenerateContent', (req, res) => {
-    const { tools } = req.body;
-
-    // Set headers for streaming response
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Transfer-Encoding', 'chunked');
-
-    // Create a mock stream
-    const mockStream = createMockToolsStream({ tools });
-
-    // Send chunks
-    const sendChunk = async () => {
-      // Testing .next() works as expected
-      const { value, done } = await mockStream.next();
-      if (done) {
-        res.end();
-        return;
-      }
-
-      res.write(`data: ${JSON.stringify(value)}\n\n`);
-      setTimeout(sendChunk, 10); // Small delay between chunks
-    };
-
-    sendChunk();
+    const withTools = req.body.tools?.length > 0;
+    const chunks = googleGenAiStreamChunks({
+      parts: withTools
+        ? [
+            'Let me control the lights for you.',
+            {
+              functionCall: {
+                id: 'call_light_stream_1',
+                name: 'controlLight',
+                args: { brightness: 0.5, colorTemperature: 'cool' },
+              },
+            },
+            ' Done!',
+          ]
+        : ['Mock streaming response', ' from Google GenAI!'],
+      responseId: 'mock-response-tools-id',
+      modelVersion: 'gemini-2.0-flash-001',
+      usage: withTools ? { promptTokenCount: 12, candidatesTokenCount: 10 } : undefined,
+    });
+    streamSseEvents(res, chunks);
   });
 
   return startMockServer(app);
-}
-
-// Helper function to create mock stream
-async function* createMockToolsStream({ tools }) {
-  // Check if tools are provided to return function call response
-  if (tools && tools.length > 0) {
-    // First chunk: Text response
-    yield {
-      candidates: [
-        {
-          content: {
-            parts: [{ text: 'Let me control the lights for you.' }],
-            role: 'model',
-          },
-          index: 0,
-        },
-      ],
-      responseId: 'mock-response-tools-id',
-      modelVersion: 'gemini-2.0-flash-001',
-    };
-
-    // Second chunk: Function call
-    yield {
-      candidates: [
-        {
-          content: {
-            parts: [
-              {
-                functionCall: {
-                  id: 'call_light_stream_1',
-                  name: 'controlLight',
-                  args: {
-                    brightness: 0.5,
-                    colorTemperature: 'cool',
-                  },
-                },
-              },
-            ],
-            role: 'model',
-          },
-          index: 0,
-        },
-      ],
-    };
-
-    // Final chunk: End with finish reason and usage metadata
-    yield {
-      candidates: [
-        {
-          content: {
-            parts: [{ text: ' Done!' }], // Additional text in final chunk
-            role: 'model',
-          },
-          finishReason: 'STOP',
-          index: 0,
-        },
-      ],
-      usageMetadata: {
-        promptTokenCount: 12,
-        candidatesTokenCount: 10,
-        totalTokenCount: 22,
-      },
-    };
-    return;
-  }
-
-  // Regular stream without tools
-  yield {
-    candidates: [
-      {
-        content: {
-          parts: [{ text: 'Mock streaming response' }],
-          role: 'model',
-        },
-        index: 0,
-      },
-    ],
-    responseId: 'mock-response-tools-id',
-    modelVersion: 'gemini-2.0-flash-001',
-  };
-
-  // Final chunk
-  yield {
-    candidates: [
-      {
-        content: {
-          parts: [{ text: ' from Google GenAI!' }],
-          role: 'model',
-        },
-        finishReason: 'STOP',
-        index: 0,
-      },
-    ],
-    usageMetadata: {
-      promptTokenCount: 10,
-      candidatesTokenCount: 12,
-      totalTokenCount: 22,
-    },
-  };
 }
 
 async function run() {

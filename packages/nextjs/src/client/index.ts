@@ -19,6 +19,7 @@ import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import { getInjectedBasePath } from '../common/utils/basePath';
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { nextjsClientStackFrameNormalizationIntegration } from './clientNormalizationIntegration';
+import { getServerTimingRelease } from './release';
 import { createNextRouteProvider } from './routing/routeProvider';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
@@ -56,7 +57,7 @@ export function init(userOptions: BrowserOptions): Client | undefined {
   const opts = {
     environment: options.environment || process.env.SENTRY_ENVIRONMENT || getClientVercelEnv() || process.env.NODE_ENV,
     defaultIntegrations: getDefaultIntegrations(options),
-    release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
+    release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease || getServerTimingRelease(),
     // Both route manifests are injected at build time, so route parameterization works from `init` on,
     // including for the pageload span and with tracing disabled.
     routeProvider: createNextRouteProvider(),

@@ -323,8 +323,14 @@ export function markCancelledIfAborted(span: Span, abortSignal: AbortSignal | un
 /**
  * Ends a streaming span by setting all accumulated response attributes and ending the span.
  * Shared across OpenAI, Anthropic, and Google GenAI streaming implementations.
+ * `beforeSpanEnd` runs after the attributes are set, right before the span ends.
  */
-export function endStreamSpan(span: Span, state: StreamResponseState, recordOutputs: boolean): void {
+export function endStreamSpan(
+  span: Span,
+  state: StreamResponseState,
+  recordOutputs: boolean,
+  beforeSpanEnd?: () => void,
+): void {
   if (!span.isRecording()) {
     return;
   }
@@ -361,6 +367,7 @@ export function endStreamSpan(span: Span, state: StreamResponseState, recordOutp
   }
 
   span.setAttributes(attrs);
+  beforeSpanEnd?.();
   span.end();
 }
 

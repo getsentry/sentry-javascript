@@ -13,11 +13,11 @@ export function buildSdkInitFileImportSnippet(filePath: string): string {
  * Creates a snippet that initializes Sentry on the client by choosing
  * default options.
  */
-export function buildClientSnippet(options: SentryOptions): string {
+export function buildClientSnippet(options: SentryOptions, releaseFromGlobal = false): string {
   return `import * as Sentry from "@sentry/astro";
 
 Sentry.init({
-  ${buildCommonInitOptions(options)}
+  ${buildCommonInitOptions(options, releaseFromGlobal)}
   integrations: [${buildClientIntegrations(options)}],
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,
@@ -36,15 +36,18 @@ Sentry.init({
 });`;
 }
 
-const buildCommonInitOptions = (options: SentryOptions): string => `dsn: import.meta.env.PUBLIC_SENTRY_DSN,
+// With `releaseFromGlobal`, the SDK reads the release from the global the page HTML sets. Writing it here would put
+// it into a content-hashed chunk.
+const buildCommonInitOptions = (options: SentryOptions, releaseFromGlobal = false): string => {
+  const release = options.release?.name
+    ? stringifyForCodeInjection(options.release.name)
+    : 'import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA';
+
+  return `dsn: import.meta.env.PUBLIC_SENTRY_DSN,
   debug: ${options.debug ? true : false},
-  environment: import.meta.env.PUBLIC_VERCEL_ENV,
-  release: ${
-    options.release?.name
-      ? stringifyForCodeInjection(options.release.name)
-      : 'import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA'
-  },
+  environment: import.meta.env.PUBLIC_VERCEL_ENV,${releaseFromGlobal ? '' : `\n  release: ${release},`}
   tracesSampleRate: 1.0,`;
+};
 
 /**
  * We don't include the `BrowserTracing` integration if `bundleSizeOptimizations.excludeTracing` is set.

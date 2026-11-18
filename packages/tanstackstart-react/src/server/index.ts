@@ -9,6 +9,7 @@ export { init } from './sdk';
 export { wrapFetchWithSentry } from './wrapFetchWithSentry';
 export { wrapMiddlewaresWithSentry } from './middleware';
 export { sentryGlobalRequestMiddleware, sentryGlobalFunctionMiddleware } from './globalMiddleware';
+export { addReleaseMetaTag as _INTERNAL_addReleaseMetaTag } from './releaseMetaTag';
 export {
   createSentryTunnelRoute,
   registerSentryServerTunnelRoute,

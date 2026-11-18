@@ -2,8 +2,13 @@ import { withSentry } from '@sentry/solidstart/vite';
 import { defineConfig } from '@solidjs/start/config';
 
 export default defineConfig(
-  withSentry({
-    ssr: false,
-    middleware: './src/middleware.ts',
-  }),
+  withSentry(
+    {
+      ssr: false,
+      middleware: './src/middleware.ts',
+    },
+    {
+      release: { name: 'test-release' },
+    },
+  ),
 );
