@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { instrumentServer } from '../src/instruments/instrumentServer';
 
 function createNitro(options: Partial<Nitro['options']> = {}): Nitro {
-  return { options: { plugins: [], noExternals: false, ...options } } as unknown as Nitro;
+  return { options: { plugins: [], ...options } } as unknown as Nitro;
 }
 
 describe('instrumentServer', () => {
@@ -13,6 +13,14 @@ describe('instrumentServer', () => {
     instrumentServer(nitro);
 
     expect(nitro.options.noExternals).toEqual([expect.stringMatching(/packages\/nitro\/src\/runtime\/$/)]);
+  });
+
+  it('makes Nitro bundle the runtime directory with `noExternals: false`', () => {
+    const nitro = createNitro({ noExternals: false });
+
+    instrumentServer(nitro);
+
+    expect(nitro.options.noExternals).toEqual([expect.stringMatching(/src\/runtime\/$/)]);
   });
 
   it('keeps existing `noExternals` entries', () => {
