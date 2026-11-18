@@ -53,7 +53,7 @@
     "build": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:dev": "pnpm run build",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
-    "build:types": "tsc -p tsconfig.types.json && node ../../dev-packages/rollup-utils/write-esm-types.mjs",
+    "build:types": "tsc -p tsconfig.types.json && node ../../scripts/write-esm-types.mjs",
     "build:tarball": "pnpm pack",
     "clean": "node ../../scripts/rm.mjs build coverage sentry-elysia-*.tgz",
     "lint": "oxlint . --type-aware",

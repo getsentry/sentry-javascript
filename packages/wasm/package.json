@@ -43,7 +43,7 @@
     "build:bundle": "rolldown --config rollup.bundle.config.mjs",
     "build:dev": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
-    "build:types": "tsc -p tsconfig.types.json && node ../../dev-packages/rollup-utils/write-esm-types.mjs",
+    "build:types": "tsc -p tsconfig.types.json && node ../../scripts/write-esm-types.mjs",
     "build:tarball": "pnpm pack",
     "test": "vitest run",
     "test:watch": "vitest --watch",

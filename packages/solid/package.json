@@ -88,7 +88,7 @@
     "build": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:dev": "pnpm run build",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
-    "build:types": "pnpm run build:types:core && pnpm run build:types:routers && node ../../dev-packages/rollup-utils/write-esm-types.mjs",
+    "build:types": "pnpm run build:types:core && pnpm run build:types:routers && node ../../scripts/write-esm-types.mjs",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:routers": "tsc -p tsconfig.routers-types.json",
     "build:tarball": "pnpm pack",

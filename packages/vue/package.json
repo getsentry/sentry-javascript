@@ -71,7 +71,7 @@
     "build": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:dev": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
-    "build:types": "pnpm run build:types:core && pnpm run build:types:router && node ../../dev-packages/rollup-utils/write-esm-types.mjs",
+    "build:types": "pnpm run build:types:core && pnpm run build:types:router && node ../../scripts/write-esm-types.mjs",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:router": "tsc -p tsconfig.router-types.json",
     "build:tarball": "pnpm pack",

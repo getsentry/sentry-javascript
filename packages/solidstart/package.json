@@ -123,7 +123,7 @@
     "build": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:dev": "pnpm run build",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
-    "build:types": "pnpm run build:types:core && pnpm run build:types:subexports && node ../../dev-packages/rollup-utils/write-esm-types.mjs",
+    "build:types": "pnpm run build:types:core && pnpm run build:types:subexports && node ../../scripts/write-esm-types.mjs",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:subexports": "tsc -p tsconfig.subexports-types.json",
     "build:tarball": "pnpm pack",

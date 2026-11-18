@@ -7,6 +7,7 @@
       "{workspaceRoot}/pnpm-lock.yaml",
       "{workspaceRoot}/pnpm-workspace.yaml",
       "{workspaceRoot}/dev-packages/rollup-utils/**",
+      "{workspaceRoot}/scripts/write-esm-types.mjs",
       "{workspaceRoot}/packages/typescript/**"
     ],
     "production": ["default", "!{projectRoot}/test/**/*", "!{projectRoot}/**/*.md", "!{projectRoot}/*.tgz"]
