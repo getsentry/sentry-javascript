@@ -1,8 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
-import { HANDLER, MIDDLEWARE } from '@sentry/conventions/op';
-import { getHttpServerSpans } from './helpers';
+import { HANDLER, HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
 
 function collectNestingSpans() {
   return collectStreamedSpansUntilSegment('nitro-3', 'GET /api/test-nesting');
@@ -33,9 +32,8 @@ test('Span nesting: the segment is the only http.server span', async ({ request 
   await request.get('/api/test-nesting');
 
   const spans = await spansPromise;
-  const segmentSpan = spans.find(span => span.is_segment && span.name === 'GET /api/test-nesting');
 
-  const httpServerSpans = getHttpServerSpans(spans, segmentSpan);
+  const httpServerSpans = spans.filter(span => getSpanOp(span) === HTTP_SERVER);
   expect(httpServerSpans).toHaveLength(1);
   expect(httpServerSpans[0]).toMatchObject({
     is_segment: true,
