@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
-import { SENTRY_DESCRIPTION, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { CODE_FILE_PATH, SENTRY_DESCRIPTION, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 
 function isServerFnSegment(span: Parameters<typeof getSpanOp>[0]): boolean {
@@ -39,7 +39,7 @@ test('Sends a server function span with auto-instrumentation', async ({ page }) 
           'sentry.op': { type: 'string', value: 'function' },
           'sentry.origin': { type: 'string', value: 'auto.function.tanstackstart.server' },
           'sentry.description': { type: 'string', value: 'GET /_serverFn/testLog' },
-          'tanstackstart.function.filename': { type: 'string', value: 'src/routes/test-serverFn.tsx' },
+          [CODE_FILE_PATH]: { type: 'string', value: 'src/routes/test-serverFn.tsx' },
         }),
       }),
     ]),
@@ -79,7 +79,7 @@ test('Sends a server function span for a nested server function', async ({ page 
     attributes: expect.objectContaining({
       [SENTRY_OP]: { type: 'string', value: FUNCTION },
       [SENTRY_DESCRIPTION]: { type: 'string', value: 'GET /_serverFn/testNestedLog' },
-      'tanstackstart.function.filename': { type: 'string', value: 'src/routes/test-serverFn.tsx' },
+      [CODE_FILE_PATH]: { type: 'string', value: 'src/routes/test-serverFn.tsx' },
     }),
   });
   expect(manualSpan).toMatchObject({ status: 'ok', parent_span_id: outerSpan?.span_id });
