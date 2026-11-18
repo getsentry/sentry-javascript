@@ -1,8 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { getRuntime, getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isTurbopackDevMode } from './isDevMode';
+import { isVinext } from './isVinext';
 
-// The SDK wraps server components only in webpack builds. Turbopack builds report errors through `onRequestError`.
+// The SDK wraps server components only in webpack builds. Turbopack and vinext builds report errors through
+// `onRequestError`.
+
+test.skip(getRuntime() === 'cloudflare', 'OpenNext runs no edge runtime pages on Workers, they return a 500');
 
 test('Should record exceptions for faulty edge server components', async ({ page }) => {
   test.fixme(isTurbopackDevMode, 'The Turbopack dev server reports no error for a throwing edge server component');
@@ -19,7 +23,7 @@ test('Should record exceptions for faulty edge server components', async ({ page
   expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
   expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 
-  if (errorEvent.tags?.turbopack) {
+  if (errorEvent.tags?.turbopack || isVinext) {
     expect(errorEvent.transaction).toBe('GET /edge-server-components/error');
     expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
       handled: false,

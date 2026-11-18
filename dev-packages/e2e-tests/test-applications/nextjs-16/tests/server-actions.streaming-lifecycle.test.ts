@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getRuntime, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
+import { isVinext } from './isVinext';
 
 test('Should send a span for instrumented server actions', async ({ page }) => {
   const serverActionSpanPromise = waitForStreamedSpan('nextjs-16', span => {
@@ -24,6 +25,10 @@ test('Should send a span for instrumented server actions', async ({ page }) => {
 
 test('Should send a wrapped server action as a child of a nextjs span', async ({ page }) => {
   test.skip(isDevMode, 'this magically only works in production');
+  test.skip(isVinext, 'vinext emits no request span for the server action POST');
+
+  // On Workers the request span comes from `withSentry`
+  const requestSpanOrigin = getRuntime() === 'cloudflare' ? 'auto.http.cloudflare' : 'auto';
 
   // Both spans must come from the same trace. Other specs on this page produce identically shaped
   // `POST /server-action` and `myServerAction` spans, so requiring both within one
@@ -32,7 +37,9 @@ test('Should send a wrapped server action as a child of a nextjs span', async ({
     return (
       spans.some(
         span =>
-          span.name === 'POST /server-action' && span.is_segment && span.attributes['sentry.origin']?.value === 'auto',
+          span.name === 'POST /server-action' &&
+          span.is_segment &&
+          span.attributes['sentry.origin']?.value === requestSpanOrigin,
       ) && spans.some(span => span.name === 'myServerAction' && span.is_segment)
     );
   });
@@ -43,7 +50,9 @@ test('Should send a wrapped server action as a child of a nextjs span', async ({
   const spans = await spansPromise;
   const nextjsSpan = spans.find(
     span =>
-      span.name === 'POST /server-action' && span.is_segment && span.attributes['sentry.origin']?.value === 'auto',
+      span.name === 'POST /server-action' &&
+      span.is_segment &&
+      span.attributes['sentry.origin']?.value === requestSpanOrigin,
   )!;
   const serverActionSpan = spans.find(span => span.name === 'myServerAction' && span.is_segment)!;
 

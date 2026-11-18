@@ -7,6 +7,7 @@ import {
   waitForStreamedSpan,
 } from '@sentry-internal/test-utils';
 import { isTurbopackDevMode } from './isDevMode';
+import { isVinext } from './isVinext';
 
 // Next.js emits these spans itself. The SDK attaches no op, description or function name to
 // them, so asserting `undefined` pins that they stay untouched.
@@ -242,7 +243,8 @@ test('Should set a "not_found" status on the request span when a server componen
     'http.response.status_code': { value: 404, type: 'integer' },
   });
 
-  if (!segmentSpan.attributes['turbopack']) {
+  // vinext builds with neither webpack nor Turbopack.
+  if (!segmentSpan.attributes['turbopack'] && !isVinext) {
     expect(spans).toContainEqual(
       expect.objectContaining({
         name: 'render route (app) /server-component/not-found',
@@ -282,7 +284,7 @@ test('Should capture an error and spans for a app router page', async ({ page })
     }),
   );
 
-  if (errorEvent.tags?.turbopack) {
+  if (errorEvent.tags?.turbopack || isVinext) {
     expect(errorEvent.transaction).toBe('GET /server-component/faulty');
     expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
       handled: false,
@@ -306,12 +308,15 @@ test('Should capture an error and spans for a app router page', async ({ page })
   expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
   expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 
-  expect(errorEvent.modules).toEqual(
-    expect.objectContaining({
-      '@sentry/nextjs': expect.any(String),
-      '@playwright/test': expect.any(String),
-    }),
-  );
+  // `@sentry/cloudflare` has no modules integration
+  if (getRuntime() !== 'cloudflare') {
+    expect(errorEvent.modules).toEqual(
+      expect.objectContaining({
+        '@sentry/nextjs': expect.any(String),
+        '@playwright/test': expect.any(String),
+      }),
+    );
+  }
 });
 
 test('Should not throw error on server component when importing shimmed feature flag function', async ({ page }) => {
