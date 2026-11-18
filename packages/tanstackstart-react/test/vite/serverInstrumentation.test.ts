@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { findServerInstrumentationFile, makeServerInstrumentationPlugin } from '../../src/vite/serverInstrumentation';
 
 const NITRO_PLUGIN_ID = '#sentry/tanstackstart-server-instrumentation';
+const NITRO_RELEASE_PLUGIN_ID = '#sentry/tanstackstart-release';
 const APP_PLUGIN = './server/plugins/app.ts';
 
 describe('server instrumentation', () => {
@@ -27,9 +28,9 @@ describe('server instrumentation', () => {
   }
 
   /** Runs the Nitro module like `nitro/vite` does, and returns the Nitro options it changed. */
-  function setup({ dev = false, node = true, preset = 'node-server' } = {}) {
+  function setup({ dev = false, node = true, preset = 'node-server' } = {}, release?: string) {
     const nitro = { options: { dev, node, preset, rootDir: root, plugins: [APP_PLUGIN], virtual: {} } };
-    makeServerInstrumentationPlugin({}).nitro.setup(nitro);
+    makeServerInstrumentationPlugin({ release }).nitro.setup(nitro);
     return nitro.options;
   }
 
@@ -62,6 +63,18 @@ describe('server instrumentation', () => {
 
       expect(plugins).toEqual([NITRO_PLUGIN_ID, APP_PLUGIN]);
       expect(virtual).toEqual({ [NITRO_PLUGIN_ID]: `import ${JSON.stringify(file)};\nexport default () => {};\n` });
+    });
+
+    it('sets the release from a plugin that runs before the file initializes the SDK', () => {
+      const file = writeFile('instrument.server.mjs');
+
+      const { plugins, virtual } = setup({}, 'my-app@1.2.3');
+
+      expect(plugins).toEqual([NITRO_RELEASE_PLUGIN_ID, NITRO_PLUGIN_ID, APP_PLUGIN]);
+      expect(virtual).toEqual({
+        [NITRO_RELEASE_PLUGIN_ID]: 'globalThis.SENTRY_RELEASE = { id: "my-app@1.2.3" };\nexport default () => {};\n',
+        [NITRO_PLUGIN_ID]: `import ${JSON.stringify(file)};\nexport default () => {};\n`,
+      });
     });
 
     it('adds no plugin without a server instrumentation file', () => {

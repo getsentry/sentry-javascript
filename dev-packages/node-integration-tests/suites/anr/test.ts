@@ -210,7 +210,11 @@ describe('should report ANR when event loop blocked', { timeout: 90_000 }, () =>
   });
 
   test('worker can be stopped and restarted', async () => {
-    await createRunner(__dirname, 'stop-and-start.js').expect({ event: ANR_EVENT_WITH_SCOPE }).start().completed();
+    await createRunner(__dirname, 'stop-and-start.js')
+      .withMockSentryServer()
+      .expect({ event: ANR_EVENT_WITH_SCOPE })
+      .start()
+      .completed();
   });
 
   const EXPECTED_ISOLATED_EVENT = {

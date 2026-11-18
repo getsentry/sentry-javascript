@@ -62,6 +62,24 @@ describe('buildClientSnippet', () => {
       });"
     `);
   });
+
+  it('leaves the release to the global the page sets with `releaseFromGlobal`', () => {
+    const snippet = buildClientSnippet(buildTimeSdkOptions, true);
+
+    expect(snippet).toMatchInlineSnapshot(`
+      "import * as Sentry from "@sentry/astro";
+
+      Sentry.init({
+        dsn: import.meta.env.PUBLIC_SENTRY_DSN,
+        debug: true,
+        environment: import.meta.env.PUBLIC_VERCEL_ENV,
+        tracesSampleRate: 1.0,
+        integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
+        replaysSessionSampleRate: 0.1,
+        replaysOnErrorSampleRate: 1.0,
+      });"
+    `);
+  });
 });
 
 describe('buildServerSnippet', () => {

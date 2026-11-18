@@ -11,6 +11,7 @@ export const sentrySolidStartVite = (
   options: SentrySolidStartPluginOptions = {},
   viteConfig: UserConfig,
   tunnelBasePath = '',
+  runtimeRelease?: string,
 ): Plugin[] => {
   warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions']);
 
@@ -30,7 +31,7 @@ export const sentrySolidStartVite = (
 
   if (process.env.NODE_ENV !== 'development') {
     if (options.sourcemaps?.disable !== true) {
-      const sourceMapsPlugin = makeAddSentryVitePlugin(options, viteConfig);
+      const sourceMapsPlugin = makeAddSentryVitePlugin(options, viteConfig, runtimeRelease);
       const enableSourceMapsPlugin = makeEnableSourceMapsVitePlugin(options);
 
       sentryPlugins.push(...sourceMapsPlugin, ...enableSourceMapsPlugin);
@@ -47,9 +48,10 @@ export const addSentryPluginToVite = (
   config: UserConfig = {},
   options: SentrySolidStartPluginOptions,
   tunnelBasePath?: string,
+  runtimeRelease?: string,
 ): UserConfig => {
   const plugins = Array.isArray(config.plugins) ? [...config.plugins] : [];
-  plugins.unshift(sentrySolidStartVite(options, config, tunnelBasePath));
+  plugins.unshift(sentrySolidStartVite(options, config, tunnelBasePath, runtimeRelease));
 
   return {
     ...config,

@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import OpenAI from 'openai';
-import { startMockServer } from '@sentry-internal/node-integration-tests';
+import { openAiResponse, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockApi() {
   const app = express();
@@ -21,34 +21,13 @@ function startMockApi() {
   app.post('/openai/responses', (req, res) => {
     const { model, conversation, previous_response_id } = req.body;
 
-    res.send({
-      id: 'resp_mock_conv_123',
-      object: 'response',
-      created_at: 1704067210,
-      model: model,
-      output: [
-        {
-          type: 'message',
-          id: 'msg_mock_output_1',
-          status: 'completed',
-          role: 'assistant',
-          content: [
-            {
-              type: 'output_text',
-              text: `Response with conversation: ${conversation || 'none'}, previous_response_id: ${previous_response_id || 'none'}`,
-              annotations: [],
-            },
-          ],
-        },
-      ],
-      output_text: `Response with conversation: ${conversation || 'none'}`,
-      status: 'completed',
-      usage: {
-        input_tokens: 10,
-        output_tokens: 15,
-        total_tokens: 25,
-      },
-    });
+    res.send(
+      openAiResponse(model, {
+        id: 'resp_mock_conv_123',
+        text: `Response with conversation: ${conversation || 'none'}, previous_response_id: ${previous_response_id || 'none'}`,
+        usage: { input_tokens: 10, output_tokens: 15 },
+      }),
+    );
   });
 
   return startMockServer(app);

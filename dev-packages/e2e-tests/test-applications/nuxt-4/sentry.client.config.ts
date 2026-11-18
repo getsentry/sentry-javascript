@@ -16,6 +16,7 @@ Sentry.init({
     }),
     Sentry.vueIntegration({
       tracingOptions: {
+        timeout: 500,
         trackComponents: true,
       },
     }),

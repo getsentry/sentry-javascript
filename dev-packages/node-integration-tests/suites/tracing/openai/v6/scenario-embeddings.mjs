@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import OpenAI from 'openai';
-import { startMockServer } from '@sentry-internal/node-integration-tests';
+import { openAiEmbeddings, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockApi() {
   const app = express();
@@ -18,21 +18,7 @@ function startMockApi() {
     }
 
     // Return embeddings response
-    res.send({
-      object: 'list',
-      data: [
-        {
-          object: 'embedding',
-          embedding: [0.1, 0.2, 0.3],
-          index: 0,
-        },
-      ],
-      model: model,
-      usage: {
-        prompt_tokens: 10,
-        total_tokens: 10,
-      },
-    });
+    res.send(openAiEmbeddings(model, { promptTokens: 10 }));
   });
 
   return startMockServer(app);

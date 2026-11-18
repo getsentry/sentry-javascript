@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer } from '@sentry-internal/node-integration-tests';
+import { anthropicMessage, startMockServer } from '@sentry-internal/node-integration-tests';
 
 // `AnthropicBedrock` (`@anthropic-ai/bedrock-sdk`) is a `BaseAnthropic` subclass that names its platform this way
 // and reuses the SDK's `Messages` resource.
@@ -17,16 +17,7 @@ function startMockApi() {
   app.use(express.json());
 
   app.post('/v1/messages', (req, res) => {
-    res.json({
-      id: 'msg_bedrock',
-      type: 'message',
-      role: 'assistant',
-      model: req.body.model,
-      content: [{ type: 'text', text: 'Hello!' }],
-      stop_reason: 'end_turn',
-      stop_sequence: null,
-      usage: { input_tokens: 10, output_tokens: 15 },
-    });
+    res.json(anthropicMessage(req.body.model, { id: 'msg_bedrock', content: 'Hello!' }));
   });
 
   return startMockServer(app);
