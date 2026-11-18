@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
@@ -26,16 +27,12 @@ function startMockAnthropicServer() {
     });
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
   const server = await startMockAnthropicServer();
-  const baseURL = `http://localhost:${server.address().port}`;
+  const baseURL = server.url;
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     // EDGE CASE: Import and instantiate Anthropic client BEFORE LangChain is imported

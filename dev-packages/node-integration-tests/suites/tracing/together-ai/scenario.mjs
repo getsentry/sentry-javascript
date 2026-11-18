@@ -1,8 +1,9 @@
 import Together from 'together-ai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
 
-function startMockServer() {
+function startMockApi() {
   const app = express();
   app.use(express.json());
 
@@ -16,10 +17,6 @@ function startMockServer() {
     }
 
     if (stream) {
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-
       const chunks = [
         {
           id: 'chatcmpl-stream-123',
@@ -45,15 +42,7 @@ function startMockServer() {
         },
       ];
 
-      chunks.forEach((chunk, index) => {
-        setTimeout(() => {
-          res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-          if (index === chunks.length - 1) {
-            res.write('data: [DONE]\n\n');
-            res.end();
-          }
-        }, index * 10);
-      });
+      streamSseEvents(res, chunks, { done: true });
     } else {
       res.send({
         id: 'chatcmpl-mock123',
@@ -79,20 +68,16 @@ function startMockServer() {
     });
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
-  const server = await startMockServer();
+  const server = await startMockApi();
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Together({
       apiKey: 'mock-api-key',
-      baseURL: `http://localhost:${server.address().port}`,
+      baseURL: server.url,
     });
 
     await client.chat.completions.create({

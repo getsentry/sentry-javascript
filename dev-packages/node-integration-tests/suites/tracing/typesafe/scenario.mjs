@@ -1,8 +1,9 @@
 import * as Sentry from '@sentry/node';
 import { choice, noul, score, TypeSafeClient } from '@typesafe-ai/sdk';
 import express from 'express';
+import { startMockServer } from '@sentry-internal/node-integration-tests';
 
-function startMockServer() {
+function startMockApi() {
   const app = express();
   app.use(express.json());
 
@@ -34,18 +35,14 @@ function startMockServer() {
     });
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
-  const server = await startMockServer();
+  const server = await startMockApi();
   const client = new TypeSafeClient({
     apiKey: 'mock-api-key',
-    baseURL: `http://localhost:${server.address().port}`,
+    baseURL: server.url,
     retry: { maxRetries: 0 },
   });
   const state = 'I cannot log in, and I also want a refund for last month.';

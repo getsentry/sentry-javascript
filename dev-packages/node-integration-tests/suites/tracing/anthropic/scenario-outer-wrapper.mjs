@@ -1,18 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
   app.use(express.json());
 
   app.post('/anthropic/v1/messages', (req, res) => {
-    res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-    });
-
     const model = req.body.model;
     const events = [
       {
@@ -39,22 +34,10 @@ function startMockAnthropicServer() {
       { type: 'message_stop' },
     ];
 
-    events.forEach((event, index) => {
-      setTimeout(() => {
-        res.write(`event: ${event.type}\n`);
-        res.write(`data: ${JSON.stringify(event)}\n\n`);
-        if (index === events.length - 1) {
-          res.end();
-        }
-      }, index * 10);
-    });
+    streamSseEvents(res, events, { eventNames: true });
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 // Minimal stand-in for a third-party library that also instruments the client by wrapping
@@ -89,7 +72,7 @@ async function run() {
     const client = wrapClient(
       new Anthropic({
         apiKey: 'mock-api-key',
-        baseURL: `http://localhost:${server.address().port}/anthropic`,
+        baseURL: `${server.url}/anthropic`,
       }),
     );
 
