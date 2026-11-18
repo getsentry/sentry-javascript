@@ -1,7 +1,7 @@
 // Bundled entrypoint, run directly with `node` (no `--import` runtime hook). `Sentry.init` runs
 // first so the instrumentation's channel subscriber is ready, then the workload is imported and run.
-// Spans are collected via the `spanEnd` hook and written to the file named by
-// `SENTRY_E2E_RESULT_FILE` for `assert.mjs` to read back. See `node-esbuild/src/entry.mjs`.
+// Same as `entry.mjs`, but with the SDK imported from `@sentry/aws-serverless`, which is how a Lambda
+// project that bundles with esbuild (CDK, SAM, Serverless Framework) would use it.
 import { writeFileSync } from 'node:fs';
 import * as Sentry from '@sentry/aws-serverless';
 
