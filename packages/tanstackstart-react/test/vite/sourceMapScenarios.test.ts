@@ -245,4 +245,51 @@ describe('source map scenarios of a build with Nitro', () => {
   ])('follows the Sentry option $label', ({ options, expected }) => {
     expect(build({ options })).toEqual(expected);
   });
+
+  it.each<{
+    label: string;
+    sourcemaps: NonNullable<SentryTanstackStartOptions['sourcemaps']>;
+    expected: { client: unknown; ssr: unknown; nitro: unknown };
+  }>([
+    {
+      label: 'upload: false',
+      sourcemaps: { upload: false },
+      expected: { client: undefined, ssr: false, nitro: false },
+    },
+    {
+      label: 'injectDebugIds: false',
+      sourcemaps: { injectDebugIds: false },
+      expected: { client: undefined, ssr: false, nitro: false },
+    },
+    {
+      label: 'upload: false and delete: false',
+      sourcemaps: { upload: false, delete: false },
+      expected: { client: 'hidden', ssr: 'hidden', nitro: 'hidden' },
+    },
+    {
+      label: 'injectDebugIds: false and delete: false',
+      sourcemaps: { injectDebugIds: false, delete: false },
+      expected: { client: undefined, ssr: false, nitro: false },
+    },
+    {
+      label: 'delete: false',
+      sourcemaps: { delete: false },
+      expected: { client: 'hidden', ssr: 'hidden', nitro: 'hidden' },
+    },
+    {
+      label: 'delete: true',
+      sourcemaps: { delete: true },
+      expected: { client: 'hidden', ssr: 'hidden', nitro: 'hidden' },
+    },
+    {
+      label: 'upload: true next to disable: true',
+      sourcemaps: { disable: true, upload: true },
+      expected: { client: 'hidden', ssr: 'hidden', nitro: 'hidden' },
+    },
+  ])('turns the expected source maps on with sourcemaps $label', ({ sourcemaps, expected }) => {
+    const { client, ssr, nitro } = build({ options: { sourcemaps } });
+
+    expect({ client, ssr, nitro }).toEqual(expected);
+    expect(sentryVitePluginOptions?.sourcemaps).toEqual(expect.objectContaining(sourcemaps));
+  });
 });

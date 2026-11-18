@@ -186,6 +186,27 @@ describe('sentryTanstackStart()', () => {
       ]);
     });
 
+    it.each([{ upload: false }, { injectDebugIds: false }, { injectDebugIds: false, delete: false }])(
+      'returns no enable source maps plugin with sourcemaps %j',
+      sourcemaps => {
+        const plugins = sentryTanstackStart({ autoInstrumentMiddleware: false, sourcemaps });
+
+        expect(plugins).not.toContain(mockEnableSourceMapsPlugin);
+        expect(plugins).not.toContain(mockEnableNitroSourceMapsPlugin);
+        expect(plugins).toContain(mockSentryVitePlugin);
+      },
+    );
+
+    it.each([{ upload: false, delete: false }, { delete: true }, { disable: true, upload: true }])(
+      'returns the enable source maps plugins with sourcemaps %j',
+      sourcemaps => {
+        const plugins = sentryTanstackStart({ autoInstrumentMiddleware: false, sourcemaps });
+
+        expect(plugins).toContain(mockEnableSourceMapsPlugin);
+        expect(plugins).toContain(mockEnableNitroSourceMapsPlugin);
+      },
+    );
+
     it('returns Sentry Vite plugins and enable source maps plugin when sourcemaps.disable is false', () => {
       const plugins = sentryTanstackStart({
         autoInstrumentMiddleware: false,

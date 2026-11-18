@@ -272,6 +272,24 @@ describe('makeAddSentryVitePlugin()', () => {
       expect([decide().delete, decide('ssr').delete, decide('nitro').delete]).toEqual([value, value, value]);
     });
 
+    it('passes the new source map options through', () => {
+      makeAddSentryVitePlugin({ sourcemaps: { upload: false, injectDebugIds: true, delete: false } });
+
+      expect(sentryVitePluginOptions?.sourcemaps).toEqual(
+        expect.objectContaining({ upload: false, injectDebugIds: true, delete: false }),
+      );
+    });
+
+    // The bundler plugin warns when both options are set, so it must only see what the user set.
+    it.each([
+      [{ delete: true }, undefined],
+      [{ delete: false, deleteSourcemapsAfterUpload: true }, true],
+    ] as const)('with %j it passes `deleteSourcemapsAfterUpload: %s`', (sourcemaps, expected) => {
+      makeAddSentryVitePlugin({ sourcemaps }, { sdkEnabledSourceMaps: true, sdkEnabledNitroSourceMaps: true });
+
+      expect(sentryVitePluginOptions?.sourcemaps?.deleteSourcemapsAfterUpload).toBe(expected);
+    });
+
     it('passes a user-set filesToDeleteAfterUpload through and keeps its own deletion', () => {
       makeAddSentryVitePlugin(
         { sourcemaps: { filesToDeleteAfterUpload: ['dist/**/*.map'] } },
@@ -406,6 +424,14 @@ describe('getUpdatedSourceMapSettings', () => {
     const result = getUpdatedSourceMapSettings({});
 
     expect(result).toBe('hidden');
+  });
+
+  it.each([true, false])('should set sourcemap to hidden with `sourcemaps.delete: %s`', value => {
+    expect(getUpdatedSourceMapSettings({}, { sourcemaps: { delete: value } })).toBe('hidden');
+  });
+
+  it('should keep an explicit setting with `sourcemaps.delete: true`', () => {
+    expect(getUpdatedSourceMapSettings({ build: { sourcemap: true } }, { sourcemaps: { delete: true } })).toBe(true);
   });
 });
 

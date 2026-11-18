@@ -98,13 +98,20 @@ export function makeAddSentryVitePlugin(
     sourcemaps: {
       assets: sourcemaps?.assets,
       disable: sourcemaps?.disable,
+      upload: sourcemaps?.upload,
+      injectDebugIds: sourcemaps?.injectDebugIds,
+      delete: sourcemaps?.delete,
       ignore: sourcemaps?.ignore,
       rewriteSources: sourcemaps?.rewriteSources ?? rewriteTanstackStartSource,
       resolveSourceMap: sourcemaps?.resolveSourceMap,
       filesToDeleteAfterUpload: sourcemaps?.filesToDeleteAfterUpload,
       // Called when the bundler plugin decides, after the SDK's enable plugins ran.
-      deleteSourcemapsAfterUpload: environment =>
-        sourcemaps?.deleteSourcemapsAfterUpload ?? (hasSdkEnabledSourceMaps(state, environment) || undefined),
+      // With `sourcemaps.delete` the bundler plugin ignores this option and warns if the user set it.
+      deleteSourcemapsAfterUpload:
+        sourcemaps?.delete === undefined
+          ? environment =>
+              sourcemaps?.deleteSourcemapsAfterUpload ?? (hasSdkEnabledSourceMaps(state, environment) || undefined)
+          : sourcemaps.deleteSourcemapsAfterUpload,
       sdkEnabledSourceMaps: environment => hasSdkEnabledSourceMaps(state, environment),
     },
     reactComponentAnnotation: {
@@ -143,7 +150,7 @@ export function makeEnableSourceMapsVitePlugin(
       config(viteConfig) {
         const sourcemap = getUpdatedSourceMapSettings(viteConfig, options);
         state.sdkEnabledSourceMaps = sourcemap !== viteConfig.build?.sourcemap;
-        return { build: { sourcemap } };
+        return sourcemap === undefined ? {} : { build: { sourcemap } };
       },
     },
   ];
@@ -160,7 +167,8 @@ export function makeEnableSourceMapsVitePlugin(
  *
  *     3. Users didn't set source maps generation
  *       - we enable 'hidden' source maps generation
- *       - pass `deleteSourcemapsAfterUpload: true`, so the bundler plugin removes these .map files from the build output
+ *       - without `sourcemaps.delete` we pass `deleteSourcemapsAfterUpload: true`, so the bundler plugin removes
+ *         these .map files from the build output
  *
  * @internal Only exported for testing.
  */

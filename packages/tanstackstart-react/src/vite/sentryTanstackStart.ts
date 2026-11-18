@@ -1,4 +1,5 @@
 import type { BuildTimeOptionsBase, ReactComponentAnnotationOptions } from '@sentry/core';
+import { resolveSourceMapsFeatures } from '@sentry/core';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
@@ -118,8 +119,9 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   // The bundler plugin decides on the source map setting in its own `config` hook, so the plugins that enable source
   // maps come first.
   const sourceMapState = createSourceMapState();
-  const sourceMapsDisabled = options.sourcemaps?.disable === true || options.sourcemaps?.disable === 'disable-upload';
-  if (!sourceMapsDisabled) {
+  const { injectDebugIds, upload } = resolveSourceMapsFeatures(options.sourcemaps);
+  // Sentry turns source maps on to upload them, or when `sourcemaps.delete: false` keeps them for a manual upload.
+  if (upload || (options.sourcemaps?.delete === false && injectDebugIds)) {
     plugins.push(
       ...makeEnableSourceMapsVitePlugin(options, sourceMapState),
       makeEnableNitroSourceMapsPlugin(options, sourceMapState),
