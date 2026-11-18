@@ -24,6 +24,7 @@ export function getPlaywrightConfig(
    */
   const config: PlaywrightTestConfig = {
     testDir: './tests',
+    testIgnore: getTestIgnore(),
     /* Maximum time one test can run for. */
     timeout: 30_000,
     expect: {
@@ -101,4 +102,19 @@ export function getPlaywrightConfig(
     ...config,
     ...overwriteConfig,
   };
+}
+
+/**
+ * Apps that test both trace lifecycles set `E2E_TEST_TRACE_LIFECYCLE` to `stream` or `static` and keep
+ * lifecycle-specific tests in `*.streaming-lifecycle.*` and `*.static-lifecycle.*` files.
+ */
+function getTestIgnore(): string | undefined {
+  switch (process.env.E2E_TEST_TRACE_LIFECYCLE) {
+    case 'static':
+      return '**/*.streaming-lifecycle.*';
+    case 'stream':
+      return '**/*.static-lifecycle.*';
+    default:
+      return undefined;
+  }
 }

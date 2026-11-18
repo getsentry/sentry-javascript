@@ -4,6 +4,7 @@ import { hydrateRoot } from 'react-dom/client';
 import { HydratedRouter } from 'react-router/dom';
 
 Sentry.init({
+  traceLifecycle: import.meta.env.VITE_E2E_TEST_TRACE_LIFECYCLE === 'static' ? 'static' : undefined,
   environment: 'qa', // dynamic sampling bias to keep transactions
   // todo: get this from env
   dsn: 'https://username@domain/123',

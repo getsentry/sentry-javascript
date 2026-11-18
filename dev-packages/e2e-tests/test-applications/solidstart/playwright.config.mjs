@@ -1,5 +1,8 @@
 import { getPlaywrightConfig } from '@sentry-internal/test-utils';
 
+// The static trace lifecycle variant sets this to `static`.
+process.env.E2E_TEST_TRACE_LIFECYCLE ??= 'stream';
+
 // `vinxi dev` ignores PORT, so the port goes on the command, and the SDK comes from the app's own
 // instrumentation file rather than the build output the production command uses.
 // The inject modes load the SDK from the server entry, so they start without a preload.

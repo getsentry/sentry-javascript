@@ -1,4 +1,0 @@
-allowBuilds:
-  esbuild: true
-  vue-demi: true
-minimumReleaseAge: 0

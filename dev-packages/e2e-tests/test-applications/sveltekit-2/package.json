@@ -28,6 +28,7 @@
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
+    "@sentry/conventions": "0.33.0",
     "@sveltejs/adapter-node": "^2.0.0",
     "@sveltejs/kit": "2.60.1",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
@@ -42,6 +43,10 @@
       {
         "label": "sveltekit-2 (svelte-5)",
         "build-command": "pnpm test:build:svelte-5"
+      },
+      {
+        "assert-command": "PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert",
+        "label": "sveltekit-2 (static trace lifecycle)"
       }
     ]
   }

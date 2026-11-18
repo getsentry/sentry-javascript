@@ -51,5 +51,14 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "VITE_E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build",
+        "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert",
+        "label": "react-router-7-framework (static trace lifecycle)"
+      }
+    ]
   }
 }

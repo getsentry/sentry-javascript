@@ -34,6 +34,10 @@
         "build-command": "E2E_TEST_OTEL_SETUP=true pnpm test:build",
         "assert-command": "E2E_TEST_OTEL_SETUP=true pnpm test:assert",
         "label": "node-express (tracer provider)"
+      },
+      {
+        "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert",
+        "label": "node-express (static trace lifecycle)"
       }
     ]
   }
