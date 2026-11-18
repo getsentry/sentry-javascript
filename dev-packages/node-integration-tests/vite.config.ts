@@ -19,6 +19,7 @@ export default defineConfig({
     // already run in their own processes. We use threads instead because the
     // overhead is significantly less.
     pool: 'threads',
+    maxWorkers: process.env.CI ? 4 : undefined,
     reporters: process.env.DEBUG
       ? [['default', { summary: false }]]
       : process.env.GITHUB_ACTIONS
