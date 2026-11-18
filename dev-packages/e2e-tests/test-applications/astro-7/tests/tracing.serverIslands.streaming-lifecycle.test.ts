@@ -54,10 +54,12 @@ test.describe('tracing in static routes with server islands', () => {
     expect(clientPageloadSpan.trace_id).toMatch(/[a-f0-9]{32}/);
     expect(clientPageloadSpan.parent_span_id).toBeUndefined();
 
+    // The islands render in their own requests, so the document itself is static.
     expect(clientPageloadSpan.attributes).toMatchObject({
       'sentry.op': { value: 'pageload', type: 'string' },
       'sentry.origin': { value: 'auto.pageload.astro', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
+      'page.server_rendering.type': { value: 'static', type: 'string' },
     });
 
     // the pageload trace contains a resource link span for the preloaded server island request.
@@ -130,6 +132,8 @@ test.describe('tracing in SSR routes with server islands', () => {
 
     expect(clientPageloadSpan.trace_id).toBe(pageRenderSegment.trace_id);
     expect(clientPageloadSpan.parent_span_id).toBe(pageRenderSegment.span_id);
+    expect(await page.locator('meta[name="sentry-cache-origin"]').count()).toBe(0);
+    expect(clientPageloadSpan.attributes['page.server_rendering.type']).toBeUndefined();
 
     // The island script's `fetch()` gets trace headers, but the browser answers it with the preload response, which
     // left before the SDK ran. So the island starts its own trace.
