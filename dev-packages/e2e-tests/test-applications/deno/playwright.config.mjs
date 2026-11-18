@@ -1,9 +1,7 @@
 import { getPlaywrightConfig } from '@sentry-internal/test-utils';
 
-// The static trace lifecycle runs as a `sentryTest` variant of this same app,
-// so the specs that assert envelope shape are split by directory. Specs directly
-// under `tests/` don't depend on the lifecycle and only run in the default variant.
-const isStatic = !!process.env.E2E_TEST_STATIC;
+// The static trace lifecycle variant sets this to `static`.
+process.env.E2E_TEST_TRACE_LIFECYCLE ??= 'stream';
 
 const config = getPlaywrightConfig(
   {
@@ -11,7 +9,6 @@ const config = getPlaywrightConfig(
     port: 3030,
   },
   {
-    ...(isStatic ? { testMatch: '**/static/**/*.test.ts' } : { testIgnore: '**/static/**' }),
     globalSetup: './global-setup.mjs',
     globalTeardown: './global-teardown.mjs',
   },
