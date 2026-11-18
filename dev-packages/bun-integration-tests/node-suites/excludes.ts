@@ -271,9 +271,9 @@ const HONO_NODE_SDK = ['suites/hono-sdk/test.ts'];
 
 // Before Bun 1.4, Bun does not publish `http.client.request.created`, and `@sentry/node` picks the
 // channel from the Node version that Bun reports. So outgoing `node:http` requests get no
-// `sentry-trace` header, and the `/test2` request starts its own trace.
+// `sentry-trace` or `baggage` header.
 // See https://github.com/getsentry/sentry-javascript/issues/26614
-const BUN_1_3_NO_HTTP_CLIENT_CHANNEL = ['suites/express/with-http/base/test.ts'];
+const BUN_1_3_NO_HTTP_CLIENT_CHANNEL = ['suites/express/sentry-trace/test.ts', 'suites/express/with-http/base/test.ts'];
 
 // Bun 1.3 bundles these CommonJS scenarios into code that calls a `require_*` helper before it is
 // defined, so the scenario throws `require_ai is not a function`. The ESM tests still pass.
@@ -282,8 +282,20 @@ const BUN_1_3_BUNDLES_CJS_OUT_OF_ORDER = [
   'suites/tracing/langgraph/v1/test.ts',
 ];
 
+// `mongodb` v7 (also a dependency of `mongoose` v9) calls `isBuildingSnapshot()` from `node:v8`,
+// which Bun 1.3 does not implement, so the scenario throws `NotImplementedError`.
+const BUN_1_3_NO_V8_IS_BUILDING_SNAPSHOT = [
+  'suites/tracing/mongodb-v7/test.ts',
+  'suites/tracing/mongoose-tracing-channel/test.ts',
+  'suites/tracing/mongoose-v9/test.ts',
+];
+
 // Excluded in `node-suites-bun-build` only before Bun 1.4.
-export const BUN_BUILD_BEFORE_1_4_EXCLUDE = [...BUN_1_3_NO_HTTP_CLIENT_CHANNEL, ...BUN_1_3_BUNDLES_CJS_OUT_OF_ORDER];
+export const BUN_BUILD_BEFORE_1_4_EXCLUDE = [
+  ...BUN_1_3_NO_HTTP_CLIENT_CHANNEL,
+  ...BUN_1_3_BUNDLES_CJS_OUT_OF_ORDER,
+  ...BUN_1_3_NO_V8_IS_BUILDING_SNAPSHOT,
+];
 
 export const BUN_BUILD_EXCLUDE = [
   '**/node_modules/**',
