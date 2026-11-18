@@ -9,7 +9,7 @@ import type {
   ModuleMetadata,
   ModuleMetadataCallback,
 } from './types';
-import { determineReleaseName, canAutoDetectRepository, readCommitEnvVar } from './utils';
+import { canAutoDetectRepository, readCommitEnvVar, resolveReleaseName } from './utils';
 
 export type NormalizedOptions = {
   org: string | undefined;
@@ -114,7 +114,7 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
     sourcemaps: userOptions.sourcemaps,
     release: {
       ...userOptions.release,
-      name: userOptions.release?.name ?? process.env['SENTRY_RELEASE'] ?? determineReleaseName(),
+      name: resolveReleaseName(userOptions.release?.name),
       inject: userOptions.release?.inject ?? true,
       create: userOptions.release?.create ?? true,
       finalize: userOptions.release?.finalize ?? true,
