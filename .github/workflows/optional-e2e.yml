@@ -85,6 +85,15 @@ jobs:
           artifacts-run-id: ${{ inputs.build_run_id }}
           github-token: ${{ github.token }}
 
+      - name: Start Nuxt databases
+        if: startsWith(matrix.test-application, 'nuxt-')
+        background: true
+        working-directory: ${{ runner.temp }}/test-application
+        run: |
+          if [ -f docker-compose.yml ]; then
+            docker compose up -d --wait
+          fi
+
       # Installs Playwright while the app builds. Keep it right before the build: the runner sets up a background
       # composite action's steps from the job's shared `github` context, which fails with "Collection was modified" if
       # a foreground step starts at that moment. Starting next to `download-artifact` also made it fail to read the event file.
@@ -101,7 +110,7 @@ jobs:
         timeout-minutes: 7
         run: ${{ matrix.build-command || 'pnpm test:build' }}
 
-      - wait: [install-playwright]
+      - wait-all:
 
       - name: Run E2E test
         working-directory: ${{ runner.temp }}/test-application
