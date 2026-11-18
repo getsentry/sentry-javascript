@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getRuntime, getSpanOp } from '@sentry-internal/test-utils';
 import { isTurbopackDevMode } from './isDevMode';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 // Next.js emits these spans itself. The SDK attaches no op, description or function name to
 // them, so asserting `undefined` pins that they stay untouched.
 const nextjsSpan = { op: undefined, description: undefined, codeFunctionName: undefined };

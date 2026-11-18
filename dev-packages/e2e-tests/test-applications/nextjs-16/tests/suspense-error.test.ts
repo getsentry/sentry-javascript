@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('should not capture serverside suspense errors', async ({ page }) => {
   const pageServerComponentSpanPromise = waitForStreamedSpan('nextjs-16', span => {
     return span.name === 'GET /suspense-error' && span.is_segment;

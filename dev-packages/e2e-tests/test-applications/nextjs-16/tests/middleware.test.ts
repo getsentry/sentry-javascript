@@ -9,6 +9,8 @@ import {
 import { isDevMode } from './isDevMode';
 import { isVinext } from './isVinext';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('Should create a span for middleware', async ({ request }) => {
   test.skip(getRuntime() === 'cloudflare', 'On Workers the middleware span is a child of the request span');
 

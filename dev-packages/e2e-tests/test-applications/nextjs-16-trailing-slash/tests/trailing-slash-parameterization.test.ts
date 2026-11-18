@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 // These tests verify that pageload spans are correctly named when
 // trailingSlash: true is enabled in next.config.mjs, even when a catch-all
 // route exists. See: https://github.com/getsentry/sentry-javascript/issues/19241

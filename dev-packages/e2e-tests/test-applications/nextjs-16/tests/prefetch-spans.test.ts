@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('Prefetch client spans should have a http.request.prefetch attribute', async ({ page }) => {
   test.skip(isDevMode, "Prefetch requests don't have the prefetch header in dev mode");
 

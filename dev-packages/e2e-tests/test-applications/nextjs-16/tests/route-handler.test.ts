@@ -2,6 +2,8 @@ import test, { expect } from '@playwright/test';
 import { getRuntime, getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isTurbopackDevMode } from './isDevMode';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('Should create a span for node route handlers', async ({ request }) => {
   test.skip(isTurbopackDevMode, 'Turbopack intermittently returns 404 for dynamic routes in dev mode');
 

@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('should create a parameterized pageload span when the `app` directory is used', async ({ page }) => {
   const spanPromise = waitForStreamedSpan('nextjs-16', span => {
     return span.name === '/parameterized/:one' && getSpanOp(span) === 'pageload' && span.is_segment;

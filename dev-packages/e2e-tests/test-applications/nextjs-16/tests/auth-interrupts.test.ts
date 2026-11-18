@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isVinext } from './isVinext';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 const cases = [
   { kind: 'forbidden', label: 'Forbidden', status: 403, statusMessage: 'permission_denied' },
   { kind: 'unauthorized', label: 'Unauthorized', status: 401, statusMessage: 'unauthenticated' },

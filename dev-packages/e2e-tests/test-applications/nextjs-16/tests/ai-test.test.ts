@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan, waitForStreamedSpans } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 // FIXME: This app uses `ai@^3`, which the channel-based Vercel AI integration doesn't instrument
 // (it supports v4-v6 via the orchestrion transform and v7 via the native `ai:telemetry` channel).
 // With channel-based instrumentation now the default, no gen_ai spans are produced. Re-enable once

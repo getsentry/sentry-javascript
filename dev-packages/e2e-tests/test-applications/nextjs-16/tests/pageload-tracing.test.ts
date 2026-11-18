@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('App router spans should be attached to the pageload request span', async ({ page }) => {
   const serverSpanPromise = waitForStreamedSpan('nextjs-16', span => {
     return span.name === 'GET /pageload-tracing' && span.is_segment;

@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getRuntime, getSpanOp } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test.skip(getRuntime() !== 'cloudflare', 'D1 is a binding of Cloudflare Workers');
 
 // `withSentry` passes an instrumented `env` to the OpenNext handler, which `getCloudflareContext()` returns.

@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getRuntime } from '@sentry-internal/test-utils';
 import { isVinext } from './isVinext';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 // pg is externalized, so the runtime module hook instruments it.
 test('Instruments pg calls made during server-side rendering of a page', async ({ page }) => {
   test.skip(getRuntime() === 'bun' || getRuntime() === 'cloudflare', 'Bun and Workers have no runtime module hook');

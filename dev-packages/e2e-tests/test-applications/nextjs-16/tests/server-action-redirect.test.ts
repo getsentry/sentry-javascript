@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { getRuntime, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isVinext } from './isVinext';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('Should handle server action redirect without capturing errors', async ({ page, request }) => {
   test.skip(
     isVinext && getRuntime() === 'bun',

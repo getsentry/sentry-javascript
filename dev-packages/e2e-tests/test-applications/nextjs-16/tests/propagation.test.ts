@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getRuntime, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isVinext } from './isVinext';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('Propagates trace for outgoing fetch requests', async ({ baseURL, request }) => {
   test.skip(
     isVinext && getRuntime() === 'bun',

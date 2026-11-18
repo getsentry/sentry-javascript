@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getRuntime } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('Continues an incoming trace in the segment of the request', async ({ request }) => {
   // On Workers the segment is the request span of `withSentry`, on the other runtimes the request span of Next.js.
   const segmentOrigin = getRuntime() === 'cloudflare' ? 'auto.http.cloudflare' : 'auto';

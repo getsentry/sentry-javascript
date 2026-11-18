@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { getRuntime, waitForEnvelopeItem, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import type { SerializedLogContainer } from '@sentry/core';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('Sends a log of a route handler in the trace of the request', async ({ request }) => {
   // Workers have no hostname, so the client of `@sentry/cloudflare` has no `serverName` and its logs no
   // `server.address`. The other runtimes take `os.hostname()`.
