@@ -20,6 +20,8 @@ Sentry.init({
   integrations: [
     vueIntegration({
       tracingOptions: {
+        // Keep the static variant on the SDK default to cover its debounce.
+        timeout: import.meta.env.PUBLIC_E2E_TEST_TRACE_LIFECYCLE === 'static' ? undefined : 500,
         trackComponents: ['ComponentMainView', '<ComponentOneView>'],
       },
     }),
