@@ -1,3 +1,4 @@
+import { resolveSourceMapsFeatures } from '@sentry/core';
 import type { Plugin } from 'vite';
 import { makeOrchestrionPlugin } from './orchestrionPlugin';
 import { makeRouteManifestPlugin } from './routeManifestPlugin';
@@ -49,7 +50,7 @@ export function sentryRemixVitePlugin(options: SentryRemixVitePluginOptions = {}
   //
   // Order matters: the bundler plugin decides on the `build.sourcemap` it finds in its own
   // `config` hook, so this plugin has to set it first.
-  if (options.sourcemaps?.disable !== true) {
+  if (resolveSourceMapsFeatures(options.sourcemaps).legacyDisable !== true) {
     plugins.push(makeEnableSourceMapsPlugin(options, sourceMapState));
   }
 

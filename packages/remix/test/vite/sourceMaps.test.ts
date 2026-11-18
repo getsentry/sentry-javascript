@@ -82,6 +82,29 @@ describe('getUpdatedSourceMapSettings', () => {
   it('enables hidden source maps when there is no build config', () => {
     expect(getUpdatedSourceMapSettings({})).toBe('hidden');
   });
+
+  it.each([
+    [{ upload: false }, undefined],
+    [{ injectDebugIds: false }, undefined],
+    [{ upload: true }, 'hidden'],
+    [{ disable: true, upload: true }, 'hidden'],
+    [{ disable: 'disable-upload' }, 'hidden'],
+    [{ delete: true }, 'hidden'],
+    [{ delete: false }, 'hidden'],
+    [{ upload: false, delete: false }, 'hidden'],
+    [{ upload: false, delete: true }, undefined],
+    [{ injectDebugIds: false, delete: false }, undefined],
+  ] as const)('with an unset setting and %j it returns %s', (sourcemaps, expected) => {
+    expect(getUpdatedSourceMapSettings({}, { sourcemaps })).toBe(expected);
+  });
+
+  it('leaves the Vite config alone when it turns no source maps on', () => {
+    const state: SourceMapState = { sdkEnabledSourceMaps: true };
+    const plugin = makeEnableSourceMapsPlugin({ sourcemaps: { upload: false } }, state);
+
+    expect((plugin.config as (config: UserConfig) => UserConfig)({})).toEqual({});
+    expect(state.sdkEnabledSourceMaps).toBe(false);
+  });
 });
 
 describe('makeAddSentryVitePlugin', () => {
@@ -163,6 +186,32 @@ describe('makeAddSentryVitePlugin', () => {
     makeAddSentryVitePlugin({ sourcemaps: { disable: 'disable-upload' } }, { sdkEnabledSourceMaps: true });
 
     expect(getDeleteOption()).toBeUndefined();
+  });
+
+  it('keeps the source maps with `upload: false`', () => {
+    makeAddSentryVitePlugin({ sourcemaps: { upload: false } }, { sdkEnabledSourceMaps: true });
+
+    expect(getDeleteOption()).toBeUndefined();
+  });
+
+  it('passes the new source map options through', () => {
+    makeAddSentryVitePlugin({ sourcemaps: { upload: false, injectDebugIds: true, delete: false } });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourcemaps: expect.objectContaining({ upload: false, injectDebugIds: true, delete: false }),
+      }),
+    );
+  });
+
+  // The bundler plugin warns when both options are set, so it must only see what the user set.
+  it.each([
+    [{ delete: true }, undefined],
+    [{ delete: false, deleteSourcemapsAfterUpload: true }, true],
+  ] as const)('with %j it passes `deleteSourcemapsAfterUpload: %s`', (sourcemaps, expected) => {
+    makeAddSentryVitePlugin({ sourcemaps }, { sdkEnabledSourceMaps: true });
+
+    expect(capturedOptions?.sourcemaps?.deleteSourcemapsAfterUpload).toBe(expected);
   });
 
   it.each([true, false])('passes a user-set `deleteSourcemapsAfterUpload: %s` through', value => {

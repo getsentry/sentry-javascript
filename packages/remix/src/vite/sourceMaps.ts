@@ -1,4 +1,5 @@
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
+import { resolveSourceMapsFeatures } from '@sentry/core';
 import type { Plugin, UserConfig } from 'vite';
 import type { SentryRemixVitePluginOptions } from './types';
 
@@ -47,15 +48,22 @@ export function makeAddSentryVitePlugin(
     sourcemaps: {
       assets: sourcemaps?.assets,
       disable: sourcemaps?.disable,
+      upload: sourcemaps?.upload,
+      injectDebugIds: sourcemaps?.injectDebugIds,
+      delete: sourcemaps?.delete,
       ignore: sourcemaps?.ignore,
       rewriteSources: sourcemaps?.rewriteSources,
       resolveSourceMap: sourcemaps?.resolveSourceMap,
       filesToDeleteAfterUpload: sourcemaps?.filesToDeleteAfterUpload,
       // Called when the bundler plugin decides, after `makeEnableSourceMapsPlugin` ran.
-      // With `disable: 'disable-upload'` the user uploads the maps by hand, so they stay.
-      deleteSourcemapsAfterUpload: () =>
-        sourcemaps?.deleteSourcemapsAfterUpload ??
-        (state.sdkEnabledSourceMaps && !sourcemaps?.disable ? true : undefined),
+      // Without an upload the user uploads the maps by hand, so they stay.
+      // With `sourcemaps.delete` the bundler plugin ignores this option and warns if the user set it.
+      deleteSourcemapsAfterUpload:
+        sourcemaps?.delete === undefined
+          ? () =>
+              sourcemaps?.deleteSourcemapsAfterUpload ??
+              (state.sdkEnabledSourceMaps && resolveSourceMapsFeatures(sourcemaps).upload ? true : undefined)
+          : sourcemaps.deleteSourcemapsAfterUpload,
       sdkEnabledSourceMaps: () => state.sdkEnabledSourceMaps,
     },
     telemetry: telemetry ?? true,
@@ -84,9 +92,7 @@ export function makeEnableSourceMapsPlugin(
     config(viteConfig) {
       const sourcemap = getUpdatedSourceMapSettings(viteConfig, options);
       state.sdkEnabledSourceMaps = sourcemap !== viteConfig.build?.sourcemap;
-      return {
-        build: { sourcemap },
-      };
+      return sourcemap === undefined ? {} : { build: { sourcemap } };
     },
   };
 }
@@ -101,15 +107,17 @@ export function makeEnableSourceMapsPlugin(
  *       - keep this setting (don't do anything - like deletion - besides uploading)
  *
  *     3. Users didn't set source maps generation
- *       - we enable 'hidden' source maps generation
- *       - pass `deleteSourcemapsAfterUpload: true`, so the maps never reach the build output
+ *       - we enable 'hidden' source maps generation when Sentry uploads the maps, or when
+ *         `sourcemaps.delete: false` keeps them for a manual upload. Otherwise we leave it unset
+ *       - without `sourcemaps.delete` we pass `deleteSourcemapsAfterUpload: true`, so the maps never
+ *         reach the build output
  *
  * --> only exported for testing
  */
 export function getUpdatedSourceMapSettings(
   viteConfig: UserConfig,
   sentryPluginOptions?: SentryRemixVitePluginOptions,
-): boolean | 'inline' | 'hidden' {
+): boolean | 'inline' | 'hidden' | undefined {
   const viteUserSourceMapSetting = viteConfig.build?.sourcemap;
   const settingKey = 'vite.build.sourcemap';
   const debug = sentryPluginOptions?.debug;
@@ -137,6 +145,15 @@ export function getUpdatedSourceMapSettings(
     }
 
     return viteUserSourceMapSetting;
+  }
+
+  const sourcemaps = sentryPluginOptions?.sourcemaps;
+  const { injectDebugIds, upload, legacyDisable } = resolveSourceMapsFeatures(sourcemaps);
+
+  // Without an upload, Sentry only turns source maps on when `sourcemaps.delete: false` keeps them.
+  // TODO(v12): Remove the `disable-upload` case along with `sourcemaps.disable`.
+  if (!(upload || legacyDisable === 'disable-upload' || (sourcemaps?.delete === false && injectDebugIds))) {
+    return undefined;
   }
 
   if (debug) {
