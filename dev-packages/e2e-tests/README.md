@@ -43,7 +43,7 @@ Or you can run a single E2E test app with a specific variant:
 pnpm run test:run <app-name> --variant <variant-name>
 ```
 
-Variant name matching is case-insensitive and partial. For example, `--variant 13` will match `nextjs-pages-dir (next@13)` if a matching variant is present in the test app's `package.json`.
+Variant name matching is case-insensitive and partial. For example, `--variant 13` will match `nextjs-14-pages-dir (next@13)` if a matching variant is present in the test app's `package.json`.
 
 ### Using the Makefile
 
@@ -76,21 +76,21 @@ For example, if you have the following variants in your test app's `package.json
   "variants": [
     {
       "build-command": "pnpm test:build-13",
-      "label": "nextjs-pages-dir (next@13)"
+      "label": "nextjs-14-pages-dir (next@13)"
     },
     {
       "build-command": "pnpm test:build-13-canary",
-      "label": "nextjs-pages-dir (next@13-canary)"
+      "label": "nextjs-14-pages-dir (next@13-canary)"
     },
     {
       "build-command": "pnpm test:build-15",
-      "label": "nextjs-pages-dir (next@15)"
+      "label": "nextjs-14-pages-dir (next@15)"
     }
   ]
 }
 ```
 
-If you run `pnpm run test:run nextjs-pages-dir --variant 13`, it will match against the very first matching variant, which is `nextjs-pages-dir (next@13)`. If you need to target the second variant in the example, you need to be more specific and use `--variant 13-canary`.
+If you run `pnpm run test:run nextjs-14-pages-dir --variant 13`, it will match against the very first matching variant, which is `nextjs-14-pages-dir (next@13)`. If you need to target the second variant in the example, you need to be more specific and use `--variant 13-canary`.
 
 A variant runs its `build-command` and `assert-command`. Without them, it runs the app's `test:build` and `test:assert` scripts, like the app's default job.
 
