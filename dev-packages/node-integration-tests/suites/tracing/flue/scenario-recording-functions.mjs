@@ -4,15 +4,13 @@ import { start } from '@flue/runtime/node';
 import { fauxAssistantMessage, fauxProvider, fauxToolCall } from '@earendil-works/pi-ai/providers/faux';
 import * as v from 'valibot';
 
-const privacy = () => Sentry.getIsolationScope().getScopeData().tags.privacy;
-
 // Flue runs an agent in the isolation scope of the request that dispatched it, so the tag set there
 // reaches the functions. The pi-ai integration has no options of its own: Flue's decide the chat spans.
 instrument(
   Sentry.createFlueInstrumentation({
     recordInputs: call =>
       (call.operation === 'chat' ? call.context.instanceId : call.observation.instanceId) === 'public',
-    recordOutputs: () => privacy() === 'public',
+    recordOutputs: () => Sentry.getIsolationScope().getScopeData().tags.privacy === 'public',
   }),
 );
 
