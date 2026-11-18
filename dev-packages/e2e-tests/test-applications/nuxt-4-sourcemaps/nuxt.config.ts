@@ -12,6 +12,11 @@ const noUpload = process.env.E2E_NO_UPLOAD === 'true';
 // output directories differ per Nitro preset.
 const nitroPreset = process.env.NITRO_PRESET;
 
+// `manual-upload`: with `sourcemap.client` unset, Sentry uploads nothing and keeps the maps it enabled, for an upload
+// with the CLI.
+// `delete-all`: Sentry removes the client maps the app enabled and the server maps Nuxt enables.
+const variant = process.env.E2E_VARIANT;
+
 type OutputBundle = Record<string, { type: string; fileName: string; code?: string }>;
 
 // The bundler emits no map for a chunk without mappable source, such as Vue's export helper, so its debug ID
@@ -38,7 +43,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-06-06',
   imports: { autoImport: false },
 
-  sourcemap: { client: nitroPreset || noUpload ? undefined : 'hidden' },
+  sourcemap: { client: nitroPreset || noUpload || variant === 'manual-upload' ? undefined : 'hidden' },
 
   nitro: { preset: nitroPreset },
 
@@ -63,7 +68,13 @@ export default defineNuxtConfig({
     // Dropping `filesToDeleteAfterUpload` is the whole point of the "kept" variant: Sentry should
     // upload the maps and leave the emitted files alone.
     sourcemaps:
-      keepClientSourceMaps || nitroPreset || noUpload ? {} : { filesToDeleteAfterUpload: ['.output/public/**/*.map'] },
+      variant === 'manual-upload'
+        ? { upload: false, delete: false }
+        : variant === 'delete-all'
+          ? { delete: true }
+          : keepClientSourceMaps || nitroPreset || noUpload
+            ? {}
+            : { filesToDeleteAfterUpload: ['.output/public/**/*.map'] },
     debug: true,
   },
 });

@@ -387,6 +387,92 @@ describe('setupSourceMaps hooks', () => {
       expect(getSdkEnabledSourceMaps()).toBe(true);
     });
 
+    describe('with the new source map options', () => {
+      async function runBuild(
+        sourcemaps: NonNullable<Parameters<typeof setupSourceMaps>[0]['sourcemaps']>,
+        sourcemap: { client?: SourceMapSetting; server?: SourceMapSetting } = {},
+      ) {
+        const mockNuxt = createMockNuxt({ sourcemap: { client: undefined, server: undefined, ...sourcemap } });
+
+        setupSourceMaps({ sourcemaps }, mockNuxt as unknown as Nuxt, vi.fn());
+        await mockNuxt.triggerHook('modules:done');
+        await mockNuxt.triggerHook('nitro:config', { rollupConfig: { plugins: [], output: {} }, dev: false });
+        await mockNuxt.triggerHook('nitro:init', createMockNitro());
+        await mockNuxt.triggerHook('close');
+
+        return mockNuxt;
+      }
+
+      function expectFilesDeletedAfterBuild(filesToDeleteAfterUpload: string[]): void {
+        expect(mockCreateSentryBuildPluginManager).toHaveBeenCalledWith(
+          expect.objectContaining({ sourcemaps: expect.objectContaining({ filesToDeleteAfterUpload }) }),
+          { buildTool: 'nuxt', loggerPrefix: '[Sentry Nuxt]' },
+        );
+      }
+
+      it.each([{ upload: false }, { injectDebugIds: false }])(
+        'adds the plugins, turns no source maps on and deletes none with %j',
+        async sourcemaps => {
+          const mockNuxt = await runBuild(sourcemaps);
+
+          expect(mockNuxt.options.sourcemap).toEqual({ client: undefined, server: undefined });
+          expect(mockSentryVitePlugin).toHaveBeenCalledWith(
+            expect.objectContaining({ sourcemaps: expect.objectContaining(sourcemaps) }),
+          );
+          expect(mockSentryRollupPlugin).toHaveBeenCalledWith(
+            expect.objectContaining({ sourcemaps: expect.objectContaining(sourcemaps) }),
+          );
+          expect(getDeleteOption()).toBeUndefined();
+          expect(getSdkEnabledSourceMaps()).toBe(false);
+          expect(mockCreateSentryBuildPluginManager).not.toHaveBeenCalled();
+        },
+      );
+
+      it('keeps the source maps of a manual upload with `upload: false` and `delete: false`', async () => {
+        const mockNuxt = await runBuild({ upload: false, delete: false });
+
+        expect(mockNuxt.options.sourcemap).toEqual({ client: 'hidden', server: 'hidden' });
+        expect(getDeleteOption()).toBe(false);
+        expect(mockCreateSentryBuildPluginManager).not.toHaveBeenCalled();
+      });
+
+      it('keeps the source maps Sentry enabled with `delete: false`, but deletes the user-set files', async () => {
+        await runBuild({ delete: false, filesToDeleteAfterUpload: ['extra/**/*.map'] });
+
+        expect(getDeleteOption()).toBe(false);
+        expectFilesDeletedAfterBuild(['extra/**/*.map']);
+      });
+
+      it('deletes the source maps the user enabled with `delete: true`', async () => {
+        await runBuild({ delete: true }, { client: true, server: true });
+
+        expect(getDeleteOption()).toBe(true);
+        expect(getSdkEnabledSourceMaps()).toBe(true);
+        expectFilesDeletedAfterBuild(['.output/server/**/*.map']);
+      });
+
+      it('deletes the user-set files next to the source maps with `delete: true`', async () => {
+        await runBuild({ delete: true, filesToDeleteAfterUpload: ['extra/**/*.map'] });
+
+        expectFilesDeletedAfterBuild(['.output/server/**/*.map', 'extra/**/*.map']);
+      });
+
+      // Nitro still needs the maps of the SSR build, so neither plugin gets the option itself.
+      it.each([true, false])('applies `delete: %s` to the client environment only', async value => {
+        await runBuild({ delete: value, deleteSourcemapsAfterUpload: !value });
+
+        expect(capturedViteOptions.options?.sourcemaps?.delete).toBeUndefined();
+        expect(getDeleteOption('client')).toBe(value);
+        expect(getDeleteOption('ssr')).toBeUndefined();
+        expect(getSdkEnabledSourceMaps('ssr')).toBe(false);
+        expect(mockSentryRollupPlugin).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sourcemaps: expect.objectContaining({ delete: undefined, deleteSourcemapsAfterUpload: false }),
+          }),
+        );
+      });
+    });
+
     // A broad glob also matches the SSR build's maps, which Nitro still needs.
     it('applies only the user-set `filesToDeleteAfterUpload`, after the build', async () => {
       const mockNuxt = createMockNuxt({ sourcemap: { client: undefined, server: true } });

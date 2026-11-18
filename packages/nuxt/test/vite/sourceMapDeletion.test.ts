@@ -211,4 +211,25 @@ describe('getFallbackFilesToDelete', () => {
   it('returns no globs before Nitro reported its output directories', () => {
     expect(getFallbackFilesToDelete({ client: true, server: true })).toEqual([]);
   });
+
+  describe('with `sourcemaps.delete`', () => {
+    const output = { serverDir: path.join('.output', 'server'), publicDir: path.join('.output', 'public') };
+
+    it('covers both sides with `true`, also when the user enabled the source maps', () => {
+      const fallback = {
+        client: false,
+        server: false,
+        serverDir: path.join(projectDir, output.serverDir),
+        publicDir: path.join(projectDir, output.publicDir),
+      };
+
+      expect(getFallbackFilesToDelete(fallback, true)).toEqual(['.output/public/**/*.map', '.output/server/**/*.map']);
+    });
+
+    it('returns no globs with `false`, also when Sentry enabled the source maps', () => {
+      const fallback = { client: true, server: true, serverDir: path.join(projectDir, output.serverDir) };
+
+      expect(getFallbackFilesToDelete(fallback, false)).toEqual([]);
+    });
+  });
 });

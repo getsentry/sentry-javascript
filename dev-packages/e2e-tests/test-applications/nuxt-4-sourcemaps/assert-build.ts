@@ -10,7 +10,9 @@ import {
   findSourceMapFiles,
   findSourceMappingUrlComments,
   getAssembleRequests,
+  getChunkUploadPosts,
   getSourcemapSources,
+  loadMockServerResults,
   startNodeServer,
 } from '@sentry-internal/test-utils';
 
@@ -22,6 +24,12 @@ const noUpload = process.env.E2E_NO_UPLOAD === 'true';
 
 /** `nuxt generate` emits no `.output/server`. Keyed on the command so a missing one under `nuxt build` still fails. */
 const isStaticBuild = process.env.NUXT_COMMAND === 'generate';
+
+/** With `upload: false` and `delete: false`, Sentry uploads nothing and keeps the maps it enabled. */
+const manualUpload = process.env.E2E_VARIANT === 'manual-upload';
+
+/** With `delete: true`, Sentry removes the client maps the app enabled and the server maps Nuxt enables. */
+const deleteAll = process.env.E2E_VARIANT === 'delete-all';
 
 const nitroPreset = process.env.NITRO_PRESET ?? 'node-server';
 
@@ -63,7 +71,27 @@ console.log(
     `client source maps ${keepClientSourceMaps ? 'kept' : 'deleted'}${noUpload ? ', no upload' : ''}\n`,
 );
 
-if (!noUpload) {
+if (manualUpload) {
+  assert.deepEqual(getChunkUploadPosts(loadMockServerResults()), [], 'Expected no source map upload');
+
+  // The kept maps carry the debug IDs of their chunks, so an upload with the CLI needs no inject step.
+  for (const outputDir of [CLIENT_OUTPUT, SERVER_OUTPUT]) {
+    const mapDebugIds = new Set(
+      findSourceMapFiles({ outputDir }).map(file => {
+        const map = JSON.parse(fs.readFileSync(file, 'utf8')) as { debug_id?: string; debugId?: string };
+        return (map.debug_id ?? map.debugId)?.toLowerCase();
+      }),
+    );
+    const injectedDebugIds = findInjectedDebugIds({ outputDir });
+
+    assert.ok(
+      injectedDebugIds.some(debugId => mapDebugIds.has(debugId)),
+      `Expected a kept source map with the debug ID of a chunk in ${outputDir}`,
+    );
+    console.log(`  ${outputDir}: ${injectedDebugIds.length} debug ID(s), ${mapDebugIds.size} kept source map(s)`);
+  }
+  console.log('');
+} else if (!noUpload) {
   const { requests, bundles, sourcemaps, uploadedDebugIds } = assertSourceMapUpload({
     outputDirs: isStaticBuild ? [CLIENT_OUTPUT] : [CLIENT_OUTPUT, SERVER_OUTPUT],
     // The client output is checked below, because the "kept" variant expects its maps to stay and some presets
@@ -163,8 +191,11 @@ if (!noUpload) {
 
 const clientSourceMaps = findSourceMapFiles({ outputDir: CLIENT_OUTPUT }).filter(isClientFile);
 
-if (keepClientSourceMaps) {
-  assert.ok(clientSourceMaps.length > 0, `Expected Sentry to leave the user-enabled maps in ${CLIENT_OUTPUT}`);
+if (keepClientSourceMaps || manualUpload) {
+  assert.ok(clientSourceMaps.length > 0, `Expected Sentry to leave the source maps in ${CLIENT_OUTPUT}`);
+  // Hidden maps: nothing in the served bundles points to them.
+  const references = findSourceMappingUrlComments({ outputDir: CLIENT_OUTPUT }).filter(isClientFile);
+  assert.deepEqual(references, [], `Expected no sourceMappingURL comments in ${CLIENT_OUTPUT}`);
   console.log(`  ${clientSourceMaps.length} source map(s) kept in ${CLIENT_OUTPUT}, as configured\n`);
 } else {
   // This directory is served to the internet, so a surviving `.map` hands out the original source.
@@ -183,8 +214,12 @@ if (keepClientSourceMaps) {
 
 // --- What the build leaves behind in the server output ---
 
-// Nuxt enables the server maps by default, so they are the user's and Sentry must keep them.
-if (!isStaticBuild) {
+// Nuxt enables the server maps by default, so they are the user's and Sentry must keep them, unless
+// `sourcemaps.delete` is `true`.
+if (!isStaticBuild && deleteAll) {
+  assert.deepEqual(findSourceMapFiles({ outputDir: SERVER_OUTPUT }), [], `Expected no source maps in ${SERVER_OUTPUT}`);
+  console.log(`  ${SERVER_OUTPUT} is free of source maps\n`);
+} else if (!isStaticBuild) {
   const serverSourceMaps = findSourceMapFiles({ outputDir: SERVER_OUTPUT });
   assert.ok(serverSourceMaps.length > 0, `Expected Sentry to keep the server source maps in ${SERVER_OUTPUT}`);
   console.log(`  ${serverSourceMaps.length} source map(s) kept in ${SERVER_OUTPUT}, as Nuxt enables them\n`);

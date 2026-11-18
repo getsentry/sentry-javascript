@@ -459,6 +459,32 @@ describe('change Nuxt source map settings', () => {
       expect(previousUserSourcemapSetting.server).toBe(expectedReturn);
     });
 
+    it.each([
+      [{ upload: false }, undefined],
+      [{ injectDebugIds: false }, undefined],
+      [{ upload: false, delete: true }, undefined],
+      [{ injectDebugIds: false, delete: false }, undefined],
+      [{ upload: false, delete: false }, 'hidden'],
+      [{ delete: true }, 'hidden'],
+      [{ disable: 'disable-upload' }, 'hidden'],
+      [{ disable: true, upload: true }, 'hidden'],
+    ] as const)('with unset source maps and `sourcemaps: %j` it sets both sides to %s', (sourcemaps, expected) => {
+      // @ts-expect-error - Nuxt types don't accept `undefined` but we want to test this case
+      nuxt.options.sourcemap = { client: undefined, server: undefined };
+      const previousUserSourcemapSetting = changeNuxtSourceMapSettings(nuxt as Nuxt, { sourcemaps });
+
+      expect(nuxt.options.sourcemap).toEqual({ client: expected, server: expected });
+      expect(previousUserSourcemapSetting).toEqual({ client: 'unset', server: 'unset' });
+    });
+
+    it('leaves `nuxt.options.sourcemap` unset when Sentry turns no source maps on', () => {
+      // @ts-expect-error - Nuxt types don't accept `undefined` but we want to test this case
+      nuxt.options.sourcemap = undefined;
+      changeNuxtSourceMapSettings(nuxt as Nuxt, { sourcemaps: { upload: false } });
+
+      expect(nuxt.options.sourcemap).toEqual({ client: undefined, server: undefined });
+    });
+
     it("sets client and server to 'hidden' if nuxt.options.sourcemap not set", () => {
       // @ts-expect-error - Nuxt types don't accept `undefined` but we want to test this case
       nuxt.options.sourcemap = undefined;

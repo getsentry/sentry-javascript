@@ -1,7 +1,7 @@
 import type { Nuxt } from '@nuxt/schema';
 import { sentryRollupPlugin, type SentryRollupPluginOptions } from '@sentry/bundler-plugins/rollup';
 import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
-import { warnOnRemovedBuildOptions } from '@sentry/core';
+import { resolveSourceMapsFeatures, warnOnRemovedBuildOptions } from '@sentry/core';
 import type { NitroConfig } from 'nitropack';
 import type { Plugin } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
@@ -41,7 +41,8 @@ export function setupSourceMaps(
 
   const isDebug = moduleOptions.debug;
 
-  const sourceMapsEnabled = moduleOptions.sourcemaps?.disable !== true;
+  // TODO(v12): Add the Sentry plugins with `sourcemaps.disable: true` too, like with the options that replace it.
+  const sourceMapsEnabled = resolveSourceMapsFeatures(moduleOptions.sourcemaps).legacyDisable !== true;
 
   // In case we overwrite the source map settings, we default to deleting the files
   const shouldDeleteFilesFallback: DeletionFallback = { client: true, server: true };
@@ -56,12 +57,13 @@ export function setupSourceMaps(
       // ONLY THIS nuxt.sourcemap.(server/client) setting is the one Sentry will overwrite with 'hidden', if needed.
       const previousSourceMapSettings = changeNuxtSourceMapSettings(nuxt, moduleOptions);
 
+      const sentryEnabled = sentryEnablesSourceMaps(moduleOptions.sourcemaps);
       // Mutate in place so the Vite plugin (which captured this object at registration time) sees the updated values
-      shouldDeleteFilesFallback.client = previousSourceMapSettings.client === 'unset';
-      shouldDeleteFilesFallback.server = previousSourceMapSettings.server === 'unset';
+      shouldDeleteFilesFallback.client = sentryEnabled && previousSourceMapSettings.client === 'unset';
+      shouldDeleteFilesFallback.server = sentryEnabled && previousSourceMapSettings.server === 'unset';
 
       if (isDebug) {
-        logSentryEnabledSourceMaps(shouldDeleteFilesFallback, isViteBuilder(nuxt));
+        logSentryEnabledSourceMaps(shouldDeleteFilesFallback, isViteBuilder(nuxt), moduleOptions.sourcemaps?.delete);
       }
     }
   });
@@ -145,6 +147,16 @@ export function setupSourceMaps(
 }
 
 /**
+ * Whether Sentry turns source maps on that the user did not set: when it uploads them, or when
+ * `sourcemaps.delete: false` keeps them for a manual upload.
+ */
+function sentryEnablesSourceMaps(sourcemaps: SentryNuxtModuleOptions['sourcemaps']): boolean {
+  const { injectDebugIds, upload, legacyDisable } = resolveSourceMapsFeatures(sourcemaps);
+  // TODO(v12): Remove the `disable-upload` case along with `sourcemaps.disable`.
+  return legacyDisable === 'disable-upload' || upload || (sourcemaps?.delete === false && injectDebugIds);
+}
+
+/**
  * Normalizes the beginning of a path from e.g. ../../../ to ./
  */
 function normalizePath(path: string): string {
@@ -189,6 +201,10 @@ export function getPluginOptions(
 
     sourcemaps: {
       disable: moduleOptions.sourcemaps?.disable,
+      upload: sourcemapsOptions.upload,
+      injectDebugIds: sourcemapsOptions.injectDebugIds,
+      // `sourcemaps.delete` does not reach the plugins: `withClientSourceMapDeletion` and
+      // `filesToDeleteAfterUpload` apply it, because Nitro still needs the maps of the SSR build.
       // The server/client files are in different places depending on the nitro preset (e.g. '.output/server' or '.netlify/functions-internal/server')
       // We cannot determine automatically how the build folder looks like (depends on the preset), so each plugin uploads its own build output (the vitePlugin for the Nuxt client and the rollupPlugin for Nitro).
       // If we could know where the server/client assets are located, we could do something like this (based on the Nitro preset): isNitro ? ['./.output/server/**/*'] : ['./.output/public/**/*'],
@@ -207,16 +223,25 @@ export function getPluginOptions(
  * of a side resolved to `undefined` and Sentry enabled `'hidden'`. This covers the server maps, and the
  * client maps with a builder other than Vite. Sentry deletes them in Nitro's output directories, which are
  * only known once Nitro is set up.
+ *
+ * `sourcemaps.delete: true` deletes the source maps of both sides next to the user's files, and
+ * `sourcemaps.delete: false` only the user's files.
  * @see https://nuxt.com/docs/4.x/api/nuxt-config#sourcemap
  */
 function resolveFilesToDeleteAfterUpload(
   moduleOptions: SentryNuxtModuleOptions,
   shouldDeleteFilesFallback?: DeletionFallback,
 ): string | Array<string> | undefined {
-  const fallbackFilesToDelete = getFallbackFilesToDelete(shouldDeleteFilesFallback);
+  const deleteOption = moduleOptions.sourcemaps?.delete;
+  const fallbackFilesToDelete = getFallbackFilesToDelete(shouldDeleteFilesFallback, deleteOption);
   const shouldDeleteFilesAfterUpload = fallbackFilesToDelete.length > 0;
 
   const filesToDeleteAfterUpload = moduleOptions.sourcemaps?.filesToDeleteAfterUpload;
+
+  if (deleteOption === true) {
+    const files = [...fallbackFilesToDelete, ...[filesToDeleteAfterUpload ?? []].flat()];
+    return files.length > 0 ? files : undefined;
+  }
 
   if (typeof filesToDeleteAfterUpload === 'undefined' && shouldDeleteFilesAfterUpload && moduleOptions.debug) {
     // eslint-disable-next-line no-console
@@ -242,7 +267,8 @@ function resolveFilesToDeleteAfterUpload(
     2. users enabled source map generation (true, hidden, inline).
       - keep this setting (don't do anything - like deletion - besides uploading)
     3. users did not set source maps generation
-      - we enable 'hidden' source maps generation
+      - we enable 'hidden' source maps generation when Sentry uploads the maps, or when `sourcemaps.delete: false`
+        keeps them for a manual upload. Otherwise we leave it unset
       - client with the Vite builder: pass `deleteSourcemapsAfterUpload: true`, so the maps never reach the build output
       - client with another builder: configure `filesToDeleteAfterUpload` for the .map files in Nitro's public dir
       - server: configure `filesToDeleteAfterUpload` to delete the .map files after the build (we emit a log about this)
@@ -264,6 +290,7 @@ export function changeNuxtSourceMapSettings(
 
   const nuxtSourceMap = nuxt.options.sourcemap;
   const isDebug = sentryModuleOptions.debug;
+  const sentryEnabled = sentryEnablesSourceMaps(sentryModuleOptions.sourcemaps);
 
   if (typeof nuxtSourceMap === 'string' || typeof nuxtSourceMap === 'boolean' || typeof nuxtSourceMap === 'undefined') {
     switch (nuxtSourceMap) {
@@ -278,9 +305,11 @@ export function changeNuxtSourceMapSettings(
         previousUserSourceMapSetting = { client: 'enabled', server: 'enabled' };
         break;
       case undefined:
-        nuxt.options.sourcemap = { server: 'hidden', client: 'hidden' };
-        isDebug && logSentryEnablesSourceMap('sourcemap.client', 'hidden');
-        isDebug && logSentryEnablesSourceMap('sourcemap.server', 'hidden');
+        if (sentryEnabled) {
+          nuxt.options.sourcemap = { server: 'hidden', client: 'hidden' };
+          isDebug && logSentryEnablesSourceMap('sourcemap.client', 'hidden');
+          isDebug && logSentryEnablesSourceMap('sourcemap.server', 'hidden');
+        }
         previousUserSourceMapSetting = { client: 'unset', server: 'unset' };
         break;
     }
@@ -292,8 +321,10 @@ export function changeNuxtSourceMapSettings(
       logKeepEnabledSourceMapSetting(sentryModuleOptions, 'sourcemap.client', nuxtSourceMap.client.toString());
       previousUserSourceMapSetting.client = 'enabled';
     } else {
-      nuxt.options.sourcemap.client = 'hidden';
-      isDebug && logSentryEnablesSourceMap('sourcemap.client', 'hidden');
+      if (sentryEnabled) {
+        nuxt.options.sourcemap.client = 'hidden';
+        isDebug && logSentryEnablesSourceMap('sourcemap.client', 'hidden');
+      }
       previousUserSourceMapSetting.client = 'unset';
     }
 
@@ -304,8 +335,10 @@ export function changeNuxtSourceMapSettings(
       logKeepEnabledSourceMapSetting(sentryModuleOptions, 'sourcemap.server', nuxtSourceMap.server.toString());
       previousUserSourceMapSetting.server = 'enabled';
     } else {
-      nuxt.options.sourcemap.server = 'hidden';
-      isDebug && logSentryEnablesSourceMap('sourcemap.server', 'hidden');
+      if (sentryEnabled) {
+        nuxt.options.sourcemap.server = 'hidden';
+        isDebug && logSentryEnablesSourceMap('sourcemap.server', 'hidden');
+      }
       previousUserSourceMapSetting.server = 'unset';
     }
   }
