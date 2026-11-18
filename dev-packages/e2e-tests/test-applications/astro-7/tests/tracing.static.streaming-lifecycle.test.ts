@@ -29,11 +29,22 @@ test.describe('tracing in static/pre-rendered routes', () => {
     expect(clientPageloadSpan.trace_id).toMatch(/[a-f0-9]{32}/);
     expect(clientPageloadSpan.parent_span_id).toBeUndefined();
 
+    expect(await page.locator('meta[name="sentry-cache-origin"]').getAttribute('content')).toBe('');
+
     expect(clientPageloadSpan.attributes).toMatchObject({
       'sentry.op': { value: 'pageload', type: 'string' },
       'sentry.origin': { value: 'auto.pageload.astro', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
+      'page.server_rendering.type': { value: 'static', type: 'string' },
     });
+    // The build rendered the page, so the age is the time since the build.
+    const renderStart = Number(await page.locator('meta[name="sentry-render-start"]').getAttribute('content'));
+    expect(clientPageloadSpan.attributes['page.server_rendering.age']).toEqual({
+      type: 'integer',
+      value: Math.max(0, Math.floor(clientPageloadSpan.start_timestamp - renderStart)),
+    });
+    // The build sends no spans, so there is no render to link.
+    expect(clientPageloadSpan.links).toBeUndefined();
 
     await page.waitForTimeout(1000); // wait another sec to ensure no server span is sent
 

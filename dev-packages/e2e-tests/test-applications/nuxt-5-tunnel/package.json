@@ -28,7 +28,7 @@
   },
   "sentryTest": {
     "optional": true,
-    "variants": [
+    "optionalVariants": [
       {
         "runtime": "cloudflare",
         "build-command": "rm sentry.server.config.ts && pnpm test:build",

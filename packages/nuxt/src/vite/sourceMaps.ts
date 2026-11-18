@@ -1,4 +1,5 @@
 import type { Nuxt } from '@nuxt/schema';
+import { resolveReleaseName } from '@sentry/bundler-plugins/core';
 import { sentryRollupPlugin, type SentryRollupPluginOptions } from '@sentry/bundler-plugins/rollup';
 import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import { resolveSourceMapsFeatures, warnOnRemovedBuildOptions } from '@sentry/core';
@@ -18,14 +19,21 @@ import {
 import { validateSourceMapsOptionsPlugin } from './sentryVitePlugin';
 import {
   extractNuxtSourceMapSetting,
+  logKeepEnabledSourceMapSetting,
+  logSentryEnablesSourceMap,
+  sentryEnablesSourceMaps,
   type SourceMapSetting,
   validateDifferentSourceMapSettings,
+  warnExplicitlyDisabledSourceMap,
 } from './sourceMapSettings';
 
 /**
  * Whether the user enabled (true, 'hidden', 'inline') or disabled (false) source maps
  */
 export type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
+
+/** The public runtime config key that gives the release to the client SDK. */
+export const NUXT_RELEASE_RUNTIME_CONFIG_KEY = '_sentryRelease';
 
 /**
  *  Setup source maps for Sentry inside the Nuxt module during build time (in Vite for Nuxt and Rollup for Nitro).
@@ -34,6 +42,7 @@ export function setupSourceMaps(
   moduleOptions: SentryNuxtModuleOptions,
   nuxt: Nuxt,
   addVitePlugin: (plugin: Plugin[], options?: { dev?: boolean; build?: boolean; server?: boolean }) => void,
+  hasClientConfigFile = false,
 ): void {
   // Warn here rather than in `getPluginOptions`, which runs once per bundler (Vite and Nitro's
   // Rollup) and would emit the same warning twice.
@@ -75,10 +84,14 @@ export function setupSourceMaps(
       build: true,
     });
 
+    const clientPluginOptions = getPluginOptions(moduleOptions);
     addVitePlugin(
       sentryVitePlugin(
         withClientSourceMapDeletion(
-          getPluginOptions(moduleOptions),
+          // Only the generated client config plugin reads the release from the runtime config.
+          hasClientConfigFile
+            ? moveClientReleaseToRuntimeConfig(nuxt, moduleOptions, clientPluginOptions)
+            : clientPluginOptions,
           moduleOptions.sourcemaps,
           shouldDeleteFilesFallback,
         ),
@@ -147,13 +160,26 @@ export function setupSourceMaps(
 }
 
 /**
- * Whether Sentry turns source maps on that the user did not set: when it uploads them, or when
- * `sourcemaps.delete: false` keeps them for a manual upload.
+ * The release usually changes on every commit. Injected into the client's startup chunks, it gives them, and every
+ * chunk that imports them, new content hashes on every release. Nuxt serializes the public runtime config into the
+ * page instead, from where the client config plugin hands it to the SDK.
  */
-function sentryEnablesSourceMaps(sourcemaps: SentryNuxtModuleOptions['sourcemaps']): boolean {
-  const { injectDebugIds, upload, legacyDisable } = resolveSourceMapsFeatures(sourcemaps);
-  // TODO(v12): Remove the `disable-upload` case along with `sourcemaps.disable`.
-  return legacyDisable === 'disable-upload' || upload || (sourcemaps?.delete === false && injectDebugIds);
+function moveClientReleaseToRuntimeConfig(
+  nuxt: Nuxt,
+  moduleOptions: SentryNuxtModuleOptions,
+  pluginOptions: SentryVitePluginOptions,
+): SentryVitePluginOptions {
+  if (moduleOptions.release?.inject === false) {
+    return pluginOptions;
+  }
+
+  const release = resolveReleaseName(moduleOptions.release?.name);
+  if (release) {
+    nuxt.options.runtimeConfig.public[NUXT_RELEASE_RUNTIME_CONFIG_KEY] = release;
+  }
+
+  // Pass the resolved name on so the plugin uploads under the same release the client reports.
+  return { ...pluginOptions, release: { ...pluginOptions.release, ...(release && { name: release }), inject: false } };
 }
 
 /**
@@ -396,34 +422,4 @@ export function validateNitroSourceMapSettings(
       '[Sentry] Set `sourcemapExcludeSources: false` (`nitro.rollupConfig.output`) and `sourcemapMinify: false` (`nitro.experimental`) in the Nuxt config. Source maps will now include the actual code to be able to un-minify code snippets in Sentry.',
     );
   }
-}
-
-function logKeepEnabledSourceMapSetting(
-  sentryNuxtModuleOptions: SentryNuxtModuleOptions,
-  settingKey: string,
-  settingValue: string,
-): void {
-  if (sentryNuxtModuleOptions.debug) {
-    // eslint-disable-next-line no-console
-    console.log(
-      `[Sentry] \`${settingKey}\` is enabled with \`${settingValue}\`. This will correctly un-minify the code snippet on the Sentry Issue Details page.`,
-    );
-  }
-}
-
-function warnExplicitlyDisabledSourceMap(settingKey: string, isDebug: boolean | undefined): void {
-  if (isDebug) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[Sentry] Source map generation is currently disabled in your Vite configuration (\`${settingKey}: false \`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
-    );
-  } else {
-    // eslint-disable-next-line no-console
-    console.warn(`[Sentry] Source map generation (\`${settingKey}\`) is disabled in your Vite configuration.`);
-  }
-}
-
-function logSentryEnablesSourceMap(settingKey: string, settingValue: string): void {
-  // eslint-disable-next-line no-console
-  console.log(`[Sentry] Enabled source map generation in the build options with \`${settingKey}: ${settingValue}\`.`);
 }

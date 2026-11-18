@@ -17,7 +17,6 @@
     "test:build": "pnpm install && pnpm build",
     "test:build:bun": "pnpm install && pnpm build && bun ./bun-build.mjs",
     "test:build:cloudflare": "pnpm install && pnpm build && vite build",
-    "test:build-latest": "pnpm install && pnpm add @nestjs/common@latest @nestjs/core@latest @nestjs/platform-express@latest @nestjs/microservices@latest && pnpm add -D @nestjs/cli@latest && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
@@ -47,10 +46,6 @@
   },
   "sentryTest": {
     "optionalVariants": [
-      {
-        "build-command": "pnpm test:build-latest",
-        "label": "nestjs-12 (latest)"
-      },
       {
         "runtime": "bun",
         "bun-version": "1.4.4",

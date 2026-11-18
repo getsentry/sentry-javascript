@@ -2,7 +2,7 @@ import { tool } from '@langchain/core/tools';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import * as Sentry from '@sentry/node';
-import { startMockServer } from '@sentry-internal/node-integration-tests';
+import { anthropicMessage, startMockServer } from '@sentry-internal/node-integration-tests';
 import express from 'express';
 import { z } from 'zod';
 
@@ -17,17 +17,14 @@ function startMockAnthropicApi() {
       message => Array.isArray(message.content) && message.content.some(part => part.type === 'tool_result'),
     );
 
-    res.json({
-      id: hasToolResult ? 'msg_answer' : 'msg_tool',
-      type: 'message',
-      role: 'assistant',
-      content: hasToolResult
-        ? [{ type: 'text', text: 'Paris.' }]
-        : [{ type: 'tool_use', id: 'toolu_1', name: 'lookup', input: { country: 'France' } }],
-      model: req.body.model,
-      stop_reason: hasToolResult ? 'end_turn' : 'tool_use',
-      usage: { input_tokens: 10, output_tokens: 10 },
-    });
+    res.json(
+      anthropicMessage(req.body.model, {
+        id: hasToolResult ? 'msg_answer' : 'msg_tool',
+        content: hasToolResult
+          ? 'Paris.'
+          : [{ type: 'tool_use', id: 'toolu_1', name: 'lookup', input: { country: 'France' } }],
+      }),
+    );
   });
 
   return startMockServer(app);

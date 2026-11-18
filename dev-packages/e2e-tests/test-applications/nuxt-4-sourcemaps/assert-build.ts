@@ -1,6 +1,7 @@
 import * as assert from 'assert/strict';
 import * as fs from 'fs';
 import * as path from 'path';
+import { chromium } from '@playwright/test';
 import {
   assertSourceMapUpload,
   findDebugIdsWithConflictingSourcemaps,
@@ -50,6 +51,9 @@ const SERVER_OUTPUT = outputDirs.server;
 const CLIENT_MARKER = 'SOURCEMAP_MARKER_CLIENT';
 const SERVER_MARKER = 'SOURCEMAP_MARKER_SERVER';
 
+/** Set as `release.name` in `nuxt.config.ts`. */
+const RELEASE = 'test-release';
+
 const UUID_REGEX = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
 
 /** Some presets write the server into the client output, e.g. Cloudflare Pages. */
@@ -64,6 +68,36 @@ function filesContaining(dir: string, needle: string): string[] {
     .filter(entry => entry.isFile())
     .map(entry => path.join(entry.parentPath, entry.name))
     .filter(file => fs.readFileSync(file, 'utf8').includes(needle));
+}
+
+type NuxtRootContainer = HTMLElement & { __vue_app__?: { $nuxt?: { isHydrating?: boolean } } };
+
+const ENVELOPE_URL = /\/api\/1337\/envelope\//;
+const EVENT_ITEM_HEADER = '"type":"event"';
+
+/** Opens the page, throws the client error, and resolves with the error event the browser SDK sends. */
+async function captureClientErrorEvent(url: string): Promise<{ release?: string }> {
+  const browser = await chromium.launch();
+
+  try {
+    const page = await browser.newPage();
+    await page.route(ENVELOPE_URL, route => route.fulfill({ status: 200, body: '{}' }));
+    const eventRequest = page.waitForRequest(
+      request => ENVELOPE_URL.test(request.url()) && (request.postData() ?? '').includes(EVENT_ITEM_HEADER),
+    );
+
+    await page.goto(url);
+    // Server-rendered elements are clickable before Vue hydration attaches their event handlers.
+    await page.waitForFunction(
+      () => (document.getElementById('__nuxt') as NuxtRootContainer | null)?.__vue_app__?.$nuxt?.isHydrating === false,
+    );
+    await page.locator('#throw-error').click();
+
+    const lines = ((await eventRequest).postData() ?? '').split('\n');
+    return JSON.parse(lines[lines.findIndex(line => line.includes(EVENT_ITEM_HEADER)) + 1] as string);
+  } finally {
+    await browser.close();
+  }
 }
 
 console.log(
@@ -117,7 +151,7 @@ if (manualUpload) {
     const body = request.jsonBody as { version?: string; projects?: string[] } | undefined;
     assert.equal(
       body?.version,
-      'test-release',
+      RELEASE,
       `Expected the release create body to carry the version, got ${JSON.stringify(body)}`,
     );
     assert.deepEqual(
@@ -212,6 +246,13 @@ if (keepClientSourceMaps || manualUpload) {
   console.log(`  ${CLIENT_OUTPUT} is free of source maps, sourceMappingURL comments and original source\n`);
 }
 
+// The release changes on every commit, so a client chunk that contains it gets a new file name on every release.
+const clientChunksWithRelease = filesContaining(CLIENT_OUTPUT, RELEASE).filter(
+  file => isClientFile(file) && file.endsWith('.js'),
+);
+assert.deepEqual(clientChunksWithRelease, [], `Expected no client chunk in ${CLIENT_OUTPUT} to contain the release`);
+console.log(`  No client chunk in ${CLIENT_OUTPUT} contains the release\n`);
+
 // --- What the build leaves behind in the server output ---
 
 // Nuxt enables the server maps by default, so they are the user's and Sentry must keep them, unless
@@ -265,6 +306,10 @@ if (!isStaticBuild && nitroPreset === 'node-server') {
     );
 
     console.log(`  The server answers all ${clientChunkUrls.length} client source map URL(s) as expected\n`);
+
+    const clientErrorEvent = await captureClientErrorEvent(server.baseUrl);
+    assert.equal(clientErrorEvent.release, RELEASE, 'Expected the client error event to carry the release');
+    console.log(`  The client error event carries the release ${RELEASE}\n`);
   } finally {
     await server.close();
   }

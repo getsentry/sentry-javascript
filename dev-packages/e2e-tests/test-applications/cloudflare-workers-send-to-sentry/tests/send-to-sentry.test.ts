@@ -38,7 +38,9 @@ test('Sends an unhandled exception and its request span to Sentry', async () => 
   await fetchFromWorker(`${workerUrl}/test-unhandled-error`, 500, {
     headers: {
       'sentry-trace': `${traceId}-${randomBytes(8).toString('hex')}-1`,
-      baggage: `sentry-trace_id=${traceId},sentry-public_key=${publicKey},sentry-sampled=true,sentry-sample_rate=1`,
+      // The span inherits this frozen dynamic sampling context. Without `qa`, the dev environment bias of
+      // server-side dynamic sampling does not apply, and the span is dropped while the error is kept.
+      baggage: `sentry-trace_id=${traceId},sentry-public_key=${publicKey},sentry-environment=qa,sentry-sampled=true,sentry-sample_rate=1`,
     },
   });
 
