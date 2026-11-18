@@ -55,15 +55,6 @@ function getRuntimeConfig(): { lazyRouteTimeout?: number; idleTimeout?: number }
 
 const runtimeConfig = getRuntimeConfig();
 
-const pendingLazyHandlers = new Set<Promise<unknown>>();
-
-function trackLazyHandler<T>(promise: Promise<T>): Promise<T> {
-  pendingLazyHandlers.add(promise);
-  const settled = () => pendingLazyHandlers.delete(promise);
-  void promise.then(settled, settled);
-  return promise;
-}
-
 // Static manifest for transaction naming when lazy routes are enabled
 const lazyRouteManifest = [
   '/',
@@ -142,16 +133,13 @@ const router = sentryCreateBrowserRouter(
     },
     {
       path: '/delayed-lazy/:id',
-      lazy: () =>
-        trackLazyHandler(
-          (async () => {
-            // Simulate slow lazy route loading (400ms delay)
-            await new Promise(resolve => setTimeout(resolve, 400));
-            return {
-              Component: (await import('./pages/DelayedLazyRoute')).default,
-            };
-          })(),
-        ),
+      lazy: async () => {
+        // Simulate slow lazy route loading (400ms delay)
+        await new Promise(resolve => setTimeout(resolve, 400));
+        return {
+          Component: (await import('./pages/DelayedLazyRoute')).default,
+        };
+      },
     },
     {
       path: '/deep',
@@ -199,7 +187,7 @@ const router = sentryCreateBrowserRouter(
     async patchRoutesOnNavigation({ matches, patch }: Parameters<PatchRoutesOnNavigationFunction>[0]) {
       const leafRoute = matches[matches.length - 1]?.route;
       if (leafRoute?.id && leafRoute?.handle?.lazyChildren) {
-        const children = await trackLazyHandler(leafRoute.handle.lazyChildren());
+        const children = await leafRoute.handle.lazyChildren();
         patch(leafRoute.id, children);
       }
     },
@@ -213,46 +201,12 @@ declare global {
   interface Window {
     __REACT_ROUTER__: typeof router;
     __SENTRY_HAS_ACTIVE_NAVIGATION__: () => boolean;
-    __SENTRY_FINISH_CAPTURE__: () => Promise<void>;
   }
 }
 window.__REACT_ROUTER__ = router;
 window.__SENTRY_HAS_ACTIVE_NAVIGATION__ = () => {
   const span = Sentry.getActiveSpan();
   return !!span && Sentry.spanToJSON(span).attributes['sentry.op'] === 'navigation';
-};
-
-window.__SENTRY_FINISH_CAPTURE__ = async () => {
-  const client = Sentry.getClient();
-  if (!client) {
-    throw new Error('Sentry client is missing');
-  }
-
-  while (true) {
-    await Promise.all([...pendingLazyHandlers]);
-    const activeSpan = Sentry.getActiveSpan();
-    const op = activeSpan && Sentry.spanToJSON(activeSpan).attributes['sentry.op'];
-    if (!activeSpan?.isRecording() || (op !== 'pageload' && op !== 'navigation')) {
-      break;
-    }
-    await new Promise<void>(resolve => {
-      const unsubscribe = client.on('spanEnd', span => {
-        if (span === activeSpan) {
-          unsubscribe();
-          resolve();
-        }
-      });
-    });
-  }
-
-  // Flush the tested work before the checkpoint, so collectors cannot stop before late spans arrive.
-  if (!(await Sentry.flush())) {
-    throw new Error('Failed to flush navigation spans');
-  }
-  Sentry.startSpan({ name: 'e2e.capture-complete', op: 'e2e' }, () => {});
-  if (!(await Sentry.flush())) {
-    throw new Error('Failed to flush capture checkpoint');
-  }
 };
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
