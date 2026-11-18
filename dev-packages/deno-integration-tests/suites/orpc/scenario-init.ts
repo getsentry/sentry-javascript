@@ -44,6 +44,7 @@ for (const procedure of ['find', 'missing', 'crash']) {
 
 await flush();
 
+// eslint-disable-next-line no-console
 console.log(
   `SCENARIO ${JSON.stringify({
     spans: sink.spans.map(span => ({
