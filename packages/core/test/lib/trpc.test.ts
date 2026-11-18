@@ -126,6 +126,60 @@ describe('trpcMiddleware', () => {
     });
   });
 
+  test('sets correct context data with rpc input from getRawInput (tRPC v11)', async () => {
+    const middleware = trpcMiddleware({ attachRpcInput: true });
+    const next = vi.fn().mockResolvedValue({ ok: true });
+    const getRawInput = vi.fn().mockResolvedValue({ foo: 'bar' });
+
+    await middleware({
+      path: 'test.procedure',
+      type: 'query',
+      next,
+      getRawInput,
+    });
+
+    expect(getRawInput).toHaveBeenCalledTimes(1);
+    expect(mockScope.setContext).toHaveBeenCalledWith('trpc', {
+      procedure_path: 'test.procedure',
+      procedure_type: 'query',
+      input: { foo: 'bar' },
+    });
+  });
+
+  test('ignores a rejecting getRawInput', async () => {
+    const middleware = trpcMiddleware({ attachRpcInput: true });
+    const next = vi.fn().mockResolvedValue({ ok: true });
+    const getRawInput = vi.fn().mockRejectedValue(new Error('Could not parse input'));
+
+    await middleware({
+      path: 'test.procedure',
+      type: 'query',
+      next,
+      getRawInput,
+    });
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(mockScope.setContext).toHaveBeenCalledWith('trpc', {
+      procedure_path: 'test.procedure',
+      procedure_type: 'query',
+    });
+  });
+
+  test('does not call getRawInput when input is not attached', async () => {
+    const middleware = trpcMiddleware();
+    const next = vi.fn().mockResolvedValue({ ok: true });
+    const getRawInput = vi.fn().mockResolvedValue({ foo: 'bar' });
+
+    await middleware({
+      path: 'test.procedure',
+      type: 'query',
+      next,
+      getRawInput,
+    });
+
+    expect(getRawInput).not.toHaveBeenCalled();
+  });
+
   test('handles thrown errors', async () => {
     const middleware = trpcMiddleware();
     const error = new Error('Test error');

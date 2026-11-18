@@ -255,6 +255,16 @@ export function determineReleaseName(): string | undefined {
   return getReleaseFromCommitEnv(warnAboutPlaceholderCommitEnvVar) || gitRevision();
 }
 
+/**
+ * Resolves the release name the way the bundler plugins do: the configured name, then the `SENTRY_RELEASE`
+ * environment variable, then a name detected from CI environment variables or git.
+ *
+ * Framework SDKs that pass the release to the SDK at runtime use this to get the same name the plugin uses.
+ */
+export function resolveReleaseName(name?: string): string | undefined {
+  return name ?? process.env['SENTRY_RELEASE'] ?? determineReleaseName();
+}
+
 // Release detection and commit association can read the same variable in one build.
 const warnedPlaceholderEnvVars = new Set<string>();
 

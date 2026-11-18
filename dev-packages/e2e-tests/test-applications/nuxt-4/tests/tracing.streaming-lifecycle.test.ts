@@ -2,7 +2,7 @@ import type { APIRequestContext } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { IMPORT_SURFACES } from './importSurfaces';
-import { isViteServer, NITRO_ONLY, NO_META_TAGS } from './isViteServer';
+import { isViteServer, NITRO_ONLY } from './isViteServer';
 import { RUNTIME, SERVER_ORIGIN } from './runtime';
 
 // `sentryCloudflareNitroPlugin` takes the trace data of the meta tags when the request starts, before the route
@@ -25,7 +25,6 @@ test.describe('distributed tracing', () => {
   const PARAM = 's0me-param';
 
   test('puts the parametrized route in the baggage meta tag', async ({ request }) => {
-    test.fail(isViteServer, NO_META_TAGS);
     test.skip(RUNTIME === 'cloudflare', CLOUDFLARE_META_TAGS_BEFORE_ROUTE);
 
     const { baggageMetaTagContent, serverSpan } = await getBaggageMetaTagAndServerSpan(request, `/test-param/${PARAM}`);
@@ -43,8 +42,6 @@ test.describe('distributed tracing', () => {
   });
 
   test('capture a distributed pageload trace', async ({ page }) => {
-    test.fail(isViteServer, NO_META_TAGS);
-
     const clientSpanPromise = waitForStreamedSpan('nuxt-4', span => {
       return getSpanOp(span) === 'pageload' && span.is_segment;
     });

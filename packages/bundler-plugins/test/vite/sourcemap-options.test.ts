@@ -116,6 +116,29 @@ describe('sourcemaps.upload, sourcemaps.injectDebugIds and sourcemaps.delete (vi
     },
   );
 
+  it('switches an output with its own visible setting to hidden maps and removes them with `delete: true`', async () => {
+    await build({
+      configFile: false,
+      logLevel: 'silent',
+      root,
+      plugins: sentryVitePlugin({ ...credentials, sourcemaps: { delete: true } }),
+      build: {
+        outDir,
+        minify: false,
+        rollupOptions: { input: path.join(root, 'main.js'), output: { sourcemap: true } },
+      },
+    });
+    const files = listFiles(outDir);
+    const chunks = files.filter(file => file.endsWith('.js'));
+
+    expect(chunks).toHaveLength(2);
+    expect(files.filter(file => file.endsWith('.map'))).toEqual([]);
+    for (const chunk of chunks) {
+      expect(fs.readFileSync(path.join(outDir, chunk), 'utf8')).not.toContain('sourceMappingURL');
+    }
+    expect(mockSourcemapUpload).toHaveBeenCalledTimes(1);
+  });
+
   it('removes source maps the user enabled with `delete: true` when no upload can run', async () => {
     const { maps } = await run({ ...credentials, authToken: undefined, sourcemaps: { delete: true } }, true);
 

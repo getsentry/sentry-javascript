@@ -6,6 +6,7 @@ import {
   getPackageJson,
   parseMajorVersion,
   replaceBooleanFlagsInCode,
+  resolveReleaseName,
   stringToUUID,
 } from '../../src/core/utils';
 
@@ -395,5 +396,28 @@ describe('determineReleaseName', () => {
       warnSpy.mockRestore();
       execSyncSpy.mockRestore();
     }
+  });
+});
+
+describe('resolveReleaseName', () => {
+  const originalEnv = process.env;
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  it('prefers the configured name', () => {
+    process.env = { SENTRY_RELEASE: 'from-env', HEROKU_BUILD_COMMIT: 'from-commit' };
+    expect(resolveReleaseName('configured')).toBe('configured');
+  });
+
+  it('falls back to SENTRY_RELEASE', () => {
+    process.env = { SENTRY_RELEASE: 'from-env', HEROKU_BUILD_COMMIT: 'from-commit' };
+    expect(resolveReleaseName()).toBe('from-env');
+  });
+
+  it('falls back to the detected release name', () => {
+    process.env = { HEROKU_BUILD_COMMIT: 'from-commit' };
+    expect(resolveReleaseName()).toBe('from-commit');
   });
 });

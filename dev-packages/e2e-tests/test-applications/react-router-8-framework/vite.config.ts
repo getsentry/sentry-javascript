@@ -4,6 +4,9 @@ import { defineConfig } from 'vite';
 
 export default defineConfig(config => {
   return {
-    plugins: [reactRouter(), sentryReactRouter({ sourcemaps: { disable: true } }, config)],
+    plugins: [
+      reactRouter(),
+      sentryReactRouter({ release: { name: 'react-router-8-framework-e2e' }, sourcemaps: { disable: true } }, config),
+    ],
   };
 });

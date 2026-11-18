@@ -161,4 +161,35 @@ describe.runIf(supports({ min: 22 }))('pi-ai integration', () => {
       },
     );
   });
+
+  createEsmTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-recording-functions.mjs',
+    (createRunner, test) => {
+      test('decides content recording per request when the options are functions', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const recorded = container.items
+                .filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.pi_ai')
+                .sort((a, b) => a.start_timestamp - b.start_timestamp)
+                .map(({ attributes }) => [
+                  attributes[GEN_AI_RESPONSE_STREAMING]?.value === true,
+                  GEN_AI_INPUT_MESSAGES in attributes,
+                  GEN_AI_OUTPUT_MESSAGES in attributes,
+                ]);
+              // [streaming, inputs, outputs]
+              expect(recorded).toEqual([
+                [false, true, true],
+                [false, false, false],
+                [true, true, false],
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

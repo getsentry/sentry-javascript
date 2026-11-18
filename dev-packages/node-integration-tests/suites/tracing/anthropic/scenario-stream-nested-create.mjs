@@ -1,7 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
+import {
+  anthropicMessage,
+  anthropicMessageStream,
+  startMockServer,
+  streamSseEvents,
+} from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
@@ -12,36 +17,17 @@ function startMockAnthropicServer() {
 
     // Non-streaming request (the nested call made from the stream event handler).
     if (!req.body.stream) {
-      res.send({
-        id: 'msg_nested',
-        type: 'message',
-        model,
-        role: 'assistant',
-        content: [{ type: 'text', text: 'nested reply' }],
-        stop_reason: 'end_turn',
-        usage: { input_tokens: 3, output_tokens: 4 },
-      });
+      res.send(
+        anthropicMessage(model, {
+          id: 'msg_nested',
+          content: 'nested reply',
+          usage: { input_tokens: 3, output_tokens: 4 },
+        }),
+      );
       return;
     }
 
-    const events = [
-      {
-        type: 'message_start',
-        message: {
-          id: 'msg_stream_1',
-          type: 'message',
-          role: 'assistant',
-          model,
-          content: [],
-          usage: { input_tokens: 10 },
-        },
-      },
-      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
-      { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Hello!' } },
-      { type: 'content_block_stop', index: 0 },
-      { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 15 } },
-      { type: 'message_stop' },
-    ];
+    const events = anthropicMessageStream(model);
     streamSseEvents(res, events, { eventNames: true });
   });
 

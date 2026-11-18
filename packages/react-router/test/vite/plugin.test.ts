@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { getClientRelease, makeClientReleasePlugin } from '../../src/vite/makeClientReleasePlugin';
 import { makeConfigInjectorPlugin } from '../../src/vite/makeConfigInjectorPlugin';
 import { makeCustomSentryVitePlugins } from '../../src/vite/makeCustomSentryVitePlugins';
 import { makeEnableSourceMapsPlugin } from '../../src/vite/makeEnableSourceMapsPlugin';
@@ -13,6 +14,7 @@ vi.spyOn(console, 'warn').mockImplementation(() => {
   /* noop */
 });
 
+vi.mock('../../src/vite/makeClientReleasePlugin');
 vi.mock('../../src/vite/makeCustomSentryVitePlugins');
 vi.mock('../../src/vite/makeEnableSourceMapsPlugin');
 vi.mock('../../src/vite/makeConfigInjectorPlugin');
@@ -35,6 +37,7 @@ describe('sentryReactRouter', () => {
   const mockServerBuildCapturePlugin = { name: 'sentry-react-router-server-build-capture' };
   const mockTunnelBasePathPlugin = { name: 'sentry-react-router-tunnel-base-path' };
   const mockOrchestrionPlugin = { name: 'sentry-orchestrion-vite' };
+  const mockClientReleasePlugin = { name: 'sentry-react-router-client-release' };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -43,6 +46,8 @@ describe('sentryReactRouter', () => {
     vi.mocked(makeConfigInjectorPlugin).mockReturnValue(mockConfigInjectorPlugin);
     vi.mocked(makeServerBuildCapturePlugin).mockReturnValue(mockServerBuildCapturePlugin);
     vi.mocked(makeTunnelBasePathPlugin).mockReturnValue(mockTunnelBasePathPlugin);
+    vi.mocked(getClientRelease).mockReturnValue(undefined);
+    vi.mocked(makeClientReleasePlugin).mockReturnValue(mockClientReleasePlugin);
   });
 
   afterEach(() => {
@@ -96,6 +101,33 @@ describe('sentryReactRouter', () => {
     expect(makeServerBuildCapturePlugin).toHaveBeenCalled();
     expect(makeCustomSentryVitePlugins).toHaveBeenCalledWith({});
     expect(makeEnableSourceMapsPlugin).toHaveBeenCalledWith({});
+
+    process.env.NODE_ENV = originalNodeEnv;
+  });
+
+  it('passes the release to the browser at runtime when there is one', async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    vi.mocked(getClientRelease).mockReturnValue('v1.0.0');
+
+    const result = await sentryReactRouter({}, { command: 'build', mode: 'production' });
+
+    expect(makeClientReleasePlugin).toHaveBeenCalledWith('v1.0.0');
+    expect(result).toContain(mockClientReleasePlugin);
+    expect(makeCustomSentryVitePlugins).toHaveBeenCalledWith({});
+
+    process.env.NODE_ENV = originalNodeEnv;
+  });
+
+  it('resolves the release after building the Sentry plugins, which load `.env.sentry-build-plugin`', async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+
+    await sentryReactRouter({}, { command: 'build', mode: 'production' });
+
+    expect(vi.mocked(makeCustomSentryVitePlugins).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(getClientRelease).mock.invocationCallOrder[0]!,
+    );
 
     process.env.NODE_ENV = originalNodeEnv;
   });

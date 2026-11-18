@@ -1,21 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
-import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
-
-function streamEvents(id, model) {
-  return [
-    {
-      type: 'message_start',
-      message: { id, type: 'message', role: 'assistant', model, content: [], usage: { input_tokens: 10 } },
-    },
-    { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
-    { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Hello!' } },
-    { type: 'content_block_stop', index: 0 },
-    { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 15 } },
-    { type: 'message_stop' },
-  ];
-}
+import {
+  anthropicMessage,
+  anthropicMessageStream,
+  startMockServer,
+  streamSseEvents,
+} from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
@@ -26,21 +17,11 @@ function startMockAnthropicServer() {
     const id = req.body.messages[0].content;
 
     if (!req.body.stream) {
-      res.json({
-        id,
-        type: 'message',
-        role: 'assistant',
-        model: req.body.model,
-        content: [{ type: 'text', text: 'Hello!' }],
-        stop_reason: 'end_turn',
-        stop_sequence: null,
-        usage: { input_tokens: 10, output_tokens: 15 },
-      });
+      res.json(anthropicMessage(req.body.model, { id, content: 'Hello!' }));
       return;
     }
 
-    const events = streamEvents(id, req.body.model);
-    streamSseEvents(res, events, { eventNames: true });
+    streamSseEvents(res, anthropicMessageStream(req.body.model, { id }), { eventNames: true });
   });
 
   app.post('/anthropic/v1/complete', (req, res) => {

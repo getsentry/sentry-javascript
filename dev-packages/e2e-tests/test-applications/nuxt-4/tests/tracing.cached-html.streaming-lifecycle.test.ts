@@ -1,37 +1,35 @@
 import { expect, test, type Page } from '@playwright/test';
 import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
-import { isViteServer, NO_META_TAGS } from './isViteServer';
+import { isViteServer } from './isViteServer';
+
+// The Vite server neither caches nor prerenders routes in `nuxt build`, so these pages render for each request.
+const testCachedPage = isViteServer ? testChangingTracingMetaTagsOnISRPage : testCacheOriginOnRuntimeCachedPage;
+const testPrerenderedPage = isViteServer ? testChangingTracingMetaTagsOnISRPage : testEmptyCacheOriginOnPrerenderedPage;
 
 test.describe('Rendering Modes with Cached HTML', () => {
   test('changes tracing meta tags with multiple requests on Client-Side only page', async ({ page }) => {
-    test.fail(isViteServer, NO_META_TAGS);
     await testChangingTracingMetaTagsOnISRPage(page, '/rendering-modes/client-side-only-page', 'Client Side Only Page');
   });
 
   test('changes tracing meta tags with multiple requests on ISR-cached page', async ({ page }) => {
-    test.fail(isViteServer, NO_META_TAGS);
     await testChangingTracingMetaTagsOnISRPage(page, '/rendering-modes/isr-cached-page', 'ISR Cached Page');
   });
 
   test('changes tracing meta tags with multiple requests on 1h ISR-cached page', async ({ page }) => {
-    test.fail(isViteServer, NO_META_TAGS);
     await testChangingTracingMetaTagsOnISRPage(page, '/rendering-modes/isr-1h-cached-page', 'ISR 1h Cached Page');
   });
 
   test('links the render as cache origin on SWR-cached page', async ({ page }) => {
-    test.fail(isViteServer, NO_META_TAGS);
-    await testCacheOriginOnRuntimeCachedPage(page, '/rendering-modes/swr-cached-page', 'SWR Cached Page');
+    await testCachedPage(page, '/rendering-modes/swr-cached-page', 'SWR Cached Page');
   });
 
   test('links the render as cache origin on SWR 1h cached page', async ({ page }) => {
-    test.fail(isViteServer, NO_META_TAGS);
-    await testCacheOriginOnRuntimeCachedPage(page, '/rendering-modes/swr-1h-cached-page', 'SWR 1h Cached Page');
+    await testCachedPage(page, '/rendering-modes/swr-1h-cached-page', 'SWR 1h Cached Page');
   });
 
   test('marks pageloads of pre-rendered page as static without a cache origin link', async ({ page }) => {
-    test.fail(isViteServer, NO_META_TAGS);
-    await testEmptyCacheOriginOnPrerenderedPage(page, '/rendering-modes/pre-rendered-page', 'Pre-Rendered Page');
+    await testPrerenderedPage(page, '/rendering-modes/pre-rendered-page', 'Pre-Rendered Page');
   });
 });
 
