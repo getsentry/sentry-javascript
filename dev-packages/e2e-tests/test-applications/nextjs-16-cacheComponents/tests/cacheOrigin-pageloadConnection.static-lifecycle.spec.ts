@@ -3,8 +3,6 @@ import { expect, test } from '@playwright/test';
 import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 const APP = 'nextjs-16-cacheComponents';
 
 const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';

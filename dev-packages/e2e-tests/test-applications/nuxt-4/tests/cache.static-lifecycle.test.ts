@@ -2,8 +2,6 @@ import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test.describe('Cache Instrumentation', () => {
   const SEMANTIC_ATTRIBUTE_CACHE_KEY = 'cache.key';
   const SEMANTIC_ATTRIBUTE_CACHE_HIT = 'cache.hit';

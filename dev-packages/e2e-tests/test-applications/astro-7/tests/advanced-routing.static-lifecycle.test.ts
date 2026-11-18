@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 // Astro 7 "advanced routing": the app owns the request pipeline via `src/fetch.ts`.
 // These tests verify Sentry behaves correctly both when the app delegates to
 // Astro's full pipeline and when it short-circuits a request entirely.

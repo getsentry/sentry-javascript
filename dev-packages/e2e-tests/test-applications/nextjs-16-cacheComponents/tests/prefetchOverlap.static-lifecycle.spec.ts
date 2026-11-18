@@ -1,7 +1,5 @@
 import { expect, test } from '@playwright/test';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 const REQUEST_COUNT = 12;
 
 // Next.js aborts a Cache Components prerender when randomness is generated while it runs. On Cloudflare Workers the

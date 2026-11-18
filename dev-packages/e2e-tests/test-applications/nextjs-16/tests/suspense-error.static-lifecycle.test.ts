@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test('should not capture serverside suspense errors', async ({ page }) => {
   const pageServerComponentTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
     return transactionEvent?.transaction === 'GET /suspense-error';

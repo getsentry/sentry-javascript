@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test('Should handle server action redirect without capturing errors', async ({ page }) => {
   // Wait for the initial page load transaction
   const pageLoadTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {

@@ -2,8 +2,6 @@ import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test('Includes sentry-trace and baggage in response headers', async ({ baseURL }) => {
   const response = await fetch(`${baseURL}/test-success`);
 

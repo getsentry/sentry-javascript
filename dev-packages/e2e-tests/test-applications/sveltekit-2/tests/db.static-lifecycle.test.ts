@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test('Instruments ioredis automatically', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('sveltekit-2', transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /db-ioredis';

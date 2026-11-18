@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test('Should create cache spans around `use cache` functions', async ({ request }) => {
   // A fresh id makes the first request a guaranteed cache miss (the id is part of the cache key)
   // even when the test is retried against the same server.

@@ -4,8 +4,6 @@ import { PAGE_SERVER_RENDERING_TYPE } from '@sentry/conventions/attributes';
 import { PAGELOAD } from '@sentry/conventions/op';
 import { waitForInitialPageload } from './utils.static-lifecycle';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';
 
 function sentryMetaTagNames(html: string): string[] {

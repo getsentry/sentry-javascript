@@ -1,8 +1,6 @@
 import test, { expect } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 // The queue E2E test only runs in production mode.
 // In development mode the @vercel/queue SDK uses an in-memory dispatch that
 // bypasses our mock HTTP server, causing duplicate handler invocations.

@@ -2,8 +2,6 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test('Should create a transaction for middleware', async ({ request }) => {
   const middlewareTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
     return transactionEvent?.transaction === 'middleware GET';

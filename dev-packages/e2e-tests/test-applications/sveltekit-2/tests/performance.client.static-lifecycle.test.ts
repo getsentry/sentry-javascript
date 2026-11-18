@@ -2,8 +2,6 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { waitForInitialPageload } from './utils.static-lifecycle';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test.describe('client-specific performance events', () => {
   test('multiple navigations have distinct traces', async ({ page }) => {
     const navigationTxn1EventPromise = waitForTransaction('sveltekit-2', txnEvent => {

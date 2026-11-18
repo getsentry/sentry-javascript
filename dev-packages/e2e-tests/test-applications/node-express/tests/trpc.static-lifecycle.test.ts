@@ -3,8 +3,6 @@ import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { AppRouter } from '../src/app';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test('Should record span for trpc query', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('node-express', transactionEvent => {
     return (

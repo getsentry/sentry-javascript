@@ -18,12 +18,16 @@ export function getPlaywrightConfig(
   // Apply the shard to every invocation, including scripts that run production and development tests.
   const testShard = process.env.SENTRY_E2E_TEST_SHARD;
   const [current, total] = testShard?.split('/') ?? [];
+  // Apps that test both trace lifecycles keep lifecycle-specific tests in `*.static-lifecycle.*` and
+  // `*.streaming-lifecycle.*` files; their static variant sets `E2E_TEST_TRACE_LIFECYCLE=static`.
+  const isStaticTraceLifecycle = process.env.E2E_TEST_TRACE_LIFECYCLE === 'static';
 
   /**
    * See https://playwright.dev/docs/test-configuration.
    */
   const config: PlaywrightTestConfig = {
     testDir: './tests',
+    testIgnore: isStaticTraceLifecycle ? '**/*.streaming-lifecycle.*' : '**/*.static-lifecycle.*',
     /* Maximum time one test can run for. */
     timeout: 30_000,
     expect: {

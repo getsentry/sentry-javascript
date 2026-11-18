@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test('App router transactions should be attached to the pageload request span', async ({ page }) => {
   const serverTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
     return transactionEvent?.transaction === 'GET /pageload-tracing';

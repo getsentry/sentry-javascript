@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test('Sends correct error event', async ({ baseURL }) => {
   const errorEventPromise = waitForError('node-express', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';

@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 const HANGING_PROMISE_DIGEST_MESSAGE = 'rejects when the prerender is complete';
 
 // Under Cache Components, Next.js aborts prerenders by rejecting the promises it handed out for

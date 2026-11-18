@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 // Origin links for `use cache` in route handlers: a cache hit records a `cache.get` span
 // carrying a `sentry.link.type: 'cache_origin'` span link to the `cache.put` span of the trace
 // that filled the entry; unknown origin means no link.

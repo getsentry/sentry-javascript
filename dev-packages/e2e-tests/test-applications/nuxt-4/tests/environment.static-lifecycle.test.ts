@@ -2,8 +2,6 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test.describe('environment detection', async () => {
   test('sets correct environment for client-side errors', async ({ page }) => {
     const errorPromise = waitForError('nuxt-4', async errorEvent => {

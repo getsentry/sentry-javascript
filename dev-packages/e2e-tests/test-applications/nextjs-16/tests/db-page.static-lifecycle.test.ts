@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test('Instruments DB calls made during server-side rendering of a page', async ({ page }) => {
   const transactionEventPromise = waitForTransaction('nextjs-16', transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /db-page';

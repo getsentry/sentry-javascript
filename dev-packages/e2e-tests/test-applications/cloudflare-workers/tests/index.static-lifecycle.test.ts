@@ -3,8 +3,6 @@ import { waitForError, waitForRequest, waitForTransaction } from '@sentry-intern
 import { SDK_VERSION } from '@sentry/cloudflare';
 import { WebSocket } from 'ws';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test('Index page', async ({ baseURL }) => {
   const result = await fetch(baseURL!);
   expect(result.status).toBe(200);

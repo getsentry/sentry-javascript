@@ -2,8 +2,6 @@ import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test('sends a server action transaction on pageload', async ({ page }) => {
   const transactionPromise = waitForTransaction('nuxt-4', transactionEvent => {
     return transactionEvent.transaction.includes('GET /test-param/');

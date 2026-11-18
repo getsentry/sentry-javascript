@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 // Set when the Options API is compiled out of the Vue build.
 const OPTIONS_API_DISABLED = process.env.VUE_OPTIONS_API === 'false';
 

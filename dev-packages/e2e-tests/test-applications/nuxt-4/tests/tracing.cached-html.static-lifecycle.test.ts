@@ -1,8 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test.describe('Rendering Modes with Cached HTML', () => {
   test('changes tracing meta tags with multiple requests on Client-Side only page', async ({ page }) => {
     await testChangingTracingMetaTagsOnISRPage(page, '/rendering-modes/client-side-only-page', 'Client Side Only Page');

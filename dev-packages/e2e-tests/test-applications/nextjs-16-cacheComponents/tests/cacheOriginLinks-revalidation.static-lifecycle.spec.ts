@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 // Background stale-while-revalidate refills. Target behavior: the revalidation gets its own trace,
 // separate from the request trace that served the stale value. The revalidation trace links back to
 // that request, and its `cache.put` becomes the `cache_origin` for future hits.
@@ -19,7 +17,7 @@ TraceR: cache.revalidate --o  (own trace)                   |
 
 */
 
-// Not implemented yet. Unlike cacheOriginLinks-nesting.spec.ts, this test cannot document the
+// Not implemented yet. Unlike cacheOriginLinks-nesting.static-lifecycle.spec.ts, this test cannot document the
 // target behavior with `test.fail()`: it would wait for a `cache.revalidate` trace that never
 // arrives and time out, and Playwright reports a timeout as a real failure even under
 // `test.fail()`. So the test is `test.fixme()` until the SDK emits the revalidation trace.

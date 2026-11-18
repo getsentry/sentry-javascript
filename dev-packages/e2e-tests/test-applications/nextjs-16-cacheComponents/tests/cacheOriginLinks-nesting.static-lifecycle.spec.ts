@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 // Origin links (`sentry.link.type: 'cache_origin'` on `cache.get` hit spans, pointing at the
 // filling `cache.put`) for `use cache` in nested layout trees under `app/(cached-nesting)/`.
 

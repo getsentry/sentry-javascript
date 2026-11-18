@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test.describe('tracing in static routes with server islands', () => {
   test('only sends client pageload transaction and server island endpoint transaction', async ({ page }) => {
     const clientPageloadTxnPromise = waitForTransaction('astro-7', txnEvent => {

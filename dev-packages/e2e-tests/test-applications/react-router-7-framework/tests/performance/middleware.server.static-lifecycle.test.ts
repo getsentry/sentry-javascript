@@ -2,8 +2,6 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test.describe('server - middleware', () => {
   test('should send middleware transaction on pageload', async ({ page }) => {
     const serverTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {

@@ -2,8 +2,6 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { isTurbopackDevMode } from './isDevMode';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test('Sends a transaction for a request to app router with URL', async ({ page }) => {
   test.skip(isTurbopackDevMode, 'Turbopack intermittently returns 404 for nested dynamic routes in dev mode');
 

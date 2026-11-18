@@ -2,8 +2,6 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import type { Span } from '@sentry/nuxt';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test('sends a pageload root span with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('nuxt-4', async transactionEvent => {
     return transactionEvent.transaction === '/test-param/:param()';

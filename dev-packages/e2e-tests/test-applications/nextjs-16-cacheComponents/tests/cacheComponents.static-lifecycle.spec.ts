@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test('Should render cached component', async ({ page }) => {
   const serverTxPromise = waitForTransaction('nextjs-16-cacheComponents', async transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'http.server';

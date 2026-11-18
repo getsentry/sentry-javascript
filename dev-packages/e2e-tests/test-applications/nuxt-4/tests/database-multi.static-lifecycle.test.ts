@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test.describe('multiple database instances', () => {
   test('instruments default database instance', async ({ request }) => {
     const transactionPromise = waitForTransaction('nuxt-4', transactionEvent => {

@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test.describe('tracing in dynamically rendered (ssr) routes', () => {
   test('sends server and client pageload spans with the same trace id', async ({ page }) => {
     const clientPageloadTxnPromise = waitForTransaction('astro-7', txnEvent => {

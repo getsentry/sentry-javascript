@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
-
 test('Sends a transaction for a successful route', async ({ baseURL, request }) => {
   const transactionEventPromise = waitForTransaction('elysia-bun', transactionEvent => {
     return (
