@@ -83,9 +83,8 @@ test.describe('tracing in static routes with server islands', () => {
       'http.request.header.user-agent': { value: [expect.any(String)], type: 'array' },
     });
 
-    // unfortunately, the server island trace id is not the same as the client pageload trace id
-    // this is because the server island endpoint request is made as a resource link request,
-    // meaning our fetch instrumentation can't attach headers to the request :(
+    // The island script's `fetch()` gets trace headers, but the browser answers it with the preload response, which
+    // left before the SDK ran. So the island starts its own trace.
     expect(serverIslandEndpointSpan.trace_id).not.toBe(clientPageloadSpan.trace_id);
 
     await page.waitForTimeout(1000); // wait another sec to ensure no server span is sent
