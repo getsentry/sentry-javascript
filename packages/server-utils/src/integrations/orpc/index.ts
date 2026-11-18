@@ -2,14 +2,12 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { orpcModuleNames } from '../../orchestrion/config/orpc';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
-import type { ORPCShouldHandleError } from './error-capture';
-import { defaultShouldHandleError, instrumentORPCErrors } from './error-capture';
-import type { SentryORPCTracerOptions } from './tracer';
-import { SentryORPCTracer, setORPCTracer } from './tracer';
+import type { ORPCShouldHandleError } from './instrumentation';
+import { defaultShouldHandleError, instrumentORPC } from './instrumentation';
 
 const INTEGRATION_NAME = 'ORPC' as const;
 
-export interface ORPCIntegrationOptions extends SentryORPCTracerOptions {
+export interface ORPCIntegrationOptions {
   /**
    * Decides whether an error thrown by a procedure is captured as an issue.
    *
@@ -22,26 +20,17 @@ export interface ORPCIntegrationOptions extends SentryORPCTracerOptions {
 const _orpcIntegration = ((options: ORPCIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      setORPCTracer(new SentryORPCTracer(options));
-    },
     setup(client) {
-      invokeOrchestrionInstrumentation(
-        client,
-        orpcModuleNames,
-        instrumentORPCErrors,
-        [options.shouldHandleError ?? defaultShouldHandleError],
-        { requiresTracingChannelBinding: false },
-      );
+      invokeOrchestrionInstrumentation(client, orpcModuleNames, instrumentORPC, [
+        options.shouldHandleError ?? defaultShouldHandleError,
+      ]);
     },
   };
 }) satisfies IntegrationFn;
 
 /**
- * Adds Sentry tracing and error capture for [oRPC](https://orpc.dev) v2.
+ * Adds Sentry tracing and error capture for [oRPC](https://orpc.dev) v2 procedures.
  *
- * oRPC looks up its tracer on `globalThis`, so its spans and the trace continuation of incoming requests
- * work without OpenTelemetry and without the Sentry runtime hook or bundler plugin. Capturing the errors
- * thrown by procedures requires the Sentry runtime hook or bundler plugin.
+ * Requires the Sentry runtime hook or bundler plugin, which instrument `@orpc/server`.
  */
 export const orpcIntegration = defineIntegration(_orpcIntegration);

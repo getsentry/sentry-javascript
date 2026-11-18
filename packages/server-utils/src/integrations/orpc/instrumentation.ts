@@ -1,16 +1,26 @@
 import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
+import { RPC_METHOD, RPC_SYSTEM_NAME, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { HTTP_SERVER, RPC } from '@sentry/conventions/op';
 import {
   captureException,
+  getActiveSpan,
   getClient,
+  getIsolationScope,
+  getRootSpan,
+  INTERNAL_setSegmentNameSourceIfSegment,
   isObjectLike,
   normalize,
   setNormalizationDepthOverrideHint,
+  spanToJSON,
+  startInactiveSpan,
+  updateSpanName,
   withScope,
 } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
 import type { OrchestrionChannelContext } from '../../orchestrion/types';
-import { safeChannelCallback } from '../../tracing-channel';
-import { ORPC_ORIGIN } from './tracer';
+import { bindTracingChannelToSpan, safeChannelCallback } from '../../tracing-channel';
+
+const ORPC_ORIGIN = 'auto.rpc.orpc';
 
 /** Decides whether an error thrown by an oRPC procedure is captured as an issue. */
 export type ORPCShouldHandleError = (error: unknown) => boolean;
@@ -47,29 +57,62 @@ export function defaultShouldHandleError(error: unknown): boolean {
 }
 
 /**
- * Captures the errors thrown by oRPC procedures.
+ * Traces oRPC procedure calls and captures the errors they throw.
  *
- * oRPC catches these errors and encodes them into an error response, so no HTTP error handler sees them,
- * and its tracer only receives a copy without the original error. Until oRPC passes the original error to
- * `TracingSpan.recordException` (https://github.com/middleapi/orpc/issues/2493), the procedure execution is
- * hooked through orchestrion instead. Once that lands, this can move into the tracer.
+ * `executeProcedureInternal` runs the middleware chain and the handler of one procedure call and rejects
+ * with the original error, before oRPC encodes it into an error response that no HTTP error handler sees.
  */
-export function instrumentORPCErrors(shouldHandleError: ORPCShouldHandleError): void {
-  diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.ORPC_EXECUTE_PROCEDURE).subscribe({
-    start() {},
-    end() {},
-    asyncStart() {},
-    asyncEnd(ctx) {
+export function instrumentORPC(shouldHandleError: ORPCShouldHandleError): void {
+  const { channel } = bindTracingChannelToSpan(
+    diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.ORPC_EXECUTE_PROCEDURE),
+    data => startProcedureSpan(getProcedureOptions(data)),
+  );
+
+  channel.subscribe({
+    asyncEnd(data) {
       safeChannelCallback(() => {
-        if (ctx.error === undefined) {
-          captureAsyncIteratorErrors(ctx.result, ctx.arguments[1] as ProcedureOptions | undefined, shouldHandleError);
+        if (data.error === undefined) {
+          captureAsyncIteratorErrors(data.result, getProcedureOptions(data), shouldHandleError);
         }
       });
     },
-    error(ctx) {
-      safeChannelCallback(() =>
-        captureProcedureError(ctx.error, ctx.arguments[1] as ProcedureOptions | undefined, shouldHandleError),
-      );
+    error(data) {
+      safeChannelCallback(() => captureProcedureError(data.error, getProcedureOptions(data), shouldHandleError));
+    },
+  });
+}
+
+function getProcedureOptions(data: OrchestrionChannelContext): ProcedureOptions | undefined {
+  return data.arguments[1] as ProcedureOptions | undefined;
+}
+
+function getProcedurePath(options: ProcedureOptions | undefined): string | undefined {
+  const path = options?.path;
+  return Array.isArray(path) && path.length > 0 ? path.join('/') : undefined;
+}
+
+function startProcedureSpan(options: ProcedureOptions | undefined): ReturnType<typeof startInactiveSpan> {
+  const path = getProcedurePath(options);
+  const name = path ?? 'orpc procedure';
+
+  // The request URL is not a good transaction name: OpenAPI routes contain path params.
+  const activeSpan = getActiveSpan();
+  if (path && activeSpan) {
+    const rootSpan = getRootSpan(activeSpan);
+    if (spanToJSON(rootSpan).attributes[SENTRY_OP] === HTTP_SERVER) {
+      updateSpanName(rootSpan, path);
+      INTERNAL_setSegmentNameSourceIfSegment(rootSpan, 'route');
+      getIsolationScope().setTransactionName(path);
+    }
+  }
+
+  return startInactiveSpan({
+    name,
+    attributes: {
+      [SENTRY_OP]: RPC,
+      [SENTRY_ORIGIN]: ORPC_ORIGIN,
+      [RPC_SYSTEM_NAME]: 'orpc',
+      ...(path && { [RPC_METHOD]: path }),
     },
   });
 }
@@ -111,9 +154,8 @@ function captureAsyncIteratorErrors(
 }
 
 function getProcedureContext(options: ProcedureOptions | undefined): Record<string, unknown> {
-  const path = options?.path;
   const context: Record<string, unknown> = {
-    procedure_path: Array.isArray(path) ? path.join('.') : undefined,
+    procedure_path: getProcedurePath(options),
   };
 
   const client = getClient();

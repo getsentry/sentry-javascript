@@ -1,9 +1,9 @@
 import type { InstrumentationConfig } from '../apmTypes';
 import { getModuleNames } from './module-names';
 
-// oRPC v2 builds one unbundled ESM file per source file. `executeProcedureInternal` runs the middleware
-// chain and the handler of one procedure call and rejects with the original error, before oRPC encodes
-// it into an error response. `-0` makes the range include the v2 prereleases (`2.0.0-beta.*`).
+// oRPC v2 builds one unbundled ESM file per source file. `executeProcedureInternal` is not public API, so a
+// rename in oRPC silently drops both the procedure spans and the error capture.
+// `-0` makes the range include the v2 prereleases (`2.0.0-beta.*`).
 export const orpcConfig = [
   {
     channelName: 'executeProcedure',

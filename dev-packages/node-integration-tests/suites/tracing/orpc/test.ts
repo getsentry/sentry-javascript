@@ -17,36 +17,25 @@ describe('oRPC integration', () => {
 
   // oRPC v2 is ESM-only.
   createEsmTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('records spans for a procedure call and names the transaction after the procedure', async () => {
+    test('records one span for a procedure call and names the transaction after the procedure', async () => {
       const runner = createRunner()
         .expect({
           span: container => {
-            expect(container.items.find(item => item.is_segment)?.name).toBe('orpc.planet/find');
+            expect(container.items.find(item => item.is_segment)?.name).toBe('planet/find');
 
-            expect(container.items).toContainEqual(
+            const orpcSpans = container.items.filter(item => item.attributes?.[SENTRY_ORIGIN]?.value === ORIGIN.value);
+            expect(orpcSpans).toEqual([
               expect.objectContaining({
-                name: 'orpc.planet/find',
+                name: 'planet/find',
                 is_segment: false,
                 attributes: expect.objectContaining({
                   [SENTRY_OP]: { type: 'string', value: 'rpc' },
                   [SENTRY_ORIGIN]: ORIGIN,
-                  'rpc.system': { type: 'string', value: 'orpc' },
-                  'rpc.method': { type: 'string', value: 'planet.find' },
+                  'rpc.system.name': { type: 'string', value: 'orpc' },
+                  'rpc.method': { type: 'string', value: 'planet/find' },
                 }),
               }),
-            );
-            expect(container.items).toContainEqual(
-              expect.objectContaining({
-                name: 'call_procedure',
-                attributes: expect.objectContaining({ [SENTRY_ORIGIN]: ORIGIN }),
-              }),
-            );
-            expect(container.items).toContainEqual(
-              expect.objectContaining({
-                name: 'handler',
-                attributes: expect.objectContaining({ [SENTRY_ORIGIN]: ORIGIN }),
-              }),
-            );
+            ]);
           },
         })
         .start();
@@ -60,7 +49,7 @@ describe('oRPC integration', () => {
         .ignore('span')
         .expect({
           event: {
-            transaction: 'orpc.planet/crash',
+            transaction: 'planet/crash',
             exception: {
               values: [
                 {
@@ -71,7 +60,7 @@ describe('oRPC integration', () => {
               ],
             },
             contexts: {
-              orpc: { procedure_path: 'planet.crash', input: { name: 'Earth' } },
+              orpc: { procedure_path: 'planet/crash', input: { name: 'Earth' } },
               trace: {
                 trace_id: expect.stringMatching(/[a-f0-9]{32}/),
                 span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -101,7 +90,7 @@ describe('oRPC integration', () => {
                 },
               ],
             },
-            contexts: { orpc: { procedure_path: 'planet.stream' } },
+            contexts: { orpc: { procedure_path: 'planet/stream' } },
           },
         })
         .start();
@@ -119,21 +108,15 @@ describe('oRPC integration', () => {
         const spansPromise = runner.collectStreamedSpans(
           spans =>
             spans.some(span => span.is_segment && span.name === 'GET') &&
-            spans.some(span => span.is_segment && span.name === 'orpc.planet/find'),
+            spans.some(span => span.is_segment && span.name === 'planet/find'),
         );
 
         const started = runner.start();
         await started.makeRequest('get', '/client-call');
         const spans = await spansPromise;
 
-        const clientCallSpan = spans.find(span => !span.is_segment && span.name === 'orpc.planet/find');
-        expect(clientCallSpan?.attributes).toMatchObject({
-          [SENTRY_OP]: { type: 'string', value: 'rpc' },
-          [SENTRY_ORIGIN]: ORIGIN,
-        });
-
         const httpClientSpan = spans.find(span => span.attributes?.[SENTRY_OP]?.value === 'http.client');
-        const serverSegment = spans.find(span => span.is_segment && span.name === 'orpc.planet/find');
+        const serverSegment = spans.find(span => span.is_segment && span.name === 'planet/find');
         expect(httpClientSpan).toBeDefined();
         expect(serverSegment?.parent_span_id).toBe(httpClientSpan?.span_id);
       },

@@ -1,156 +1,185 @@
+import { tracingChannel } from 'node:diagnostics_channel';
 import { SENTRY_OP, SENTRY_ORIGIN, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import type { Event, Span } from '@sentry/core';
 import {
+  flush,
   getActiveSpan,
   getIsolationScope,
-  getMainCarrier,
   getRootSpan,
-  setAsyncContextStrategy,
   setCurrentClient,
   spanToJSON,
   startSpan,
 } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../../src/async-context';
-import { orpcIntegration } from '../../src/integrations/orpc';
-import { defaultShouldHandleError } from '../../src/integrations/orpc/error-capture';
-import type { SentryORPCSpan } from '../../src/integrations/orpc/tracer';
-import { SentryORPCTracer, setORPCTracer } from '../../src/integrations/orpc/tracer';
-import type { ORPCTracingHeaders } from '../../src/integrations/orpc/types';
+import { defaultShouldHandleError, instrumentORPC } from '../../src/integrations/orpc/instrumentation';
+import { CHANNELS } from '../../src/orchestrion/channels';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
-const SENTRY_TRACE = '12312012123120121231201212312012-1121201211212012-1';
+const channel = tracingChannel(CHANNELS.ORPC_EXECUTE_PROCEDURE);
 
-describe('orpcIntegration', () => {
-  let tracer: SentryORPCTracer;
-
-  beforeEach(() => {
-    getMainCarrier().__SENTRY__ = undefined;
-    setAsyncLocalStorageAsyncContextStrategy();
-    const client = new TestClient(
-      getDefaultTestClientOptions({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 }),
-    );
-    setCurrentClient(client);
-    client.init();
-    tracer = new SentryORPCTracer();
-  });
-
-  afterEach(() => {
-    setORPCTracer(undefined);
-    setAsyncContextStrategy(undefined);
-    getMainCarrier().__SENTRY__ = undefined;
-  });
-
-  it('installs the Sentry tracer as the global oRPC tracer', () => {
-    orpcIntegration().setupOnce!();
-
-    expect((globalThis as Record<symbol, unknown>)[Symbol.for('ORPC_TRACER')]).toBeInstanceOf(SentryORPCTracer);
-  });
-
-  it('leaves ending the span of `startActiveSpan` to the caller', async () => {
-    const span = await tracer.startActiveSpan('call_procedure', undefined, async span => {
-      expect(tracer.getActiveSpan()).toEqual(span);
-      return (span as SentryORPCSpan).span;
-    });
-
-    expect(spanToJSON(span).end_timestamp).toBeUndefined();
-    expect(spanToJSON(span).attributes).toMatchObject({ [SENTRY_ORIGIN]: 'auto.rpc.orpc' });
-
-    span.end();
-    expect(spanToJSON(span).end_timestamp).toBeDefined();
-  });
-
-  it('marks procedure call spans as `rpc` spans', () => {
-    const span = tracer.startSpan('orpc.planet/find') as SentryORPCSpan;
-
-    expect(spanToJSON(span.span).attributes).toMatchObject({ [SENTRY_OP]: 'rpc', [SENTRY_ORIGIN]: 'auto.rpc.orpc' });
-  });
-
-  it('starts spans as children of the given parent', () => {
-    const parent = tracer.startSpan('parent') as SentryORPCSpan;
-    const child = tracer.startSpan('child', parent) as SentryORPCSpan;
-
-    expect(spanToJSON(child.span).parent_span_id).toBe(parent.span.spanContext().spanId);
-  });
-
-  it('names the transaction after the procedure once a request is routed', async () => {
-    await startSpan({ name: 'POST /rpc/planet/find', op: 'http.server' }, async rootSpan => {
-      await tracer.startActiveSpan('POST /rpc/planet/find', undefined, async span => {
-        span.updateName('orpc.planet/find');
-        span.end();
-      });
-
-      expect(spanToJSON(rootSpan).name).toBe('orpc.planet/find');
-      expect(spanToJSON(rootSpan).attributes).toMatchObject({ [SENTRY_SEGMENT_NAME_SOURCE]: 'route' });
-      expect(getIsolationScope().getScopeData().transactionName).toBe('orpc.planet/find');
-    });
-  });
-
-  it('does not rename the transaction for an unmatched request', async () => {
-    await startSpan({ name: 'POST /unknown', op: 'http.server' }, async rootSpan => {
-      await tracer.startActiveSpan('POST /unknown', undefined, async span => {
-        span.updateName('orpc_no_match');
-        span.end();
-      });
-
-      expect(spanToJSON(rootSpan).name).toBe('POST /unknown');
-    });
-  });
-
-  it('marks the span as failed only for error-level exceptions', () => {
-    const info = tracer.startSpan('info') as SentryORPCSpan;
-    info.recordException('info', { message: 'aborted' });
-    const error = tracer.startSpan('error') as SentryORPCSpan;
-    error.recordException('error', { message: 'boom' });
-
-    expect(spanToJSON(info.span).status).not.toBe('error');
-    expect(spanToJSON(error.span).status).toBe('error');
-  });
-
-  describe('extract', () => {
-    it('does not continue the incoming trace when a span is already active', () => {
-      startSpan({ name: 'http.server' }, () => {
-        expect(tracer.extract({ 'sentry-trace': SENTRY_TRACE })).toBeUndefined();
-      });
-    });
-
-    it('returns nothing without a `sentry-trace` header', () => {
-      expect(tracer.extract({})).toBeUndefined();
-    });
-
-    it('continues the incoming trace for the request span', async () => {
-      const parent = tracer.extract({ 'sentry-trace': SENTRY_TRACE, baggage: ['sentry-environment=prod'] });
-
-      const span = await tracer.startActiveSpan('POST /rpc/planet/find', parent, async span => {
-        expect(getRootSpan(getActiveSpan()!)).toBe((span as SentryORPCSpan).span);
-        return (span as SentryORPCSpan).span;
-      });
-
-      expect(span.spanContext().traceId).toBe('12312012123120121231201212312012');
-      expect(spanToJSON(span).parent_span_id).toBe('1121201211212012');
-    });
-  });
-
-  describe('inject', () => {
-    it('is not set by default', () => {
-      expect(tracer.inject).toBeUndefined();
-    });
-
-    it('writes the trace headers of the span without overwriting existing headers', () => {
-      const injectingTracer = new SentryORPCTracer({ injectTraceHeaders: true });
-      const span = injectingTracer.startSpan('orpc.planet/find') as SentryORPCSpan;
-      const headers: ORPCTracingHeaders = { baggage: 'custom=value' };
-
-      injectingTracer.inject!(span, headers);
-
-      expect(headers['sentry-trace']).toBe(`${span.span.spanContext().traceId}-${span.span.spanContext().spanId}-1`);
-      expect(headers.baggage).toBe('custom=value');
-    });
-  });
-});
+function executeProcedure<T>(path: string[], fn: () => Promise<T>, input?: unknown): Promise<T> {
+  return channel.tracePromise(fn, { arguments: [{}, { path, input }] });
+}
 
 function orpcError(code: string): Error {
   return Object.assign(new Error(code), { name: 'ORPCError', code });
 }
+
+describe('instrumentORPC', () => {
+  let events: Event[];
+
+  beforeAll(() => {
+    setAsyncLocalStorageAsyncContextStrategy();
+    instrumentORPC(defaultShouldHandleError);
+  });
+
+  function initClient(options: Parameters<typeof getDefaultTestClientOptions>[0] = {}): void {
+    events = [];
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        tracesSampleRate: 1,
+        beforeSend: event => {
+          events.push(event);
+          return null;
+        },
+        ...options,
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+  }
+
+  beforeEach(() => {
+    getIsolationScope().setTransactionName(undefined);
+    initClient();
+  });
+
+  it('wraps the procedure call in an active rpc span', async () => {
+    let procedureSpan: Span | undefined;
+
+    await startSpan({ name: 'GET /rpc/planet/find', op: 'http.server' }, async () => {
+      await executeProcedure(['planet', 'find'], async () => {
+        procedureSpan = getActiveSpan();
+      });
+    });
+
+    const json = spanToJSON(procedureSpan!);
+    expect(json).toMatchObject({
+      name: 'planet/find',
+      attributes: {
+        [SENTRY_OP]: 'rpc',
+        [SENTRY_ORIGIN]: 'auto.rpc.orpc',
+        'rpc.system.name': 'orpc',
+        'rpc.method': 'planet/find',
+      },
+    });
+    expect(json.end_timestamp).toBeDefined();
+  });
+
+  it('renames an http.server root span to the procedure path', async () => {
+    let rootSpan: Span | undefined;
+
+    await startSpan({ name: 'POST /rpc/planet/find', op: 'http.server' }, async span => {
+      rootSpan = span;
+      await executeProcedure(['planet', 'find'], async () => undefined);
+    });
+
+    expect(spanToJSON(rootSpan!).name).toBe('planet/find');
+    expect(spanToJSON(rootSpan!).attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBe('route');
+    expect(getIsolationScope().getScopeData().transactionName).toBe('planet/find');
+  });
+
+  it('does not rename a root span that is not http.server', async () => {
+    let rootSpan: Span | undefined;
+    let procedureSpan: Span | undefined;
+
+    await startSpan({ name: 'cron job', op: 'function' }, async span => {
+      rootSpan = span;
+      await executeProcedure(['planet', 'find'], async () => {
+        procedureSpan = getActiveSpan();
+      });
+    });
+
+    expect(spanToJSON(rootSpan!).name).toBe('cron job');
+    expect(getRootSpan(procedureSpan!)).toBe(rootSpan);
+    expect(spanToJSON(procedureSpan!).attributes[SENTRY_OP]).toBe('rpc');
+    expect(spanToJSON(procedureSpan!).attributes[SENTRY_ORIGIN]).toBe('auto.rpc.orpc');
+  });
+
+  it('captures a thrown error once and marks the span as errored', async () => {
+    let procedureSpan: Span | undefined;
+    const error = new Error('boom');
+
+    await expect(
+      executeProcedure(['planet', 'find'], async () => {
+        procedureSpan = getActiveSpan();
+        throw error;
+      }),
+    ).rejects.toBe(error);
+    await flush();
+
+    expect(events).toHaveLength(1);
+    expect(events[0]!.exception?.values?.[0]?.mechanism).toMatchObject({ type: 'auto.rpc.orpc', handled: false });
+    expect(events[0]!.contexts?.orpc).toEqual({ procedure_path: 'planet/find' });
+    expect(spanToJSON(procedureSpan!).status).toBe('error');
+  });
+
+  it('does not capture an ORPCError with a 4xx code', async () => {
+    await expect(
+      executeProcedure(['planet', 'find'], async () => {
+        throw orpcError('NOT_FOUND');
+      }),
+    ).rejects.toThrow('NOT_FOUND');
+    await flush();
+
+    expect(events).toHaveLength(0);
+  });
+
+  it('attaches the input only when incoming request bodies are collected', async () => {
+    initClient({ sendDefaultPii: true });
+
+    await expect(
+      executeProcedure(
+        ['planet', 'find'],
+        async () => {
+          throw new Error('boom');
+        },
+        { name: 'Earth' },
+      ),
+    ).rejects.toThrow('boom');
+    await flush();
+
+    expect(events[0]!.contexts?.orpc).toEqual({ procedure_path: 'planet/find', input: { name: 'Earth' } });
+  });
+
+  it('ends the span on return and captures errors thrown later from an async iterator', async () => {
+    let procedureSpan: Span | undefined;
+
+    const output = await executeProcedure(['planet', 'stream'], async () => {
+      procedureSpan = getActiveSpan();
+      return (async function* () {
+        yield 1;
+        throw new Error('stream failed');
+      })();
+    });
+
+    expect(spanToJSON(procedureSpan!).end_timestamp).toBeDefined();
+
+    await expect(
+      (async () => {
+        for await (const _ of output) {
+          // drain
+        }
+      })(),
+    ).rejects.toThrow('stream failed');
+    await flush();
+
+    expect(events).toHaveLength(1);
+    expect(events[0]!.exception?.values?.[0]?.value).toBe('stream failed');
+  });
+});
 
 describe('defaultShouldHandleError', () => {
   it.each([

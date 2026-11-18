@@ -1,5 +1,6 @@
 // <reference lib="deno.ns" />
 
+import { tracingChannel } from 'node:diagnostics_channel';
 import { createORPCClient } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
 import { os } from '@orpc/server';
@@ -22,6 +23,37 @@ Deno.test('orpc: included in default integrations', () => {
   const client = init({ dsn: 'https://username@domain/123' }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
   assert(names.includes('ORPC'), `ORPC should be in defaults, got ${names.join(', ')}`);
+});
+
+// Deno has no runtime hook, so the channel that orchestrion injects into `@orpc/server` is published by hand.
+Deno.test('orpc: orchestrion:@orpc/server:executeProcedure wraps the procedure call into a span', async () => {
+  resetGlobals();
+  const sink = spanSink();
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    transport: sink.transport,
+  });
+
+  await startSpan({ name: 'parent', op: 'test' }, () =>
+    tracingChannel('orchestrion:@orpc/server:executeProcedure').tracePromise(async () => ({ name: 'Earth' }), {
+      arguments: [{}, { path: ['planet', 'find'] }],
+    }),
+  );
+
+  await flush();
+
+  const parent = await withTimeout(
+    sink.waitFor(span => span.is_segment && span.name === 'parent'),
+    5_000,
+    "'parent' segment span",
+  );
+  const children = sink.spans.filter(span => span.parent_span_id === parent.span_id);
+  assertEquals(children.length, 1);
+  assertEquals(children[0]!.name, 'planet/find');
+  assertEquals(getSpanOp(children[0]!), 'rpc');
+  assertEquals(children[0]!.attributes['sentry.origin']?.value, 'auto.rpc.orpc');
+  assertEquals(children[0]!.attributes['rpc.method']?.value, 'planet/find');
 });
 
 Deno.test('orpc: an oRPC client call continues its trace on the server', async () => {
@@ -59,21 +91,15 @@ Deno.test('orpc: an oRPC client call continues its trace on the server', async (
       "'client' segment span",
     );
     const serverSegment = await withTimeout(
-      sink.waitFor(span => span.is_segment && span.name === 'orpc.planet/find'),
+      sink.waitFor(span => span.is_segment && getSpanOp(span) === 'http.server'),
       5_000,
-      "'orpc.planet/find' server segment span",
+      'http.server segment span',
     );
 
     const clientSpans = sink.spans.filter(span => span.trace_id === clientSegment.trace_id);
-    const procedureCall = clientSpans.find(span => !span.is_segment && span.name === 'orpc.planet/find');
-    assertExists(procedureCall, 'expected a client span for the procedure call');
-    assertEquals(getSpanOp(procedureCall), 'rpc');
-    assertEquals(procedureCall.attributes['sentry.origin']?.value, 'auto.rpc.orpc');
-
     const httpClientSpan = clientSpans.find(span => getSpanOp(span) === 'http.client');
     assertExists(httpClientSpan, 'expected an http.client span from the fetch integration');
 
-    assertEquals(getSpanOp(serverSegment), 'http.server');
     assertEquals(serverSegment.trace_id, clientSegment.trace_id);
     assertEquals(serverSegment.parent_span_id, httpClientSpan.span_id);
   } finally {
