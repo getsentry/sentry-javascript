@@ -13,7 +13,7 @@ import {
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
 } from '../core/gen-ai-attributes';
-import { resolveAIRecordingOptions } from '../core/utils';
+import { resolveGenAiCallRecording } from '../core/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
 import type { LangChainOptions } from './types';
 
@@ -68,7 +68,7 @@ export function _INTERNAL_getLangChainEmbeddingsSpanOptions(
   input: unknown,
   options: LangChainOptions = {},
 ): { name: string; attributes: Record<string, SpanAttributeValue> } {
-  const { recordInputs } = resolveAIRecordingOptions(options);
+  const { recordInputs } = resolveGenAiCallRecording(options, { operation: 'embeddings', input });
   const attributes = extractEmbeddingAttributes(instance);
   const modelName = attributes[GEN_AI_REQUEST_MODEL] || 'unknown';
   const client = getClient();

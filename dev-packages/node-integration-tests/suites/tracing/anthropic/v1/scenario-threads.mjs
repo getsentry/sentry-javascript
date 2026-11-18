@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { startMockServer } from '@sentry-internal/node-integration-tests';
 
 const MODEL = 'claude-3-haiku-20240307';
 
@@ -119,11 +120,7 @@ function startMockAnthropicServer() {
     });
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 const tools = [
@@ -240,7 +237,7 @@ const MODES = {
 
 async function run() {
   const server = await startMockAnthropicServer();
-  const baseURL = `http://localhost:${server.address().port}/anthropic`;
+  const baseURL = `${server.url}/anthropic`;
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     for (const [mode, call] of Object.entries(MODES)) {

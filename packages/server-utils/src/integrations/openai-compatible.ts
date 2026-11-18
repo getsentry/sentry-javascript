@@ -7,7 +7,7 @@ import {
   startInactiveSpan,
 } from '@sentry/core';
 import { GEN_AI_PROVIDER_NAME, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
-import { getGenAiSpanOp, getRequestSignal, markCancelledIfAborted, resolveAIRecordingOptions } from '../ai/core/utils';
+import { getGenAiSpanOp, getRequestSignal, markCancelledIfAborted, resolveGenAiCallRecording } from '../ai/core/utils';
 import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/openai';
 import { instrumentStream } from '../ai/openai/streaming';
@@ -16,6 +16,9 @@ import { addResponseAttributes } from '../ai/openai/utils';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import { bindTracingChannelToSpan } from '../tracing-channel';
+
+// The recording decision is made once, when the span starts, in the caller's async context.
+type OpenAiChannelContext = OrchestrionChannelContext & { _sentryRecordOutputs?: boolean };
 
 /**
  * Describes an OpenAI-compatible provider whose SDK mirrors the openai wire format (Groq, Together, ...),
@@ -52,26 +55,26 @@ export function createOpenAiCompatibleIntegration<T extends OpenAiCompatibleProv
   function instrument(options: OpenAiOptions): void {
     for (const { channel, operation } of instrumentedChannels) {
       bindTracingChannelToSpan(
-        diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channel),
+        diagnosticsChannel.tracingChannel<OpenAiChannelContext>(channel),
         data => createGenAiSpan(data, operation, provider, options),
         {
           beforeSpanEnd: (span, data) => {
             if ('error' in data) {
               markCancelledIfAborted(span, getRequestSignal(data.arguments?.[1]));
             }
-            addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs);
+            addResponseAttributes(span, data.result, !!data._sentryRecordOutputs);
           },
           deferSpanEnd: ({ span, data, end }) =>
             wrapApiPromiseResponse(
               data.result,
               response => {
                 data.result = response;
-                if (!wrapStreamResult(span, data, options)) {
+                if (!wrapStreamResult(span, data)) {
                   end();
                 }
               },
               end,
-            ) || wrapStreamResult(span, data, options),
+            ) || wrapStreamResult(span, data),
         },
       );
     }
@@ -92,7 +95,7 @@ export function createOpenAiCompatibleIntegration<T extends OpenAiCompatibleProv
  * Returning `undefined` opts the payload out so no span is opened.
  */
 function createGenAiSpan(
-  data: OrchestrionChannelContext,
+  data: OpenAiChannelContext,
   operation: string,
   provider: OpenAiCompatibleProvider,
   options: OpenAiOptions,
@@ -106,7 +109,8 @@ function createGenAiSpan(
   const args = data.arguments ?? [];
   const params = args[0] as Record<string, unknown> | undefined;
 
-  const { recordInputs } = resolveAIRecordingOptions(options);
+  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, { operation, request: params });
+  data._sentryRecordOutputs = recordOutputs;
 
   // `extractRequestAttributes` defaults the provider to openai; override it for the concrete provider.
   const attributes = extractRequestAttributes(args, operation, recordInputs);
@@ -144,15 +148,14 @@ function isAsyncIterable(value: unknown): value is AsyncIterableStream {
  * to hand span-ending ownership to `instrumentStream`; `false` for non-streaming/errored results, which end
  * via the normal `beforeSpanEnd` path.
  */
-function wrapStreamResult(span: Span, data: OrchestrionChannelContext, options: OpenAiOptions): boolean {
+function wrapStreamResult(span: Span, data: OpenAiChannelContext): boolean {
   const result = data.result;
   if (!isAsyncIterable(result)) {
     return false;
   }
 
-  const { recordOutputs } = resolveAIRecordingOptions(options);
   const iterate = result[Symbol.asyncIterator].bind(result);
-  const instrumented = instrumentStream({ [Symbol.asyncIterator]: iterate }, span, recordOutputs ?? false);
+  const instrumented = instrumentStream({ [Symbol.asyncIterator]: iterate }, span, !!data._sentryRecordOutputs);
   result[Symbol.asyncIterator] = () => instrumented;
 
   return true;

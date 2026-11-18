@@ -63,6 +63,7 @@ export {
   withScope,
   withIsolationScope,
   makeNodeTransport,
+  getHttpAgent,
   NodeClient,
   defaultStackParser,
   lastEventId,

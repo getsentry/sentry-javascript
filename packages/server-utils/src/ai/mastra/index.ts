@@ -11,8 +11,8 @@ import {
 } from '@sentry/core';
 import { GEN_AI_RESPONSE_MODEL, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
-import type { GenAiOptions } from '../core/utils';
-import { resolveAIRecordingOptions } from '../core/utils';
+import type { GenAiCallOptions } from '../core/utils';
+import { resolveGenAiCallRecording } from '../core/utils';
 import {
   getOperation,
   getSpanAttributes,
@@ -43,12 +43,23 @@ import type {
   MastraTracingEvent,
 } from './types';
 
-export type MastraExporterOptions = GenAiOptions;
+/** The span that `recordInputs`/`recordOutputs` decide on. */
+export interface MastraCallInfo {
+  /** The Mastra span as exported, when it starts. */
+  span: MastraExportedSpan;
+}
+
+/**
+ * `recordInputs`/`recordOutputs` functions run when the exporter receives the start of a Mastra span,
+ * not in the async context of the code that started it.
+ */
+export type MastraExporterOptions = GenAiCallOptions<MastraCallInfo>;
 
 interface TrackedSpan {
   span: Span;
   spanType: MastraSpanType;
   usage: SpanAttributes;
+  recordingOptions: AttributeRecordingOptions;
   evaluation?: ClassifierEvaluationCall;
 }
 
@@ -135,22 +146,23 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
       return;
     }
 
-    // Per event: the exporter can be constructed before `Sentry.init()`, when `dataCollection.genAI` does not exist yet.
-    const recordingOptions = resolveAIRecordingOptions(this._options);
     switch (event.type) {
       case 'span_started':
-        this._onSpanStarted(span, recordingOptions);
+        this._onSpanStarted(span);
         break;
       case 'span_updated':
-        this._onSpanUpdated(span, recordingOptions);
+        this._onSpanUpdated(span);
         break;
       case 'span_ended':
-        this._onSpanEnded(span, recordingOptions);
+        this._onSpanEnded(span);
         break;
     }
   }
 
-  private _onSpanStarted(span: MastraExportedSpan, recordingOptions: AttributeRecordingOptions): void {
+  private _onSpanStarted(span: MastraExportedSpan): void {
+    // Per span, not in the constructor: the exporter can be constructed before `Sentry.init()`, when
+    // `dataCollection.genAI` does not exist yet.
+    const recordingOptions = resolveGenAiCallRecording(this._options, { span });
     const parentId = this._resolveParentId(span.parentSpanId);
     const parentSpan = parentId ? this._spans.get(parentId)?.span : undefined;
     const activeSpan = getActiveSpan();
@@ -178,7 +190,7 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
       });
     }
 
-    this._trackSpan(span.id, { span: sentrySpan, spanType: span.type, usage: {}, evaluation });
+    this._trackSpan(span.id, { span: sentrySpan, spanType: span.type, usage: {}, recordingOptions, evaluation });
   }
 
   /** Track a started span, ending any Sentry span that would otherwise be dropped without `end()`. */
@@ -205,21 +217,21 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
     return this._spans.remove(id);
   }
 
-  private _onSpanUpdated(span: MastraExportedSpan, recordingOptions: AttributeRecordingOptions): void {
+  private _onSpanUpdated(span: MastraExportedSpan): void {
     const tracked = this._spans.get(span.id);
     if (tracked) {
-      tracked.span.setAttributes(getSpanAttributes(span, recordingOptions));
+      tracked.span.setAttributes(getSpanAttributes(span, tracked.recordingOptions));
     }
   }
 
-  private _onSpanEnded(span: MastraExportedSpan, recordingOptions: AttributeRecordingOptions): void {
+  private _onSpanEnded(span: MastraExportedSpan): void {
     const tracked = this._spans.get(span.id);
     if (!tracked) {
       DEBUG_BUILD && debug.warn(`[Mastra] no Sentry span open for ended span ${span.id} (${span.name})`);
       return;
     }
 
-    const { span: sentrySpan } = tracked;
+    const { span: sentrySpan, recordingOptions } = tracked;
     sentrySpan.setAttributes(getSpanAttributes(span, recordingOptions));
     sentrySpan.updateName(getSpanName(span));
 

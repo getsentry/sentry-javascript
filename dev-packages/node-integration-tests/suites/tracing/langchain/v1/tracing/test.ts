@@ -31,7 +31,7 @@ describe('LangChain integration (v1)', () => {
 
   createEsmAndCjsTests(
     join(__dirname, '..'),
-    'scenario.mjs',
+    '../scenario.mjs',
     'instrument.mjs',
     (createRunner, test) => {
       test('creates langchain related spans with genAI recording disabled', async () => {
@@ -98,7 +98,7 @@ describe('LangChain integration (v1)', () => {
 
   createEsmAndCjsTests(
     join(__dirname, '..'),
-    'scenario.mjs',
+    '../scenario.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('creates langchain related spans with genAI recording enabled', async () => {
@@ -165,7 +165,7 @@ describe('LangChain integration (v1)', () => {
 
   createEsmAndCjsTests(
     join(__dirname, '..'),
-    'scenario-tools.mjs',
+    '../scenario-tools.mjs',
     'instrument.mjs',
     (createRunner, test) => {
       test('creates langchain spans with tool calls', async () => {
@@ -300,7 +300,7 @@ describe('LangChain integration (v1)', () => {
 
   createEsmTests(
     join(__dirname, '..'),
-    'scenario-openai-before-langchain.mjs',
+    '../scenario-openai-before-langchain.mjs',
     'instrument.mjs',
     (createRunner, test) => {
       test('demonstrates timing issue with duplicate spans', async () => {
