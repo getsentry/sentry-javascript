@@ -7,6 +7,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Plugin, UserConfig } from 'vite';
 import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
+import { makeReleaseInjectionPlugin } from './injectRelease';
+import type { ResolvedKitConfig } from './kitConfig';
 import type { CustomSentryVitePluginOptions } from './types';
 
 // sorcery has no types, so these are some basic type definitions:
@@ -45,9 +47,10 @@ export async function makeCustomSentryVitePlugins(
   deps: {
     /** Resolved once and shared with the other Sentry plugins - see the note in `sentrySvelteKit()` */
     getAdapterOutputDir: () => Promise<string>;
+    getKitConfig: () => Promise<ResolvedKitConfig>;
   },
 ): Promise<Plugin[]> {
-  const { getAdapterOutputDir } = deps;
+  const { getAdapterOutputDir, getKitConfig } = deps;
 
   const defaultPluginOptions: SentryVitePluginOptions = {
     release: {
@@ -83,8 +86,18 @@ export async function makeCustomSentryVitePlugins(
 
   const { debug } = mergedOptions;
 
+  // The bundler plugin would put the release into content-hashed client chunks, which changes their
+  // file names on every release. `makeReleaseInjectionPlugin` delivers it without touching them.
+  const releaseToInject = mergedOptions.release.inject !== false ? mergedOptions.release.name : undefined;
+  if (releaseToInject) {
+    mergedOptions.release = { ...mergedOptions.release, inject: false };
+  }
+
   // oxlint-disable-next-line typescript/await-thenable -- sentryVitePlugin may return a Promise in some versions
   const sentryPlugins: Plugin[] = await sentryVitePlugin(mergedOptions);
+  const releaseInjectionPlugins = releaseToInject
+    ? [makeReleaseInjectionPlugin({ release: releaseToInject, getKitConfig, debug })]
+    : [];
 
   // In @sentry/vite-plugin v5, all functionality is consolidated into a single 'sentry-vite-plugin'.
   // We need to defer its writeBundle to closeBundle because SvelteKit invokes the adapter at closeBundle.
@@ -99,7 +112,7 @@ export async function makeCustomSentryVitePlugins(
 
     _resolveFilesToDeleteAfterUpload?.(undefined);
 
-    return sentryPlugins;
+    return [...sentryPlugins, ...releaseInjectionPlugins];
   }
 
   const unchangedSentryVitePlugins = sentryPlugins.filter(plugin => plugin.name !== 'sentry-vite-plugin');
@@ -279,6 +292,7 @@ export async function makeCustomSentryVitePlugins(
   return [
     modifiedMainPlugin,
     ...unchangedSentryVitePlugins,
+    ...releaseInjectionPlugins,
     sourceMapSettingsPlugin,
     filesToDeleteAfterUploadConfigPlugin,
     customDebugIdUploadPlugin,

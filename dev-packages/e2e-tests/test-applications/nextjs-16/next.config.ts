@@ -20,6 +20,7 @@ export default withSentryConfig(nextConfig, {
   silent: true,
   applicationKey: 'nextjs-16-e2e',
   applicationKeyExcludeDependencies: process.env.NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES === '1',
+  release: process.env.E2E_RELEASE_NOT_INJECTED ? { name: 'foobar123', inject: false } : undefined,
   reactComponentAnnotation: {
     enabled: true,
   },

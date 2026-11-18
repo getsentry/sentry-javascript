@@ -35,6 +35,7 @@ export { wrapMcpServerWithSentry } from './integrations/mcp-server';
 export { isNodeEnv, loadModule } from './utils/node';
 export { filenameIsInApp, node, nodeStackLineParser } from './utils/node-stack-trace';
 export { vercelWaitUntil } from './utils/vercelWaitUntil';
+export { getReleaseMetaTag as _INTERNAL_getReleaseMetaTag } from './utils/meta';
 export {
   _INTERNAL_getCacheOriginMetaTags,
   _INTERNAL_getRenderStart,

@@ -4,6 +4,7 @@ import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
 import { makeComposeNitroServiceSourceMapsPlugin, makeEnableNitroSourceMapsPlugin } from './nitroSourceMaps';
+import { getRuntimeRelease } from './release';
 import { makeRoutePatternPlugin } from './routePatterns';
 import { makeServerInstrumentationPlugin } from './serverInstrumentation';
 import { createSourceMapState, makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
@@ -93,11 +94,14 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
     );
   }
 
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const release = isDevelopment ? undefined : getRuntimeRelease(options);
+
   const tunnelBasePath = makeTunnelBasePathPlugin();
   const plugins: Plugin[] = [
     makeRoutePatternPlugin(),
     tunnelBasePath.plugin,
-    makeServerEntryTunnelPlugin(tunnelRoute, tunnelBasePath.getBasePath),
+    makeServerEntryTunnelPlugin(tunnelRoute, tunnelBasePath.getBasePath, release),
   ];
 
   if (tunnelRoute) {
@@ -105,11 +109,11 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   }
 
   // only add build-time plugins in production builds
-  if (process.env.NODE_ENV === 'development') {
+  if (isDevelopment) {
     return plugins;
   }
 
-  plugins.push(makeServerInstrumentationPlugin({ debug: options.debug }));
+  plugins.push(makeServerInstrumentationPlugin({ debug: options.debug, release }));
 
   // Runs the orchestrion code transform over the server bundle so instrumented DB drivers get
   // `diagnostics_channel` publishers injected. Production-only: it force-bundles the instrumented
@@ -128,7 +132,14 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
     );
   }
 
-  plugins.push(...makeAddSentryVitePlugin(options, sourceMapState), makeComposeNitroServiceSourceMapsPlugin());
+  // The server entry hands the release to the SDK at runtime, so it changes no content hash of the startup chunks.
+  const bundlerPluginOptions = release
+    ? { ...options, release: { ...options.release, name: release, inject: false } }
+    : options;
+  plugins.push(
+    ...makeAddSentryVitePlugin(bundlerPluginOptions, sourceMapState),
+    makeComposeNitroServiceSourceMapsPlugin(),
+  );
 
   // middleware auto-instrumentation
   if (options.autoInstrumentMiddleware !== false) {

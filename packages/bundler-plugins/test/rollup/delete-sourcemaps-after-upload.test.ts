@@ -327,6 +327,25 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (rollup / rolldown)', () => {
     expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'style.css', 'style.css.map']);
   });
 
+  it('removes the maps other plugins emit as assets with `sourcemaps.delete: true` when the setting is unset', async () => {
+    const build = await rollup({
+      input: entry,
+      plugins: [
+        sentryRollupPlugin({ ...credentials, sourcemaps: { delete: true } }),
+        {
+          name: 'css',
+          generateBundle() {
+            this.emitFile({ type: 'asset', fileName: 'style.css', source: 'body { color: red; }\n' });
+            this.emitFile({ type: 'asset', fileName: 'style.css.map', source: '{"version":3,"mappings":""}' });
+          },
+        },
+      ],
+    });
+    await build.write({ dir: outDir });
+
+    expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'style.css']);
+  });
+
   describe('with source maps the SDK turned on', () => {
     // `sentryRollupPlugin` only takes the public options.
     function sdkRollupPlugin(options: InternalOptions): Plugin[] {

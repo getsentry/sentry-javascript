@@ -10,8 +10,8 @@ const SERVER_ENTRY_ALIAS = '#server-entry';
 
 /**
  * Sets up the server SDK on the Vite server (`server.builder: 'vite'`), which runs no Nitro. The
- * `ssr` build imports the Sentry server config at the top of the server entry, and orchestrion
- * instruments the dependencies in that build.
+ * `ssr` build imports the Sentry server config and the meta tag hook at the top of the server entry,
+ * and orchestrion instruments the dependencies in that build.
  */
 export function setupViteServer(nuxt: Nuxt, serverConfigFile: string, moduleOptions: SentryNuxtModuleOptions): void {
   // `nuxt prepare` (often a `postinstall` script) only generates types, so it needs no plugins and no warnings.
@@ -29,7 +29,8 @@ export function setupViteServer(nuxt: Nuxt, serverConfigFile: string, moduleOpti
   }
 
   const configPath = createResolver(nuxt.options.rootDir).resolve(serverConfigFile);
-  const importPaths = [addRuntimeFlagsTemplate().dst, configPath];
+  const metaTagsPath = createResolver(import.meta.url).resolve('./runtime/vite-server');
+  const importPaths = [addRuntimeFlagsTemplate().dst, configPath, metaTagsPath];
   let isConfigBundled = false;
 
   addVitePlugin(

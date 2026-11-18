@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import OpenAI from 'openai';
-import { startMockServer } from '@sentry-internal/node-integration-tests';
+import { openAiChatCompletion, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockApi() {
   const app = express();
@@ -10,27 +10,13 @@ function startMockApi() {
   app.post('/openai/chat/completions', (req, res) => {
     const { model } = req.body;
 
-    res.send({
-      id: 'chatcmpl-system-test',
-      object: 'chat.completion',
-      created: 1677652288,
-      model: model,
-      choices: [
-        {
-          index: 0,
-          message: {
-            role: 'assistant',
-            content: 'Response',
-          },
-          finish_reason: 'stop',
-        },
-      ],
-      usage: {
-        prompt_tokens: 10,
-        completion_tokens: 5,
-        total_tokens: 15,
-      },
-    });
+    res.send(
+      openAiChatCompletion(model, {
+        id: 'chatcmpl-system-test',
+        content: 'Response',
+        usage: { prompt_tokens: 10, completion_tokens: 5 },
+      }),
+    );
   });
 
   return startMockServer(app);

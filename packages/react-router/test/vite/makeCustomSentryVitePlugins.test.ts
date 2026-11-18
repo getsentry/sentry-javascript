@@ -13,19 +13,17 @@ describe('makeCustomSentryVitePlugins', () => {
     vi.clearAllMocks();
   });
 
-  it('should pass release configuration to sentryVitePlugin', async () => {
-    const options = {
-      release: {
-        name: 'test-release',
-      },
-    };
+  // The release reaches the server build and the browser through `makeClientReleasePlugin`, so it stays out of the
+  // content-hashed chunks.
+  it('should pass release configuration to sentryVitePlugin with injection turned off', async () => {
+    await makeCustomSentryVitePlugins({ release: { name: 'test-release', inject: true } });
 
-    await makeCustomSentryVitePlugins(options);
-
+    expect(sentryVitePlugin).toHaveBeenCalledTimes(1);
     expect(sentryVitePlugin).toHaveBeenCalledWith(
       expect.objectContaining({
         release: {
           name: 'test-release',
+          inject: false,
         },
       }),
     );
