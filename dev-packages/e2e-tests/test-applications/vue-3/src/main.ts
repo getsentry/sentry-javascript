@@ -20,6 +20,7 @@ Sentry.init({
   integrations: [
     vueIntegration({
       tracingOptions: {
+        timeout: 500,
         trackComponents: ['ComponentMainView', '<ComponentOneView>'],
       },
     }),
