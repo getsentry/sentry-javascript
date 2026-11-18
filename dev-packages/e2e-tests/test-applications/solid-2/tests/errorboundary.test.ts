@@ -56,3 +56,20 @@ test('captures a second error after the boundary is reset', async ({ page }) => 
     },
   });
 });
+
+// Solid only fills in component names on its observe and dev builds.
+const hasComponentNames = process.env.TEST_ENV === 'development' || process.env.SOLID_OBSERVE === '1';
+
+test('attaches Solid component paths to boundary errors', async ({ page }) => {
+  test.skip(!hasComponentNames, 'Solid production builds have no component names');
+
+  const errorPromise = waitForBoundaryError(1);
+
+  await page.goto('/');
+  await page.locator('#caughtErrorBtn').click();
+
+  expect((await errorPromise).contexts?.solid).toEqual({
+    owner_path: expect.arrayContaining([expect.stringContaining('Thrower')]),
+    boundary_path: expect.arrayContaining([expect.stringContaining('Errored')]),
+  });
+});
