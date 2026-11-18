@@ -71,5 +71,36 @@ describe('React Router client SDK', () => {
         'browserTracingIntegration is not fully compatible with @sentry/react-router. Please use reactRouterTracingIntegration instead.',
       );
     });
+
+    describe('release', () => {
+      afterEach(() => {
+        document.head.innerHTML = '';
+        vi.unstubAllGlobals();
+      });
+
+      it('uses the release that the server put in the page', () => {
+        document.head.innerHTML = '<meta name="sentry-release" content="page-release">';
+
+        const client = reactRouterInit({});
+
+        expect(client?.getOptions().release).toBe('page-release');
+      });
+
+      it('prefers a release passed to init over the one in the page', () => {
+        document.head.innerHTML = '<meta name="sentry-release" content="page-release">';
+
+        const client = reactRouterInit({ release: 'init-release' });
+
+        expect(client?.getOptions().release).toBe('init-release');
+      });
+
+      it('falls back to the build-time release when the page has none', () => {
+        vi.stubGlobal('SENTRY_RELEASE', { id: 'build-release' });
+
+        const client = reactRouterInit({});
+
+        expect(client?.getOptions().release).toBe('build-release');
+      });
+    });
   });
 });
