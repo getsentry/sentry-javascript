@@ -1,11 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
+
 // Set when the Options API is compiled out of the Vue build.
 const OPTIONS_API_DISABLED = process.env.VUE_OPTIONS_API === 'false';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
-  const transactionPromise = waitForTransaction('vue-3-static', async transactionEvent => {
+  const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
@@ -37,11 +39,11 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
 });
 
 test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('vue-3-static', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('vue-3', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('vue-3-static', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('vue-3', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -76,7 +78,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
 });
 
 test('sends a pageload transaction with a nested route URL', async ({ page }) => {
-  const transactionPromise = waitForTransaction('vue-3-static', async transactionEvent => {
+  const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
@@ -108,7 +110,7 @@ test('sends a pageload transaction with a nested route URL', async ({ page }) =>
 });
 
 test('sends a pageload transaction with a route name as transaction name if available', async ({ page }) => {
-  const transactionPromise = waitForTransaction('vue-3-static', async transactionEvent => {
+  const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
@@ -164,7 +166,7 @@ test('sends a pageload transaction with a route name as transaction name if avai
     // Vue compiles `app.mixin()` down to a no-op when the Options API is disabled, so the SDK creates no UI spans at all.
     test.fail(OPTIONS_API_DISABLED, 'Vue tracing is registered through app.mixin(), which needs the Options API');
 
-    const transactionPromise = waitForTransaction('vue-3-static', async transactionEvent => {
+    const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
       return (
         transactionEvent.contexts?.trace?.op === 'pageload' &&
         transactionEvent.contexts?.trace?.data?.['url.path'] === route
@@ -204,7 +206,7 @@ test('sends a lifecycle span for the root and for each tracked component only', 
   // Vue compiles `app.mixin()` down to a no-op when the Options API is disabled, so the SDK creates no UI spans at all.
   test.fail(OPTIONS_API_DISABLED, 'Vue tracing is registered through app.mixin(), which needs the Options API');
 
-  const transactionPromise = waitForTransaction('vue-3-static', async transactionEvent => {
+  const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 

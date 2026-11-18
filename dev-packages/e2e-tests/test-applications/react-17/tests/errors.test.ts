@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('Sends correct error event', async ({ page }) => {
   const errorEventPromise = waitForError('react-17', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';

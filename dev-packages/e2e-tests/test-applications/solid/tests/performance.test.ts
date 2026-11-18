@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 test('sends a pageload span', async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('solid', span => {
     return getSpanOp(span) === 'pageload' && span.is_segment;

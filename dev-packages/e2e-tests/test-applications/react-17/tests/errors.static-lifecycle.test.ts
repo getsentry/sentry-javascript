@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
+
 test('Sends correct error event', async ({ page }) => {
-  const errorEventPromise = waitForError('react-17-static', event => {
+  const errorEventPromise = waitForError('react-17', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
   });
 
@@ -30,11 +32,11 @@ test('Sends correct error event', async ({ page }) => {
 });
 
 test('Sets correct transactionName', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-17-static', async transactionEvent => {
+  const transactionPromise = waitForTransaction('react-17', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const errorEventPromise = waitForError('react-17-static', event => {
+  const errorEventPromise = waitForError('react-17', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
   });
 

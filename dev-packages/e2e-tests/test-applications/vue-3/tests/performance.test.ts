@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 // Set by the `assert-command` of the `vue-3 (no Options API)` variant
 const OPTIONS_API_DISABLED = process.env.VUE_OPTIONS_API === 'false';
 

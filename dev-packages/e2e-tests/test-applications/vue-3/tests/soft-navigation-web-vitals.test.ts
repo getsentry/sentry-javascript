@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, hidePage, waitForSoftNavigation } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'static', 'Asserts streamed spans');
+
 // The correlation between a soft navigation and the SDK's navigation span hangs off the interaction
 // that triggered it, so it only holds while the navigation span is started before the interaction's
 // Event Timing entry is delivered. `vueIntegration` starts the navigation span from a `router.beforeEach` guard.

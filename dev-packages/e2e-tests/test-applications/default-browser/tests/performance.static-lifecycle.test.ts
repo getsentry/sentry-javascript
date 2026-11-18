@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
+
 test('captures a pageload transaction', async ({ page }) => {
-  const transactionPromise = waitForTransaction('default-browser-static', async transactionEvent => {
+  const transactionPromise = waitForTransaction('default-browser', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
@@ -63,11 +65,11 @@ test('captures a pageload transaction', async ({ page }) => {
 
 test('captures a navigation transaction', async ({ page }) => {
   page.on('console', msg => console.log(msg.text()));
-  const pageLoadTransactionPromise = waitForTransaction('default-browser-static', async transactionEvent => {
+  const pageLoadTransactionPromise = waitForTransaction('default-browser', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTransactionPromise = waitForTransaction('default-browser-static', async transactionEvent => {
+  const navigationTransactionPromise = waitForTransaction('default-browser', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 

@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
+
 test('captures an error', async ({ page }) => {
-  const errorEventPromise = waitForError('default-browser-static', event => {
+  const errorEventPromise = waitForError('default-browser', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
   });
 
@@ -30,11 +32,11 @@ test('captures an error', async ({ page }) => {
 });
 
 test('sets correct transactionName', async ({ page }) => {
-  const transactionPromise = waitForTransaction('default-browser-static', async transactionEvent => {
+  const transactionPromise = waitForTransaction('default-browser', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const errorEventPromise = waitForError('default-browser-static', event => {
+  const errorEventPromise = waitForError('default-browser', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
   });
 

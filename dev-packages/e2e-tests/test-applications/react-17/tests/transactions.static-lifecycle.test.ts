@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, hidePage, waitForStreamedSpan, waitForTransaction } from '@sentry-internal/test-utils';
 
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'static', 'Asserts static trace lifecycle transactions');
+
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-17-static', async transactionEvent => {
+  const transactionPromise = waitForTransaction('react-17', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
@@ -32,11 +34,11 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
 
 test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
   page.on('console', msg => console.log(msg.text()));
-  const pageloadTxnPromise = waitForTransaction('react-17-static', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('react-17', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('react-17-static', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('react-17', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -68,7 +70,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
 });
 
 test('sends an INP span', async ({ page }) => {
-  const inpSpanPromise = waitForStreamedSpan('react-17-static', span => {
+  const inpSpanPromise = waitForStreamedSpan('react-17', span => {
     return getSpanOp(span) === 'ui.interaction.click';
   });
 
