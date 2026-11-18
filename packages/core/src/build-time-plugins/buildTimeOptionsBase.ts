@@ -208,9 +208,44 @@ export interface ReactComponentAnnotationOptions {
 }
 
 interface SourceMapsOptions {
-  // TODO(v12): Replace `disable` with separate options, for example
-  // `upload`, `debugIds` and `deleteSourcemapsAfterUpload`, so that one
-  // option no longer controls several features.
+  /**
+   * Whether Sentry uploads source maps.
+   *
+   * With `false` Sentry uploads nothing, but it still injects debug IDs into the bundles and their source maps. Use
+   * this to upload the source maps yourself later, for example with `sentry sourcemap upload`. No `inject` step is
+   * needed.
+   *
+   * With `false` Sentry only turns source maps on when `sourcemaps.delete` is `false`.
+   *
+   * @default true
+   */
+  upload?: boolean;
+
+  /**
+   * Whether Sentry injects debug IDs into the bundles and their source maps.
+   *
+   * With `false` Sentry adds no debug IDs and uploads no source maps, because the upload matches files by debug ID.
+   * Use this when another tool injects the debug IDs and uploads the source maps, for example the Sentry CLI.
+   *
+   * @default true
+   */
+  injectDebugIds?: boolean;
+
+  /**
+   * Whether source maps are removed from the build output.
+   *
+   * - Unset: Sentry removes the source maps it turned on itself, that is, when the source map setting of your
+   *   bundler or framework was not set. Source maps you turned on stay.
+   * - `true`: Sentry removes every source map of the build, also the ones you turned on.
+   * - `false`: Sentry removes no source map. When the source map setting is not set, Sentry turns hidden source maps
+   *   on and they stay in the build output.
+   *
+   * `true` and `false` do not depend on an upload. They also apply when the upload is switched off, when it cannot
+   * run (for example without an auth token) and when it fails.
+   */
+  delete?: boolean;
+
+  // TODO(v12): Remove `disable`. `upload` and `injectDebugIds` replace it.
   /**
    * If this flag is `true`, any functionality related to source maps will be disabled. This includes the automatic upload of source maps.
    *

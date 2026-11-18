@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
-    "dev": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --log-level=$(test $CI && echo 'none' || echo 'log')",
+    "dev": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --var \"E2E_TEST_TRACE_LIFECYCLE:${E2E_TEST_TRACE_LIFECYCLE:-stream}\" --log-level=$(test $CI && echo 'none' || echo 'log')",
     "build": "wrangler deploy --dry-run",
     "typecheck": "tsc --noEmit",
     "cf-typegen": "wrangler types --include-runtime=false",
@@ -23,5 +23,13 @@
     "typescript": "^5.5.2",
     "wrangler": "^4.61.0",
     "ws": "^8.18.3"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert",
+        "label": "cloudflare-workers (static trace lifecycle)"
+      }
+    ]
   }
 }

@@ -14,7 +14,6 @@
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:print-version && playwright test",
     "test:build-canary": "pnpm install && pnpm test:install-canary && pnpm build",
-    "test:build-latest": "pnpm install && pnpm add vue@latest && pnpm build",
     "test:build-no-options-api": "pnpm install && VUE_OPTIONS_API=false pnpm build",
     "test:assert-no-options-api": "VUE_OPTIONS_API=false pnpm test:assert",
     "test:install-canary": "pnpm add vue@$(git ls-remote --tags --sort='v:refname' https://github.com/vuejs/core.git | tail -n1 | awk -F'/' '{print $NF}')",
@@ -44,13 +43,14 @@
   "sentryTest": {
     "variants": [
       {
-        "build-command": "pnpm test:build-latest",
-        "label": "vue-3 (latest)"
-      },
-      {
         "build-command": "pnpm test:build-vue-router-5",
         "assert-command": "pnpm test:assert-vue-router-5",
         "label": "vue-3 (vue-router 5)"
+      },
+      {
+        "build-command": "PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build",
+        "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert",
+        "label": "vue-3 (static trace lifecycle)"
       }
     ],
     "optionalVariants": [

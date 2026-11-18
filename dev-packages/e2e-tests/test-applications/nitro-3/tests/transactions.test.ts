@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { HANDLER, HTTP_SERVER } from '@sentry/conventions/op';
+import { getHttpServerSpans } from './helpers';
 
 test('Sends a segment span for a successful route', async ({ request }) => {
   const spansPromise = collectStreamedSpans('nitro-3', spans =>
@@ -18,7 +19,7 @@ test('Sends a segment span for a successful route', async ({ request }) => {
   expect(segmentSpan?.attributes[SENTRY_ORIGIN]?.value).toBe('auto.http.http_server');
   expect(getSpanOp(segmentSpan!)).toBe(HTTP_SERVER);
 
-  expect(spans.filter(span => getSpanOp(span) === HTTP_SERVER)).toHaveLength(1);
+  expect(getHttpServerSpans(spans, segmentSpan)).toHaveLength(1);
 
   // h3 creates a child span for the route handler
   const h3HandlerSpan = spans.find(

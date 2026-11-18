@@ -1,11 +1,16 @@
 import { SPAN_STATUS_ERROR, startSpan } from '@sentry/core';
-import { resolveAIRecordingOptions } from '../core/utils';
 import { createLangChainCallbackHandler } from '../langchain';
 import type { BaseChatModel } from '../langchain/types';
-import { callInvoke, getAgentSpanOptions, prepareAgentSpan } from './agent-span';
+import { callInvoke, getAgentSpanOptions, prepareAgentSpan, resolveGraphCallRecording } from './agent-span';
 import { instrumentCompiledGraphStream } from './stream';
 import type { CompiledGraph, LangGraphOptions } from './types';
-import { extractAgentNameFromParams, extractLLMFromParams, setResponseAttributes, wrapToolsWithSpans } from './utils';
+import {
+  extractAgentNameFromParams,
+  extractLLMFromParams,
+  getBooleanRecordingOptions,
+  setResponseAttributes,
+  wrapToolsWithSpans,
+} from './utils';
 
 // Set while a manual wrapper runs the original `compile`/`createReactAgent`. The integration's channel hooks
 // fire synchronously inside that call, and skip the graph so the options passed explicitly win.
@@ -35,16 +40,13 @@ function runManually<T>(callback: () => T): T {
  */
 export function instrumentStateGraphCompile(
   originalCompile: (...args: unknown[]) => CompiledGraph,
-  rawOptions: LangGraphOptions,
+  options: LangGraphOptions,
 ): (...args: unknown[]) => CompiledGraph {
   if (Object.prototype.hasOwnProperty.call(originalCompile, SENTRY_PATCHED)) {
     return originalCompile;
   }
 
-  // This is exported, so callers can hand us an options object with no recording flags set. Resolving
-  // here (rather than only in `instrumentStateGraph`) keeps that path on the `dataCollection` defaults.
-  const options = resolveAIRecordingOptions(rawOptions);
-  const sentryHandler = createLangChainCallbackHandler(options);
+  const sentryHandler = createLangChainCallbackHandler(getBooleanRecordingOptions(options));
 
   const wrapped = new Proxy(originalCompile, {
     apply(target, thisArg, args: unknown[]): CompiledGraph {
@@ -119,6 +121,7 @@ export function instrumentCompiledGraphInvoke(
 ): (...args: unknown[]) => Promise<unknown> {
   return new Proxy(originalInvoke, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
+      const recording = resolveGraphCallRecording(options, args);
       return startSpan(getAgentSpanOptions(args), async span => {
         try {
           const inputMessages = prepareAgentSpan(
@@ -126,13 +129,13 @@ export function instrumentCompiledGraphInvoke(
             args,
             graphInstance,
             compileOptions,
-            options,
+            recording,
             llm,
             sentryCallbackHandler,
           );
           const result = await callInvoke(graphInstance, () => Reflect.apply(target, thisArg, args));
 
-          if (options.recordOutputs) {
+          if (recording.recordOutputs) {
             setResponseAttributes(span, inputMessages, result);
           }
 
@@ -153,14 +156,13 @@ export function instrumentCompiledGraphInvoke(
  */
 export function instrumentCreateReactAgent(
   originalCreateReactAgent: (...args: unknown[]) => CompiledGraph,
-  options?: LangGraphOptions,
+  options: LangGraphOptions = {},
 ): (...args: unknown[]) => CompiledGraph {
   if (Object.prototype.hasOwnProperty.call(originalCreateReactAgent, SENTRY_PATCHED)) {
     return originalCreateReactAgent;
   }
 
-  const resolvedOptions = resolveAIRecordingOptions(options);
-  const sentryHandler = createLangChainCallbackHandler(resolvedOptions);
+  const sentryHandler = createLangChainCallbackHandler(getBooleanRecordingOptions(options));
 
   const wrapped = new Proxy(originalCreateReactAgent, {
     apply(target, thisArg, args: unknown[]): CompiledGraph {
@@ -170,13 +172,13 @@ export function instrumentCreateReactAgent(
       // Wrap tools with execute_tool spans (direct access gives us name, type, description)
       const params = args[0] as Record<string, unknown> | undefined;
       if (params && Array.isArray(params.tools) && params.tools.length > 0) {
-        wrapToolsWithSpans(params.tools, resolvedOptions, agentName ?? undefined);
+        wrapToolsWithSpans(params.tools, options, agentName ?? undefined);
       }
 
       const compiledGraph = runManually(() => Reflect.apply(target, thisArg, args));
 
       const compileOptions: Record<string, unknown> = agentName ? { name: agentName } : {};
-      instrumentCompiledGraph(compiledGraph, compileOptions, resolvedOptions, llm, sentryHandler);
+      instrumentCompiledGraph(compiledGraph, compileOptions, options, llm, sentryHandler);
 
       return compiledGraph;
     },
@@ -212,9 +214,9 @@ export function instrumentCreateReactAgent(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function instrumentStateGraph<T extends { compile: (...args: any[]) => any }>(
   stateGraph: T,
-  options?: LangGraphOptions,
+  options: LangGraphOptions = {},
 ): T {
-  stateGraph.compile = instrumentStateGraphCompile(stateGraph.compile, resolveAIRecordingOptions(options));
+  stateGraph.compile = instrumentStateGraphCompile(stateGraph.compile, options);
 
   return stateGraph;
 }

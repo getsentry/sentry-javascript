@@ -7,6 +7,7 @@ import {
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
@@ -60,6 +61,7 @@ describe.runIf(supports({ min: 22 }))('pi-ai integration', () => {
             expect(toolCall!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('faux');
             expect(toolCall!.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('faux-model');
             expect(toolCall!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+            expect(toolCall!.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]?.value).toBeGreaterThan(0);
             expect(toolCall!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]?.value).toBe('You are a weather assistant.');
             expect(toolCall!.attributes[GEN_AI_TOOL_DEFINITIONS]?.value).toContain('get_weather');
             expect(toolCall!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value).toBe('["tool_call"]');
@@ -75,6 +77,7 @@ describe.runIf(supports({ min: 22 }))('pi-ai integration', () => {
             ]);
 
             expect(answer!.attributes[GEN_AI_RESPONSE_STREAMING]).toBeUndefined();
+            expect(answer!.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]).toBeUndefined();
             expect(answer!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value).toBe('["stop"]');
             expect(
               JSON.parse(String(answer!.attributes[GEN_AI_INPUT_MESSAGES]?.value)).map(

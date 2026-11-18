@@ -1,3 +1,0 @@
-minimumReleaseAge: 0
-overrides:
-  'minimatch': '10.0.1'

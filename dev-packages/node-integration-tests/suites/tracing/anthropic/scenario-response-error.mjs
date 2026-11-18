@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
@@ -16,9 +17,7 @@ function startMockAnthropicServer() {
       .json({ type: 'error', error: { type: 'overloaded_error', message: 'Overloaded' } });
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => resolve(server));
-  });
+  return startMockServer(app);
 }
 
 async function run() {
@@ -27,7 +26,7 @@ async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Anthropic({
       apiKey: 'mock-api-key',
-      baseURL: `http://localhost:${server.address().port}/anthropic`,
+      baseURL: `${server.url}/anthropic`,
     });
 
     // Resolves with the error-shaped body; no try/catch because nothing is thrown.

@@ -1,8 +1,9 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import OpenAI from 'openai';
+import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
 
-function startMockServer() {
+function startMockApi() {
   const app = express();
   app.use(express.json());
 
@@ -18,9 +19,6 @@ function startMockServer() {
 
     if (stream) {
       // Streaming response
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
 
       // Gemini's OpenAI-compatible endpoint streams whole, parallel tool calls without an `index`
       const geminiToolCallChunks = [
@@ -90,15 +88,7 @@ function startMockServer() {
               },
             ];
 
-      chunks.forEach((chunk, index) => {
-        setTimeout(() => {
-          res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-          if (index === chunks.length - 1) {
-            res.write('data: [DONE]\n\n');
-            res.end();
-          }
-        }, index * 10);
-      });
+      streamSseEvents(res, chunks, { done: true });
     } else {
       // Non-streaming response
       res.send({
@@ -137,9 +127,6 @@ function startMockServer() {
 
     if (stream) {
       // Streaming response - using event-based format with 'response' field
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
 
       const events = [
         {
@@ -179,15 +166,7 @@ function startMockServer() {
         },
       ];
 
-      events.forEach((event, index) => {
-        setTimeout(() => {
-          res.write(`data: ${JSON.stringify(event)}\n\n`);
-          if (index === events.length - 1) {
-            res.write('data: [DONE]\n\n');
-            res.end();
-          }
-        }, index * 10);
-      });
+      streamSseEvents(res, events, { done: true });
     } else {
       // Non-streaming response
       res.send({
@@ -221,19 +200,15 @@ function startMockServer() {
     }
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
-  const server = await startMockServer();
+  const server = await startMockApi();
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new OpenAI({
-      baseURL: `http://localhost:${server.address().port}/openai`,
+      baseURL: `${server.url}/openai`,
       apiKey: 'mock-api-key',
     });
 

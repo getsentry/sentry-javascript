@@ -568,5 +568,7 @@ export {
   safeDateNow as _INTERNAL_safeDateNow,
 } from './utils/randomSafeContext';
 export { warnOnRemovedBuildOptions } from './build-time-plugins/warnOnRemovedBuildOptions';
+export { resolveSourceMapsFeatures } from './build-time-plugins/resolveSourceMapsFeatures';
+export type { SourceMapsFeatures } from './build-time-plugins/resolveSourceMapsFeatures';
 export { stringifyForCodeInjection } from './build-time-plugins/stringifyForCodeInjection';
 export { startSpan, startInactiveSpan, startSpanManual } from './tracing/trace';
