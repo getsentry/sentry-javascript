@@ -68,6 +68,10 @@ const mockRoutePatternPlugin: Plugin = {
   config: vi.fn(),
 };
 
+const mockRouteErrorPlugin: Plugin = {
+  name: 'sentry-tanstackstart-route-errors',
+};
+
 // Stub the orchestrion plugin so these stay pure wiring tests (no apm code transformer pulled in).
 // Mirror the real plugin's contract: `buildTimeInstrumentation: false` yields the inert variant.
 const orchestrionVite = vi.fn((options?: { buildTimeInstrumentation?: boolean }) => ({
@@ -81,6 +85,10 @@ const mockOrchestrionPlugin: Plugin = { name: 'sentry-orchestrion-vite' };
 
 vi.mock('../../src/vite/routePatterns', () => ({
   makeRoutePatternPlugin: vi.fn(() => mockRoutePatternPlugin),
+}));
+
+vi.mock('../../src/vite/routeErrors', () => ({
+  makeRouteErrorPlugin: vi.fn(() => mockRouteErrorPlugin),
 }));
 
 vi.mock('../../src/vite/sourceMaps', () => ({
@@ -123,6 +131,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockRouteErrorPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockServerInstrumentationPlugin,
@@ -140,7 +149,12 @@ describe('sentryTanstackStart()', () => {
 
       const plugins = sentryTanstackStart({ autoInstrumentMiddleware: false });
 
-      expect(plugins).toEqual([mockRoutePatternPlugin, mockTunnelBasePathPlugin, mockServerEntryTunnelPlugin]);
+      expect(plugins).toEqual([
+        mockRoutePatternPlugin,
+        mockRouteErrorPlugin,
+        mockTunnelBasePathPlugin,
+        mockServerEntryTunnelPlugin,
+      ]);
     });
 
     it('returns only the tunnel route plugin in development mode when tunnelRoute is configured', () => {
@@ -153,6 +167,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockRouteErrorPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockTunnelRoutePlugin,
@@ -167,6 +182,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockRouteErrorPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockServerInstrumentationPlugin,
@@ -185,6 +201,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockRouteErrorPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockServerInstrumentationPlugin,
@@ -203,6 +220,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockRouteErrorPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockServerInstrumentationPlugin,
@@ -222,6 +240,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockRouteErrorPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockServerInstrumentationPlugin,
@@ -241,6 +260,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockRouteErrorPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockServerInstrumentationPlugin,
@@ -260,6 +280,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockRouteErrorPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockServerInstrumentationPlugin,
@@ -295,6 +316,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockRouteErrorPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockTunnelRoutePlugin,

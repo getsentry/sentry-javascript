@@ -9,6 +9,7 @@ export { init } from './sdk';
 export { wrapFetchWithSentry } from './wrapFetchWithSentry';
 export { wrapMiddlewaresWithSentry } from './middleware';
 export { sentryGlobalRequestMiddleware, sentryGlobalFunctionMiddleware } from './globalMiddleware';
+export { instrumentServerRouteTree as _INTERNAL_instrumentServerRouteTree } from './routeErrors';
 export {
   createSentryTunnelRoute,
   registerSentryServerTunnelRoute,

@@ -69,3 +69,10 @@ export function registerSentryServerTunnelRoute(_path: string): void {}
  * @internal
  */
 export function _INTERNAL_setTunnelRoute(_tunnelRoute?: unknown, _basePath?: string): void {}
+
+/**
+ * No-op stub for client-side builds. The Sentry Vite plugin only adds the call to server builds.
+ *
+ * @internal
+ */
+export function _INTERNAL_instrumentServerRouteTree(_routeTree: unknown): void {}

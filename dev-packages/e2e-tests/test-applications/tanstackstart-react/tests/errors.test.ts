@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { waitForError } from '@sentry-internal/test-utils';
 
 test('Sends client-side error to Sentry with auto-instrumentation', async ({ page }) => {
   const errorEventPromise = waitForError('tanstackstart-react', errorEvent => {
@@ -109,27 +109,29 @@ test('Sends API route error to Sentry with auto-instrumentation', async ({ page 
   expect(errorEvent.transaction).toBe('GET /api/error');
 });
 
-// the sentry global middleware does not capture errors from SSR loader errors since they are serialized before they reach the middleware layer
-// this test verifies that the error is in fact not sent to Sentry
-test('Does not send SSR loader error to Sentry', async ({ baseURL, page }) => {
-  let errorEventOccurred = false;
-
-  waitForError('tanstackstart-react', event => {
-    if (!event.type && event.exception?.values?.[0]?.value === 'Sentry SSR Test Error') {
-      errorEventOccurred = true;
-    }
-    return false;
-  });
-
-  const serverSpanPromise = waitForStreamedSpan('tanstackstart-react', span => {
-    return span.is_segment && getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === '/ssr-error';
+test('Sends SSR loader error to Sentry', async ({ page }) => {
+  const errorEventPromise = waitForError('tanstackstart-react', errorEvent => {
+    return errorEvent?.exception?.values?.[0]?.value === 'Sentry SSR Test Error';
   });
 
   await page.goto('/ssr-error');
 
-  await serverSpanPromise;
+  const errorEvent = await errorEventPromise;
 
-  await (await fetch(`${baseURL}/api/flush`)).text();
+  expect(errorEvent).toMatchObject({
+    exception: {
+      values: [
+        {
+          type: 'Error',
+          value: 'Sentry SSR Test Error',
+          mechanism: {
+            type: 'auto.function.tanstackstart.route',
+            handled: false,
+          },
+        },
+      ],
+    },
+  });
 
-  expect(errorEventOccurred).toBe(false);
+  expect(errorEvent.transaction).toBe('GET /ssr-error');
 });

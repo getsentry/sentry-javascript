@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { waitForError } from '@sentry-internal/test-utils';
 
 test('Sends client-side error to Sentry', async ({ page }) => {
   const errorEventPromise = waitForError('tanstackstart-react-cloudflare', errorEvent => {
@@ -100,25 +100,29 @@ test('Sends API route error to Sentry', async ({ page }) => {
   });
 });
 
-test('Does not send SSR loader error to Sentry', async ({ baseURL, page }) => {
-  let errorEventOccurred = false;
-
-  waitForError('tanstackstart-react-cloudflare', event => {
-    if (!event.type && event.exception?.values?.[0]?.value === 'Sentry SSR Test Error') {
-      errorEventOccurred = true;
-    }
-    return false;
-  });
-
-  const serverSpanPromise = waitForStreamedSpan('tanstackstart-react-cloudflare', span => {
-    return span.is_segment && getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === '/ssr-error';
+test('Sends SSR loader error to Sentry', async ({ page }) => {
+  const errorEventPromise = waitForError('tanstackstart-react-cloudflare', errorEvent => {
+    return errorEvent?.exception?.values?.[0]?.value === 'Sentry SSR Test Error';
   });
 
   await page.goto('/ssr-error');
 
-  await serverSpanPromise;
+  const errorEvent = await errorEventPromise;
 
-  await (await fetch(`${baseURL}/api/flush`)).text();
+  expect(errorEvent).toMatchObject({
+    exception: {
+      values: [
+        {
+          type: 'Error',
+          value: 'Sentry SSR Test Error',
+          mechanism: {
+            type: 'auto.function.tanstackstart.route',
+            handled: false,
+          },
+        },
+      ],
+    },
+  });
 
-  expect(errorEventOccurred).toBe(false);
+  expect(errorEvent.transaction).toBe('GET /ssr-error');
 });

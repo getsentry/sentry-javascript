@@ -3,6 +3,7 @@ import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
 import { makeComposeNitroServiceSourceMapsPlugin, makeEnableNitroSourceMapsPlugin } from './nitroSourceMaps';
+import { makeRouteErrorPlugin } from './routeErrors';
 import { makeRoutePatternPlugin } from './routePatterns';
 import { makeServerInstrumentationPlugin } from './serverInstrumentation';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
@@ -95,6 +96,7 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   const tunnelBasePath = makeTunnelBasePathPlugin();
   const plugins: Plugin[] = [
     makeRoutePatternPlugin(),
+    makeRouteErrorPlugin(),
     tunnelBasePath.plugin,
     makeServerEntryTunnelPlugin(tunnelRoute, tunnelBasePath.getBasePath),
   ];
