@@ -1,3 +1,4 @@
+import { tracingChannel } from 'node:diagnostics_channel';
 import * as Sentry from '@sentry/node';
 import { choice, noul, score, TypeSafeClient } from '@typesafe-ai/sdk';
 import express from 'express';
@@ -54,6 +55,14 @@ async function run() {
     }),
     urgency: score('How urgent is this ticket?', ['low', 'medium', 'high']),
   };
+
+  // On Node < 24.13 the ESM loader thread reports the injected module over a MessagePort, so the
+  // integration can subscribe only after this scenario starts. Wait for it, or the first call is
+  // not traced.
+  const systemOneChannel = tracingChannel('orchestrion:@typesafe-ai/sdk:system-one');
+  while (systemOneChannel.hasSubscribers === false) {
+    await new Promise(resolve => setTimeout(resolve, 1));
+  }
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     await client.systemOne({ state, questions });
