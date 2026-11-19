@@ -1,32 +1,50 @@
 import type { Client } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
+import { _INTERNAL_flushMetricsBuffer } from '../metrics/internal';
 import { count } from '../metrics/public-api';
 import { Scope } from '../scope';
 import type { Integration, IntegrationFn } from '../types/integration';
 import { debug } from '../utils/debug-logger';
 import { fnv1a32 } from '../utils/hash';
 import { isPlainObject } from '../utils/is';
+import { safeUnref } from '../utils/timer';
 
 const _experimentalReportSdkConfigIntegration = (() => ({
   name: 'ExperimentalReportSdkConfig',
   afterAllSetup(client: Client) {
     const scope = new Scope();
     scope.setClient(client);
+    let reported = false;
 
-    // Let the remaining afterAllSetup hooks register their integrations before taking the snapshot.
-    setTimeout(() => {
+    const report = (): void => {
+      if (reported) {
+        return;
+      }
+
+      reported = true;
+      clearTimeout(timer);
+
       try {
         count('sdk.config', 1, { attributes: buildConfigAttributes(client), scope });
       } catch (error) {
         DEBUG_BUILD && debug.warn('Failed to report SDK configuration', error);
       }
-    }, 0);
+    };
+
+    // Let the remaining afterAllSetup hooks register their integrations before taking the snapshot.
+    const timer = safeUnref(setTimeout(report, 0));
+
+    client.on('flush', () => {
+      report();
+      // Capturing can register the metrics flusher too late for this flush, or after an existing flusher.
+      _INTERNAL_flushMetricsBuffer(client);
+    });
   },
 })) satisfies IntegrationFn;
 
 /**
- * Reports the SDK options the user passed to `init()` on the next tick after client setup.
+ * Reports the SDK options the user passed to `init()` on the next tick after client setup, or on an earlier flush.
  *
  * @experimental This integration may change or be removed without notice.
  */
