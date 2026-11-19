@@ -178,7 +178,9 @@ export function init(userOptions: NodeOptions): NodeClient | undefined {
   // Before `init`, which applies it to the managed tunnel of `serveTunnelIntegration` or `tunnelRoute`.
   const tunnelRoute = getTunnelRouteServerOptions();
   setTunnelDefaults({ basePath: getInjectedBasePath(), tunnel: tunnelRoute, forward: forwardTunnelRequest });
-  if (tunnelRoute) {
+  // On Vercel the generated tunnel route serves these requests. A hook that answers before Next.js runs keeps the
+  // function invocation open until it times out.
+  if (tunnelRoute && !process.env.VERCEL) {
     installTunnelHooks();
   }
 

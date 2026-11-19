@@ -141,6 +141,22 @@ describe('Server init()', () => {
       fetchSpy.mockRestore();
     });
 
+    it.each([
+      ['installs', undefined, 1],
+      ['does not install', '1', 0],
+    ])('%s the tunnel hooks with `VERCEL=%s`', (_description, vercel, calls) => {
+      globalWithInjectedValues._sentryTunnelRoute = '/monitoring';
+      if (vercel) {
+        process.env.VERCEL = vercel;
+      }
+      const installTunnelHooks = vi.spyOn(SentryNode, '_INTERNAL_installTunnelHooks').mockImplementation(() => {});
+
+      init({ dsn: TEST_DSN });
+
+      expect(installTunnelHooks).toHaveBeenCalledTimes(calls);
+      installTunnelHooks.mockRestore();
+    });
+
     it("serves the path derived from the DSN under the app's `basePath` for `tunnelRoute: true`", () => {
       globalWithInjectedValues._sentryBasePath = '/docs';
       globalWithInjectedValues._sentryTunnelRoute = 'true';
