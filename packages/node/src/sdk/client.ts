@@ -138,10 +138,6 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   public async flush(timeout?: number): PromiseLike<boolean> {
     await this.traceProvider?.forceFlush();
 
-    if (this.getOptions().sendClientReports) {
-      this._flushOutcomes();
-    }
-
     return super.flush(timeout);
   }
 

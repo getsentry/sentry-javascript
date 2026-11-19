@@ -3117,6 +3117,52 @@ describe('Client', () => {
       spy.mockRestore();
     });
 
+    test.each(['flush', 'close'] as const)(
+      '%s sends client reports for events dropped during async processing',
+      async method => {
+        vi.useRealTimers();
+
+        const { makeTransport, delay } = makeFakeTransport(1);
+
+        const client = new TestClient(
+          getDefaultTestClientOptions({
+            dsn: PUBLIC_DSN,
+            enableSend: true,
+            sendClientReports: true,
+            transport: makeTransport,
+            beforeSend: () => null,
+          }),
+        );
+        const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+        const spy = vi.spyOn(TestClient.instance!, 'eventFromMessage');
+        spy.mockImplementationOnce(
+          (message, level) =>
+            new SyncPromise(resolve => {
+              setTimeout(() => resolve({ message, level }), 50);
+            }),
+        );
+        client.captureMessage('test async');
+
+        await client[method](delay + 100);
+
+        expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+        expect(sendEnvelopeSpy).toHaveBeenCalledWith([
+          expect.any(Object),
+          [
+            [
+              { type: 'client_report' },
+              expect.objectContaining({
+                discarded_events: [{ reason: 'before_send', category: 'error', quantity: 1 }],
+              }),
+            ],
+          ],
+        ]);
+
+        spy.mockRestore();
+      },
+    );
+
     test('close', async () => {
       vi.useRealTimers();
       expect.assertions(4);
