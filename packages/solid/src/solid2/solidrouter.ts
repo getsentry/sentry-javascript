@@ -114,6 +114,8 @@ export function withSentryRouterRouting<R extends RouterInstance<readonly RouteD
     apply(target, thisArg, [props]: [RouterProps]) {
       if (isServer) {
         nameServerSpanOnRender(target, props.url);
+        // The navigation hooks below need the browser router, so the server renders the router unchanged.
+        return Reflect.apply(target, thisArg, [props]);
       }
 
       const userRoot = props.children;
@@ -137,6 +139,8 @@ export function withSentryRouterRouting<R extends RouterInstance<readonly RouteD
           ({ location, matches }) => {
             spanUpdater.onRouteChange(location, matches);
           },
+          // The server never creates this effect, so it must not take a hydration id.
+          { transparent: true },
         );
 
         return userRoot ? userRoot(sectionProps) : sectionProps.children;

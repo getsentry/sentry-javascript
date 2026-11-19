@@ -21,12 +21,12 @@ const routes = [
   { path: '/user/:id', component: () => 'User' },
 ];
 
-function renderAt(url: string, op: string): { span: Span; transactionName: string | undefined } {
+function renderAt(url: string, op: string): { span: Span; transactionName: string | undefined; html: string } {
   const Router = withSentryRouterRouting(createRouter({ routes }));
 
   return startSpan({ name: 'GET', op, forceTransaction: true }, span => {
-    renderToString(() => createComponent(Router, { url }));
-    return { span, transactionName: getCurrentScope().getScopeData().transactionName };
+    const html = renderToString(() => createComponent(Router, { url }));
+    return { span, transactionName: getCurrentScope().getScopeData().transactionName, html };
   });
 }
 
@@ -42,6 +42,12 @@ describe('withSentryRouterRouting (server)', () => {
     });
     setCurrentClient(client);
     client.init();
+  });
+
+  it('renders the matched route on the server', () => {
+    const { html } = renderAt('http://localhost/user/5', HTTP_SERVER);
+
+    expect(html).toContain('User');
   });
 
   it('names the http.server span after the matched route', () => {
