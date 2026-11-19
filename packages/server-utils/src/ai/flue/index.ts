@@ -65,7 +65,7 @@ function warnIfPiAiNotInstrumented(): void {
 
 function getPiAiInstrumentationHint(): string {
   if (isBun()) {
-    return 'On Bun 1.4.5 or later, run your app with `bun --preload @sentry/bun/import app.ts`. Or build it with `sentryBunPlugin()` from `@sentry/bun/plugin`.';
+    return 'On Bun 1.4.6 or later, run your app with `bun --preload @sentry/bun/import app.ts`. Or build it with `sentryBunPlugin()` from `@sentry/bun/plugin`.';
   }
   if (isDeno()) {
     return 'Run your app with `deno run --preload=npm:@sentry/deno/import app.ts`.';

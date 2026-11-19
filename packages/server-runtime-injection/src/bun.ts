@@ -22,12 +22,12 @@ interface BunRuntime {
 const PACKAGE_FILE_REGEXP = /^(.*[/\\]node_modules[/\\]((?:@[^/\\]+[/\\])?[^/\\]+))[/\\](.+)$/;
 
 /**
- * Before Bun 1.4.5, a CommonJS module returned by a runtime `onLoad` plugin loses its named
+ * Before Bun 1.4.6, a CommonJS module returned by a runtime `onLoad` plugin loses its named
  * exports, so the transformed modules fail to load. See https://github.com/oven-sh/bun/issues/19279
  */
 function hasBunRuntimePlugins(bunVersion: string): boolean {
   const { major = 0, minor = 0, patch = 0 } = parseSemver(bunVersion);
-  return major > 1 || (major === 1 && (minor > 4 || (minor === 4 && patch >= 5)));
+  return major > 1 || (major === 1 && (minor > 4 || (minor === 4 && patch >= 6)));
 }
 
 /**
@@ -37,7 +37,7 @@ function hasBunRuntimePlugins(bunVersion: string): boolean {
  *
  * `@sentry/bun` calls this in `init()`, where it only reaches modules imported after `init()`, and
  * in its `@sentry/bun/import` preload, which also reaches the static imports of the entry module.
- * It does nothing outside of Bun, before Bun 1.4.5, and after the first call.
+ * It does nothing outside of Bun, before Bun 1.4.6, and after the first call.
  */
 export function registerBunRuntimeInjection(): void {
   const marker = (GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ??= {});

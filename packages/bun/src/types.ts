@@ -25,7 +25,7 @@ export interface BaseBunOptions extends ServerRuntimeOptions {
   /**
    * Controls whether the SDK instruments supported modules (e.g. Express) when they load in
    * `bun run`, so they emit the diagnostics channels that the channel-based integrations
-   * subscribe to. Needs Bun 1.4.5 or later.
+   * subscribe to. Needs Bun 1.4.6 or later.
    *
    * Set this to `false` to opt out, for example when you build your app with `@sentry/bun/plugin`.
    *
