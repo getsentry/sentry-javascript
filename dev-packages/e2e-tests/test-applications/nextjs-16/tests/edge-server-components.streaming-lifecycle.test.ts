@@ -1,6 +1,5 @@
 import { expect, test } from '@playwright/test';
 import { getRuntime, getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
-import { isTurbopackDevMode } from './isDevMode';
 import { isVinext } from './isVinext';
 
 // The SDK wraps server components only in webpack builds. Turbopack and vinext builds report errors through
@@ -9,8 +8,6 @@ import { isVinext } from './isVinext';
 test.skip(getRuntime() === 'cloudflare', 'OpenNext runs no edge runtime pages on Workers, they return a 500');
 
 test('Should record exceptions for faulty edge server components', async ({ page }) => {
-  test.fixme(isTurbopackDevMode, 'The Turbopack dev server reports no error for a throwing edge server component');
-
   const errorEventPromise = waitForError('nextjs-16', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Edge Server Component Error';
   });
