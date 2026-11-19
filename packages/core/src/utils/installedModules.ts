@@ -47,6 +47,7 @@ export function collectInstalledModules({
   const declared: ModuleInfo = { ...pkg?.dependencies, ...pkg?.devDependencies };
   const installed: ModuleInfo = {};
 
+  const seen = new Set<string>();
   for (const file of loadedFiles) {
     const path = toPosix(file);
     const index = path.lastIndexOf(NODE_MODULES);
@@ -56,12 +57,14 @@ export function collectInstalledModules({
     const base = path.slice(0, index + NODE_MODULES.length);
     const [first = '', second] = path.slice(base.length).split('/');
     const name = first.startsWith('@') ? `${first}/${second}` : first;
-    // pnpm and Bun stores can hold several versions of a package; prefer the one the app resolves.
-    if (!(name in installed)) {
-      const version = resolve(name) || readPackageJson(readFile, base + name)?.version;
-      if (version) {
-        installed[name] = version;
-      }
+    if (seen.has(base + name)) {
+      continue;
+    }
+    seen.add(base + name);
+    const version = readPackageJson(readFile, base + name)?.version;
+    if (version && installed[name] !== version) {
+      // pnpm and Bun stores can hold several versions of a package; prefer the one the app resolves.
+      installed[name] = (name in installed && resolve(name)) || installed[name] || version;
     }
   }
 

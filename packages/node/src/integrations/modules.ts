@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { GLOBAL_OBJ, type IntegrationFn } from '@sentry/core';
 import { _INTERNAL_collectInstalledModules } from '@sentry/core/server';
 
@@ -53,7 +53,9 @@ export const modulesIntegration = _modulesIntegration;
 
 function readFile(path: string): string | undefined {
   try {
-    return readFileSync(path, 'utf8');
+    // Throwing on the many missing files would pause the debugger each time when localVariables captures caught
+    // exceptions, which trips its rate limit.
+    return existsSync(path) ? readFileSync(path, 'utf8') : undefined;
   } catch {
     return undefined;
   }
