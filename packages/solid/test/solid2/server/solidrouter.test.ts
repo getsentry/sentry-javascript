@@ -1,4 +1,11 @@
-import { HTTP_ROUTE, SENTRY_SEGMENT_NAME_SOURCE, URL_PATH_PARAMETER_KEY_BASE } from '@sentry/conventions/attributes';
+import {
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  URL_PATH,
+  URL_PATH_PARAMETER_KEY_BASE,
+} from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import { createTransport, getCurrentScope, setCurrentClient, spanToJSON, startSpan } from '@sentry/core';
@@ -47,6 +54,28 @@ describe('withSentryRouterRouting (server)', () => {
       [`${URL_PATH_PARAMETER_KEY_BASE}.id`]: '5',
     });
     expect(transactionName).toBe('GET /user/:id');
+  });
+
+  it('names the http.server span as soon as it starts, before the page renders', () => {
+    withSentryRouterRouting(createRouter({ routes }));
+
+    const nameAtStart = startSpan(
+      {
+        name: 'GET',
+        forceTransaction: true,
+        attributes: { [SENTRY_OP]: HTTP_SERVER, [URL_PATH]: '/user/7', [HTTP_REQUEST_METHOD]: 'POST' },
+      },
+      span => spanToJSON(span).name,
+    );
+
+    expect(nameAtStart).toBe('POST /user/:id');
+  });
+
+  it('names the root route `/`', () => {
+    const { span } = renderAt('http://localhost/', HTTP_SERVER);
+
+    expect(spanToJSON(span).name).toBe('GET /');
+    expect(spanToJSON(span).attributes?.[HTTP_ROUTE]).toBe('/');
   });
 
   it('leaves the span alone when no route matches', () => {

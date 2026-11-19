@@ -1,11 +1,14 @@
 import {
+  HTTP_REQUEST_METHOD,
   HTTP_ROUTE,
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
+  URL_PATH,
   URL_PATH_PARAMETER_KEY_BASE,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
-import { getActiveSpan, getCurrentScope, getRootSpan, spanToJSON, updateSpanName } from '@sentry/core';
+import type { Client, Span } from '@sentry/core';
+import { getActiveSpan, getClient, getCurrentScope, getRootSpan, spanToJSON, updateSpanName } from '@sentry/core';
 import type { RouteDefinition, RouteSectionProps, RouterInstance, RouterProps } from '@solidjs/router';
 import { useBeforeLeave, useLocation, useRouteMatches } from '@solidjs/router';
 import { getRequestEvent, isServer } from '@solidjs/web';
@@ -14,10 +17,68 @@ import { createRouterSpanUpdater } from '../solidrouter-shared';
 
 export { solidRouterBrowserTracingIntegration } from '../solidrouter-shared';
 
+type SolidRouter = RouterInstance<readonly RouteDefinition[]>;
+
+/** The router the server renders with, kept so `http.server` spans can be named when they start. */
+let serverRouter: SolidRouter | undefined;
+const CLIENTS_NAMING_SERVER_SPANS = new WeakSet<Client>();
+
 /**
- * Names the active `http.server` span after the route the request matched, e.g. `GET /user/:id`.
+ * Names an `http.server` span after the route its URL matches, e.g. `GET /user/:id`.
+ * Returns the new name, or `undefined` when no route matches.
  */
-function nameServerSpanAfterRoute(Router: RouterInstance<readonly RouteDefinition[]>, url: string | undefined): void {
+function nameServerSpanAfterRoute(span: Span, router: SolidRouter, path: string, method: string): string | undefined {
+  const matches = router.match(path);
+  const lastMatch = matches[matches.length - 1];
+  if (!lastMatch) {
+    return undefined;
+  }
+
+  // Solid Router reports the root route's pattern as an empty string.
+  const route = lastMatch.pattern || '/';
+  const name = `${method} ${route}`;
+  updateSpanName(span, name);
+  span.setAttributes({
+    [HTTP_ROUTE]: route,
+    [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+  });
+  for (const [key, value] of Object.entries(lastMatch.params)) {
+    if (typeof value === 'string') {
+      span.setAttribute(`${URL_PATH_PARAMETER_KEY_BASE}.${key}`, value);
+    }
+  }
+  return name;
+}
+
+/**
+ * Names `http.server` spans as soon as they start, so everything in the request sees the route name.
+ * The router is created when the app module loads, after `init` ran in `start.serverSetup`.
+ */
+function nameServerSpansOnStart(router: SolidRouter): void {
+  serverRouter = router;
+
+  const client = getClient();
+  if (!client || CLIENTS_NAMING_SERVER_SPANS.has(client)) {
+    return;
+  }
+  CLIENTS_NAMING_SERVER_SPANS.add(client);
+
+  client.on('spanStart', span => {
+    const { attributes } = spanToJSON(span);
+    const path = attributes?.[URL_PATH];
+    if (!serverRouter || attributes?.[SENTRY_OP] !== HTTP_SERVER || typeof path !== 'string') {
+      return;
+    }
+    const method = attributes[HTTP_REQUEST_METHOD];
+    nameServerSpanAfterRoute(span, serverRouter, path, typeof method === 'string' ? method : 'GET');
+  });
+}
+
+/**
+ * Names the request's `http.server` span while the page renders, and the transaction errors in the request carry.
+ * Covers the case where `init` ran after the router was created.
+ */
+function nameServerSpanOnRender(router: SolidRouter, url: string | undefined): void {
   const request = getRequestEvent()?.request;
   const requestUrl = request?.url ?? url;
   const activeSpan = getActiveSpan();
@@ -30,25 +91,10 @@ function nameServerSpanAfterRoute(Router: RouterInstance<readonly RouteDefinitio
     return;
   }
 
-  const matches = Router.match(requestUrl);
-  const lastMatch = matches[matches.length - 1];
-  if (!lastMatch) {
-    return;
+  const name = nameServerSpanAfterRoute(rootSpan, router, requestUrl, request?.method ?? 'GET');
+  if (name) {
+    getCurrentScope().setTransactionName(name);
   }
-
-  const transactionName = `${request?.method ?? 'GET'} ${lastMatch.pattern}`;
-  updateSpanName(rootSpan, transactionName);
-  rootSpan.setAttributes({
-    [HTTP_ROUTE]: lastMatch.pattern,
-    [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-  });
-  for (const [key, value] of Object.entries(lastMatch.params)) {
-    if (typeof value === 'string') {
-      rootSpan.setAttribute(`${URL_PATH_PARAMETER_KEY_BASE}.${key}`, value);
-    }
-  }
-  // Errors captured later in the request carry the route name too.
-  getCurrentScope().setTransactionName(transactionName);
 }
 
 /**
@@ -59,11 +105,15 @@ function nameServerSpanAfterRoute(Router: RouterInstance<readonly RouteDefinitio
  * The returned router keeps every property of the original instance (`match`, `paths`, ...).
  */
 export function withSentryRouterRouting<R extends RouterInstance<readonly RouteDefinition[]>>(Router: R): R {
+  if (isServer) {
+    nameServerSpansOnStart(Router);
+  }
+
   // A proxy keeps the instance's own properties, while calls render the router with an instrumented root.
   return new Proxy(Router, {
     apply(target, thisArg, [props]: [RouterProps]) {
       if (isServer) {
-        nameServerSpanAfterRoute(target, props.url);
+        nameServerSpanOnRender(target, props.url);
       }
 
       const userRoot = props.children;
