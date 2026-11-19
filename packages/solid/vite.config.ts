@@ -26,6 +26,18 @@ export default defineConfig({
               find: /^solid-js$/,
               replacement: fileURLToPath(new URL('./node_modules/solid-js-2/dist/solid.js', import.meta.url)),
             },
+            {
+              find: /^solid-js\/internal$/,
+              replacement: fileURLToPath(new URL('./node_modules/solid-js-2/dist/internal.js', import.meta.url)),
+            },
+            {
+              find: /^@solidjs\/web$/,
+              replacement: fileURLToPath(new URL('./node_modules/@solidjs/web/dist/web.js', import.meta.url)),
+            },
+            {
+              find: /^@solidjs\/router$/,
+              replacement: fileURLToPath(new URL('./node_modules/@solidjs/router-2/dist/index.js', import.meta.url)),
+            },
           ],
         },
         test: {
@@ -33,6 +45,8 @@ export default defineConfig({
           environment: 'jsdom',
           include: ['test/solid2/**/*.test.ts'],
           typecheck: { tsconfig: './test/solid2/tsconfig.json' },
+          // Process Solid's packages with Vite, so the aliases above also apply to their own imports.
+          server: { deps: { inline: [/solid-js/, /@solidjs/] } },
         },
       },
     ],
