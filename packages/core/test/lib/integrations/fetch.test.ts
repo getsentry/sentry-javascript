@@ -70,7 +70,7 @@ describe('createFetchIntegration', () => {
       expect.any(Function),
       expect.any(Function),
       expect.any(Object),
-      { spanOrigin: 'auto.http.fetch', propagateTraceparent: undefined },
+      { spanOrigin: 'auto.http.fetch', propagateTraceparent: undefined, serverAttributes: true },
     );
 
     const [, , shouldAttachTraceData] = instrumentFetchRequestSpy.mock.calls[0]!;
@@ -211,6 +211,7 @@ describe('createFetchIntegration', () => {
         category: 'fetch',
         data: {
           method: 'POST',
+          'http.request.method': 'POST',
           url: 'http://my-website.com/',
           request_body_size: 10,
           response_body_size: 20,
@@ -283,7 +284,7 @@ describe('createFetchIntegration', () => {
     });
 
     expect(addBreadcrumbSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { method: 'GET', url: '' } }),
+      expect.objectContaining({ data: { method: 'GET', 'http.request.method': 'GET', url: '' } }),
       expect.anything(),
     );
   });
@@ -306,7 +307,7 @@ describe('createFetchIntegration', () => {
     expect(addBreadcrumbSpy).toHaveBeenCalledWith(
       {
         category: 'fetch',
-        data: { method: 'POST', url: 'http://my-website.com/' },
+        data: { method: 'POST', 'http.request.method': 'POST', url: 'http://my-website.com/' },
         level: 'error',
         type: 'http',
       },

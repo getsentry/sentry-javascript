@@ -1,4 +1,4 @@
-import { URL_FRAGMENT, URL_QUERY } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, URL_FRAGMENT, URL_QUERY } from '@sentry/conventions/attributes';
 import { addBreadcrumb } from '../breadcrumbs';
 import type { Client } from '../client';
 import { getClient } from '../currentScopes';
@@ -102,6 +102,7 @@ export function createFetchIntegration({
           instrumentFetchRequest(handlerData, config.shouldCreateSpan, config.shouldAttachTraceData, spans, {
             spanOrigin,
             propagateTraceparent,
+            serverAttributes: true,
           });
 
           if (config.breadcrumbs) {
@@ -164,6 +165,9 @@ function createBreadcrumb(handlerData: HandlerDataFetch, client: Client): void {
 
   const breadcrumbData: FetchBreadcrumbData = {
     method: handlerData.fetchData.method,
+    // Where the breadcrumbs of `@sentry/node` have the method.
+    // oxlint-disable-next-line typescript/no-deprecated
+    [HTTP_REQUEST_METHOD]: handlerData.fetchData.method,
     url: getSanitizedUrlString(parsedUrl),
     [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl.search), client),
     [URL_FRAGMENT]: getUrlFragment(parsedUrl.hash),

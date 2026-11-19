@@ -2,13 +2,16 @@
 import {
   HTTP_REQUEST_METHOD,
   HTTP_RESPONSE_BODY_SIZE,
+  SENTRY_KIND,
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
   URL_DOMAIN,
   URL_FRAGMENT,
   URL_FULL,
+  URL_PATH,
   URL_QUERY,
+  URL_SCHEME,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HTTP_CLIENT } from '@sentry/conventions/op';
@@ -54,6 +57,11 @@ interface InstrumentFetchRequestOptions {
   onRequestSpanEnd?: (span: Span, responseInformation: ResponseHookInfo) => void;
   /** Base URL for relative request URLs. Browsers pass the page URL; server runtimes have none. */
   urlBase?: string;
+  /**
+   * Adds `sentry.kind`, `url.path` and `url.scheme`, which the `http.client` spans of `@sentry/node`
+   * also have. Server runtimes set this. The browser does not, so its spans and bundle stay as they are.
+   */
+  serverAttributes?: boolean;
 }
 
 /**
@@ -100,6 +108,7 @@ export function instrumentFetchRequest(
     spanOrigin = 'auto.http.browser',
     propagateTraceparent = false,
     urlBase,
+    serverAttributes = false,
   } = instrumentFetchRequestOptions ?? {};
 
   const client = getClient();
@@ -109,7 +118,7 @@ export function instrumentFetchRequest(
 
   const span =
     shouldCreateSpanResult && shouldEmitSpan
-      ? startInactiveSpan(getSpanStartOptions(url, method, spanOrigin, client, urlBase))
+      ? startInactiveSpan(getSpanStartOptions(url, method, spanOrigin, client, urlBase, serverAttributes))
       : new SentryNonRecordingSpan();
   const spanForTraceHeaders = spanIsIgnored(span) && hasParent ? undefined : span;
 
@@ -346,6 +355,7 @@ function getSpanStartOptions(
   spanOrigin: SpanOrigin,
   client: Client | undefined,
   urlBase: string | undefined,
+  serverAttributes: boolean,
 ): Parameters<typeof startInactiveSpan>[0] {
   // With span streaming, span names have to be low cardinality, so only the domain is kept. Outgoing
   // requests have no route to fall back on, so one without a domain is named after the method alone.
@@ -360,7 +370,7 @@ function getSpanStartOptions(
     const sanitizedUrl = stripDataUrlContent(url);
     return {
       name: isStreamed ? method : `${method} ${sanitizedUrl}`,
-      attributes: getFetchSpanAttributes(url, undefined, method, spanOrigin, client, domain),
+      attributes: getFetchSpanAttributes(url, undefined, method, spanOrigin, client, domain, serverAttributes),
     };
   }
 
@@ -368,7 +378,7 @@ function getSpanStartOptions(
   const sanitizedUrl = parsedUrl ? getSanitizedUrlStringFromUrlObject(parsedUrl) : url;
   return {
     name: isStreamed ? (domain ? `${method} ${domain}` : method) : `${method} ${sanitizedUrl}`,
-    attributes: getFetchSpanAttributes(url, parsedUrl, method, spanOrigin, client, domain),
+    attributes: getFetchSpanAttributes(url, parsedUrl, method, spanOrigin, client, domain, serverAttributes),
   };
 }
 
@@ -379,6 +389,7 @@ function getFetchSpanAttributes(
   spanOrigin: SpanOrigin,
   client: Client | undefined,
   domain: string | undefined,
+  serverAttributes: boolean,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
     [URL_FULL]: filterCollectedUrl(stripDataUrlContent(url), client),
@@ -389,11 +400,18 @@ function getFetchSpanAttributes(
     [SENTRY_OP]: HTTP_CLIENT,
     [URL_DOMAIN]: domain,
   };
+  if (serverAttributes) {
+    attributes[SENTRY_KIND] = 'client';
+  }
   if (parsedUrl) {
     if (!isURLObjectRelative(parsedUrl)) {
       attributes[URL_FULL] = filterCollectedUrl(stripDataUrlContent(parsedUrl.href), client);
       attributes[SERVER_ADDRESS] = parsedUrl.hostname;
       attributes[SERVER_PORT] = parsedUrl.port ? Number(parsedUrl.port) : undefined;
+      if (serverAttributes) {
+        attributes[URL_PATH] = parsedUrl.pathname;
+        attributes[URL_SCHEME] = parsedUrl.protocol.replace(/:$/, '');
+      }
     }
     attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(parsedUrl.search), client);
     attributes[URL_FRAGMENT] = getUrlFragment(parsedUrl.hash);
