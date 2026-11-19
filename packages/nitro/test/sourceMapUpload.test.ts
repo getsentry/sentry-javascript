@@ -16,10 +16,10 @@ vi.mock('@sentry/bundler-plugins/core', () => ({
 }));
 
 /** Runs the `compiled` hook that `setupSourceMaps` registers, if any. */
-async function runBuild(options: SentryNitroOptions): Promise<boolean> {
+async function runBuild(options: SentryNitroOptions, sourcemap?: boolean | 'hidden' | 'inline'): Promise<boolean> {
   const hooks: ((nitro: Nitro) => Promise<void>)[] = [];
   const nitro = {
-    options: { dev: false, output: { serverDir: '/output/server' } },
+    options: { dev: false, sourcemap, output: { serverDir: '/output/server' } },
     hooks: { hook: (_name: string, hook: (nitro: Nitro) => Promise<void>) => hooks.push(hook) },
   } as unknown as Nitro;
 
@@ -59,6 +59,24 @@ describe('the `compiled` hook', () => {
     expect(manager.uploadSourcemaps).not.toHaveBeenCalled();
     expect(manager.deleteArtifacts).toHaveBeenCalledTimes(1);
   });
+
+  // Nitro resolves an unset `sourcemap` to `false`, so this is also `upload: false` without a source map setting.
+  it.each([
+    [{}, false],
+    [{ upload: false }, false],
+    [{ upload: false, delete: true }, false],
+    [{}, 'inline'],
+  ] as const)(
+    'creates the release but skips the source map steps with %j and `sourcemap: %s`',
+    async (sourcemaps, sourcemap) => {
+      await runBuild({ sourcemaps }, sourcemap);
+
+      expect(manager.createRelease).toHaveBeenCalledTimes(1);
+      expect(manager.injectDebugIds).not.toHaveBeenCalled();
+      expect(manager.uploadSourcemaps).not.toHaveBeenCalled();
+      expect(manager.deleteArtifacts).not.toHaveBeenCalled();
+    },
+  );
 
   it('does not run with `disable: true`', async () => {
     await expect(runBuild({ sourcemaps: { disable: true } })).resolves.toBe(false);
