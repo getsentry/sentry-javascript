@@ -18,9 +18,6 @@ export function init(options: BrowserOptions): Client | undefined {
   return browserInit(opts);
 }
 
-/**
- * The default integrations of the browser SDK, plus `solidErrorsIntegration`.
- */
 export function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   return [...getBrowserDefaultIntegrations(options), solidErrorsIntegration()];
 }
