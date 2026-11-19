@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/solid/solid2';
 
 Sentry.init({
   dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,

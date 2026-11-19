@@ -48,6 +48,16 @@
         "types": "./tanstackrouter.d.ts",
         "default": "./build/cjs/tanstackrouter.js"
       }
+    },
+    "./solid2": {
+      "import": {
+        "types": "./build/types/solid2/index.d.ts",
+        "default": "./build/esm/solid2/index.js"
+      },
+      "require": {
+        "types": "./build/types/solid2/index.d.ts",
+        "default": "./build/cjs/solid2/index.js"
+      }
     }
   },
   "publishConfig": {
@@ -61,7 +71,7 @@
   "peerDependencies": {
     "@solidjs/router": ">=0.13.4 <2.0.0-0",
     "@tanstack/solid-router": "^1.132.27",
-    "solid-js": "^1.8.4"
+    "solid-js": "^1.8.4 || ^2.0.0"
   },
   "peerDependenciesMeta": {
     "@solidjs/router": {
@@ -80,6 +90,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/user-event": "^14.6.8",
     "solid-js": "^1.9.18",
+    "solid-js-2": "npm:solid-js@^2.0.0",
     "vite": "^8.3.6",
     "vite-plugin-solid": "^2.11.6"
   },
@@ -87,9 +98,10 @@
     "build": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:dev": "pnpm run build",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
-    "build:types": "pnpm run build:types:core && pnpm run build:types:routers",
+    "build:types": "pnpm run build:types:core && pnpm run build:types:routers && pnpm run build:types:solid2",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:routers": "tsc -p tsconfig.routers-types.json",
+    "build:types:solid2": "tsc -p tsconfig.solid2-types.json",
     "build:tarball": "pnpm pack",
     "clean": "node ../../scripts/rm.mjs build coverage sentry-solid-*.tgz ./*.d.ts ./*.d.ts.map",
     "lint:fix": "oxlint . --fix --type-aware",
