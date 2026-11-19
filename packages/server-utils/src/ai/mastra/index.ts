@@ -6,7 +6,6 @@ import {
   getClient,
   LRUMap,
   SPAN_STATUS_ERROR,
-  spanToStaticSpanJSON,
   startInactiveSpan,
   timestampInSeconds,
 } from '@sentry/core';
@@ -180,6 +179,8 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
       parentSpan: parentSpan ?? activeSpan,
       attributes: {
         ...getSpanAttributes(span, recordingOptions),
+        // Only on start, so the id from `Sentry.setConversationId()`, applied on `spanStart`, is kept.
+        [GEN_AI_CONVERSATION_ID]: span.attributes?.conversationId ?? span.metadata?.threadId,
         [SENTRY_OP]: getOperation(span.type)?.op,
         [SENTRY_ORIGIN]: MASTRA_ORIGIN,
       },
@@ -226,7 +227,7 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
   private _onSpanUpdated(span: MastraExportedSpan): void {
     const tracked = this._spans.get(span.id);
     if (tracked) {
-      updateSpanAttributes(tracked.span, getSpanAttributes(span, tracked.recordingOptions));
+      tracked.span.setAttributes(getSpanAttributes(span, tracked.recordingOptions));
     }
   }
 
@@ -238,7 +239,7 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
     }
 
     const { span: sentrySpan, recordingOptions } = tracked;
-    updateSpanAttributes(sentrySpan, getSpanAttributes(span, recordingOptions));
+    sentrySpan.setAttributes(getSpanAttributes(span, recordingOptions));
     sentrySpan.updateName(getSpanName(span));
 
     if (MODEL_SPAN_TYPES.has(span.type)) {
@@ -295,17 +296,4 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
     }
     return undefined;
   }
-}
-
-/**
- * Keep a conversation id the span already has: `conversationIdIntegration` writes the one from
- * `Sentry.setConversationId()` on `spanStart`, and a later Mastra update would replace or delete it.
- */
-function updateSpanAttributes(span: Span, attributes: SpanAttributes): void {
-  if (spanToStaticSpanJSON(span).data[GEN_AI_CONVERSATION_ID] !== undefined) {
-    const { [GEN_AI_CONVERSATION_ID]: _ignored, ...rest } = attributes;
-    span.setAttributes(rest);
-    return;
-  }
-  span.setAttributes(attributes);
 }
