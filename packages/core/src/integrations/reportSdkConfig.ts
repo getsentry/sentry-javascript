@@ -98,11 +98,8 @@ function serialize(value: unknown, ancestors = new Set<object>()): unknown {
   return result;
 }
 
-/**
- * Integrations are captured separately, runtime and deployment fields live at the top level,
- * and serverName is excluded to avoid splitting configurations by host.
- */
-const EXCLUDED_OPTIONS = new Set(['integrations', 'runtime', 'release', 'environment', 'dist', 'serverName']);
+// Integrations are captured separately; serverName would split configurations by host.
+const EXCLUDED_OPTIONS = new Set(['integrations', 'serverName']);
 
 function buildConfigAttributes(client: Client): Record<string, string> {
   const { sdk, optionsSetByUser = [], integrationsSetByUser } = client.getSdkMetadata() || {};

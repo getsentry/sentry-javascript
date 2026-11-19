@@ -65,9 +65,41 @@ describe('experimentalReportSdkConfigIntegration', () => {
       environment: 'staging',
       dist: '42',
       options: {
+        runtime: { name: 'node', version: 'v24.22.1' },
+        release: 'shop@1.4.2',
+        environment: 'staging',
+        dist: '42',
         defaultIntegrations: false,
         integrations: [{ name: 'ExperimentalReportSdkConfig' }, { name: 'Tag' }],
         tracesSampleRate: 0.5,
+      },
+    });
+  });
+
+  it('reports resolved metadata only at the top level when it was not explicitly supplied', () => {
+    const userOptions = captureOptionsSetByUser({
+      integrations: [experimentalReportSdkConfigIntegration()],
+    });
+    const resolvedOptions = {
+      runtime: { name: 'node', version: 'v24.22.1' },
+      release: 'shop@1.4.2',
+      environment: 'staging',
+      dist: '42',
+    };
+
+    const payload = reportConfig(
+      getDefaultTestClientOptions({
+        dsn: 'https://username@domain/123',
+        ...resolvedOptions,
+        ...userOptions,
+      }),
+    );
+
+    expect(payload).toEqual({
+      version: 2,
+      ...resolvedOptions,
+      options: {
+        integrations: [{ name: 'ExperimentalReportSdkConfig' }],
       },
     });
   });
