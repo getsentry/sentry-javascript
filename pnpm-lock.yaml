@@ -389,8 +389,8 @@ importers:
         specifier: 11.15.0
         version: link:../../packages/bundler-plugins
       sentry:
-        specifier: ^0.49.0
-        version: 0.49.0
+        specifier: ^0.50.0
+        version: 0.50.0
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
@@ -1165,8 +1165,8 @@ importers:
         specifier: ^0.152.0
         version: 0.152.0
       sentry:
-        specifier: ^0.49.0
-        version: 0.49.0
+        specifier: ^0.50.0
+        version: 0.50.0
     devDependencies:
       '@babel/core':
         specifier: ^7.18.5
@@ -1953,8 +1953,8 @@ importers:
         specifier: 11.15.0
         version: link:../server-utils
       sentry:
-        specifier: ^0.49.0
-        version: 0.49.0
+        specifier: ^0.50.0
+        version: 0.50.0
     devDependencies:
       '@react-router/dev':
         specifier: ^7.18.4
@@ -2014,8 +2014,8 @@ importers:
         specifier: 11.15.0
         version: link:../server-utils
       sentry:
-        specifier: ^0.49.0
-        version: 0.49.0
+        specifier: ^0.50.0
+        version: 0.50.0
       yargs:
         specifier: ^18.2.0
         version: 18.2.0
@@ -16312,8 +16312,8 @@ packages:
     resolution: {integrity: sha512-1gnZf7DFcoIcajTjTwjwuDjzuz4PPcY2StKPlsGAQ1+YH20IRVrBaXSWmdjowTJ6u8Rc01PoYOGHXfP1mYcZNQ==}
     engines: {node: '>= 18'}
 
-  sentry@0.49.0:
-    resolution: {integrity: sha512-9tjS0jTx5FQzhwAGhpcnwvqE0MlQiwJtunsIUNqGkw6E9CBOMbijlamIDUqvZTDtJAveVwa9L5ziP44bOJUzcQ==}
+  sentry@0.50.0:
+    resolution: {integrity: sha512-2BCdoK4xO3mN4c0QTXaMtJBJ9rjL5v1VawaV7Wd605hVWVrpZTipLbjGHEFavS8IliI0W68TGi8CuScbHALPjA==}
     engines: {node: '>=20.0'}
     hasBin: true
 
@@ -36842,7 +36842,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  sentry@0.49.0: {}
+  sentry@0.50.0: {}
 
   serialize-javascript@6.0.2:
     dependencies:
