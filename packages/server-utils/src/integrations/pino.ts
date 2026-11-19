@@ -10,7 +10,7 @@ import {
   severityLevelFromString,
   withScope,
 } from '@sentry/core';
-import { diagnosticsTracingChannel } from '@sentry/server-utils';
+import { tracingChannel } from '../utils/diagnosticsChannel';
 
 const SENTRY_TRACK_SYMBOL = Symbol('sentry-track-pino-logger');
 
@@ -126,7 +126,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
   return {
     name: 'Pino',
     setup: () => {
-      const integratedChannel = diagnosticsTracingChannel('pino_asJson');
+      const integratedChannel = tracingChannel('pino_asJson');
 
       function onPinoStart(self: Pino, args: PinoHookArgs, result: PinoResult): void {
         if (!shouldTrackLogger(self)) {

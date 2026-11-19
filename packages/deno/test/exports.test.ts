@@ -45,6 +45,19 @@ for (const name of EXPECTED_FUNCTION_EXPORTS) {
   });
 }
 
+// Shared with `@sentry/node`, for libraries that run on Deno through npm.
+for (const name of ['pinoIntegration', 'createSentryWinstonTransport', 'BullMQTelemetry']) {
+  Deno.test(`exports ${name}`, () => {
+    assertEquals(typeof (Sentry as Record<string, unknown>)[name], 'function');
+  });
+}
+
+Deno.test('exports the cron instrumentation', () => {
+  assertEquals(typeof Sentry.cron.instrumentCron, 'function');
+  assertEquals(typeof Sentry.cron.instrumentNodeCron, 'function');
+  assertEquals(typeof Sentry.cron.instrumentNodeSchedule, 'function');
+});
+
 Deno.test('exports the FlueOptions type', () => {
   const options: FlueOptions = {};
   assertEquals(typeof options, 'object');
