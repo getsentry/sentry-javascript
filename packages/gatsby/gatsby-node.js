@@ -18,23 +18,23 @@ exports.onCreateWebpackConfig = ({ getConfig, actions, stage }, options) => {
       prevSourceMapSetting !== 'hidden-source-map' &&
       (upload || (options.sourcemaps?.delete === false && injectDebugIds));
 
-    if (shouldAutomaticallyEnableSourceMaps) {
-      // eslint-disable-next-line no-console
-      console.log(
-        `[Sentry] Automatically enabling source map generation by setting \`devtool: "hidden-source-map"\`. ${
-          deleteOption === false
-            ? 'Those source maps stay in the build output'
-            : 'Those source maps will be deleted after they were uploaded to Sentry'
-        }`,
-      );
-    }
-
     // Gatsby reads the `build-html` maps in `.cache` to map HTML render errors. The plugin does not
     // get `sourcemaps.delete` itself, because it would also remove those.
     const deleteSourcemapsAfterUpload =
       stage === 'build-javascript' && (deleteOption || (deleteOption !== false && shouldAutomaticallyEnableSourceMaps))
         ? true
         : undefined;
+
+    if (shouldAutomaticallyEnableSourceMaps) {
+      // eslint-disable-next-line no-console
+      console.log(
+        `[Sentry] Automatically enabling source map generation by setting \`devtool: "hidden-source-map"\`. ${
+          deleteSourcemapsAfterUpload
+            ? 'Those source maps will be deleted after they were uploaded to Sentry'
+            : 'Those source maps stay in the build output'
+        }`,
+      );
+    }
 
     actions.setWebpackConfig({
       devtool: shouldAutomaticallyEnableSourceMaps ? 'hidden-source-map' : prevSourceMapSetting,

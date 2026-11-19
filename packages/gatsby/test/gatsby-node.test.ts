@@ -256,6 +256,20 @@ describe('onCreateWebpackConfig', () => {
     );
 
     it.each([
+      ['build-javascript', {}, 'will be deleted after they were uploaded'],
+      ['build-html', {}, 'stay in the build output'],
+      ['build-javascript', { delete: false }, 'stay in the build output'],
+    ] as const)('logs for stage %s and `sourcemaps: %j` that the maps %s', (stage, sourcemaps, message) => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+      const actions = { setWebpackConfig: vi.fn() };
+
+      onCreateWebpackConfig({ actions, getConfig: vi.fn().mockReturnValue(undefined), stage }, { sourcemaps });
+
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(message));
+      logSpy.mockRestore();
+    });
+
+    it.each([
       [{ delete: false }, { deleteSourcemapsAfterUpload: true }, undefined],
       [{ delete: true }, { deleteSourcemapsAfterUpload: false }, true],
     ])('lets `sourcemaps: %j` win over the flat option %j', (sourcemaps, flatOptions, deletes) => {
