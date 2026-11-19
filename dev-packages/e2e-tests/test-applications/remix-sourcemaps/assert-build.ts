@@ -49,6 +49,9 @@ console.log(`no client chunk carries more than one debug ID (${chunks.length} ch
 // The SDK turns on hidden source maps when the app sets none, and asks the bundler plugin to
 // remove them from both the client and the SSR output, also when no upload runs.
 if (process.env.E2E_NO_UPLOAD) {
+  // The mock server only writes its results file when a request reaches it.
+  const requests = fs.existsSync('.tmp_mock_uploads.json') ? loadMockServerResults() : [];
+  assert.deepEqual(getChunkUploadPosts(requests), [], 'Expected no source map upload');
   assert.deepEqual(findSourceMapFiles({ outputDir: BUILD_DIR }), [], `Expected no source maps in ${BUILD_DIR}`);
   assert.deepEqual(
     findSourceMappingUrlComments({ outputDir: BUILD_DIR }),
