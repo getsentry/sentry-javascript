@@ -46,12 +46,8 @@ const _modulesIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Add the packages of the app and their versions to the event.
- *
- * The packages are the dependencies and devDependencies of the app's `package.json`, found from the entry file of the
- * process. Each one gets the exact version from its installed `package.json`, which works the same for CommonJS and
- * ESM, in Node.js and Bun. In CommonJS, packages in `require.cache` are added too. Versions injected at build time
- * (e.g. by the Next.js SDK) are used for packages that are not installed at runtime, such as bundled ones.
+ * Adds the app's packages to the event, with exact installed versions where they resolve from the entry file.
+ * Declared ranges and build-time injected versions fill in packages that are not installed, such as bundled ones.
  */
 export const modulesIntegration = _modulesIntegration;
 
@@ -82,12 +78,7 @@ function collectModules(): ModuleInfo {
       /*! rollup-include-cjs-only-end */
     ],
   });
-
-  return {
-    ...declared,
-    ...getServerModules(),
-    ...installed,
-  };
+  return { ...declared, ...getServerModules(), ...installed };
 }
 
 /** Fetches the list of modules and the versions loaded by the entry file for your node.js app. */

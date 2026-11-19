@@ -220,10 +220,7 @@ export function detectActiveBundler(): 'turbopack' | 'webpack' {
   }
 }
 
-/**
- * The dependencies of the project's package.json, with the exact installed version of each one that resolves from
- * the project's `node_modules`, and the declared version range for the rest.
- */
+/** The project's dependencies, with exact installed versions where they resolve and declared ranges otherwise. */
 export function getPackageModules(projectDir: string): Record<string, string> {
   const { declared, installed } = _INTERNAL_collectInstalledModules({
     readFile: filePath => {
@@ -235,6 +232,5 @@ export function getPackageModules(projectDir: string): Record<string, string> {
     },
     cwd: projectDir,
   });
-
   return { ...declared, ...installed };
 }

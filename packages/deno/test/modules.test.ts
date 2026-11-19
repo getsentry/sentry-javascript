@@ -17,6 +17,7 @@ Deno.test('modulesIntegration reads deno.lock and package.json', async () => {
   assertEquals(await runFixture([`--allow-read=${fixtureDir.pathname}`]), {
     'left-pad': '^1.3.0',
     '@std/assert': '1.0.13',
+    '@types/react-dom': '18.3.0',
     express: '4.21.2',
   });
 });

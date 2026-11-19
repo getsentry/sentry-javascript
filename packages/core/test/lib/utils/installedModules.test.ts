@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collectInstalledModules, parseDenoLockModules } from '../../../src/utils/installedModules';
+import { collectInstalledModules } from '../../../src/utils/installedModules';
 
 function makeFs(files: Record<string, unknown>): (path: string) => string | undefined {
   return path => {
@@ -149,38 +149,5 @@ describe('collectInstalledModules', () => {
       declared: {},
       installed: {},
     });
-  });
-});
-
-describe('parseDenoLockModules', () => {
-  it('reads version 4 and 5 lockfiles', () => {
-    expect(
-      parseDenoLockModules(
-        JSON.stringify({
-          version: '5',
-          specifiers: {
-            'jsr:@std/assert@^1.0.0': '1.0.13',
-            'npm:express@^4.18.2': '4.21.2',
-            'npm:@types/react-dom@18': '18.3.0_@types+react@18.3.1',
-          },
-        }),
-      ),
-    ).toEqual({ '@std/assert': '1.0.13', express: '4.21.2', '@types/react-dom': '18.3.0' });
-  });
-
-  it('reads version 3 lockfiles', () => {
-    expect(
-      parseDenoLockModules(
-        JSON.stringify({
-          version: '3',
-          packages: { specifiers: { 'npm:chalk@5': 'npm:chalk@5.3.0', 'jsr:@std/path@1': 'jsr:@std/path@1.0.8' } },
-        }),
-      ),
-    ).toEqual({ chalk: '5.3.0', '@std/path': '1.0.8' });
-  });
-
-  it('returns nothing for invalid content', () => {
-    expect(parseDenoLockModules('not json')).toEqual({});
-    expect(parseDenoLockModules('{}')).toEqual({});
   });
 });
