@@ -23,6 +23,7 @@ test('captures an error an Errored boundary catches during SSR', async ({ page }
     },
   });
   expect(errorEvent.contexts?.solid).toMatchObject({ kind: 'render', handling: 'fallback' });
+  expect(errorEvent.transaction).toBe('GET /ssr-error');
 });
 
 test('captures an error thrown in a server function', async ({ page }) => {
