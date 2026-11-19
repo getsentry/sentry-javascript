@@ -1,0 +1,9 @@
+node_modules
+dist
+.flue
+*.tsbuildinfo
+results.junit.xml
+test-results
+playwright-report
+.tmp_*
+tmp_mock_chunks

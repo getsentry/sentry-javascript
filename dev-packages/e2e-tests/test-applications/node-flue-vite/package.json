@@ -1,0 +1,42 @@
+{
+  "name": "node-flue-vite",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node start-mock-sentry-server.mjs & vite build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; if [ $BUILD_EXIT -ne 0 ]; then cat .tmp_build_stdout; cat .tmp_build_stderr >&2; fi; exit $BUILD_EXIT",
+    "start": "NODE_OPTIONS='--import=@sentry/node/import' PORT=3030 node dist/server.mjs",
+    "clean": "npx rimraf node_modules dist pnpm-lock.yaml .tmp_* tmp_mock_chunks",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add @flue/runtime@latest @flue/vite@latest @flue/cli@latest && pnpm build",
+    "test:assert": "node assert-build.ts && OPENROUTER_API_KEY=$E2E_OPENROUTER_API_KEY playwright test"
+  },
+  "dependencies": {
+    "@flue/runtime": "2.3.1",
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "dataloader": "^2.2.3",
+    "hono": "^4.7.0",
+    "valibot": "^1.5.0"
+  },
+  "devDependencies": {
+    "@flue/cli": "2.3.1",
+    "@flue/vite": "2.3.1",
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
+    "@types/node": "24.x",
+    "typescript": "~5.9.0",
+    "vite": "^8.3.0"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "sentryTest": {
+    "optional": true,
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-latest",
+        "label": "node-flue-vite (latest)"
+      }
+    ]
+  }
+}
