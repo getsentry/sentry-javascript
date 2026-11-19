@@ -466,10 +466,7 @@ describe('instrumentFetchRequest', () => {
       vi.restoreAllMocks();
     });
 
-    it.each([
-      [false, {}],
-      [true, { 'sentry.kind': 'client', 'url.path': '/users/42', 'url.scheme': 'https' }],
-    ])('sets url attributes for absolute URLs (serverAttributes: %s)', (serverAttributes, serverOnlyAttributes) => {
+    it('sets url attributes for absolute URLs', () => {
       const url = 'https://api.example.com/users/42?include=profile#bio';
       const activeSpan = new SentryNonRecordingSpan();
       const fetchSpan = new SentryNonRecordingSpan();
@@ -486,7 +483,7 @@ describe('instrumentFetchRequest', () => {
         () => true,
         () => false,
         {},
-        { spanOrigin: 'auto.http.fetch', serverAttributes },
+        { spanOrigin: 'auto.http.fetch' },
       );
 
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
@@ -501,7 +498,9 @@ describe('instrumentFetchRequest', () => {
           'url.domain': 'api.example.com',
           'url.query': 'include=profile',
           'url.fragment': 'bio',
-          ...serverOnlyAttributes,
+          'sentry.kind': 'client',
+          'url.path': '/users/42',
+          'url.scheme': 'https',
         },
       });
     });

@@ -102,7 +102,6 @@ export function createFetchIntegration({
           instrumentFetchRequest(handlerData, config.shouldCreateSpan, config.shouldAttachTraceData, spans, {
             spanOrigin,
             propagateTraceparent,
-            serverAttributes: true,
           });
 
           if (config.breadcrumbs) {

@@ -37,12 +37,15 @@ import { WINDOW } from '../helpers';
 import { baggageHeaderHasSentryValues, createHeadersSafely, getFullURL, isPerformanceResourceTiming } from './utils';
 import {
   HTTP_REQUEST_METHOD,
+  SENTRY_KIND,
   SENTRY_OP,
   SERVER_ADDRESS,
   URL_DOMAIN,
   URL_FRAGMENT,
   URL_FULL,
+  URL_PATH,
   URL_QUERY,
+  URL_SCHEME,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HTTP_CLIENT } from '@sentry/conventions/op';
@@ -421,6 +424,9 @@ function xhrCallback(
             [URL_DOMAIN]: domain,
             [SENTRY_ORIGIN]: 'auto.http.browser',
             [SENTRY_OP]: HTTP_CLIENT,
+            [SENTRY_KIND]: 'client',
+            [URL_PATH]: host ? parsedUrl?.path || '/' : undefined,
+            [URL_SCHEME]: host ? parsedUrl?.protocol : undefined,
             [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl?.search)),
             [URL_FRAGMENT]: getUrlFragment(parsedUrl?.hash),
           },

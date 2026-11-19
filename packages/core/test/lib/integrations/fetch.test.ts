@@ -70,7 +70,7 @@ describe('createFetchIntegration', () => {
       expect.any(Function),
       expect.any(Function),
       expect.any(Object),
-      { spanOrigin: 'auto.http.fetch', propagateTraceparent: undefined, serverAttributes: true },
+      { spanOrigin: 'auto.http.fetch', propagateTraceparent: undefined },
     );
 
     const [, , shouldAttachTraceData] = instrumentFetchRequestSpy.mock.calls[0]!;
