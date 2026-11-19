@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getDefaultNodeIntegrations, init as nodeInit } from '@sentry/node';
 import { nestIntegration } from './integrations/nest';
@@ -10,7 +10,7 @@ import { nestIntegration } from './integrations/nest';
 export function init(options: NodeOptions | undefined = {}): NodeClient | undefined {
   const opts: NodeOptions = {
     defaultIntegrations: getDefaultIntegrations(options),
-    ..._INTERNAL_captureOptionsSetByUser(options),
+    ...options,
   };
 
   applySdkMetadata(opts, 'nestjs', ['nestjs', 'node']);

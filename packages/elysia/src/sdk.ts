@@ -6,7 +6,7 @@ import {
   makeNodeTransport,
 } from '@sentry/bun';
 import type { Integration, Options } from '@sentry/core';
-import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
 import { init as initNode, type NodeClient } from '@sentry/bun';
 import type { ElysiaOptions } from './types';
 
@@ -43,7 +43,7 @@ function getRuntime(): { name: string; version: string } {
  */
 export function init(userOptions: ElysiaOptions = {}): NodeClient | undefined {
   const options = {
-    ..._INTERNAL_captureOptionsSetByUser(userOptions),
+    ...userOptions,
     platform: 'javascript',
     runtime: getRuntime(),
     serverName: userOptions.serverName || global.process.env.SENTRY_NAME || os.hostname(),

@@ -21,7 +21,6 @@ describe('Client init()', () => {
     expect(reactInit).toHaveBeenCalledWith(
       expect.objectContaining({
         _metadata: {
-          optionsSetByUser: [],
           sdk: {
             name: 'sentry.javascript.remix',
             version: expect.any(String),

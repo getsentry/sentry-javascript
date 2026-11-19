@@ -24,7 +24,6 @@ describe('init()', () => {
     expect(mockInit).toBeCalledWith(
       expect.objectContaining({
         _metadata: {
-          optionsSetByUser: [],
           sdk: {
             name: 'sentry.javascript.google-cloud-serverless',
             packages: [

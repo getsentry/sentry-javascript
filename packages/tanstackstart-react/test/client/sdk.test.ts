@@ -22,7 +22,6 @@ describe('TanStack Start React Client SDK', () => {
 
       const expectedMetadata = {
         _metadata: {
-          optionsSetByUser: ['dsn'],
           sdk: {
             name: 'sentry.javascript.tanstackstart-react',
             version: SDK_VERSION,

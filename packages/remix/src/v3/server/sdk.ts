@@ -1,4 +1,4 @@
-import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata, type Integration } from '@sentry/core';
+import { applySdkMetadata, type Integration } from '@sentry/core';
 import {
   getDefaultIntegrations as getNodeDefaultIntegrations,
   init as nodeInit,
@@ -22,7 +22,7 @@ export function getDefaultIntegrations(options: NodeOptions): Integration[] {
  */
 export function init(options: NodeOptions): NodeClient | undefined {
   const opts = {
-    ..._INTERNAL_captureOptionsSetByUser(options),
+    ...options,
     defaultIntegrations: options.defaultIntegrations ?? getDefaultIntegrations(options),
   };
 

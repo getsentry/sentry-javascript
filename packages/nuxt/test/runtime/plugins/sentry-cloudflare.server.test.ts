@@ -13,7 +13,6 @@ vi.mock('@sentry/cloudflare/request', () => ({
 const DSN = 'https://public@dsn.ingest.sentry.io/1337';
 
 const NUXT_SDK_METADATA = {
-  optionsSetByUser: ['dsn'],
   sdk: {
     name: 'sentry.javascript.nuxt',
     packages: [

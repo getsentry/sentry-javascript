@@ -30,7 +30,6 @@ describe('init', () => {
     expect(mockInitNode).toHaveBeenCalledWith(
       expect.objectContaining({
         _metadata: {
-          optionsSetByUser: ['dsn'],
           sdk: expect.objectContaining({
             name: 'sentry.javascript.elysia',
             packages: [
@@ -130,7 +129,6 @@ describe('init', () => {
       expect.objectContaining({
         runtime: { name: 'bun', version: '1.2.3' },
         _metadata: {
-          optionsSetByUser: ['dsn'],
           sdk: expect.objectContaining({
             name: 'sentry.javascript.elysia',
             packages: [

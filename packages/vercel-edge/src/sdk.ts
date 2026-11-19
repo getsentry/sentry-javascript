@@ -1,7 +1,6 @@
 import { diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
 import type { Client, Integration } from '@sentry/core';
 import {
-  _INTERNAL_captureOptionsSetByUser,
   _INTERNAL_warnIfClientIsActive,
   consoleIntegration,
   conversationIdIntegration,
@@ -50,9 +49,7 @@ export function getDefaultIntegrations(): Integration[] {
 }
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
-export function init(userOptions: VercelEdgeOptions = {}): Client {
-  const options = _INTERNAL_captureOptionsSetByUser(userOptions);
-
+export function init(options: VercelEdgeOptions = {}): Client {
   setOpenTelemetryContextAsyncContextStrategy();
 
   const scope = getCurrentScope();

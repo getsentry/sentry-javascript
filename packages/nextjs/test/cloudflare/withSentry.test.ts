@@ -57,7 +57,6 @@ describe('withSentry', () => {
     ).toHaveLength(1);
     expect(client?.getOptions()).toHaveProperty('enableOpenTelemetrySetup', true);
     expect(client?.getOptions()._metadata).toEqual({
-      optionsSetByUser: ['dsn'],
       sdk: {
         name: 'sentry.javascript.nextjs',
         version: SDK_VERSION,

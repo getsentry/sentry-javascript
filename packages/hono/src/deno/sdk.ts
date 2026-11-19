@@ -1,10 +1,5 @@
 import type { Client } from '@sentry/core';
-import {
-  _INTERNAL_captureOptionsSetByUser,
-  _INTERNAL_getActiveClient,
-  applySdkMetadata,
-  consoleSandbox,
-} from '@sentry/core';
+import { _INTERNAL_getActiveClient, applySdkMetadata, consoleSandbox } from '@sentry/core';
 import { init as initDeno } from '@sentry/deno';
 import type { HonoDenoOptions } from './middleware';
 import { buildFilteredIntegrations } from '../shared/buildFilteredIntegrations';
@@ -32,12 +27,11 @@ export function init(options: HonoDenoOptions): Client | undefined {
 
   applySdkMetadata(options, 'hono', ['hono', 'deno']);
 
-  const userOptions = _INTERNAL_captureOptionsSetByUser(options);
   const filteredOptions: HonoDenoOptions = {
-    ...userOptions,
+    ...options,
     ignoreSpans: [...(options.ignoreSpans || []), ...LOW_QUALITY_TRANSACTION_PATTERNS],
     // Remove Hono from the SDK defaults to prevent double instrumentation: @sentry/deno
-    integrations: buildFilteredIntegrations(userOptions.integrations, false),
+    integrations: buildFilteredIntegrations(options.integrations, false),
   };
 
   return initDeno(filteredOptions);

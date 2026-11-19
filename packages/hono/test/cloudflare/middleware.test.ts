@@ -47,11 +47,7 @@ describe('Hono Cloudflare Middleware', () => {
       optionsCallback();
 
       expect(applySdkMetadataMock).toHaveBeenCalledTimes(1);
-      expect(applySdkMetadataMock).toHaveBeenCalledWith(
-        expect.objectContaining({ ...options, _metadata: expect.objectContaining({ optionsSetByUser: ['dsn'] }) }),
-        'hono',
-        ['hono', 'cloudflare'],
-      );
+      expect(applySdkMetadataMock).toHaveBeenCalledWith(options, 'hono', ['hono', 'cloudflare']);
     });
 
     it('calls withSentry with modified options', () => {
@@ -205,14 +201,7 @@ describe('Hono Cloudflare Middleware', () => {
         optionsCallback(mockEnv);
 
         expect(applySdkMetadataMock).toHaveBeenCalledTimes(1);
-        expect(applySdkMetadataMock).toHaveBeenCalledWith(
-          expect.objectContaining({
-            ...returnedOptions,
-            _metadata: expect.objectContaining({ optionsSetByUser: ['dsn'] }),
-          }),
-          'hono',
-          ['hono', 'cloudflare'],
-        );
+        expect(applySdkMetadataMock).toHaveBeenCalledWith(returnedOptions, 'hono', ['hono', 'cloudflare']);
       });
     });
   });

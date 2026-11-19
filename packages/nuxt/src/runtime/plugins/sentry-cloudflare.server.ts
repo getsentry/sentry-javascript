@@ -3,7 +3,6 @@ import type { CloudflareOptions } from '@sentry/cloudflare';
 import { getDefaultIntegrations, setAsyncLocalStorageAsyncContextStrategy } from '@sentry/cloudflare';
 import { wrapRequestHandler } from '@sentry/cloudflare/request';
 import {
-  _INTERNAL_captureOptionsSetByUser,
   applySdkMetadata,
   debug,
   getDefaultIsolationScope,
@@ -29,7 +28,7 @@ function getRequestHandlerOptions(cloudflareOptions: CloudflareOptions): Cloudfl
     // Nitro's Cloudflare presets require the flag anyway, so opt into the full set.
     defaultIntegrations: getDefaultIntegrations(cloudflareOptions),
     _extendsDefaultIntegrations: cloudflareOptions.defaultIntegrations === undefined,
-    ..._INTERNAL_captureOptionsSetByUser(cloudflareOptions),
+    ...cloudflareOptions,
   };
   applySdkMetadata(options, 'nuxt', ['nuxt', 'cloudflare']);
   return options;

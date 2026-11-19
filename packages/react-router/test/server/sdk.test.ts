@@ -26,7 +26,6 @@ describe('React Router server SDK', () => {
       expect(nodeInit).toHaveBeenCalledWith(
         expect.objectContaining({
           _metadata: {
-            optionsSetByUser: [],
             sdk: {
               name: 'sentry.javascript.react-router',
               version: SDK_VERSION,

@@ -1,6 +1,6 @@
 import type { BrowserOptions } from '@sentry/browser';
 import { getDefaultIntegrations as getBrowserDefaultIntegrations, init as browserInit } from '@sentry/browser';
-import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata, type Client, type Integration } from '@sentry/core';
+import { applySdkMetadata, type Client, type Integration } from '@sentry/core';
 
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { instrumentClientRuntime } from './errors';
@@ -22,7 +22,7 @@ export function init(options: BrowserOptions): Client | undefined {
   const opts = {
     // Set at `init` so the page load span can be named from it. An app with its own provider keeps it.
     routeProvider: createRemixV3RouteProvider(),
-    ..._INTERNAL_captureOptionsSetByUser(options),
+    ...options,
     defaultIntegrations: options.defaultIntegrations ?? getDefaultIntegrations(options),
   };
 

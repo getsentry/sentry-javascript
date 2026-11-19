@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getDefaultNodeIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
 import { isNitroDevServer } from './devServer';
@@ -9,7 +9,7 @@ import { isNitroDevServer } from './devServer';
  */
 export function init(options: NodeOptions | undefined = {}): NodeClient | undefined {
   const opts: NodeOptions = {
-    ..._INTERNAL_captureOptionsSetByUser(options),
+    ...options,
   };
 
   if (opts.defaultIntegrations === undefined) {

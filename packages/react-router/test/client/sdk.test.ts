@@ -23,7 +23,6 @@ describe('React Router client SDK', () => {
 
       const expectedMetadata = {
         _metadata: {
-          optionsSetByUser: [],
           sdk: {
             name: 'sentry.javascript.react-router',
             version: SDK_VERSION,

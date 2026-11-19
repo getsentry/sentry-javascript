@@ -1,7 +1,7 @@
 import { HTTP_REQUEST_METHOD, URL_PATH } from '@sentry/conventions/attributes';
 import { FUNCTION_AWS } from '@sentry/conventions/op';
 import type { Integration, Options } from '@sentry/core';
-import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata, debug, envToBool, getSDKSource } from '@sentry/core';
+import { applySdkMetadata, debug, envToBool, getSDKSource } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrationsWithoutPerformance, initWithoutDefaultIntegrations } from '@sentry/node';
 import { awsIntegration } from '@sentry/server-utils';
@@ -91,7 +91,7 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
   const opts = {
     defaultIntegrations: getDefaultIntegrations(options),
     useLayerExtension,
-    ..._INTERNAL_captureOptionsSetByUser(options),
+    ...options,
     ignoreSpans: getIgnoreSpans(options),
   };
 

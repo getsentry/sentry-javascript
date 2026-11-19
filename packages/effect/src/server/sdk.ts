@@ -1,5 +1,5 @@
 import type { Client, Integration } from '@sentry/core';
-import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
 import type { NodeOptions } from '@sentry/node';
 import { contextLinesIntegration, init as initNode, linkedErrorsIntegration } from '@sentry/node';
 
@@ -19,7 +19,7 @@ export function getDefaultIntegrations(): Integration[] {
  */
 export function init(options: NodeOptions): Client | undefined {
   const opts = {
-    ..._INTERNAL_captureOptionsSetByUser(options),
+    ...options,
     defaultIntegrations: options.defaultIntegrations ?? getDefaultIntegrations(),
   };
 

@@ -1,5 +1,5 @@
 import type { Client } from '@sentry/core';
-import { _INTERNAL_captureOptionsSetByUser, _INTERNAL_getActiveClient, applySdkMetadata, debug } from '@sentry/core';
+import { _INTERNAL_getActiveClient, applySdkMetadata, debug } from '@sentry/core';
 import { init as initNode } from '@sentry/node';
 import type { HonoNodeOptions } from './middleware';
 import { buildFilteredIntegrations } from '../shared/buildFilteredIntegrations';
@@ -19,11 +19,10 @@ export function init(options: HonoNodeOptions): Client | undefined {
 
   applySdkMetadata(options, 'hono', ['hono', 'node']);
 
-  const userOptions = _INTERNAL_captureOptionsSetByUser(options);
   const filteredOptions: HonoNodeOptions = {
-    ...userOptions,
+    ...options,
     ignoreSpans: [...(options.ignoreSpans || []), ...LOW_QUALITY_TRANSACTION_PATTERNS],
-    integrations: buildFilteredIntegrations(userOptions.integrations, false),
+    integrations: buildFilteredIntegrations(options.integrations, false),
   };
 
   return initNode(filteredOptions);

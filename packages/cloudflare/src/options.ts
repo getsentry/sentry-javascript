@@ -1,4 +1,4 @@
-import { _INTERNAL_captureOptionsSetByUser, isObjectLike, envToBool } from '@sentry/core';
+import { isObjectLike, envToBool } from '@sentry/core';
 import type { CloudflareOptions } from './client';
 
 /**
@@ -33,14 +33,12 @@ function getEnvVar<T extends Record<string, unknown>>(env: unknown, varName: key
  * 2. SENTRY_RELEASE environment variable
  * 3. CF_VERSION_METADATA.id binding (if configured in the wrangler config)
  *
- * @param options - The options passed in from the user.
+ * @param userOptions - The options passed in from the user.
  * @param env - The environment variables.
  *
  * @returns The final options.
  */
-export function getFinalOptions(options: CloudflareOptions = {}, env: unknown): CloudflareOptions {
-  const userOptions = _INTERNAL_captureOptionsSetByUser(options);
-
+export function getFinalOptions(userOptions: CloudflareOptions = {}, env: unknown): CloudflareOptions {
   if (!isObjectLike(env)) {
     return userOptions;
   }

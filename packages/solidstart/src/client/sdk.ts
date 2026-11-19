@@ -1,5 +1,5 @@
 import type { Client, Integration } from '@sentry/core';
-import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/solid';
 import { applyTunnelBasePath } from '../common/tunnel';
 import {
@@ -17,7 +17,7 @@ declare const __SENTRY_TRACING__: boolean;
 export function init(options: BrowserOptions): Client | undefined {
   const opts = {
     defaultIntegrations: getDefaultIntegrations(options),
-    ..._INTERNAL_captureOptionsSetByUser(options),
+    ...options,
   };
 
   applyTunnelBasePath(opts);
