@@ -21,8 +21,7 @@ export type AnthropicAiCallInfo =
 
 /**
  * Options for the Anthropic AI integration. `onSpanEnd` gets the response the method resolved with, such as a
- * `Message`, the final `Message` of a `messages.stream()`, or the result of a tool call. For a `stream: true`
- * call it is `undefined`.
+ * `Message`, or the result of a tool call; for streams it is `undefined`.
  */
 export type AnthropicAiOptions = GenAiCallOptions<AnthropicAiCallInfo> & GenAiSpanHooks<AnthropicAiCallInfo>;
 
