@@ -48,6 +48,10 @@ export class CloudflareClient extends ServerRuntimeClient {
   // and must not each start their own eager transport flush.
   private _inBoundaryFlush = false;
 
+  // Set when an envelope that needs eager delivery is accepted during a boundary flush. The
+  // flush's transport drain takes its batch when it starts, so such an envelope can miss it.
+  private _envelopeDuringBoundaryFlush = false;
+
   // Eager drains still sending. Outside an instrumented invocation (e.g. Astro on Pages) they have no `waitUntil`,
   // so `flush()` awaits them, or the response can end first and the runtime cancels their fetches.
   private readonly _pendingEagerDrains = new Set<Promise<void>>();
@@ -195,6 +199,14 @@ export class CloudflareClient extends ServerRuntimeClient {
       this._inBoundaryFlush = false;
     }
 
+    if (this._envelopeDuringBoundaryFlush) {
+      this._envelopeDuringBoundaryFlush = false;
+      const transport = this.getTransport();
+      if (transport) {
+        this._registerWithInvocationWaitUntil(transport.flush(timeout ?? 2000));
+      }
+    }
+
     // Each eager drain is bounded by its own transport flush timeout.
     await Promise.all(this._pendingEagerDrains);
 
@@ -293,7 +305,12 @@ export class CloudflareClient extends ServerRuntimeClient {
       const transport = this.getTransport();
       const invocationState = getInvocationState();
 
-      if (!transport || this._inBoundaryFlush || (invocationState && !invocationState.flushPointReached)) {
+      if (!transport || (invocationState && !invocationState.flushPointReached)) {
+        return;
+      }
+
+      if (this._inBoundaryFlush) {
+        this._envelopeDuringBoundaryFlush = true;
         return;
       }
 
