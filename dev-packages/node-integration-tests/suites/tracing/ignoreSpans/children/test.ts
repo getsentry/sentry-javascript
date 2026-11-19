@@ -11,6 +11,7 @@ describe('filtering child spans with ignoreSpans', () => {
     test('child spans are dropped and remaining spans correctly parented', async () => {
       const runner = createRunner()
         .unignore('client_report')
+        .unordered()
         .expect({
           client_report: {
             discarded_events: [

@@ -22,6 +22,7 @@ describe('ignoring a child of a continued server segment', () => {
       const runner = createRunner()
         .withEnv({ SERVER_URL })
         .unignore('client_report')
+        .unordered()
         .expect({
           client_report: {
             discarded_events: [{ category: 'span', quantity: 1, reason: 'ignored' }],
