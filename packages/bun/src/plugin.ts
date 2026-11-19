@@ -13,7 +13,7 @@
  * });
  * ```
  *
- * For `bun run` on Bun 1.4.5 or later, preload `@sentry/bun/import` instead.
+ * For `bun run` on Bun 1.4.6 or later, preload `@sentry/bun/import` instead.
  *
  * @module
  */

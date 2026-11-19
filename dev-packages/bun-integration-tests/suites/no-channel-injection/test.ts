@@ -17,7 +17,7 @@ describe('no channel injection (Bun)', () => {
     expect(output).toContain('@sentry/bun/plugin');
   });
 
-  it.runIf(supports({ bunMin: '1.4.5' }))('does not warn when `init()` injects the channels in `bun run`', () => {
+  it.runIf(supports({ bunMin: '1.4.6' }))('does not warn when `init()` injects the channels in `bun run`', () => {
     expect(runScenario('scenario-runtime-injection.ts')).not.toContain('No diagnostics-channel injection detected');
   });
 

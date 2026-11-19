@@ -36,7 +36,7 @@ declare const __SENTRY_CHANNEL_INJECTION__: boolean | undefined;
 /**
  * The tracing integrations for bun, added whenever spans are enabled. Most of them listen on
  * the orchestrion diagnostics channels, which only exist when the app is built with
- * `@sentry/bun/plugin`, or runs in `bun run` on Bun 1.4.5 or later. Otherwise, those
+ * `@sentry/bun/plugin`, or runs in `bun run` on Bun 1.4.6 or later. Otherwise, those
  * integrations stay installed but create no spans.
  */
 function getPerformanceIntegrations(options: Options): Integration[] {
