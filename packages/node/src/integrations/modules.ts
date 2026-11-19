@@ -1,6 +1,6 @@
-import { existsSync, readFileSync, realpathSync } from 'node:fs';
-import { basename, dirname, join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { GLOBAL_OBJ, type IntegrationFn } from '@sentry/core';
+import { _INTERNAL_collectInstalledModules } from '@sentry/core/server';
 
 type ModuleInfo = Record<string, string>;
 
@@ -46,13 +46,22 @@ const _modulesIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Add node modules / packages to the event.
- * For this, multiple sources are used:
- * - They can be injected at build time into the __SENTRY_SERVER_MODULES__ variable (e.g. in Next.js)
- * - They are extracted from the dependencies & devDependencies in the package.json file
- * - They are extracted from the require.cache (CJS only)
+ * Add the packages of the app and their versions to the event.
+ *
+ * The packages are the dependencies and devDependencies of the app's `package.json`, found from the entry file of the
+ * process. Each one gets the exact version from its installed `package.json`, which works the same for CommonJS and
+ * ESM, in Node.js and Bun. In CommonJS, packages in `require.cache` are added too. Versions injected at build time
+ * (e.g. by the Next.js SDK) are used for packages that are not installed at runtime, such as bundled ones.
  */
 export const modulesIntegration = _modulesIntegration;
+
+function readFile(path: string): string | undefined {
+  try {
+    return readFileSync(path, 'utf8');
+  } catch {
+    return undefined;
+  }
+}
 
 function getRequireCachePaths(): string[] {
   try {
@@ -62,98 +71,23 @@ function getRequireCachePaths(): string[] {
   }
 }
 
-/** Extract information about package.json modules */
 function collectModules(): ModuleInfo {
-  return {
-    ...getServerModules(),
-    ...getModulesFromPackageJson(),
-    /*! rollup-include-cjs-only */
-    ...collectRequireModules(),
-    /*! rollup-include-cjs-only-end */
-  };
-}
-
-/**
- * Whether `dir` is a node_modules folder of the main module, a folder
- * `<that node_modules>/<.pnpm or .bun>/<package id>/node_modules`, where the isolated layouts of pnpm and Bun keep
- * each package, or a scope folder (`@scope`) in one of these folders.
- */
-function isMainModulesDir(dir: string, mainPaths: string[]): boolean {
-  if (basename(dir).startsWith('@')) {
-    return isMainModulesDir(dirname(dir), mainPaths);
-  }
-
-  if (mainPaths.includes(dir)) {
-    return true;
-  }
-
-  const storeDir = dirname(dirname(dir));
-  return (
-    basename(dir) === 'node_modules' &&
-    ['.pnpm', '.bun'].includes(basename(storeDir)) &&
-    mainPaths.includes(dirname(storeDir))
-  );
-}
-
-/** Whether `require(name)` in the main module loads the package in `packageDir`. */
-function isResolvedFromMain(name: string, packageDir: string, mainPaths: string[]): boolean {
-  const resolvedDir = mainPaths.map(dir => join(dir, name)).find(dir => existsSync(dir));
-  return !!resolvedDir && realpathSync(resolvedDir) === realpathSync(packageDir);
-}
-
-/** Extract information about package.json modules from require.cache */
-function collectRequireModules(): ModuleInfo {
-  const mainPaths = require.main?.paths || [];
-  const paths = getRequireCachePaths();
-
-  // We start with the modules from package.json (if possible)
-  // These may be overwritten by more specific versions from the require.cache
-  const infos: ModuleInfo = {};
-  const packageDirs: Record<string, string> = {};
-  const seen = new Set<string>();
-
-  paths.forEach(path => {
-    let dir = path;
-
-    /** Traverse directories upward in the search of package.json file */
-    const updir = (): void | (() => void) => {
-      const orig = dir;
-      dir = dirname(orig);
-
-      if (!dir || orig === dir || seen.has(orig)) {
-        return undefined;
-      }
-      if (!isMainModulesDir(dir, mainPaths)) {
-        return updir();
-      }
-
-      const pkgfile = join(orig, 'package.json');
-      seen.add(orig);
-
-      if (!existsSync(pkgfile)) {
-        return updir();
-      }
-
-      try {
-        const info = JSON.parse(readFileSync(pkgfile, 'utf8')) as {
-          name: string;
-          version: string;
-        };
-        // The isolated layouts of pnpm and Bun keep every version of a package. Keep the one that the main module loads.
-        const previousDir = packageDirs[info.name];
-        if (!previousDir || !isResolvedFromMain(info.name, previousDir, mainPaths)) {
-          infos[info.name] = info.version;
-          packageDirs[info.name] = orig;
-        }
-      } catch {
-        // no-empty
-      }
-    };
-
-    updir();
+  const { declared, installed } = _INTERNAL_collectInstalledModules({
+    readFile,
+    entryPath: process.argv[1],
+    cwd: process.cwd(),
+    loadedFiles: [
+      /*! rollup-include-cjs-only */
+      ...getRequireCachePaths(),
+      /*! rollup-include-cjs-only-end */
+    ],
   });
 
-  return infos;
+  return {
+    ...declared,
+    ...getServerModules(),
+    ...installed,
+  };
 }
 
 /** Fetches the list of modules and the versions loaded by the entry file for your node.js app. */
@@ -162,29 +96,4 @@ function _getModules(): ModuleInfo {
     moduleCache = collectModules();
   }
   return moduleCache;
-}
-
-interface PackageJson {
-  dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
-}
-
-function getPackageJson(): PackageJson {
-  try {
-    const filePath = join(process.cwd(), 'package.json');
-    const packageJson = JSON.parse(readFileSync(filePath, 'utf8')) as PackageJson;
-
-    return packageJson;
-  } catch {
-    return {};
-  }
-}
-
-function getModulesFromPackageJson(): ModuleInfo {
-  const packageJson = getPackageJson();
-
-  return {
-    ...packageJson.dependencies,
-    ...packageJson.devDependencies,
-  };
 }
