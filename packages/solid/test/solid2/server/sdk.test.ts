@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../../src/solid2/server';
 
 const nodeInit = vi.spyOn(SentryNode, 'init').mockReturnValue(undefined);
+const addServerTimingTraceHeader = vi.spyOn(SentryNode, 'addServerTimingTraceHeader').mockImplementation(() => {});
 
 describe('init (server)', () => {
   beforeEach(() => {
@@ -38,5 +39,20 @@ describe('init (server)', () => {
         defaultIntegrations: expect.arrayContaining([expect.objectContaining({ name: 'SolidServerErrors' })]),
       }),
     );
+  });
+
+  it('sends the trace to the browser in a Server-Timing header', () => {
+    const client = {} as SentryNode.NodeClient;
+    nodeInit.mockReturnValueOnce(client);
+
+    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+    expect(addServerTimingTraceHeader).toHaveBeenCalledWith(client);
+  });
+
+  it('does not add the Server-Timing header without a client', () => {
+    init({});
+
+    expect(addServerTimingTraceHeader).not.toHaveBeenCalled();
   });
 });
