@@ -10,21 +10,23 @@ import { isPlainObject } from '../utils/is';
 
 const _experimentalReportSdkConfigIntegration = (() => ({
   name: 'ExperimentalReportSdkConfig',
-  // Reported right away: the config is final once the client is set up, and later telemetry is going to carry its hash.
   afterAllSetup(client: Client) {
     const scope = new Scope();
     scope.setClient(client);
 
-    try {
-      count('sdk.config', 1, { attributes: buildConfigAttributes(client), scope });
-    } catch (error) {
-      DEBUG_BUILD && debug.warn('Failed to report SDK configuration', error);
-    }
+    // Let the remaining afterAllSetup hooks register their integrations before taking the snapshot.
+    setTimeout(() => {
+      try {
+        count('sdk.config', 1, { attributes: buildConfigAttributes(client), scope });
+      } catch (error) {
+        DEBUG_BUILD && debug.warn('Failed to report SDK configuration', error);
+      }
+    }, 0);
   },
 })) satisfies IntegrationFn;
 
 /**
- * Reports the SDK options the user passed to `init()` once the client is set up.
+ * Reports the SDK options the user passed to `init()` on the next tick after client setup.
  *
  * @experimental This integration may change or be removed without notice.
  */

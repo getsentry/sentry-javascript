@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getCurrentScope, setCurrentClient } from '../../../src';
 import { getIntegrationsToSetup } from '../../../src/integration';
 import type { Integration } from '../../../src/types/integration';
@@ -22,14 +22,20 @@ function reportConfig(options: ReturnType<typeof getDefaultTestClientOptions>): 
   const client = new TestClient(options);
   setCurrentClient(client);
   client.init();
+  vi.advanceTimersByTime(0);
 
   return payload;
 }
 
 describe('experimentalReportSdkConfigIntegration', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
   afterEach(() => {
     getCurrentScope().setClient(undefined);
     vi.clearAllMocks();
+    vi.useRealTimers();
   });
 
   it('reports SDK and deployment metadata alongside user-set options', () => {
