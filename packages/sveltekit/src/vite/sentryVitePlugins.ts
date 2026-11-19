@@ -352,6 +352,10 @@ export function generateVitePluginOptions(
         ...svelteKitPluginOptions.release,
       };
     }
+  } else if (sentryVitePluginsOptions) {
+    // The plugin is only added for the bundle size optimizations here. It
+    // reads credentials from the environment, so it would upload otherwise.
+    sentryVitePluginsOptions.sourcemaps = { upload: false, injectDebugIds: false };
   }
 
   return sentryVitePluginsOptions;
