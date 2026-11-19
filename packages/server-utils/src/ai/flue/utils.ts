@@ -15,6 +15,8 @@ import {
   GEN_AI_TOOL_NAME,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import type { GenAiSpanHooks } from '../core/span-hooks';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
 import type { GenAiCallOptions } from '../core/utils';
 import { getGenAiSpanOp, resolveGenAiCallRecording } from '../core/utils';
 import { piAiContentToString } from '../pi-ai/messages';
@@ -28,6 +30,7 @@ import type { FlueCallInfo, FlueErrorInfo, FlueEventContext, FlueObservation } f
 export type SpanTracker = LRUMap<string, Span>;
 
 const TOOL_SPANS_RECORDING_OUTPUTS = new WeakSet<Span>();
+const TOOL_SPAN_END_HOOKS = new WeakMap<Span, (observation: FlueObservation) => void>();
 
 /**
  * Store a span under `key`. Callers only reach this with a key the tracker does not hold, so the
@@ -86,18 +89,15 @@ export function startToolSpan(
   observation: FlueObservation,
   context: FlueEventContext,
   toolSpans: SpanTracker,
-  options: GenAiCallOptions<FlueCallInfo>,
+  options: GenAiCallOptions<FlueCallInfo> & GenAiSpanHooks<FlueCallInfo, FlueObservation>,
 ): void {
   const { toolCallId, toolName } = observation;
   if (!toolCallId || toolSpans.get(toolCallId)) {
     return;
   }
 
-  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, {
-    operation: 'execute_tool',
-    observation,
-    context,
-  });
+  const call: FlueCallInfo = { operation: 'execute_tool', observation, context };
+  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
   const span = startInactiveSpan({
     name: `execute_tool ${toolName ?? 'unknown'}`,
     op: getGenAiSpanOp('execute_tool'),
@@ -114,6 +114,10 @@ export function startToolSpan(
   if (recordOutputs) {
     TOOL_SPANS_RECORDING_OUTPUTS.add(span);
   }
+  runGenAiSpanStart(options, span, call);
+  TOOL_SPAN_END_HOOKS.set(span, end =>
+    runGenAiSpanEnd(options, span, call, end.isError ? { response: end, error: end.errorInfo } : { response: end }),
+  );
   trackSpan(toolSpans, toolCallId, span);
 }
 
@@ -136,6 +140,7 @@ export function endToolSpan(observation: FlueObservation, toolSpans: SpanTracker
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
     captureToolError(span, observation.errorInfo);
   }
+  TOOL_SPAN_END_HOOKS.get(span)?.(observation);
   span.end();
 }
 

@@ -92,6 +92,8 @@ export interface PiToolCall {
   failed?: boolean;
   /** When `execute()` settled, used as the span's end time. */
   endTimestamp?: number;
+  /** Set once `execute()` settled. Runs `onSpanEnd` with its result. */
+  onSpanEnd?: () => void;
 }
 
 export function createRuns(): PiRuns {
