@@ -186,8 +186,11 @@ describe('SentryMastraExporter', () => {
     await run(started(span), ended(span));
 
     expect(endedSpans).toHaveLength(0);
-    expect(call.endTime).toEqual(span.endTime);
     expect(spanToStaticSpanJSON(call.span!).description).toBe('decide jev-1');
+
+    call.end!();
+    expect(endedSpans).toEqual([call.span]);
+    expect(spanToStaticSpanJSON(call.span!).timestamp).toBe(span.endTime!.getTime() / 1000);
   });
 
   it('passes its own recording options to the classifier evaluation call', async () => {

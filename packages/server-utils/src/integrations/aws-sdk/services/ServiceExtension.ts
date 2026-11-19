@@ -19,4 +19,7 @@ export interface ServiceExtension {
   // `response.data` in place; the mutation is guaranteed to be visible to the caller. Same idiom as
   // the vercel-ai subscribers' `result.stream` tap.
   responseHook?: (response: NormalizedResponse, span: Span) => void;
+
+  // Called when `send` failed, before the span ends.
+  errorHook?: (request: NormalizedRequest, error: unknown, span: Span) => void;
 }

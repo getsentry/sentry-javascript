@@ -1,4 +1,4 @@
-import type { Span } from '@sentry/core';
+import type { Span, SpanTimeInput } from '@sentry/core';
 import {
   debug,
   flush as sentryFlush,
@@ -11,6 +11,8 @@ import {
 } from '@sentry/core';
 import { GEN_AI_RESPONSE_MODEL, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
+import type { GenAiSpanHooks, GenAiSpanResult } from '../core/span-hooks';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
 import type { GenAiCallOptions } from '../core/utils';
 import { resolveGenAiCallRecording } from '../core/utils';
 import {
@@ -43,20 +45,24 @@ import type {
   MastraTracingEvent,
 } from './types';
 
-/** The span that `recordInputs`/`recordOutputs` decide on. */
+/** The span that `recordInputs`/`recordOutputs` decide on, and that the span hooks get. */
 export interface MastraCallInfo {
   /** The Mastra span as exported, when it starts. */
   span: MastraExportedSpan;
 }
 
 /**
- * `recordInputs`/`recordOutputs` functions run when the exporter receives the start of a Mastra span,
- * not in the async context of the code that started it.
+ * `recordInputs`/`recordOutputs` and `onSpanStart` run when the exporter receives the start of a Mastra
+ * span, and `onSpanEnd` when it receives its end, not in the async context of the code that started it.
+ * `onSpanEnd` gets the Mastra span as exported when it ends, with its output, unless it failed or the
+ * exporter ended it early, on shutdown or when too many spans are open at once.
  */
-export type MastraExporterOptions = GenAiCallOptions<MastraCallInfo>;
+export type MastraExporterOptions = GenAiCallOptions<MastraCallInfo> &
+  GenAiSpanHooks<MastraCallInfo, MastraExportedSpan>;
 
 interface TrackedSpan {
   span: Span;
+  call: MastraCallInfo;
   spanType: MastraSpanType;
   usage: SpanAttributes;
   recordingOptions: AttributeRecordingOptions;
@@ -121,8 +127,8 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
     for (const id of this._spans.keys()) {
       unregisterMastraSpan(id);
     }
-    for (const { span } of this._spans.values()) {
-      span.end();
+    for (const tracked of this._spans.values()) {
+      this._endSpan(tracked, {});
     }
     this._spans.clear();
     this._skipped.clear();
@@ -162,7 +168,8 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
   private _onSpanStarted(span: MastraExportedSpan): void {
     // Per span, not in the constructor: the exporter can be constructed before `Sentry.init()`, when
     // `dataCollection.genAI` does not exist yet.
-    const recordingOptions = resolveGenAiCallRecording(this._options, { span });
+    const call: MastraCallInfo = { span };
+    const recordingOptions = resolveGenAiCallRecording(this._options, call);
     const parentId = this._resolveParentId(span.parentSpanId);
     const parentSpan = parentId ? this._spans.get(parentId)?.span : undefined;
     const activeSpan = getActiveSpan();
@@ -178,6 +185,7 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
         [SENTRY_ORIGIN]: MASTRA_ORIGIN,
       },
     });
+    runGenAiSpanStart(this._options, sentrySpan, call);
 
     const evaluation = span.type === 'classifier_evaluation' ? takeStartingClassifierEvaluation() : undefined;
     if (evaluation) {
@@ -190,25 +198,37 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
       });
     }
 
-    this._trackSpan(span.id, { span: sentrySpan, spanType: span.type, usage: {}, recordingOptions, evaluation });
+    this._trackSpan(span.id, { span: sentrySpan, call, spanType: span.type, usage: {}, recordingOptions, evaluation });
   }
 
   /** Track a started span, ending any Sentry span that would otherwise be dropped without `end()`. */
   private _trackSpan(id: string, tracked: TrackedSpan): void {
     // A duplicate `span_started` would otherwise overwrite the entry and leak its Sentry span.
-    this._removeTracked(id)?.span.end();
+    this._endTracked(id);
 
     // `LRUMap.set` evicts the oldest entry once the map is full, dropping that span without ending it.
     if (this._spans.size >= MAX_TRACKED_MASTRA_SPANS) {
       const oldestId = this._spans.keys()[0];
       if (oldestId !== undefined) {
-        this._removeTracked(oldestId)?.span.end();
+        this._endTracked(oldestId);
       }
     }
 
     this._spans.set(id, tracked);
     // Let the `executeWithContext` channel subscriber find this Sentry span by Mastra span id.
     registerMastraSpan(id, tracked.span);
+  }
+
+  private _endTracked(id: string): void {
+    const tracked = this._removeTracked(id);
+    if (tracked) {
+      this._endSpan(tracked, {});
+    }
+  }
+
+  private _endSpan(tracked: TrackedSpan, result: GenAiSpanResult<MastraExportedSpan>, endTime?: SpanTimeInput): void {
+    runGenAiSpanEnd(this._options, tracked.span, tracked.call, result);
+    tracked.span.end(endTime);
   }
 
   /** Remove a tracked span and keep the id→span registry in lockstep. */
@@ -244,12 +264,14 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
       sentrySpan.setStatus({ code: SPAN_STATUS_ERROR, message: span.errorInfo.message });
     }
 
+    const result = span.errorInfo ? { error: span.errorInfo } : { response: span };
     const { evaluation } = tracked;
     if (evaluation && !evaluation.settled) {
       // The integration adds the call's input and answers once `evaluate()` settles, then ends the span.
-      evaluation.endTime = span.endTime ?? timestampInSeconds();
+      const endTime = span.endTime ?? timestampInSeconds();
+      evaluation.end = () => this._endSpan(tracked, result, endTime);
     } else {
-      sentrySpan.end(span.endTime);
+      this._endSpan(tracked, result, span.endTime);
     }
     this._removeTracked(span.id);
   }

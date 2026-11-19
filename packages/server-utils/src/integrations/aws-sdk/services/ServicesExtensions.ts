@@ -48,4 +48,9 @@ export class ServicesExtensions implements ServiceExtension {
     const serviceExtension = this._services.get(response.request.serviceName);
     serviceExtension?.responseHook?.(response, span);
   }
+
+  public errorHook(request: NormalizedRequest, error: unknown, span: Span): void {
+    const serviceExtension = this._services.get(request.serviceName);
+    serviceExtension?.errorHook?.(request, error, span);
+  }
 }
