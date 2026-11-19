@@ -124,8 +124,9 @@ test('Sends streamed spans for an API route', async ({ baseURL }) => {
       'server.address': { type: 'string', value: 'localhost' },
       'user_agent.original': { type: 'string', value: 'node' },
       'url.scheme': { type: 'string', value: 'http' },
+      'sentry.kind': { type: 'string', value: 'server' },
       // On Cloudflare, `withSentry` creates the `http.server` span from the worker's `Request`, not from `node:http`.
-      // Known defect: the span has no `sentry.kind` or `http.response.status_text`.
+      // Known defect: the span has no `http.response.status_text`.
       ...(RUNTIME === 'cloudflare'
         ? {
             'sentry.origin': { type: 'string', value: 'auto.http.cloudflare' },
@@ -133,7 +134,6 @@ test('Sends streamed spans for an API route', async ({ baseURL }) => {
           }
         : {
             'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
-            'sentry.kind': { type: 'string', value: 'server' },
             'server.port': { type: 'integer', value: 3030 },
             // Known defect: Bun's `node:http` leaves `statusMessage` unset when the app does not set it, and the SDK
             // does not fall back to the standard reason phrase.

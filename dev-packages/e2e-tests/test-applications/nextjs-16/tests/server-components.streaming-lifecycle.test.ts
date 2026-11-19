@@ -90,6 +90,7 @@ test('Sends the request span of the Worker for a request to app router with URL'
     'http.response.status_code': { value: 200, type: 'integer' },
     'http.route': { value: '/parameterized/[one]/beep/[two]', type: 'string' },
     'url.path': { value: '/parameterized/1337/beep/42', type: 'string' },
+    'sentry.kind': { value: 'server', type: 'string' },
     'next.route': { value: '/parameterized/[one]/beep/[two]', type: 'string' },
   });
 

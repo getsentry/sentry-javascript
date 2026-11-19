@@ -125,6 +125,7 @@ test('Hono app captures parametrized route names on Bun', async () => {
           attributes: expect.objectContaining({
             'sentry.op': { value: 'http.server', type: 'string' },
             'sentry.origin': { value: 'auto.http.bun.serve', type: 'string' },
+            'sentry.kind': { value: 'server', type: 'string' },
             'sentry.segment.name.source': { value: 'route', type: 'string' },
             'http.route': { value: '/hello/:name', type: 'string' },
             'http.request.method': { value: 'GET', type: 'string' },

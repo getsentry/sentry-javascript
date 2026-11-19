@@ -680,6 +680,7 @@ describe('withSentry', () => {
         data: {
           'sentry.origin': 'auto.http.cloudflare',
           'sentry.op': 'http.server',
+          'sentry.kind': 'server',
           'sentry.segment.name.source': 'route',
           'http.request.method': 'GET',
           'url.full': 'https://example.com/',

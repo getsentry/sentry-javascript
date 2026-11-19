@@ -275,6 +275,10 @@ it('sends a streamed span envelope with correct spans for a manually started spa
         type: 'integer',
         value: 200,
       },
+      'sentry.kind': {
+        type: 'string',
+        value: 'server',
+      },
       'cloud.provider': {
         type: 'string',
         value: 'cloudflare',

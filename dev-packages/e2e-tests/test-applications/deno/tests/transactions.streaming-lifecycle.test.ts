@@ -90,6 +90,10 @@ const SEGMENT_SPAN = {
       type: 'string',
       value: 'qa',
     },
+    'sentry.kind': {
+      type: 'string',
+      value: 'server',
+    },
     'sentry.op': {
       type: 'string',
       value: 'http.server',
