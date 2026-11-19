@@ -123,6 +123,8 @@ export default defineConfig({
                 ...nodeSuitesTest,
                 // The auto-instrumentation suites, run unbuilt with `@sentry/bun/import` preloaded.
                 name: 'node-suites-bun-run',
+                // The bundled project uses the same Docker fixtures.
+                sequence: { groupOrder: 2 },
                 include: AUTO_INSTRUMENTATION_SUITES,
                 exclude: BUN_RUN_EXCLUDE,
                 env: {
