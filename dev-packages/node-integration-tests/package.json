@@ -98,7 +98,7 @@
     "lru-memoizer": "2.3.0",
     "mongodb": "^3.7.3",
     "mongodb-memory-server-global": "^11.0.1",
-    "mongoose": "^6.13.10",
+    "mongoose": "^6.13.12",
     "mysql": "^2.18.1",
     "mysql2": "^3.23.3",
     "nock": "^14.0.17",
