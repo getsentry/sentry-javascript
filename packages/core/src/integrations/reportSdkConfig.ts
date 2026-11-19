@@ -18,7 +18,6 @@ const _experimentalReportSdkConfigIntegration = (() => ({
     let reported = false;
 
     const report = (): void => {
-      // The timer and flush hook can both request capture; only report once.
       if (reported) {
         return;
       }
@@ -27,28 +26,25 @@ const _experimentalReportSdkConfigIntegration = (() => ({
       clearTimeout(timer);
 
       try {
-        const attributes = buildConfigAttributes(client);
-        count('sdk.config', 1, { attributes, scope });
+        count('sdk.config', 1, { attributes: buildConfigAttributes(client), scope });
       } catch (error) {
         DEBUG_BUILD && debug.warn('Failed to report SDK configuration', error);
       }
     };
 
-    // Allow configuration to settle unless the client flushes earlier.
-    const timer = safeUnref(setTimeout(report, 5000));
+    // Let the remaining afterAllSetup hooks register their integrations before taking the snapshot.
+    const timer = safeUnref(setTimeout(report, 0));
 
-    // Close, tab hiding, and natural Node process exit trigger flushing.
     client.on('flush', () => {
       report();
-      // report() may register the first metric flusher too late for this flush,
-      // or run after an existing flusher. Drain explicitly to cover both cases.
+      // Capturing can register the metrics flusher too late for this flush, or after an existing flusher.
       _INTERNAL_flushMetricsBuffer(client);
     });
   },
 })) satisfies IntegrationFn;
 
 /**
- * Reports the SDK options the user passed to `init()` once after initialization.
+ * Reports the SDK options the user passed to `init()` on the next tick after client setup, or on an earlier flush.
  *
  * @experimental This integration may change or be removed without notice.
  */
