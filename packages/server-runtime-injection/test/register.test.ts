@@ -29,6 +29,7 @@ vi.mock('node:module', async importOriginal => {
 const setDiagnosticsHookMock = vi.fn<(cb: DiagnosticsCallback) => void>();
 vi.mock('@apm-js-collab/tracing-hooks/lib/diagnostics.js', () => ({
   setDiagnosticsHook: (cb: DiagnosticsCallback) => setDiagnosticsHookMock(cb),
+  emitDiagnostics: (event: Parameters<DiagnosticsCallback>[0]) => setDiagnosticsHookMock.mock.lastCall?.[0](event),
 }));
 vi.mock('@apm-js-collab/tracing-hooks', () => ({
   default: class {
@@ -51,6 +52,7 @@ vi.mock('@sentry/core', async importOriginal => {
 });
 
 import { GLOBAL_OBJ } from '@sentry/core';
+import type * as BunModule from '../src/bun';
 import type * as RegisterModule from '../src/register';
 
 type DiagnosticsCallback = (event: { moduleName: string; error?: unknown }) => void;
@@ -321,5 +323,103 @@ describe('registerDiagnosticsChannelInjection - Deno module formats', () => {
     const url = pathToFileURL(join(fixtureDir, 'esm-package', 'lib', 'index.js')).href;
 
     expect(loadHook(url, {}, () => ({ format: 'commonjs' }))).toEqual({ format: 'commonjs' });
+  });
+});
+
+describe('registerBunRuntimeInjection', () => {
+  type OnLoad = (args: { path: string }) => { contents: string; loader: string } | undefined;
+
+  let fixtureDir: string;
+  let registerBunRuntimeInjection: typeof BunModule.registerBunRuntimeInjection;
+  let pluginMock: ReturnType<typeof vi.fn>;
+
+  /** The `onLoad` callback of the plugin that the registration handed to `Bun.plugin()`. */
+  function onLoadCallback(): OnLoad {
+    const onLoad = vi.fn();
+    const [plugin] = pluginMock.mock.lastCall ?? [];
+    plugin.setup({ onLoad });
+    return onLoad.mock.lastCall?.[1];
+  }
+
+  beforeAll(() => {
+    fixtureDir = mkdtempSync(join(tmpdir(), 'sentry-bun-plugin-'));
+    mkdirSync(join(fixtureDir, 'node_modules', 'mysql', 'lib'), { recursive: true });
+    writeFileSync(join(fixtureDir, 'node_modules', 'mysql', 'package.json'), JSON.stringify({ version: '2.18.1' }));
+    writeFileSync(
+      join(fixtureDir, 'node_modules', 'mysql', 'lib', 'Connection.js'),
+      'function Connection() {}\nConnection.prototype.query = function query(sql) { return sql; };\nmodule.exports = Connection;\n',
+    );
+    writeFileSync(join(fixtureDir, 'node_modules', 'mysql', 'index.js'), 'module.exports = {};');
+  });
+
+  afterAll(() => {
+    rmSync(fixtureDir, { recursive: true, force: true });
+  });
+
+  beforeEach(async () => {
+    delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
+    setDiagnosticsHookMock.mockClear();
+    registerHooksMock.mockClear();
+    pluginMock = vi.fn();
+    vi.resetModules();
+    ({ registerBunRuntimeInjection } = await import('../src/bun'));
+  });
+
+  afterEach(() => {
+    delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
+    vi.unstubAllGlobals();
+  });
+
+  it('transforms instrumented modules with `Bun.plugin()` and records them', () => {
+    vi.stubGlobal('Bun', { version: '1.4.6', plugin: pluginMock });
+
+    registerBunRuntimeInjection();
+    registerBunRuntimeInjection();
+
+    expect(pluginMock).toHaveBeenCalledTimes(1);
+    expect(registerHooksMock).not.toHaveBeenCalled();
+
+    const result = onLoadCallback()({ path: join(fixtureDir, 'node_modules', 'mysql', 'lib', 'Connection.js') });
+
+    expect(result).toEqual({ contents: expect.stringContaining('orchestrion:mysql:query'), loader: 'js' });
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtime).toEqual(['mysql']);
+  });
+
+  it('leaves files without a transform to Bun', () => {
+    vi.stubGlobal('Bun', { version: '1.4.6', plugin: pluginMock });
+
+    registerBunRuntimeInjection();
+
+    expect(onLoadCallback()({ path: join(fixtureDir, 'node_modules', 'mysql', 'index.js') })).toBeUndefined();
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtime).toEqual([]);
+  });
+
+  it('does nothing outside of Bun', () => {
+    registerBunRuntimeInjection();
+
+    expect(pluginMock).not.toHaveBeenCalled();
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__).toEqual({});
+  });
+
+  it('marks runtime injection unavailable when `Bun.plugin()` throws', () => {
+    vi.stubGlobal('Bun', {
+      version: '1.4.6',
+      plugin: () => {
+        throw new Error('boom');
+      },
+    });
+
+    expect(() => registerBunRuntimeInjection()).not.toThrow();
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__).toEqual({ runtimeUnavailable: true });
+  });
+
+  it.each(['1.4.4', '1.4.5'])('registers nothing on Bun %s, which loses CommonJS exports', version => {
+    vi.stubGlobal('Bun', { version, plugin: pluginMock });
+
+    registerBunRuntimeInjection();
+
+    expect(pluginMock).not.toHaveBeenCalled();
+    expect(registerHooksMock).not.toHaveBeenCalled();
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__).toEqual({ runtimeUnavailable: true });
   });
 });

@@ -13,7 +13,7 @@
  * });
  * ```
  *
- * This is BUILD-ONLY. Runtime instrumentation (`bun run`) is currently not supported.
+ * For `bun run` on Bun 1.4.6 or later, preload `@sentry/bun/import` instead.
  *
  * @module
  */
