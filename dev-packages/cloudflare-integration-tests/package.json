@@ -24,6 +24,7 @@
     "@langchain/openai": "^1.6.2",
     "@langchain/typesafe": "^0.0.2",
     "@opentelemetry/api": "^1.9.1",
+    "@orpc/server": "2.0.0-beta.51",
     "@prisma/adapter-d1": "6.15.0",
     "@prisma/client": "6.15.0",
     "@sentry-internal/test-utils": "11.14.0",
