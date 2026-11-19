@@ -142,19 +142,19 @@ describe('Server init()', () => {
     });
 
     it.each([
-      ['installs', undefined, 1],
-      ['does not install', '1', 0],
-    ])('%s the tunnel hooks with `VERCEL=%s`', (_description, vercel, calls) => {
+      ['off Vercel', {}, 1],
+      ['in `vercel dev`', { VERCEL: '1', VERCEL_ENV: 'development' }, 1],
+      ['on a Vercel deployment', { VERCEL: '1', VERCEL_ENV: 'production' }, 0],
+    ])('installs the tunnel hooks %s only without the generated route', (_description, env, calls) => {
       globalWithInjectedValues._sentryTunnelRoute = '/monitoring';
-      if (vercel) {
-        process.env.VERCEL = vercel;
-      }
+      Object.entries(env).forEach(([name, value]) => vi.stubEnv(name, value));
       const installTunnelHooks = vi.spyOn(SentryNode, '_INTERNAL_installTunnelHooks').mockImplementation(() => {});
 
       init({ dsn: TEST_DSN });
 
       expect(installTunnelHooks).toHaveBeenCalledTimes(calls);
       installTunnelHooks.mockRestore();
+      vi.unstubAllEnvs();
     });
 
     it("serves the path derived from the DSN under the app's `basePath` for `tunnelRoute: true`", () => {
