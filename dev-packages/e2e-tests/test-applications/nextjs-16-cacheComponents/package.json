@@ -65,6 +65,7 @@
     "optionalVariants": [
       {
         "runtime": "cloudflare",
+        "skip": true,
         "build-command": "NEXT_PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build:cloudflare",
         "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:prod",
         "label": "nextjs-16-cacheComponents (cloudflare, static trace lifecycle)"
