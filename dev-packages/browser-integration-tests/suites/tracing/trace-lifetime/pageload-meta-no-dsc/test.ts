@@ -1,3 +1,4 @@
+import { PAGELOAD } from '@sentry/conventions/op';
 import { expect } from '@playwright/test';
 import { parseBaggageHeader } from '@sentry/core';
 import path from 'path';
@@ -50,7 +51,7 @@ for (const lifecycle of ['stream', 'static'] as const) {
           if (lifecycle === 'stream') {
             const pageloadPromise = waitForStreamedSpanAndTraceHeader(
               page,
-              span => span.is_segment && getSpanOp(span) === 'pageload',
+              span => span.is_segment && getSpanOp(span) === PAGELOAD,
             );
             await page.goto(url);
             await page.locator('#fetchBtn').click();
@@ -62,7 +63,7 @@ for (const lifecycle of ['stream', 'static'] as const) {
             });
             expect(traceHeader).toEqual(expectedTraceHeader);
           } else {
-            const pageloadPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === 'pageload');
+            const pageloadPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === PAGELOAD);
             await page.goto(url);
             await page.locator('#fetchBtn').click();
             const [pageloadTransaction, traceHeader] = eventAndTraceHeaderRequestParser(await pageloadPromise);

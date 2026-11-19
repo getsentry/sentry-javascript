@@ -7,6 +7,7 @@ import type {
   SerializedStreamedSpanContainer,
   TransactionEvent,
 } from '@sentry/core';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { DenoOptions } from '@sentry/deno';
 import * as Sentry from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
@@ -32,8 +33,7 @@ function isHandlerSpanEnvelope(envelope: Envelope): boolean {
     ([header, payload]) =>
       header.type === 'span' &&
       (payload as SerializedStreamedSpanContainer).items.some(
-        span =>
-          span.is_segment && getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === '/handler',
+        span => span.is_segment && getSpanOp(span) === HTTP_SERVER && span.attributes['url.path']?.value === '/handler',
       ),
   );
 }
@@ -42,7 +42,7 @@ function isHandlerTransactionEnvelope(envelope: Envelope): boolean {
   return envelope[1].some(
     ([header, payload]) =>
       header.type === 'transaction' &&
-      (payload as TransactionEvent).contexts?.trace?.op === 'http.server' &&
+      (payload as TransactionEvent).contexts?.trace?.op === HTTP_SERVER &&
       (payload as TransactionEvent).transaction === 'GET /handler',
   );
 }
