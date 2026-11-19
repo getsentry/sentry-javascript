@@ -42,9 +42,8 @@ export function registerVercelAiGenerationTests(version: '6' | '7', vercelAiVers
     __dirname,
     'scenario.mjs',
     'instrument-with-pii.mjs',
-    (createRunner, test, mode) => {
-      const runTest = version === '7' && mode === 'cjs' ? test.runIf(SUPPORTS_REQUIRE_OF_ESM) : test;
-      runTest('creates ai spans for dataCollection defaults', async () => {
+    (createRunner, test) => {
+      test('creates ai spans for dataCollection defaults', async () => {
         await createRunner()
           .expect({
             span: container => {
@@ -289,6 +288,7 @@ export function registerVercelAiGenerationTests(version: '6' | '7', vercelAiVers
       additionalDependencies: {
         ai: vercelAiVersion,
       },
+      failsOnCjs: version === '7' && !SUPPORTS_REQUIRE_OF_ESM,
     },
   );
   createEsmTests(

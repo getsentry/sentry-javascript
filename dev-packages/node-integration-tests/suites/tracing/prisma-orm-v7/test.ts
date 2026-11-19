@@ -20,9 +20,8 @@ describe('Prisma ORM v7 Tests', () => {
       __dirname,
       'scenario.mjs',
       'instrument.mjs',
-      (createRunner, test, mode) => {
-        const runTest = mode === 'cjs' ? test.runIf(SUPPORTS_REQUIRE_OF_ESM) : test;
-        runTest('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
+      (createRunner, test) => {
+        test('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
           await createRunner()
             .expect({
               span: container => {
@@ -115,6 +114,7 @@ describe('Prisma ORM v7 Tests', () => {
         },
         afterSetupCommand: 'prisma generate --schema prisma/schema.prisma && tsc -p prisma/tsconfig.json',
         copyPaths: ['prisma', 'prisma.config.ts'],
+        failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM,
       },
     );
   });

@@ -14,9 +14,8 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test > resolve sp
     __dirname,
     'scenario.mjs',
     'instrument.mjs',
-    (createTestRunner, test, mode) => {
-      const runTest = mode === 'cjs' ? test.runIf(SUPPORTS_REQUIRE_OF_ESM) : test;
-      runTest('emits resolver spans when ignoreResolveSpans is false', async () => {
+    (createTestRunner, test) => {
+      test('emits resolver spans when ignoreResolveSpans is false', async () => {
         await createTestRunner()
           .expect({
             span: container => {
@@ -78,7 +77,7 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test > resolve sp
           .completed();
       });
 
-      runTest('skips the default property resolver (trivial resolve) by default', async () => {
+      test('skips the default property resolver (trivial resolve) by default', async () => {
         await createTestRunner()
           .expect({
             span: container => {
@@ -96,7 +95,7 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test > resolve sp
           .completed();
       });
     },
-    { additionalDependencies: { graphql: '^17' } },
+    { failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM, additionalDependencies: { graphql: '^17' } },
   );
 
   // With `ignoreTrivialResolveSpans: false`, graphql's default property resolver is no longer skipped,
@@ -105,9 +104,8 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test > resolve sp
     __dirname,
     'scenario.mjs',
     'instrument-trivial.mjs',
-    (createTestRunner, test, mode) => {
-      const runTest = mode === 'cjs' ? test.runIf(SUPPORTS_REQUIRE_OF_ESM) : test;
-      runTest('emits a span for the trivial default resolver when ignoreTrivialResolveSpans is false', async () => {
+    (createTestRunner, test) => {
+      test('emits a span for the trivial default resolver when ignoreTrivialResolveSpans is false', async () => {
         await createTestRunner()
           .expect({
             span: container => {
@@ -122,6 +120,6 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test > resolve sp
           .completed();
       });
     },
-    { additionalDependencies: { graphql: '^17' } },
+    { failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM, additionalDependencies: { graphql: '^17' } },
   );
 });

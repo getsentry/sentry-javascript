@@ -12,9 +12,8 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test', () => {
     __dirname,
     'scenario.mjs',
     'instrument.mjs',
-    (createTestRunner, test, mode) => {
-      const runTest = mode === 'cjs' ? test.runIf(SUPPORTS_REQUIRE_OF_ESM) : test;
-      runTest('subscribes to graphql >= 17 diagnostics channels with graphql semconv attributes', async () => {
+    (createTestRunner, test) => {
+      test('subscribes to graphql >= 17 diagnostics channels with graphql semconv attributes', async () => {
         await createTestRunner()
           .expect({
             span: container => {
@@ -87,7 +86,7 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test', () => {
           .completed();
       });
 
-      runTest('never leaks raw inline literal values into graphql.document', async () => {
+      test('never leaks raw inline literal values into graphql.document', async () => {
         await createTestRunner()
           .expect({
             span: container => {
@@ -112,7 +111,7 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test', () => {
           .completed();
       });
 
-      runTest('flags the execute span as errored when a resolver throws', async () => {
+      test('flags the execute span as errored when a resolver throws', async () => {
         await createTestRunner()
           .expect({
             span: container => {
@@ -133,7 +132,7 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test', () => {
           .completed();
       });
 
-      runTest('parents the execute span to the surrounding segment', async () => {
+      test('parents the execute span to the surrounding segment', async () => {
         await createTestRunner()
           .expect({
             span: container => {
@@ -154,7 +153,7 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test', () => {
           .completed();
       });
     },
-    { additionalDependencies: { graphql: '^17' } },
+    { failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM, additionalDependencies: { graphql: '^17' } },
   );
 
   // A document that references an unknown field passes `graphql.parse` but fails `graphql.validate`;
@@ -163,9 +162,8 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test', () => {
     __dirname,
     'scenario-invalid.mjs',
     'instrument.mjs',
-    (createTestRunner, test, mode) => {
-      const runTest = mode === 'cjs' ? test.runIf(SUPPORTS_REQUIRE_OF_ESM) : test;
-      runTest('flags the validate span as errored for an invalid document', async () => {
+    (createTestRunner, test) => {
+      test('flags the validate span as errored for an invalid document', async () => {
         await createTestRunner()
           .expect({
             span: container => {
@@ -182,6 +180,6 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test', () => {
           .completed();
       });
     },
-    { additionalDependencies: { graphql: '^17' } },
+    { failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM, additionalDependencies: { graphql: '^17' } },
   );
 });

@@ -39,9 +39,7 @@ describe('koa auto-instrumentation', () => {
       'scenario.mjs',
       'instrument.mjs',
       (createRunner, test) => {
-        // Koa 2 depends on `generator-function`, which `require()`s an ES module.
-        const runTest = version === 'v2' ? test.runIf(SUPPORTS_REQUIRE_OF_ESM) : test;
-        runTest('should auto-instrument `koa` router and middleware layers.', async () => {
+        test('should auto-instrument `koa` router and middleware layers.', async () => {
           const runner = createRunner()
             .expect({
               span: container => {
@@ -79,7 +77,7 @@ describe('koa auto-instrumentation', () => {
           await runner.completed();
         });
 
-        runTest('should assign a parameterized segment name.', async () => {
+        test('should assign a parameterized segment name.', async () => {
           const runner = createRunner()
             .expect({
               span: container => {
@@ -103,7 +101,7 @@ describe('koa auto-instrumentation', () => {
           await runner.completed();
         });
 
-        runTest('should capture errors thrown in routes via the koa error handler.', async () => {
+        test('should capture errors thrown in routes via the koa error handler.', async () => {
           const runner = createRunner()
             .unordered()
             .expect({
@@ -117,7 +115,12 @@ describe('koa auto-instrumentation', () => {
           await runner.completed();
         });
       },
-      { additionalDependencies },
+      {
+        additionalDependencies,
+        // Koa 2 depends on `generator-function`, which `require()`s an ES module.
+        failsOnEsm: version === 'v2' && !SUPPORTS_REQUIRE_OF_ESM,
+        failsOnCjs: version === 'v2' && !SUPPORTS_REQUIRE_OF_ESM,
+      },
     );
   });
 });
