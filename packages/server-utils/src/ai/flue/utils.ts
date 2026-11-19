@@ -111,6 +111,10 @@ export function startToolSpan(
         : {}),
     },
   });
+  // Again after start, so the Flue id wins over one from `Sentry.setConversationId()`, as on the agent and chat spans.
+  if (observation.conversationId) {
+    span.setAttribute(GEN_AI_CONVERSATION_ID, observation.conversationId);
+  }
   if (recordOutputs) {
     TOOL_SPANS_RECORDING_OUTPUTS.add(span);
   }
