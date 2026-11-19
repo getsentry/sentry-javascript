@@ -570,5 +570,7 @@ export {
 export { warnOnRemovedBuildOptions } from './build-time-plugins/warnOnRemovedBuildOptions';
 export { resolveSourceMapsFeatures } from './build-time-plugins/resolveSourceMapsFeatures';
 export type { SourceMapsFeatures } from './build-time-plugins/resolveSourceMapsFeatures';
+export { warnOnConflictingSourceMapOptions } from './build-time-plugins/warnOnConflictingSourceMapOptions';
+export type { ConflictingSourceMapOptions } from './build-time-plugins/warnOnConflictingSourceMapOptions';
 export { stringifyForCodeInjection } from './build-time-plugins/stringifyForCodeInjection';
 export { startSpan, startInactiveSpan, startSpanManual } from './tracing/trace';
