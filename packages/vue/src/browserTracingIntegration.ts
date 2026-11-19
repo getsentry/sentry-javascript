@@ -3,7 +3,6 @@ import {
   startBrowserTracingNavigationSpan,
 } from '@sentry/browser';
 import type { Integration, StartSpanOptions } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
 import { instrumentVueRouter } from './router';
 
 // The following type is an intersection of the Route type from VueRouter v2, v3, and v4.
@@ -44,7 +43,10 @@ type VueBrowserTracingIntegrationOptions = Parameters<typeof originalBrowserTrac
   routeLabel?: 'name' | 'path';
 };
 
-function _browserTracingIntegration(options: VueBrowserTracingIntegrationOptions = {}): Integration {
+/**
+ * A custom browser tracing integrations for Vue.
+ */
+export function browserTracingIntegration(options: VueBrowserTracingIntegrationOptions = {}): Integration {
   // If router is not passed, we just use the normal implementation
   if (!options.router) {
     return originalBrowserTracingIntegration(options);
@@ -70,8 +72,3 @@ function _browserTracingIntegration(options: VueBrowserTracingIntegrationOptions
     },
   };
 }
-
-/**
- * A custom browser tracing integrations for Vue.
- */
-export const browserTracingIntegration = defineIntegration(_browserTracingIntegration);

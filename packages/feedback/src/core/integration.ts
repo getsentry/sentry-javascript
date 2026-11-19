@@ -10,7 +10,7 @@ import type {
   IntegrationFn,
   SendFeedback,
 } from '@sentry/core';
-import { defineIntegration, addIntegration, debug, isBrowser } from '@sentry/core';
+import { addIntegration, debug, isBrowser } from '@sentry/core';
 import {
   ADD_SCREENSHOT_LABEL,
   CANCEL_BUTTON_LABEL,
@@ -411,5 +411,5 @@ export const buildFeedbackIntegration = ({
     };
   }) satisfies IntegrationFn;
 
-  return defineIntegration(feedbackIntegration) as typeof feedbackIntegration;
+  return feedbackIntegration;
 };

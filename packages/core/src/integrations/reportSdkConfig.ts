@@ -113,15 +113,13 @@ function buildConfigAttributes(client: Client): Record<string, string> {
   );
 
   if (integrationsSetByUser) {
-    options.integrations = integrationsSetByUser.map(name =>
-      describeIntegration(name, client.getIntegrationByName(name)),
-    );
+    options.integrations = integrationsSetByUser.map(name => ({ name }));
   }
 
   if (Array.isArray(options.defaultIntegrations)) {
-    options.defaultIntegrations = options.defaultIntegrations.map((integration: Integration) =>
-      describeIntegration(integration.name, integration),
-    );
+    options.defaultIntegrations = options.defaultIntegrations.map((integration: Integration) => ({
+      name: integration.name,
+    }));
   }
 
   // The hash covers the whole payload, so a payload cached by its hash is never stale.
@@ -134,17 +132,4 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     'sentry.sdk_config.hash': fnv1a32(payload),
     'sentry.sdk_config.payload': payload,
   };
-}
-
-function describeIntegration(
-  name: string,
-  integration: (Integration & { isDefaultInstance?: true }) | undefined,
-): { name: string; options?: unknown } {
-  // A default instance kept by an `integrations` function got its options from the SDK, not the user.
-  const options = integration?.isDefaultInstance ? undefined : integration?._options;
-
-  // `fooIntegration()` and `fooIntegration({})` both mean no options were passed.
-  return options === undefined || (isPlainObject(options) && !Object.keys(options).length)
-    ? { name }
-    : { name, options };
 }

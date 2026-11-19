@@ -34,7 +34,6 @@ import {
 import { FUNCTION, ROUTER } from '@sentry/conventions/op';
 import type { Integration, Span } from '@sentry/core';
 import {
-  defineIntegration,
   debug,
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
@@ -55,7 +54,12 @@ import { runOutsideAngular } from './zone';
 
 let instrumentationInitialized: boolean;
 
-function _browserTracingIntegration(
+/**
+ * A custom browser tracing integration for Angular.
+ *
+ * Use this integration in combination with `TraceService`
+ */
+export function browserTracingIntegration(
   options: Parameters<typeof originalBrowserTracingIntegration>[0] = {},
 ): Integration {
   // If the user opts out to set this up, we just don't initialize this.
@@ -69,13 +73,6 @@ function _browserTracingIntegration(
     instrumentNavigation: false,
   });
 }
-
-/**
- * A custom browser tracing integration for Angular.
- *
- * Use this integration in combination with `TraceService`
- */
-export const browserTracingIntegration = defineIntegration(_browserTracingIntegration);
 
 /**
  * This function is extracted to make unit testing easier.

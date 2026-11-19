@@ -56,8 +56,6 @@ export function tanstackRouterBrowserTracingIntegration(
 
   return {
     ...browserTracingIntegrationInstance,
-    // The first argument is the router, so `defineIntegration` would not record the options.
-    _options: options,
     afterAllSetup(client) {
       browserTracingIntegrationInstance.afterAllSetup(client);
 

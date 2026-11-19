@@ -1,6 +1,5 @@
 import type { browserTracingIntegration } from '@sentry/browser';
 import type { Integration } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
 import { createRoutesFromChildren, matchRoutes, useLocation, useNavigationType } from 'react-router';
 import type { ReactRouterOptions } from './reactrouter-compat-utils';
 import { reactRouterBrowserTracingIntegration as reactRouterBrowserTracingIntegrationBase } from './reactrouter.compat';
@@ -16,18 +15,6 @@ export {
 } from './reactrouter.compat';
 
 type BrowserTracingOptions = Parameters<typeof browserTracingIntegration>[0];
-
-function _reactRouterBrowserTracingIntegration(
-  options: BrowserTracingOptions & Partial<ReactRouterOptions> = {},
-): Integration {
-  return reactRouterBrowserTracingIntegrationBase({
-    useLocation,
-    useNavigationType,
-    createRoutesFromChildren,
-    matchRoutes,
-    ...options,
-  });
-}
 
 /**
  * A browser tracing integration for React Router v6, v7 and v8.
@@ -48,4 +35,14 @@ function _reactRouterBrowserTracingIntegration(
  * React Router v6 with only `react-router-dom` installed, either add `react-router` as a dependency or import
  * `reactRouterBrowserTracingIntegration` from `@sentry/react` and pass the hooks explicitly.
  */
-export const reactRouterBrowserTracingIntegration = defineIntegration(_reactRouterBrowserTracingIntegration);
+export function reactRouterBrowserTracingIntegration(
+  options: BrowserTracingOptions & Partial<ReactRouterOptions> = {},
+): Integration {
+  return reactRouterBrowserTracingIntegrationBase({
+    useLocation,
+    useNavigationType,
+    createRoutesFromChildren,
+    matchRoutes,
+    ...options,
+  });
+}

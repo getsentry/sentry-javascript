@@ -55,10 +55,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
       version: 2,
       options: {
         defaultIntegrations: false,
-        integrations: [
-          { name: 'ExperimentalReportSdkConfig' },
-          { name: 'Tag', options: { filter: '/cart/', tag: 'checkout' } },
-        ],
+        integrations: [{ name: 'ExperimentalReportSdkConfig' }, { name: 'Tag' }],
         tracesSampleRate: 0.5,
       },
     });
@@ -104,11 +101,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
     );
 
     expect(payload.options).toEqual({
-      integrations: [
-        { name: 'Kept' },
-        { name: 'Tag', options: { tag: 'user' } },
-        { name: 'ExperimentalReportSdkConfig' },
-      ],
+      integrations: [{ name: 'Kept' }, { name: 'Tag' }, { name: 'ExperimentalReportSdkConfig' }],
     });
   });
 
