@@ -44,7 +44,7 @@ describe('Flue warning about uninstrumented pi-ai', () => {
     [
       'Bun',
       { Bun: {} },
-      'Build your app with `sentryBunPlugin()` from `@sentry/bun/plugin`; `bun run` cannot instrument it.',
+      'On Bun 1.4.6 or later, run your app with `bun --preload @sentry/bun/import app.ts`. Or build it with `sentryBunPlugin()` from `@sentry/bun/plugin`.',
     ],
     ['Deno', { Deno: {} }, 'Run your app with `deno run --preload=npm:@sentry/deno/import app.ts`.'],
     [

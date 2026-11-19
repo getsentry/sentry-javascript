@@ -1,3 +1,4 @@
+import { logger } from '@sentry/core';
 import { type Hono as HonoType, Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { failingMiddleware, middlewareA, middlewareB, namedMiddleware } from './middleware';
@@ -13,6 +14,22 @@ export function addRoutes(app: HonoType<{ Bindings?: { E2E_TEST_DSN: string } }>
 
   app.get('/test-param/:paramId', c => {
     return c.json({ paramId: c.req.param('paramId') });
+  });
+
+  app.get('/test-outgoing-fetch', c => {
+    return fetch(new URL('/test-trace-headers', c.req.url));
+  });
+
+  app.get('/test-trace-headers', c => {
+    return c.json({
+      sentryTrace: c.req.header('sentry-trace'),
+      baggage: c.req.header('baggage'),
+    });
+  });
+
+  app.get('/test-log', c => {
+    logger.info('Hono server log', { route: '/test-log' });
+    return c.text('ok');
   });
 
   app.get('/error/:cause', c => {
