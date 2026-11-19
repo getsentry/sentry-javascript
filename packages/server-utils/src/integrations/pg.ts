@@ -11,7 +11,7 @@ import {
   DB_CONNECTION_STRING,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
-import type { IntegrationFn, Scope, SpanAttributes } from '@sentry/core';
+import type { IntegrationFn, Scope, Span, SpanAttributes } from '@sentry/core';
 import { isObjectLike, bindScopeToEmitter, defineIntegration, getCurrentScope, startInactiveSpan } from '@sentry/core';
 import { getSqlQueryAttributes, getSqlSpanName } from '../utils/sql';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
@@ -31,6 +31,7 @@ const ORIGIN = 'auto.db.postgres';
 const ATTR_PG_PLAN = 'db.postgresql.plan';
 const ATTR_PG_IDLE_TIMEOUT = 'db.postgresql.idle.timeout.millis';
 const ATTR_PG_MAX_CLIENT = 'db.postgresql.max.client';
+const ATTR_DB_RESPONSE_RETURNED_ROWS = 'db.response.returned_rows';
 const DB_SYSTEM_POSTGRESQL = 'postgresql';
 
 // We set the `db` op and the SQL description directly here (same as mysql
@@ -104,19 +105,20 @@ export interface PgQuerySpanOptions {
  * streamable `Submittable` result, so it's the only one that defers span-ending to the emitter.
  */
 export function bindPgQueryChannel(channelName: string, options: PgQuerySpanOptions): void {
-  subscribeQueryLikeChannel(channelName, ctx => querySpanOptions(ctx, options), { deferStreamedResult: true });
+  subscribeQueryLikeChannel(channelName, ctx => querySpanOptions(ctx, options), { isQuery: true });
 }
 
 /**
  * Subscribe to a pg tracing-channel and manage a span across its lifecycle.
  * Shared by the query/connect/pool-connect channels. They differ only in how
  * the span's name + attributes are built (`getSpanOptions`), and whether the
- * result can be a streamable emitter (`deferStreamedResult`, query-only).
+ * result is a query result that can be a streamable emitter and carries a row
+ * count (`isQuery`).
  */
 function subscribeQueryLikeChannel(
   channelName: string,
   getSpanOptions: (ctx: PgChannelContext) => { name: string; attributes: SpanAttributes },
-  { deferStreamedResult = false }: { deferStreamedResult?: boolean } = {},
+  { isQuery = false }: { isQuery?: boolean } = {},
 ): void {
   bindTracingChannelToSpan(
     diagnosticsChannel.tracingChannel<PgChannelContext>(channelName),
@@ -140,15 +142,22 @@ function subscribeQueryLikeChannel(
     // to that emitter's `'end'`/`'error'` would keep it open for the whole
     // connection lifetime, so it never ends in time and is dropped. Only
     // `query` can return a streamable `Submittable`, so only it defers.
-    deferStreamedResult
+    isQuery
       ? {
+          beforeSpanEnd(span, data) {
+            // A streamed `Submittable` reports its rows on its own `'end'` event (see `deferSpanEnd`).
+            if ('error' in data || (isObjectLike(data.result) && hasOnMethod(data.result))) {
+              return;
+            }
+            setReturnedRows(span, data.result);
+          },
           // Streamable `Submittable` (e.g. `client.query(new Query())`)
           // returns an emitter that orchestrion stores on `ctx.result` while
           // firing no async events; the query isn't done until the emitter
           // emits `'end'`/`'error'`. Defer ending to those events for that
           // path; the callback, promise, and sync-throw paths carry no
           // emitter, so the helper ends the span as usual.
-          deferSpanEnd({ data, end }) {
+          deferSpanEnd({ span, data, end }) {
             const result = data.result;
             if (!result || typeof result !== 'object' || !hasOnMethod(result)) {
               return false;
@@ -163,7 +172,14 @@ function subscribeQueryLikeChannel(
             }
 
             result.on('error', err => end(err));
-            result.on('end', () => end());
+            result.on('end', (endResult?: unknown) => {
+              // A `Query` ends with its full result(s). A cursor (`pg-cursor`, `pg-query-stream`) is read in
+              // batches and ends with only the last batch, so its count would be wrong.
+              if (!hasReadMethod(result)) {
+                setReturnedRows(span, endResult);
+              }
+              end();
+            });
 
             return true;
           },
@@ -202,6 +218,37 @@ function poolConnectSpanOptions(ctx: PgChannelContext): { name: string; attribut
 
 function hasOnMethod(obj: object): obj is { on: (event: string, listener: (arg?: unknown) => void) => unknown } {
   return 'on' in obj && typeof (obj as { on?: unknown }).on === 'function';
+}
+
+function hasReadMethod(obj: object): boolean {
+  return 'read' in obj && typeof (obj as { read?: unknown }).read === 'function';
+}
+
+/**
+ * Sets `db.response.returned_rows` from a pg-style result (`{ rowCount, rows }`), or an array of them
+ * (one per statement of a multi-statement query), summed. Sets nothing when no count is known.
+ */
+export function setReturnedRows(span: Span, results: unknown): void {
+  const counts = (Array.isArray(results) ? results : [results])
+    .map(getRowCount)
+    .filter((count): count is number => count !== undefined);
+  if (counts.length) {
+    span.setAttribute(
+      ATTR_DB_RESPONSE_RETURNED_ROWS,
+      counts.reduce((sum, count) => sum + count, 0),
+    );
+  }
+}
+
+function getRowCount(result: unknown): number | undefined {
+  if (!isObjectLike(result)) {
+    return undefined;
+  }
+  const { rowCount, rows } = result as { rowCount?: unknown; rows?: unknown };
+  if (typeof rowCount === 'number') {
+    return rowCount;
+  }
+  return Array.isArray(rows) ? rows.length : undefined;
 }
 
 // `client.query(text, cb?)`, `client.query(text, values, cb?)`, and

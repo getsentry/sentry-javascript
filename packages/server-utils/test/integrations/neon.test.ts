@@ -75,7 +75,7 @@ function installTestAsyncContextStrategy(): void {
 }
 
 function makeSpan(): Span {
-  return { end: vi.fn(), setStatus: vi.fn(), setAttributes: vi.fn() } as unknown as Span;
+  return { end: vi.fn(), setStatus: vi.fn(), setAttribute: vi.fn(), setAttributes: vi.fn() } as unknown as Span;
 }
 
 interface ChannelContext {
@@ -231,6 +231,38 @@ describe('neonIntegration', () => {
         }),
       );
       expect(span.end).toHaveBeenCalledTimes(1);
+    });
+
+    it('records the length of the rows array a query resolves to', async () => {
+      const ctx: ChannelContext = { arguments: [{ query: 'SELECT 1', params: [] }, undefined] };
+
+      await tracingChannel(CHANNELS.NEON_HTTP_QUERY).tracePromise(async () => [{}, {}], ctx);
+
+      expect(span.setAttribute).toHaveBeenCalledWith('db.response.returned_rows', 2);
+    });
+
+    it('records `rowCount` of a `fullResults` query', async () => {
+      const ctx: ChannelContext = { arguments: [{ query: 'SELECT 1', params: [] }, { fullResults: true }] };
+
+      await tracingChannel(CHANNELS.NEON_HTTP_QUERY).tracePromise(async () => ({ rowCount: 3, rows: [] }), ctx);
+
+      expect(span.setAttribute).toHaveBeenCalledWith('db.response.returned_rows', 3);
+    });
+
+    it('sums the statement results of a `transaction()` batch', async () => {
+      const ctx: ChannelContext = {
+        arguments: [
+          [
+            { query: 'SELECT 1', params: [] },
+            { query: 'SELECT 2', params: [] },
+          ],
+          [{}, { fullResults: true }],
+        ],
+      };
+
+      await tracingChannel(CHANNELS.NEON_HTTP_QUERY).tracePromise(async () => [[{}], { rowCount: 4, rows: [] }], ctx);
+
+      expect(span.setAttribute).toHaveBeenCalledWith('db.response.returned_rows', 5);
     });
 
     it('sets error status and ends the span when the request rejects', async () => {

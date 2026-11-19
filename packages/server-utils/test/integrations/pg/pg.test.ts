@@ -1,5 +1,6 @@
 import type { OrchestrionChannelContext } from '../../../src/orchestrion/types';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { EventEmitter } from 'node:events';
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { Client, Scope, Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
@@ -64,7 +65,7 @@ function installTestAsyncContextStrategy(): void {
 }
 
 function makeSpan(): Span {
-  return { end: vi.fn(), setStatus: vi.fn(), setAttributes: vi.fn() } as unknown as Span;
+  return { end: vi.fn(), setStatus: vi.fn(), setAttribute: vi.fn(), setAttributes: vi.fn() } as unknown as Span;
 }
 
 describe('postgresIntegration', () => {
@@ -160,6 +161,107 @@ describe('postgresIntegration', () => {
 
     expect(span.setStatus).toHaveBeenCalledWith({ code: expect.anything(), message: 'boom' });
     expect(span.end).toHaveBeenCalledTimes(1);
+  });
+
+  describe('db.response.returned_rows', () => {
+    const queryCtx = (): OrchestrionChannelContext => ({
+      arguments: ['SELECT * FROM "User"'],
+      self: { connectionParameters: CONNECTION },
+    });
+
+    it('records `rowCount` of a single result', async () => {
+      await tracingChannel(CHANNELS.PG_QUERY).tracePromise(
+        async () => ({ rowCount: 3, rows: [{}, {}, {}] }),
+        queryCtx(),
+      );
+
+      expect(span.setAttribute).toHaveBeenCalledWith('db.response.returned_rows', 3);
+      expect(span.end).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls back to `rows.length` when `rowCount` is not a number', async () => {
+      await tracingChannel(CHANNELS.PG_QUERY).tracePromise(
+        async () => ({ rowCount: null, rows: [{}, {}] }),
+        queryCtx(),
+      );
+
+      expect(span.setAttribute).toHaveBeenCalledWith('db.response.returned_rows', 2);
+    });
+
+    it('sums the results of a multi-statement query', async () => {
+      await tracingChannel(CHANNELS.PG_QUERY).tracePromise(
+        async () => [
+          { rowCount: 1, rows: [{}] },
+          { rowCount: null, rows: [] },
+          { rowCount: 4, rows: [] },
+        ],
+        queryCtx(),
+      );
+
+      expect(span.setAttribute).toHaveBeenCalledWith('db.response.returned_rows', 5);
+    });
+
+    it('records the count of a callback-style query', async () => {
+      await new Promise<void>(resolve => {
+        tracingChannel(CHANNELS.PG_QUERY).traceCallback(
+          (cb: (err: unknown, res: unknown) => void) => setImmediate(() => cb(null, { rowCount: 2, rows: [{}, {}] })),
+          -1,
+          queryCtx(),
+          undefined,
+          () => resolve(),
+        );
+      });
+
+      expect(span.setAttribute).toHaveBeenCalledWith('db.response.returned_rows', 2);
+      expect(span.end).toHaveBeenCalledTimes(1);
+    });
+
+    it('records the count a streamed `Submittable` ends with', () => {
+      const submittable = new EventEmitter();
+      tracingChannel(CHANNELS.PG_QUERY).traceSync(() => submittable, queryCtx());
+
+      expect(span.end).not.toHaveBeenCalled();
+      submittable.emit('end', { rowCount: 7, rows: [] });
+
+      expect(span.setAttribute).toHaveBeenCalledWith('db.response.returned_rows', 7);
+      expect(span.end).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not record the last-batch count a cursor ends with', () => {
+      const cursor = Object.assign(new EventEmitter(), { read: () => undefined });
+      tracingChannel(CHANNELS.PG_QUERY).traceSync(() => cursor, queryCtx());
+
+      cursor.emit('end', { rowCount: 5, rows: [] });
+
+      expect(span.setAttribute).not.toHaveBeenCalled();
+      expect(span.end).toHaveBeenCalledTimes(1);
+    });
+
+    it('sets nothing when the result carries no count', async () => {
+      await tracingChannel(CHANNELS.PG_QUERY).tracePromise(async () => undefined, queryCtx());
+
+      expect(span.setAttribute).not.toHaveBeenCalled();
+      expect(span.end).toHaveBeenCalledTimes(1);
+    });
+
+    it('sets nothing when the query fails', async () => {
+      await expect(
+        tracingChannel(CHANNELS.PG_QUERY).tracePromise(async () => {
+          throw new Error('boom');
+        }, queryCtx()),
+      ).rejects.toThrow('boom');
+
+      expect(span.setAttribute).not.toHaveBeenCalled();
+    });
+
+    it('is not recorded on connect spans', async () => {
+      await tracingChannel(CHANNELS.PG_CONNECT).tracePromise(async () => ({ rowCount: 1 }), {
+        arguments: [],
+        self: { connectionParameters: CONNECTION },
+      });
+
+      expect(span.setAttribute).not.toHaveBeenCalled();
+    });
   });
 
   it('connect: builds a `pg.connect` span with no origin (defaults to manual)', async () => {
