@@ -8,7 +8,15 @@ import {
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
-import { createTransport, getCurrentScope, setCurrentClient, spanToJSON, startSpan } from '@sentry/core';
+import {
+  createTransport,
+  getCurrentScope,
+  getIsolationScope,
+  setCurrentClient,
+  spanToJSON,
+  startSpan,
+  withIsolationScope,
+} from '@sentry/core';
 import { NodeClient } from '@sentry/node';
 import { createRouter } from '@solidjs/router';
 import { renderToString } from '@solidjs/web';
@@ -24,10 +32,13 @@ const routes = [
 function renderAt(url: string, op: string): { span: Span; transactionName: string | undefined; html: string } {
   const Router = withSentryRouterRouting(createRouter({ routes }));
 
-  return startSpan({ name: 'GET', op, forceTransaction: true }, span => {
-    const html = renderToString(() => createComponent(Router, { url }));
-    return { span, transactionName: getCurrentScope().getScopeData().transactionName, html };
-  });
+  // Like the HTTP integration, each request runs in an isolation scope of its own.
+  return withIsolationScope(() =>
+    startSpan({ name: 'GET', op, forceTransaction: true }, span => {
+      const html = renderToString(() => createComponent(Router, { url }));
+      return { span, transactionName: getIsolationScope().getScopeData().transactionName, html };
+    }),
+  );
 }
 
 describe('withSentryRouterRouting (server)', () => {
@@ -65,16 +76,22 @@ describe('withSentryRouterRouting (server)', () => {
   it('names the http.server span as soon as it starts, before the page renders', () => {
     withSentryRouterRouting(createRouter({ routes }));
 
-    const nameAtStart = startSpan(
-      {
-        name: 'GET',
-        forceTransaction: true,
-        attributes: { [SENTRY_OP]: HTTP_SERVER, [URL_PATH]: '/user/7', [HTTP_REQUEST_METHOD]: 'POST' },
-      },
-      span => spanToJSON(span).name,
+    const atStart = withIsolationScope(() =>
+      startSpan(
+        {
+          name: 'GET',
+          forceTransaction: true,
+          attributes: { [SENTRY_OP]: HTTP_SERVER, [URL_PATH]: '/user/7', [HTTP_REQUEST_METHOD]: 'POST' },
+        },
+        span => ({
+          name: spanToJSON(span).name,
+          transactionName: getIsolationScope().getScopeData().transactionName,
+        }),
+      ),
     );
 
-    expect(nameAtStart).toBe('POST /user/:id');
+    // Errors before the render, e.g. in middleware, carry the route name too.
+    expect(atStart).toEqual({ name: 'POST /user/:id', transactionName: 'POST /user/:id' });
   });
 
   it('names the root route `/`', () => {

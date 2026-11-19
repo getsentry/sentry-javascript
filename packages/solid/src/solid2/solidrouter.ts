@@ -8,7 +8,15 @@ import {
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Client, Span } from '@sentry/core';
-import { getActiveSpan, getClient, getCurrentScope, getRootSpan, spanToJSON, updateSpanName } from '@sentry/core';
+import {
+  getActiveSpan,
+  getClient,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  getRootSpan,
+  spanToJSON,
+  updateSpanName,
+} from '@sentry/core';
 import type { RouteDefinition, RouteSectionProps, RouterInstance, RouterProps } from '@solidjs/router';
 import { useBeforeLeave, useLocation, useRouteMatches } from '@solidjs/router';
 import { getRequestEvent, isServer } from '@solidjs/web';
@@ -24,14 +32,14 @@ let serverRouter: SolidRouter | undefined;
 const CLIENTS_NAMING_SERVER_SPANS = new WeakSet<Client>();
 
 /**
- * Names an `http.server` span after the route its URL matches, e.g. `GET /user/:id`.
- * Returns the new name, or `undefined` when no route matches.
+ * Names an `http.server` span after the route its URL matches, e.g. `GET /user/:id`, and sets the same name as
+ * the transaction of the request's isolation scope, so errors in the request carry it.
  */
-function nameServerSpanAfterRoute(span: Span, router: SolidRouter, path: string, method: string): string | undefined {
+function nameServerSpanAfterRoute(span: Span, router: SolidRouter, path: string, method: string): void {
   const matches = router.match(path);
   const lastMatch = matches[matches.length - 1];
   if (!lastMatch) {
-    return undefined;
+    return;
   }
 
   // Solid Router reports the root route's pattern as an empty string.
@@ -47,7 +55,12 @@ function nameServerSpanAfterRoute(span: Span, router: SolidRouter, path: string,
       span.setAttribute(`${URL_PATH_PARAMETER_KEY_BASE}.${key}`, value);
     }
   }
-  return name;
+
+  // Outside a request, the isolation scope is shared by the whole process.
+  const isolationScope = getIsolationScope();
+  if (isolationScope !== getDefaultIsolationScope()) {
+    isolationScope.setTransactionName(name);
+  }
 }
 
 /**
@@ -75,7 +88,7 @@ function nameServerSpansOnStart(router: SolidRouter): void {
 }
 
 /**
- * Names the request's `http.server` span while the page renders, and the transaction errors in the request carry.
+ * Names the request's `http.server` span while the page renders.
  * Covers the case where `init` ran after the router was created.
  */
 function nameServerSpanOnRender(router: SolidRouter, url: string | undefined): void {
@@ -91,10 +104,7 @@ function nameServerSpanOnRender(router: SolidRouter, url: string | undefined): v
     return;
   }
 
-  const name = nameServerSpanAfterRoute(rootSpan, router, requestUrl, request?.method ?? 'GET');
-  if (name) {
-    getCurrentScope().setTransactionName(name);
-  }
+  nameServerSpanAfterRoute(rootSpan, router, requestUrl, request?.method ?? 'GET');
 }
 
 /**
