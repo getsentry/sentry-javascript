@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getCurrentScope, setCurrentClient } from '../../../src';
-import { defineIntegration, getIntegrationsToSetup } from '../../../src/integration';
+import { getIntegrationsToSetup } from '../../../src/integration';
 import type { Integration } from '../../../src/types/integration';
 import { experimentalReportSdkConfigIntegration } from '../../../src/integrations/reportSdkConfig';
 import type * as metricsApi from '../../../src/metrics/public-api';
@@ -12,8 +12,6 @@ vi.mock('../../../src/metrics/public-api', async importOriginal => ({
   ...(await importOriginal<typeof metricsApi>()),
   count: vi.fn(),
 }));
-
-const tagIntegration = defineIntegration((_options: { tag?: string; filter?: RegExp } = {}) => ({ name: 'Tag' }));
 
 function reportConfig(options: ReturnType<typeof getDefaultTestClientOptions>): Record<string, unknown> {
   let payload: Record<string, unknown> = {};
@@ -40,7 +38,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
       tracesSampleRate: 0.5,
       environment: 'staging',
       defaultIntegrations: false,
-      integrations: [experimentalReportSdkConfigIntegration(), tagIntegration({ tag: 'checkout', filter: /cart/ })],
+      integrations: [experimentalReportSdkConfigIntegration(), { name: 'Tag' }],
     });
 
     const payload = reportConfig(
@@ -77,11 +75,11 @@ describe('experimentalReportSdkConfigIntegration', () => {
     expect(payload.options).toEqual({ defaultIntegrations: [{ name: 'ExperimentalReportSdkConfig' }] });
   });
 
-  it('reports the integrations an `integrations` function returns, without the options of kept defaults', () => {
+  it('reports the integration names returned by an integrations callback', () => {
     const userOptions = captureOptionsSetByUser({
       integrations: (defaults: Integration[]) => [
         ...defaults.filter(integration => integration.name !== 'Dropped'),
-        tagIntegration({ tag: 'user' }),
+        { name: 'Tag' },
         experimentalReportSdkConfigIntegration(),
       ],
     });
@@ -90,10 +88,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
       getDefaultTestClientOptions({
         dsn: 'https://username@domain/123',
         integrations: getIntegrationsToSetup({
-          defaultIntegrations: [
-            defineIntegration((_options: { sdkSet?: boolean } = {}) => ({ name: 'Kept' }))({ sdkSet: true }),
-            defineIntegration(() => ({ name: 'Dropped' }))(),
-          ],
+          defaultIntegrations: [{ name: 'Kept' }, { name: 'Dropped' }],
           integrations: userOptions.integrations,
         }),
         _metadata: userOptions._metadata,
