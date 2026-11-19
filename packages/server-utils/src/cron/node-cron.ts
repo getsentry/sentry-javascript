@@ -5,7 +5,7 @@ import {
   startNewTrace,
   withMonitor,
 } from '@sentry/core';
-import { _INTERNAL_isReadAlikeByNodeCron3 as isReadAlikeByNodeCron3 } from '@sentry/server-utils';
+import { isReadAlikeByNodeCron3 } from '../integrations/node-cron';
 import { getCronMonitorConfig } from './common';
 
 export interface NodeCronOptions {

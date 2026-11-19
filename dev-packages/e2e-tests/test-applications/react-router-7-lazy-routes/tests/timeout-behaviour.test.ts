@@ -47,8 +47,9 @@ test('idleTimeout: Captures all activity with increased timeout', async ({ page 
     return getSpanOp(span) === 'navigation' && span.is_segment && span.name.includes('deep');
   });
 
-  // High idleTimeout (5000ms) ensures the span captures all lazy loading activity
-  await page.goto('/?idleTimeout=5000');
+  // High idleTimeout (2000ms, well above the ~900ms the lazy routes take to load) ensures the span captures all
+  // lazy loading activity
+  await page.goto('/?idleTimeout=2000');
 
   const navigationLink = page.locator('id=navigation-to-deep');
   await expect(navigationLink).toBeVisible();
@@ -60,10 +61,10 @@ test('idleTimeout: Captures all activity with increased timeout', async ({ page 
   expect(span.attributes['sentry.segment.name.source']?.value).toBe('route');
   expect(span.attributes['sentry.idle_span_finish_reason']?.value).toBe('idleTimeout');
 
-  // The span should wait for the full idle timeout (5+ seconds)
+  // The span should wait for the full idle timeout (2+ seconds)
   const duration = span.end_timestamp - span.start_timestamp;
-  expect(duration).toBeGreaterThan(5.0);
-  expect(duration).toBeLessThan(7.0);
+  expect(duration).toBeGreaterThan(2.0);
+  expect(duration).toBeLessThan(4.0);
 });
 
 test('idleTimeout: Finishes prematurely with low timeout', async ({ page }) => {

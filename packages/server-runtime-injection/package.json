@@ -27,6 +27,11 @@
       "import": "./build/esm/register.js",
       "require": "./build/cjs/register.js"
     },
+    "./bun": {
+      "types": "./build/types/bun.d.ts",
+      "import": "./build/esm/bun.js",
+      "require": "./build/cjs/bun.js"
+    },
     "./hook": {
       "import": "./build/esm/hook.js"
     },
@@ -38,6 +43,9 @@
     "*": {
       "register": [
         "build/types/register.d.ts"
+      ],
+      "bun": [
+        "build/types/bun.d.ts"
       ]
     }
   },

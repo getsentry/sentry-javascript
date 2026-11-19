@@ -1,5 +1,9 @@
 import { afterAll, describe, expect } from 'vitest';
+import { EXPECTED_SDK_NAME } from '../../utils';
 import { cleanupChildProcesses, createEsmTests } from '../../utils/runner';
+
+// Node names an anonymous top-level frame `?`, and Bun names it `<anonymous>`.
+const ANONYMOUS_FUNCTION = expect.stringMatching(/^(\?|<anonymous>)$/);
 
 describe('Pino integration', () => {
   afterAll(() => {
@@ -41,7 +45,7 @@ describe('Pino integration', () => {
                   stacktrace: {
                     frames: expect.arrayContaining([
                       expect.objectContaining({
-                        function: '?',
+                        function: ANONYMOUS_FUNCTION,
                         in_app: true,
                         module: 'scenario',
                       }),
@@ -78,7 +82,7 @@ describe('Pino integration', () => {
                   },
                   'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                   'sentry.release': { value: '1.0', type: 'string' },
-                  'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                  'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
                 },
               },
               {
@@ -95,7 +99,7 @@ describe('Pino integration', () => {
                   'pino.logger.level': { value: 50, type: 'integer' },
                   'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                   'sentry.release': { value: '1.0', type: 'string' },
-                  'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                  'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
                 },
               },
             ],
@@ -125,7 +129,7 @@ describe('Pino integration', () => {
                   stacktrace: {
                     frames: expect.arrayContaining([
                       expect.objectContaining({
-                        function: '?',
+                        function: ANONYMOUS_FUNCTION,
                         in_app: true,
                         module: 'scenario-next',
                         context_line: "      logger.error(new Error('oh no'));",
@@ -162,7 +166,7 @@ describe('Pino integration', () => {
                   },
                   'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                   'sentry.release': { value: '1.0', type: 'string' },
-                  'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                  'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
                 },
               },
               {
@@ -178,7 +182,7 @@ describe('Pino integration', () => {
                   'pino.logger.level': { value: 50, type: 'integer' },
                   'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                   'sentry.release': { value: '1.0', type: 'string' },
-                  'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                  'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
                 },
               },
             ],
@@ -214,7 +218,7 @@ describe('Pino integration', () => {
                   msg: { value: 'hello world', type: 'string' },
                   'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                   'sentry.release': { value: '1.0', type: 'string' },
-                  'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                  'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
                 },
               },
               {
@@ -231,7 +235,7 @@ describe('Pino integration', () => {
                   'pino.logger.level': { value: 50, type: 'integer' },
                   'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                   'sentry.release': { value: '1.0', type: 'string' },
-                  'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                  'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
                 },
               },
             ],
@@ -262,7 +266,7 @@ describe('Pino integration', () => {
                   msg: { value: 'test-msg', type: 'string' },
                   'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                   'sentry.release': { value: '1.0', type: 'string' },
-                  'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                  'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
                 },
               },
               {
@@ -279,7 +283,7 @@ describe('Pino integration', () => {
                   action: { value: 'login', type: 'string' },
                   'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                   'sentry.release': { value: '1.0', type: 'string' },
-                  'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                  'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
                 },
               },
               {
@@ -293,7 +297,7 @@ describe('Pino integration', () => {
                   'pino.logger.level': { value: 30, type: 'integer' },
                   'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                   'sentry.release': { value: '1.0', type: 'string' },
-                  'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                  'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
                 },
               },
             ],
@@ -371,7 +375,7 @@ describe('Pino integration', () => {
                   stacktrace: {
                     frames: expect.arrayContaining([
                       expect.objectContaining({
-                        function: '?',
+                        function: ANONYMOUS_FUNCTION,
                         in_app: true,
                         module: 'scenario-custom-keys',
                       }),
@@ -405,7 +409,7 @@ describe('Pino integration', () => {
                   message: { value: 'Custom message key', type: 'string' },
                   'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                   'sentry.release': { value: '1.0', type: 'string' },
-                  'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                  'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
                 },
               },
               {
@@ -421,7 +425,7 @@ describe('Pino integration', () => {
                   error: { value: expect.any(String), type: 'string' },
                   'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                   'sentry.release': { value: '1.0', type: 'string' },
-                  'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                  'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
                 },
               },
             ],
