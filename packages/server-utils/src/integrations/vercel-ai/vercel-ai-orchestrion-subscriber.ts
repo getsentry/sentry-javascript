@@ -12,12 +12,14 @@ import { DEBUG_BUILD } from '../../debug-build';
 import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan, type TracingChannelPayloadWithSpan } from '../../tracing-channel';
+import type { GenAiSpanResult } from '../../ai/core/span-hooks';
 import {
   captureToolError,
   clearOperationCallId,
   clearOperationId,
   createSpanFromMessage,
   enrichSpanOnEnd,
+  runVercelAiSpanEnd,
   streamedResultToChannelResult,
   type VercelAiChannelMessage,
   type VercelAiChannelOptions,
@@ -306,6 +308,7 @@ function bindOperation(
           message.result = message.type === 'executeTool' ? { output: data.result } : data.result;
           enrichSpanOnEnd(span, message);
         }
+        runVercelAiSpanEnd(span, 'error' in data ? { error: data.error } : { response: message.result });
         // A `streamText`/`streamObject` model call runs after this (synchronously-returning) operation's
         // span has already ended, so its `callId` entry must outlive the operation — it's cleared once the
         // model call settles (see `patchModelMethod`). Every other operation can clear here.
@@ -550,7 +553,7 @@ function patchModelMethod(
     // error status (an `async` `doGenerate`/`doStream` that throws rejects rather than throwing here).
     const failSpan = (error: unknown): never => {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: error instanceof Error ? error.message : 'unknown_error' });
-      span.end();
+      endSpan(span, { error });
       clearStreamCallId();
       throw error;
     };
@@ -569,7 +572,7 @@ function patchModelMethod(
             final => {
               message.result = { ...value, ...streamedResultToChannelResult(final) };
               enrichSpanOnEnd(span, message);
-              span.end();
+              endSpan(span, { response: message.result });
               clearStreamCallId();
             },
             error => {
@@ -577,7 +580,7 @@ function patchModelMethod(
                 code: SPAN_STATUS_ERROR,
                 message: error instanceof Error ? error.message : 'unknown_error',
               });
-              span.end();
+              endSpan(span, { error });
               clearStreamCallId();
             },
           );
@@ -588,7 +591,7 @@ function patchModelMethod(
         // bracket the call to match the channel timing.
         message.result = value;
         enrichSpanOnEnd(span, message);
-        span.end();
+        endSpan(span, { response: value });
         clearStreamCallId();
 
         return value;
@@ -672,7 +675,7 @@ function patchToolExecute(
       } else {
         captureToolError(span, message, error);
       }
-      span.end();
+      endSpan(span, { error });
       throw error;
     };
 
@@ -682,13 +685,18 @@ function patchToolExecute(
         // The shared core (matching v6/v7) expects the tool result nested under `output`.
         message.result = { output: value };
         enrichSpanOnEnd(span, message);
-        span.end();
+        endSpan(span, { response: message.result });
         return value;
       }, failSpan);
     } catch (error) {
       return failSpan(error);
     }
   };
+}
+
+function endSpan(span: Span, result: GenAiSpanResult<unknown>): void {
+  runVercelAiSpanEnd(span, result);
+  span.end();
 }
 
 function buildTextMessage(type: 'generateText' | 'streamText' | 'streamObject' | 'generateObject'): MessageBuilder {
