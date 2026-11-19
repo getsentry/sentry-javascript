@@ -74,6 +74,7 @@ export {
   makeServeTunnelIntegration,
 } from './integrations/serveTunnel';
 export { instrumentTunnelServer as _INTERNAL_instrumentTunnelServer } from './utils/tunnelServer';
+export { createGetModuleFromFilename } from './utils/module';
 export { SentryMastraExporter } from './ai/mastra';
 export { lruMemoizerIntegration } from './integrations/lru-memoizer';
 export { mongoIntegration } from './integrations/mongodb';
