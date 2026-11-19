@@ -1,6 +1,10 @@
+import type { GenAiSpanHooks } from '../core/span-hooks';
 import type { GenAiCallOptions } from '../core/utils';
 
-/** The call that `recordInputs`/`recordOutputs` decide on: a model call, or a tool call of a tool runner. */
+/**
+ * The call that `recordInputs`/`recordOutputs` decide on, and that the span hooks get: a model call, or a tool
+ * call of a tool runner.
+ */
 export type AnthropicAiCallInfo =
   | {
       operation: 'chat';
@@ -15,8 +19,12 @@ export type AnthropicAiCallInfo =
       input: unknown;
     };
 
-/** Options for the Anthropic AI integration. */
-export type AnthropicAiOptions = GenAiCallOptions<AnthropicAiCallInfo>;
+/**
+ * Options for the Anthropic AI integration. `onSpanEnd` gets the response the method resolved with, such as a
+ * `Message`, the final `Message` of a `messages.stream()`, or the result of a tool call. For a `stream: true`
+ * call it is `undefined`.
+ */
+export type AnthropicAiOptions = GenAiCallOptions<AnthropicAiCallInfo> & GenAiSpanHooks<AnthropicAiCallInfo>;
 
 export type Message = {
   role: 'user' | 'assistant';

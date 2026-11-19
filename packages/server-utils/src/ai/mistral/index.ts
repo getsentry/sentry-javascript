@@ -10,6 +10,7 @@ import {
   GEN_AI_TOOL_DEFINITIONS,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
 import type { InstrumentedMethodEntry } from '../core/utils';
 import {
   buildMethodPath,
@@ -22,7 +23,7 @@ import {
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 import { MISTRAL_METHOD_REGISTRY, MISTRAL_ORIGIN, MISTRAL_PROVIDER_NAME } from './constants';
 import { instrumentEventStream } from './streaming';
-import type { MistralOptions } from './types';
+import type { MistralCallInfo, MistralOptions } from './types';
 import { addResponseAttributes, extractRequestParameters, getMistralRequestSignal, getSpanName } from './utils';
 
 /**
@@ -113,10 +114,8 @@ function instrumentMethod<T extends unknown[], R>(
     const isStreamRequested = !!instrumentedMethod.streaming;
     const params = args[0] as Record<string, unknown> | undefined;
     const abortSignal = getMistralRequestSignal(args[1]);
-    const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, {
-      operation: operationName,
-      request: params,
-    });
+    const call: MistralCallInfo = { operation: operationName, request: params };
+    const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
     const requestAttributes = extractRequestAttributes(args, operationName, recordInputs, isStreamRequested);
 
     const spanConfig = {
@@ -134,18 +133,24 @@ function instrumentMethod<T extends unknown[], R>(
         if (recordInputs && params) {
           addRequestAttributes(span, params, operationName);
         }
+        runGenAiSpanStart(options, span, call);
 
         return originalResult.then(
           result => {
             // Patched in place so the caller keeps the real `EventStream`; `instrumentEventStream`
             // takes over ending the span once the stream is drained.
-            if (!instrumentEventStream(result, span, recordOutputs, abortSignal)) {
+            const isStream = instrumentEventStream(result, span, recordOutputs, abortSignal, streamResult =>
+              runGenAiSpanEnd(options, span, call, streamResult),
+            );
+            if (!isStream) {
+              runGenAiSpanEnd(options, span, call, { response: result });
               span.end();
             }
             return result;
           },
           error => {
             span.setStatus(getErrorStatus(abortSignal));
+            runGenAiSpanEnd(options, span, call, { error });
             span.end();
             throw error;
           },
@@ -163,14 +168,17 @@ function instrumentMethod<T extends unknown[], R>(
       if (recordInputs && params) {
         addRequestAttributes(span, params, operationName);
       }
+      runGenAiSpanStart(options, span, call);
 
       return originalResult.then(
         result => {
           addResponseAttributes(span, result, recordOutputs);
+          runGenAiSpanEnd(options, span, call, { response: result });
           return result;
         },
         error => {
           span.setStatus(getErrorStatus(abortSignal));
+          runGenAiSpanEnd(options, span, call, { error });
           throw error;
         },
       );
