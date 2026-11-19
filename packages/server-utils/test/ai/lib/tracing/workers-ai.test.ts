@@ -212,6 +212,25 @@ describe('instrumentWorkersAiClient', () => {
     });
   });
 
+  it('creates one span that follows the options when an instrumented client is wrapped again', async () => {
+    const testClient = new TestClient(
+      getDefaultTestClientOptions({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 }),
+    );
+    setCurrentClient(testClient);
+    testClient.init();
+    const endedSpans: Span[] = [];
+    testClient.on('spanEnd', span => endedSpans.push(span));
+
+    const client = { run: vi.fn().mockResolvedValue({ response: 'Paris' }) };
+    const instrumented = instrumentWorkersAiClient(instrumentWorkersAiClient(client), { recordInputs: false });
+
+    await instrumented.run(MODEL, { messages: [{ role: 'user', content: 'Capital of France?' }] });
+
+    expect(client.run).toHaveBeenCalledTimes(1);
+    expect(endedSpans).toHaveLength(1);
+    expect(spanToStaticSpanJSON(endedSpans[0]!).data).not.toHaveProperty(GEN_AI_INPUT_MESSAGES);
+  });
+
   it('records TypeSafe models as decide spans, like the TypeSafe integration', async () => {
     const client = new TestClient(
       getDefaultTestClientOptions({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 }),
