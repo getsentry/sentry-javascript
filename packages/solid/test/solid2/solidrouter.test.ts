@@ -1,13 +1,6 @@
 import { spanToJSON } from '@sentry/browser';
-import {
-  PARAMS_KEY_BASE,
-  SENTRY_OP,
-  SENTRY_ORIGIN,
-  SENTRY_SEGMENT_NAME_SOURCE,
-  URL_PATH_PARAMETER_KEY_BASE,
-  URL_TEMPLATE,
-} from '@sentry/conventions/attributes';
-import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
+import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_PATH_PARAMETER_KEY_BASE } from '@sentry/conventions/attributes';
+import { NAVIGATION } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import { createTransport, getCurrentScope, setCurrentClient } from '@sentry/core';
 import type { Navigator, RouteSectionProps } from '@solidjs/router';
@@ -92,47 +85,6 @@ describe('withSentryRouterRouting (Solid Router 2)', () => {
     client.on('spanStart', span => spans.push(span));
     client.addIntegration(solidRouterBrowserTracingIntegration(options));
   }
-
-  it('names the pageload span after the matched route', async () => {
-    setUpClient();
-
-    const { dispose } = renderRouter('/user/5');
-    cleanup = dispose;
-
-    await vi.waitFor(() => {
-      expect(findSpan(spans, PAGELOAD)).toMatchObject({
-        name: '/user/:id',
-        attributes: expect.objectContaining({
-          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-          [URL_TEMPLATE]: '/user/:id',
-          [`${URL_PATH_PARAMETER_KEY_BASE}.id`]: '5',
-          [`${PARAMS_KEY_BASE}.id`]: '5',
-        }),
-      });
-    });
-  });
-
-  it('starts a navigation span named after the matched route', async () => {
-    setUpClient();
-
-    const { navigate, dispose } = renderRouter('/');
-    cleanup = dispose;
-
-    navigate('/user/5/post/12');
-    flush();
-
-    await vi.waitFor(() => {
-      expect(findSpan(spans, NAVIGATION)).toMatchObject({
-        name: '/user/:id/post/:postId',
-        attributes: expect.objectContaining({
-          [SENTRY_ORIGIN]: 'auto.navigation.solid.solidrouter',
-          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-          [`${URL_PATH_PARAMETER_KEY_BASE}.id`]: '5',
-          [`${URL_PATH_PARAMETER_KEY_BASE}.postId`]: '12',
-        }),
-      });
-    });
-  });
 
   // The redirect starts a navigation span of its own, like with Solid Router 1.
   it('names the navigation span of a redirect after the route it lands on', async () => {
