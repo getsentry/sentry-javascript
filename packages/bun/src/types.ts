@@ -23,6 +23,17 @@ export interface BaseBunOptions extends ServerRuntimeOptions {
   enableOpenTelemetrySetup?: boolean;
 
   /**
+   * Controls whether the SDK instruments supported modules (e.g. Express) when they load in
+   * `bun run`, so they emit the diagnostics channels that the channel-based integrations
+   * subscribe to. Needs Bun 1.4.6 or later.
+   *
+   * Set this to `false` to opt out, for example when you build your app with `@sentry/bun/plugin`.
+   *
+   * @default true
+   */
+  enableRuntimeChannelInjection?: boolean;
+
+  /**
    * Override the runtime name reported in events.
    * Defaults to 'bun' with the current Bun version if not specified.
    *

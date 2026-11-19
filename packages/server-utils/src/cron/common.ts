@@ -1,8 +1,8 @@
 import type { MonitorConfig } from '@sentry/core';
 import { debug } from '@sentry/core';
-import type { _INTERNAL_CronDialect as CronDialect } from '@sentry/server-utils';
-import { _INTERNAL_cronExpressionToMonitorConfig as cronExpressionToMonitorConfig } from '@sentry/server-utils';
 import { DEBUG_BUILD } from '../debug-build';
+import type { CronDialect } from '../utils/cronMonitoring';
+import { cronExpressionToMonitorConfig } from '../utils/cronMonitoring';
 
 /**
  * The monitor config for a cron expression, or `undefined` if Sentry would read the expression differently than the
