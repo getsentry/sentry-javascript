@@ -18,9 +18,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
   return initNodeSdk(opts);
 }
 
-/**
- * The default integrations of the Node SDK, plus `solidServerErrorsIntegration`.
- */
 export function getDefaultIntegrations(options: NodeOptions): Integration[] {
   return [...getNodeDefaultIntegrations(options), solidServerErrorsIntegration()];
 }
