@@ -694,63 +694,106 @@ describe('instrumentDurableObjectWithSentry', () => {
       expect(obj.greet('World')).toBe('Hello, World!');
     });
 
-    // Regression for #26673: an RPC call to a method the `agents` SDK replaced runs on the default
-    // isolation scope, so a base `Agent` method it calls looked like a new incoming RPC call.
-    it('does not capture an error that an Agent method handles from an inherited base method', async () => {
-      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
-      const agentWrappers = new WeakSet<object>();
+    // Regression for #26673. The `agents` SDK replaces the Agent's own methods during construction,
+    // so they are wrapped for RPC before it does. A base `Agent` method that such a method calls must
+    // not look like a new incoming RPC call.
+    describe('Agent methods', () => {
+      const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 
-      class AgentLike {
-        constructor() {
-          this._autoWrapCustomMethods();
-        }
+      function createAgent() {
+        const agentWrappers = new WeakSet<object>();
+        const callables = new WeakSet<object>();
+        const asyncMethods = new Set<string>();
 
-        _autoWrapCustomMethods(): void {
-          const prototype = Object.getPrototypeOf(this);
-          const original = prototype.proxy;
+        // Mirrors `Agent._autoWrapCustomMethods` and `Agent._isCallable` from `agents`
+        class AgentLike {
+          constructor() {
+            this._autoWrapCustomMethods();
+          }
 
-          if (!agentWrappers.has(original)) {
-            const wrapped = function (this: unknown): unknown {
-              return original.call(this);
-            };
-            agentWrappers.add(wrapped);
-            prototype.proxy = wrapped;
+          _autoWrapCustomMethods(): void {
+            const prototype = (this.constructor as { prototype: Record<string, unknown> }).prototype;
+
+            for (const name of Object.getOwnPropertyNames(MyAgent.prototype)) {
+              const method = (MyAgent.prototype as unknown as Record<string, unknown>)[name];
+
+              if (name === 'constructor' || typeof method !== 'function' || agentWrappers.has(method)) {
+                continue;
+              }
+
+              if (method instanceof AsyncFunction) {
+                asyncMethods.add(name);
+              }
+
+              const wrapped = function (this: unknown, ...args: unknown[]): unknown {
+                return method.apply(this, args);
+              };
+              agentWrappers.add(wrapped);
+              if (callables.has(method)) {
+                callables.add(wrapped);
+              }
+              prototype[name] = wrapped;
+            }
+          }
+
+          _isCallable(name: string): boolean {
+            return callables.has((this as unknown as Record<string, object>)[name]!);
+          }
+
+          async keepAliveWhile(callback: () => Promise<void>): Promise<void> {
+            return callback();
           }
         }
 
-        async keepAliveWhile(callback: () => Promise<void>): Promise<void> {
-          return callback();
+        class MyAgent extends AgentLike {
+          async proxy(): Promise<string> {
+            return this.keepAliveWhile(async () => {
+              throw new Error('aborted');
+            }).then(
+              () => 'done',
+              () => 'handled',
+            );
+          }
+
+          async greet(): Promise<string> {
+            return 'hello';
+          }
         }
+        callables.add(MyAgent.prototype.greet);
+
+        const instrumented = instrumentAgentWithSentry(vi.fn().mockReturnValue({}), MyAgent as any);
+        const obj = Reflect.construct(instrumented, [{ waitUntil: vi.fn() }, {}]) as MyAgent;
+
+        return { obj, prototype: Object.getPrototypeOf(obj), asyncMethods };
       }
 
-      class MyAgent extends AgentLike {
-        async proxy(): Promise<string> {
-          return this.keepAliveWhile(async () => {
-            throw new Error('aborted');
-          }).then(
-            () => 'done',
-            () => 'handled',
-          );
-        }
+      it('does not capture an error that an Agent method handles from an inherited base method', async () => {
+        const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+        const { obj, prototype } = createAgent();
 
-        async _unmanaged(): Promise<void> {
-          throw new Error('external');
-        }
-      }
+        await expect(Reflect.apply(prototype.proxy, obj, [])).resolves.toBe('handled');
+        expect(captureExceptionSpy).not.toHaveBeenCalled();
 
-      const instrumented = instrumentAgentWithSentry(vi.fn().mockReturnValue({}), MyAgent as any);
-      const obj = Reflect.construct(instrumented, [{ waitUntil: vi.fn() }, {}]) as MyAgent;
-      const prototype = Object.getPrototypeOf(obj);
+        // The base method itself is still instrumented for external RPC calls
+        await expect(
+          Reflect.apply(prototype.keepAliveWhile, obj, [
+            async () => {
+              throw new Error('external');
+            },
+          ]),
+        ).rejects.toThrow('external');
+        expect(captureExceptionSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ message: 'external' }),
+          expect.anything(),
+        );
+      });
 
-      await expect(Reflect.apply(prototype.proxy, obj, [])).resolves.toBe('handled');
-      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      it('keeps what the Agent relies on: async methods and the `@callable()` registry', () => {
+        const { obj, asyncMethods } = createAgent();
 
-      // A method the framework leaves alone is still instrumented for external RPC calls
-      await expect(Reflect.apply(prototype._unmanaged, obj, [])).rejects.toThrow('external');
-      expect(captureExceptionSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'external' }),
-        expect.anything(),
-      );
+        expect(asyncMethods).toEqual(new Set(['proxy', 'greet']));
+        expect((obj as any)._isCallable('greet')).toBe(true);
+      });
     });
   });
 

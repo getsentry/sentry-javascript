@@ -329,10 +329,15 @@ function getInstrumentedRpcMethod(
  * instance. A call carrying Sentry metadata continues that trace in an `rpc` span. A call without it
  * still gets a client, so its errors, logs and metrics are captured, but no span. Calls the instance
  * makes to its own methods run the original method directly. The original function name and arity
- * are preserved because frameworks may inspect them for dispatch.
+ * are preserved because frameworks may inspect them for dispatch. With `isAsync`, the wrapper is an
+ * async function, for frameworks that check `instanceof AsyncFunction`.
  */
-function createRpcPrototypeWrapper(methodName: string, originalMethod: UncheckedMethod): UncheckedMethod {
-  const wrapper = function (this: unknown, ...args: unknown[]): unknown {
+function createRpcPrototypeWrapper(
+  methodName: string,
+  originalMethod: UncheckedMethod,
+  isAsync = false,
+): UncheckedMethod {
+  const invoke = function (this: unknown, ...args: unknown[]): unknown {
     const traced = hasRpcMeta(args);
 
     // workerd dispatches an incoming RPC call outside any async context, so a call made on any other
@@ -359,6 +364,12 @@ function createRpcPrototypeWrapper(methodName: string, originalMethod: Unchecked
     // calls. Without a new trace, every untraced call would share the trace of the default scope.
     return startNewTrace(() => Reflect.apply(instrumented, this, args));
   };
+
+  const wrapper = isAsync
+    ? async function (this: unknown, ...args: unknown[]): Promise<unknown> {
+        return Reflect.apply(invoke, this, args);
+      }
+    : invoke;
 
   Object.defineProperties(wrapper, {
     name: { value: originalMethod.name, configurable: true },
@@ -477,6 +488,10 @@ export function instrumentAgentWithSentry<
 >(optionsCallback: (env: ResolveEnv<C, Env>) => StrictCloudflareOptions<O>, AgentClass: C): C {
   const InstrumentedClass = new Proxy(AgentClass, {
     construct(target, [ctx, env], newTarget) {
+      wrapAgentMethodsBeforeConstruction(
+        (newTarget as unknown as { prototype?: object }).prototype ?? (target.prototype as object),
+      );
+
       const { obj, options, context, frameworkManagedMethods } = constructInstrumentedDurableObject(
         target,
         ctx,
@@ -490,40 +505,83 @@ export function instrumentAgentWithSentry<
       // Apply RPC prototype-method instrumentation last, so the Agent-specific own-property
       // handlers we just installed are excluded from RPC method tracing. Methods the Agent
       // framework installed itself are excluded too, because it dispatches them by identity.
-      return finalizeWithRpcInstrumentation(obj, options, context, withAgentBaseMethods(obj, frameworkManagedMethods));
+      return finalizeWithRpcInstrumentation(obj, options, context, frameworkManagedMethods);
     },
   });
   markAsInstrumented(InstrumentedClass);
   return InstrumentedClass;
 }
 
+const AsyncFunction = (Object.getPrototypeOf(async function () {}) as { constructor: new () => unknown }).constructor;
+const agentPrototypesWrappedBeforeConstruction = new WeakSet<object>();
+
 /**
- * Adds the methods of the `agents` `Agent` base class to the excluded methods.
+ * Wraps the Agent subclass's own methods for RPC before the `agents` SDK wraps them.
  *
- * The Agent framework replaces the subclass's own methods, so an RPC call to one of them runs
- * without an invocation scope. A base method it calls (`keepAliveWhile`, for example) would then
- * look like a new incoming RPC call, and the wrapper would capture an error the caller handles.
- * The framework has no hook to give its methods a scope, so the base methods are left unwrapped,
- * the same set the framework itself leaves unwrapped.
+ * During construction, the Agent replaces these methods with wrappers that it tracks by identity
+ * (`_autoWrapCustomMethods`), so they cannot be wrapped afterwards. Without an RPC wrapper, a method
+ * entered over RPC runs on the default isolation scope, and a base Agent method it calls
+ * (`keepAliveWhile`, for example) looks like a new incoming RPC call. Wrapping first puts the RPC
+ * wrapper under the Agent's. This selects the methods the Agent wraps, except `@callable()` methods,
+ * which the Agent registers by identity.
  */
-function withAgentBaseMethods(obj: object, excludedMethods: ReadonlySet<string>): ReadonlySet<string> {
-  let prototype: object | null = Object.getPrototypeOf(obj);
+function wrapAgentMethodsBeforeConstruction(prototype: object): void {
+  if (agentPrototypesWrappedBeforeConstruction.has(prototype)) {
+    return;
+  }
+  agentPrototypesWrappedBeforeConstruction.add(prototype);
 
-  while (prototype && !Object.prototype.hasOwnProperty.call(prototype, '_autoWrapCustomMethods')) {
-    prototype = Object.getPrototypeOf(prototype);
+  let agentPrototype: object | null = prototype;
+  while (agentPrototype && !Object.prototype.hasOwnProperty.call(agentPrototype, '_autoWrapCustomMethods')) {
+    agentPrototype = Object.getPrototypeOf(agentPrototype);
   }
 
-  if (!prototype) {
-    return excludedMethods;
+  const isCallable: unknown = agentPrototype && Reflect.get(agentPrototype, '_isCallable');
+  if (!agentPrototype || typeof isCallable !== 'function') {
+    return;
   }
 
-  const excluded = new Set(excludedMethods);
+  const baseMethods = new Set<string>();
+  for (let current: object | null = agentPrototype; current; current = Object.getPrototypeOf(current)) {
+    Object.getOwnPropertyNames(current).forEach(name => baseMethods.add(name));
+  }
 
-  for (; prototype && prototype !== Object.prototype; prototype = Object.getPrototypeOf(prototype)) {
-    for (const name of Object.getOwnPropertyNames(prototype)) {
-      excluded.add(name);
+  const seen = new Set<string>();
+  for (
+    let current: object | null = prototype;
+    current && current !== agentPrototype;
+    current = Object.getPrototypeOf(current)
+  ) {
+    for (const name of Object.getOwnPropertyNames(current)) {
+      if (seen.has(name)) {
+        continue;
+      }
+      seen.add(name);
+
+      const descriptor = Object.getOwnPropertyDescriptor(current, name);
+      const method = descriptor?.value;
+
+      if (
+        !descriptor ||
+        typeof method !== 'function' ||
+        baseMethods.has(name) ||
+        name.startsWith('_') ||
+        RESERVED_RPC_METHOD_NAMES.has(name) ||
+        getInstrumented(method) ||
+        Reflect.apply(isCallable, { [name]: method }, [name])
+      ) {
+        continue;
+      }
+
+      const wrapped = createRpcPrototypeWrapper(name, method as UncheckedMethod, method instanceof AsyncFunction);
+
+      try {
+        Object.defineProperty(current, name, { ...descriptor, value: wrapped });
+      } catch {
+        continue;
+      }
+
+      markAsInstrumented(wrapped);
     }
   }
-
-  return excluded;
 }
