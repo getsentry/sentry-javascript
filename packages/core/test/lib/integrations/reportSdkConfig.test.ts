@@ -33,10 +33,14 @@ describe('experimentalReportSdkConfigIntegration', () => {
     vi.clearAllMocks();
   });
 
-  it('reports only the options the user passed, without SDK defaults or per-deployment values', () => {
+  it('reports SDK and deployment metadata alongside user-set options', () => {
     const userOptions = captureOptionsSetByUser({
       tracesSampleRate: 0.5,
+      runtime: { name: 'node', version: 'v24.22.1' },
+      release: 'shop@1.4.2',
       environment: 'staging',
+      dist: '42',
+      serverName: 'web-7f9c',
       defaultIntegrations: false,
       integrations: [experimentalReportSdkConfigIntegration(), { name: 'Tag' }],
     });
@@ -46,11 +50,20 @@ describe('experimentalReportSdkConfigIntegration', () => {
         dsn: 'https://username@domain/123',
         sendDefaultPii: false,
         ...userOptions,
+        _metadata: {
+          ...userOptions._metadata,
+          sdk: { name: 'sentry.javascript.node', version: '11.14.0' },
+        },
       }),
     );
 
     expect(payload).toEqual({
       version: 2,
+      sdk: { name: 'sentry.javascript.node', version: '11.14.0' },
+      runtime: { name: 'node', version: 'v24.22.1' },
+      release: 'shop@1.4.2',
+      environment: 'staging',
+      dist: '42',
       options: {
         defaultIntegrations: false,
         integrations: [{ name: 'ExperimentalReportSdkConfig' }, { name: 'Tag' }],

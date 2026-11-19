@@ -99,17 +99,20 @@ function serialize(value: unknown, ancestors = new Set<object>()): unknown {
 }
 
 /**
- * Options left out of the payload: `integrations` holds the defaults by the time the client has it, and the others
- * differ per deployment or host (release and environment already ride on the metric's own attributes).
+ * Integrations are captured separately, runtime and deployment fields live at the top level,
+ * and serverName is excluded to avoid splitting configurations by host.
  */
-const EXCLUDED_OPTIONS = new Set(['integrations', 'release', 'environment', 'dist', 'serverName']);
+const EXCLUDED_OPTIONS = new Set(['integrations', 'runtime', 'release', 'environment', 'dist', 'serverName']);
 
 function buildConfigAttributes(client: Client): Record<string, string> {
-  const { optionsSetByUser = [], integrationsSetByUser } = client.getSdkMetadata() || {};
+  const { sdk, optionsSetByUser = [], integrationsSetByUser } = client.getSdkMetadata() || {};
+  const clientOptions = client.getOptions();
+  const { release, environment, dist } = clientOptions;
+  const runtime = 'runtime' in clientOptions ? clientOptions.runtime : undefined;
 
   // Only what the user passed, so SDK defaults never show up as config.
   const options: Record<string, unknown> = Object.fromEntries(
-    Object.entries(client.getOptions()).filter(([key]) => optionsSetByUser.includes(key) && !EXCLUDED_OPTIONS.has(key)),
+    Object.entries(clientOptions).filter(([key]) => optionsSetByUser.includes(key) && !EXCLUDED_OPTIONS.has(key)),
   );
 
   if (integrationsSetByUser) {
@@ -125,6 +128,11 @@ function buildConfigAttributes(client: Client): Record<string, string> {
   // The hash covers the whole payload, so a payload cached by its hash is never stale.
   const payload = JSON.stringify({
     version: 2,
+    sdk,
+    runtime,
+    release,
+    environment,
+    dist,
     options: serialize(options),
   });
 
