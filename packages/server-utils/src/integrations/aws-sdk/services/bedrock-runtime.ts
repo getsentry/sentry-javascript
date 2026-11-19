@@ -13,13 +13,15 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
-import type { GenAiOptions, StreamResponseState } from '../../../ai/core/utils';
+import type { GenAiSpanHooks, GenAiSpanResult } from '../../../ai/core/span-hooks';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../../../ai/core/span-hooks';
+import type { GenAiCallOptions, StreamResponseState } from '../../../ai/core/utils';
 import type { GenAiMessagePart } from '../../../ai/types';
 import {
   endStreamSpan,
   getErrorStatus,
   getTokenUsageAttributes,
-  resolveAIRecordingOptions,
+  resolveGenAiCallRecording,
 } from '../../../ai/core/utils';
 import { isInsidePiAiSpan } from '../../../ai/pi-ai/providers';
 import { DEBUG_BUILD } from '../../../debug-build';
@@ -28,7 +30,7 @@ import {
   GEN_AI_OPERATION_NAME_VALUE_GENERATE_CONTENT,
   GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
 } from '../constants';
-import type { NormalizedRequest, NormalizedResponse } from '../types';
+import type { CommandInput, NormalizedRequest, NormalizedResponse } from '../types';
 import {
   appendStreamPart,
   contentBlocksToParts,
@@ -66,15 +68,65 @@ type BedrockStreamState = StreamResponseState & { parts?: GenAiMessagePart[] };
 
 const textDecoder = new TextDecoder();
 
+/**
+ * The call that `recordInputs`/`recordOutputs` decide on, and that the span hooks get: a Bedrock Runtime
+ * command as sent.
+ */
+export interface BedrockRuntimeCallInfo {
+  /** The command name, such as `Converse` or `InvokeModelWithResponseStream`. */
+  commandName: string;
+  /** The command input as passed. */
+  input: CommandInput;
+}
+
+/**
+ * Options for the Bedrock Runtime instrumentation of the AWS integration. `onSpanEnd` gets the command
+ * output; for `ConverseStream` and `InvokeModelWithResponseStream` it is `undefined`.
+ */
+export type BedrockRuntimeOptions = GenAiCallOptions<BedrockRuntimeCallInfo> & GenAiSpanHooks<BedrockRuntimeCallInfo>;
+
+interface BedrockRuntimeCall {
+  info: BedrockRuntimeCallInfo;
+  recordOutputs: boolean;
+}
+
 export class BedrockRuntimeServiceExtension implements ServiceExtension {
   // Requests pi-ai sends, which its own `gen_ai.chat` span already reports. They keep the plain AWS
   // client span, without the model call on it.
   private _piAiRequests: WeakSet<NormalizedRequest> = new WeakSet();
 
-  public constructor(private readonly _options: GenAiOptions = {}) {}
+  // Decided when the request starts, in the caller's async context, and reused by the response hooks.
+  private _calls: WeakMap<NormalizedRequest, BedrockRuntimeCall> = new WeakMap();
 
-  private _recordingOptions(): Required<GenAiOptions> {
-    return resolveAIRecordingOptions(this._options);
+  public constructor(private readonly _options: BedrockRuntimeOptions = {}) {}
+
+  private _resolveRecording(request: NormalizedRequest): boolean {
+    const info: BedrockRuntimeCallInfo = { commandName: request.commandName, input: request.commandInput };
+    const { recordInputs, recordOutputs } = resolveGenAiCallRecording(this._options, info);
+    this._calls.set(request, { info, recordOutputs });
+    return recordInputs;
+  }
+
+  private _shouldRecordOutputs(response: NormalizedResponse): boolean {
+    return this._calls.get(response.request)?.recordOutputs ?? false;
+  }
+
+  private _runSpanEnd(request: NormalizedRequest, span: Span, result: GenAiSpanResult<unknown>): void {
+    const call = this._calls.get(request);
+    if (call) {
+      runGenAiSpanEnd(this._options, span, call.info, result);
+    }
+  }
+
+  public requestPostSpanHook(request: NormalizedRequest, span: Span): void {
+    const call = this._calls.get(request);
+    if (call) {
+      runGenAiSpanStart(this._options, span, call.info);
+    }
+  }
+
+  public errorHook(request: NormalizedRequest, error: unknown, span: Span): void {
+    this._runSpanEnd(request, span, { error });
   }
 
   public requestPreSpanHook(request: NormalizedRequest): RequestMetadata {
@@ -133,6 +185,8 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       [GEN_AI_OPERATION_NAME]: GEN_AI_OPERATION_NAME_VALUE_CHAT,
     };
 
+    const recordInputs = this._resolveRecording(request);
+
     const modelId = request.commandInput.modelId;
     if (modelId) {
       spanAttributes[GEN_AI_REQUEST_MODEL] = modelId;
@@ -158,7 +212,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       }
     }
 
-    if (this._recordingOptions().recordInputs) {
+    if (recordInputs) {
       Object.assign(spanAttributes, getConverseInputAttributes(request.commandInput));
     }
 
@@ -177,6 +231,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       [GEN_AI_OPERATION_NAME]: GEN_AI_OPERATION_NAME_VALUE_GENERATE_CONTENT,
     };
 
+    const recordInputs = this._resolveRecording(request);
     const modelId = request.commandInput?.modelId;
     if (modelId) {
       spanAttributes[GEN_AI_REQUEST_MODEL] = modelId;
@@ -287,7 +342,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
         }
       }
 
-      if (this._recordingOptions().recordInputs) {
+      if (recordInputs) {
         Object.assign(spanAttributes, getInvokeModelInputAttributes(modelId, requestBody));
       }
     }
@@ -304,7 +359,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     const { stopReason, usage, output } = response.data;
 
     setStopReason(span, stopReason);
-    if (this._recordingOptions().recordOutputs) {
+    if (this._shouldRecordOutputs(response)) {
       setOutputMessages(span, contentBlocksToParts(output?.message?.content));
     }
     span.setAttributes(
@@ -318,10 +373,12 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
         usage?.cacheReadInputTokens,
       ),
     );
+    this._runSpanEnd(response.request, span, { response: response.data });
   }
 
   private _responseHookConverseStream(response: NormalizedResponse, span: Span): void {
     if (!response.data?.stream) {
+      this._runSpanEnd(response.request, span, { response: response.data });
       span.end();
       return;
     }
@@ -332,8 +389,9 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       response.data.stream as AsyncIterable<ConverseStreamOutput>,
       span,
       response.request.abortSignal,
-      this._recordingOptions().recordOutputs,
+      this._shouldRecordOutputs(response),
       processConverseStreamEvent,
+      result => this._runSpanEnd(response.request, span, result),
     );
   }
 
@@ -400,16 +458,18 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
           span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(responseBody.outputs[0].text.length / 6));
         }
       }
-      if (this._recordingOptions().recordOutputs) {
+      if (this._shouldRecordOutputs(response)) {
         setOutputMessages(span, getInvokeModelOutputParts(responseBody));
       }
     }
+    this._runSpanEnd(response.request, span, { response: response.data });
   }
 
   private _responseHookInvokeModelWithResponseStream(response: NormalizedResponse, span: Span): void {
     const stream = response.data?.body;
     const modelId = response.request.commandInput?.modelId;
     if (!stream) {
+      this._runSpanEnd(response.request, span, { response: response.data });
       span.end();
       return;
     }
@@ -424,7 +484,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       stream as AsyncIterable<{ chunk?: { bytes?: Uint8Array } }>,
       span,
       response.request.abortSignal,
-      this._recordingOptions().recordOutputs,
+      this._shouldRecordOutputs(response),
       (item, state) => {
         if (processChunk) {
           const parsedChunk = parseChunk(item?.chunk?.bytes);
@@ -434,6 +494,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
           }
         }
       },
+      result => this._runSpanEnd(response.request, span, result),
     );
   }
 }
@@ -484,6 +545,7 @@ async function* instrumentStream<T>(
   abortSignal: AbortSignal | undefined,
   recordOutputs: boolean,
   processItem: (item: T, state: BedrockStreamState) => void,
+  beforeSpanEnd: (result: GenAiSpanResult<never>) => void,
 ): AsyncGenerator<T> {
   const state: BedrockStreamState = {
     finishReasons: [],
@@ -491,6 +553,7 @@ async function* instrumentStream<T>(
     toolCalls: [],
     parts: recordOutputs ? [] : undefined,
   };
+  const result: GenAiSpanResult<never> = {};
   try {
     for await (const item of stream) {
       processItem(item, state);
@@ -498,12 +561,13 @@ async function* instrumentStream<T>(
     }
   } catch (error) {
     span.setStatus(getErrorStatus(abortSignal));
+    result.error = error;
     throw error;
   } finally {
     if (state.parts) {
       setOutputMessages(span, state.parts);
     }
-    endStreamSpan(span, state, false);
+    endStreamSpan(span, state, false, () => beforeSpanEnd(result));
   }
 }
 

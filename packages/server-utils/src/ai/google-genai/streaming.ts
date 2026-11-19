@@ -1,6 +1,8 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
+import type { GenAiSpanResult } from '../core/span-hooks';
 import { endStreamSpan, getErrorStatus } from '../core/utils';
+import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
 import type { GoogleGenAIResponse } from './types';
 import type { MessagePart } from './utils';
 import { candidatesToMessageParts, setOutputMessagesAttribute } from './utils';
@@ -111,6 +113,7 @@ function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingStat
  */
 function processChunk(chunk: GoogleGenAIResponse, state: StreamingState, recordOutputs: boolean, span: Span): void {
   if (!chunk || isErrorChunk(chunk, span)) return;
+  recordTimeToFirstChunk(span);
   handleResponseMetadata(chunk, state);
   handleCandidateContent(chunk, state, recordOutputs);
 }
@@ -125,6 +128,7 @@ export async function* instrumentStream(
   span: Span,
   recordOutputs: boolean,
   abortSignal?: AbortSignal,
+  beforeSpanEnd?: (result: GenAiSpanResult<never>) => void,
 ): AsyncGenerator<GoogleGenAIResponse, void, unknown> {
   const state: StreamingState = {
     responseTexts: [],
@@ -132,6 +136,7 @@ export async function* instrumentStream(
     toolCalls: [],
     outputParts: [],
   };
+  const result: GenAiSpanResult<never> = {};
 
   try {
     for await (const chunk of stream) {
@@ -140,12 +145,13 @@ export async function* instrumentStream(
     }
   } catch (error) {
     span.setStatus(getErrorStatus(abortSignal));
+    result.error = error;
     throw error;
   } finally {
     if (recordOutputs) {
       setOutputMessagesAttribute(span, state.outputParts);
     }
     if (typeof state.promptTokens === 'number') state.promptTokens += state.toolUsePromptTokens ?? 0;
-    endStreamSpan(span, state, recordOutputs);
+    endStreamSpan(span, state, recordOutputs, () => beforeSpanEnd?.(result));
   }
 }

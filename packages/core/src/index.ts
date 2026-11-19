@@ -133,7 +133,7 @@ export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata, captureOptionsSetByUser as _INTERNAL_captureOptionsSetByUser } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
 export { matchesTracePropagationTargets, shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
-export { getTraceMetaTags } from './utils/meta';
+export { getTraceMetaTags, RELEASE_META_TAG_NAME as _INTERNAL_RELEASE_META_TAG_NAME } from './utils/meta';
 export { _INTERNAL_CACHE_ORIGIN_META_TAG_NAME, _INTERNAL_RENDER_START_META_TAG_NAME } from './utils/cacheOrigin';
 export { getTraceServerTimingHeader, isSharedCacheable } from './utils/serverTiming';
 export { debounce } from './utils/debounce';
@@ -303,6 +303,7 @@ export {
   generateSentryTraceHeader,
   isContinuingTrace,
   propagationContextFromHeaders,
+  sentryTraceFromTraceparent,
   shouldContinueTrace,
   generateTraceparentHeader,
 } from './utils/tracing';
@@ -567,5 +568,7 @@ export {
   safeDateNow as _INTERNAL_safeDateNow,
 } from './utils/randomSafeContext';
 export { warnOnRemovedBuildOptions } from './build-time-plugins/warnOnRemovedBuildOptions';
+export { resolveSourceMapsFeatures } from './build-time-plugins/resolveSourceMapsFeatures';
+export type { SourceMapsFeatures } from './build-time-plugins/resolveSourceMapsFeatures';
 export { stringifyForCodeInjection } from './build-time-plugins/stringifyForCodeInjection';
 export { startSpan, startInactiveSpan, startSpanManual } from './tracing/trace';

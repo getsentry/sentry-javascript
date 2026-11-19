@@ -1,33 +1,27 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { anthropicMessage, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
   app.use(express.json());
 
   app.post('/anthropic/v1/messages', (req, res) => {
-    res.send({
-      id: 'msg_mock_tool_1',
-      type: 'message',
-      model: req.body.model,
-      role: 'assistant',
-      content: [
-        { type: 'text', text: 'Let me check the weather.' },
-        { type: 'tool_use', id: 'tool_weather_1', name: 'weather', input: { city: 'Paris' } },
-        { type: 'text', text: 'It is sunny.' },
-      ],
-      stop_reason: 'end_turn',
-      stop_sequence: null,
-      usage: { input_tokens: 5, output_tokens: 7 },
-    });
+    res.send(
+      anthropicMessage(req.body.model, {
+        id: 'msg_mock_tool_1',
+        content: [
+          { type: 'text', text: 'Let me check the weather.' },
+          { type: 'tool_use', id: 'tool_weather_1', name: 'weather', input: { city: 'Paris' } },
+          { type: 'text', text: 'It is sunny.' },
+        ],
+        usage: { input_tokens: 5, output_tokens: 7 },
+      }),
+    );
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
@@ -36,7 +30,7 @@ async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Anthropic({
       apiKey: 'mock-api-key',
-      baseURL: `http://localhost:${server.address().port}/anthropic`,
+      baseURL: `${server.url}/anthropic`,
     });
 
     await client.messages.create({

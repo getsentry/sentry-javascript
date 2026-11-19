@@ -11,6 +11,7 @@ import {
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
@@ -70,6 +71,7 @@ describe('Mistral integration', () => {
             expect(streamSpan!.name).toBe('chat mistral-large-latest');
             expect(streamSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
             expect(streamSpan!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+            expect(streamSpan!.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]?.value).toEqual(expect.any(Number));
             expect(streamSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(30);
 
             // `chat.stream()` takes no `stream` request field, so the flag has to come from the method.
@@ -339,4 +341,66 @@ describe('Mistral integration', () => {
         .completed();
     });
   });
+
+  createEsmTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-recording-functions.mjs',
+    (createRunner, test) => {
+      test('decides content recording per call when the options are functions', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === ORIGIN);
+              const recordedById = Object.fromEntries(
+                spans.map(span => [
+                  span.attributes[GEN_AI_RESPONSE_ID]?.value,
+                  {
+                    inputs: GEN_AI_INPUT_MESSAGES in span.attributes,
+                    outputs: GEN_AI_RESPONSE_TEXT in span.attributes,
+                  },
+                ]),
+              );
+              expect(recordedById).toEqual({
+                'cmpl-mistral-public': { inputs: true, outputs: true },
+                'cmpl-mistral-private': { inputs: false, outputs: false },
+                'cmpl-mistral-public-stream': { inputs: true, outputs: false },
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-span-hooks.mjs',
+    (createRunner, test) => {
+      test('runs the span hooks at start in the caller context and at end with the response', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === ORIGIN);
+              const hooksByKey = Object.fromEntries(
+                spans.map(span => [
+                  span.attributes[GEN_AI_RESPONSE_ID]?.value,
+                  [span.attributes['test.start']?.value, span.attributes['test.end']?.value],
+                ]),
+              );
+              expect(hooksByKey).toEqual({
+                'cmpl-mistral-public': ['mistral-public:public', 'cmpl-mistral-public'],
+                'cmpl-mistral-private': ['mistral-private:private', 'cmpl-mistral-private'],
+                // A stream has no single response object, and its tag changes only after the call started.
+                'cmpl-mistral-public-stream': ['mistral-public-stream:private', 'no response'],
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

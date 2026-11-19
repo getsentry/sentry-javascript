@@ -22,8 +22,7 @@ export default defineConfig({
     // already run in their own processes. We use threads instead because the
     // overhead is significantly less.
     pool: 'threads',
-    // Run tests sequentially to avoid port conflicts with wrangler dev processes
-    maxWorkers: 1,
+    maxWorkers: 4,
     sequence: {
       shuffle: true,
     },

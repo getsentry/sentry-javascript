@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { SessionToolRunner } from '@anthropic-ai/sdk/resources/beta/sessions/events';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { startMockServer, streamSseEvents } from '@sentry-internal/node-integration-tests';
 
 const STREAM_EVENTS = {
   sesn_weather: [
@@ -21,18 +22,8 @@ function startMockSessionsServer() {
   app.use(express.json());
 
   app.get('/anthropic/v1/sessions/:sessionId/events/stream', (req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
-
     const events = STREAM_EVENTS[req.params.sessionId];
-    events.forEach((event, index) => {
-      setTimeout(() => {
-        res.write(`event: ${event.type}\n`);
-        res.write(`data: ${JSON.stringify(event)}\n\n`);
-        if (index === events.length - 1) {
-          res.end();
-        }
-      }, index * 10);
-    });
+    streamSseEvents(res, events, { eventNames: true });
   });
   app.get('/anthropic/v1/sessions/:sessionId/events', (_req, res) => {
     res.json({ data: [], next_page: null });
@@ -41,11 +32,7 @@ function startMockSessionsServer() {
     res.json({ data: [] });
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function drain(runner) {
@@ -60,7 +47,7 @@ async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Anthropic({
       apiKey: 'mock-api-key',
-      baseURL: `http://localhost:${server.address().port}/anthropic`,
+      baseURL: `${server.url}/anthropic`,
     });
 
     await drain(

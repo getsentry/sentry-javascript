@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { anthropicMessageStream, startMockServer } from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
@@ -26,21 +27,11 @@ function startMockAnthropicServer() {
 
     // Start a valid stream, then drop the connection mid-message (no message_stop).
     if (model === 'error-stream-midway') {
-      const events = [
-        {
-          type: 'message_start',
-          message: {
-            id: 'msg_error_stream_1',
-            type: 'message',
-            role: 'assistant',
-            model,
-            content: [],
-            usage: { input_tokens: 5 },
-          },
-        },
-        { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
-        { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'This stream will ' } },
-      ];
+      const events = anthropicMessageStream(model, {
+        id: 'msg_error_stream_1',
+        content: 'This stream will ',
+        usage: { input_tokens: 5, output_tokens: 0 },
+      }).slice(0, 3);
       events.forEach((event, index) => {
         setTimeout(() => {
           res.write(`event: ${event.type}\n`);
@@ -56,11 +47,7 @@ function startMockAnthropicServer() {
     res.end();
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
@@ -69,7 +56,7 @@ async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Anthropic({
       apiKey: 'mock-api-key',
-      baseURL: `http://localhost:${server.address().port}/anthropic`,
+      baseURL: `${server.url}/anthropic`,
     });
 
     // 1) Error on stream initialization with messages.create

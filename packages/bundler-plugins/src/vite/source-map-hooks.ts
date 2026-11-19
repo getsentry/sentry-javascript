@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import type { SentryBuildPluginManager, SourceMapDecision, SourceMapKind } from '../core';
-import { getDeleteSourcemapsAfterUpload, getSdkEnabledSourceMaps } from '../core';
+import { getDeleteOption, getSdkEnabledSourceMaps } from '../core';
 import type { OutputMatch, RollupSourceMapSetting, SourceMapHandling } from '../rollup/source-map-handling';
 import { getOutputMatch, sourceMapKindFromRollupSetting } from '../rollup/source-map-handling';
 
@@ -28,6 +28,7 @@ export type ViteResolvedConfig = {
 export type ViteSourceMapHooks = {
   config: (userConfig: ViteUserConfig, env: { command: string }) => ViteUserConfig | null;
   configResolved: (config: ViteResolvedConfig) => void;
+  outputOptions: SourceMapHandling['applyHiddenDecision'];
 };
 
 const NO_CHANGE: SourceMapDecision = { enableHidden: false, deleteAfterUpload: false };
@@ -118,22 +119,26 @@ export function createViteSourceMapHooks(
         const { kind, decision } = decisions.get(name) ?? decisions.get('*') ?? { kind: 'unset', decision: NO_CHANGE };
         const environmentName = decisions.has(name) ? name : undefined;
         const { normalizedOptions } = sentryBuildPluginManager;
-        const deleteOption = getDeleteSourcemapsAfterUpload(normalizedOptions, environmentName);
-        const sdkEnabledSourceMaps = getSdkEnabledSourceMaps(normalizedOptions, environmentName);
+        const deleteOption = getDeleteOption(normalizedOptions, environmentName);
+        // `sourcemaps.delete: true` removes every source map, like for maps the SDK turned on.
+        const removeAll =
+          normalizedOptions.sourcemaps?.delete === true || getSdkEnabledSourceMaps(normalizedOptions, environmentName);
 
         for (const output of getOutputs(config.root, environment.build)) {
-          // The plugin never changes an output's own setting. Hidden maps are
-          // removed when the user asks for it, visible ones only when the SDK
-          // turned source maps on.
+          // Hidden maps of an output's own setting are removed when the user
+          // asks for it, visible ones only when every source map is removed.
+          // Removed visible maps switch to hidden in `outputOptions`, so no
+          // `sourceMappingURL` comment points at a removed file.
           if (output.ownSetting) {
             const outputKind = sourceMapKindFromRollupSetting(output.sourcemap);
-            const removeAllSourceMaps = sdkEnabledSourceMaps && (outputKind === 'hidden' || outputKind === 'visible');
+            const removeAllSourceMaps = removeAll && (outputKind === 'hidden' || outputKind === 'visible');
+            const deleteAfterUpload = deleteOption === true && (outputKind === 'hidden' || removeAllSourceMaps);
             sourceMapHandling.setDecision(output.destination, {
               match: output.match,
               kind: outputKind,
               decision: {
-                enableHidden: false,
-                deleteAfterUpload: deleteOption === true && (outputKind === 'hidden' || removeAllSourceMaps),
+                enableHidden: outputKind === 'visible' && deleteAfterUpload,
+                deleteAfterUpload,
                 removeAllSourceMaps,
               },
             });
@@ -152,5 +157,7 @@ export function createViteSourceMapHooks(
         }
       }
     },
+
+    outputOptions: sourceMapHandling.applyHiddenDecision,
   };
 }

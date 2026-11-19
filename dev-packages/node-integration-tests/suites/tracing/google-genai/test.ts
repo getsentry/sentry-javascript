@@ -14,6 +14,7 @@ import {
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
@@ -338,6 +339,7 @@ describe('Google GenAI integration', () => {
       expect(generateContentSpan!.status).toBe('ok');
       expect(generateContentSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
       expect(generateContentSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
+      expect(generateContentSpan!.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]?.value).toEqual(expect.any(Number));
       expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.7);
       expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
       expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(100);
@@ -617,6 +619,68 @@ describe('Google GenAI integration', () => {
                 'ok',
               );
               expect(spans.find(span => span.name === 'generate_content timeout-before-stream')!.status).toBe('error');
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-recording-functions.mjs',
+    (createRunner, test) => {
+      test('decides content recording per call when the options are functions', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === EXPECTED_ORIGIN);
+              const recordedByModel = Object.fromEntries(
+                spans.map(span => [
+                  span.attributes[GEN_AI_REQUEST_MODEL]?.value,
+                  {
+                    inputs: GEN_AI_INPUT_MESSAGES in span.attributes,
+                    outputs: GEN_AI_RESPONSE_TEXT in span.attributes,
+                  },
+                ]),
+              );
+              expect(recordedByModel).toEqual({
+                'gemini-public': { inputs: true, outputs: true },
+                'gemini-private': { inputs: false, outputs: false },
+                'gemini-public-stream': { inputs: true, outputs: false },
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-span-hooks.mjs',
+    (createRunner, test) => {
+      test('runs the span hooks at start in the caller context and at end with the response', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === EXPECTED_ORIGIN);
+              const hooksByKey = Object.fromEntries(
+                spans.map(span => [
+                  span.attributes[GEN_AI_REQUEST_MODEL]?.value,
+                  [span.attributes['test.start']?.value, span.attributes['test.end']?.value],
+                ]),
+              );
+              expect(hooksByKey).toEqual({
+                'gemini-public': ['gemini-public:public', 'Paris.'],
+                'gemini-private': ['gemini-private:private', 'Paris.'],
+                // A stream has no single response object, and its tag changes only after the call started.
+                'gemini-public-stream': ['gemini-public-stream:private', 'no response'],
+              });
             },
           })
           .start()

@@ -112,7 +112,8 @@ export default [
         // `register.ts` backs `./register` (the Node SDK `require`s it synchronously from
         // `Sentry.init()`); `hook.mjs` is the async `Module.register()` target, loaded on Node's
         // loader thread. Each build registers its own copy, which shares that build's vendored chunks.
-        entrypoints: ['src/register.ts', 'src/hook.mjs'],
+        // `bun.ts` backs `./bun`, which only `@sentry/bun` loads, so Node bundles leave the Bun hook out.
+        entrypoints: ['src/register.ts', 'src/hook.mjs', 'src/bun.ts'],
         packageSpecificConfig: {
           plugins: [
             debugShim,

@@ -2,6 +2,7 @@ import { spawnSync } from 'child_process';
 import { rmSync } from 'fs';
 import { dirname, join } from 'path';
 import { describe, expect, it } from 'vitest';
+import { supports } from '../../../node-integration-tests/utils';
 
 const dir = __dirname;
 
@@ -16,16 +17,23 @@ function runBun(args: string[]): { stdout: string; stderr: string; status: numbe
   return { stdout: res.stdout ?? '', stderr: res.stderr ?? '', status: res.status };
 }
 
-// Bun orchestrion instrumentation is BUILD-ONLY (`@sentry/bun/plugin` is a
-// `Bun.build` plugin; there is no `bun run` preload).
-//
-// A `bun run` runtime plugin cannot instrument CommonJS dependencies like
-// `mysql`: any module returned by a runtime `onLoad` plugin in Bun loses its
-// CommonJS named exports
-//
-// When https://github.com/oven-sh/bun/pull/31770 lands, we can revisit an
-// auto-load plugin for `bun run`.
 describe('orchestrion mysql instrumentation (Bun)', () => {
+  // Before Bun 1.4.6, a CommonJS module like `mysql` loses its named exports
+  // when a runtime `onLoad` plugin returns it, so `bun run` cannot load it.
+  it.runIf(supports({ bunMin: '1.4.6' }))(
+    'fires the mysql channel in `bun run` with the `@sentry/bun/import` preload',
+    () => {
+      const run = runBun(['--preload', '@sentry/bun/import', join(dir, 'scenario.ts')]);
+      expect(run.status, `run failed:\nstderr:\n${run.stderr}\nstdout:\n${run.stdout}`).toBe(0);
+
+      const line = run.stdout.split('\n').find(l => l.startsWith('SCENARIO')) ?? '';
+      expect(line).toContain('events=start');
+      expect(line).toContain('statement=SELECT 1 AS solution');
+      expect(line).toContain('"runtime":["mysql"]');
+    },
+    SUBPROCESS_TIMEOUT_MS,
+  );
+
   it(
     'bundles `mysql` with the plugin, and the built output fires the mysql channel when run',
     () => {

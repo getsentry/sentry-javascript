@@ -1,6 +1,12 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import Anthropic from '@anthropic-ai/sdk';
+import {
+  anthropicMessage,
+  anthropicMessageStream,
+  startMockServer,
+  streamSseEvents,
+} from '@sentry-internal/node-integration-tests';
 
 function startMockAnthropicServer() {
   const app = express();
@@ -12,50 +18,19 @@ function startMockAnthropicServer() {
     res.set('request-id', 'req_withresponse_test');
 
     if (req.body.stream) {
-      res.set('content-type', 'text/event-stream');
-      res.flushHeaders();
-
-      const events = [
-        `event: message_start\ndata: ${JSON.stringify({ type: 'message_start', message: { id: 'msg_stream_withresponse', type: 'message', role: 'assistant', model, content: [], usage: { input_tokens: 10 } } })}\n\n`,
-        `event: content_block_start\ndata: ${JSON.stringify({ type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } })}\n\n`,
-        `event: content_block_delta\ndata: ${JSON.stringify({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Streaming with response!' } })}\n\n`,
-        `event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: 0 })}\n\n`,
-        `event: message_delta\ndata: ${JSON.stringify({ type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 5 } })}\n\n`,
-        `event: message_stop\ndata: ${JSON.stringify({ type: 'message_stop' })}\n\n`,
-      ];
-
-      let i = 0;
-      const interval = setInterval(() => {
-        if (i < events.length) {
-          res.write(events[i]);
-          i++;
-        } else {
-          clearInterval(interval);
-          res.end();
-        }
-      }, 10);
+      const events = anthropicMessageStream(model, {
+        id: 'msg_stream_withresponse',
+        content: 'Streaming with response!',
+        usage: { input_tokens: 10, output_tokens: 5 },
+      });
+      streamSseEvents(res, events, { eventNames: true });
       return;
     }
 
-    res.send({
-      id: 'msg_withresponse',
-      type: 'message',
-      model: model,
-      role: 'assistant',
-      content: [
-        {
-          type: 'text',
-          text: 'Testing .withResponse() method!',
-        },
-      ],
-    });
+    res.send(anthropicMessage(model, { id: 'msg_withresponse', content: 'Testing .withResponse() method!' }));
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
@@ -64,7 +39,7 @@ async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Anthropic({
       apiKey: 'mock-api-key',
-      baseURL: `http://localhost:${server.address().port}/anthropic`,
+      baseURL: `${server.url}/anthropic`,
     });
 
     // Test 1: Verify .withResponse() method is preserved and works correctly

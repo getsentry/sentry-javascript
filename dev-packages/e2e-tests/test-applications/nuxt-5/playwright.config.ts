@@ -21,6 +21,8 @@ const getStartCommand = () => {
 
 const config = getPlaywrightConfig({
   startCommand: getStartCommand(),
+  // Nuxt opens its port before the development server can handle requests.
+  url: 'http://localhost:3030',
 });
 
 export default {

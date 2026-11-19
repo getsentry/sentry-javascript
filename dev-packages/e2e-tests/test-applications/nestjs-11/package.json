@@ -31,5 +31,13 @@
     "@types/express": "^4.17.17",
     "@types/node": "^18.19.1",
     "typescript": "~5.0.0"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert",
+        "label": "nestjs-11 (static trace lifecycle)"
+      }
+    ]
   }
 }

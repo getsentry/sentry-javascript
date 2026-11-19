@@ -1,6 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getMainCarrier, setCurrentClient } from '@sentry/core';
-import { resolveAIRecordingOptions, wrapPromiseWithMethods } from '../../../../../src/ai/core/utils';
+import {
+  resolveAIRecordingOptions,
+  resolveGenAiCallRecording,
+  wrapPromiseWithMethods,
+} from '../../../../../src/ai/core/utils';
 import { getDefaultTestClientOptions, TestClient } from '../../../../mocks/client';
 
 describe('resolveAIRecordingOptions', () => {
@@ -51,6 +55,58 @@ describe('resolveAIRecordingOptions', () => {
   it('explicit false overrides dataCollection.genAI.inputs: true', () => {
     setupWithDataCollection({ inputs: true, outputs: true });
     expect(resolveAIRecordingOptions({ recordInputs: false, recordOutputs: false })).toEqual({
+      recordInputs: false,
+      recordOutputs: false,
+    });
+  });
+});
+
+describe('resolveGenAiCallRecording', () => {
+  beforeEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  afterEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  function setupWithDataCollection(genAI: { inputs?: boolean; outputs?: boolean }): void {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1, dataCollection: { genAI } }));
+    setCurrentClient(client);
+    client.init();
+  }
+
+  it('resolves booleans like resolveAIRecordingOptions', () => {
+    setupWithDataCollection({ inputs: true, outputs: true });
+    expect(resolveGenAiCallRecording({ recordInputs: false }, 'call')).toEqual({
+      recordInputs: false,
+      recordOutputs: true,
+    });
+  });
+
+  it('calls function options with the call', () => {
+    const recordInputs = vi.fn((call: { private: boolean }) => !call.private);
+    expect(resolveGenAiCallRecording({ recordInputs, recordOutputs: () => false }, { private: true })).toEqual({
+      recordInputs: false,
+      recordOutputs: false,
+    });
+    expect(recordInputs).toHaveBeenCalledWith({ private: true });
+  });
+
+  it('falls back to dataCollection.genAI when a function returns undefined', () => {
+    setupWithDataCollection({ inputs: false, outputs: true });
+    expect(resolveGenAiCallRecording({ recordInputs: () => undefined, recordOutputs: () => undefined }, {})).toEqual({
+      recordInputs: false,
+      recordOutputs: true,
+    });
+  });
+
+  it('does not record when a function throws', () => {
+    setupWithDataCollection({ inputs: true, outputs: true });
+    const fail = (): boolean => {
+      throw new Error('boom');
+    };
+    expect(resolveGenAiCallRecording({ recordInputs: fail, recordOutputs: fail }, {})).toEqual({
       recordInputs: false,
       recordOutputs: false,
     });

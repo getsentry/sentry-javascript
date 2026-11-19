@@ -3,7 +3,6 @@ import { stringify } from '@sentry/core';
 import {
   ERROR_TYPE,
   GEN_AI_AGENT_NAME,
-  GEN_AI_CONVERSATION_ID,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
@@ -22,6 +21,7 @@ import {
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_CALL_ARGUMENTS,
@@ -149,7 +149,6 @@ export function getSpanAttributes(span: MastraExportedSpan, options: AttributeRe
 
   const attributes: SpanAttributes = {
     [GEN_AI_OPERATION_NAME]: operationName,
-    [GEN_AI_CONVERSATION_ID]: span.attributes?.conversationId ?? span.metadata?.threadId,
   };
 
   if (AGENT_SPAN_TYPES.has(span.type)) {
@@ -212,6 +211,9 @@ function addModelAttributes(
   attributes[GEN_AI_RESPONSE_MODEL] = attrs.responseModel;
   attributes[GEN_AI_RESPONSE_ID] = attrs.responseId;
   attributes[GEN_AI_RESPONSE_STREAMING] = attrs.streaming;
+  attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK] = attrs.completionStartTime
+    ? (attrs.completionStartTime.getTime() - span.startTime.getTime()) / 1000
+    : undefined;
   attributes[GEN_AI_RESPONSE_FINISH_REASONS] = attrs.finishReason ? JSON.stringify([attrs.finishReason]) : undefined;
   attributes[GEN_AI_AGENT_NAME] = span.entityName;
 

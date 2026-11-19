@@ -11,6 +11,7 @@ import {
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
@@ -236,6 +237,9 @@ describe('OpenAI integration', () => {
         type: 'boolean',
         value: true,
       });
+      expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]?.value).toEqual(
+        expect.any(Number),
+      );
 
       const streamingResponsesSpan = spans.find(
         span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_stream_456',
@@ -294,6 +298,9 @@ describe('OpenAI integration', () => {
         type: 'boolean',
         value: true,
       });
+      expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]?.value).toEqual(
+        expect.any(Number),
+      );
 
       const streamingErrorSpan = spans.find(
         span => span.name === 'chat error-model' && span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,
@@ -1133,4 +1140,66 @@ describe('OpenAI integration', () => {
         .completed();
     });
   });
+
+  createEsmAndCjsTests(
+    join(__dirname, '../..'),
+    'scenario-recording-functions.mjs',
+    'instrument-with-recording-functions.mjs',
+    (createRunner, test) => {
+      test('decides content recording per call when the options are functions', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+              const recordedById = Object.fromEntries(
+                spans.map(span => [
+                  span.attributes[GEN_AI_RESPONSE_ID]?.value,
+                  {
+                    inputs: GEN_AI_INPUT_MESSAGES in span.attributes,
+                    outputs: GEN_AI_RESPONSE_TEXT in span.attributes,
+                  },
+                ]),
+              );
+              expect(recordedById).toEqual({
+                'chatcmpl-public': { inputs: true, outputs: true },
+                'chatcmpl-private': { inputs: false, outputs: false },
+                'chatcmpl-public-stream': { inputs: true, outputs: false },
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  createEsmAndCjsTests(
+    join(__dirname, '../..'),
+    'scenario-recording-functions.mjs',
+    'instrument-with-span-hooks.mjs',
+    (createRunner, test) => {
+      test('runs the span hooks at start in the caller context and at end with the response', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+              const hooksById = Object.fromEntries(
+                spans.map(span => [
+                  span.attributes[GEN_AI_RESPONSE_ID]?.value,
+                  [span.attributes['test.start']?.value, span.attributes['test.end']?.value],
+                ]),
+              );
+              expect(hooksById).toEqual({
+                'chatcmpl-public': ['public:public', 'chatcmpl-public'],
+                'chatcmpl-private': ['private:private', 'chatcmpl-private'],
+                // A stream has no single response object, and its tag changes only after the call started.
+                'chatcmpl-public-stream': ['public:private', 'no response'],
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

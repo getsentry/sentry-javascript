@@ -1,5 +1,7 @@
 import type { Span } from '@sentry/core';
+import type { GenAiSpanResult } from '../core/span-hooks';
 import { endStreamSpan, getErrorStatus, setOutputMessagesAttribute } from '../core/utils';
+import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
 import type { MistralCompletionChunk, MistralToolCall } from './types';
 import { contentToString } from './utils';
 
@@ -238,6 +240,7 @@ export function instrumentEventStream(
   span: Span,
   recordOutputs: boolean,
   abortSignal?: AbortSignal,
+  beforeSpanEnd?: (result: GenAiSpanResult<never>) => void,
 ): boolean {
   if (!isAsyncIterable(stream)) {
     return false;
@@ -248,7 +251,9 @@ export function instrumentEventStream(
   let settled = false;
   let cancelled = false;
 
+  // Called for each received event.
   const claim = (candidate: StreamConsumer): boolean => {
+    recordTimeToFirstChunk(span);
     consumer ??= candidate;
     return consumer === candidate;
   };
@@ -282,7 +287,9 @@ export function instrumentEventStream(
       });
     }
 
-    endStreamSpan(span, { ...state, toolCalls }, recordOutputs);
+    endStreamSpan(span, { ...state, toolCalls }, recordOutputs, () =>
+      beforeSpanEnd?.(error !== undefined && !cancelled ? { error } : {}),
+    );
   };
 
   const iterate = stream[Symbol.asyncIterator].bind(stream);

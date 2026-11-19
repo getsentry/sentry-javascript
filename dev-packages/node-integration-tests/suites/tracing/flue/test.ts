@@ -217,4 +217,50 @@ describe.runIf(supports({ min: 22 }))('Flue integration', () => {
         .completed();
     });
   });
+
+  createEsmTests(__dirname, 'scenario-recording-functions.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('decides content recording per call when the options are functions', async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            const recorded = container.items
+              .filter(span => /^(chat|execute_tool) /.test(span.name))
+              .sort((a, b) => a.start_timestamp - b.start_timestamp)
+              .map(({ name, attributes }) => [
+                name,
+                GEN_AI_INPUT_MESSAGES in attributes || GEN_AI_TOOL_CALL_ARGUMENTS in attributes,
+                GEN_AI_OUTPUT_MESSAGES in attributes || GEN_AI_TOOL_CALL_RESULT in attributes,
+              ]);
+            expect(recorded).toEqual([
+              ['chat faux-model', true, false],
+              ['execute_tool get_weather', true, false],
+              ['chat faux-model', true, true],
+            ]);
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmTests(__dirname, 'scenario-recording-functions.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('runs the span hooks of the model and tool calls', async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            const hooks = container.items
+              .filter(span => /^(chat|execute_tool) /.test(span.name))
+              .sort((a, b) => a.start_timestamp - b.start_timestamp)
+              .map(({ attributes }) => [attributes['test.start']?.value, attributes['test.end']?.value]);
+            expect(hooks).toEqual([
+              ['chat:private', 'toolUse'],
+              ['execute_tool:private', 'tool'],
+              ['chat:public', 'stop'],
+            ]);
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });

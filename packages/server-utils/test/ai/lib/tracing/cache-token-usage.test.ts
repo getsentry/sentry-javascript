@@ -2,6 +2,7 @@ import {
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
@@ -27,6 +28,7 @@ describe.each(['openai chat', 'openai responses', 'google'] as const)('cache usa
       const span = {
         isRecording: () => true,
         setAttributes: (values: Record<string, unknown>) => Object.assign(attributes, values),
+        spanContext: () => ({ traceId: '0', spanId: '0', traceFlags: 0 }),
         setAttribute: (key: string, value: unknown) => {
           attributes[key] = value;
         },
@@ -99,7 +101,9 @@ describe.each(['openai chat', 'openai responses', 'google'] as const)('cache usa
         ...(provider === 'google'
           ? {}
           : { [GEN_AI_RESPONSE_ID]: 'response_cache_usage', [GEN_AI_RESPONSE_MODEL]: 'gpt-4o' }),
-        ...(mode === 'response' ? {} : { [GEN_AI_RESPONSE_STREAMING]: true }),
+        ...(mode === 'response'
+          ? {}
+          : { [GEN_AI_RESPONSE_STREAMING]: true, [GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]: expect.any(Number) }),
       });
     });
   });
@@ -144,6 +148,7 @@ describe.each(['response', 'stream'] as const)('Google reasoning usage (%s)', mo
     const span = {
       isRecording: () => true,
       setAttributes: (values: Record<string, unknown>) => Object.assign(attributes, values),
+      spanContext: () => ({ traceId: '0', spanId: '0', traceFlags: 0 }),
       setAttribute: (key: string, value: unknown) => {
         attributes[key] = value;
       },
@@ -180,7 +185,9 @@ describe.each(['response', 'stream'] as const)('Google reasoning usage (%s)', mo
       [GEN_AI_USAGE_OUTPUT_TOKENS]: output,
       [GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]: thoughts,
       [GEN_AI_USAGE_TOTAL_TOKENS]: expectedTotal,
-      ...(mode === 'stream' ? { [GEN_AI_RESPONSE_STREAMING]: true } : {}),
+      ...(mode === 'stream'
+        ? { [GEN_AI_RESPONSE_STREAMING]: true, [GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]: expect.any(Number) }
+        : {}),
     });
   });
 });

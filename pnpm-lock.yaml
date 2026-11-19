@@ -1133,6 +1133,9 @@ importers:
       '@sentry/node':
         specifier: 11.14.0
         version: link:../node
+      '@sentry/server-runtime-injection':
+        specifier: 11.14.0
+        version: link:../server-runtime-injection
       '@sentry/server-utils':
         specifier: 11.14.0
         version: link:../server-utils
@@ -2201,9 +2204,15 @@ importers:
       '@solidjs/router':
         specifier: ^1.0.0
         version: 1.0.0(solid-js@1.9.18)
+      '@solidjs/router-2':
+        specifier: npm:@solidjs/router@^2.0.0
+        version: '@solidjs/router@2.0.0(@solidjs/web@2.0.0(solid-js@1.9.18))(solid-js@1.9.18)'
       '@solidjs/testing-library':
         specifier: 0.8.5
         version: 0.8.5(@solidjs/router@1.0.0(solid-js@1.9.18))(solid-js@1.9.18)
+      '@solidjs/web':
+        specifier: ^2.0.0
+        version: 2.0.0(solid-js@1.9.18)
       '@tanstack/solid-router':
         specifier: ^1.169.2
         version: 1.169.2(solid-js@1.9.18)
@@ -2219,6 +2228,9 @@ importers:
       solid-js:
         specifier: ^1.9.18
         version: 1.9.18
+      solid-js-2:
+        specifier: npm:solid-js@^2.0.0
+        version: solid-js@2.0.0
       vite:
         specifier: ^8.3.6
         version: 8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
@@ -8179,6 +8191,20 @@ packages:
     peerDependencies:
       solid-js: ^1.8.6
 
+  '@solidjs/router@2.0.0':
+    resolution: {integrity: sha512-Zpa9djVKDigR1PYd6K32OFN3N90wymPk2yIWhV+Sdrz/aRPpMIIohI5dsAqwx5WIjQ3lBlECZHGBEzaPdcmpCA==}
+    peerDependencies:
+      '@solidjs/web': ^2.0.0
+      filesystem-routing: '>=0.4.0'
+      solid-js: ^2.0.0
+    peerDependenciesMeta:
+      filesystem-routing:
+        optional: true
+
+  '@solidjs/signals@2.0.0':
+    resolution: {integrity: sha512-jrcT6XTVvsYRpesRp0At/mSUnsWr6jiprK8C93Oat56B8n7X9BMSe58Rxl6qSZUhBN0L+sxm8GzeO7HdhBXvDw==}
+    engines: {node: '>=22.12.0'}
+
   '@solidjs/start@1.3.2':
     resolution: {integrity: sha512-tasDl3utVbtP0rr4InB3ntBIFV2upvEiFrOOCkRrAA3yBfjx9elpxnc94sJQXo65PNYdAAAkPIC6h93vLrtwHg==}
     peerDependencies:
@@ -8190,6 +8216,12 @@ packages:
     peerDependencies:
       '@solidjs/router': '>=0.6.0'
       solid-js: '>=1.0.0'
+
+  '@solidjs/web@2.0.0':
+    resolution: {integrity: sha512-R0+JMCD6ukEXaID/sH5PVQe9bCIN9pRzJry+F6Sb6YvtlkAp9DEyVI7AeZYiV0cd6TSL98kpbCyLDiZnaAKGrA==}
+    engines: {node: '>=22.12.0'}
+    peerDependencies:
+      solid-js: ^2.0.0
 
   '@speed-highlight/core@1.2.15':
     resolution: {integrity: sha512-BMq1K3DsElxDWawkX6eLg9+CKJrTVGCBAWVuHXVUV2u0s2711qiChLSId6ikYPfxhdYocLNt3wWwSvDiTvFabw==}
@@ -16298,6 +16330,12 @@ packages:
     peerDependencies:
       seroval: ^1.0
 
+  seroval-plugins@1.8.0:
+    resolution: {integrity: sha512-96vBb12rDvPPwdKUgWw1op3fGq8AVBFOr0IllbnM72yR5J9WWXF18cQ4g1XfDO7HCyh2dt70P3XdtyRayP8FWg==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      seroval: ^1.8.0
+
   seroval@1.6.12:
     resolution: {integrity: sha512-CqbIVfk/7GL3ITwZI55lcPbpQbjHZ2DD5cUj4iH7E9YsCfHNJV1mx7yNp86Z84w5IpmkZZS/2s5vPOWmVWSdQg==}
     engines: {node: '>=10'}
@@ -16486,6 +16524,10 @@ packages:
 
   solid-js@1.9.18:
     resolution: {integrity: sha512-CHGO5YFk6Y9m/1YSxVtKnXfrW7JD3Tmof8HmR4z6TmCPsS8efo8LnzIR8CQh3cUvffqYm6DWyBFfk8dQw1CNQQ==}
+
+  solid-js@2.0.0:
+    resolution: {integrity: sha512-9zN4uH2OQeQAYbF4BmIzoaa+L5Hb8Dp6kkP6ZXobHQ1FZVICdmzREPDVDBJY7umzdAE8D6zbFfWhxGtagkyslA==}
+    engines: {node: '>=22.12.0'}
 
   solid-refresh@0.6.3:
     resolution: {integrity: sha512-F3aPsX6hVw9ttm5LYlth8Q15x6MlI/J3Dn+o3EQyRTtTxidepSTwAYdozt01/YA+7ObcciagGEyXIopGZzQtbA==}
@@ -26239,6 +26281,13 @@ snapshots:
     dependencies:
       solid-js: 1.9.18
 
+  '@solidjs/router@2.0.0(@solidjs/web@2.0.0(solid-js@1.9.18))(solid-js@1.9.18)':
+    dependencies:
+      '@solidjs/web': 2.0.0(solid-js@1.9.18)
+      solid-js: 1.9.18
+
+  '@solidjs/signals@2.0.0': {}
+
   '@solidjs/start@1.3.2(cc17e735cce815c73792ed1133b8d5a1)':
     dependencies:
       '@tanstack/server-functions-plugin': 1.121.21(supports-color@10.0.0)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))
@@ -26250,7 +26299,7 @@ snapshots:
       html-to-image: 1.11.11
       radix3: 1.1.2
       seroval: 1.8.1
-      seroval-plugins: 1.6.12(seroval@1.8.1)
+      seroval-plugins: 1.8.0(seroval@1.8.1)
       shiki: 1.29.2
       source-map-js: 1.2.2
       terracotta: 1.0.5(solid-js@1.9.18)
@@ -26267,6 +26316,13 @@ snapshots:
     dependencies:
       '@solidjs/router': 1.0.0(solid-js@1.9.18)
       '@testing-library/dom': 9.3.4
+      solid-js: 1.9.18
+
+  '@solidjs/web@2.0.0(solid-js@1.9.18)':
+    dependencies:
+      csstype: 3.2.3
+      seroval: 1.8.1
+      seroval-plugins: 1.8.0(seroval@1.8.1)
       solid-js: 1.9.18
 
   '@speed-highlight/core@1.2.15': {}
@@ -26395,7 +26451,7 @@ snapshots:
       '@tanstack/store': 0.8.0
       cookie-es: 2.0.1
       seroval: 1.8.1
-      seroval-plugins: 1.6.12(seroval@1.8.1)
+      seroval-plugins: 1.8.0(seroval@1.8.1)
       tiny-invariant: 1.3.3
       tiny-warning: 1.0.3
 
@@ -26404,7 +26460,7 @@ snapshots:
       '@tanstack/history': 1.161.6
       cookie-es: 3.1.1
       seroval: 1.8.1
-      seroval-plugins: 1.6.12(seroval@1.8.1)
+      seroval-plugins: 1.8.0(seroval@1.8.1)
 
   '@tanstack/router-utils@1.154.7(supports-color@10.0.0)':
     dependencies:
@@ -36798,7 +36854,7 @@ snapshots:
     dependencies:
       seroval: 1.6.12
 
-  seroval-plugins@1.6.12(seroval@1.8.1):
+  seroval-plugins@1.8.0(seroval@1.8.1):
     dependencies:
       seroval: 1.8.1
 
@@ -37133,6 +37189,12 @@ snapshots:
       csstype: 3.2.3
       seroval: 1.6.12
       seroval-plugins: 1.6.12(seroval@1.6.12)
+
+  solid-js@2.0.0:
+    dependencies:
+      '@solidjs/signals': 2.0.0
+      seroval: 1.8.1
+      seroval-plugins: 1.8.0(seroval@1.8.1)
 
   solid-refresh@0.6.3(solid-js@1.9.18)(supports-color@10.0.0):
     dependencies:

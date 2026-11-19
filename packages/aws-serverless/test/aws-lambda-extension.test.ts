@@ -1,5 +1,6 @@
 import { once } from 'node:events';
 import * as http from 'node:http';
+import * as net from 'node:net';
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { AwsLambdaExtension, getSentryDSNFromEnv } from '../src/lambda-extension/aws-lambda-extension';
@@ -86,6 +87,116 @@ describe('AwsLambdaExtension.next', () => {
 
   test('rejects before registration', async () => {
     await expect(new AwsLambdaExtension().next()).rejects.toThrow('Extension ID is not set');
+  });
+});
+
+describe('AwsLambdaExtension.startSentryTunnel', () => {
+  const servers: Array<http.Server> = [];
+
+  async function listen(server: http.Server): Promise<number> {
+    servers.push(server);
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    return (server.address() as AddressInfo).port;
+  }
+
+  async function setup(): Promise<{
+    sendEnvelope: () => Promise<void>;
+    received: Promise<{ url: string | undefined; body: string }>;
+    upstreamPort: number;
+    proxyPort: number;
+    connects: string[];
+  }> {
+    let resolveReceived: (value: { url: string | undefined; body: string }) => void;
+    const received = new Promise<{ url: string | undefined; body: string }>(resolve => {
+      resolveReceived = resolve;
+    });
+    const upstreamPort = await listen(
+      http.createServer((req, res) => {
+        const chunks: Buffer[] = [];
+        req.on('data', chunk => chunks.push(chunk));
+        req.on('end', () => {
+          resolveReceived({ url: req.url, body: Buffer.concat(chunks).toString() });
+          res.end('{}');
+        });
+      }),
+    );
+
+    const connects: string[] = [];
+    const proxy = http.createServer();
+    proxy.on('connect', (req: http.IncomingMessage, clientSocket: net.Socket) => {
+      connects.push(req.url ?? '');
+      const [host, port] = (req.url ?? '').split(':');
+      const upstreamSocket = net.connect(Number(port), host, () => {
+        clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
+        upstreamSocket.pipe(clientSocket);
+        clientSocket.pipe(upstreamSocket);
+      });
+    });
+    const proxyPort = await listen(proxy);
+
+    const dsn = `http://public@127.0.0.1:${upstreamPort}/1`;
+    vi.stubEnv('SENTRY_DSN', dsn);
+
+    const tunnel = new AwsLambdaExtension().startSentryTunnel(0);
+    servers.push(tunnel);
+    await once(tunnel, 'listening');
+    const tunnelPort = (tunnel.address() as AddressInfo).port;
+
+    const envelope = `${JSON.stringify({ dsn })}\n${JSON.stringify({ type: 'event' })}\n{}`;
+    const sendEnvelope = async (): Promise<void> => {
+      const res = await fetch(`http://127.0.0.1:${tunnelPort}/envelope`, { method: 'POST', body: envelope });
+      expect(res.status).toBe(200);
+    };
+
+    return { sendEnvelope, received, upstreamPort, proxyPort, connects };
+  }
+
+  afterEach(async () => {
+    vi.unstubAllEnvs();
+    await Promise.all(
+      servers.splice(0).map(server => {
+        server.closeAllConnections();
+        return new Promise<void>(resolve => server.close(() => resolve()));
+      }),
+    );
+  });
+
+  test('forwards envelopes directly when no proxy is set', async () => {
+    vi.stubEnv('http_proxy', '');
+    const { sendEnvelope, received, connects } = await setup();
+
+    await sendEnvelope();
+
+    await expect(received).resolves.toEqual({
+      url: expect.stringMatching(/^\/api\/1\/envelope\/\?sentry_version=7&sentry_key=public/),
+      body: expect.stringContaining('"type":"event"'),
+    });
+    expect(connects).toEqual([]);
+  });
+
+  test('forwards envelopes through http_proxy', async () => {
+    const { sendEnvelope, received, upstreamPort, proxyPort, connects } = await setup();
+    vi.stubEnv('http_proxy', `http://127.0.0.1:${proxyPort}`);
+
+    await sendEnvelope();
+
+    await expect(received).resolves.toEqual({
+      url: expect.stringMatching(/^\/api\/1\/envelope\//),
+      body: expect.stringContaining('"type":"event"'),
+    });
+    expect(connects).toEqual([`127.0.0.1:${upstreamPort}`]);
+  });
+
+  test('skips the proxy for hosts in no_proxy', async () => {
+    const { sendEnvelope, received, proxyPort, connects } = await setup();
+    vi.stubEnv('http_proxy', `http://127.0.0.1:${proxyPort}`);
+    vi.stubEnv('no_proxy', '127.0.0.1');
+
+    await sendEnvelope();
+
+    await expect(received).resolves.toEqual(expect.objectContaining({ url: expect.any(String) }));
+    expect(connects).toEqual([]);
   });
 });
 

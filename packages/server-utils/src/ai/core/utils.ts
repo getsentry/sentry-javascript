@@ -2,7 +2,7 @@
 /**
  * Shared utils for AI integrations (OpenAI, Anthropic, Verce.AI, etc.)
  */
-import { getClient, isObjectLike, isThenable, SPAN_STATUS_ERROR, stringify } from '@sentry/core';
+import { debug, getClient, isObjectLike, isThenable, SPAN_STATUS_ERROR, stringify } from '@sentry/core';
 import type { Span, SpanStatus } from '@sentry/core';
 import {
   GEN_AI_OUTPUT_MESSAGES,
@@ -20,6 +20,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
+import { DEBUG_BUILD } from '../../debug-build';
 
 export interface GenAiOptions {
   /**
@@ -32,6 +33,28 @@ export interface GenAiOptions {
    * `dataCollection.genAI.outputs` setting; an explicit value here takes precedence.
    */
   recordOutputs?: boolean;
+}
+
+/**
+ * Whether to record the content of a gen_ai call: a boolean for every call, or a function that decides for
+ * each call. The function runs once when the call starts, in the caller's async context, so it can read
+ * request-scoped state. Returning `undefined` falls back to `dataCollection.genAI`. If it throws, the
+ * content is not recorded.
+ */
+export type GenAiRecordingOption<TCall> = boolean | ((call: TCall) => boolean | undefined);
+
+/** {@link GenAiOptions} of an integration that can decide per call. `TCall` is what the function gets. */
+export interface GenAiCallOptions<TCall> {
+  /**
+   * Record input messages/prompts on gen_ai spans. Defaults to the global
+   * `dataCollection.genAI.inputs` setting; an explicit value here takes precedence.
+   */
+  recordInputs?: GenAiRecordingOption<TCall>;
+  /**
+   * Record output text/responses on gen_ai spans. Defaults to the global
+   * `dataCollection.genAI.outputs` setting; an explicit value here takes precedence.
+   */
+  recordOutputs?: GenAiRecordingOption<TCall>;
 }
 
 /**
@@ -79,6 +102,39 @@ export function resolveAIRecordingOptions<T extends GenAiOptions>(options?: T): 
     recordInputs: options?.recordInputs ?? genAI?.inputs ?? true,
     recordOutputs: options?.recordOutputs ?? genAI?.outputs ?? true,
   } as T & Required<GenAiOptions>;
+}
+
+/**
+ * Resolves the recording options of one call, like {@link resolveAIRecordingOptions}, and calls the
+ * options that are functions with `call`. Call it once when the call starts, so the functions run in the
+ * caller's async context.
+ */
+export function resolveGenAiCallRecording<TCall>(
+  options: GenAiCallOptions<TCall> | undefined,
+  call: TCall,
+): Required<GenAiOptions> {
+  const genAI = getClient()?.getDataCollectionOptions().genAI;
+  return {
+    recordInputs: resolveRecordingOption(options?.recordInputs, call) ?? genAI?.inputs ?? true,
+    recordOutputs: resolveRecordingOption(options?.recordOutputs, call) ?? genAI?.outputs ?? true,
+  };
+}
+
+/** Calls `option` with `call` when it is a function; `undefined` means the option does not decide. */
+export function resolveRecordingOption<TCall>(
+  option: GenAiRecordingOption<TCall> | undefined,
+  call: TCall,
+): boolean | undefined {
+  if (typeof option !== 'function') {
+    return option;
+  }
+  try {
+    const result = option(call);
+    return result === undefined ? undefined : result === true;
+  } catch (error) {
+    DEBUG_BUILD && debug.warn('[gen_ai] `recordInputs`/`recordOutputs` threw, not recording content', error);
+    return false;
+  }
 }
 
 /**
@@ -267,8 +323,14 @@ export function markCancelledIfAborted(span: Span, abortSignal: AbortSignal | un
 /**
  * Ends a streaming span by setting all accumulated response attributes and ending the span.
  * Shared across OpenAI, Anthropic, and Google GenAI streaming implementations.
+ * `beforeSpanEnd` runs after the attributes are set, right before the span ends.
  */
-export function endStreamSpan(span: Span, state: StreamResponseState, recordOutputs: boolean): void {
+export function endStreamSpan(
+  span: Span,
+  state: StreamResponseState,
+  recordOutputs: boolean,
+  beforeSpanEnd?: () => void,
+): void {
   if (!span.isRecording()) {
     return;
   }
@@ -305,6 +367,7 @@ export function endStreamSpan(span: Span, state: StreamResponseState, recordOutp
   }
 
   span.setAttributes(attrs);
+  beforeSpanEnd?.();
   span.end();
 }
 

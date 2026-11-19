@@ -32,6 +32,31 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
       const style = createDialogStyles(options.styleNonce);
 
       let originalOverflow = '';
+      let isOpen = false;
+      let previousFocus: Element | null = null;
+
+      const restoreFocus = (): void => {
+        const target = previousFocus;
+        previousFocus = null;
+        // The launcher is shown by the close/submitted callback after the dialog closes.
+        void Promise.resolve().then(() => {
+          const active = DOCUMENT.activeElement;
+          if (
+            !isOpen &&
+            (!active || active === DOCUMENT.body || active === shadowRoot.host) &&
+            target instanceof HTMLElement
+          ) {
+            target.focus();
+          }
+        });
+      };
+      const hide = (): void => {
+        if (isOpen) {
+          isOpen = false;
+          DOCUMENT.body.style.overflow = originalOverflow;
+        }
+        renderContent(false);
+      };
       const dialog: ReturnType<FeedbackModalIntegration['createDialog']> = {
         get el() {
           return el;
@@ -43,20 +68,29 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
           }
         },
         removeFromDom(): void {
+          dialog.close();
+          render(null, el);
           el.remove();
           style.remove();
-          DOCUMENT.body.style.overflow = originalOverflow;
         },
         open() {
+          if (isOpen) {
+            return;
+          }
+          previousFocus = DOCUMENT.activeElement;
+          while (previousFocus?.shadowRoot?.activeElement) {
+            previousFocus = previousFocus.shadowRoot.activeElement;
+          }
+          originalOverflow = DOCUMENT.body.style.overflow;
+          isOpen = true;
           renderContent(true);
           options.onFormOpen?.();
           getClient()?.emit('openFeedbackWidget');
-          originalOverflow = DOCUMENT.body.style.overflow;
           DOCUMENT.body.style.overflow = 'hidden';
         },
         close() {
-          renderContent(false);
-          DOCUMENT.body.style.overflow = originalOverflow;
+          hide();
+          restoreFocus();
         },
       };
 
@@ -72,12 +106,13 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
             defaultName={String((userKey && user?.[userKey.name]) || '')}
             defaultEmail={String((userKey && user?.[userKey.email]) || '')}
             onFormClose={() => {
-              renderContent(false);
+              dialog.close();
               options.onFormClose?.();
             }}
             onSubmit={sendFeedback}
             onSubmitSuccess={(data: FeedbackFormData, eventId: string) => {
-              renderContent(false);
+              // A launcher hidden while the form is open gets focus back when `onFormSubmitted` closes the dialog.
+              hide();
               options.onSubmitSuccess?.(data, eventId);
             }}
             onSubmitError={(error: Error) => {

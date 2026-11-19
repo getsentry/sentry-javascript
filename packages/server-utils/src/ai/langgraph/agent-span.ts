@@ -12,7 +12,8 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
-import { extractSystemInstructions } from '../core/utils';
+import { extractSystemInstructions, resolveGenAiCallRecording } from '../core/utils';
+import type { GenAiOptions } from '../core/utils';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import {
   _INTERNAL_mergeLangChainCallbackHandler,
@@ -64,13 +65,22 @@ export function getAgentSpanOptions(
   };
 }
 
+/** Decides for one `invoke()`/`stream()` call, from its arguments as passed. */
+export function resolveGraphCallRecording(options: LangGraphOptions, args: unknown[]): Required<GenAiOptions> {
+  return resolveGenAiCallRecording(options, {
+    operation: 'invoke_agent',
+    input: args[0],
+    config: args[1] as Record<string, unknown> | undefined,
+  });
+}
+
 /** Sets the request attributes on an agent span and injects the callback handler into the call's config. */
 export function prepareAgentSpan(
   span: Span,
   args: unknown[],
   graphInstance: CompiledGraph,
   compileOptions: Record<string, unknown>,
-  options: LangGraphOptions,
+  recording: Required<GenAiOptions>,
   llm: BaseChatModel | null | undefined,
   sentryCallbackHandler: unknown,
 ): LangChainMessage[] | null {
@@ -101,14 +111,15 @@ export function prepareAgentSpan(
     config.metadata = {
       ...getConversationIdMetadataFromConfig(config),
       ...existingMetadata,
-      __sentry_langgraph__: true,
+      // Child runs inherit the metadata, so their spans follow this call's decision.
+      __sentry_langgraph__: recording,
       ...(typeof graphName === 'string' ? { lc_agent_name: graphName } : {}),
     };
 
     config.callbacks = _INTERNAL_mergeLangChainCallbackHandler(config.callbacks, sentryCallbackHandler);
   }
 
-  const recordInputs = options.recordInputs;
+  const { recordInputs } = recording;
 
   const tools = recordInputs ? extractToolsFromCompiledGraph(graphInstance) : null;
   if (tools) {

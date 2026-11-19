@@ -31,6 +31,7 @@ export default defineNuxtConfig({
       sentry: {
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
       },
+      traceLifecycle: process.env.E2E_TEST_TRACE_LIFECYCLE,
     },
   },
   nitro: {

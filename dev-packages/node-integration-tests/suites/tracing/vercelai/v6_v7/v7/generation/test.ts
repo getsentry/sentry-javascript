@@ -20,7 +20,7 @@ import {
   GEN_AI_GENERATE_CONTENT,
   GEN_AI_INVOKE_AGENT,
 } from '@sentry/conventions/op';
-import { cleanupChildProcesses, createEsmTests } from '../../../../../../utils/runner';
+import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../../../utils/runner';
 import { registerVercelAiGenerationTests } from '../../suite';
 import { join } from 'node:path';
 
@@ -356,5 +356,88 @@ describe('Vercel AI calls with recording off (v7)', () => {
       });
     },
     { additionalDependencies: { ai: '^7.0.163' } },
+  );
+});
+
+describe('Vercel AI recording functions (v7)', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmTests(
+    join(__dirname, '../..'),
+    'scenario-recording-functions.mjs',
+    'instrument-with-recording-functions.mjs',
+    (createRunner, test) => {
+      test('decides content recording per span when the options are functions', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const recorded = (operationId: string): { inputs: boolean; outputs: boolean }[] =>
+                container.items
+                  .filter(span => span.attributes['vercel.ai.operationId']?.value === operationId)
+                  .map(span => ({
+                    inputs: GEN_AI_INPUT_MESSAGES in span.attributes,
+                    outputs: GEN_AI_OUTPUT_MESSAGES in span.attributes,
+                  }));
+
+              // `recordOutputs` skips `generateText` by type; the scope tag decides the rest.
+              expect(recorded('ai.generateText')).toEqual([
+                { inputs: true, outputs: false },
+                { inputs: false, outputs: false },
+              ]);
+              expect(recorded('ai.generateText.doGenerate')).toEqual([
+                { inputs: true, outputs: true },
+                { inputs: false, outputs: false },
+              ]);
+              // The scenario makes the scope private while the stream is read, after both spans started.
+              expect(recorded('ai.streamText')).toEqual([{ inputs: true, outputs: true }]);
+              expect(recorded('ai.streamText.doStream')).toEqual([{ inputs: true, outputs: true }]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { additionalDependencies: { ai: '^7.0.0' } },
+  );
+});
+
+describe('Vercel AI span hooks (v7)', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmAndCjsTests(
+    join(__dirname, '../..'),
+    'scenario-recording-functions.mjs',
+    'instrument-with-span-hooks.mjs',
+    (createRunner, test) => {
+      test('runs the span hooks at start in the caller context and at end after the response attributes', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const hooks = container.items
+                .filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai')
+                .map(span => [
+                  span.attributes['vercel.ai.operationId']?.value,
+                  span.attributes['test.start']?.value,
+                  span.attributes['test.end']?.value,
+                ]);
+              expect(hooks.sort()).toEqual([
+                ['ai.generateText', 'generateText:private', '30:response'],
+                ['ai.generateText', 'generateText:public', '30:response'],
+                ['ai.generateText.doGenerate', 'languageModelCall:private', '30:response'],
+                ['ai.generateText.doGenerate', 'languageModelCall:public', '30:response'],
+                ['ai.streamText', 'streamText:public', '30:no response'],
+                ['ai.streamText.doStream', 'languageModelCall:public', '30:no response'],
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { additionalDependencies: { ai: '^7.0.0' } },
   );
 });

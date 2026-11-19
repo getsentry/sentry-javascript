@@ -9,13 +9,16 @@ import {
   withActiveSpan,
 } from '@sentry/core';
 import { GEN_AI_CONVERSATION_ID } from '@sentry/conventions/attributes';
-import type { GenAiOptions } from '../core/utils';
-import { setPiAiRecordingOptions } from '../pi-ai/recording';
+import type { GenAiSpanHooks } from '../core/span-hooks';
+import type { GenAiCallOptions } from '../core/utils';
+import { setPiAiDriverOptions } from '../pi-ai/recording';
+import type { PiAssistantMessage } from '../pi-ai/types';
 import { PI_DURABLE_ORIGIN, PI_TASK } from './constants';
 import type { PiRuns } from './runs';
 import { createRuns, endRun, observeRunControl, readProviderSessionId, startRun, toSentryConversationId } from './runs';
 import { instrumentTool, instrumentToolPhase } from './tools';
 import type {
+  PiDurableCallInfo,
   PiHarness,
   PiHarnessOptions,
   PiPhaseHandler,
@@ -24,11 +27,20 @@ import type {
   PiTask,
   PiTaskRuntime,
   PiTool,
+  PiToolExecutionResult,
 } from './types';
 import { withCleanScopes } from '../../utils/withCleanScopes';
 import { bound } from './utils';
 
-export type PiDurableOptions = GenAiOptions;
+/**
+ * The span hooks run for the `gen_ai.chat` spans of the model requests, which pi-ai reports, and for
+ * the tool spans. `onSpanStart` runs in the scopes of the task phase, not in those of the code that
+ * submitted the input. `onSpanEnd` gets the `AssistantMessage` of a model request, and what
+ * `tool.execute()` returned for a tool call. A tool call still running when the Harness closes does
+ * not run `onSpanEnd`.
+ */
+export type PiDurableOptions = GenAiCallOptions<PiDurableCallInfo> &
+  GenAiSpanHooks<PiDurableCallInfo, PiAssistantMessage | PiToolExecutionResult>;
 
 const INSTRUMENTED = Symbol.for('sentry.pi-durable.instrumented');
 const RUNS = Symbol.for('sentry.pi-durable.runs');
@@ -94,6 +106,7 @@ export function endRunsOnClose(harnessOptions: PiHarnessOptions, harness: unknow
         if (call.endTimestamp === undefined) {
           call.span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
         }
+        call.onSpanEnd?.();
         call.span.end(call.endTimestamp);
       }
     }
@@ -228,7 +241,7 @@ function runPhase(
       }
     }
     scope.setConversationId(sessionId ?? toSentryConversationId(runs, conversationId));
-    setPiAiRecordingOptions(scope, options);
+    setPiAiDriverOptions(scope, options, { operation: 'chat', runtime, context });
     try {
       return await phase(observed);
     } catch (error) {

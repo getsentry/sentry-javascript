@@ -43,7 +43,7 @@ Or you can run a single E2E test app with a specific variant:
 pnpm run test:run <app-name> --variant <variant-name>
 ```
 
-Variant name matching is case-insensitive and partial. For example, `--variant 13` will match `nextjs-pages-dir (next@13)` if a matching variant is present in the test app's `package.json`.
+Pass the variant's full label from the test app's `package.json`, for example `--variant "nextjs-16 (webpack, production)"`.
 
 ### Using the Makefile
 
@@ -69,28 +69,26 @@ This will display a fuzzy-finder menu of all available test applications. Select
 make list
 ```
 
-For example, if you have the following variants in your test app's `package.json`:
+For example, `nextjs-16` has these variants in its `package.json` (shortened):
 
 ```json
 "sentryTest": {
   "variants": [
     {
-      "build-command": "pnpm test:build-13",
-      "label": "nextjs-pages-dir (next@13)"
+      "build-command": "pnpm test:build-webpack",
+      "label": "nextjs-16 (webpack, production)",
+      "assert-command": "pnpm test:prod"
     },
     {
-      "build-command": "pnpm test:build-13-canary",
-      "label": "nextjs-pages-dir (next@13-canary)"
-    },
-    {
-      "build-command": "pnpm test:build-15",
-      "label": "nextjs-pages-dir (next@15)"
+      "build-command": "pnpm install",
+      "label": "nextjs-16 (webpack, development)",
+      "assert-command": "pnpm test:dev-webpack"
     }
   ]
 }
 ```
 
-If you run `pnpm run test:run nextjs-pages-dir --variant 13`, it will match against the very first matching variant, which is `nextjs-pages-dir (next@13)`. If you need to target the second variant in the example, you need to be more specific and use `--variant 13-canary`.
+To run one of them, pass its full label: `pnpm run test:run nextjs-16 --variant "nextjs-16 (webpack, production)"`.
 
 A variant runs its `build-command` and `assert-command`. Without them, it runs the app's `test:build` and `test:assert` scripts, like the app's default job.
 
@@ -220,8 +218,8 @@ is the reference setup.
   itself does not get these files, so run a variant with `pnpm run test:run <app> --variant <runtime>`.
 - **Bun and Deno versions**: a variant can pin the Bun or Deno version, for example `"bun-version": "1.4.4"` or
   `"deno-version": "v2.9.0"`.
-- **Bun**: under `bun run` the SDK cannot inject diagnostics channels into packages that stay outside the build (for
-  example Express behind `react-router-serve`), so those produce no spans on Bun. Where a test depends on them, branch
+- **Bun**: under `bun run` before Bun 1.4.6 the SDK cannot inject diagnostics channels into packages that stay outside
+  the build (for example Express behind `react-router-serve`), so those produce no spans on Bun. Where a test depends on them, branch
   on `RUNTIME` and say why in a comment. An app that starts its own server can instead bundle it with
   `@sentry/bun/plugin`, as `nestjs-12/bun-build.mjs` does. Bun 1.3 renames classes in bundles (`class Foo2`), which
   changes span names taken from class names, so `nestjs-12` pins Bun 1.4 (see #26289). `nuxt-4` builds with

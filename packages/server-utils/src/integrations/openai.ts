@@ -2,11 +2,12 @@ import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import { defineIntegration, getClient, hasSpanStreamingEnabled, startInactiveSpan } from '@sentry/core';
-import { getGenAiSpanOp, getRequestSignal, markCancelledIfAborted, resolveAIRecordingOptions } from '../ai/core/utils';
+import { getGenAiSpanOp, getRequestSignal, markCancelledIfAborted, resolveGenAiCallRecording } from '../ai/core/utils';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/openai';
 import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
+import { type GenAiSpanResult, runGenAiSpanEnd, runGenAiSpanStart } from '../ai/core/span-hooks';
 import { instrumentStream } from '../ai/openai/streaming';
-import type { OpenAiOptions } from '../ai/openai/types';
+import type { OpenAiCallInfo, OpenAiOptions } from '../ai/openai/types';
 import { addResponseAttributes } from '../ai/openai/utils';
 import { shouldSkipAiProviderSpan } from '../ai/pi-ai/providers';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
@@ -14,6 +15,12 @@ import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { openaiModuleNames } from '../orchestrion/config/openai';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
+
+// The recording decision is made once, when the span starts, in the caller's async context.
+type OpenAiChannelContext = OrchestrionChannelContext & {
+  _sentryRecordOutputs?: boolean;
+  _sentryOnSpanEnd?: (result: GenAiSpanResult<unknown>) => void;
+};
 
 // Same name as the OTel integration by design, so the OTel 'OpenAI'
 // integration is deduplicated out of the default set.
@@ -40,14 +47,15 @@ const _openAIIntegration = ((options: OpenAiOptions = {}) => {
 function instrumentOpenai(options: OpenAiOptions): void {
   for (const { channel, operation } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
-      diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channel),
+      diagnosticsChannel.tracingChannel<OpenAiChannelContext>(channel),
       data => createGenAiSpan(data, operation, options),
       {
         beforeSpanEnd: (span, data) => {
           if ('error' in data) {
             markCancelledIfAborted(span, getRequestSignal(data.arguments?.[1]));
           }
-          addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs, operation);
+          addResponseAttributes(span, data.result, !!data._sentryRecordOutputs, operation);
+          data._sentryOnSpanEnd?.('error' in data ? { error: data.error } : { response: data.result });
         },
         deferSpanEnd: ({ span, data, end }) =>
           wrapApiPromiseResponse(
@@ -55,12 +63,12 @@ function instrumentOpenai(options: OpenAiOptions): void {
             response => {
               data.result = response;
               // stream responses should end only after iteration is completed
-              if (!wrapStreamResult(span, data, options)) {
+              if (!wrapStreamResult(span, data)) {
                 end();
               }
             },
             end,
-          ) || wrapStreamResult(span, data, options),
+          ) || wrapStreamResult(span, data),
       },
     );
   }
@@ -70,7 +78,7 @@ function instrumentOpenai(options: OpenAiOptions): void {
  * Build the span for an instrumented `create` call.
  * Returning `undefined` opts the payload out so no span is opened.
  */
-function createGenAiSpan(data: OrchestrionChannelContext, operation: string, options: OpenAiOptions): Span | undefined {
+function createGenAiSpan(data: OpenAiChannelContext, operation: string, options: OpenAiOptions): Span | undefined {
   if (shouldSkipAiProviderSpan(INTEGRATION_NAME)) {
     return undefined;
   }
@@ -78,7 +86,9 @@ function createGenAiSpan(data: OrchestrionChannelContext, operation: string, opt
   const args = data.arguments ?? [];
   const params = args[0] as Record<string, unknown> | undefined;
 
-  const { recordInputs } = resolveAIRecordingOptions(options);
+  const call: OpenAiCallInfo = { operation, request: params };
+  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
+  data._sentryRecordOutputs = recordOutputs;
 
   const attributes = extractRequestAttributes(args, operation, recordInputs);
   attributes[SENTRY_ORIGIN] = ORIGIN;
@@ -95,6 +105,9 @@ function createGenAiSpan(data: OrchestrionChannelContext, operation: string, opt
   if (recordInputs && params) {
     addRequestAttributes(span, params, operation);
   }
+
+  runGenAiSpanStart(options, span, call);
+  data._sentryOnSpanEnd = result => runGenAiSpanEnd(options, span, call, result);
 
   return span;
 }
@@ -114,15 +127,19 @@ function isAsyncIterable(value: unknown): value is AsyncIterableStream {
  * to hand span-ending ownership to `instrumentStream`; `false` for non-streaming/errored results, which end
  * via the normal `beforeSpanEnd` path.
  */
-function wrapStreamResult(span: Span, data: OrchestrionChannelContext, options: OpenAiOptions): boolean {
+function wrapStreamResult(span: Span, data: OpenAiChannelContext): boolean {
   const result = data.result;
   if (!isAsyncIterable(result)) {
     return false;
   }
 
-  const { recordOutputs } = resolveAIRecordingOptions(options);
   const iterate = result[Symbol.asyncIterator].bind(result);
-  const instrumented = instrumentStream({ [Symbol.asyncIterator]: iterate }, span, recordOutputs ?? false);
+  const instrumented = instrumentStream(
+    { [Symbol.asyncIterator]: iterate },
+    span,
+    !!data._sentryRecordOutputs,
+    data._sentryOnSpanEnd,
+  );
   result[Symbol.asyncIterator] = () => instrumented;
 
   return true;

@@ -1,6 +1,6 @@
 import type { Span } from '@sentry/core';
-import type { GenAiOptions } from '../../../ai/core/utils';
 import type { NormalizedRequest, NormalizedResponse, RequestMetadata } from '../types';
+import type { BedrockRuntimeOptions } from './bedrock-runtime';
 import { BedrockRuntimeServiceExtension } from './bedrock-runtime';
 import { DynamodbServiceExtension } from './dynamodb';
 import { KinesisServiceExtension } from './kinesis';
@@ -17,7 +17,7 @@ export class ServicesExtensions implements ServiceExtension {
   // registered extension still get the base rpc span from the subscriber.
   private _services: Map<string, ServiceExtension>;
 
-  public constructor(genAiOptions?: GenAiOptions) {
+  public constructor(genAiOptions?: BedrockRuntimeOptions) {
     this._services = new Map<string, ServiceExtension>([
       ['SecretsManager', new SecretsManagerServiceExtension()],
       ['SFN', new StepFunctionsServiceExtension()],
@@ -47,5 +47,10 @@ export class ServicesExtensions implements ServiceExtension {
   public responseHook(response: NormalizedResponse, span: Span): void {
     const serviceExtension = this._services.get(response.request.serviceName);
     serviceExtension?.responseHook?.(response, span);
+  }
+
+  public errorHook(request: NormalizedRequest, error: unknown, span: Span): void {
+    const serviceExtension = this._services.get(request.serviceName);
+    serviceExtension?.errorHook?.(request, error, span);
   }
 }

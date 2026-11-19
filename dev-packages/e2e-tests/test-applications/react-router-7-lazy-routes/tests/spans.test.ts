@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import {
   collectStreamedSpansUntilSegment,
@@ -31,7 +31,36 @@ function childSpans(spans: SerializedStreamedSpan[]): SerializedStreamedSpan[] {
   return spans.filter(span => !span.is_segment);
 }
 
-test('Creates a pageload span with parameterized route', async ({ page }) => {
+function collectUntilNavigationSegment(
+  name: string,
+  onSpan: (span: SerializedStreamedSpan) => void,
+): Promise<SerializedStreamedSpan[]> {
+  return waitForStreamedSpans('react-router-7-lazy-routes', spans => {
+    spans.forEach(onSpan);
+    return spans.some(span => span.is_segment && getSpanOp(span) === 'navigation' && span.name === name);
+  });
+}
+
+/**
+ * Segments are sent in the order they end, and a new pageload or navigation cancels the open one. So once a
+ * segment that ended on its own (by `idleTimeout`) has arrived, every segment started before it has arrived too.
+ */
+function endedByIdleTimeout(span: SerializedStreamedSpan): boolean {
+  return span.attributes['sentry.idle_span_finish_reason']?.value === 'idleTimeout';
+}
+
+type TestWindow = { __SENTRY_ACTIVE_SPAN_OP__: () => unknown; __SENTRY_STARTED_NAVIGATION_SPANS__: number };
+
+/** Waits for the open pageload or navigation span to end, which is earlier than it reaches the proxy. */
+async function waitForIdleSpanEnd(page: Page): Promise<void> {
+  await page.waitForFunction(() => !(window as unknown as TestWindow).__SENTRY_ACTIVE_SPAN_OP__());
+}
+
+function getStartedNavigationSpanCount(page: Page): Promise<number> {
+  return page.evaluate(() => (window as unknown as TestWindow).__SENTRY_STARTED_NAVIGATION_SPANS__);
+}
+
+test('Creates a pageload span but no navigation span on initial load to deep lazy route', async ({ page }) => {
   const transactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
       getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
@@ -50,35 +79,8 @@ test('Creates a pageload span with parameterized route', async ({ page }) => {
   expect(event.is_segment).toBe(true);
   expect(getSpanOp(event)).toBe('pageload');
   expect(event.status).toBe('ok');
-});
 
-test('Does not create a navigation span on initial load to deep lazy route', async ({ page }) => {
-  const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment;
-  });
-
-  const pageloadPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return (
-      getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
-    );
-  });
-
-  await page.goto('/lazy/inner/1/2/3');
-
-  const pageloadEvent = await pageloadPromise;
-
-  expect(pageloadEvent.name).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
-
-  const lazyRouteContent = page.locator('id=innermost-lazy-route');
-  await expect(lazyRouteContent).toBeVisible();
-
-  // "Race" between navigation transaction and a timeout to ensure no navigation transaction is created within the timeout period
-  const result = await Promise.race([
-    navigationPromise.then(() => 'navigation'),
-    new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 1500)),
-  ]);
-
-  expect(result).toBe('timeout');
+  expect(await getStartedNavigationSpanCount(page)).toBe(0);
 });
 
 test('Creates a navigation span inside a lazy route', async ({ page }) => {
@@ -289,8 +291,6 @@ test('Does not send any duplicate navigation span names browsing between differe
   await expect(navigationToUpper).toBeVisible();
   await navigationToUpper.click();
 
-  await page.waitForTimeout(1000);
-
   await allTransactionsPromise;
 
   expect(transactionNamesList.length).toBe(5);
@@ -304,10 +304,6 @@ test('Does not send any duplicate navigation span names browsing between differe
 });
 
 test('Does not create premature navigation span during long-running lazy route pageload', async ({ page }) => {
-  const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name.includes('long-running');
-  });
-
   const pageloadPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/long-running/slow/:id';
   });
@@ -322,13 +318,7 @@ test('Does not create premature navigation span during long-running lazy route p
   const slowLoadingContent = page.locator('id=slow-loading-content');
   await expect(slowLoadingContent).toBeVisible({ timeout: 5000 });
 
-  const result = await Promise.race([
-    navigationPromise.then(() => 'navigation'),
-    new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 2000)),
-  ]);
-
-  // Should timeout, meaning no unwanted navigation transaction was created
-  expect(result).toBe('timeout');
+  expect(await getStartedNavigationSpanCount(page)).toBe(0);
 });
 
 test('Allows legitimate POP navigation (back/forward) after pageload completes', async ({ page }) => {
@@ -432,9 +422,7 @@ test('Updates navigation span name correctly when span is cancelled early (docum
   });
 
   await page.locator('id=navigation').click();
-  await page.waitForFunction(() =>
-    (window as unknown as { __SENTRY_HAS_ACTIVE_NAVIGATION__: () => boolean }).__SENTRY_HAS_ACTIVE_NAVIGATION__(),
-  );
+  await page.waitForFunction(() => (window as unknown as TestWindow).__SENTRY_ACTIVE_SPAN_OP__() === 'navigation');
 
   await page.evaluate(() => {
     Object.defineProperty(document, 'hidden', { configurable: true, value: true });
@@ -551,29 +539,6 @@ test('Creates pageload span with parameterized route for delayed lazy route', as
   expect(pageloadEvent.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
-test('Creates navigation span with parameterized route for delayed lazy route', async ({ page }) => {
-  await page.goto('/');
-
-  const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/delayed-lazy/:id';
-  });
-
-  const navigationLink = page.locator('id=navigation-to-delayed-lazy');
-  await expect(navigationLink).toBeVisible();
-  await navigationLink.click();
-
-  const navigationEvent = await navigationPromise;
-
-  const delayedReady = page.locator('id=delayed-lazy-ready');
-  await expect(delayedReady).toBeVisible();
-  await expect(page.locator('id=delayed-lazy-id')).toHaveText('ID: 123');
-  await expect(page.locator('id=delayed-lazy-path')).toHaveText('/delayed-lazy/123');
-
-  expect(navigationEvent.name).toBe('/delayed-lazy/:id');
-  expect(getSpanOp(navigationEvent)).toBe('navigation');
-  expect(navigationEvent.attributes['sentry.segment.name.source']?.value).toBe('route');
-});
-
 test('Creates navigation span when navigating with query parameters from home to route', async ({ page }) => {
   await page.goto('/');
 
@@ -604,36 +569,6 @@ test('Creates navigation span when navigating with query parameters from home to
   expect(navigationEvent.status).toBe('ok');
 });
 
-test('Creates separate navigation span when changing only query parameters on same route', async ({ page }) => {
-  await page.goto('/delayed-lazy/123');
-
-  // Wait for the page to fully load
-  const delayedReady = page.locator('id=delayed-lazy-ready');
-  await expect(delayedReady).toBeVisible();
-
-  // Navigate from /delayed-lazy/123 to /delayed-lazy/123?view=detailed
-  // This is a query-only change on the same route
-  const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/delayed-lazy/:id';
-  });
-
-  const queryLink = page.locator('id=link-to-query-view-detailed');
-  await expect(queryLink).toBeVisible();
-  await queryLink.click();
-
-  const navigationEvent = await navigationPromise;
-
-  // Verify query param was updated
-  await expect(page.locator('id=delayed-lazy-search')).toHaveText('?view=detailed');
-  await expect(page.locator('id=delayed-lazy-view')).toHaveText('View: detailed');
-
-  // Query-only navigation should create a navigation transaction
-  expect(navigationEvent.name).toBe('/delayed-lazy/:id');
-  expect(getSpanOp(navigationEvent)).toBe('navigation');
-  expect(navigationEvent.attributes['sentry.segment.name.source']?.value).toBe('route');
-  expect(navigationEvent.status).toBe('ok');
-});
-
 test('Creates separate navigation spans for multiple query parameter changes', async ({ page }) => {
   await page.goto('/delayed-lazy/123');
 
@@ -652,7 +587,10 @@ test('Creates separate navigation spans for multiple query parameter changes', a
   const firstNavigationEvent = await firstNavigationPromise;
   const firstTraceId = firstNavigationEvent.trace_id;
 
+  await expect(page.locator('id=delayed-lazy-search')).toHaveText('?view=detailed');
   await expect(page.locator('id=delayed-lazy-view')).toHaveText('View: detailed');
+  expect(firstNavigationEvent.attributes['sentry.segment.name.source']?.value).toBe('route');
+  expect(firstNavigationEvent.status).toBe('ok');
 
   // Second query change: /delayed-lazy/123?view=detailed -> /delayed-lazy/123?view=list
   const secondNavigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
@@ -685,34 +623,6 @@ test('Creates separate navigation spans for multiple query parameter changes', a
   expect(firstTraceId).not.toBe(secondTraceId);
 });
 
-test('Creates navigation span when changing only hash on same route', async ({ page }) => {
-  await page.goto('/delayed-lazy/123');
-
-  const delayedReady = page.locator('id=delayed-lazy-ready');
-  await expect(delayedReady).toBeVisible();
-
-  // Navigate from /delayed-lazy/123 to /delayed-lazy/123#section1
-  // This is a hash-only change on the same route
-  const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/delayed-lazy/:id';
-  });
-
-  const hashLink = page.locator('id=link-to-hash-section1');
-  await expect(hashLink).toBeVisible();
-  await hashLink.click();
-
-  const navigationEvent = await navigationPromise;
-
-  // Verify hash was updated
-  await expect(page.locator('id=delayed-lazy-hash')).toHaveText('#section1');
-
-  // Hash-only navigation should create a navigation transaction
-  expect(navigationEvent.name).toBe('/delayed-lazy/:id');
-  expect(getSpanOp(navigationEvent)).toBe('navigation');
-  expect(navigationEvent.attributes['sentry.segment.name.source']?.value).toBe('route');
-  expect(navigationEvent.status).toBe('ok');
-});
-
 test('Creates separate navigation spans for multiple hash changes', async ({ page }) => {
   await page.goto('/delayed-lazy/123');
 
@@ -732,6 +642,8 @@ test('Creates separate navigation spans for multiple hash changes', async ({ pag
   const firstTraceId = firstNavigationEvent.trace_id;
 
   await expect(page.locator('id=delayed-lazy-hash')).toHaveText('#section1');
+  expect(firstNavigationEvent.attributes['sentry.segment.name.source']?.value).toBe('route');
+  expect(firstNavigationEvent.status).toBe('ok');
 
   // Second hash change: /delayed-lazy/123#section1 -> /delayed-lazy/123#section2
   const secondNavigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
@@ -829,14 +741,13 @@ test('Rapid navigation does not corrupt span names when lazy handlers resolve la
 
   const allTransactions: Array<{ name: string; op: string }> = [];
 
-  const collectorPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+  const collectorPromise = collectUntilNavigationSegment('/another-lazy/sub', span => {
     if (span.is_segment && getSpanOp(span)) {
       allTransactions.push({
         name: span.name,
         op: getSpanOp(span) ?? '',
       });
     }
-    return allTransactions.length >= 2;
   });
 
   // Navigate to slow-fetch route (500ms delay)
@@ -850,12 +761,7 @@ test('Rapid navigation does not corrupt span names when lazy handlers resolve la
   await anotherLink.click();
 
   await expect(page.locator('id=another-lazy-route')).toBeVisible({ timeout: 10000 });
-  await page.waitForTimeout(3000);
-
-  await Promise.race([
-    collectorPromise,
-    new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 15000)),
-  ]);
+  await collectorPromise;
 
   const navigationTransactions = allTransactions.filter(t => t.op === 'navigation');
 
@@ -908,11 +814,10 @@ test('Correctly names pageload span for slow lazy route with fetch', async ({ pa
 test('Three-route rapid navigation preserves distinct span names', async ({ page }) => {
   const navigationTransactions: Array<{ name: string }> = [];
 
-  const navigationCollector = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+  const navigationCollector = collectUntilNavigationSegment('/another-lazy/sub', span => {
     if (getSpanOp(span) === 'navigation') {
       navigationTransactions.push({ name: span.name });
     }
-    return false;
   });
 
   const pageloadPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
@@ -934,12 +839,7 @@ test('Three-route rapid navigation preserves distinct span names', async ({ page
   await anotherLazyLink.click();
 
   await expect(page.locator('id=another-lazy-route')).toBeVisible({ timeout: 10000 });
-  await page.waitForTimeout(2000);
-
-  await Promise.race([
-    navigationCollector,
-    new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 5000)),
-  ]).catch(() => {});
+  await navigationCollector;
 
   expect(navigationTransactions.length).toBe(2);
 
@@ -955,11 +855,10 @@ test('Three-route rapid navigation preserves distinct span names', async ({ page
 test('Zero-wait rapid navigation does not corrupt span names', async ({ page }) => {
   const navigationTransactions: Array<{ name: string }> = [];
 
-  const collector = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+  const collector = collectUntilNavigationSegment('/another-lazy/sub', span => {
     if (getSpanOp(span) === 'navigation') {
       navigationTransactions.push({ name: span.name });
     }
-    return false;
   });
 
   await page.goto('/');
@@ -974,11 +873,7 @@ test('Zero-wait rapid navigation does not corrupt span names', async ({ page }) 
   await anotherLink.click();
 
   await expect(page.locator('id=another-lazy-route')).toBeVisible({ timeout: 10000 });
-  await page.waitForTimeout(3000);
-
-  await Promise.race([collector, new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 5000))]).catch(
-    () => {},
-  );
+  await collector;
 
   expect(navigationTransactions.length).toBeGreaterThanOrEqual(1);
 
@@ -989,6 +884,7 @@ test('Zero-wait rapid navigation does not corrupt span names', async ({ page }) 
 
 test('Browser back during lazy handler resolution does not corrupt', async ({ page }) => {
   const allTransactions: Array<{ name: string; op: string }> = [];
+  let wentBack = false;
 
   const collector = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     if (span.is_segment && getSpanOp(span)) {
@@ -997,7 +893,8 @@ test('Browser back during lazy handler resolution does not corrupt', async ({ pa
         op: getSpanOp(span) ?? '',
       });
     }
-    return false;
+    // The pageload of the page we went back to is the last span
+    return wentBack && span.is_segment && getSpanOp(span) === 'pageload' && endedByIdleTimeout(span);
   });
 
   await page.goto('/');
@@ -1013,25 +910,23 @@ test('Browser back during lazy handler resolution does not corrupt', async ({ pa
   await page.waitForTimeout(150);
 
   // Press browser back before handler resolves
+  wentBack = true;
   await page.goBack();
-  await page.waitForTimeout(3000);
 
-  await Promise.race([collector, new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 10000))]).catch(
-    () => {},
-  );
+  const backPageload = await collector;
 
   expect(allTransactions.length).toBeGreaterThanOrEqual(1);
   expect(allTransactions.every(t => t.name.length > 0)).toBe(true);
+  expect(backPageload.name).toBe('/another-lazy/sub');
 });
 
 test('Multiple overlapping lazy handlers do not corrupt each other', async ({ page }) => {
   const navigationTransactions: Array<{ name: string }> = [];
 
-  const collector = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+  const collector = collectUntilNavigationSegment('/another-lazy/sub', span => {
     if (getSpanOp(span) === 'navigation') {
       navigationTransactions.push({ name: span.name });
     }
-    return false;
   });
 
   await page.goto('/');
@@ -1052,11 +947,7 @@ test('Multiple overlapping lazy handlers do not corrupt each other', async ({ pa
   await anotherLink.click();
 
   await expect(page.locator('id=another-lazy-route')).toBeVisible({ timeout: 10000 });
-  await page.waitForTimeout(3000);
-
-  await Promise.race([collector, new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 5000))]).catch(
-    () => {},
-  );
+  await collector;
 
   expect(navigationTransactions.length).toBeGreaterThanOrEqual(1);
 
@@ -1078,7 +969,7 @@ test('Query/hash navigation does not corrupt span name', async ({ page }) => {
     if (span.is_segment && getSpanOp(span) === 'navigation') {
       navigationTransactions.push({ name: span.name });
     }
-    return navigationTransactions.length >= 1;
+    return span.is_segment && getSpanOp(span) === 'navigation' && endedByIdleTimeout(span);
   });
 
   await page.goto('/');
@@ -1099,22 +990,15 @@ test('Query/hash navigation does not corrupt span name', async ({ page }) => {
   const hashLink = page.locator('id=link-to-hash-section1');
   await expect(hashLink).toBeVisible();
   await hashLink.click();
-  await page.waitForTimeout(500);
-  expect(page.url()).toContain('#section1');
+  await expect(page).toHaveURL(/#section1$/);
 
   // Trigger combined query+hash navigation
   const combinedLink = page.locator('id=link-to-query-and-hash');
   await expect(combinedLink).toBeVisible();
   await combinedLink.click();
-  await page.waitForTimeout(500);
-  expect(page.url()).toContain('view=grid');
-  expect(page.url()).toContain('#results');
+  await expect(page).toHaveURL(/\?view=grid#results$/);
 
-  await page.waitForTimeout(2000);
-  await Promise.race([
-    collectorPromise,
-    new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 5000)),
-  ]).catch(() => {});
+  await collectorPromise;
 
   expect(navigationTransactions.length).toBeGreaterThanOrEqual(1);
   expect(navigationTransactions[0].name).toBe('/delayed-lazy/:id');
@@ -1171,7 +1055,7 @@ test('Slow lazy route navigation with early span end still gets parameterized ro
   await page.goto('/?idleTimeout=300&timeout=1000');
 
   // Wait for pageload to complete
-  await page.waitForTimeout(500);
+  await waitForIdleSpanEnd(page);
 
   const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return getSpanOp(span) === 'navigation' && span.is_segment && span.name.startsWith('/wildcard-lazy');
@@ -1201,14 +1085,13 @@ test('Captured navigation context is used instead of stale window.location durin
 
   const allNavigationTransactions: Array<{ name: string; traceId: string }> = [];
 
-  const collectorPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+  const collectorPromise = collectUntilNavigationSegment('/another-lazy/sub', span => {
     if (span.is_segment && getSpanOp(span) === 'navigation') {
       allNavigationTransactions.push({
         name: span.name,
         traceId: span.trace_id || '',
       });
     }
-    return allNavigationTransactions.length >= 2;
   });
 
   const slowFetchLink = page.locator('id=navigation-to-slow-fetch');
@@ -1223,12 +1106,7 @@ test('Captured navigation context is used instead of stale window.location durin
 
   await expect(page.locator('id=another-lazy-route')).toBeVisible({ timeout: 10000 });
 
-  await page.waitForTimeout(2000);
-
-  await Promise.race([
-    collectorPromise,
-    new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 3000)),
-  ]).catch(() => {});
+  await collectorPromise;
 
   expect(allNavigationTransactions.length).toBeGreaterThanOrEqual(1);
 
@@ -1254,9 +1132,8 @@ test('Second navigation span is not corrupted by first slow lazy handler complet
 
   const streamedSpans: SerializedStreamedSpan[] = [];
 
-  const collectorPromise = waitForStreamedSpans('react-router-7-lazy-routes', spans => {
-    streamedSpans.push(...spans);
-    return false;
+  const collectorPromise = collectUntilNavigationSegment('/another-lazy/sub', span => {
+    streamedSpans.push(span);
   });
 
   // Navigate to slow-fetch (500ms lazy delay, fetches /api/slow-data)
@@ -1272,13 +1149,7 @@ test('Second navigation span is not corrupted by first slow lazy handler complet
 
   await expect(page.locator('id=another-lazy-route')).toBeVisible({ timeout: 10000 });
 
-  // Wait for slow-fetch lazy handler to complete and spans to be sent
-  await page.waitForTimeout(2000);
-
-  await Promise.race([
-    collectorPromise,
-    new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 3000)),
-  ]).catch(() => {});
+  await collectorPromise;
 
   const navigationSegmentSpans = streamedSpans.filter(span => getSpanOp(span) === 'navigation' && span.is_segment);
   expect(navigationSegmentSpans.length).toBeGreaterThanOrEqual(1);
@@ -1315,7 +1186,7 @@ test('Route manifest provides correct name when navigation span ends before lazy
   await page.goto('/?idleTimeout=50&timeout=0');
 
   // Wait for pageload to complete
-  await page.waitForTimeout(200);
+  await waitForIdleSpanEnd(page);
 
   const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return getSpanOp(span) === 'navigation' && span.is_segment && span.name.startsWith('/wildcard-lazy');
@@ -1405,7 +1276,6 @@ test('GQL fetch spans are attributed to correct navigation segments when navigat
   page,
 }) => {
   await page.goto('/');
-  await page.waitForTimeout(500);
 
   // Navigate to GQL page A
   const firstNavSpansPromise = collectStreamedSpansUntilSegment(

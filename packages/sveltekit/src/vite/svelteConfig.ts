@@ -55,13 +55,17 @@ export function getHooksFileName(kitConfig: ResolvedKitConfig, hookType: 'client
   return kitConfig.files?.hooks?.[hookType] || `src/hooks.${hookType}`;
 }
 
+/** The extensions an entry file given without one, like the hooks files, can have. */
+export function getEntryFileExtensions(kitConfig: ResolvedKitConfig): string[] {
+  return [...new Set([...(kitConfig.moduleExtensions ?? ['.js', '.ts']), '.mjs', '.mts'])];
+}
+
 /**
  * Matches the Vite module ids of SvelteKit entry files given without an extension, like the hooks files: the file with
  * one of SvelteKit's module extensions, or the `index` file of a directory by that name, which SvelteKit also accepts.
  */
 export function makeEntryFileMatcher(kitConfig: ResolvedKitConfig, entryPaths: string[]): (id: string) => boolean {
-  const extensions = new Set([...(kitConfig.moduleExtensions ?? ['.js', '.ts']), '.mjs', '.mts']);
-  const extensionPattern = [...extensions]
+  const extensionPattern = getEntryFileExtensions(kitConfig)
     .map(extension => escapeStringForRegex(extension.replace(/^\./, '')))
     .join('|');
   const pathPattern = entryPaths.map(escapeStringForRegex).join('|');

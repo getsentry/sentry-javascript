@@ -61,7 +61,10 @@ Sentry.init({
   dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,
   debug: true,
   environment: 'qa', // dynamic sampling bias to keep transactions
-  integrations: [tanstackRouterBrowserTracingIntegration(router)],
+  integrations: [
+    tanstackRouterBrowserTracingIntegration(router),
+    Sentry.vueIntegration({ tracingOptions: { timeout: 500 } }),
+  ],
   release: 'e2e-test',
   tunnel: 'http://localhost:3031/', // proxy server
   tracesSampleRate: 1.0,

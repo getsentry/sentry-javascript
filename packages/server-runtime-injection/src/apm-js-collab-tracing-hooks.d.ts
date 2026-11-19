@@ -20,6 +20,11 @@ declare module '@apm-js-collab/tracing-hooks/lib/diagnostics.js' {
   export function emitDiagnostics(event: DiagnosticsEvent): void;
 }
 
+declare module '@apm-js-collab/tracing-hooks/lib/get-package-version.js' {
+  /** The `version` in `<baseDir>/package.json`, or the Node.js version when it cannot be read. */
+  export default function getPackageVersion(baseDir: string): string;
+}
+
 declare module '@apm-js-collab/tracing-hooks/hook-sync.mjs' {
   import type { MessagePort } from 'node:worker_threads';
   import type { InstrumentationConfig } from '../apmTypes';

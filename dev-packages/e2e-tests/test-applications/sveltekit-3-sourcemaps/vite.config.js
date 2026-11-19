@@ -25,7 +25,12 @@ function recordChunksWithoutSourceMap() {
   };
 }
 
+// `manual-upload`: Sentry uploads nothing and keeps the maps it turned on, for an upload with the CLI.
+// `delete-all`: the app turns source maps on itself, and Sentry removes them.
+const variant = process.env.E2E_VARIANT;
+
 export default defineConfig({
+  build: variant === 'delete-all' ? { sourcemap: true } : undefined,
   plugins: [
     sentrySvelteKit({
       sentryUrl: 'http://localhost:3032',
@@ -34,6 +39,12 @@ export default defineConfig({
       project: 'test-project',
       release: { name: 'test-release' },
       debug: true,
+      sourcemaps:
+        variant === 'manual-upload'
+          ? { upload: false, delete: false }
+          : variant === 'delete-all'
+            ? { delete: true }
+            : undefined,
     }),
     sveltekit({
       preprocess: vitePreprocess(),

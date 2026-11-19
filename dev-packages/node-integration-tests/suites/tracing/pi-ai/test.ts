@@ -7,6 +7,7 @@ import {
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
@@ -60,6 +61,7 @@ describe.runIf(supports({ min: 22 }))('pi-ai integration', () => {
             expect(toolCall!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('faux');
             expect(toolCall!.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('faux-model');
             expect(toolCall!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+            expect(toolCall!.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]?.value).toBeGreaterThan(0);
             expect(toolCall!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]?.value).toBe('You are a weather assistant.');
             expect(toolCall!.attributes[GEN_AI_TOOL_DEFINITIONS]?.value).toContain('get_weather');
             expect(toolCall!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value).toBe('["tool_call"]');
@@ -75,6 +77,7 @@ describe.runIf(supports({ min: 22 }))('pi-ai integration', () => {
             ]);
 
             expect(answer!.attributes[GEN_AI_RESPONSE_STREAMING]).toBeUndefined();
+            expect(answer!.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]).toBeUndefined();
             expect(answer!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value).toBe('["stop"]');
             expect(
               JSON.parse(String(answer!.attributes[GEN_AI_INPUT_MESSAGES]?.value)).map(
@@ -158,4 +161,62 @@ describe.runIf(supports({ min: 22 }))('pi-ai integration', () => {
       },
     );
   });
+
+  createEsmTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-recording-functions.mjs',
+    (createRunner, test) => {
+      test('decides content recording per request when the options are functions', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const recorded = container.items
+                .filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.pi_ai')
+                .sort((a, b) => a.start_timestamp - b.start_timestamp)
+                .map(({ attributes }) => [
+                  attributes[GEN_AI_RESPONSE_STREAMING]?.value === true,
+                  GEN_AI_INPUT_MESSAGES in attributes,
+                  GEN_AI_OUTPUT_MESSAGES in attributes,
+                ]);
+              // [streaming, inputs, outputs]
+              expect(recorded).toEqual([
+                [false, true, true],
+                [false, false, false],
+                [true, true, false],
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-span-hooks.mjs',
+    (createRunner, test) => {
+      test('runs the span hooks at start in the caller context and at end with the message', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const hooks = container.items
+                .filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.pi_ai')
+                .sort((a, b) => a.start_timestamp - b.start_timestamp)
+                .map(({ attributes }) => [attributes['test.start']?.value, attributes['test.end']?.value]);
+              expect(hooks).toEqual([
+                ['public:public', 'assistant:stop'],
+                ['private:private', 'assistant:stop'],
+                // The stream starts before its scope's tag changes.
+                ['public:private', 'assistant:stop'],
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });
