@@ -14,6 +14,8 @@ import {
   WORKERS_AI_OPERATION_SPAN_OPS,
 } from './utils';
 
+const originalClients = new WeakMap<object, object>();
+
 /**
  * Wrap the `run` method of the Workers AI binding with Sentry tracing.
  */
@@ -134,7 +136,11 @@ function instrumentRun(
  * ```
  */
 export function instrumentWorkersAiClient<T extends object>(client: T, options?: WorkersAiOptions): T {
-  const instrumented = new Proxy(client, {
+  // `@sentry/cloudflare` already wraps `env.AI`. Wrapping that proxy again would nest a second span
+  // that ignores these options, so wrap the original binding instead.
+  const original = (originalClients.get(client) ?? client) as T;
+
+  const instrumented = new Proxy(original, {
     get(target: object, prop: string | symbol, receiver: unknown): unknown {
       const value = Reflect.get(target, prop, receiver);
 
@@ -147,5 +153,6 @@ export function instrumentWorkersAiClient<T extends object>(client: T, options?:
     },
   }) as T;
 
+  originalClients.set(instrumented, original);
   return instrumented;
 }
