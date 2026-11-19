@@ -6,10 +6,16 @@ import {
   getClient,
   LRUMap,
   SPAN_STATUS_ERROR,
+  spanToStaticSpanJSON,
   startInactiveSpan,
   timestampInSeconds,
 } from '@sentry/core';
-import { GEN_AI_RESPONSE_MODEL, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  GEN_AI_CONVERSATION_ID,
+  GEN_AI_RESPONSE_MODEL,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { GenAiCallOptions } from '../core/utils';
 import { resolveGenAiCallRecording } from '../core/utils';
@@ -220,7 +226,7 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
   private _onSpanUpdated(span: MastraExportedSpan): void {
     const tracked = this._spans.get(span.id);
     if (tracked) {
-      tracked.span.setAttributes(getSpanAttributes(span, tracked.recordingOptions));
+      updateSpanAttributes(tracked.span, getSpanAttributes(span, tracked.recordingOptions));
     }
   }
 
@@ -232,7 +238,7 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
     }
 
     const { span: sentrySpan, recordingOptions } = tracked;
-    sentrySpan.setAttributes(getSpanAttributes(span, recordingOptions));
+    updateSpanAttributes(sentrySpan, getSpanAttributes(span, recordingOptions));
     sentrySpan.updateName(getSpanName(span));
 
     if (MODEL_SPAN_TYPES.has(span.type)) {
@@ -289,4 +295,17 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
     }
     return undefined;
   }
+}
+
+/**
+ * Keep a conversation id the span already has: `conversationIdIntegration` writes the one from
+ * `Sentry.setConversationId()` on `spanStart`, and a later Mastra update would replace or delete it.
+ */
+function updateSpanAttributes(span: Span, attributes: SpanAttributes): void {
+  if (spanToStaticSpanJSON(span).data[GEN_AI_CONVERSATION_ID] !== undefined) {
+    const { [GEN_AI_CONVERSATION_ID]: _ignored, ...rest } = attributes;
+    span.setAttributes(rest);
+    return;
+  }
+  span.setAttributes(attributes);
 }

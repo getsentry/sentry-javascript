@@ -36,7 +36,10 @@ import type { Span } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_shouldSkipAiProviderWrapping,
+  conversationIdIntegration,
+  getClient,
   getMainCarrier,
+  setConversationId,
   setCurrentClient,
   spanToStaticSpanJSON,
 } from '@sentry/core';
@@ -428,6 +431,15 @@ describe('SentryMastraExporter', () => {
     await run(started(span), ended(span));
 
     expect(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_CONVERSATION_ID]).toBe(expected);
+  });
+
+  it('keeps the conversation id from Sentry.setConversationId when the span updates and ends', async () => {
+    getClient()!.addIntegration(conversationIdIntegration());
+    setConversationId('chat-1');
+    const span = makeSpan({ entityName: 'agent', metadata: { threadId: 'thread-9' } });
+    await run(started(span), { type: 'span_updated', exportedSpan: span }, ended(span));
+
+    expect(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_CONVERSATION_ID]).toBe('chat-1');
   });
 
   it('does not use runId as gen_ai.conversation.id', async () => {
