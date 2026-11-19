@@ -111,14 +111,6 @@ const NO_NODE_DEFAULT_INTEGRATION = [
   'suites/system-error/test.ts',
 ];
 
-// `@sentry/deno` captures uncaught exceptions and unhandled rejections with
-// `globalHandlersIntegration`, so the mechanism is `auto.deno.global_handlers.*`, and a rejection
-// with a string is not turned into an `Error`.
-const GLOBAL_HANDLERS_DIFFER = [
-  'suites/public-api/OnUncaughtException/test.ts',
-  'suites/public-api/onUnhandledRejectionIntegration/test.ts',
-];
-
 // `@sentry/deno` does not send client reports: unlike `NodeClient`, `DenoClient` never flushes the
 // outcomes it records.
 const NO_CLIENT_REPORTS = [
@@ -159,7 +151,6 @@ export const NODE_SUITES_EXCLUDE = [
   ...NO_CLIENT_TRACER,
   ...NO_NODE_LOGGER_PARAMETERS,
   ...NO_NODE_DEFAULT_INTEGRATION,
-  ...GLOBAL_HANDLERS_DIFFER,
   ...NO_CLIENT_REPORTS,
   ...STACK_FRAMES_DIFFER,
   ...REQUEST_IP_DIFFERS,

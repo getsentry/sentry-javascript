@@ -1,6 +1,7 @@
+import type { Client, ClientOptions } from '@sentry/core';
 import { consoleSandbox, debug, getClient } from '@sentry/core';
+import type { ServerRuntimeOptions } from '@sentry/core/server';
 import { DEBUG_BUILD } from '../debug-build';
-import type { NodeClient } from '../sdk/client';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 
@@ -22,10 +23,10 @@ export function logAndExitProcess(error: unknown): void {
     console.error(error);
   });
 
-  const client = getClient<NodeClient>();
+  const client = getClient<Client<ClientOptions & ServerRuntimeOptions>>();
 
   if (client === undefined) {
-    DEBUG_BUILD && debug.warn('No NodeClient was defined, we are exiting the process now.');
+    DEBUG_BUILD && debug.warn('No client was defined, we are exiting the process now.');
     global.process.exit(1);
     return;
   }

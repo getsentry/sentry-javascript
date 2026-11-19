@@ -2,7 +2,7 @@ import * as childProcess from 'child_process';
 import * as path from 'path';
 import { describe, expect, test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
-import { supports } from '../../../utils';
+import { EXPECTED_UNCAUGHT_EXCEPTION_MECHANISM, supports } from '../../../utils';
 
 describe('OnUncaughtException integration', () => {
   test('should close process on uncaught error with no additional listeners registered', () =>
@@ -108,7 +108,7 @@ describe('OnUncaughtException integration', () => {
                 type: 'Error',
                 value: 'foo',
                 mechanism: {
-                  type: 'auto.node.onuncaughtexception',
+                  type: EXPECTED_UNCAUGHT_EXCEPTION_MECHANISM,
                   handled: false,
                 },
                 stacktrace: {

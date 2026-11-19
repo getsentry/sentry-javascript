@@ -3,7 +3,7 @@ import * as childProcess from 'child_process';
 import * as path from 'path';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
-import { supports } from '../../../utils';
+import { supports, USES_DENO_GLOBAL_HANDLERS } from '../../../utils';
 
 describe('onUnhandledRejectionIntegration', () => {
   afterAll(() => {
@@ -93,24 +93,40 @@ test rejection`);
   test('captures exceptions for unhandled rejections', async () => {
     await createRunner(__dirname, 'scenario-warn.ts')
       .expect({
-        event: {
-          level: 'error',
-          exception: {
-            values: [
-              {
-                type: 'Error',
-                value: 'test rejection',
-                mechanism: {
-                  type: 'auto.node.onunhandledrejection',
-                  handled: false,
-                },
-                stacktrace: {
-                  frames: expect.any(Array),
-                },
+        event: USES_DENO_GLOBAL_HANDLERS
+          ? {
+              level: 'fatal',
+              exception: {
+                values: [
+                  {
+                    type: 'UnhandledRejection',
+                    value: 'Non-Error promise rejection captured with value: test rejection',
+                    mechanism: {
+                      type: 'auto.deno.global_handlers.unhandledrejection',
+                      handled: false,
+                    },
+                  },
+                ],
               },
-            ],
-          },
-        },
+            }
+          : {
+              level: 'error',
+              exception: {
+                values: [
+                  {
+                    type: 'Error',
+                    value: 'test rejection',
+                    mechanism: {
+                      type: 'auto.node.onunhandledrejection',
+                      handled: false,
+                    },
+                    stacktrace: {
+                      frames: expect.any(Array),
+                    },
+                  },
+                ],
+              },
+            },
       })
       .start()
       .completed();
