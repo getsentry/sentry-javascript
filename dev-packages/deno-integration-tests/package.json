@@ -16,8 +16,6 @@
     "test:node-suites": "vitest run"
   },
   "devDependencies": {
-    "@orpc/client": "2.0.0-beta.51",
-    "@orpc/server": "2.0.0-beta.51",
     "@sentry-internal/node-integration-tests": "11.14.0",
     "@sentry/conventions": "^0.33.0",
     "@sentry/core": "11.14.0",
