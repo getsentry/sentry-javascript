@@ -429,9 +429,8 @@ describe('Vercel AI span hooks (v7)', () => {
                 ['ai.generateText', 'generateText:public', '30:response'],
                 ['ai.generateText.doGenerate', 'languageModelCall:private', '30:response'],
                 ['ai.generateText.doGenerate', 'languageModelCall:public', '30:response'],
-                // `ai` publishes no result for a streamed operation; its usage comes from the model call's stream.
                 ['ai.streamText', 'streamText:public', '30:no response'],
-                ['ai.streamText.doStream', 'languageModelCall:public', '30:response'],
+                ['ai.streamText.doStream', 'languageModelCall:public', '30:no response'],
               ]);
             },
           })

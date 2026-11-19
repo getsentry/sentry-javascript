@@ -308,11 +308,15 @@ function bindOperation(
           message.result = message.type === 'executeTool' ? { output: data.result } : data.result;
           enrichSpanOnEnd(span, message);
         }
-        runVercelAiSpanEnd(span, 'error' in data ? { error: data.error } : { response: message.result });
+        const isStream = message.type === 'streamText' || message.type === 'streamObject';
+        runVercelAiSpanEnd(
+          span,
+          'error' in data ? { error: data.error } : { response: isStream ? undefined : message.result },
+        );
         // A `streamText`/`streamObject` model call runs after this (synchronously-returning) operation's
         // span has already ended, so its `callId` entry must outlive the operation — it's cleared once the
         // model call settles (see `patchModelMethod`). Every other operation can clear here.
-        if (message.type !== 'streamText' && message.type !== 'streamObject') {
+        if (!isStream) {
           clearOperationId(message);
         }
         messages.delete(data);
@@ -572,7 +576,7 @@ function patchModelMethod(
             final => {
               message.result = { ...value, ...streamedResultToChannelResult(final) };
               enrichSpanOnEnd(span, message);
-              endSpan(span, { response: message.result });
+              endSpan(span, {});
               clearStreamCallId();
             },
             error => {

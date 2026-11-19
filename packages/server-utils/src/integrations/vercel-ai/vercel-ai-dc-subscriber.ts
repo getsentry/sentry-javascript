@@ -321,8 +321,7 @@ export interface VercelAiCallInfo {
 
 /**
  * Integration options, pinned at subscribe time so we never look the integration up per event. `onSpanEnd` gets the
- * result the span's response attributes come from: the AI SDK result of the call, or for a stream its drained values
- * in the same shape. It is `undefined` for a streamed `streamText` on `ai` >= 7, which publishes no result of its own.
+ * AI SDK result of the call as `response`; for streams it is `undefined`.
  */
 export type VercelAiChannelOptions = GenAiCallOptions<VercelAiCallInfo> & GenAiSpanHooks<VercelAiCallInfo>;
 
@@ -368,7 +367,7 @@ export function subscribeVercelAiTracingChannel(
         enrichSpanOnEnd(span, data);
         runVercelAiSpanEnd(
           span,
-          'error' in data ? { error: data.error } : { response: fallbackChannelResults.get(span) ?? data.result },
+          'error' in data ? { error: data.error } : { response: getNonStreamResult(span, data) },
         );
         // The result can hold the provider request and response bodies, and spans outlive the call.
         fallbackChannelResults.delete(span);
@@ -379,6 +378,11 @@ export function subscribeVercelAiTracingChannel(
       deferSpanEnd: ({ span, data, end }) => deferStreamedModelCallEnd(span, data, end),
     },
   );
+}
+
+function getNonStreamResult(span: Span, data: VercelAiChannelMessage): unknown {
+  const result = fallbackChannelResults.get(span) ?? data.result;
+  return isObjectLike(result) && isReadableStream(result.stream) ? undefined : result;
 }
 
 /**
