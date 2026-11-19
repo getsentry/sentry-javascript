@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createGetModuleFromFilename } from '../../src';
+import { createGetModuleFromFilename } from '../../src/utils/module';
 
 describe('createGetModuleFromFilename', () => {
   it.each([
