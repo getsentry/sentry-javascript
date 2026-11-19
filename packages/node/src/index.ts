@@ -8,6 +8,9 @@ export {
   amqplibIntegration,
   anthropicAIIntegration,
   awsIntegration,
+  BullMQTelemetry,
+  createSentryWinstonTransport,
+  cron,
   dataloaderIntegration,
   expressIntegration,
   type ExpressIntegrationOptions,
@@ -44,6 +47,7 @@ export {
   mysql2Integration,
   nitroIntegration,
   openAIIntegration,
+  pinoIntegration,
   togetherAIIntegration,
   typesafeIntegration,
   postgresIntegration,
@@ -76,7 +80,6 @@ export {
 export { setupHapiErrorHandler } from './integrations/tracing/hapi';
 // oxlint-disable-next-line typescript/no-deprecated -- deprecated but still re-exported for backwards compatibility
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
-export { BullMQTelemetry } from './integrations/tracing/bullmq';
 export {
   launchDarklyIntegration,
   buildLaunchDarklyFlagUsedHandler,
@@ -242,12 +245,9 @@ export {
 } from './integrations/nodeRuntimeMetrics';
 export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
 export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
-export { pinoIntegration } from './integrations/pino';
 export { spotlightIntegration } from './integrations/spotlight';
 export { systemErrorIntegration } from './integrations/systemError';
-export { createSentryWinstonTransport } from './integrations/winston';
 export { workerThreadsIntegration } from './integrations/workerThreads';
-export { cron } from './cron';
 export { NODE_VERSION } from './nodeVersion';
 export { defaultStackParser, getSentryRelease } from './sdk/api';
 export { getHttpAgent, makeNodeTransport } from './transports';

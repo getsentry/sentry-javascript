@@ -37,6 +37,9 @@
         "types": "./build/types/plugin.d.ts",
         "default": "./build/cjs/plugin.js"
       }
+    },
+    "./import": {
+      "import": "./build/import.mjs"
     }
   },
   "publishConfig": {
@@ -47,6 +50,7 @@
     "@sentry/core": "11.14.0",
     "@sentry/conventions": "^0.33.0",
     "@sentry/node": "11.14.0",
+    "@sentry/server-runtime-injection": "11.14.0",
     "@sentry/server-utils": "11.14.0"
   },
   "devDependencies": {
@@ -70,5 +74,18 @@
     "test:watch": "bun test --watch",
     "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
-  "sideEffects": false
+  "sideEffects": [
+    "./build/import.mjs"
+  ],
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "outputs": [
+          "{projectRoot}/build/esm",
+          "{projectRoot}/build/cjs",
+          "{projectRoot}/build/import.mjs"
+        ]
+      }
+    }
+  }
 }

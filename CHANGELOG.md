@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @psang39. Thank you for your contribution!
+
 ### Important Changes
 
 - **feat(core): Continue MCP server traces from `params._meta` ([#26308](https://github.com/getsentry/sentry-javascript/pull/26308))**
