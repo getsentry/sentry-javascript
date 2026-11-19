@@ -1,4 +1,5 @@
 import { SPAN_STATUS_ERROR, startSpan } from '@sentry/core';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
 import { createLangChainCallbackHandler } from '../langchain';
 import type { BaseChatModel } from '../langchain/types';
 import { callInvoke, getAgentSpanOptions, prepareAgentSpan, resolveGraphCallRecording } from './agent-span';
@@ -121,7 +122,7 @@ export function instrumentCompiledGraphInvoke(
 ): (...args: unknown[]) => Promise<unknown> {
   return new Proxy(originalInvoke, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
-      const recording = resolveGraphCallRecording(options, args);
+      const { call, recording } = resolveGraphCallRecording(options, args);
       return startSpan(getAgentSpanOptions(args), async span => {
         try {
           const inputMessages = prepareAgentSpan(
@@ -133,17 +134,20 @@ export function instrumentCompiledGraphInvoke(
             llm,
             sentryCallbackHandler,
           );
+          runGenAiSpanStart(options, span, call);
           const result = await callInvoke(graphInstance, () => Reflect.apply(target, thisArg, args));
 
           if (recording.recordOutputs) {
             setResponseAttributes(span, inputMessages, result);
           }
+          runGenAiSpanEnd(options, span, call, { response: result });
 
           return result;
         } catch (error) {
           // The error is rethrown to the caller (invoke() rejects), so we only mark the span failed
           // and do not record it.
           span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+          runGenAiSpanEnd(options, span, call, { error });
           throw error;
         }
       });
