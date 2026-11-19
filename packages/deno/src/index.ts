@@ -150,6 +150,7 @@ export type { DenoServeIntegrationOptions } from './integrations/deno-serve';
 export { fetchIntegration } from './integrations/fetch';
 export type { FetchIntegrationOptions } from '@sentry/core';
 export { denoHttpIntegration } from './integrations/http';
+export { modulesIntegration } from './integrations/modules';
 export type { DenoHttpIntegrationOptions } from './integrations/http';
 
 // The orchestrion channel integrations, re-exported from `@sentry/server-utils`.

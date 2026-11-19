@@ -24,6 +24,7 @@ import { denoServeIntegration } from './integrations/deno-serve';
 import { fetchIntegration } from './integrations/fetch';
 import { denoHttpIntegration } from './integrations/http';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
+import { modulesIntegration } from './integrations/modules';
 import { normalizePathsIntegration } from './integrations/normalizepaths';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeFetchTransport } from './transports';
@@ -48,6 +49,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     fetchIntegration(),
     denoHttpIntegration(),
     contextLinesIntegration(),
+    modulesIntegration(),
     normalizePathsIntegration(),
     globalHandlersIntegration(),
     // server-utils integrations

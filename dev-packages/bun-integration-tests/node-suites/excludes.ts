@@ -144,11 +144,6 @@ export const NO_AUTO_INSTRUMENTATION = [
 // `new`, and the top-level frame of a CommonJS module is `<anonymous>`, not `Object.?`.
 const BUN_STACK_FRAMES_DIFFER = ['suites/contextLines/filename-with-spaces/test.ts'];
 
-// The CJS and ESM cases need Express to capture the route error, which `bun run` does not
-// instrument. A bundled app does not help: it has no `require.cache`, and the isolated packages
-// are inlined, so the module versions do not match.
-const MODULES_NEED_UNBUNDLED_EXPRESS = ['suites/modules/test.ts'];
-
 // The scenario configures `nativeNodeFetchIntegration`, which `@sentry/bun` does not export.
 const NO_NATIVE_NODE_FETCH_INTEGRATION = [
   'suites/tracing/http-client-spans/fetch-forward-request-hook/test.ts',
@@ -201,7 +196,6 @@ export const NODE_SUITES_EXCLUDE = [
   ...NODE_ONLY,
   ...NO_AUTO_INSTRUMENTATION,
   ...BUN_STACK_FRAMES_DIFFER,
-  ...MODULES_NEED_UNBUNDLED_EXPRESS,
 ];
 
 // Excluded only in the `node-suites` project, which runs the suites with `@sentry/node`.

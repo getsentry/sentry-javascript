@@ -44,6 +44,9 @@ snapshot[`captureMessage 1`] = `
   event_id: "{{id}}",
   level: "info",
   message: "Some error message",
+  modules: {
+    "{{modules}}": "{{version}}",
+  },
   platform: "javascript",
   sdk: {
     integrations: [
@@ -114,6 +117,9 @@ snapshot[`captureMessage twice 1`] = `
   event_id: "{{id}}",
   level: "info",
   message: "Some error message",
+  modules: {
+    "{{modules}}": "{{version}}",
+  },
   platform: "javascript",
   sdk: {
     integrations: [
@@ -191,6 +197,9 @@ snapshot[`captureMessage twice 2`] = `
   event_id: "{{id}}",
   level: "info",
   message: "Another error message",
+  modules: {
+    "{{modules}}": "{{version}}",
+  },
   platform: "javascript",
   sdk: {
     integrations: [
