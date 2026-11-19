@@ -1,6 +1,7 @@
 {
   "imports": {
-    "@sentry-internal/node-integration-tests": "../../node-integration-tests/build/esm/index.js"
+    "@sentry-internal/node-integration-tests": "../../node-integration-tests/build/esm/index.js",
+    "@sentry/node/import": "../../../packages/deno/build/import.mjs"
   },
   "scopes": {
     "../../node-integration-tests/suites/": {

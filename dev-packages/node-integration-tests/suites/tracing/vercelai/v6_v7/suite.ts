@@ -30,6 +30,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_GENERATE_CONTENT, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
+import { SUPPORTS_REQUIRE_OF_ESM } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../utils/runner';
 
 export function registerVercelAiGenerationTests(version: '6' | '7', vercelAiVersion: string): void {
@@ -41,8 +42,9 @@ export function registerVercelAiGenerationTests(version: '6' | '7', vercelAiVers
     __dirname,
     'scenario.mjs',
     'instrument-with-pii.mjs',
-    (createRunner, test) => {
-      test('creates ai spans for dataCollection defaults', async () => {
+    (createRunner, test, mode) => {
+      const runTest = version === '7' && mode === 'cjs' ? test.runIf(SUPPORTS_REQUIRE_OF_ESM) : test;
+      runTest('creates ai spans for dataCollection defaults', async () => {
         await createRunner()
           .expect({
             span: container => {
