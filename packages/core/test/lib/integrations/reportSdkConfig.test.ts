@@ -22,7 +22,6 @@ function reportConfig(options: ReturnType<typeof getDefaultTestClientOptions>): 
   const client = new TestClient(options);
   setCurrentClient(client);
   client.init();
-  client.emit('flush');
 
   return payload;
 }

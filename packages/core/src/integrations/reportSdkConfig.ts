@@ -1,54 +1,30 @@
 import type { Client } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
-import { _INTERNAL_flushMetricsBuffer } from '../metrics/internal';
 import { count } from '../metrics/public-api';
 import { Scope } from '../scope';
 import type { Integration, IntegrationFn } from '../types/integration';
 import { debug } from '../utils/debug-logger';
 import { fnv1a32 } from '../utils/hash';
 import { isPlainObject } from '../utils/is';
-import { safeUnref } from '../utils/timer';
 
 const _experimentalReportSdkConfigIntegration = (() => ({
   name: 'ExperimentalReportSdkConfig',
+  // Reported right away: the config is final once the client is set up, and later telemetry is going to carry its hash.
   afterAllSetup(client: Client) {
     const scope = new Scope();
     scope.setClient(client);
-    let reported = false;
 
-    const report = (): void => {
-      // The timer and flush hook can both request capture; only report once.
-      if (reported) {
-        return;
-      }
-
-      reported = true;
-      clearTimeout(timer);
-
-      try {
-        const attributes = buildConfigAttributes(client);
-        count('sdk.config', 1, { attributes, scope });
-      } catch (error) {
-        DEBUG_BUILD && debug.warn('Failed to report SDK configuration', error);
-      }
-    };
-
-    // Allow configuration to settle unless the client flushes earlier.
-    const timer = safeUnref(setTimeout(report, 5000));
-
-    // Close, tab hiding, and natural Node process exit trigger flushing.
-    client.on('flush', () => {
-      report();
-      // report() may register the first metric flusher too late for this flush,
-      // or run after an existing flusher. Drain explicitly to cover both cases.
-      _INTERNAL_flushMetricsBuffer(client);
-    });
+    try {
+      count('sdk.config', 1, { attributes: buildConfigAttributes(client), scope });
+    } catch (error) {
+      DEBUG_BUILD && debug.warn('Failed to report SDK configuration', error);
+    }
   },
 })) satisfies IntegrationFn;
 
 /**
- * Reports the SDK options the user passed to `init()` once after initialization.
+ * Reports the SDK options the user passed to `init()` once the client is set up.
  *
  * @experimental This integration may change or be removed without notice.
  */
