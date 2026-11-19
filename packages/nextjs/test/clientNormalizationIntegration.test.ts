@@ -48,13 +48,20 @@ describe('nextjsClientStackFrameNormalizationIntegration', () => {
       'app:///_next/static/chunks/webpack-e0a29dd514f2abf8.js:1:234',
       'app:///_next/static/chunks/main-app-abc123.js:10:5',
       'app:///_next/static/chunks/framework.deadbeef.js:2',
+      'app:///_next/static/chunks/4bd1b696-cf72ae8a39fa05aa.js:1:2',
+      'app:///_next/static/chunks/7c2b9e1f.0123456789abcdef.js:1:2',
     ])('sets in_app=false for %s', filename => {
       const frame = iteratee()({ filename });
       expect(frame.in_app).toBe(false);
     });
 
-    it('leaves app chunks as in_app', () => {
-      const frame = iteratee()({ filename: 'app:///_next/static/chunks/pages/index-deadbeef.js:1:2' });
+    it.each([
+      'app:///_next/static/chunks/pages/index-deadbeef.js:1:2',
+      'app:///_next/static/chunks/app/page-deadbeef.js:1:2',
+      'app:///_next/static/chunks/1255-cf72ae8a39fa05aa.js:1:2',
+      'app:///_next/static/chunks/8173.cf72ae8a39fa05aa.js:1:2',
+    ])('leaves app chunks as in_app for %s', filename => {
+      const frame = iteratee()({ filename });
       expect(frame.in_app).toBeUndefined();
     });
   });
