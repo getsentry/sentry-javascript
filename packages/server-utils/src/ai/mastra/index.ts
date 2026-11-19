@@ -9,7 +9,12 @@ import {
   startInactiveSpan,
   timestampInSeconds,
 } from '@sentry/core';
-import { GEN_AI_RESPONSE_MODEL, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  GEN_AI_CONVERSATION_ID,
+  GEN_AI_RESPONSE_MODEL,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { GenAiCallOptions } from '../core/utils';
 import { resolveGenAiCallRecording } from '../core/utils';
@@ -174,6 +179,8 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
       parentSpan: parentSpan ?? activeSpan,
       attributes: {
         ...getSpanAttributes(span, recordingOptions),
+        // Only on start, so the id from `Sentry.setConversationId()`, applied on `spanStart`, is kept.
+        [GEN_AI_CONVERSATION_ID]: span.attributes?.conversationId ?? span.metadata?.threadId,
         [SENTRY_OP]: getOperation(span.type)?.op,
         [SENTRY_ORIGIN]: MASTRA_ORIGIN,
       },
