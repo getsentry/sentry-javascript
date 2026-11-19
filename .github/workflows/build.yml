@@ -978,6 +978,7 @@ jobs:
         working-directory: dev-packages/bundler-plugin-integration-tests
         run: pnpm run test
 
+  # Benchmark baseline: four Bun integration shards.
   job_bun_integration_tests:
     name: Bun (${{ matrix.bun }}) Integration Tests (${{ matrix.shard }}/4)
     needs: [job_get_metadata, job_build]
