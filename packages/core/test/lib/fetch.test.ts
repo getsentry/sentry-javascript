@@ -466,7 +466,10 @@ describe('instrumentFetchRequest', () => {
       vi.restoreAllMocks();
     });
 
-    it('sets url.full for absolute URLs', () => {
+    it.each([
+      [false, {}],
+      [true, { 'sentry.kind': 'client', 'url.path': '/users/42', 'url.scheme': 'https' }],
+    ])('sets url attributes for absolute URLs (serverAttributes: %s)', (serverAttributes, serverOnlyAttributes) => {
       const url = 'https://api.example.com/users/42?include=profile#bio';
       const activeSpan = new SentryNonRecordingSpan();
       const fetchSpan = new SentryNonRecordingSpan();
@@ -483,7 +486,7 @@ describe('instrumentFetchRequest', () => {
         () => true,
         () => false,
         {},
-        { spanOrigin: 'auto.http.fetch' },
+        { spanOrigin: 'auto.http.fetch', serverAttributes },
       );
 
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
@@ -498,45 +501,7 @@ describe('instrumentFetchRequest', () => {
           'url.domain': 'api.example.com',
           'url.query': 'include=profile',
           'url.fragment': 'bio',
-        },
-      });
-    });
-
-    it('adds sentry.kind, url.path and url.scheme with `serverAttributes`', () => {
-      const url = 'https://api.example.com/users/42?include=profile#bio';
-      const activeSpan = new SentryNonRecordingSpan();
-      const fetchSpan = new SentryNonRecordingSpan();
-      hasSpansEnabled.mockReturnValue(true);
-      vi.spyOn(spanUtils, 'getActiveSpan').mockReturnValue(activeSpan);
-      const startInactiveSpanSpy = vi.spyOn(tracing, 'startInactiveSpan').mockReturnValue(fetchSpan);
-
-      instrumentFetchRequest(
-        {
-          fetchData: { url, method: 'GET' },
-          args: [url],
-          startTimestamp: Date.now(),
-        },
-        () => true,
-        () => false,
-        {},
-        { spanOrigin: 'auto.http.fetch', serverAttributes: true },
-      );
-
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
-        name: 'GET https://api.example.com/users/42',
-        attributes: {
-          type: 'fetch',
-          'http.request.method': 'GET',
-          'sentry.origin': 'auto.http.fetch',
-          'sentry.op': 'http.client',
-          'sentry.kind': 'client',
-          [URL_FULL]: url,
-          'server.address': 'api.example.com',
-          'url.domain': 'api.example.com',
-          'url.path': '/users/42',
-          'url.scheme': 'https',
-          'url.query': 'include=profile',
-          'url.fragment': 'bio',
+          ...serverOnlyAttributes,
         },
       });
     });
