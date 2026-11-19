@@ -30,7 +30,11 @@ export interface GenAiSpanHooks<TCall, TResponse = unknown> {
 }
 
 /** Runs {@link GenAiSpanHooks.onSpanStart}. */
-export function runGenAiSpanStart<TCall>(hooks: GenAiSpanHooks<TCall, unknown>, span: Span, call: TCall): void {
+export function runGenAiSpanStart<TCall>(
+  hooks: Pick<GenAiSpanHooks<TCall>, 'onSpanStart'>,
+  span: Span,
+  call: TCall,
+): void {
   const onSpanStart = hooks.onSpanStart;
   if (onSpanStart && span.isRecording()) {
     runGenAiSpanHook('onSpanStart', () => onSpanStart(span, call));

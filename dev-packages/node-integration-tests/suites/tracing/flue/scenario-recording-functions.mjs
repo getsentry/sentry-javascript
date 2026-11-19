@@ -8,6 +8,12 @@ instrument(
   Sentry.createFlueInstrumentation({
     recordInputs: call => (call.operation === 'chat' ? call.context : call.observation).instanceId === 'public',
     recordOutputs: () => Sentry.getIsolationScope().getScopeData().tags.privacy === 'public',
+    onSpanStart: (span, { operation }) => {
+      span.setAttribute('test.start', [operation, Sentry.getIsolationScope().getScopeData().tags.privacy].join(':'));
+    },
+    onSpanEnd: (span, { operation }, { response }) => {
+      span.setAttribute('test.end', operation === 'chat' ? response?.stopReason : response?.type);
+    },
   }),
 );
 

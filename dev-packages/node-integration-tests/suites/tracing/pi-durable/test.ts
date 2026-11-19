@@ -681,4 +681,30 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
       });
     },
   );
+
+  createEsmTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-span-hooks.mjs',
+    (createRunner, test) => {
+      test('runs the span hooks of the model and tool calls', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const hooks = container.items
+                .filter(span => /^(chat|execute_tool) /.test(span.name))
+                .sort((a, b) => a.start_timestamp - b.start_timestamp)
+                .map(({ attributes }) => [attributes['test.start']?.value, attributes['test.end']?.value]);
+              expect(hooks).toEqual([
+                ['chat', 'toolUse'],
+                ['Berlin', 'It is sunny in Berlin.'],
+                ['chat', 'stop'],
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

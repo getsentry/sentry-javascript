@@ -192,4 +192,31 @@ describe.runIf(supports({ min: 22 }))('pi-ai integration', () => {
       });
     },
   );
+
+  createEsmTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-span-hooks.mjs',
+    (createRunner, test) => {
+      test('runs the span hooks at start in the caller context and at end with the message', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const hooks = container.items
+                .filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.pi_ai')
+                .sort((a, b) => a.start_timestamp - b.start_timestamp)
+                .map(({ attributes }) => [attributes['test.start']?.value, attributes['test.end']?.value]);
+              expect(hooks).toEqual([
+                ['public:public', 'assistant:stop'],
+                ['private:private', 'assistant:stop'],
+                // The stream starts before its scope's tag changes.
+                ['public:private', 'assistant:stop'],
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });
