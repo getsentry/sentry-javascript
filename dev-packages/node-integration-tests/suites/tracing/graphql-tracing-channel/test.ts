@@ -1,5 +1,5 @@
 import { afterAll, describe, expect } from 'vitest';
-import { supports } from '../../../utils';
+import { SUPPORTS_REQUIRE_OF_ESM, supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // GraphQL 17 requires Node >= 22, so this suite is skipped on older Node.
@@ -130,7 +130,7 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test', () => {
         }
       });
     },
-    { additionalDependencies: { graphql: '^17' } },
+    { failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM, additionalDependencies: { graphql: '^17' } },
   );
 
   // A document that references an unknown field passes `graphql.parse` but fails `graphql.validate`;
@@ -157,6 +157,6 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test', () => {
           .completed();
       });
     },
-    { additionalDependencies: { graphql: '^17' } },
+    { failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM, additionalDependencies: { graphql: '^17' } },
   );
 });

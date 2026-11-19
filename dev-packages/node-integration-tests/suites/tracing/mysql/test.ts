@@ -192,15 +192,14 @@ describe('mysql auto instrumentation', () => {
   for (const { label, env, flags, origin, failsOnEsm } of CASES) {
     describe(label, () => {
       for (const [scenario, description, spanOverride] of SCENARIOS) {
+        // Deno: the query spans of a pool connection are not parented to the active span.
+        const failsOnDeno = scenario === 'scenario-withPool.mjs' && !supports({ runtimes: ['node', 'bun'] });
         createEsmAndCjsTests(
           __dirname,
           scenario,
           'instrument.mjs',
           (createRunner, test) => {
-            // Deno: the query spans of a pool connection are not parented to the active span.
-            const runTest =
-              scenario === 'scenario-withPool.mjs' ? test.runIf(supports({ runtimes: ['node', 'bun'] })) : test;
-            runTest(`should auto-instrument \`mysql\` package when ${description}`, async () => {
+            test(`should auto-instrument \`mysql\` package when ${description}`, async () => {
               await createRunner()
                 .withEnv({ ...env, MYSQL_PORT: String(mysqlPort) })
                 .withFlags(...flags)
@@ -216,7 +215,8 @@ describe('mysql auto instrumentation', () => {
             });
           },
           {
-            failsOnEsm,
+            failsOnEsm: failsOnEsm || failsOnDeno,
+            failsOnCjs: failsOnDeno,
           },
         );
       }

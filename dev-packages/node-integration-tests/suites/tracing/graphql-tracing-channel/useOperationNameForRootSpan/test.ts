@@ -12,9 +12,8 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test > useOperati
     __dirname,
     'scenario-query.mjs',
     'instrument.mjs',
-    (createTestRunner, test, mode) => {
-      const runTest = mode === 'cjs' ? test.runIf(SUPPORTS_REQUIRE_OF_ESM) : test;
-      runTest('records a single operation without renaming the root span', async () => {
+    (createTestRunner, test) => {
+      test('records a single operation without renaming the root span', async () => {
         await createTestRunner()
           .expect({
             span: container => {
@@ -31,16 +30,15 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test > useOperati
           .completed();
       });
     },
-    { additionalDependencies: { graphql: '^17' } },
+    { failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM, additionalDependencies: { graphql: '^17' } },
   );
 
   createEsmAndCjsTests(
     __dirname,
     'scenario-multiple.mjs',
     'instrument.mjs',
-    (createTestRunner, test, mode) => {
-      const runTest = mode === 'cjs' ? test.runIf(SUPPORTS_REQUIRE_OF_ESM) : test;
-      runTest('accumulates multiple operations without renaming the root span', async () => {
+    (createTestRunner, test) => {
+      test('accumulates multiple operations without renaming the root span', async () => {
         await createTestRunner()
           .expect({
             span: container => {
@@ -57,16 +55,15 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test > useOperati
           .completed();
       });
     },
-    { additionalDependencies: { graphql: '^17' } },
+    { failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM, additionalDependencies: { graphql: '^17' } },
   );
 
   createEsmAndCjsTests(
     __dirname,
     'scenario-disabled.mjs',
     'instrument-disabled.mjs',
-    (createTestRunner, test, mode) => {
-      const runTest = mode === 'cjs' ? test.runIf(SUPPORTS_REQUIRE_OF_ESM) : test;
-      runTest('keeps the original root span name when useOperationNameForRootSpan is false', async () => {
+    (createTestRunner, test) => {
+      test('keeps the original root span name when useOperationNameForRootSpan is false', async () => {
         await createTestRunner()
           .expect({
             span: container => {
@@ -80,6 +77,6 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test > useOperati
           .completed();
       });
     },
-    { additionalDependencies: { graphql: '^17' } },
+    { failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM, additionalDependencies: { graphql: '^17' } },
   );
 });

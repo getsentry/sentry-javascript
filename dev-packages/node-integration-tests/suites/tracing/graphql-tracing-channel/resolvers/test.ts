@@ -1,5 +1,5 @@
 import { afterAll, describe, expect } from 'vitest';
-import { supports } from '../../../../utils';
+import { SUPPORTS_REQUIRE_OF_ESM, supports } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 // With `ignoreResolveSpans: false`, the channel path also subscribes `graphql:resolve` and emits a
@@ -90,7 +90,7 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test > resolve sp
         }
       });
     },
-    { additionalDependencies: { graphql: '^17' } },
+    { failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM, additionalDependencies: { graphql: '^17' } },
   );
 
   // With `ignoreTrivialResolveSpans: false`, graphql's default property resolver is no longer skipped,
@@ -115,6 +115,6 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test > resolve sp
           .completed();
       });
     },
-    { additionalDependencies: { graphql: '^17' } },
+    { failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM, additionalDependencies: { graphql: '^17' } },
   );
 });

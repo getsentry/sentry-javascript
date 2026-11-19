@@ -160,14 +160,14 @@ describeWithDockerCompose('Prisma ORM v5', { workingDirectory: [__dirname] }, ()
       __dirname,
       'scenario.mjs',
       'instrument.mjs',
-      (createRunner, test, mode) => {
-        // Deno: an ES module cannot import `PrismaClient`, a CommonJS export of `@prisma/client`.
-        const runTest = mode === 'esm' ? test.runIf(supports({ runtimes: ['node', 'bun'] })) : test;
-        runTest('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
+      (createRunner, test) => {
+        test('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
           await createRunner().expect({ span: expectPrismaV5Spans }).start().completed();
         });
       },
       {
+        // Deno: an ES module cannot import `PrismaClient`, a CommonJS export of `@prisma/client`.
+        failsOnEsm: !supports({ runtimes: ['node', 'bun'] }),
         additionalDependencies: ADDITIONAL_DEPENDENCIES,
         afterSetupCommand: AFTER_SETUP_COMMAND,
         copyPaths: ['prisma'],
