@@ -1,4 +1,10 @@
-import { _INTERNAL_getActiveClient as getActiveClient, applySdkMetadata, consoleSandbox, debug } from '@sentry/core';
+import {
+  _INTERNAL_captureOptionsSetByUser,
+  _INTERNAL_getActiveClient as getActiveClient,
+  applySdkMetadata,
+  consoleSandbox,
+  debug,
+} from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   _INTERNAL_installTunnelHooks as installTunnelHooks,
@@ -31,7 +37,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   const sentryOptions: NodeOptions = {
     defaultIntegrations: [...getDefaultNodeIntegrations(options)],
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
   };
 
   applySdkMetadata(sentryOptions, 'tanstackstart-react', ['tanstackstart-react', 'node']);

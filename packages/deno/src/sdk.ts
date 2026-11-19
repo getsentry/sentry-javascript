@@ -1,6 +1,7 @@
 import type { Client, Integration, Options, StackParser } from '@sentry/core';
 import type { ServerRuntimeClientOptions } from '@sentry/core/server';
 import {
+  _INTERNAL_captureOptionsSetByUser,
   consoleIntegration,
   conversationIdIntegration,
   createStackParser,
@@ -117,7 +118,9 @@ export function initWithoutDefaultIntegrations(options: DenoOptions = {}): Clien
   return _init(options, () => []);
 }
 
-function _init(options: DenoOptions, getDefaultIntegrationsImpl: (options: Options) => Integration[]): Client {
+function _init(userOptions: DenoOptions, getDefaultIntegrationsImpl: (options: Options) => Integration[]): Client {
+  const options = _INTERNAL_captureOptionsSetByUser(userOptions);
+
   // Computed into a local rather than written back onto `options`: the default set
   // depends on the tracing options, so caching it on the caller's object would pin the
   // result of the first `init` for any reused options object.

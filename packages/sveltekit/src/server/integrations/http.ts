@@ -1,18 +1,10 @@
 import type { IntegrationFn } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import { httpIntegration as originalHttpIntegration } from '@sentry/node';
 
 type HttpOptions = Parameters<typeof originalHttpIntegration>[0];
 
-/**
- * The http integration instruments Node's internal http and https modules.
- * It creates breadcrumbs and spans for outgoing HTTP requests which will be attached to the currently active span.
- *
- * For SvelteKit, does not create spans for incoming requests but instead we use SvelteKit's own spans.
- * If you need to create incoming spans, set the `disableIncomingRequestSpans` option to `false`.
- * (You likely don't need this!)
- *
- */
-export const httpIntegration = ((options: HttpOptions = {}) => {
+const _httpIntegration = ((options: HttpOptions = {}) => {
   /*
    * This is a slightly modified version of the original httpIntegration: We avoid creating
    * incoming request spans because:
@@ -37,3 +29,14 @@ export const httpIntegration = ((options: HttpOptions = {}) => {
     ...options,
   });
 }) satisfies IntegrationFn;
+
+/**
+ * The http integration instruments Node's internal http and https modules.
+ * It creates breadcrumbs and spans for outgoing HTTP requests which will be attached to the currently active span.
+ *
+ * For SvelteKit, does not create spans for incoming requests but instead we use SvelteKit's own spans.
+ * If you need to create incoming spans, set the `disableIncomingRequestSpans` option to `false`.
+ * (You likely don't need this!)
+ *
+ */
+export const httpIntegration = defineIntegration(_httpIntegration);

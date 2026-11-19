@@ -6,6 +6,7 @@ import {
 } from '@sentry/browser';
 import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
 import {
+  defineIntegration,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
@@ -46,11 +47,7 @@ interface ReactRouterOptions {
   matchPath?: MatchPath;
 }
 
-/**
- * A browser tracing integration that uses React Router v4 to instrument navigations.
- * Expects `history` (and optionally `routes` and `matchPath`) to be passed as options.
- */
-export function reactRouterV4BrowserTracingIntegration(
+function _reactRouterV4BrowserTracingIntegration(
   options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
 ): Integration {
   const integration = browserTracingIntegration({
@@ -80,10 +77,12 @@ export function reactRouterV4BrowserTracingIntegration(
 }
 
 /**
- * A browser tracing integration that uses React Router v5 to instrument navigations.
+ * A browser tracing integration that uses React Router v4 to instrument navigations.
  * Expects `history` (and optionally `routes` and `matchPath`) to be passed as options.
  */
-export function reactRouterV5BrowserTracingIntegration(
+export const reactRouterV4BrowserTracingIntegration = defineIntegration(_reactRouterV4BrowserTracingIntegration);
+
+function _reactRouterV5BrowserTracingIntegration(
   options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
 ): Integration {
   const integration = browserTracingIntegration({
@@ -111,6 +110,12 @@ export function reactRouterV5BrowserTracingIntegration(
     },
   };
 }
+
+/**
+ * A browser tracing integration that uses React Router v5 to instrument navigations.
+ * Expects `history` (and optionally `routes` and `matchPath`) to be passed as options.
+ */
+export const reactRouterV5BrowserTracingIntegration = defineIntegration(_reactRouterV5BrowserTracingIntegration);
 
 function instrumentReactRouter(
   client: Client,

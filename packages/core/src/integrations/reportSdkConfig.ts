@@ -4,11 +4,10 @@ import { defineIntegration } from '../integration';
 import { _INTERNAL_flushMetricsBuffer } from '../metrics/internal';
 import { count } from '../metrics/public-api';
 import { Scope } from '../scope';
-import type { IntegrationFn } from '../types/integration';
+import type { Integration, IntegrationFn } from '../types/integration';
 import { debug } from '../utils/debug-logger';
 import { fnv1a32 } from '../utils/hash';
 import { isPlainObject } from '../utils/is';
-import { timestampInSeconds } from '../utils/time';
 import { safeUnref } from '../utils/timer';
 
 const _experimentalReportSdkConfigIntegration = (() => ({
@@ -49,7 +48,7 @@ const _experimentalReportSdkConfigIntegration = (() => ({
 })) satisfies IntegrationFn;
 
 /**
- * Reports effective SDK configuration once after initialization.
+ * Reports the SDK options the user passed to `init()` once after initialization.
  *
  * @experimental This integration may change or be removed without notice.
  */
@@ -99,48 +98,53 @@ function serialize(value: unknown, ancestors = new Set<object>()): unknown {
   return result;
 }
 
+/**
+ * Options left out of the payload: `integrations` holds the defaults by the time the client has it, and the others
+ * differ per deployment or host (release and environment already ride on the metric's own attributes).
+ */
+const EXCLUDED_OPTIONS = new Set(['integrations', 'release', 'environment', 'dist', 'serverName']);
+
 function buildConfigAttributes(client: Client): Record<string, string> {
-  // Integrations are reported separately; SDK metadata lives under `sdk`.
-  const { runtime, ...options } = Object.fromEntries(
-    Object.entries(client.getOptions()).filter(
-      ([key]) => !['integrations', 'defaultIntegrations', '_metadata'].includes(key),
-    ),
+  const { optionsSetByUser = [], integrationsSetByUser } = client.getSdkMetadata() || {};
+
+  // Only what the user passed, so SDK defaults never show up as config.
+  const options: Record<string, unknown> = Object.fromEntries(
+    Object.entries(client.getOptions()).filter(([key]) => optionsSetByUser.includes(key) && !EXCLUDED_OPTIONS.has(key)),
   );
 
-  const config = {
-    version: 1,
-    sdk: client.getSdkMetadata()?.sdk,
-    runtime,
-    options: serialize({
-      ...options,
-      dataCollection: client.getDataCollectionOptions(),
-    }) as Record<string, unknown>,
-    options_set_by_user: client.getSdkMetadata()?.optionsSetByUser,
-    integrations: client.getIntegrationNames().map(name => ({ name })),
-  };
+  if (integrationsSetByUser) {
+    options.integrations = integrationsSetByUser.map(name =>
+      describeIntegration(name, client.getIntegrationByName(name)),
+    );
+  }
 
-  const metadata = {
-    timestamp: timestampInSeconds(),
-    release: options.release,
-    environment: options.environment,
-    dist: options.dist,
-  };
+  if (Array.isArray(options.defaultIntegrations)) {
+    options.defaultIntegrations = options.defaultIntegrations.map((integration: Integration) =>
+      describeIntegration(integration.name, integration),
+    );
+  }
 
-  // Exclude reporting metadata and instance-specific defaults from config identity.
-  const hashExclusions = new Set(['serverName', ...Object.keys(metadata)]);
-
-  const hashInput = {
-    ...config,
-    options: Object.fromEntries(Object.entries(config.options).filter(([key]) => !hashExclusions.has(key))),
-  };
-
-  const payload = {
-    ...config,
-    ...metadata,
-  };
+  // The hash covers the whole payload, so a payload cached by its hash is never stale.
+  const payload = JSON.stringify({
+    version: 2,
+    options: serialize(options),
+  });
 
   return {
-    'sentry.sdk_config.hash': fnv1a32(JSON.stringify(hashInput)),
-    'sentry.sdk_config.payload': JSON.stringify(payload),
+    'sentry.sdk_config.hash': fnv1a32(payload),
+    'sentry.sdk_config.payload': payload,
   };
+}
+
+function describeIntegration(
+  name: string,
+  integration: (Integration & { isDefaultInstance?: true }) | undefined,
+): { name: string; options?: unknown } {
+  // A default instance kept by an `integrations` function got its options from the SDK, not the user.
+  const options = integration?.isDefaultInstance ? undefined : integration?._options;
+
+  // `fooIntegration()` and `fooIntegration({})` both mean no options were passed.
+  return options === undefined || (isPlainObject(options) && !Object.keys(options).length)
+    ? { name }
+    : { name, options };
 }

@@ -1,5 +1,6 @@
 import type { browserTracingIntegration } from '@sentry/browser';
 import type { Integration } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import type { ReactRouterOptions } from './reactrouter-compat-utils';
 import {
   createReactRouterV6CompatibleTracingIntegration,
@@ -10,17 +11,19 @@ import {
 } from './reactrouter-compat-utils';
 import type { CreateRouterFunction, Router, RouterState, UseRoutes } from './types';
 
+function _reactRouterBrowserTracingIntegration(
+  options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
+): Integration {
+  return createReactRouterV6CompatibleTracingIntegration(options, '');
+}
+
 /**
  * A browser tracing integration that uses React Router to instrument navigations.
  * Expects `useEffect`, `useLocation`, `useNavigationType`, `createRoutesFromChildren` and `matchRoutes` to be passed as options.
  *
  * Works with React Router v6+.
  */
-export function reactRouterBrowserTracingIntegration(
-  options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
-): Integration {
-  return createReactRouterV6CompatibleTracingIntegration(options, '');
-}
+export const reactRouterBrowserTracingIntegration = defineIntegration(_reactRouterBrowserTracingIntegration);
 
 /**
  * A higher-order component that adds Sentry routing instrumentation to a React Router Route component.

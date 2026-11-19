@@ -1,12 +1,10 @@
 import type { Integration } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import { browserTracingIntegration as originalBrowserTracingIntegration, isBotUserAgent } from '@sentry/react';
 import { settlePendingPageloadWait } from './routing/appRouterPageloadInstrumentation';
 import { nextRouterInstrumentNavigation, nextRouterInstrumentPageLoad } from './routing/nextRoutingInstrumentation';
 
-/**
- * A custom browser tracing integration for Next.js.
- */
-export function browserTracingIntegration(
+function _browserTracingIntegration(
   options: Parameters<typeof originalBrowserTracingIntegration>[0] = {},
 ): Integration {
   const browserTracingIntegrationInstance = originalBrowserTracingIntegration({
@@ -57,3 +55,8 @@ export function browserTracingIntegration(
     },
   };
 }
+
+/**
+ * A custom browser tracing integration for Next.js.
+ */
+export const browserTracingIntegration = defineIntegration(_browserTracingIntegration);

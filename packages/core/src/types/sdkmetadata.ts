@@ -4,4 +4,6 @@ export interface SdkMetadata {
   sdk?: SdkInfo;
   /** Option keys explicitly supplied to the outermost init call. */
   optionsSetByUser?: string[];
+  /** Names of the integrations the user passed as an array to the outermost init call. */
+  integrationsSetByUser?: string[];
 }

@@ -1,5 +1,6 @@
 import { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/browser';
 import type { Integration } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import type { ClientInstrumentation } from 'react-router';
 import {
   createSentryClientInstrumentation,
@@ -34,11 +35,7 @@ export interface ReactRouterTracingIntegration extends Integration {
   readonly clientInstrumentation: ClientInstrumentation;
 }
 
-/**
- * Browser tracing integration for React Router (Framework) applications.
- * This integration will create navigation spans and enhance transaction names with parameterized routes.
- */
-export function reactRouterTracingIntegration(
+function _reactRouterTracingIntegration(
   options: ReactRouterTracingIntegrationOptions = {},
 ): ReactRouterTracingIntegration {
   const browserTracingIntegrationInstance = originalBrowserTracingIntegration({
@@ -63,3 +60,11 @@ export function reactRouterTracingIntegration(
     },
   };
 }
+
+/**
+ * Browser tracing integration for React Router (Framework) applications.
+ * This integration will create navigation spans and enhance transaction names with parameterized routes.
+ */
+export const reactRouterTracingIntegration = defineIntegration(
+  _reactRouterTracingIntegration,
+) as typeof _reactRouterTracingIntegration;
