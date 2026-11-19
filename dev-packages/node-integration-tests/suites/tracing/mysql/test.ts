@@ -22,7 +22,7 @@ import {
 import { DB } from '@sentry/conventions/op';
 import type { AddressInfo, Server } from 'node:net';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
-import { EXPECTED_SDK_NAME } from '../../../utils';
+import { EXPECTED_SDK_NAME, supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 import { startMysqlTestServer } from './mysql-test-server';
 
@@ -197,7 +197,10 @@ describe('mysql auto instrumentation', () => {
           scenario,
           'instrument.mjs',
           (createRunner, test) => {
-            test(`should auto-instrument \`mysql\` package when ${description}`, async () => {
+            // Deno: the query spans of a pool connection are not parented to the active span.
+            const runTest =
+              scenario === 'scenario-withPool.mjs' ? test.runIf(supports({ runtimes: ['node', 'bun'] })) : test;
+            runTest(`should auto-instrument \`mysql\` package when ${description}`, async () => {
               await createRunner()
                 .withEnv({ ...env, MYSQL_PORT: String(mysqlPort) })
                 .withFlags(...flags)

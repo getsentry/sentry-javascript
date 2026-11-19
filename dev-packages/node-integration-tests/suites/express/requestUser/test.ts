@@ -1,4 +1,5 @@
 import { afterAll, describe, expect } from 'vitest';
+import { LOOPBACK_ADDRESS } from '../../../utils/assertions';
 import { cleanupChildProcesses, createCjsTests } from '../../../utils/runner';
 
 describe('express user handling', () => {
@@ -13,7 +14,7 @@ describe('express user handling', () => {
       const runner = createRunner()
         .expect({
           event: event => {
-            expect(event.user).toEqual({ ip_address: '::1' });
+            expect(event.user).toEqual({ ip_address: LOOPBACK_ADDRESS });
             expect(event.exception?.values?.[0]?.value).toBe('error_1');
           },
         })

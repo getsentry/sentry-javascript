@@ -7,6 +7,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
+import { SUPPORTS_REQUIRE_OF_ESM } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 afterAll(() => {
@@ -19,8 +20,9 @@ describe('Prisma ORM v7 Tests', () => {
       __dirname,
       'scenario.mjs',
       'instrument.mjs',
-      (createRunner, test) => {
-        test('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
+      (createRunner, test, mode) => {
+        const runTest = mode === 'cjs' ? test.runIf(SUPPORTS_REQUIRE_OF_ESM) : test;
+        runTest('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
           await createRunner()
             .expect({
               span: container => {

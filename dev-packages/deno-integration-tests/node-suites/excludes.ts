@@ -10,50 +10,21 @@ const NODE_ONLY = [
   'suites/thread-blocked-native/test.ts',
 ];
 
-// In the ESM tests Deno cannot find `PrismaClient`, a CommonJS export of `@prisma/client`.
-const PRISMA_ESM_INTEROP = ['suites/tracing/prisma-orm-v5/test.ts', 'suites/tracing/prisma-orm-v6/test.ts'];
-
-// In the CJS tests Deno cannot `require()` a dependency that ships only ES modules: `graphql` 17,
+// In the CJS tests Deno cannot `require()` a dependency that ships only ES modules:
 // `escape-string-regexp` under `mastra`, and `@prisma/orm-postgres`. The ESM tests of `mastra` also
 // check `fetch` spans. The ESM test of `prisma-orm-v8` imports JSON with `with { type: 'json' }`,
 // which any module load hook breaks on Deno 2.8.3 (the CI version); it passes on Deno 2.9.0.
-const REQUIRE_OF_ESM_ONLY_DEPENDENCY = [
-  'suites/tracing/graphql-tracing-channel/**',
-  'suites/tracing/mastra/**',
-  'suites/tracing/prisma-orm-v8/test.ts',
-];
+const REQUIRE_OF_ESM_ONLY_DEPENDENCY = ['suites/tracing/mastra/**', 'suites/tracing/prisma-orm-v8/test.ts'];
 
-// Some or all tests fail on Deno. The cause is not investigated yet. In most AI suites the span
-// streaming test fails. `apollo-graphql` (CJS tests only) and `mongodb` fail on Deno 2.8.3 (the CI
-// version) and pass on Deno 2.9.0.
+// Some or all tests fail on Deno. The cause is not investigated yet. `mongodb` fails on Deno 2.8.3
+// (the CI version) and passes on Deno 2.9.0.
 const NOT_TRIAGED = [
-  'suites/tracing/anthropic/test.ts',
-  'suites/tracing/anthropic/v0.129/test.ts',
-  'suites/tracing/apollo-graphql/**',
-  'suites/tracing/fastify/test.ts',
   'suites/tracing/flue/test.ts',
-  'suites/tracing/google-genai/test.ts',
-  'suites/tracing/groq/test.ts',
-  'suites/tracing/http-client-spans/http-strip-query/test.ts',
   'suites/tracing/ioredis-dc/test.ts',
-  'suites/tracing/koa/test.ts',
-  'suites/tracing/langchain/test.ts',
-  'suites/tracing/langgraph/test.ts',
-  'suites/tracing/mistral-v2/test.ts',
-  'suites/tracing/mistral/test.ts',
   'suites/tracing/mongodb/test.ts',
   'suites/tracing/mongoose-v5/test.ts',
-  'suites/tracing/mysql/test.ts',
-  'suites/tracing/openai/v5/**',
-  'suites/tracing/openai/v7/test.ts',
   'suites/tracing/orchestrion-lazy-registration/test.ts',
-  'suites/tracing/prisma-orm-v7/test.ts',
-  'suites/tracing/together-ai/test.ts',
-  'suites/tracing/vercelai/v6_v7/**',
 ];
-
-// Passes on Deno when run alone, but failed in about 1 of 3 full runs of this package.
-const FLAKY = ['suites/tracing/tracePropagationTargets/**'];
 
 // The scenarios import `@sentry/deno` in place of `@sentry/node`, see `import-map.json` and
 // `alias-sentry-deno.ts`. The suites below fail only because of that.
@@ -68,16 +39,10 @@ const NO_SENTRY_DENO_EXPORT = [
   'suites/cron/node-schedule/test.ts',
   'suites/esm/modules-integration/test.ts',
   'suites/express/multiple-init/test.ts',
-  'suites/express/tracing/request-data/test.ts',
-  'suites/express/tracing/routing/test.ts',
   'suites/express/with-http/maxIncomingRequestBodySize/test.ts',
   'suites/fs-instrumentation/test.ts',
   'suites/node-runtime-metrics/test.ts',
   'suites/pino/test.ts',
-  'suites/sessions/crashed-session-aggregate/test.ts',
-  'suites/sessions/errored-session-aggregate/test.ts',
-  'suites/sessions/exited-session-aggregate/test.ts',
-  'suites/sessions/server-without-process-session/test.ts',
   'suites/tracing/bullmq/test.ts',
   'suites/tracing/http-client-spans/fetch-forward-request-hook/test.ts',
   'suites/tracing/http-client-spans/fetch-headers-to-span-attributes/test.ts',
@@ -108,6 +73,7 @@ const NO_NODE_DEFAULT_INTEGRATION = [
   'suites/modules/test.ts',
   'suites/public-api/startSpan/basic-usage/with-children/test.ts',
   'suites/sessions/process-session/test.ts',
+  'suites/sessions/server-without-process-session/test.ts',
   'suites/system-error/test.ts',
 ];
 
@@ -145,16 +111,11 @@ const STACK_FRAMES_DIFFER = [
   'suites/tracing/postgresjs/test.ts',
 ];
 
-// The request IP address is `::ffff:127.0.0.1`, not `::1`. The cause is not investigated yet.
-const REQUEST_IP_DIFFERS = ['suites/express/requestUser/test.ts'];
-
 export const NODE_SUITES_EXCLUDE = [
   '**/node_modules/**',
   ...NODE_ONLY,
-  ...PRISMA_ESM_INTEROP,
   ...REQUIRE_OF_ESM_ONLY_DEPENDENCY,
   ...NOT_TRIAGED,
-  ...FLAKY,
   ...NO_SENTRY_DENO_EXPORT,
   ...NO_CLIENT_TRACER,
   ...NO_NODE_LOGGER_PARAMETERS,
@@ -162,5 +123,4 @@ export const NODE_SUITES_EXCLUDE = [
   ...GLOBAL_HANDLERS_DIFFER,
   ...NO_CLIENT_REPORTS,
   ...STACK_FRAMES_DIFFER,
-  ...REQUEST_IP_DIFFERS,
 ];
