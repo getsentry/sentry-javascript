@@ -1,4 +1,5 @@
 import type { Span } from '@sentry/core';
+import type { GenAiSpanResult } from '../core/span-hooks';
 import { getToolCallKey } from '../core/streaming-tool-calls';
 import { endStreamSpan, getErrorStatus, type StreamResponseState } from '../core/utils';
 import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
@@ -165,6 +166,7 @@ export function instrumentWorkersAiStream(
   span: Span,
   recordOutputs: boolean,
   abortSignal?: AbortSignal,
+  beforeSpanEnd?: (result: GenAiSpanResult<never>) => void,
 ): ReadableStream<Uint8Array> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
@@ -187,7 +189,7 @@ export function instrumentWorkersAiStream(
   let buffer = '';
   let spanEnded = false;
 
-  const finish = (): void => {
+  const finish = (result: GenAiSpanResult<never> = {}): void => {
     if (spanEnded) {
       return;
     }
@@ -208,7 +210,7 @@ export function instrumentWorkersAiStream(
       });
     }
 
-    endStreamSpan(span, state, recordOutputs);
+    endStreamSpan(span, state, recordOutputs, () => beforeSpanEnd?.(result));
   };
 
   const flushBuffer = (isDone: boolean): void => {
@@ -239,7 +241,7 @@ export function instrumentWorkersAiStream(
         controller.enqueue(value);
       } catch (error) {
         span.setStatus(getErrorStatus(abortSignal));
-        finish();
+        finish({ error });
         controller.error(error);
       }
     },

@@ -1,8 +1,9 @@
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
+import { type GenAiSpanResult, runGenAiSpanEnd, runGenAiSpanStart } from '../ai/core/span-hooks';
 import { resolveGenAiCallRecording } from '../ai/core/utils';
-import type { TypeSafeOptions } from '../ai/typesafe';
+import type { TypeSafeCallInfo, TypeSafeOptions } from '../ai/typesafe';
 import { addResponseAttributes, onSystemOneResponse, startDecideSpan } from '../ai/typesafe';
 import { TYPESAFE_INTEGRATION_NAME } from '../ai/typesafe/constants';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
@@ -12,7 +13,10 @@ import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation
 import { bindTracingChannelToSpan } from '../tracing-channel';
 
 // The recording decision is made once, when the span starts, in the caller's async context.
-type TypeSafeChannelContext = OrchestrionChannelContext & { _sentryRecordOutputs?: boolean };
+type TypeSafeChannelContext = OrchestrionChannelContext & {
+  _sentryRecordOutputs?: boolean;
+  _sentryOnSpanEnd?: (result: GenAiSpanResult<unknown>) => void;
+};
 
 const _typesafeIntegration = ((options: TypeSafeOptions = {}) => {
   return {
@@ -28,14 +32,21 @@ function instrumentTypeSafe(options: TypeSafeOptions): void {
     diagnosticsChannel.tracingChannel<TypeSafeChannelContext>(CHANNELS.TYPESAFE_SYSTEM_ONE),
     data => {
       const request = data.arguments?.[0];
-      const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, { request });
+      const call: TypeSafeCallInfo = { request };
+      const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
       data._sentryRecordOutputs = recordOutputs;
-      return startDecideSpan(request, data.self, recordInputs);
+      const span = startDecideSpan(request, data.self, recordInputs);
+      runGenAiSpanStart(options, span, call);
+      data._sentryOnSpanEnd = result => runGenAiSpanEnd(options, span, call, result);
+      return span;
     },
     {
       beforeSpanEnd: (span, data) => {
-        if (!('error' in data)) {
+        if ('error' in data) {
+          data._sentryOnSpanEnd?.({ error: data.error });
+        } else {
           addResponseAttributes(span, data.result, !!data._sentryRecordOutputs);
+          data._sentryOnSpanEnd?.({ response: data.result });
         }
       },
       deferSpanEnd: ({ data, end }) =>

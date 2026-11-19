@@ -2,10 +2,11 @@ import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { getClient, hasSpanStreamingEnabled, startSpan, startSpanManual } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { getErrorStatus, getRequestSignal, isReadableStream, resolveGenAiCallRecording } from '../core/utils';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
 import { shouldSkipAiProviderSpan } from '../pi-ai/providers';
 import { WORKERS_AI_INTEGRATION_NAME } from './constants';
 import { instrumentWorkersAiStream } from './streaming';
-import type { WorkersAiOptions } from './types';
+import type { WorkersAiCallInfo, WorkersAiOptions } from './types';
 import {
   addRequestAttributes,
   addResponseAttributes,
@@ -32,12 +33,8 @@ function instrumentRun(
     const [model, inputs, runOptions] = args as [unknown, unknown, Record<string, unknown> | undefined];
 
     const operationName = getOperationName(model, inputs);
-    const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, {
-      operation: operationName,
-      model,
-      inputs,
-      options: runOptions,
-    });
+    const call: WorkersAiCallInfo = { operation: operationName, model, inputs, options: runOptions };
+    const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
     const requestAttributes = extractRequestAttributes(model, inputs, operationName);
     const modelName = typeof model === 'string' && model ? model : 'unknown';
     const abortSignal = getRequestSignal(runOptions);
@@ -68,6 +65,7 @@ function instrumentRun(
         // including a synchronous throw from `run`.
         const handleError = (error: unknown): never => {
           span.setStatus(getErrorStatus(abortSignal));
+          runGenAiSpanEnd(options, span, call, { error });
           span.end();
           throw error;
         };
@@ -83,14 +81,18 @@ function instrumentRun(
         if (recordInputs) {
           addRequestAttributes(span, inputs, operationName);
         }
+        runGenAiSpanStart(options, span, call);
 
         return originalResult.then(result => {
           if (isReadableStream<Uint8Array>(result)) {
-            return instrumentWorkersAiStream(result, span, recordOutputs, abortSignal);
+            return instrumentWorkersAiStream(result, span, recordOutputs, abortSignal, streamResult =>
+              runGenAiSpanEnd(options, span, call, streamResult),
+            );
           }
 
           // The model did not actually return a stream — finalize the span eagerly.
           addResponseAttributes(span, result, recordOutputs, operationName);
+          runGenAiSpanEnd(options, span, call, { response: result });
           span.end();
           return result;
         }, handleError);
@@ -103,16 +105,19 @@ function instrumentRun(
       if (recordInputs) {
         addRequestAttributes(span, inputs, operationName);
       }
+      runGenAiSpanStart(options, span, call);
 
       return originalResult.then(
         result => {
           if (!returnsRawResponse) {
             addResponseAttributes(span, result, recordOutputs, operationName);
           }
+          runGenAiSpanEnd(options, span, call, { response: result });
           return result;
         },
         error => {
           span.setStatus(getErrorStatus(abortSignal));
+          runGenAiSpanEnd(options, span, call, { error });
           throw error;
         },
       );

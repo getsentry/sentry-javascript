@@ -1,6 +1,10 @@
+import type { GenAiSpanHooks } from '../core/span-hooks';
 import type { GenAiCallOptions } from '../core/utils';
 
-/** The call that `recordInputs`/`recordOutputs` decide on: the arguments of `run()` as passed. */
+/**
+ * The call that `recordInputs`/`recordOutputs` decide on, and that the span hooks get: the arguments of
+ * `run()` as passed.
+ */
 export interface WorkersAiCallInfo {
   /** The gen_ai operation of the call, such as `chat` or `embeddings`. */
   operation: string;
@@ -9,8 +13,11 @@ export interface WorkersAiCallInfo {
   options: Record<string, unknown> | undefined;
 }
 
-/** Options for the Workers AI integration. */
-export type WorkersAiOptions = GenAiCallOptions<WorkersAiCallInfo>;
+/**
+ * Options for the Workers AI integration. `onSpanEnd` gets the value `run()` resolved with; for streams it
+ * is `undefined`.
+ */
+export type WorkersAiOptions = GenAiCallOptions<WorkersAiCallInfo> & GenAiSpanHooks<WorkersAiCallInfo>;
 
 /**
  * The token usage reported by Workers AI text generation models.
