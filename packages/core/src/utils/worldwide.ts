@@ -113,6 +113,12 @@ export type InternalGlobal = {
      * in a bundled runtime such as Cloudflare Workers.
      */
     providedModules?: Record<string, Record<string, unknown>>;
+    /**
+     * Channel events that `@sentry/cloudflare` could not publish at module scope and publishes with the first
+     * request. Lives on the marker because a bundle can hold both the CommonJS and the ES module build of the SDK:
+     * transformed CommonJS packages add events through one build, and the request wrapper of the other publishes them.
+     */
+    deferredChannelEvents?: unknown[];
   };
 } & Carrier;
 

@@ -6,7 +6,7 @@ import {
   MESSAGING_PROCESS_DURATION,
 } from '@sentry/conventions/metrics';
 import * as SentryCore from '@sentry/core';
-import { BullMQTelemetry } from '../../../src/integrations/tracing/bullmq';
+import { BullMQTelemetry } from '../../src/integrations/bullmq';
 
 vi.mock('@sentry/core', async importOriginal => {
   const actual = await importOriginal<typeof SentryCore>();

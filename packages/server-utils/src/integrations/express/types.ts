@@ -12,6 +12,7 @@ export interface ExpressLayer {
   handle?: { length?: number };
   name?: string;
   path?: string;
+  keys?: unknown[];
   route?: { path?: unknown };
   // Only set on a Route's *inner* method-handler layers (e.g. `'get'`), which
   // run inside the route-dispatch layer we already span.
