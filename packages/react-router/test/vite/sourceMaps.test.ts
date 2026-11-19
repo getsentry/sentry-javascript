@@ -3,7 +3,11 @@ import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import type { UserConfig } from 'vite';
 import { mergeConfig } from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getUpdatedSourceMapSettings, makeEnableSourceMapsPlugin } from '../../src/vite/makeEnableSourceMapsPlugin';
+import {
+  getUpdatedSourceMapSettings,
+  makeEnableSourceMapsPlugin,
+  SDK_ENABLED_SOURCE_MAPS_KEY,
+} from '../../src/vite/makeEnableSourceMapsPlugin';
 
 const mockedSentryVitePlugin = {
   name: 'sentry-vite-debug-id-upload-plugin',
@@ -59,6 +63,7 @@ describe('makeEnableSourceMapsPlugin()', () => {
           rollupOptions: { plugins: [{ name: 'asset-transform' }] },
           rolldownOptions: { plugins: [{ name: 'asset-transform' }] },
         },
+        ...(sourcemap === undefined && { [SDK_ENABLED_SOURCE_MAPS_KEY]: true }),
       });
     },
   );

@@ -3,6 +3,11 @@ import type { Plugin, UserConfig } from 'vite';
 import type { SentryReactRouterBuildOptions } from './types';
 
 /**
+ * The Vite config key that tells the build end hook that the SDK turned on the source maps.
+ */
+export const SDK_ENABLED_SOURCE_MAPS_KEY = 'sentrySdkEnabledSourceMaps';
+
+/**
  * A Sentry plugin for React Router to enable "hidden" source maps if they are unset.
  */
 export function makeEnableSourceMapsPlugin(options: SentryReactRouterBuildOptions): Plugin {
@@ -11,8 +16,14 @@ export function makeEnableSourceMapsPlugin(options: SentryReactRouterBuildOption
     apply: 'build',
     enforce: 'post',
     config(viteConfig) {
+      const userSourceMap = viteConfig.build?.sourcemap;
       const sourcemap = getUpdatedSourceMapSettings(viteConfig, options);
-      return sourcemap === undefined ? {} : { build: { sourcemap } };
+      if (sourcemap === undefined) {
+        return {};
+      }
+      return userSourceMap === undefined
+        ? { build: { sourcemap }, [SDK_ENABLED_SOURCE_MAPS_KEY]: true }
+        : { build: { sourcemap } };
     },
   };
 }
@@ -31,7 +42,7 @@ export function makeEnableSourceMapsPlugin(options: SentryReactRouterBuildOption
  *       - we enable 'hidden' source maps generation when Sentry uploads the maps, when
  *         `sourcemaps.delete: false` keeps them for a manual upload, or when `sourcemaps.disable`
  *         is set. Otherwise we leave it unset
- *       - configure `filesToDeleteAfterUpload` to delete all .map files (we emit a log about this)
+ *       - delete all .map files after the upload (we emit a log about this)
  *
  * --> only exported for testing
  */

@@ -5,6 +5,7 @@ import { createSentrySDK } from 'sentry';
 import { globFiles } from '@sentry/bundler-plugins/core';
 import { resolveSourceMapsFeatures } from '@sentry/core';
 import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
+import { SDK_ENABLED_SOURCE_MAPS_KEY } from '../makeEnableSourceMapsPlugin';
 import type { SentryReactRouterBuildOptions } from '../types';
 
 type BuildEndHook = NonNullable<Config['buildEnd']>;
@@ -130,8 +131,9 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     updatedFilesToDeleteAfterUpload = [...defaultFilesToDelete, ...[userFilesToDeleteAfterUpload ?? []].flat()];
   } else if (deleteOption === false) {
     updatedFilesToDeleteAfterUpload = userFilesToDeleteAfterUpload;
-  } else if (typeof userFilesToDeleteAfterUpload === 'undefined') {
-    // set a default value no option was set
+  } else if (typeof userFilesToDeleteAfterUpload !== 'undefined') {
+    updatedFilesToDeleteAfterUpload = userFilesToDeleteAfterUpload;
+  } else if ((viteConfig as Record<string, unknown>)[SDK_ENABLED_SOURCE_MAPS_KEY] === true) {
     updatedFilesToDeleteAfterUpload = defaultFilesToDelete;
     debug &&
       // eslint-disable-next-line no-console
@@ -140,8 +142,6 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
           updatedFilesToDeleteAfterUpload,
         )}\` to delete generated source maps after they were uploaded to Sentry.`,
       );
-  } else {
-    updatedFilesToDeleteAfterUpload = userFilesToDeleteAfterUpload;
   }
   if (updatedFilesToDeleteAfterUpload) {
     try {

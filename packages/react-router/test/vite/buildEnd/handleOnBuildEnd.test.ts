@@ -5,6 +5,7 @@ import { globFiles } from '@sentry/bundler-plugins/core';
 import type { ResolvedConfig } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentryOnBuildEnd } from '../../../src/vite/buildEnd/handleOnBuildEnd';
+import { SDK_ENABLED_SOURCE_MAPS_KEY } from '../../../src/vite/makeEnableSourceMapsPlugin';
 import type { SentryReactRouterBuildOptions } from '../../../src/vite/types';
 
 vi.mock('sentry');
@@ -54,6 +55,15 @@ describe('sentryOnBuildEnd', () => {
         project: 'test-project',
         debug: false,
       },
+    } as unknown as TestConfig,
+  };
+
+  const sdkEnabledConfig = {
+    ...defaultConfig,
+    viteConfig: {
+      ...defaultConfig.viteConfig,
+      build: { sourcemap: 'hidden' },
+      [SDK_ENABLED_SOURCE_MAPS_KEY]: true,
     } as unknown as TestConfig,
   };
 
@@ -315,13 +325,22 @@ describe('sentryOnBuildEnd', () => {
     expect(globFiles).toHaveBeenCalledWith(['/build/**/*.map']);
   });
 
-  it('deletes the source maps in the build directory by default', async () => {
+  it('deletes the source maps the SDK turned on by default', async () => {
     // @ts-expect-error - mocking the React config
-    await sentryOnBuildEnd(defaultConfig);
+    await sentryOnBuildEnd(sdkEnabledConfig);
 
     expect(globFiles).toHaveBeenCalledWith(['/build/**/*.map']);
     expect(rm).toHaveBeenCalledWith('/build/file1.map', { force: true });
     expect(rm).toHaveBeenCalledWith('/build/file2.map', { force: true });
+  });
+
+  it('keeps the source maps the user turned on by default', async () => {
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(defaultConfig);
+
+    expect(mockSentrySdkInstance.sourcemap.upload).toHaveBeenCalledTimes(1);
+    expect(globFiles).not.toHaveBeenCalled();
+    expect(rm).not.toHaveBeenCalled();
   });
 
   it('builds the default deletion pattern with forward slashes on Windows', async () => {
@@ -334,7 +353,7 @@ describe('sentryOnBuildEnd', () => {
     vi.mocked(globFilesWin32).mockResolvedValue([]);
 
     const config = {
-      ...defaultConfig,
+      ...sdkEnabledConfig,
       reactRouterConfig: { ...defaultConfig.reactRouterConfig, buildDirectory: 'C:\\app\\build' },
     };
 
@@ -411,8 +430,8 @@ describe('sentryOnBuildEnd', () => {
       project: ['frontend', 'backend'],
     };
     const config = {
-      ...defaultConfig,
-      viteConfig: { ...defaultConfig.viteConfig, sentryConfig },
+      ...sdkEnabledConfig,
+      viteConfig: { ...sdkEnabledConfig.viteConfig, sentryConfig },
     };
 
     // @ts-expect-error - mocking the React config
@@ -427,9 +446,9 @@ describe('sentryOnBuildEnd', () => {
     const consoleSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
     const config = {
-      ...defaultConfig,
+      ...sdkEnabledConfig,
       viteConfig: {
-        ...defaultConfig.viteConfig,
+        ...sdkEnabledConfig.viteConfig,
         sentryConfig: {
           ...defaultConfig.viteConfig.sentryConfig,
           debug: true,
