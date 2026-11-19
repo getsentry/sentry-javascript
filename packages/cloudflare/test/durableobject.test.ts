@@ -693,6 +693,65 @@ describe('instrumentDurableObjectWithSentry', () => {
       expect(frameworkDispatch.has(FrameworkLike.prototype.greet)).toBe(true);
       expect(obj.greet('World')).toBe('Hello, World!');
     });
+
+    // Regression for #26673: an RPC call to a method the `agents` SDK replaced runs on the default
+    // isolation scope, so a base `Agent` method it calls looked like a new incoming RPC call.
+    it('does not capture an error that an Agent method handles from an inherited base method', async () => {
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+      const agentWrappers = new WeakSet<object>();
+
+      class AgentLike {
+        constructor() {
+          this._autoWrapCustomMethods();
+        }
+
+        _autoWrapCustomMethods(): void {
+          const prototype = Object.getPrototypeOf(this);
+          const original = prototype.proxy;
+
+          if (!agentWrappers.has(original)) {
+            const wrapped = function (this: unknown): unknown {
+              return original.call(this);
+            };
+            agentWrappers.add(wrapped);
+            prototype.proxy = wrapped;
+          }
+        }
+
+        async keepAliveWhile(callback: () => Promise<void>): Promise<void> {
+          return callback();
+        }
+      }
+
+      class MyAgent extends AgentLike {
+        async proxy(): Promise<string> {
+          return this.keepAliveWhile(async () => {
+            throw new Error('aborted');
+          }).then(
+            () => 'done',
+            () => 'handled',
+          );
+        }
+
+        async _unmanaged(): Promise<void> {
+          throw new Error('external');
+        }
+      }
+
+      const instrumented = instrumentAgentWithSentry(vi.fn().mockReturnValue({}), MyAgent as any);
+      const obj = Reflect.construct(instrumented, [{ waitUntil: vi.fn() }, {}]) as MyAgent;
+      const prototype = Object.getPrototypeOf(obj);
+
+      await expect(Reflect.apply(prototype.proxy, obj, [])).resolves.toBe('handled');
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+
+      // A method the framework leaves alone is still instrumented for external RPC calls
+      await expect(Reflect.apply(prototype._unmanaged, obj, [])).rejects.toThrow('external');
+      expect(captureExceptionSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'external' }),
+        expect.anything(),
+      );
+    });
   });
 
   // The wrapper replaces a method on a class the user owns, so it has to keep the parts of the

@@ -489,11 +489,41 @@ export function instrumentAgentWithSentry<
 
       // Apply RPC prototype-method instrumentation last, so the Agent-specific own-property
       // handlers we just installed are excluded from RPC method tracing. Methods the Agent
-      // framework installed itself are excluded too — `instrumentCloudflareAgent` traces those by
-      // wrapping the dispatch instead of the method.
-      return finalizeWithRpcInstrumentation(obj, options, context, frameworkManagedMethods);
+      // framework installed itself are excluded too, because it dispatches them by identity.
+      return finalizeWithRpcInstrumentation(obj, options, context, withAgentBaseMethods(obj, frameworkManagedMethods));
     },
   });
   markAsInstrumented(InstrumentedClass);
   return InstrumentedClass;
+}
+
+/**
+ * Adds the methods of the `agents` `Agent` base class to the excluded methods.
+ *
+ * The Agent framework replaces the subclass's own methods, so an RPC call to one of them runs
+ * without an invocation scope. A base method it calls (`keepAliveWhile`, for example) would then
+ * look like a new incoming RPC call, and the wrapper would capture an error the caller handles.
+ * The framework has no hook to give its methods a scope, so the base methods are left unwrapped,
+ * the same set the framework itself leaves unwrapped.
+ */
+function withAgentBaseMethods(obj: object, excludedMethods: ReadonlySet<string>): ReadonlySet<string> {
+  let prototype: object | null = Object.getPrototypeOf(obj);
+
+  while (prototype && !Object.prototype.hasOwnProperty.call(prototype, '_autoWrapCustomMethods')) {
+    prototype = Object.getPrototypeOf(prototype);
+  }
+
+  if (!prototype) {
+    return excludedMethods;
+  }
+
+  const excluded = new Set(excludedMethods);
+
+  for (; prototype && prototype !== Object.prototype; prototype = Object.getPrototypeOf(prototype)) {
+    for (const name of Object.getOwnPropertyNames(prototype)) {
+      excluded.add(name);
+    }
+  }
+
+  return excluded;
 }
