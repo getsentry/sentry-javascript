@@ -16,12 +16,12 @@ const NODE_SUITES_ROOT = fileURLToPath(new URL('../node-integration-tests', impo
 // All Node suites also run on Bun. The scenarios stay in `node-integration-tests`.
 const NODE_SUITES = ['suites/**/test.ts'];
 
-// Before Bun 1.4.5, `bun run` cannot load the modules that the instrumentation transforms.
+// Before Bun 1.4.6, `bun run` cannot load the modules that the instrumentation transforms.
 const [bunMajor = 0, bunMinor = 0, bunPatch = 0] = execFileSync('bun', ['--version'], { encoding: 'utf8' })
   .trim()
   .split(/[.-]/)
   .map(Number);
-const BUN_RUN_INSTRUMENTS = bunMajor > 1 || (bunMajor === 1 && (bunMinor > 4 || (bunMinor === 4 && bunPatch >= 5)));
+const BUN_RUN_INSTRUMENTS = bunMajor > 1 || (bunMajor === 1 && (bunMinor > 4 || (bunMinor === 4 && bunPatch >= 6)));
 
 const AUTO_INSTRUMENTATION_SUITES = NO_AUTO_INSTRUMENTATION.map(glob =>
   glob.endsWith('/**') ? `${glob}/test.ts` : glob,

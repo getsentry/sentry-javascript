@@ -371,7 +371,7 @@ describe('registerBunRuntimeInjection', () => {
   });
 
   it('transforms instrumented modules with `Bun.plugin()` and records them', () => {
-    vi.stubGlobal('Bun', { version: '1.4.5', plugin: pluginMock });
+    vi.stubGlobal('Bun', { version: '1.4.6', plugin: pluginMock });
 
     registerBunRuntimeInjection();
     registerBunRuntimeInjection();
@@ -386,7 +386,7 @@ describe('registerBunRuntimeInjection', () => {
   });
 
   it('leaves files without a transform to Bun', () => {
-    vi.stubGlobal('Bun', { version: '1.4.5', plugin: pluginMock });
+    vi.stubGlobal('Bun', { version: '1.4.6', plugin: pluginMock });
 
     registerBunRuntimeInjection();
 
@@ -403,7 +403,7 @@ describe('registerBunRuntimeInjection', () => {
 
   it('marks runtime injection unavailable when `Bun.plugin()` throws', () => {
     vi.stubGlobal('Bun', {
-      version: '1.4.5',
+      version: '1.4.6',
       plugin: () => {
         throw new Error('boom');
       },
@@ -413,8 +413,8 @@ describe('registerBunRuntimeInjection', () => {
     expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__).toEqual({ runtimeUnavailable: true });
   });
 
-  it('registers nothing on Bun versions that lose CommonJS exports', () => {
-    vi.stubGlobal('Bun', { version: '1.4.4', plugin: pluginMock });
+  it.each(['1.4.4', '1.4.5'])('registers nothing on Bun %s, which loses CommonJS exports', version => {
+    vi.stubGlobal('Bun', { version, plugin: pluginMock });
 
     registerBunRuntimeInjection();
 

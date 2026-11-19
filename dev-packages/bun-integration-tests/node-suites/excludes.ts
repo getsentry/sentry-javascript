@@ -62,7 +62,7 @@ const NO_FETCH_INSTRUMENTATION = [
   'suites/tracing/requests/traceparent/test.ts',
 ];
 
-// Before Bun 1.4.5, `bun run` cannot inject the diagnostics channels into libraries, so framework,
+// Before Bun 1.4.6, `bun run` cannot inject the diagnostics channels into libraries, so framework,
 // database and AI instrumentation creates no spans. Apps must be built with `@sentry/bun/plugin`.
 // The `node-suites-bun-build` and `node-suites-bun-run` projects run these suites.
 // See https://github.com/getsentry/sentry-javascript/issues/23882
@@ -280,7 +280,7 @@ export const BUN_BUILD_EXCLUDE = [
 ];
 
 // The `bun run` project (`node-suites-bun-run`) runs the suites of `NO_AUTO_INSTRUMENTATION` with
-// `@sentry/bun/import` preloaded, on Bun 1.4.5 or later. These do not run there.
+// `@sentry/bun/import` preloaded, on Bun 1.4.6 or later. These do not run there.
 
 // The scenarios pass the incoming-request options (`maxRequestBodySize`, `ignoreIncomingRequestBody`)
 // to `httpIntegration`. With `@sentry/bun`, `bunHttpServerIntegration` creates the `http.server` spans

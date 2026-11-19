@@ -1,5 +1,5 @@
 /**
- * Orchestrion runtime hook for Bun 1.4.5 and later.
+ * Orchestrion runtime hook for Bun 1.4.6 and later.
  *
  * `init()` registers the same hook, but it only applies to modules imported
  * after `init()`. Load this via the `--preload` argument to `bun run`, or the

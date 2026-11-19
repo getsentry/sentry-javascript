@@ -18,9 +18,9 @@ function runBun(args: string[]): { stdout: string; stderr: string; status: numbe
 }
 
 describe('orchestrion mysql instrumentation (Bun)', () => {
-  // Before Bun 1.4.5, a CommonJS module like `mysql` loses its named exports
+  // Before Bun 1.4.6, a CommonJS module like `mysql` loses its named exports
   // when a runtime `onLoad` plugin returns it, so `bun run` cannot load it.
-  it.runIf(supports({ bunMin: '1.4.5' }))(
+  it.runIf(supports({ bunMin: '1.4.6' }))(
     'fires the mysql channel in `bun run` with the `@sentry/bun/import` preload',
     () => {
       const run = runBun(['--preload', '@sentry/bun/import', join(dir, 'scenario.ts')]);
