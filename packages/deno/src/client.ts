@@ -102,22 +102,6 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
   }
 
   /** @inheritDoc */
-  public async flush(timeout?: number): Promise<boolean> {
-    if (!this.getOptions().sendClientReports) {
-      return super.flush(timeout);
-    }
-
-    // Events still in processing can record drops (e.g. `before_send` after an async event
-    // processor), so flush the outcomes only after them. The rest of the timeout goes to the
-    // transport.
-    const start = Date.now();
-    const processed = await this._isClientDoneProcessing(timeout);
-    this._flushOutcomes();
-    const flushed = await super.flush(timeout ? Math.max(timeout - (Date.now() - start), 1) : timeout);
-    return processed && flushed;
-  }
-
-  /** @inheritDoc */
   // @ts-expect-error - PromiseLike is a subset of Promise
   public async close(timeout?: number | undefined): PromiseLike<boolean> {
     if (this._clientReportInterval !== undefined) {
@@ -133,7 +117,7 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
   }
 
   /**
-   * Starts sending client reports on an interval. The exit listener and `flush()` send them too.
+   * Starts sending client reports on an interval. The exit listener sends them too.
    *
    * `Sentry.init()` calls this; a directly constructed client must call it itself. It is not in the
    * constructor, so that creating many clients does not leak intervals. Call `close()` on a client
