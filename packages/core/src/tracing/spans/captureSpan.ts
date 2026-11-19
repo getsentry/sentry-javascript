@@ -67,7 +67,7 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
   client.emit('preprocessSpan', spanJSON);
 
   if (spanJSON.is_segment) {
-    // The span buffer builds the envelope's `trace` header from the segment span when a bucked is flushed.
+    // The span buffer builds the envelope's `trace` header from the segment span when a bucket is flushed.
     // This can happen after the captured scope moved on to another trace (e.g. a browser navigation).
     // Freezing the DSC at segment end keeps the values of this segment's trace.
     freezeDscOnSpan(segmentSpan, getDynamicSamplingContextFromSpan(segmentSpan));

@@ -1,3 +1,4 @@
+import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 import { SENTRY_IDLE_SPAN_FINISH_REASON } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -13,8 +14,8 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const pageloadPromise = waitForStreamedSpanAndTraceHeader(page, span => getSpanOp(span) === 'pageload');
-    const navigationPromise = waitForStreamedSpanAndTraceHeader(page, span => getSpanOp(span) === 'navigation');
+    const pageloadPromise = waitForStreamedSpanAndTraceHeader(page, span => getSpanOp(span) === PAGELOAD);
+    const navigationPromise = waitForStreamedSpanAndTraceHeader(page, span => getSpanOp(span) === NAVIGATION);
 
     await page.goto(url);
 
