@@ -24,7 +24,6 @@ const PACKAGE_FILE_REGEXP = /^(.*[/\\]node_modules[/\\]((?:@[^/\\]+[/\\])?[^/\\]
 /**
  * Before Bun 1.4.6, a CommonJS module returned by a runtime `onLoad` plugin loses its named
  * exports, so the transformed modules fail to load. See https://github.com/oven-sh/bun/issues/19279
- * The 1.4.5 release does not have the fix, though the 1.4.5 canaries, which also report `1.4.5`, do.
  */
 function hasBunRuntimePlugins(bunVersion: string): boolean {
   const { major = 0, minor = 0, patch = 0 } = parseSemver(bunVersion);
