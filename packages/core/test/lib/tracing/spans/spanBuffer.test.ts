@@ -6,12 +6,13 @@ import {
   SpanBuffer,
   startInactiveSpan,
   startSpan,
+  withScope,
   withStreamedSpan,
 } from '../../../../src';
 import type { SerializedStreamedSpanWithSegmentSpan } from '../../../../src/tracing/spans/captureSpan';
 import { captureSpan } from '../../../../src/tracing/spans/captureSpan';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
-import { HTTP_METHOD, SENTRY_SEGMENT_NAME, URL_FULL } from '@sentry/conventions/attributes';
+import { HTTP_METHOD, SENTRY_SEGMENT_NAME, SENTRY_SEGMENT_NAME_SOURCE, URL_FULL } from '@sentry/conventions/attributes';
 
 describe('SpanBuffer', () => {
   let client: TestClient;
@@ -376,6 +377,42 @@ describe('SpanBuffer', () => {
       );
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('trace envelope header', () => {
+    it('freezes the DSC on the first flush while the segment span is still running', () => {
+      const buffer = new SpanBuffer(client);
+
+      withScope(scope => {
+        const sampleRand = scope.getPropagationContext().sampleRand;
+        const root = startInactiveSpan({ name: 'GET /old', attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'route' } });
+        const traceId = root.spanContext().traceId;
+
+        const child = startInactiveSpan({ name: 'child', parentSpan: root });
+        child.end();
+        buffer.add(captureSpan(child, client));
+        buffer.flush(traceId);
+
+        root.updateName('GET /new');
+        scope.setPropagationContext({ traceId: '0'.repeat(32), sampleRand: 0.99 });
+
+        root.end();
+        buffer.add(captureSpan(root, client));
+        buffer.flush(traceId);
+
+        expect(sentEnvelopes).toHaveLength(2);
+        expect(sentEnvelopes[0]?.[0].trace).toEqual({
+          environment: 'production',
+          public_key: 'username',
+          trace_id: traceId,
+          transaction: 'GET /old',
+          sample_rate: '1',
+          sampled: 'true',
+          sample_rand: String(sampleRand),
+        });
+        expect(sentEnvelopes[1]?.[0].trace).toStrictEqual(sentEnvelopes[0]?.[0].trace);
+      });
     });
   });
 
