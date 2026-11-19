@@ -1,3 +1,4 @@
+/* oxlint-disable max-lines */
 import type { ChunkGraphNode, InternalOptions, Options } from '../core';
 import {
   createSentryBuildPluginManager,
@@ -23,7 +24,7 @@ import { createRequire } from 'node:module';
 import { finalizeRolldownDebugIds, getDebugIdForChunk, hasExistingDebugID } from './debug-id-injection';
 import { stampDebugIds, type OutputBundle } from './debug-id-stamping';
 import { createSourceMapHandling, type OutputDestinationOptions } from './source-map-handling';
-import { createViteSourceMapHooks } from '../vite/source-map-hooks';
+import { createViteSourceMapHooks, type ViteResolvedConfig } from '../vite/source-map-hooks';
 import {
   createViteReleaseHtmlInjection,
   type BuildInputOptions,
@@ -180,6 +181,18 @@ export function _createRollupPluginInternals(
   const transformReplace = Object.keys(replacementValues).length > 0;
   const shouldTransform = transformAnnotations || transformReplace;
 
+  let viteRoot: string | undefined;
+  // Vite before 6 has no environments and runs an SSR build with its own config.
+  let viteSsrBuild = false;
+
+  function getModuleVersionsInjectionCode(context: ViteHookContext | undefined): CodeInjection {
+    const environment = context?.environment;
+    return sentryBuildPluginManager.getModuleVersionsInjectionCode({
+      root: viteRoot,
+      isServerBuild: environment ? environment.config?.consumer === 'server' : viteSsrBuild,
+    });
+  }
+
   function buildStart(this: ViteHookContext | undefined, inputOptions?: BuildInputOptions): void {
     releaseHtmlInjection?.buildStart(this, inputOptions);
 
@@ -230,8 +243,11 @@ export function _createRollupPluginInternals(
 
     const injectCode = new CodeInjection();
 
-    if (!releaseHtmlInjection?.inHtml(this) && isInitialChunk(chunk, meta?.chunks)) {
-      injectCode.append(releaseInjectionCode);
+    if (isInitialChunk(chunk, meta?.chunks)) {
+      if (!releaseHtmlInjection?.inHtml(this)) {
+        injectCode.append(releaseInjectionCode);
+      }
+      injectCode.append(getModuleVersionsInjectionCode(this));
     }
 
     injectCode.append(chunkInjectionCode);
@@ -344,7 +360,14 @@ export function _createRollupPluginInternals(
     buildStart,
     ...(shouldTransform ? { transform: transformHook } : {}),
     ...(viteSourceMapHooks
-      ? { configResolved: viteSourceMapHooks.configResolved, outputOptions: viteSourceMapHooks.outputOptions }
+      ? {
+          configResolved(config: ViteResolvedConfig): void {
+            viteRoot = config.root;
+            viteSsrBuild = !!config.build.ssr;
+            viteSourceMapHooks.configResolved(config);
+          },
+          outputOptions: viteSourceMapHooks.outputOptions,
+        }
       : { outputOptions: sourceMapHandling.outputOptions }),
     ...(releaseHtmlInjection ? { transformIndexHtml: releaseHtmlInjection.transformIndexHtml } : {}),
     renderChunk,

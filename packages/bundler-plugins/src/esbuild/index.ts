@@ -62,6 +62,7 @@ interface EsbuildInitialOptions {
   absWorkingDir?: string;
   logOverride?: Record<string, string>;
   sourcemap?: EsbuildSourceMapSetting;
+  platform?: string;
 }
 
 /** Maps esbuild's `sourcemap` setting onto the plugin's source map kinds. */
@@ -189,7 +190,15 @@ export function sentryEsbuildPlugin(userOptions: InternalOptions = {}): any {
     name: pluginName,
     setup({ initialOptions, onLoad, onResolve, onStart, onEnd }: EsbuildPluginBuild) {
       // Release and/or metadata injection
-      if (!staticInjectionCode.isEmpty()) {
+      const injectionCode = staticInjectionCode.clone();
+      injectionCode.append(
+        sentryBuildPluginManager.getModuleVersionsInjectionCode({
+          root: initialOptions.absWorkingDir,
+          isServerBuild: initialOptions.platform === 'node',
+        }),
+      );
+
+      if (!injectionCode.isEmpty()) {
         const virtualInjectionFilePath = path.resolve('_sentry-injection-stub');
         initialOptions.inject = initialOptions.inject || [];
         // esbuild emits injected files after an entry's directive prologue. A banner would precede
@@ -208,7 +217,7 @@ export function sentryEsbuildPlugin(userOptions: InternalOptions = {}): any {
           return {
             loader: 'js',
             pluginName,
-            contents: staticInjectionCode.code(),
+            contents: injectionCode.code(),
           };
         });
       }

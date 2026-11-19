@@ -322,6 +322,16 @@ export function generateModuleMetadataInjectorCode(metadata: any): CodeInjection
   );
 }
 
+/**
+ * Merges the modules into `__SENTRY_SERVER_MODULES__`, which the Node SDK's `modulesIntegration` reads. Several
+ * bundles of one app can each set it.
+ */
+export function generateModulesInjectorCode(modules: Record<string, string>): CodeInjection {
+  return new CodeInjection(
+    `e.__SENTRY_SERVER_MODULES__=Object.assign({},e.__SENTRY_SERVER_MODULES__,${stringifyForCodeInjection(modules)});`,
+  );
+}
+
 export function getBuildInformation(): {
   deps: string[];
   depsVersions: Record<string, number>;

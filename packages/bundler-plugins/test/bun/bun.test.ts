@@ -20,7 +20,13 @@ const UUID = '0217b985-5bfb-77df-6475-6e2164756e21';
 
 type Output = { path: string; kind: string };
 type OnEnd = (result: { success: boolean; outputs: Output[]; logs: unknown[] }) => Promise<void>;
-type Config = { banner?: string; sourcemap?: string | boolean; define?: Record<string, string>; outdir?: string };
+type Config = {
+  banner?: string;
+  sourcemap?: string | boolean;
+  define?: Record<string, string>;
+  outdir?: string;
+  target?: 'browser' | 'bun' | 'node';
+};
 
 interface BunPlugin {
   name: string;
@@ -69,6 +75,20 @@ describe('sentryBunPlugin', () => {
   it('does nothing when Bun runs it as a runtime plugin, which has no build config', () => {
     const { onEnd } = setupPlugin(sentryBunPlugin({ telemetry: false }) as BunPlugin, undefined);
     expect(onEnd).toBeUndefined();
+  });
+
+  it.each(['bun', 'node'] as const)('injects module versions into builds with the %s target', target => {
+    const config: Config = { target };
+    setupPlugin(sentryBunPlugin({ telemetry: false }) as BunPlugin, config);
+
+    expect(config.banner).toContain('__SENTRY_SERVER_MODULES__');
+  });
+
+  it.each([undefined, 'browser'] as const)('does not inject module versions with the %j target', target => {
+    const config: Config = { target };
+    setupPlugin(sentryBunPlugin({ telemetry: false }) as BunPlugin, config);
+
+    expect(config.banner ?? '').not.toContain('__SENTRY_SERVER_MODULES__');
   });
 
   it('adds the debug ID snippet to the banner when Bun emits source maps', () => {

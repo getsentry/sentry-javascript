@@ -496,6 +496,21 @@ export interface Options {
   applicationKey?: string;
 
   /**
+   * Whether to inject the versions of the app's dependencies into the build output, so the Node SDK's
+   * `modulesIntegration` reports them when `node_modules` is missing or incomplete at runtime. Versions are the
+   * exact versions installed at build time, or the ranges in `package.json` for packages that are not installed.
+   *
+   * By default, the plugin injects them into server builds only: Vite environments with the `server` consumer or SSR
+   * builds, webpack builds with a `node` or `async-node` target, esbuild builds with `platform: 'node'`, and Bun
+   * builds with a `bun` or `node` target. Plain Rollup builds get no injection by default, because Rollup cannot tell
+   * where its output runs.
+   *
+   * Set to `true` to inject into every build, for example a Rollup build of a Node app, or to `false` to never
+   * inject. Do not set it to `true` for browser builds: the list ends up in the bundle that users download.
+   */
+  injectModuleVersions?: boolean;
+
+  /**
    * Options that are considered experimental and subject to change.
    *
    * @experimental API that does not follow semantic versioning and may change in any release

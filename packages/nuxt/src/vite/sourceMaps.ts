@@ -130,9 +130,9 @@ export function setupSourceMaps(
 
       // Add Sentry plugin
       // Runs only on server-side (Nitro)
-      nitroConfig.rollupConfig.plugins.push(
-        sentryRollupPlugin(withoutSourceMapDeletion(getPluginOptions(moduleOptions, shouldDeleteFilesFallback))),
-      );
+      const serverPluginOptions = withoutSourceMapDeletion(getPluginOptions(moduleOptions, shouldDeleteFilesFallback));
+      // Rollup cannot tell that Nitro's output runs on the server.
+      nitroConfig.rollupConfig.plugins.push(sentryRollupPlugin({ ...serverPluginOptions, injectModuleVersions: true }));
     }
   });
 

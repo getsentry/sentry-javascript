@@ -9,6 +9,7 @@ type BundlerOutputOptions = BundlerOutput | BundlerOutput[] | undefined;
 
 type ViteBuildOptions = {
   sourcemap?: RollupSourceMapSetting;
+  ssr?: boolean | string;
   outDir?: string;
   rollupOptions?: { output?: BundlerOutputOptions };
   rolldownOptions?: { output?: BundlerOutputOptions };

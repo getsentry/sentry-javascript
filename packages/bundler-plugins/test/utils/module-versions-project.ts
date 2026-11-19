@@ -1,0 +1,34 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { runInNewContext } from 'node:vm';
+
+/** What `__SENTRY_SERVER_MODULES__` holds for the project from `createModuleVersionsProject`. */
+export const INJECTED_MODULES = { 'declared-only': '^2.0.0', installed: '1.2.3' };
+
+/**
+ * Creates an app with one installed and one declared-only dependency, and an `entry.js` that the bundler tests
+ * build.
+ */
+export function createModuleVersionsProject(): string {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sentry-module-versions-'));
+  fs.writeFileSync(
+    path.join(root, 'package.json'),
+    JSON.stringify({ name: 'app', dependencies: { 'declared-only': '^2.0.0', installed: '^1.0.0' } }),
+  );
+  fs.mkdirSync(path.join(root, 'node_modules', 'installed'), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, 'node_modules', 'installed', 'package.json'),
+    JSON.stringify({ name: 'installed', version: '1.2.3' }),
+  );
+  fs.writeFileSync(path.join(root, 'entry.js'), 'console.log("entry");\n');
+  return root;
+}
+
+/** Runs a CommonJS bundle and returns the `__SENTRY_SERVER_MODULES__` it set. */
+export function runAndReadModules(code: string): unknown {
+  const module = { exports: {} };
+  const context: Record<string, unknown> = { console: { log: () => undefined }, module, exports: module.exports };
+  runInNewContext(code, context);
+  return context.__SENTRY_SERVER_MODULES__;
+}

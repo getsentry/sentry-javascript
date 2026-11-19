@@ -80,6 +80,8 @@ type WebpackCompiler = {
     plugins?: unknown[];
     mode?: string;
     devtool?: string | false;
+    target?: string | string[] | false;
+    context?: string;
     module?: {
       rules?: unknown[];
     };
@@ -206,6 +208,10 @@ type WebpackModule = {
   version?: string;
   default?: { version?: string };
 };
+
+function isNodeTarget(target: string | string[] | false | undefined): boolean {
+  return (Array.isArray(target) ? target : [target]).some(t => typeof t === 'string' && /^(async-)?node/.test(t));
+}
 
 // Only used for telemetry; `webpack` is an optional peer dependency and may be absent (e.g. rspack).
 function getWebpackMajorVersion(): string | undefined {
@@ -433,7 +439,17 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptio
   }
 
   function addCodeInjection(compiler: WebpackCompiler, injectRelease: boolean): void {
-    if ((!injectRelease || releaseInjectionCode.isEmpty()) && chunkInjectionCode.isEmpty() && !injectDebugIds) {
+    const moduleVersionsInjectionCode = sentryBuildPluginManager.getModuleVersionsInjectionCode({
+      root: compiler.options.context,
+      isServerBuild: isNodeTarget(compiler.options.target),
+    });
+
+    if (
+      (!injectRelease || releaseInjectionCode.isEmpty()) &&
+      moduleVersionsInjectionCode.isEmpty() &&
+      chunkInjectionCode.isEmpty() &&
+      !injectDebugIds
+    ) {
       return;
     }
 
@@ -471,8 +487,11 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptio
               const sourceContents = source.source();
               const code = typeof sourceContents === 'string' ? sourceContents : Buffer.from(sourceContents).toString();
               const codeToInject = new CodeInjection();
-              if (injectRelease && (chunk.canBeInitial?.() ?? true)) {
-                codeToInject.append(releaseInjectionCode);
+              if (chunk.canBeInitial?.() ?? true) {
+                if (injectRelease) {
+                  codeToInject.append(releaseInjectionCode);
+                }
+                codeToInject.append(moduleVersionsInjectionCode);
               }
               codeToInject.append(chunkInjectionCode);
               if (injectDebugIds) {

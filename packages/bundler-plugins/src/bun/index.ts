@@ -20,6 +20,7 @@ interface BunBuildConfig {
   sourcemap?: 'none' | 'linked' | 'inline' | 'external' | boolean;
   outdir?: string;
   define?: Record<string, string>;
+  target?: 'browser' | 'bun' | 'node';
 }
 
 interface BunPluginBuilder {
@@ -133,6 +134,11 @@ export function sentryBunPlugin(userOptions: Options = {}): BunPlugin {
 
       const injectionCode = new CodeInjection();
       injectionCode.append(staticInjectionCode);
+      injectionCode.append(
+        sentryBuildPluginManager.getModuleVersionsInjectionCode({
+          isServerBuild: config.target === 'bun' || config.target === 'node',
+        }),
+      );
       if (injectDebugIds) {
         injectionCode.append(getDebugIdSnippet(DEBUG_ID_PLACEHOLDER));
       }

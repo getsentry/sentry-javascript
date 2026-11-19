@@ -462,7 +462,7 @@ describe('setupSourceMaps hooks', () => {
       const nitroConfig = { rollupConfig: { plugins: [] as unknown[], output: {} }, dev: false };
       await mockNuxt.triggerHook('nitro:config', nitroConfig);
 
-      expect(mockSentryRollupPlugin).toHaveBeenCalled();
+      expect(mockSentryRollupPlugin).toHaveBeenCalledWith(expect.objectContaining({ injectModuleVersions: true }));
       expect(nitroConfig.rollupConfig.plugins.length).toBeGreaterThan(0);
     });
 

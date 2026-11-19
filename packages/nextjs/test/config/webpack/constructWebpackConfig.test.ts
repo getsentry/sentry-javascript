@@ -313,18 +313,10 @@ describe('constructWebpackConfigFunction()', () => {
         sentryBuildTimeOptions: {},
       });
 
-      const definePlugin = finalWebpackConfig.plugins?.find(
-        plugin => plugin.constructor.name === 'DefinePlugin',
-      ) as any;
+      const definePlugin = finalWebpackConfig.plugins?.find(plugin => plugin.constructor.name === 'DefinePlugin');
 
-      // Should not have a DefinePlugin for treeshaking (may have one for __SENTRY_SERVER_MODULES__)
-      if (definePlugin) {
-        expect(definePlugin.definitions).not.toHaveProperty('__SENTRY_DEBUG__');
-        expect(definePlugin.definitions).not.toHaveProperty('__SENTRY_TRACING__');
-        expect(definePlugin.definitions).not.toHaveProperty('__RRWEB_EXCLUDE_IFRAME__');
-        expect(definePlugin.definitions).not.toHaveProperty('__RRWEB_EXCLUDE_SHADOW_DOM__');
-        expect(definePlugin.definitions).not.toHaveProperty('__SENTRY_EXCLUDE_REPLAY_WORKER__');
-      }
+      // The Sentry webpack plugin injects `__SENTRY_SERVER_MODULES__`, so nothing else needs a DefinePlugin.
+      expect(definePlugin).toBeUndefined();
     });
 
     it('does not add DefinePlugin when treeshake option is empty object', async () => {
@@ -345,18 +337,9 @@ describe('constructWebpackConfigFunction()', () => {
         },
       });
 
-      const definePlugin = finalWebpackConfig.plugins?.find(
-        plugin => plugin.constructor.name === 'DefinePlugin',
-      ) as any;
+      const definePlugin = finalWebpackConfig.plugins?.find(plugin => plugin.constructor.name === 'DefinePlugin');
 
-      // Should not have treeshaking flags in DefinePlugin
-      if (definePlugin) {
-        expect(definePlugin.definitions).not.toHaveProperty('__SENTRY_DEBUG__');
-        expect(definePlugin.definitions).not.toHaveProperty('__SENTRY_TRACING__');
-        expect(definePlugin.definitions).not.toHaveProperty('__RRWEB_EXCLUDE_IFRAME__');
-        expect(definePlugin.definitions).not.toHaveProperty('__RRWEB_EXCLUDE_SHADOW_DOM__');
-        expect(definePlugin.definitions).not.toHaveProperty('__SENTRY_EXCLUDE_REPLAY_WORKER__');
-      }
+      expect(definePlugin).toBeUndefined();
     });
 
     it('adds __SENTRY_DEBUG__ flag when debugLogging is true', async () => {
@@ -608,9 +591,7 @@ describe('constructWebpackConfigFunction()', () => {
         },
       });
 
-      const definePlugin = finalWebpackConfig.plugins?.find(
-        plugin => plugin.constructor.name === 'DefinePlugin',
-      ) as any;
+      const definePlugin = finalWebpackConfig.plugins?.find(plugin => plugin.constructor.name === 'DefinePlugin');
 
       // Should not have treeshaking flags
       if (definePlugin) {
