@@ -8,6 +8,7 @@ import {
   BUN_RUN_EXCLUDE,
   NO_AUTO_INSTRUMENTATION,
   NODE_SUITES_EXCLUDE,
+  SENTRY_BUN_BEFORE_1_4_EXCLUDE,
   SENTRY_BUN_EXCLUDE,
   SENTRY_NODE_EXCLUDE,
 } from './node-suites/excludes';
@@ -87,6 +88,7 @@ export default defineConfig({
           exclude: [
             ...NODE_SUITES_EXCLUDE,
             ...SENTRY_BUN_EXCLUDE,
+            ...(BUN_BEFORE_1_4 ? SENTRY_BUN_BEFORE_1_4_EXCLUDE : []),
             // The scenario creates a `NodeClient` itself, which sends `sentry.javascript.node`.
             'suites/public-api/logs/test.ts',
             // `@sentry/bun` has `bunRuntimeMetricsIntegration` instead of `nodeRuntimeMetricsIntegration`.

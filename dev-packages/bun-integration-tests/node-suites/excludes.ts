@@ -140,12 +140,14 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/vercelai/**',
 ];
 
-// Fail on Bun. The cause is not investigated yet.
-const NOT_TRIAGED = [
-  'suites/contextLines/filename-with-spaces/test.ts',
-  'suites/modules/test.ts',
-  'suites/proxy/test.ts',
-];
+// Bun reports other stack frames than Node: the column of `new Error()` points at `Error`, not
+// `new`, and the top-level frame of a CommonJS module is `<anonymous>`, not `Object.?`.
+const BUN_STACK_FRAMES_DIFFER = ['suites/contextLines/filename-with-spaces/test.ts'];
+
+// The CJS and ESM cases need Express to capture the route error, which `bun run` does not
+// instrument. A bundled app does not help: it has no `require.cache`, and the isolated packages
+// are inlined, so the module versions do not match.
+const MODULES_NEED_UNBUNDLED_EXPRESS = ['suites/modules/test.ts'];
 
 // The scenario configures `nativeNodeFetchIntegration`, which `@sentry/bun` does not export.
 const NO_NATIVE_NODE_FETCH_INTEGRATION = [
@@ -194,7 +196,13 @@ const NO_EXPRESS_INSTRUMENTATION = [
   'suites/tracing/traceid-recycling-with-spans/test.ts',
 ];
 
-export const NODE_SUITES_EXCLUDE = ['**/node_modules/**', ...NODE_ONLY, ...NO_AUTO_INSTRUMENTATION, ...NOT_TRIAGED];
+export const NODE_SUITES_EXCLUDE = [
+  '**/node_modules/**',
+  ...NODE_ONLY,
+  ...NO_AUTO_INSTRUMENTATION,
+  ...BUN_STACK_FRAMES_DIFFER,
+  ...MODULES_NEED_UNBUNDLED_EXPRESS,
+];
 
 // Excluded only in the `node-suites` project, which runs the suites with `@sentry/node`.
 export const SENTRY_NODE_EXCLUDE = [...NO_HTTP_SERVER_SPANS, ...NO_FETCH_INSTRUMENTATION];
@@ -204,6 +212,11 @@ export const SENTRY_NODE_EXCLUDE = [...NO_HTTP_SERVER_SPANS, ...NO_FETCH_INSTRUM
 // queued behind it, which the pipelined cases need. `packages/bun` runs the same cases against Bun's
 // servers without those.
 const BUN_DROPS_PIPELINED_REQUESTS = ['suites/tunnel/hardening/test.ts'];
+
+// Before Bun 1.4, `require('../package.json')` in an ES module of `proxy` fails with `Cannot find
+// module '../package.json' from ''` when `alias-sentry-bun.ts` wraps `Module._resolveFilename`.
+// Excluded in `node-suites-sentry-bun` only before Bun 1.4.
+export const SENTRY_BUN_BEFORE_1_4_EXCLUDE = ['suites/proxy/test.ts'];
 
 export const SENTRY_BUN_EXCLUDE = [
   ...BUN_DROPS_PIPELINED_REQUESTS,
@@ -228,47 +241,61 @@ const BUN_BUILD_NO_HTTP_SERVER_INTEGRATION = ['suites/express/multiple-init/test
 // `@mistralai/mistralai` v3 statically imports its optional peer `@livekit/rtc-node`, so Bun cannot
 // bundle the scenarios. `mistral-v2` still covers Mistral here.
 //
-// `mongodb` v3 loads `optional-require`, whose `require-at` dependency calls `eval("require")`. Bun's
-// ESM output gives a direct `eval` in a bundled CommonJS file no `require`, so the bundle throws
-// `require is not defined`. See https://github.com/oven-sh/bun/issues/14891
-const BUN_BUILD_UNBUNDLEABLE_DEPENDENCY = ['suites/tracing/mistral/test.ts', 'suites/tracing/mongodb/test.ts'];
-
-// Some or all tests fail with the bundled scenarios. The cause is not investigated yet.
-const BUN_BUILD_NOT_TRIAGED = [
-  'suites/express/sentry-trace/test.ts',
-  'suites/express/tracing/routing/test.ts',
-  'suites/hono-sdk/test.ts',
-  'suites/tracing/google-genai-v2/test.ts',
-  'suites/tracing/google-genai-v3/test.ts',
-  'suites/tracing/google-genai/test.ts',
-  'suites/tracing/langchain/v1/**',
-  'suites/tracing/langgraph/v1/test.ts',
-  'suites/tracing/mastra/**',
-  'suites/tracing/mcp-handler-exact-once/test.ts',
-  'suites/tracing/mcp-server-streamed/test.ts',
-  'suites/tracing/mongodb-v4/test.ts',
-  'suites/tracing/mongodb-v5/test.ts',
-  'suites/tracing/mongodb-v6/test.ts',
-  'suites/tracing/mongodb-v7/test.ts',
-  'suites/tracing/mongoose-tracing-channel/test.ts',
+// `mongodb` v3 (also a dependency of `mongoose` v5) loads `optional-require`, whose `require-at`
+// dependency calls `eval("require")`. Bun's ESM output gives a direct `eval` in a bundled CommonJS
+// file no `require`, so the bundle throws `require is not defined`.
+// See https://github.com/oven-sh/bun/issues/14891
+//
+// The CommonJS build of `together-ai` 0.x requires its optional peer `parquetjs`, so Bun cannot
+// bundle the CJS scenario. `together-ai/v1` still covers Together here.
+const BUN_BUILD_UNBUNDLEABLE_DEPENDENCY = [
+  'suites/tracing/mistral/test.ts',
+  'suites/tracing/mongodb/test.ts',
   'suites/tracing/mongoose-v5/test.ts',
-  'suites/tracing/mongoose-v7/test.ts',
-  'suites/tracing/mongoose-v8/test.ts',
-  'suites/tracing/mongoose-v9/test.ts',
-  'suites/tracing/mongoose/test.ts',
-  'suites/tracing/prisma-orm-v8/test.ts',
   'suites/tracing/together-ai/test.ts',
-  'suites/tracing/vercelai/v6_v7/**',
 ];
+
+// The library loads a module at runtime, which the bundle does not contain, so the build plugin
+// does not instrument it. LangChain `initChatModel` calls `import(config.package)` to load the
+// provider. The Mastra integration loads `@mastra/observability` when the app configures no
+// observability.
+const BUN_BUILD_RUNTIME_LOADED_MODULE = [
+  'suites/tracing/langchain/v1/tracing/test.ts',
+  'suites/tracing/mastra/core/observability/test.ts',
+];
+
+// The suite tests `@sentry/hono/node`, which builds on `@sentry/node` and creates no `http.server`
+// spans on Bun. `@sentry/hono/bun` takes its options in `sentry(app, options)` instead of a separate
+// `init()`, so the scenario cannot use it. `suites/hono-sdk` in this package tests `@sentry/hono/bun`.
+const HONO_NODE_SDK = ['suites/hono-sdk/test.ts'];
 
 // Before Bun 1.4, Bun does not publish `http.client.request.created`, and `@sentry/node` picks the
 // channel from the Node version that Bun reports. So outgoing `node:http` requests get no
-// `sentry-trace` header, and the `/test2` request starts its own trace.
+// `sentry-trace` or `baggage` header.
 // See https://github.com/getsentry/sentry-javascript/issues/26614
-const BUN_1_3_NO_HTTP_CLIENT_CHANNEL = ['suites/express/with-http/base/test.ts'];
+const BUN_1_3_NO_HTTP_CLIENT_CHANNEL = ['suites/express/sentry-trace/test.ts', 'suites/express/with-http/base/test.ts'];
+
+// Bun 1.3 bundles these CommonJS scenarios into code that calls a `require_*` helper before it is
+// defined, so the scenario throws `require_ai is not a function`. The ESM tests still pass.
+const BUN_1_3_BUNDLES_CJS_OUT_OF_ORDER = [
+  'suites/tracing/langchain/v1/decisions/test.ts',
+  'suites/tracing/langgraph/v1/test.ts',
+];
+
+// `mongodb` v7 (also a dependency of `mongoose` v9) calls `isBuildingSnapshot()` from `node:v8`,
+// which Bun 1.3 does not implement, so the scenario throws `NotImplementedError`.
+const BUN_1_3_NO_V8_IS_BUILDING_SNAPSHOT = [
+  'suites/tracing/mongodb-v7/test.ts',
+  'suites/tracing/mongoose-tracing-channel/test.ts',
+  'suites/tracing/mongoose-v9/test.ts',
+];
 
 // Excluded in `node-suites-bun-build` only before Bun 1.4.
-export const BUN_BUILD_BEFORE_1_4_EXCLUDE = [...BUN_1_3_NO_HTTP_CLIENT_CHANNEL];
+export const BUN_BUILD_BEFORE_1_4_EXCLUDE = [
+  ...BUN_1_3_NO_HTTP_CLIENT_CHANNEL,
+  ...BUN_1_3_BUNDLES_CJS_OUT_OF_ORDER,
+  ...BUN_1_3_NO_V8_IS_BUILDING_SNAPSHOT,
+];
 
 export const BUN_BUILD_EXCLUDE = [
   '**/node_modules/**',
@@ -277,16 +304,12 @@ export const BUN_BUILD_EXCLUDE = [
   ...BUN_BUILD_EAGER_SUBSCRIPTION,
   ...BUN_BUILD_NO_HTTP_SERVER_INTEGRATION,
   ...BUN_BUILD_UNBUNDLEABLE_DEPENDENCY,
-  ...BUN_BUILD_NOT_TRIAGED,
+  ...BUN_BUILD_RUNTIME_LOADED_MODULE,
+  ...HONO_NODE_SDK,
 ];
 
 // The `bun run` project (`node-suites-bun-run`) runs the suites of `NO_AUTO_INSTRUMENTATION` with
 // `@sentry/bun/import` preloaded, on Bun 1.4.6 or later. These do not run there.
-
-// The suite tests `@sentry/hono/node`, which builds on `@sentry/node` and creates no `http.server`
-// spans on Bun. `@sentry/hono/bun` takes its options in `sentry(app, options)` instead of a separate
-// `init()`, so the scenario cannot use it. `suites/hono-sdk` in this package tests `@sentry/hono/bun`.
-const BUN_RUN_HONO_NODE_SDK = ['suites/hono-sdk/test.ts'];
 
 export const BUN_RUN_EXCLUDE = [
   '**/node_modules/**',
@@ -295,5 +318,5 @@ export const BUN_RUN_EXCLUDE = [
   // These fail for the same reasons as with the bundled scenarios.
   ...BUN_BUILD_EAGER_SUBSCRIPTION,
   ...BUN_BUILD_NO_HTTP_SERVER_INTEGRATION,
-  ...BUN_RUN_HONO_NODE_SDK,
+  ...HONO_NODE_SDK,
 ];
