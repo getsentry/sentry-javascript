@@ -1,8 +1,8 @@
 import { captureException, debug, defineIntegration, getClient } from '@sentry/core';
+import { logAndExitProcess } from '@sentry/server-utils';
 import { isMainThread } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClient } from '../sdk/client';
-import { logAndExitProcess } from '../utils/errorhandling';
 
 type OnFatalErrorHandler = (firstError: Error, secondError?: Error) => void;
 

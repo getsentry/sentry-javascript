@@ -134,6 +134,7 @@ export {
   instrumentStateGraph,
   instrumentStateGraphCompile,
   instrumentCreateReactAgent,
+  onUnhandledRejectionIntegration,
 } from '@sentry/server-utils';
 export type { FlueOptions } from '@sentry/server-utils';
 

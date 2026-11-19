@@ -7,6 +7,8 @@ export { getSqlQuerySummary, sanitizeSqlQuery, getSqlQueryAttributes, getSqlSpan
 export type { SqlDialect } from './utils/sql';
 export { isBun, isCloudflareWorkers, isDeno } from './utils/runtime';
 export { instrumentPostgresJsSql } from './integrations/postgresjs-wrapper';
+export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
+export { logAndExitProcess } from './utils/errorhandling';
 export type { PostgresConnectionContext } from './integrations/postgresjs-wrapper';
 
 // Shared, runtime-agnostic Hono instrumentation re-used by the `@sentry/hono` SDK across all runtimes.
