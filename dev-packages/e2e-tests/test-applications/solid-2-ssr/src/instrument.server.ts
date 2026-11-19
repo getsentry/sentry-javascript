@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/solid/solid2/server';
+import * as Sentry from '@sentry/solid/solid2';
 
 Sentry.init({
   dsn: process.env.E2E_TEST_DSN,

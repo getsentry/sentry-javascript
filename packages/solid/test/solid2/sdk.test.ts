@@ -1,7 +1,7 @@
 import { SDK_VERSION } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { init } from '../../src/solid2';
+import { init } from '../../src/solid2/client';
 
 const browserInit = vi.spyOn(SentryBrowser, 'init');
 

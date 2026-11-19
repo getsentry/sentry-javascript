@@ -50,13 +50,18 @@
       }
     },
     "./solid2": {
-      "import": {
-        "types": "./build/types/solid2/index.d.ts",
-        "default": "./build/esm/solid2/index.js"
+      "types": "./build/types/solid2/index.types.d.ts",
+      "browser": {
+        "import": "./build/esm/solid2/index.client.js",
+        "require": "./build/cjs/solid2/index.client.js"
       },
-      "require": {
-        "types": "./build/types/solid2/index.d.ts",
-        "default": "./build/cjs/solid2/index.js"
+      "node": {
+        "import": "./build/esm/solid2/index.server.js",
+        "require": "./build/cjs/solid2/index.server.js"
+      },
+      "default": {
+        "import": "./build/esm/solid2/index.server.js",
+        "require": "./build/cjs/solid2/index.server.js"
       }
     },
     "./solid2/solidrouter": {
@@ -67,16 +72,6 @@
       "require": {
         "types": "./build/types/solid2/solidrouter.d.ts",
         "default": "./build/cjs/solid2/solidrouter.js"
-      }
-    },
-    "./solid2/server": {
-      "import": {
-        "types": "./build/types/solid2/server/index.d.ts",
-        "default": "./build/esm/solid2/server/index.js"
-      },
-      "require": {
-        "types": "./build/types/solid2/server/index.d.ts",
-        "default": "./build/cjs/solid2/server/index.js"
       }
     }
   },
@@ -91,11 +86,15 @@
   },
   "peerDependencies": {
     "@solidjs/router": ">=0.13.4 <2.0.0-0 || ^2.0.0",
+    "@solidjs/web": "^2.0.0",
     "@tanstack/solid-router": "^1.132.27",
     "solid-js": "^1.8.4 || ^2.0.0"
   },
   "peerDependenciesMeta": {
     "@solidjs/router": {
+      "optional": true
+    },
+    "@solidjs/web": {
       "optional": true
     },
     "@tanstack/solid-router": {
