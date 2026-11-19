@@ -65,6 +65,7 @@ const CASES: Case[] = [
   { specifier: '@sentry/node', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/node/import', conditions: NODE, formats: ESM },
   { specifier: '@sentry/bun', conditions: ['bun', 'node'], formats: BOTH },
+  { specifier: '@sentry/bun/import', conditions: ['bun', 'node'], formats: ESM },
   { specifier: '@sentry/deno', conditions: ['deno', 'node'], formats: ESM },
   { specifier: '@sentry/vercel-edge', conditions: ['edge-light'], formats: BOTH },
   { specifier: '@sentry/cloudflare', conditions: WORKERD, formats: BOTH },

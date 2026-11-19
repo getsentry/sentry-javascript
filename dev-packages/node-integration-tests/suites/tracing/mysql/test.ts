@@ -22,6 +22,7 @@ import {
 import { DB } from '@sentry/conventions/op';
 import type { AddressInfo, Server } from 'node:net';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
+import { EXPECTED_SDK_NAME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 import { startMysqlTestServer } from './mysql-test-server';
 
@@ -94,7 +95,7 @@ describe('mysql auto instrumentation', () => {
       },
       [SENTRY_SDK_NAME]: {
         type: 'string',
-        value: 'sentry.javascript.node',
+        value: EXPECTED_SDK_NAME,
       },
       [SENTRY_SDK_VERSION]: {
         type: 'string',

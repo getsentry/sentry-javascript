@@ -70,6 +70,18 @@ describe('express multiple routers', () => {
     });
   });
 
+  createCjsTests(__dirname, 'scenario-mount-with-two-handlers.mjs', 'instrument.mjs', (createRunner, test) => {
+    // One `use` call with two handlers adds two layers, and only the last one gets a registration event.
+    test('should construct correct url for a router that is mounted together with a second handler.', async () => {
+      const runner = createRunner()
+        .ignore('span')
+        .expect({ event: { message: 'Custom Message', transaction: 'GET /api/v1/users/:userId' } })
+        .start();
+      runner.makeRequest('get', '/api/v1/users/1234');
+      await runner.completed();
+    });
+  });
+
   describe('complex-router', () => {
     createCjsTests(__dirname, 'scenario-complex-router.mjs', 'instrument.mjs', (createRunner, test) => {
       test('should construct correct url with multiple parameterized routers, when param is also contain in middle layer route and express used multiple middlewares with route', async () => {
