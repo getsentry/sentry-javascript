@@ -98,11 +98,11 @@ function serialize(value: unknown, ancestors = new Set<object>()): unknown {
   return result;
 }
 
-// Integrations are captured separately; serverName would split configurations by host.
+// Integrations are reported at the top level; serverName would split configurations by host.
 const EXCLUDED_OPTIONS = new Set(['integrations', 'serverName']);
 
 function buildConfigAttributes(client: Client): Record<string, string> {
-  const { sdk, optionsSetByUser = [], integrationsSetByUser } = client.getSdkMetadata() || {};
+  const { sdk, optionsSetByUser = [] } = client.getSdkMetadata() || {};
   const clientOptions = client.getOptions();
   const { release, environment, dist } = clientOptions;
   const runtime = 'runtime' in clientOptions ? clientOptions.runtime : undefined;
@@ -111,10 +111,6 @@ function buildConfigAttributes(client: Client): Record<string, string> {
   const options: Record<string, unknown> = Object.fromEntries(
     Object.entries(clientOptions).filter(([key]) => optionsSetByUser.includes(key) && !EXCLUDED_OPTIONS.has(key)),
   );
-
-  if (integrationsSetByUser) {
-    options.integrations = integrationsSetByUser.map(name => ({ name }));
-  }
 
   if (Array.isArray(options.defaultIntegrations)) {
     options.defaultIntegrations = options.defaultIntegrations.map((integration: Integration) => ({
@@ -125,11 +121,12 @@ function buildConfigAttributes(client: Client): Record<string, string> {
   // The hash covers the whole payload, so a payload cached by its hash is never stale.
   const payload = JSON.stringify({
     version: 2,
-    sdk,
-    runtime,
+    sdk: serialize(sdk),
+    runtime: serialize(runtime),
     release,
     environment,
     dist,
+    integrations: client.getIntegrationNames().map(name => ({ name })),
     options: serialize(options),
   });
 

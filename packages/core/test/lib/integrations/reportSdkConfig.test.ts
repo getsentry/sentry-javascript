@@ -64,13 +64,13 @@ describe('experimentalReportSdkConfigIntegration', () => {
       release: 'shop@1.4.2',
       environment: 'staging',
       dist: '42',
+      integrations: [{ name: 'ExperimentalReportSdkConfig' }, { name: 'Tag' }],
       options: {
         runtime: { name: 'node', version: 'v24.22.1' },
         release: 'shop@1.4.2',
         environment: 'staging',
         dist: '42',
         defaultIntegrations: false,
-        integrations: [{ name: 'ExperimentalReportSdkConfig' }, { name: 'Tag' }],
         tracesSampleRate: 0.5,
       },
     });
@@ -98,9 +98,8 @@ describe('experimentalReportSdkConfigIntegration', () => {
     expect(payload).toEqual({
       version: 2,
       ...resolvedOptions,
-      options: {
-        integrations: [{ name: 'ExperimentalReportSdkConfig' }],
-      },
+      integrations: [{ name: 'ExperimentalReportSdkConfig' }],
+      options: {},
     });
   });
 
@@ -120,7 +119,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
     expect(payload.options).toEqual({ defaultIntegrations: [{ name: 'ExperimentalReportSdkConfig' }] });
   });
 
-  it('reports the integration names returned by an integrations callback', () => {
+  it('reports the resolved integrations after an integrations callback', () => {
     const userOptions = captureOptionsSetByUser({
       integrations: (defaults: Integration[]) => [
         ...defaults.filter(integration => integration.name !== 'Dropped'),
@@ -140,12 +139,14 @@ describe('experimentalReportSdkConfigIntegration', () => {
       }),
     );
 
-    expect(payload.options).toEqual({
+    expect(payload).toEqual({
+      version: 2,
       integrations: [{ name: 'Kept' }, { name: 'Tag' }, { name: 'ExperimentalReportSdkConfig' }],
+      options: {},
     });
   });
 
-  it('reports no options when the user-set options were not captured', () => {
+  it('reports installed integrations even when user-set options were not captured', () => {
     const payload = reportConfig(
       getDefaultTestClientOptions({
         dsn: 'https://username@domain/123',
@@ -154,6 +155,10 @@ describe('experimentalReportSdkConfigIntegration', () => {
       }),
     );
 
-    expect(payload.options).toEqual({});
+    expect(payload).toEqual({
+      version: 2,
+      integrations: [{ name: 'ExperimentalReportSdkConfig' }],
+      options: {},
+    });
   });
 });
