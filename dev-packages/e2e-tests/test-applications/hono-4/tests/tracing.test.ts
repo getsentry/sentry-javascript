@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForStreamedSpan, getSpanOp } from '@sentry-internal/test-utils';
+import { randomBytes } from 'node:crypto';
 import { APP_NAME, RUNTIME, type Runtime } from './constants';
 
 const anyString = expect.any(String) as unknown;
@@ -71,6 +72,48 @@ const CONN_INFO: Record<Runtime, { added: Record<string, unknown>; baseline: Rec
 };
 
 const connInfo = CONN_INFO[RUNTIME];
+
+test('continues the trace of an incoming request', async ({ baseURL }) => {
+  const traceId = randomBytes(16).toString('hex');
+  const parentSpanId = randomBytes(8).toString('hex');
+  const segmentPromise = waitForStreamedSpan(
+    APP_NAME,
+    span => span.is_segment && span.name === 'GET /test-param/:paramId' && span.trace_id === traceId,
+  );
+
+  const response = await fetch(`${baseURL}/test-param/continued`, {
+    headers: {
+      'sentry-trace': `${traceId}-${parentSpanId}-1`,
+      baggage: `sentry-trace_id=${traceId},sentry-public_key=username,sentry-sampled=true`,
+    },
+  });
+  expect(response.status).toBe(200);
+
+  expect(await segmentPromise).toMatchObject({ trace_id: traceId, parent_span_id: parentSpanId });
+});
+
+test('propagates the trace to an outgoing fetch request', async ({ baseURL }) => {
+  const downstreamUrl = `${baseURL}/test-trace-headers`;
+  const segmentPromise = waitForStreamedSpan(
+    APP_NAME,
+    span => span.is_segment && span.name === 'GET /test-outgoing-fetch',
+  );
+  const fetchSpanPromise = waitForStreamedSpan(
+    APP_NAME,
+    span => getSpanOp(span) === 'http.client' && span.attributes['url.full']?.value === downstreamUrl,
+  );
+
+  const response = await fetch(`${baseURL}/test-outgoing-fetch`);
+  expect(response.status).toBe(200);
+  const headers = await response.json();
+
+  const [segment, fetchSpan] = await Promise.all([segmentPromise, fetchSpanPromise]);
+  expect(fetchSpan.trace_id).toBe(segment.trace_id);
+  expect(fetchSpan.parent_span_id).toBe(segment.span_id);
+  expect(headers.sentryTrace).toBe(`${segment.trace_id}-${fetchSpan.span_id}-1`);
+  expect(headers.baggage).toContain(`sentry-trace_id=${segment.trace_id}`);
+  expect(headers.baggage).toContain('sentry-environment=qa');
+});
 
 test('sends a span for the index route', async ({ baseURL }) => {
   const segmentPromise = waitForStreamedSpan(
