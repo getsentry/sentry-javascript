@@ -656,9 +656,10 @@ describe('package specifier as wrangler `main`', () => {
     const warn = vi.fn();
     const tx = (id: string, environment = ssr) =>
       plugin.transform.call({ parse: (c: string) => parseJS(c), warn, environment }, code, id);
-    const buildEnd = () => plugin.buildEnd.call({ warn, environment: ssr });
+    const buildStart = (resolve = vi.fn().mockResolvedValue(null)) =>
+      plugin.buildStart.call({ warn, environment: ssr, resolve });
 
-    return { tx, buildEnd, entryPath, dir, warn };
+    return { tx, buildStart, entryPath, dir, warn };
   }
 
   it('wraps the module the specifier resolves to', async () => {
@@ -703,15 +704,13 @@ describe('package specifier as wrangler `main`', () => {
     expect(result.code).toContain('__SENTRY__.withSentry(__SENTRY_OPTIONS_CALLBACK__,');
   });
 
-  it('warns once at the end of the build when the specifier does not resolve', async () => {
-    const { tx, dir, warn, buildEnd } = createPlugin();
+  it('warns at build start when the specifier does not resolve', async () => {
+    const { tx, dir, warn, buildStart } = createPlugin();
     idResolver.mockResolvedValue(undefined);
 
+    await buildStart();
     expect(await tx(join(dir, 'a.js'))).toBeUndefined();
     expect(await tx(join(dir, 'b.js'))).toBeUndefined();
-    expect(warn).not.toHaveBeenCalled();
-
-    buildEnd();
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith(
       '[sentry] Could not resolve the wrangler `main` "vinext/server/fetch-handler". Auto-instrumentation disabled.',
@@ -721,6 +720,7 @@ describe('package specifier as wrangler `main`', () => {
 
 describe('virtual module as wrangler `main`', () => {
   const MAIN = 'virtual:solid-ssr-handler';
+  const RESOLVED_ID = `\0${MAIN}`;
   const code = 'export default { fetch() { return new Response("ok"); } };';
   const ssr = { name: 'ssr' };
 
@@ -736,43 +736,60 @@ describe('virtual module as wrangler `main`', () => {
     plugin.configResolved({ root: dir });
 
     const warn = vi.fn();
-    const context = { parse: (c: string) => parseJS(c), warn, environment: ssr };
+    // The plugin pipeline, where the plugin that serves the virtual module resolves it.
+    const resolve = vi.fn(async (source: string) => (source === MAIN ? { id: RESOLVED_ID } : null));
+    const context = { parse: (c: string) => parseJS(c), warn, environment: ssr, resolve };
+    const buildStart = () => plugin.buildStart.call(context);
     const tx = (id: string) => plugin.transform.call(context, code, id);
-    const buildEnd = () => plugin.buildEnd.call(context);
 
-    return { tx, buildEnd, dir, warn };
+    return { plugin, tx, buildStart, resolve, dir, warn };
   }
 
-  it.each([MAIN, `\0${MAIN}`])('wraps the module served as %j', async id => {
-    const { tx } = createPlugin();
+  it('wraps the module the plugin pipeline resolves `main` to', async () => {
+    const { tx, buildStart, resolve, dir, warn } = createPlugin();
 
-    const result = await tx(id);
+    await buildStart();
+    const result = await tx(RESOLVED_ID);
+    expect(resolve).toHaveBeenCalledWith(MAIN, join(dir, 'wrangler.jsonc'));
     expect(result.code).toContain('__SENTRY__.withSentry(');
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it('does not wrap other modules', async () => {
-    const { tx, dir } = createPlugin();
+    const { tx, buildStart, dir } = createPlugin();
 
+    await buildStart();
     expect(await tx(join(dir, 'src/app.js'))).toBeUndefined();
-    expect(await tx(`${MAIN}-impl`)).toBeUndefined();
+    expect(await tx(`${RESOLVED_ID}-impl`)).toBeUndefined();
   });
 
   it('imports instrument.server.* by its absolute path', async () => {
-    const { tx, dir } = createPlugin({
+    const { tx, buildStart, dir } = createPlugin({
       'instrument.server.ts': 'export default (env) => ({ dsn: env.SENTRY_DSN });',
     });
 
-    const result = await tx(MAIN);
+    await buildStart();
+    const result = await tx(RESOLVED_ID);
     expect(result.code).toContain(
       `import __SENTRY_OPTIONS_CALLBACK__ from '${join(dir, 'instrument.server.ts').replace(/\\/g, '/')}';`,
     );
   });
 
-  it('does not warn when the virtual module was wrapped', async () => {
-    const { tx, buildEnd, warn } = createPlugin();
+  it('warns at build start when no plugin resolves `main`', async () => {
+    const { buildStart, resolve, warn } = createPlugin();
+    resolve.mockResolvedValue(null);
 
-    await tx(MAIN);
-    buildEnd();
+    await buildStart();
+    expect(warn).toHaveBeenCalledWith(
+      '[sentry] Could not resolve the wrangler `main` "virtual:solid-ssr-handler". Auto-instrumentation disabled.',
+    );
+  });
+
+  it('does not resolve `main` in the client environment', async () => {
+    const { plugin, resolve, warn } = createPlugin();
+
+    await plugin.buildStart.call({ warn, environment: { name: 'client' }, resolve });
+    expect(resolve).not.toHaveBeenCalled();
     expect(warn).not.toHaveBeenCalled();
   });
 });
