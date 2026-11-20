@@ -16,28 +16,42 @@ export function getDecisionInputMessages(params: Record<string, unknown>): strin
 }
 
 /**
- * Lay out multimodal evidence as gen_ai messages, so it renders like Google's. An image is reported by its media
- * type only: its data URL holds base64, which the conventions require to be dropped.
+ * Lay out evidence messages as gen_ai messages, so they render like Google's. Other input items (tool calls and
+ * their outputs) are kept as they are.
  */
 function toStateMessages(input: unknown): unknown {
   if (!Array.isArray(input)) {
     return input;
   }
 
-  return input.filter(isObjectLike).map((message): GenAiMessage => ({
-    role: 'user',
-    parts: Array.isArray(message.content)
-      ? message.content.filter(isObjectLike).map(toMessagePart)
-      : [{ type: 'text', content: message.content }],
-  }));
+  return input.map(item =>
+    isObjectLike(item) && typeof item.role === 'string'
+      ? ({
+          // The gen_ai conventions have no `developer` role.
+          role: (item.role === 'developer' ? 'system' : item.role) as GenAiMessage['role'],
+          parts: Array.isArray(item.content)
+            ? item.content.filter(isObjectLike).map(toMessagePart)
+            : [{ type: 'text', content: item.content }],
+        } satisfies GenAiMessage)
+      : item,
+  );
 }
 
+/**
+ * An image in a data URL is reported by its media type only: the URL holds base64, which the conventions require to be
+ * dropped.
+ */
 function toMessagePart(part: Record<PropertyKey, unknown>): GenAiMessagePart {
-  if (part.type === 'input_image') {
-    const mimeType = typeof part.image_url === 'string' ? /^data:([^;,]+)/.exec(part.image_url)?.[1] : undefined;
-    return { type: 'blob', modality: 'image', mime_type: mimeType };
+  if (part.type === 'input_image' && typeof part.image_url === 'string') {
+    const dataUrlMimeType = /^data:([^;,]+)/.exec(part.image_url)?.[1];
+    return part.image_url.startsWith('data:')
+      ? { type: 'blob', modality: 'image', mime_type: dataUrlMimeType }
+      : { type: 'uri', modality: 'image', uri: part.image_url };
   }
-  return { type: 'text', content: part.text };
+  if (part.type === 'input_json') {
+    return { type: 'object', content: part.data };
+  }
+  return { type: 'text', content: part.text ?? part.refusal };
 }
 
 /** Serialize the answers of a decisions response, laid out and keyed like Jev answers. */
