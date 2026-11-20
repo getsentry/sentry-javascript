@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "@sentry/bundler-plugins": "11.15.0",
-    "@sentry/conventions": "^0.33.0",
+    "@sentry/conventions": "^0.34.0",
     "@sentry/core": "11.15.0",
     "@sentry/node": "11.15.0",
     "@sentry/server-runtime-injection": "11.15.0",
@@ -45,7 +45,7 @@
   "devDependencies": {
     "@sentry-internal/rollup-utils": "11.15.0",
     "h3": "^2.0.1-rc.20",
-    "nitro": "^3.0.260415-beta",
+    "nitro": "^3.0.260903-beta",
     "srvx": "^0.11.22"
   },
   "scripts": {

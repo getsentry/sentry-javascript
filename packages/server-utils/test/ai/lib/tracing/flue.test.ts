@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { Event, Span } from '@sentry/core';
 import {
+  conversationIdIntegration,
   getCurrentScope,
   getIsolationScope,
   getMainCarrier,
@@ -83,6 +84,26 @@ describe('createFlueInstrumentation', () => {
     });
 
     expect(findSpan('invoke_agent Hello')?.data['gen_ai.conversation.id']).toBe('conv_1');
+  });
+
+  it('puts the Flue conversation id on tool spans over one from Sentry.setConversationId', async () => {
+    client.addIntegration(conversationIdIntegration());
+    getIsolationScope().setConversationId('app-chat');
+    await withAgent(() => {
+      instrumentation.observe(
+        {
+          type: 'tool_start',
+          toolCallId: 'call_1',
+          toolName: 'get_weather',
+          operationId: 'op_1',
+          conversationId: 'conv_1',
+        },
+        {},
+      );
+      instrumentation.observe({ type: 'tool', toolCallId: 'call_1', operationId: 'op_1' }, {});
+    });
+
+    expect(findSpan('execute_tool get_weather')?.data['gen_ai.conversation.id']).toBe('conv_1');
   });
 
   // The re-entered agent operation carries no `submissionId` and must not open a second span.

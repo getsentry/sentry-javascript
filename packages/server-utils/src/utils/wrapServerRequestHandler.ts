@@ -3,6 +3,7 @@ import {
   CLIENT_PORT,
   HTTP_REQUEST_BODY_SIZE,
   NETWORK_PROTOCOL_NAME,
+  SENTRY_KIND,
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
   USER_AGENT_ORIGINAL,
@@ -247,6 +248,7 @@ export async function wrapServerRequestHandler<R extends Response | undefined = 
       Object.assign(attributes, httpHeadersToSpanAttributes(headers, dataCollection));
       Object.assign(attributes, config.attributes);
       attributes[SENTRY_OP] = HTTP_SERVER;
+      attributes[SENTRY_KIND] = 'server';
 
       return startSpanManual({ name, attributes }, async span => {
         const { onSpanCreated, onSpanEnd } = options ?? {};

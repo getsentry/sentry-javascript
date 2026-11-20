@@ -1,4 +1,8 @@
-import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
+import {
+  PAGE_SERVER_RENDERING_AGE,
+  PAGE_SERVER_RENDERING_TYPE,
+  SENTRY_LINK_TYPE,
+} from '@sentry/conventions/attributes';
 import type { SpanLink } from '../types/link';
 import type { Span } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
@@ -23,9 +27,6 @@ export const _INTERNAL_CACHE_ORIGIN_META_TAG_NAME = 'sentry-cache-origin';
  * next to `sentry-cache-origin`, also when that tag is empty. The client turns it into `page.server_rendering.age`.
  */
 export const _INTERNAL_RENDER_START_META_TAG_NAME = 'sentry-render-start';
-
-// TODO: Use the constant from `@sentry/conventions` when https://github.com/getsentry/sentry-conventions/pull/799 is released.
-const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';
 
 /**
  * Returns the `sentry-cache-origin` meta tag and the `sentry-render-start` meta tag for the request that rendered the

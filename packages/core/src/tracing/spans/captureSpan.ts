@@ -10,6 +10,7 @@ import {
   spanToJSON,
   streamedSpanJsonToSerializedSpan,
 } from '../../utils/spanUtils';
+import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from '../dynamicSamplingContext';
 import { getCapturedScopesOnSpan } from '../utils';
 import { applyBeforeSendSpanCallback, isStaticBeforeSendSpanCallback } from './beforeSendSpan';
 import { spanJsonToSerializedStreamedSpan } from './spanJsonToStreamedSpan';
@@ -66,6 +67,10 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
   client.emit('preprocessSpan', spanJSON);
 
   if (spanJSON.is_segment) {
+    // The span buffer builds the envelope's `trace` header from the segment span when a bucket is flushed.
+    // This can happen after the captured scope moved on to another trace (e.g. a browser navigation).
+    // Freezing the DSC at segment end keeps the values of this segment's trace.
+    freezeDscOnSpan(segmentSpan, getDynamicSamplingContextFromSpan(segmentSpan));
     applyScopeToSegmentSpan(spanJSON, finalScopeData);
     applySdkMetadataToSegmentSpan(spanJSON, client);
     // Allow hook subscribers to mutate the segment span JSON

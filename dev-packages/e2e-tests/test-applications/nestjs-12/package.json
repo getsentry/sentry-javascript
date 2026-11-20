@@ -20,11 +20,11 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@nestjs/common": "^12.0.0",
-    "@nestjs/core": "^12.0.0",
-    "@nestjs/microservices": "^12.0.0",
+    "@nestjs/common": "12.5.1",
+    "@nestjs/core": "12.5.1",
+    "@nestjs/microservices": "12.5.1",
     "@nestjs/schedule": "^12.0.0",
-    "@nestjs/platform-express": "^12.0.0",
+    "@nestjs/platform-express": "12.5.1",
     "@sentry/bun": "file:../../packed/sentry-bun-packed.tgz",
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
     "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
@@ -35,6 +35,7 @@
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
+    "@sentry/conventions": "0.34.0",
     "@nestjs/cli": "^12.0.0",
     "@nestjs/schematics": "^12.0.0",
     "@types/express": "^5.0.0",

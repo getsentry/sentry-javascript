@@ -23,6 +23,7 @@
     "@sentry/nuxt": "11.15.0",
     "@sentry/react-router": "11.15.0",
     "@sentry/remix": "11.15.0",
+    "@sentry/solid": "11.15.0",
     "@sentry/solidstart": "11.15.0",
     "@sentry/sveltekit": "11.15.0",
     "@sentry/tanstackstart-react": "11.15.0",
