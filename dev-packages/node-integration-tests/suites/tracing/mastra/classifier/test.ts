@@ -21,7 +21,6 @@ describe.runIf(supports({ min: 22 }))('Mastra integration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
-
   createEsmAndCjsTests(
     join(__dirname, '..'),
     'scenario-classifier.mjs',
