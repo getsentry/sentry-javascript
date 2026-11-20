@@ -11,6 +11,7 @@ export default defineConfig({
       },
       ssr: true,
       serverFunctions: true,
+      observe: process.env.SOLID_OBSERVE === '1',
     }),
   ],
   build: {
