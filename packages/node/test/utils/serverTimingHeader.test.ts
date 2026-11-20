@@ -1,9 +1,9 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { Socket } from 'node:net';
 import { getCurrentScope, setCurrentClient, spanToJSON, startSpan } from '@sentry/core';
-import { NodeClient } from '@sentry/node';
+import { NodeClient } from '../../src';
 import { afterEach, describe, expect, it } from 'vitest';
-import { addServerTimingTraceHeader } from '../../src/server/serverTimingHeader';
+import { addServerTimingTraceHeader } from '../../src/utils/serverTimingHeader';
 
 function setup(options: { enabled?: boolean } = {}): NodeClient {
   const client = new NodeClient({

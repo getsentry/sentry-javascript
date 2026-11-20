@@ -14,6 +14,7 @@ import {
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   _INTERNAL_installTunnelHooks as installTunnelHooks,
+  addServerTimingTraceHeader,
   getDefaultIntegrations,
   httpIntegration,
   init as nodeInit,
@@ -38,7 +39,6 @@ import {
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { registerNextSentryPropagator } from './nextSentryPropagator';
 import { addNextjsServerSpanHooks, NEXTJS_SERVER_IGNORE_SPANS } from './serverSpanHooks';
-import { addServerTimingTraceHeader } from './serverTimingHeader';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
 import { nextjsUseCacheIntegration } from './useCacheInstrumentation';
 

@@ -196,6 +196,7 @@ export {
 } from '@sentry/core/server';
 export type { TunnelRequestLike } from '@sentry/core/server';
 export { installTunnelHooks as _INTERNAL_installTunnelHooks, serveTunnelIntegration } from './integrations/serveTunnel';
+export { addServerTimingTraceHeader } from './utils/serverTimingHeader';
 export { getTunnelPath, handleTunnelRequest } from '@sentry/core';
 export type { HandleTunnelRequestOptions, ServerTunnelOptions } from '@sentry/core';
 
