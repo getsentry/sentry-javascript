@@ -97,13 +97,20 @@ describe('modulesIntegration', () => {
     const packageDir = join(appDir, 'node_modules', 'esm-app-dependency');
     mkdirSync(packageDir, { recursive: true });
     writeFileSync(join(packageDir, 'package.json'), JSON.stringify({ name: 'esm-app-dependency', version: '1.4.0' }));
+    // A CommonJS package that the app imports but does not declare, like a transitive dependency
+    const transitiveDir = join(appDir, 'node_modules', 'esm-app-transitive');
+    mkdirSync(transitiveDir, { recursive: true });
+    writeFileSync(join(transitiveDir, 'package.json'), JSON.stringify({ name: 'esm-app-transitive', version: '3.1.0' }));
+    writeFileSync(join(transitiveDir, 'index.js'), 'module.exports = {};');
 
     try {
       await createRunner(appDir, 'lib', 'scenario.js')
         .expect({
           event: event => {
-            expect(event.modules).toEqual({
+            // Packages the SDK itself loads from the repo's node_modules can show up too
+            expect(event.modules).toMatchObject({
               'esm-app-dependency': '1.4.0',
+              'esm-app-transitive': '3.1.0',
               // Not installed, so the range from package.json is all there is
               'esm-app-missing-dependency': '^2.0.0',
             });
