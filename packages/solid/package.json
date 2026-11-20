@@ -51,6 +51,14 @@
     },
     "./solid2": {
       "types": "./build/types/solid2/index.types.d.ts",
+      "workerd": {
+        "import": "./build/esm/solid2/index.worker.js",
+        "require": "./build/cjs/solid2/index.worker.js"
+      },
+      "worker": {
+        "import": "./build/esm/solid2/index.worker.js",
+        "require": "./build/cjs/solid2/index.worker.js"
+      },
       "browser": {
         "import": "./build/esm/solid2/index.client.js",
         "require": "./build/cjs/solid2/index.client.js"

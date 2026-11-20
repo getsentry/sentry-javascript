@@ -8,6 +8,7 @@ export default makeNPMConfigVariants(
       'src/tanstackrouter.ts',
       'src/solid2/index.client.ts',
       'src/solid2/index.server.ts',
+      'src/solid2/index.worker.ts',
       'src/solid2/solidrouter.ts',
     ],
   }),

@@ -119,6 +119,7 @@ const CASES: Case[] = [
   { specifier: '@sentry/solidstart', conditions: NODE, formats: BOTH, knownViolation: true },
 
   { specifier: '@sentry/solid/solid2', conditions: NODE, formats: BOTH },
+  { specifier: '@sentry/solid/solid2', conditions: WORKERD, formats: BOTH },
 
   { specifier: '@sentry/tanstackstart-react', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/tanstackstart-react/import', conditions: NODE, formats: ESM },
