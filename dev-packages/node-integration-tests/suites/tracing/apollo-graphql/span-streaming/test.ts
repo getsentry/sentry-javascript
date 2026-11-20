@@ -18,13 +18,17 @@ describe('GraphQL/Apollo Tests > span streaming', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
-    test('names graphql spans after the operation type, never the operation name or field path', async () => {
+    test('records graphql span names, processing types, and segment operations', async () => {
       const runner = createTestRunner();
-      const spansPromise = runner.collectStreamedSpansUntilSegment('Test Transaction');
+      const spansPromise = runner.collectStreamedSpans(
+        spans =>
+          spans.some(span => span.is_segment && span.name === 'Test Transaction') && graphqlSpans(spans).length >= 8,
+      );
 
       await runner.start().completed();
 
-      const spans = graphqlSpans(await spansPromise);
+      const traceSpans = await spansPromise;
+      const spans = graphqlSpans(traceSpans);
 
       const executeSpans = spans.filter(span => span.attributes['graphql.operation.type']);
       expect(executeSpans.map(span => span.name)).toEqual(['GraphQL query', 'GraphQL mutation']);
@@ -41,17 +45,8 @@ describe('GraphQL/Apollo Tests > span streaming', () => {
       expect(phaseSpans.every(span => ['GraphQL parse', 'GraphQL validate'].includes(span.name))).toBe(true);
 
       expect(spans.some(span => span.name.includes('GetHello') || span.name.includes('TestMutation'))).toBe(false);
-    });
 
-    test('marks every graphql span with its processing type', async () => {
-      const runner = createTestRunner();
-      const spansPromise = runner.collectStreamedSpansUntilSegment('Test Transaction');
-
-      await runner.start().completed();
-
-      const processingTypes = graphqlSpans(await spansPromise).map(
-        span => span.attributes['graphql.processing.type']?.value,
-      );
+      const processingTypes = spans.map(span => span.attributes['graphql.processing.type']?.value);
 
       expect(processingTypes.sort()).toEqual([
         'execute',
@@ -63,17 +58,9 @@ describe('GraphQL/Apollo Tests > span streaming', () => {
         'validate',
         'validate',
       ]);
-    });
 
-    test('records the operations on the segment span without renaming it', async () => {
-      const runner = createTestRunner();
-      const spansPromise = runner.collectStreamedSpansUntilSegment('Test Transaction');
-
-      await runner.start().completed();
-
-      const spans = await spansPromise;
       // `Test Server Start` is a segment too, so pick the one the operations ran under.
-      const segmentSpan = spans.find(item => item.is_segment && item.name === 'Test Transaction');
+      const segmentSpan = traceSpans.find(item => item.is_segment && item.name === 'Test Transaction');
 
       expect(segmentSpan).toBeDefined();
       // Both operations are recorded here rather than in the name.
