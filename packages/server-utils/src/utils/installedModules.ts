@@ -37,18 +37,11 @@ export function collectInstalledModules({
 
   const entryDir = entryPath && dirname(toPosix(entryPath));
   const cwdDir = cwd && toPosix(cwd);
-  let appRoot: string | undefined;
   // An entry file outside cwd usually belongs to a launcher, such as the AWS Lambda runtime.
-  for (const dir of entryDir && cwdDir && !isIn(entryDir, cwdDir) ? [cwdDir, entryDir] : [entryDir, cwdDir]) {
-    // Skip `package.json` files that only set fields like `"type"`.
-    appRoot ||=
-      dir && !`${dir}/`.includes(NODE_MODULES)
-        ? ancestors(dir).find(d => {
-            const pkg = read(d);
-            return pkg && (pkg.name || pkg.dependencies || pkg.devDependencies);
-          })
-        : undefined;
-  }
+  const appRoot = findAppRoot(
+    read,
+    entryDir && cwdDir && !isIn(entryDir, cwdDir) ? [cwdDir, entryDir] : [entryDir, cwdDir],
+  );
 
   const resolveFrom = entryDir && appRoot && isIn(entryDir, appRoot) ? entryDir : appRoot || entryDir || cwdDir;
   const nodeModulesDirs = resolveFrom ? ancestors(resolveFrom).map(dir => join(dir, 'node_modules')) : [];
@@ -92,6 +85,26 @@ export function collectInstalledModules({
   }
 
   return { ...declared, ...installed };
+}
+
+/** Skips start dirs inside `node_modules` and `package.json` files that only set fields like `"type"`. */
+function findAppRoot(
+  read: (dir: string) => PackageJson | undefined,
+  startDirs: Array<string | undefined>,
+): string | undefined {
+  for (const startDir of startDirs) {
+    const root =
+      startDir && !`${startDir}/`.includes(NODE_MODULES)
+        ? ancestors(startDir).find(dir => {
+            const pkg = read(dir);
+            return pkg && (pkg.name || pkg.dependencies || pkg.devDependencies);
+          })
+        : undefined;
+    if (root) {
+      return root;
+    }
+  }
+  return undefined;
 }
 
 /** `dir` and its parents, up to the root. */
