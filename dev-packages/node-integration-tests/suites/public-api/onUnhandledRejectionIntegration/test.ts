@@ -3,7 +3,7 @@ import * as childProcess from 'child_process';
 import * as path from 'path';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
-import { supports, USES_DENO_GLOBAL_HANDLERS } from '../../../utils';
+import { supports } from '../../../utils';
 
 describe('onUnhandledRejectionIntegration', () => {
   afterAll(() => {
@@ -90,49 +90,57 @@ test rejection`);
       });
     }));
 
-  test('captures exceptions for unhandled rejections', async () => {
+  test.runIf(supports({ runtimes: ['node', 'bun'] }))('captures exceptions for unhandled rejections', async () => {
     await createRunner(__dirname, 'scenario-warn.ts')
       .expect({
-        event: USES_DENO_GLOBAL_HANDLERS
-          ? {
-              level: 'fatal',
-              exception: {
-                values: [
-                  {
-                    type: 'UnhandledRejection',
-                    value: 'Non-Error promise rejection captured with value: test rejection',
-                    mechanism: {
-                      type: 'auto.deno.global_handlers.unhandledrejection',
-                      handled: false,
-                    },
-                  },
-                ],
+        event: {
+          level: 'error',
+          exception: {
+            values: [
+              {
+                type: 'Error',
+                value: 'test rejection',
+                mechanism: {
+                  type: 'auto.node.onunhandledrejection',
+                  handled: false,
+                },
+                stacktrace: {
+                  frames: expect.any(Array),
+                },
               },
-            }
-          : {
-              level: 'error',
-              exception: {
-                values: [
-                  {
-                    type: 'Error',
-                    value: 'test rejection',
-                    mechanism: {
-                      type: 'auto.node.onunhandledrejection',
-                      handled: false,
-                    },
-                    stacktrace: {
-                      frames: expect.any(Array),
-                    },
-                  },
-                ],
-              },
-            },
+            ],
+          },
+        },
       })
       .start()
       .completed();
   });
 
-  // Deno: `@sentry/deno` has no `onUnhandledRejectionIntegration`. Deno exits on an unhandled rejection, as in strict mode.
+  // Deno exits on an unhandled rejection, so `globalHandlersIntegration` captures it as `fatal`.
+  test.runIf(supports({ runtimes: ['deno'] }))('captures exceptions for unhandled rejections on Deno', async () => {
+    await createRunner(__dirname, 'scenario-warn.ts')
+      .expect({
+        event: {
+          level: 'fatal',
+          exception: {
+            values: [
+              {
+                type: 'UnhandledRejection',
+                value: 'Non-Error promise rejection captured with value: test rejection',
+                mechanism: {
+                  type: 'auto.deno.global_handlers.unhandledrejection',
+                  handled: false,
+                },
+              },
+            ],
+          },
+        },
+      })
+      .start()
+      .completed();
+  });
+
+  // `@sentry/deno` has no `onUnhandledRejectionIntegration`.
   test.runIf(supports({ runtimes: ['node', 'bun'] }))(
     'captures exceptions for unhandled rejections in strict mode',
     async () => {
