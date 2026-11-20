@@ -2,3 +2,5 @@ allowBuilds:
   esbuild: true
   workerd: true
 minimumReleaseAge: 0
+overrides:
+  '@graphql-tools/delegate@^12.0.0': '12.3.4'
