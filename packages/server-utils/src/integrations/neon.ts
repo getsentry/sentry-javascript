@@ -17,7 +17,7 @@ import { CHANNELS } from '../orchestrion/channels';
 import { neonModuleNames } from '../orchestrion/config/neon';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import { bindTracingChannelToSpan } from '../tracing-channel';
-import { bindPgQueryChannel, getConnectionAttributes } from './pg';
+import { bindPgQueryChannel, getConnectionAttributes, setReturnedRows } from './pg';
 
 const INTEGRATION_NAME = 'Neon' as const;
 const ORIGIN = 'auto.db.neon';
@@ -37,6 +37,8 @@ interface NeonSqlTemplate {
 interface NeonHttpQueryContext {
   // `[queryData, opts]` for a single query, `[queryData[], opts[]]` for a `transaction()` batch.
   arguments: unknown[];
+  // Per statement: the rows array, or `{ rowCount, rows, ... }` with `fullResults`. A batch resolves to an array of these.
+  result?: unknown;
 }
 
 interface NeonResolveConnectionContext {
@@ -61,11 +63,24 @@ function instrumentNeon(): void {
   // the pg span shape.
   bindPgQueryChannel(CHANNELS.NEON_QUERY, { origin: ORIGIN });
 
-  bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<NeonHttpQueryContext>(CHANNELS.NEON_HTTP_QUERY), data => {
-    const span = startInactiveSpan(httpQuerySpanOptions(data.arguments));
-    httpQuerySpans.add(span);
-    return span;
-  });
+  bindTracingChannelToSpan(
+    diagnosticsChannel.tracingChannel<NeonHttpQueryContext>(CHANNELS.NEON_HTTP_QUERY),
+    data => {
+      const span = startInactiveSpan(httpQuerySpanOptions(data.arguments));
+      httpQuerySpans.add(span);
+      return span;
+    },
+    {
+      beforeSpanEnd(span, data) {
+        if ('error' in data) {
+          return;
+        }
+        const { result } = data;
+        const isBatch = Array.isArray(data.arguments[0]);
+        setReturnedRows(span, isBatch && Array.isArray(result) ? result.map(toPgResult) : toPgResult(result));
+      },
+    },
+  );
 
   // The connection string is resolved inside the HTTP executor, so the query span is active
   // when this settles. The executor's own context never sees the string.
@@ -116,6 +131,10 @@ function httpQuerySpanOptions(args: unknown[]): Parameters<typeof startInactiveS
   };
 
   return { name: getLowCardinalitySqlSpanName(attributes, DB_SYSTEM_POSTGRESQL), onlyIfParent: true, attributes };
+}
+
+function toPgResult(result: unknown): unknown {
+  return Array.isArray(result) ? { rows: result } : result;
 }
 
 // OTel names a batch `BATCH <op>` when every statement shares one operation, plain `BATCH` otherwise.

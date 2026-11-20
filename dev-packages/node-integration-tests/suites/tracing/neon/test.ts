@@ -39,12 +39,14 @@ function expectedDbSpan({
   statement,
   status = 'ok',
   batchSize,
+  returnedRows,
 }: {
   name: string;
   operation: string;
   statement: string;
   status?: 'ok' | 'error';
   batchSize?: number;
+  returnedRows?: number;
 }): unknown {
   return expect.objectContaining({
     attributes: expect.objectContaining({
@@ -56,6 +58,7 @@ function expectedDbSpan({
       [DB_QUERY_SUMMARY]: attr(name),
       [DB_OPERATION_NAME]: attr(operation),
       ...(batchSize ? { [DB_OPERATION_BATCH_SIZE]: attr(batchSize, 'integer') } : {}),
+      ...(returnedRows !== undefined ? { 'db.response.returned_rows': attr(returnedRows, 'integer') } : {}),
     }),
     is_segment: false,
     name,
@@ -91,22 +94,31 @@ describeWithDockerCompose('neon auto instrumentation', { workingDirectory: [__di
         const neonSpans = getNeonSpans(spans);
         expect(neonSpans.every(span => span.parent_span_id === segment!.span_id)).toBe(true);
         expect(neonSpans).toEqual([
-          expectedDbSpan({ name: 'CREATE TABLE "User"', operation: 'CREATE', statement: CREATE_USER_TABLE_STATEMENT }),
+          expectedDbSpan({
+            name: 'CREATE TABLE "User"',
+            operation: 'CREATE',
+            statement: CREATE_USER_TABLE_STATEMENT,
+            returnedRows: 0,
+          }),
+          // Without `fullResults` a query resolves to its rows only, so an INSERT reports no affected rows.
           expectedDbSpan({
             name: 'INSERT "User"',
             operation: 'INSERT',
             statement: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+            returnedRows: 0,
           }),
           expectedDbSpan({
             name: 'SELECT "User"',
             operation: 'SELECT',
             statement: 'SELECT * FROM "User" WHERE "name" = $1',
+            returnedRows: 1,
           }),
           expectedDbSpan({
             name: 'SELECT "User"; SELECT "User"',
             operation: 'BATCH SELECT',
             statement: 'SELECT "email" FROM "User"; SELECT "name" FROM "User"',
             batchSize: 2,
+            returnedRows: 2,
           }),
           expectedDbSpan({
             name: 'SELECT "does_not_exist_table"',
@@ -114,7 +126,12 @@ describeWithDockerCompose('neon auto instrumentation', { workingDirectory: [__di
             statement: 'SELECT * FROM "does_not_exist_table"',
             status: 'error',
           }),
-          expectedDbSpan({ name: 'DROP TABLE "User"', operation: 'DROP', statement: 'DROP TABLE "User"' }),
+          expectedDbSpan({
+            name: 'DROP TABLE "User"',
+            operation: 'DROP',
+            statement: 'DROP TABLE "User"',
+            returnedRows: 0,
+          }),
         ]);
       });
     });
@@ -135,20 +152,36 @@ describeWithDockerCompose('neon auto instrumentation', { workingDirectory: [__di
         const neonSpans = getNeonSpans(spans);
         expect(neonSpans.every(span => span.parent_span_id === segment!.span_id)).toBe(true);
         expect(neonSpans).toEqual([
-          expectedDbSpan({ name: 'CREATE TABLE "User"', operation: 'CREATE', statement: CREATE_USER_TABLE_STATEMENT }),
+          expectedDbSpan({
+            name: 'CREATE TABLE "User"',
+            operation: 'CREATE',
+            statement: CREATE_USER_TABLE_STATEMENT,
+            returnedRows: 0,
+          }),
           expectedDbSpan({
             name: 'INSERT "User"',
             operation: 'INSERT',
             statement: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+            returnedRows: 1,
           }),
-          expectedDbSpan({ name: 'SELECT "User"', operation: 'SELECT', statement: 'SELECT * FROM "User"' }),
+          expectedDbSpan({
+            name: 'SELECT "User"',
+            operation: 'SELECT',
+            statement: 'SELECT * FROM "User"',
+            returnedRows: 1,
+          }),
           expectedDbSpan({
             name: 'SELECT "does_not_exist_table"',
             operation: 'SELECT',
             statement: 'SELECT * FROM "does_not_exist_table"',
             status: 'error',
           }),
-          expectedDbSpan({ name: 'DROP TABLE "User"', operation: 'DROP', statement: 'DROP TABLE "User"' }),
+          expectedDbSpan({
+            name: 'DROP TABLE "User"',
+            operation: 'DROP',
+            statement: 'DROP TABLE "User"',
+            returnedRows: 0,
+          }),
         ]);
       });
     });
