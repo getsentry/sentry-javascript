@@ -26,7 +26,7 @@ function startMockOpenAIServer() {
   return startMockServer(app);
 }
 
-async function run() {
+export async function run() {
   const server = await startMockOpenAIServer();
   const baseUrl = `${server.url}/v1`;
 
@@ -58,9 +58,5 @@ async function run() {
     }
   });
 
-  await Sentry.flush(2000);
-
   server.close();
 }
-
-run();

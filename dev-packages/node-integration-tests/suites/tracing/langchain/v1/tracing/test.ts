@@ -28,17 +28,35 @@ describe('LangChain integration (v1)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
-
+  const defaultScenarios = [
+    '../scenario.mjs',
+    '../scenario-tools.mjs',
+    'scenario-conversation-id.mjs',
+    'scenario-nested-runtime-context.mjs',
+  ];
   createEsmAndCjsTests(
     join(__dirname, '..'),
-    '../scenario.mjs',
+    defaultScenarios,
     'instrument.mjs',
     (createRunner, test) => {
-      test('creates langchain related spans with genAI recording disabled', async () => {
+      let scenarios: ReturnType<typeof runScenarios> | undefined;
+      async function runScenarios() {
         const runner = createRunner().ignore('event');
-        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
 
+        const collectors = defaultScenarios.map(name =>
+          runner.collectStreamedSpansUntilSegment(
+            span => span.name === 'main' && span.attributes['test.scenario']?.value === name,
+          ),
+        );
         await runner.start().completed();
+        return { spans: await Promise.all(collectors) };
+      }
+      const getScenarios = () => (scenarios ??= runScenarios());
+
+      test('creates langchain related spans with genAI recording disabled', async () => {
+        const spansPromise = getScenarios().then(result => result.spans[0]!);
+
+        await getScenarios();
 
         const spans = (await spansPromise).filter(
           span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain',
@@ -86,6 +104,96 @@ describe('LangChain integration (v1)', () => {
         expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
         expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
       });
+
+      test('creates langchain spans with tool calls', async () => {
+        const spansPromise = getScenarios().then(result => result.spans[1]!);
+
+        await getScenarios();
+
+        const spans = (await spansPromise).filter(
+          span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain',
+        );
+        expect(spans).toHaveLength(1);
+        const [firstSpan] = spans;
+
+        // [0] chat with tool_use stop reason
+        expect(firstSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
+        expect(firstSpan!.status).toBe('ok');
+        expect(firstSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
+        expect(firstSpan!.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
+        expect(firstSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
+        expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-5-sonnet-20241022');
+        expect(firstSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.7);
+        expect(firstSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(150);
+        expect(firstSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(20);
+        expect(firstSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(30);
+        expect(firstSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(50);
+        expect(firstSpan!.attributes[GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE].value).toBe('tool_use');
+        expect(firstSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeDefined();
+      });
+
+      test('derives gen_ai.conversation.id from the invoke config and lets a scope id win', async () => {
+        const spansPromise = getScenarios().then(result => result.spans[2]!);
+
+        await getScenarios();
+
+        const spans = (await spansPromise).filter(
+          span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain',
+        );
+        expect(spans).toHaveLength(4);
+        const ids = spans
+          .sort((a, b) => a.start_timestamp - b.start_timestamp)
+          .map(span => span.attributes[GEN_AI_CONVERSATION_ID]?.value);
+        expect(ids).toEqual(['thread_from_config', 'session_from_config', 'conversation_from_scope', undefined]);
+      });
+
+      test('keeps the conversation id and trace for a model called from a tool without config', async () => {
+        const spansPromise = getScenarios().then(result => result.spans[3]!);
+
+        await getScenarios();
+
+        const spans = await spansPromise;
+        const byId = new Map(spans.map(span => [span.span_id, span]));
+        const ancestorNames = (span: (typeof spans)[number]): string[] => {
+          const names: string[] = [];
+          for (let p = byId.get(span.parent_span_id ?? ''); p; p = byId.get(p.parent_span_id ?? '')) {
+            names.push(p.name);
+          }
+          return names;
+        };
+        const chatSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT);
+
+        expect(chatSpans).toHaveLength(2);
+        expect(
+          chatSpans
+            .map(span => [
+              span.attributes[GEN_AI_CONVERSATION_ID]?.value,
+              ancestorNames(span).find(name => name === 'auto' || name === 'handler'),
+            ])
+            .sort(),
+        ).toEqual([
+          ['thread_auto', 'auto'],
+          ['thread_handler', 'handler'],
+        ]);
+
+        // Each run span sits under its parent run's span. The id only reaches runs still open when the model
+        // call reveals it, so the step that ran before the model call has none.
+        const handlerSpans = spans.filter(
+          span =>
+            span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain' && ancestorNames(span).includes('handler'),
+        );
+        expect(
+          handlerSpans
+            .map(span => [span.name, ancestorNames(span)[0], span.attributes[GEN_AI_CONVERSATION_ID]?.value])
+            .sort(),
+        ).toEqual([
+          ['chat claude-3-5-sonnet-20241022', 'invoke_agent nested_chain', 'thread_handler'],
+          ['execute_tool lookup_weather', 'invoke_agent outer', 'thread_handler'],
+          ['invoke_agent RunnableLambda', 'invoke_agent nested_chain', undefined],
+          ['invoke_agent nested_chain', 'execute_tool lookup_weather', 'thread_handler'],
+          ['invoke_agent outer', 'handler', 'thread_handler'],
+        ]);
+      });
     },
     {
       additionalDependencies: {
@@ -98,7 +206,7 @@ describe('LangChain integration (v1)', () => {
 
   createEsmAndCjsTests(
     join(__dirname, '..'),
-    '../scenario.mjs',
+    ['../scenario.mjs'],
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('creates langchain related spans with genAI recording enabled', async () => {
@@ -152,141 +260,6 @@ describe('LangChain integration (v1)', () => {
         expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
         expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
         expect(errorSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
-      });
-    },
-    {
-      additionalDependencies: {
-        langchain: '^1.0.0',
-        '@langchain/core': '^1.0.0',
-        '@langchain/anthropic': '^1.0.0',
-      },
-    },
-  );
-
-  createEsmAndCjsTests(
-    join(__dirname, '..'),
-    '../scenario-tools.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('creates langchain spans with tool calls', async () => {
-        const runner = createRunner().ignore('event');
-        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
-
-        await runner.start().completed();
-
-        const spans = (await spansPromise).filter(
-          span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain',
-        );
-        expect(spans).toHaveLength(1);
-        const [firstSpan] = spans;
-
-        // [0] chat with tool_use stop reason
-        expect(firstSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-        expect(firstSpan!.status).toBe('ok');
-        expect(firstSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
-        expect(firstSpan!.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
-        expect(firstSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
-        expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-5-sonnet-20241022');
-        expect(firstSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.7);
-        expect(firstSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(150);
-        expect(firstSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(20);
-        expect(firstSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(30);
-        expect(firstSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(50);
-        expect(firstSpan!.attributes[GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE].value).toBe('tool_use');
-        expect(firstSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeDefined();
-      });
-    },
-    {
-      additionalDependencies: {
-        langchain: '^1.0.0',
-        '@langchain/core': '^1.0.0',
-        '@langchain/anthropic': '^1.0.0',
-      },
-    },
-  );
-
-  createEsmAndCjsTests(
-    join(__dirname, '..'),
-    'scenario-conversation-id.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('derives gen_ai.conversation.id from the invoke config and lets a scope id win', async () => {
-        const runner = createRunner().ignore('event');
-        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
-
-        await runner.start().completed();
-
-        const spans = (await spansPromise).filter(
-          span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain',
-        );
-        expect(spans).toHaveLength(4);
-        const ids = spans
-          .sort((a, b) => a.start_timestamp - b.start_timestamp)
-          .map(span => span.attributes[GEN_AI_CONVERSATION_ID]?.value);
-        expect(ids).toEqual(['thread_from_config', 'session_from_config', 'conversation_from_scope', undefined]);
-      });
-    },
-    {
-      additionalDependencies: {
-        langchain: '^1.0.0',
-        '@langchain/core': '^1.0.0',
-        '@langchain/anthropic': '^1.0.0',
-      },
-    },
-  );
-
-  createEsmAndCjsTests(
-    join(__dirname, '..'),
-    'scenario-nested-runtime-context.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('keeps the conversation id and trace for a model called from a tool without config', async () => {
-        const runner = createRunner().ignore('event');
-        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
-
-        await runner.start().completed();
-
-        const spans = await spansPromise;
-        const byId = new Map(spans.map(span => [span.span_id, span]));
-        const ancestorNames = (span: (typeof spans)[number]): string[] => {
-          const names: string[] = [];
-          for (let p = byId.get(span.parent_span_id ?? ''); p; p = byId.get(p.parent_span_id ?? '')) {
-            names.push(p.name);
-          }
-          return names;
-        };
-        const chatSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT);
-
-        expect(chatSpans).toHaveLength(2);
-        expect(
-          chatSpans
-            .map(span => [
-              span.attributes[GEN_AI_CONVERSATION_ID]?.value,
-              ancestorNames(span).find(name => name === 'auto' || name === 'handler'),
-            ])
-            .sort(),
-        ).toEqual([
-          ['thread_auto', 'auto'],
-          ['thread_handler', 'handler'],
-        ]);
-
-        // Each run span sits under its parent run's span. The id only reaches runs still open when the model
-        // call reveals it, so the step that ran before the model call has none.
-        const handlerSpans = spans.filter(
-          span =>
-            span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain' && ancestorNames(span).includes('handler'),
-        );
-        expect(
-          handlerSpans
-            .map(span => [span.name, ancestorNames(span)[0], span.attributes[GEN_AI_CONVERSATION_ID]?.value])
-            .sort(),
-        ).toEqual([
-          ['chat claude-3-5-sonnet-20241022', 'invoke_agent nested_chain', 'thread_handler'],
-          ['execute_tool lookup_weather', 'invoke_agent outer', 'thread_handler'],
-          ['invoke_agent RunnableLambda', 'invoke_agent nested_chain', undefined],
-          ['invoke_agent nested_chain', 'execute_tool lookup_weather', 'thread_handler'],
-          ['invoke_agent outer', 'handler', 'thread_handler'],
-        ]);
       });
     },
     {

@@ -1,3 +1,4 @@
+import type { Event as SentryEvent, SerializedStreamedSpanContainer } from '@sentry/core';
 import {
   GEN_AI_CONVERSATION_ID,
   GEN_AI_INPUT_MESSAGES,
@@ -242,37 +243,51 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
   });
 
   createEsmTests(__dirname, 'scenario-tools.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('reports app tool failures but not failures of the built-in coding tools', async () => {
+    let scenario: ReturnType<typeof runScenario> | undefined;
+    async function runScenario() {
       const appErrors: unknown[] = [];
+      const events: SentryEvent[] = [];
+      const runner = createRunner()
+        .ignore('span')
+        .expect({
+          event: event => {
+            events.push(event);
+
+            expect(['app read failed', 'Intentional pi-durable tool failure']).toContain(
+              event.exception?.values?.[0]?.value,
+            );
+            appErrors.push(event.exception?.values?.[0]?.value);
+          },
+        })
+        .expect({
+          event: event => {
+            events.push(event);
+
+            expect(['app read failed', 'Intentional pi-durable tool failure']).toContain(
+              event.exception?.values?.[0]?.value,
+            );
+            appErrors.push(event.exception?.values?.[0]?.value);
+          },
+        })
+        .expect({
+          event: event => {
+            events.push(event);
+
+            expect(event.message).toBe('pi-durable tools done');
+          },
+        });
+      const spans = runner.collectStreamedSpansUntilSegment();
+      await runner.start().completed();
+      return { appErrors, events, container: { items: await spans } };
+    }
+    const getScenario = () => (scenario ??= runScenario());
+
+    test('reports app tool failures but not failures of the built-in coding tools', async () => {
+      const { appErrors } = await getScenario();
 
       // Ordered, with spans ignored: a captured failure of the built-in `bash` tool would be an
       // extra event before the sentinel, which the scenario sends once everything else is sent.
       // The two app failures are processed concurrently, so they may arrive in either order.
-      await createRunner()
-        .ignore('span')
-        .expect({
-          event: event => {
-            expect(['app read failed', 'Intentional pi-durable tool failure']).toContain(
-              event.exception?.values?.[0]?.value,
-            );
-            appErrors.push(event.exception?.values?.[0]?.value);
-          },
-        })
-        .expect({
-          event: event => {
-            expect(['app read failed', 'Intentional pi-durable tool failure']).toContain(
-              event.exception?.values?.[0]?.value,
-            );
-            appErrors.push(event.exception?.values?.[0]?.value);
-          },
-        })
-        .expect({
-          event: event => {
-            expect(event.message).toBe('pi-durable tools done');
-          },
-        })
-        .start()
-        .completed();
 
       expect(appErrors.sort()).toEqual(['Intentional pi-durable tool failure', 'app read failed']);
     });
@@ -281,48 +296,47 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
       let errorSpanId: string | undefined;
       let failingToolSpanId: string | undefined;
 
-      await createRunner()
-        .unordered()
-        .expect({
-          event: event => {
-            const exception = event.exception?.values?.[0];
-            expect(exception?.value).toBe('Intentional pi-durable tool failure');
-            expect(exception?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: false });
-            errorSpanId = event.contexts?.trace?.span_id;
-          },
-        })
-        .expect({
-          event: event => {
-            expect(event.exception?.values?.[0]?.value).toBe('app read failed');
-          },
-        })
-        .expect({
-          span: container => {
-            const spans = container.items;
+      const output = await getScenario();
+      {
+        const event = output.events.find(
+          event => event.exception?.values?.[0]?.value === 'Intentional pi-durable tool failure',
+        )!;
 
-            const bash = spans.find(span => span.name === 'execute_tool bash')!;
-            expect(bash.status).toBe('error');
-            expect(bash.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toMatch(/Command exited with code \d+/);
+        const exception = event.exception?.values?.[0];
+        expect(exception?.value).toBe('Intentional pi-durable tool failure');
+        expect(exception?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: false });
+        errorSpanId = event.contexts?.trace?.span_id;
+      }
+      {
+        const event = output.events.find(event => event.exception?.values?.[0]?.value === 'app read failed')!;
 
-            const read = spans.find(span => span.name === 'execute_tool read')!;
-            expect(read.status).toBe('error');
-            expect(read.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toContain('app read failed');
+        expect(event.exception?.values?.[0]?.value).toBe('app read failed');
+      }
+      {
+        const container = output.container;
 
-            // The streamed output becomes the result, since the tool returns no content.
-            const streamer = spans.find(span => span.name === 'execute_tool streamer')!;
-            expect(streamer.status).toBe('ok');
-            expect(streamer.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toBe('line 1\nline 2\n');
+        const spans = container.items;
 
-            const secret = spans.find(span => span.name === 'execute_tool secret')!;
-            expect(secret.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toBe('redacted by afterTool');
+        const bash = spans.find(span => span.name === 'execute_tool bash')!;
+        expect(bash.status).toBe('error');
+        expect(bash.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toMatch(/Command exited with code \d+/);
 
-            const failNow = spans.find(span => span.name === 'execute_tool fail_now')!;
-            expect(failNow.status).toBe('error');
-            failingToolSpanId = failNow.span_id;
-          },
-        })
-        .start()
-        .completed();
+        const read = spans.find(span => span.name === 'execute_tool read')!;
+        expect(read.status).toBe('error');
+        expect(read.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toContain('app read failed');
+
+        // The streamed output becomes the result, since the tool returns no content.
+        const streamer = spans.find(span => span.name === 'execute_tool streamer')!;
+        expect(streamer.status).toBe('ok');
+        expect(streamer.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toBe('line 1\nline 2\n');
+
+        const secret = spans.find(span => span.name === 'execute_tool secret')!;
+        expect(secret.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toBe('redacted by afterTool');
+
+        const failNow = spans.find(span => span.name === 'execute_tool fail_now')!;
+        expect(failNow.status).toBe('error');
+        failingToolSpanId = failNow.span_id;
+      }
 
       expect(errorSpanId).toBe(failingToolSpanId);
     });
@@ -460,8 +474,9 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
   });
 
   createEsmTests(__dirname, 'scenario-interrupted.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('reports a provider that throws as a fault, and nothing for failed, aborted or closed runs', async () => {
-      await createRunner()
+    let scenario: ReturnType<typeof runScenario> | undefined;
+    async function runScenario() {
+      const runner = createRunner()
         .ignore('span')
         .expect({
           event: event => {
@@ -474,76 +489,116 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
           event: event => {
             expect(event.message).toBe('pi-durable interrupted done');
           },
-        })
-        .start()
-        .completed();
+        });
+      const predicates: Array<(spans: SerializedStreamedSpanContainer['items']) => boolean> = [
+        spans =>
+          spans.some(
+            span =>
+              span.name === 'chat faux-model' &&
+              String(span.attributes[GEN_AI_INPUT_MESSAGES]?.value).includes('Fail please.'),
+          ),
+        spans =>
+          spans.some(span => span.is_segment && span.attributes[SENTRY_STATUS_MESSAGE]?.value === 'internal_error') &&
+          !spans.some(span => span.name === 'chat faux-model'),
+        spans =>
+          spans.some(
+            span =>
+              span.name === 'execute_tool slow' &&
+              span.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]?.value === '{"job":"abort"}',
+          ),
+        spans =>
+          spans.some(
+            span =>
+              span.name === 'chat faux-model' &&
+              span.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value === '["aborted"]',
+          ),
+        spans =>
+          spans.some(
+            span =>
+              span.name === 'execute_tool slow' &&
+              span.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]?.value === '{"job":"close"}',
+          ),
+        spans =>
+          spans.some(
+            span =>
+              span.name === 'chat faux-model' &&
+              String(span.attributes[GEN_AI_INPUT_MESSAGES]?.value).includes('Fail, then close.'),
+          ),
+      ];
+      const collectors = predicates.map(predicate =>
+        runner.collectStreamedSpans(spans => spans.some(span => span.is_segment) && predicate(spans)),
+      );
+      await runner.start().completed();
+      return (await Promise.all(collectors)).map(items => ({ items }));
+    }
+    const getScenario = () => (scenario ??= runScenario());
+
+    test('reports a provider that throws as a fault, and nothing for failed, aborted or closed runs', async () => {
+      await getScenario();
     });
 
     test('ends every run that does not end with an answer', async () => {
-      await createRunner()
-        .unordered()
-        .expect({
-          span: container => {
-            // 1. The model request failed: the run and the request are errors.
-            const chat = container.items.find(span => span.name === 'chat faux-model')!;
-            expect(chat.attributes[GEN_AI_INPUT_MESSAGES]?.value).toContain('Fail please.');
-            expect(chat.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value).toBe('["error"]');
-            expect(chat.status).toBe('error');
-            expect(chat.attributes[SENTRY_STATUS_MESSAGE]?.value).toBe('internal_error');
-            const agent = container.items.find(span => span.is_segment)!;
-            expect(agent.name).toBe('invoke_agent');
-            expect(agent.status).toBe('error');
-            expect(agent.attributes[SENTRY_STATUS_MESSAGE]?.value).toBe('model_error');
-          },
-        })
-        .expect({
-          span: container => {
-            // 2. The provider threw in front of pi-ai, so there is no request to report.
-            expect(container.items.find(span => span.name === 'chat faux-model')).toBeUndefined();
-            const agent = container.items.find(span => span.is_segment)!;
-            expect(agent.attributes[SENTRY_STATUS_MESSAGE]?.value).toBe('internal_error');
-          },
-        })
-        .expect({
-          span: container => {
-            // 3. Aborted while the tool ran: cancelled, which streamed spans report as ok.
-            const slow = container.items.find(span => span.name === 'execute_tool slow')!;
-            expect(slow.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]?.value).toBe('{"job":"abort"}');
-            expect(slow.status).toBe('ok');
-            expect(container.items.find(span => span.is_segment)!.status).toBe('ok');
-          },
-        })
-        .expect({
-          span: container => {
-            // 4. Aborted while the model request ran.
-            const chat = container.items.find(span => span.name === 'chat faux-model')!;
-            expect(chat.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value).toBe('["aborted"]');
-            expect(container.items).toHaveLength(2);
-          },
-        })
-        .expect({
-          span: container => {
-            // 5. The Harness closed while the tool ran: the run still ends, so the trace has a segment.
-            const slow = container.items.find(span => span.name === 'execute_tool slow')!;
-            expect(slow.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]?.value).toBe('{"job":"close"}');
-            const agent = container.items.find(span => span.is_segment)!;
-            expect(agent.name).toBe('invoke_agent');
-            expect(slow.parent_span_id).toBe(agent.span_id);
-          },
-        })
-        .expect({
-          span: container => {
-            // 6. The run failed, and the Harness closed right after `wait()`, before the commit that
-            // ended the run resolved: the run keeps its own status.
-            const chat = container.items.find(span => span.name === 'chat faux-model')!;
-            expect(chat.attributes[GEN_AI_INPUT_MESSAGES]?.value).toContain('Fail, then close.');
-            const agent = container.items.find(span => span.is_segment)!;
-            expect(agent.status).toBe('error');
-            expect(agent.attributes[SENTRY_STATUS_MESSAGE]?.value).toBe('model_error');
-          },
-        })
-        .start()
-        .completed();
+      const containers = await getScenario();
+      {
+        const container = containers[0]!;
+
+        // 1. The model request failed: the run and the request are errors.
+        const chat = container.items.find(span => span.name === 'chat faux-model')!;
+        expect(chat.attributes[GEN_AI_INPUT_MESSAGES]?.value).toContain('Fail please.');
+        expect(chat.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value).toBe('["error"]');
+        expect(chat.status).toBe('error');
+        expect(chat.attributes[SENTRY_STATUS_MESSAGE]?.value).toBe('internal_error');
+        const agent = container.items.find(span => span.is_segment)!;
+        expect(agent.name).toBe('invoke_agent');
+        expect(agent.status).toBe('error');
+        expect(agent.attributes[SENTRY_STATUS_MESSAGE]?.value).toBe('model_error');
+      }
+      {
+        const container = containers[1]!;
+
+        // 2. The provider threw in front of pi-ai, so there is no request to report.
+        expect(container.items.find(span => span.name === 'chat faux-model')).toBeUndefined();
+        const agent = container.items.find(span => span.is_segment)!;
+        expect(agent.attributes[SENTRY_STATUS_MESSAGE]?.value).toBe('internal_error');
+      }
+      {
+        const container = containers[2]!;
+
+        // 3. Aborted while the tool ran: cancelled, which streamed spans report as ok.
+        const slow = container.items.find(span => span.name === 'execute_tool slow')!;
+        expect(slow.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]?.value).toBe('{"job":"abort"}');
+        expect(slow.status).toBe('ok');
+        expect(container.items.find(span => span.is_segment)!.status).toBe('ok');
+      }
+      {
+        const container = containers[3]!;
+
+        // 4. Aborted while the model request ran.
+        const chat = container.items.find(span => span.name === 'chat faux-model')!;
+        expect(chat.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value).toBe('["aborted"]');
+        expect(container.items).toHaveLength(2);
+      }
+      {
+        const container = containers[4]!;
+
+        // 5. The Harness closed while the tool ran: the run still ends, so the trace has a segment.
+        const slow = container.items.find(span => span.name === 'execute_tool slow')!;
+        expect(slow.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]?.value).toBe('{"job":"close"}');
+        const agent = container.items.find(span => span.is_segment)!;
+        expect(agent.name).toBe('invoke_agent');
+        expect(slow.parent_span_id).toBe(agent.span_id);
+      }
+      {
+        const container = containers[5]!;
+
+        // 6. The run failed, and the Harness closed right after `wait()`, before the commit that
+        // ended the run resolved: the run keeps its own status.
+        const chat = container.items.find(span => span.name === 'chat faux-model')!;
+        expect(chat.attributes[GEN_AI_INPUT_MESSAGES]?.value).toContain('Fail, then close.');
+        const agent = container.items.find(span => span.is_segment)!;
+        expect(agent.status).toBe('error');
+        expect(agent.attributes[SENTRY_STATUS_MESSAGE]?.value).toBe('model_error');
+      }
     });
   });
 
