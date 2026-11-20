@@ -8,7 +8,7 @@ import { createRouter, memoryHistory, useNavigate } from '@solidjs/router';
 import { render } from '@solidjs/web';
 import { createComponent, flush } from 'solid-js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { BrowserClient } from '../../src/solid2';
+import { BrowserClient } from '../../src/solid2/client';
 import { solidRouterBrowserTracingIntegration, withSentryRouterRouting } from '../../src/solid2/solidrouter';
 
 vi.spyOn(window, 'scrollTo').mockImplementation(() => {});

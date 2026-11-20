@@ -9,6 +9,8 @@ import type { DenoClientOptions } from './types';
 
 declare const __SENTRY_CHANNEL_INJECTION__: boolean | undefined;
 
+const DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS = 60_000;
+
 function getHostName(): string | undefined {
   // Deno.permissions.querySync is not available on Deno Deploy
   if (!Deno.permissions.querySync) {
@@ -27,6 +29,7 @@ function getHostName(): string | undefined {
  */
 export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
   private _onExitFlushListener: (() => void) | undefined;
+  private _clientReportInterval: number | undefined;
 
   /**
    * Creates a new Deno SDK instance.
@@ -57,9 +60,12 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
     super(clientOptions);
 
     // The log, metric and span buffers drain on `flush`. Their timers are unref'd, so a natural exit
-    // would drop what they hold.
+    // would drop what they hold, and the outcomes recorded since the last client report.
     this._onExitFlushListener = () => {
       this.emit('flush');
+      if (this.getOptions().sendClientReports) {
+        this._flushOutcomes();
+      }
     };
 
     if (serverName) {
@@ -98,11 +104,36 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
   /** @inheritDoc */
   // @ts-expect-error - PromiseLike is a subset of Promise
   public async close(timeout?: number | undefined): PromiseLike<boolean> {
+    if (this._clientReportInterval !== undefined) {
+      clearInterval(this._clientReportInterval);
+    }
+
     if (this._onExitFlushListener) {
       process.off('beforeExit', this._onExitFlushListener);
       globalThis.removeEventListener('unload', this._onExitFlushListener);
     }
 
     return super.close(timeout);
+  }
+
+  /**
+   * Starts sending client reports on an interval. The exit listener sends them too.
+   *
+   * `Sentry.init()` calls this; a directly constructed client must call it itself. It is not in the
+   * constructor, so that creating many clients does not leak intervals. Call `close()` on a client
+   * that is no longer used.
+   */
+  public startClientReportTracking(): void {
+    const options = this.getOptions();
+    if (!options.sendClientReports) {
+      return;
+    }
+
+    // `setInterval` returns a number in Deno. `@types/node` types it as `NodeJS.Timeout`.
+    this._clientReportInterval = setInterval(() => {
+      this._flushOutcomes();
+    }, options.clientReportFlushInterval ?? DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS) as unknown as number;
+    // An unref'd interval does not keep the process alive.
+    Deno.unrefTimer(this._clientReportInterval);
   }
 }

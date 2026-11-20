@@ -1,6 +1,6 @@
 import type { Client } from '@sentry/core';
 import { debug, getTraceServerTimingHeader, isObjectLike, isSharedCacheable } from '@sentry/core';
-import { DEBUG_BUILD } from '../common/debug-build';
+import { DEBUG_BUILD } from '../debug-build';
 
 const SERVER_TIMING_HEADER = 'server-timing';
 

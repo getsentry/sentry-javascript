@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { ArgumentsHost } from '@nestjs/common';
 import { HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { BaseExceptionFilter } from '@nestjs/core';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Helpers from '../src/helpers';
@@ -144,6 +145,26 @@ describe('SentryGlobalFilter', () => {
         },
       });
       expect(mockLoggerError).toHaveBeenCalledWith(error.message, error.stack);
+    });
+  });
+
+  describe('MCP context', () => {
+    it('should capture errors and rethrow them without calling the HTTP adapter', () => {
+      vi.mocked(mockArgumentsHost.getType).mockReturnValue('mcp');
+      const superCatchSpy = vi.spyOn(BaseExceptionFilter.prototype, 'catch');
+      const error = new Error('Test error');
+
+      expect(() => {
+        filter.catch(error, mockArgumentsHost);
+      }).toThrow(error);
+
+      expect(mockCaptureException).toHaveBeenCalledWith(error, {
+        mechanism: {
+          handled: false,
+          type: 'auto.mcp.nestjs.global_filter',
+        },
+      });
+      expect(superCatchSpy).not.toHaveBeenCalled();
     });
   });
 

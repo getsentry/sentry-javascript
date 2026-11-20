@@ -3,10 +3,12 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import baseConfig from '../../vite/vite.config';
 import {
+  BUN_BUILD_BEFORE_1_4_EXCLUDE,
   BUN_BUILD_EXCLUDE,
   BUN_RUN_EXCLUDE,
   NO_AUTO_INSTRUMENTATION,
   NODE_SUITES_EXCLUDE,
+  SENTRY_BUN_BEFORE_1_4_EXCLUDE,
   SENTRY_BUN_EXCLUDE,
   SENTRY_NODE_EXCLUDE,
 } from './node-suites/excludes';
@@ -21,6 +23,7 @@ const [bunMajor = 0, bunMinor = 0, bunPatch = 0] = execFileSync('bun', ['--versi
   .trim()
   .split(/[.-]/)
   .map(Number);
+const BUN_BEFORE_1_4 = bunMajor < 1 || (bunMajor === 1 && bunMinor < 4);
 const BUN_RUN_INSTRUMENTS = bunMajor > 1 || (bunMajor === 1 && (bunMinor > 4 || (bunMinor === 4 && bunPatch >= 6)));
 
 const AUTO_INSTRUMENTATION_SUITES = NO_AUTO_INSTRUMENTATION.map(glob =>
@@ -85,6 +88,7 @@ export default defineConfig({
           exclude: [
             ...NODE_SUITES_EXCLUDE,
             ...SENTRY_BUN_EXCLUDE,
+            ...(BUN_BEFORE_1_4 ? SENTRY_BUN_BEFORE_1_4_EXCLUDE : []),
             // The scenario creates a `NodeClient` itself, which sends `sentry.javascript.node`.
             'suites/public-api/logs/test.ts',
             // `@sentry/bun` has `bunRuntimeMetricsIntegration` instead of `nodeRuntimeMetricsIntegration`.
@@ -106,7 +110,7 @@ export default defineConfig({
           // See https://github.com/getsentry/sentry-javascript/issues/23882
           name: 'node-suites-bun-build',
           include: AUTO_INSTRUMENTATION_SUITES,
-          exclude: BUN_BUILD_EXCLUDE,
+          exclude: [...BUN_BUILD_EXCLUDE, ...(BUN_BEFORE_1_4 ? BUN_BUILD_BEFORE_1_4_EXCLUDE : [])],
           env: {
             RUNTIME: 'bun',
             RUNTIME_PRELOAD: fileURLToPath(new URL('./node-suites/alias-sentry-bun.ts', import.meta.url)),

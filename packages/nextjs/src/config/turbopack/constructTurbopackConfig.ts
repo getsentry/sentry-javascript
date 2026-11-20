@@ -1,6 +1,5 @@
 import { debug, escapeStringForRegex } from '@sentry/core';
 import * as path from 'path';
-import { getInstrumentedModuleNames } from '@sentry/server-utils/orchestrion/config';
 import {
   getOrchestrionLoaderPath,
   getSentryInstrumentations,
@@ -169,16 +168,33 @@ function maybeAddOrchestrionRule(
   // build time.
   const importHelperPath = resolveOrchestrionRuntimeRequest('@sentry/server-utils');
 
-  // Turbopack runs webpack loaders out of process, one round trip per matched file. The transform
-  // only ever touches files of the instrumented packages, so limit the rule to those instead of
-  // paying that round trip for every server-side module (all of node_modules included).
-  const instrumentedPackages = getInstrumentedModuleNames().map(escapeStringForRegex);
-  const instrumentedPackagePath = new RegExp(`node_modules/(?:${instrumentedPackages.join('|')})/`);
+  // Turbopack runs webpack loaders out of process, one round trip per matched file, and keeps a copy
+  // of the loader options for each one. The transform only touches the target files of each
+  // instrumentation, so limit the rule to those instead of every file of the instrumented packages.
+  const filePatternsByPackage = new Map<string, Set<string>>();
+  for (const { module } of getSentryInstrumentations()) {
+    const patterns = filePatternsByPackage.get(module.name) ?? new Set<string>();
+    filePatternsByPackage.set(module.name, patterns);
+    if (typeof module.filePath === 'string') {
+      patterns.add(escapeStringForRegex(module.filePath));
+    } else {
+      // A RegExp is tested against the path relative to the package root. An anchored one can follow
+      // the package prefix as-is, an unanchored one falls back to every file of the package.
+      const { source } = module.filePath;
+      patterns.add(source.startsWith('^') ? source.slice(1) : '.*');
+    }
+  }
+  const instrumentedFilePath = new RegExp(
+    `node_modules/(?:${Array.from(
+      filePatternsByPackage,
+      ([name, patterns]) => `${escapeStringForRegex(name)}/(?:${Array.from(patterns).join('|')})`,
+    ).join('|')})$`,
+  );
 
   return safelyAddTurbopackRule(rules, {
     matcher: '*.{js,mjs,cjs}',
     rule: {
-      condition: { all: ['node', { path: instrumentedPackagePath }] },
+      condition: { all: ['node', { path: instrumentedFilePath }] },
       loaders: [
         {
           loader: getOrchestrionLoaderPath(),

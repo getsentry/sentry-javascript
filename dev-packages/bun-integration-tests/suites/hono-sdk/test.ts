@@ -1,3 +1,4 @@
+import { SENTRY_KIND } from '@sentry/conventions/attributes';
 import { SDK_VERSION } from '@sentry/core';
 import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../node-integration-tests/utils/runner';
@@ -125,6 +126,7 @@ test('Hono app captures parametrized route names on Bun', async () => {
           attributes: expect.objectContaining({
             'sentry.op': { value: 'http.server', type: 'string' },
             'sentry.origin': { value: 'auto.http.bun.serve', type: 'string' },
+            [SENTRY_KIND]: { value: 'server', type: 'string' },
             'sentry.segment.name.source': { value: 'route', type: 'string' },
             'http.route': { value: '/hello/:name', type: 'string' },
             'http.request.method': { value: 'GET', type: 'string' },
