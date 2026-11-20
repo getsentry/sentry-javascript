@@ -32,7 +32,7 @@ async function consume(result) {
   }
 }
 
-async function run() {
+export async function run() {
   // A single model instance shared by two *concurrent* streamText calls. The shared model carries
   // only a single captured-parent slot, so naive parent tracking could attribute a model call to
   // whichever operation resolved the model last. Each `generate_content` (doStream) must land under
@@ -57,5 +57,3 @@ async function run() {
     await Promise.all(streams.map(consume));
   });
 }
-
-run();

@@ -1,8 +1,8 @@
+import { join } from 'node:path';
 import { afterAll, expect, describe } from 'vitest';
 import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../../../utils/runner';
 import { registerVercelAiGenerationTests } from '../../suite';
-import { join } from 'node:path';
 
 describe('Vercel AI integration (version 6)', () => {
   registerVercelAiGenerationTests('6', '^6.0.0');
@@ -12,7 +12,6 @@ describe('Vercel AI telemetry metadata (v6)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
-
   createEsmAndCjsTests(
     join(__dirname, '../..'),
     'scenario-telemetry-metadata.mjs',

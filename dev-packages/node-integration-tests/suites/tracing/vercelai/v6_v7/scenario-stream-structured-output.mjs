@@ -7,7 +7,7 @@ import { z } from 'zod';
 // output now flows through the `streamText` primitive with an `experimental_output`, which does. So a
 // streamed structured-output call must still produce the usual streamText/doStream spans, with the
 // streamed JSON captured as the output.
-async function run() {
+export async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const result = streamText({
       experimental_telemetry: { isEnabled: true, recordInputs: true, recordOutputs: true },
@@ -44,5 +44,3 @@ async function run() {
     }
   });
 }
-
-run();

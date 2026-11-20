@@ -19,7 +19,7 @@ const model = () =>
 const brief = { role: 'system', content: 'Be brief.' };
 const kind = { role: 'system', content: 'Be kind.' };
 
-async function run() {
+export async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     // v6 reads `system`, v7 reads `instructions`.
     await generateText({
@@ -38,5 +38,3 @@ async function run() {
     });
   });
 }
-
-run();

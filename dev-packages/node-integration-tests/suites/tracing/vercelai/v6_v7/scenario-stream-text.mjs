@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/node';
 import { streamText } from 'ai';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 
-async function run() {
+export async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const result = streamText({
       experimental_telemetry: { isEnabled: true, recordInputs: true, recordOutputs: true },
@@ -38,5 +38,3 @@ async function run() {
     }
   });
 }
-
-run();
