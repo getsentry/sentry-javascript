@@ -14,8 +14,10 @@ import {
 import { getClient } from '../../currentScopes';
 import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
 import { MCP_NOTIFICATION_SPAN_NAME_FALLBACK, MCP_SERVER_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
-import { startSpan } from '../../tracing/trace';
+import { startInactiveSpan, startSpan } from '../../tracing/trace';
 import type { SpanLink } from '../../types/link';
+import type { Span } from '../../types/span';
+import type { StartSpanOptions } from '../../types/startSpanOptions';
 import { buildTransportAttributes, buildTypeSpecificAttributes } from './attributeExtraction';
 import { MCP_FUNCTION_ORIGIN_VALUE, MCP_NOTIFICATION_ORIGIN_VALUE, MCP_ROUTE_SOURCE_VALUE } from './attributes';
 import { extractTargetInfo } from './methodConfig';
@@ -24,7 +26,7 @@ import type {
   ExtraHandlerData,
   JsonRpcNotification,
   JsonRpcRequest,
-  McpSpanConfig,
+  McpSpanType,
   MCPTransport,
   ResolvedMcpOptions,
 } from './types';
@@ -46,7 +48,7 @@ function createSpanName(method: string, target?: string): string {
  * @param type - Span type configuration
  * @returns Sentry-specific attributes
  */
-function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, string> {
+function buildSentryAttributes(type: McpSpanType): Record<string, string> {
   let op: string;
   let origin: string;
 
@@ -73,79 +75,53 @@ function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, stri
 }
 
 /**
- * Unified builder for creating MCP spans
+ * Builds the name and attributes of an MCP notification span
  * @internal
- * @param config - Span configuration
- * @returns Created span
  */
-function createMcpSpan(config: McpSpanConfig): unknown {
-  const { type, message, transport, extra, callback, options, links } = config;
+export function buildMcpNotificationSpanConfig(
+  type: 'notification-incoming' | 'notification-outgoing',
+  message: JsonRpcNotification,
+  transport: MCPTransport,
+  options: ResolvedMcpOptions,
+  extra?: ExtraHandlerData,
+): { name: string; attributes: Record<string, string | number> } {
   const { method } = message;
   const params = message.params;
   const client = getClient();
   const spanStreamingEnabled = !!client && hasSpanStreamingEnabled(client);
 
-  // Determine span name based on type and OTEL conventions
-  let spanName: string;
-  if (type === 'request') {
-    const targetInfo = extractTargetInfo(method, params || {});
-    const target = spanStreamingEnabled && !targetInfo.targetIsLowCardinality ? undefined : targetInfo.target;
-    spanName = method ? createSpanName(method, target) : MCP_SERVER_SPAN_NAME_FALLBACK;
-  } else {
-    // For notifications, use method name directly per OpenTelemetry conventions.
-    // With span streaming, span names have to be low cardinality, so a message without a method name gets a static name.
-    spanName = method || (spanStreamingEnabled ? MCP_NOTIFICATION_SPAN_NAME_FALLBACK : method);
-  }
+  // For notifications, use method name directly per OpenTelemetry conventions.
+  // With span streaming, span names have to be low cardinality, so a message without a method name gets a static name.
+  const name = method || (spanStreamingEnabled ? MCP_NOTIFICATION_SPAN_NAME_FALLBACK : method);
 
   const rawAttributes: Record<string, string | number> = {
     ...buildTransportAttributes(transport, extra, message),
     [MCP_METHOD_NAME]: method,
-    ...buildTypeSpecificAttributes(type, message, params, options?.recordInputs),
+    ...buildTypeSpecificAttributes(type, message, params, options.recordInputs),
     ...buildSentryAttributes(type),
   };
 
   const userInfo = Boolean(client?.getDataCollectionOptions().userInfo);
   const attributes = filterMcpPiiFromSpanData(rawAttributes, userInfo) as Record<string, string | number>;
 
-  return startSpan(
-    {
-      name: spanName,
-      // oxlint-disable-next-line typescript/no-deprecated
-      forceTransaction: true,
-      attributes,
-      links,
-    },
-    callback,
-  );
+  return { name, attributes };
 }
 
-/**
- * Creates a span for incoming MCP notifications
- * @param jsonRpcMessage - Notification message
- * @param transport - MCP transport instance
- * @param extra - Extra handler data
- * @param options - Resolved MCP options
- * @param callback - Span execution callback
- * @param links - Links to add to the span
- * @returns Span execution result
- */
-export function createMcpNotificationSpan(
-  jsonRpcMessage: JsonRpcNotification,
-  transport: MCPTransport,
-  extra: ExtraHandlerData,
-  options: ResolvedMcpOptions,
-  callback: () => unknown,
-  links?: SpanLink[],
-): unknown {
-  return createMcpSpan({
-    type: 'notification-incoming',
-    message: jsonRpcMessage,
-    transport,
-    extra,
-    callback,
-    options,
-    links,
-  });
+type McpNotificationSpanConfig = { name: string; attributes: Record<string, string | number>; links?: SpanLink[] };
+
+function notificationSpanOptions({ name, attributes, links }: McpNotificationSpanConfig): StartSpanOptions {
+  // oxlint-disable-next-line typescript/no-deprecated
+  return { name, forceTransaction: true, attributes, links };
+}
+
+/** Starts an MCP notification span around `callback`. */
+export function startMcpNotificationSpan(config: McpNotificationSpanConfig, callback: () => unknown): unknown {
+  return startSpan(notificationSpanOptions(config), callback);
+}
+
+/** Starts an MCP notification span that the caller ends. */
+export function startInactiveMcpNotificationSpan(config: McpNotificationSpanConfig): Span {
+  return startInactiveSpan(notificationSpanOptions(config));
 }
 
 /**
@@ -162,13 +138,10 @@ export function createMcpOutgoingNotificationSpan(
   options: ResolvedMcpOptions,
   callback: () => unknown,
 ): unknown {
-  return createMcpSpan({
-    type: 'notification-outgoing',
-    message: jsonRpcMessage,
-    transport,
-    options,
+  return startMcpNotificationSpan(
+    buildMcpNotificationSpanConfig('notification-outgoing', jsonRpcMessage, transport, options),
     callback,
-  });
+  );
 }
 
 /**
