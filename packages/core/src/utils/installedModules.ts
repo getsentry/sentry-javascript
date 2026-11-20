@@ -22,6 +22,11 @@ export function collectInstalledModules({
   readFile: ReadFileFn;
   entryPath?: string;
   cwd?: string;
+  /**
+   * Paths of files the process has already loaded, such as the keys of `require.cache`. Packages these files belong
+   * to are added to `installed` too, which covers transitive dependencies that are not in `package.json`. ESM has no
+   * equivalent of `require.cache`, so only CommonJS passes this; without it, only declared dependencies are resolved.
+   */
   loadedFiles?: string[];
 }): { declared: ModuleInfo; installed: ModuleInfo } {
   const entryDir = entryPath && dirname(toPosix(entryPath));

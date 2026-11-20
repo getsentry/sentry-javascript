@@ -20,17 +20,15 @@ describe('modulesIntegration', () => {
     // The runtime injection happens only now — after the module is already evaluated.
     (GLOBAL_OBJ as GlobalWithModules).__SENTRY_SERVER_MODULES__ = { '@sentry/turbopack-injected': '1.2.3' };
 
-    const modules = modulesIntegration().getModules?.() ?? {};
-    expect(modules['@sentry/turbopack-injected']).toBe('1.2.3');
+    expect(modulesIntegration().getModules?.()).toEqual({ '@sentry/turbopack-injected': '1.2.3' });
   });
 
-  it('reads modules already present before evaluation (webpack DefinePlugin / pre-set global)', async () => {
+  it('uses only modules already present before evaluation (webpack DefinePlugin / pre-set global)', async () => {
     (GLOBAL_OBJ as GlobalWithModules).__SENTRY_SERVER_MODULES__ = { '@sentry/prebuilt-injected': '4.5.6' };
 
     vi.resetModules();
     const { modulesIntegration } = await import('../../src/integrations/modules');
 
-    const modules = modulesIntegration().getModules?.() ?? {};
-    expect(modules['@sentry/prebuilt-injected']).toBe('4.5.6');
+    expect(modulesIntegration().getModules?.()).toEqual({ '@sentry/prebuilt-injected': '4.5.6' });
   });
 });
