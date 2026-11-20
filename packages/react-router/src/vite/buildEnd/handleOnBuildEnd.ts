@@ -3,7 +3,9 @@ import * as path from 'node:path';
 import type { Config } from '@react-router/dev/config';
 import { createSentrySDK } from 'sentry';
 import { globFiles } from '@sentry/bundler-plugins/core';
+import { resolveSourceMapsFeatures } from '@sentry/core';
 import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
+import { SDK_ENABLED_SOURCE_MAPS_KEY } from '../makeEnableSourceMapsPlugin';
 import type { SentryReactRouterBuildOptions } from '../types';
 
 type BuildEndHook = NonNullable<Config['buildEnd']>;
@@ -53,7 +55,6 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     ...sentryConfig,
     sourcemaps: {
       ...sentryConfig.sourcemaps,
-      disable: sentryConfig.sourcemaps?.disable,
     },
     release: {
       ...sentryConfig.release,
@@ -70,8 +71,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
 
   const sentry = createSentrySDK(sentryOptions);
 
-  // check if release should be created
-  if (release?.name) {
+  if (release?.name && release.create !== false) {
     try {
       // The release API requires a project, and the one given to the SDK does not reach this call.
       await sentry.release.create({
@@ -84,12 +84,9 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     }
   }
 
-  // `disable: 'disable-upload'` still injects debug IDs, so that source maps can be
-  // uploaded manually at a later point - only `true` turns source maps off entirely.
-  const sourceMapsFullyDisabled = sourcemaps?.disable === true;
-  const uploadDisabled = sourceMapsFullyDisabled || sourcemaps?.disable === 'disable-upload';
+  const { injectDebugIds, upload } = resolveSourceMapsFeatures(sourcemaps);
 
-  if (!sourceMapsFullyDisabled && viteConfig.build.sourcemap !== false) {
+  if (injectDebugIds && viteConfig.build.sourcemap !== false) {
     // inject debugIds
     try {
       await sentry.sourcemap.inject({ directory: reactRouterConfig.buildDirectory });
@@ -98,7 +95,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
       console.error('[Sentry] Could not inject debug ids', error);
     }
 
-    if (!uploadDisabled) {
+    if (upload) {
       // upload sourcemaps
       try {
         const uploadClients = Array.isArray(project)
@@ -118,18 +115,26 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     }
   }
 
-  // Only clean up source maps that were actually uploaded. Deleting them after skipping
-  // the upload would leave the user with neither, breaking a manual upload.
-  if (uploadDisabled) {
+  const deleteOption = sourcemaps?.delete;
+
+  // Without `sourcemaps.delete: true`, source maps are only cleaned up when Sentry uploads them.
+  // Deleting them after skipping the upload would leave the user with neither, breaking a manual upload.
+  if (deleteOption !== true && !upload) {
     return;
   }
 
-  // delete sourcemaps after upload
-  let updatedFilesToDeleteAfterUpload = await sourcemaps?.filesToDeleteAfterUpload;
+  const userFilesToDeleteAfterUpload = await sourcemaps?.filesToDeleteAfterUpload;
+  const defaultFilesToDelete = [`${toGlobPath(reactRouterConfig.buildDirectory)}/**/*.map`];
+  let updatedFilesToDeleteAfterUpload: string | string[] | undefined;
 
-  // set a default value no option was set
-  if (typeof updatedFilesToDeleteAfterUpload === 'undefined') {
-    updatedFilesToDeleteAfterUpload = [`${toGlobPath(reactRouterConfig.buildDirectory)}/**/*.map`];
+  if (deleteOption === true) {
+    updatedFilesToDeleteAfterUpload = [...defaultFilesToDelete, ...[userFilesToDeleteAfterUpload ?? []].flat()];
+  } else if (deleteOption === false) {
+    updatedFilesToDeleteAfterUpload = userFilesToDeleteAfterUpload;
+  } else if (typeof userFilesToDeleteAfterUpload !== 'undefined') {
+    updatedFilesToDeleteAfterUpload = userFilesToDeleteAfterUpload;
+  } else if ((viteConfig as Record<string, unknown>)[SDK_ENABLED_SOURCE_MAPS_KEY] === true) {
+    updatedFilesToDeleteAfterUpload = defaultFilesToDelete;
     debug &&
       // eslint-disable-next-line no-console
       console.info(
