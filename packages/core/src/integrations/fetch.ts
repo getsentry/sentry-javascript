@@ -164,7 +164,6 @@ function createBreadcrumb(handlerData: HandlerDataFetch, client: Client): void {
 
   const breadcrumbData: FetchBreadcrumbData = {
     method: handlerData.fetchData.method,
-    // oxlint-disable-next-line typescript/no-deprecated
     [HTTP_REQUEST_METHOD]: handlerData.fetchData.method,
     url: getSanitizedUrlString(parsedUrl),
     [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl.search), client),

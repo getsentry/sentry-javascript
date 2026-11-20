@@ -402,11 +402,12 @@ function getFetchSpanAttributes(
       attributes[URL_PATH] = parsedUrl.pathname;
       attributes[URL_SCHEME] = parsedUrl.protocol.replace(/:$/, '');
     } else if (urlBase) {
-      const resolvedUrl = parseStringToURLObject(url, urlBase);
-      const baseUrl = parseStringToURLObject(urlBase);
-      if (resolvedUrl && baseUrl && !isURLObjectRelative(baseUrl)) {
+      try {
+        const resolvedUrl = new URL(url, urlBase);
         attributes[URL_PATH] = resolvedUrl.pathname;
-        attributes[URL_SCHEME] = baseUrl.protocol.replace(/:$/, '');
+        attributes[URL_SCHEME] = resolvedUrl.protocol.replace(/:$/, '');
+      } catch {
+        // `urlBase` is not an absolute URL either.
       }
     }
     attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(parsedUrl.search), client);
