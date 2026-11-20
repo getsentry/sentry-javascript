@@ -14,6 +14,8 @@ function mcpSpan(
   return span!;
 }
 
+// The `McpServer` is never manually wrapped — these assertions only pass if the `mcpServer`
+// integration auto-instrumented the constructor.
 describe('MCP server spans (streamed, auto-instrumentation, v2)', () => {
   afterAll(() => {
     cleanupChildProcesses();
