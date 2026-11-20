@@ -100,7 +100,10 @@ describe('modulesIntegration', () => {
     // A CommonJS package that the app imports but does not declare, like a transitive dependency
     const transitiveDir = join(appDir, 'node_modules', 'esm-app-transitive');
     mkdirSync(transitiveDir, { recursive: true });
-    writeFileSync(join(transitiveDir, 'package.json'), JSON.stringify({ name: 'esm-app-transitive', version: '3.1.0' }));
+    writeFileSync(
+      join(transitiveDir, 'package.json'),
+      JSON.stringify({ name: 'esm-app-transitive', version: '3.1.0' }),
+    );
     writeFileSync(join(transitiveDir, 'index.js'), 'module.exports = {};');
 
     try {
