@@ -29,8 +29,7 @@ export const INSTRUMENTS_UNDICI_FETCH = EXPECTED_SDK_NAME === 'sentry.javascript
 
 /**
  * Whether the scenarios run `@sentry/deno`. Its `globalHandlersIntegration` captures uncaught
- * exceptions and, unless `onUnhandledRejectionIntegration` is added, unhandled rejections: as
- * `fatal`, before Deno exits as it does without the SDK.
+ * exceptions and unhandled rejections as `fatal`, before Deno exits as it does without the SDK.
  */
 export const USES_DENO_GLOBAL_HANDLERS = EXPECTED_SDK_NAME === 'sentry.javascript.deno';
 
