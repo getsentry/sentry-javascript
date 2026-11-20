@@ -46,8 +46,8 @@ const _modulesIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Adds the app's packages to the event, with exact installed versions where they resolve from the entry file.
- * Declared ranges and build-time injected versions fill in packages that are not installed, such as bundled ones.
+ * Adds the app's packages to the event. Versions injected at build time (e.g. by the Next.js SDK) are used as is.
+ * Otherwise, it uses exact installed versions where they resolve from the entry file, and declared ranges for the rest.
  */
 export const modulesIntegration = _modulesIntegration;
 
@@ -70,6 +70,11 @@ function getRequireCachePaths(): string[] {
 }
 
 function collectModules(): ModuleInfo {
+  const serverModules = getServerModules();
+  // The build already resolved exact versions, so skip the file reads at runtime.
+  if (Object.keys(serverModules).length) {
+    return serverModules;
+  }
   const { declared, installed } = collectInstalledModules({
     readFile,
     entryPath: process.argv[1],
@@ -80,7 +85,7 @@ function collectModules(): ModuleInfo {
       /*! rollup-include-cjs-only-end */
     ],
   });
-  return { ...declared, ...getServerModules(), ...installed };
+  return { ...declared, ...installed };
 }
 
 /** Fetches the list of modules and the versions loaded by the entry file for your node.js app. */
