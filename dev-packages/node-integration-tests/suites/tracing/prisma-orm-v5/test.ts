@@ -10,6 +10,7 @@ import {
 import { DB } from '@sentry/conventions/op';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
+import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 afterAll(() => {
@@ -165,6 +166,8 @@ describeWithDockerCompose('Prisma ORM v5', { workingDirectory: [__dirname] }, ()
         });
       },
       {
+        // Deno: an ES module cannot import `PrismaClient`, a CommonJS export of `@prisma/client`.
+        failsOnEsm: !supports({ runtimes: ['node', 'bun'] }),
         additionalDependencies: ADDITIONAL_DEPENDENCIES,
         afterSetupCommand: AFTER_SETUP_COMMAND,
         copyPaths: ['prisma'],

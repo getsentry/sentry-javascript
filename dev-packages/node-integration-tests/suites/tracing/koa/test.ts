@@ -1,4 +1,5 @@
 import { afterAll, describe, expect } from 'vitest';
+import { SUPPORTS_REQUIRE_OF_ESM } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('koa auto-instrumentation', () => {
@@ -32,7 +33,7 @@ describe('koa auto-instrumentation', () => {
   describe.each([
     ['v2', {}],
     ['v3', { koa: '^3.0.0' }],
-  ])('%s', (_version, additionalDependencies) => {
+  ])('%s', (version, additionalDependencies) => {
     createEsmAndCjsTests(
       __dirname,
       'scenario.mjs',
@@ -114,7 +115,12 @@ describe('koa auto-instrumentation', () => {
           await runner.completed();
         });
       },
-      { additionalDependencies },
+      {
+        additionalDependencies,
+        // Koa 2 depends on `generator-function`, which `require()`s an ES module.
+        failsOnEsm: version === 'v2' && !SUPPORTS_REQUIRE_OF_ESM,
+        failsOnCjs: version === 'v2' && !SUPPORTS_REQUIRE_OF_ESM,
+      },
     );
   });
 });
