@@ -4,6 +4,7 @@
  */
 import { isObjectLike } from '@sentry/core';
 import { getEvaluationInputMessages, getEvaluationOutputMessages } from '../core/utils';
+import type { GenAiMessage, GenAiMessagePart } from '../types';
 
 /**
  * Serialize a decisions request. Its evidence is `input` where Jev's is `state`; it is recorded as `state`
@@ -11,7 +12,50 @@ import { getEvaluationInputMessages, getEvaluationOutputMessages } from '../core
  */
 export function getDecisionInputMessages(params: Record<string, unknown>): string | undefined {
   const questions = Array.isArray(params.questions) ? params.questions.map(toJevQuestionFormat) : params.questions;
-  return getEvaluationInputMessages({ state: params.input, questions: keyByName(questions) });
+  return getEvaluationInputMessages({ state: toStateMessages(params.input), questions: keyByName(questions) });
+}
+
+/**
+ * Lay out evidence messages as gen_ai messages, so they render like Google's. Other input items (tool calls and
+ * their outputs) keep their layout, with output parts mapped like message parts.
+ */
+function toStateMessages(input: unknown): unknown {
+  if (!Array.isArray(input)) {
+    return input;
+  }
+
+  return input.map(item => {
+    if (!isObjectLike(item)) {
+      return item;
+    }
+    if (typeof item.role === 'string') {
+      return {
+        // The gen_ai conventions have no `developer` role.
+        role: (item.role === 'developer' ? 'system' : item.role) as GenAiMessage['role'],
+        parts: Array.isArray(item.content)
+          ? item.content.filter(isObjectLike).map(toMessagePart)
+          : [{ type: 'text', content: item.content }],
+      } satisfies GenAiMessage;
+    }
+    return Array.isArray(item.output) ? { ...item, output: item.output.filter(isObjectLike).map(toMessagePart) } : item;
+  });
+}
+
+/**
+ * An image in a data URL is reported by its media type only: the URL holds base64, which the conventions require to be
+ * dropped.
+ */
+function toMessagePart(part: Record<PropertyKey, unknown>): GenAiMessagePart {
+  if (part.type === 'input_image' && typeof part.image_url === 'string') {
+    const dataUrlMimeType = /^data:([^;,]+)/.exec(part.image_url)?.[1];
+    return part.image_url.startsWith('data:')
+      ? { type: 'blob', modality: 'image', mime_type: dataUrlMimeType }
+      : { type: 'uri', modality: 'image', uri: part.image_url };
+  }
+  if (part.type === 'input_json') {
+    return { type: 'object', content: part.data };
+  }
+  return { type: 'text', content: part.text ?? part.refusal };
 }
 
 /** Serialize the answers of a decisions response, laid out and keyed like Jev answers. */

@@ -5,6 +5,7 @@ import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
+import { SENTRY_KIND } from '@sentry/conventions/attributes';
 import { beforeAll, beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from '../src/client';
@@ -680,6 +681,7 @@ describe('withSentry', () => {
         data: {
           'sentry.origin': 'auto.http.cloudflare',
           'sentry.op': 'http.server',
+          [SENTRY_KIND]: 'server',
           'sentry.segment.name.source': 'route',
           'http.request.method': 'GET',
           'url.full': 'https://example.com/',

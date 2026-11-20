@@ -656,8 +656,10 @@ describe('package specifier as wrangler `main`', () => {
     const warn = vi.fn();
     const tx = (id: string, environment = ssr) =>
       plugin.transform.call({ parse: (c: string) => parseJS(c), warn, environment }, code, id);
+    const buildStart = (resolve = vi.fn().mockResolvedValue(null)) =>
+      plugin.buildStart.call({ warn, environment: ssr, resolve });
 
-    return { tx, entryPath, dir, warn };
+    return { tx, buildStart, entryPath, dir, warn };
   }
 
   it('wraps the module the specifier resolves to', async () => {
@@ -702,16 +704,93 @@ describe('package specifier as wrangler `main`', () => {
     expect(result.code).toContain('__SENTRY__.withSentry(__SENTRY_OPTIONS_CALLBACK__,');
   });
 
-  it('warns once when the specifier does not resolve', async () => {
-    const { tx, dir, warn } = createPlugin();
+  it('warns at build start when the specifier does not resolve', async () => {
+    const { tx, dir, warn, buildStart } = createPlugin();
     idResolver.mockResolvedValue(undefined);
 
+    await buildStart();
     expect(await tx(join(dir, 'a.js'))).toBeUndefined();
     expect(await tx(join(dir, 'b.js'))).toBeUndefined();
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith(
       '[sentry] Could not resolve the wrangler `main` "vinext/server/fetch-handler". Auto-instrumentation disabled.',
     );
+  });
+});
+
+describe('virtual module as wrangler `main`', () => {
+  const MAIN = 'virtual:solid-ssr-handler';
+  const RESOLVED_ID = `\0${MAIN}`;
+  const code = 'export default { fetch() { return new Response("ok"); } };';
+  const ssr = { name: 'ssr' };
+
+  beforeEach(() => {
+    idResolver.mockReset();
+    // Vite's resolver does not see virtual modules other plugins provide.
+    idResolver.mockResolvedValue(undefined);
+  });
+
+  function createPlugin(files: Record<string, string> = {}) {
+    const dir = writeTempDir({ 'wrangler.jsonc': JSON.stringify({ main: MAIN }), ...files });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir });
+
+    const warn = vi.fn();
+    // The plugin pipeline, where the plugin that serves the virtual module resolves it.
+    const resolve = vi.fn(async (source: string) => (source === MAIN ? { id: RESOLVED_ID } : null));
+    const context = { parse: (c: string) => parseJS(c), warn, environment: ssr, resolve };
+    const buildStart = () => plugin.buildStart.call(context);
+    const tx = (id: string) => plugin.transform.call(context, code, id);
+
+    return { plugin, tx, buildStart, resolve, dir, warn };
+  }
+
+  it('wraps the module the plugin pipeline resolves `main` to', async () => {
+    const { tx, buildStart, resolve, dir, warn } = createPlugin();
+
+    await buildStart();
+    const result = await tx(RESOLVED_ID);
+    expect(resolve).toHaveBeenCalledWith(MAIN, join(dir, 'wrangler.jsonc'));
+    expect(result.code).toContain('__SENTRY__.withSentry(');
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('does not wrap other modules', async () => {
+    const { tx, buildStart, dir } = createPlugin();
+
+    await buildStart();
+    expect(await tx(join(dir, 'src/app.js'))).toBeUndefined();
+    expect(await tx(`${RESOLVED_ID}-impl`)).toBeUndefined();
+  });
+
+  it('imports instrument.server.* by its absolute path', async () => {
+    const { tx, buildStart, dir } = createPlugin({
+      'instrument.server.ts': 'export default (env) => ({ dsn: env.SENTRY_DSN });',
+    });
+
+    await buildStart();
+    const result = await tx(RESOLVED_ID);
+    expect(result.code).toContain(
+      `import __SENTRY_OPTIONS_CALLBACK__ from '${join(dir, 'instrument.server.ts').replace(/\\/g, '/')}';`,
+    );
+  });
+
+  it('warns at build start when no plugin resolves `main`', async () => {
+    const { buildStart, resolve, warn } = createPlugin();
+    resolve.mockResolvedValue(null);
+
+    await buildStart();
+    expect(warn).toHaveBeenCalledWith(
+      '[sentry] Could not resolve the wrangler `main` "virtual:solid-ssr-handler". Auto-instrumentation disabled.',
+    );
+  });
+
+  it('does not resolve `main` in the client environment', async () => {
+    const { plugin, resolve, warn } = createPlugin();
+
+    await plugin.buildStart.call({ warn, environment: { name: 'client' }, resolve });
+    expect(resolve).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
   });
 });
 
