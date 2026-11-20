@@ -27,6 +27,10 @@ export const EXPECTED_SDK_NAME = process.env.EXPECTED_SDK_NAME || 'sentry.javasc
  */
 export const INSTRUMENTS_UNDICI_FETCH = EXPECTED_SDK_NAME === 'sentry.javascript.node';
 
+/** The `mechanism.type` of uncaught exceptions. */
+export const EXPECTED_UNCAUGHT_EXCEPTION_MECHANISM =
+  EXPECTED_SDK_NAME === 'sentry.javascript.deno' ? 'auto.deno.global_handlers.error' : 'auto.node.onuncaughtexception';
+
 /** The `sentry.origin` of outgoing `fetch` spans. */
 export const EXPECTED_FETCH_SPAN_ORIGIN = INSTRUMENTS_UNDICI_FETCH ? 'auto.http.node_fetch' : 'auto.http.fetch';
 
