@@ -17,7 +17,7 @@ function makeModel(text) {
   });
 }
 
-async function run() {
+export async function run() {
   // A single model instance shared by two *concurrent* generateText calls. This
   // is the case where naive parent tracking could attribute a model call to the
   // wrong invoke_agent span; each generate_content must land under its own
@@ -39,5 +39,3 @@ async function run() {
     ]);
   });
 }
-
-run();

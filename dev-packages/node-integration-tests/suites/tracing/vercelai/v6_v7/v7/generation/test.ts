@@ -32,7 +32,6 @@ describe('Vercel AI integration experimental_decide', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
-
   createEsmTests(
     join(__dirname, '../..'),
     'scenario-decide.mjs',
@@ -137,7 +136,6 @@ describe('Vercel AI runtime and tool context (v7)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
-
   createEsmTests(
     join(__dirname, '../..'),
     'scenario-runtime-context.mjs',
@@ -196,7 +194,6 @@ describe('Vercel AI calls with recording off (v7)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
-
   createEsmTests(
     join(__dirname, '../..'),
     'scenario-no-recording.mjs',

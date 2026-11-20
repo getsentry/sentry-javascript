@@ -3,7 +3,7 @@ import { ToolLoopAgent, stepCountIs, tool } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
 import { z } from 'zod';
 
-async function run() {
+export async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     let callCount = 0;
 
@@ -57,5 +57,3 @@ async function run() {
     });
   });
 }
-
-run();
