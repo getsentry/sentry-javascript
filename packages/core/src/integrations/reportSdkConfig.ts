@@ -95,7 +95,7 @@ function serialize(value: unknown, ancestors = new Set<object>()): unknown {
 }
 
 // Integrations are reported at the top level; serverName would split configurations by host.
-const EXCLUDED_OPTIONS = new Set(['integrations', 'serverName']);
+const EXCLUDED_OPTIONS = new Set(['dsn', 'integrations', 'serverName']);
 
 function buildConfigAttributes(client: Client): Record<string, string> {
   const { sdk, optionsSetByUser = [] } = client.getSdkMetadata() || {};
@@ -116,7 +116,7 @@ function buildConfigAttributes(client: Client): Record<string, string> {
 
   // The hash covers the whole payload, so a payload cached by its hash is never stale.
   const payload = JSON.stringify({
-    version: 2,
+    version: 3,
     sdk: serialize(sdk),
     runtime: serialize(runtime),
     release,
