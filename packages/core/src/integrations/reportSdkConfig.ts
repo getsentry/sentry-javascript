@@ -95,12 +95,12 @@ function serialize(value: unknown, ancestors = new Set<object>()): unknown {
 }
 
 // Integrations are reported at the top level; serverName would split configurations by host.
-const EXCLUDED_OPTIONS = new Set(['dsn', 'integrations', 'serverName']);
+const EXCLUDED_OPTIONS = new Set(['dsn', 'integrations', 'release', 'serverName']);
 
 function buildConfigAttributes(client: Client): Record<string, string> {
   const { sdk, optionsSetByUser = [] } = client.getSdkMetadata() || {};
   const clientOptions = client.getOptions();
-  const { release, environment, dist } = clientOptions;
+  const { environment, dist } = clientOptions;
   const runtime = 'runtime' in clientOptions ? clientOptions.runtime : undefined;
 
   // Only what the user passed, so SDK defaults never show up as config.
@@ -119,7 +119,6 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     version: 3,
     sdk: serialize(sdk),
     runtime: serialize(runtime),
-    release,
     environment,
     dist,
     integrations: client.getIntegrationNames().map(name => ({ name })),
