@@ -11,34 +11,9 @@
  * runtimes without `nodejs_compat` — there the queue is always empty (no channels were ever
  * injected) and the flush is a no-op.
  */
-import { debug, GLOBAL_OBJ } from '@sentry/core';
+import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
-
-type Ctx = Record<string, unknown>;
-
-// The minimal slice of a `node:diagnostics_channel` TracingChannel we emit on. Declared locally
-// (rather than imported from `node:diagnostics_channel`) so this module's graph carries no `node:`
-// specifier — `wrapRequestHandler` must load on runtimes without `nodejs_compat`, and the
-// module-graph test forbids any `node:` import reachable from it.
-interface PublishableTracingChannel {
-  start: { publish(ctx: Ctx): void };
-  end: { publish(ctx: Ctx): void };
-  error: { publish(ctx: Ctx): void };
-}
-
-interface DeferredChannelEvent {
-  channel: PublishableTracingChannel;
-  ctx: Ctx;
-  hadError: boolean;
-}
-
-// The queue is on the global marker, not in this module: a bundle can hold both builds of the SDK. Transformed
-// CommonJS packages (`express`, `mysql`) `require` the facade, so they defer through its CommonJS build, while the
-// request wrapper that flushes is usually the ES module build.
-function getDeferredEvents(): DeferredChannelEvent[] {
-  const marker = (GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ??= {});
-  return (marker.deferredChannelEvents ??= []) as DeferredChannelEvent[];
-}
+import { getDeferredEvents } from './orchestrion-deferred-queue';
 
 /**
  * Emit every deferred channel event via the real channel. Called at the top of the request

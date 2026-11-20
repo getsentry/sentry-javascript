@@ -32,25 +32,10 @@
  * CommonJS build. That is why this module must not import `@sentry/core` at runtime: it would add the
  * CommonJS build of `@sentry/core` next to the ES module build that the SDK already uses.
  */
-import type { InternalGlobal } from '@sentry/core';
 import * as realDc from 'node:diagnostics_channel';
-
-type Ctx = Record<string, unknown>;
-
-interface DeferredChannelEvent {
-  channel: realDc.TracingChannel;
-  ctx: Ctx;
-  hadError: boolean;
-}
+import { type Ctx, getDeferredEvents } from './orchestrion-deferred-queue';
 
 const DEFERRED = Symbol('sentryOrchestrionDeferred');
-
-// The queue is on the global marker, not in this module: the deferring build of this module (often CommonJS) is not
-// the build of `./orchestrion-deferred-channels` that the request wrapper flushes with (usually ES module).
-function getDeferredEvents(): DeferredChannelEvent[] {
-  const marker = ((globalThis as unknown as InternalGlobal).__SENTRY_ORCHESTRION__ ??= {});
-  return (marker.deferredChannelEvents ??= []) as DeferredChannelEvent[];
-}
 
 /** workerd's global-scope guard is the only error we degrade on; anything else is a real fault. */
 function isGlobalScopeError(error: unknown): boolean {
