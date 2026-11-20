@@ -21,6 +21,11 @@ export function addRoutes(app: HonoType<{ Bindings?: { E2E_TEST_DSN: string } }>
     });
   });
 
+  // A separate error, so that Dedupe does not drop it as a repeat of the `/error/:cause` error.
+  app.get('/sdk-error', () => {
+    throw new Error('Error for the SDK test');
+  });
+
   app.get('/linked-error', () => {
     const cause = new Error('Failure 1');
     const errorCause = new Error('Failure 2', { cause });
