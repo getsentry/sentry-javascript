@@ -39,57 +39,92 @@ describe('Mistral integration', () => {
     cleanupChildProcesses();
   });
 
-  createEsmTests(__dirname, 'scenario-chat.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates chat spans with genAI recording disabled', async () => {
-      await createRunner()
-        .expect({
-          span: container => {
-            const chatSpan = container.items.find(s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123');
-            expect(chatSpan).toBeDefined();
-            expect(chatSpan!.name).toBe('chat mistral-small-latest');
-            expect(chatSpan!.status).toBe('ok');
-            expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
-            expect(chatSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.chat');
-            expect(chatSpan!.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
-            expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe(PROVIDER);
-            expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mistral-small-latest');
-            expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE]?.value).toBe(0.7);
-            expect(chatSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS]?.value).toBe(100);
-            expect(chatSpan!.attributes[GEN_AI_RESPONSE_MODEL]?.value).toBe('mistral-small-latest');
-            expect(chatSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value).toBe('["stop"]');
-            expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
-            expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(15);
-            expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(25);
-            // recording disabled → no prompt/response content
-            expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
-            expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
+  createEsmTests(
+    __dirname,
+    ['scenario-chat.mjs', 'scenario-embeddings.mjs'],
+    'instrument.mjs',
+    (createRunner, test) => {
+      let scenarios: ReturnType<typeof runScenarios> | undefined;
+      async function runScenarios() {
+        const runner = createRunner();
 
-            const streamSpan = container.items.find(
-              s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
-            );
-            expect(streamSpan).toBeDefined();
-            expect(streamSpan!.name).toBe('chat mistral-large-latest');
-            expect(streamSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
-            expect(streamSpan!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
-            expect(streamSpan!.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]?.value).toEqual(expect.any(Number));
-            expect(streamSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(30);
+        const collectors = ['scenario-chat.mjs', 'scenario-embeddings.mjs'].map(name =>
+          runner.collectStreamedSpansUntilSegment(
+            span => span.name === 'main' && span.attributes['test.scenario']?.value === name,
+          ),
+        );
+        await runner.start().completed();
+        return { spans: await Promise.all(collectors) };
+      }
+      const getScenarios = () => (scenarios ??= runScenarios());
 
-            // `chat.stream()` takes no `stream` request field, so the flag has to come from the method.
-            expect(streamSpan!.attributes[GEN_AI_REQUEST_STREAM]?.value).toBe(true);
-            expect(chatSpan!.attributes[GEN_AI_REQUEST_STREAM]?.value).toBe(false);
+      test('creates chat spans with genAI recording disabled', async () => {
+        {
+          const container = { items: (await getScenarios()).spans[0]! };
 
-            const errorSpan = container.items.find(s => s.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-model');
-            expect(errorSpan).toBeDefined();
-            // `bindTracingChannelToSpan` derives the status message from the thrown error.
-            expect(errorSpan!.status).toBe('error');
-          },
-        })
-        .start()
-        .completed();
-    });
-  });
+          const chatSpan = container.items.find(s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123');
+          expect(chatSpan).toBeDefined();
+          expect(chatSpan!.name).toBe('chat mistral-small-latest');
+          expect(chatSpan!.status).toBe('ok');
+          expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
+          expect(chatSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.chat');
+          expect(chatSpan!.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
+          expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe(PROVIDER);
+          expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mistral-small-latest');
+          expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE]?.value).toBe(0.7);
+          expect(chatSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS]?.value).toBe(100);
+          expect(chatSpan!.attributes[GEN_AI_RESPONSE_MODEL]?.value).toBe('mistral-small-latest');
+          expect(chatSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value).toBe('["stop"]');
+          expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
+          expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(15);
+          expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(25);
+          // recording disabled → no prompt/response content
+          expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+          expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
 
-  createEsmTests(__dirname, 'scenario-chat.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+          const streamSpan = container.items.find(
+            s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
+          );
+          expect(streamSpan).toBeDefined();
+          expect(streamSpan!.name).toBe('chat mistral-large-latest');
+          expect(streamSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
+          expect(streamSpan!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+          expect(streamSpan!.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]?.value).toEqual(expect.any(Number));
+          expect(streamSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(30);
+
+          // `chat.stream()` takes no `stream` request field, so the flag has to come from the method.
+          expect(streamSpan!.attributes[GEN_AI_REQUEST_STREAM]?.value).toBe(true);
+          expect(chatSpan!.attributes[GEN_AI_REQUEST_STREAM]?.value).toBe(false);
+
+          const errorSpan = container.items.find(s => s.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-model');
+          expect(errorSpan).toBeDefined();
+          // `bindTracingChannelToSpan` derives the status message from the thrown error.
+          expect(errorSpan!.status).toBe('error');
+        }
+      });
+
+      test('creates embeddings spans', async () => {
+        {
+          const container = { items: (await getScenarios()).spans[1]! };
+
+          const embeddingsSpan = container.items.find(s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'embd-mock123');
+          expect(embeddingsSpan).toBeDefined();
+          expect(embeddingsSpan!.name).toBe('embeddings mistral-embed');
+          expect(embeddingsSpan!.status).toBe('ok');
+          expect(embeddingsSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('embeddings');
+          expect(embeddingsSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.embeddings');
+          expect(embeddingsSpan!.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
+          expect(embeddingsSpan!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe(PROVIDER);
+          expect(embeddingsSpan!.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mistral-embed');
+          expect(embeddingsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(8);
+          expect(embeddingsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(8);
+          expect(embeddingsSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBeUndefined();
+        }
+      });
+    },
+  );
+
+  createEsmTests(__dirname, ['scenario-chat.mjs'], 'instrument-with-pii.mjs', (createRunner, test) => {
     test('records chat inputs and outputs with PII enabled', async () => {
       await createRunner()
         .expect({
@@ -112,7 +147,7 @@ describe('Mistral integration', () => {
     });
   });
 
-  createEsmTests(__dirname, 'scenario-chat.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
+  createEsmTests(__dirname, ['scenario-chat.mjs'], 'instrument-with-options.mjs', (createRunner, test) => {
     test('records chat inputs and outputs with explicit integration options', async () => {
       await createRunner()
         .expect({
@@ -131,33 +166,7 @@ describe('Mistral integration', () => {
     });
   });
 
-  createEsmTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates embeddings spans', async () => {
-      await createRunner()
-        .expect({
-          span: container => {
-            const embeddingsSpan = container.items.find(
-              s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'embd-mock123',
-            );
-            expect(embeddingsSpan).toBeDefined();
-            expect(embeddingsSpan!.name).toBe('embeddings mistral-embed');
-            expect(embeddingsSpan!.status).toBe('ok');
-            expect(embeddingsSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('embeddings');
-            expect(embeddingsSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.embeddings');
-            expect(embeddingsSpan!.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
-            expect(embeddingsSpan!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe(PROVIDER);
-            expect(embeddingsSpan!.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mistral-embed');
-            expect(embeddingsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(8);
-            expect(embeddingsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(8);
-            expect(embeddingsSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBeUndefined();
-          },
-        })
-        .start()
-        .completed();
-    });
-  });
-
-  createEsmTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+  createEsmTests(__dirname, ['scenario-embeddings.mjs'], 'instrument-with-pii.mjs', (createRunner, test) => {
     test('records embeddings input with PII enabled', async () => {
       await createRunner()
         .expect({

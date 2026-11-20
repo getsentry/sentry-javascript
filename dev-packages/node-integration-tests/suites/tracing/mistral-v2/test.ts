@@ -20,54 +20,50 @@ describe('Mistral integration (v2)', () => {
 
   createEsmTests(
     __dirname,
-    '../mistral/scenario-chat.mjs',
+    ['../mistral/scenario-chat.mjs', '../mistral/scenario-embeddings.mjs'],
     '../mistral/instrument.mjs',
     (createRunner, test) => {
+      let scenarios: ReturnType<typeof runScenarios> | undefined;
+      async function runScenarios() {
+        const runner = createRunner();
+
+        const collectors = ['../mistral/scenario-chat.mjs', '../mistral/scenario-embeddings.mjs'].map(name =>
+          runner.collectStreamedSpansUntilSegment(
+            span => span.name === 'main' && span.attributes['test.scenario']?.value === name,
+          ),
+        );
+        await runner.start().completed();
+        return { spans: await Promise.all(collectors) };
+      }
+      const getScenarios = () => (scenarios ??= runScenarios());
+
       test('creates chat and streamed chat spans on @mistralai/mistralai v2', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const chatSpan = container.items.find(
-                s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
-              );
-              expect(chatSpan).toBeDefined();
-              expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
-              expect(chatSpan!.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
-              expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(25);
+        {
+          const container = { items: (await getScenarios()).spans[0]! };
 
-              const streamSpan = container.items.find(
-                s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
-              );
-              expect(streamSpan).toBeDefined();
-              expect(streamSpan!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
-              expect(streamSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(30);
-            },
-          })
-          .start()
-          .completed();
+          const chatSpan = container.items.find(s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123');
+          expect(chatSpan).toBeDefined();
+          expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
+          expect(chatSpan!.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
+          expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(25);
+
+          const streamSpan = container.items.find(
+            s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
+          );
+          expect(streamSpan).toBeDefined();
+          expect(streamSpan!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+          expect(streamSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(30);
+        }
       });
-    },
-    MISTRAL_V2,
-  );
 
-  createEsmTests(
-    __dirname,
-    '../mistral/scenario-embeddings.mjs',
-    '../mistral/instrument.mjs',
-    (createRunner, test) => {
       test('creates embeddings spans on @mistralai/mistralai v2', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const embeddingsSpan = container.items.find(
-                s => s.attributes[GEN_AI_OPERATION_NAME]?.value === 'embeddings',
-              );
-              expect(embeddingsSpan).toBeDefined();
-              expect(embeddingsSpan!.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
-            },
-          })
-          .start()
-          .completed();
+        {
+          const container = { items: (await getScenarios()).spans[1]! };
+
+          const embeddingsSpan = container.items.find(s => s.attributes[GEN_AI_OPERATION_NAME]?.value === 'embeddings');
+          expect(embeddingsSpan).toBeDefined();
+          expect(embeddingsSpan!.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
+        }
       });
     },
     MISTRAL_V2,

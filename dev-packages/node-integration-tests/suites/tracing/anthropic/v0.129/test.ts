@@ -22,90 +22,84 @@ describe('Anthropic integration (0.129)', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario-stream-helper.mjs',
+    [
+      'scenario-stream-helper.mjs',
+      'scenario-beta-stream-helpers.mjs',
+      '../v1/scenario-tool-runner.mjs',
+      '../v1/scenario-session-tool-runner.mjs',
+    ],
     'instrument.mjs',
     (createRunner, test) => {
+      let scenarios: ReturnType<typeof runScenarios> | undefined;
+      async function runScenarios() {
+        const runner = createRunner();
+        let event: Event | undefined;
+        runner.expect({
+          event: value => {
+            event = value;
+          },
+        });
+
+        const collectors = [
+          'scenario-stream-helper.mjs',
+          'scenario-beta-stream-helpers.mjs',
+          '../v1/scenario-tool-runner.mjs',
+          '../v1/scenario-session-tool-runner.mjs',
+        ].map(name =>
+          runner.collectStreamedSpansUntilSegment(
+            span => span.name === 'main' && span.attributes['test.scenario']?.value === name,
+          ),
+        );
+        await runner.start().completed();
+        return { spans: await Promise.all(collectors), event };
+      }
+      const getScenarios = () => (scenarios ??= runScenarios());
+
       test('emits one span for messages.stream(), not a second one for its internal create', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
-              const streamingSpans = container.items.filter(
-                span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream_1',
-              );
-              expect(streamingSpans).toHaveLength(1);
-              expect(streamingSpans[0]!.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'gen_ai.chat' });
-              expect(streamingSpans[0]!.attributes[GEN_AI_RESPONSE_STREAMING]).toEqual({
-                type: 'boolean',
-                value: true,
-              });
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    {
-      additionalDependencies: {
-        '@anthropic-ai/sdk': '0.129.0',
-      },
-    },
-  );
+        {
+          const container = { items: (await getScenarios()).spans[0]! };
 
-  // These helpers send the same header, but no `messages-stream` span covers them. So their
-  // internal `create` must still get a span.
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-beta-stream-helpers.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
+          expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+          const streamingSpans = container.items.filter(
+            span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream_1',
+          );
+          expect(streamingSpans).toHaveLength(1);
+          expect(streamingSpans[0]!.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'gen_ai.chat' });
+          expect(streamingSpans[0]!.attributes[GEN_AI_RESPONSE_STREAMING]).toEqual({
+            type: 'boolean',
+            value: true,
+          });
+        }
+      });
+
       test('emits one span each for beta.messages.stream() and the eager streaming tool runner', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
-              for (const id of ['msg_beta_stream', 'msg_tool_runner_eager']) {
-                const spans = container.items.filter(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === id);
-                expect(spans, id).toHaveLength(1);
-                expect(spans[0]!.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'gen_ai.chat' });
-              }
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    {
-      additionalDependencies: {
-        '@anthropic-ai/sdk': '0.129.0',
-      },
-    },
-  );
+        {
+          const container = { items: (await getScenarios()).spans[1]! };
 
-  createEsmAndCjsTests(
-    __dirname,
-    '../v1/scenario-tool-runner.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
+          expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+          for (const id of ['msg_beta_stream', 'msg_tool_runner_eager']) {
+            const spans = container.items.filter(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === id);
+            expect(spans, id).toHaveLength(1);
+            expect(spans[0]!.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'gen_ai.chat' });
+          }
+        }
+      });
+
       test('emits an execute_tool span for each tool the eager runner starts', async () => {
         let receivedEvent: Event | undefined;
         let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
-        await createRunner()
-          .unordered()
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
-              receivedSpans = container.items;
-            },
-          })
-          .expect({
-            event: event => {
-              receivedEvent = event;
-            },
-          })
-          .start()
-          .completed();
+        {
+          const container = { items: (await getScenarios()).spans[2]! };
+
+          expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+          receivedSpans = container.items;
+        }
+        {
+          const event = (await getScenarios()).event!;
+
+          receivedEvent = event;
+        }
 
         const main = receivedSpans.find(span => span.is_segment && span.name === 'main')!;
         const chat = receivedSpans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_tools')!;
@@ -131,80 +125,22 @@ describe('Anthropic integration (0.129)', () => {
           },
         });
       });
-    },
-    {
-      additionalDependencies: {
-        '@anthropic-ai/sdk': '0.129.0',
-      },
-    },
-  );
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-environment-worker.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('runs each session of an EnvironmentWorker in a trace of its own', async () => {
-        const receivedSpans: SerializedStreamedSpanContainer['items'] = [];
-        const sessionSegment = {
-          span: (container: SerializedStreamedSpanContainer) => {
-            expect(container.items.find(span => span.is_segment && span.name === 'invoke_agent')).toBeDefined();
-            receivedSpans.push(...container.items);
-          },
-        };
-
-        await createRunner().unordered().expect(sessionSegment).expect(sessionSegment).start().completed();
-
-        const agentSpans = receivedSpans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT);
-        expect(agentSpans).toHaveLength(2);
-        expect(agentSpans[0]!.trace_id).not.toBe(agentSpans[1]!.trace_id);
-
-        for (const sessionId of ['sesn_vienna', 'sesn_graz']) {
-          const agent = agentSpans.find(span => span.attributes[GEN_AI_CONVERSATION_ID]?.value === sessionId)!;
-          expect(agent).toMatchObject({ name: 'invoke_agent', is_segment: true, status: 'ok' });
-          expect(agent.parent_span_id).toBeUndefined();
-
-          const toolSpans = receivedSpans.filter(
-            span =>
-              span.attributes[SENTRY_OP]?.value === GEN_AI_EXECUTE_TOOL &&
-              span.attributes[GEN_AI_CONVERSATION_ID]?.value === sessionId,
-          );
-          expect(toolSpans).toHaveLength(1);
-          expect(toolSpans[0]).toMatchObject({ name: 'execute_tool weather', parent_span_id: agent.span_id });
-        }
-      });
-    },
-    {
-      additionalDependencies: {
-        '@anthropic-ai/sdk': '0.129.0',
-      },
-    },
-  );
-
-  createEsmAndCjsTests(
-    __dirname,
-    '../v1/scenario-session-tool-runner.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
       test('parents the execute_tool spans of each session runner to one invoke_agent span', async () => {
         let receivedEvent: Event | undefined;
         let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
-        await createRunner()
-          .unordered()
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
-              receivedSpans = container.items;
-            },
-          })
-          .expect({
-            event: event => {
-              receivedEvent = event;
-            },
-          })
-          .start()
-          .completed();
+        {
+          const container = { items: (await getScenarios()).spans[3]! };
+
+          expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+          receivedSpans = container.items;
+        }
+        {
+          const event = (await getScenarios()).event!;
+
+          receivedEvent = event;
+        }
 
         const main = receivedSpans.find(span => span.is_segment && span.name === 'main')!;
         const agentSpans = receivedSpans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT);
@@ -252,6 +188,51 @@ describe('Anthropic integration (0.129)', () => {
             values: [{ value: 'Tool exploded', mechanism: { type: 'auto.ai.anthropic', handled: true } }],
           },
         });
+      });
+    },
+    {
+      additionalDependencies: {
+        '@anthropic-ai/sdk': '0.129.0',
+      },
+    },
+  );
+
+  // These helpers send the same header, but no `messages-stream` span covers them. So their
+  // internal `create` must still get a span.
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-environment-worker.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('runs each session of an EnvironmentWorker in a trace of its own', async () => {
+        const receivedSpans: SerializedStreamedSpanContainer['items'] = [];
+        const sessionSegment = {
+          span: (container: SerializedStreamedSpanContainer) => {
+            expect(container.items.find(span => span.is_segment && span.name === 'invoke_agent')).toBeDefined();
+            receivedSpans.push(...container.items);
+          },
+        };
+
+        await createRunner().unordered().expect(sessionSegment).expect(sessionSegment).start().completed();
+
+        const agentSpans = receivedSpans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT);
+        expect(agentSpans).toHaveLength(2);
+        expect(agentSpans[0]!.trace_id).not.toBe(agentSpans[1]!.trace_id);
+
+        for (const sessionId of ['sesn_vienna', 'sesn_graz']) {
+          const agent = agentSpans.find(span => span.attributes[GEN_AI_CONVERSATION_ID]?.value === sessionId)!;
+          expect(agent).toMatchObject({ name: 'invoke_agent', is_segment: true, status: 'ok' });
+          expect(agent.parent_span_id).toBeUndefined();
+
+          const toolSpans = receivedSpans.filter(
+            span =>
+              span.attributes[SENTRY_OP]?.value === GEN_AI_EXECUTE_TOOL &&
+              span.attributes[GEN_AI_CONVERSATION_ID]?.value === sessionId,
+          );
+          expect(toolSpans).toHaveLength(1);
+          expect(toolSpans[0]).toMatchObject({ name: 'execute_tool weather', parent_span_id: agent.span_id });
+        }
       });
     },
     {
