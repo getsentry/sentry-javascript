@@ -43,9 +43,10 @@ function getDenoLockModules(startDir: string): Record<string, string> {
 function collectModules(): Record<string, string> {
   const entryPath = Deno.mainModule.startsWith('file:') ? fileURLToPath(Deno.mainModule) : undefined;
   const cwd = readFile();
-  const { declared, installed } = collectInstalledModules({ readFile, entryPath, cwd });
+  const modules = collectInstalledModules({ readFile, entryPath, cwd });
   const startDir = (entryPath ? dirname(entryPath.replace(/\\/g, '/')) : cwd?.replace(/\\/g, '/')) || '.';
-  return { ...declared, ...getDenoLockModules(startDir), ...installed };
+  // Without `node_modules`, `modules` only has declared ranges, so the exact versions from `deno.lock` win.
+  return { ...modules, ...getDenoLockModules(startDir) };
 }
 
 const _modulesIntegration = (() => {

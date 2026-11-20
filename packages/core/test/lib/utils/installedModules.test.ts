@@ -24,8 +24,9 @@ describe('collectInstalledModules', () => {
     });
 
     expect(collectInstalledModules({ readFile, entryPath: '/app/dist/index.js' })).toEqual({
-      declared: { express: '^4.0.0', '@scope/lib': '^2.0.0', vitest: '^3.0.0' },
-      installed: { express: '4.21.2', '@scope/lib': '2.3.4' },
+      express: '4.21.2',
+      '@scope/lib': '2.3.4',
+      vitest: '^3.0.0',
     });
   });
 
@@ -37,8 +38,7 @@ describe('collectInstalledModules', () => {
     });
 
     expect(collectInstalledModules({ readFile, entryPath: '/repo/apps/api/dist/server.mjs', cwd: '/repo' })).toEqual({
-      declared: { hono: '^4.0.0' },
-      installed: { hono: '4.6.0' },
+      hono: '4.6.0',
     });
   });
 
@@ -49,7 +49,7 @@ describe('collectInstalledModules', () => {
       '/app/node_modules/koa/package.json': { version: '2.15.3' },
     });
 
-    expect(collectInstalledModules({ readFile, entryPath: '/app/dist/index.js' }).installed).toEqual({ koa: '2.15.3' });
+    expect(collectInstalledModules({ readFile, entryPath: '/app/dist/index.js' })).toEqual({ koa: '2.15.3' });
   });
 
   it('uses cwd when the entry file is inside node_modules', () => {
@@ -60,10 +60,7 @@ describe('collectInstalledModules', () => {
 
     expect(
       collectInstalledModules({ readFile, entryPath: '/app/node_modules/next/dist/bin/next', cwd: '/app' }),
-    ).toEqual({
-      declared: { next: '^15.0.0' },
-      installed: { next: '15.1.0' },
-    });
+    ).toEqual({ next: '15.1.0' });
   });
 
   it('prefers cwd when the entry file is outside of it', () => {
@@ -74,8 +71,7 @@ describe('collectInstalledModules', () => {
     });
 
     expect(collectInstalledModules({ readFile, entryPath: '/var/runtime/index.mjs', cwd: '/var/task' })).toEqual({
-      declared: { pg: '^8.0.0' },
-      installed: { pg: '8.13.1' },
+      pg: '8.13.1',
     });
   });
 
@@ -85,7 +81,7 @@ describe('collectInstalledModules', () => {
       '/srv/app/node_modules/pg/package.json': { version: '8.13.1' },
     });
 
-    expect(collectInstalledModules({ readFile, entryPath: '/srv/app/index.js', cwd: '/' }).installed).toEqual({
+    expect(collectInstalledModules({ readFile, entryPath: '/srv/app/index.js', cwd: '/' })).toEqual({
       pg: '8.13.1',
     });
   });
@@ -109,7 +105,7 @@ describe('collectInstalledModules', () => {
           '/app/node_modules/.bun/@scope+pkg@1.0.0/node_modules/@scope/pkg/index.js',
           '/usr/lib/node_modules/pm2/index.js',
         ],
-      }).installed,
+      }),
     ).toEqual({ debug: '4.3.7', '@scope/pkg': '1.0.0' });
   });
 
@@ -129,7 +125,7 @@ describe('collectInstalledModules', () => {
           '/app/node_modules/.pnpm/ms@2.0.0/node_modules/ms/index.js',
           '/app/node_modules/.pnpm/ms@2.1.3/node_modules/ms/index.js',
         ],
-      }).installed,
+      }),
     ).toEqual({ ms: '2.1.3' });
   });
 
@@ -139,15 +135,12 @@ describe('collectInstalledModules', () => {
       'C:/app/node_modules/express/package.json': { version: '4.21.2' },
     });
 
-    expect(collectInstalledModules({ readFile, entryPath: 'C:\\app\\index.js' }).installed).toEqual({
+    expect(collectInstalledModules({ readFile, entryPath: 'C:\\app\\index.js' })).toEqual({
       express: '4.21.2',
     });
   });
 
   it('returns nothing without a package.json', () => {
-    expect(collectInstalledModules({ readFile: () => undefined, entryPath: '/app/index.js', cwd: '/' })).toEqual({
-      declared: {},
-      installed: {},
-    });
+    expect(collectInstalledModules({ readFile: () => undefined, entryPath: '/app/index.js', cwd: '/' })).toEqual({});
   });
 });

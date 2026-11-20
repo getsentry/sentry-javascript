@@ -75,7 +75,7 @@ function collectModules(): ModuleInfo {
   if (Object.keys(serverModules).length) {
     return serverModules;
   }
-  const { declared, installed } = collectInstalledModules({
+  return collectInstalledModules({
     readFile,
     entryPath: process.argv[1],
     cwd: process.cwd(),
@@ -85,7 +85,6 @@ function collectModules(): ModuleInfo {
       /*! rollup-include-cjs-only-end */
     ],
   });
-  return { ...declared, ...installed };
 }
 
 /** Fetches the list of modules and the versions loaded by the entry file for your node.js app. */
