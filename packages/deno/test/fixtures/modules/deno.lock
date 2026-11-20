@@ -1,0 +1,8 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@std/assert@^1.0.0": "1.0.13",
+    "npm:@types/react-dom@18": "18.3.0_@types+react@18.3.1",
+    "npm:express@^4.18.2": "4.21.2"
+  }
+}
