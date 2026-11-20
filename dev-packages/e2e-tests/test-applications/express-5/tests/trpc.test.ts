@@ -4,7 +4,7 @@ import { createTRPCClient, httpBatchLink } from '@trpc/client';
 import type { AppRouter } from '../src/app';
 
 test('Should record span for trpc query', async ({ baseURL }) => {
-  const segmentEventPromise = collectStreamedSpans('node-express-v5', spans =>
+  const segmentEventPromise = collectStreamedSpans('express-5', spans =>
     spans.some(
       segment =>
         segment.is_segment &&
@@ -50,7 +50,7 @@ test('Should record span for trpc query', async ({ baseURL }) => {
 });
 
 test('Should record span for trpc mutation', async ({ baseURL }) => {
-  const segmentEventPromise = collectStreamedSpans('node-express-v5', spans =>
+  const segmentEventPromise = collectStreamedSpans('express-5', spans =>
     spans.some(
       segment =>
         segment.is_segment &&
@@ -96,7 +96,7 @@ test('Should record span for trpc mutation', async ({ baseURL }) => {
 });
 
 test('Should record span and error for a crashing trpc handler', async ({ baseURL }) => {
-  const segmentEventPromise = collectStreamedSpans('node-express-v5', spans =>
+  const segmentEventPromise = collectStreamedSpans('express-5', spans =>
     spans.some(
       segment =>
         segment.is_segment &&
@@ -105,7 +105,7 @@ test('Should record span and error for a crashing trpc handler', async ({ baseUR
     ),
   );
 
-  const errorEventPromise = waitForError('node-express-v5', errorEvent => {
+  const errorEventPromise = waitForError('express-5', errorEvent => {
     return !!errorEvent?.exception?.values?.some(exception => exception.value?.includes('I crashed in a trpc handler'));
   });
 
@@ -152,7 +152,7 @@ test('Should record span and error for a crashing trpc handler', async ({ baseUR
 });
 
 test('Should record span and error for a trpc handler that returns a status code', async ({ baseURL }) => {
-  const segmentEventPromise = collectStreamedSpans('node-express-v5', spans =>
+  const segmentEventPromise = collectStreamedSpans('express-5', spans =>
     spans.some(
       segment =>
         segment.is_segment &&
@@ -161,7 +161,7 @@ test('Should record span and error for a trpc handler that returns a status code
     ),
   );
 
-  const errorEventPromise = waitForError('node-express-v5', errorEvent => {
+  const errorEventPromise = waitForError('express-5', errorEvent => {
     return !!errorEvent?.exception?.values?.some(exception => exception.value?.includes('Bad Request'));
   });
 

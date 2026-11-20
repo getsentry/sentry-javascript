@@ -4,7 +4,7 @@ import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mc
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
-import { wrapMcpServerWithSentry } from '@sentry/node';
+import { wrapMcpServerWithSentry } from './sentry';
 
 // Helper to check if request is an initialize request (compatible with all MCP SDK versions)
 function isInitializeRequest(body: unknown): boolean {
