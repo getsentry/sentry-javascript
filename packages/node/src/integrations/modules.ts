@@ -65,7 +65,7 @@ function readFile(path: string): string | undefined {
 /** Files loaded through the CommonJS loader, which includes CommonJS packages imported from ESM. */
 function getLoadedCommonJsFiles(): string[] {
   try {
-    return Object.keys((Module as unknown as { _cache?: Record<string, unknown> })._cache || {});
+    return Object.keys((Module as { _cache?: Record<string, unknown> })._cache || {});
   } catch {
     return [];
   }
