@@ -1,5 +1,4 @@
 type ModuleInfo = Record<string, string>;
-type ReadFileFn = (path: string) => string | undefined;
 interface PackageJson {
   name?: string;
   version?: string;
@@ -11,7 +10,7 @@ const NODE_MODULES = '/node_modules/';
 
 /**
  * Returns the app's packages: the dependencies declared in its `package.json`, plus loaded packages. Each gets the exact
- * version that a bare import from the entry file resolves through `node_modules`, or its declared range otherwise.
+ * version that a bare import from the app resolves through `node_modules`, or its declared range otherwise.
  */
 export function collectInstalledModules({
   readFile,
@@ -19,7 +18,7 @@ export function collectInstalledModules({
   cwd,
   loadedFiles = [],
 }: {
-  readFile: ReadFileFn;
+  readFile: (path: string) => string | undefined;
   entryPath?: string;
   cwd?: string;
   /**
@@ -28,44 +27,57 @@ export function collectInstalledModules({
    */
   loadedFiles?: string[];
 }): ModuleInfo {
+  const read = (dir: string): PackageJson | undefined => {
+    try {
+      return JSON.parse(readFile(join(dir, 'package.json')) || 'null') || undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
   const entryDir = entryPath && dirname(toPosix(entryPath));
   const cwdDir = cwd && toPosix(cwd);
+  let appRoot: string | undefined;
   // An entry file outside cwd usually belongs to a launcher, such as the AWS Lambda runtime.
-  const appRoot = findAppRoot(
-    readFile,
-    entryDir && cwdDir && !isIn(entryDir, cwdDir) ? [cwdDir, entryDir] : [entryDir, cwdDir],
-  );
+  for (const dir of entryDir && cwdDir && !isIn(entryDir, cwdDir) ? [cwdDir, entryDir] : [entryDir, cwdDir]) {
+    // Skip `package.json` files that only set fields like `"type"`.
+    appRoot ||=
+      dir && !`${dir}/`.includes(NODE_MODULES)
+        ? ancestors(dir).find(d => {
+            const pkg = read(d);
+            return pkg && (pkg.name || pkg.dependencies || pkg.devDependencies);
+          })
+        : undefined;
+  }
+
   const resolveFrom = entryDir && appRoot && isIn(entryDir, appRoot) ? entryDir : appRoot || entryDir || cwdDir;
   const nodeModulesDirs = resolveFrom ? ancestors(resolveFrom).map(dir => join(dir, 'node_modules')) : [];
   const resolve = (name: string): string | undefined => {
     for (const dir of nodeModulesDirs) {
-      const pkg = readPackageJson(readFile, join(dir, name));
-      if (pkg) {
-        return pkg.version;
+      const version = read(join(dir, name))?.version;
+      if (version) {
+        return version;
       }
     }
     return undefined;
   };
 
-  const pkg = appRoot ? readPackageJson(readFile, appRoot) : undefined;
+  const pkg = appRoot ? read(appRoot) : undefined;
   const declared: ModuleInfo = { ...pkg?.dependencies, ...pkg?.devDependencies };
   const installed: ModuleInfo = {};
-
   const seen = new Set<string>();
+
   for (const file of loadedFiles) {
     const path = toPosix(file);
-    const index = path.lastIndexOf(NODE_MODULES);
-    if (index === -1 || !nodeModulesDirs.some(dir => isIn(path, dir))) {
-      continue;
-    }
-    const base = path.slice(0, index + NODE_MODULES.length);
-    const [first = '', second] = path.slice(base.length).split('/');
+    const start = path.lastIndexOf(NODE_MODULES) + NODE_MODULES.length;
+    const [first = '', second] = path.slice(start).split('/');
     const name = first.startsWith('@') ? `${first}/${second}` : first;
-    if (seen.has(base + name)) {
+    const dir = path.slice(0, start) + name;
+    if (start < NODE_MODULES.length || seen.has(dir) || !nodeModulesDirs.some(d => isIn(path, d))) {
       continue;
     }
-    seen.add(base + name);
-    const version = readPackageJson(readFile, base + name)?.version;
+    seen.add(dir);
+    const version = read(dir)?.version;
     if (version && installed[name] !== version) {
       // pnpm and Bun stores can hold several versions of a package; prefer the one the app resolves.
       installed[name] = (name in installed && resolve(name)) || installed[name] || version;
@@ -80,30 +92,6 @@ export function collectInstalledModules({
   }
 
   return { ...declared, ...installed };
-}
-
-/** Skips start dirs inside `node_modules` and `package.json` files that only set fields like `"type"`. */
-function findAppRoot(readFile: ReadFileFn, startDirs: Array<string | undefined>): string | undefined {
-  for (const startDir of startDirs) {
-    if (startDir && !`${startDir}/`.includes(NODE_MODULES)) {
-      const root = ancestors(startDir).find(dir => {
-        const pkg = readPackageJson(readFile, dir);
-        return pkg && (pkg.name || pkg.dependencies || pkg.devDependencies);
-      });
-      if (root) {
-        return root;
-      }
-    }
-  }
-  return undefined;
-}
-
-function readPackageJson(readFile: ReadFileFn, dir: string): PackageJson | undefined {
-  try {
-    return (JSON.parse(readFile(join(dir, 'package.json')) || 'null') as PackageJson | null) || undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 /** `dir` and its parents, up to the root. */
