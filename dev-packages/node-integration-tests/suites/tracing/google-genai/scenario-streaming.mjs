@@ -43,7 +43,7 @@ const BLOCKED_CHUNKS = [
   { candidates: [{ content: { parts: [{ text: 'This should not be processed' }], role: 'model' }, index: 0 }] },
 ];
 
-async function run() {
+export async function run() {
   const server = await startMockGoogleGenAIServer();
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
@@ -142,5 +142,3 @@ async function run() {
 
   server.close();
 }
-
-run();

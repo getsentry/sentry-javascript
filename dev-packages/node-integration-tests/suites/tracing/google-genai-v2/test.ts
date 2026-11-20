@@ -28,14 +28,27 @@ describe('Google GenAI integration (v2)', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    '../google-genai/scenario.mjs',
+    ['../google-genai/scenario.mjs', '../google-genai/scenario-embeddings.mjs'],
     'instrument.mjs',
     (createRunner, test) => {
-      test('auto-instruments chat and generateContent on @google/genai v2', async () => {
-        const runner = createRunner().ignore('event');
-        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
+      let scenarios: ReturnType<typeof runScenarios> | undefined;
+      async function runScenarios() {
+        const runner = createRunner();
 
+        const collectors = ['../google-genai/scenario.mjs', '../google-genai/scenario-embeddings.mjs'].map(name =>
+          runner.collectStreamedSpansUntilSegment(
+            span => span.name === 'main' && span.attributes['test.scenario']?.value === name,
+          ),
+        );
         await runner.start().completed();
+        return { spans: await Promise.all(collectors) };
+      }
+      const getScenarios = () => (scenarios ??= runScenarios());
+
+      test('auto-instruments chat and generateContent on @google/genai v2', async () => {
+        const spansPromise = getScenarios().then(result => result.spans[0]!);
+
+        await getScenarios();
 
         const spans = (await spansPromise).filter(
           span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai',
@@ -78,22 +91,13 @@ describe('Google GenAI integration (v2)', () => {
         expect(errorSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
         expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
       });
-    },
-    { additionalDependencies: { '@google/genai': '^2' } },
-  );
 
-  createEsmAndCjsTests(
-    __dirname,
-    '../google-genai/scenario-embeddings.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
       // `embedContent` is the member that changed shape in v2; asserting its span proves the
       // `className`/`methodName` selector still matches the constructor-assigned arrow.
       test('auto-instruments embedContent on @google/genai v2', async () => {
-        const runner = createRunner().ignore('event');
-        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
+        const spansPromise = getScenarios().then(result => result.spans[1]!);
 
-        await runner.start().completed();
+        await getScenarios();
 
         const spans = (await spansPromise).filter(
           span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai',
