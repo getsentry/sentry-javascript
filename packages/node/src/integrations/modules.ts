@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
+import { Module } from 'node:module';
 import { GLOBAL_OBJ, type IntegrationFn } from '@sentry/core';
 import { collectInstalledModules } from '@sentry/core/server';
 
@@ -61,9 +62,10 @@ function readFile(path: string): string | undefined {
   }
 }
 
-function getRequireCachePaths(): string[] {
+/** Files loaded through the CommonJS loader, which includes CommonJS packages imported from ESM. */
+function getLoadedCommonJsFiles(): string[] {
   try {
-    return require.cache ? Object.keys(require.cache) : [];
+    return Object.keys((Module as unknown as { _cache?: Record<string, unknown> })._cache || {});
   } catch {
     return [];
   }
@@ -79,11 +81,7 @@ function collectModules(): ModuleInfo {
     readFile,
     entryPath: process.argv[1],
     cwd: process.cwd(),
-    loadedFiles: [
-      /*! rollup-include-cjs-only */
-      ...getRequireCachePaths(),
-      /*! rollup-include-cjs-only-end */
-    ],
+    loadedFiles: getLoadedCommonJsFiles(),
   });
 }
 
