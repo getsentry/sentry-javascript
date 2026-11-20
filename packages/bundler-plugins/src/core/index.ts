@@ -144,6 +144,13 @@ function getModuleVersionsChunks(chunks: Record<string, ChunkGraphNode>): Set<st
     if (best === undefined) {
       break;
     }
+    // No chunk is shared by the uncovered entries anymore, so each takes its own copy. This skips a scan per entry.
+    if (bestCount === 1) {
+      for (const entry of uncovered) {
+        selected.add(entry);
+      }
+      break;
+    }
     selected.add(best);
     for (const entry of entriesByChunk.get(best) ?? []) {
       uncovered.delete(entry);
@@ -193,6 +200,7 @@ export {
   resolveReleaseName,
 } from './utils';
 export { createSentryBuildPluginManager } from './build-plugin-manager';
+export { getModuleVersionsOnlyOptions } from './installed-modules';
 export type { SentryBuildPluginManager, UploadResult, UploadStaging } from './build-plugin-manager';
 export { createDebugIdUploadFunction, addDebugIdToEmittedArtifacts, stampDebugId } from './debug-id-upload';
 export {

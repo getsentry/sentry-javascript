@@ -1,3 +1,4 @@
+import type * as BundlerPluginsCore from '@sentry/bundler-plugins/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { sentryAstro } from '../../src/integration';
 
@@ -9,7 +10,8 @@ vi.mock('fs', async requireActual => {
 });
 
 // Without a configured name, the real resolver falls back to the git revision of this checkout.
-vi.mock('@sentry/bundler-plugins/core', () => ({
+vi.mock('@sentry/bundler-plugins/core', async importOriginal => ({
+  ...(await importOriginal<typeof BundlerPluginsCore>()),
   resolveReleaseName: (name?: string) => name,
 }));
 

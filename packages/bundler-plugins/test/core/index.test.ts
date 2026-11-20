@@ -122,6 +122,14 @@ describe('isModuleVersionsChunk', () => {
     ]);
   });
 
+  it('selects every entry when the entries share no chunk', () => {
+    const chunks = Object.fromEntries(
+      Array.from({ length: 3 }, (_, index) => [`${index}.js`, { fileName: `${index}.js`, isEntry: true, imports: [] }]),
+    );
+
+    expect(Object.values(chunks).filter(chunk => isModuleVersionsChunk(chunk, chunks))).toEqual(Object.values(chunks));
+  });
+
   it('selects the entry of a build with one entry', () => {
     const chunks = {
       'entry.js': { fileName: 'entry.js', isEntry: true, imports: ['vendor.js'] },

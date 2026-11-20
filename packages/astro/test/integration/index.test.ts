@@ -1,3 +1,4 @@
+import type * as BundlerPluginsCore from '@sentry/bundler-plugins/core';
 import type * as FsModule from 'fs';
 import type { AstroConfig, AstroIntegrationLogger } from 'astro';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -13,7 +14,8 @@ vi.mock('@sentry/bundler-plugins/vite', () => ({
 
 // Without a configured name, the real resolver falls back to the git revision of this checkout.
 const resolveReleaseName = vi.fn((name?: string) => name);
-vi.mock('@sentry/bundler-plugins/core', () => ({
+vi.mock('@sentry/bundler-plugins/core', async importOriginal => ({
+  ...(await importOriginal<typeof BundlerPluginsCore>()),
   resolveReleaseName: (name?: string) => resolveReleaseName(name),
 }));
 
@@ -347,19 +349,55 @@ describe('sentryAstro integration', () => {
   it("doesn't enable source maps if `sourcemaps.disable` is `true`", async () => {
     const integration = sentryAstro({
       sourcemaps: { disable: true },
+      debug: true,
     });
 
     expect(integration.hooks['astro:config:setup']).toBeDefined();
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
 
-    // only the orchestrion plugin and the server init are wired, no sourcemaps plugin
-    expect(updateConfig).toHaveBeenCalledTimes(2);
+    // one call each for the module versions plugin, the orchestrion plugin and the server init
+    expect(updateConfig).toHaveBeenCalledTimes(3);
     expect(updateConfig).toHaveBeenCalledWith({
       vite: {
         plugins: [{ name: 'sentry-orchestrion-vite' }],
       },
     });
+    expect(updateConfig).not.toHaveBeenCalledWith({ vite: expect.objectContaining({ build: expect.anything() }) });
+    // the bundler plugin only injects module versions
+    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith({
+      debug: true,
+      telemetry: false,
+      sourcemaps: { upload: false, injectDebugIds: false },
+      release: { inject: false, create: false, finalize: false, setCommits: false, deploy: false },
+    });
+  });
+
+  it("doesn't add the module versions plugin if `sourcemaps.disable` is `true` and the server SDK is disabled", async () => {
+    const integration = sentryAstro({
+      sourcemaps: { disable: true },
+      enabled: { client: true, server: false },
+    });
+
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);
+  });
+
+  it("doesn't add the module versions plugin in dev mode", async () => {
+    const integration = sentryAstro({ sourcemaps: { disable: true } });
+
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({
+      ...baseConfigHookObject,
+      updateConfig,
+      injectScript,
+      config,
+      command: 'dev',
+    });
+
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);
   });
 

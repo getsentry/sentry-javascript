@@ -73,10 +73,16 @@ describe('sentrySolidStart()', () => {
     expect(names).not.toContain('code-transformer');
   });
 
-  it('omits the source maps plugins when source maps are disabled', () => {
+  it('only adds the bundler plugin for module versions when source maps are disabled', () => {
     const names = sentrySolidStart({ sourcemaps: { disable: true } }).map(plugin => plugin.name);
 
-    expect(names).toEqual(['sentry-solidstart-nitro', 'sentry-solidstart-server-entry', 'code-transformer']);
+    expect(names).toEqual([
+      'sentry-solidstart-nitro',
+      'sentry-solidstart-server-entry',
+      'code-transformer',
+      'sentry-vite-plugin',
+      'sentry-vite-upload-staging',
+    ]);
   });
 
   // `'disable-upload'` still injects debug IDs, so the plugins have to run; the bundler plugin

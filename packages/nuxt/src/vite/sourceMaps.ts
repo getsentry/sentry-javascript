@@ -1,5 +1,6 @@
+/* oxlint-disable max-lines */
 import type { Nuxt } from '@nuxt/schema';
-import { resolveReleaseName } from '@sentry/bundler-plugins/core';
+import { getModuleVersionsOnlyOptions, resolveReleaseName } from '@sentry/bundler-plugins/core';
 import { sentryRollupPlugin, type SentryRollupPluginOptions } from '@sentry/bundler-plugins/rollup';
 import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import { warnOnRemovedBuildOptions } from '@sentry/core';
@@ -108,32 +109,43 @@ export function setupSourceMaps(
   }
 
   nuxt.hook('nitro:config', (nitroConfig: NitroConfig) => {
-    if (sourceMapsEnabled && !nitroConfig.dev && !nuxt.options?._prepare) {
-      nitroConfig.rollupConfig ??= {};
-
-      if (nitroConfig.rollupConfig.plugins === null || nitroConfig.rollupConfig.plugins === undefined) {
-        nitroConfig.rollupConfig.plugins = [];
-      } else if (!Array.isArray(nitroConfig.rollupConfig.plugins)) {
-        // `rollupConfig.plugins` can be a single plugin, so we want to put it into an array so that we can push our own plugin
-        nitroConfig.rollupConfig.plugins = [nitroConfig.rollupConfig.plugins];
-      }
-
-      validateNitroSourceMapSettings(nuxt, nitroConfig, moduleOptions);
-
-      // `rollupConfig.output.sourcemap` overrides `sourcemap.server`, so the server source maps are the user's.
-      shouldDeleteFilesFallback.server &&= nitroConfig.rollupConfig.output?.sourcemap === undefined;
-
-      if (isDebug) {
-        // eslint-disable-next-line no-console
-        console.log('[Sentry] Adding Sentry Rollup plugin to the server runtime.');
-      }
-
-      // Add Sentry plugin
-      // Runs only on server-side (Nitro)
-      const serverPluginOptions = withoutSourceMapDeletion(getPluginOptions(moduleOptions, shouldDeleteFilesFallback));
-      // Rollup cannot tell that Nitro's output runs on the server.
-      nitroConfig.rollupConfig.plugins.push(sentryRollupPlugin({ ...serverPluginOptions, injectModuleVersions: true }));
+    if (nitroConfig.dev || nuxt.options?._prepare) {
+      return;
     }
+
+    nitroConfig.rollupConfig ??= {};
+
+    if (nitroConfig.rollupConfig.plugins === null || nitroConfig.rollupConfig.plugins === undefined) {
+      nitroConfig.rollupConfig.plugins = [];
+    } else if (!Array.isArray(nitroConfig.rollupConfig.plugins)) {
+      // `rollupConfig.plugins` can be a single plugin, so we want to put it into an array so that we can push our own plugin
+      nitroConfig.rollupConfig.plugins = [nitroConfig.rollupConfig.plugins];
+    }
+
+    if (!sourceMapsEnabled) {
+      // TODO: Revisit which features the plugin should run when source maps are off. For now it only injects module
+      // versions, so `modulesIntegration` reports them when `node_modules` is missing at runtime.
+      nitroConfig.rollupConfig.plugins.push(
+        sentryRollupPlugin(getModuleVersionsOnlyOptions({ debug: moduleOptions.debug, injectModuleVersions: true })),
+      );
+      return;
+    }
+
+    validateNitroSourceMapSettings(nuxt, nitroConfig, moduleOptions);
+
+    // `rollupConfig.output.sourcemap` overrides `sourcemap.server`, so the server source maps are the user's.
+    shouldDeleteFilesFallback.server &&= nitroConfig.rollupConfig.output?.sourcemap === undefined;
+
+    if (isDebug) {
+      // eslint-disable-next-line no-console
+      console.log('[Sentry] Adding Sentry Rollup plugin to the server runtime.');
+    }
+
+    // Add Sentry plugin
+    // Runs only on server-side (Nitro)
+    const serverPluginOptions = withoutSourceMapDeletion(getPluginOptions(moduleOptions, shouldDeleteFilesFallback));
+    // Rollup cannot tell that Nitro's output runs on the server.
+    nitroConfig.rollupConfig.plugins.push(sentryRollupPlugin({ ...serverPluginOptions, injectModuleVersions: true }));
   });
 
   nuxt.hook('nitro:init', nitro => {

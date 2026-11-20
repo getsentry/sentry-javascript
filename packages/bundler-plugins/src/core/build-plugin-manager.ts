@@ -565,6 +565,11 @@ export function createSentryBuildPluginManager(
      * - adds deploy information
      */
     async createRelease() {
+      const { create, finalize, setCommits, deploy, uploadLegacySourcemaps } = options.release;
+      if (!create && !finalize && setCommits === false && !deploy && !uploadLegacySourcemaps) {
+        return;
+      }
+
       if (!options.release.name) {
         logger.debug(
           'No release name provided. Will not create release. Please set the `release.name` option to identify your release.',
