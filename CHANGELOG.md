@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Important Changes
+
+- **docs(tanstackstart-react): Promote SDK status to stable ([#26691](https://github.com/getsentry/sentry-javascript/pull/26691))**
+
+  This release promotes the `@sentry/tanstackstart-react` SDK to stable. It supports `@tanstack/react-start` 1.169.0 and newer. For details on how to use it, check out the
+  [Sentry TanStack Start SDK docs](https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/).
+
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 ## 11.15.0
