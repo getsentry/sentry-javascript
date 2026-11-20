@@ -12,6 +12,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
 import { getSpansFromEnvelope } from '../../../spanUtils';
@@ -32,7 +33,7 @@ it('instruments client-web calls in a bundled Worker and leaves handled errors a
   for (const span of dbSpans) {
     expect(span.parent_span_id).toBe(segment?.span_id);
     expect(span.trace_id).toBe(segment?.trace_id);
-    expect(span.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'db' });
+    expect(span.attributes[SENTRY_OP]).toEqual({ type: 'string', value: DB });
     expect(span.attributes[SENTRY_KIND]).toEqual({ type: 'string', value: 'client' });
     expect(span.attributes[DB_SYSTEM_NAME]).toEqual({ type: 'string', value: 'clickhouse' });
     expect(span.attributes[DB_NAMESPACE]).toEqual({ type: 'string', value: 'tests' });
@@ -105,7 +106,7 @@ it('instruments client-web calls in a bundled Worker and leaves handled errors a
 
   const envelopes = runner.getReceivedEnvelopes();
   expect(envelopes.some(envelope => envelope[1].some(item => item[0].type === 'event'))).toBe(false);
-  expect(
-    envelopes.flatMap(getSpansFromEnvelope).filter(span => span.attributes[SENTRY_OP]?.value === 'db'),
-  ).toHaveLength(8);
+  expect(envelopes.flatMap(getSpansFromEnvelope).filter(span => span.attributes[SENTRY_OP]?.value === DB)).toHaveLength(
+    8,
+  );
 });

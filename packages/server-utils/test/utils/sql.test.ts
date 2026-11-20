@@ -7,6 +7,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { setCurrentClient } from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
+import { CLICKHOUSE_SQL_RULES } from '../../src/integrations/clickhouse-sql';
 import {
   getSqlOperationName,
   getSqlQuerySummary,
@@ -773,7 +774,7 @@ describe('sanitizeSqlQuery', () => {
     });
   });
 
-  describe("dialect: 'clickhouse'", () => {
+  describe('CLICKHOUSE_SQL_RULES', () => {
     it.each([
       ['SELECT 1 /* outer /* inner */ private@example.com */', 'SELECT ?'],
       ['SELECT /* outer /* inner */ private@example.com */ 1', 'SELECT ?'],
@@ -787,7 +788,7 @@ describe('sanitizeSqlQuery', () => {
         'INSERT INTO events',
       ],
     ])('removes the entire nested comment in %p', (input, expected) => {
-      expect(sanitizeSqlQuery(input, 'clickhouse')).toBe(expected);
+      expect(sanitizeSqlQuery(input, CLICKHOUSE_SQL_RULES)).toBe(expected);
     });
 
     it.each([
@@ -840,7 +841,7 @@ describe('sanitizeSqlQuery', () => {
         'SELECT * FROM t WHERE id = {id:UInt32} AND name = {name:String}',
       ],
     ])('sanitizes %p', (input, expected) => {
-      expect(sanitizeSqlQuery(input, 'clickhouse')).toBe(expected);
+      expect(sanitizeSqlQuery(input, CLICKHOUSE_SQL_RULES)).toBe(expected);
     });
   });
 
@@ -988,7 +989,6 @@ describe('toSqlDialect', () => {
     ['mssql', 'mssql'],
     ['sqlserver', 'mssql'],
     ['microsoft.sql_server', 'mssql'],
-    ['clickhouse', 'clickhouse'],
   ])('maps %j to %j', (system, expected) => {
     expect(toSqlDialect(system)).toBe(expected);
   });

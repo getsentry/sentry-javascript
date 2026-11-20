@@ -21,6 +21,7 @@ import { clickhouseModuleNames } from '../orchestrion/config/clickhouse';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { getLowCardinalitySqlSpanName, getSqlQueryAttributes } from '../utils/sql';
+import { CLICKHOUSE_SQL_RULES } from './clickhouse-sql';
 
 const INTEGRATION_NAME = 'ClickHouse' as const;
 const ORIGIN = 'auto.db.clickhouse';
@@ -100,7 +101,7 @@ function instrumentClickhouse(): void {
         ...getConnectionAttributes(data.self?.connectionParams, params),
         ...(method === 'insert'
           ? getInsertAttributes(params)
-          : getSqlQueryAttributes(typeof params?.query === 'string' ? params.query : undefined, 'clickhouse')),
+          : getSqlQueryAttributes(typeof params?.query === 'string' ? params.query : undefined, CLICKHOUSE_SQL_RULES)),
       };
 
       return startInactiveSpan({
