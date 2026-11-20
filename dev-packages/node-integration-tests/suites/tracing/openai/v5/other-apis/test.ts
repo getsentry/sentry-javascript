@@ -30,20 +30,51 @@ describe('OpenAI integration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
-  createEsmAndCjsTests(join(__dirname, '../..'), 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
+  const defaultScenarios = [
+    'scenario-chat.mjs',
+    'scenario-embeddings.mjs',
+    'scenario-azure-openai.mjs',
+    'scenario-with-response.mjs',
+    'scenario-root-span.mjs',
+    'scenario-conversation.mjs',
+    'scenario-manual-conversation-id.mjs',
+    'scenario-separate-scope-1.mjs',
+    'scenario-separate-scope-2.mjs',
+  ];
+  const recordingScenarios = ['scenario-chat.mjs', 'scenario-embeddings.mjs', 'scenario-system-instructions.mjs'];
+  createEsmAndCjsTests(join(__dirname, '../..'), defaultScenarios, 'instrument.mjs', (createRunner, test) => {
+    let scenarios: ReturnType<typeof runScenarios> | undefined;
+    async function runScenarios() {
+      const runner = createRunner();
+
+      const segmentNames: Record<string, string> = {
+        'scenario-conversation.mjs': 'conversation-test',
+        'scenario-manual-conversation-id.mjs': 'chat-with-manual-conversation-id',
+        'scenario-separate-scope-1.mjs': 'GET /chat/conversation-1',
+        'scenario-separate-scope-2.mjs': 'GET /chat/conversation-2',
+      };
+
+      const collectors = defaultScenarios.map(name =>
+        runner.collectStreamedSpansUntilSegment(
+          span =>
+            span.attributes['test.scenario']?.value === name &&
+            (name === 'scenario-azure-openai.mjs' || name === 'scenario-root-span.mjs'
+              ? span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai'
+              : span.name === (segmentNames[name] ?? 'main')),
+        ),
+      );
+      await runner.start().completed();
+      return { spans: await Promise.all(collectors) };
+    }
+    const getScenarios = () => (scenarios ??= runScenarios());
+
     test('creates openai related spans with genAI recording disabled', async () => {
       let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
-      await createRunner()
-        .unordered()
-        .expect({
-          span: container => {
-            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
-            receivedSpans = container.items;
-          },
-        })
-        .start()
-        .completed();
+      const container = { items: (await getScenarios()).spans[1]! };
+
+      expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+      receivedSpans = container.items;
 
       const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
       expect(spans).toHaveLength(4);
@@ -192,25 +223,246 @@ describe('OpenAI integration', () => {
       expect(rawEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBeUndefined();
       expect(rawEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
     });
+
+    test('it works without a wrapping span', async () => {
+      let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
+
+      const container = { items: (await getScenarios()).spans[4]! };
+
+      expect(container.items.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo')).toBeDefined();
+      receivedSpans = container.items;
+
+      const segment = receivedSpans.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
+      expect(segment?.span_id).toEqual(expect.any(String));
+      expect(segment?.trace_id).toEqual(expect.any(String));
+      expect(segment?.attributes[GEN_AI_OPERATION_NAME]).toEqual({ value: 'chat', type: 'string' });
+      expect(segment?.attributes[SENTRY_OP]).toEqual({ value: 'gen_ai.chat', type: 'string' });
+      expect(segment?.attributes[SENTRY_ORIGIN]).toEqual({ value: 'auto.ai.openai', type: 'string' });
+      expect(segment?.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ value: 'openai', type: 'string' });
+      expect(segment?.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
+      expect(segment?.attributes[GEN_AI_REQUEST_TEMPERATURE]).toEqual({ value: 0.7, type: 'double' });
+      expect(segment?.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
+      expect(segment?.attributes[GEN_AI_RESPONSE_ID]).toEqual({ value: 'chatcmpl-mock123', type: 'string' });
+      expect(segment?.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({ value: '["stop"]', type: 'string' });
+      expect(segment?.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ value: 10, type: 'integer' });
+      expect(segment?.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({ value: 15, type: 'integer' });
+      expect(segment?.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ value: 25, type: 'integer' });
+      expect(segment?.status).toEqual('ok');
+    });
+
+    test('captures the conversation ID from the Conversations API and ignores previous_response_id', async () => {
+      let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
+
+      const container = { items: (await getScenarios()).spans[5]! };
+
+      expect(container.items.find(span => span.is_segment && span.name === 'conversation-test')).toBeDefined();
+      receivedSpans = container.items;
+
+      const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+      expect(spans).toHaveLength(5);
+      const conversationCreateSpan = spans.find(
+        span => span.name === 'chat' && span.attributes[GEN_AI_RESPONSE_ID] !== undefined,
+      );
+      expect(conversationCreateSpan!.status).toBe('ok');
+      expect(conversationCreateSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+        type: 'string',
+        value: 'chat',
+      });
+      expect(conversationCreateSpan!.attributes[SENTRY_OP]).toEqual({
+        type: 'string',
+        value: 'gen_ai.chat',
+      });
+      expect(conversationCreateSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+        type: 'string',
+        value: 'auto.ai.openai',
+      });
+      expect(conversationCreateSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+        type: 'string',
+        value: 'openai',
+      });
+      expect(conversationCreateSpan!.attributes[GEN_AI_CONVERSATION_ID]).toEqual({
+        type: 'string',
+        value: 'conv_689667905b048191b4740501625afd940c7533ace33a2dab',
+      });
+
+      const conversationResponseSpan = spans.find(
+        span =>
+          span.attributes[GEN_AI_CONVERSATION_ID]?.value === 'conv_689667905b048191b4740501625afd940c7533ace33a2dab' &&
+          span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4',
+      );
+      expect(conversationResponseSpan!.status).toBe('ok');
+      expect(conversationResponseSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+        type: 'string',
+        value: 'chat',
+      });
+      expect(conversationResponseSpan!.attributes[SENTRY_OP]).toEqual({
+        type: 'string',
+        value: 'gen_ai.chat',
+      });
+      expect(conversationResponseSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+        type: 'string',
+        value: 'auto.ai.openai',
+      });
+      expect(conversationResponseSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+        type: 'string',
+        value: 'openai',
+      });
+      expect(conversationResponseSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+        type: 'string',
+        value: 'gpt-4',
+      });
+      expect(conversationResponseSpan!.attributes[GEN_AI_CONVERSATION_ID]).toEqual({
+        type: 'string',
+        value: 'conv_689667905b048191b4740501625afd940c7533ace33a2dab',
+      });
+
+      // The unlinked call and the one chained with `previous_response_id` both carry no conversation id:
+      // a response id names one response, not the thread, so chaining does not group spans.
+      const unlinkedResponseSpans = spans.filter(
+        span =>
+          span.attributes[SENTRY_OP]?.value === 'gen_ai.chat' &&
+          span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4' &&
+          span.attributes[GEN_AI_CONVERSATION_ID] === undefined,
+      );
+      expect(unlinkedResponseSpans).toHaveLength(2);
+      for (const span of unlinkedResponseSpans) {
+        expect(span.status).toBe('ok');
+        expect(span.attributes[GEN_AI_RESPONSE_ID]).toEqual({ type: 'string', value: 'resp_mock_conv_123' });
+      }
+      expect(spans.some(span => span.attributes[GEN_AI_CONVERSATION_ID]?.value === 'resp_mock_conv_123')).toBe(false);
+
+      const rawConversationSpan = spans.find(
+        span => span.name === 'chat' && span.attributes[GEN_AI_CONVERSATION_ID] === undefined,
+      );
+      expect(rawConversationSpan!.status).toBe('ok');
+      expect(rawConversationSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+        type: 'string',
+        value: 'chat',
+      });
+      expect(rawConversationSpan!.attributes[SENTRY_OP]).toEqual({
+        type: 'string',
+        value: 'gen_ai.chat',
+      });
+      expect(rawConversationSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+        type: 'string',
+        value: 'auto.ai.openai',
+      });
+      expect(rawConversationSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+        type: 'string',
+        value: 'openai',
+      });
+      expect(rawConversationSpan!.attributes[GEN_AI_CONVERSATION_ID]).toBeUndefined();
+    });
+
+    test('attaches manual conversation ID set via setConversationId() to all chat spans', async () => {
+      let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
+
+      const container = { items: (await getScenarios()).spans[6]! };
+
+      expect(
+        container.items.find(span => span.is_segment && span.name === 'chat-with-manual-conversation-id'),
+      ).toBeDefined();
+      receivedSpans = container.items;
+
+      const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+      expect(spans).toHaveLength(3);
+
+      // All three chat completion spans should have the same manually-set conversation ID
+      for (const span of spans) {
+        expect(span!.name).toBe('chat gpt-4');
+        expect(span!.status).toBe('ok');
+        expect(span!.attributes[GEN_AI_CONVERSATION_ID]).toEqual({
+          type: 'string',
+          value: 'user_chat_session_abc123',
+        });
+        expect(span!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
+        expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4' });
+        expect(span!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
+        expect(span!.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'gen_ai.chat' });
+      }
+    });
+
+    test('isolates conversation IDs across separate scopes - conversation 1', async () => {
+      let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
+
+      const container = { items: (await getScenarios()).spans[7]! };
+
+      expect(container.items.find(span => span.is_segment && span.name === 'GET /chat/conversation-1')).toBeDefined();
+      receivedSpans = container.items;
+
+      const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+      expect(spans).toHaveLength(2);
+
+      // Both chat completion spans should have the expected conversation ID
+      for (const span of spans) {
+        expect(span!.name).toBe('chat gpt-4');
+        expect(span!.status).toBe('ok');
+        expect(span!.attributes[GEN_AI_CONVERSATION_ID]).toEqual({
+          type: 'string',
+          value: 'conv_user1_session_abc',
+        });
+        expect(span!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
+        expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4' });
+        expect(span!.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'gen_ai.chat' });
+      }
+    });
+
+    test('isolates conversation IDs across separate scopes - conversation 2', async () => {
+      let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
+
+      const container = { items: (await getScenarios()).spans[8]! };
+
+      expect(container.items.find(span => span.is_segment && span.name === 'GET /chat/conversation-2')).toBeDefined();
+      receivedSpans = container.items;
+
+      const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+      expect(spans).toHaveLength(2);
+
+      // Both chat completion spans should have the expected conversation ID
+      for (const span of spans) {
+        expect(span!.name).toBe('chat gpt-4');
+        expect(span!.status).toBe('ok');
+        expect(span!.attributes[GEN_AI_CONVERSATION_ID]).toEqual({
+          type: 'string',
+          value: 'conv_user2_session_xyz',
+        });
+        expect(span!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
+        expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4' });
+        expect(span!.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'gen_ai.chat' });
+      }
+    });
   });
+
   createEsmAndCjsTests(
     join(__dirname, '../..'),
-    'scenario-embeddings.mjs',
+    recordingScenarios,
     'instrument-with-pii.mjs',
     (createRunner, test) => {
+      let scenarios: ReturnType<typeof runScenarios> | undefined;
+      async function runScenarios() {
+        const runner = createRunner();
+
+        const collectors = recordingScenarios.map(name =>
+          runner.collectStreamedSpansUntilSegment(
+            span =>
+              span.attributes['test.scenario']?.value === name &&
+              (name === 'scenario-azure-openai.mjs'
+                ? span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai'
+                : span.name === 'main'),
+          ),
+        );
+        await runner.start().completed();
+        return { spans: await Promise.all(collectors) };
+      }
+      const getScenarios = () => (scenarios ??= runScenarios());
+
       test('creates openai related spans with genAI recording enabled', async () => {
         let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
-        await createRunner()
-          .unordered()
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
-              receivedSpans = container.items;
-            },
-          })
-          .start()
-          .completed();
+        const container = { items: (await getScenarios()).spans[1]! };
+
+        expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+        receivedSpans = container.items;
 
         const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
         expect(spans).toHaveLength(4);
@@ -368,294 +620,14 @@ describe('OpenAI integration', () => {
           value: 'Raw embedding test!',
         });
       });
-    },
-  );
-  createEsmAndCjsTests(join(__dirname, '../..'), 'scenario-root-span.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('it works without a wrapping span', async () => {
-      let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
-      await createRunner()
-        .unordered()
-        .expect({
-          span: container => {
-            expect(container.items.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo')).toBeDefined();
-            receivedSpans = container.items;
-          },
-        })
-        .start()
-        .completed();
-
-      const segment = receivedSpans.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
-      expect(segment?.span_id).toEqual(expect.any(String));
-      expect(segment?.trace_id).toEqual(expect.any(String));
-      expect(segment?.attributes[GEN_AI_OPERATION_NAME]).toEqual({ value: 'chat', type: 'string' });
-      expect(segment?.attributes[SENTRY_OP]).toEqual({ value: 'gen_ai.chat', type: 'string' });
-      expect(segment?.attributes[SENTRY_ORIGIN]).toEqual({ value: 'auto.ai.openai', type: 'string' });
-      expect(segment?.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ value: 'openai', type: 'string' });
-      expect(segment?.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
-      expect(segment?.attributes[GEN_AI_REQUEST_TEMPERATURE]).toEqual({ value: 0.7, type: 'double' });
-      expect(segment?.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
-      expect(segment?.attributes[GEN_AI_RESPONSE_ID]).toEqual({ value: 'chatcmpl-mock123', type: 'string' });
-      expect(segment?.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({ value: '["stop"]', type: 'string' });
-      expect(segment?.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ value: 10, type: 'integer' });
-      expect(segment?.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({ value: 15, type: 'integer' });
-      expect(segment?.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ value: 25, type: 'integer' });
-      expect(segment?.status).toEqual('ok');
-    });
-  });
-  createEsmAndCjsTests(
-    join(__dirname, '../..'),
-    'scenario-conversation.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('captures the conversation ID from the Conversations API and ignores previous_response_id', async () => {
-        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
-
-        await createRunner()
-          .unordered()
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'conversation-test')).toBeDefined();
-              receivedSpans = container.items;
-            },
-          })
-          .start()
-          .completed();
-
-        const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
-        expect(spans).toHaveLength(5);
-        const conversationCreateSpan = spans.find(
-          span => span.name === 'chat' && span.attributes[GEN_AI_RESPONSE_ID] !== undefined,
-        );
-        expect(conversationCreateSpan!.status).toBe('ok');
-        expect(conversationCreateSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
-          type: 'string',
-          value: 'chat',
-        });
-        expect(conversationCreateSpan!.attributes[SENTRY_OP]).toEqual({
-          type: 'string',
-          value: 'gen_ai.chat',
-        });
-        expect(conversationCreateSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-          type: 'string',
-          value: 'auto.ai.openai',
-        });
-        expect(conversationCreateSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
-          type: 'string',
-          value: 'openai',
-        });
-        expect(conversationCreateSpan!.attributes[GEN_AI_CONVERSATION_ID]).toEqual({
-          type: 'string',
-          value: 'conv_689667905b048191b4740501625afd940c7533ace33a2dab',
-        });
-
-        const conversationResponseSpan = spans.find(
-          span =>
-            span.attributes[GEN_AI_CONVERSATION_ID]?.value ===
-              'conv_689667905b048191b4740501625afd940c7533ace33a2dab' &&
-            span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4',
-        );
-        expect(conversationResponseSpan!.status).toBe('ok');
-        expect(conversationResponseSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
-          type: 'string',
-          value: 'chat',
-        });
-        expect(conversationResponseSpan!.attributes[SENTRY_OP]).toEqual({
-          type: 'string',
-          value: 'gen_ai.chat',
-        });
-        expect(conversationResponseSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-          type: 'string',
-          value: 'auto.ai.openai',
-        });
-        expect(conversationResponseSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
-          type: 'string',
-          value: 'openai',
-        });
-        expect(conversationResponseSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
-          type: 'string',
-          value: 'gpt-4',
-        });
-        expect(conversationResponseSpan!.attributes[GEN_AI_CONVERSATION_ID]).toEqual({
-          type: 'string',
-          value: 'conv_689667905b048191b4740501625afd940c7533ace33a2dab',
-        });
-
-        // The unlinked call and the one chained with `previous_response_id` both carry no conversation id:
-        // a response id names one response, not the thread, so chaining does not group spans.
-        const unlinkedResponseSpans = spans.filter(
-          span =>
-            span.attributes[SENTRY_OP]?.value === 'gen_ai.chat' &&
-            span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4' &&
-            span.attributes[GEN_AI_CONVERSATION_ID] === undefined,
-        );
-        expect(unlinkedResponseSpans).toHaveLength(2);
-        for (const span of unlinkedResponseSpans) {
-          expect(span.status).toBe('ok');
-          expect(span.attributes[GEN_AI_RESPONSE_ID]).toEqual({ type: 'string', value: 'resp_mock_conv_123' });
-        }
-        expect(spans.some(span => span.attributes[GEN_AI_CONVERSATION_ID]?.value === 'resp_mock_conv_123')).toBe(false);
-
-        const rawConversationSpan = spans.find(
-          span => span.name === 'chat' && span.attributes[GEN_AI_CONVERSATION_ID] === undefined,
-        );
-        expect(rawConversationSpan!.status).toBe('ok');
-        expect(rawConversationSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
-          type: 'string',
-          value: 'chat',
-        });
-        expect(rawConversationSpan!.attributes[SENTRY_OP]).toEqual({
-          type: 'string',
-          value: 'gen_ai.chat',
-        });
-        expect(rawConversationSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-          type: 'string',
-          value: 'auto.ai.openai',
-        });
-        expect(rawConversationSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
-          type: 'string',
-          value: 'openai',
-        });
-        expect(rawConversationSpan!.attributes[GEN_AI_CONVERSATION_ID]).toBeUndefined();
-      });
-    },
-  );
-  createEsmAndCjsTests(
-    join(__dirname, '../..'),
-    'scenario-manual-conversation-id.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('attaches manual conversation ID set via setConversationId() to all chat spans', async () => {
-        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
-
-        await createRunner()
-          .unordered()
-          .expect({
-            span: container => {
-              expect(
-                container.items.find(span => span.is_segment && span.name === 'chat-with-manual-conversation-id'),
-              ).toBeDefined();
-              receivedSpans = container.items;
-            },
-          })
-          .start()
-          .completed();
-
-        const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
-        expect(spans).toHaveLength(3);
-
-        // All three chat completion spans should have the same manually-set conversation ID
-        for (const span of spans) {
-          expect(span!.name).toBe('chat gpt-4');
-          expect(span!.status).toBe('ok');
-          expect(span!.attributes[GEN_AI_CONVERSATION_ID]).toEqual({
-            type: 'string',
-            value: 'user_chat_session_abc123',
-          });
-          expect(span!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
-          expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4' });
-          expect(span!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
-          expect(span!.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'gen_ai.chat' });
-        }
-      });
-    },
-  );
-  createEsmAndCjsTests(
-    join(__dirname, '../..'),
-    'scenario-separate-scope-1.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('isolates conversation IDs across separate scopes - conversation 1', async () => {
-        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
-
-        await createRunner()
-          .unordered()
-          .expect({
-            span: container => {
-              expect(
-                container.items.find(span => span.is_segment && span.name === 'GET /chat/conversation-1'),
-              ).toBeDefined();
-              receivedSpans = container.items;
-            },
-          })
-          .start()
-          .completed();
-
-        const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
-        expect(spans).toHaveLength(2);
-
-        // Both chat completion spans should have the expected conversation ID
-        for (const span of spans) {
-          expect(span!.name).toBe('chat gpt-4');
-          expect(span!.status).toBe('ok');
-          expect(span!.attributes[GEN_AI_CONVERSATION_ID]).toEqual({
-            type: 'string',
-            value: 'conv_user1_session_abc',
-          });
-          expect(span!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
-          expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4' });
-          expect(span!.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'gen_ai.chat' });
-        }
-      });
-    },
-  );
-  createEsmAndCjsTests(
-    join(__dirname, '../..'),
-    'scenario-separate-scope-2.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('isolates conversation IDs across separate scopes - conversation 2', async () => {
-        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
-
-        await createRunner()
-          .unordered()
-          .expect({
-            span: container => {
-              expect(
-                container.items.find(span => span.is_segment && span.name === 'GET /chat/conversation-2'),
-              ).toBeDefined();
-              receivedSpans = container.items;
-            },
-          })
-          .start()
-          .completed();
-
-        const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
-        expect(spans).toHaveLength(2);
-
-        // Both chat completion spans should have the expected conversation ID
-        for (const span of spans) {
-          expect(span!.name).toBe('chat gpt-4');
-          expect(span!.status).toBe('ok');
-          expect(span!.attributes[GEN_AI_CONVERSATION_ID]).toEqual({
-            type: 'string',
-            value: 'conv_user2_session_xyz',
-          });
-          expect(span!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
-          expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4' });
-          expect(span!.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'gen_ai.chat' });
-        }
-      });
-    },
-  );
-  createEsmAndCjsTests(
-    join(__dirname, '../..'),
-    'scenario-system-instructions.mjs',
-    'instrument-with-pii.mjs',
-    (createRunner, test) => {
       test('extracts system instructions from messages', async () => {
         let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
-        await createRunner()
-          .unordered()
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
-              receivedSpans = container.items;
-            },
-          })
-          .start()
-          .completed();
+        const container = { items: (await getScenarios()).spans[2]! };
+
+        expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+        receivedSpans = container.items;
 
         const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
         expect(spans).toHaveLength(1);
