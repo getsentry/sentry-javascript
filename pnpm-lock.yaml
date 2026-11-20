@@ -355,6 +355,9 @@ importers:
       '@sentry/bun':
         specifier: 11.15.0
         version: link:../../packages/bun
+      '@sentry/conventions':
+        specifier: 0.34.0
+        version: 0.34.0
       '@sentry/core':
         specifier: 11.15.0
         version: link:../../packages/core
