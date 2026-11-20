@@ -23,7 +23,7 @@ import {
   normalizeLangChainMessages,
 } from '../langchain/utils';
 import { LANGGRAPH_ORIGIN } from './constants';
-import type { CompiledGraph, LangGraphOptions } from './types';
+import type { CompiledGraph, LangGraphCallInfo, LangGraphOptions } from './types';
 import { extractToolsFromCompiledGraph } from './utils';
 
 // LangGraph's invoke() calls this.stream() before its first await, so a graph set only for that synchronous
@@ -66,12 +66,16 @@ export function getAgentSpanOptions(
 }
 
 /** Decides for one `invoke()`/`stream()` call, from its arguments as passed. */
-export function resolveGraphCallRecording(options: LangGraphOptions, args: unknown[]): Required<GenAiOptions> {
-  return resolveGenAiCallRecording(options, {
+export function resolveGraphCallRecording(
+  options: LangGraphOptions,
+  args: unknown[],
+): { call: LangGraphCallInfo; recording: Required<GenAiOptions> } {
+  const call: LangGraphCallInfo = {
     operation: 'invoke_agent',
     input: args[0],
     config: args[1] as Record<string, unknown> | undefined,
-  });
+  };
+  return { call, recording: resolveGenAiCallRecording(options, call) };
 }
 
 /** Sets the request attributes on an agent span and injects the callback handler into the call's config. */

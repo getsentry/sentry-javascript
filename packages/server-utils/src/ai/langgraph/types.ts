@@ -1,6 +1,10 @@
+import type { GenAiSpanHooks } from '../core/span-hooks';
 import type { GenAiCallOptions } from '../core/utils';
 
-/** The call that `recordInputs`/`recordOutputs` decide on: an `invoke()` or `stream()` call of a compiled graph. */
+/**
+ * The call that `recordInputs`/`recordOutputs` decide on, and that the span hooks get: an `invoke()` or `stream()`
+ * call of a compiled graph.
+ */
 export interface LangGraphCallInfo {
   operation: 'invoke_agent';
   /** The graph input, the first argument of `invoke()`/`stream()` as passed. */
@@ -12,8 +16,12 @@ export interface LangGraphCallInfo {
 /**
  * Options for the LangGraph integration. Each `invoke()`/`stream()` call decides once, and the decision covers the
  * whole graph run, including its chat model and tool spans.
+ *
+ * The span hooks only run for the `invoke_agent` span of the call. `onSpanEnd` gets the final graph state: what
+ * `invoke()` resolved with, or the output of the run for `stream()`, which is `undefined` when the caller stopped
+ * reading early.
  */
-export type LangGraphOptions = GenAiCallOptions<LangGraphCallInfo>;
+export type LangGraphOptions = GenAiCallOptions<LangGraphCallInfo> & GenAiSpanHooks<LangGraphCallInfo>;
 
 /**
  * LangGraph Tool definition from lc_kwargs
