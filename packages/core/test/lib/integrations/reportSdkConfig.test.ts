@@ -42,6 +42,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
 
   it('reports SDK and deployment metadata alongside user-set options', () => {
     const userOptions = captureOptionsSetByUser({
+      dsn: 'https://username@domain/123',
       tracesSampleRate: 0.5,
       runtime: { name: 'node', version: 'v24.22.1' },
       release: 'shop@1.4.2',
@@ -54,7 +55,6 @@ describe('experimentalReportSdkConfigIntegration', () => {
 
     const payload = reportConfig(
       getDefaultTestClientOptions({
-        dsn: 'https://username@domain/123',
         sendDefaultPii: false,
         ...userOptions,
         _metadata: {
@@ -65,17 +65,13 @@ describe('experimentalReportSdkConfigIntegration', () => {
     );
 
     expect(payload).toEqual({
-      version: 2,
+      version: 3,
       sdk: { name: 'sentry.javascript.node', version: '11.14.0' },
       runtime: { name: 'node', version: 'v24.22.1' },
-      release: 'shop@1.4.2',
       environment: 'staging',
-      dist: '42',
       options: {
         runtime: { name: 'node', version: 'v24.22.1' },
-        release: 'shop@1.4.2',
         environment: 'staging',
-        dist: '42',
         defaultIntegrations: false,
         integrations: [
           { name: 'ExperimentalReportSdkConfig' },
@@ -92,21 +88,21 @@ describe('experimentalReportSdkConfigIntegration', () => {
     });
     const resolvedOptions = {
       runtime: { name: 'node', version: 'v24.22.1' },
-      release: 'shop@1.4.2',
       environment: 'staging',
-      dist: '42',
     };
 
     const payload = reportConfig(
       getDefaultTestClientOptions({
         dsn: 'https://username@domain/123',
+        release: 'shop@1.4.2',
+        dist: '42',
         ...resolvedOptions,
         ...userOptions,
       }),
     );
 
     expect(payload).toEqual({
-      version: 2,
+      version: 3,
       ...resolvedOptions,
       options: { integrations: [{ name: 'ExperimentalReportSdkConfig' }] },
     });
@@ -149,7 +145,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
     );
 
     expect(payload).toEqual({
-      version: 2,
+      version: 3,
       removed_default_integrations: ['Dropped', 'Zeta'],
       options: {
         integrations: [{ name: 'Tag', options: { tag: 'user' } }, { name: 'ExperimentalReportSdkConfig' }],
@@ -174,7 +170,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
       ),
     );
 
-    expect(payloads[0]).toEqual({ version: 2, options: { integrations: [{ name: 'Tag', options: { tag: 'user' } }] } });
+    expect(payloads[0]).toEqual({ version: 3, options: { integrations: [{ name: 'Tag', options: { tag: 'user' } }] } });
     expect(payloads[1]).toEqual(payloads[0]);
   });
 
@@ -204,6 +200,6 @@ describe('experimentalReportSdkConfigIntegration', () => {
       }),
     );
 
-    expect(payload).toEqual({ version: 2, options: {} });
+    expect(payload).toEqual({ version: 3, options: {} });
   });
 });

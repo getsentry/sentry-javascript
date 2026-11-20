@@ -34,95 +34,96 @@ describe('hapi auto-instrumentation', () => {
   ] as const;
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('should record the request method for multi-method and wildcard routes.', async () => {
-      const runner = createRunner().unordered();
-      for (const { method, path } of MULTI_METHOD_REQUESTS) {
-        const httpMethod = method.toUpperCase();
-        runner.expect({
-          span: container => {
-            expect(container.items.find(item => item.is_segment)?.name).toBe(`${httpMethod} ${path}`);
-
-            const routerSpans = container.items.filter(item => item.attributes[SENTRY_OP]?.value === ROUTER);
-            expect(routerSpans).toHaveLength(1);
-            expect(routerSpans[0]?.name).toBe(path);
-            expect(routerSpans[0]?.attributes[HTTP_REQUEST_METHOD]).toEqual({ type: 'string', value: httpMethod });
-          },
-        });
-      }
+    let scenario: ReturnType<typeof runScenario> | undefined;
+    async function runScenario() {
+      const requests: Array<{ method: 'get' | 'post' | 'put'; path: string; expectError?: boolean }> = [
+        ...MULTI_METHOD_REQUESTS,
+        { method: 'get', path: '/' },
+        { method: 'get', path: '/plugin-route' },
+      ];
+      const runner = createRunner();
+      const collectors = requests.map(({ method, path }) => {
+        const key = `${method.toUpperCase()} ${path}`;
+        return [key, runner.collectStreamedSpansUntilSegment(key)] as const;
+      });
 
       const started = runner.start();
-      for (const { method, path } of MULTI_METHOD_REQUESTS) {
-        await started.makeRequest(method, path);
+      for (const { method, path, expectError } of requests) {
+        await started.makeRequest(method, path, { expectError });
       }
       await started.completed();
+      return new Map(await Promise.all(collectors.map(async ([key, spans]) => [key, { items: await spans }] as const)));
+    }
+    async function getScenario(key: string) {
+      scenario ??= runScenario();
+      return (await scenario).get(key)!;
+    }
+
+    test('should record the request method for multi-method and wildcard routes.', async () => {
+      for (const { method, path } of MULTI_METHOD_REQUESTS) {
+        const httpMethod = method.toUpperCase();
+        const container = await getScenario(`${httpMethod} ${path}`);
+        expect(container.items.find(item => item.is_segment)?.name).toBe(`${httpMethod} ${path}`);
+
+        const routerSpans = container.items.filter(item => item.attributes[SENTRY_OP]?.value === ROUTER);
+        expect(routerSpans).toHaveLength(1);
+        expect(routerSpans[0]?.name).toBe(path);
+        expect(routerSpans[0]?.attributes[HTTP_REQUEST_METHOD]).toEqual({ type: 'string', value: httpMethod });
+      }
     });
 
     test('should auto-instrument `@hapi/hapi` package.', async () => {
-      const runner = createRunner()
-        .expect({
-          span: container => {
-            expect(container.items.find(item => item.is_segment)?.name).toBe('GET /');
+      const container = await getScenario('GET /');
+      expect(container.items.find(item => item.is_segment)?.name).toBe('GET /');
 
-            // Router spans are named after the route alone, without the `GET ` prefix.
-            expect(container.items).toContainEqual(
-              expect.objectContaining({
-                name: '/',
-                status: 'ok',
-                attributes: expect.objectContaining({
-                  'http.route': { type: 'string', value: '/' },
-                  'http.request.method': { type: 'string', value: 'GET' },
-                  'hapi.type': { type: 'string', value: 'router' },
-                  'sentry.origin': { type: 'string', value: origin },
-                  'sentry.op': { type: 'string', value: 'router' },
-                }),
-              }),
-            );
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/');
-      await runner.completed();
+      // Router spans are named after the route alone, without the `GET ` prefix.
+      expect(container.items).toContainEqual(
+        expect.objectContaining({
+          name: '/',
+          status: 'ok',
+          attributes: expect.objectContaining({
+            'http.route': { type: 'string', value: '/' },
+            'http.request.method': { type: 'string', value: 'GET' },
+            'hapi.type': { type: 'string', value: 'router' },
+            'sentry.origin': { type: 'string', value: origin },
+            'sentry.op': { type: 'string', value: 'router' },
+          }),
+        }),
+      );
     });
 
     test('should instrument plugin routes and server extensions.', async () => {
-      const runner = createRunner()
-        .expect({
-          span: container => {
-            expect(container.items.find(item => item.is_segment)?.name).toBe('GET /plugin-route');
+      const container = await getScenario('GET /plugin-route');
+      expect(container.items.find(item => item.is_segment)?.name).toBe('GET /plugin-route');
 
-            const handlerSpan = container.items.find(item => item.attributes['sentry.op']?.value === 'handler');
-            expect(handlerSpan).toMatchObject({
-              // The route alone, without the `GET ` prefix the static name carried.
-              name: '/plugin-route',
-              attributes: expect.objectContaining({
-                // The name has to stay in step with the attribute it comes from.
-                'http.route': { type: 'string', value: '/plugin-route' },
-                'hapi.type': { type: 'string', value: 'plugin' },
-                'hapi.plugin.name': { type: 'string', value: 'testPlugin' },
-                'sentry.op': { type: 'string', value: 'handler' },
-                'sentry.origin': { type: 'string', value: origin },
-              }),
-            });
+      const handlerSpan = container.items.find(item => item.attributes['sentry.op']?.value === 'handler');
+      expect(handlerSpan).toMatchObject({
+        // The route alone, without the `GET ` prefix the static name carried.
+        name: '/plugin-route',
+        attributes: expect.objectContaining({
+          // The name has to stay in step with the attribute it comes from.
+          'http.route': { type: 'string', value: '/plugin-route' },
+          'hapi.type': { type: 'string', value: 'plugin' },
+          'hapi.plugin.name': { type: 'string', value: 'testPlugin' },
+          'sentry.op': { type: 'string', value: 'handler' },
+          'sentry.origin': { type: 'string', value: origin },
+        }),
+      });
 
-            // Spans of other ops keep their names.
-            expect(container.items).toContainEqual(
-              expect.objectContaining({
-                name: 'ext - onPreResponse',
-                attributes: expect.objectContaining({
-                  [HAPI_TYPE]: { type: 'string', value: 'server.ext' },
-                  [HAPI_EXT_TYPE]: { type: 'string', value: 'onPreResponse' },
-                  // oxlint-disable-next-line typescript/no-deprecated
-                  [SERVER_EXT_TYPE]: { type: 'string', value: 'onPreResponse' },
-                  'sentry.op': { type: 'string', value: 'middleware' },
-                  'sentry.origin': { type: 'string', value: origin },
-                }),
-              }),
-            );
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/plugin-route');
-      await runner.completed();
+      // Spans of other ops keep their names.
+      expect(container.items).toContainEqual(
+        expect.objectContaining({
+          name: 'ext - onPreResponse',
+          attributes: expect.objectContaining({
+            [HAPI_TYPE]: { type: 'string', value: 'server.ext' },
+            [HAPI_EXT_TYPE]: { type: 'string', value: 'onPreResponse' },
+            // oxlint-disable-next-line typescript/no-deprecated
+            [SERVER_EXT_TYPE]: { type: 'string', value: 'onPreResponse' },
+            'sentry.op': { type: 'string', value: 'middleware' },
+            'sentry.origin': { type: 'string', value: origin },
+          }),
+        }),
+      );
     });
 
     test('should handle returned plain errors in routes.', async () => {
