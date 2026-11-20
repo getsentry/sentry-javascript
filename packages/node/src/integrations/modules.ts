@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { GLOBAL_OBJ, type IntegrationFn } from '@sentry/core';
-import { _INTERNAL_collectInstalledModules } from '@sentry/core/server';
+import { collectInstalledModules } from '@sentry/core/server';
 
 type ModuleInfo = Record<string, string>;
 
@@ -70,7 +70,7 @@ function getRequireCachePaths(): string[] {
 }
 
 function collectModules(): ModuleInfo {
-  const { declared, installed } = _INTERNAL_collectInstalledModules({
+  const { declared, installed } = collectInstalledModules({
     readFile,
     entryPath: process.argv[1],
     cwd: process.cwd(),
