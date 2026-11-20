@@ -1,5 +1,4 @@
 import { parseSemver } from '@sentry/core';
-import { collectInstalledModules } from '@sentry/server-utils/no-diagnostic-channels';
 import * as fs from 'fs';
 import { createRequire } from 'module';
 
@@ -218,18 +217,4 @@ export function detectActiveBundler(): 'turbopack' | 'webpack' {
   } else {
     return 'webpack';
   }
-}
-
-/** The project's dependencies, with exact installed versions where they resolve and declared ranges otherwise. */
-export function getPackageModules(projectDir: string): Record<string, string> {
-  return collectInstalledModules({
-    readFile: filePath => {
-      try {
-        return fs.readFileSync(filePath, 'utf8');
-      } catch {
-        return undefined;
-      }
-    },
-    cwd: projectDir,
-  });
 }

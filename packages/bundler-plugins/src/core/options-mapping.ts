@@ -88,6 +88,7 @@ export type NormalizedOptions = {
   };
   applicationKey: string | undefined;
   moduleMetadata: ModuleMetadata | ModuleMetadataCallback | undefined;
+  injectModuleVersions: boolean | undefined;
   _experiments: {
     injectBuildInformation?: boolean;
   } & Record<string, unknown>;
@@ -138,6 +139,7 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
     },
     applicationKey: userOptions.applicationKey,
     moduleMetadata: userOptions.moduleMetadata,
+    injectModuleVersions: userOptions.injectModuleVersions,
     _experiments: userOptions._experiments ?? {},
   };
 

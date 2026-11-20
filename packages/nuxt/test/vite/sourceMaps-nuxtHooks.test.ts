@@ -462,7 +462,7 @@ describe('setupSourceMaps hooks', () => {
       const nitroConfig = { rollupConfig: { plugins: [] as unknown[], output: {} }, dev: false };
       await mockNuxt.triggerHook('nitro:config', nitroConfig);
 
-      expect(mockSentryRollupPlugin).toHaveBeenCalled();
+      expect(mockSentryRollupPlugin).toHaveBeenCalledWith(expect.objectContaining({ injectModuleVersions: true }));
       expect(nitroConfig.rollupConfig.plugins.length).toBeGreaterThan(0);
     });
 
@@ -480,6 +480,38 @@ describe('setupSourceMaps hooks', () => {
       setupSourceMaps({ debug: true }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
       await mockNuxt.triggerHook('modules:done');
       await mockNuxt.triggerHook('nitro:config', nitroConfig);
+
+      expect(mockSentryRollupPlugin).not.toHaveBeenCalled();
+    });
+
+    it('only adds sentryRollupPlugin for module versions when source maps are disabled', async () => {
+      const mockNuxt = createMockNuxt({ _prepare: false, dev: false });
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
+
+      setupSourceMaps({ sourcemaps: { disable: true }, debug: true }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
+      await mockNuxt.triggerHook('modules:done');
+
+      const nitroConfig = { rollupConfig: { plugins: [{ name: 'user-plugin' }] as unknown[] }, dev: false };
+      await mockNuxt.triggerHook('nitro:config', nitroConfig);
+
+      expect(mockSentryVitePlugin).not.toHaveBeenCalled();
+      expect(mockSentryRollupPlugin).toHaveBeenCalledTimes(1);
+      expect(mockSentryRollupPlugin).toHaveBeenCalledWith({
+        debug: true,
+        injectModuleVersions: true,
+        telemetry: false,
+        sourcemaps: { upload: false, injectDebugIds: false },
+        release: { inject: false, create: false, finalize: false, setCommits: false, deploy: false },
+      });
+      expect(nitroConfig.rollupConfig.plugins).toEqual([{ name: 'user-plugin' }, { name: 'sentry-rollup-plugin' }]);
+    });
+
+    it('does not add sentryRollupPlugin for module versions in dev mode when source maps are disabled', async () => {
+      const mockNuxt = createMockNuxt({ dev: true });
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
+
+      setupSourceMaps({ sourcemaps: { disable: true } }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
+      await mockNuxt.triggerHook('nitro:config', { rollupConfig: { plugins: [] }, dev: true });
 
       expect(mockSentryRollupPlugin).not.toHaveBeenCalled();
     });

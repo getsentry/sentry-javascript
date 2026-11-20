@@ -1,3 +1,4 @@
+/* oxlint-disable max-lines */
 import type { ChunkGraphNode, InternalOptions, Options } from '../core';
 import {
   createSentryBuildPluginManager,
@@ -5,6 +6,7 @@ import {
   generateModuleMetadataInjectorCode,
   isJsFile,
   isInitialChunk,
+  SERVER_MODULES_PLACEHOLDER,
   shouldSkipCodeInjection,
   getDebugIdSnippet,
   createDebugIdUploadFunction,
@@ -23,7 +25,7 @@ import { createRequire } from 'node:module';
 import { finalizeRolldownDebugIds, getDebugIdForChunk, hasExistingDebugID } from './debug-id-injection';
 import { stampDebugIds, type OutputBundle } from './debug-id-stamping';
 import { createSourceMapHandling, type OutputDestinationOptions } from './source-map-handling';
-import { createViteSourceMapHooks } from '../vite/source-map-hooks';
+import { createViteSourceMapHooks, type ViteResolvedConfig } from '../vite/source-map-hooks';
 import {
   createViteReleaseHtmlInjection,
   type BuildInputOptions,
@@ -86,6 +88,11 @@ function getViteParseAstAsync(): Promise<ViteParseAstAsync | null> {
   }
 
   return viteParseAstAsyncPromise;
+}
+
+// Plain Rollup builds get no module versions unless the user opts in, see `injectModuleVersions`.
+function mayInjectModuleVersions(injectModuleVersions: boolean | undefined, buildTool: 'rollup' | 'vite'): boolean {
+  return injectModuleVersions === true || (buildTool === 'vite' && injectModuleVersions !== false);
 }
 
 /**
@@ -178,7 +185,24 @@ export function _createRollupPluginInternals(
     : undefined;
 
   const transformReplace = Object.keys(replacementValues).length > 0;
-  const shouldTransform = transformAnnotations || transformReplace;
+  const transformServerModules = mayInjectModuleVersions(options.injectModuleVersions, buildTool);
+  const shouldTransform = transformAnnotations || transformReplace || transformServerModules;
+
+  let viteRoot: string | undefined;
+  // Vite before 6 has no environments and runs an SSR build with its own config.
+  let viteSsrBuild = false;
+
+  function getServerModules(context: ViteHookContext | undefined, code: string): Record<string, string> | undefined {
+    if (!transformServerModules || !code.includes(SERVER_MODULES_PLACEHOLDER)) {
+      return undefined;
+    }
+
+    const environment = context?.environment;
+    return sentryBuildPluginManager.getModuleVersions({
+      root: viteRoot,
+      isServerBuild: environment ? environment.config?.consumer === 'server' : viteSsrBuild,
+    });
+  }
 
   function buildStart(this: ViteHookContext | undefined, inputOptions?: BuildInputOptions): void {
     releaseHtmlInjection?.buildStart(this, inputOptions);
@@ -189,6 +213,7 @@ export function _createRollupPluginInternals(
   }
 
   async function transform(
+    this: ViteHookContext | undefined,
     code: string,
     id: string,
     meta?: ComponentAnnotationTransformMeta,
@@ -202,8 +227,9 @@ export function _createRollupPluginInternals(
       }
     }
 
-    if (transformReplace) {
-      return replaceBooleanFlagsInCode(code, replacementValues);
+    const serverModules = getServerModules(this, code);
+    if (transformReplace || serverModules) {
+      return replaceBooleanFlagsInCode(code, replacementValues, serverModules);
     }
 
     return null;
@@ -344,7 +370,14 @@ export function _createRollupPluginInternals(
     buildStart,
     ...(shouldTransform ? { transform: transformHook } : {}),
     ...(viteSourceMapHooks
-      ? { configResolved: viteSourceMapHooks.configResolved, outputOptions: viteSourceMapHooks.outputOptions }
+      ? {
+          configResolved(config: ViteResolvedConfig): void {
+            viteRoot = config.root;
+            viteSsrBuild = !!config.build.ssr;
+            viteSourceMapHooks.configResolved(config);
+          },
+          outputOptions: viteSourceMapHooks.outputOptions,
+        }
       : { outputOptions: sourceMapHandling.outputOptions }),
     ...(releaseHtmlInjection ? { transformIndexHtml: releaseHtmlInjection.transformIndexHtml } : {}),
     renderChunk,

@@ -24,7 +24,7 @@ import type {
   WebpackPluginInstance,
 } from './types';
 import { sentryOrchestrionWebpackPlugin } from '@sentry/server-utils/orchestrion/webpack';
-import { DEFAULT_PAGE_EXTENSIONS, getNextjsVersion, getPackageModules } from './util';
+import { DEFAULT_PAGE_EXTENSIONS, getNextjsVersion } from './util';
 import type { VercelCronsConfigResult } from './withSentryConfig/getFinalConfigObjectUtils';
 import { shouldInjectReleaseIntoClient } from './withSentryConfig/release';
 import { getTunnelRouteInjectedValues } from './withSentryConfig/tunnel';
@@ -420,16 +420,9 @@ export function constructWebpackConfigFunction({
 
     setupTreeshakingFromConfig(userSentryOptions, newConfig, buildContext);
 
-    // We inject a map of dependencies that the nextjs app has, as we cannot reliably extract them at runtime, sadly
-    newConfig.plugins = newConfig.plugins || [];
-    newConfig.plugins.push(
-      new buildContext.webpack.DefinePlugin({
-        __SENTRY_SERVER_MODULES__: JSON.stringify(getPackageModules(projectDir)),
-      }),
-    );
-
     // Orchestrion code-transform loader — Node server runtime only, never the edge compilation
     if (runtime === 'server' && userSentryOptions.buildTimeInstrumentation !== false) {
+      newConfig.plugins = newConfig.plugins || [];
       newConfig.plugins.push(sentryOrchestrionWebpackPlugin() as unknown as WebpackPluginInstance);
       prependOrchestrionRuntimeExternals(newConfig);
     }

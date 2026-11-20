@@ -2,3 +2,4 @@
 // don't pull in the build plugin manager and the `sentry` CLI.
 export { getCodeInjectionPosition } from '../core/get-code-injection-position';
 export { createComponentNameAnnotateHooks } from '../core/component-annotate-hooks';
+export { getInstalledModules } from '../core/installed-modules';

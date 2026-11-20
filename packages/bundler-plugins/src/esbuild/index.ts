@@ -10,6 +10,7 @@ import {
   addDebugIdToEmittedArtifacts,
   isJsFile,
   getSourceMapFeatures,
+  getServerModulesDefinition,
 } from '../core';
 import * as path from 'node:path';
 import { createRequire } from 'node:module';
@@ -62,6 +63,7 @@ interface EsbuildInitialOptions {
   absWorkingDir?: string;
   logOverride?: Record<string, string>;
   sourcemap?: EsbuildSourceMapSetting;
+  platform?: string;
 }
 
 /** Maps esbuild's `sourcemap` setting onto the plugin's source map kinds. */
@@ -221,6 +223,14 @@ export function sentryEsbuildPlugin(userOptions: InternalOptions = {}): any {
         });
 
         initialOptions.define = { ...initialOptions.define, ...replacementStringValues };
+      }
+
+      const serverModules = sentryBuildPluginManager.getModuleVersions({
+        root: initialOptions.absWorkingDir,
+        isServerBuild: initialOptions.platform === 'node',
+      });
+      if (serverModules) {
+        initialOptions.define = { ...initialOptions.define, ...getServerModulesDefinition(serverModules) };
       }
 
       // Debug ID injection - requires per-entry-point unique IDs

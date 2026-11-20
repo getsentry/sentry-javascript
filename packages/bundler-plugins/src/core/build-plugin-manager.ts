@@ -13,6 +13,7 @@ import { createLogger } from './logger';
 import { allowedToSendTelemetry, createSentryInstance, safeFlushTelemetry } from './sentry/telemetry';
 import type { InternalOptions, SentrySDKBuildFlags } from './types';
 import { arrayify, getProjects, getTurborepoEnvPassthroughWarning, stripQueryAndHashFromPath } from './utils';
+import { getInstalledModules } from './installed-modules';
 import {
   defaultRewriteSourcesHook,
   prepareArtifactForUpload,
@@ -96,6 +97,12 @@ export type SentryBuildPluginManager = {
    */
   // See `generateModuleMetadataInjectorCode` for how this should be used exactly
   bundleMetadata: Record<string, unknown>;
+
+  /**
+   * Returns the app's module versions to replace `__SENTRY_SERVER_MODULES__` with in a build, or `undefined` when the
+   * build gets none (see the `injectModuleVersions` option). The versions are read once per root.
+   */
+  getModuleVersions(build: { root?: string; isServerBuild: boolean }): Record<string, string> | undefined;
 
   /**
    * Contains utility functions for emitting telemetry via the build plugin manager.
@@ -239,6 +246,7 @@ export function createSentryBuildPluginManager(
         },
       },
       bundleMetadata: {},
+      getModuleVersions: () => undefined,
       createRelease: async () => {
         /* noop */
       },
@@ -474,6 +482,25 @@ export function createSentryBuildPluginManager(
     }
   }
 
+  const moduleVersionsByRoot = new Map<string, Record<string, string> | undefined>();
+  function getModuleVersions({
+    root = process.cwd(),
+    isServerBuild,
+  }: {
+    root?: string;
+    isServerBuild: boolean;
+  }): Record<string, string> | undefined {
+    if (!(options.injectModuleVersions ?? isServerBuild)) {
+      return undefined;
+    }
+
+    if (!moduleVersionsByRoot.has(root)) {
+      const modules = getInstalledModules(root);
+      moduleVersionsByRoot.set(root, Object.keys(modules).length > 0 ? modules : undefined);
+    }
+    return moduleVersionsByRoot.get(root);
+  }
+
   return {
     /**
      * A logger instance that takes the options passed to the build plugin manager into account. (for silencing and log level etc.)
@@ -496,6 +523,8 @@ export function createSentryBuildPluginManager(
      */
     // See `generateModuleMetadataInjectorCode` for how this should be used exactly
     bundleMetadata,
+
+    getModuleVersions,
 
     /**
      * Contains utility functions for emitting telemetry via the build plugin manager.
@@ -527,6 +556,11 @@ export function createSentryBuildPluginManager(
      * - adds deploy information
      */
     async createRelease() {
+      const { create, finalize, setCommits, deploy, uploadLegacySourcemaps } = options.release;
+      if (!create && !finalize && setCommits === false && !deploy && !uploadLegacySourcemaps) {
+        return;
+      }
+
       if (!options.release.name) {
         logger.debug(
           'No release name provided. Will not create release. Please set the `release.name` option to identify your release.',
