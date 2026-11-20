@@ -1,5 +1,5 @@
 import type { Integration, Options } from '@sentry/core';
-import { applySdkMetadata } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrationsWithoutPerformance, init as initNode } from '@sentry/node';
 import { gcpContextIntegration } from './integrations/gcp-context';
@@ -30,7 +30,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
 export function init(options: NodeOptions = {}): NodeClient | undefined {
   const opts = {
     defaultIntegrations: getDefaultIntegrations(options),
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
   };
 
   applySdkMetadata(opts, 'google-cloud-serverless', ['google-cloud-serverless', 'node']);

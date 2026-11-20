@@ -2,6 +2,7 @@ import type { BrowserOptions } from '@sentry/browser';
 import { init as browserInit } from '@sentry/browser';
 import type { Client } from '@sentry/core';
 import {
+  _INTERNAL_captureOptionsSetByUser,
   applySdkMetadata,
   _INTERNAL_applyBrowserTunnelDefaults as applyBrowserTunnelDefaults,
   consoleSandbox,
@@ -19,7 +20,9 @@ const GLOBAL_OBJ_WITH_ROUTER_CONTEXT = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 /**
  * Initializes the client side of the React Router SDK.
  */
-export function init(options: BrowserOptions): Client | undefined {
+export function init(userOptions: BrowserOptions): Client | undefined {
+  const options = _INTERNAL_captureOptionsSetByUser(userOptions);
+
   // If BrowserTracing integration was passed to options, emit a warning
   if (options.integrations && Array.isArray(options.integrations)) {
     const hasBrowserTracing = options.integrations.some(

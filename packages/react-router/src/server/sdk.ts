@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { applySdkMetadata, debug, setTag } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata, debug, setTag } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getNodeDefaultIntegrations, init as initNodeSdk } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -23,7 +23,7 @@ export function getDefaultReactRouterServerIntegrations(options: NodeOptions): I
  */
 export function init(options: NodeOptions): NodeClient | undefined {
   const opts: NodeOptions = {
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
     defaultIntegrations: options.defaultIntegrations ?? getDefaultReactRouterServerIntegrations(options),
   };
 

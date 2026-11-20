@@ -1,6 +1,7 @@
 import * as path from 'node:path';
 import type { Client, Event, EventProcessor } from '@sentry/core';
 import {
+  _INTERNAL_captureOptionsSetByUser,
   _INTERNAL_getActiveClient,
   applySdkMetadata,
   consoleSandbox,
@@ -56,7 +57,7 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
 
   const sentryOptions = {
     environment: options.environment ?? process.env.SENTRY_ENVIRONMENT ?? envFallback,
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
   };
 
   applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'node']);
