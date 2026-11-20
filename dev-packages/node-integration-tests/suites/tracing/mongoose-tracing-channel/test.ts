@@ -62,112 +62,83 @@ describe('Mongoose tracing channel Test', () => {
     'scenario.mjs',
     'instrument.mjs',
     (createTestRunner, test) => {
-      test('subscribes to mongoose >= 9.7 diagnostics channels with stable semconv attributes', async () => {
-        await createTestRunner()
-          .expect({
-            span: container => {
-              expect(container.items.find(item => item.is_segment)?.name).toBe('Test Transaction');
+      test('records mongoose channel spans, driver relationships, and redacted query attributes', async () => {
+        const runner = createTestRunner();
+        const spansPromise = runner.collectStreamedSpans(
+          spans =>
+            spans.some(span => span.is_segment && span.name === 'Test Transaction') &&
+            spans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose.native_channel').length >=
+              6,
+        );
+        await runner.start().completed();
+        const container = { items: await spansPromise };
+        {
+          expect(container.items.find(item => item.is_segment)?.name).toBe('Test Transaction');
 
-              expect(container.items).toContainEqual(expectedStreamedSpan('save'));
-              expect(container.items).toContainEqual(
-                expectedStreamedSpan('findOne', { [DB_QUERY_TEXT]: { type: 'string', value: '{"title":"?"}' } }),
-              );
-              expect(container.items).toContainEqual(
-                expectedStreamedSpan('aggregate', {
-                  [DB_QUERY_TEXT]: { type: 'string', value: '[{"$match":{"title":"?"}}]' },
-                }),
-              );
-              expect(container.items).toContainEqual(
-                expectedStreamedSpan('insertMany', { [DB_OPERATION_BATCH_SIZE]: { type: 'integer', value: 2 } }),
-              );
-              expect(container.items).toContainEqual(
-                expectedStreamedSpan('bulkWrite', { [DB_OPERATION_BATCH_SIZE]: { type: 'integer', value: 2 } }),
-              );
-              expect(container.items).toContainEqual(expectedStreamedSpan('find'));
-            },
-          })
-          .start()
-          .completed();
-      });
-
-      test('does not double-instrument: the legacy IITM mongoose patcher does not fire on 9.7', async () => {
-        await createTestRunner()
-          .expect({
-            span: container => {
-              const spans = container.items;
-              // The monkey-patch path (origin `auto.db.mongoose`) must be inactive on 9.7+.
-              expect(spans.find(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose')).toBeUndefined();
-              // ...while the diagnostics-channel path is active.
-              expect(
-                spans.find(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose.native_channel'),
-              ).toBeDefined();
-            },
-          })
-          .start()
-          .completed();
-      });
-
-      test('never leaks raw filter values into db.query.text', async () => {
-        await createTestRunner()
-          .expect({
-            span: container => {
-              const spans = container.items;
-              for (const span of spans) {
-                const queryText = span.attributes[DB_QUERY_TEXT]?.value;
-                if (typeof queryText === 'string') {
-                  expect(queryText).not.toContain('Test');
-                }
-              }
-            },
-          })
-          .start()
-          .completed();
-      });
-
-      test('nests the mongodb driver span under the mongoose channel span', async () => {
-        await createTestRunner()
-          .expect({
-            span: container => {
-              const spans = container.items;
-              const mongooseSave = spans.find(
-                span =>
-                  span.name === 'save blogposts' &&
-                  span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose.native_channel',
-              );
-              expect(mongooseSave).toBeDefined();
-              // the underlying mongodb driver span must parent to the mongoose channel span,
-              // proving the channel span is the active async context for the traced operation
-              const driverChild = spans.find(
-                span =>
-                  span.parent_span_id === mongooseSave?.span_id &&
-                  span.attributes[SENTRY_ORIGIN]?.value === driverOrigin,
-              );
-              expect(driverChild).toBeDefined();
-            },
-          })
-          .start()
-          .completed();
-      });
-
-      test('omits db.query.text for the empty-filter cursor and does not treat the cursor batchSize as a batch', async () => {
-        await createTestRunner()
-          .expect({
-            span: container => {
-              const spans = container.items;
-              // the `.find().cursor()` iteration runs with no filter, so there is no query text to emit
-              const cursorFind = spans.find(
-                span =>
-                  span.name === 'find blogposts' &&
-                  span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose.native_channel',
-              );
-              expect(cursorFind).toBeDefined();
-              expect(cursorFind?.attributes[DB_QUERY_TEXT]).toBeUndefined();
-              // a cursor's `batchSize` is a fetch-tuning option, not a batch-operation size
-              expect(cursorFind?.attributes[DB_OPERATION_BATCH_SIZE]).toBeUndefined();
-            },
-          })
-          .start()
-          .completed();
+          expect(container.items).toContainEqual(expectedStreamedSpan('save'));
+          expect(container.items).toContainEqual(
+            expectedStreamedSpan('findOne', { [DB_QUERY_TEXT]: { type: 'string', value: '{"title":"?"}' } }),
+          );
+          expect(container.items).toContainEqual(
+            expectedStreamedSpan('aggregate', {
+              [DB_QUERY_TEXT]: { type: 'string', value: '[{"$match":{"title":"?"}}]' },
+            }),
+          );
+          expect(container.items).toContainEqual(
+            expectedStreamedSpan('insertMany', { [DB_OPERATION_BATCH_SIZE]: { type: 'integer', value: 2 } }),
+          );
+          expect(container.items).toContainEqual(
+            expectedStreamedSpan('bulkWrite', { [DB_OPERATION_BATCH_SIZE]: { type: 'integer', value: 2 } }),
+          );
+          expect(container.items).toContainEqual(expectedStreamedSpan('find'));
+        }
+        {
+          const spans = container.items;
+          // The monkey-patch path (origin `auto.db.mongoose`) must be inactive on 9.7+.
+          expect(spans.find(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose')).toBeUndefined();
+          // ...while the diagnostics-channel path is active.
+          expect(
+            spans.find(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose.native_channel'),
+          ).toBeDefined();
+        }
+        {
+          const spans = container.items;
+          for (const span of spans) {
+            const queryText = span.attributes[DB_QUERY_TEXT]?.value;
+            if (typeof queryText === 'string') {
+              expect(queryText).not.toContain('Test');
+            }
+          }
+        }
+        {
+          const spans = container.items;
+          const mongooseSave = spans.find(
+            span =>
+              span.name === 'save blogposts' &&
+              span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose.native_channel',
+          );
+          expect(mongooseSave).toBeDefined();
+          // the underlying mongodb driver span must parent to the mongoose channel span,
+          // proving the channel span is the active async context for the traced operation
+          const driverChild = spans.find(
+            span =>
+              span.parent_span_id === mongooseSave?.span_id && span.attributes[SENTRY_ORIGIN]?.value === driverOrigin,
+          );
+          expect(driverChild).toBeDefined();
+        }
+        {
+          const spans = container.items;
+          // the `.find().cursor()` iteration runs with no filter, so there is no query text to emit
+          const cursorFind = spans.find(
+            span =>
+              span.name === 'find blogposts' &&
+              span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mongoose.native_channel',
+          );
+          expect(cursorFind).toBeDefined();
+          expect(cursorFind?.attributes[DB_QUERY_TEXT]).toBeUndefined();
+          // a cursor's `batchSize` is a fetch-tuning option, not a batch-operation size
+          expect(cursorFind?.attributes[DB_OPERATION_BATCH_SIZE]).toBeUndefined();
+        }
       });
     },
     { additionalDependencies: { mongoose: '^9.7' } },
