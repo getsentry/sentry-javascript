@@ -1,5 +1,5 @@
 import { parseSemver } from '@sentry/core';
-import { collectInstalledModules } from '@sentry/core/server';
+import { collectInstalledModules } from '@sentry/server-utils/no-diagnostic-channels';
 import * as fs from 'fs';
 import { createRequire } from 'module';
 
