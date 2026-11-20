@@ -6,6 +6,7 @@ import {
   generateModuleMetadataInjectorCode,
   isJsFile,
   isInitialChunk,
+  isModuleVersionsChunk,
   shouldSkipCodeInjection,
   getDebugIdSnippet,
   createDebugIdUploadFunction,
@@ -243,10 +244,11 @@ export function _createRollupPluginInternals(
 
     const injectCode = new CodeInjection();
 
-    if (isInitialChunk(chunk, meta?.chunks)) {
-      if (!releaseHtmlInjection?.inHtml(this)) {
-        injectCode.append(releaseInjectionCode);
-      }
+    if (isInitialChunk(chunk, meta?.chunks) && !releaseHtmlInjection?.inHtml(this)) {
+      injectCode.append(releaseInjectionCode);
+    }
+
+    if (isModuleVersionsChunk(chunk, meta?.chunks)) {
       injectCode.append(getModuleVersionsInjectionCode(this));
     }
 

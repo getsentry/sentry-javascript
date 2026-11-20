@@ -89,6 +89,88 @@ export function isInitialChunk(
   return getInitialChunks(chunks).has(chunk.fileName);
 }
 
+const moduleVersionsChunksCache = new WeakMap<Record<string, ChunkGraphNode>, Set<string>>();
+
+// Greedily picks the chunks that the most entries load statically, until every entry loads one of them. This is a
+// set cover, so it is not always minimal, but entries that share a chunk get one copy instead of one each.
+function getModuleVersionsChunks(chunks: Record<string, ChunkGraphNode>): Set<string> {
+  const cached = moduleVersionsChunksCache.get(chunks);
+  if (cached) {
+    return cached;
+  }
+
+  const entries = Object.values(chunks).filter(chunk => chunk.isEntry);
+  const entriesByChunk = new Map<string, Set<string>>(entries.map(entry => [entry.fileName, new Set<string>()]));
+  for (const entry of entries) {
+    const queue = [entry];
+    const seen = new Set<string>();
+    for (let chunk = queue.shift(); chunk; chunk = queue.shift()) {
+      if (seen.has(chunk.fileName)) {
+        continue;
+      }
+      seen.add(chunk.fileName);
+      let reachingEntries = entriesByChunk.get(chunk.fileName);
+      if (!reachingEntries) {
+        reachingEntries = new Set();
+        entriesByChunk.set(chunk.fileName, reachingEntries);
+      }
+      reachingEntries.add(entry.fileName);
+      for (const imported of chunk.imports ?? []) {
+        const importedChunk = chunks[imported];
+        if (importedChunk) {
+          queue.push(importedChunk);
+        }
+      }
+    }
+  }
+
+  const selected = new Set<string>();
+  const uncovered = new Set(entries.map(entry => entry.fileName));
+  while (uncovered.size > 0) {
+    let best: string | undefined;
+    let bestCount = 0;
+    for (const [fileName, reachingEntries] of entriesByChunk) {
+      let count = 0;
+      for (const entry of reachingEntries) {
+        if (uncovered.has(entry)) {
+          count++;
+        }
+      }
+      if (count > bestCount) {
+        best = fileName;
+        bestCount = count;
+      }
+    }
+    if (best === undefined) {
+      break;
+    }
+    selected.add(best);
+    for (const entry of entriesByChunk.get(best) ?? []) {
+      uncovered.delete(entry);
+    }
+  }
+
+  moduleVersionsChunksCache.set(chunks, selected);
+  return selected;
+}
+
+/**
+ * Whether a chunk gets the module versions. Every entry chunk loads one of the selected chunks through static
+ * imports, and entries that share a chunk share the copy in it.
+ *
+ * Without the chunk graph every entry chunk gets a copy.
+ */
+export function isModuleVersionsChunk(
+  chunk: Pick<ChunkGraphNode, 'fileName' | 'isEntry'>,
+  chunks: Record<string, ChunkGraphNode> | undefined,
+): boolean {
+  if (!chunks) {
+    return chunk.isEntry ?? true;
+  }
+
+  return getModuleVersionsChunks(chunks).has(chunk.fileName);
+}
+
 export { globFiles } from './glob';
 export { getCodeInjectionPosition } from './get-code-injection-position';
 

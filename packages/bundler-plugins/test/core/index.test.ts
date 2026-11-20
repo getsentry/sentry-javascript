@@ -1,4 +1,9 @@
-import { createComponentNameAnnotateHooks, getDebugIdSnippet, isInitialChunk } from '../../src/core';
+import {
+  createComponentNameAnnotateHooks,
+  getDebugIdSnippet,
+  isInitialChunk,
+  isModuleVersionsChunk,
+} from '../../src/core';
 import { getOxcParseAstAsync } from '../../src/core/component-annotation-oxc';
 import { containsOnlyImports } from '../../src/core/utils';
 import { describe, it, expect, vi } from 'vitest';
@@ -86,6 +91,50 @@ describe('isInitialChunk', () => {
 
   it('treats every chunk as initial without a chunk graph', () => {
     expect(isInitialChunk({ fileName: 'route.js' }, undefined)).toBe(true);
+  });
+});
+
+describe('isModuleVersionsChunk', () => {
+  it('selects a chunk that every entry loads, instead of every entry', () => {
+    const chunks = {
+      'a.js': { fileName: 'a.js', isEntry: true, imports: ['shared.js'] },
+      'b.js': { fileName: 'b.js', isEntry: true, imports: ['shared.js'] },
+      'c.js': { fileName: 'c.js', isEntry: true, imports: ['other.js'] },
+      'other.js': { fileName: 'other.js', imports: ['shared.js'] },
+      'shared.js': { fileName: 'shared.js', imports: [] },
+    };
+
+    expect(Object.values(chunks).filter(chunk => isModuleVersionsChunk(chunk, chunks))).toEqual([chunks['shared.js']]);
+  });
+
+  it('selects one chunk per group of entries that share nothing', () => {
+    const chunks = {
+      'a.js': { fileName: 'a.js', isEntry: true, imports: ['shared-ab.js'] },
+      'b.js': { fileName: 'b.js', isEntry: true, imports: ['shared-ab.js'] },
+      'c.js': { fileName: 'c.js', isEntry: true, imports: [] },
+      'shared-ab.js': { fileName: 'shared-ab.js', imports: [] },
+      'lazy.js': { fileName: 'lazy.js', imports: [] },
+    };
+
+    expect(Object.values(chunks).filter(chunk => isModuleVersionsChunk(chunk, chunks))).toEqual([
+      chunks['c.js'],
+      chunks['shared-ab.js'],
+    ]);
+  });
+
+  it('selects the entry of a build with one entry', () => {
+    const chunks = {
+      'entry.js': { fileName: 'entry.js', isEntry: true, imports: ['vendor.js'] },
+      'vendor.js': { fileName: 'vendor.js', imports: [] },
+    };
+
+    expect(isModuleVersionsChunk(chunks['entry.js'], chunks)).toBe(true);
+    expect(isModuleVersionsChunk(chunks['vendor.js'], chunks)).toBe(false);
+  });
+
+  it('selects every entry chunk without a chunk graph', () => {
+    expect(isModuleVersionsChunk({ fileName: 'entry.js', isEntry: true }, undefined)).toBe(true);
+    expect(isModuleVersionsChunk({ fileName: 'vendor.js', isEntry: false }, undefined)).toBe(false);
   });
 });
 

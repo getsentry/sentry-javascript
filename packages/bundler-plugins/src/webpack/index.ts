@@ -126,6 +126,7 @@ type WebpackCompilation = {
     hash?: string;
     contentHash?: { javascript?: string };
     canBeInitial?: () => boolean;
+    hasRuntime?: () => boolean;
   }>;
   outputOptions: {
     path?: string;
@@ -487,10 +488,11 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptio
               const sourceContents = source.source();
               const code = typeof sourceContents === 'string' ? sourceContents : Buffer.from(sourceContents).toString();
               const codeToInject = new CodeInjection();
-              if (chunk.canBeInitial?.() ?? true) {
-                if (injectRelease) {
-                  codeToInject.append(releaseInjectionCode);
-                }
+              if (injectRelease && (chunk.canBeInitial?.() ?? true)) {
+                codeToInject.append(releaseInjectionCode);
+              }
+              // Entries that share a runtime chunk, like the pages of a Next.js server build, share one copy.
+              if (chunk.hasRuntime?.() ?? chunk.canBeInitial?.() ?? true) {
                 codeToInject.append(moduleVersionsInjectionCode);
               }
               codeToInject.append(chunkInjectionCode);
