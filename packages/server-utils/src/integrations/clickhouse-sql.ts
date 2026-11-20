@@ -2,7 +2,8 @@ import type { SqlLexerRules } from '../utils/sql';
 import { isIdentifierChar } from '../utils/sql';
 
 const NUMBER_RE = /-?(?:0x[\dA-F_]+|0b[01_]+|(?:\d[\d_]*(?:\.[\d_]*)?|\.\d[\d_]*)(?:e[+-]?[\d_]+)?)(?![\w$])/iy;
-const FORMAT_RE = /FORMAT(?:\s|\/\*|--|#)/iy;
+// A comparison operator can follow a column named `format`, but cannot start a format name.
+const FORMAT_RE = /FORMAT(?!\s*[=<>!])(?:\s|\/\*|--|#)/iy;
 // After one of these tokens, `format` is a table, column or alias name.
 const FORMAT_IDENTIFIER_RE = /(?:\b(?:INTO|TABLE|FROM|JOIN|SELECT|WHERE|AND|OR|BY|AS)|[,.=<>(])\s*$/i;
 

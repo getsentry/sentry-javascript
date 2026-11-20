@@ -821,6 +821,22 @@ describe('sanitizeSqlQuery', () => {
         'INSERT INTO events SELECT * FROM source WHERE format = 1 ORDER BY format',
         'INSERT INTO events SELECT * FROM source WHERE format = ? ORDER BY format',
       ],
+      [
+        'INSERT INTO events SELECT a.id FROM source a JOIN lookup b ON format = b.kind',
+        'INSERT INTO events SELECT a.id FROM source a JOIN lookup b ON format = b.kind',
+      ],
+      [
+        'INSERT INTO events SELECT id FROM source PREWHERE format >= 2',
+        'INSERT INTO events SELECT id FROM source PREWHERE format >= ?',
+      ],
+      [
+        'INSERT INTO events SELECT format FROM source GROUP BY format HAVING format > 2',
+        'INSERT INTO events SELECT format FROM source GROUP BY format HAVING format > ?',
+      ],
+      [
+        'INSERT INTO events SELECT row_number() OVER () AS format FROM source QUALIFY format <= 2',
+        'INSERT INTO events SELECT row_number() OVER () AS format FROM source QUALIFY format <= ?',
+      ],
       ['INSERT INTO TABLE format FORMAT CSV\nprivate@example.com', 'INSERT INTO TABLE format'],
       ["INSERT INTO events (`format`) VALUES ('private@example.com')", 'INSERT INTO events (`format`) VALUES (?)'],
       // `"..."` and backticks quote identifiers, as in `standard`
