@@ -42,6 +42,12 @@ app.get('/test-param/:param', function (req, res) {
   res.send({ paramWas: req.params.param });
 });
 
+const mountedRouter = express.Router({ mergeParams: true });
+mountedRouter.get('/posts/:postId', function (req, res) {
+  res.send({ params: req.params });
+});
+app.use('/test-mounted/:userId', mountedRouter);
+
 app.get('/test-mysql', function (req, res) {
   // One connection per request, because on Cloudflare a socket only works in the request that opened it.
   const connection = mysql.createConnection({

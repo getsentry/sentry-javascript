@@ -21,6 +21,21 @@ test('Names the request span after the parameterized route', async ({ baseURL })
   });
 });
 
+test('Names the request span after the route of a mounted router', async ({ baseURL }) => {
+  const spansPromise = collectStreamedSpansUntilSegment('express-5', 'GET /test-mounted/:userId/posts/:postId');
+
+  const response = await fetch(`${baseURL}/test-mounted/42/posts/7`);
+  expect(await response.json()).toEqual({ params: { userId: '42', postId: '7' } });
+
+  const segmentSpan = (await spansPromise).find(span => span.is_segment)!;
+  expect(segmentSpan.attributes).toMatchObject({
+    'sentry.op': { type: 'string', value: 'http.server' },
+    'sentry.segment.name.source': { type: 'string', value: 'route' },
+    'http.route': { type: 'string', value: '/test-mounted/:userId/posts/:postId' },
+    'url.path': { type: 'string', value: '/test-mounted/42/posts/7' },
+  });
+});
+
 test('Keeps the scope data of concurrent requests apart', async ({ baseURL }) => {
   const ids = ['1', '2', '3'];
   const errorPromises = ids.map(id =>
