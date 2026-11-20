@@ -27,16 +27,9 @@ export const EXPECTED_SDK_NAME = process.env.EXPECTED_SDK_NAME || 'sentry.javasc
  */
 export const INSTRUMENTS_UNDICI_FETCH = EXPECTED_SDK_NAME === 'sentry.javascript.node';
 
-/**
- * Whether the scenarios run `@sentry/deno`. Its `globalHandlersIntegration` captures uncaught
- * exceptions and unhandled rejections as `fatal`, before Deno exits as it does without the SDK.
- */
-export const USES_DENO_GLOBAL_HANDLERS = EXPECTED_SDK_NAME === 'sentry.javascript.deno';
-
 /** The `mechanism.type` of uncaught exceptions. */
-export const EXPECTED_UNCAUGHT_EXCEPTION_MECHANISM = USES_DENO_GLOBAL_HANDLERS
-  ? 'auto.deno.global_handlers.error'
-  : 'auto.node.onuncaughtexception';
+export const EXPECTED_UNCAUGHT_EXCEPTION_MECHANISM =
+  EXPECTED_SDK_NAME === 'sentry.javascript.deno' ? 'auto.deno.global_handlers.error' : 'auto.node.onuncaughtexception';
 
 /** The `sentry.origin` of outgoing `fetch` spans. */
 export const EXPECTED_FETCH_SPAN_ORIGIN = INSTRUMENTS_UNDICI_FETCH ? 'auto.http.node_fetch' : 'auto.http.fetch';
