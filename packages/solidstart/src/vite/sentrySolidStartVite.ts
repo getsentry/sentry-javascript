@@ -1,4 +1,4 @@
-import { getModuleVersionsOnlyOptions } from '@sentry/bundler-plugins/core';
+import { getDisabledSourcemapsOptions } from '@sentry/bundler-plugins/core';
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import { stringifyForCodeInjection, warnOnRemovedBuildOptions } from '@sentry/core';
 import type { Plugin, UserConfig } from 'vite';
@@ -40,7 +40,7 @@ export const sentrySolidStartVite = (
     } else {
       // TODO: Revisit which features the plugin should run when source maps are off. For now it only injects module
       // versions, so `modulesIntegration` reports them when `node_modules` is missing at runtime.
-      sentryPlugins.push(...sentryVitePlugin(getModuleVersionsOnlyOptions({ debug: options.debug })));
+      sentryPlugins.push(...sentryVitePlugin(getDisabledSourcemapsOptions({ debug: options.debug })));
     }
   }
 

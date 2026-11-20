@@ -200,7 +200,7 @@ export {
   resolveReleaseName,
 } from './utils';
 export { createSentryBuildPluginManager } from './build-plugin-manager';
-export { getModuleVersionsOnlyOptions } from './installed-modules';
+export { getDisabledSourcemapsOptions } from './installed-modules';
 export type { SentryBuildPluginManager, UploadResult, UploadStaging } from './build-plugin-manager';
 export { createDebugIdUploadFunction, addDebugIdToEmittedArtifacts, stampDebugId } from './debug-id-upload';
 export {

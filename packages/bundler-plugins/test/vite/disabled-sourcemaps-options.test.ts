@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { createBuilder } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getModuleVersionsOnlyOptions } from '../../src/core';
+import { getDisabledSourcemapsOptions } from '../../src/core';
 import { sentryVitePlugin } from '../../src/vite';
 import { createModuleVersionsProject, INJECTED_MODULES, runAndReadModules } from '../utils/module-versions-project';
 
@@ -25,7 +25,7 @@ function readFiles(dir: string): Record<string, string> {
   );
 }
 
-describe('getModuleVersionsOnlyOptions (vite)', () => {
+describe('getDisabledSourcemapsOptions (vite)', () => {
   let root: string;
 
   beforeEach(() => {
@@ -59,7 +59,7 @@ describe('getModuleVersionsOnlyOptions (vite)', () => {
       configFile: false,
       logLevel: 'silent',
       root,
-      plugins: sentryVitePlugin(getModuleVersionsOnlyOptions()),
+      plugins: sentryVitePlugin(getDisabledSourcemapsOptions()),
       environments: {
         client: { build: { outDir: clientOutDir, rollupOptions: { input: path.join(root, 'entry.js') } } },
         ssr: {

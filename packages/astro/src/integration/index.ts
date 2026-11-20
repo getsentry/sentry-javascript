@@ -1,5 +1,5 @@
 /* oxlint-disable max-lines */
-import { getModuleVersionsOnlyOptions } from '@sentry/bundler-plugins/core';
+import { getDisabledSourcemapsOptions } from '@sentry/bundler-plugins/core';
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import { warnOnRemovedBuildOptions } from '@sentry/core';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
@@ -139,7 +139,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         } else if (sdkEnabled.server && command !== 'dev') {
           // TODO: Revisit which features the plugin should run when source maps are off. For now it only injects
           // module versions, so `modulesIntegration` reports them when `node_modules` is missing at runtime.
-          updateConfig({ vite: { plugins: [sentryVitePlugin(getModuleVersionsOnlyOptions({ debug }))] } });
+          updateConfig({ vite: { plugins: [sentryVitePlugin(getDisabledSourcemapsOptions({ debug }))] } });
         }
 
         runtimeRelease && injectScript('head-inline', buildReleaseSnippet(runtimeRelease));

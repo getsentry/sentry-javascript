@@ -14,11 +14,11 @@ export function getInstalledModules(root: string): Record<string, string> {
 }
 
 /**
- * Plugin options that turn off everything the plugin does except injecting module versions: no source map upload,
- * deletion or debug IDs, no release creation or injection, and no telemetry. Frameworks add the plugin with these
- * where they would otherwise skip it, for example when the user turned source maps off.
+ * Plugin options for frameworks that add the plugin although the user turned source maps off. For now they turn off
+ * everything except injecting module versions: no source map upload, deletion or debug IDs, no release creation or
+ * injection, and no telemetry.
  */
-export function getModuleVersionsOnlyOptions(options: Pick<Options, 'debug' | 'injectModuleVersions'> = {}): Options {
+export function getDisabledSourcemapsOptions(options: Pick<Options, 'debug' | 'injectModuleVersions'> = {}): Options {
   return {
     ...options,
     telemetry: false,

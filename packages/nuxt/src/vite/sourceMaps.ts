@@ -1,6 +1,6 @@
 /* oxlint-disable max-lines */
 import type { Nuxt } from '@nuxt/schema';
-import { getModuleVersionsOnlyOptions, resolveReleaseName } from '@sentry/bundler-plugins/core';
+import { getDisabledSourcemapsOptions, resolveReleaseName } from '@sentry/bundler-plugins/core';
 import { sentryRollupPlugin, type SentryRollupPluginOptions } from '@sentry/bundler-plugins/rollup';
 import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import { warnOnRemovedBuildOptions } from '@sentry/core';
@@ -126,7 +126,7 @@ export function setupSourceMaps(
       // TODO: Revisit which features the plugin should run when source maps are off. For now it only injects module
       // versions, so `modulesIntegration` reports them when `node_modules` is missing at runtime.
       nitroConfig.rollupConfig.plugins.push(
-        sentryRollupPlugin(getModuleVersionsOnlyOptions({ debug: moduleOptions.debug, injectModuleVersions: true })),
+        sentryRollupPlugin(getDisabledSourcemapsOptions({ debug: moduleOptions.debug, injectModuleVersions: true })),
       );
       return;
     }

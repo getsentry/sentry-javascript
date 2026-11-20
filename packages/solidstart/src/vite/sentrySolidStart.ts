@@ -4,7 +4,7 @@ import {
   stringifyForCodeInjection,
   warnOnRemovedBuildOptions,
 } from '@sentry/core';
-import { getModuleVersionsOnlyOptions } from '@sentry/bundler-plugins/core';
+import { getDisabledSourcemapsOptions } from '@sentry/bundler-plugins/core';
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import { setupSentryNitroModule } from '@sentry/nitro';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
@@ -72,7 +72,7 @@ export function sentrySolidStart(options: SentrySolidStartOptions = {}): Plugin[
   } else {
     // TODO: Revisit which features the plugin should run when source maps are off. For now it only injects module
     // versions, so `modulesIntegration` reports them when `node_modules` is missing at runtime.
-    plugins.push(...sentryVitePlugin(getModuleVersionsOnlyOptions({ debug: options.debug })));
+    plugins.push(...sentryVitePlugin(getDisabledSourcemapsOptions({ debug: options.debug })));
   }
 
   return plugins;
