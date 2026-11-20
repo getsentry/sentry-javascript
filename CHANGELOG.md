@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 11.16.0
+
 ### Important Changes
 
 - **docs(tanstackstart-react): Promote SDK status to stable ([#26691](https://github.com/getsentry/sentry-javascript/pull/26691))**
@@ -9,7 +13,55 @@
   This release promotes the `@sentry/tanstackstart-react` SDK to stable. It supports `@tanstack/react-start` 1.169.0 and newer. For details on how to use it, check out the
   [Sentry TanStack Start SDK docs](https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/).
 
-- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+- **feat(solid): Add Solid 2 support (alpha)**
+
+  `@sentry/solid` now ships alpha support for Solid 2 under the `@sentry/solid/solid2` entry point. It captures errors on the client and the server, traces navigations with Solid Router 2 via `@sentry/solid/solid2/solidrouter`, names server spans after the matched route, and continues the server trace in the browser pageload. The Solid 1 entry points are unchanged. The APIs of the Solid 2 entry may still change in minor releases while it is in alpha.
+
+  Related PRs: [#26543](https://github.com/getsentry/sentry-javascript/pull/26543), [#26589](https://github.com/getsentry/sentry-javascript/pull/26589), [#26627](https://github.com/getsentry/sentry-javascript/pull/26627), [#26634](https://github.com/getsentry/sentry-javascript/pull/26634), [#26690](https://github.com/getsentry/sentry-javascript/pull/26690)
+
+### Other Changes
+
+- feat(deno): Send client reports ([#26604](https://github.com/getsentry/sentry-javascript/pull/26604))
+- feat(nestjs): Handle @nestjs/mcp tool errors in SentryGlobalFilter ([#26695](https://github.com/getsentry/sentry-javascript/pull/26695))
+- feat(server-utils): Record multimodal decision input as gen_ai messages ([#26697](https://github.com/getsentry/sentry-javascript/pull/26697))
+- fix(bun): Apply `httpIntegration` incoming-request options to `node:http` servers ([#26611](https://github.com/getsentry/sentry-javascript/pull/26611))
+- fix(cloudflare): Instrument Agent methods before the agents SDK wraps them ([#26674](https://github.com/getsentry/sentry-javascript/pull/26674))
+- fix(cloudflare): Wrap a wrangler main that is a virtual module of another Vite plugin ([#26694](https://github.com/getsentry/sentry-javascript/pull/26694))
+- fix(core): Freeze streamed segment DSC on first flush or segment end ([#26653](https://github.com/getsentry/sentry-javascript/pull/26653))
+- fix(deps): Bump the sentry CLI to ^0.50.0 ([#26662](https://github.com/getsentry/sentry-javascript/pull/26662))
+- fix(nextjs): Run Turbopack orchestrion loader only on instrumented files ([#26676](https://github.com/getsentry/sentry-javascript/pull/26676))
+- fix(nextjs): Skip tunnel hooks on Vercel ([#26665](https://github.com/getsentry/sentry-javascript/pull/26665))
+- fix(server-utils): Set sentry.kind on web request server spans ([#26696](https://github.com/getsentry/sentry-javascript/pull/26696))
+- fix(server-utils): Use the Flue conversation ID on Flue tool spans ([#26652](https://github.com/getsentry/sentry-javascript/pull/26652))
+- ref(node): Move the Server-Timing trace header helper from Next.js to Node ([#26651](https://github.com/getsentry/sentry-javascript/pull/26651))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- chore(deps-dev): Bump next from 15.5.28 to 15.5.29 ([#26684](https://github.com/getsentry/sentry-javascript/pull/26684))
+- chore(deps): Bump effect from 4.0.0 to 4.1.4 ([#26672](https://github.com/getsentry/sentry-javascript/pull/26672))
+- ci(release): Update .craft.yml for craft 3.9.0 ([#26077](https://github.com/getsentry/sentry-javascript/pull/26077))
+- fix(deps): Bump @cloudflare/vite-plugin to 1.66.0 in cloudflare-integration-tests ([#26660](https://github.com/getsentry/sentry-javascript/pull/26660))
+- fix(deps): Bump @effect/platform to 0.97.3 in effect-3-node e2e app ([#26668](https://github.com/getsentry/sentry-javascript/pull/26668))
+- fix(deps): Bump @sveltejs/kit to 2.70.4 ([#26663](https://github.com/getsentry/sentry-javascript/pull/26663))
+- fix(deps): Bump fast-xml-parser to 4.5.7 and 5.12.1 ([#26667](https://github.com/getsentry/sentry-javascript/pull/26667))
+- fix(deps): Bump mongoose to 6.13.13 in node-integration-tests ([#26657](https://github.com/getsentry/sentry-javascript/pull/26657))
+- fix(deps): Bump next to 15.5.29 in nextjs-15 e2e apps ([#26692](https://github.com/getsentry/sentry-javascript/pull/26692))
+- fix(deps): Bump next to 16.4.6 in Next.js 16 e2e apps ([#26655](https://github.com/getsentry/sentry-javascript/pull/26655))
+- fix(deps): Bump nitro dev dependency to 3.0.260903-beta ([#26664](https://github.com/getsentry/sentry-javascript/pull/26664))
+- fix(deps): Bump vite to 6.4.6 in node-bundlers e2e app ([#26661](https://github.com/getsentry/sentry-javascript/pull/26661))
+- fix(deps): Remove stale miniflare 4 entries from lockfile ([#26669](https://github.com/getsentry/sentry-javascript/pull/26669))
+- test(bun): Triage the Bun node-suites excludes ([#26612](https://github.com/getsentry/sentry-javascript/pull/26612))
+- test(e2e): Pin NestJS 12 to 12.5.1 ([#26698](https://github.com/getsentry/sentry-javascript/pull/26698))
+- test(node): Consolidate Apollo GraphQL integration assertions ([#26681](https://github.com/getsentry/sentry-javascript/pull/26681))
+- test(node): Consolidate Cron check-in and error scenarios ([#26688](https://github.com/getsentry/sentry-javascript/pull/26688))
+- test(node): Consolidate GraphQL diagnostics-channel checks ([#26687](https://github.com/getsentry/sentry-javascript/pull/26687))
+- test(node): Consolidate MCP integration scenario runs ([#26680](https://github.com/getsentry/sentry-javascript/pull/26680))
+- test(node): Consolidate Mongoose diagnostics-channel checks ([#26686](https://github.com/getsentry/sentry-javascript/pull/26686))
+- test(node): Consolidate MySQL diagnostics-channel checks ([#26685](https://github.com/getsentry/sentry-javascript/pull/26685))
+- test(node): Remove duplicate integration scenarios ([#26679](https://github.com/getsentry/sentry-javascript/pull/26679))
+
+</details>
 
 ## 11.15.0
 
