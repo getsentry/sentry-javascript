@@ -40,8 +40,9 @@ test('Sends an API route span', async ({ baseURL }) => {
         'http.request.header.host': { value: [expect.any(String)], type: 'array' },
         'http.request.header.sec-fetch-mode': { value: ['cors'], type: 'array' },
         'http.request.header.user-agent': { value: ['node'], type: 'array' },
+        'sentry.kind': { value: 'server', type: 'string' },
         // On Cloudflare, `withSentry` creates the `http.server` span from the worker's `Request`, not from `node:http`.
-        // Known defect: the span has no `sentry.kind` or `http.response.status_text`.
+        // Known defect: the span has no `http.response.status_text`.
         ...(RUNTIME === 'cloudflare'
           ? {
               'sentry.origin': { value: 'auto.http.cloudflare', type: 'string' },
@@ -50,7 +51,6 @@ test('Sends an API route span', async ({ baseURL }) => {
             }
           : {
               'sentry.origin': { value: 'auto.http.http_server', type: 'string' },
-              'sentry.kind': { value: 'server', type: 'string' },
               'client.port': { value: expect.any(Number), type: 'integer' },
               'network.transport': { value: 'tcp', type: 'string' },
               'network.local.address': { value: expect.any(String), type: 'string' },
