@@ -1,7 +1,7 @@
 import type { FeedbackFormData, FeedbackInternalOptions } from '@sentry/core';
 import type { VNode } from 'preact';
 import { Fragment, h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useCallback, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { SUCCESS_MESSAGE_TIMEOUT } from '../../constants';
 import type { Props as HeaderProps } from './DialogHeader';
 import { DialogHeader } from './DialogHeader';
@@ -17,7 +17,6 @@ interface Props extends HeaderProps, FormProps {
 
 export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
   const options = props.options;
-  const successIconHtml = useMemo(() => ({ __html: SuccessIcon().outerHTML }), []);
 
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -78,7 +77,9 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
         <div class="success__position" onClick={handleOnSuccessClick}>
           <div class="success__content">
             {options.successMessageText}
-            <span class="success__icon" dangerouslySetInnerHTML={successIconHtml} />
+            <span class="success__icon">
+              <SuccessIcon />
+            </span>
           </div>
         </div>
       ) : (
