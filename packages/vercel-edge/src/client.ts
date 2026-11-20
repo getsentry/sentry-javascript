@@ -47,10 +47,6 @@ export class VercelEdgeClient extends ServerRuntimeClient<VercelEdgeClientOption
 
     await provider?.forceFlush();
 
-    if (this.getOptions().sendClientReports) {
-      this._flushOutcomes();
-    }
-
     return super.flush(timeout);
   }
 }

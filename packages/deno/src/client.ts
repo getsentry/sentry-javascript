@@ -117,7 +117,7 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
   }
 
   /**
-   * Starts sending client reports on an interval. The exit listener sends them too.
+   * Starts sending client reports on an interval. The exit listener and `flush()` send them too.
    *
    * `Sentry.init()` calls this; a directly constructed client must call it itself. It is not in the
    * constructor, so that creating many clients does not leak intervals. Call `close()` on a client

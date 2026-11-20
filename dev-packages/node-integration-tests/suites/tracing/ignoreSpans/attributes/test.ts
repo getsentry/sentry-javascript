@@ -10,6 +10,7 @@ describe('filtering segment spans by attribute with ignoreSpans', () => {
     test('segment spans matching an attribute filter are dropped including all children', async () => {
       const runner = createRunner()
         .unignore('client_report')
+        .unordered()
         .expect({
           client_report: {
             discarded_events: [
