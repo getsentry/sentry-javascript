@@ -17,7 +17,7 @@ function startMockApi() {
   return startMockServer(app);
 }
 
-async function run() {
+export async function run() {
   const server = await startMockApi();
 
   // Test: Multiple chat completions in the same conversation with manual conversation ID
@@ -52,5 +52,3 @@ async function run() {
   server.close();
   await Sentry.flush(2000);
 }
-
-run();

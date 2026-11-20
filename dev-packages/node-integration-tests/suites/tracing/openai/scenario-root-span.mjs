@@ -12,7 +12,7 @@ function startMockOpenAiServer() {
   return startMockServer(app);
 }
 
-async function run() {
+export async function run() {
   const server = await startMockOpenAiServer();
 
   const client = new OpenAI({
@@ -35,5 +35,3 @@ async function run() {
 
   server.close();
 }
-
-run();

@@ -22,7 +22,7 @@ function startMockApi() {
   return startMockServer(app);
 }
 
-async function run() {
+export async function run() {
   const server = await startMockApi();
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
@@ -42,5 +42,3 @@ async function run() {
 
   server.close();
 }
-
-run();

@@ -29,12 +29,48 @@ describe('OpenAI integration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
-  createEsmAndCjsTests(join(__dirname, '../..'), 'scenario-chat.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates openai related spans with genAI recording disabled', async () => {
+  const defaultScenarios = [
+    'scenario-chat.mjs',
+    'scenario-embeddings.mjs',
+    'scenario-azure-openai.mjs',
+    'scenario-with-response.mjs',
+    'scenario-root-span.mjs',
+    'scenario-conversation.mjs',
+    'scenario-manual-conversation-id.mjs',
+    'scenario-separate-scope-1.mjs',
+    'scenario-separate-scope-2.mjs',
+  ];
+  const recordingScenarios = ['scenario-chat.mjs', 'scenario-embeddings.mjs', 'scenario-system-instructions.mjs'];
+  createEsmAndCjsTests(join(__dirname, '../..'), defaultScenarios, 'instrument.mjs', (createRunner, test) => {
+    let scenarios: ReturnType<typeof runScenarios> | undefined;
+    async function runScenarios() {
       const runner = createRunner();
-      const spansPromise = runner.collectStreamedSpansUntilSegment('main');
 
+      const segmentNames: Record<string, string> = {
+        'scenario-conversation.mjs': 'conversation-test',
+        'scenario-manual-conversation-id.mjs': 'chat-with-manual-conversation-id',
+        'scenario-separate-scope-1.mjs': 'GET /chat/conversation-1',
+        'scenario-separate-scope-2.mjs': 'GET /chat/conversation-2',
+      };
+
+      const collectors = defaultScenarios.map(name =>
+        runner.collectStreamedSpansUntilSegment(
+          span =>
+            span.attributes['test.scenario']?.value === name &&
+            (name === 'scenario-azure-openai.mjs' || name === 'scenario-root-span.mjs'
+              ? span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai'
+              : span.name === (segmentNames[name] ?? 'main')),
+        ),
+      );
       await runner.start().completed();
+      return { spans: await Promise.all(collectors) };
+    }
+    const getScenarios = () => (scenarios ??= runScenarios());
+
+    test('creates openai related spans with genAI recording disabled', async () => {
+      const spansPromise = getScenarios().then(result => result.spans[0]!);
+
+      await getScenarios();
 
       const allSpans = await spansPromise;
       const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
@@ -442,17 +478,92 @@ describe('OpenAI integration', () => {
         expect(span.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBeUndefined();
       }
     });
+
+    test('it works with Azure OpenAI', async () => {
+      let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
+
+      const container = { items: (await getScenarios()).spans[2]! };
+
+      expect(container.items.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo')).toBeDefined();
+      receivedSpans = container.items;
+
+      const segment = receivedSpans.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
+      expect(segment?.span_id).toEqual(expect.any(String));
+      expect(segment?.trace_id).toEqual(expect.any(String));
+      expect(segment?.attributes[GEN_AI_OPERATION_NAME]).toEqual({ value: 'chat', type: 'string' });
+      expect(segment?.attributes[SENTRY_OP]).toEqual({ value: 'gen_ai.chat', type: 'string' });
+      expect(segment?.attributes[SENTRY_ORIGIN]).toEqual({ value: 'auto.ai.openai', type: 'string' });
+      expect(segment?.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ value: 'openai', type: 'string' });
+      expect(segment?.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
+      expect(segment?.attributes[GEN_AI_REQUEST_TEMPERATURE]).toEqual({ value: 0.7, type: 'double' });
+      expect(segment?.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
+      expect(segment?.attributes[GEN_AI_RESPONSE_ID]).toEqual({ value: 'chatcmpl-mock123', type: 'string' });
+      expect(segment?.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({ value: '["stop"]', type: 'string' });
+      expect(segment?.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ value: 10, type: 'integer' });
+      expect(segment?.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({ value: 15, type: 'integer' });
+      expect(segment?.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ value: 25, type: 'integer' });
+      expect(segment?.status).toEqual('ok');
+    });
+
+    test('preserves .withResponse() method and works correctly', async () => {
+      let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
+
+      const container = { items: (await getScenarios()).spans[3]! };
+
+      expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+      receivedSpans = container.items;
+
+      const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+      expect(spans).toHaveLength(2);
+
+      for (const span of spans) {
+        expect(span!.name).toBe('chat gpt-4');
+        expect(span!.status).toBe('ok');
+        expect(span!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
+        expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4' });
+      }
+
+      const parsedSpans = spans.filter(span => span.attributes[GEN_AI_RESPONSE_ID] !== undefined);
+      expect(parsedSpans).toHaveLength(1);
+      expect(parsedSpans[0]!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
+        type: 'string',
+        value: 'chatcmpl-withresponse',
+      });
+
+      const rawSpans = spans.filter(span => span.attributes[GEN_AI_RESPONSE_ID] === undefined);
+      expect(rawSpans).toHaveLength(1);
+      expect(rawSpans[0]!.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
+      expect(rawSpans[0]!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
+    });
   });
+
   createEsmAndCjsTests(
     join(__dirname, '../..'),
-    'scenario-chat.mjs',
+    recordingScenarios,
     'instrument-with-pii.mjs',
     (createRunner, test) => {
-      test('creates openai related spans with genAI recording enabled', async () => {
+      let scenarios: ReturnType<typeof runScenarios> | undefined;
+      async function runScenarios() {
         const runner = createRunner();
-        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
 
+        const collectors = recordingScenarios.map(name =>
+          runner.collectStreamedSpansUntilSegment(
+            span =>
+              span.attributes['test.scenario']?.value === name &&
+              (name === 'scenario-azure-openai.mjs'
+                ? span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai'
+                : span.name === 'main'),
+          ),
+        );
         await runner.start().completed();
+        return { spans: await Promise.all(collectors) };
+      }
+      const getScenarios = () => (scenarios ??= runScenarios());
+
+      test('creates openai related spans with genAI recording enabled', async () => {
+        const spansPromise = getScenarios().then(result => result.spans[0]!);
+
+        await getScenarios();
 
         const allSpans = await spansPromise;
         const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
@@ -917,9 +1028,10 @@ describe('OpenAI integration', () => {
       });
     },
   );
+
   createEsmAndCjsTests(
     join(__dirname, '../..'),
-    'scenario-chat.mjs',
+    ['scenario-chat.mjs'],
     'instrument-with-options.mjs',
     (createRunner, test) => {
       test('creates openai related spans with custom options', async () => {
@@ -1006,87 +1118,7 @@ describe('OpenAI integration', () => {
       });
     },
   );
-  createEsmAndCjsTests(
-    join(__dirname, '../..'),
-    'scenario-azure-openai.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('it works with Azure OpenAI', async () => {
-        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
-        await createRunner()
-          .unordered()
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo')).toBeDefined();
-              receivedSpans = container.items;
-            },
-          })
-          .start()
-          .completed();
-
-        const segment = receivedSpans.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
-        expect(segment?.span_id).toEqual(expect.any(String));
-        expect(segment?.trace_id).toEqual(expect.any(String));
-        expect(segment?.attributes[GEN_AI_OPERATION_NAME]).toEqual({ value: 'chat', type: 'string' });
-        expect(segment?.attributes[SENTRY_OP]).toEqual({ value: 'gen_ai.chat', type: 'string' });
-        expect(segment?.attributes[SENTRY_ORIGIN]).toEqual({ value: 'auto.ai.openai', type: 'string' });
-        expect(segment?.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ value: 'openai', type: 'string' });
-        expect(segment?.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
-        expect(segment?.attributes[GEN_AI_REQUEST_TEMPERATURE]).toEqual({ value: 0.7, type: 'double' });
-        expect(segment?.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
-        expect(segment?.attributes[GEN_AI_RESPONSE_ID]).toEqual({ value: 'chatcmpl-mock123', type: 'string' });
-        expect(segment?.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({ value: '["stop"]', type: 'string' });
-        expect(segment?.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ value: 10, type: 'integer' });
-        expect(segment?.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({ value: 15, type: 'integer' });
-        expect(segment?.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ value: 25, type: 'integer' });
-        expect(segment?.status).toEqual('ok');
-      });
-    },
-  );
-  createEsmAndCjsTests(
-    join(__dirname, '../..'),
-    'scenario-with-response.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('preserves .withResponse() method and works correctly', async () => {
-        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
-
-        await createRunner()
-          .unordered()
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
-              receivedSpans = container.items;
-            },
-          })
-          .start()
-          .completed();
-
-        const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
-        expect(spans).toHaveLength(2);
-
-        for (const span of spans) {
-          expect(span!.name).toBe('chat gpt-4');
-          expect(span!.status).toBe('ok');
-          expect(span!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
-          expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4' });
-        }
-
-        const parsedSpans = spans.filter(span => span.attributes[GEN_AI_RESPONSE_ID] !== undefined);
-        expect(parsedSpans).toHaveLength(1);
-        expect(parsedSpans[0]!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
-          type: 'string',
-          value: 'chatcmpl-withresponse',
-        });
-
-        const rawSpans = spans.filter(span => span.attributes[GEN_AI_RESPONSE_ID] === undefined);
-        expect(rawSpans).toHaveLength(1);
-        expect(rawSpans[0]!.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
-        expect(rawSpans[0]!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
-      });
-    },
-  );
   createEsmAndCjsTests(
     join(__dirname, '../..'),
     'scenario-stream-midway-error.mjs',
@@ -1116,6 +1148,7 @@ describe('OpenAI integration', () => {
       });
     },
   );
+
   createEsmAndCjsTests(join(__dirname, '../..'), 'scenario-abort.mjs', 'instrument.mjs', (createRunner, test) => {
     test('ends a call the caller aborts as cancelled, but an SDK timeout as an error', async () => {
       await createRunner()
