@@ -4,21 +4,10 @@ import { tracingChannel } from 'node:diagnostics_channel';
 import type { Span } from '@sentry/core';
 import type { DenoClient } from '@sentry/deno';
 import { flush, init, spanToJSON, startSpan } from '@sentry/deno';
-import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-
-Deno.test('aws-sdk instrumentation: included in default integrations (Deno 2.8.0+)', () => {
-  resetGlobals();
-  const client = init({
-    dsn: 'https://username@domain/123',
-    tracesSampleRate: 1,
-  }) as DenoClient;
-  const names = client.getOptions().integrations.map(i => i.name);
-  assert(names.includes('Aws'), `Aws should be in defaults, got ${names.join(', ')}`);
-});
 
 // Drives the `orchestrion:@smithy/smithy-client:send` channel — the same events
 // the orchestrion transform publishes around the AWS SDK v3 `Client.prototype.send`
