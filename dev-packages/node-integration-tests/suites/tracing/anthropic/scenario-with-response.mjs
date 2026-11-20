@@ -33,7 +33,7 @@ function startMockAnthropicServer() {
   return startMockServer(app);
 }
 
-async function run() {
+export async function run() {
   const server = await startMockAnthropicServer();
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
@@ -187,9 +187,6 @@ async function run() {
   });
 
   // Wait for the stream event handler to finish
-  await Sentry.flush(2000);
 
   server.close();
 }
-
-run();

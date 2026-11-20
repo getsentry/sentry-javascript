@@ -41,7 +41,7 @@ async function drain(runner) {
   }
 }
 
-async function run() {
+export async function run() {
   const server = await startMockSessionsServer();
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
@@ -90,5 +90,3 @@ async function run() {
 
   server.close();
 }
-
-run();
