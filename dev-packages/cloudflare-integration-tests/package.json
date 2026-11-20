@@ -28,7 +28,7 @@
     "@prisma/client": "6.15.0",
     "@sentry-internal/test-utils": "11.15.0",
     "@sentry/cloudflare": "11.15.0",
-    "@sentry/conventions": "0.33.0",
+    "@sentry/conventions": "0.34.0",
     "@sentry/core": "11.15.0",
     "@sentry/hono": "11.15.0",
     "ai": "^6.0.0",
