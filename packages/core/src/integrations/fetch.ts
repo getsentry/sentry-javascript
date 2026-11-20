@@ -1,4 +1,4 @@
-import { URL_FRAGMENT, URL_QUERY } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, URL_FRAGMENT, URL_QUERY } from '@sentry/conventions/attributes';
 import { addBreadcrumb } from '../breadcrumbs';
 import type { Client } from '../client';
 import { getClient } from '../currentScopes';
@@ -164,6 +164,7 @@ function createBreadcrumb(handlerData: HandlerDataFetch, client: Client): void {
 
   const breadcrumbData: FetchBreadcrumbData = {
     method: handlerData.fetchData.method,
+    [HTTP_REQUEST_METHOD]: handlerData.fetchData.method,
     url: getSanitizedUrlString(parsedUrl),
     [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl.search), client),
     [URL_FRAGMENT]: getUrlFragment(parsedUrl.hash),

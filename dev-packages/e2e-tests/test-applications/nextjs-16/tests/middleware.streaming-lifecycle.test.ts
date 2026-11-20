@@ -128,7 +128,7 @@ test('Should trace outgoing fetch requests inside middleware', async ({ request 
   );
 
   // Only Node.js has the undici diagnostics channel. On the other runtimes the fetch integration of the runtime
-  // SDK creates this span, which has no `sentry.kind`, `url.path` and `url.scheme`.
+  // SDK creates this span.
   const isNode = getRuntime() === 'node';
 
   // In some builds (especially webpack) the fetch span is not a child of the middleware segment but a
@@ -154,7 +154,7 @@ test('Should trace outgoing fetch requests inside middleware', async ({ request 
   expect(fetchSpan.attributes['server.port']?.value).toBe(3030);
   expect(fetchSpan.attributes['url.domain']?.value).toBe('localhost');
   expect(fetchSpan.attributes['url.full']?.value).toBe('http://localhost:3030/');
-  expect(fetchSpan.attributes['sentry.kind']?.value).toBe(isNode ? 'client' : undefined);
-  expect(fetchSpan.attributes['url.path']?.value).toBe(isNode ? '/' : undefined);
-  expect(fetchSpan.attributes['url.scheme']?.value).toBe(isNode ? 'http' : undefined);
+  expect(fetchSpan.attributes['sentry.kind']?.value).toBe('client');
+  expect(fetchSpan.attributes['url.path']?.value).toBe('/');
+  expect(fetchSpan.attributes['url.scheme']?.value).toBe('http');
 });
