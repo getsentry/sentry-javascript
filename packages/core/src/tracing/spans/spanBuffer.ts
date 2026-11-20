@@ -4,7 +4,7 @@ import type { SerializedStreamedSpan, Span } from '../../types/span';
 import { debug } from '../../utils/debug-logger';
 import { spanToJSON } from '../../utils/spanUtils';
 import { safeUnref } from '../../utils/timer';
-import { getDynamicSamplingContextFromSpan } from '../dynamicSamplingContext';
+import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from '../dynamicSamplingContext';
 import type { SerializedStreamedSpanWithSegmentSpan } from './captureSpan';
 import { createStreamedSpanEnvelope } from './envelope';
 import { estimateSerializedSpanSizeInBytes } from './estimateSize';
@@ -168,7 +168,10 @@ export class SpanBuffer {
       return;
     }
 
+    // Freeze the DSC so that all envelopes of this segment carry the same `trace` header, even if the segment
+    // span is still running and more spans of it get flushed later.
     const dsc = getDynamicSamplingContextFromSpan(segmentSpan);
+    freezeDscOnSpan(segmentSpan, dsc);
 
     const currentSegmentNames = new Map<Span, string>();
     const getCurrentSegmentName = (span: Span): string => {
