@@ -17,6 +17,7 @@ describe('Initialize Solid SDK', () => {
 
     const expectedMetadata = {
       _metadata: {
+        optionsSetByUser: ['dsn'],
         sdk: {
           name: 'sentry.javascript.solid',
           packages: [{ name: 'npm:@sentry/solid', version: SDK_VERSION }],

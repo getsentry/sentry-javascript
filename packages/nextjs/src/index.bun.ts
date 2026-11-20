@@ -1,3 +1,4 @@
+import { _INTERNAL_captureOptionsSetByUser } from '@sentry/core';
 import { bunHttpServerIntegration, fetchIntegration } from '@sentry/bun';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { init as initServer } from './server';
@@ -6,10 +7,11 @@ export * from './server';
 
 /** Inits the Sentry Next.js SDK on Bun, with the integrations of `@sentry/bun` for what Bun does differently. */
 export function init(options: NodeOptions): NodeClient | undefined {
-  const userIntegrations = options.integrations;
+  const userOptions = _INTERNAL_captureOptionsSetByUser(options);
+  const userIntegrations = userOptions.integrations;
   return initServer({
     runtime: { name: 'bun', version: process.versions.bun as string },
-    ...options,
+    ...userOptions,
     integrations: defaults => {
       const integrations = [
         // The `fetch` of Bun is not undici.

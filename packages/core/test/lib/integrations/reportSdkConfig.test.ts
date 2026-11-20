@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getCurrentScope, setCurrentClient } from '../../../src';
-import { getIntegrationsToSetup } from '../../../src/integration';
+import { defineIntegration, getIntegrationsToSetup } from '../../../src/integration';
 import type { Integration } from '../../../src/types/integration';
 import { experimentalReportSdkConfigIntegration } from '../../../src/integrations/reportSdkConfig';
 import type * as metricsApi from '../../../src/metrics/public-api';
@@ -12,6 +12,8 @@ vi.mock('../../../src/metrics/public-api', async importOriginal => ({
   ...(await importOriginal<typeof metricsApi>()),
   count: vi.fn(),
 }));
+
+const tagIntegration = defineIntegration((_options: { tag?: string; filter?: RegExp } = {}) => ({ name: 'Tag' }));
 
 function reportConfig(options: ReturnType<typeof getDefaultTestClientOptions>): Record<string, unknown> {
   let payload: Record<string, unknown> = {};
@@ -47,7 +49,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
       dist: '42',
       serverName: 'web-7f9c',
       defaultIntegrations: false,
-      integrations: [experimentalReportSdkConfigIntegration(), { name: 'Tag' }],
+      integrations: [experimentalReportSdkConfigIntegration(), tagIntegration({ tag: 'checkout', filter: /cart/ })],
     });
 
     const payload = reportConfig(
@@ -69,13 +71,16 @@ describe('experimentalReportSdkConfigIntegration', () => {
       release: 'shop@1.4.2',
       environment: 'staging',
       dist: '42',
-      integrations: [{ name: 'ExperimentalReportSdkConfig' }, { name: 'Tag' }],
       options: {
         runtime: { name: 'node', version: 'v24.22.1' },
         release: 'shop@1.4.2',
         environment: 'staging',
         dist: '42',
         defaultIntegrations: false,
+        integrations: [
+          { name: 'ExperimentalReportSdkConfig' },
+          { name: 'Tag', options: { filter: '/cart/', tag: 'checkout' } },
+        ],
         tracesSampleRate: 0.5,
       },
     });
@@ -103,8 +108,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
     expect(payload).toEqual({
       version: 2,
       ...resolvedOptions,
-      integrations: [{ name: 'ExperimentalReportSdkConfig' }],
-      options: {},
+      options: { integrations: [{ name: 'ExperimentalReportSdkConfig' }] },
     });
   });
 
@@ -124,11 +128,11 @@ describe('experimentalReportSdkConfigIntegration', () => {
     expect(payload.options).toEqual({ defaultIntegrations: [{ name: 'ExperimentalReportSdkConfig' }] });
   });
 
-  it('reports the resolved integrations after an integrations callback', () => {
+  it('reports an integrations callback as the integrations it added and the sorted defaults it removed', () => {
     const userOptions = captureOptionsSetByUser({
       integrations: (defaults: Integration[]) => [
-        ...defaults.filter(integration => integration.name !== 'Dropped'),
-        { name: 'Tag' },
+        ...defaults.filter(integration => integration.name === 'Kept'),
+        tagIntegration({ tag: 'user' }),
         experimentalReportSdkConfigIntegration(),
       ],
     });
@@ -137,7 +141,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
       getDefaultTestClientOptions({
         dsn: 'https://username@domain/123',
         integrations: getIntegrationsToSetup({
-          defaultIntegrations: [{ name: 'Kept' }, { name: 'Dropped' }],
+          defaultIntegrations: [{ name: 'Zeta' }, { name: 'Kept' }, { name: 'Dropped' }],
           integrations: userOptions.integrations,
         }),
         _metadata: userOptions._metadata,
@@ -146,12 +150,52 @@ describe('experimentalReportSdkConfigIntegration', () => {
 
     expect(payload).toEqual({
       version: 2,
-      integrations: [{ name: 'Kept' }, { name: 'Tag' }, { name: 'ExperimentalReportSdkConfig' }],
-      options: {},
+      removed_default_integrations: ['Dropped', 'Zeta'],
+      options: {
+        integrations: [{ name: 'Tag', options: { tag: 'user' } }, { name: 'ExperimentalReportSdkConfig' }],
+      },
     });
   });
 
-  it('reports installed integrations even when user-set options were not captured', () => {
+  it('reports the same payload for an integrations callback and an array that add the same integrations', () => {
+    const fromArray = captureOptionsSetByUser({ integrations: [tagIntegration({ tag: 'user' })] });
+    const fromCallback = captureOptionsSetByUser({
+      integrations: (defaults: Integration[]) => [...defaults, tagIntegration({ tag: 'user' })],
+    });
+    const defaultIntegrations = [experimentalReportSdkConfigIntegration()];
+
+    const payloads = [fromArray, fromCallback].map(userOptions =>
+      reportConfig(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          integrations: getIntegrationsToSetup({ defaultIntegrations, integrations: userOptions.integrations }),
+          _metadata: userOptions._metadata,
+        }),
+      ),
+    );
+
+    expect(payloads[0]).toEqual({ version: 2, options: { integrations: [{ name: 'Tag', options: { tag: 'user' } }] } });
+    expect(payloads[1]).toEqual(payloads[0]);
+  });
+
+  it('reports integration options as passed, even when the integration writes into them', () => {
+    const mutatingIntegration = defineIntegration((options: { capture?: boolean } = {}) => {
+      options.capture = false;
+
+      return { name: 'Mutating' };
+    });
+    const userOptions = captureOptionsSetByUser({
+      integrations: [experimentalReportSdkConfigIntegration(), mutatingIntegration({ capture: true })],
+    });
+
+    const payload = reportConfig(getDefaultTestClientOptions({ dsn: 'https://username@domain/123', ...userOptions }));
+
+    expect(payload.options).toEqual({
+      integrations: [{ name: 'ExperimentalReportSdkConfig' }, { name: 'Mutating', options: { capture: true } }],
+    });
+  });
+
+  it('reports no integrations when user-set options were not captured', () => {
     const payload = reportConfig(
       getDefaultTestClientOptions({
         dsn: 'https://username@domain/123',
@@ -160,10 +204,6 @@ describe('experimentalReportSdkConfigIntegration', () => {
       }),
     );
 
-    expect(payload).toEqual({
-      version: 2,
-      integrations: [{ name: 'ExperimentalReportSdkConfig' }],
-      options: {},
-    });
+    expect(payload).toEqual({ version: 2, options: {} });
   });
 });

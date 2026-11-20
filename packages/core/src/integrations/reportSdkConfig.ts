@@ -94,11 +94,16 @@ function serialize(value: unknown, ancestors = new Set<object>()): unknown {
   return result;
 }
 
-// Integrations are reported at the top level; serverName would split configurations by host.
+// Integrations hold the SDK defaults by the time the client has them; serverName would split configurations by host.
 const EXCLUDED_OPTIONS = new Set(['integrations', 'serverName']);
 
 function buildConfigAttributes(client: Client): Record<string, string> {
-  const { sdk, optionsSetByUser = [] } = client.getSdkMetadata() || {};
+  const {
+    sdk,
+    optionsSetByUser = [],
+    integrationsSetByUser,
+    removedDefaultIntegrations,
+  } = client.getSdkMetadata() || {};
   const clientOptions = client.getOptions();
   const { release, environment, dist } = clientOptions;
   const runtime = 'runtime' in clientOptions ? clientOptions.runtime : undefined;
@@ -108,10 +113,16 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     Object.entries(clientOptions).filter(([key]) => optionsSetByUser.includes(key) && !EXCLUDED_OPTIONS.has(key)),
   );
 
+  if (integrationsSetByUser) {
+    options.integrations = integrationsSetByUser.map(name =>
+      describeIntegration(name, client.getIntegrationByName(name)),
+    );
+  }
+
   if (Array.isArray(options.defaultIntegrations)) {
-    options.defaultIntegrations = options.defaultIntegrations.map((integration: Integration) => ({
-      name: integration.name,
-    }));
+    options.defaultIntegrations = options.defaultIntegrations.map((integration: Integration) =>
+      describeIntegration(integration.name, integration),
+    );
   }
 
   // The hash covers the whole payload, so a payload cached by its hash is never stale.
@@ -122,7 +133,8 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     release,
     environment,
     dist,
-    integrations: client.getIntegrationNames().map(name => ({ name })),
+    // Not an init() option, so it stays out of `options`.
+    ...(removedDefaultIntegrations && { removed_default_integrations: removedDefaultIntegrations }),
     options: serialize(options),
   });
 
@@ -130,4 +142,17 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     'sentry.sdk_config.hash': fnv1a32(payload),
     'sentry.sdk_config.payload': payload,
   };
+}
+
+function describeIntegration(
+  name: string,
+  integration: (Integration & { isDefaultInstance?: true }) | undefined,
+): { name: string; options?: unknown } {
+  // A default instance kept by an `integrations` function got its options from the SDK, not the user.
+  const options = integration?.isDefaultInstance ? undefined : integration?._options;
+
+  // `fooIntegration()` and `fooIntegration({})` both mean no options were passed.
+  return options === undefined || (isPlainObject(options) && !Object.keys(options).length)
+    ? { name }
+    : { name, options };
 }
