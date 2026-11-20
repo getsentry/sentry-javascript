@@ -6,5 +6,5 @@ export interface GenAiMessage {
 }
 
 export type GenAiMessagePart = Record<string, unknown> & {
-  type: 'blob' | 'object' | 'reasoning' | 'text' | 'tool_call' | 'tool_call_response';
+  type: 'blob' | 'object' | 'reasoning' | 'text' | 'tool_call' | 'tool_call_response' | 'uri';
 };

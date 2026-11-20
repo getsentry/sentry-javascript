@@ -4,6 +4,7 @@
  */
 import { isObjectLike } from '@sentry/core';
 import { getEvaluationInputMessages, getEvaluationOutputMessages } from '../core/utils';
+import type { GenAiMessage, GenAiMessagePart } from '../types';
 
 /**
  * Serialize a decisions request. Its evidence is `input` where Jev's is `state`; it is recorded as `state`
@@ -11,7 +12,32 @@ import { getEvaluationInputMessages, getEvaluationOutputMessages } from '../core
  */
 export function getDecisionInputMessages(params: Record<string, unknown>): string | undefined {
   const questions = Array.isArray(params.questions) ? params.questions.map(toJevQuestionFormat) : params.questions;
-  return getEvaluationInputMessages({ state: params.input, questions: keyByName(questions) });
+  return getEvaluationInputMessages({ state: toStateMessages(params.input), questions: keyByName(questions) });
+}
+
+/**
+ * Lay out multimodal evidence as gen_ai messages, so it renders like Google's. An image is reported by its media
+ * type only: its data URL holds base64, which the conventions require to be dropped.
+ */
+function toStateMessages(input: unknown): unknown {
+  if (!Array.isArray(input)) {
+    return input;
+  }
+
+  return input.filter(isObjectLike).map((message): GenAiMessage => ({
+    role: 'user',
+    parts: Array.isArray(message.content)
+      ? message.content.filter(isObjectLike).map(toMessagePart)
+      : [{ type: 'text', content: message.content }],
+  }));
+}
+
+function toMessagePart(part: Record<PropertyKey, unknown>): GenAiMessagePart {
+  if (part.type === 'input_image') {
+    const mimeType = typeof part.image_url === 'string' ? /^data:([^;,]+)/.exec(part.image_url)?.[1] : undefined;
+    return { type: 'blob', modality: 'image', mime_type: mimeType };
+  }
+  return { type: 'text', content: part.text };
 }
 
 /** Serialize the answers of a decisions response, laid out and keyed like Jev answers. */
