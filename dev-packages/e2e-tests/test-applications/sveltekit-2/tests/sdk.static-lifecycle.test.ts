@@ -1,10 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-import { PAGE_SERVER_RENDERING_TYPE } from '@sentry/conventions/attributes';
+import { PAGE_SERVER_RENDERING_AGE, PAGE_SERVER_RENDERING_TYPE } from '@sentry/conventions/attributes';
 import { PAGELOAD } from '@sentry/conventions/op';
 import { waitForInitialPageload } from './utils.static-lifecycle';
-
-const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';
 
 function sentryMetaTagNames(html: string): string[] {
   return [...html.matchAll(/<meta name="(sentry-[\w-]+|baggage)"/g)].map(match => match[1] ?? '');

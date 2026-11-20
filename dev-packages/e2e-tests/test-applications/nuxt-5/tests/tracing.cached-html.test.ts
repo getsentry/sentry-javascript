@@ -1,5 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
-import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
+import {
+  PAGE_SERVER_RENDERING_AGE,
+  PAGE_SERVER_RENDERING_TYPE,
+  SENTRY_LINK_TYPE,
+} from '@sentry/conventions/attributes';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test.describe('Rendering Modes with Cached HTML', () => {
@@ -130,8 +134,6 @@ async function getRenderStart(page: Page): Promise<number> {
   await expect(page.locator('meta[name="sentry-render-start"]')).toHaveCount(1);
   return Number(await page.locator('meta[name="sentry-render-start"]').getAttribute('content'));
 }
-
-const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';
 
 function expectedRenderAge(pageloadStart: number, renderStart: number): number {
   return Math.max(0, Math.floor(pageloadStart - renderStart));
