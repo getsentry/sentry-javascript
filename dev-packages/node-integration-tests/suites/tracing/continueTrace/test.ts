@@ -1,3 +1,4 @@
+import { parseBaggageHeader } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -27,7 +28,6 @@ interface Variant {
   parentSpanId?: string;
   /** Incoming sampling decision: true (`-1`), false (`-0`), or undefined (deferred / none). */
   parentSampled?: boolean;
-  hasIncomingBaggage?: boolean;
 }
 
 const VARIANTS: Variant[] = [
@@ -38,7 +38,6 @@ const VARIANTS: Variant[] = [
     traceId: SAMPLED_TRACE_ID,
     parentSpanId: SAMPLED_SPAN_ID,
     parentSampled: true,
-    hasIncomingBaggage: true,
   },
   {
     key: 'unsampled incoming trace',
@@ -79,76 +78,120 @@ function expectsSpan(rate: string | undefined, variant: Variant): boolean {
   return Number(rate) > 0; // deferred / none -> local rate
 }
 
+/**
+ * A trace continued without incoming DSC gets a DSC created from our own segment span.
+ * See https://develop.sentry.dev/sdk/foundations/trace-propagation/dynamic-sampling-context/#incoming-trace-without-dsc
+ */
+function expectedBaggageWithoutIncomingDsc(rate: string | undefined, variant: Variant): Record<string, unknown> {
+  const clientDsc = {
+    'sentry-environment': 'production',
+    'sentry-public_key': 'public',
+    'sentry-release': '1.0',
+    'sentry-trace_id': variant.traceId,
+  };
+
+  if (rate === undefined) {
+    return clientDsc;
+  }
+
+  const sampled = expectsSpan(rate, variant);
+  return {
+    ...clientDsc,
+    'sentry-sample_rand': expect.stringMatching(/^0\.\d+$/),
+    'sentry-sample_rate': variant.parentSampled === undefined ? rate : String(Number(sampled)),
+    'sentry-sampled': String(sampled),
+    'sentry-transaction': 'continued-root-span',
+  };
+}
+
 describe('continueTrace', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    describe.each(CONFIGS)('$name', config => {
-      test.each(VARIANTS)('continues the $key', async variant => {
-        const wantsSpan = expectsSpan(config.rate, variant);
+    describe.each(['stream', 'static'] as const)('traceLifecycle: %s', lifecycle => {
+      describe.each(CONFIGS)('$name', config => {
+        test.each(VARIANTS)('continues the $key', async variant => {
+          const wantsSpan = expectsSpan(config.rate, variant);
 
-        const runner = createRunner().withEnv({
-          TRACES_SAMPLE_RATE: config.rate,
-          INCOMING_SENTRY_TRACE: variant.sentryTrace,
-          INCOMING_BAGGAGE: variant.baggage,
-        });
+          const runner = createRunner().withEnv({
+            TRACE_LIFECYCLE: lifecycle,
+            TRACES_SAMPLE_RATE: config.rate,
+            INCOMING_SENTRY_TRACE: variant.sentryTrace,
+            INCOMING_BAGGAGE: variant.baggage,
+          });
 
-        let observedErrorTraceId: string | undefined;
-        let observedSpanTraceId: string | undefined;
+          let observedErrorTraceId: string | undefined;
+          let observedSpanTraceId: string | undefined;
 
-        // The error event is delayed by async enrichment (context lines, local variables) while the
-        // span buffer flushes after span end, so the two envelopes can arrive in either
-        // order. Match them by type rather than by position.
-        runner.unordered();
+          // The error event is delayed by async enrichment (context lines, local variables) while the
+          // span buffer flushes after span end, so the two envelopes can arrive in either
+          // order. Match them by type rather than by position.
+          runner.unordered();
 
-        runner.expect({
-          event: event => {
-            const trace = event.contexts?.trace;
-            observedErrorTraceId = trace?.trace_id;
-
-            if (variant.traceId) {
-              expect(trace?.trace_id).toBe(variant.traceId);
-            } else {
-              expect(trace?.trace_id).toMatch(/^[a-f0-9]{32}$/);
-            }
-            expect(trace?.span_id).toMatch(/^[a-f0-9]{16}$/);
-
-            // getTraceData() observed inside the callback carries the continued trace id.
-            const traceData = (event.contexts?.traceData ?? {}) as { 'sentry-trace'?: string; baggage?: string };
-            expect(traceData['sentry-trace']).toMatch(new RegExp(`^${trace?.trace_id}-[a-f0-9]{16}`));
-            if (variant.hasIncomingBaggage) {
-              expect(traceData.baggage).toContain(`sentry-trace_id=${variant.traceId}`);
-            }
-          },
-        });
-
-        if (wantsSpan) {
           runner.expect({
-            span: container => {
-              const segment = container.items.find(span => span.is_segment);
-              observedSpanTraceId = segment?.trace_id;
+            event: event => {
+              const trace = event.contexts?.trace;
+              observedErrorTraceId = trace?.trace_id;
 
               if (variant.traceId) {
-                expect(segment?.trace_id).toBe(variant.traceId);
+                expect(trace?.trace_id).toBe(variant.traceId);
               } else {
-                expect(segment?.trace_id).toMatch(/^[a-f0-9]{32}$/);
+                expect(trace?.trace_id).toMatch(/^[a-f0-9]{32}$/);
               }
-              if (variant.parentSpanId) {
-                expect(segment?.parent_span_id).toBe(variant.parentSpanId);
+              expect(trace?.span_id).toMatch(/^[a-f0-9]{16}$/);
+
+              // getTraceData() observed inside the callback carries the continued trace id.
+              const traceData = (event.contexts?.traceData ?? {}) as { 'sentry-trace'?: string; baggage?: string };
+              expect(traceData['sentry-trace']).toMatch(new RegExp(`^${trace?.trace_id}-[a-f0-9]{16}`));
+              if (variant.baggage) {
+                expect(parseBaggageHeader(traceData.baggage)).toStrictEqual(parseBaggageHeader(variant.baggage));
+              } else if (variant.traceId) {
+                expect(parseBaggageHeader(traceData.baggage)).toStrictEqual(
+                  expectedBaggageWithoutIncomingDsc(config.rate, variant),
+                );
               }
-              expect(segment?.name).toBe('continued-root-span');
             },
           });
-        }
 
-        await runner.start().completed();
+          if (wantsSpan) {
+            const assertSegment = (segment: { trace_id?: string; parent_span_id?: string; name?: string }): void => {
+              observedSpanTraceId = segment.trace_id;
 
-        if (wantsSpan) {
-          // Error and span share the (continued or freshly generated) trace id.
-          expect(observedSpanTraceId).toBe(observedErrorTraceId);
-        }
+              if (variant.traceId) {
+                expect(segment.trace_id).toBe(variant.traceId);
+              } else {
+                expect(segment.trace_id).toMatch(/^[a-f0-9]{32}$/);
+              }
+              if (variant.parentSpanId) {
+                expect(segment.parent_span_id).toBe(variant.parentSpanId);
+              }
+              expect(segment.name).toBe('continued-root-span');
+            };
+
+            if (lifecycle === 'static') {
+              runner.expect({
+                transaction: transaction => {
+                  assertSegment({ ...transaction.contexts?.trace, name: transaction.transaction });
+                },
+              });
+            } else {
+              runner.expect({
+                span: container => {
+                  assertSegment(container.items.find(span => span.is_segment) ?? {});
+                },
+              });
+            }
+          }
+
+          await runner.start().completed();
+
+          if (wantsSpan) {
+            // Error and span share the (continued or freshly generated) trace id.
+            expect(observedSpanTraceId).toBe(observedErrorTraceId);
+          }
+        });
       });
     });
   });
