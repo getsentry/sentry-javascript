@@ -459,10 +459,14 @@ jobs:
             !${{ github.workspace }}/packages/**/node_modules/**
 
   job_browser_unit_tests:
-    name: Browser Unit Tests
+    name: Browser Unit Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v7
@@ -482,12 +486,16 @@ jobs:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Run affected tests
-        run: pnpm run test:pr:browser --base=${{ github.event.pull_request.base.sha }}
+        run: pnpm run test:ci:browser
         if: github.event_name == 'pull_request'
+        env:
+          UNIT_TEST_SHARD: ${{ matrix.shard }}
 
       - name: Run all tests
         run: pnpm run test:ci:browser
         if: github.event_name != 'pull_request'
+        env:
+          UNIT_TEST_SHARD: ${{ matrix.shard }}
 
   job_bun_unit_tests:
     name: Bun (${{ matrix.bun }}) Unit Tests
