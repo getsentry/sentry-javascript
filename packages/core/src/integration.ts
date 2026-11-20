@@ -168,6 +168,7 @@ export function addIntegration(integration: Integration): void {
  * Define an integration function that can be used to create an integration instance.
  * Note that this by design hides the implementation details of the integration, as they are considered internal.
  */
+/*#__NO_SIDE_EFFECTS__*/
 export function defineIntegration<Fn extends IntegrationFn>(
   fn: Fn,
 ): (...args: Parameters<Fn>) => Integration & { name: ReturnType<Fn>['name'] } {
