@@ -67,12 +67,10 @@ describe('experimentalReportSdkConfigIntegration', () => {
       sdk: { name: 'sentry.javascript.node', version: '11.14.0' },
       runtime: { name: 'node', version: 'v24.22.1' },
       environment: 'staging',
-      dist: '42',
       integrations: [{ name: 'ExperimentalReportSdkConfig' }, { name: 'Tag' }],
       options: {
         runtime: { name: 'node', version: 'v24.22.1' },
         environment: 'staging',
-        dist: '42',
         defaultIntegrations: false,
         tracesSampleRate: 0.5,
       },
@@ -86,13 +84,13 @@ describe('experimentalReportSdkConfigIntegration', () => {
     const resolvedOptions = {
       runtime: { name: 'node', version: 'v24.22.1' },
       environment: 'staging',
-      dist: '42',
     };
 
     const payload = reportConfig(
       getDefaultTestClientOptions({
         dsn: 'https://username@domain/123',
         release: 'shop@1.4.2',
+        dist: '42',
         ...resolvedOptions,
         ...userOptions,
       }),
