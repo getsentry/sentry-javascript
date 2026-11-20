@@ -22,10 +22,7 @@ vi.mock('@sentry/core', async importOriginal => {
   };
 });
 
-const NODE_SERVER_OUTPUT_DIRS = {
-  publicDir: path.join(process.cwd(), '.output', 'public'),
-  serverDir: path.join(process.cwd(), '.output', 'server'),
-};
+const NODE_SERVER_DIR = path.join(process.cwd(), '.output', 'server');
 
 describe('getPluginOptions', () => {
   beforeEach(() => {
@@ -221,13 +218,13 @@ describe('getPluginOptions', () => {
       name: 'both client and server fallback are true',
       clientFallback: true,
       serverFallback: true,
-      expected: ['.output/public/**/*.map', '.output/server/**/*.map'],
+      expected: ['.output/server/**/*.map'],
     },
     {
       name: 'only client fallback is true',
       clientFallback: true,
       serverFallback: false,
-      expected: ['.output/public/**/*.map'],
+      expected: undefined,
     },
     {
       name: 'only server fallback is true',
@@ -239,7 +236,7 @@ describe('getPluginOptions', () => {
       name: 'both fallbacks are true, but Nitro is not set up yet',
       clientFallback: true,
       serverFallback: true,
-      outputDirs: null,
+      serverDir: null,
       expected: undefined,
     },
     {
@@ -260,11 +257,11 @@ describe('getPluginOptions', () => {
     },
   ])(
     'sets filesToDeleteAfterUpload correctly when $name',
-    ({ clientFallback, serverFallback, customOptions = {}, outputDirs = NODE_SERVER_OUTPUT_DIRS, expected }) => {
+    ({ clientFallback, serverFallback, customOptions = {}, serverDir = NODE_SERVER_DIR, expected }) => {
       const options = getPluginOptions(customOptions as SentryNuxtModuleOptions, {
         client: clientFallback,
         server: serverFallback,
-        outputDirs: outputDirs ?? undefined,
+        serverDir: serverDir ?? undefined,
       });
 
       expect(options?.sourcemaps?.filesToDeleteAfterUpload).toEqual(expected);
@@ -460,6 +457,32 @@ describe('change Nuxt source map settings', () => {
       expect(nuxt.options.sourcemap).toBe(expectedSourcemap);
       expect(previousUserSourcemapSetting.client).toBe(expectedReturn);
       expect(previousUserSourcemapSetting.server).toBe(expectedReturn);
+    });
+
+    it.each([
+      [{ upload: false }, undefined],
+      [{ injectDebugIds: false }, undefined],
+      [{ upload: false, delete: true }, undefined],
+      [{ injectDebugIds: false, delete: false }, undefined],
+      [{ upload: false, delete: false }, 'hidden'],
+      [{ delete: true }, 'hidden'],
+      [{ disable: 'disable-upload' }, 'hidden'],
+      [{ disable: true, upload: true }, 'hidden'],
+    ] as const)('with unset source maps and `sourcemaps: %j` it sets both sides to %s', (sourcemaps, expected) => {
+      // @ts-expect-error - Nuxt types don't accept `undefined` but we want to test this case
+      nuxt.options.sourcemap = { client: undefined, server: undefined };
+      const previousUserSourcemapSetting = changeNuxtSourceMapSettings(nuxt as Nuxt, { sourcemaps });
+
+      expect(nuxt.options.sourcemap).toEqual({ client: expected, server: expected });
+      expect(previousUserSourcemapSetting).toEqual({ client: 'unset', server: 'unset' });
+    });
+
+    it('leaves `nuxt.options.sourcemap` unset when Sentry turns no source maps on', () => {
+      // @ts-expect-error - Nuxt types don't accept `undefined` but we want to test this case
+      nuxt.options.sourcemap = undefined;
+      changeNuxtSourceMapSettings(nuxt as Nuxt, { sourcemaps: { upload: false } });
+
+      expect(nuxt.options.sourcemap).toEqual({ client: undefined, server: undefined });
     });
 
     it("sets client and server to 'hidden' if nuxt.options.sourcemap not set", () => {

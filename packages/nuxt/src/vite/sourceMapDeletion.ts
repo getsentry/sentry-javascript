@@ -1,26 +1,34 @@
-import { createSentryBuildPluginManager, globFiles, type Options } from '@sentry/bundler-plugins/core';
+import {
+  createSentryBuildPluginManager,
+  globFiles,
+  type InternalOptions,
+  type Options,
+} from '@sentry/bundler-plugins/core';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-/** Nitro's output directories, which depend on the Nitro preset, e.g. `dist` for the public files on Netlify. */
-type NitroOutputDirs = { publicDir: string; serverDir: string };
-
-/** The sides whose source maps only exist because Sentry enabled them, and where Nitro writes them once it is set up. */
-export type DeletionFallback = { client: boolean; server: boolean; outputDirs?: NitroOutputDirs };
+/**
+ * The sides whose source maps only exist because Sentry enabled them, and where Nitro writes them once it is set
+ * up. `publicDir` is only set for a builder other than Vite, where no Vite plugin removes the client maps.
+ */
+export type DeletionFallback = { client: boolean; server: boolean; serverDir?: string; publicDir?: string };
 
 /**
  * Globs for the source maps in Nitro's output directories of the sides whose source maps only exist because Sentry
- * enabled them. Empty until Nitro is set up.
+ * enabled them. Empty until Nitro is set up. With the Vite builder, the Vite plugin removes the client maps itself.
+ *
+ * `sourcemaps.delete` replaces that rule: `true` covers both sides, `false` none.
  */
-export function getFallbackFilesToDelete(fallback: DeletionFallback | undefined): string[] {
-  if (!fallback?.outputDirs) {
+export function getFallbackFilesToDelete(fallback: DeletionFallback | undefined, deleteOption?: boolean): string[] {
+  if (fallback?.serverDir === undefined || deleteOption === false) {
     return [];
   }
 
-  const { client, server, outputDirs } = fallback;
-  const { publicDir, serverDir } = outputDirs;
+  const { serverDir, publicDir } = fallback;
+  const client = deleteOption ?? fallback.client;
+  const server = deleteOption ?? fallback.server;
   return [
-    ...(client ? getPublicSourceMapGlobs(publicDir, server ? undefined : serverDir) : []),
+    ...(client && publicDir !== undefined ? getPublicSourceMapGlobs(publicDir, server ? undefined : serverDir) : []),
     ...(server ? [`${toGlobPath(serverDir)}/**/*.map`] : []),
   ];
 }
@@ -37,9 +45,91 @@ function getPublicSourceMapGlobs(publicDir: string, keptServerDir: string | unde
   return [`${publicGlob}/*.map`, `${publicGlob}/!(${serverDirName})/**/*.map`];
 }
 
+/** Only the Vite builder runs the Vite plugin that removes the client source maps. */
+export function isViteBuilder(nuxt: { options: { builder?: unknown } }): boolean {
+  const { builder } = nuxt.options;
+  return builder === undefined || builder === 'vite' || builder === '@nuxt/vite-builder';
+}
+
+export function logSentryEnabledSourceMaps(
+  fallback: DeletionFallback,
+  viteBuilder: boolean,
+  deleteOption?: boolean,
+): void {
+  for (const side of ['client', 'server'] as const) {
+    if (fallback[side] && deleteOption !== undefined) {
+      // eslint-disable-next-line no-console
+      console.log(
+        `[Sentry] We enabled \`'hidden'\` source maps for your ${side}-side build. ${
+          deleteOption
+            ? 'Sentry deletes them from the build output.'
+            : 'They stay in the build output, because `sourcemaps.delete` is `false`.'
+        }`,
+      );
+    } else if (fallback[side]) {
+      const userOptions =
+        side === 'client' && viteBuilder
+          ? '`sourcemaps.deleteSourcemapsAfterUpload` or `sourcemaps.filesToDeleteAfterUpload`'
+          : '`sourcemaps.filesToDeleteAfterUpload`';
+      // eslint-disable-next-line no-console
+      console.log(
+        `[Sentry] We enabled \`'hidden'\` source maps for your ${side}-side build. Sentry deletes them after the upload, unless you set ${userOptions}.`,
+      );
+    }
+  }
+}
+
 /** `filesToDeleteAfterUpload` is matched from the working directory and needs forward slashes, also on Windows. */
 function toGlobPath(directory: string): string {
   return path.relative(process.cwd(), directory).split(path.sep).join('/') || '.';
+}
+
+/**
+ * Options for the Vite plugin of the client build. It removes the client maps Sentry enabled, unless the
+ * user set `deleteSourcemapsAfterUpload` or `filesToDeleteAfterUpload`. The user's glob runs in the Nitro
+ * build instead, because a broad glob would also match the SSR maps Nitro still needs.
+ *
+ * `sourcemaps.delete` replaces that rule for the client environment: `true` removes every client map, `false`
+ * none. The plugin does not get the option itself, because it would also remove the SSR maps.
+ */
+export function withClientSourceMapDeletion(
+  options: Options,
+  userSourcemaps:
+    | Pick<NonNullable<Options['sourcemaps']>, 'delete' | 'deleteSourcemapsAfterUpload' | 'filesToDeleteAfterUpload'>
+    | undefined,
+  fallback: DeletionFallback,
+): InternalOptions {
+  return {
+    ...options,
+    sourcemaps: {
+      ...options.sourcemaps,
+      filesToDeleteAfterUpload: undefined,
+      delete: undefined,
+      // The Vite plugin reads these in its `config` hook, after `modules:done` set the fallback.
+      deleteSourcemapsAfterUpload: environment => {
+        if (userSourcemaps?.delete !== undefined) {
+          return isClientEnvironment(environment) ? userSourcemaps.delete : undefined;
+        }
+        return (
+          userSourcemaps?.deleteSourcemapsAfterUpload ??
+          (isClientEnvironment(environment) && fallback.client && userSourcemaps?.filesToDeleteAfterUpload === undefined
+            ? true
+            : undefined)
+        );
+      },
+      // Makes the plugin remove every source map of the environment, not only those of uploaded chunks.
+      sdkEnabledSourceMaps: environment =>
+        isClientEnvironment(environment) && (userSourcemaps?.delete === true || fallback.client),
+    },
+  };
+}
+
+/**
+ * With the Vite environment API, one config holds the `client` and the server environments. Without it, the
+ * plugin is only part of the client config, which has no named environments.
+ */
+function isClientEnvironment(environment: string | undefined): boolean {
+  return environment === undefined || environment === 'client';
 }
 
 export function withoutSourceMapDeletion(options: Options): Options {
@@ -48,6 +138,7 @@ export function withoutSourceMapDeletion(options: Options): Options {
     sourcemaps: {
       ...options.sourcemaps,
       filesToDeleteAfterUpload: undefined,
+      delete: undefined,
       deleteSourcemapsAfterUpload: false,
     },
   };
