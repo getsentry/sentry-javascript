@@ -49,6 +49,7 @@ export function constructInstrumentedDurableObject<E, T extends DurableObject<E>
   env: E,
   newTarget: NewableFunction,
   optionsCallback: (env: E) => CloudflareOptions,
+  beforeConstruction?: (prototype: object) => void,
 ): {
   obj: T;
   options: CloudflareOptions;
@@ -64,6 +65,7 @@ export function constructInstrumentedDurableObject<E, T extends DurableObject<E>
   const instrumentedEnv = instrumentEnv(env as Record<string, unknown>, options);
 
   const prototype = (newTarget as unknown as { prototype?: object }).prototype ?? target.prototype;
+  beforeConstruction?.(prototype);
   const cachedFrameworkManagedMethods = frameworkManagedMethodsCache.get(prototype);
   const methodsBeforeConstruction = cachedFrameworkManagedMethods
     ? undefined
@@ -488,16 +490,13 @@ export function instrumentAgentWithSentry<
 >(optionsCallback: (env: ResolveEnv<C, Env>) => StrictCloudflareOptions<O>, AgentClass: C): C {
   const InstrumentedClass = new Proxy(AgentClass, {
     construct(target, [ctx, env], newTarget) {
-      wrapAgentMethodsBeforeConstruction(
-        (newTarget as unknown as { prototype?: object }).prototype ?? (target.prototype as object),
-      );
-
       const { obj, options, context, frameworkManagedMethods } = constructInstrumentedDurableObject(
         target,
         ctx,
         env,
         newTarget,
         optionsCallback,
+        wrapAgentMethodsBeforeConstruction,
       );
 
       instrumentCloudflareAgent(obj);
