@@ -243,7 +243,6 @@ describe('express tracing', () => {
     test.each([
       ['arr/545'],
       ['arr/required'],
-      ['arr/required'],
       ['arr/requiredPath'],
       ['arr/required/lastParam'],
       ['arr55/required/lastParam'],
