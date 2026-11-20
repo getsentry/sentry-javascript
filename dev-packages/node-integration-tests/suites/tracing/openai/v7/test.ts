@@ -35,14 +35,27 @@ describe.runIf(supports({ min: 22 }))('OpenAI integration (V7)', () => {
   // all, so these assert that each instrumented `create` produces a span with the right shape.
   createEsmAndCjsTests(
     __dirname,
-    '../v6/scenario-chat.mjs',
+    ['../v6/scenario-chat.mjs', '../v6/scenario-embeddings.mjs'],
     'instrument.mjs',
     (createRunner, test) => {
-      test('instruments chat completions, the responses API and streaming on openai v7', async () => {
-        const runner = createRunner().ignore('event');
-        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
+      let scenarios: ReturnType<typeof runScenarios> | undefined;
+      async function runScenarios() {
+        const runner = createRunner();
 
+        const collectors = ['../v6/scenario-chat.mjs', '../v6/scenario-embeddings.mjs'].map(name =>
+          runner.collectStreamedSpansUntilSegment(
+            span => span.name === 'main' && span.attributes['test.scenario']?.value === name,
+          ),
+        );
         await runner.start().completed();
+        return { spans: await Promise.all(collectors) };
+      }
+      const getScenarios = () => (scenarios ??= runScenarios());
+
+      test('instruments chat completions, the responses API and streaming on openai v7', async () => {
+        const spansPromise = getScenarios().then(result => result.spans[0]!);
+
+        await getScenarios();
 
         const allSpans = await spansPromise;
         const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
@@ -103,35 +116,16 @@ describe.runIf(supports({ min: 22 }))('OpenAI integration (V7)', () => {
           value: 'auto.ai.openai',
         });
       });
-    },
-    {
-      additionalDependencies: {
-        openai: '7.5.0',
-      },
-    },
-  );
 
-  // Embeddings publish to a different channel than chat, and match a resource file at the package
-  // root rather than under a nested directory, so they need their own coverage.
-  createEsmAndCjsTests(
-    __dirname,
-    '../v6/scenario-embeddings.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
       test('instruments the embeddings API on openai v7', async () => {
         let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
-        await createRunner()
-          .unordered()
-          .ignore('event')
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
-              receivedSpans = container.items;
-            },
-          })
-          .start()
-          .completed();
+        {
+          const container = { items: (await getScenarios()).spans[1]! };
+
+          expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+          receivedSpans = container.items;
+        }
 
         const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
         const embeddingSpans = spans.filter(span => span.attributes[GEN_AI_OPERATION_NAME]?.value === 'embeddings');
@@ -164,6 +158,9 @@ describe.runIf(supports({ min: 22 }))('OpenAI integration (V7)', () => {
       },
     },
   );
+
+  // Embeddings publish to a different channel than chat, and match a resource file at the package
+  // root rather than under a nested directory, so they need their own coverage.
 
   // The decisions API (`openai` >= 7.30.0) returns typed answers, so it is recorded like a Jev call.
   createEsmAndCjsTests(

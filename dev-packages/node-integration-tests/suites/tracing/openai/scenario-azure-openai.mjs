@@ -12,7 +12,7 @@ function startMockOpenAiServer() {
   return startMockServer(app);
 }
 
-async function run() {
+export async function run() {
   const server = await startMockOpenAiServer();
 
   const client = new AzureOpenAI({
@@ -36,5 +36,3 @@ async function run() {
 
   server.close();
 }
-
-run();
