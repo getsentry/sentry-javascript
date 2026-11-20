@@ -100,6 +100,8 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
 
   return {
     name: 'sentry-cloudflare-auto-instrument',
+    // Without it, `vite dev` calls `buildEnd` only for the client environment, which skips the unresolved `main` warning.
+    perEnvironmentStartEndDuringDev: true,
 
     configResolved(config: {
       root: string;
