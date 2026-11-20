@@ -16,6 +16,7 @@
   "devDependencies": {
     "@sentry-internal/node-integration-tests": "11.15.0",
     "@sentry/bun": "11.15.0",
+    "@sentry/conventions": "0.34.0",
     "@sentry/core": "11.15.0",
     "@sentry/hono": "11.15.0",
     "@types/mysql": "^2.15.27",

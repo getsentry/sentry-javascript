@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 import { RUNTIME, SDK_NAME } from './constants';
@@ -124,7 +125,7 @@ test('Sends streamed spans for an API route', async ({ baseURL }) => {
       'server.address': { type: 'string', value: 'localhost' },
       'user_agent.original': { type: 'string', value: 'node' },
       'url.scheme': { type: 'string', value: 'http' },
-      'sentry.kind': { type: 'string', value: 'server' },
+      [SENTRY_KIND]: { type: 'string', value: 'server' },
       // On Cloudflare, `withSentry` creates the `http.server` span from the worker's `Request`, not from `node:http`.
       // Known defect: the span has no `http.response.status_text`.
       ...(RUNTIME === 'cloudflare'

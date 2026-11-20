@@ -12,6 +12,7 @@ import {
   SENTRY_SDK_INTEGRATIONS,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
@@ -275,7 +276,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
         type: 'integer',
         value: 200,
       },
-      'sentry.kind': {
+      [SENTRY_KIND]: {
         type: 'string',
         value: 'server',
       },
