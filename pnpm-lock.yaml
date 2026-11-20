@@ -433,6 +433,9 @@ importers:
       '@sentry/remix':
         specifier: 11.15.0
         version: link:../../packages/remix
+      '@sentry/solid':
+        specifier: 11.15.0
+        version: link:../../packages/solid
       '@sentry/solidstart':
         specifier: 11.15.0
         version: link:../../packages/solidstart
@@ -2197,6 +2200,9 @@ importers:
       '@sentry/core':
         specifier: 11.15.0
         version: link:../core
+      '@sentry/node':
+        specifier: 11.15.0
+        version: link:../node
     devDependencies:
       '@sentry-internal/rollup-utils':
         specifier: 11.15.0
