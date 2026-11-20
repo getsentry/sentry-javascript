@@ -26,6 +26,12 @@ execSync('pnpm run build:dev:filter @sentry/core', { cwd: repoRoot, stdio: 'inhe
 console.log('Packing @sentry/core...');
 execSync('pnpm run build:tarball', { cwd: coreDir, stdio: 'inherit' });
 
+const serverUtilsDir = join(repoRoot, 'packages', 'server-utils');
+console.log('Building @sentry/server-utils and its workspace dependencies...');
+execSync('pnpm run build:dev:filter @sentry/server-utils', { cwd: repoRoot, stdio: 'inherit' });
+console.log('Packing @sentry/server-utils...');
+execSync('pnpm run build:tarball', { cwd: serverUtilsDir, stdio: 'inherit' });
+
 console.log('Building @sentry/bundler-plugins and its workspace dependencies...');
 execSync('pnpm run build:dev:filter @sentry/bundler-plugins', { cwd: repoRoot, stdio: 'inherit' });
 console.log('Packing @sentry/bundler-plugins...');
