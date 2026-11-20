@@ -107,6 +107,28 @@ describe('withSentryRouterRouting (server)', () => {
     expect(spanToJSON(span).name).toBe('GET');
   });
 
+  it('sets the route as the transaction name without tracing', () => {
+    getCurrentScope().setClient(undefined);
+    const client = new NodeClient({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      integrations: [],
+      transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
+      stackParser: () => [],
+    });
+    setCurrentClient(client);
+    client.init();
+
+    const Router = withSentryRouterRouting(createRouter({ routes }));
+    const transactionName = withIsolationScope(isolationScope => {
+      // Like the HTTP integration, which names the request after its raw path.
+      isolationScope.setTransactionName('GET /user/5');
+      renderToString(() => createComponent(Router, { url: 'http://localhost/user/5' }));
+      return isolationScope.getScopeData().transactionName;
+    });
+
+    expect(transactionName).toBe('GET /user/:id');
+  });
+
   it('leaves spans other than http.server alone', () => {
     const { span } = renderAt('http://localhost/user/5', 'function');
 

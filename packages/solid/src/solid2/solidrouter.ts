@@ -31,36 +31,43 @@ type SolidRouter = RouterInstance<readonly RouteDefinition[]>;
 let serverRouter: SolidRouter | undefined;
 const CLIENTS_NAMING_SERVER_SPANS = new WeakSet<Client>();
 
-/**
- * Names an `http.server` span after the route its URL matches, e.g. `GET /user/:id`, and sets the same name as
- * the transaction of the request's isolation scope, so errors in the request carry it.
- */
-function nameServerSpanAfterRoute(span: Span, router: SolidRouter, path: string, method: string): void {
+type RouteMatch = { name: string; route: string; params: Record<string, unknown> };
+
+/** Matches a URL path against the router, e.g. `GET /user/:id` for `GET /user/5`. */
+function matchRoute(router: SolidRouter, path: string, method: string): RouteMatch | undefined {
   const matches = router.match(path);
   const lastMatch = matches[matches.length - 1];
   if (!lastMatch) {
-    return;
+    return undefined;
   }
 
   // Solid Router reports the root route's pattern as an empty string.
   const route = lastMatch.pattern || '/';
-  const name = `${method} ${route}`;
-  updateSpanName(span, name);
-  span.setAttributes({
-    [HTTP_ROUTE]: route,
-    [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-  });
-  for (const [key, value] of Object.entries(lastMatch.params)) {
-    if (typeof value === 'string') {
-      span.setAttribute(`${URL_PATH_PARAMETER_KEY_BASE}.${key}`, value);
-    }
-  }
+  return { name: `${method} ${route}`, route, params: lastMatch.params };
+}
 
+/** Sets the route name as the transaction of the request's isolation scope, so errors in the request carry it. */
+function setRequestTransactionName(name: string): void {
   // Outside a request, the isolation scope is shared by the whole process.
   const isolationScope = getIsolationScope();
   if (isolationScope !== getDefaultIsolationScope()) {
     isolationScope.setTransactionName(name);
   }
+}
+
+/** Names an `http.server` span after the route its URL matched, and the request's transaction with it. */
+function nameServerSpanAfterRoute(span: Span, { name, route, params }: RouteMatch): void {
+  updateSpanName(span, name);
+  span.setAttributes({
+    [HTTP_ROUTE]: route,
+    [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+  });
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === 'string') {
+      span.setAttribute(`${URL_PATH_PARAMETER_KEY_BASE}.${key}`, value);
+    }
+  }
+  setRequestTransactionName(name);
 }
 
 /**
@@ -83,28 +90,36 @@ function nameServerSpansOnStart(router: SolidRouter): void {
       return;
     }
     const method = attributes[HTTP_REQUEST_METHOD];
-    nameServerSpanAfterRoute(span, serverRouter, path, typeof method === 'string' ? method : 'GET');
+    const match = matchRoute(serverRouter, path, typeof method === 'string' ? method : 'GET');
+    if (match) {
+      nameServerSpanAfterRoute(span, match);
+    }
   });
 }
 
 /**
- * Names the request's `http.server` span while the page renders.
- * Covers the case where `init` ran after the router was created.
+ * Names the request after the matched route while the page renders, and its `http.server` span if there is one.
+ * Covers setups without tracing, which have no span, and the case where `init` ran after the router was created.
  */
-function nameServerSpanOnRender(router: SolidRouter, url: string | undefined): void {
+function nameServerRequestOnRender(router: SolidRouter, url: string | undefined): void {
   const request = getRequestEvent()?.request;
   const requestUrl = request?.url ?? url;
+  if (!requestUrl) {
+    return;
+  }
+
+  const match = matchRoute(router, requestUrl, request?.method ?? 'GET');
+  if (!match) {
+    return;
+  }
+
   const activeSpan = getActiveSpan();
-  if (!requestUrl || !activeSpan) {
-    return;
+  const rootSpan = activeSpan && getRootSpan(activeSpan);
+  if (rootSpan && spanToJSON(rootSpan).attributes?.[SENTRY_OP] === HTTP_SERVER) {
+    nameServerSpanAfterRoute(rootSpan, match);
+  } else {
+    setRequestTransactionName(match.name);
   }
-
-  const rootSpan = getRootSpan(activeSpan);
-  if (spanToJSON(rootSpan).attributes?.[SENTRY_OP] !== HTTP_SERVER) {
-    return;
-  }
-
-  nameServerSpanAfterRoute(rootSpan, router, requestUrl, request?.method ?? 'GET');
 }
 
 /**
@@ -123,7 +138,7 @@ export function withSentryRouterRouting<R extends RouterInstance<readonly RouteD
   return new Proxy(Router, {
     apply(target, thisArg, [props]: [RouterProps]) {
       if (isServer) {
-        nameServerSpanOnRender(target, props.url);
+        nameServerRequestOnRender(target, props.url);
         // The navigation hooks below need the browser router, so the server renders the router unchanged.
         return Reflect.apply(target, thisArg, [props]);
       }
