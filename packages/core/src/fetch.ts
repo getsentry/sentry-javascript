@@ -371,7 +371,7 @@ function getSpanStartOptions(
   const sanitizedUrl = parsedUrl ? getSanitizedUrlStringFromUrlObject(parsedUrl) : url;
   return {
     name: isStreamed ? (domain ? `${method} ${domain}` : method) : `${method} ${sanitizedUrl}`,
-    attributes: getFetchSpanAttributes(url, parsedUrl, method, spanOrigin, client, domain),
+    attributes: getFetchSpanAttributes(url, parsedUrl, method, spanOrigin, client, domain, urlBase),
   };
 }
 
@@ -382,6 +382,7 @@ function getFetchSpanAttributes(
   spanOrigin: SpanOrigin,
   client: Client | undefined,
   domain: string | undefined,
+  urlBase?: string,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
     [URL_FULL]: filterCollectedUrl(stripDataUrlContent(url), client),
@@ -400,6 +401,13 @@ function getFetchSpanAttributes(
       attributes[SERVER_PORT] = parsedUrl.port ? Number(parsedUrl.port) : undefined;
       attributes[URL_PATH] = parsedUrl.pathname;
       attributes[URL_SCHEME] = parsedUrl.protocol.replace(/:$/, '');
+    } else if (urlBase) {
+      const resolvedUrl = parseStringToURLObject(url, urlBase);
+      const baseUrl = parseStringToURLObject(urlBase);
+      if (resolvedUrl && baseUrl && !isURLObjectRelative(baseUrl)) {
+        attributes[URL_PATH] = resolvedUrl.pathname;
+        attributes[URL_SCHEME] = baseUrl.protocol.replace(/:$/, '');
+      }
     }
     attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(parsedUrl.search), client);
     attributes[URL_FRAGMENT] = getUrlFragment(parsedUrl.hash);

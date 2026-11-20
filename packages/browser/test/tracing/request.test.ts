@@ -240,6 +240,7 @@ describe('instrumentOutgoingRequests', () => {
 
     let fetchHandler: ((data: utils.HandlerDataFetch) => void) | undefined;
     let requestSpan: utils.Span | undefined;
+    let startAttributes: utils.SpanAttributes | undefined;
 
     vi.spyOn(utils, 'addFetchInstrumentationHandler').mockImplementation(handler => {
       fetchHandler = handler;
@@ -253,6 +254,7 @@ describe('instrumentOutgoingRequests', () => {
       enableHTTPTimings: false,
       onRequestSpanStart: span => {
         requestSpan = span;
+        startAttributes = utils.spanToJSON(span).attributes;
       },
     });
     fetchHandler?.({
@@ -264,8 +266,9 @@ describe('instrumentOutgoingRequests', () => {
     const requestSpanJson = utils.spanToJSON(requestSpan!);
     expect(requestSpanJson.name).toBe('GET app.example.com');
     expect(requestSpanJson.attributes[URL_DOMAIN]).toBe('app.example.com');
-    expect(requestSpanJson.attributes[URL_PATH]).toBe('/rest/v1/users');
-    expect(requestSpanJson.attributes[URL_SCHEME]).toBe('https');
+    // Set when the span starts, so `ignoreSpans` and `tracesSampler` can match on them.
+    expect(startAttributes?.[URL_PATH]).toBe('/rest/v1/users');
+    expect(startAttributes?.[URL_SCHEME]).toBe('https');
 
     vi.unstubAllGlobals();
   });
