@@ -66,6 +66,10 @@ export default defineConfig({
               find: /^@solidjs\/web$/,
               replacement: fileURLToPath(new URL('./node_modules/@solidjs/web/dist/server.js', import.meta.url)),
             },
+            {
+              find: /^@solidjs\/router$/,
+              replacement: fileURLToPath(new URL('./node_modules/@solidjs/router-2/dist/index.js', import.meta.url)),
+            },
           ],
         },
         test: {
