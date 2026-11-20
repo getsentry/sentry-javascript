@@ -12,7 +12,6 @@ import { withActiveSpan } from '../../tracing';
 import { startInactiveSpan } from '../../tracing/trace';
 import type { Span } from '../../types/span';
 import { getActiveSpan, spanToJSON } from '../../utils/spanUtils';
-import { isObjectLike } from '../../utils/is';
 import { fill } from '../../utils/object';
 import { safeCallback } from '../../utils/safeCallback';
 import {
@@ -21,7 +20,7 @@ import {
   completeSpanWithResults,
   storeSpanForRequest,
 } from './correlation';
-import { captureError, isJsonRpcServerError } from './errorCapture';
+import { captureError } from './errorCapture';
 import { buildClientAttributesFromInfo, extractSessionDataFromInitializeRequest } from './sessionExtraction';
 import { cleanupSessionDataForTransport, updateSessionDataForTransport } from './sessionManagement';
 import {
@@ -247,10 +246,6 @@ export function wrapTransportSend(
 
         if (isJsonRpcResponse(message)) {
           if (message.id !== null && message.id !== undefined) {
-            if (message.error) {
-              captureJsonRpcErrorResponse(message.error);
-            }
-
             completeSpanWithResults(transport, message.id, message.result, message.error);
           }
         }
@@ -289,29 +284,6 @@ export function wrapTransportError(transport: MCPTransport): void {
         return originalOnError.call(this, error);
       };
     });
-  }
-}
-
-/**
- * Captures JSON-RPC error responses for server-side errors.
- * @see https://www.jsonrpc.org/specification#error_object
- * @internal
- * @param errorResponse - JSON-RPC error response
- */
-function captureJsonRpcErrorResponse(errorResponse: unknown): void {
-  try {
-    if (isObjectLike(errorResponse) && 'code' in errorResponse && 'message' in errorResponse) {
-      const jsonRpcError = errorResponse as { code: number; message: string; data?: unknown };
-
-      if (typeof jsonRpcError.code === 'number' && isJsonRpcServerError(jsonRpcError.code)) {
-        const error = new Error(jsonRpcError.message);
-        error.name = `JsonRpcError_${jsonRpcError.code}`;
-
-        captureError(error, 'protocol');
-      }
-    }
-  } catch {
-    // noop
   }
 }
 

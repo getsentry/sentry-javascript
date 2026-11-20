@@ -16,9 +16,9 @@ import {
   MCP_TOOL_RESULT_IS_ERROR,
   RPC_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
-import { SPAN_STATUS_ERROR } from '../../tracing';
+import { SPAN_STATUS_ERROR, withActiveSpan } from '../../tracing';
 import type { Span } from '../../types/span';
-import { isJsonRpcServerError } from './errorCapture';
+import { captureJsonRpcErrorResponse, isJsonRpcServerError } from './errorCapture';
 import { extractPromptResultAttributes, extractToolResultAttributes } from './resultExtraction';
 import {
   buildServerAttributesFromInfo,
@@ -123,6 +123,8 @@ export function applyResponseToSpan(
   }
 
   if (error) {
+    // The MCP SDK can send the response outside the request span's context, so make the span active for the event.
+    withActiveSpan(span, () => captureJsonRpcErrorResponse(error));
     span.setAttribute(RPC_RESPONSE_STATUS_CODE, String(error.code));
     if (isJsonRpcServerError(error.code)) {
       span.setAttribute(ERROR_TYPE, String(error.code));
