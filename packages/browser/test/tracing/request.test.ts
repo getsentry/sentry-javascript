@@ -264,6 +264,8 @@ describe('instrumentOutgoingRequests', () => {
     const requestSpanJson = utils.spanToJSON(requestSpan!);
     expect(requestSpanJson.name).toBe('GET app.example.com');
     expect(requestSpanJson.attributes[URL_DOMAIN]).toBe('app.example.com');
+    expect(requestSpanJson.attributes[URL_PATH]).toBe('/rest/v1/users');
+    expect(requestSpanJson.attributes[URL_SCHEME]).toBe('https');
 
     vi.unstubAllGlobals();
   });

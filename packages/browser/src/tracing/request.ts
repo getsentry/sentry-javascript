@@ -167,12 +167,15 @@ export function instrumentFetchRequests(client: Client, options: Partial<Request
     // so we extend this in here
     if (createdSpan) {
       const fullUrl = getFullURL(handlerData.fetchData.url);
+      const parsedFullUrl = fullUrl ? parseUrl(fullUrl) : undefined;
       // `parseUrl` returns the raw authority — userinfo credentials must never reach an attribute.
-      const host = fullUrl ? parseUrl(fullUrl).host?.replace(/^.*@/, '') : undefined;
+      const host = parsedFullUrl?.host?.replace(/^.*@/, '');
       const sanitizedFullUrl = fullUrl ? stripDataUrlContent(fullUrl) : undefined;
       createdSpan.setAttributes({
         [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
         [SERVER_ADDRESS]: host,
+        [URL_PATH]: host ? parsedFullUrl?.path || '/' : undefined,
+        [URL_SCHEME]: host ? parsedFullUrl?.protocol : undefined,
       });
 
       if (enableHTTPTimings) {

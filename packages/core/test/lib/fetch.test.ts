@@ -1,4 +1,16 @@
-import { URL_FULL } from '@sentry/conventions/attributes';
+import {
+  HTTP_REQUEST_METHOD,
+  SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SERVER_ADDRESS,
+  URL_DOMAIN,
+  URL_FRAGMENT,
+  URL_FULL,
+  URL_PATH,
+  URL_QUERY,
+  URL_SCHEME,
+} from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client, HandlerDataFetch } from '../../src';
 import { _INTERNAL_getTracingHeadersForFetchRequest, instrumentFetchRequest } from '../../src/fetch';
@@ -490,17 +502,17 @@ describe('instrumentFetchRequest', () => {
         name: 'GET https://api.example.com/users/42',
         attributes: {
           type: 'fetch',
-          'http.request.method': 'GET',
-          'sentry.origin': 'auto.http.fetch',
-          'sentry.op': 'http.client',
+          [HTTP_REQUEST_METHOD]: 'GET',
+          [SENTRY_ORIGIN]: 'auto.http.fetch',
+          [SENTRY_OP]: 'http.client',
           [URL_FULL]: url,
-          'server.address': 'api.example.com',
-          'url.domain': 'api.example.com',
-          'url.query': 'include=profile',
-          'url.fragment': 'bio',
-          'sentry.kind': 'client',
-          'url.path': '/users/42',
-          'url.scheme': 'https',
+          [SERVER_ADDRESS]: 'api.example.com',
+          [URL_DOMAIN]: 'api.example.com',
+          [URL_QUERY]: 'include=profile',
+          [URL_FRAGMENT]: 'bio',
+          [SENTRY_KIND]: 'client',
+          [URL_PATH]: '/users/42',
+          [URL_SCHEME]: 'https',
         },
       });
     });
