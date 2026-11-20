@@ -8,13 +8,12 @@ sentryTest.use({
   launchOptions: { ignoreDefaultArgs: ['--disable-back-forward-cache'] },
 });
 
+// Skip at file level, before the browser starts: other browsers do not accept the `chromium` channel
+sentryTest.skip(({ browserName }) => browserName !== 'chromium' || shouldSkipReplayTest());
+
 sentryTest(
   'link click that leaves the page is not a slow click after a bfcache restore',
-  async ({ getLocalTestUrl, page, browserName }) => {
-    if (shouldSkipReplayTest() || browserName !== 'chromium') {
-      sentryTest.skip();
-    }
-
+  async ({ getLocalTestUrl, page }) => {
     const url = await getLocalTestUrl({ testDir: __dirname });
     await page.route('**/page2.html', route =>
       route.fulfill({ contentType: 'text/html', body: '<!doctype html><html><body>Page 2</body></html>' }),
