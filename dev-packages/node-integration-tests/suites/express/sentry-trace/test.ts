@@ -10,9 +10,13 @@ describe('express sentry-trace', () => {
   });
 
   createCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
+    let started: ReturnType<ReturnType<typeof createRunner>['start']> | undefined;
+    // These cases vary request headers, so the same initialized server can handle each one.
+    const getRunner = () => (started ??= createRunner().start());
+
     describe('baggage header assignment', () => {
       test('Should overwrite baggage if the incoming request already has Sentry baggage data but no sentry-trace', async () => {
-        const runner = createRunner().start();
+        const runner = getRunner();
 
         const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
           headers: {
@@ -30,7 +34,7 @@ describe('express sentry-trace', () => {
       });
 
       test('Should propagate sentry trace baggage data from an incoming to an outgoing request.', async () => {
-        const runner = createRunner().start();
+        const runner = getRunner();
 
         const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
           headers: {
@@ -49,7 +53,7 @@ describe('express sentry-trace', () => {
       });
 
       test('Should not propagate baggage data from an incoming to an outgoing request if sentry-trace is faulty.', async () => {
-        const runner = createRunner().start();
+        const runner = getRunner();
 
         const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
           headers: {
@@ -68,7 +72,7 @@ describe('express sentry-trace', () => {
       });
 
       test('Should not propagate baggage if sentry-trace header is present in incoming request but no baggage header', async () => {
-        const runner = createRunner().start();
+        const runner = getRunner();
 
         const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
           headers: {
@@ -85,7 +89,7 @@ describe('express sentry-trace', () => {
       });
 
       test('Should not propagate baggage and ignore original 3rd party baggage entries if sentry-trace header is present', async () => {
-        const runner = createRunner().start();
+        const runner = getRunner();
 
         const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
           headers: {
@@ -103,7 +107,7 @@ describe('express sentry-trace', () => {
       });
 
       test('Should populate and propagate sentry baggage if sentry-trace header does not exist', async () => {
-        const runner = createRunner().start();
+        const runner = getRunner();
 
         const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express');
 
@@ -126,7 +130,7 @@ describe('express sentry-trace', () => {
       });
 
       test('Should populate Sentry and ignore 3rd party content if sentry-trace header does not exist', async () => {
-        const runner = createRunner().start();
+        const runner = getRunner();
 
         const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
           headers: {
@@ -153,7 +157,7 @@ describe('express sentry-trace', () => {
     });
 
     test('should attach a baggage header to an outgoing request.', async () => {
-      const runner = createRunner().start();
+      const runner = getRunner();
 
       const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express-replace-trace-id');
 
@@ -182,7 +186,7 @@ describe('express sentry-trace', () => {
     });
 
     test('should merge `baggage` header of a third party vendor with the Sentry DSC baggage items', async () => {
-      const runner = createRunner().start();
+      const runner = getRunner();
 
       const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express-third-party-baggage', {
         headers: {
@@ -203,7 +207,7 @@ describe('express sentry-trace', () => {
 
     describe('third party baggage with sentry entries', () => {
       test('should ignore sentry-values in `baggage` header of a third party vendor and overwrite them with incoming DSC', async () => {
-        const runner = createRunner().start();
+        const runner = getRunner();
 
         const response = await runner.makeRequest<TestAPIResponse>(
           'get',
@@ -238,7 +242,7 @@ describe('express sentry-trace', () => {
       });
 
       test('should ignore sentry-values in `baggage` header of a third party vendor and overwrite them with new DSC', async () => {
-        const runner = createRunner().start();
+        const runner = getRunner();
 
         const response = await runner.makeRequest<TestAPIResponse>(
           'get',
@@ -278,7 +282,7 @@ describe('express sentry-trace', () => {
     });
 
     test('should preserve baggage property values with equal signs (W3C spec compliance)', async () => {
-      const runner = createRunner().start();
+      const runner = getRunner();
 
       // W3C spec example: https://www.w3.org/TR/baggage/#example
       const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express-property-values', {
@@ -299,7 +303,7 @@ describe('express sentry-trace', () => {
     });
 
     test('Includes transaction in baggage if the transaction name is parameterized', async () => {
-      const runner = createRunner().start();
+      const runner = getRunner();
 
       const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express');
 
@@ -313,7 +317,7 @@ describe('express sentry-trace', () => {
     });
 
     test('Should assign `sentry-trace` header which sets parent trace id of an outgoing request.', async () => {
-      const runner = createRunner().start();
+      const runner = getRunner();
 
       const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
         headers: {
@@ -333,7 +337,7 @@ describe('express sentry-trace', () => {
     });
 
     test('should attach a `sentry-trace` header to an outgoing request.', async () => {
-      const runner = createRunner().start();
+      const runner = getRunner();
 
       const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express');
 
