@@ -11,6 +11,14 @@ function normalizePath(path: string): string {
   return path.replace(/\\/g, '/');
 }
 
+/**
+ * Whether a module ID is the virtual module a non-path wrangler `main` names. Vite plugins serve a
+ * virtual module under its specifier or under the specifier prefixed with `\0`.
+ */
+function isVirtualModuleId(id: string, specifier: string): boolean {
+  return id === specifier || id === `\0${specifier}`;
+}
+
 // Extensions the entry-module match may tolerate swapping (e.g. wrangler's
 // `main` says `.ts` but the served module is `.js`). Anything else — `.css`,
 // `.html`, … — sharing the entry's basename must never be treated as the entry.
@@ -59,6 +67,9 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
   let resolveId: ReturnType<typeof createIdResolver> | undefined;
   // Each environment resolves with its own conditions, so the entry may differ between them.
   const resolvedEntries = new Map<string, Promise<string | undefined>>();
+  // Environments in which `main` did not resolve, and those in which a virtual module of that name was wrapped.
+  const unresolvedEnvironments = new Set<string>();
+  const virtualEntryEnvironments = new Set<string>();
 
   let instrumentFilePath: string | undefined;
   let isVinext = false;
@@ -75,9 +86,9 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
         .catch(() => undefined)
         .then(id => {
           if (!id) {
-            ctx.warn?.(
-              `[sentry] Could not resolve the wrangler \`main\` "${specifier}". Auto-instrumentation disabled.`,
-            );
+            // Maybe a virtual module of another plugin, which this resolver does not see. `transform`
+            // matches it by its ID, and `buildEnd` warns if no module did.
+            unresolvedEnvironments.add(environment.name);
             return undefined;
           }
           return normalizePath(id.replace(/[?#].*$/, ''));
@@ -129,6 +140,15 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
       }
     },
 
+    buildEnd(this: TransformContext): void {
+      const name = this.environment?.name;
+      if (entrySpecifier && name && unresolvedEnvironments.has(name) && !virtualEntryEnvironments.has(name)) {
+        this.warn?.(
+          `[sentry] Could not resolve the wrangler \`main\` "${entrySpecifier}". Auto-instrumentation disabled.`,
+        );
+      }
+    },
+
     async transform(
       this: TransformContext,
       code: string,
@@ -141,11 +161,18 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
       // client entry next to a `src/index.ts` worker) out of the browser bundle.
       if (this.environment?.name === 'client') return undefined;
 
-      const entryPath = entrySpecifier ? await resolveEntrySpecifier(this, entrySpecifier) : entryFilePath;
-      if (!entryPath) return undefined;
+      const resolvedEntryPath = entrySpecifier ? await resolveEntrySpecifier(this, entrySpecifier) : entryFilePath;
 
       // Vite may append query/hash params to the module ID.
       const normalizedId = normalizePath(id.replace(/[?#].*$/, ''));
+
+      const isVirtualEntry = !resolvedEntryPath && !!entrySpecifier && isVirtualModuleId(normalizedId, entrySpecifier);
+      const entryPath = isVirtualEntry ? normalizedId : resolvedEntryPath;
+      if (!entryPath) return undefined;
+      if (isVirtualEntry && this.environment) {
+        virtualEntryEnvironments.add(this.environment.name);
+      }
+
       if (normalizedId !== entryPath) {
         // Tolerate a differing JS-flavored extension (e.g. `.js` vs `.ts`).
         if (!JS_EXTENSION_REGEX.test(normalizedId) || !JS_EXTENSION_REGEX.test(entryPath)) return undefined;
@@ -198,7 +225,8 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
         isVinext && (await resolvesNextjsCloudflare(this, normalizedId)) ? NEXTJS_CLOUDFLARE_MODULE : undefined;
 
       const { optionsFn, importStmt: optionsImport } = instrumentFilePath
-        ? buildOptionsImport(entryPath, instrumentFilePath)
+        ? // A virtual module has no directory to import from relatively.
+          buildOptionsImport(entryPath, instrumentFilePath, { absolute: isVirtualEntry })
         : { optionsFn: ENV_FALLBACK_OPTIONS_FN, importStmt: undefined };
 
       // No registration import is injected here: the orchestrion plugin's
