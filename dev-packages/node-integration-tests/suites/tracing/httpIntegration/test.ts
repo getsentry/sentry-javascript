@@ -35,7 +35,7 @@ import {
   USER_AGENT_ORIGINAL,
   USER_IP_ADDRESS,
 } from '@sentry/conventions/attributes';
-import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, type TransactionEvent } from '@sentry/core';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, createRunner } from '../../../utils/runner';
 import { EXPECTED_SDK_NAME, supports } from '../../../utils';
@@ -211,90 +211,23 @@ describe('httpIntegration', () => {
 
   describe('http.server spans', () => {
     createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument.mjs', (createRunner, test) => {
-      test('captures attributes for GET, POST and forwarded requests', async () => {
+      let scenario: ReturnType<typeof runScenario> | undefined;
+      async function runScenario() {
+        const transactions: TransactionEvent[] = [];
         const runner = createRunner()
           .expect({
             transaction: transaction => {
-              const port = runner.getPort();
-              expect(transaction.transaction).toBe('GET /test');
-              expect(transaction.contexts?.trace?.data).toEqual({
-                'http.request.method': 'GET',
-                'url.query': 'a=1&b=2',
-                'http.response.status_code': 200,
-                'http.route': '/test',
-                'url.scheme': 'http',
-                'http.response.status_text': 'OK',
-                'user_agent.original': 'node',
-                'client.address': '::1',
-                'client.port': expect.any(Number),
-                'network.local.address': '::1',
-                'server.address': 'localhost',
-                'server.port': port,
-                'network.local.port': port,
-                'network.peer.address': '::1',
-                'network.peer.port': expect.any(Number),
-                'network.protocol.name': 'http',
-                'network.protocol.version': '1.1',
-                'network.transport': 'tcp',
-                'sentry.kind': 'server',
-                'sentry.op': 'http.server',
-                'sentry.origin': 'auto.http.http_server',
-                'sentry.sample_rate': 1,
-                'sentry.segment.name.source': 'route',
-                [URL_FULL]: `http://localhost:${port}/test?a=1&b=2`,
-                [URL_PATH]: '/test',
-                ...getCommonHttpRequestHeaders(),
-              });
+              transactions.push(transaction);
             },
           })
           .expect({
             transaction: transaction => {
-              const port = runner.getPort();
-              expect(transaction.transaction).toBe('POST /test');
-              expect(transaction.contexts?.trace?.data).toEqual({
-                'http.request.method': 'POST',
-                'url.query': 'a=1&b=2',
-                'http.request.body.size': 9,
-                'http.response.status_code': 200,
-                'http.route': '/test',
-                'url.scheme': 'http',
-                'http.response.status_text': 'OK',
-                'user_agent.original': 'node',
-                'client.address': '::1',
-                'client.port': expect.any(Number),
-                'network.local.address': '::1',
-                'server.address': 'localhost',
-                'server.port': port,
-                'network.local.port': port,
-                'network.peer.address': '::1',
-                'network.peer.port': expect.any(Number),
-                'network.protocol.name': 'http',
-                'network.protocol.version': '1.1',
-                'network.transport': 'tcp',
-                'sentry.kind': 'server',
-                'sentry.op': 'http.server',
-                'sentry.origin': 'auto.http.http_server',
-                'sentry.sample_rate': 1,
-                'sentry.segment.name.source': 'route',
-                [URL_FULL]: `http://localhost:${port}/test?a=1&b=2`,
-                [URL_PATH]: '/test',
-                'http.request.header.content-length': ['9'],
-                'http.request.header.content-type': ['text/plain;charset=UTF-8'],
-                ...getCommonHttpRequestHeaders(),
-              });
+              transactions.push(transaction);
             },
           })
           .expect({
             transaction: transaction => {
-              const data = transaction.contexts?.trace?.data;
-              expect(data).toEqual(
-                expect.objectContaining({
-                  'client.address': '203.0.113.7',
-                  'network.peer.address': '::1',
-                  'network.peer.port': expect.any(Number),
-                }),
-              );
-              expect(data).not.toHaveProperty('client.port');
+              transactions.push(transaction);
             },
           })
           .start();
@@ -303,6 +236,104 @@ describe('httpIntegration', () => {
         await runner.makeRequest('post', '/test?a=1&b=2#hash', { data: 'test body' });
         await runner.makeRequest('get', '/test', { headers: { 'X-Forwarded-For': '203.0.113.7, 10.0.0.1' } });
         await runner.completed();
+        return { transactions, port: runner.getPort() };
+      }
+
+      test('captures correct attributes for GET requests', async () => {
+        scenario ??= runScenario();
+        const { transactions, port } = await scenario;
+        const transaction = transactions.find(
+          transaction =>
+            transaction.contexts?.trace?.data?.['http.request.method'] === 'GET' &&
+            transaction.contexts?.trace?.data?.['url.query'] === 'a=1&b=2',
+        );
+        expect(transaction).toBeDefined();
+        expect(transaction!.transaction).toBe('GET /test');
+        expect(transaction!.contexts?.trace?.data).toEqual({
+          'http.request.method': 'GET',
+          'url.query': 'a=1&b=2',
+          'http.response.status_code': 200,
+          'http.route': '/test',
+          'url.scheme': 'http',
+          'http.response.status_text': 'OK',
+          'user_agent.original': 'node',
+          'client.address': '::1',
+          'client.port': expect.any(Number),
+          'network.local.address': '::1',
+          'server.address': 'localhost',
+          'server.port': port,
+          'network.local.port': port,
+          'network.peer.address': '::1',
+          'network.peer.port': expect.any(Number),
+          'network.protocol.name': 'http',
+          'network.protocol.version': '1.1',
+          'network.transport': 'tcp',
+          'sentry.kind': 'server',
+          'sentry.op': 'http.server',
+          'sentry.origin': 'auto.http.http_server',
+          'sentry.sample_rate': 1,
+          'sentry.segment.name.source': 'route',
+          [URL_FULL]: `http://localhost:${port}/test?a=1&b=2`,
+          [URL_PATH]: '/test',
+          ...getCommonHttpRequestHeaders(),
+        });
+      });
+      test('captures correct attributes for POST requests', async () => {
+        scenario ??= runScenario();
+        const { transactions, port } = await scenario;
+        const transaction = transactions.find(
+          transaction => transaction.contexts?.trace?.data?.['http.request.method'] === 'POST',
+        );
+        expect(transaction).toBeDefined();
+        expect(transaction!.transaction).toBe('POST /test');
+        expect(transaction!.contexts?.trace?.data).toEqual({
+          'http.request.method': 'POST',
+          'url.query': 'a=1&b=2',
+          'http.request.body.size': 9,
+          'http.response.status_code': 200,
+          'http.route': '/test',
+          'url.scheme': 'http',
+          'http.response.status_text': 'OK',
+          'user_agent.original': 'node',
+          'client.address': '::1',
+          'client.port': expect.any(Number),
+          'network.local.address': '::1',
+          'server.address': 'localhost',
+          'server.port': port,
+          'network.local.port': port,
+          'network.peer.address': '::1',
+          'network.peer.port': expect.any(Number),
+          'network.protocol.name': 'http',
+          'network.protocol.version': '1.1',
+          'network.transport': 'tcp',
+          'sentry.kind': 'server',
+          'sentry.op': 'http.server',
+          'sentry.origin': 'auto.http.http_server',
+          'sentry.sample_rate': 1,
+          'sentry.segment.name.source': 'route',
+          [URL_FULL]: `http://localhost:${port}/test?a=1&b=2`,
+          [URL_PATH]: '/test',
+          'http.request.header.content-length': ['9'],
+          'http.request.header.content-type': ['text/plain;charset=UTF-8'],
+          ...getCommonHttpRequestHeaders(),
+        });
+      });
+      test('prefers the forwarded client address, without the socket port', async () => {
+        scenario ??= runScenario();
+        const { transactions, port } = await scenario;
+        const transaction = transactions.find(
+          transaction => transaction.contexts?.trace?.data?.[URL_FULL] === `http://localhost:${port}/test`,
+        );
+        expect(transaction).toBeDefined();
+        const data = transaction!.contexts?.trace?.data;
+        expect(data).toEqual(
+          expect.objectContaining({
+            'client.address': '203.0.113.7',
+            'network.peer.address': '::1',
+            'network.peer.port': expect.any(Number),
+          }),
+        );
+        expect(data).not.toHaveProperty('client.port');
       });
     });
 

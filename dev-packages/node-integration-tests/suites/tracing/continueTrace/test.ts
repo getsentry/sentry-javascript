@@ -1,3 +1,4 @@
+import type { Event } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -86,14 +87,15 @@ describe('continueTrace', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     describe.each(CONFIGS)('$name', config => {
-      test('continues each incoming-header variant with isolated scopes', async () => {
+      let scenario: ReturnType<typeof runScenario> | undefined;
+      async function runScenario() {
         const runner = createRunner()
           .withEnv({
             TRACES_SAMPLE_RATE: config.rate,
             INCOMING_TRACE_VARIANTS: JSON.stringify(VARIANTS),
           })
           .unordered();
-        const observedErrorTraceIds = new Map<string, string | undefined>();
+        const events: Event[] = [];
         const spanCollections = new Map(
           VARIANTS.filter(variant => expectsSpan(config.rate, variant)).map(variant => [
             variant.key,
@@ -101,36 +103,52 @@ describe('continueTrace', () => {
           ]),
         );
 
-        for (const variant of VARIANTS) {
+        for (const _variant of VARIANTS) {
           runner.expect({
             event: event => {
-              expect(event.tags?.['test.variant']).toBe(variant.key);
-              expect(event.exception?.values?.[0]?.value).toBe(`continued-trace-error: ${variant.key}`);
-              const trace = event.contexts?.trace;
-              observedErrorTraceIds.set(variant.key, trace?.trace_id);
-
-              if (variant.traceId) {
-                expect(trace?.trace_id).toBe(variant.traceId);
-              } else {
-                expect(trace?.trace_id).toMatch(/^[a-f0-9]{32}$/);
-              }
-              expect(trace?.span_id).toMatch(/^[a-f0-9]{16}$/);
-
-              // getTraceData() observed inside the callback carries the continued trace id.
-              const traceData = (event.contexts?.traceData ?? {}) as { 'sentry-trace'?: string; baggage?: string };
-              expect(traceData['sentry-trace']).toMatch(new RegExp(`^${trace?.trace_id}-[a-f0-9]{16}`));
-              if (variant.hasIncomingBaggage) {
-                expect(traceData.baggage).toContain(`sentry-trace_id=${variant.traceId}`);
-              }
+              events.push(event);
             },
           });
         }
 
         await runner.start().completed();
 
-        for (const variant of VARIANTS.filter(variant => expectsSpan(config.rate, variant))) {
-          const spans = await spanCollections.get(variant.key)!;
-          const segment = spans.find(span => span.is_segment);
+        return {
+          events,
+          spans: new Map(
+            await Promise.all([...spanCollections].map(async ([key, spans]) => [key, await spans] as const)),
+          ),
+        };
+      }
+
+      test.each(VARIANTS)('continues the $key', async variant => {
+        scenario ??= runScenario();
+        const { events, spans } = await scenario;
+        const event = events.find(
+          event => event.exception?.values?.[0]?.value === `continued-trace-error: ${variant.key}`,
+        );
+        expect(event).toBeDefined();
+        expect(event!.tags?.['test.variant']).toBe(variant.key);
+        expect(event!.exception?.values?.[0]?.value).toBe(`continued-trace-error: ${variant.key}`);
+        const trace = event!.contexts?.trace;
+
+        if (variant.traceId) {
+          expect(trace?.trace_id).toBe(variant.traceId);
+        } else {
+          expect(trace?.trace_id).toMatch(/^[a-f0-9]{32}$/);
+        }
+        expect(trace?.span_id).toMatch(/^[a-f0-9]{16}$/);
+
+        // getTraceData() observed inside the callback carries the continued trace id.
+        const traceData = (event!.contexts?.traceData ?? {}) as { 'sentry-trace'?: string; baggage?: string };
+        expect(traceData['sentry-trace']).toMatch(new RegExp(`^${trace?.trace_id}-[a-f0-9]{16}`));
+        if (variant.hasIncomingBaggage) {
+          expect(traceData.baggage).toContain(`sentry-trace_id=${variant.traceId}`);
+        }
+
+        if (expectsSpan(config.rate, variant)) {
+          const collectedSpans = spans.get(variant.key)!;
+          const segment = collectedSpans.find(span => span.is_segment);
 
           if (variant.traceId) {
             expect(segment?.trace_id, variant.key).toBe(variant.traceId);
@@ -141,7 +159,7 @@ describe('continueTrace', () => {
             expect(segment?.parent_span_id, variant.key).toBe(variant.parentSpanId);
           }
           expect(segment?.name, variant.key).toBe('continued-root-span');
-          expect(segment?.trace_id, variant.key).toBe(observedErrorTraceIds.get(variant.key));
+          expect(segment?.trace_id, variant.key).toBe(trace?.trace_id);
         }
       });
     });
