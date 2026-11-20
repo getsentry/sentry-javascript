@@ -29,7 +29,7 @@ const toolCallModel = new MockLanguageModelV3({
   }),
 });
 
-async function run() {
+export async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     // A turn of an OpenAI Conversations API conversation.
     await generateText({
@@ -71,5 +71,3 @@ async function run() {
     });
   });
 }
-
-run();

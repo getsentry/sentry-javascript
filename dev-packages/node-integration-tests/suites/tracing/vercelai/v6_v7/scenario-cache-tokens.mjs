@@ -4,7 +4,7 @@ import { MockLanguageModelV3 } from 'ai/test';
 
 // Calls routed through the Vercel AI Gateway carry a `gateway` key in `providerMetadata` instead of a
 // provider name, so cache counts can only be derived from the SDK's normalized usage object.
-async function run() {
+export async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     await generateText({
       experimental_telemetry: { isEnabled: true, recordInputs: true, recordOutputs: true },
@@ -27,5 +27,3 @@ async function run() {
     });
   });
 }
-
-run();
