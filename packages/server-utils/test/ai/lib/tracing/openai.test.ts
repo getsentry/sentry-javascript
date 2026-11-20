@@ -157,7 +157,7 @@ describe('instrumentOpenAiClient span names', () => {
     ]);
   });
 
-  it('keeps message roles, image URLs, JSON parts and tool items in the decision input', async () => {
+  it('keeps message roles, image URLs, JSON parts and tool items in the decision input, without image data', async () => {
     const endedSpans = setupClient('stream');
     const instrumented = instrumentOpenAiClient({
       decisions: { create: vi.fn().mockResolvedValue({ model: 'gpt-6-luna', answers: [] }) },
@@ -169,6 +169,11 @@ describe('instrumentOpenAiClient span names', () => {
       input: [
         { role: 'developer', content: 'Judge the ticket.' },
         toolCall,
+        {
+          type: 'function_call_output',
+          call_id: 'call_1',
+          output: [{ type: 'input_image', image_url: 'data:image/png;base64,iVBORw0KGgo=' }],
+        },
         {
           role: 'user',
           content: [
@@ -184,6 +189,11 @@ describe('instrumentOpenAiClient span names', () => {
     expect(input[0].state).toEqual([
       { role: 'system', parts: [{ type: 'text', content: 'Judge the ticket.' }] },
       toolCall,
+      {
+        type: 'function_call_output',
+        call_id: 'call_1',
+        output: [{ type: 'blob', modality: 'image', mime_type: 'image/png' }],
+      },
       {
         role: 'user',
         parts: [

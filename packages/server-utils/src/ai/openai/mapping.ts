@@ -17,24 +17,28 @@ export function getDecisionInputMessages(params: Record<string, unknown>): strin
 
 /**
  * Lay out evidence messages as gen_ai messages, so they render like Google's. Other input items (tool calls and
- * their outputs) are kept as they are.
+ * their outputs) keep their layout, with output parts mapped like message parts.
  */
 function toStateMessages(input: unknown): unknown {
   if (!Array.isArray(input)) {
     return input;
   }
 
-  return input.map(item =>
-    isObjectLike(item) && typeof item.role === 'string'
-      ? ({
-          // The gen_ai conventions have no `developer` role.
-          role: (item.role === 'developer' ? 'system' : item.role) as GenAiMessage['role'],
-          parts: Array.isArray(item.content)
-            ? item.content.filter(isObjectLike).map(toMessagePart)
-            : [{ type: 'text', content: item.content }],
-        } satisfies GenAiMessage)
-      : item,
-  );
+  return input.map(item => {
+    if (!isObjectLike(item)) {
+      return item;
+    }
+    if (typeof item.role === 'string') {
+      return {
+        // The gen_ai conventions have no `developer` role.
+        role: (item.role === 'developer' ? 'system' : item.role) as GenAiMessage['role'],
+        parts: Array.isArray(item.content)
+          ? item.content.filter(isObjectLike).map(toMessagePart)
+          : [{ type: 'text', content: item.content }],
+      } satisfies GenAiMessage;
+    }
+    return Array.isArray(item.output) ? { ...item, output: item.output.filter(isObjectLike).map(toMessagePart) } : item;
+  });
 }
 
 /**
