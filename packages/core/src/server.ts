@@ -34,7 +34,7 @@ export { trpcMiddleware } from './trpc';
 export { wrapMcpServerWithSentry } from './integrations/mcp-server';
 export { isNodeEnv, loadModule } from './utils/node';
 export { filenameIsInApp, node, nodeStackLineParser } from './utils/node-stack-trace';
-export { collectInstalledModules as _INTERNAL_collectInstalledModules } from './utils/installedModules';
+export { collectInstalledModules } from './utils/installedModules';
 export { vercelWaitUntil } from './utils/vercelWaitUntil';
 export { getReleaseMetaTag as _INTERNAL_getReleaseMetaTag } from './utils/meta';
 export {

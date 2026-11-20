@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, dirname, join } from '@sentry/core';
-import { _INTERNAL_collectInstalledModules } from '@sentry/core/server';
+import { collectInstalledModules } from '@sentry/core/server';
 
 /** Reads only with granted permission, so it never prompts. */
 function readFile(path?: string): string | undefined {
@@ -43,7 +43,7 @@ function getDenoLockModules(startDir: string): Record<string, string> {
 function collectModules(): Record<string, string> {
   const entryPath = Deno.mainModule.startsWith('file:') ? fileURLToPath(Deno.mainModule) : undefined;
   const cwd = readFile();
-  const { declared, installed } = _INTERNAL_collectInstalledModules({ readFile, entryPath, cwd });
+  const { declared, installed } = collectInstalledModules({ readFile, entryPath, cwd });
   const startDir = (entryPath ? dirname(entryPath.replace(/\\/g, '/')) : cwd?.replace(/\\/g, '/')) || '.';
   return { ...declared, ...getDenoLockModules(startDir), ...installed };
 }
