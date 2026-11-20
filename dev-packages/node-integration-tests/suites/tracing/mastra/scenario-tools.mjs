@@ -62,7 +62,7 @@ const provider = startMockProvider([
   },
 ]);
 
-async function run() {
+export async function run() {
   const agent = new Agent({
     id: 'weather_agent',
     name: 'weather_agent',
@@ -98,5 +98,3 @@ async function run() {
   await mastra.observability.shutdown();
   provider.close();
 }
-
-run();

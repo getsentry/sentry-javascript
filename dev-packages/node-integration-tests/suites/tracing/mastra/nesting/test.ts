@@ -16,107 +16,100 @@ describe.runIf(supports({ min: 22 }))('Mastra integration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
-
   createEsmAndCjsTests(
     join(__dirname, '..'),
-    'scenario-tool-nesting.mjs',
+    ['scenario-tool-nesting.mjs', 'scenario-stream-nesting.mjs'],
     'instrument.mjs',
     (createRunner, test) => {
+      let scenarios: ReturnType<typeof runScenarios> | undefined;
+      async function runScenarios() {
+        const runner = createRunner();
+
+        const collectors = ['scenario-tool-nesting.mjs', 'scenario-stream-nesting.mjs'].map(name =>
+          runner.collectStreamedSpansUntilSegment(
+            span => span.name === 'mastra-test' && span.attributes['test.scenario']?.value === name,
+          ),
+        );
+        await runner.start().completed();
+        return { spans: await Promise.all(collectors) };
+      }
+      const getScenarios = () => (scenarios ??= runScenarios());
+
       test('nests the model fetch and tool work under the exporter spans', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
-              // The model-provider requests Mastra makes for each step.
-              const modelFetches = container.items.filter(
-                span =>
-                  span.attributes[SENTRY_OP]?.value === 'http.client' &&
-                  String(span.attributes[URL_FULL]?.value ?? '').includes('/v1/chat/completions'),
-              );
-              expect(modelFetches.length).toBeGreaterThan(0);
-              const modelFetchParentIds = modelFetches.map(span => span.parent_span_id);
+        {
+          const container = { items: (await getScenarios()).spans[0]! };
 
-              // The per-key `dataloader.load` spans opened while the tool runs. (dataloader also emits a
-              // `dataloader.batch` span nested under a load — its own internal structure.)
-              const loadSpans = container.items.filter(
-                span =>
-                  span.attributes[SENTRY_OP]?.value === 'cache.get' &&
-                  span.attributes[DB_OPERATION_NAME]?.value === 'load',
-              );
-              expect(loadSpans.length).toBeGreaterThan(0);
-              const cacheGetParentIds = loadSpans.map(span => span.parent_span_id);
-              const chat = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT)!;
-              expect(chat).toBeDefined();
-              const chatSpanId = chat.span_id;
+          expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+          // The model-provider requests Mastra makes for each step.
+          const modelFetches = container.items.filter(
+            span =>
+              span.attributes[SENTRY_OP]?.value === 'http.client' &&
+              String(span.attributes[URL_FULL]?.value ?? '').includes('/v1/chat/completions'),
+          );
+          expect(modelFetches.length).toBeGreaterThan(0);
+          const modelFetchParentIds = modelFetches.map(span => span.parent_span_id);
 
-              const executeTool = container.items.find(
-                span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'count_items',
-              )!;
-              expect(executeTool.attributes[SENTRY_OP]?.value).toBe(GEN_AI_EXECUTE_TOOL);
-              const executeToolSpanId = executeTool.span_id;
+          // The per-key `dataloader.load` spans opened while the tool runs. (dataloader also emits a
+          // `dataloader.batch` span nested under a load — its own internal structure.)
+          const loadSpans = container.items.filter(
+            span =>
+              span.attributes[SENTRY_OP]?.value === 'cache.get' && span.attributes[DB_OPERATION_NAME]?.value === 'load',
+          );
+          expect(loadSpans.length).toBeGreaterThan(0);
+          const cacheGetParentIds = loadSpans.map(span => span.parent_span_id);
+          const chat = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT)!;
+          expect(chat).toBeDefined();
+          const chatSpanId = chat.span_id;
 
-              // The `executeWithContext` bridge makes the exporter spans active during the real work, so the
-              // model fetch parents onto the `chat` span and the dataloader loads onto `execute_tool`.
-              expect(chatSpanId).toBeDefined();
-              expect(executeToolSpanId).toBeDefined();
-              expect(new Set(modelFetchParentIds)).toEqual(new Set([chatSpanId]));
-              expect(new Set(cacheGetParentIds)).toEqual(new Set([executeToolSpanId]));
-            },
-          })
-          .start()
-          .completed();
+          const executeTool = container.items.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'count_items')!;
+          expect(executeTool.attributes[SENTRY_OP]?.value).toBe(GEN_AI_EXECUTE_TOOL);
+          const executeToolSpanId = executeTool.span_id;
+
+          // The `executeWithContext` bridge makes the exporter spans active during the real work, so the
+          // model fetch parents onto the `chat` span and the dataloader loads onto `execute_tool`.
+          expect(chatSpanId).toBeDefined();
+          expect(executeToolSpanId).toBeDefined();
+          expect(new Set(modelFetchParentIds)).toEqual(new Set([chatSpanId]));
+          expect(new Set(cacheGetParentIds)).toEqual(new Set([executeToolSpanId]));
+        }
       });
-    },
-    MASTRA_NESTING_DEPENDENCIES,
-  );
 
-  createEsmAndCjsTests(
-    join(__dirname, '..'),
-    'scenario-stream-nesting.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
       test('nests the model fetch and tool work under the exporter spans when streaming', async () => {
         // Same nesting guarantee as `generate`, but the agent is driven via `stream()` — the model
         // request is a real streaming (SSE) call, and the tool still runs inside `executeWithContext`.
 
-        await createRunner()
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
-              const modelFetches = container.items.filter(
-                span =>
-                  span.attributes[SENTRY_OP]?.value === 'http.client' &&
-                  String(span.attributes[URL_FULL]?.value ?? '').includes('/v1/chat/completions'),
-              );
-              expect(modelFetches.length).toBeGreaterThan(0);
-              const modelFetchParentIds = modelFetches.map(span => span.parent_span_id);
+        {
+          const container = { items: (await getScenarios()).spans[1]! };
 
-              const loadSpans = container.items.filter(
-                span =>
-                  span.attributes[SENTRY_OP]?.value === 'cache.get' &&
-                  span.attributes[DB_OPERATION_NAME]?.value === 'load',
-              );
-              expect(loadSpans.length).toBeGreaterThan(0);
-              const cacheGetParentIds = loadSpans.map(span => span.parent_span_id);
-              const chat = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT)!;
-              expect(chat).toBeDefined();
-              expect(chat.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]?.value).toEqual(expect.any(Number));
-              const chatSpanId = chat.span_id;
+          expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+          const modelFetches = container.items.filter(
+            span =>
+              span.attributes[SENTRY_OP]?.value === 'http.client' &&
+              String(span.attributes[URL_FULL]?.value ?? '').includes('/v1/chat/completions'),
+          );
+          expect(modelFetches.length).toBeGreaterThan(0);
+          const modelFetchParentIds = modelFetches.map(span => span.parent_span_id);
 
-              const executeTool = container.items.find(
-                span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'count_items',
-              )!;
-              expect(executeTool.attributes[SENTRY_OP]?.value).toBe(GEN_AI_EXECUTE_TOOL);
-              const executeToolSpanId = executeTool.span_id;
+          const loadSpans = container.items.filter(
+            span =>
+              span.attributes[SENTRY_OP]?.value === 'cache.get' && span.attributes[DB_OPERATION_NAME]?.value === 'load',
+          );
+          expect(loadSpans.length).toBeGreaterThan(0);
+          const cacheGetParentIds = loadSpans.map(span => span.parent_span_id);
+          const chat = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT)!;
+          expect(chat).toBeDefined();
+          expect(chat.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]?.value).toEqual(expect.any(Number));
+          const chatSpanId = chat.span_id;
 
-              expect(chatSpanId).toBeDefined();
-              expect(executeToolSpanId).toBeDefined();
-              expect(new Set(modelFetchParentIds)).toEqual(new Set([chatSpanId]));
-              expect(new Set(cacheGetParentIds)).toEqual(new Set([executeToolSpanId]));
-            },
-          })
-          .start()
-          .completed();
+          const executeTool = container.items.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'count_items')!;
+          expect(executeTool.attributes[SENTRY_OP]?.value).toBe(GEN_AI_EXECUTE_TOOL);
+          const executeToolSpanId = executeTool.span_id;
+
+          expect(chatSpanId).toBeDefined();
+          expect(executeToolSpanId).toBeDefined();
+          expect(new Set(modelFetchParentIds)).toEqual(new Set([chatSpanId]));
+          expect(new Set(cacheGetParentIds)).toEqual(new Set([executeToolSpanId]));
+        }
       });
     },
     MASTRA_NESTING_DEPENDENCIES,

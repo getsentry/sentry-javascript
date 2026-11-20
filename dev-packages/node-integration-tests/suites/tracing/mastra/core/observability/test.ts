@@ -38,6 +38,7 @@ describe.runIf(supports({ min: 22 }))('Mastra integration', () => {
     },
     MASTRA_DEPENDENCIES,
   );
+
   createEsmAndCjsTests(
     join(__dirname, '../..'),
     'scenario-community-exporter.mjs',
@@ -58,6 +59,7 @@ describe.runIf(supports({ min: 22 }))('Mastra integration', () => {
     },
     MASTRA_DEPENDENCIES,
   );
+
   createEsmAndCjsTests(
     join(__dirname, '../..'),
     'scenario-auto.mjs',

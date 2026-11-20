@@ -21,7 +21,6 @@ describe('LangChain integration (v1)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
-
   createEsmAndCjsTests(
     join(__dirname, '..'),
     'scenario-typesafe-classifier.mjs',

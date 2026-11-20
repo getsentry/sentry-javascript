@@ -28,7 +28,7 @@ function startMockAnthropicServer() {
   return startMockServer(app);
 }
 
-async function run() {
+export async function run() {
   const server = await startMockAnthropicServer();
   const baseUrl = server.url;
 
@@ -83,8 +83,5 @@ async function run() {
     });
   });
 
-  await Sentry.flush(2000);
   server.close();
 }
-
-run();
