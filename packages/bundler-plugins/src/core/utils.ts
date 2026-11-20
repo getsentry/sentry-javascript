@@ -322,16 +322,6 @@ export function generateModuleMetadataInjectorCode(metadata: any): CodeInjection
   );
 }
 
-/**
- * Merges the modules into `__SENTRY_SERVER_MODULES__`, which the Node SDK's `modulesIntegration` reads. Several
- * bundles of one app can each set it.
- */
-export function generateModulesInjectorCode(modules: Record<string, string>): CodeInjection {
-  return new CodeInjection(
-    `e.__SENTRY_SERVER_MODULES__=Object.assign({},e.__SENTRY_SERVER_MODULES__,${stringifyForCodeInjection(modules)});`,
-  );
-}
-
 export function getBuildInformation(): {
   deps: string[];
   depsVersions: Record<string, number>;
@@ -353,9 +343,26 @@ export function stripQueryAndHashFromPath(path: string): string {
   return path.split('?')[0]!.split('#')[0]!;
 }
 
+/** The placeholder that the Node SDK's `modulesIntegration` reads the module versions from. */
+export const SERVER_MODULES_PLACEHOLDER = '__SENTRY_SERVER_MODULES__';
+
+/** The `define` entry that replaces the module versions placeholder, for bundlers with `define` support. */
+export function getServerModulesDefinition(serverModules: Record<string, string>): Record<string, string> {
+  return { [SERVER_MODULES_PLACEHOLDER]: stringifyForCodeInjection(serverModules) };
+}
+
+// Skips property reads like `GLOBAL_OBJ.__SENTRY_SERVER_MODULES__`, which read the global that Turbopack builds set,
+// and mentions in strings or in backticks, like the ones in the SDK's comments.
+const SERVER_MODULES_PLACEHOLDER_REGEX = /(?<![\w$.'"`])__SENTRY_SERVER_MODULES__(?![\w$'"`])/g;
+
+/**
+ * Replaces the boolean flags, and the `__SENTRY_SERVER_MODULES__` placeholder that the Node SDK's `modulesIntegration`
+ * reads when `serverModules` is set.
+ */
 export function replaceBooleanFlagsInCode(
   code: string,
   replacementValues: Record<string, boolean | undefined>,
+  serverModules?: Record<string, string>,
 ): { code: string; map: SourceMap } | null {
   const ms = new MagicString(code);
 
@@ -366,6 +373,13 @@ export function replaceBooleanFlagsInCode(
       ms.replaceAll(key, JSON.stringify(value));
     }
   });
+
+  if (serverModules) {
+    const serverModulesCode = `(${stringifyForCodeInjection(serverModules)})`;
+    for (const match of code.matchAll(SERVER_MODULES_PLACEHOLDER_REGEX)) {
+      ms.overwrite(match.index, match.index + match[0].length, serverModulesCode);
+    }
+  }
 
   if (ms.hasChanged()) {
     return {

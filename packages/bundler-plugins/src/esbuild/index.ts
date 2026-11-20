@@ -10,6 +10,7 @@ import {
   addDebugIdToEmittedArtifacts,
   isJsFile,
   getSourceMapFeatures,
+  getServerModulesDefinition,
 } from '../core';
 import * as path from 'node:path';
 import { createRequire } from 'node:module';
@@ -190,15 +191,7 @@ export function sentryEsbuildPlugin(userOptions: InternalOptions = {}): any {
     name: pluginName,
     setup({ initialOptions, onLoad, onResolve, onStart, onEnd }: EsbuildPluginBuild) {
       // Release and/or metadata injection
-      const injectionCode = staticInjectionCode.clone();
-      injectionCode.append(
-        sentryBuildPluginManager.getModuleVersionsInjectionCode({
-          root: initialOptions.absWorkingDir,
-          isServerBuild: initialOptions.platform === 'node',
-        }),
-      );
-
-      if (!injectionCode.isEmpty()) {
+      if (!staticInjectionCode.isEmpty()) {
         const virtualInjectionFilePath = path.resolve('_sentry-injection-stub');
         initialOptions.inject = initialOptions.inject || [];
         // esbuild emits injected files after an entry's directive prologue. A banner would precede
@@ -217,7 +210,7 @@ export function sentryEsbuildPlugin(userOptions: InternalOptions = {}): any {
           return {
             loader: 'js',
             pluginName,
-            contents: injectionCode.code(),
+            contents: staticInjectionCode.code(),
           };
         });
       }
@@ -230,6 +223,14 @@ export function sentryEsbuildPlugin(userOptions: InternalOptions = {}): any {
         });
 
         initialOptions.define = { ...initialOptions.define, ...replacementStringValues };
+      }
+
+      const serverModules = sentryBuildPluginManager.getModuleVersions({
+        root: initialOptions.absWorkingDir,
+        isServerBuild: initialOptions.platform === 'node',
+      });
+      if (serverModules) {
+        initialOptions.define = { ...initialOptions.define, ...getServerModulesDefinition(serverModules) };
       }
 
       // Debug ID injection - requires per-entry-point unique IDs

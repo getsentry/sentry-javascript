@@ -12,14 +12,7 @@ import type { Logger } from './logger';
 import { createLogger } from './logger';
 import { allowedToSendTelemetry, createSentryInstance, safeFlushTelemetry } from './sentry/telemetry';
 import type { InternalOptions, SentrySDKBuildFlags } from './types';
-import {
-  arrayify,
-  CodeInjection,
-  generateModulesInjectorCode,
-  getProjects,
-  getTurborepoEnvPassthroughWarning,
-  stripQueryAndHashFromPath,
-} from './utils';
+import { arrayify, getProjects, getTurborepoEnvPassthroughWarning, stripQueryAndHashFromPath } from './utils';
 import { getInstalledModules } from './installed-modules';
 import {
   defaultRewriteSourcesHook,
@@ -106,10 +99,10 @@ export type SentryBuildPluginManager = {
   bundleMetadata: Record<string, unknown>;
 
   /**
-   * Returns the snippet that injects the app's module versions into a build, or an empty snippet when the build gets
-   * none (see the `injectModuleVersions` option). The versions are read once per root.
+   * Returns the app's module versions to replace `__SENTRY_SERVER_MODULES__` with in a build, or `undefined` when the
+   * build gets none (see the `injectModuleVersions` option). The versions are read once per root.
    */
-  getModuleVersionsInjectionCode(build: { root?: string; isServerBuild: boolean }): CodeInjection;
+  getModuleVersions(build: { root?: string; isServerBuild: boolean }): Record<string, string> | undefined;
 
   /**
    * Contains utility functions for emitting telemetry via the build plugin manager.
@@ -253,7 +246,7 @@ export function createSentryBuildPluginManager(
         },
       },
       bundleMetadata: {},
-      getModuleVersionsInjectionCode: () => new CodeInjection(),
+      getModuleVersions: () => undefined,
       createRelease: async () => {
         /* noop */
       },
@@ -489,25 +482,23 @@ export function createSentryBuildPluginManager(
     }
   }
 
-  const moduleVersionsInjectionCodeByRoot = new Map<string, CodeInjection>();
-  function getModuleVersionsInjectionCode({
+  const moduleVersionsByRoot = new Map<string, Record<string, string> | undefined>();
+  function getModuleVersions({
     root = process.cwd(),
     isServerBuild,
   }: {
     root?: string;
     isServerBuild: boolean;
-  }): CodeInjection {
+  }): Record<string, string> | undefined {
     if (!(options.injectModuleVersions ?? isServerBuild)) {
-      return new CodeInjection();
+      return undefined;
     }
 
-    let code = moduleVersionsInjectionCodeByRoot.get(root);
-    if (!code) {
+    if (!moduleVersionsByRoot.has(root)) {
       const modules = getInstalledModules(root);
-      code = Object.keys(modules).length > 0 ? generateModulesInjectorCode(modules) : new CodeInjection();
-      moduleVersionsInjectionCodeByRoot.set(root, code);
+      moduleVersionsByRoot.set(root, Object.keys(modules).length > 0 ? modules : undefined);
     }
-    return code;
+    return moduleVersionsByRoot.get(root);
   }
 
   return {
@@ -533,7 +524,7 @@ export function createSentryBuildPluginManager(
     // See `generateModuleMetadataInjectorCode` for how this should be used exactly
     bundleMetadata,
 
-    getModuleVersionsInjectionCode,
+    getModuleVersions,
 
     /**
      * Contains utility functions for emitting telemetry via the build plugin manager.

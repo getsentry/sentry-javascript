@@ -6,7 +6,7 @@ import {
   generateModuleMetadataInjectorCode,
   isJsFile,
   isInitialChunk,
-  isModuleVersionsChunk,
+  SERVER_MODULES_PLACEHOLDER,
   shouldSkipCodeInjection,
   getDebugIdSnippet,
   createDebugIdUploadFunction,
@@ -88,6 +88,11 @@ function getViteParseAstAsync(): Promise<ViteParseAstAsync | null> {
   }
 
   return viteParseAstAsyncPromise;
+}
+
+// Plain Rollup builds get no module versions unless the user opts in, see `injectModuleVersions`.
+function mayInjectModuleVersions(injectModuleVersions: boolean | undefined, buildTool: 'rollup' | 'vite'): boolean {
+  return injectModuleVersions === true || (buildTool === 'vite' && injectModuleVersions !== false);
 }
 
 /**
@@ -180,15 +185,20 @@ export function _createRollupPluginInternals(
     : undefined;
 
   const transformReplace = Object.keys(replacementValues).length > 0;
-  const shouldTransform = transformAnnotations || transformReplace;
+  const transformServerModules = mayInjectModuleVersions(options.injectModuleVersions, buildTool);
+  const shouldTransform = transformAnnotations || transformReplace || transformServerModules;
 
   let viteRoot: string | undefined;
   // Vite before 6 has no environments and runs an SSR build with its own config.
   let viteSsrBuild = false;
 
-  function getModuleVersionsInjectionCode(context: ViteHookContext | undefined): CodeInjection {
+  function getServerModules(context: ViteHookContext | undefined, code: string): Record<string, string> | undefined {
+    if (!transformServerModules || !code.includes(SERVER_MODULES_PLACEHOLDER)) {
+      return undefined;
+    }
+
     const environment = context?.environment;
-    return sentryBuildPluginManager.getModuleVersionsInjectionCode({
+    return sentryBuildPluginManager.getModuleVersions({
       root: viteRoot,
       isServerBuild: environment ? environment.config?.consumer === 'server' : viteSsrBuild,
     });
@@ -203,6 +213,7 @@ export function _createRollupPluginInternals(
   }
 
   async function transform(
+    this: ViteHookContext | undefined,
     code: string,
     id: string,
     meta?: ComponentAnnotationTransformMeta,
@@ -216,8 +227,9 @@ export function _createRollupPluginInternals(
       }
     }
 
-    if (transformReplace) {
-      return replaceBooleanFlagsInCode(code, replacementValues);
+    const serverModules = getServerModules(this, code);
+    if (transformReplace || serverModules) {
+      return replaceBooleanFlagsInCode(code, replacementValues, serverModules);
     }
 
     return null;
@@ -244,12 +256,8 @@ export function _createRollupPluginInternals(
 
     const injectCode = new CodeInjection();
 
-    if (isInitialChunk(chunk, meta?.chunks) && !releaseHtmlInjection?.inHtml(this)) {
+    if (!releaseHtmlInjection?.inHtml(this) && isInitialChunk(chunk, meta?.chunks)) {
       injectCode.append(releaseInjectionCode);
-    }
-
-    if (isModuleVersionsChunk(chunk, meta?.chunks)) {
-      injectCode.append(getModuleVersionsInjectionCode(this));
     }
 
     injectCode.append(chunkInjectionCode);

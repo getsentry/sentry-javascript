@@ -8,7 +8,7 @@ export const INJECTED_MODULES = { 'declared-only': '^2.0.0', installed: '1.2.3' 
 
 /**
  * Creates an app with one installed and one declared-only dependency, and an `entry.js` that the bundler tests
- * build.
+ * build. The entry reads the modules like the Node SDK's `modulesIntegration`.
  */
 export function createModuleVersionsProject(): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sentry-module-versions-'));
@@ -21,14 +21,23 @@ export function createModuleVersionsProject(): string {
     path.join(root, 'node_modules', 'installed', 'package.json'),
     JSON.stringify({ name: 'installed', version: '1.2.3' }),
   );
-  fs.writeFileSync(path.join(root, 'entry.js'), 'console.log("entry");\n');
+  fs.writeFileSync(
+    path.join(root, 'entry.js'),
+    [
+      '// Reads `__SENTRY_SERVER_MODULES__`, or `globalThis.__SENTRY_SERVER_MODULES__` without a build-time value.',
+      "globalThis.modules = typeof __SENTRY_SERVER_MODULES__ !== 'undefined'",
+      '  ? __SENTRY_SERVER_MODULES__',
+      '  : globalThis.__SENTRY_SERVER_MODULES__;',
+      '',
+    ].join('\n'),
+  );
   return root;
 }
 
-/** Runs a CommonJS bundle and returns the `__SENTRY_SERVER_MODULES__` it set. */
+/** Runs a bundle of `entry.js` and returns the modules that it read. */
 export function runAndReadModules(code: string): unknown {
   const module = { exports: {} };
-  const context: Record<string, unknown> = { console: { log: () => undefined }, module, exports: module.exports };
+  const context: Record<string, unknown> = { module, exports: module.exports };
   runInNewContext(code, context);
-  return context.__SENTRY_SERVER_MODULES__;
+  return context.modules;
 }

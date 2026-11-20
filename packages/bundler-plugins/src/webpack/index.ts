@@ -21,6 +21,7 @@ import {
   isJsFile,
   stampDebugId,
   getSourceMapFeatures,
+  getServerModulesDefinition,
 } from '../core/index';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -126,7 +127,6 @@ type WebpackCompilation = {
     hash?: string;
     contentHash?: { javascript?: string };
     canBeInitial?: () => boolean;
-    hasRuntime?: () => boolean;
   }>;
   outputOptions: {
     path?: string;
@@ -440,17 +440,7 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptio
   }
 
   function addCodeInjection(compiler: WebpackCompiler, injectRelease: boolean): void {
-    const moduleVersionsInjectionCode = sentryBuildPluginManager.getModuleVersionsInjectionCode({
-      root: compiler.options.context,
-      isServerBuild: isNodeTarget(compiler.options.target),
-    });
-
-    if (
-      (!injectRelease || releaseInjectionCode.isEmpty()) &&
-      moduleVersionsInjectionCode.isEmpty() &&
-      chunkInjectionCode.isEmpty() &&
-      !injectDebugIds
-    ) {
+    if ((!injectRelease || releaseInjectionCode.isEmpty()) && chunkInjectionCode.isEmpty() && !injectDebugIds) {
       return;
     }
 
@@ -490,10 +480,6 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptio
               const codeToInject = new CodeInjection();
               if (injectRelease && (chunk.canBeInitial?.() ?? true)) {
                 codeToInject.append(releaseInjectionCode);
-              }
-              // Entries that share a runtime chunk, like the pages of a Next.js server build, share one copy.
-              if (chunk.hasRuntime?.() ?? chunk.canBeInitial?.() ?? true) {
-                codeToInject.append(moduleVersionsInjectionCode);
               }
               codeToInject.append(chunkInjectionCode);
               if (injectDebugIds) {
@@ -601,6 +587,15 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptio
       if (transformReplace && DefinePlugin) {
         compiler.options.plugins = compiler.options.plugins || [];
         compiler.options.plugins.push(new DefinePlugin(replacementValues));
+      }
+
+      const serverModules = sentryBuildPluginManager.getModuleVersions({
+        root: compiler.options.context,
+        isServerBuild: isNodeTarget(compiler.options.target),
+      });
+      if (serverModules && DefinePlugin) {
+        compiler.options.plugins = compiler.options.plugins || [];
+        compiler.options.plugins.push(new DefinePlugin(getServerModulesDefinition(serverModules)));
       }
 
       // Add component name annotation transform

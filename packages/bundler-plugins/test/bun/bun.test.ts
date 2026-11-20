@@ -81,14 +81,14 @@ describe('sentryBunPlugin', () => {
     const config: Config = { target };
     setupPlugin(sentryBunPlugin({ telemetry: false }) as BunPlugin, config);
 
-    expect(config.banner).toContain('__SENTRY_SERVER_MODULES__');
+    expect(config.define?.__SENTRY_SERVER_MODULES__).toContain('"@sentry/core"');
   });
 
   it.each([undefined, 'browser'] as const)('does not inject module versions with the %j target', target => {
     const config: Config = { target };
     setupPlugin(sentryBunPlugin({ telemetry: false }) as BunPlugin, config);
 
-    expect(config.banner ?? '').not.toContain('__SENTRY_SERVER_MODULES__');
+    expect(config.define?.__SENTRY_SERVER_MODULES__).toBeUndefined();
   });
 
   it('adds the debug ID snippet to the banner when Bun emits source maps', () => {

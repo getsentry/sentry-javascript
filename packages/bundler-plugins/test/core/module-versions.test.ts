@@ -1,29 +1,39 @@
 import * as fs from 'fs';
-import { runInNewContext } from 'node:vm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createSentryBuildPluginManager } from '../../src/core/build-plugin-manager';
 import { getInstalledModules } from '../../src/core/installed-modules';
-import { generateModulesInjectorCode } from '../../src/core/utils';
+import { replaceBooleanFlagsInCode } from '../../src/core/utils';
 import type { Options } from '../../src/core';
-import { createModuleVersionsProject, INJECTED_MODULES, runAndReadModules } from '../utils/module-versions-project';
+import { createModuleVersionsProject, INJECTED_MODULES } from '../utils/module-versions-project';
 
-describe('generateModulesInjectorCode', () => {
-  it('merges the modules into an existing `__SENTRY_SERVER_MODULES__`', () => {
-    const context: { __SENTRY_SERVER_MODULES__?: Record<string, string> } = {
-      __SENTRY_SERVER_MODULES__: { other: '1.0.0', installed: '0.0.1' },
-    };
+describe('replaceBooleanFlagsInCode with server modules', () => {
+  const modules = { installed: '1.2.3' };
 
-    runInNewContext(generateModulesInjectorCode({ installed: '1.2.3' }).code(), context);
+  it('replaces the `__SENTRY_SERVER_MODULES__` placeholder', () => {
+    const code = "if (typeof __SENTRY_SERVER_MODULES__ !== 'undefined') return __SENTRY_SERVER_MODULES__;";
 
-    expect(context.__SENTRY_SERVER_MODULES__).toEqual({ other: '1.0.0', installed: '1.2.3' });
+    expect(replaceBooleanFlagsInCode(code, {}, modules)?.code).toBe(
+      'if (typeof ({"installed":"1.2.3"}) !== \'undefined\') return ({"installed":"1.2.3"});',
+    );
   });
 
-  it('sets `__SENTRY_SERVER_MODULES__` when nothing set it before', () => {
-    const context: { __SENTRY_SERVER_MODULES__?: Record<string, string> } = {};
+  it('keeps property reads, strings and mentions in backticks', () => {
+    const code = [
+      '// Reads `__SENTRY_SERVER_MODULES__`.',
+      "const key = '__SENTRY_SERVER_MODULES__';",
+      'const fromGlobal = GLOBAL_OBJ.__SENTRY_SERVER_MODULES__ ?? GLOBAL_OBJ?.__SENTRY_SERVER_MODULES__;',
+      'const other = __SENTRY_SERVER_MODULES__x;',
+    ].join('\n');
 
-    runInNewContext(generateModulesInjectorCode({ installed: '1.2.3' }).code(), context);
+    expect(replaceBooleanFlagsInCode(code, {}, modules)).toBeNull();
+  });
 
-    expect(context.__SENTRY_SERVER_MODULES__).toEqual({ installed: '1.2.3' });
+  it('replaces flags and the placeholder in one pass', () => {
+    const code = 'if (__SENTRY_DEBUG__) console.log(__SENTRY_SERVER_MODULES__);';
+
+    expect(replaceBooleanFlagsInCode(code, { __SENTRY_DEBUG__: false }, modules)?.code).toBe(
+      'if (false) console.log(({"installed":"1.2.3"}));',
+    );
   });
 });
 
@@ -38,42 +48,40 @@ describe('module versions', () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
-  function getCode(options: Options, isServerBuild: boolean): string {
+  function getModuleVersions(options: Options, isServerBuild: boolean): Record<string, string> | undefined {
     return createSentryBuildPluginManager(
       { telemetry: false, silent: true, ...options },
       { buildTool: 'test', loggerPrefix: '[test]' },
-    )
-      .getModuleVersionsInjectionCode({ root, isServerBuild })
-      .code();
+    ).getModuleVersions({ root, isServerBuild });
   }
 
   it('reads installed versions and falls back to declared ranges', () => {
     expect(getInstalledModules(root)).toEqual(INJECTED_MODULES);
   });
 
-  it('injects into server builds by default', () => {
-    expect(runAndReadModules(getCode({}, true))).toEqual(INJECTED_MODULES);
+  it('returns the versions for server builds by default', () => {
+    expect(getModuleVersions({}, true)).toEqual(INJECTED_MODULES);
   });
 
-  it('does not inject into other builds by default', () => {
-    expect(getCode({}, false)).toBe('');
+  it('returns nothing for other builds by default', () => {
+    expect(getModuleVersions({}, false)).toBeUndefined();
   });
 
-  it('injects into every build with `injectModuleVersions: true`', () => {
-    expect(runAndReadModules(getCode({ injectModuleVersions: true }, false))).toEqual(INJECTED_MODULES);
+  it('returns the versions for every build with `injectModuleVersions: true`', () => {
+    expect(getModuleVersions({ injectModuleVersions: true }, false)).toEqual(INJECTED_MODULES);
   });
 
-  it('does not inject with `injectModuleVersions: false`', () => {
-    expect(getCode({ injectModuleVersions: false }, true)).toBe('');
+  it('returns nothing with `injectModuleVersions: false`', () => {
+    expect(getModuleVersions({ injectModuleVersions: false }, true)).toBeUndefined();
   });
 
-  it('does not inject when the plugin is disabled', () => {
-    expect(getCode({ disable: true }, true)).toBe('');
+  it('returns nothing when the plugin is disabled', () => {
+    expect(getModuleVersions({ disable: true }, true)).toBeUndefined();
   });
 
-  it('does not inject when the project has no dependencies', () => {
+  it('returns nothing when the project has no dependencies', () => {
     fs.writeFileSync(`${root}/package.json`, JSON.stringify({ name: 'app' }));
 
-    expect(getCode({}, true)).toBe('');
+    expect(getModuleVersions({}, true)).toBeUndefined();
   });
 });

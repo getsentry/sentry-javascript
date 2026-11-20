@@ -500,6 +500,9 @@ export interface Options {
    * `modulesIntegration` reports them when `node_modules` is missing or incomplete at runtime. Versions are the
    * exact versions installed at build time, or the ranges in `package.json` for packages that are not installed.
    *
+   * The plugin replaces the placeholder that the SDK reads them from, so this only works when the build bundles the
+   * SDK. When the SDK stays external, it reads the versions from `node_modules` at runtime.
+   *
    * By default, the plugin injects them into server builds only: Vite environments with the `server` consumer or SSR
    * builds, webpack builds with a `node` or `async-node` target, esbuild builds with `platform: 'node'`, and Bun
    * builds with a `bun` or `node` target. Plain Rollup builds get no injection by default, because Rollup cannot tell

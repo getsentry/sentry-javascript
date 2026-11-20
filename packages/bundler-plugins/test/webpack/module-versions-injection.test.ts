@@ -52,36 +52,11 @@ describe('module versions injection (webpack)', () => {
     'does not inject into builds with the %j target',
     { timeout: 15_000 },
     async target => {
-      expect(await buildApp(target)).not.toContain('__SENTRY_SERVER_MODULES__');
+      expect(runAndReadModules(await buildApp(target))).toBeUndefined();
     },
   );
 
   it('does not inject with `injectModuleVersions: false`', { timeout: 15_000 }, async () => {
-    expect(await buildApp('node', { injectModuleVersions: false })).not.toContain('__SENTRY_SERVER_MODULES__');
-  });
-
-  it('injects one copy into a runtime chunk that entries share', { timeout: 15_000 }, async () => {
-    fs.writeFileSync(path.join(root, 'other.js'), 'console.log("other");\n');
-    const outDir = path.join(root, 'dist');
-
-    await new Promise<void>((resolve, reject) => {
-      webpack(
-        {
-          mode: 'none',
-          context: root,
-          target: 'node',
-          entry: { main: './entry.js', other: './other.js' },
-          output: { path: outDir, filename: '[name].js' },
-          optimization: { runtimeChunk: { name: 'runtime' } },
-          plugins: [sentryWebpackPlugin({ telemetry: false, silent: true, release: { create: false } })],
-        },
-        (err, stats) => (err || !stats || stats.hasErrors() ? reject(err ?? new Error(stats?.toString())) : resolve()),
-      );
-    });
-
-    const filesWithModules = fs
-      .readdirSync(outDir)
-      .filter(file => fs.readFileSync(path.join(outDir, file), 'utf8').includes('__SENTRY_SERVER_MODULES__'));
-    expect(filesWithModules).toEqual(['runtime.js']);
+    expect(runAndReadModules(await buildApp('node', { injectModuleVersions: false }))).toBeUndefined();
   });
 });

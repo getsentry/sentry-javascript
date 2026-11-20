@@ -41,6 +41,40 @@ describe('module versions injection (vite)', () => {
     expect(runAndReadModules(readJs(outDir))).toEqual(INJECTED_MODULES);
   });
 
+  it('injects into a bundled SDK, and leaves an external one to read `node_modules` at runtime', async () => {
+    const sdkDir = path.join(root, 'node_modules', 'sdk');
+    fs.mkdirSync(sdkDir);
+    fs.writeFileSync(
+      path.join(sdkDir, 'package.json'),
+      JSON.stringify({ name: 'sdk', version: '1.0.0', main: 'index.js' }),
+    );
+    fs.renameSync(path.join(root, 'entry.js'), path.join(sdkDir, 'index.js'));
+    fs.writeFileSync(path.join(root, 'entry.js'), "import 'sdk';\n");
+
+    async function buildSsr(noExternal: boolean): Promise<string> {
+      const outDir = path.join(root, noExternal ? 'dist-bundled' : 'dist-external');
+      await build({
+        configFile: false,
+        logLevel: 'silent',
+        root,
+        plugins: plugins(),
+        ssr: noExternal ? { noExternal: true } : undefined,
+        build: {
+          outDir,
+          ssr: path.join(root, 'entry.js'),
+          minify: false,
+          rollupOptions: { output: { format: 'cjs' } },
+        },
+      });
+      return readJs(outDir);
+    }
+
+    expect(runAndReadModules(await buildSsr(true))).toEqual(INJECTED_MODULES);
+    const external = await buildSsr(false);
+    expect(external).toContain('require("sdk")');
+    expect(external).not.toContain('"installed"');
+  });
+
   it('does not inject into client builds', async () => {
     const outDir = path.join(root, 'dist');
     await build({
@@ -51,7 +85,7 @@ describe('module versions injection (vite)', () => {
       build: { outDir, lib: { entry: path.join(root, 'entry.js'), formats: ['es'] }, minify: false },
     });
 
-    expect(readJs(outDir)).not.toContain('__SENTRY_SERVER_MODULES__');
+    expect(runAndReadModules(readJs(outDir))).toBeUndefined();
   });
 
   it('injects only into environments with the server consumer', async () => {
@@ -78,7 +112,7 @@ describe('module versions injection (vite)', () => {
     });
     await builder.buildApp();
 
-    expect(readJs(path.join(clientOutDir, 'assets'))).not.toContain('__SENTRY_SERVER_MODULES__');
+    expect(runAndReadModules(readJs(path.join(clientOutDir, 'assets')))).toBeUndefined();
     expect(runAndReadModules(readJs(serverOutDir))).toEqual(INJECTED_MODULES);
   });
 });

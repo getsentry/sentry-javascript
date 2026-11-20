@@ -7,6 +7,7 @@ import {
   createDebugIdUploadFunction,
   CodeInjection,
   getSourceMapFeatures,
+  getServerModulesDefinition,
 } from '../core';
 import * as fs from 'node:fs';
 
@@ -134,11 +135,6 @@ export function sentryBunPlugin(userOptions: Options = {}): BunPlugin {
 
       const injectionCode = new CodeInjection();
       injectionCode.append(staticInjectionCode);
-      injectionCode.append(
-        sentryBuildPluginManager.getModuleVersionsInjectionCode({
-          isServerBuild: config.target === 'bun' || config.target === 'node',
-        }),
-      );
       if (injectDebugIds) {
         injectionCode.append(getDebugIdSnippet(DEBUG_ID_PLACEHOLDER));
       }
@@ -154,6 +150,13 @@ export function sentryBunPlugin(userOptions: Options = {}): BunPlugin {
         });
 
         config.define = { ...config.define, ...replacementStringValues };
+      }
+
+      const serverModules = sentryBuildPluginManager.getModuleVersions({
+        isServerBuild: config.target === 'bun' || config.target === 'node',
+      });
+      if (serverModules) {
+        config.define = { ...config.define, ...getServerModulesDefinition(serverModules) };
       }
 
       const freeGlobalDependencyOnBuildArtifacts = createDependencyOnBuildArtifacts();

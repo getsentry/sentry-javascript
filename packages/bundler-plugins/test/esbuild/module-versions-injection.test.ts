@@ -23,6 +23,7 @@ describe('module versions injection (esbuild)', () => {
       entryPoints: ['./entry.js'],
       bundle: true,
       platform,
+      format: 'cjs',
       outfile,
       logLevel: 'silent',
       plugins: [sentryEsbuildPlugin({ telemetry: false, silent: true, release: { create: false } })],
@@ -35,6 +36,6 @@ describe('module versions injection (esbuild)', () => {
   });
 
   it.each([undefined, 'browser', 'neutral'] as const)('does not inject with platform %j', async platform => {
-    expect(await buildApp(platform)).not.toContain('__SENTRY_SERVER_MODULES__');
+    expect(runAndReadModules(await buildApp(platform))).toBeUndefined();
   });
 });

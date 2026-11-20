@@ -78,7 +78,7 @@ describe('getDisabledSourcemapsOptions (vite)', () => {
     const allCode = Object.values({ ...clientFiles, ...serverFiles }).join('\n');
 
     expect(runAndReadModules(Object.values(serverFiles).join('\n'))).toEqual(INJECTED_MODULES);
-    expect(Object.values(clientFiles).join('\n')).not.toContain('__SENTRY_SERVER_MODULES__');
+    expect(runAndReadModules(Object.values(clientFiles).join('\n'))).toBeUndefined();
     expect(Object.keys({ ...clientFiles, ...serverFiles }).filter(file => file.endsWith('.map'))).toEqual([]);
     expect(allCode).not.toContain('SENTRY_RELEASE');
     expect(allCode).not.toContain('sentry-dbid');
