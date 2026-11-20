@@ -3,6 +3,7 @@ import { existsSync } from 'fs';
 import { cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
 import { basename, delimiter, join } from 'path';
 import { promisify } from 'util';
+import { stringifyForCodeInjection } from '@sentry/core';
 import { afterAll, beforeAll, test, type TestAPI } from 'vitest';
 import { CLEANUP_STEPS, createRunner, PACKAGE_ROOT } from './createRunner';
 
@@ -40,10 +41,11 @@ interface EsmAndCjsTestOptions extends CommonTestOptions {
 
 /**
  * Run one or multiple tests in ESM and CJS for a given scenario and instrument file.
+ * An array runs exported scenario functions sequentially with a fresh isolation scope for each.
  */
 export function createEsmAndCjsTests(
   cwd: string,
-  scenarioPath: string,
+  scenarioPath: string | string[],
   instrumentPath: string,
   callback: (
     createTestRunner: () => ReturnType<typeof createRunner>,
@@ -98,7 +100,7 @@ export function createEsmAndCjsTests(
  */
 export function createEsmTests(
   cwd: string,
-  scenarioPath: string,
+  scenarioPath: string | string[],
   instrumentPath: string,
   callback: (createTestRunner: () => ReturnType<typeof createRunner>, testFn: typeof test, cwd: string) => void,
   options?: CommonTestOptions,
@@ -123,7 +125,7 @@ export function createEsmTests(
  */
 export function createCjsTests(
   cwd: string,
-  scenarioPath: string,
+  scenarioPath: string | string[],
   instrumentPath: string,
   callback: (createTestRunner: () => ReturnType<typeof createRunner>, testFn: typeof test, cwd: string) => void,
   options?: CommonTestOptions,
@@ -193,11 +195,13 @@ function setupAndCleanup(
 /** Returns: tmpDir, createTmpDir(), scenarioPaths */
 function prepareTmpDir(
   cwd: string,
-  scenarioPath: string,
+  scenarioPath: string | string[],
   instrumentPath: string,
   options?: CommonTestOptions,
 ): [string, () => Promise<void>, ScenarioPaths] {
-  const mjsScenarioPath = join(cwd, scenarioPath);
+  const scenarios = Array.isArray(scenarioPath) ? scenarioPath : undefined;
+  const entryPath = typeof scenarioPath === 'string' ? scenarioPath : 'batched-scenarios.mjs';
+  const mjsScenarioPath = join(cwd, entryPath);
   const mjsInstrumentPath = join(cwd, instrumentPath);
 
   if (!mjsScenarioPath.endsWith('.mjs')) {
@@ -212,7 +216,7 @@ function prepareTmpDir(
   // If additionalDependencies are provided, we also create a nested package.json and install them there.
   const uniqueId = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   const tmpDirPath = join(cwd, `tmp_${uniqueId}`);
-  const esmScenarioBasename = basename(scenarioPath);
+  const esmScenarioBasename = basename(entryPath);
   const esmInstrumentBasename = basename(instrumentPath);
   const esmScenarioPathForRun = join(tmpDirPath, esmScenarioBasename);
   const esmInstrumentPathForRun = join(tmpDirPath, esmInstrumentBasename);
@@ -229,7 +233,38 @@ function prepareTmpDir(
     await mkdir(tmpDirPath);
 
     // Copy ESM files as-is into tmp dir
-    await writeFile(esmScenarioPathForRun, await readFile(mjsScenarioPath, 'utf8'));
+    if (scenarios) {
+      for (const scenario of scenarios) {
+        const destination = join(tmpDirPath, basename(scenario));
+        await writeFile(destination, await readFile(join(cwd, scenario), 'utf8'));
+        await convertEsmFileToCjs(destination, destination.replace(/\.mjs$/, '.cjs'));
+      }
+      const imports = scenarios.map(
+        (scenario, index) => `import * as scenario${index} from './${basename(scenario)}';`,
+      );
+      const runs = scenarios.map(
+        (scenario, index) =>
+          `await Sentry.withIsolationScope(scope => {
+          scope.setAttribute('test.scenario', ${stringifyForCodeInjection(scenario)});
+          return scenario${index}.run();
+        });`,
+      );
+      await writeFile(
+        esmScenarioPathForRun,
+        [
+          "import * as Sentry from '@sentry/node';",
+          ...imports,
+          `async function run() { ${runs.join('\n')} await Sentry.flush(2000); }`,
+          'run();',
+        ].join('\n'),
+      );
+    } else {
+      const scenario = await readFile(mjsScenarioPath, 'utf8');
+      await writeFile(
+        esmScenarioPathForRun,
+        scenario.includes('export async function run()') ? `${scenario}\nrun();\n` : scenario,
+      );
+    }
     await writeFile(esmInstrumentPathForRun, await readFile(mjsInstrumentPath, 'utf8'));
 
     // Pre-create CJS converted files inside tmp dir
@@ -328,6 +363,14 @@ function convertEsmToCjs(content: string): string {
   newContent = newContent.replace(/import\s+['"]([^'"]+)['"]/g, (_, module) => {
     return `require('${module}')`;
   });
+
+  if (content.includes('export async function run()')) {
+    newContent = newContent.replace('export async function run()', 'async function run()');
+    newContent += '\nexports.run = run;\n';
+  }
+  if (content.includes("import * as scenario0 from './")) {
+    newContent = newContent.replace(/require\('([.][^']+)\.mjs'\)/g, "require('$1.cjs')");
+  }
 
   return newContent;
 }
