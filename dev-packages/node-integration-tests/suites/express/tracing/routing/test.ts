@@ -37,9 +37,12 @@ describe('express tracing', () => {
       return (await scenario).get(path)!;
     }
 
+    let errorScenario: ReturnType<typeof runScenario> | undefined;
+    let arrayScenario: ReturnType<typeof runScenario> | undefined;
+    let regexScenario: ReturnType<typeof runScenario> | undefined;
+
     test('should create and send segment spans for Express routes and spans for middlewares.', async () => {
       const container = { items: await getSpans('/test/express') };
-
       const serverSpan = findSegmentSpan(container);
 
       expect(serverSpan).toMatchObject({
@@ -78,10 +81,8 @@ describe('express tracing', () => {
         }),
       );
     });
-
     test('names router and request handler spans after their route', async () => {
       const container = { items: await getSpans('/test/router/user/123') };
-
       const handlerSpan = findExpressSpan(container, 'request_handler');
       expect(handlerSpan?.name).toBe('/test/router/user/:id');
       // The name has to stay in step with the attribute it comes from.
@@ -97,10 +98,8 @@ describe('express tracing', () => {
         value: 'middleware',
       });
     });
-
     test('should set a correct segment name for routes specified in RegEx', async () => {
       const container = { items: await getSpans('/test/regex') };
-
       expect(findSegmentSpan(container)).toMatchObject({
         name: 'GET /\\/test\\/regex/',
         span_id: expect.stringMatching(/[a-f\d]{16}/),
@@ -114,10 +113,8 @@ describe('express tracing', () => {
         }),
       });
     });
-
     test('nests a sub-router route handler span under the router span', async () => {
       const container = { items: await getSpans('/test/router/user/42') };
-
       expect(findSegmentSpan(container)?.name).toBe('GET /test/router/user/:id');
 
       const routerSpan = findExpressSpan(container, 'router');
@@ -136,20 +133,16 @@ describe('express tracing', () => {
       // whole sub-stack it dispatched (~the 100ms handler delay).
       expect(routerDurationMs).toBeGreaterThan(50);
     });
-
     test('keeps the parameter in a route mounted under a parameterized sub-router path', async () => {
       const container = { items: await getSpans('/test/version/v1/user') };
-
       const serverSpan = findSegmentSpan(container);
       // The `:version` parameter must be preserved — using the concrete value
       // (`/test/version/v1/user`) would explode route cardinality.
       expect(serverSpan?.name).toBe('GET /test/version/:version/user');
       expect(serverSpan?.attributes['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
     });
-
     test('handles root page correctly', async () => {
       const container = { items: await getSpans('/') };
-
       expect(findSegmentSpan(container)).toMatchObject({
         name: 'GET /',
         span_id: expect.stringMatching(/[a-f\d]{16}/),
@@ -165,73 +158,87 @@ describe('express tracing', () => {
         }),
       });
     });
-
-    // With span streaming, child spans are sent as they end, before the response status code is
-    // known, so `ignoreStatusCodes` has no effect and these routes are captured like any other.
-    const cases = [
+    test.each([
       { status_code: 401, url: '/401', status_message: 'unauthenticated', name: 'GET /401', source: 'route' },
       { status_code: 402, url: '/402', status_message: 'invalid_argument', name: 'GET /402', source: 'route' },
       { status_code: 403, url: '/403', status_message: 'permission_denied', name: 'GET /403', source: 'route' },
       // Without a matching route the name must not carry the URL path.
       { status_code: 404, url: '/does-not-exist', status_message: 'not_found', name: 'GET', source: 'url' },
-    ];
-    let errorScenario: ReturnType<typeof runScenario> | undefined;
-    test.each(cases)('handles $url route correctly', async ({ status_code, url, status_message, name, source }) => {
-      errorScenario ??= runScenario(
-        cases.map(({ url }) => url),
-        true,
-      );
-      const container = { items: (await errorScenario).get(url)! };
-      expect(findSegmentSpan(container), url).toMatchObject({
+    ])(
+      'handles %s route correctly',
+      async ({
+        status_code,
+        url,
+        status_message,
         name,
-        span_id: expect.stringMatching(/[a-f\d]{16}/),
-        trace_id: expect.stringMatching(/[a-f\d]{32}/),
-        status: 'error',
-        attributes: expect.objectContaining({
-          'sentry.op': { type: 'string', value: 'http.server' },
-          'sentry.segment.name.source': { type: 'string', value: source },
-          'sentry.status.message': { type: 'string', value: status_message },
-          'http.response.status_code': { type: 'integer', value: status_code },
-          'http.request.method': { type: 'string', value: 'GET' },
-          'url.full': { type: 'string', value: expect.stringMatching(url) },
-          'url.path': { type: 'string', value: url },
-        }),
-      });
-    });
-
-    const segments = ['array1', 'array5'];
-    let arrayScenario: ReturnType<typeof runScenario> | undefined;
-    test.each(segments)('sets the segment name for route arrays: %s', async segment => {
-      arrayScenario ??= runScenario(segments.map(segment => `/test/${segment}`));
-      const container = { items: (await arrayScenario).get(`/test/${segment}`)! };
-      expect(findSegmentSpan(container), segment).toMatchObject({
-        name: 'GET /test/array1,/\\/test\\/array[2-9]/',
-        span_id: expect.stringMatching(/[a-f\d]{16}/),
-        trace_id: expect.stringMatching(/[a-f\d]{32}/),
-        status: 'ok',
-        attributes: expect.objectContaining({
-          'sentry.op': { type: 'string', value: 'http.server' },
-          'sentry.segment.name.source': { type: 'string', value: 'route' },
-          'url.full': { type: 'string', value: expect.stringMatching(`/test/${segment}$`) },
-          'http.response.status_code': { type: 'integer', value: 200 },
-        }),
-      });
-    });
-
-    const regexSegments = [
-      'arr/545',
-      'arr/required',
-      'arr/requiredPath',
-      'arr/required/lastParam',
-      'arr55/required/lastParam',
-      'arr/requiredPath/optionalPath/',
-      'arr/requiredPath/optionalPath/lastParam',
-    ];
-    let regexScenario: ReturnType<typeof runScenario> | undefined;
-    test.each(regexSegments)('handles complex regexes in route arrays: %s', async segment => {
-      regexScenario ??= runScenario(regexSegments.map(segment => `/test/${segment}`));
+        source,
+      }: {
+        status_code: number;
+        url: string;
+        status_message: string;
+        name: string;
+        source: string;
+      }) => {
+        errorScenario ??= runScenario(['/401', '/402', '/403', '/does-not-exist'], true);
+        const container = { items: (await errorScenario).get(url)! };
+        expect(findSegmentSpan(container)).toMatchObject({
+          name,
+          span_id: expect.stringMatching(/[a-f\d]{16}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
+          status: 'error',
+          attributes: expect.objectContaining({
+            'sentry.op': { type: 'string', value: 'http.server' },
+            'sentry.segment.name.source': { type: 'string', value: source },
+            'sentry.status.message': { type: 'string', value: status_message },
+            'http.response.status_code': { type: 'integer', value: status_code },
+            'http.request.method': { type: 'string', value: 'GET' },
+            'url.full': { type: 'string', value: expect.stringMatching(url) },
+            'url.path': { type: 'string', value: url },
+          }),
+        });
+      },
+    );
+    test.each([['array1'], ['array5']])(
+      'should set a correct segment name for routes consisting of arrays of routes for %p',
+      async (segment: string) => {
+        arrayScenario ??= runScenario(['/test/array1', '/test/array5']);
+        const container = { items: (await arrayScenario).get(`/test/${segment}`)! };
+        expect(findSegmentSpan(container)).toMatchObject({
+          name: 'GET /test/array1,/\\/test\\/array[2-9]/',
+          span_id: expect.stringMatching(/[a-f\d]{16}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
+          status: 'ok',
+          attributes: expect.objectContaining({
+            'sentry.op': { type: 'string', value: 'http.server' },
+            'sentry.segment.name.source': { type: 'string', value: 'route' },
+            'url.full': { type: 'string', value: expect.stringMatching(`/test/${segment}$`) },
+            'http.response.status_code': { type: 'integer', value: 200 },
+          }),
+        });
+      },
+    );
+    test.each([
+      ['arr/545'],
+      ['arr/required'],
+      ['arr/requiredPath'],
+      ['arr/required/lastParam'],
+      ['arr55/required/lastParam'],
+      ['arr/requiredPath/optionalPath/'],
+      ['arr/requiredPath/optionalPath/lastParam'],
+    ])('should handle more complex regexes in route arrays correctly for %p', async (segment: string) => {
+      regexScenario ??= runScenario(
+        [
+          'arr/545',
+          'arr/required',
+          'arr/requiredPath',
+          'arr/required/lastParam',
+          'arr55/required/lastParam',
+          'arr/requiredPath/optionalPath/',
+          'arr/requiredPath/optionalPath/lastParam',
+        ].map(segment => `/test/${segment}`),
+      );
       const container = { items: (await regexScenario).get(`/test/${segment}`)! };
-      expect(findSegmentSpan(container), segment).toMatchObject({
+      expect(findSegmentSpan(container)).toMatchObject({
         name: 'GET /test/arr/:id,/\\/test\\/arr\\d*\\/required(path)?(\\/optionalPath)?\\/(lastParam)?/',
         span_id: expect.stringMatching(/[a-f\d]{16}/),
         trace_id: expect.stringMatching(/[a-f\d]{32}/),

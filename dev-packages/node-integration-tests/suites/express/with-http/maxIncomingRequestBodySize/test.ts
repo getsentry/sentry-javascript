@@ -1,5 +1,5 @@
 import { afterAll, describe, expect } from 'vitest';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
+import { cleanupChildProcesses, createEsmAndCjsTests, type createRunner } from '../../../../utils/runner';
 import {
   generateEmojiPayload,
   generateEmojiPayloadString,
@@ -12,131 +12,205 @@ const MAX_GENERAL = 1024 * 1024; // 1MB
 const MAX_MEDIUM = 10_000;
 const MAX_SMALL = 1000;
 
-interface BodyCase {
-  name: string;
-  path?: string;
-  body: { data: string };
-  expectedBody?: string;
+function createBodyScenario(
+  runnerFactory: () => ReturnType<typeof createRunner>,
+  bodies: { data: string }[],
+  paths = bodies.map(() => '/test-body-size'),
+) {
+  let scenario: ReturnType<typeof runScenario> | undefined;
+  async function runScenario() {
+    const runner = runnerFactory().unordered();
+    const spans = bodies.map((_, index) =>
+      runner.collectStreamedSpansUntilSegment(span => span.attributes['url.query']?.value === `case=${index}`),
+    );
+    const started = runner.start();
+    for (const [index, body] of bodies.entries()) {
+      await started.makeRequest('post', `${paths[index]}?case=${index}`, {
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify(body),
+      });
+    }
+    await started.completed();
+    return Promise.all(spans);
+  }
+  return async (index: number) => {
+    scenario ??= runScenario();
+    return { items: (await scenario)[index]! };
+  };
 }
 
-const configs: { name: string; instrument: string; cases: BodyCase[] }[] = [
-  {
-    name: 'default (medium)',
-    instrument: 'instrument-default.mjs',
-    cases: [
-      {
-        name: 'captures medium request bodies with default setting (medium)',
-        body: generatePayload(MAX_MEDIUM),
-        expectedBody: JSON.stringify(generatePayload(MAX_MEDIUM)),
-      },
-      {
-        name: 'truncates large request bodies with default setting (medium)',
-        body: generatePayload(MAX_MEDIUM + 1),
-        expectedBody: generatePayloadString(MAX_MEDIUM, true),
-      },
-    ],
-  },
-  {
-    name: 'small (overrides disabled httpBodies)',
-    instrument: 'instrument-small.mjs',
-    cases: [
-      {
-        name: 'captures request bodies because the explicit size overrides dataCollection.httpBodies',
-        body: generatePayload(MAX_SMALL),
-        expectedBody: JSON.stringify(generatePayload(MAX_SMALL)),
-      },
-      {
-        name: 'truncates too large request bodies with "small" setting',
-        body: generatePayload(MAX_SMALL + 1),
-        expectedBody: generatePayloadString(MAX_SMALL, true),
-      },
-      {
-        name: 'truncates too large non-ASCII request bodies with "small" setting',
-        body: generateEmojiPayload(MAX_SMALL + 1),
-        expectedBody: generateEmojiPayloadString(250, true),
-      },
-    ],
-  },
-  {
-    name: 'none',
-    instrument: 'instrument-none.mjs',
-    cases: [
-      { name: 'does not capture any request bodies with "none" setting', body: generatePayload(500) },
-      {
-        name: 'does not capture any request bodies with "none" setting and "ignoreRequestBody"',
-        path: '/ignore-request-body',
-        body: generatePayload(500),
-      },
-    ],
-  },
-  {
-    name: 'always',
-    instrument: 'instrument-always.mjs',
-    cases: [
-      {
-        name: 'captures maximum allowed request body length with "always" setting',
-        body: generatePayload(MAX_GENERAL),
-        expectedBody: JSON.stringify(generatePayload(MAX_GENERAL)),
-      },
-      {
-        name: 'captures large request bodies with "always" setting but respects maximum size limit',
-        body: generatePayload(MAX_GENERAL + 1),
-        expectedBody: generatePayloadString(MAX_GENERAL, true),
-      },
-    ],
-  },
-  {
-    name: 'medium',
-    instrument: 'instrument-medium.mjs',
-    cases: [
-      {
-        name: 'keeps medium request bodies with "medium" setting',
-        body: generatePayload(MAX_MEDIUM),
-        expectedBody: JSON.stringify(generatePayload(MAX_MEDIUM)),
-      },
-      {
-        name: 'truncates large request bodies with "medium" setting',
-        body: generatePayload(MAX_MEDIUM + 1),
-        expectedBody: generatePayloadString(MAX_MEDIUM, true),
-      },
-    ],
-  },
-];
-
-describe.each(configs)('maxRequestBodySize: $name', ({ instrument, cases }) => {
+describe('express with httpIntegration and not defined maxRequestBodySize', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', instrument, (createRunner, test) => {
-    let scenario: ReturnType<typeof runScenario> | undefined;
-    async function runScenario() {
-      const runner = createRunner().unordered();
-      const spans = cases.map((_, index) =>
-        runner.collectStreamedSpansUntilSegment(span => span.attributes['url.query']?.value === `case=${index}`),
-      );
-      const started = runner.start();
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-default.mjs', (createRunner, test) => {
+    const getContainer = createBodyScenario(createRunner, [
+      generatePayload(MAX_MEDIUM),
+      generatePayload(MAX_MEDIUM + 1),
+    ]);
 
-      for (const [index, { path = '/test-body-size', body }] of cases.entries()) {
-        await started.makeRequest('post', `${path}?case=${index}`, {
-          headers: { 'Content-Type': 'application/json' },
-          data: JSON.stringify(body),
-        });
-      }
-      await started.completed();
-      return Promise.all(spans);
-    }
+    test('captures medium request bodies with default setting (medium)', async () => {
+      const container = await getContainer(0);
+      expect(container.items.find(item => item.is_segment)).toMatchObject({
+        name: 'POST /test-body-size',
+        attributes: expect.objectContaining({
+          'http.request.body.data': { type: 'string', value: JSON.stringify(generatePayload(MAX_MEDIUM)) },
+        }),
+      });
+    });
 
-    test.each(cases.map((entry, index) => ({ ...entry, index })))(
-      '$name',
-      async ({ index, path = '/test-body-size', expectedBody }) => {
-        scenario ??= runScenario();
-        const serverSpan = (await scenario)[index]!.find(span => span.is_segment);
-        expect(serverSpan?.name).toBe(`POST ${path}`);
-        expect(serverSpan?.attributes['http.request.body.data']).toEqual(
-          expectedBody === undefined ? undefined : { type: 'string', value: expectedBody },
-        );
-      },
+    test('truncates large request bodies with default setting (medium)', async () => {
+      const container = await getContainer(1);
+      expect(container.items.find(item => item.is_segment)).toMatchObject({
+        name: 'POST /test-body-size',
+        attributes: expect.objectContaining({
+          'http.request.body.data': { type: 'string', value: generatePayloadString(MAX_MEDIUM, true) },
+        }),
+      });
+    });
+  });
+});
+
+describe('express with httpIntegration and maxRequestBodySize: "none"', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-none.mjs', (createRunner, test) => {
+    const getContainer = createBodyScenario(
+      createRunner,
+      [generatePayload(500), generatePayload(500)],
+      ['/test-body-size', '/ignore-request-body'],
     );
+
+    test('does not capture any request bodies with "none" setting', async () => {
+      const container = await getContainer(0);
+      const serverSpan = container.items.find(item => item.is_segment);
+      expect(serverSpan?.name).toBe('POST /test-body-size');
+      expect(serverSpan?.attributes['http.request.body.data']).toBeUndefined();
+    });
+
+    test('does not capture any request bodies with "none" setting and "ignoreRequestBody"', async () => {
+      const container = await getContainer(0);
+      const serverSpan = container.items.find(item => item.is_segment);
+      expect(serverSpan?.name).toBe('POST /test-body-size');
+      expect(serverSpan?.attributes['http.request.body.data']).toBeUndefined();
+      const ignoredContainer = await getContainer(1);
+      const ignoredServerSpan = ignoredContainer.items.find(item => item.is_segment);
+      expect(ignoredServerSpan?.name).toBe('POST /ignore-request-body');
+      expect(ignoredServerSpan?.attributes['http.request.body.data']).toBeUndefined();
+    });
+  });
+});
+
+describe('express with httpIntegration and maxRequestBodySize: "always"', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-always.mjs', (createRunner, test) => {
+    const getContainer = createBodyScenario(createRunner, [
+      generatePayload(MAX_GENERAL),
+      generatePayload(MAX_GENERAL + 1),
+    ]);
+
+    test('captures maximum allowed request body length with "always" setting', async () => {
+      const container = await getContainer(0);
+      expect(container.items.find(item => item.is_segment)).toMatchObject({
+        name: 'POST /test-body-size',
+        attributes: expect.objectContaining({
+          'http.request.body.data': { type: 'string', value: JSON.stringify(generatePayload(MAX_GENERAL)) },
+        }),
+      });
+    });
+
+    test('captures large request bodies with "always" setting but respects maximum size limit', async () => {
+      const container = await getContainer(1);
+      expect(container.items.find(item => item.is_segment)).toMatchObject({
+        name: 'POST /test-body-size',
+        attributes: expect.objectContaining({
+          'http.request.body.data': { type: 'string', value: generatePayloadString(MAX_GENERAL, true) },
+        }),
+      });
+    });
+  });
+});
+
+describe('express with httpIntegration and maxRequestBodySize: "small"', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-small.mjs', (createRunner, test) => {
+    const getContainer = createBodyScenario(createRunner, [
+      generatePayload(MAX_SMALL),
+      generatePayload(MAX_SMALL + 1),
+      generateEmojiPayload(MAX_SMALL + 1),
+    ]);
+
+    test('captures request bodies because the explicit size overrides dataCollection.httpBodies', async () => {
+      const container = await getContainer(0);
+      expect(container.items.find(item => item.is_segment)).toMatchObject({
+        name: 'POST /test-body-size',
+        attributes: expect.objectContaining({
+          'http.request.body.data': { type: 'string', value: JSON.stringify(generatePayload(MAX_SMALL)) },
+        }),
+      });
+    });
+
+    test('truncates too large request bodies with "small" setting', async () => {
+      const container = await getContainer(1);
+      expect(container.items.find(item => item.is_segment)).toMatchObject({
+        name: 'POST /test-body-size',
+        attributes: expect.objectContaining({
+          'http.request.body.data': { type: 'string', value: generatePayloadString(MAX_SMALL, true) },
+        }),
+      });
+    });
+
+    test('truncates too large non-ASCII request bodies with "small" setting', async () => {
+      const container = await getContainer(2);
+      expect(container.items.find(item => item.is_segment)).toMatchObject({
+        name: 'POST /test-body-size',
+        attributes: expect.objectContaining({
+          // 250 emojis, each 4 bytes in UTF-8 (resulting in 1000 bytes --> MAX_SMALL)
+          'http.request.body.data': { type: 'string', value: generateEmojiPayloadString(250, true) },
+        }),
+      });
+    });
+  });
+});
+
+describe('express with httpIntegration and maxRequestBodySize: "medium"', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-medium.mjs', (createRunner, test) => {
+    const getContainer = createBodyScenario(createRunner, [
+      generatePayload(MAX_MEDIUM),
+      generatePayload(MAX_MEDIUM + 1),
+    ]);
+
+    test('keeps medium request bodies with "medium" setting', async () => {
+      const container = await getContainer(0);
+      expect(container.items.find(item => item.is_segment)).toMatchObject({
+        name: 'POST /test-body-size',
+        attributes: expect.objectContaining({
+          'http.request.body.data': { type: 'string', value: JSON.stringify(generatePayload(MAX_MEDIUM)) },
+        }),
+      });
+    });
+
+    test('truncates large request bodies with "medium" setting', async () => {
+      const container = await getContainer(1);
+      expect(container.items.find(item => item.is_segment)).toMatchObject({
+        name: 'POST /test-body-size',
+        attributes: expect.objectContaining({
+          'http.request.body.data': { type: 'string', value: generatePayloadString(MAX_MEDIUM, true) },
+        }),
+      });
+    });
   });
 });
