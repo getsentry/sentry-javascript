@@ -222,7 +222,7 @@ export function detectActiveBundler(): 'turbopack' | 'webpack' {
 
 /** The project's dependencies, with exact installed versions where they resolve and declared ranges otherwise. */
 export function getPackageModules(projectDir: string): Record<string, string> {
-  const { declared, installed } = collectInstalledModules({
+  return collectInstalledModules({
     readFile: filePath => {
       try {
         return fs.readFileSync(filePath, 'utf8');
@@ -232,5 +232,4 @@ export function getPackageModules(projectDir: string): Record<string, string> {
     },
     cwd: projectDir,
   });
-  return { ...declared, ...installed };
 }

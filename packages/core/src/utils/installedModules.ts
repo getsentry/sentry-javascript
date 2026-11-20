@@ -10,8 +10,8 @@ interface PackageJson {
 const NODE_MODULES = '/node_modules/';
 
 /**
- * Returns the dependencies declared in the app's `package.json`, and the exact version of each declared or loaded
- * package, resolved through `node_modules` the way a bare import from the entry file resolves it.
+ * Returns the app's packages: the dependencies declared in its `package.json`, plus loaded packages. Each gets the exact
+ * version that a bare import from the entry file resolves through `node_modules`, or its declared range otherwise.
  */
 export function collectInstalledModules({
   readFile,
@@ -24,11 +24,11 @@ export function collectInstalledModules({
   cwd?: string;
   /**
    * Paths of files the process has already loaded, such as the keys of `require.cache`. Packages these files belong
-   * to are added to `installed` too, which covers transitive dependencies that are not in `package.json`. ESM has no
+   * to are added too, which covers transitive dependencies that are not in `package.json`. ESM has no
    * equivalent of `require.cache`, so only CommonJS passes this; without it, only declared dependencies are resolved.
    */
   loadedFiles?: string[];
-}): { declared: ModuleInfo; installed: ModuleInfo } {
+}): ModuleInfo {
   const entryDir = entryPath && dirname(toPosix(entryPath));
   const cwdDir = cwd && toPosix(cwd);
   // An entry file outside cwd usually belongs to a launcher, such as the AWS Lambda runtime.
@@ -80,7 +80,7 @@ export function collectInstalledModules({
     }
   }
 
-  return { declared, installed };
+  return { ...declared, ...installed };
 }
 
 /** Skips start dirs inside `node_modules` and `package.json` files that only set fields like `"type"`. */
