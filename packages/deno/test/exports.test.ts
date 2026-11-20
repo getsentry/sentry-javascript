@@ -37,7 +37,6 @@ const EXPECTED_FUNCTION_EXPORTS = [
   // ./sdk
   'initWithoutDefaultIntegrations',
   'getDefaultIntegrationsWithoutPerformance',
-  'modulesIntegration',
 ];
 
 for (const name of EXPECTED_FUNCTION_EXPORTS) {
