@@ -3,8 +3,14 @@ import { waitForStreamedSpan, getSpanOp } from '@sentry-internal/test-utils';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { RUNTIME } from './constants';
 
 test('Should record spans for mcp handlers', async ({ baseURL }) => {
+  test.skip(
+    RUNTIME === 'cloudflare',
+    'The SSE transport answers `POST /messages` on the open response of `GET /sse`. workerd cancels a write to the response of another request.',
+  );
+
   const transport = new SSEClientTransport(new URL(`${baseURL}/sse`));
 
   const client = new Client({
@@ -13,7 +19,7 @@ test('Should record spans for mcp handlers', async ({ baseURL }) => {
   });
 
   const initializeSegmentPromise = waitForStreamedSpan(
-    'node-express-v5',
+    'express-5',
     segment => segment.is_segment && segment.name === 'initialize',
   );
 
@@ -30,11 +36,11 @@ test('Should record spans for mcp handlers', async ({ baseURL }) => {
 
   await test.step('tool handler', async () => {
     const postSegmentPromise = waitForStreamedSpan(
-      'node-express-v5',
+      'express-5',
       segment => segment.is_segment && segment.name === 'POST /messages',
     );
     const toolSegmentPromise = waitForStreamedSpan(
-      'node-express-v5',
+      'express-5',
       segment => segment.is_segment && segment.name === 'tools/call echo',
     );
 
@@ -65,11 +71,11 @@ test('Should record spans for mcp handlers', async ({ baseURL }) => {
 
   await test.step('registerTool handler', async () => {
     const postSegmentPromise = waitForStreamedSpan(
-      'node-express-v5',
+      'express-5',
       segment => segment.is_segment && segment.name === 'POST /messages',
     );
     const toolSegmentPromise = waitForStreamedSpan(
-      'node-express-v5',
+      'express-5',
       segment => segment.is_segment && segment.name === 'tools/call echo-register',
     );
 
@@ -99,11 +105,11 @@ test('Should record spans for mcp handlers', async ({ baseURL }) => {
 
   await test.step('resource handler', async () => {
     const postSegmentPromise = waitForStreamedSpan(
-      'node-express-v5',
+      'express-5',
       segment => segment.is_segment && segment.name === 'POST /messages',
     );
     const resourceSegmentPromise = waitForStreamedSpan(
-      'node-express-v5',
+      'express-5',
       segment => segment.is_segment && segment.name === 'resources/read',
     );
 
@@ -126,11 +132,11 @@ test('Should record spans for mcp handlers', async ({ baseURL }) => {
 
   await test.step('prompt handler', async () => {
     const postSegmentPromise = waitForStreamedSpan(
-      'node-express-v5',
+      'express-5',
       segment => segment.is_segment && segment.name === 'POST /messages',
     );
     const promptSegmentPromise = waitForStreamedSpan(
-      'node-express-v5',
+      'express-5',
       segment => segment.is_segment && segment.name === 'prompts/get echo',
     );
 
@@ -164,7 +170,7 @@ test('Should record spans for mcp handlers', async ({ baseURL }) => {
 
   await test.step('error tool sets span status to error', async () => {
     const toolSegmentPromise = waitForStreamedSpan(
-      'node-express-v5',
+      'express-5',
       segment => segment.is_segment && segment.name === 'tools/call always-error',
     );
 
@@ -201,7 +207,7 @@ test('Should record spans for streamable HTTP transport (wrapper transport patte
   });
 
   const initializeSegmentPromise = waitForStreamedSpan(
-    'node-express-v5',
+    'express-5',
     segment =>
       segment.is_segment &&
       segment.name === 'initialize' &&
@@ -224,7 +230,7 @@ test('Should record spans for streamable HTTP transport (wrapper transport patte
   await test.step('tool handler (tests wrapper transport correlation)', async () => {
     // This is the critical test - without the sessionId fix, the span would not be completed
     // because onmessage and send see different transport instances (wrapper vs inner)
-    const toolSegmentPromise = waitForStreamedSpan('node-express-v5', segment => {
+    const toolSegmentPromise = waitForStreamedSpan('express-5', segment => {
       if (!segment.is_segment) return false;
       const transport = segment.attributes?.['mcp.transport']?.value as string | undefined;
       return segment.name === 'tools/call echo' && !!transport?.includes('StreamableHTTPServerTransport');
@@ -256,7 +262,7 @@ test('Should record spans for streamable HTTP transport (wrapper transport patte
   });
 
   await test.step('resource handler', async () => {
-    const resourceSegmentPromise = waitForStreamedSpan('node-express-v5', segment => {
+    const resourceSegmentPromise = waitForStreamedSpan('express-5', segment => {
       if (!segment.is_segment) return false;
       const transport = segment.attributes?.['mcp.transport']?.value as string | undefined;
       return segment.name === 'resources/read' && !!transport?.includes('StreamableHTTPServerTransport');
@@ -277,7 +283,7 @@ test('Should record spans for streamable HTTP transport (wrapper transport patte
   });
 
   await test.step('prompt handler', async () => {
-    const promptSegmentPromise = waitForStreamedSpan('node-express-v5', segment => {
+    const promptSegmentPromise = waitForStreamedSpan('express-5', segment => {
       if (!segment.is_segment) return false;
       const transport = segment.attributes?.['mcp.transport']?.value as string | undefined;
       return segment.name === 'prompts/get echo' && !!transport?.includes('StreamableHTTPServerTransport');

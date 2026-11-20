@@ -1,21 +1,3 @@
-import * as Sentry from '@sentry/node';
-
-declare global {
-  namespace globalThis {
-    var transactionIds: string[];
-  }
-}
-
-Sentry.init({
-  environment: 'qa', // dynamic sampling bias to keep transactions
-  dsn: process.env.E2E_TEST_DSN,
-  includeLocalVariables: true,
-  debug: !!process.env.DEBUG,
-  tunnel: `http://localhost:3031/`, // proxy server
-  tracesSampleRate: 1,
-  integrations: [Sentry.nodeRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 })],
-});
-
 import { TRPCError, initTRPC } from '@trpc/server';
 import * as trpcExpress from '@trpc/server/adapters/express';
 import express from 'express';
@@ -23,14 +5,15 @@ import express from 'express';
 import mysql from 'mysql';
 import { z } from 'zod';
 import { mcpRouter } from './mcp';
+import * as Sentry from './sentry';
 
-const connection = mysql.createConnection({
-  user: 'root',
-  password: 'docker',
-});
+declare global {
+  namespace globalThis {
+    var transactionIds: string[];
+  }
+}
 
-const app = express();
-const port = 3030;
+export const app = express();
 
 app.use(mcpRouter);
 
@@ -60,8 +43,15 @@ app.get('/test-param/:param', function (req, res) {
 });
 
 app.get('/test-mysql', function (req, res) {
+  // One connection per request, because on Cloudflare a socket only works in the request that opened it.
+  const connection = mysql.createConnection({
+    user: 'root',
+    password: 'docker',
+  });
+
   connection.query('SELECT 1 + 1 AS solution', function () {
     connection.query('SELECT NOW()', ['1', '2'], () => {
+      connection.end();
       res.send({ status: 'ok' });
     });
   });
@@ -103,16 +93,26 @@ app.get('/test-local-variables-caught', function (req, res) {
   res.send({ exceptionId, randomVariableToRecord });
 });
 
+app.get('/test-isolation/:id', async function (req, res) {
+  Sentry.setTag('isolation-id', req.params.id);
+  // Lets the concurrent requests of the isolation test overlap.
+  await new Promise(resolve => setTimeout(resolve, 200));
+  Sentry.captureException(new Error(`Isolated error ${req.params.id}`));
+  res.send({});
+});
+
+// The test runs a server on port 3040 that records the headers of the request.
+app.get('/test-outgoing-fetch', async function (_req, res) {
+  const response = await fetch('http://localhost:3040/outgoing');
+  res.send({ status: response.status });
+});
+
 // @ts-ignore
 app.use(function onError(err, req, res, next) {
   // The error id is attached to `res.sentry` to be returned
   // and optionally displayed to the user for support.
   res.statusCode = 500;
   res.end(res.sentry + '\n');
-});
-
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
 });
 
 Sentry.addEventProcessor(event => {

@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { waitForMetric } from '@sentry-internal/test-utils';
+import { RUNTIME } from './constants';
+
+test.skip(RUNTIME !== 'node', '`nodeRuntimeMetricsIntegration` is a Node-only integration.');
 
 const EXPECTED_ATTRIBUTES = {
   'sentry.environment': { value: 'qa', type: 'string' },
@@ -9,15 +12,15 @@ const EXPECTED_ATTRIBUTES = {
 };
 
 test('Should emit node runtime memory metrics', async ({ baseURL }) => {
-  const rssPromise = waitForMetric('node-express-v5', metric => {
+  const rssPromise = waitForMetric('express-5', metric => {
     return metric.name === 'node.runtime.mem.rss';
   });
 
-  const heapUsedPromise = waitForMetric('node-express-v5', metric => {
+  const heapUsedPromise = waitForMetric('express-5', metric => {
     return metric.name === 'node.runtime.mem.heap_used';
   });
 
-  const heapTotalPromise = waitForMetric('node-express-v5', metric => {
+  const heapTotalPromise = waitForMetric('express-5', metric => {
     return metric.name === 'node.runtime.mem.heap_total';
   });
 
@@ -60,7 +63,7 @@ test('Should emit node runtime memory metrics', async ({ baseURL }) => {
 });
 
 test('Should emit node runtime CPU utilization metric', async ({ baseURL }) => {
-  const cpuUtilPromise = waitForMetric('node-express-v5', metric => {
+  const cpuUtilPromise = waitForMetric('express-5', metric => {
     return metric.name === 'node.runtime.cpu.utilization';
   });
 
@@ -79,15 +82,15 @@ test('Should emit node runtime CPU utilization metric', async ({ baseURL }) => {
 });
 
 test('Should emit node runtime event loop metrics', async ({ baseURL }) => {
-  const elDelayP50Promise = waitForMetric('node-express-v5', metric => {
+  const elDelayP50Promise = waitForMetric('express-5', metric => {
     return metric.name === 'node.runtime.event_loop.delay.p50';
   });
 
-  const elDelayP99Promise = waitForMetric('node-express-v5', metric => {
+  const elDelayP99Promise = waitForMetric('express-5', metric => {
     return metric.name === 'node.runtime.event_loop.delay.p99';
   });
 
-  const elUtilPromise = waitForMetric('node-express-v5', metric => {
+  const elUtilPromise = waitForMetric('express-5', metric => {
     return metric.name === 'node.runtime.event_loop.utilization';
   });
 
@@ -128,7 +131,7 @@ test('Should emit node runtime event loop metrics', async ({ baseURL }) => {
 });
 
 test('Should emit node runtime uptime counter', async ({ baseURL }) => {
-  const uptimePromise = waitForMetric('node-express-v5', metric => {
+  const uptimePromise = waitForMetric('express-5', metric => {
     return metric.name === 'node.runtime.process.uptime';
   });
 
