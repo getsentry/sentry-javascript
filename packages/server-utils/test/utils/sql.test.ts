@@ -837,6 +837,26 @@ describe('sanitizeSqlQuery', () => {
         'INSERT INTO events SELECT row_number() OVER () AS format FROM source QUALIFY format <= 2',
         'INSERT INTO events SELECT row_number() OVER () AS format FROM source QUALIFY format <= ?',
       ],
+      [
+        'INSERT INTO events SELECT a.id FROM source a JOIN lookup b ON format IS NOT NULL',
+        'INSERT INTO events SELECT a.id FROM source a JOIN lookup b ON format IS NOT NULL',
+      ],
+      [
+        "INSERT INTO events SELECT id FROM source PREWHERE format LIKE 'json%'",
+        'INSERT INTO events SELECT id FROM source PREWHERE format LIKE ?',
+      ],
+      [
+        'INSERT INTO events SELECT format FROM source GROUP BY format HAVING format IN (1, 2)',
+        'INSERT INTO events SELECT format FROM source GROUP BY format HAVING format IN (?)',
+      ],
+      [
+        'INSERT INTO events SELECT row_number() OVER () AS format FROM source QUALIFY format BETWEEN 1 AND 2',
+        'INSERT INTO events SELECT row_number() OVER () AS format FROM source QUALIFY format BETWEEN ? AND ?',
+      ],
+      [
+        'INSERT INTO events SELECT id FROM source WHERE NOT format IN (1, 2)',
+        'INSERT INTO events SELECT id FROM source WHERE NOT format IN (?)',
+      ],
       ['INSERT INTO TABLE format FORMAT CSV\nprivate@example.com', 'INSERT INTO TABLE format'],
       ["INSERT INTO events (`format`) VALUES ('private@example.com')", 'INSERT INTO events (`format`) VALUES (?)'],
       // `"..."` and backticks quote identifiers, as in `standard`

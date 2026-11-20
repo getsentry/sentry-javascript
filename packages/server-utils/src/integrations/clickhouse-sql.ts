@@ -5,7 +5,8 @@ const NUMBER_RE = /-?(?:0x[\dA-F_]+|0b[01_]+|(?:\d[\d_]*(?:\.[\d_]*)?|\.\d[\d_]*
 // A comparison operator can follow a column named `format`, but cannot start a format name.
 const FORMAT_RE = /FORMAT(?!\s*[=<>!])(?:\s|\/\*|--|#)/iy;
 // After one of these tokens, `format` is a table, column or alias name.
-const FORMAT_IDENTIFIER_RE = /(?:\b(?:INTO|TABLE|FROM|JOIN|SELECT|WHERE|AND|OR|BY|AS)|[,.=<>(])\s*$/i;
+const FORMAT_IDENTIFIER_RE =
+  /(?:\b(?:INTO|TABLE|FROM|JOIN|ON|SELECT|PREWHERE|WHERE|HAVING|QUALIFY|AND|OR|NOT|BY|AS)|[,.=<>(])\s*$/i;
 
 /**
  * ClickHouse SQL: `"` quotes an identifier as in `standard`, but `\` escapes the next character, `#`
