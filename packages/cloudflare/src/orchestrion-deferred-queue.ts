@@ -27,6 +27,6 @@ export interface DeferredChannelEvent {
 // CommonJS packages (`express`, `mysql`) `require` the facade, so they defer through its CommonJS build, while the
 // request wrapper that flushes is usually the ES module build.
 export function getDeferredEvents(): DeferredChannelEvent[] {
-  const marker = ((globalThis as unknown as InternalGlobal).__SENTRY_ORCHESTRION__ ??= {});
+  const marker = ((globalThis as InternalGlobal).__SENTRY_ORCHESTRION__ ??= {});
   return (marker.deferredChannelEvents ??= []) as DeferredChannelEvent[];
 }
