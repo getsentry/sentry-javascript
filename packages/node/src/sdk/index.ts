@@ -19,12 +19,7 @@ import {
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import { isMainThread, parentPort } from 'node:worker_threads';
-import {
-  detectOrchestrionSetup,
-  getErrorIntegrations,
-  getTracingIntegrations,
-  onUnhandledRejectionIntegration,
-} from '@sentry/server-utils';
+import { detectOrchestrionSetup, getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { awsLambdaWebIntegration } from '../integrations/awsLambdaWeb';
 import { childProcessIntegration } from '../integrations/childProcess';
@@ -36,6 +31,7 @@ import { localVariablesIntegration } from '../integrations/local-variables';
 import { modulesIntegration } from '../integrations/modules';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
 import { onUncaughtExceptionIntegration } from '../integrations/onuncaughtexception';
+import { onUnhandledRejectionIntegration } from '../integrations/onunhandledrejection';
 import { processSessionIntegration } from '../integrations/processSession';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
 import { systemErrorIntegration } from '../integrations/systemError';

@@ -245,7 +245,7 @@ export {
   type NodeRuntimeMetricsOptions,
 } from './integrations/nodeRuntimeMetrics';
 export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
-export { onUnhandledRejectionIntegration } from '@sentry/server-utils';
+export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
 export { spotlightIntegration } from './integrations/spotlight';
 export { systemErrorIntegration } from './integrations/systemError';
 export { workerThreadsIntegration } from './integrations/workerThreads';

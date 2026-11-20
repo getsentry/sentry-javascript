@@ -114,7 +114,7 @@ function installGlobalUnhandledRejectionHandler(client: Client): void {
   }
 
   globalThis.addEventListener('unhandledrejection', (e: PromiseRejectionEvent) => {
-    if (getClient() !== client || isExiting || client.getIntegrationByName('OnUnhandledRejection')) {
+    if (getClient() !== client || isExiting) {
       return;
     }
 

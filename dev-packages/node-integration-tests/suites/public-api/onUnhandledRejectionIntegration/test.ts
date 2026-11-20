@@ -132,31 +132,35 @@ test rejection`);
       .completed();
   });
 
-  test('captures exceptions for unhandled rejections in strict mode', async () => {
-    await createRunner(__dirname, 'scenario-strict.ts')
-      .expect({
-        event: {
-          level: 'fatal',
-          exception: {
-            values: [
-              {
-                type: 'Error',
-                value: 'test rejection',
-                mechanism: {
-                  type: 'auto.node.onunhandledrejection',
-                  handled: false,
+  // Deno: `@sentry/deno` has no `onUnhandledRejectionIntegration`. Deno exits on an unhandled rejection, as in strict mode.
+  test.runIf(supports({ runtimes: ['node', 'bun'] }))(
+    'captures exceptions for unhandled rejections in strict mode',
+    async () => {
+      await createRunner(__dirname, 'scenario-strict.ts')
+        .expect({
+          event: {
+            level: 'fatal',
+            exception: {
+              values: [
+                {
+                  type: 'Error',
+                  value: 'test rejection',
+                  mechanism: {
+                    type: 'auto.node.onunhandledrejection',
+                    handled: false,
+                  },
+                  stacktrace: {
+                    frames: expect.any(Array),
+                  },
                 },
-                stacktrace: {
-                  frames: expect.any(Array),
-                },
-              },
-            ],
+              ],
+            },
           },
-        },
-      })
-      .start()
-      .completed();
-  });
+        })
+        .start()
+        .completed();
+    },
+  );
 
   test('handles unhandled rejection in spans', async () => {
     let segment: SerializedStreamedSpanContainer['items'][number] | undefined;
