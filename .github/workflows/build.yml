@@ -862,8 +862,7 @@ jobs:
         if: matrix.node == '^27.0.0-0'
         run: pnpm rebuild @sentry/node-cpu-profiler @sentry/node-native-stacktrace
 
-      - &fixture-cache-restore
-        name: Restore integration dependencies
+      - name: Restore integration dependencies
         id: fixture-cache
         uses: ./.github/actions/restore-integration-dependencies
         with:
@@ -874,8 +873,7 @@ jobs:
         # Tedious runs in the dedicated SQL Server job because its database container requires x86.
         run: pnpm run test --shard=${{ matrix.shard }}/${{ matrix.shards }} --exclude '**/tracing/tedious/**'
 
-      - &fixture-cache-save
-        name: Save integration dependencies
+      - name: Save integration dependencies
         if: ${{ !cancelled() && steps.fixture-cache.outputs.cache-hit != 'true' }}
         uses: ./.github/actions/save-integration-dependencies
         with:
@@ -902,13 +900,19 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - *fixture-cache-restore
+      - name: Restore integration dependencies
+        id: fixture-cache
+        uses: ./.github/actions/restore-integration-dependencies
 
       - name: Run SQL Server integration tests
         working-directory: dev-packages/node-integration-tests
         run: pnpm run test suites/tracing/tedious/test.ts
 
-      - *fixture-cache-save
+      - name: Save integration dependencies
+        if: ${{ !cancelled() && steps.fixture-cache.outputs.cache-hit != 'true' }}
+        uses: ./.github/actions/save-integration-dependencies
+        with:
+          key: ${{ steps.fixture-cache.outputs.key }}
 
   # Runs on the wrangler pinned in the package, so the required run stays on a fixed, older runtime.
   job_cloudflare_integration_tests:
@@ -1024,13 +1028,21 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
-      - *fixture-cache-restore
+      - name: Restore integration dependencies
+        id: fixture-cache
+        uses: ./.github/actions/restore-integration-dependencies
+        with:
+          shard: ${{ matrix.shard }}
 
       - name: Run integration tests
         working-directory: dev-packages/bun-integration-tests
         run: pnpm run test --shard=${{ matrix.shard }}/6
 
-      - *fixture-cache-save
+      - name: Save integration dependencies
+        if: ${{ !cancelled() && steps.fixture-cache.outputs.cache-hit != 'true' }}
+        uses: ./.github/actions/save-integration-dependencies
+        with:
+          key: ${{ steps.fixture-cache.outputs.key }}
 
   job_deno_integration_tests:
     name: Deno Integration Tests (${{ matrix.shard }}/4)
@@ -1067,14 +1079,22 @@ jobs:
           pnpm run install:deno
           pnpm run deno-types
           pnpm run test:unit
-      - *fixture-cache-restore
+      - name: Restore integration dependencies
+        id: fixture-cache
+        uses: ./.github/actions/restore-integration-dependencies
+        with:
+          shard: ${{ matrix.shard }}
 
       - name: Run shared Node integration tests
         working-directory: dev-packages/deno-integration-tests
         # Tedious runs in the dedicated SQL Server job because its database container requires x86.
         run: pnpm run test:node-suites --shard=${{ matrix.shard }}/4 --exclude '**/tracing/tedious/**'
 
-      - *fixture-cache-save
+      - name: Save integration dependencies
+        if: ${{ !cancelled() && steps.fixture-cache.outputs.cache-hit != 'true' }}
+        uses: ./.github/actions/save-integration-dependencies
+        with:
+          key: ${{ steps.fixture-cache.outputs.key }}
 
   # GitHub Actions allows at most 256 jobs in one matrix, so the E2E tests are split into two jobs that share `env`
   # and `steps`.
