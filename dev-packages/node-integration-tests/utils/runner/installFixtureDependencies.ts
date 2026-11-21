@@ -26,7 +26,7 @@ export async function installFixtureDependencies(
     }
     return `${name}@${range}`;
   });
-  if (!process.env.CACHE_INTEGRATION_DEPENDENCIES || !reuseAllowed) {
+  if (!process.env.CI || process.platform !== 'linux' || !reuseAllowed) {
     await npmInstallWithRetry(directory, deps);
     return;
   }
