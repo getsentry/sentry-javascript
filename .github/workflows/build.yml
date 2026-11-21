@@ -877,10 +877,12 @@ jobs:
           const runtime = job === 'job_bun_integration_tests'
             ? execFileSync('bun', ['--version'], { encoding: 'utf8' }).trim()
             : job === 'job_deno_integration_tests'
-              ? execFileSync('deno', ['--version'], { encoding: 'utf8' }).split('\n')[0].replaceAll(' ', '-')
+              ? execFileSync('deno', ['--version'], { encoding: 'utf8' }).trim().split(/\s+/)[1]
               : process.versions.node;
           const day = new Date().toISOString().slice(0, 10);
-          console.log(`key=integration-fixtures-v1-${process.platform}-${process.arch}-${process.versions.node}-${job}-${process.env.BENCHMARK_SHARD}-${runtime}-${process.env.BENCHMARK_SOURCE_HASH}-${day}`);
+          const key = `integration-fixtures-v2-${process.platform}-${process.arch}-${process.versions.node}-${job}-${process.env.BENCHMARK_SHARD}-${runtime}-${process.env.BENCHMARK_SOURCE_HASH}-${day}`;
+          if (key.includes(',') || key.length > 512) throw Error(`Invalid fixture cache key: ${key}`);
+          console.log(`key=${key}`);
           NODE
       - &fixture-cache-restore
         name: Restore fixture dependency cache
