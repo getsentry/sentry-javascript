@@ -88,6 +88,6 @@
     "zod": "^4.6.7"
   },
   "dependencies": {
-    "@sentry/conventions": "^0.34.0"
+    "@sentry/conventions": "^0.35.0"
   }
 }
