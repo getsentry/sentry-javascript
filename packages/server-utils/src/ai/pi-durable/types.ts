@@ -27,6 +27,16 @@ export interface PiTool {
 
 export interface PiAgent {
   tools?: readonly PiTool[];
+  /** The tools that other tools can call with `api.executeTool()`, in pi-durable 1.2.0 and later. */
+  callable?: readonly PiTool[];
+}
+
+/** The input of a `pi.tool` task. `nested` is a call that a tool made with `api.executeTool()`. */
+export interface PiToolTaskInput {
+  kind?: string;
+  /** The task of the calling tool. */
+  parent?: unknown;
+  parentCallId?: string;
 }
 
 /** The tool result the model receives, as pi-durable commits it in a `pi.tool-result` entry. */
