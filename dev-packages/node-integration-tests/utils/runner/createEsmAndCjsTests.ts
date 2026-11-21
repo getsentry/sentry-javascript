@@ -1,32 +1,13 @@
-import { exec, execFile } from 'child_process';
-import { createHash } from 'crypto';
-import { existsSync, rmSync } from 'fs';
-import { appendFile, cp, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'fs/promises';
-import { basename, delimiter, join, relative } from 'path';
+import { exec } from 'child_process';
+import { existsSync } from 'fs';
+import { cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
+import { basename, delimiter, join } from 'path';
 import { promisify } from 'util';
 import { afterAll, beforeAll, test, type TestAPI } from 'vitest';
 import { CLEANUP_STEPS, createRunner, PACKAGE_ROOT } from './createRunner';
+import { installFixtureDependencies } from './installFixtureDependencies';
 
 const execPromise = promisify(exec);
-const execFilePromise = promisify(execFile);
-
-interface DependencyInstall {
-  directory: string;
-  installMs: number;
-  persistentHit: boolean;
-  manifest?: string;
-}
-
-const dependencyInstalls = new Map<string, Promise<DependencyInstall>>();
-const dependencyDirectories = new Set<string>();
-
-if (process.env.REUSE_INTEGRATION_DEPENDENCIES) {
-  process.once('exit', () => {
-    for (const directory of dependencyDirectories) {
-      rmSync(directory, { recursive: true, force: true });
-    }
-  });
-}
 
 interface ScenarioPaths {
   cjs: {
@@ -274,112 +255,11 @@ function prepareTmpDir(
 
       await writeFile(join(tmpDirPath, 'package.json'), JSON.stringify(packageJson, null, 2));
 
-      const deps = Object.entries(additionalDependencies).map(([name, range]) => {
-        if (!range || typeof range !== 'string') {
-          throw new Error(`Invalid version range for "${name}": ${String(range)}`);
-        }
-        return `${name}@${range}`;
-      });
-
-      if (deps.length > 0) {
-        // Prefer npm for temp installs to avoid Yarn engine strictness; see https://github.com/vercel/ai/issues/7777
-        const startedAt = Date.now();
-        let success = false;
-        let operation = 'install';
-        let installMs = 0;
-        let copyMs = 0;
-        let npmInstalls = 0;
-        let persistentHit = false;
-        let copyError: Record<string, unknown> | undefined;
-        try {
-          if (
-            process.env.REUSE_INTEGRATION_DEPENDENCIES &&
-            !options?.afterSetupCommand &&
-            !options?.copyPaths?.length
-          ) {
-            const cached = getDependencyInstall(additionalDependencies, deps);
-            operation = cached.hit ? 'reuse' : 'install-and-copy';
-            npmInstalls = cached.hit ? 0 : 1;
-            const installed = await cached.installation;
-            persistentHit = installed.persistentHit;
-            if (persistentHit) {
-              npmInstalls = 0;
-              if (!cached.hit) operation = 'persistent-reuse';
-            }
-            installMs = cached.hit ? 0 : installed.installMs;
-            const copyStartedAt = Date.now();
-            try {
-              await execFilePromise('cp', [
-                '-a',
-                '--reflink=auto',
-                join(installed.directory, 'node_modules'),
-                join(tmpDirPath, 'node_modules'),
-              ]);
-              await cp(join(installed.directory, 'package-lock.json'), join(tmpDirPath, 'package-lock.json'));
-              copyMs = Date.now() - copyStartedAt;
-            } catch (error) {
-              copyMs = Date.now() - copyStartedAt;
-              const detail = error as Error & {
-                code?: string | number;
-                signal?: string;
-                killed?: boolean;
-                stderr?: string;
-              };
-              copyError = {
-                message: detail.message,
-                code: detail.code,
-                signal: detail.signal,
-                killed: detail.killed,
-                stderr: detail.stderr,
-              };
-              // oxlint-disable-next-line no-console
-              console.warn('Dependency copy failed; installing fresh:', JSON.stringify(copyError));
-              if (dependencyInstalls.get(cached.key) === cached.installation) {
-                dependencyInstalls.delete(cached.key);
-              }
-              if (installed.manifest) {
-                await rm(installed.manifest, { force: true });
-              }
-              await rm(join(tmpDirPath, 'node_modules'), { recursive: true, force: true });
-              await rm(join(tmpDirPath, 'package-lock.json'), { force: true });
-              operation = 'copy-fallback-install';
-              npmInstalls++;
-              const fallbackStartedAt = Date.now();
-              await npmInstallWithRetry(tmpDirPath, deps);
-              installMs += Date.now() - fallbackStartedAt;
-            }
-          } else {
-            npmInstalls = 1;
-            await npmInstallWithRetry(tmpDirPath, deps);
-            installMs = Date.now() - startedAt;
-          }
-          success = true;
-        } finally {
-          if (process.env.INTEGRATION_INSTALL_TIMINGS) {
-            await appendFile(
-              join(process.env.RUNNER_TEMP || PACKAGE_ROOT, 'integration-install-timings.jsonl'),
-              `${JSON.stringify({
-                suite: relative(PACKAGE_ROOT, cwd),
-                scenario: scenarioPath,
-                instrument: instrumentPath,
-                runtime: process.env.RUNTIME || 'node',
-                preload: process.env.RUNTIME_PRELOAD,
-                buildScript: process.env.RUNTIME_BUILD_SCRIPT,
-                dependencies: additionalDependencies,
-                startedAt,
-                durationMs: Date.now() - startedAt,
-                operation,
-                installMs,
-                copyMs,
-                npmInstalls,
-                persistentHit,
-                copyError,
-                success,
-              })}\n`,
-            );
-          }
-        }
-      }
+      await installFixtureDependencies(
+        tmpDirPath,
+        additionalDependencies,
+        !options?.afterSetupCommand && !options?.copyPaths?.length,
+      );
     }
 
     if (options?.afterSetupCommand) {
@@ -444,115 +324,6 @@ function convertEsmToCjs(content: string): string {
   });
 
   return newContent;
-}
-
-const NPM_INSTALL_MAX_RETRIES = 3;
-const NPM_INSTALL_RETRY_DELAY_MS = 2_000;
-// npm install can stall on CI without ever failing, which would otherwise use up the whole setup hook timeout
-// before a retry gets a chance to run.
-const NPM_INSTALL_TIMEOUT_MS = 60_000;
-
-function getDependencyInstall(dependencies: Record<string, string>, deps: string[]) {
-  const key = JSON.stringify(Object.entries(dependencies).sort(([a], [b]) => a.localeCompare(b)));
-  let installation = dependencyInstalls.get(key);
-  const hit = !!installation;
-  if (!installation) {
-    installation = (async () => {
-      const cacheRoot = process.env.PERSIST_INTEGRATION_DEPENDENCIES
-        ? join(PACKAGE_ROOT, '.integration-dependency-cache')
-        : undefined;
-      const persistentKey = createHash('sha256')
-        .update(JSON.stringify({ key, node: process.version, arch: process.arch, platform: process.platform }))
-        .digest('hex');
-      const manifest = cacheRoot ? join(cacheRoot, `${persistentKey}.json`) : undefined;
-      if (manifest && cacheRoot) {
-        await mkdir(cacheRoot, { recursive: true });
-        try {
-          const stored = JSON.parse(await readFile(manifest, 'utf8')) as { key: string; directory: string };
-          if (
-            stored.key === persistentKey &&
-            typeof stored.directory === 'string' &&
-            stored.directory.startsWith('entry_') &&
-            basename(stored.directory) === stored.directory
-          ) {
-            const directory = join(cacheRoot, stored.directory);
-            if (existsSync(join(directory, 'node_modules')) && existsSync(join(directory, 'package-lock.json'))) {
-              return { directory, installMs: 0, persistentHit: true, manifest };
-            }
-          }
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-            // oxlint-disable-next-line no-console
-            console.warn('Ignoring invalid dependency cache entry:', String(error));
-          }
-        }
-      }
-      const directory = await mkdtemp(join(cacheRoot || PACKAGE_ROOT, cacheRoot ? 'entry_' : 'tmp_dependencies_'));
-      if (!cacheRoot) dependencyDirectories.add(directory);
-      await writeFile(
-        join(directory, 'package.json'),
-        JSON.stringify({ name: 'tmp-integration-test', private: true, version: '0.0.0', dependencies }),
-      );
-      const startedAt = Date.now();
-      await npmInstallWithRetry(directory, deps);
-      const installMs = Date.now() - startedAt;
-      if (manifest) {
-        const pendingManifest = `${manifest}.${basename(directory)}.tmp`;
-        await writeFile(pendingManifest, JSON.stringify({ key: persistentKey, directory: basename(directory) }));
-        await rename(pendingManifest, manifest);
-      }
-      return { directory, installMs, persistentHit: false, manifest };
-    })();
-    dependencyInstalls.set(key, installation);
-    void installation.catch(() => dependencyInstalls.delete(key));
-  }
-  return { installation, hit, key };
-}
-
-async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
-  for (let attempt = 1; attempt <= NPM_INSTALL_MAX_RETRIES; attempt++) {
-    try {
-      // Run npm without a shell, so the timeout kills npm itself rather than leaving it running next to the retry
-      const { stdout, stderr } = await execFilePromise(
-        'npm',
-        // We only use --prefer-offline on the first attempt to try to read from cache
-        // in follow ups we just try to install in any way
-        ['install', ...(attempt === 1 ? ['--prefer-offline'] : []), '--no-audit', '--no-fund'],
-        {
-          cwd,
-          encoding: 'utf8',
-          timeout: NPM_INSTALL_TIMEOUT_MS,
-        },
-      );
-
-      if (process.env.DEBUG) {
-        // eslint-disable-next-line no-console
-        console.log('[additionalDependencies via npm]', deps.join(' '));
-        // eslint-disable-next-line no-console
-        console.log('[npm stdout]', stdout);
-        // eslint-disable-next-line no-console
-        console.log('[npm stderr]', stderr);
-      }
-      return;
-    } catch (error) {
-      if (attempt < NPM_INSTALL_MAX_RETRIES) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `npm install attempt ${attempt}/${NPM_INSTALL_MAX_RETRIES} failed, retrying in ${NPM_INSTALL_RETRY_DELAY_MS}ms...`,
-        );
-        await new Promise(resolve => setTimeout(resolve, NPM_INSTALL_RETRY_DELAY_MS));
-        // A killed attempt leaves a partial install behind, which the next attempt would treat as complete
-        await rm(join(cwd, 'node_modules'), { recursive: true, force: true });
-        await rm(join(cwd, 'package-lock.json'), { force: true });
-      } else {
-        // oxlint-disable-next-line no-console
-        console.error(error);
-        throw new Error(
-          `Failed to install additionalDependencies in tmp dir ${cwd} after ${NPM_INSTALL_MAX_RETRIES} attempts`,
-        );
-      }
-    }
-  }
 }
 
 // Wrap the test API so it prepends the test name with the mode
