@@ -280,6 +280,8 @@ function prepareTmpDir(
         let operation = 'install';
         let installMs = 0;
         let copyMs = 0;
+        let npmInstalls = 0;
+        let copyError: Record<string, unknown> | undefined;
         try {
           if (
             process.env.REUSE_INTEGRATION_DEPENDENCIES &&
@@ -289,17 +291,48 @@ function prepareTmpDir(
             const cached = getDependencyInstall(additionalDependencies, deps);
             operation = cached.hit ? 'reuse' : 'install-and-copy';
             const installed = await cached.installation;
+            npmInstalls = cached.hit ? 0 : 1;
             installMs = cached.hit ? 0 : installed.installMs;
             const copyStartedAt = Date.now();
-            await execFilePromise('cp', [
-              '-a',
-              '--reflink=auto',
-              join(installed.directory, 'node_modules'),
-              join(tmpDirPath, 'node_modules'),
-            ]);
-            await cp(join(installed.directory, 'package-lock.json'), join(tmpDirPath, 'package-lock.json'));
-            copyMs = Date.now() - copyStartedAt;
+            try {
+              await execFilePromise('cp', [
+                '-a',
+                '--reflink=auto',
+                join(installed.directory, 'node_modules'),
+                join(tmpDirPath, 'node_modules'),
+              ]);
+              await cp(join(installed.directory, 'package-lock.json'), join(tmpDirPath, 'package-lock.json'));
+              copyMs = Date.now() - copyStartedAt;
+            } catch (error) {
+              copyMs = Date.now() - copyStartedAt;
+              const detail = error as Error & {
+                code?: string | number;
+                signal?: string;
+                killed?: boolean;
+                stderr?: string;
+              };
+              copyError = {
+                message: detail.message,
+                code: detail.code,
+                signal: detail.signal,
+                killed: detail.killed,
+                stderr: detail.stderr,
+              };
+              // oxlint-disable-next-line no-console
+              console.warn('Dependency copy failed; installing fresh:', JSON.stringify(copyError));
+              if (dependencyInstalls.get(cached.key) === cached.installation) {
+                dependencyInstalls.delete(cached.key);
+              }
+              await rm(join(tmpDirPath, 'node_modules'), { recursive: true, force: true });
+              await rm(join(tmpDirPath, 'package-lock.json'), { force: true });
+              operation = 'copy-fallback-install';
+              npmInstalls++;
+              const fallbackStartedAt = Date.now();
+              await npmInstallWithRetry(tmpDirPath, deps);
+              installMs += Date.now() - fallbackStartedAt;
+            }
           } else {
+            npmInstalls = 1;
             await npmInstallWithRetry(tmpDirPath, deps);
             installMs = Date.now() - startedAt;
           }
@@ -321,6 +354,8 @@ function prepareTmpDir(
                 operation,
                 installMs,
                 copyMs,
+                npmInstalls,
+                copyError,
                 success,
               })}\n`,
             );
@@ -418,7 +453,7 @@ function getDependencyInstall(dependencies: Record<string, string>, deps: string
     dependencyInstalls.set(key, installation);
     void installation.catch(() => dependencyInstalls.delete(key));
   }
-  return { installation, hit };
+  return { installation, hit, key };
 }
 
 async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
