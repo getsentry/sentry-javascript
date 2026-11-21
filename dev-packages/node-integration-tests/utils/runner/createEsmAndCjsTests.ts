@@ -1,6 +1,6 @@
 import { exec, execFile } from 'child_process';
-import { existsSync } from 'fs';
-import { appendFile, cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
+import { constants, existsSync, rmSync } from 'fs';
+import { appendFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'fs/promises';
 import { basename, delimiter, join, relative } from 'path';
 import { promisify } from 'util';
 import { afterAll, beforeAll, test, type TestAPI } from 'vitest';
@@ -8,6 +8,17 @@ import { CLEANUP_STEPS, createRunner, PACKAGE_ROOT } from './createRunner';
 
 const execPromise = promisify(exec);
 const execFilePromise = promisify(execFile);
+
+const dependencyInstalls = new Map<string, Promise<{ directory: string; installMs: number }>>();
+const dependencyDirectories = new Set<string>();
+
+if (process.env.REUSE_INTEGRATION_DEPENDENCIES) {
+  process.once('exit', () => {
+    for (const directory of dependencyDirectories) {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+}
 
 interface ScenarioPaths {
   cjs: {
@@ -266,8 +277,31 @@ function prepareTmpDir(
         // Prefer npm for temp installs to avoid Yarn engine strictness; see https://github.com/vercel/ai/issues/7777
         const startedAt = Date.now();
         let success = false;
+        let operation = 'install';
+        let installMs = 0;
+        let copyMs = 0;
         try {
-          await npmInstallWithRetry(tmpDirPath, deps);
+          if (
+            process.env.REUSE_INTEGRATION_DEPENDENCIES &&
+            !options?.afterSetupCommand &&
+            !options?.copyPaths?.length
+          ) {
+            const cached = getDependencyInstall(additionalDependencies, deps);
+            operation = cached.hit ? 'reuse' : 'install-and-copy';
+            const installed = await cached.installation;
+            installMs = cached.hit ? 0 : installed.installMs;
+            const copyStartedAt = Date.now();
+            await cp(join(installed.directory, 'node_modules'), join(tmpDirPath, 'node_modules'), {
+              recursive: true,
+              verbatimSymlinks: true,
+              mode: constants.COPYFILE_FICLONE,
+            });
+            await cp(join(installed.directory, 'package-lock.json'), join(tmpDirPath, 'package-lock.json'));
+            copyMs = Date.now() - copyStartedAt;
+          } else {
+            await npmInstallWithRetry(tmpDirPath, deps);
+            installMs = Date.now() - startedAt;
+          }
           success = true;
         } finally {
           if (process.env.INTEGRATION_INSTALL_TIMINGS) {
@@ -283,6 +317,9 @@ function prepareTmpDir(
                 dependencies: additionalDependencies,
                 startedAt,
                 durationMs: Date.now() - startedAt,
+                operation,
+                installMs,
+                copyMs,
                 success,
               })}\n`,
             );
@@ -360,6 +397,28 @@ const NPM_INSTALL_RETRY_DELAY_MS = 2_000;
 // npm install can stall on CI without ever failing, which would otherwise use up the whole setup hook timeout
 // before a retry gets a chance to run.
 const NPM_INSTALL_TIMEOUT_MS = 60_000;
+
+function getDependencyInstall(dependencies: Record<string, string>, deps: string[]) {
+  const key = JSON.stringify(Object.entries(dependencies).sort(([a], [b]) => a.localeCompare(b)));
+  let installation = dependencyInstalls.get(key);
+  const hit = !!installation;
+  if (!installation) {
+    installation = (async () => {
+      const directory = await mkdtemp(join(PACKAGE_ROOT, 'tmp_dependencies_'));
+      dependencyDirectories.add(directory);
+      await writeFile(
+        join(directory, 'package.json'),
+        JSON.stringify({ name: 'tmp-integration-test', private: true, version: '0.0.0', dependencies }),
+      );
+      const startedAt = Date.now();
+      await npmInstallWithRetry(directory, deps);
+      return { directory, installMs: Date.now() - startedAt };
+    })();
+    dependencyInstalls.set(key, installation);
+    void installation.catch(() => dependencyInstalls.delete(key));
+  }
+  return { installation, hit };
+}
 
 async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
   for (let attempt = 1; attempt <= NPM_INSTALL_MAX_RETRIES; attempt++) {
