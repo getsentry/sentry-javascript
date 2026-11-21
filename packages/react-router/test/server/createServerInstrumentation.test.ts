@@ -63,7 +63,11 @@ describe('createSentryServerInstrumentation', () => {
 
   describe('with span streaming enabled', () => {
     beforeEach(() => {
-      (core.getClient as any).mockReturnValue({ getOptions: () => ({ traceLifecycle: 'stream' }) });
+      (core.getClient as any).mockReturnValue({
+        getOptions: () => ({ traceLifecycle: 'stream' }),
+        getIntegrationByName: vi.fn(),
+        addIntegration: vi.fn(),
+      });
     });
 
     // `vi.clearAllMocks()` clears calls but not implementations, so this would leak into later tests.
@@ -168,6 +172,58 @@ describe('createSentryServerInstrumentation', () => {
     instrumentation.handler?.({ instrument: vi.fn() });
 
     expect((globalThis as any).__sentryReactRouterServerInstrumentationUsed).toBe(true);
+  });
+
+  describe('low-quality transactions filter', () => {
+    afterEach(() => {
+      (core.getClient as any).mockReturnValue(undefined);
+    });
+
+    it('adds the filter to a client of a runtime SDK when React Router invokes the handler registration', () => {
+      const client = {
+        getOptions: () => ({ _metadata: { sdk: { name: 'sentry.javascript.bun' } } }),
+        getIntegrationByName: vi.fn(),
+        addIntegration: vi.fn(),
+      };
+      (core.getClient as any).mockReturnValue(client);
+
+      const instrumentation = createSentryServerInstrumentation();
+      expect(client.addIntegration).not.toHaveBeenCalled();
+
+      instrumentation.handler?.({ instrument: vi.fn() });
+
+      expect(client.addIntegration).toHaveBeenCalledTimes(1);
+      expect(client.addIntegration).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'LowQualityTransactionsFilter' }),
+      );
+    });
+
+    it('does not add the filter again when the client has it', () => {
+      const client = {
+        getOptions: () => ({ _metadata: { sdk: { name: 'sentry.javascript.cloudflare' } } }),
+        getIntegrationByName: vi.fn().mockReturnValue({ name: 'LowQualityTransactionsFilter' }),
+        addIntegration: vi.fn(),
+      };
+      (core.getClient as any).mockReturnValue(client);
+
+      createSentryServerInstrumentation().handler?.({ instrument: vi.fn() });
+
+      expect(client.getIntegrationByName).toHaveBeenCalledWith('LowQualityTransactionsFilter');
+      expect(client.addIntegration).not.toHaveBeenCalled();
+    });
+
+    it('does not add the filter to a client of the React Router SDK', () => {
+      const client = {
+        getOptions: () => ({ _metadata: { sdk: { name: 'sentry.javascript.react-router' } } }),
+        getIntegrationByName: vi.fn(),
+        addIntegration: vi.fn(),
+      };
+      (core.getClient as any).mockReturnValue(client);
+
+      createSentryServerInstrumentation().handler?.({ instrument: vi.fn() });
+
+      expect(client.addIntegration).not.toHaveBeenCalled();
+    });
   });
 
   it('should set the global flag when React Router invokes the route registration', () => {

@@ -11,8 +11,10 @@ const LOW_QUALITY_TRANSACTIONS_FILTERS = [
   { attributes: { [URL_PATH]: /\/__manifest/ } },
 ];
 
+export const LOW_QUALITY_TRANSACTIONS_FILTER_NAME = 'LowQualityTransactionsFilter' as const;
+
 const _lowQualityTransactionsFilterIntegration = (() => ({
-  name: 'LowQualityTransactionsFilter' as const,
+  name: LOW_QUALITY_TRANSACTIONS_FILTER_NAME,
   beforeSetup(client) {
     const opts = client.getOptions();
     opts.ignoreSpans = [...(opts.ignoreSpans || []), ...LOW_QUALITY_TRANSACTIONS_FILTERS];
