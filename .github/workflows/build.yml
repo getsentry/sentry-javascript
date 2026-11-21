@@ -30,6 +30,7 @@ concurrency:
 env:
   INTEGRATION_INSTALL_TIMINGS: '1'
   REUSE_INTEGRATION_DEPENDENCIES: '1'
+  PERSIST_INTEGRATION_DEPENDENCIES: '1'
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
   CACHED_DEPENDENCY_PATHS: |
@@ -859,10 +860,84 @@ jobs:
         if: matrix.node == '^27.0.0-0'
         run: pnpm rebuild @sentry/node-cpu-profiler @sentry/node-native-stacktrace
 
+      - &fixture-cache-key
+        name: Compute fixture cache key
+        id: fixture-cache-key
+        shell: bash
+        env:
+          BENCHMARK_JOB: ${{ github.job }}
+          BENCHMARK_SHARD: ${{ matrix.shard || 'all' }}
+          BENCHMARK_SOURCE_HASH:
+            ${{ hashFiles('pnpm-lock.yaml', 'pnpm-workspace.yaml', '.npmrc',
+            'dev-packages/node-integration-tests/**/*.ts') }}
+        run: |
+          node <<'NODE' >> "$GITHUB_OUTPUT"
+          const { execFileSync } = require('node:child_process');
+          const job = process.env.BENCHMARK_JOB;
+          const runtime = job === 'job_bun_integration_tests'
+            ? execFileSync('bun', ['--version'], { encoding: 'utf8' }).trim()
+            : job === 'job_deno_integration_tests'
+              ? execFileSync('deno', ['--version'], { encoding: 'utf8' }).split('\n')[0].replaceAll(' ', '-')
+              : process.versions.node;
+          const day = new Date().toISOString().slice(0, 10);
+          console.log(`key=integration-fixtures-v1-${process.platform}-${process.arch}-${process.versions.node}-${job}-${process.env.BENCHMARK_SHARD}-${runtime}-${process.env.BENCHMARK_SOURCE_HASH}-${day}`);
+          NODE
+      - &fixture-cache-restore
+        name: Restore fixture dependency cache
+        id: fixture-cache
+        uses: actions/cache/restore@v6.1.0
+        with:
+          path: dev-packages/node-integration-tests/.integration-dependency-cache
+          key: ${{ steps.fixture-cache-key.outputs.key }}
+
       - name: Run integration tests
         working-directory: dev-packages/node-integration-tests
         # Tedious runs in the dedicated SQL Server job because its database container requires x86.
         run: pnpm run test --shard=${{ matrix.shard }}/${{ matrix.shards }} --exclude '**/tracing/tedious/**'
+
+      - &fixture-cache-prune
+        name: Prune and measure fixture cache
+        id: fixture-cache-prune
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          node <<'NODE' >> "$GITHUB_OUTPUT"
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const root = 'dev-packages/node-integration-tests/.integration-dependency-cache';
+          if (!fs.existsSync(root)) {
+            console.log('entries=0');
+            process.exit(0);
+          }
+          const keep = new Set();
+          for (const file of fs.readdirSync(root).filter(f => f.endsWith('.json'))) {
+            try {
+              const entry = JSON.parse(fs.readFileSync(path.join(root, file), 'utf8')).directory;
+              if (typeof entry !== 'string' || !entry.startsWith('entry_') || path.basename(entry) !== entry) throw Error('Invalid cache entry');
+              keep.add(entry);
+            } catch {
+              fs.rmSync(path.join(root, file), { force: true });
+            }
+          }
+          for (const entry of fs.readdirSync(root)) {
+            if ((entry.startsWith('entry_') && !keep.has(entry)) || entry.endsWith('.tmp')) {
+              fs.rmSync(path.join(root, entry), { recursive: true, force: true });
+            }
+          }
+          console.log(`entries=${keep.size}`);
+          NODE
+          if [ -d dev-packages/node-integration-tests/.integration-dependency-cache ]; then
+            du -sh dev-packages/node-integration-tests/.integration-dependency-cache
+          fi
+      - &fixture-cache-save
+        name: Save fixture dependency cache
+        if: >-
+          !cancelled() && steps.fixture-cache.outputs.cache-hit != 'true' && steps.fixture-cache-prune.outputs.entries
+          != '' && steps.fixture-cache-prune.outputs.entries != '0'
+        uses: actions/cache/save@v6.1.0
+        with:
+          path: dev-packages/node-integration-tests/.integration-dependency-cache
+          key: ${{ steps.fixture-cache-key.outputs.key }}
 
       - name: Upload integration install timings
         if: always()
@@ -896,9 +971,15 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - *fixture-cache-key
+      - *fixture-cache-restore
+
       - name: Run SQL Server integration tests
         working-directory: dev-packages/node-integration-tests
         run: pnpm run test suites/tracing/tedious/test.ts
+
+      - *fixture-cache-prune
+      - *fixture-cache-save
 
       - name: Upload integration install timings
         if: always()
@@ -1024,9 +1105,15 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
+      - *fixture-cache-key
+      - *fixture-cache-restore
+
       - name: Run integration tests
         working-directory: dev-packages/bun-integration-tests
         run: pnpm run test --shard=${{ matrix.shard }}/6
+
+      - *fixture-cache-prune
+      - *fixture-cache-save
 
       - name: Upload integration install timings
         if: always()
@@ -1074,10 +1161,16 @@ jobs:
           pnpm run install:deno
           pnpm run deno-types
           pnpm run test:unit
+      - *fixture-cache-key
+      - *fixture-cache-restore
+
       - name: Run shared Node integration tests
         working-directory: dev-packages/deno-integration-tests
         # Tedious runs in the dedicated SQL Server job because its database container requires x86.
         run: pnpm run test:node-suites --shard=${{ matrix.shard }}/4 --exclude '**/tracing/tedious/**'
+
+      - *fixture-cache-prune
+      - *fixture-cache-save
 
       - name: Upload integration install timings
         if: always()
