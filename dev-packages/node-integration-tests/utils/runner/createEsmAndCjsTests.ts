@@ -1,5 +1,5 @@
 import { exec, execFile } from 'child_process';
-import { constants, existsSync, rmSync } from 'fs';
+import { existsSync, rmSync } from 'fs';
 import { appendFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'fs/promises';
 import { basename, delimiter, join, relative } from 'path';
 import { promisify } from 'util';
@@ -291,11 +291,12 @@ function prepareTmpDir(
             const installed = await cached.installation;
             installMs = cached.hit ? 0 : installed.installMs;
             const copyStartedAt = Date.now();
-            await cp(join(installed.directory, 'node_modules'), join(tmpDirPath, 'node_modules'), {
-              recursive: true,
-              verbatimSymlinks: true,
-              mode: constants.COPYFILE_FICLONE,
-            });
+            await execFilePromise('cp', [
+              '-a',
+              '--reflink=auto',
+              join(installed.directory, 'node_modules'),
+              join(tmpDirPath, 'node_modules'),
+            ]);
             await cp(join(installed.directory, 'package-lock.json'), join(tmpDirPath, 'package-lock.json'));
             copyMs = Date.now() - copyStartedAt;
           } else {
