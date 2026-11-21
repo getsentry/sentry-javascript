@@ -233,6 +233,41 @@ describe('instrumentPiDurableHarnessOptions', () => {
     await expect(wrapped.definition.abort!(undefined, runtime, undefined)).resolves.toBe('app.job');
   });
 
+  // pi-durable 1.6.0 finds the state it keeps for a runtime by the runtime object itself.
+  it('hands the generation and tool phases the runtime pi-durable created', async () => {
+    const received: PiTaskRuntime[] = [];
+    const task = (name: string): PiTask => ({
+      definition: {
+        name,
+        phases: {
+          run: async (_task, runtime) => {
+            received.push(runtime);
+          },
+        },
+      },
+    });
+    const tasks: Record<string, PiTask> = { 'pi.generation': task('pi.generation'), 'pi.tool': task('pi.tool') };
+    const registry: PiRegistryReader = {
+      snapshot: () => ({ task: name => tasks[name], tasks: () => Object.values(tasks) }),
+      subscribe: () => () => undefined,
+    };
+    const snapshot = instrumentPiDurableHarnessOptions({ registry }).registry!.snapshot();
+    const createRuntime = (taskId: number): PiTaskRuntime => ({
+      taskId,
+      conversationId: 1,
+      agent: async () => ({}),
+      commit: async () => undefined,
+    });
+    const generation = createRuntime(3);
+    const tool = createRuntime(4);
+
+    await snapshot.task('pi.generation')!.definition.phases.run!(undefined, generation, undefined);
+    await snapshot.task('pi.tool')!.definition.phases.run!(undefined, tool, undefined);
+
+    expect(received[0]).toBe(generation);
+    expect(received[1]).toBe(tool);
+  });
+
   describe('tools', () => {
     it('runs a frozen tool and a tool that reads a private field', async () => {
       const frozen: PiTool = Object.freeze({

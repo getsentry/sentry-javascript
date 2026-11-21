@@ -145,7 +145,7 @@ function instrumentRegistry(registry: PiRegistryReader, options: PiDurableOption
         (taskRecord, runtime, context) =>
           runPhase(
             definition.name,
-            observed => phase.call(receiver, taskRecord, observed, context),
+            () => phase.call(receiver, taskRecord, runtime, context),
             runtime,
             context,
             runs,
@@ -201,7 +201,7 @@ function instrumentRegistry(registry: PiRegistryReader, options: PiDurableOption
 
 function runPhase(
   kind: string,
-  phase: (runtime: PiTaskRuntime) => Promise<unknown>,
+  phase: () => Promise<unknown>,
   runtime: PiTaskRuntime,
   context: unknown,
   runs: PiRuns,
@@ -219,14 +219,11 @@ function runPhase(
       ? (runs.active.get(conversationId) ?? (isRunWork && !isAbort ? startRun(conversationId, runs) : undefined))
       : undefined;
 
-  let observed = runtime;
-  let finishToolPhase: (() => void) | undefined;
+  let finishPhase: (() => void) | undefined;
   if (run && kind === PI_TASK.GENERATION) {
-    observed = observeRunControl(runtime, run, runs);
+    finishPhase = observeRunControl(runtime, run, runs);
   } else if (kind === PI_TASK.TOOL) {
-    const toolPhase = instrumentToolPhase(runtime, runs, wrapTool);
-    observed = toolPhase.runtime;
-    finishToolPhase = toolPhase.finish;
+    finishPhase = instrumentToolPhase(runtime, runs, wrapTool);
   }
 
   const runInScope = async (scope: Scope): Promise<unknown> => {
@@ -243,7 +240,7 @@ function runPhase(
     scope.setConversationId(sessionId ?? toSentryConversationId(runs, conversationId));
     setPiAiDriverOptions(scope, options, { operation: 'chat', runtime, context });
     try {
-      return await phase(observed);
+      return await phase();
     } catch (error) {
       // The scheduler faults a task whose phase throws, and a faulted generation ends its run. A
       // throw after an abort mark, or once the Harness closes, is not a fault.
@@ -255,7 +252,7 @@ function runPhase(
       }
       throw error;
     } finally {
-      finishToolPhase?.();
+      finishPhase?.();
     }
   };
 
