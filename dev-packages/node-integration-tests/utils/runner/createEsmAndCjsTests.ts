@@ -1,7 +1,7 @@
 import { exec, execFile } from 'child_process';
 import { existsSync } from 'fs';
-import { cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
-import { basename, delimiter, join } from 'path';
+import { appendFile, cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
+import { basename, delimiter, join, relative } from 'path';
 import { promisify } from 'util';
 import { afterAll, beforeAll, test, type TestAPI } from 'vitest';
 import { CLEANUP_STEPS, createRunner, PACKAGE_ROOT } from './createRunner';
@@ -264,7 +264,30 @@ function prepareTmpDir(
 
       if (deps.length > 0) {
         // Prefer npm for temp installs to avoid Yarn engine strictness; see https://github.com/vercel/ai/issues/7777
-        await npmInstallWithRetry(tmpDirPath, deps);
+        const startedAt = Date.now();
+        let success = false;
+        try {
+          await npmInstallWithRetry(tmpDirPath, deps);
+          success = true;
+        } finally {
+          if (process.env.INTEGRATION_INSTALL_TIMINGS) {
+            await appendFile(
+              join(process.env.RUNNER_TEMP || PACKAGE_ROOT, 'integration-install-timings.jsonl'),
+              `${JSON.stringify({
+                suite: relative(PACKAGE_ROOT, cwd),
+                scenario: scenarioPath,
+                instrument: instrumentPath,
+                runtime: process.env.RUNTIME || 'node',
+                preload: process.env.RUNTIME_PRELOAD,
+                buildScript: process.env.RUNTIME_BUILD_SCRIPT,
+                dependencies: additionalDependencies,
+                startedAt,
+                durationMs: Date.now() - startedAt,
+                success,
+              })}\n`,
+            );
+          }
+        }
       }
     }
 
