@@ -425,6 +425,18 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
             expect(batch.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toBe('OUTER RESULT');
           },
         })
+        .expect({
+          span: container => {
+            const spans = container.items;
+            const relay = spans.find(span => span.name === 'execute_tool relay')!;
+            const inner = spans.find(span => span.name === 'execute_tool inner')!;
+            expect(relay.parent_span_id).toBe(spans.find(span => span.is_segment)!.span_id);
+            // A nested call is a task of its own: its span is a child of the calling tool's span.
+            expect(inner.parent_span_id).toBe(relay.span_id);
+            expect(inner.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toBe('INNER RESULT');
+            expect(relay.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toBe('RELAY RESULT');
+          },
+        })
         .start()
         .completed();
     });

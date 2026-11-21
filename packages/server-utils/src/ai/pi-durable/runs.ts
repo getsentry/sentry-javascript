@@ -14,7 +14,15 @@ import { GEN_AI_CONVERSATION_ID, GEN_AI_OPERATION_NAME, SENTRY_ORIGIN } from '@s
 import { GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
 import { MAX_TRACKED_PI_RUNS, PI_DURABLE_ORIGIN, PI_LIVE_DOC_KIND, PI_PROVIDER_DOC_KIND } from './constants';
-import type { PiCommitChange, PiDocToken, PiLiveState, PiProviderState, PiSettlement, PiTaskRuntime } from './types';
+import type {
+  PiCommitChange,
+  PiDocToken,
+  PiLiveState,
+  PiProviderState,
+  PiSettlement,
+  PiTaskRuntime,
+  PiToolResultMessage,
+} from './types';
 import { withCleanScopes } from '../../utils/withCleanScopes';
 import { bound } from './utils';
 
@@ -94,6 +102,8 @@ export interface PiToolCall {
   endTimestamp?: number;
   /** Set once `execute()` settled. Runs `onSpanEnd` with its result. */
   onSpanEnd?: () => void;
+  /** What `execute()` returned, the result of a call that commits no result entry. */
+  returned?: PiToolResultMessage;
 }
 
 export function createRuns(): PiRuns {

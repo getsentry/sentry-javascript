@@ -67,6 +67,7 @@ export function instrumentToolPhase(
   runtime: PiTaskRuntime,
   runs: PiRuns,
   wrapTool: (tool: PiTool) => PiTool,
+  isNested: boolean,
 ): () => void {
   const results = new Map<unknown, PiToolResultMessage>();
   runs.toolCalls.set(runtime.taskId, []);
@@ -77,7 +78,14 @@ export function instrumentToolPhase(
   // Replaced on the runtime itself and put back when the phase ends, see `observeRunControl`.
   runtime.agent = (context: unknown): Promise<PiAgent> =>
     agent(context).then(resolved =>
-      resolved?.tools ? { ...resolved, tools: resolved.tools.map(wrapTool) } : resolved,
+      resolved?.tools
+        ? {
+            ...resolved,
+            tools: resolved.tools.map(wrapTool),
+            // A call made with `api.executeTool()` resolves its tool among these.
+            ...(resolved.callable ? { callable: resolved.callable.map(wrapTool) } : {}),
+          }
+        : resolved,
     );
 
   runtime.commit = (change: PiCommitChange, context: unknown): Promise<void> => {
@@ -98,7 +106,9 @@ export function instrumentToolPhase(
     runtime.agent = agent;
     runtime.commit = commit;
     for (const call of runs.toolCalls.get(runtime.taskId) ?? []) {
-      finishToolCall(call, call.callId !== undefined ? results.get(call.callId) : undefined);
+      // A nested call gives its result to the calling tool and commits no result entry.
+      const committed = call.callId !== undefined ? results.get(call.callId) : undefined;
+      finishToolCall(call, isNested ? call.returned : committed);
     }
     runs.toolCalls.delete(runtime.taskId);
   };
@@ -144,9 +154,10 @@ export function instrumentTool(
           const result = await tool.execute(args, trackOwnedConversations(api, span, runs), context);
           call.endTimestamp = timestampInSeconds();
           call.onSpanEnd = () => runGenAiSpanEnd(options, span, toolCall, { response: result });
+          call.returned = { content: result?.output ?? result?.content, isError: result?.isError };
           if (!calls) {
-            // No result entry follows a call outside a tool task phase, nor a nested call.
-            finishToolCall(call, { content: result?.output ?? result?.content, isError: result?.isError });
+            // No result entry follows a call outside a tool task phase, nor a call that got the api of another call.
+            finishToolCall(call, call.returned);
           }
           return result;
         } catch (error) {
