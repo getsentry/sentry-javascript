@@ -35,6 +35,7 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryAssetPrefix?: string;
   _sentryRelease?: string;
   _experimentalThirdPartyOriginStackFrames?: string;
+  _sentryBuildCacheProbe?: string;
 };
 
 // Treeshakable guard to remove all code related to tracing
@@ -42,6 +43,7 @@ declare const __SENTRY_TRACING__: boolean;
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(userOptions: BrowserOptions): Client | undefined {
+  globalWithInjectedValues._sentryBuildCacheProbe = 'next-webpack-sdk-probe-after';
   const options = _INTERNAL_captureOptionsSetByUser(userOptions);
 
   if (!DEBUG_BUILD && options.debug) {
