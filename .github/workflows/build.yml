@@ -94,10 +94,9 @@ jobs:
       - name: Set up Node
         uses: ./.github/actions/setup-node
 
-      - name: Install dependencies for affected-project selection
+      - name: Set up affected-project planner
         if: github.event_name == 'pull_request' && needs.job_get_metadata.outputs.changed_ci != 'true'
-        uses: ./.github/actions/install-dependencies
-        id: install_dependencies
+        uses: ./.github/actions/setup-nx-planner
 
       - name: Check for Affected Nx Projects
         uses: ./.github/actions/nx-affected-list
@@ -187,6 +186,10 @@ jobs:
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
         id: install_dependencies
+
+      - name: Seed planner cache
+        if: github.ref == 'refs/heads/develop'
+        uses: ./.github/actions/setup-nx-planner
 
       - name: Build packages
         run: pnpm run build:ci
