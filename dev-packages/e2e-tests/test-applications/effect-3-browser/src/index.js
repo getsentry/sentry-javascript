@@ -8,7 +8,7 @@ import * as Effect from 'effect/Effect';
 
 const LogLevelLive = Logger.minimumLogLevel(LogLevel.Debug);
 const AppLayer = Layer.mergeAll(
-  Sentry.effectLayer({
+  Sentry.layer({
     dsn: process.env.E2E_TEST_DSN,
     integrations: [Sentry.browserTracingIntegration(), Sentry.interactionsIntegration()],
     tracesSampleRate: 1.0,
@@ -16,8 +16,8 @@ const AppLayer = Layer.mergeAll(
     environment: 'qa',
     tunnel: 'http://localhost:3031',
   }),
-  Layer.setTracer(Sentry.SentryEffectTracer),
-  Logger.replace(Logger.defaultLogger, Sentry.SentryEffectLogger),
+  Layer.setTracer(Sentry.Tracer),
+  Logger.replace(Logger.defaultLogger, Sentry.Logger),
   LogLevelLive,
 );
 

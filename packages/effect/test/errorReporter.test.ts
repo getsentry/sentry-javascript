@@ -22,13 +22,13 @@ class FatalError extends Data.TaggedError('FatalError')<{ readonly message: stri
 }
 
 describe.each([
-  [{ subSdkName: 'browser', effectLayer: sentryClient.effectLayer }],
-  [{ subSdkName: 'node', effectLayer: sentryServer.effectLayer }],
-])('Sentry ErrorReporter ($subSdkName)', ({ effectLayer }) => {
+  [{ subSdkName: 'browser', sentryLayer: sentryClient.layer }],
+  [{ subSdkName: 'node', sentryLayer: sentryServer.layer }],
+])('Sentry ErrorReporter ($subSdkName)', ({ sentryLayer }) => {
   let events: Event[];
 
   function makeLayer(): Layer.Layer<never> {
-    return effectLayer({
+    return sentryLayer({
       dsn: TEST_DSN,
       transport: () => ({
         send: vi.fn().mockResolvedValue({}),
@@ -206,9 +206,9 @@ describe.each([
       expect(events).toHaveLength(1);
       expect(events[0]?.contexts?.trace?.trace_id).toEqual(expect.any(String));
     }).pipe(
-      Effect.withTracer(sentryServer.SentryEffectTracer),
+      Effect.withTracer(sentryServer.Tracer),
       Effect.provide(
-        effectLayer({
+        sentryLayer({
           dsn: TEST_DSN,
           tracesSampleRate: 1,
           transport: () => ({

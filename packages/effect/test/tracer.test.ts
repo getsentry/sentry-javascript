@@ -7,9 +7,9 @@ import { Effect, Exit } from 'effect';
 import { TestClock } from 'effect/testing';
 import * as Tracer from 'effect/Tracer';
 import { afterEach, beforeEach, vi } from 'vitest';
-import { SentryEffectTracer as clientTracer } from '../src/client/tracer';
-import { SentryEffectTracer as serverTracer } from '../src/server/tracer';
-import { SentryEffectExternalSpanLayer } from '../src/tracer';
+import { Tracer as clientTracer } from '../src/client/tracer';
+import { Tracer as serverTracer } from '../src/server/tracer';
+import { externalSpanLayer } from '../src/tracer';
 
 // The two variants differ only in which module they start spans through, so spying on `spanApi` also
 // asserts that wiring: the client tracer must go through `@sentry/core/browser` (which installs
@@ -35,7 +35,7 @@ function mockSpan(overrides: Record<string, unknown> = {}): sentryCore.Span {
   } as unknown as sentryCore.Span;
 }
 
-describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ variant, tracer, spanApi }) => {
+describe.each(VARIANTS)('Tracer ($variant)', ({ variant, tracer, spanApi }) => {
   const withSentryTracer = <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.withTracer(effect, tracer);
 
   afterEach(() => {
@@ -351,7 +351,7 @@ describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ variant, tracer, spa
     it('continues the trace of an external parent as a new root span with the external span layer', () => {
       const parent = Tracer.externalSpan({ traceId, spanId, sampled: true });
       const span = run(
-        Effect.withSpan('reactor', { parent })(currentSentrySpan).pipe(Effect.provide(SentryEffectExternalSpanLayer)),
+        Effect.withSpan('reactor', { parent })(currentSentrySpan).pipe(Effect.provide(externalSpanLayer)),
       );
 
       expect(sentryCore.spanToJSON(span)).toMatchObject({ trace_id: traceId, parent_span_id: spanId });
@@ -366,7 +366,7 @@ describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ variant, tracer, spa
     it('honors the sampling decision of an external parent', () => {
       const parent = Tracer.externalSpan({ traceId, spanId, sampled: false });
       const span = run(
-        Effect.withSpan('reactor', { parent })(currentSentrySpan).pipe(Effect.provide(SentryEffectExternalSpanLayer)),
+        Effect.withSpan('reactor', { parent })(currentSentrySpan).pipe(Effect.provide(externalSpanLayer)),
       );
 
       expect(sentryCore.spanToJSON(span).trace_id).toBe(traceId);

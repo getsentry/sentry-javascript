@@ -5,7 +5,7 @@ import { contextLinesIntegration, init as initNode, linkedErrorsIntegration } fr
 
 /**
  * Only the integrations needed to enrich captured errors with source context and `cause` chains.
- * Node's auto-instrumentation defaults are left out because `SentryEffectTracer` records Effect's own spans.
+ * Node's auto-instrumentation defaults are left out because `Tracer` records Effect's own spans.
  */
 export function getDefaultIntegrations(): Integration[] {
   return [contextLinesIntegration(), linkedErrorsIntegration()];

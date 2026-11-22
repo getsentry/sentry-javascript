@@ -233,7 +233,7 @@ const ExternalSpanFlag = (
  * next to the tracer layer to continue every external span in the runtime, or provide it to a single
  * effect with `Effect.provide` to continue only that one.
  */
-export const SentryEffectExternalSpanLayer: EffectLayer.Layer<never> = succeedLayer(ExternalSpanFlag, true);
+export const externalSpanLayer: EffectLayer.Layer<never> = succeedLayer(ExternalSpanFlag, true);
 
 interface FiberLike {
   /** The span the fiber runs in. Only Effect v3 fibers have it. */
@@ -287,7 +287,7 @@ function withFiberContext<X>(fiber: FiberLike, execution: () => X): X {
  * - A parent this tracer created becomes the Sentry parent.
  * - Any other parent (`Tracer.externalSpan` bridging a trace this SDK did not start, such as an
  *   OpenTelemetry span of another app in the same process or persisted trace state) is ignored unless
- *   {@link SentryEffectExternalSpanLayer} is provided, so a span joins a foreign trace only when the user
+ *   {@link externalSpanLayer} is provided, so a span joins a foreign trace only when the user
  *   asked for it. The span then nests where Effect would have put it without the `parent` option: under
  *   the fiber's current span, or parentless. With the layer, the span continues that trace: it is a root
  *   span whose `parent_span_id` is the external span. No dynamic sampling context is frozen, so the SDK
@@ -434,7 +434,7 @@ const makeSentryTracerV4 = (
 /**
  * Creates an Effect `Tracer` that records Effect spans as Sentry spans.
  *
- * Use the `SentryEffectTracer` exported from `@sentry/effect` rather than calling this directly — the
+ * Use the `Tracer` exported from `@sentry/effect` rather than calling this directly — the
  * client and server entries each bind the right `startInactiveSpan` for their platform.
  *
  * `newTraceForRootSpans` is the one behavioural difference between the platforms: Effect gives every

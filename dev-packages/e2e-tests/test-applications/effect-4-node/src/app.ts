@@ -12,15 +12,15 @@ import { HttpRouter, HttpServerResponse } from 'effect/http';
 import { createServer } from 'http';
 
 const SentryLive = Layer.mergeAll(
-  Sentry.effectLayer({
+  Sentry.layer({
     dsn: process.env.E2E_TEST_DSN,
     environment: 'qa',
     debug: !!process.env.DEBUG,
     tunnel: 'http://localhost:3031/',
     tracesSampleRate: 1,
   }),
-  Logger.layer([Sentry.SentryEffectLogger]),
-  Layer.succeed(Tracer.Tracer, Sentry.SentryEffectTracer),
+  Logger.layer([Sentry.Logger]),
+  Layer.succeed(Tracer.Tracer, Sentry.Tracer),
   Layer.succeed(References.MinimumLogLevel, 'Debug'),
 );
 
@@ -125,7 +125,7 @@ const Routes = Layer.mergeAll(
         }),
       );
       return yield* HttpServerResponse.json({ status: 'ok' });
-    }).pipe(Effect.provide(Sentry.SentryEffectExternalSpanLayer)),
+    }).pipe(Effect.provide(Sentry.externalSpanLayer)),
   ),
 
   HttpRouter.add(

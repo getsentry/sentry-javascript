@@ -18,9 +18,9 @@ export type EffectClientLayerOptions = BrowserOptions;
  * `Effect.withErrorReporting`, `ErrorReporter.report` or the built-in HTTP and RPC boundaries are captured.
  *
  * To enable Effect tracing, logs, or metrics, compose with the respective layers:
- * - `Layer.setTracer(Sentry.SentryEffectTracer)` for tracing
- * - `Logger.replace(Logger.defaultLogger, Sentry.SentryEffectLogger)` for logs
- * - `Sentry.SentryEffectMetricsLayer` for metrics
+ * - `Layer.setTracer(Sentry.Tracer)` for tracing
+ * - `Logger.replace(Logger.defaultLogger, Sentry.Logger)` for logs
+ * - `Sentry.metricsLayer` for metrics
  *
  * @example
  * ```typescript
@@ -28,17 +28,17 @@ export type EffectClientLayerOptions = BrowserOptions;
  * import { Layer, Logger, LogLevel } from 'effect';
  *
  * const SentryLive = Layer.mergeAll(
- *   Sentry.effectLayer({
+ *   Sentry.layer({
  *     dsn: '__DSN__',
  *     integrations: [Sentry.browserTracingIntegration()],
  *     tracesSampleRate: 1.0,
  *   }),
- *   Layer.setTracer(Sentry.SentryEffectTracer),
- *   Logger.replace(Logger.defaultLogger, Sentry.SentryEffectLogger),
+ *   Layer.setTracer(Sentry.Tracer),
+ *   Logger.replace(Logger.defaultLogger, Sentry.Logger),
  * );
  * ```
  */
-export function effectLayer(options: EffectClientLayerOptions): EffectLayer.Layer<never, never, never> {
+export function layer(options: EffectClientLayerOptions): EffectLayer.Layer<never, never, never> {
   return mergeLayer(
     suspendLayer(() => {
       init(options);

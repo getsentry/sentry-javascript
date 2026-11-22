@@ -14,4 +14,4 @@ import { makeSentryTracer } from '../tracer';
  *
  * See `./client/tracer.ts` for why the call is wrapped in an arrow.
  */
-export const SentryEffectTracer = makeSentryTracer(options => startInactiveSpan(options), true);
+export const Tracer = makeSentryTracer(options => startInactiveSpan(options), true);

@@ -1,6 +1,6 @@
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { isObjectLike, logger as sentryLogger } from '@sentry/core';
-import * as Logger from 'effect/Logger';
+import * as EffectLogger from 'effect/Logger';
 import type * as LogLevel from 'effect/LogLevel';
 
 const LOG_ATTRIBUTES = {
@@ -24,7 +24,7 @@ function getLogLevelTag(logLevel: LogLevel.LogLevel): LogLevel.LogLevel | 'Warni
 /**
  * Effect Logger that sends logs to Sentry.
  */
-export const SentryEffectLogger = Logger.make(({ logLevel, message }) => {
+export const Logger = EffectLogger.make(({ logLevel, message }) => {
   let msg: string;
   if (typeof message === 'string') {
     msg = message;

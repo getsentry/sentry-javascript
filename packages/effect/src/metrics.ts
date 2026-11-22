@@ -180,7 +180,7 @@ function createMetricsReporterEffect(previousCounterValues: Map<string, number>)
  * The layer manages its own state for delta counter calculations,
  * which is automatically cleaned up when the layer is finalized.
  */
-export const SentryEffectMetricsLayer: Layer.Layer<never, never, never> = Layer.effectDiscard(
+export const metricsLayer: Layer.Layer<never, never, never> = Layer.effectDiscard(
   Effect.gen(function* () {
     const previousCounterValues = new Map<string, number>();
 
