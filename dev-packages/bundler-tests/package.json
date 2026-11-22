@@ -34,5 +34,15 @@
     "vitest": "^4.1.12",
     "webpack": "^5.112.2"
   },
-  "type": "module"
+  "type": "module",
+  "nx": {
+    "targets": {
+      "test": {
+        "dependsOn": [
+          "^build:transpile",
+          "^build:types"
+        ]
+      }
+    }
+  }
 }
