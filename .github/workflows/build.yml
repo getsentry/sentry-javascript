@@ -272,6 +272,8 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Build SDK packages locally
         uses: ./.github/actions/build-local-sdk
+        with:
+          package-path: packages/aws-serverless
 
       - name: Build Lambda layer
         run: pnpm run build:layer
@@ -316,7 +318,8 @@ jobs:
       - name: Build SDK packages locally
         uses: ./.github/actions/build-local-sdk
         with:
-          additional-targets: build:bundle
+          package-path: .
+          targets: build:transpile build:types build:bundle
       - name: Check bundle sizes
         uses: ./dev-packages/size-limit-gh-action
         with:
@@ -338,6 +341,8 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Build SDK packages locally
         uses: ./.github/actions/build-local-sdk
+        with:
+          package-path: .
       - parallel:
           - name: Lint source files
             run: pnpm run lint
@@ -483,9 +488,16 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Build SDK packages locally
-        uses: ./.github/actions/build-local-sdk
-
+      - name: Set up build Node
+        uses: ./.github/actions/setup-node
+      - name: Restore workspace dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build selected unit-test dependencies
+        env:
+          UNIT_TEST_ENV: browser
+        run: >-
+          pnpm exec tsx scripts/ci-unit-tests.ts --build-only ${{ github.event_name == 'pull_request' &&
+          format('--affected --base={0}', github.event.pull_request.base.sha) || '' }}
       - name: Run affected tests
         run: pnpm run test:pr:browser --base=${{ github.event.pull_request.base.sha }}
         if: github.event_name == 'pull_request'
@@ -516,6 +528,8 @@ jobs:
           bun-version: ${{ matrix.bun }}
       - name: Build SDK packages locally
         uses: ./.github/actions/build-local-sdk
+        with:
+          package-path: packages/bun
       - name: Run tests
         run: |
           pnpm run test:ci:bun
@@ -537,6 +551,8 @@ jobs:
           deno-version: 'v2.8.3'
       - name: Build SDK packages locally
         uses: ./.github/actions/build-local-sdk
+        with:
+          package-path: packages/deno
       - name: Run tests
         run: |
           cd packages/deno
@@ -565,8 +581,17 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Build SDK packages locally
-        uses: ./.github/actions/build-local-sdk
+      - name: Set up build Node
+        uses: ./.github/actions/setup-node
+      - name: Restore workspace dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build selected unit-test dependencies
+        env:
+          UNIT_TEST_ENV: node
+          UNIT_TEST_SHARD: ${{ matrix.shard }}
+        run: >-
+          pnpm exec tsx scripts/ci-unit-tests.ts --build-only ${{ github.event_name == 'pull_request' &&
+          format('--affected --base={0}', github.event.pull_request.base.sha) || '' }}
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
@@ -685,7 +710,8 @@ jobs:
       - name: Build SDK packages locally
         uses: ./.github/actions/build-local-sdk
         with:
-          additional-targets: build:bundle
+          package-path: dev-packages/browser-integration-tests
+          targets: build:transpile build:types build:bundle
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -738,7 +764,8 @@ jobs:
       - name: Build SDK packages locally
         uses: ./.github/actions/build-local-sdk
         with:
-          additional-targets: build:bundle
+          package-path: packages/browser
+          targets: build:transpile build:types build:bundle
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -777,7 +804,8 @@ jobs:
       - name: Build SDK packages locally
         uses: ./.github/actions/build-local-sdk
         with:
-          additional-targets: build:bundle
+          package-path: packages/browser
+          targets: build:transpile build:types build:bundle
 
       # Chromium itself isn't cached: `run.mjs` downloads the 127 MB zip on each run, which is about as quick as a
       # cache restore.
@@ -821,6 +849,8 @@ jobs:
           fi
       - name: Build SDK packages locally
         uses: ./.github/actions/build-local-sdk
+        with:
+          package-path: dev-packages/node-integration-tests
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
@@ -852,6 +882,8 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Build SDK packages locally
         uses: ./.github/actions/build-local-sdk
+        with:
+          package-path: dev-packages/node-integration-tests
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
@@ -880,6 +912,8 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Build SDK packages locally
         uses: ./.github/actions/build-local-sdk
+        with:
+          package-path: dev-packages/cloudflare-integration-tests
 
       # The Vite plugin depends on wrangler and writes config for it, so both move together. In the hoisted layout,
       # pnpm keeps the nested `node_modules` folders of the old versions (for example an old workerd under
@@ -935,6 +969,8 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Build SDK packages locally
         uses: ./.github/actions/build-local-sdk
+        with:
+          package-path: dev-packages/bundler-plugin-integration-tests
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
@@ -968,6 +1004,8 @@ jobs:
           bun-version: ${{ matrix.bun }}
       - name: Build SDK packages locally
         uses: ./.github/actions/build-local-sdk
+        with:
+          package-path: dev-packages/bun-integration-tests
 
       - name: Run integration tests
         working-directory: dev-packages/bun-integration-tests
@@ -994,6 +1032,8 @@ jobs:
           deno-version: 'v2.8.3'
       - name: Build SDK packages locally
         uses: ./.github/actions/build-local-sdk
+        with:
+          package-path: dev-packages/deno-integration-tests
       - name: Build @sentry/deno
         working-directory: packages/deno
         run: pnpm run build
@@ -1044,7 +1084,8 @@ jobs:
       - name: Build SDK packages locally
         uses: ./.github/actions/build-local-sdk
         with:
-          additional-targets: build:tarball
+          package-path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+          targets: build:tarball
       - name: Prepare E2E test application
         uses: ./.github/actions/prepare-e2e-test
         with:
