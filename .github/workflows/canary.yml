@@ -17,6 +17,49 @@ permissions:
   issues: write
 
 jobs:
+  job_bun_integration_tests:
+    name: Bun (canary) Integration Tests (${{ matrix.shard }}/6)
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    env:
+      CACHED_DEPENDENCY_PATHS: |
+        ${{ github.workspace }}/node_modules
+        ${{ github.workspace }}/packages/*/node_modules
+        ${{ github.workspace }}/dev-packages/*/node_modules
+        ~/.cache/mongodb-binaries/
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+    steps:
+      - name: Check out current commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: ./.github/actions/setup-node
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: canary
+      - name: Install dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build packages
+        run: pnpm run build:ci
+      - name: Run integration tests
+        working-directory: dev-packages/bun-integration-tests
+        run: pnpm run test --shard=${{ matrix.shard }}/6
+      - name: Create Issue
+        if: failure() && github.event_name == 'schedule'
+        uses: JasonEtco/create-an-issue@1b14a70e4d8dc185e5cc76d3bec9eab20257b2c5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TITLE: Bun canary Integration Tests Failed
+        with:
+          filename: .github/CANARY_FAILURE_TEMPLATE.md
+          update_existing: true
+
   job_e2e_prepare:
     name: Prepare E2E Canary tests
     runs-on: ubuntu-24.04
