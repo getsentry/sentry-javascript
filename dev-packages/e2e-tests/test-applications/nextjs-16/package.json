@@ -85,7 +85,7 @@
       {
         "build-command": "E2E_RELEASE_NOT_INJECTED=1 pnpm test:build",
         "label": "nextjs-16 (turbopack, release not injected, production)",
-        "assert-command": "E2E_RELEASE_NOT_INJECTED=1 pnpm test:prod"
+        "assert-command": "E2E_RELEASE_NOT_INJECTED=1 pnpm test:prod tests/release-injection.test.ts"
       },
       {
         "build-command": "pnpm test:build-webpack",
