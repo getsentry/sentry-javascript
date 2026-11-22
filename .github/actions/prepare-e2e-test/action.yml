@@ -21,6 +21,9 @@ inputs:
   github-token:
     description: 'Token to download artifacts from `artifacts-run-id`. Only needed when that is set.'
     default: ''
+  download-artifacts:
+    description: 'Download SDK artifacts instead of using outputs already built in this workspace.'
+    default: 'true'
 
 runs:
   using: 'composite'
@@ -53,6 +56,7 @@ runs:
     # upload-artifact strips the path through the first `*`, so the tarballs are stored as <pkg>/*.tgz and have to be
     # downloaded into packages/.
     - name: Restore tarball artifacts
+      if: inputs.download-artifacts == 'true'
       uses: actions/download-artifact@v8
       with:
         name: build-tarball-output
@@ -61,6 +65,7 @@ runs:
         github-token: ${{ inputs.github-token }}
 
     - name: Restore test-utils tarball artifact
+      if: inputs.download-artifacts == 'true'
       uses: actions/download-artifact@v8
       with:
         name: build-test-utils-tarball-output
@@ -69,7 +74,7 @@ runs:
         github-token: ${{ inputs.github-token }}
 
     - name: Restore build layer artifacts
-      if: inputs.test-application == 'aws-serverless-layer'
+      if: inputs.download-artifacts == 'true' && inputs.test-application == 'aws-serverless-layer'
       uses: actions/download-artifact@v8
       with:
         name: build-layer-output
@@ -79,7 +84,7 @@ runs:
 
     # The Lambda functions install the built workspace packages directly (see `src/stack.ts`).
     - name: Restore build artifacts
-      if: inputs.test-application == 'aws-serverless'
+      if: inputs.download-artifacts == 'true' && inputs.test-application == 'aws-serverless'
       uses: actions/download-artifact@v8
       with:
         name: build-output

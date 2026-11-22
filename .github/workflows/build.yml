@@ -1159,6 +1159,98 @@ jobs:
       matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix-aws-layer) }}
     steps: *e2e-steps
 
+  job_benchmark_node_local_sdk:
+    name: Benchmark Node 22 integration (2/6, local SDK build)
+    needs: job_get_metadata
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    steps:
+      - name: Check out current commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Free up disk space if low
+        run: |
+          df -h /
+          avail_kb=$(df -k --output=avail / | tail -1)
+          if [ "$avail_kb" -lt $((40 * 1024 * 1024)) ]; then
+            sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+            df -h /
+          fi
+      - name: Set up build Node
+        uses: ./.github/actions/setup-node
+      - name: Restore workspace dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build SDK packages locally
+        run: pnpm run build:ci
+      - name: Set up test Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Run integration tests
+        working-directory: dev-packages/node-integration-tests
+        run: pnpm run test --shard=2/6 --exclude '**/tracing/tedious/**'
+
+  job_benchmark_nextjs_local_sdk:
+    name: Benchmark Next.js 16 Webpack production (local SDK build)
+    needs: job_get_metadata
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env: *e2e-env
+    steps:
+      - name: Check out current commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up build Node
+        uses: ./.github/actions/setup-node
+      - name: Restore workspace dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build SDK packages locally
+        run: pnpm run build:ci
+      - name: Build SDK tarballs locally
+        run: |
+          pnpm run clean:tarballs
+          pnpm exec nx run-many -t build:tarball --parallel=4
+      - name: Prepare E2E test application
+        uses: ./.github/actions/prepare-e2e-test
+        with:
+          test-application: nextjs-16
+          download-artifacts: 'false'
+      - name: Start E2E databases
+        background: true
+        working-directory: ${{ runner.temp }}/test-application
+        run: docker compose up -d --wait
+      - name: Install Playwright
+        background: true
+        uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
+          cwd: dev-packages/e2e-tests/test-applications/nextjs-16
+      - name: Build E2E app
+        working-directory: ${{ runner.temp }}/test-application
+        timeout-minutes: 7
+        run: pnpm test:build-webpack
+        env:
+          SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
+      - wait-all:
+      - name: Run E2E test
+        working-directory: ${{ runner.temp }}/test-application
+        timeout-minutes: 10
+        run: pnpm test:prod
+        env:
+          SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces-nextjs-local-sdk
+          path: ${{ runner.temp }}/test-application/test-results
+          if-no-files-found: ignore
+          retention-days: 3
+
   # - We skip optional tests on release branches
   # - The tests run in optional-e2e.yml, so their failures do not mark the PR as failed. This job only waits for
   #   them. optional-e2e.yml reports the results in a PR comment.
@@ -1222,6 +1314,8 @@ jobs:
         job_check_lockfile,
         job_check_format,
         job_size_check,
+        job_benchmark_node_local_sdk,
+        job_benchmark_nextjs_local_sdk,
       ]
     # Always run this, even if a dependent job failed
     if: always()
