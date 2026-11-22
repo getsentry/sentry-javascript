@@ -60,7 +60,7 @@ runs:
       uses: ./.github/actions/install-pnpm
 
     - name: Restore SDK build and dependencies for Lambda layer
-      if: inputs.build-lambda-layer == 'true'
+      if: inputs.build-lambda-layer == 'true' && inputs.download-artifacts == 'true'
       uses: ./.github/actions/restore-cache
       with:
         dependency_cache_key: ${{ inputs.dependency-cache-key }}
@@ -92,4 +92,52 @@ runs:
         github-token: ${{ inputs.github-token }}
 
     - name: Restore build layer artifacts
-      if: inputs.download-artifacts == 'true' && inputs.test-application == 'aws-serverless-layer' && inputs.build-lambda-layer != 'true'
+      if:
+        inputs.download-artifacts == 'true' && inputs.test-application == 'aws-serverless-layer' &&
+        inputs.build-lambda-layer != 'true'
+      uses: actions/download-artifact@v8
+      with:
+        name: build-layer-output
+        path: ${{ github.workspace }}/packages/aws-serverless/build/aws/dist-serverless
+        run-id: ${{ inputs.artifacts-run-id || github.run_id }}
+        github-token: ${{ inputs.github-token }}
+
+    # The Lambda functions install the built workspace packages directly (see `src/stack.ts`).
+    - name: Restore build artifacts
+      if: inputs.download-artifacts == 'true' && inputs.test-application == 'aws-serverless'
+      uses: actions/download-artifact@v8
+      with:
+        name: build-output
+        run-id: ${{ inputs.artifacts-run-id || github.run_id }}
+        github-token: ${{ inputs.github-token }}
+
+    - name: Prepare E2E tests
+      run: pnpm run test:prepare
+      shell: bash
+      working-directory: dev-packages/e2e-tests
+
+    - name: Validate E2E test setup
+      run: pnpm run test:validate
+      shell: bash
+      working-directory: dev-packages/e2e-tests
+
+    - name: Copy to temp
+      run:
+        pnpm run ci:copy-to-temp ./test-applications/${{ inputs.test-application }} ${{ runner.temp }}/test-application
+      shell: bash
+      working-directory: dev-packages/e2e-tests
+
+    # Reads the node version that `ci:copy-to-temp` wrote into the copied app's `devEngines.runtime`: the app's own pin
+    # if it has one, otherwise the one inherited from the repo root. setup-node can't look up parent directories, so the
+    # temp copy has to carry the resolved version.
+    - name: Set up Node for the E2E app
+      uses: actions/setup-node@v7
+      with:
+        node-version-file: '${{ runner.temp }}/test-application/package.json'
+
+    - name: Add pnpm overrides
+      run:
+        pnpm run ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
+        }}/dev-packages/e2e-tests/packed
+      shell: bash
+      working-directory: dev-packages/e2e-tests
