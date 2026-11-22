@@ -9,13 +9,22 @@ const packagePath = process.env.INPUT_PACKAGE_PATH;
 if (!packagePath) {
   throw new Error('Select a package path, or explicitly use . for repo-wide checks.');
 }
-const manifest = readPackage(packagePath);
-const roots =
-  packagePath === '.'
-    ? [...names]
-    : workspaces.includes(packagePath)
-      ? [manifest.name]
-      : Object.keys({ ...manifest.dependencies, ...manifest.devDependencies }).filter(name => names.has(name));
+const roots = [
+  ...new Set(
+    packagePath.split(',').flatMap(directory => {
+      if (directory === '.') {
+        return [...names];
+      }
+      if (workspaces.includes(directory)) {
+        return [readPackage(directory).name];
+      }
+      return fs.globSync('**/package.json', { cwd: directory, exclude: ['**/node_modules/**'] }).flatMap(file => {
+        const manifest = readPackage(path.join(directory, path.dirname(file)));
+        return Object.keys({ ...manifest.dependencies, ...manifest.devDependencies }).filter(name => names.has(name));
+      });
+    }),
+  ),
+];
 if (!roots.length) {
   throw new Error(`No workspace dependencies found for ${packagePath}`);
 }
@@ -26,14 +35,9 @@ const packages = JSON.parse(
     encoding: 'utf8',
   }),
 );
-const projects = packages
-  .filter(pkg => {
-    const { scripts = {} } = readPackage(pkg.path);
-    return scripts['build:transpile'] || scripts['build:types'];
-  })
-  .map(pkg => pkg.name);
+const projects = packages.map(pkg => pkg.name);
 if (!projects.length) {
   throw new Error(`No SDK build projects selected for ${packagePath}`);
 }
-console.error(`Selected ${projects.length} build projects for ${packagePath}: ${projects.join(', ')}`);
-console.log(`projects=${projects.join(',')}`);
+process.stderr.write(`Selected ${projects.length} workspace projects for ${packagePath}: ${projects.join(', ')}\n`);
+process.stdout.write(`projects=${projects.join(',')}\n`);

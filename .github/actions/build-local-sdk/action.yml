@@ -2,7 +2,7 @@ name: 'Build SDK packages locally'
 description: 'Restore workspace dependencies and build the SDK outputs needed by this job.'
 inputs:
   package-path:
-    description: 'Package whose SDK dependencies to build; use . only for repo-wide checks.'
+    description: 'Comma-separated package paths whose SDK dependencies to build; use . only for repo-wide checks.'
     default: ''
   targets:
     description: 'Nx targets to build for the selected packages and their dependencies.'
