@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -192,7 +192,13 @@ function getAffectedTestApplications(testApplications, { base = 'develop', head 
 
   let affectedProjects = [];
   try {
-    affectedProjects = execSync(`pnpm --silent exec nx show projects --affected ${additionalArgs.join(' ')}`)
+    affectedProjects = execFileSync(process.execPath, [
+      path.resolve(__dirname, '../../../node_modules/nx/dist/bin/nx.js'),
+      'show',
+      'projects',
+      '--affected',
+      ...additionalArgs,
+    ])
       .toString()
       .split('\n')
       .map(line => line.trim())
