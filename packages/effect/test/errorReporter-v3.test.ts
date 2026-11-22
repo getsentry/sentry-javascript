@@ -3,7 +3,7 @@ import { Effect, Layer } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as Compat from '../src/compat';
 import { makeSentryErrorReporterLayer } from '../src/errorReporter';
-import { layer as sentryLayer } from '../src/server/index';
+import * as Sentry from '../src/server/index';
 
 // Effect v3 ships no `ErrorReporter` API.
 vi.mock('../src/compat', async importOriginal => ({
@@ -24,7 +24,7 @@ describe('Sentry ErrorReporter without the Effect v4 ErrorReporter API', () => {
     const result = await Effect.runPromise(
       Effect.succeed('ok').pipe(
         Effect.provide(
-          sentryLayer({
+          Sentry.layer({
             dsn: 'https://username@domain/123',
             transport: () => ({
               send: vi.fn().mockResolvedValue({}),

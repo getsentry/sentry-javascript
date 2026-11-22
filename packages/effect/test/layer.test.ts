@@ -21,24 +21,18 @@ describe.each([
   [
     {
       subSdkName: 'browser',
-      sentryLayer: sentryClient.layer,
-      sentryTracer: sentryClient.Tracer,
-      sentryLogger: sentryClient.Logger,
-      sentryMetricsLayer: sentryClient.metricsLayer,
+      Sentry: sentryClient,
       startInactiveSpan: sentryCoreBrowser as { startInactiveSpan: typeof sentryCore.startInactiveSpan },
     },
   ],
   [
     {
       subSdkName: 'node',
-      sentryLayer: sentryServer.layer,
-      sentryTracer: sentryServer.Tracer,
-      sentryLogger: sentryServer.Logger,
-      sentryMetricsLayer: sentryServer.metricsLayer,
+      Sentry: sentryServer,
       startInactiveSpan: sentryCore as { startInactiveSpan: typeof sentryCore.startInactiveSpan },
     },
   ],
-])('layer ($subSdkName)', ({ subSdkName, sentryLayer, sentryTracer, sentryLogger, startInactiveSpan }) => {
+])('layer ($subSdkName)', ({ subSdkName, Sentry, startInactiveSpan }) => {
   beforeEach(() => {
     getMainCarrier().__SENTRY__ = undefined;
   });
@@ -48,7 +42,7 @@ describe.each([
   });
 
   it('creates a valid Effect layer', () => {
-    const layer = sentryLayer({
+    const layer = Sentry.layer({
       dsn: TEST_DSN,
       transport: getMockTransport(),
     });
@@ -71,7 +65,7 @@ describe.each([
       ]);
     }).pipe(
       Effect.provide(
-        sentryLayer({
+        Sentry.layer({
           dsn: TEST_DSN,
           transport: getMockTransport(),
         }),
@@ -85,7 +79,7 @@ describe.each([
       expect(result).toBe('test-result');
     }).pipe(
       Effect.provide(
-        sentryLayer({
+        Sentry.layer({
           dsn: TEST_DSN,
           transport: getMockTransport(),
         }),
@@ -101,9 +95,9 @@ describe.each([
       expect(result).toBe('traced');
       expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'test-span' }));
     }).pipe(
-      Effect.withTracer(sentryTracer),
+      Effect.withTracer(Sentry.Tracer),
       Effect.provide(
-        sentryLayer({
+        Sentry.layer({
           dsn: TEST_DSN,
           transport: getMockTransport(),
         }),
@@ -122,9 +116,9 @@ describe.each([
       expect(result).toBe(84);
       expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'computation' }));
     }).pipe(
-      Effect.withTracer(sentryTracer),
+      Effect.withTracer(Sentry.Tracer),
       Effect.provide(
-        sentryLayer({
+        Sentry.layer({
           dsn: TEST_DSN,
           transport: getMockTransport(),
         }),
@@ -141,11 +135,11 @@ describe.each([
       Effect.provideService(References.MinimumLogLevel, 'All'),
       Effect.provide(
         Layer.mergeAll(
-          sentryLayer({
+          Sentry.layer({
             dsn: TEST_DSN,
             transport: getMockTransport(),
           }),
-          Logger.layer([sentryLogger]),
+          Logger.layer([Sentry.Logger]),
         ),
       ),
     ),
@@ -164,15 +158,15 @@ describe.each([
       expect(result).toBe(84);
       expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'computation' }));
     }).pipe(
-      Effect.withTracer(sentryTracer),
+      Effect.withTracer(Sentry.Tracer),
       Effect.provideService(References.MinimumLogLevel, 'All'),
       Effect.provide(
         Layer.mergeAll(
-          sentryLayer({
+          Sentry.layer({
             dsn: TEST_DSN,
             transport: getMockTransport(),
           }),
-          Logger.layer([sentryLogger]),
+          Logger.layer([Sentry.Logger]),
         ),
       ),
     ),

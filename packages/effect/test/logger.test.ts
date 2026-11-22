@@ -3,7 +3,7 @@ import * as sentryCore from '@sentry/core';
 import { Effect, Logger } from 'effect';
 import * as References from 'effect/References';
 import { afterEach, vi } from 'vitest';
-import { Logger as sentryLogger } from '../src/logger';
+import * as Sentry from '../src/logger';
 
 vi.mock('@sentry/core', async importOriginal => {
   const original = await importOriginal<typeof sentryCore>();
@@ -28,7 +28,7 @@ describe('Logger', () => {
     vi.clearAllMocks();
   });
 
-  const loggerLayer = Logger.layer([sentryLogger]);
+  const loggerLayer = Logger.layer([Sentry.Logger]);
 
   const withAllLogLevels = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
     Effect.provideService(effect, References.MinimumLogLevel, 'All');
