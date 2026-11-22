@@ -1,5 +1,5 @@
 /**
- * Utilites shared between server and browser SDKs.
+ * Utilities shared between server and browser SDKs.
  */
 /* eslint-disable max-lines */
 
