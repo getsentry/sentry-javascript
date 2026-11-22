@@ -1165,34 +1165,13 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 20
+    continue-on-error: ${{ matrix.node == '^27.0.0-0' }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - node: '20.19'
-            shard: 2
-          - node: '20.19'
-            shard: 5
-          - node: '22'
-            shard: 1
-          - node: '22'
-            shard: 2
-          - node: '22'
-            shard: 3
-          - node: '22'
-            shard: 4
-          - node: '22'
-            shard: 5
-          - node: '22'
-            shard: 6
-          - node: '24'
-            shard: 2
-          - node: '24'
-            shard: 5
-          - node: '26'
-            shard: 2
-          - node: '26'
-            shard: 5
+        node: [20.19, 22, 24, 26, '^27.0.0-0']
+        shard: [1, 2, 3, 4, 5, 6]
+        shards: [6]
     steps:
       - name: Check out current commit
         uses: actions/checkout@v7
@@ -1216,6 +1195,9 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
+      - name: Compile native modules
+        if: matrix.node == '^27.0.0-0'
+        run: pnpm rebuild @sentry/node-cpu-profiler @sentry/node-native-stacktrace
       - name: Run integration tests
         working-directory: dev-packages/node-integration-tests
         run: pnpm run test --shard=${{ matrix.shard }}/6 --exclude '**/tracing/tedious/**'
@@ -1229,27 +1211,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - bun: '1.3.14'
-            shard: 2
-          - bun: '1.3.14'
-            shard: 5
-          - bun: '1.4'
-            shard: 2
-          - bun: '1.4'
-            shard: 5
-          - bun: 'canary'
-            shard: 1
-          - bun: 'canary'
-            shard: 2
-          - bun: 'canary'
-            shard: 3
-          - bun: 'canary'
-            shard: 4
-          - bun: 'canary'
-            shard: 5
-          - bun: 'canary'
-            shard: 6
+        # 1.3.14 is the oldest supported Bun version. Canary runs the `bun run` instrumentation
+        # suites (`node-suites-bun-run`), which need Bun 1.4.6 or later.
+        bun: ['1.3.14', '1.4', 'canary']
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - name: Check out current commit
         uses: actions/checkout@v7
@@ -1277,10 +1242,78 @@ jobs:
         working-directory: dev-packages/bun-integration-tests
         run: pnpm run test --shard=${{ matrix.shard }}/6
 
+  job_benchmark_cloudflare_local_sdk:
+    name: Benchmark Cloudflare Integration Tests (${{ matrix.shard }}/${{ matrix.shards }}) (local SDK build)
+    needs: job_get_metadata
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+        shards: [6]
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: ./.github/actions/setup-node
+      - name: Restore workspace dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build SDK packages locally
+        run: pnpm run build:ci
+
+      - name: Run integration tests
+        working-directory: dev-packages/cloudflare-integration-tests
+        run: pnpm run test --shard=${{ matrix.shard }}/${{ matrix.shards }}
+
+  job_benchmark_deno_local_sdk:
+    name: Benchmark Deno Integration Tests (${{ matrix.shard }}/4) (local SDK build)
+    needs: job_get_metadata
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: ./.github/actions/setup-node
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2.0.5
+        with:
+          deno-version: 'v2.8.3'
+      - name: Restore workspace dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build SDK packages locally
+        run: pnpm run build:ci
+      - name: Build @sentry/deno
+        working-directory: packages/deno
+        run: pnpm run build
+      - name: Run native Deno integration tests
+        if: matrix.shard == 1
+        working-directory: dev-packages/deno-integration-tests
+        run: |
+          pnpm run install:deno
+          pnpm run deno-types
+          pnpm run test:unit
+      - name: Run shared Node integration tests
+        working-directory: dev-packages/deno-integration-tests
+        # Tedious runs in the dedicated SQL Server job because its database container requires x86.
+        run: pnpm run test:node-suites --shard=${{ matrix.shard }}/4 --exclude '**/tracing/tedious/**'
+
   job_benchmark_browser_local_sdk:
     name:
-      Benchmark browser ${{ matrix.bundle }} ${{ matrix.project }} (${{ matrix.shard }}/${{ matrix.shards }}, local SDK
-      build)
+      Benchmark Playwright ${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}',
+      matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests (local
+      SDK build)
     needs: job_get_metadata
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04-large-js
@@ -1288,19 +1321,81 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        shard: [1, 2]
+        shards: [2]
+        bundle:
+          - bundle
+          - bundle_min
+          - bundle_logs_metrics
+          - bundle_replay
+          - bundle_replay_logs_metrics
+          - bundle_tracing
+          - bundle_tracing_logs_metrics
+          - bundle_tracing_replay
+          - bundle_tracing_replay_feedback_logs_metrics
+          - bundle_tracing_replay_feedback_logs_metrics_min
+        project:
+          - chromium
         include:
           - bundle: bundle_tracing_replay_feedback_logs_metrics_min
-            project: webkit
+            project: 'webkit'
+            shard: 1
+            shards: 2
+          - bundle: bundle_tracing_replay_feedback_logs_metrics_min
+            project: 'webkit'
             shard: 2
             shards: 2
           - bundle: bundle_tracing_replay_feedback_logs_metrics_min
+            project: 'firefox'
+          - bundle: esm
             project: chromium
-            shard: 2
-            shards: 2
+            shard: 1
+            shards: 6
           - bundle: esm
             project: chromium
             shard: 2
             shards: 6
+          - bundle: esm
+            project: chromium
+            shard: 3
+            shards: 6
+          - bundle: esm
+            project: chromium
+            shard: 4
+            shards: 6
+          - bundle: esm
+            project: chromium
+            shard: 5
+            shards: 6
+          - bundle: esm
+            project: chromium
+            shard: 6
+            shards: 6
+          - bundle: bundle_tracing_replay_feedback
+            project: chromium
+            shard: 1
+            shards: 3
+          - bundle: bundle_tracing_replay_feedback
+            project: chromium
+            shard: 2
+            shards: 3
+          - bundle: bundle_tracing_replay_feedback
+            project: chromium
+            shard: 3
+            shards: 3
+          - bundle: bundle_tracing_replay_logs_metrics
+            project: chromium
+            shard: 1
+            shards: 3
+          - bundle: bundle_tracing_replay_logs_metrics
+            project: chromium
+            shard: 2
+            shards: 3
+          - bundle: bundle_tracing_replay_logs_metrics
+            project: chromium
+            shard: 3
+            shards: 3
+
     steps:
       - name: Check out current commit
         uses: actions/checkout@v7
@@ -1323,7 +1418,9 @@ jobs:
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
         working-directory: dev-packages/browser-integration-tests
-        run: pnpm run test:all --project=${{ matrix.project }} --shard=${{ matrix.shard }}/${{ matrix.shards }}
+        run:
+          pnpm run test:all${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard &&
+          format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
       - name: Upload Playwright traces
         if: failure()
         uses: actions/upload-artifact@v7
@@ -1357,7 +1454,7 @@ jobs:
         run: pnpm run test:pr:browser --base=${{ github.event.pull_request.base.sha }}
 
   job_benchmark_e2e_local_sdk:
-    name: Benchmark E2E ${{ matrix.app }} (local SDK build)
+    name: Benchmark E2E ${{ matrix.label || matrix.test-application }} Test (local SDK build)
     needs: job_get_metadata
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
@@ -1367,18 +1464,150 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - app: nextjs-16
-            build: pnpm test:build-webpack
-            assert: pnpm test:prod
-          - app: nuxt-4
-            build: pnpm test:build
-            assert: pnpm test:prod
-          - app: solidstart
-            build: pnpm test:build
-            assert: pnpm test:assert
-          - app: react-router-8-framework
-            build: pnpm test:build
-            assert: pnpm test:assert
+          - test-application: astro-6
+          - test-application: nextjs-14
+            build-command: pnpm test:build
+            label: nextjs-14 (production)
+            assert-command: pnpm test:test-build && pnpm test:prod
+          - test-application: nextjs-14
+            build-command: pnpm install
+            label: nextjs-14 (development) (1/2)
+            assert-command: pnpm test:dev
+            test-shard: 1/2
+          - test-application: nextjs-14
+            build-command: pnpm install
+            label: nextjs-14 (development) (2/2)
+            assert-command: pnpm test:dev
+            test-shard: 2/2
+          - test-application: nextjs-15
+            build-command: pnpm test:build
+            label: nextjs-15 (production)
+            assert-command: pnpm test:prod
+          - test-application: nextjs-15
+            build-command: pnpm install
+            label: nextjs-15 (development)
+            assert-command: pnpm test:dev
+          - test-application: nextjs-15
+            build-command: E2E_RELEASE_NOT_INJECTED=1 pnpm test:build
+            label: nextjs-15 (release not injected, production)
+            assert-command: E2E_RELEASE_NOT_INJECTED=1 pnpm test:prod
+          - test-application: nextjs-16
+            build-command: pnpm test:build
+            label: nextjs-16 (turbopack, production)
+            assert-command: pnpm test:prod
+          - test-application: nextjs-16
+            build-command: pnpm install
+            label: nextjs-16 (turbopack, development)
+            assert-command: pnpm test:dev
+          - test-application: nextjs-16
+            build-command: NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES=1 pnpm test:build
+            label: nextjs-16 (exclude application key dependencies, production)
+            assert-command: NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES=1 pnpm test:prod
+          - test-application: nextjs-16
+            build-command: NEXT_PUBLIC_E2E_FEEDBACK=1 pnpm test:build
+            label: nextjs-16 (feedback, production)
+            assert-command: NEXT_PUBLIC_E2E_FEEDBACK=1 pnpm test:prod tests/feedback.test.ts
+          - test-application: nextjs-16
+            build-command: E2E_RELEASE_NOT_INJECTED=1 pnpm test:build
+            label: nextjs-16 (turbopack, release not injected, production)
+            assert-command: E2E_RELEASE_NOT_INJECTED=1 pnpm test:prod
+          - test-application: nextjs-16
+            build-command: pnpm test:build-webpack
+            label: nextjs-16 (webpack, production)
+            assert-command: pnpm test:prod
+          - test-application: nextjs-16
+            build-command: pnpm install
+            label: nextjs-16 (webpack, development) (1/2)
+            assert-command: pnpm test:dev-webpack
+            test-shard: 1/2
+          - test-application: nextjs-16
+            build-command: pnpm install
+            label: nextjs-16 (webpack, development) (2/2)
+            assert-command: pnpm test:dev-webpack
+            test-shard: 2/2
+          - test-application: nextjs-16
+            build-command: pnpm test:build-latest-webpack
+            label: nextjs-16 (latest, webpack, production)
+            assert-command: pnpm test:prod
+          - test-application: nextjs-16
+            build-command: pnpm test:build-latest
+            label: nextjs-16 (latest, turbopack, production)
+            assert-command: pnpm test:prod
+          - test-application: nextjs-16
+            runtime: bun
+            build-command: pnpm test:build:bun
+            assert-command: pnpm test:prod
+            label: nextjs-16 (bun)
+          - test-application: nextjs-16
+            runtime: cloudflare
+            build-command: pnpm test:build:cloudflare
+            assert-command: pnpm test:prod
+            label: nextjs-16 (cloudflare)
+          - test-application: nextjs-16
+            runtime: deno
+            build-command: pnpm test:build:deno
+            assert-command: pnpm test:prod
+            deno-version: v2.9.0
+            label: nextjs-16 (deno)
+          - test-application: nextjs-16
+            build-command: NEXT_PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build
+            assert-command: E2E_TEST_TRACE_LIFECYCLE=static pnpm test:prod
+            label: nextjs-16 (turbopack, production, static trace lifecycle)
+          - test-application: nuxt-3
+          - test-application: nuxt-4
+            assert-command: pnpm test:prod
+          - test-application: nuxt-4
+            build-command: pnpm install
+            assert-command: pnpm test:dev
+            label: nuxt-4 (development)
+          - test-application: nuxt-4
+            build-command: E2E_TEST_VITE_SERVER=true pnpm test:build
+            assert-command: E2E_TEST_VITE_SERVER=true pnpm test:prod
+            label: nuxt-4 (Vite server)
+          - test-application: nuxt-4
+            runtime: bun
+            assert-command: pnpm test:prod
+            label: nuxt-4 (bun)
+          - test-application: nuxt-4
+            runtime: deno
+            deno-version: v2.9.0
+            assert-command: pnpm test:prod
+            label: nuxt-4 (deno)
+          - test-application: nuxt-4
+            runtime: cloudflare
+            build-command: pnpm test:build:cloudflare
+            assert-command: pnpm test:prod
+            label: nuxt-4 (cloudflare)
+          - test-application: nuxt-4
+            build-command: E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build
+            assert-command: E2E_TEST_TRACE_LIFECYCLE=static pnpm test:prod
+            label: nuxt-4 (production, static trace lifecycle)
+          - test-application: react-router-8-framework
+          - test-application: react-router-8-framework
+            runtime: bun
+            label: react-router-8-framework (bun)
+          - test-application: react-router-8-framework
+            runtime: deno
+            deno-version: v2.9.0
+            label: react-router-8-framework (deno)
+          - test-application: react-router-8-framework
+            runtime: cloudflare
+            label: react-router-8-framework (cloudflare)
+          - test-application: remix-v3
+          - test-application: solidstart
+          - test-application: solidstart
+            build-command: E2E_TEST_INJECT_MODE=top-level-import pnpm test:build
+            assert-command: E2E_TEST_INJECT_MODE=top-level-import pnpm test:prod
+            label: solidstart (top-level-import)
+          - test-application: solidstart
+            build-command: E2E_TEST_INJECT_MODE=experimental_dynamic-import pnpm test:build
+            assert-command: E2E_TEST_INJECT_MODE=experimental_dynamic-import pnpm test:prod
+            label: solidstart (dynamic-import)
+          - test-application: solidstart
+            build-command: VITE_E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build
+            assert-command: E2E_TEST_TRACE_LIFECYCLE=static pnpm test:prod
+            label: solidstart (static trace lifecycle)
+          - test-application: sveltekit-3
     steps:
       - name: Check out current commit
         uses: actions/checkout@v7
@@ -1397,7 +1626,10 @@ jobs:
       - name: Prepare E2E test application
         uses: ./.github/actions/prepare-e2e-test
         with:
-          test-application: ${{ matrix.app }}
+          test-application: ${{ matrix.test-application }}
+          runtime: ${{ matrix.runtime }}
+          bun-version: ${{ matrix.bun-version }}
+          deno-version: ${{ matrix.deno-version }}
           download-artifacts: 'false'
       - name: Start E2E databases
         background: true
@@ -1411,25 +1643,25 @@ jobs:
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
-          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.app }}
+          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
       - name: Build E2E app
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 7
-        run: ${{ matrix.build }}
+        run: ${{ matrix.build-command || 'pnpm test:build' }}
         env:
           SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
       - wait-all:
       - name: Run E2E test
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 10
-        run: ${{ matrix.assert }}
+        run: ${{ matrix.assert-command || 'pnpm test:assert' }}
         env:
           SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
       - name: Upload Playwright traces
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-traces-${{ matrix.app }}-local-sdk
+          name: playwright-traces-local-sdk-e2e-${{ strategy.job-index }}
           path: ${{ runner.temp }}/test-application/test-results
           if-no-files-found: ignore
           retention-days: 3
@@ -1499,6 +1731,8 @@ jobs:
         job_size_check,
         job_benchmark_node_local_sdk,
         job_benchmark_bun_local_sdk,
+        job_benchmark_cloudflare_local_sdk,
+        job_benchmark_deno_local_sdk,
         job_benchmark_browser_local_sdk,
         job_benchmark_browser_unit_local_sdk,
         job_benchmark_e2e_local_sdk,
