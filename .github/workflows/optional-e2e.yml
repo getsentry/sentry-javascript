@@ -84,7 +84,8 @@ jobs:
       - name: Build SDK packages locally
         uses: ./.github/actions/build-local-sdk
         with:
-          additional-targets: build:tarball
+          package-path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+          targets: build:tarball
       - name: Prepare E2E test application
         uses: ./.github/actions/prepare-e2e-test
         with:

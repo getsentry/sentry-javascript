@@ -1,9 +1,12 @@
 name: 'Build SDK packages locally'
 description: 'Restore workspace dependencies and build the SDK outputs needed by this job.'
 inputs:
-  additional-targets:
-    description: 'Additional Nx targets, such as build:tarball or build:bundle.'
+  package-path:
+    description: 'Package whose SDK dependencies to build; use . only for repo-wide checks.'
     default: ''
+  targets:
+    description: 'Nx targets to build for the selected packages and their dependencies.'
+    default: 'build:transpile build:types'
 runs:
   using: composite
   steps:
@@ -11,10 +14,16 @@ runs:
       uses: ./.github/actions/setup-node
     - name: Restore workspace dependencies
       uses: ./.github/actions/install-dependencies
-    - name: Build SDK packages
-      run: pnpm run build:ci
+    - name: Select SDK packages
+      id: projects
+      env:
+        INPUT_PACKAGE_PATH: ${{ inputs.package-path }}
+      run: node "$GITHUB_ACTION_PATH/select-projects.mjs" >> "$GITHUB_OUTPUT"
       shell: bash
-    - name: Build additional SDK outputs
-      if: inputs.additional-targets != ''
-      run: pnpm exec nx run-many -t ${{ inputs.additional-targets }} --parallel=4
+    - name: Build SDK packages
+      env:
+        BUILD_PROJECTS: ${{ steps.projects.outputs.projects }}
+      run: |
+        node scripts/verify-packages-versions.js
+        pnpm exec nx run-many -t ${{ inputs.targets }} --projects="$BUILD_PROJECTS" --parallel=4
       shell: bash
