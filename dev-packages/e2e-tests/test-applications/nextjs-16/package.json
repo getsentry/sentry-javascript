@@ -70,8 +70,7 @@
       {
         "build-command": "pnpm install",
         "label": "nextjs-16 (turbopack, development)",
-        "assert-command": "pnpm test:dev",
-        "test-shards": 2
+        "assert-command": "pnpm test:dev"
       },
       {
         "build-command": "NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES=1 pnpm test:build",
@@ -97,7 +96,7 @@
         "build-command": "pnpm install",
         "label": "nextjs-16 (webpack, development)",
         "assert-command": "pnpm test:dev-webpack",
-        "test-shards": 3
+        "test-shards": 2
       },
       {
         "build-command": "pnpm test:build-latest-webpack",
