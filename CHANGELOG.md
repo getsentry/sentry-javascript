@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **feat(effect)!: Drop the Sentry and Effect prefixes from exports ([#26731](https://github.com/getsentry/sentry-javascript/pull/26731))**
+
+  The `@sentry/effect` exports now use Effect's naming style: `effectLayer` is now `layer`, `SentryEffectTracer` is now `Tracer`, `SentryEffectLogger` is now `Logger`, `SentryEffectMetricsLayer` is now `metricsLayer` and `SentryEffectExternalSpanLayer` is now `externalSpanLayer`. The old names are removed.
+
 ## 11.17.0
 
 ### Important Changes
