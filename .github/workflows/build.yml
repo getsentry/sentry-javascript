@@ -804,7 +804,7 @@ jobs:
       - name: Build SDK packages locally
         uses: ./.github/actions/build-local-sdk
         with:
-          package-path: packages/browser
+          package-path: dev-packages/browser-min-version-tests,packages/browser
           targets: build:transpile build:types build:bundle
 
       # Chromium itself isn't cached: `run.mjs` downloads the 127 MB zip on each run, which is about as quick as a
