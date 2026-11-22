@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
+import { DB_ORIGIN, DB_SYSTEM_NAME, RUNTIME } from './runtime';
 
 async function collectDbSpans() {
   const spans = await collectStreamedSpansUntilSegment(
@@ -25,9 +26,9 @@ test.describe('multiple database instances', () => {
     expect(selectSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'SELECT default_table' },
       'db.query.text': { type: 'string', value: 'SELECT * FROM default_table WHERE id = ?' },
-      'db.system.name': { type: 'string', value: 'sqlite' },
-      'db.namespace': { type: 'string', value: 'db.sqlite' },
-      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+      'db.system.name': { type: 'string', value: DB_SYSTEM_NAME },
+      ...(RUNTIME !== 'cloudflare' && { 'db.namespace': { type: 'string', value: 'db.sqlite' } }),
+      'sentry.origin': { type: 'string', value: DB_ORIGIN },
     });
   });
 
@@ -44,9 +45,9 @@ test.describe('multiple database instances', () => {
     expect(selectSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'SELECT user_profiles' },
       'db.query.text': { type: 'string', value: 'SELECT * FROM user_profiles WHERE id = ?' },
-      'db.system.name': { type: 'string', value: 'sqlite' },
-      'db.namespace': { type: 'string', value: 'users_db.sqlite' },
-      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+      'db.system.name': { type: 'string', value: DB_SYSTEM_NAME },
+      ...(RUNTIME !== 'cloudflare' && { 'db.namespace': { type: 'string', value: 'users_db.sqlite' } }),
+      'sentry.origin': { type: 'string', value: DB_ORIGIN },
     });
   });
 
@@ -63,9 +64,9 @@ test.describe('multiple database instances', () => {
     expect(selectSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'SELECT events' },
       'db.query.text': { type: 'string', value: 'SELECT * FROM events WHERE id = ?' },
-      'db.system.name': { type: 'string', value: 'sqlite' },
-      'db.namespace': { type: 'string', value: 'analytics_db.sqlite' },
-      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+      'db.system.name': { type: 'string', value: DB_SYSTEM_NAME },
+      ...(RUNTIME !== 'cloudflare' && { 'db.namespace': { type: 'string', value: 'analytics_db.sqlite' } }),
+      'sentry.origin': { type: 'string', value: DB_ORIGIN },
     });
   });
 
@@ -85,23 +86,23 @@ test.describe('multiple database instances', () => {
     expect(sessionSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'SELECT sessions' },
       'db.query.text': { type: 'string', value: 'SELECT * FROM sessions WHERE id = ?' },
-      'db.namespace': { type: 'string', value: 'db.sqlite' },
-      'db.system.name': { type: 'string', value: 'sqlite' },
-      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+      ...(RUNTIME !== 'cloudflare' && { 'db.namespace': { type: 'string', value: 'db.sqlite' } }),
+      'db.system.name': { type: 'string', value: DB_SYSTEM_NAME },
+      'sentry.origin': { type: 'string', value: DB_ORIGIN },
     });
     expect(accountSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'SELECT accounts' },
       'db.query.text': { type: 'string', value: 'SELECT * FROM accounts WHERE id = ?' },
-      'db.namespace': { type: 'string', value: 'users_db.sqlite' },
-      'db.system.name': { type: 'string', value: 'sqlite' },
-      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+      ...(RUNTIME !== 'cloudflare' && { 'db.namespace': { type: 'string', value: 'users_db.sqlite' } }),
+      'db.system.name': { type: 'string', value: DB_SYSTEM_NAME },
+      'sentry.origin': { type: 'string', value: DB_ORIGIN },
     });
     expect(metricSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'SELECT metrics' },
       'db.query.text': { type: 'string', value: 'SELECT * FROM metrics WHERE id = ?' },
-      'db.namespace': { type: 'string', value: 'analytics_db.sqlite' },
-      'db.system.name': { type: 'string', value: 'sqlite' },
-      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+      ...(RUNTIME !== 'cloudflare' && { 'db.namespace': { type: 'string', value: 'analytics_db.sqlite' } }),
+      'db.system.name': { type: 'string', value: DB_SYSTEM_NAME },
+      'sentry.origin': { type: 'string', value: DB_ORIGIN },
     });
 
     // All spans belong to the same trace as the request's root span
@@ -124,18 +125,18 @@ test.describe('multiple database instances', () => {
     expect(logsInsertSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'INSERT logs' },
       'db.query.text': { type: 'string', value: 'INSERT INTO logs (message) VALUES (?)' },
-      'db.system.name': { type: 'string', value: 'sqlite' },
-      'db.namespace': { type: 'string', value: 'db.sqlite' },
-      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+      'db.system.name': { type: 'string', value: DB_SYSTEM_NAME },
+      ...(RUNTIME !== 'cloudflare' && { 'db.namespace': { type: 'string', value: 'db.sqlite' } }),
+      'sentry.origin': { type: 'string', value: DB_ORIGIN },
     });
 
     expect(auditLogsInsertSpan).toBeDefined();
     expect(auditLogsInsertSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'INSERT audit_logs' },
       'db.query.text': { type: 'string', value: 'INSERT INTO audit_logs (action) VALUES (?)' },
-      'db.system.name': { type: 'string', value: 'sqlite' },
-      'db.namespace': { type: 'string', value: 'users_db.sqlite' },
-      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+      'db.system.name': { type: 'string', value: DB_SYSTEM_NAME },
+      ...(RUNTIME !== 'cloudflare' && { 'db.namespace': { type: 'string', value: 'users_db.sqlite' } }),
+      'sentry.origin': { type: 'string', value: DB_ORIGIN },
     });
   });
 

@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { IMPORT_SURFACES } from './importSurfaces';
+import { RUNTIME } from './runtime';
 
 // Nitro runs every file in `server/middleware/` on every request, so each surface tells its spans apart by
 // middleware name. `nuxt/server` has no object syntax (`middleware`) and no `eventHandler` alias, so only the
@@ -98,6 +99,11 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
     });
 
     test('captures a middleware error and marks its span as errored', async ({ request }) => {
+      test.fail(
+        RUNTIME === 'bun',
+        'Bun: the `Bun.serve` instrumentation sets no transaction name on the isolation scope, so the error has none',
+      );
+
       const spansPromise = collectRequestSpans(path);
       const errorEventPromise = waitForError('nuxt-5', errorEvent => {
         return errorEvent?.exception?.values?.[0]?.value === middleware.authErrorMessage;

@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
+import { MONGOOSE_UNSUPPORTED, RUNTIME } from './runtime';
+
+test.skip(RUNTIME === 'cloudflare', MONGOOSE_UNSUPPORTED);
 
 // The Nitro bundle force-inlines the instrumented drivers while their CommonJS dependencies and
 // Node builtins stay external, and every `require()` across that boundary needs working interop

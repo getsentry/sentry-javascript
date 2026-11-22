@@ -1,4 +1,15 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+// The runtime variants set `RUNTIME` for the build, see dev-packages/e2e-tests/README.md.
+const runtime = process.env.RUNTIME || 'node';
+const cloudflare = runtime === 'cloudflare';
+
+// `node:sqlite` is not available on Bun, which has its own SQLite module, and on Cloudflare, which has D1.
+function database(name: string, binding: string) {
+  if (cloudflare) {
+    return { connector: 'cloudflare-d1', options: { bindingName: binding } } as const;
+  }
+  return { connector: runtime === 'bun' ? 'bun-sqlite' : 'sqlite', options: { name } } as const;
+}
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
@@ -22,23 +33,23 @@ export default defineNuxtConfig({
     },
   },
   nitro: {
+    ...(cloudflare && {
+      // The Sentry module sets up the SDK from `instrument.server.ts`, because the Nitro preset does not use
+      // `sentry.server.config.ts`.
+      preset: 'cloudflare_module',
+      cloudflare: { nodeCompat: true, deployConfig: false },
+    }),
+    // Files for one runtime replace their counterpart in the copy of the app for that runtime, see
+    // dev-packages/e2e-tests/README.md, and are no routes of their own.
+    ignore: ['**/*.cloudflare.ts'],
     ...(process.env.E2E_TEST_CACHE_DRIVER && { cache: { driver: process.env.E2E_TEST_CACHE_DRIVER } }),
     experimental: {
       database: true,
     },
     database: {
-      default: {
-        connector: 'sqlite',
-        options: { name: 'db' },
-      },
-      users: {
-        connector: 'sqlite',
-        options: { name: 'users_db' },
-      },
-      analytics: {
-        connector: 'sqlite',
-        options: { name: 'analytics_db' },
-      },
+      default: database('db', 'DB'),
+      users: database('users_db', 'USERS_DB'),
+      analytics: database('analytics_db', 'ANALYTICS_DB'),
     },
     storage: {
       'test-storage': {

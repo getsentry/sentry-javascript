@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { IMPORT_SURFACES } from './importSurfaces';
+import { SERVER_ORIGIN } from './runtime';
 
 function expectSegmentSpan(
   span: SerializedStreamedSpan | undefined,
@@ -53,7 +54,7 @@ test.describe('distributed tracing', () => {
     expectSegmentSpan(serverSpan, {
       name: 'GET /test-param/:param()',
       op: 'http.server',
-      origin: 'auto.http.http_server',
+      origin: SERVER_ORIGIN,
     });
     expect(serverSpan.trace_id).toBe(metaTraceId);
     expect(clientSpan.parent_span_id).toBe(serverSpan.span_id);
@@ -117,13 +118,13 @@ test.describe('distributed tracing', () => {
       expectSegmentSpan(ssrSpan, {
         name: 'GET /test-param/user/:userId()',
         op: 'http.server',
-        origin: 'auto.http.http_server',
+        origin: SERVER_ORIGIN,
       });
 
       expectSegmentSpan(serverReqSpan, {
         name: `GET ${apiPrefix}/user/:userId`,
         op: 'http.server',
-        origin: 'auto.http.http_server',
+        origin: SERVER_ORIGIN,
       });
       expect(serverReqSpan.parent_span_id).toBe(httpClientSpan?.span_id);
 
