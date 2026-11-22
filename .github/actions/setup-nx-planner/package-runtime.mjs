@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 
@@ -10,7 +11,8 @@ const modules = path.join(destination, 'node_modules');
 // pnpm keeps Nx and its locked transitive dependencies together in this directory.
 const nxDependencies = path.resolve(nxPackage, '../..');
 fs.rmSync(destination, { recursive: true, force: true });
-fs.cpSync(nxDependencies, modules, { recursive: true, dereference: true });
+fs.mkdirSync(destination, { recursive: true });
+execFileSync('cp', ['-RL', nxDependencies, modules]);
 // Nx's pnpm lockfile reader requires the install metadata, even without workspace dependencies.
 fs.copyFileSync('node_modules/.modules.yaml', path.join(modules, '.modules.yaml'));
 fs.mkdirSync(path.join(modules, '.bin'), { recursive: true });

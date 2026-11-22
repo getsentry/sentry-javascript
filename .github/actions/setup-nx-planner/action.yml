@@ -16,7 +16,7 @@ runs:
       uses: actions/cache@v6.1.0
       with:
         path: ${{ runner.temp }}/nx-planner
-        key: nx-planner-v1-${{ steps.dependencies.outputs.hash }}-${{ runner.os }}-${{ runner.arch }}
+        key: nx-planner-v2-${{ steps.dependencies.outputs.hash }}-${{ runner.os }}-${{ runner.arch }}
 
     # A miss uses the regular install; develop also seeds this cache from its existing install.
     - name: Install dependencies on cache miss
