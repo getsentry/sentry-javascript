@@ -93,6 +93,11 @@
         "assert-command": "pnpm test:prod"
       },
       {
+        "build-command": "pnpm test:build-webpack",
+        "label": "nextjs-16 (webpack, production, cached)",
+        "assert-command": "pnpm test:prod"
+      },
+      {
         "build-command": "pnpm install",
         "label": "nextjs-16 (webpack, development)",
         "assert-command": "pnpm test:dev-webpack",

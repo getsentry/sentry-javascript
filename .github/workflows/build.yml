@@ -1089,6 +1089,18 @@ jobs:
           bun-version: ${{ matrix.bun-version }}
           deno-version: ${{ matrix.deno-version }}
 
+      - name: Restore Next.js Webpack build cache
+        id: next-webpack-cache
+        if: matrix.label == 'nextjs-16 (webpack, production, cached)'
+        uses: actions/cache/restore@v6.1.0
+        with:
+          path: ${{ runner.temp }}/test-application/.next/cache
+          key:
+            next-webpack-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package.json', 'pnpm-lock.yaml',
+            'dev-packages/e2e-tests/test-applications/nextjs-16/package.json',
+            'dev-packages/e2e-tests/test-applications/nextjs-16/pnpm-workspace.yaml',
+            'dev-packages/e2e-tests/test-applications/nextjs-16/next.config.ts') }}
+
       - name: Start E2E databases
         background: true
         working-directory: ${{ runner.temp }}/test-application
@@ -1123,6 +1135,20 @@ jobs:
         run: ${{ matrix.assert-command || 'pnpm test:assert' }}
         env:
           SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
+
+      - name: Measure Next.js Webpack build cache
+        if: matrix.label == 'nextjs-16 (webpack, production, cached)'
+        working-directory: ${{ runner.temp }}/test-application
+        run: du -sh .next/cache
+
+      - name: Save Next.js Webpack build cache
+        if:
+          matrix.label == 'nextjs-16 (webpack, production, cached)' && steps.next-webpack-cache.outputs.cache-hit !=
+          'true'
+        uses: actions/cache/save@v6.1.0
+        with:
+          path: ${{ runner.temp }}/test-application/.next/cache
+          key: ${{ steps.next-webpack-cache.outputs.cache-primary-key }}
 
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v7
