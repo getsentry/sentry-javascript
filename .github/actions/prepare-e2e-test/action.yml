@@ -74,7 +74,7 @@ runs:
         github-token: ${{ inputs.github-token }}
 
     - name: Restore build layer artifacts
-      if: inputs.download-artifacts == 'true' && inputs.test-application == 'aws-serverless-layer'
+      if: inputs.test-application == 'aws-serverless-layer'
       uses: actions/download-artifact@v8
       with:
         name: build-layer-output
