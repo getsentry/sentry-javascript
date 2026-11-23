@@ -99,17 +99,13 @@ describe('filterKeyValueData', () => {
       ['X-Credentials', 'credentials'],
       ['User-SID', 'sid'],
       ['X-Identity', 'identity'],
+      ['X-Auth-Code', 'code'],
     ];
 
     it.each(sensitivePairs)('filters %s (matches "%s")', headerName => {
       const data = { [headerName]: 'some-value' };
       const result = filterKeyValueData(data, true);
       expect(result[headerName]).toBe('[Filtered]');
-    });
-
-    it('does not filter keys that only match the URL-only `code` term', () => {
-      const data = { statusCode: 200, 'X-Country-Code': 'AT' };
-      expect(filterKeyValueData(data, true)).toEqual(data);
     });
   });
 

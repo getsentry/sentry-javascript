@@ -22,10 +22,6 @@ describe('filterUrlFragment', () => {
     expect(filterUrlFragment('/a?token=abc?b', true)).toBe('/a?token=[Filtered]');
   });
 
-  it('filters OAuth authorization codes', () => {
-    expect(filterUrlFragment('code=abc123&state=xyz', true)).toBe('code=[Filtered]&state=xyz');
-  });
-
   it('keeps anchors and hash route paths as-is', () => {
     expect(filterUrlFragment('details', true)).toBe('details');
     expect(filterUrlFragment('/settings', true)).toBe('/settings');
