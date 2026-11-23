@@ -1,12 +1,9 @@
 import type { Integration } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
 import type { RemixBrowserTracingIntegrationOptions } from './performance';
 import { setGlobals, startPageloadSpan } from './performance';
-/**
- * Creates a browser tracing integration for Remix applications.
- * This integration will create pageload and navigation spans.
- */
-export function browserTracingIntegration(options: RemixBrowserTracingIntegrationOptions): Integration {
+function _browserTracingIntegration(options: RemixBrowserTracingIntegrationOptions): Integration {
   const { instrumentPageLoad = true, instrumentNavigation = true, useEffect, useLocation, useMatches } = options;
 
   setGlobals({
@@ -33,3 +30,10 @@ export function browserTracingIntegration(options: RemixBrowserTracingIntegratio
     },
   };
 }
+
+/**
+ * Creates a browser tracing integration for Remix applications.
+ * This integration will create pageload and navigation spans.
+ */
+export const browserTracingIntegration: typeof _browserTracingIntegration =
+  defineIntegration(_browserTracingIntegration);
