@@ -183,7 +183,7 @@ describe.runIf(supports({ min: 22 }))('OpenAI integration (V7)', () => {
         // Both successful spans are named `decide gpt-6-luna` and may arrive in any order, so match on the input.
         const inputOf = (span: (typeof spans)[number]): string => String(span.attributes[GEN_AI_INPUT_MESSAGES]?.value);
         const textSpan = spans.find(span => inputOf(span).includes('charged twice'));
-        const imageSpan = spans.find(span => inputOf(span).includes('input_image'));
+        const imageSpan = spans.find(span => inputOf(span).includes('package damaged'));
         expect(textSpan!.name).toBe('decide gpt-6-luna');
         expect(textSpan!.attributes).toMatchObject({
           [SENTRY_ORIGIN]: { value: 'auto.ai.openai' },
@@ -246,9 +246,9 @@ describe.runIf(supports({ min: 22 }))('OpenAI integration (V7)', () => {
         expect(JSON.parse(imageSpan!.attributes[GEN_AI_INPUT_MESSAGES]!.value as string)[0].state).toEqual([
           {
             role: 'user',
-            content: [
-              { type: 'input_text', text: 'Is the package damaged?' },
-              { type: 'input_image', image_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==' },
+            parts: [
+              { type: 'text', content: 'Is the package damaged?' },
+              { type: 'blob', modality: 'image', mime_type: 'image/png' },
             ],
           },
         ]);

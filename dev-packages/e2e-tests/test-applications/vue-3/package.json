@@ -46,6 +46,11 @@
         "build-command": "pnpm test:build-vue-router-5",
         "assert-command": "pnpm test:assert-vue-router-5",
         "label": "vue-3 (vue-router 5)"
+      },
+      {
+        "build-command": "PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build",
+        "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert",
+        "label": "vue-3 (static trace lifecycle)"
       }
     ],
     "optionalVariants": [

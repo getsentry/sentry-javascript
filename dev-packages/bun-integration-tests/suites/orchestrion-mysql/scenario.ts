@@ -1,13 +1,13 @@
-// Bundled entry for the `bun build` smoke test.
+// Entry for the `bun build` and `bun run` smoke tests.
 //
-// Once `Bun.build` (with the orchestrion plugin) has transformed `mysql`,
-// calling `connection.query()` publishes to the `orchestrion:mysql:query`
-// tracing channel.
+// Once the orchestrion plugin has transformed `mysql` (in `Bun.build`, or in
+// `bun run` with `Bun.plugin()`), calling `connection.query()` publishes to
+// the `orchestrion:mysql:query` tracing channel.
 //
 // `start` fires synchronously on the call, so no live database is needed.
 //
 // We subscribe, run a query, and report which channel events fired
-// (plus the detection marker the plugin's banner sets at boot).
+// (plus the detection marker).
 
 import { tracingChannel } from 'node:diagnostics_channel';
 

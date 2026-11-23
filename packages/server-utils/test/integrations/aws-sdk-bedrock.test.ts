@@ -19,9 +19,9 @@ import { GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import { setCurrentClient, spanToJSON, startInactiveSpan } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { GenAiOptions } from '../../src/ai/core/utils';
+import type { BedrockRuntimeOptions } from '../../src/integrations/aws-sdk/services/bedrock-runtime';
 import { BedrockRuntimeServiceExtension } from '../../src/integrations/aws-sdk/services/bedrock-runtime';
-import type { NormalizedResponse, RequestMetadata } from '../../src/integrations/aws-sdk/types';
+import type { NormalizedRequest, RequestMetadata } from '../../src/integrations/aws-sdk/types';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 const CLAUDE_MODEL_ID = 'anthropic.claude-3-5-sonnet-20240620-v1:0';
@@ -36,7 +36,7 @@ const CLAUDE_REQUEST_BODY = {
 function preSpanHook(
   commandName: string,
   commandInput: Record<string, unknown>,
-  options?: GenAiOptions,
+  options?: BedrockRuntimeOptions,
 ): RequestMetadata {
   return new BedrockRuntimeServiceExtension(options).requestPreSpanHook({
     serviceName: 'BedrockRuntime',
@@ -267,14 +267,12 @@ function respond(
   commandInput: Record<string, unknown>,
   data: unknown,
   abortSignal?: AbortSignal,
-  options?: GenAiOptions,
+  options?: BedrockRuntimeOptions,
 ): void {
-  const response: NormalizedResponse = {
-    data,
-    request: { serviceName: 'BedrockRuntime', commandName, commandInput, abortSignal },
-    requestId: 'b0a5e5a2-2c2b-4f56-9d0e-8c7c2d3f4a10',
-  };
-  new BedrockRuntimeServiceExtension(options).responseHook(response, span);
+  const extension = new BedrockRuntimeServiceExtension(options);
+  const request: NormalizedRequest = { serviceName: 'BedrockRuntime', commandName, commandInput, abortSignal };
+  extension.requestPreSpanHook(request);
+  extension.responseHook({ data, request, requestId: 'b0a5e5a2-2c2b-4f56-9d0e-8c7c2d3f4a10' }, span);
 }
 
 async function drain(stream: AsyncIterable<unknown>): Promise<void> {

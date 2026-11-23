@@ -1604,7 +1604,7 @@ describe('orchestrion build-time instrumentation', () => {
     expect(getOrchestrionCondition(result)).toEqual({ all: ['node', { path: expect.any(RegExp) }] });
   });
 
-  it('only sends files of instrumented packages through the loader', () => {
+  it('only sends target files of instrumented packages through the loader', () => {
     const result = constructTurbopackConfig({
       userNextConfig: {},
       userSentryOptions: {},
@@ -1623,6 +1623,12 @@ describe('orchestrion build-time instrumentation', () => {
       ),
     ).toBe(true);
     expect(pathCondition.test('apps/web/node_modules/pg/lib/client.js')).toBe(true);
+    expect(pathCondition.test('node_modules/hono/dist/cjs/context.js')).toBe(true);
+    expect(pathCondition.test('node_modules/@modelcontextprotocol/sdk/dist/esm/server/mcp.js')).toBe(true);
+
+    // Other files of an instrumented package are never transformed (see #26675).
+    expect(pathCondition.test('node_modules/openai/resources/models.js')).toBe(false);
+    expect(pathCondition.test('node_modules/hono/dist/cjs/router.js')).toBe(false);
 
     expect(pathCondition.test('node_modules/next/dist/server/app-render/app-render.js')).toBe(false);
     expect(pathCondition.test('node_modules/openai-agents/dist/index.js')).toBe(false);

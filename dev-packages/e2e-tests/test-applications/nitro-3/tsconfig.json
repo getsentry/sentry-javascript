@@ -10,5 +10,5 @@
       "~/*": ["./*"]
     }
   },
-  "include": ["src/**/*.ts", "routes/**/*.ts", "vite.config.ts"]
+  "include": ["src/**/*.ts", "routes/**/*.ts", "nitro.config.ts", "vite.config.ts"]
 }

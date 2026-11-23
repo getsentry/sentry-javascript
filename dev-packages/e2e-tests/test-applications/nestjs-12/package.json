@@ -17,15 +17,14 @@
     "test:build": "pnpm install && pnpm build",
     "test:build:bun": "pnpm install && pnpm build && bun ./bun-build.mjs",
     "test:build:cloudflare": "pnpm install && pnpm build && vite build",
-    "test:build-latest": "pnpm install && pnpm add @nestjs/common@latest @nestjs/core@latest @nestjs/platform-express@latest @nestjs/microservices@latest && pnpm add -D @nestjs/cli@latest && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@nestjs/common": "^12.0.0",
-    "@nestjs/core": "^12.0.0",
-    "@nestjs/microservices": "^12.0.0",
+    "@nestjs/common": "12.5.1",
+    "@nestjs/core": "12.5.1",
+    "@nestjs/microservices": "12.5.1",
     "@nestjs/schedule": "^12.0.0",
-    "@nestjs/platform-express": "^12.0.0",
+    "@nestjs/platform-express": "12.5.1",
     "@sentry/bun": "file:../../packed/sentry-bun-packed.tgz",
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
     "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
@@ -36,6 +35,7 @@
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
+    "@sentry/conventions": "0.34.0",
     "@nestjs/cli": "^12.0.0",
     "@nestjs/schematics": "^12.0.0",
     "@types/express": "^5.0.0",
@@ -47,10 +47,6 @@
   },
   "sentryTest": {
     "optionalVariants": [
-      {
-        "build-command": "pnpm test:build-latest",
-        "label": "nestjs-12 (latest)"
-      },
       {
         "runtime": "bun",
         "bun-version": "1.4.4",

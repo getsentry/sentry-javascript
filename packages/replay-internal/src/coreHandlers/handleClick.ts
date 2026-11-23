@@ -99,8 +99,19 @@ export class ClickDetector implements ReplayClickDetector {
       this._lastMutation = nowInSeconds();
     });
 
+    // A click that leaves the page is not a dead click. Without this, a page restored from the
+    // bfcache resumes the pending check and reports the click as one.
+    const onPageHide = (): void => {
+      this._clicks = [];
+      if (this._checkClickTimeout) {
+        clearTimeout(this._checkClickTimeout);
+      }
+    };
+    WINDOW.addEventListener('pagehide', onPageHide);
+
     this._teardown = () => {
       cleanupWindowOpen();
+      WINDOW.removeEventListener('pagehide', onPageHide);
 
       this._clicks = [];
       this._lastMutation = 0;

@@ -70,8 +70,8 @@ describe('sentrySvelteKit()', () => {
     // 1 kit config resolver + 1 browser-tracing variant resolver + 1 OpenTelemetry API resolver
     // + 1 tunnel base path plugin + 1 auto instrument plugin
     // + 1 orchestrion plugin + 1 build flag plugin + 1 global values injection plugin + 1 modified main plugin
-    // + 1 debug ID plugin + 3 custom plugins
-    expect(plugins).toHaveLength(13);
+    // + 1 debug ID plugin + 1 release injection plugin + 3 custom plugins
+    expect(plugins).toHaveLength(14);
   });
 
   it('returns the custom sentry source maps upload plugin, unmodified sourcemaps plugins and the auto-instrument plugin by default', async () => {
@@ -97,6 +97,8 @@ describe('sentrySvelteKit()', () => {
       // modified main plugin (writeBundle deferred to closeBundle):
       'sentry-vite-plugin',
       'sentry-vite-upload-staging',
+      // release injection plugin (replaces the bundler plugin's build-time injection):
+      'sentry-sveltekit-release-injection-plugin',
       'sentry-sveltekit-update-source-map-setting-plugin',
       'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
       // custom source maps plugin (sorcery flattening + deferred upload):
@@ -125,7 +127,7 @@ describe('sentrySvelteKit()', () => {
   it("doesn't return the auto instrument plugin if autoInstrument is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoInstrument: false });
     const pluginNames = plugins.map(plugin => plugin.name);
-    expect(plugins).toHaveLength(12); // kit config resolver + browser-tracing variant resolver + OpenTelemetry API resolver + tunnel base path + orchestrion + build flag + global values injection + 1 modified main plugin + 1 debug ID plugin + 3 custom plugins
+    expect(plugins).toHaveLength(13); // kit config resolver + browser-tracing variant resolver + OpenTelemetry API resolver + tunnel base path + orchestrion + build flag + global values injection + 1 modified main plugin + 1 debug ID plugin + 1 release injection plugin + 3 custom plugins
     expect(pluginNames).not.toContain('sentry-auto-instrumentation');
   });
 
@@ -176,7 +178,7 @@ describe('sentrySvelteKit()', () => {
           filesToDeleteAfterUpload: ['baz/*.js'],
         },
       },
-      { getAdapterOutputDir: expect.any(Function) },
+      { getAdapterOutputDir: expect.any(Function), getKitConfig: expect.any(Function) },
     );
   });
 
@@ -222,7 +224,7 @@ describe('sentrySvelteKit()', () => {
           'X-My-Header': 'foo',
         },
       },
-      { getAdapterOutputDir: expect.any(Function) },
+      { getAdapterOutputDir: expect.any(Function), getKitConfig: expect.any(Function) },
     );
   });
 
@@ -499,6 +501,21 @@ describe('generateVitePluginOptions', () => {
 
     process.env.NODE_ENV = originalEnv;
   });
+
+  it.each([{ autoUploadSourceMaps: false }, {}])(
+    'switches the source map handling off when only bundleSizeOptimizations add the plugin (%j)',
+    options => {
+      const result = generateVitePluginOptions({
+        ...options,
+        bundleSizeOptimizations: { excludeDebugStatements: true },
+      });
+
+      expect(result).toEqual({
+        bundleSizeOptimizations: { excludeDebugStatements: true },
+        sourcemaps: { upload: false, injectDebugIds: false },
+      });
+    },
+  );
 
   it('applies bundleSizeOptimizations AND source maps options when both are set', () => {
     const originalEnv = process.env.NODE_ENV;

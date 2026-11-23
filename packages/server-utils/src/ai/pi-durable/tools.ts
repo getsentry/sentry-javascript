@@ -21,8 +21,10 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
-import type { GenAiOptions } from '../core/utils';
-import { resolveAIRecordingOptions } from '../core/utils';
+import type { GenAiSpanHooks } from '../core/span-hooks';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
+import type { GenAiCallOptions } from '../core/utils';
+import { resolveGenAiCallRecording } from '../core/utils';
 import { piAiContentToString } from '../pi-ai/messages';
 import { MAX_TRACKED_PI_RUNS, PI_DURABLE_ORIGIN, PI_TOOL_RESULT_ENTRY_KIND } from './constants';
 import type { PiRuns, PiToolCall } from './runs';
@@ -30,10 +32,12 @@ import { toSentryConversationId } from './runs';
 import type {
   PiAgent,
   PiCommitChange,
+  PiDurableCallInfo,
   PiEntryToken,
   PiTaskRuntime,
   PiTool,
   PiToolExecutionApi,
+  PiToolExecutionResult,
   PiToolResultMessage,
 } from './types';
 import { bound } from './utils';
@@ -104,9 +108,14 @@ export function instrumentToolPhase(
 }
 
 /** Wrap a tool so each call gets a `gen_ai.execute_tool` span. */
-export function instrumentTool(tool: PiTool, runs: PiRuns, options: GenAiOptions): PiTool {
+export function instrumentTool(
+  tool: PiTool,
+  runs: PiRuns,
+  options: GenAiCallOptions<PiDurableCallInfo> & GenAiSpanHooks<PiDurableCallInfo, PiToolExecutionResult>,
+): PiTool {
   const execute = (args: unknown, api: PiToolExecutionApi, context: unknown): Promise<unknown> => {
-    const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
+    const toolCall: PiDurableCallInfo = { operation: 'execute_tool', tool, args, api, context };
+    const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, toolCall);
     const phaseCalls = runs.toolCalls.get(api?.taskId);
     // A tool that runs another tool of its agent passes its own `api` on, so the inner call shares
     // the call id. Only the outer call gets the committed result; the inner one ends with its own.
@@ -133,9 +142,11 @@ export function instrumentTool(tool: PiTool, runs: PiRuns, options: GenAiOptions
       async span => {
         const call: PiToolCall = { span, callId: api?.callId, recordOutputs };
         calls?.push(call);
+        runGenAiSpanStart(options, span, toolCall);
         try {
           const result = await tool.execute(args, trackOwnedConversations(api, span, runs), context);
           call.endTimestamp = timestampInSeconds();
+          call.onSpanEnd = () => runGenAiSpanEnd(options, span, toolCall, { response: result });
           if (!calls) {
             // No result entry follows a call outside a tool task phase, nor a nested call.
             finishToolCall(call, { content: result?.output ?? result?.content, isError: result?.isError });
@@ -144,6 +155,7 @@ export function instrumentTool(tool: PiTool, runs: PiRuns, options: GenAiOptions
         } catch (error) {
           call.endTimestamp = timestampInSeconds();
           call.failed = true;
+          call.onSpanEnd = () => runGenAiSpanEnd(options, span, toolCall, { error });
           // pi-durable turns the throw into an error result for the model, so the app never gets a
           // chance to handle it. An aborted call is not a failure.
           if ((context as { abortSignal?: AbortSignal } | undefined)?.abortSignal?.aborted) {
@@ -155,6 +167,7 @@ export function instrumentTool(tool: PiTool, runs: PiRuns, options: GenAiOptions
             }
           }
           if (!calls) {
+            call.onSpanEnd();
             span.end(call.endTimestamp);
           }
           throw error;
@@ -183,6 +196,7 @@ function finishToolCall(call: PiToolCall, message: PiToolResultMessage | undefin
       call.span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
     }
   }
+  call.onSpanEnd?.();
   call.span.end(call.endTimestamp);
 }
 

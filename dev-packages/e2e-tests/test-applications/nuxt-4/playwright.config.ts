@@ -1,5 +1,8 @@
 import { getPlaywrightConfig, getRuntime } from '@sentry-internal/test-utils';
 
+// The static trace lifecycle variant sets this to `static`.
+process.env.E2E_TEST_TRACE_LIFECYCLE ??= 'stream';
+
 const testEnv = process.env.TEST_ENV;
 
 if (!testEnv) {
@@ -34,6 +37,8 @@ const getStartCommand = () => {
 
 const config = getPlaywrightConfig({
   startCommand: getStartCommand(),
+  // Nuxt opens its port before the development server can handle requests.
+  url: 'http://localhost:3030',
 });
 
 export default {

@@ -15,16 +15,22 @@ import {
   GEN_AI_TOOL_NAME,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { getGenAiSpanOp } from '../core/utils';
+import type { GenAiSpanHooks } from '../core/span-hooks';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
+import type { GenAiCallOptions } from '../core/utils';
+import { getGenAiSpanOp, resolveGenAiCallRecording } from '../core/utils';
 import { piAiContentToString } from '../pi-ai/messages';
 import { FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
-import type { FlueErrorInfo, FlueObservation } from './types';
+import type { FlueCallInfo, FlueErrorInfo, FlueEventContext, FlueObservation } from './types';
 
 /**
  * Turn and tool spans, keyed by the id of the work they cover. Bounded, because the key is only
  * removed when the matching end observation arrives and an abandoned stream never emits one.
  */
 export type SpanTracker = LRUMap<string, Span>;
+
+const TOOL_SPANS_RECORDING_OUTPUTS = new WeakSet<Span>();
+const TOOL_SPAN_END_HOOKS = new WeakMap<Span, (observation: FlueObservation) => void>();
 
 /**
  * Store a span under `key`. Callers only reach this with a key the tracker does not hold, so the
@@ -79,32 +85,47 @@ function captureToolError(span: Span, errorInfo: FlueErrorInfo | undefined): voi
  * OpenTelemetry adapter projects them: siblings of `chat`, correlated to model output by tool call
  * id. Keyed by `toolCallId` so concurrent tool calls in one turn cannot cross-attribute.
  */
-export function startToolSpan(observation: FlueObservation, toolSpans: SpanTracker, recordInputs: boolean): void {
+export function startToolSpan(
+  observation: FlueObservation,
+  context: FlueEventContext,
+  toolSpans: SpanTracker,
+  options: GenAiCallOptions<FlueCallInfo> & GenAiSpanHooks<FlueCallInfo, FlueObservation>,
+): void {
   const { toolCallId, toolName } = observation;
   if (!toolCallId || toolSpans.get(toolCallId)) {
     return;
   }
 
-  trackSpan(
-    toolSpans,
-    toolCallId,
-    startInactiveSpan({
-      name: `execute_tool ${toolName ?? 'unknown'}`,
-      op: getGenAiSpanOp('execute_tool'),
-      attributes: {
-        [SENTRY_ORIGIN]: FLUE_ORIGIN,
-        [GEN_AI_OPERATION_NAME]: 'execute_tool',
-        [GEN_AI_TOOL_NAME]: toolName,
-        [GEN_AI_CONVERSATION_ID]: observation.conversationId,
-        ...(recordInputs && observation.args !== undefined
-          ? { [GEN_AI_TOOL_CALL_ARGUMENTS]: stringify(observation.args) }
-          : {}),
-      },
-    }),
+  const call: FlueCallInfo = { operation: 'execute_tool', observation, context };
+  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
+  const span = startInactiveSpan({
+    name: `execute_tool ${toolName ?? 'unknown'}`,
+    op: getGenAiSpanOp('execute_tool'),
+    attributes: {
+      [SENTRY_ORIGIN]: FLUE_ORIGIN,
+      [GEN_AI_OPERATION_NAME]: 'execute_tool',
+      [GEN_AI_TOOL_NAME]: toolName,
+      [GEN_AI_CONVERSATION_ID]: observation.conversationId,
+      ...(recordInputs && observation.args !== undefined
+        ? { [GEN_AI_TOOL_CALL_ARGUMENTS]: stringify(observation.args) }
+        : {}),
+    },
+  });
+  // Again after start, so the Flue id wins over one from `Sentry.setConversationId()`, as on the agent and chat spans.
+  if (observation.conversationId) {
+    span.setAttribute(GEN_AI_CONVERSATION_ID, observation.conversationId);
+  }
+  if (recordOutputs) {
+    TOOL_SPANS_RECORDING_OUTPUTS.add(span);
+  }
+  runGenAiSpanStart(options, span, call);
+  TOOL_SPAN_END_HOOKS.set(span, end =>
+    runGenAiSpanEnd(options, span, call, end.isError ? { response: end, error: end.errorInfo } : { response: end }),
   );
+  trackSpan(toolSpans, toolCallId, span);
 }
 
-export function endToolSpan(observation: FlueObservation, toolSpans: SpanTracker, recordOutputs: boolean): void {
+export function endToolSpan(observation: FlueObservation, toolSpans: SpanTracker): void {
   const { toolCallId } = observation;
   const span = toolCallId ? toolSpans.get(toolCallId) : undefined;
   if (!span || !toolCallId) {
@@ -112,7 +133,7 @@ export function endToolSpan(observation: FlueObservation, toolSpans: SpanTracker
   }
   toolSpans.remove(toolCallId);
 
-  if (recordOutputs) {
+  if (TOOL_SPANS_RECORDING_OUTPUTS.has(span)) {
     const result = toolResultForModel(observation);
     if (result !== undefined) {
       span.setAttribute(GEN_AI_TOOL_CALL_RESULT, result);
@@ -123,6 +144,7 @@ export function endToolSpan(observation: FlueObservation, toolSpans: SpanTracker
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
     captureToolError(span, observation.errorInfo);
   }
+  TOOL_SPAN_END_HOOKS.get(span)?.(observation);
   span.end();
 }
 

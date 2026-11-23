@@ -9,6 +9,7 @@ Sentry.init({
   integrations: [
     Sentry.vueIntegration({
       tracingOptions: {
+        timeout: 500,
         trackComponents: true,
       },
     }),

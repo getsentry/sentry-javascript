@@ -8,7 +8,9 @@ const mockEventLoopUtilization = jest.fn((curr?: object, _prev?: object) => {
   return mockElu;
 });
 
+const realPerfHooks = await import('perf_hooks');
 mock.module('perf_hooks', () => ({
+  ...realPerfHooks,
   performance: { eventLoopUtilization: mockEventLoopUtilization },
 }));
 

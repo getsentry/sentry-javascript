@@ -1,6 +1,6 @@
 {
   "name": "@sentry/bun",
-  "version": "11.14.0",
+  "version": "11.16.0",
   "description": "Official Sentry SDK for bun",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/bun",
@@ -37,20 +37,24 @@
         "types": "./build/types/plugin.d.ts",
         "default": "./build/cjs/plugin.js"
       }
+    },
+    "./import": {
+      "import": "./build/import.mjs"
     }
   },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry/bundler-plugins": "11.14.0",
-    "@sentry/core": "11.14.0",
-    "@sentry/conventions": "^0.33.0",
-    "@sentry/node": "11.14.0",
-    "@sentry/server-utils": "11.14.0"
+    "@sentry/bundler-plugins": "11.16.0",
+    "@sentry/core": "11.16.0",
+    "@sentry/conventions": "^0.34.0",
+    "@sentry/node": "11.16.0",
+    "@sentry/server-runtime-injection": "11.16.0",
+    "@sentry/server-utils": "11.16.0"
   },
   "devDependencies": {
-    "@sentry-internal/rollup-utils": "11.14.0",
+    "@sentry-internal/rollup-utils": "11.16.0",
     "bun-types": "^1.2.9"
   },
   "scripts": {
@@ -66,9 +70,22 @@
     "lint:es-compatibility": "node ../../scripts/es-check.mjs es2022",
     "install:bun": "node ./scripts/install-bun.js",
     "test": "pnpm run install:bun && pnpm run test:bun",
-    "test:bun": "bun test",
+    "test:bun": "bun test --isolate",
     "test:watch": "bun test --watch",
     "yalc:publish": "pnpm dlx yalc publish --push --sig"
   },
-  "sideEffects": false
+  "sideEffects": [
+    "./build/import.mjs"
+  ],
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "outputs": [
+          "{projectRoot}/build/esm",
+          "{projectRoot}/build/cjs",
+          "{projectRoot}/build/import.mjs"
+        ]
+      }
+    }
+  }
 }

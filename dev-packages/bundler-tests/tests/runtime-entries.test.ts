@@ -65,6 +65,7 @@ const CASES: Case[] = [
   { specifier: '@sentry/node', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/node/import', conditions: NODE, formats: ESM },
   { specifier: '@sentry/bun', conditions: ['bun', 'node'], formats: BOTH },
+  { specifier: '@sentry/bun/import', conditions: ['bun', 'node'], formats: ESM },
   { specifier: '@sentry/deno', conditions: ['deno', 'node'], formats: ESM },
   { specifier: '@sentry/vercel-edge', conditions: ['edge-light'], formats: BOTH },
   { specifier: '@sentry/cloudflare', conditions: WORKERD, formats: BOTH },
@@ -117,6 +118,8 @@ const CASES: Case[] = [
   // backwards compatibility.
   { specifier: '@sentry/solidstart', conditions: NODE, formats: BOTH, knownViolation: true },
 
+  { specifier: '@sentry/solid/solid2', conditions: NODE, formats: BOTH },
+
   { specifier: '@sentry/tanstackstart-react', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/tanstackstart-react/import', conditions: NODE, formats: ESM },
 ];
@@ -147,6 +150,10 @@ const CLIENT_ENTRIES = new Set([
   '@sentry/sveltekit/browser-tracing-variant',
   '@sentry/remix/v3/client',
   '@sentry/solidstart/solidrouter',
+  '@sentry/solid',
+  '@sentry/solid/solidrouter',
+  '@sentry/solid/tanstackrouter',
+  '@sentry/solid/solid2/solidrouter',
 ]);
 
 function writeFixture(specifier: string, conditions: string[], format: Format): string {

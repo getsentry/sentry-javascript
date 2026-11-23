@@ -45,6 +45,7 @@ describe('detectOrchestrionSetup', () => {
     detectOrchestrionSetup();
 
     expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('bun --preload @sentry/bun/import'));
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('@sentry/bun/plugin'));
   });
 

@@ -1,6 +1,5 @@
 import { defineIntegration, waitForTracingChannelBinding, type IntegrationFn } from '@sentry/core';
-import type { GenAiCallOptions } from '../../ai/core/utils';
-import { subscribeVercelAiTracingChannel, type VercelAiCallInfo } from './vercel-ai-dc-subscriber';
+import { subscribeVercelAiTracingChannel, type VercelAiChannelOptions } from './vercel-ai-dc-subscriber';
 import { registerVercelAiToolTelemetry } from './vercel-ai-tool-telemetry';
 import * as dc from '../../utils/diagnosticsChannel';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
@@ -8,7 +7,7 @@ import { vercelAiModuleNames } from '../../orchestrion/config/vercel-ai';
 import { subscribeVercelAiOrchestrionChannels } from './vercel-ai-orchestrion-subscriber';
 
 /** Options for the Vercel AI integration. */
-export type VercelAiOptions = GenAiCallOptions<VercelAiCallInfo>;
+export type VercelAiOptions = VercelAiChannelOptions;
 
 const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
   return {

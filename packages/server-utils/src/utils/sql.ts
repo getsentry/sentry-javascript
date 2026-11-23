@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import {
   DB_NAMESPACE,
   DB_OPERATION_NAME,
@@ -29,7 +30,7 @@ const DDL_RE = new RegExp(
 // standalone shorthand. The clause is filler like INTO — stripping it keeps upserts on the same
 // low-cardinality summary as plain inserts.
 const INSERT_RE = new RegExp(
-  `^\\s*(?<operation>INSERT|REPLACE)(?:\\s+OR\\s+(?:ROLLBACK|ABORT|FAIL|IGNORE|REPLACE))?\\s+INTO\\s+(?<table>${TABLE_NAME})`,
+  `^\\s*(?<operation>INSERT|REPLACE)(?:\\s+OR\\s+(?:ROLLBACK|ABORT|FAIL|IGNORE|REPLACE))?\\s+INTO(?:\\s+TABLE)?\\s+(?<table>${TABLE_NAME})`,
   'i',
 );
 const UPDATE_RE = new RegExp(
@@ -205,7 +206,7 @@ let mssqlIntegerLiteralRE: RegExp | undefined;
  * Lazy init: constructing a lookbehind at module scope evaluates it on import and crashes
  * Safari <16.4 browser bundles that reach this file via the core barrel.
  */
-function getIntegerLiteralRE(dialect: SqlDialect): RegExp {
+function getIntegerLiteralRE(dialect: SqlDialect | SqlLexerRules): RegExp {
   if (dialect === 'mssql') {
     if (!mssqlIntegerLiteralRE) {
       mssqlIntegerLiteralRE = new RegExp('(?<!\\?)-?\\b\\d+\\b', 'g');
@@ -227,8 +228,32 @@ function getIntegerLiteralRE(dialect: SqlDialect): RegExp {
  *   inlined values with backslashes, so this is the mode their statements arrive in.
  * - `mssql`: `[...]` quotes an identifier, so a `'` inside one is part of the name. `"` quotes
  *   one too, unless the connection sets `QUOTED_IDENTIFIER OFF`, which tedious leaves on.
+ *
+ * An engine with other rules passes {@link SqlLexerRules} instead.
  */
 export type SqlDialect = 'standard' | 'mysql' | 'mssql';
+
+/**
+ * Lexer rules for an engine that no {@link SqlDialect} covers. They apply on top of `standard`. The
+ * integration of that engine defines them, so a bundle without that integration does not contain them.
+ */
+export interface SqlLexerRules {
+  /** Whether `#` starts a line comment. */
+  hashComments?: boolean;
+  /** Whether a block comment can contain other block comments. */
+  nestedComments?: boolean;
+  /** Whether `\` escapes the next character in a string literal or a quoted identifier. */
+  backslashEscapes?: boolean;
+  /** Sticky pattern for the opening tag of a dollar-quoted literal. Defaults to the PostgreSQL tag. */
+  dollarQuote?: RegExp;
+  /** Returns the length of the engine-specific literal at `start`, which the lexer replaces with `?`. */
+  matchLiteral?: (sql: string, start: number) => number;
+  /**
+   * Returns true when inline data starts at `start`. The lexer drops the query text from `start` to the
+   * end, because data cannot be sanitized as SQL. `out` holds the sanitized text before `start`.
+   */
+  isInlineData?: (sql: string, start: number, out: string[]) => boolean;
+}
 
 /**
  * Maps a driver or `db.system.name` value to the dialect its statements are written in. Callers
@@ -244,6 +269,8 @@ export function toSqlDialect(system: unknown): SqlDialect {
   }
   return 'standard';
 }
+
+const NO_RULES: SqlLexerRules = {};
 
 // Sticky, so the scanner can test one position without slicing the query on every `$`.
 const DOLLAR_QUOTE_RE = /\$(?:[A-Za-z_]\w*)?\$/y;
@@ -271,6 +298,24 @@ function findQuotedRunEnd(sql: string, start: number, delimiter: string, backsla
   return -1;
 }
 
+// An unterminated comment consumes the rest of the query.
+function findBlockCommentEnd(sql: string, start: number, nested: boolean): number {
+  let depth = 1;
+  let i = start + 2;
+  while (i < sql.length && depth > 0) {
+    if (sql[i] === '*' && sql[i + 1] === '/') {
+      depth--;
+      i += 2;
+    } else if (nested && sql[i] === '/' && sql[i + 1] === '*') {
+      depth++;
+      i += 2;
+    } else {
+      i++;
+    }
+  }
+  return i;
+}
+
 /**
  * Replaces every string literal with `?` and drops every comment, in one pass.
  *
@@ -282,8 +327,11 @@ function findQuotedRunEnd(sql: string, start: number, delimiter: string, backsla
  * Quoted identifiers are preserved — they are the table and column names the query summary is
  * built from.
  */
-function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
-  const isMysql = dialect === 'mysql';
+function stripLiteralsAndComments(sql: string, dialect: SqlDialect | SqlLexerRules): string {
+  const [base, rules]: [SqlDialect, SqlLexerRules] =
+    typeof dialect === 'string' ? [dialect, NO_RULES] : ['standard', dialect];
+  const isMysql = base === 'mysql';
+  const backslashEscapes = !!rules.backslashEscapes;
   const out: string[] = [];
   let i = 0;
 
@@ -291,15 +339,14 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
     const char = sql[i]!;
     const next = sql[i + 1];
 
-    if ((char === '-' && next === '-') || (isMysql && char === '#')) {
+    if ((char === '-' && next === '-') || ((isMysql || rules.hashComments) && char === '#')) {
       const lineEnd = sql.indexOf('\n', i);
       i = lineEnd === -1 ? sql.length : lineEnd;
       continue;
     }
 
     if (char === '/' && next === '*') {
-      const commentEnd = sql.indexOf('*/', i + 2);
-      i = commentEnd === -1 ? sql.length : commentEnd + 2;
+      i = findBlockCommentEnd(sql, i, !!rules.nestedComments);
       continue;
     }
 
@@ -307,8 +354,8 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
     // previous character from the query, not from `out`, where a dropped comment would leave `$$`
     // looking like part of an identifier. Of the `standard` engines only PostgreSQL has dollar
     // quoting. SQLite `$name` parameters do not match the tag pattern, apart from the rare `$a$b`.
-    if (dialect === 'standard' && char === '$' && !isIdentifierChar(sql[i - 1])) {
-      const tag = matchDollarQuoteTag(sql, i);
+    if (base === 'standard' && char === '$' && !isIdentifierChar(sql[i - 1])) {
+      const tag = matchDollarQuoteTag(sql, i, rules.dollarQuote);
       if (tag) {
         const bodyEnd = sql.indexOf(tag, i + tag.length);
         i = bodyEnd === -1 ? sql.length : bodyEnd + tag.length;
@@ -317,9 +364,9 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
       }
     }
 
-    const identifierCloser = getIdentifierCloser(char, dialect);
+    const identifierCloser = getIdentifierCloser(char, base);
     if (identifierCloser) {
-      const runEnd = findQuotedRunEnd(sql, i, identifierCloser, false);
+      const runEnd = findQuotedRunEnd(sql, i, identifierCloser, backslashEscapes);
       // A run that never closes is not an identifier, so it collapses instead of being copied out.
       // Copying would carry every literal in the rest of the statement through unlexed.
       out.push(runEnd === -1 ? '?' : sql.slice(i, runEnd));
@@ -330,16 +377,25 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
     if (char === "'" || (char === '"' && isMysql)) {
       // A prefix like `X'1A'`, `B'01'`, `N'…'` or PostgreSQL's `E'a\nb'` is part of the literal, so it has
       // to collapse into the same `?` instead of being left behind as a bare identifier.
-      const prefix = char === "'" ? getLiteralPrefix(out, dialect) : undefined;
+      const prefix = char === "'" ? getLiteralPrefix(out, base) : undefined;
       if (prefix) {
         out.pop();
       }
-      const runEnd = findQuotedRunEnd(sql, i, char, isMysql || prefix === 'E');
+      const runEnd = findQuotedRunEnd(sql, i, char, isMysql || backslashEscapes || prefix === 'E');
       i = runEnd === -1 ? sql.length : runEnd;
       out.push('?');
       continue;
     }
 
+    const literalLength = rules.matchLiteral?.(sql, i);
+    if (literalLength) {
+      out.push('?');
+      i += literalLength;
+      continue;
+    }
+    if (rules.isInlineData?.(sql, i, out)) {
+      break;
+    }
     out.push(char);
     i++;
   }
@@ -363,14 +419,14 @@ function getIdentifierCloser(char: string, dialect: SqlDialect): string | undefi
 }
 
 /** Whether `char` can appear inside an identifier. `undefined` (start of query) counts as a break. */
-function isIdentifierChar(char: string | undefined): boolean {
+export function isIdentifierChar(char: string | undefined): boolean {
   return char !== undefined && /[\w$]/.test(char);
 }
 
 /** Returns the opening dollar-quote tag at `start` (`$$` or `$tag$`), or undefined if there is none. */
-function matchDollarQuoteTag(sql: string, start: number): string | undefined {
-  DOLLAR_QUOTE_RE.lastIndex = start;
-  return DOLLAR_QUOTE_RE.exec(sql)?.[0];
+function matchDollarQuoteTag(sql: string, start: number, pattern = DOLLAR_QUOTE_RE): string | undefined {
+  pattern.lastIndex = start;
+  return pattern.exec(sql)?.[0];
 }
 
 /**
@@ -401,9 +457,12 @@ function getLiteralPrefix(out: string[], dialect: SqlDialect): 'X' | 'B' | 'N' |
  * booleans) are sanitized.
  *
  * Pass `dialect` when the statement comes from a driver whose literals are not standard-quoted;
- * see {@link SqlDialect}.
+ * see {@link SqlDialect} and {@link SqlLexerRules}.
  */
-export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDialect = 'standard'): string {
+export function sanitizeSqlQuery(
+  sqlQuery: string | undefined,
+  dialect: SqlDialect | SqlLexerRules = 'standard',
+): string {
   if (!sqlQuery) {
     return 'Unknown SQL Query';
   }
@@ -444,7 +503,10 @@ export interface SqlQueryAttributes {
  * when there is no statement, so an empty query omits the attributes instead of reporting the
  * sanitizer's fallback text.
  */
-export function getSqlQueryAttributes(sqlQuery: string | undefined, dialect?: SqlDialect): SqlQueryAttributes {
+export function getSqlQueryAttributes(
+  sqlQuery: string | undefined,
+  dialect?: SqlDialect | SqlLexerRules,
+): SqlQueryAttributes {
   const queryText = (sqlQuery && sanitizeSqlQuery(sqlQuery, dialect)) || undefined;
   return {
     [DB_QUERY_TEXT]: queryText,

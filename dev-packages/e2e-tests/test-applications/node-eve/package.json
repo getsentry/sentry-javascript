@@ -15,10 +15,9 @@
     "clean": "npx rimraf node_modules .eve .output pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
     "test:build-orchestrion": "USE_ORCHESTRION=1 pnpm test:build",
-    "test:build-latest": "pnpm install && pnpm add eve@latest ai@latest && pnpm build",
-    "test:build-content-off": "SENTRY_GENAI_CONTENT=off pnpm test:build-latest",
+    "test:build-0.x": "pnpm install && pnpm add eve@0.63 && pnpm build",
+    "test:build-content-off": "SENTRY_GENAI_CONTENT=off pnpm test:build",
     "test:assert": "pnpm test:prod && pnpm test:dev",
-    "test:assert-latest": "SENTRY_GENAI_CONTENT=on pnpm test:assert",
     "test:assert-content-off": "SENTRY_GENAI_CONTENT=off pnpm test:assert",
     "test:assert-orchestrion": "USE_ORCHESTRION=1 pnpm test:assert",
     "test:prod": "TEST_ENV=production playwright test",
@@ -27,15 +26,15 @@
   "dependencies": {
     "@openrouter/ai-sdk-provider": "^3.0.0",
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
-    "ai": "^7.0.82",
+    "ai": "^7.0.172",
     "dataloader": "^2.2.3",
-    "eve": "^0.63.0",
+    "eve": "^1.0.0",
     "zod": "4.6.6"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
-    "@sentry/conventions": "0.33.0",
+    "@sentry/conventions": "0.34.0",
     "@types/node": "24.x",
     "typescript": "~5.9.0"
   },
@@ -46,14 +45,14 @@
     "optional": true,
     "optionalVariants": [
       {
-        "build-command": "pnpm test:build-latest",
-        "assert-command": "pnpm test:assert-latest",
-        "label": "node-eve (latest)"
+        "build-command": "pnpm test:build-0.x",
+        "assert-command": "pnpm test:assert",
+        "label": "node-eve (0.x)"
       },
       {
         "build-command": "pnpm test:build-content-off",
         "assert-command": "pnpm test:assert-content-off",
-        "label": "node-eve (content off, latest)"
+        "label": "node-eve (content off)"
       },
       {
         "build-command": "pnpm test:build-orchestrion",

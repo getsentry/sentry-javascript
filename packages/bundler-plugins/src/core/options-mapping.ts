@@ -9,7 +9,7 @@ import type {
   ModuleMetadata,
   ModuleMetadataCallback,
 } from './types';
-import { determineReleaseName, canAutoDetectRepository, readCommitEnvVar } from './utils';
+import { canAutoDetectRepository, readCommitEnvVar, resolveReleaseName } from './utils';
 
 export type NormalizedOptions = {
   org: string | undefined;
@@ -25,6 +25,9 @@ export type NormalizedOptions = {
   sourcemaps:
     | {
         disable?: boolean | 'disable-upload';
+        upload?: boolean;
+        injectDebugIds?: boolean;
+        delete?: boolean;
         assets?: string | string[];
         ignore?: string | string[];
         rewriteSources?: RewriteSourcesHook;
@@ -36,7 +39,7 @@ export type NormalizedOptions = {
     | undefined;
   release: {
     name: string | undefined;
-    inject: boolean;
+    inject: boolean | 'html';
     create: boolean;
     finalize: boolean;
     vcsRemote: string;
@@ -114,7 +117,7 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
     sourcemaps: userOptions.sourcemaps,
     release: {
       ...userOptions.release,
-      name: userOptions.release?.name ?? process.env['SENTRY_RELEASE'] ?? determineReleaseName(),
+      name: resolveReleaseName(userOptions.release?.name),
       inject: userOptions.release?.inject ?? true,
       create: userOptions.release?.create ?? true,
       finalize: userOptions.release?.finalize ?? true,
@@ -213,6 +216,33 @@ export function validateOptions(options: NormalizedOptions, logger: Logger): boo
         'Please only set either `auto` or both, `repo` and `commit`.',
       );
     }
+  }
+
+  const sourcemaps = options.sourcemaps;
+  const usesFeatureOptions = sourcemaps?.upload !== undefined || sourcemaps?.injectDebugIds !== undefined;
+  if (usesFeatureOptions && sourcemaps?.disable !== undefined) {
+    logger.warn(
+      '`sourcemaps.disable` is ignored because `sourcemaps.upload` or `sourcemaps.injectDebugIds` is set.',
+      'Please remove `sourcemaps.disable`.',
+    );
+  }
+  if (sourcemaps?.injectDebugIds === false && sourcemaps.upload === true) {
+    logger.warn(
+      '`sourcemaps.upload` is set, but `sourcemaps.injectDebugIds` is `false`.',
+      'Source maps are not uploaded, because the upload matches files by debug ID.',
+    );
+  }
+  if (sourcemaps?.delete !== undefined && sourcemaps.deleteSourcemapsAfterUpload !== undefined) {
+    logger.warn(
+      '`sourcemaps.deleteSourcemapsAfterUpload` is ignored because `sourcemaps.delete` is set.',
+      'Please remove `sourcemaps.deleteSourcemapsAfterUpload`.',
+    );
+  }
+  if (sourcemaps?.delete === false && sourcemaps.filesToDeleteAfterUpload !== undefined) {
+    logger.warn(
+      '`sourcemaps.filesToDeleteAfterUpload` still deletes the files it matches, although `sourcemaps.delete` is `false`.',
+      'Remove `sourcemaps.filesToDeleteAfterUpload` to keep the source maps.',
+    );
   }
 
   if (options.release?.deploy && typeof options.release.deploy === 'object' && !options.release.deploy.env) {

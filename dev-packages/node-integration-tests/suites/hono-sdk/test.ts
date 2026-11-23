@@ -21,27 +21,47 @@ describe('hono-sdk (Node)', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    // All cases in one test, because each `test()` starts its own Node process.
-    test('names each request after the route of the handler that responded', async () => {
-      const runner = createRunner().unordered();
-      for (const { name, route } of ROUTE_NAME_CASES) {
-        runner.expect({
-          span: container => {
-            const segment = container.items.find(item => item.is_segment && item.name === name);
-            if (!segment) {
-              throw new Error(`segment for \`${name}\` not in this container`);
-            }
-            expect(segment.attributes?.['http.route']).toEqual({ type: 'string', value: route });
-            expect(segment.attributes?.['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
-          },
-        });
-      }
+    let scenario: ReturnType<typeof runScenario> | undefined;
+    async function runScenario() {
+      const requests: Array<{ method: 'get' | 'post' | 'put'; path: string; expectError?: boolean }> = [
+        ...ROUTE_NAME_CASES,
+        { method: 'get', path: '/does-not-exist', expectError: true },
+        { method: 'get', path: '/' },
+        { method: 'get', path: '/hello/world' },
+      ];
+      const runner = createRunner().expect({
+        event: { message: 'Message from a route handler after next()', transaction: 'GET /posts/*' },
+      });
+      const collectors = requests.map(({ path }) => {
+        const key = path;
+        return [
+          key,
+          runner.collectStreamedSpansUntilSegment(span => span.attributes['url.path']?.value === key),
+        ] as const;
+      });
 
       const started = runner.start();
-      for (const { method, path } of ROUTE_NAME_CASES) {
-        await started.makeRequest(method, path);
+      for (const { method, path, expectError } of requests) {
+        await started.makeRequest(method, path, { expectError });
       }
       await started.completed();
+      return new Map(await Promise.all(collectors.map(async ([key, spans]) => [key, { items: await spans }] as const)));
+    }
+    async function getScenario(key: string) {
+      scenario ??= runScenario();
+      return (await scenario).get(key)!;
+    }
+
+    test('names each request after the route of the handler that responded', async () => {
+      for (const { path, name, route } of ROUTE_NAME_CASES) {
+        const container = await getScenario(path);
+        const segment = container.items.find(item => item.is_segment && item.name === name);
+        if (!segment) {
+          throw new Error(`segment for \`${name}\` not in this container`);
+        }
+        expect(segment.attributes?.['http.route']).toEqual({ type: 'string', value: route });
+        expect(segment.attributes?.['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
+      }
     });
 
     test('names an event captured in a route handler after that route', async () => {
@@ -54,19 +74,12 @@ describe('hono-sdk (Node)', () => {
     });
 
     test('keeps the runtime name for a request without a route', async () => {
-      const runner = createRunner()
-        .expect({
-          span: container => {
-            const segment = container.items.find(item => item.is_segment);
-            expect(segment?.name).toBe('GET');
-            expect(segment?.attributes?.['sentry.segment.name.source']).toEqual({ type: 'string', value: 'url' });
-            expect(segment?.attributes?.['url.path']).toEqual({ type: 'string', value: '/does-not-exist' });
-            expect(segment?.attributes?.['http.route']).toBeUndefined();
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/does-not-exist', { expectError: true });
-      await runner.completed();
+      const container = await getScenario('/does-not-exist');
+      const segment = container.items.find(item => item.is_segment);
+      expect(segment?.name).toBe('GET');
+      expect(segment?.attributes?.['sentry.segment.name.source']).toEqual({ type: 'string', value: 'url' });
+      expect(segment?.attributes?.['url.path']).toEqual({ type: 'string', value: '/does-not-exist' });
+      expect(segment?.attributes?.['http.route']).toBeUndefined();
     });
 
     test('names an event from the route handler that runs after next() after that route', async () => {
@@ -93,40 +106,26 @@ describe('hono-sdk (Node)', () => {
     });
 
     test('creates a segment span for a basic GET request', async () => {
-      const runner = createRunner()
-        .expect({
-          span: container => {
-            expect(container.items.find(item => item.is_segment)).toMatchObject({
-              name: 'GET /',
-              status: 'ok',
-              attributes: expect.objectContaining({
-                'sentry.op': { type: 'string', value: 'http.server' },
-              }),
-            });
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/');
-      await runner.completed();
+      const container = await getScenario('/');
+      expect(container.items.find(item => item.is_segment)).toMatchObject({
+        name: 'GET /',
+        status: 'ok',
+        attributes: expect.objectContaining({
+          'sentry.op': { type: 'string', value: 'http.server' },
+        }),
+      });
     });
 
     test('creates a segment span with a parametrized route name', async () => {
-      const runner = createRunner()
-        .expect({
-          span: container => {
-            expect(container.items.find(item => item.is_segment)).toMatchObject({
-              name: 'GET /hello/:name',
-              status: 'ok',
-              attributes: expect.objectContaining({
-                'sentry.op': { type: 'string', value: 'http.server' },
-                'sentry.segment.name.source': { type: 'string', value: 'route' },
-              }),
-            });
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/hello/world');
-      await runner.completed();
+      const container = await getScenario('/hello/world');
+      expect(container.items.find(item => item.is_segment)).toMatchObject({
+        name: 'GET /hello/:name',
+        status: 'ok',
+        attributes: expect.objectContaining({
+          'sentry.op': { type: 'string', value: 'http.server' },
+          'sentry.segment.name.source': { type: 'string', value: 'route' },
+        }),
+      });
     });
 
     test('captures an error with the correct mechanism', async () => {

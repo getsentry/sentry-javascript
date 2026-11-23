@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nuxt';
 
 Sentry.init({
+  traceLifecycle: process.env.E2E_TEST_TRACE_LIFECYCLE === 'static' ? 'static' : undefined,
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   tracesSampleRate: 1.0, //  Capture 100% of the transactions
   enableLogs: true,

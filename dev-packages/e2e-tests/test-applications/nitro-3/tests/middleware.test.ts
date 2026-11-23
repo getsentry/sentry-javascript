@@ -29,9 +29,11 @@ test('Captures errors thrown in middleware with error status on span', async ({ 
   });
 
   // The middleware throws before the route handler runs, so the segment may keep its bare
-  // method-only name - select it by URL path instead.
+  // method-only name - select it by `http.route` instead.
   const segmentSpanPromise = waitForStreamedSpan('nitro-3', span => {
-    return span.is_segment && span.attributes['url.path']?.value === '/api/test-transaction' && span.status === 'error';
+    return (
+      span.is_segment && span.attributes['http.route']?.value === '/api/test-transaction' && span.status === 'error'
+    );
   });
 
   await request.get('/api/test-transaction?middleware-error=1');

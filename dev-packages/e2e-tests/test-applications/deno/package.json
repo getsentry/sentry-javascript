@@ -7,9 +7,7 @@
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && docker compose pull --quiet",
-    "test:assert": "pnpm test",
-    "test:build:static": "E2E_TEST_STATIC=true pnpm install && docker compose pull --quiet",
-    "test:assert:static": "E2E_TEST_STATIC=true pnpm test"
+    "test:assert": "pnpm test"
   },
   "dependencies": {
     "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
@@ -23,13 +21,13 @@
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
-    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz"
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
+    "@sentry/conventions": "0.34.0"
   },
   "sentryTest": {
     "variants": [
       {
-        "build-command": "pnpm test:build:static",
-        "assert-command": "pnpm test:assert:static",
+        "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:assert",
         "label": "deno (static trace lifecycle)"
       }
     ],

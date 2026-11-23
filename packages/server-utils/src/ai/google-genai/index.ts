@@ -30,6 +30,7 @@ import {
   GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
 import type { InstrumentedMethodEntry } from '../core/utils';
 import {
   buildMethodPath,
@@ -37,13 +38,13 @@ import {
   getGenAiSpanOp,
   getRequestSignal,
   getTokenUsageAttributes,
-  resolveAIRecordingOptions,
+  resolveGenAiCallRecording,
 } from '../core/utils';
 import { getToolDefinitionsAttribute } from '../core/tool-definitions';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { addDecisionResponseAttributes, getDecisionInputMessages } from './decisions';
 import { instrumentStream } from './streaming';
-import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
+import type { Candidate, ContentPart, GoogleGenAICallInfo, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
 import type { ContentListUnion, Message, PartListUnion } from './utils';
 import {
   candidatesToMessageParts,
@@ -349,14 +350,11 @@ function instrumentMethod<T extends unknown[], R>(
     apply(target, _, args: T): R | Promise<R> {
       const operationName = instrumentedMethod.operation || 'unknown';
       const params = args[0] as Record<string, unknown> | undefined;
+      const call: GoogleGenAICallInfo = { operation: operationName, request: params };
+      const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
       const attributeParams = resolveChatParams(operationName, params, context);
       const abortSignal = getCallAbortSignal(operationName, attributeParams, args[1]);
-      const requestAttributes = extractRequestAttributes(
-        operationName,
-        attributeParams,
-        context,
-        !!options.recordInputs,
-      );
+      const requestAttributes = extractRequestAttributes(operationName, attributeParams, context, recordInputs);
       const model = requestAttributes[GEN_AI_REQUEST_MODEL] || 'unknown';
       const client = getClient();
       // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
@@ -376,13 +374,17 @@ function instrumentMethod<T extends unknown[], R>(
           },
           async (span: Span) => {
             try {
-              if (options.recordInputs && attributeParams) {
+              if (recordInputs && attributeParams) {
                 addPrivateRequestAttributes(span, attributeParams, operationName);
               }
+              runGenAiSpanStart(options, span, call);
               const stream = await target.apply(context, args);
-              return instrumentStream(stream, span, Boolean(options.recordOutputs), abortSignal) as R;
+              return instrumentStream(stream, span, recordOutputs, abortSignal, result =>
+                runGenAiSpanEnd(options, span, call, result),
+              ) as R;
             } catch (error) {
               span.setStatus(getErrorStatus(abortSignal));
+              runGenAiSpanEnd(options, span, call, { error });
               span.end();
               throw error;
             }
@@ -397,20 +399,25 @@ function instrumentMethod<T extends unknown[], R>(
           attributes: requestAttributes,
         },
         (span: Span) => {
-          if (options.recordInputs && attributeParams) {
+          if (recordInputs && attributeParams) {
             addPrivateRequestAttributes(span, attributeParams, operationName);
           }
+          runGenAiSpanStart(options, span, call);
 
           // The rejection is rethrown to the caller. `startSpan` keeps the status set here.
           return handleCallbackErrors(
             () => target.apply(context, args),
-            () => span.setStatus(getErrorStatus(abortSignal)),
+            error => {
+              span.setStatus(getErrorStatus(abortSignal));
+              runGenAiSpanEnd(options, span, call, { error });
+            },
             () => {},
             result => {
               // Only add response attributes for content-producing methods, not for embeddings
               if (!isEmbeddings) {
-                addResponseAttributes(span, result, options.recordOutputs, operationName);
+                addResponseAttributes(span, result, recordOutputs, operationName);
               }
+              runGenAiSpanEnd(options, span, call, { response: result });
             },
           );
         },
@@ -508,5 +515,5 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  * ```
  */
 export function instrumentGoogleGenAIClient<T extends object>(client: T, options?: GoogleGenAIOptions): T {
-  return createDeepProxy(client, '', resolveAIRecordingOptions(options));
+  return createDeepProxy(client, '', options ?? {});
 }

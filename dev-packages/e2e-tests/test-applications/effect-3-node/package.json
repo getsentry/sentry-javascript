@@ -12,11 +12,11 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@effect/platform": "^0.94.5",
-    "@effect/platform-node": "^0.104.1",
+    "@effect/platform": "^0.97.3",
+    "@effect/platform-node": "^0.108.4",
     "@sentry/effect": "latest || *",
     "@types/node": "^18.19.1",
-    "effect": "^3.19.19",
+    "effect": "^3.22.4",
     "typescript": "~5.0.0"
   },
   "devDependencies": {

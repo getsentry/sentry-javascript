@@ -43,7 +43,7 @@ Or you can run a single E2E test app with a specific variant:
 pnpm run test:run <app-name> --variant <variant-name>
 ```
 
-Variant name matching is case-insensitive and partial. For example, `--variant 13` will match `nextjs-pages-dir (next@13)` if a matching variant is present in the test app's `package.json`.
+Pass the variant's full label from the test app's `package.json`, for example `--variant "nextjs-16 (webpack, production)"`.
 
 ### Using the Makefile
 
@@ -69,28 +69,26 @@ This will display a fuzzy-finder menu of all available test applications. Select
 make list
 ```
 
-For example, if you have the following variants in your test app's `package.json`:
+For example, `nextjs-16` has these variants in its `package.json` (shortened):
 
 ```json
 "sentryTest": {
   "variants": [
     {
-      "build-command": "pnpm test:build-13",
-      "label": "nextjs-pages-dir (next@13)"
+      "build-command": "pnpm test:build-webpack",
+      "label": "nextjs-16 (webpack, production)",
+      "assert-command": "pnpm test:prod"
     },
     {
-      "build-command": "pnpm test:build-13-canary",
-      "label": "nextjs-pages-dir (next@13-canary)"
-    },
-    {
-      "build-command": "pnpm test:build-15",
-      "label": "nextjs-pages-dir (next@15)"
+      "build-command": "pnpm install",
+      "label": "nextjs-16 (webpack, development)",
+      "assert-command": "pnpm test:dev-webpack"
     }
   ]
 }
 ```
 
-If you run `pnpm run test:run nextjs-pages-dir --variant 13`, it will match against the very first matching variant, which is `nextjs-pages-dir (next@13)`. If you need to target the second variant in the example, you need to be more specific and use `--variant 13-canary`.
+To run one of them, pass its full label: `pnpm run test:run nextjs-16 --variant "nextjs-16 (webpack, production)"`.
 
 A variant runs its `build-command` and `assert-command`. Without them, it runs the app's `test:build` and `test:assert` scripts, like the app's default job.
 
@@ -192,7 +190,9 @@ is the reference setup.
   `deno run -A --preload=@sentry/deno/import --preload=./instrument.deno.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js`.
   The app's `deno.json` maps `@sentry/deno/import` to `node_modules`, because the e2e dependencies are `file:` tarballs
   that `npm:@sentry/deno/import` does not resolve. `nuxt-4` starts the Nitro output with no preload:
-  `bun .output/server/index.mjs` and `deno run -A .output/server/index.mjs`.
+  `bun .output/server/index.mjs` and `deno run -A .output/server/index.mjs`. `express-5` builds CommonJS for Node, so
+  Deno runs its TypeScript sources (`src/main.ts`), and `deno.json` turns on `sloppy-imports` for the relative imports
+  without a file extension.
 - **Cloudflare**: the app has the Cloudflare dependencies installed all the time. The Cloudflare build has its own
   `vite.cloudflare.config.ts` with `@cloudflare/vite-plugin` and `sentryCloudflareVitePlugin` from
   `@sentry/cloudflare/vite`, which the runner uses in place of `vite.config.ts` (see runtime-specific files). List the
@@ -201,9 +201,10 @@ is the reference setup.
   separate file (for example `workers/app.ts`) and exports a plain handler: the Sentry plugin wraps it with
   `withSentry` and reads the init options from `instrument.server.ts` next to the entry. The start command runs
   `wrangler dev` on the build output. Code at module scope must not do I/O (for example open a database connection),
-  because workerd does not allow it. `nextjs-16` has no Vite build: its Cloudflare variant builds with
-  `opennextjs-cloudflare build --config wrangler.opennext.jsonc` and wraps the generated Worker in `worker.ts` with
-  `withSentry` from `@sentry/nextjs/cloudflare`.
+  because workerd does not allow it. A socket also works only in the request that opened it, so `express-5` opens its
+  MySQL connection in the request. In an app without `"type": "module"`, name the config `vite.config.mts`. `nextjs-16`
+  has no Vite build: its Cloudflare variant builds with `opennextjs-cloudflare build --config wrangler.opennext.jsonc`
+  and wraps the generated Worker in `worker.ts` with `withSentry` from `@sentry/nextjs/cloudflare`.
 - **Cloudflare in `vite dev`**: to run the Worker in `vite dev` (for example the dev tests of the `hono-4` Cloudflare
   variant), start it with `CLOUDFLARE_INCLUDE_PROCESS_ENV=true vite dev`. The runner gives `E2E_TEST_DSN` to the app
   only as a process env var. `wrangler dev` adds it to the Worker `env` with `--var "E2E_TEST_DSN:$E2E_TEST_DSN"`, but
@@ -220,12 +221,13 @@ is the reference setup.
   itself does not get these files, so run a variant with `pnpm run test:run <app> --variant <runtime>`.
 - **Bun and Deno versions**: a variant can pin the Bun or Deno version, for example `"bun-version": "1.4.4"` or
   `"deno-version": "v2.9.0"`.
-- **Bun**: under `bun run` the SDK cannot inject diagnostics channels into packages that stay outside the build (for
-  example Express behind `react-router-serve`), so those produce no spans on Bun. Where a test depends on them, branch
+- **Bun**: under `bun run` before Bun 1.4.6 the SDK cannot inject diagnostics channels into packages that stay outside
+  the build (for example Express behind `react-router-serve`), so those produce no spans on Bun. Where a test depends on them, branch
   on `RUNTIME` and say why in a comment. An app that starts its own server can instead bundle it with
-  `@sentry/bun/plugin`, as `nestjs-12/bun-build.mjs` does. Bun 1.3 renames classes in bundles (`class Foo2`), which
-  changes span names taken from class names, so `nestjs-12` pins Bun 1.4 (see #26289). `nuxt-4` builds with
-  `bun --bun nuxt build` on Bun, because the Nitro prerenderer loads its `bun-sqlite` connector in the build process.
+  `@sentry/bun/plugin`, as `nestjs-12/bun-build.mjs` and `express-5/bun-build.mjs` do. Bun 1.3 renames classes in
+  bundles (`class Foo2`), which changes span names taken from class names, so `nestjs-12` pins Bun 1.4 (see #26289).
+  `nuxt-4` builds with `bun --bun nuxt build` on Bun, because the Nitro prerenderer loads its `bun-sqlite` connector in
+  the build process.
 
 ```json
 "sentryTest": {

@@ -3,7 +3,6 @@ import { stringify } from '@sentry/core';
 import {
   ERROR_TYPE,
   GEN_AI_AGENT_NAME,
-  GEN_AI_CONVERSATION_ID,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
@@ -151,7 +150,6 @@ export function getSpanAttributes(span: MastraExportedSpan, options: AttributeRe
 
   const attributes: SpanAttributes = {
     [GEN_AI_OPERATION_NAME]: operationName,
-    [GEN_AI_CONVERSATION_ID]: span.attributes?.conversationId ?? span.metadata?.threadId,
   };
 
   if (AGENT_SPAN_TYPES.has(span.type)) {

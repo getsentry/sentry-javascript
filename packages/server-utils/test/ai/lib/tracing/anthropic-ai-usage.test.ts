@@ -13,7 +13,7 @@ import { EventEmitter } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
 import type { Span } from '@sentry/core';
 import { SPAN_STATUS_ERROR } from '@sentry/core';
-import { addResponseAttributes } from '../../../../src/ai/anthropic-ai';
+import { addResponseAttributes } from '../../../../src/ai/anthropic-ai/utils';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from '../../../../src/ai/anthropic-ai/streaming';
 import type { AnthropicAiStreamingEvent } from '../../../../src/ai/anthropic-ai/types';
 

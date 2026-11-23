@@ -357,6 +357,21 @@ describe('instrumentGoogleGenAIClient decisions.create', () => {
     ]);
   });
 
+  it('records a single media part given by URI as a user message', async () => {
+    const endedSpans = setupClient('stream');
+    const instrumented = instrumentGoogleGenAIClient(fakeDecisionsClient());
+
+    await instrumented.decisions.create({
+      ...DECISION_REQUEST,
+      input: { type: 'image', mime_type: 'image/png', uri: 'gs://bucket/box.png' },
+    });
+
+    const input = JSON.parse(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_INPUT_MESSAGES] as string);
+    expect(input[0].state).toEqual([
+      { role: 'user', parts: [{ type: 'uri', modality: 'image', mime_type: 'image/png', uri: 'gs://bucket/box.png' }] },
+    ]);
+  });
+
   it('records a decide span with its answers and token usage', async () => {
     const endedSpans = setupClient('stream');
     const instrumented = instrumentGoogleGenAIClient(fakeDecisionsClient());

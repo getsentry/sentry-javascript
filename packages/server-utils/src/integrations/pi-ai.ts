@@ -1,22 +1,30 @@
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration, isThenable, startInactiveSpan } from '@sentry/core';
-import type { GenAiOptions } from '../ai/core/utils';
+import type { GenAiSpanHooks, GenAiSpanResult } from '../ai/core/span-hooks';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../ai/core/span-hooks';
+import type { GenAiCallOptions } from '../ai/core/utils';
 import { getPiAiChatSpanOptions, observePiAiFirstChunk, setPiAiResponseAttributes } from '../ai/pi-ai/chat';
 import { PI_AI_INTEGRATION_NAME } from '../ai/pi-ai/constants';
 import type { PiAiContext } from '../ai/pi-ai/messages';
 import { isInsidePiAiSpan } from '../ai/pi-ai/providers';
-import { resolvePiAiRecordingOptions } from '../ai/pi-ai/recording';
-import type { PiEventStream, PiStreamOptions } from '../ai/pi-ai/types';
+import { getPiAiDriver, resolvePiAiRecordingOptions } from '../ai/pi-ai/recording';
+import type { PiAiCallInfo, PiAssistantMessage, PiEventStream, PiModel, PiStreamOptions } from '../ai/pi-ai/types';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { piAiModuleNames } from '../orchestrion/config/pi-ai';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 
-export type PiAiOptions = GenAiOptions;
+/** `onSpanEnd` gets the `AssistantMessage` the request settled with, for `stream` and `complete` alike. */
+export type PiAiOptions = GenAiCallOptions<PiAiCallInfo> & GenAiSpanHooks<PiAiCallInfo, PiAssistantMessage>;
 
-type PiAiChannelContext = OrchestrionChannelContext & { _sentryRecordOutputs?: boolean };
+type PiAiChannelContext = OrchestrionChannelContext & {
+  _sentryRecordOutputs?: boolean;
+  /** The message a stream's `result()` settled with. */
+  _sentryMessage?: unknown;
+  _sentryOnSpanEnd?: (result: GenAiSpanResult<PiAssistantMessage>) => void;
+};
 
 const _piAiIntegration = ((options: PiAiOptions = {}) => {
   return {
@@ -37,25 +45,44 @@ function instrumentPiAi(options: PiAiOptions): void {
     if (isInsidePiAiSpan()) {
       return undefined;
     }
-    const [model, context, callOptions] = data.arguments ?? [];
-    const { recordInputs, recordOutputs } = resolvePiAiRecordingOptions(options);
+    const [model, context, callOptions] = (data.arguments ?? []) as [
+      PiModel | undefined,
+      PiAiCallInfo['context'],
+      PiStreamOptions | undefined,
+    ];
+    const call: PiAiCallInfo = { model, context, options: callOptions };
+    // Flue and pi-durable put their own options on the scope of the requests they send.
+    const driver = getPiAiDriver();
+    const { recordInputs, recordOutputs } = resolvePiAiRecordingOptions(options, call, driver);
     data._sentryRecordOutputs = recordOutputs;
-    return startInactiveSpan(
+    const span = startInactiveSpan(
       getPiAiChatSpanOptions({
         model: model ?? {},
         // The deferred calls pass a handle here, which carries no request content.
         context: context as PiAiContext | undefined,
-        callOptions: callOptions as PiStreamOptions | undefined,
+        callOptions,
         streaming,
         recordInputs,
       }),
     );
+    runGenAiSpanStart(options, span, call);
+    driver?.onSpanStart(span);
+    data._sentryOnSpanEnd = result => {
+      runGenAiSpanEnd(options, span, call, result);
+      driver?.onSpanEnd(span, result);
+    };
+    return span;
   };
 
-  const setResponse = (span: Span, data: PiAiChannelContext, message: unknown): void => {
+  const beforeSpanEnd = (span: Span, data: PiAiChannelContext, message: unknown): void => {
+    if ('error' in data) {
+      data._sentryOnSpanEnd?.({ error: data.error });
+      return;
+    }
     if (message && typeof message === 'object') {
       setPiAiResponseAttributes(span, message, !!data._sentryRecordOutputs);
     }
+    data._sentryOnSpanEnd?.({ response: message as PiAssistantMessage | undefined });
   };
 
   bindTracingChannelToSpan(streamChannel, data => startSpan(data, true), {
@@ -68,19 +95,16 @@ function instrumentPiAi(options: PiAiOptions): void {
       }
       observePiAiFirstChunk(span, events);
       settled.then(message => {
-        setResponse(span, data, message);
+        data._sentryMessage = message;
         end();
       }, end);
       return true;
     },
+    beforeSpanEnd: (span, data) => beforeSpanEnd(span, data, data._sentryMessage),
   });
 
   bindTracingChannelToSpan(completeChannel, data => startSpan(data, false), {
-    beforeSpanEnd: (span, data) => {
-      if (!('error' in data)) {
-        setResponse(span, data, data.result);
-      }
-    },
+    beforeSpanEnd: (span, data) => beforeSpanEnd(span, data, data.result),
   });
 }
 

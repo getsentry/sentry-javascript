@@ -651,4 +651,60 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
         .completed();
     });
   });
+
+  createEsmTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-recording-functions.mjs',
+    (createRunner, test) => {
+      test('decides content recording per call when the options are functions', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const recorded = container.items
+                .filter(span => /^(chat|execute_tool) /.test(span.name))
+                .sort((a, b) => a.start_timestamp - b.start_timestamp)
+                .map(({ name, attributes }) => [
+                  name,
+                  GEN_AI_INPUT_MESSAGES in attributes || GEN_AI_TOOL_CALL_ARGUMENTS in attributes,
+                  GEN_AI_OUTPUT_MESSAGES in attributes || GEN_AI_TOOL_CALL_RESULT in attributes,
+                ]);
+              expect(recorded).toEqual([
+                ['chat faux-model', true, true],
+                ['execute_tool get_weather', false, false],
+                ['chat faux-model', true, false],
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-span-hooks.mjs',
+    (createRunner, test) => {
+      test('runs the span hooks of the model and tool calls', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const hooks = container.items
+                .filter(span => /^(chat|execute_tool) /.test(span.name))
+                .sort((a, b) => a.start_timestamp - b.start_timestamp)
+                .map(({ attributes }) => [attributes['test.start']?.value, attributes['test.end']?.value]);
+              expect(hooks).toEqual([
+                ['chat', 'toolUse'],
+                ['Berlin', 'It is sunny in Berlin.'],
+                ['chat', 'stop'],
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

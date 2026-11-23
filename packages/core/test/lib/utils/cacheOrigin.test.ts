@@ -2,7 +2,12 @@
  * @vitest-environment jsdom
  */
 
-import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  PAGE_SERVER_RENDERING_AGE,
+  PAGE_SERVER_RENDERING_TYPE,
+  SENTRY_LINK_TYPE,
+  SENTRY_OP,
+} from '@sentry/conventions/attributes';
 import { PAGELOAD } from '@sentry/conventions/op';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { setCurrentClient, startSpan } from '../../../src';
@@ -19,8 +24,6 @@ import { resetGlobals } from '../../testutils';
 
 const TRACE_ID = '0b37aaf4f0d74c0e80875099e7d7ca68';
 const SPAN_ID = 'bc3a52360214dcf3';
-
-const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';
 
 const RENDER_START = 1_700_000_000;
 const REQUEST_START = RENDER_START - 100;

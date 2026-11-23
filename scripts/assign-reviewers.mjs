@@ -202,6 +202,20 @@ export async function getReviewLoad({ github, core, owner, repo, now = Date.now(
   return load;
 }
 
+/**
+ * A PR is approved when a human's latest approval or change request is an approval. Reviews come oldest first,
+ * comments don't change a reviewer's verdict, and a dismissed approval no longer counts.
+ */
+export function isApproved(reviews) {
+  const verdicts = new Map();
+  for (const review of reviews) {
+    if (review.user && review.user.type !== 'Bot' && review.state !== 'COMMENTED') {
+      verdicts.set(review.user.login.toLowerCase(), review.state);
+    }
+  }
+  return [...verdicts.values()].includes('APPROVED');
+}
+
 export async function assignReviewers({ github, context, core }) {
   const { owner, repo } = context.repo;
   const pull_number = context.payload.pull_request.number;
@@ -221,6 +235,11 @@ export async function assignReviewers({ github, context, core }) {
   const notCounted = new Set(notReviewers.map(login => login.toLowerCase()));
 
   const reviews = await github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number });
+  if (isApproved(reviews)) {
+    core.info('PR is already approved, not requesting reviews.');
+    return;
+  }
+
   // Requested reviewers drop off `requested_reviewers` once they submit a review, so count both.
   // Bots (AI reviewers) don't count towards the required reviewers.
   const existing = [

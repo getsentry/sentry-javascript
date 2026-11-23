@@ -37,7 +37,7 @@ import {
 import { GEN_AI_CHAT } from '@sentry/conventions/op';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { getPiAiChatSpanOptions, setPiAiResponseAttributes } from '../../src/ai/pi-ai/chat';
-import { resolvePiAiRecordingOptions, setPiAiRecordingOptions } from '../../src/ai/pi-ai/recording';
+import { resolvePiAiRecordingOptions, setPiAiDriverOptions } from '../../src/ai/pi-ai/recording';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../../src/async-context';
 import type { PiEventStream } from '../../src/ai/pi-ai/types';
 import { instrumentWorkersAiClient } from '../../src/ai/workers-ai';
@@ -442,7 +442,7 @@ describe('piAiIntegration', () => {
       const result = new Promise(resolve => (settle = resolve));
 
       const events = withScope(scope => {
-        setPiAiRecordingOptions(scope, { recordInputs: false, recordOutputs: false });
+        setPiAiDriverOptions(scope, { recordInputs: false, recordOutputs: false }, {});
         return stream(() => ({ result: () => result }), MODEL, context);
       });
       settle(message);
@@ -469,8 +469,11 @@ describe('piAiIntegration', () => {
       useClient({ dataCollection: { genAI: { inputs: genAI, outputs: genAI } } });
 
       const resolved = withScope(scope => {
-        setPiAiRecordingOptions(scope, { recordInputs: driver, recordOutputs: driver });
-        return resolvePiAiRecordingOptions({ recordInputs: piAi, recordOutputs: piAi });
+        setPiAiDriverOptions(scope, { recordInputs: driver, recordOutputs: driver }, {});
+        return resolvePiAiRecordingOptions(
+          { recordInputs: piAi, recordOutputs: piAi },
+          { model: MODEL, context: undefined, options: undefined },
+        );
       });
 
       expect(resolved).toEqual({ recordInputs: expected, recordOutputs: expected });

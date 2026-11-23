@@ -18,7 +18,7 @@ import { captureError, isJsonRpcServerError } from './errorCapture';
 import { buildClientAttributesFromInfo, extractSessionDataFromInitializeRequest } from './sessionExtraction';
 import { cleanupSessionDataForTransport, updateSessionDataForTransport } from './sessionManagement';
 import { buildMcpServerSpanConfig, createMcpNotificationSpan, createMcpOutgoingNotificationSpan } from './spans';
-import { continueMcpTrace } from './tracePropagation';
+import { continueMcpTrace, injectMcpTraceContext } from './tracePropagation';
 import type { ExtraHandlerData, McpServerWrapperOptions, MCPTransport, ResolvedMcpOptions, SessionData } from './types';
 import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse } from './validation';
 
@@ -153,13 +153,25 @@ export function wrapTransportSend(transport: MCPTransport, options: McpServerWra
   if (transport.send) {
     fill(transport, 'send', originalSend => {
       return async function (this: MCPTransport, ...args: unknown[]) {
-        const [message] = args;
+        const [message, ...restArgs] = args;
 
         if (isJsonRpcNotification(message)) {
           const resolvedOptions = resolveMcpOptions(options);
           return createMcpOutgoingNotificationSpan(message, transport, resolvedOptions, () => {
-            return (originalSend as (...args: unknown[]) => unknown).call(this, ...args);
+            return (originalSend as (...args: unknown[]) => unknown).call(
+              this,
+              injectMcpTraceContext(message),
+              ...restArgs,
+            );
           });
+        }
+
+        if (isJsonRpcRequest(message)) {
+          return (originalSend as (...args: unknown[]) => unknown).call(
+            this,
+            injectMcpTraceContext(message),
+            ...restArgs,
+          );
         }
 
         if (isJsonRpcResponse(message)) {

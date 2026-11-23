@@ -12,24 +12,23 @@ describe('nodeCronIntegration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('sends check-ins for named tasks', async () => {
-      await createRunner()
-        .ignore('event')
-        .expect({
-          check_in: { monitor_slug: 'my-cron-job', status: 'in_progress', monitor_config: MONITOR_CONFIG },
-        })
-        .expect({ check_in: { monitor_slug: 'my-cron-job', status: 'ok', duration: expect.any(Number) } })
-        .expect({
-          check_in: { monitor_slug: 'my-cron-job', status: 'in_progress', monitor_config: MONITOR_CONFIG },
-        })
-        .expect({ check_in: { monitor_slug: 'my-cron-job', status: 'error', duration: expect.any(Number) } })
-        .start()
-        .completed();
-    });
-
-    test('captures job errors', async () => {
-      await createRunner()
-        .unordered()
+    test('sends ordered check-ins and captures job errors', async () => {
+      const checkIns: unknown[] = [];
+      const expectedCheckIns = [
+        { monitor_slug: 'my-cron-job', status: 'in_progress', monitor_config: MONITOR_CONFIG },
+        { monitor_slug: 'my-cron-job', status: 'ok', duration: expect.any(Number) },
+        { monitor_slug: 'my-cron-job', status: 'in_progress', monitor_config: MONITOR_CONFIG },
+        { monitor_slug: 'my-cron-job', status: 'error', duration: expect.any(Number) },
+      ];
+      const runner = createRunner().unordered();
+      for (const _checkIn of expectedCheckIns) {
+        runner.expect({
+          check_in: checkIn => {
+            checkIns.push(checkIn);
+          },
+        });
+      }
+      await runner
         .expect({
           event: {
             exception: {
@@ -45,6 +44,9 @@ describe('nodeCronIntegration', () => {
         })
         .start()
         .completed();
+      expect(checkIns).toMatchObject(
+        expectedCheckIns.map(checkIn => ({ check_in_id: expect.any(String), ...checkIn })),
+      );
     });
   });
 });
