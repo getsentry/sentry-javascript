@@ -1,3 +1,4 @@
+# Run the full E2E matrix for the worker benchmark.
 name: 'CI: Build & Test'
 # Full-CI baseline for the Nuxt production/development split benchmark.
 on:
