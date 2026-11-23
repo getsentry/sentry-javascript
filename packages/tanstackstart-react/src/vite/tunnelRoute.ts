@@ -202,7 +202,7 @@ export function makeServerEntryTunnelPlugin(
       const setTunnelRoute = `setTunnelRoute(${tunnelOptions}, ${stringifyForCodeInjection(getBasePath())});\n`;
 
       if (!release) {
-        return `import { _INTERNAL_setTunnelRoute as setTunnelRoute } from ${stringifyForCodeInjection(sdk)};
+        return `import { setTunnelRoute } from ${stringifyForCodeInjection(sdk)};
 export * from ${original};
 export { default } from ${original};
 ${setTunnelRoute}`;
@@ -210,7 +210,7 @@ ${setTunnelRoute}`;
 
       // The release module comes first, so the release is set when the original entry initializes the SDK.
       return `import ${stringifyForCodeInjection(RELEASE_MODULE_ID)};
-import { _INTERNAL_addReleaseMetaTag as addReleaseMetaTag, _INTERNAL_setTunnelRoute as setTunnelRoute } from ${stringifyForCodeInjection(sdk)};
+import { _INTERNAL_addReleaseMetaTag as addReleaseMetaTag, setTunnelRoute } from ${stringifyForCodeInjection(sdk)};
 import serverEntry from ${original};
 export * from ${original};
 export default addReleaseMetaTag(serverEntry, ${stringifyForCodeInjection(release)});

@@ -7,13 +7,7 @@
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export { ServerRuntimeClient } from './server-runtime-client';
 export type { TunnelRequestLike } from './utils/tunnel';
-export {
-  getServedTunnel,
-  getTunnelPaths as _INTERNAL_getTunnelPaths,
-  handleServedTunnelRequest,
-  isServedTunnelRequest,
-  isTunnelRequest,
-} from './utils/tunnel';
+export { getServedTunnel, handleServedTunnelRequest, isServedTunnelRequest, isTunnelRequest } from './utils/tunnel';
 export { httpServerHandlesTunnel, setNodeTunnelHandler } from './utils/tunnelStore';
 export {
   forwardTunnelRequest,
