@@ -7,11 +7,11 @@ import {
 } from '@sentry-internal/test-utils';
 
 test('Sends thrown error to Sentry', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('node-hapi', errorEvent => {
+  const errorEventPromise = waitForError('hapi-21', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'This is an error';
   });
 
-  const spansPromise = collectStreamedSpansUntilSegment('node-hapi', 'GET /test-failure');
+  const spansPromise = collectStreamedSpansUntilSegment('hapi-21', 'GET /test-failure');
 
   await fetch(`${baseURL}/test-failure`);
 
@@ -20,6 +20,10 @@ test('Sends thrown error to Sentry', async ({ baseURL }) => {
   const segmentSpan = spans.find(span => span.is_segment);
 
   expect(segmentSpan?.name).toBe('GET /test-failure');
+  expect(segmentSpan?.attributes).toMatchObject({
+    'sentry.segment.name.source': { type: 'string', value: 'route' },
+    'http.route': { type: 'string', value: '/test-failure' },
+  });
   expect(segmentSpan).toMatchObject({
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -40,8 +44,6 @@ test('Sends thrown error to Sentry', async ({ baseURL }) => {
     url: 'http://localhost:3030/test-failure',
   });
 
-  expect(errorEvent.transaction).toEqual('GET /test-failure');
-
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -56,16 +58,23 @@ test('Sends thrown error to Sentry', async ({ baseURL }) => {
   expect(errorEvent.contexts?.trace?.parent_span_id).toBe(segmentSpan?.span_id);
 });
 
-test('sends error with parameterized transaction name', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('node-hapi', errorEvent => {
+test('Sends an error thrown in a parameterized route with the trace of its request', async ({ baseURL }) => {
+  const errorEventPromise = waitForError('hapi-21', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'This is an error with id 123';
   });
+
+  const spansPromise = collectStreamedSpansUntilSegment('hapi-21', 'GET /test-error/{id}');
 
   await fetch(`${baseURL}/test-error/123`);
 
   const errorEvent = await errorEventPromise;
+  const segmentSpan = (await spansPromise).find(span => span.is_segment);
 
-  expect(errorEvent?.transaction).toBe('GET /test-error/{id}');
+  expect(segmentSpan?.attributes).toMatchObject({
+    'sentry.segment.name.source': { type: 'string', value: 'route' },
+    'http.route': { type: 'string', value: '/test-error/{id}' },
+  });
+  expect(errorEvent.contexts?.trace?.trace_id).toBe(segmentSpan?.trace_id);
 });
 
 test('Does not send errors to Sentry if boom throws in "onPreResponse" after JS error in route handler', async ({
@@ -73,7 +82,7 @@ test('Does not send errors to Sentry if boom throws in "onPreResponse" after JS 
 }) => {
   let errorEventOccurred = false;
 
-  waitForError('node-hapi', event => {
+  waitForError('hapi-21', event => {
     if (event.exception?.values?.[0]?.value?.includes('This is a JS error (boom in onPreResponse)')) {
       errorEventOccurred = true;
     }
@@ -81,12 +90,12 @@ test('Does not send errors to Sentry if boom throws in "onPreResponse" after JS 
   });
 
   const segmentEventPromise4xx = waitForStreamedSpan(
-    'node-hapi',
+    'hapi-21',
     segment => segment.is_segment && segment.name === 'GET /test-failure-boom-4xx',
   );
 
   const segmentEventPromise5xx = waitForStreamedSpan(
-    'node-hapi',
+    'hapi-21',
     segment => segment.is_segment && segment.name === 'GET /test-failure-boom-5xx',
   );
 
@@ -109,7 +118,7 @@ test('Does not send error to Sentry if error response is overwritten with 2xx in
 }) => {
   let errorEventOccurred = false;
 
-  waitForError('node-hapi', event => {
+  waitForError('hapi-21', event => {
     if (event.exception?.values?.[0]?.value?.includes('This is a JS error (2xx override in onPreResponse)')) {
       errorEventOccurred = true;
     }
@@ -117,7 +126,7 @@ test('Does not send error to Sentry if error response is overwritten with 2xx in
   });
 
   const segmentEventPromise = waitForStreamedSpan(
-    'node-hapi',
+    'hapi-21',
     segment => segment.is_segment && segment.name === 'GET /test-failure-2xx-override-onPreResponse',
   );
 
@@ -133,13 +142,13 @@ test('Does not send error to Sentry if error response is overwritten with 2xx in
 test('Only sends onPreResponse error to Sentry if JS error is thrown in route handler AND onPreResponse', async ({
   baseURL,
 }) => {
-  const errorEventPromise = waitForError('node-hapi', errorEvent => {
+  const errorEventPromise = waitForError('hapi-21', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value?.includes('JS error (onPreResponse)') || false;
   });
 
   let routeHandlerErrorOccurred = false;
 
-  waitForError('node-hapi', event => {
+  waitForError('hapi-21', event => {
     if (
       !event.type &&
       event.exception?.values?.[0]?.value?.includes('This is an error (another JS error in onPreResponse)')
@@ -150,7 +159,7 @@ test('Only sends onPreResponse error to Sentry if JS error is thrown in route ha
   });
 
   const segmentEventPromise = waitForStreamedSpan(
-    'node-hapi',
+    'hapi-21',
     segment => segment.is_segment && segment.name === 'GET /test-failure-JS-error-onPreResponse',
   );
 
@@ -163,5 +172,9 @@ test('Only sends onPreResponse error to Sentry if JS error is thrown in route ha
 
   expect(routeHandlerErrorOccurred).toBe(false);
   expect(segmentEvent.name).toBe('GET /test-failure-JS-error-onPreResponse');
-  expect(errorEvent.transaction).toEqual('GET /test-failure-JS-error-onPreResponse');
+  expect(segmentEvent.attributes).toMatchObject({
+    'sentry.segment.name.source': { type: 'string', value: 'route' },
+    'http.route': { type: 'string', value: '/test-failure-JS-error-onPreResponse' },
+  });
+  expect(errorEvent.contexts?.trace?.trace_id).toBe(segmentEvent.trace_id);
 });
