@@ -14,6 +14,8 @@ export function shouldFilterDataKey(key: string, behavior: CollectBehavior, addi
   const denySnippets =
     additionalDenyTerms != null ? [...SENSITIVE_KEY_SNIPPETS, ...additionalDenyTerms] : SENSITIVE_KEY_SNIPPETS;
 
+  // TODO(v12): Let users override the sensitive denylist. Today it always wins over `allow`, so a key like
+  // `zipcode` matching a built-in term can never be collected.
   if (isSensitiveKey(lowerKey, denySnippets)) {
     return true;
   }
