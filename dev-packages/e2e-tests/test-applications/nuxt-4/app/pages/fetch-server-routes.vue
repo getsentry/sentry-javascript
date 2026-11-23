@@ -1,13 +1,18 @@
 <template>
   <div>
-    <button @click="fetchError">Fetch Server API Error</button>
-    <button @click="fetchNitroFetch">Fetch Nitro $fetch</button>
-    <button @click="fetchThirdPartyHttpError">Fetch Third-Party HTTPError</button>
+    <button :disabled="!hydrated" @click="fetchError">Fetch Server API Error</button>
+    <button :disabled="!hydrated" @click="fetchNitroFetch">Fetch Nitro $fetch</button>
+    <button :disabled="!hydrated" @click="fetchThirdPartyHttpError">Fetch Third-Party HTTPError</button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useFetch, useRoute } from '#imports';
+import { onMounted, ref, useFetch, useRoute } from '#imports';
+
+const hydrated = ref(false);
+onMounted(() => {
+  hydrated.value = true;
+});
 
 const apiPrefix = useRoute().query.apiPrefix ?? '/api';
 
