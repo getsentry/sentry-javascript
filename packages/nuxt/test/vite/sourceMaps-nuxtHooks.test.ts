@@ -181,17 +181,26 @@ describe('setupSourceMaps hooks', () => {
     });
 
     // The Vite server runs no Nitro, so no Rollup plugin uploads the server maps.
-    it('adds the Sentry Vite plugin to the client and server builds on the Vite server', async () => {
+    it('adds a Sentry Vite plugin for the server build on the Vite server', async () => {
       const mockNuxt = createMockNuxt({ _prepare: false, dev: false });
       const { mockAddVitePlugin } = createMockAddVitePlugin();
 
-      setupSourceMaps({ debug: true }, mockNuxt as unknown as Nuxt, mockAddVitePlugin, false, true);
+      setupSourceMaps({ release: { name: '1.2.3' } }, mockNuxt as unknown as Nuxt, mockAddVitePlugin, true, true);
 
       expect(mockAddVitePlugin).toHaveBeenCalledWith([{ name: 'sentry-vite-plugin' }], {
         dev: false,
         build: true,
-        server: true,
+        server: false,
       });
+      expect(mockAddVitePlugin).toHaveBeenCalledWith([{ name: 'sentry-vite-plugin' }], {
+        dev: false,
+        build: true,
+        client: false,
+      });
+      // The client config plugin hands the release to the browser SDK only, so the server bundle needs it.
+      expect(mockSentryVitePlugin).toHaveBeenLastCalledWith(
+        expect.objectContaining({ release: expect.not.objectContaining({ inject: false }) }),
+      );
     });
 
     it.each([

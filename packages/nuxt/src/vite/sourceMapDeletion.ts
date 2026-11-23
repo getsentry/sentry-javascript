@@ -85,7 +85,7 @@ function toGlobPath(directory: string): string {
  * `sourcemaps.delete` replaces that rule for the client environment: `true` removes every client map, `false`
  * none. The plugin does not get the option itself, because it would also remove the SSR maps.
  *
- * The Vite server (`viteServer`) runs no Nitro, so the plugin also runs in the server environments and applies
+ * The Vite server runs no Nitro, so a second plugin runs in its server environments (`viteServer`) and applies
  * the same rules to the server maps there.
  */
 export function withClientSourceMapDeletion(

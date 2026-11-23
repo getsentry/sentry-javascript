@@ -263,6 +263,12 @@ if (!viteServer) {
   console.log(`  No client chunk in ${CLIENT_OUTPUT} contains the release\n`);
 }
 
+// The client config plugin hands the release to the browser SDK only, so the server bundle needs it injected.
+if (viteServer) {
+  assert.ok(filesContaining(SERVER_OUTPUT, RELEASE).length > 0, `Expected the release in the ${SERVER_OUTPUT} bundle`);
+  console.log(`  The ${SERVER_OUTPUT} bundle carries the release\n`);
+}
+
 // --- What the build leaves behind in the server output ---
 
 // Nuxt enables the server maps by default, so they are the user's and Sentry must keep them, unless

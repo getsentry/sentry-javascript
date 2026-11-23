@@ -32,6 +32,8 @@ import {
  */
 export type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
 
+type AddVitePluginOptions = { dev?: boolean; build?: boolean; server?: boolean; client?: boolean };
+
 /** The public runtime config key that gives the release to the client SDK. */
 export const NUXT_RELEASE_RUNTIME_CONFIG_KEY = '_sentryRelease';
 
@@ -41,7 +43,7 @@ export const NUXT_RELEASE_RUNTIME_CONFIG_KEY = '_sentryRelease';
 export function setupSourceMaps(
   moduleOptions: SentryNuxtModuleOptions,
   nuxt: Nuxt,
-  addVitePlugin: (plugin: Plugin[], options?: { dev?: boolean; build?: boolean; server?: boolean }) => void,
+  addVitePlugin: (plugin: Plugin[], options?: AddVitePluginOptions) => void,
   hasClientConfigFile = false,
   viteServer = false,
 ): void {
@@ -95,13 +97,22 @@ export function setupSourceMaps(
             : clientPluginOptions,
           moduleOptions.sourcemaps,
           shouldDeleteFilesFallback,
-          viteServer,
         ),
       ),
       // Nitro bundles the SSR output again, so debug IDs from the SSR build would point to the wrong maps.
-      // The Vite server runs no Nitro, so its SSR output is final.
-      { dev: false, build: true, server: viteServer },
+      { dev: false, build: true, server: false },
     );
+
+    if (viteServer) {
+      // The Vite server runs no Nitro, so its SSR output is final and no Rollup plugin uploads it. A plugin of
+      // its own injects the release, which the client plugin leaves to the runtime config.
+      addVitePlugin(
+        sentryVitePlugin(
+          withClientSourceMapDeletion(clientPluginOptions, moduleOptions.sourcemaps, shouldDeleteFilesFallback, true),
+        ),
+        { dev: false, build: true, client: false },
+      );
+    }
   }
 
   nuxt.hook('nitro:config', (nitroConfig: NitroConfig) => {
