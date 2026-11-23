@@ -1,7 +1,16 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { warnOnConflictingSourceMapOptions } from '../../../src/build-time-plugins/warnOnConflictingSourceMapOptions';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { warnOnConflictingSourceMapOptions as WarnOnConflictingSourceMapOptions } from '../../../src/build-time-plugins/warnOnConflictingSourceMapOptions';
 
 describe('warnOnConflictingSourceMapOptions', () => {
+  let warnOnConflictingSourceMapOptions: typeof WarnOnConflictingSourceMapOptions;
+
+  // The module remembers the warnings it logged.
+  beforeEach(async () => {
+    vi.resetModules();
+    ({ warnOnConflictingSourceMapOptions } =
+      await import('../../../src/build-time-plugins/warnOnConflictingSourceMapOptions'));
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -49,6 +58,17 @@ describe('warnOnConflictingSourceMapOptions', () => {
     );
 
     expect(logWarning).toHaveBeenCalledTimes(3);
+  });
+
+  it('logs each warning once, also for later calls', () => {
+    const logWarning = vi.fn();
+
+    warnOnConflictingSourceMapOptions({ upload: true, injectDebugIds: false }, logWarning);
+    warnOnConflictingSourceMapOptions({ upload: true, injectDebugIds: false, disable: true }, logWarning);
+
+    expect(logWarning).toHaveBeenCalledTimes(2);
+    expect(logWarning).toHaveBeenNthCalledWith(1, expect.stringMatching(/`sourcemaps\.injectDebugIds` is `false`/));
+    expect(logWarning).toHaveBeenNthCalledWith(2, expect.stringMatching(/`sourcemaps\.disable` is ignored/));
   });
 
   it('logs with a `[Sentry]` prefix by default', () => {

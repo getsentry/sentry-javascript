@@ -10,7 +10,7 @@ import { setupOrchestrion } from './vite/orchestrion';
 import { NUXT_RELEASE_RUNTIME_CONFIG_KEY, setupSourceMaps } from './vite/sourceMaps';
 import { findDefaultSdkInitFile, resolveServerApi } from './vite/utils';
 import { setupViteServer } from './vite/viteServer';
-import { stringifyForCodeInjection } from '@sentry/core';
+import { stringifyForCodeInjection, warnOnConflictingSourceMapOptions } from '@sentry/core';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 type NuxtPageSubset = { file?: string; path: string };
@@ -112,6 +112,8 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     if (clientConfigFile || serverConfigFile) {
+      // The bundler plugins do not get `sourcemaps.delete`.
+      warnOnConflictingSourceMapOptions(moduleOptions.sourcemaps);
       setupSourceMaps(moduleOptions, nuxt, addVitePlugin, !!clientConfigFile, serverApi === 'nuxt');
     }
 

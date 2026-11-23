@@ -294,6 +294,20 @@ describe('makeCustomSentryVitePlugins()', () => {
     });
   });
 
+  // The bundler plugin does not get `sourcemaps.delete`.
+  it('warns about conflicting source map options', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await makeCustomSentryVitePlugins(
+      { sourcemaps: { delete: false, filesToDeleteAfterUpload: ['./build/**/*.map'] } },
+      { getAdapterOutputDir: async () => '.svelte-kit/output', getKitConfig: async () => ({}) },
+    );
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('`sourcemaps.filesToDeleteAfterUpload` still deletes the files'),
+    );
+  });
+
   it('catches errors while uploading source maps', async () => {
     mockedMainPlugin.writeBundle.mockImplementationOnce(() => {
       throw new Error('test error');

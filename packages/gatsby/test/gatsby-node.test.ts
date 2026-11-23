@@ -269,6 +269,22 @@ describe('onCreateWebpackConfig', () => {
       logSpy.mockRestore();
     });
 
+    it('warns once when `sourcemaps.delete` and the flat option are both set', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const getConfig = vi.fn().mockReturnValue({ devtool: 'source-map' });
+      const options = { deleteSourcemapsAfterUpload: true, sourcemaps: { delete: false } };
+
+      for (const stage of ['build-javascript', 'build-html']) {
+        onCreateWebpackConfig({ actions: { setWebpackConfig: vi.fn() }, getConfig, stage }, options);
+      }
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('`deleteSourcemapsAfterUpload` is ignored because `sourcemaps.delete` is set'),
+      );
+      warnSpy.mockRestore();
+    });
+
     it.each([
       [{ delete: false }, { deleteSourcemapsAfterUpload: true }, undefined],
       [{ delete: true }, { deleteSourcemapsAfterUpload: false }, true],

@@ -5,6 +5,9 @@ const { resolveSourceMapsFeatures } = require('@sentry/core');
 
 const SENTRY_USER_CONFIG = ['./sentry.config.js', './sentry.config.ts'];
 
+// Gatsby calls `onCreateWebpackConfig` once per build stage.
+let warnedAboutDeleteOptions = false;
+
 exports.onCreateWebpackConfig = ({ getConfig, actions, stage }, options) => {
   const enableClientWebpackPlugin = options.enableClientWebpackPlugin !== false;
   if (process.env.NODE_ENV === 'production' && enableClientWebpackPlugin) {
@@ -12,6 +15,17 @@ exports.onCreateWebpackConfig = ({ getConfig, actions, stage }, options) => {
     const { injectDebugIds, upload } = resolveSourceMapsFeatures(options.sourcemaps);
     // `sourcemaps.delete` replaces the flat `deleteSourcemapsAfterUpload`.
     const deleteOption = options.sourcemaps?.delete ?? options.deleteSourcemapsAfterUpload;
+    if (
+      options.sourcemaps?.delete !== undefined &&
+      options.deleteSourcemapsAfterUpload !== undefined &&
+      !warnedAboutDeleteOptions
+    ) {
+      warnedAboutDeleteOptions = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[Sentry] `deleteSourcemapsAfterUpload` is ignored because `sourcemaps.delete` is set. Please remove `deleteSourcemapsAfterUpload`.',
+      );
+    }
     // Sentry turns source maps on to upload them, or when `sourcemaps.delete: false` keeps them for a manual upload.
     const shouldAutomaticallyEnableSourceMaps =
       prevSourceMapSetting !== 'source-map' &&
