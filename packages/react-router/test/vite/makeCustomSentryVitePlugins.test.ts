@@ -53,7 +53,8 @@ describe('makeCustomSentryVitePlugins', () => {
     expect(sentryVitePlugin).toHaveBeenCalledWith(
       expect.objectContaining({
         sourcemaps: expect.objectContaining({
-          disable: true,
+          upload: false,
+          injectDebugIds: false,
         }),
       }),
     );
@@ -63,12 +64,15 @@ describe('makeCustomSentryVitePlugins', () => {
   // `sentryOnBuildEnd` is the only place that injects debug IDs and uploads, so the Vite plugin must
   // stay disabled - otherwise every chunk gets a second debug ID with no artifact bundle behind it.
   // It must also never delete the maps, because its `writeBundle` deletes in a `finally` block that
-  // runs even when `disable` is set, which would remove them before `sentryOnBuildEnd` uploads.
+  // runs even when the upload is off, which would remove them before `sentryOnBuildEnd` uploads.
   // Neither may be changed by any user option.
   it('should keep sourcemaps disabled and filesToDeleteAfterUpload unset whatever the user configures', async () => {
     await makeCustomSentryVitePlugins({
       sourcemaps: {
         disable: false,
+        upload: true,
+        injectDebugIds: true,
+        delete: true,
         assets: ['dist/**'],
         filesToDeleteAfterUpload: ['./build/**/*.map'],
       },
@@ -77,7 +81,8 @@ describe('makeCustomSentryVitePlugins', () => {
     expect(sentryVitePlugin).toHaveBeenCalledWith(
       expect.objectContaining({
         sourcemaps: {
-          disable: true,
+          upload: false,
+          injectDebugIds: false,
           filesToDeleteAfterUpload: undefined,
         },
       }),
