@@ -99,6 +99,7 @@ describe('filterKeyValueData', () => {
       ['X-Credentials', 'credentials'],
       ['User-SID', 'sid'],
       ['X-Identity', 'identity'],
+      ['X-Auth-Code', 'code'],
     ];
 
     it.each(sensitivePairs)('filters %s (matches "%s")', headerName => {

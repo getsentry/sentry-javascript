@@ -20,6 +20,12 @@ describe('filterQueryParams', () => {
 
       expect(result).toBe('auth=[Filtered]&redirect=/home');
     });
+
+    it('filters OAuth authorization codes', () => {
+      const result = filterQueryParams('code=abc123&state=xyz', true);
+
+      expect(result).toBe('code=[Filtered]&state=xyz');
+    });
   });
 
   describe('denyList mode ({ deny: [...] })', () => {

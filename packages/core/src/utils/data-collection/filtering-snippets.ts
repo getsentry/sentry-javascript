@@ -18,6 +18,7 @@ export const SENSITIVE_KEY_SNIPPETS = [
   'credentials',
   'sid',
   'identity',
+  'code', // OAuth authorization codes and similar one-time codes
   // Always treat cookie headers as sensitive in case individual key-value cookie pairs cannot properly be extracted
   'set-cookie',
   'cookie',
