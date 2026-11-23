@@ -48,30 +48,33 @@ test.describe('prerendered ISR pages', () => {
   });
 });
 
-test('should create unique transactions for ISR pages on each visit', async ({ context, baseURL }) => {
-  // Search params do not affect this prerendered page; they identify each visitor's envelope.
-  const traceIds = await Promise.all(
-    Array.from({ length: 5 }, async (_, visit) => {
-      const page = await context.newPage();
-      const url = `/isr-test/laptop?visit=${visit}`;
-      const transactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
-        return (
-          transactionEvent.transaction === '/isr-test/:product' &&
-          transactionEvent.contexts?.trace?.op === 'pageload' &&
-          transactionEvent.contexts?.trace?.data?.['url.full'] === new URL(url, baseURL).href
-        );
-      });
+test('should create unique transactions for ISR pages on each visit', async ({ page, baseURL }) => {
+  const traceIds: string[] = [];
+  const url = '/isr-test/laptop?test=unique-isr-traces';
 
-      await page.goto(url, { waitUntil: 'commit' });
-      const transaction = await transactionPromise;
-      const traceId = transaction.contexts?.trace?.trace_id;
+  // Load the same ISR page 5 times: the cached HTML carries no trace tag, so every visit starts its own trace
+  for (let i = 0; i < 5; i++) {
+    const transactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
+      return !!(
+        transactionEvent.transaction === '/isr-test/:product' &&
+        transactionEvent.contexts?.trace?.op === 'pageload' &&
+        transactionEvent.contexts?.trace?.data?.['url.full'] === new URL(url, baseURL).href
+      );
+    });
 
-      expect(traceId).toBeDefined();
-      expect(traceId).toMatch(/[a-f0-9]{32}/);
-      await page.close();
-      return traceId!;
-    }),
-  );
+    if (i === 0) {
+      await page.goto(url);
+    } else {
+      await page.reload();
+    }
+
+    const transaction = await transactionPromise;
+    const traceId = transaction.contexts?.trace?.trace_id;
+
+    expect(traceId).toBeDefined();
+    expect(traceId).toMatch(/[a-f0-9]{32}/);
+    traceIds.push(traceId!);
+  }
 
   // Verify all 5 page loads have unique trace IDs (no trace replayed from the cached HTML)
   const uniqueTraceIds = new Set(traceIds);
