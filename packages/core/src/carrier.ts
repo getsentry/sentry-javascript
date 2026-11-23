@@ -54,6 +54,9 @@ export interface SentryCarrier {
 
   /** Only `utils/tunnelStore.ts` reads or writes it. */
   tunnelStore?: TunnelStore;
+
+  /** Trusted Types policy of the browser SDK. Shared because a page can only create a policy name once. */
+  trustedTypesPolicy?: { createScriptURL(input: string): unknown };
 }
 
 /**
