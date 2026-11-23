@@ -1,5 +1,8 @@
+import { parseBaggageHeader } from '@sentry/core';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+
+const LIFECYCLES = ['stream', 'static'] as const;
 
 describe('sample_rand propagation', () => {
   afterAll(() => {
@@ -31,19 +34,25 @@ describe('sample_rand propagation', () => {
     });
   });
 
-  test('propagates a sample rand when there is an incoming sentry-trace header but no baggage header', async () => {
-    const runner = createRunner(__dirname, 'server.js').start();
-    const response = await runner.makeRequest('get', '/check', {
-      headers: {
-        'sentry-trace': '530699e319cc067ce440315d74acb312-414dc2a08d5d1dac-1',
-      },
-    });
-    expect(response).toEqual({
-      propagatedData: {
-        baggage: expect.stringMatching(/sentry-sample_rand=0\.\d+/),
-      },
-    });
-  });
+  test.each(LIFECYCLES)(
+    'propagates a sample rand when there is an incoming sentry-trace header but no baggage header (traceLifecycle: %s)',
+    async lifecycle => {
+      const runner = createRunner(__dirname, 'server.js').withEnv({ TRACE_LIFECYCLE: lifecycle }).start();
+      const response = await runner.makeRequest('get', '/check', {
+        headers: {
+          'sentry-trace': '530699e319cc067ce440315d74acb312-414dc2a08d5d1dac-1',
+        },
+      });
+      expect(parseBaggageHeader((response as any).propagatedData.baggage)).toMatchObject({
+        'sentry-environment': 'production',
+        'sentry-public_key': 'public',
+        'sentry-trace_id': '530699e319cc067ce440315d74acb312',
+        'sentry-sample_rand': expect.stringMatching(/^0\.\d+$/),
+        'sentry-sample_rate': '1',
+        'sentry-sampled': 'true',
+      });
+    },
+  );
 
   test('propagates a sample_rand that would lead to a positive sampling decision when there is an incoming positive sampling decision but no sample_rand in the baggage header', async () => {
     const runner = createRunner(__dirname, 'server.js').start();
