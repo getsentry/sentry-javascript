@@ -5,8 +5,8 @@ import { _getUpdatedSourceMapSettings, sentryAstro } from '../../src/integration
 import type { SentryOptions } from '../../src/integration/types';
 
 type CapturedSourcemapsOptions = {
-  deleteSourcemapsAfterUpload?: boolean | (() => boolean | undefined);
-  sdkEnabledSourceMaps?: () => boolean;
+  deleteSourcemapsAfterUpload?: boolean | ((environment?: string) => boolean | undefined);
+  sdkEnabledSourceMaps?: (environment?: string) => boolean;
 };
 
 let capturedSourcemapsOptions: CapturedSourcemapsOptions | undefined;
@@ -387,9 +387,35 @@ describe('sentryAstro integration', () => {
       expectDeleteOption(true);
     });
 
-    // The bundler plugin then also removes the maps of an output that sets `sourcemap` itself.
-    it('marks the source maps as SDK-enabled when only `rollupOptions.output.sourcemap` is set', async () => {
-      await runSetup({}, { vite: { build: { rollupOptions: { output: { sourcemap: true } } } } });
+    // The output setting overrides `vite.build.sourcemap`, so these maps are the user's.
+    it.each([
+      { rollupOptions: { output: { sourcemap: true } } },
+      { rollupOptions: { output: [{}, { sourcemap: 'hidden' }] } },
+      { rolldownOptions: { output: { sourcemap: false } } },
+    ] as const)('leaves the source maps to the user with the output options %j', async build => {
+      await runSetup({}, { vite: { build } } as Partial<AstroConfig>);
+      expectViteSourceMapSetting(undefined);
+      expectSourcemapsOptions({ sdkEnabledSourceMaps: false });
+      expectDeleteOption(undefined);
+    });
+
+    // Astro copies the top-level setting into the `client` environment.
+    it('marks the source maps of the `client` environment as SDK-enabled', async () => {
+      await runSetup({});
+      runBuildStatePlugin({ build: { outDir: 'dist/' } });
+      expect(capturedSourcemapsOptions?.sdkEnabledSourceMaps?.('client')).toBe(true);
+      const option = capturedSourcemapsOptions?.deleteSourcemapsAfterUpload;
+      expect(typeof option === 'function' ? option('client') : option).toBe(true);
+    });
+
+    it('does not mark the source maps of an environment the user set as SDK-enabled', async () => {
+      await runSetup({}, {
+        vite: { environments: { client: { build: { sourcemap: true } } } },
+      } as Partial<AstroConfig>);
+      runBuildStatePlugin({ build: { outDir: 'dist/' } });
+      expect(capturedSourcemapsOptions?.sdkEnabledSourceMaps?.('client')).toBe(false);
+      const option = capturedSourcemapsOptions?.deleteSourcemapsAfterUpload;
+      expect(typeof option === 'function' ? option('client') : option).toBeUndefined();
       expectSourcemapsOptions({ sdkEnabledSourceMaps: true });
       expectDeleteOption(true);
     });
@@ -1057,6 +1083,17 @@ describe('_getUpdatedSourceMapSettings', () => {
       expect(result.previousUserSourceMapSetting).toBe('enabled');
       expect(result.updatedSourceMapSetting).toBe(expected);
     });
+  });
+
+  it.each([
+    [{ rollupOptions: { output: { sourcemap: true } } }, 'enabled'],
+    [{ rolldownOptions: { output: [{ sourcemap: 'hidden' }, { sourcemap: false }] } }, 'enabled'],
+    [{ rollupOptions: { output: { sourcemap: false } } }, 'disabled'],
+  ] as const)('keeps the output options %j as a user setting', (build, expected) => {
+    astroConfig = { vite: { build } } as unknown as typeof astroConfig;
+    const result = _getUpdatedSourceMapSettings(astroConfig, sentryOptions, logger);
+    expect(result.previousUserSourceMapSetting).toBe(expected);
+    expect(result.updatedSourceMapSetting).toBeUndefined();
   });
 
   it('should enable "hidden" source maps when unset', () => {

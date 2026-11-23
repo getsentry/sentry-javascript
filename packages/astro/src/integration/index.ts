@@ -10,7 +10,7 @@ import { sentryCloudflareNodeWarningPlugin, sentryCloudflareVitePlugin } from '.
 import { buildReleaseSnippet, getRuntimeRelease, makeServerReleaseVitePlugin } from './release';
 import { makeServerInitVitePlugin, SENTRY_MIDDLEWARE_MODULE, SERVER_INIT_IMPORT } from './serverInit';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
-import { _getUpdatedSourceMapSettings } from './sourceMaps';
+import { _getUpdatedSourceMapSettings, hasEnvironmentSourceMapSetting } from './sourceMaps';
 import { getAstroTunnelOptions, makeTunnelOptionsVitePlugin, TUNNEL_OPTIONS_IMPORT } from './tunnel';
 import type { SentryOptions } from './types';
 
@@ -76,6 +76,8 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         if (shouldUploadSourcemaps && command !== 'dev') {
           const buildState: ViteBuildState = { writesCloudflareWorker: false };
           const sourceMapState = { sdkEnabled: false };
+          const sdkEnabledSourceMaps = (environment?: string): boolean =>
+            sourceMapState.sdkEnabled && !hasEnvironmentSourceMapSetting(config, environment);
           // A user's own glob replaces the SDK's deletion. Maps in a Cloudflare `_worker.js` folder
           // stay, so that wrangler can read them for `upload_source_maps`.
           // With `sourcemaps.delete` the bundler plugin ignores this option and warns if the user set it.
@@ -84,7 +86,8 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
               ? sourcemaps.deleteSourcemapsAfterUpload
               : (sourcemaps?.deleteSourcemapsAfterUpload ??
                 (sourcemaps?.filesToDeleteAfterUpload === undefined
-                  ? () => (sourceMapState.sdkEnabled && !buildState.writesCloudflareWorker ? true : undefined)
+                  ? (environment?: string) =>
+                      sdkEnabledSourceMaps(environment) && !buildState.writesCloudflareWorker ? true : undefined
                   : undefined));
 
           // The plugin loads `.env.sentry-build-plugin` into `process.env`. Create it first, so the
@@ -112,7 +115,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
               ...sourcemaps,
               assets: sourcemaps?.assets ?? getSourcemapsAssetsGlobs(config),
               deleteSourcemapsAfterUpload,
-              sdkEnabledSourceMaps: () => sourceMapState.sdkEnabled,
+              sdkEnabledSourceMaps,
             },
             bundleSizeOptimizations: {
               ...bundleSizeOptimizations,

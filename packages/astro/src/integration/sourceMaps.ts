@@ -13,7 +13,7 @@ export type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
  *       - keep this setting (emit a warning that errors won't be unminified in Sentry)
  *       - We won't upload anything
  *
- *     2. Users enabled source map generation (true, 'hidden', 'inline').
+ *     2. Users enabled source map generation (true, 'hidden', 'inline') or set `sourcemap` in the output options.
  *       - keep this setting (don't do anything - like deletion - besides uploading)
  *
  *     3. Users didn't set source maps generation
@@ -37,6 +37,7 @@ export function _getUpdatedSourceMapSettings(
   astroConfig.build = astroConfig.build || {};
 
   const viteSourceMap = astroConfig?.vite?.build?.sourcemap;
+  const outputSourceMapSettings = getOutputSourceMapSettings(astroConfig?.vite?.build);
   let updatedSourceMapSetting = viteSourceMap;
 
   const settingKey = 'vite.build.sourcemap';
@@ -61,6 +62,14 @@ export function _getUpdatedSourceMapSettings(
     debug &&
       logger.info(
         `We discovered \`${settingKey}\` is set to \`${viteSourceMap.toString()}\`. Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
+      );
+  } else if (outputSourceMapSettings.length > 0) {
+    previousUserSourceMapSetting = outputSourceMapSettings.every(setting => setting === false) ? 'disabled' : 'enabled';
+    updatedSourceMapSetting = undefined;
+
+    debug &&
+      logger.info(
+        `We discovered \`sourcemap\` in the output options of \`vite.build\`, which overrides \`${settingKey}\`. Sentry will keep this source map setting.`,
       );
   } else {
     previousUserSourceMapSetting = 'unset';
@@ -88,6 +97,38 @@ export function _getUpdatedSourceMapSettings(
   }
 
   return { previousUserSourceMapSetting, updatedSourceMapSetting };
+}
+
+/**
+ * Whether the user set `build.sourcemap` for the given Vite environment.
+ * Astro copies the top-level setting into the `client` environment, so
+ * the bundler plugin also passes that name when the user set nothing there.
+ */
+export function hasEnvironmentSourceMapSetting(astroConfig: AstroConfig, environment: string | undefined): boolean {
+  if (environment === undefined) {
+    return false;
+  }
+  // Astro 4 types `vite` with Vite 5, which has no environments.
+  const vite = astroConfig.vite as
+    | { environments?: Record<string, { build?: { sourcemap?: unknown } } | undefined> }
+    | undefined;
+  return vite?.environments?.[environment]?.build?.sourcemap !== undefined;
+}
+
+type OutputOptions = { sourcemap?: unknown };
+type BundlerOptions = { output?: OutputOptions | OutputOptions[] };
+
+/**
+ * The `sourcemap` settings of the bundler outputs, which override
+ * `vite.build.sourcemap`. Vite 8 reads both options.
+ */
+function getOutputSourceMapSettings(
+  build: { rollupOptions?: BundlerOptions; rolldownOptions?: BundlerOptions } | undefined,
+): unknown[] {
+  return [build?.rolldownOptions?.output ?? [], build?.rollupOptions?.output ?? []]
+    .flat()
+    .map(output => output.sourcemap)
+    .filter(setting => setting !== undefined);
 }
 
 /**
