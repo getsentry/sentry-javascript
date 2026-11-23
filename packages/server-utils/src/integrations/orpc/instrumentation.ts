@@ -11,6 +11,7 @@ import {
   isObjectLike,
   normalize,
   setNormalizationDepthOverrideHint,
+  type Span,
   spanToJSON,
   startInactiveSpan,
   updateSpanName,
@@ -21,6 +22,10 @@ import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { bindTracingChannelToSpan, safeChannelCallback } from '../../tracing-channel';
 
 const ORPC_ORIGIN = 'auto.rpc.orpc';
+
+// Root spans already named after a procedure. Nested in-process calls, such as a procedure that calls
+// another through a server-side client, must not rename them to the inner procedure.
+const renamedRootSpans = new WeakSet<Span>();
 
 /** Decides whether an error thrown by an oRPC procedure is captured as an issue. */
 export type ORPCShouldHandleError = (error: unknown) => boolean;
@@ -95,11 +100,12 @@ function startProcedureSpan(options: ProcedureOptions | undefined): ReturnType<t
   const path = getProcedurePath(options);
   const name = path ?? 'orpc procedure';
 
-  // The request URL is not a good transaction name: OpenAPI routes contain path params.
+  // The HTTP route is the same catch-all for every procedure, or missing for a plain `http` server.
   const activeSpan = getActiveSpan();
   if (path && activeSpan) {
     const rootSpan = getRootSpan(activeSpan);
-    if (spanToJSON(rootSpan).attributes[SENTRY_OP] === HTTP_SERVER) {
+    if (!renamedRootSpans.has(rootSpan) && spanToJSON(rootSpan).attributes[SENTRY_OP] === HTTP_SERVER) {
+      renamedRootSpans.add(rootSpan);
       updateSpanName(rootSpan, path);
       INTERNAL_setSegmentNameSourceIfSegment(rootSpan, 'route');
       getIsolationScope().setTransactionName(path);
@@ -147,7 +153,7 @@ function captureAsyncIteratorErrors(
     try {
       return await next.apply(this, args);
     } catch (error) {
-      captureProcedureError(error, options, shouldHandleError);
+      safeChannelCallback(() => captureProcedureError(error, options, shouldHandleError));
       throw error;
     }
   };

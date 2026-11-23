@@ -1,13 +1,18 @@
 import { createServer } from 'node:http';
 import { createORPCClient } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
-import { ORPCError, os } from '@orpc/server';
+import { createRouterClient, ORPCError, os } from '@orpc/server';
 import { RPCHandler } from '@orpc/server/node';
 import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
 
+const find = os.handler(({ input }) => ({ name: input.name }));
+
+const serverClient = createRouterClient({ planet: { find } });
+
 const router = {
   planet: {
-    find: os.handler(({ input }) => ({ name: input.name })),
+    find,
+    nested: os.handler(() => serverClient.planet.find({ name: 'Mars' })),
     crash: os.handler(() => {
       throw new Error('Sentry Test Error');
     }),

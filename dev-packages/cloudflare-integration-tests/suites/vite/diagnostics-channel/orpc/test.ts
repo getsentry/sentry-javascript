@@ -1,4 +1,5 @@
 import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { RPC } from '@sentry/conventions/op';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../../runner';
 
@@ -25,7 +26,7 @@ it('records one span for a procedure call and names the transaction after the pr
       name: 'planet/find',
       is_segment: false,
       attributes: expect.objectContaining({
-        [SENTRY_OP]: { type: 'string', value: 'rpc' },
+        [SENTRY_OP]: { type: 'string', value: RPC },
         [SENTRY_ORIGIN]: ORIGIN,
         'rpc.method': { type: 'string', value: 'planet/find' },
       }),

@@ -1,4 +1,5 @@
 import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { HTTP_CLIENT, RPC } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
@@ -29,7 +30,7 @@ describe('oRPC integration', () => {
                 name: 'planet/find',
                 is_segment: false,
                 attributes: expect.objectContaining({
-                  [SENTRY_OP]: { type: 'string', value: 'rpc' },
+                  [SENTRY_OP]: { type: 'string', value: RPC },
                   [SENTRY_ORIGIN]: ORIGIN,
                   'rpc.system.name': { type: 'string', value: 'orpc' },
                   'rpc.method': { type: 'string', value: 'planet/find' },
@@ -41,6 +42,25 @@ describe('oRPC integration', () => {
         .start();
 
       await runner.makeRequest('post', '/rpc/planet/find', JSON_REQUEST);
+      await runner.completed();
+    });
+
+    test('keeps the transaction name of the outer procedure for nested calls', async () => {
+      const runner = createRunner()
+        .expect({
+          span: container => {
+            expect(container.items.find(item => item.is_segment)?.name).toBe('planet/nested');
+            expect(
+              container.items
+                .filter(item => item.attributes?.[SENTRY_ORIGIN]?.value === ORIGIN.value)
+                .map(item => item.name)
+                .sort(),
+            ).toEqual(['planet/find', 'planet/nested']);
+          },
+        })
+        .start();
+
+      await runner.makeRequest('post', '/rpc/planet/nested', JSON_REQUEST);
       await runner.completed();
     });
 
@@ -115,7 +135,7 @@ describe('oRPC integration', () => {
         await started.makeRequest('get', '/client-call');
         const spans = await spansPromise;
 
-        const httpClientSpan = spans.find(span => span.attributes?.[SENTRY_OP]?.value === 'http.client');
+        const httpClientSpan = spans.find(span => span.attributes?.[SENTRY_OP]?.value === HTTP_CLIENT);
         const serverSegment = spans.find(span => span.is_segment && span.name === 'planet/find');
         expect(httpClientSpan).toBeDefined();
         expect(serverSegment?.parent_span_id).toBe(httpClientSpan?.span_id);
