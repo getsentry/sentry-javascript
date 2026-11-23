@@ -1,7 +1,6 @@
 import { diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
 import type { Client, Integration } from '@sentry/core';
 import {
-  _INTERNAL_warnIfClientIsActive,
   consoleIntegration,
   conversationIdIntegration,
   createStackParser,
@@ -16,6 +15,7 @@ import {
   linkedErrorsIntegration,
   requestDataIntegration,
   stackParserFromStackParserOptions,
+  warnIfClientIsActive,
 } from '@sentry/core';
 import { _INTERNAL_getReleaseFromCommitEnv as getReleaseFromCommitEnv, nodeStackLineParser } from '@sentry/core/server';
 import {
@@ -81,7 +81,7 @@ export function init(options: VercelEdgeOptions = {}): Client {
 
   options.traceLifecycle = options.traceLifecycle ?? getTraceLifecycleFromEnv(process.env.SENTRY_TRACE_LIFECYCLE);
 
-  _INTERNAL_warnIfClientIsActive();
+  warnIfClientIsActive();
 
   const client = new VercelEdgeClient({
     ...options,

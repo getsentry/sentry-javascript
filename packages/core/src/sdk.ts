@@ -42,23 +42,13 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
 }
 
 /**
- * Returns the client bound to the current scope, unless it is closed.
- *
- * @hidden
- */
-export function getActiveClient<C extends Client>(): C | undefined {
-  const client = getClient<C>();
-  return client && !isClientClosed(client) ? client : undefined;
-}
-
-/**
- * Warns when `init()` runs while a client is still bound. The new client
- * replaces it, but the old client stays alive, so the two can mix state.
- *
- * @hidden
+ * Warns when `init()` runs while a client that is not closed is still bound.
+ * The new client replaces it, but the old client stays alive, so the two can
+ * mix state.
  */
 export function warnIfClientIsActive(): void {
-  if (getActiveClient()) {
+  const client = getClient();
+  if (client && !isClientClosed(client)) {
     consoleSandbox(() => {
       // TODO(#24883): Point apps that share a page with another app to the
       // isolated client helper, once that PR settles its name.
