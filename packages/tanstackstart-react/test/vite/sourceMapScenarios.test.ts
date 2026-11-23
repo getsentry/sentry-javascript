@@ -233,9 +233,9 @@ describe('source map scenarios of a build with Nitro', () => {
       expected: { client: undefined, ssr: false, nitro: false, deleted: [] },
     },
     {
-      label: 'sourcemaps.deleteSourcemapsAfterUpload: false',
+      label: 'sourcemaps.deleteSourcemapsAfterUpload: false, which it ignores',
       options: { sourcemaps: { deleteSourcemapsAfterUpload: false } },
-      expected: { client: 'hidden', ssr: 'hidden', nitro: 'hidden', deleted: [] },
+      expected: { client: 'hidden', ssr: 'hidden', nitro: 'hidden', deleted: ['client', 'nitro'] },
     },
     {
       label: 'sourcemaps.filesToDeleteAfterUpload',

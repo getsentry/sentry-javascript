@@ -263,14 +263,24 @@ describe('makeAddSentryVitePlugin()', () => {
       expect(decide('client')).toEqual({ delete: undefined, sdkEnabled: false });
     });
 
-    it.each([true, false])('passes a user-set `deleteSourcemapsAfterUpload: %s` through', value => {
-      makeAddSentryVitePlugin(
-        { sourcemaps: { deleteSourcemapsAfterUpload: value } },
-        { sdkEnabledSourceMaps: !value, sdkEnabledNitroSourceMaps: !value },
-      );
+    it.each([
+      [true, false, undefined],
+      [false, true, true],
+    ])(
+      'ignores a user-set `deleteSourcemapsAfterUpload: %s` (SDK enabled the maps: %s)',
+      (value, sdkEnabled, expected) => {
+        makeAddSentryVitePlugin(
+          { sourcemaps: { deleteSourcemapsAfterUpload: value } },
+          { sdkEnabledSourceMaps: sdkEnabled, sdkEnabledNitroSourceMaps: sdkEnabled },
+        );
 
-      expect([decide().delete, decide('ssr').delete, decide('nitro').delete]).toEqual([value, value, value]);
-    });
+        expect([decide().delete, decide('ssr').delete, decide('nitro').delete]).toEqual([
+          expected,
+          undefined,
+          expected,
+        ]);
+      },
+    );
 
     it('passes the new source map options through', () => {
       makeAddSentryVitePlugin({ sourcemaps: { upload: false, injectDebugIds: true, delete: false } });
@@ -280,15 +290,14 @@ describe('makeAddSentryVitePlugin()', () => {
       );
     });
 
-    // The bundler plugin warns when both options are set, so it must only see what the user set.
-    it.each([
-      [{ delete: true }, undefined],
-      [{ delete: false, deleteSourcemapsAfterUpload: true }, true],
-    ] as const)('with %j it passes `deleteSourcemapsAfterUpload: %s`', (sourcemaps, expected) => {
-      makeAddSentryVitePlugin({ sourcemaps }, { sdkEnabledSourceMaps: true, sdkEnabledNitroSourceMaps: true });
+    it.each([{ delete: true }, { delete: false, deleteSourcemapsAfterUpload: true }] as const)(
+      'passes no `deleteSourcemapsAfterUpload` with %j',
+      sourcemaps => {
+        makeAddSentryVitePlugin({ sourcemaps }, { sdkEnabledSourceMaps: true, sdkEnabledNitroSourceMaps: true });
 
-      expect(sentryVitePluginOptions?.sourcemaps?.deleteSourcemapsAfterUpload).toBe(expected);
-    });
+        expect(sentryVitePluginOptions?.sourcemaps?.deleteSourcemapsAfterUpload).toBeUndefined();
+      },
+    );
 
     it('passes a user-set filesToDeleteAfterUpload through and keeps its own deletion', () => {
       makeAddSentryVitePlugin(

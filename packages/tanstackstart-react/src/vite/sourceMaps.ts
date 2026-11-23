@@ -106,12 +106,11 @@ export function makeAddSentryVitePlugin(
       resolveSourceMap: sourcemaps?.resolveSourceMap,
       filesToDeleteAfterUpload: sourcemaps?.filesToDeleteAfterUpload,
       // Called when the bundler plugin decides, after the SDK's enable plugins ran.
-      // With `sourcemaps.delete` the bundler plugin ignores this option and warns if the user set it.
+      // The SDK never read the user's `deleteSourcemapsAfterUpload`. `delete` replaces it.
       deleteSourcemapsAfterUpload:
         sourcemaps?.delete === undefined
-          ? environment =>
-              sourcemaps?.deleteSourcemapsAfterUpload ?? (hasSdkEnabledSourceMaps(state, environment) || undefined)
-          : sourcemaps.deleteSourcemapsAfterUpload,
+          ? environment => hasSdkEnabledSourceMaps(state, environment) || undefined
+          : undefined,
       sdkEnabledSourceMaps: environment => hasSdkEnabledSourceMaps(state, environment),
     },
     reactComponentAnnotation: {
