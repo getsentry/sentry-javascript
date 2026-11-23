@@ -1,4 +1,4 @@
-import { getClient, hasSpanStreamingEnabled, startSpan, stringify } from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, SPAN_STATUS_ERROR, startSpan, stringify } from '@sentry/core';
 import type { SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
@@ -108,8 +108,8 @@ export function instrumentEmbeddingMethod(
           runGenAiSpanEnd(options, span, call, { response });
           return response;
         } catch (error) {
-          // `startSpan` marks the span failed once this rethrows, and the caller gets the error, so we don't
-          // record it.
+          // The error is rethrown to the caller, so we only mark the span failed and do not record it.
+          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
           runGenAiSpanEnd(options, span, call, { error });
           throw error;
         }
