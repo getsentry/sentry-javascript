@@ -2,7 +2,14 @@ import 'reflect-metadata';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { WEBSOCKET } from '@sentry/conventions/op';
-import { getDefaultIsolationScope, getIsolationScope, SPAN_STATUS_ERROR, startSpanManual } from '@sentry/core';
+import {
+  getDefaultIsolationScope,
+  getIsolationScope,
+  SPAN_STATUS_ERROR,
+  startNewTrace,
+  startSpanManual,
+  withIsolationScope,
+} from '@sentry/core';
 import type * as SentryCore from '@sentry/core';
 import { asyncScheduler, config, observeOn, of, tap, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -25,7 +32,8 @@ vi.mock('@sentry/core', async importOriginal => ({
   ...(await importOriginal<typeof SentryCore>()),
   getDefaultIsolationScope: vi.fn(() => mocks.defaultIsolationScope),
   getIsolationScope: vi.fn(() => mocks.isolationScope),
-  withIsolationScope: vi.fn((callback: (scope: unknown) => unknown) => {
+  withIsolationScope: vi.fn((...args: unknown[]) => {
+    const callback = args[args.length - 1] as (scope: unknown) => unknown;
     mocks.inIsolationScope = true;
     try {
       return callback(mocks.isolationScope);
@@ -33,6 +41,7 @@ vi.mock('@sentry/core', async importOriginal => ({
       mocks.inIsolationScope = false;
     }
   }),
+  startNewTrace: vi.fn((callback: () => unknown) => callback()),
   withActiveSpan: vi.fn((_span: unknown, callback: () => unknown) => callback()),
   startSpanManual: vi.fn((_options: unknown, callback: (span: unknown) => unknown) => callback(mocks.span)),
   debug: {
@@ -57,6 +66,7 @@ function createContext(client: unknown, pattern: unknown, gatewayClass: unknown 
   return {
     getType: vi.fn().mockReturnValue('ws'),
     getClass: vi.fn().mockReturnValue(gatewayClass),
+    getHandler: vi.fn().mockReturnValue(() => undefined),
     switchToWs: vi.fn().mockReturnValue({
       getClient: vi.fn().mockReturnValue(client),
       getPattern: vi.fn().mockReturnValue(pattern),
@@ -79,6 +89,8 @@ describe('SentryTracingInterceptor', () => {
     interceptor.intercept(context, next).subscribe();
 
     expect(mocks.isolationScope.setTransactionName).toHaveBeenCalledWith('WS /events message');
+    expect(startNewTrace).toHaveBeenCalledTimes(1);
+    expect(withIsolationScope).toHaveBeenLastCalledWith(mocks.isolationScope, expect.any(Function));
     expect(startSpanManual).toHaveBeenCalledWith(
       {
         name: 'WS /events message',
@@ -248,18 +260,38 @@ describe('SentryTracingInterceptor', () => {
     expect(next.handle).toHaveBeenCalledTimes(1);
   });
 
-  it('supports WebSocket hosts without getPattern', () => {
-    const interceptor = createInterceptor();
-    const context = {
+  function createContextWithoutGetPattern(handler: () => void): ExecutionContext {
+    return {
       getType: vi.fn().mockReturnValue('ws'),
       getClass: vi.fn().mockReturnValue(class {}),
+      getHandler: vi.fn().mockReturnValue(handler),
       switchToWs: vi.fn().mockReturnValue({
         getClient: vi.fn().mockReturnValue({ nsp: { name: '/events' } }),
       }),
     } as unknown as ExecutionContext;
+  }
+
+  it('falls back to the @SubscribeMessage pattern on Nest versions without getPattern', () => {
+    const handler = (): void => undefined;
+    Reflect.defineMetadata('message', 'message', handler);
+    const interceptor = createInterceptor();
     const next = { handle: vi.fn(() => of(undefined)) } as unknown as CallHandler;
 
-    interceptor.intercept(context, next).subscribe();
+    interceptor.intercept(createContextWithoutGetPattern(handler), next).subscribe();
+
+    expect(mocks.isolationScope.setTransactionName).toHaveBeenCalledWith('WS /events message');
+  });
+
+  it('passes through when neither getPattern nor a @SubscribeMessage pattern is available', () => {
+    const interceptor = createInterceptor();
+    const next = { handle: vi.fn(() => of(undefined)) } as unknown as CallHandler;
+
+    interceptor
+      .intercept(
+        createContextWithoutGetPattern(() => undefined),
+        next,
+      )
+      .subscribe();
 
     expect(mocks.isolationScope.setTransactionName).not.toHaveBeenCalled();
     expect(next.handle).toHaveBeenCalledTimes(1);

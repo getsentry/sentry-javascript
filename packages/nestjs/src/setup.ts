@@ -17,25 +17,34 @@ import {
   getIsolationScope,
   isObjectLike,
   SPAN_STATUS_ERROR,
+  startNewTrace,
   startSpanManual,
   withIsolationScope,
 } from '@sentry/core';
 import type { Observable as InstrumentedObservable, ReflectWithMetadata } from './helpers';
 import { instrumentObservable, isExpectedError, isWsOrRpcException } from './helpers';
 
-// `@nestjs/websockets`' metadata key for the `@WebSocketGateway()` options.
+// `@nestjs/websockets`' metadata keys for the `@WebSocketGateway()` options and the `@SubscribeMessage()` pattern.
 const GATEWAY_OPTIONS = 'websockets:gateway_options';
+const MESSAGE_METADATA = 'message';
+
+function getMetadata(key: string, target: object): unknown {
+  const R = Reflect as ReflectWithMetadata;
+  return typeof R.getMetadata === 'function' ? R.getMetadata(key, target) : undefined;
+}
+
+function getWsPattern(context: ExecutionContext): string | undefined {
+  // `getPattern()` only exists on Nest 10 and later.
+  const pattern = context.switchToWs().getPattern?.() ?? getMetadata(MESSAGE_METADATA, context.getHandler());
+  return typeof pattern === 'string' ? pattern : undefined;
+}
 
 /**
  * Socket.IO resolves regex and function namespaces to the concrete child namespace (e.g. `/tenant-42`),
  * which would make span names high cardinality.
  */
 function hasDynamicNamespace(context: ExecutionContext): boolean {
-  const R = Reflect as ReflectWithMetadata;
-  if (typeof R.getMetadata !== 'function') {
-    return false;
-  }
-  const options = R.getMetadata(GATEWAY_OPTIONS, context.getClass());
+  const options = getMetadata(GATEWAY_OPTIONS, context.getClass());
   const namespace = isObjectLike(options) ? options.namespace : undefined;
   return namespace instanceof RegExp || typeof namespace === 'function';
 }
@@ -77,9 +86,8 @@ class SentryTracingInterceptor implements NestInterceptor {
    */
   public intercept(context: ExecutionContext, next: CallHandler): ReturnType<CallHandler['handle']> {
     if (context.getType() === 'ws') {
-      const wsHost = context.switchToWs();
-      const client = wsHost.getClient<{ nsp?: { name?: string } }>();
-      const pattern = wsHost.getPattern?.();
+      const client = context.switchToWs().getClient<{ nsp?: { name?: string } }>();
+      const pattern = getWsPattern(context);
 
       if (!pattern) {
         return next.handle();
@@ -91,45 +99,48 @@ class SentryTracingInterceptor implements NestInterceptor {
       return withIsolationScope(isolationScope => {
         isolationScope.setTransactionName(transactionName);
 
-        return startSpanManual(
-          {
-            name: transactionName,
-            attributes: {
-              [SENTRY_OP]: WEBSOCKET,
-              [SENTRY_ORIGIN]: 'auto.websocket.nestjs.interceptor',
+        // Messages otherwise share the trace of their long-lived connection, and with Socket.IO's polling
+        // transport they would become children of the HTTP request that delivered them.
+        return startNewTrace(() =>
+          startSpanManual(
+            {
+              name: transactionName,
+              attributes: {
+                [SENTRY_OP]: WEBSOCKET,
+                [SENTRY_ORIGIN]: 'auto.websocket.nestjs.interceptor',
+              },
             },
-          },
-          span => {
-            const markSpanAsFailed = (error: unknown): void => {
-              if (!isExpectedError(error)) {
-                span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            span => {
+              const markSpanAsFailed = (error: unknown): void => {
+                if (!isExpectedError(error)) {
+                  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                }
+              };
+
+              try {
+                const observable = next.handle();
+                const instrumentedObservable: InstrumentedObservable<unknown> = observable;
+
+                // Nest runs the handler on subscribe, after `intercept()` has returned.
+                // eslint-disable-next-line @typescript-eslint/unbound-method
+                instrumentedObservable.subscribe = new Proxy(instrumentedObservable.subscribe, {
+                  apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
+                    return withIsolationScope(isolationScope, () =>
+                      originalSubscribe.apply(thisArgSubscribe, argsSubscribe),
+                    );
+                  },
+                });
+
+                instrumentObservable(instrumentedObservable, span, markSpanAsFailed);
+
+                return observable;
+              } catch (error) {
+                markSpanAsFailed(error);
+                span.end();
+                throw error;
               }
-            };
-
-            try {
-              const observable = next.handle();
-              const instrumentedObservable: InstrumentedObservable<unknown> = observable;
-
-              // Keep the transaction name on the isolation scope active while the handler runs.
-              // eslint-disable-next-line @typescript-eslint/unbound-method
-              instrumentedObservable.subscribe = new Proxy(instrumentedObservable.subscribe, {
-                apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
-                  return withIsolationScope(subscriptionIsolationScope => {
-                    subscriptionIsolationScope.setTransactionName(transactionName);
-                    return originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
-                  });
-                },
-              });
-
-              instrumentObservable(instrumentedObservable, span, markSpanAsFailed);
-
-              return observable;
-            } catch (error) {
-              markSpanAsFailed(error);
-              span.end();
-              throw error;
-            }
-          },
+            },
+          ),
         );
       });
     }

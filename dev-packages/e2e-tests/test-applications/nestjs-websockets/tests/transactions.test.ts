@@ -71,3 +71,30 @@ test('Names WebSocket segment spans with the Socket.IO namespace and message pat
     socket.disconnect();
   }
 });
+
+test('Starts a new trace for each WebSocket message on the same connection', async ({ baseURL }) => {
+  const socket = io(`${baseURL}/events`);
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      socket.once('connect', resolve);
+      socket.once('connect_error', reject);
+    });
+
+    const firstSpanPromise = waitForStreamedSpan('nestjs-websockets', span => {
+      return span.is_segment && span.name === 'WS /events test-transaction';
+    });
+    socket.emit('test-transaction', {});
+    const firstSpan = await firstSpanPromise;
+
+    const secondSpanPromise = waitForStreamedSpan('nestjs-websockets', span => {
+      return span.is_segment && span.name === 'WS /events test-transaction' && span.trace_id !== firstSpan.trace_id;
+    });
+    socket.emit('test-transaction', {});
+    const secondSpan = await secondSpanPromise;
+
+    expect(secondSpan.trace_id).not.toBe(firstSpan.trace_id);
+  } finally {
+    socket.disconnect();
+  }
+});
