@@ -51,11 +51,7 @@ export function isViteBuilder(nuxt: { options: { builder?: unknown } }): boolean
   return builder === undefined || builder === 'vite' || builder === '@nuxt/vite-builder';
 }
 
-export function logSentryEnabledSourceMaps(
-  fallback: DeletionFallback,
-  viteBuilder: boolean,
-  deleteOption?: boolean,
-): void {
+export function logSentryEnabledSourceMaps(fallback: DeletionFallback, deleteOption?: boolean): void {
   for (const side of ['client', 'server'] as const) {
     if (fallback[side] && deleteOption !== undefined) {
       // eslint-disable-next-line no-console
@@ -67,13 +63,9 @@ export function logSentryEnabledSourceMaps(
         }`,
       );
     } else if (fallback[side]) {
-      const userOptions =
-        side === 'client' && viteBuilder
-          ? '`sourcemaps.deleteSourcemapsAfterUpload` or `sourcemaps.filesToDeleteAfterUpload`'
-          : '`sourcemaps.filesToDeleteAfterUpload`';
       // eslint-disable-next-line no-console
       console.log(
-        `[Sentry] We enabled \`'hidden'\` source maps for your ${side}-side build. Sentry deletes them after the upload, unless you set ${userOptions}.`,
+        `[Sentry] We enabled \`'hidden'\` source maps for your ${side}-side build. Sentry deletes them after the upload, unless you set \`sourcemaps.filesToDeleteAfterUpload\`.`,
       );
     }
   }
@@ -86,8 +78,9 @@ function toGlobPath(directory: string): string {
 
 /**
  * Options for the Vite plugin of the client build. It removes the client maps Sentry enabled, unless the
- * user set `deleteSourcemapsAfterUpload` or `filesToDeleteAfterUpload`. The user's glob runs in the Nitro
- * build instead, because a broad glob would also match the SSR maps Nitro still needs.
+ * user set `filesToDeleteAfterUpload`. The user's glob runs in the Nitro build instead, because a broad
+ * glob would also match the SSR maps Nitro still needs. The SDK never read the user's
+ * `deleteSourcemapsAfterUpload`, and `delete` replaces it.
  *
  * `sourcemaps.delete` replaces that rule for the client environment: `true` removes every client map, `false`
  * none. The plugin does not get the option itself, because it would also remove the SSR maps.
@@ -95,7 +88,7 @@ function toGlobPath(directory: string): string {
 export function withClientSourceMapDeletion(
   options: Options,
   userSourcemaps:
-    | Pick<NonNullable<Options['sourcemaps']>, 'delete' | 'deleteSourcemapsAfterUpload' | 'filesToDeleteAfterUpload'>
+    | Pick<NonNullable<Options['sourcemaps']>, 'delete' | 'filesToDeleteAfterUpload'>
     | undefined,
   fallback: DeletionFallback,
 ): InternalOptions {
@@ -110,12 +103,11 @@ export function withClientSourceMapDeletion(
         if (userSourcemaps?.delete !== undefined) {
           return isClientEnvironment(environment) ? userSourcemaps.delete : undefined;
         }
-        return (
-          userSourcemaps?.deleteSourcemapsAfterUpload ??
-          (isClientEnvironment(environment) && fallback.client && userSourcemaps?.filesToDeleteAfterUpload === undefined
-            ? true
-            : undefined)
-        );
+        return isClientEnvironment(environment) &&
+          fallback.client &&
+          userSourcemaps?.filesToDeleteAfterUpload === undefined
+          ? true
+          : undefined;
       },
       // Makes the plugin remove every source map of the environment, not only those of uploaded chunks.
       sdkEnabledSourceMaps: environment =>

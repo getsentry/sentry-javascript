@@ -437,19 +437,19 @@ describe('setupSourceMaps hooks', () => {
     );
 
     it.each([
-      { deleteSourcemapsAfterUpload: true, client: 'hidden' as const },
-      { deleteSourcemapsAfterUpload: false, client: undefined },
+      { deleteSourcemapsAfterUpload: true, client: 'hidden' as const, expected: undefined },
+      { deleteSourcemapsAfterUpload: false, client: undefined, expected: true },
     ])(
-      'passes a user-set `deleteSourcemapsAfterUpload: $deleteSourcemapsAfterUpload` through',
-      async ({ deleteSourcemapsAfterUpload, client }) => {
+      'ignores a user-set `deleteSourcemapsAfterUpload: $deleteSourcemapsAfterUpload`',
+      async ({ deleteSourcemapsAfterUpload, client, expected }) => {
         const mockNuxt = createMockNuxt({ sourcemap: { client, server: true } });
 
         setupSourceMaps({ sourcemaps: { deleteSourcemapsAfterUpload } }, mockNuxt as unknown as Nuxt, vi.fn());
         await mockNuxt.triggerHook('modules:done');
 
-        expect(getDeleteOption()).toBe(deleteSourcemapsAfterUpload);
-        expect(getDeleteOption('client')).toBe(deleteSourcemapsAfterUpload);
-        expect(getDeleteOption('ssr')).toBe(deleteSourcemapsAfterUpload);
+        expect(getDeleteOption()).toBe(expected);
+        expect(getDeleteOption('client')).toBe(expected);
+        expect(getDeleteOption('ssr')).toBeUndefined();
       },
     );
 
@@ -799,26 +799,19 @@ describe('setupSourceMaps hooks', () => {
   });
 
   describe('debug logging', () => {
-    it.each([
-      {
-        builder: '@nuxt/vite-builder',
-        clientOptions: '`sourcemaps.deleteSourcemapsAfterUpload` or `sourcemaps.filesToDeleteAfterUpload`',
-      },
-      { builder: '@nuxt/webpack-builder', clientOptions: '`sourcemaps.filesToDeleteAfterUpload`' },
-    ])(
-      'names the options that keep the source maps Sentry enabled with $builder',
-      async ({ builder, clientOptions }) => {
+    it.each(['@nuxt/vite-builder', '@nuxt/webpack-builder'])(
+      'names the option that keeps the source maps Sentry enabled with %s',
+      async builder => {
         const mockNuxt = createMockNuxt({ sourcemap: { client: undefined, server: undefined }, builder });
 
         setupSourceMaps({ debug: true }, mockNuxt as unknown as Nuxt, vi.fn());
         await mockNuxt.triggerHook('modules:done');
 
-        expect(consoleLogSpy).toHaveBeenCalledWith(
-          `[Sentry] We enabled \`'hidden'\` source maps for your client-side build. Sentry deletes them after the upload, unless you set ${clientOptions}.`,
-        );
-        expect(consoleLogSpy).toHaveBeenCalledWith(
-          "[Sentry] We enabled `'hidden'` source maps for your server-side build. Sentry deletes them after the upload, unless you set `sourcemaps.filesToDeleteAfterUpload`.",
-        );
+        for (const side of ['client', 'server']) {
+          expect(consoleLogSpy).toHaveBeenCalledWith(
+            `[Sentry] We enabled \`'hidden'\` source maps for your ${side}-side build. Sentry deletes them after the upload, unless you set \`sourcemaps.filesToDeleteAfterUpload\`.`,
+          );
+        }
       },
     );
 

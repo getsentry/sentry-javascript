@@ -72,7 +72,7 @@ export function setupSourceMaps(
       shouldDeleteFilesFallback.server = sentryEnabled && previousSourceMapSettings.server === 'unset';
 
       if (isDebug) {
-        logSentryEnabledSourceMaps(shouldDeleteFilesFallback, isViteBuilder(nuxt), moduleOptions.sourcemaps?.delete);
+        logSentryEnabledSourceMaps(shouldDeleteFilesFallback, moduleOptions.sourcemaps?.delete);
       }
     }
   });
