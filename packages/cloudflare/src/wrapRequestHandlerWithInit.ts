@@ -17,6 +17,7 @@ import { addCloudResourceContext, addCultureContext } from './scope-utils';
 import { continueCloudflareTrace } from './utils/cloudflareTrace';
 import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
 import { withInvocationIsolationScope } from './utils/invocationScope';
+import { stripVinextInternalRequestData } from './utils/vinextInternalRequest';
 
 function isDurableObjectContext(context: ExecutionContextCompat | undefined): boolean {
   // Durable Object fetch handlers use DO state as context (see instrumentDurableObjectWithSentry)
@@ -119,7 +120,7 @@ export function wrapRequestHandlerWithInit(
     // See: https://developers.cloudflare.com/workers/runtime-apis/performance/
     return wrapServerRequestHandler(
       {
-        request,
+        request: stripVinextInternalRequestData(request),
         client,
         // Without `AsyncLocalStorage`, `withInvocationIsolationScope` does not fork, and the scope it
         // passes in is not the current one. The request data has to go on the current scope, where

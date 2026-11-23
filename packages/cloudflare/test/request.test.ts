@@ -706,6 +706,57 @@ describe('withSentry', () => {
       });
     });
 
+    test("does not record vinext's internal request data", async () => {
+      const request = new Request('https://example.com/boom?token=secret&__vinext_cache_key=abc', {
+        headers: {
+          'x-vinext-internal-dispatch': encodeURIComponent('https://example.com/boom?token=secret'),
+          'x-vinext-internal-request-cf': encodeURIComponent('{"country":"AT"}'),
+          'user-agent': 'test-agent',
+        },
+      });
+
+      let transaction: Event = {};
+      let errorEvent: Event = {};
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            tracesSampleRate: 1,
+            beforeSend(event) {
+              errorEvent = event;
+              return null;
+            },
+            beforeSendTransaction(event) {
+              transaction = event;
+              return null;
+            },
+          },
+          request,
+          context: createMockExecutionContext(),
+        },
+        () => {
+          SentryCore.captureMessage('in handler');
+          return new Response('test');
+        },
+      ).then(response => response.text());
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const data = transaction.contexts?.trace?.data ?? {};
+      expect(data['url.full']).toBe('https://example.com/boom?token=[Filtered]');
+      expect(data['url.query']).toBe('token=[Filtered]');
+      expect(data['http.request.header.user-agent']).toEqual(['test-agent']);
+      expect(Object.keys(data).filter(key => key.includes('vinext'))).toEqual([]);
+
+      expect(errorEvent.request?.url).toBe('https://example.com/boom?token=[Filtered]');
+      expect(errorEvent.request?.query_string).not.toContain('__vinext_');
+      expect(Object.keys(errorEvent.request?.headers ?? {})).not.toContain('x-vinext-internal-dispatch');
+
+      // vinext reads its data from the request that the app gets.
+      expect(request.url).toBe('https://example.com/boom?token=secret&__vinext_cache_key=abc');
+      expect(request.headers.get('x-vinext-internal-dispatch')).not.toBeNull();
+    });
+
     describe('with a Cloudflare trace', () => {
       const CLOUDFLARE_TRACE_ID = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
       const CLOUDFLARE_SPAN_ID = 'b1c2d3e4f5a60718';
