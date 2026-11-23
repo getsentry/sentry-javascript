@@ -42,6 +42,18 @@ app.get('/test-param/:param', function (req, res) {
   res.send({ paramWas: req.params.param });
 });
 
+const mountedRouter = express.Router({ mergeParams: true });
+mountedRouter.get('/posts/:postId', function (req, res) {
+  res.send({ params: req.params });
+});
+// `Router#use` with two handlers adds two layers but sends one registration event, for the last
+// layer. So on every runtime, the path of `mountedRouter` comes from the matched layer.
+const parentRouter = express.Router();
+parentRouter.use('/test-mounted/:userId', mountedRouter, function (_req, res) {
+  res.status(404).send({ error: 'Not found' });
+});
+app.use(parentRouter);
+
 app.get('/test-mysql', function (req, res) {
   // One connection per request, because on Cloudflare a socket only works in the request that opened it.
   const connection = mysql.createConnection({
