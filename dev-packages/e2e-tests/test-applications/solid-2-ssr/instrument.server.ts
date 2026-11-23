@@ -1,4 +1,4 @@
-import { defineCloudflareOptions } from '@sentry/solid/solid2';
+import { defineCloudflareOptions } from '@sentry/solid/solid2/cloudflare';
 
 export default defineCloudflareOptions({
   dsn: 'https://username@domain/123',

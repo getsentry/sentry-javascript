@@ -10,7 +10,7 @@ import { solidServerErrorsIntegration } from './errors';
  * @example
  * ```ts
  * // instrument.server.ts
- * import { defineCloudflareOptions } from '@sentry/solid/solid2';
+ * import { defineCloudflareOptions } from '@sentry/solid/solid2/cloudflare';
  *
  * export default defineCloudflareOptions(env => ({
  *   dsn: env.SENTRY_DSN,
@@ -18,7 +18,7 @@ import { solidServerErrorsIntegration } from './errors';
  * }));
  * ```
  */
-export const defineCloudflareOptions = ((
+export const defineCloudflareOptions: typeof defineCloudflareOptionsBase = (
   optionsOrCallback: CloudflareOptions | ((env: unknown) => CloudflareOptions | undefined),
 ) => {
   const getOptions = defineCloudflareOptionsBase(optionsOrCallback as CloudflareOptions);
@@ -46,4 +46,4 @@ export const defineCloudflareOptions = ((
 
     return opts;
   };
-}) as typeof defineCloudflareOptionsBase;
+};

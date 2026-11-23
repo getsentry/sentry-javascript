@@ -6,7 +6,6 @@ import type * as serverSdk from './server';
 
 export * from './client';
 export * from './server';
-export { defineCloudflareOptions } from './server/cloudflare';
 
 /** Initializes the Sentry Solid SDK for Solid 2 */
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): Client | undefined;

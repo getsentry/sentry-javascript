@@ -1,7 +1,7 @@
 import { type CloudflareOptions, getDefaultIntegrations } from '@sentry/cloudflare';
 import { getIntegrationsToSetup } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
-import { defineCloudflareOptions } from '../../../src/solid2/server/cloudflare';
+import { defineCloudflareOptions } from '../../../src/solid2/cloudflare';
 import { solidServerErrorsIntegration } from '../../../src/solid2/server/errors';
 
 // Resolves the integrations the way the Cloudflare SDK does at `init`.
