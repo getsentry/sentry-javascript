@@ -82,14 +82,18 @@ export class SentryCliAdapter {
    * Associate commits with a release. Translates the plugin's {@link SetCommitsOptions} `auto` /
    * `repo`+`commit` union into the flags accepted by `sentry release set-commits`. The old CLI's
    * `ignoreMissing`/`ignoreEmpty` toggles have no equivalent flag on the new CLI; the caller's
-   * `shouldNotThrowOnFailure` handling still swallows the "no repository" failure case.
+   * `shouldNotThrowOnFailure` handling swallows the failures, for example a build without a git checkout.
+   *
+   * `auto: true` runs `set-commits` without a mode flag, not with `--auto`. Without a flag, the CLI
+   * links commits through the repository integration and falls back to local git history when no
+   * integration matches the repository, as `--auto` of the old CLI did. The new `--auto` fails instead.
    */
   public async setCommits(name: string, setCommitsOptions: SetCommitsOptions): Promise<void> {
     const { auto, repo, commit, previousCommit } = setCommitsOptions;
     const { vcsRemote } = this.#options.release;
 
-    // `--auto` only reads the `origin` remote, so other remotes go through manual mode. CI checkouts
-    // often lack the named remote; `--auto` then still finds the repository from CI variables.
+    // The CLI only reads the `origin` remote, so other remotes go through manual mode. CI checkouts
+    // often lack the named remote; the CLI then still finds the repository from CI variables.
     const remoteRepo = auto === true && vcsRemote !== 'origin' ? getGitRemoteRepository(vcsRemote) : undefined;
     const head = remoteRepo ? gitRevision() : undefined;
     const remoteCommitSpec = remoteRepo && head ? `${remoteRepo}@${head}` : undefined;
@@ -100,7 +104,6 @@ export class SentryCliAdapter {
 
     await this.#sdk.release['set-commits']({
       orgVersion: name,
-      auto: auto === true && !remoteCommitSpec,
       commit: commitSpec,
     });
   }

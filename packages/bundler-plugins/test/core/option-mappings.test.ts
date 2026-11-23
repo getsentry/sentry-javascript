@@ -236,7 +236,7 @@ describe('normalizeUserOptions()', () => {
       const execFileSyncSpy = vi
         .spyOn(childProcess, 'execFileSync')
         .mockReturnValue(Buffer.from('https://github.com/my-owner/my-repo.git'));
-      // Only Vercel's variables, so the git remote is what keeps `--auto`, not CI variables from the test machine.
+      // Only Vercel's variables, so the git remote is what keeps `auto: true`, not CI variables from the test machine.
       process.env = {
         VERCEL: '1',
         VERCEL_TARGET_ENV: 'preview',

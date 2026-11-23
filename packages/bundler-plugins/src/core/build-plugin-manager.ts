@@ -607,7 +607,7 @@ export function createSentryBuildPluginManager(
               options.release.setCommits.shouldNotThrowOnFailure
             ) {
               logger.debug(
-                'An error occurred setting commits on release (this message can be ignored unless you commits on release are desired):',
+                'An error occurred setting commits on release (this message can be ignored unless you want commits set on the release):',
                 e,
               );
             } else {

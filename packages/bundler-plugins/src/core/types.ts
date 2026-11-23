@@ -667,6 +667,9 @@ type AutoSetCommitsOptions = {
    * Automatically sets `commit` and `previousCommit`. Sets `commit` to `HEAD`
    * and `previousCommit` as described in the option's documentation.
    *
+   * The commits are linked through the repository integration in Sentry. When no
+   * integration matches the repository, the commits are read from the local git history.
+   *
    * If you set this to `true`, manually specified `commit` and `previousCommit`
    * options will be overridden. It is best to not specify them at all if you
    * set this option to `true`.
