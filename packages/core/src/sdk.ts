@@ -42,9 +42,7 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
 }
 
 /**
- * Warns when `init()` runs while a client that is not closed is still bound.
- * The new client replaces it, but the old client stays alive, so the two can
- * mix state.
+ * Logs a warning when a client that is not closed is bound to the current scope.
  */
 export function warnIfClientIsActive(): void {
   const client = getClient();
