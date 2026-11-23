@@ -17,6 +17,7 @@ import {
 import {
   GEN_AI_DECIDE,
   GEN_AI_EXECUTE_TOOL,
+  GEN_AI_EXTRACT,
   GEN_AI_GENERATE_CONTENT,
   GEN_AI_INVOKE_AGENT,
 } from '@sentry/conventions/op';
@@ -129,6 +130,88 @@ describe('Vercel AI integration experimental_decide', () => {
     {
       additionalDependencies: {
         ai: '^7.0.128',
+      },
+    },
+  );
+});
+
+describe('Vercel AI integration experimental_extract', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmTests(
+    join(__dirname, '../..'),
+    'scenario-extract.mjs',
+    'instrument-decide.mjs',
+    (createRunner, test) => {
+      test('creates an extract span', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const extractSpan = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXTRACT)!;
+              expect(extractSpan.name).toBe('extract cloudflare/clairic');
+              expect(extractSpan.status).toBe('ok');
+              expect(extractSpan.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.vercelai');
+              expect(extractSpan.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('extract');
+              expect(extractSpan.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('gateway');
+              expect(extractSpan.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('cloudflare/clairic');
+              expect(extractSpan.attributes[GEN_AI_RESPONSE_MODEL]?.value).toBe('cloudflare/clairic');
+              expect(extractSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(50);
+              expect(extractSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(4);
+              expect(extractSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(54);
+              expect(JSON.parse(extractSpan.attributes[GEN_AI_INPUT_MESSAGES]?.value as string)).toEqual([
+                {
+                  state: 'Invoice INV-2291 from Northwind Supply. Total due: $1,080.',
+                  fields: {
+                    invoiceNumber: { type: 'text', instructions: 'The invoice number' },
+                    total: { type: 'number', instructions: 'The total amount due' },
+                  },
+                },
+              ]);
+              expect(JSON.parse(extractSpan.attributes[GEN_AI_OUTPUT_MESSAGES]?.value as string)).toEqual([
+                {
+                  answers: {
+                    invoiceNumber: { type: 'text', value: 'INV-2291', confidence: 0.98 },
+                    total: { type: 'number', value: 1080, confidence: 0.95 },
+                  },
+                },
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: '^7.0.178',
+      },
+    },
+  );
+
+  createEsmTests(
+    join(__dirname, '../..'),
+    'scenario-extract.mjs',
+    'instrument-decide-no-recording.mjs',
+    (createRunner, test) => {
+      test('does not record inputs or outputs when recording is off', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const extractSpan = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXTRACT)!;
+              expect(extractSpan.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+              expect(extractSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+              expect(JSON.stringify(extractSpan.attributes)).not.toMatch(/Northwind|INV-2291/);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: '^7.0.178',
       },
     },
   );
