@@ -12,6 +12,6 @@ const config = getPlaywrightConfig({
 
 export default {
   ...config,
-  workers: process.env.CI ? 4 : config.workers,
+  workers: process.env.CI ? 2 : config.workers,
   retries: process.env.CI ? 0 : config.retries,
 };
