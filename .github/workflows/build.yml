@@ -190,7 +190,10 @@ jobs:
         uses: ./.github/actions/setup-nx-planner
 
       - name: Build packages
-        run: pnpm run build:ci
+        uses: ./.github/actions/build-local-sdk
+        with:
+          setup: 'false'
+          package-path: .
 
       - name: Compute build artifact paths from Nx
         id: nx_build_paths
@@ -210,10 +213,15 @@ jobs:
           compression-level: 6
           overwrite: true
 
+      - name: Clean tarballs
+        run: pnpm run clean:tarballs
+
       - name: Build tarballs and bundles
-        run: |
-          pnpm run clean:tarballs
-          pnpm exec nx run-many -t build:tarball build:bundle --parallel=4
+        uses: ./.github/actions/build-local-sdk
+        with:
+          setup: 'false'
+          package-path: .
+          targets: build:tarball build:bundle
 
       - name: Upload tarball artifacts
         uses: actions/upload-artifact@v7

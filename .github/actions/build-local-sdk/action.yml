@@ -1,6 +1,9 @@
 name: 'Build SDK packages locally'
 description: 'Restore workspace dependencies and build the SDK outputs needed by this job.'
 inputs:
+  setup:
+    description: 'Set up the build Node version and restore workspace dependencies.'
+    default: 'true'
   package-path:
     description: 'Comma-separated package paths whose SDK dependencies to build; use . only for repo-wide checks.'
     default: ''
@@ -11,8 +14,10 @@ runs:
   using: composite
   steps:
     - name: Set up build Node
+      if: inputs.setup == 'true'
       uses: ./.github/actions/setup-node
     - name: Restore workspace dependencies
+      if: inputs.setup == 'true'
       uses: ./.github/actions/install-dependencies
     - name: Select SDK packages
       id: projects
