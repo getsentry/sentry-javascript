@@ -68,7 +68,7 @@
     "clean": "node ../../scripts/rm.mjs ./node_modules ./build"
   },
   "peerDependencies": {
-    "@playwright/test": "1.64.1"
+    "@playwright/test": "1.64.1-flashwright.12"
   },
   "dependencies": {
     "@sentry/conventions": "^0.35.0",
@@ -76,7 +76,7 @@
     "ws": "^8.20.1"
   },
   "devDependencies": {
-    "@playwright/test": "1.64.1",
+    "@playwright/test": "npm:flashwright-test@1.64.1-flashwright.12",
     "@sentry-internal/rollup-utils": "11.17.0",
     "@sentry/core": "11.17.0",
     "@types/express": "^4.17.21",

@@ -946,8 +946,8 @@ importers:
         version: 8.22.2
     devDependencies:
       '@playwright/test':
-        specifier: 1.64.1
-        version: 1.64.1
+        specifier: npm:flashwright-test@1.64.1-flashwright.12
+        version: flashwright-test@1.64.1-flashwright.12
       '@sentry-internal/rollup-utils':
         specifier: 11.17.0
         version: link:../rollup-utils
@@ -24760,6 +24760,7 @@ snapshots:
   '@playwright/test@1.64.1':
     dependencies:
       playwright: 1.64.1
+    optional: true
 
   '@polka/url@1.0.0-next.28': {}
 
@@ -34987,11 +34988,13 @@ snapshots:
     dependencies:
       find-up: 3.0.0
 
-  playwright-core@1.64.1: {}
+  playwright-core@1.64.1:
+    optional: true
 
   playwright@1.64.1:
     dependencies:
       playwright-core: 1.64.1
+    optional: true
 
   pluralize@8.0.0: {}
 

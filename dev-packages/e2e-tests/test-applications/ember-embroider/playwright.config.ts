@@ -19,6 +19,7 @@ const eventProxyPort = 3031;
  * See https://playwright.dev/docs/test-configuration.
  */
 const config: PlaywrightTestConfig = {
+  testOrder: 'file',
   testDir: './tests',
   /* Maximum time one test can run for. */
   timeout: 30_000,
@@ -38,6 +39,9 @@ const config: PlaywrightTestConfig = {
   reporter: process.env.CI ? [['list'], ['junit', { outputFile: 'results.junit.xml' }]] : 'list',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
+    isolation: 'strict',
+    waitForAnimations: true,
+    failFastWhenIdle: false,
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
     actionTimeout: 0,
     /* Base URL to use in actions like `await page.goto('/')`. */

@@ -6,6 +6,7 @@ const expressPort = 3030;
  * See https://playwright.dev/docs/test-configuration.
  */
 const config = {
+  testOrder: 'file',
   testDir: './tests',
   /* Maximum time one test can run for. Spans take ~2min to become queryable via the trace endpoint. */
   timeout: 210_000,
@@ -26,6 +27,9 @@ const config = {
   reporter: process.env.CI ? [['list'], ['junit', { outputFile: 'results.junit.xml' }]] : 'list',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
+    isolation: 'strict',
+    waitForAnimations: true,
+    failFastWhenIdle: false,
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
     actionTimeout: 0,
 

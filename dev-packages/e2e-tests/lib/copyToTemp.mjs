@@ -39,6 +39,13 @@ function fixPackageJson(originalPath, cwd) {
     fixFileLinkDependencies(packageJson.devDependencies);
   }
 
+  // Benchmark every app with the fork without rewriting each fixture's manifest and lockfile.
+  for (const dependencies of [packageJson.dependencies, packageJson.devDependencies]) {
+    if (dependencies?.['@playwright/test']) {
+      dependencies['@playwright/test'] = 'npm:flashwright-test@1.64.1-flashwright.12';
+    }
+  }
+
   // 2. Pin node and pnpm. The tmp dir has no parent package.json to inherit them from.
   const { nodeRuntime, packageManager } = resolveToolPins(originalPath);
   if (!nodeRuntime || !packageManager) {
