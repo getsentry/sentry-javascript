@@ -30,6 +30,10 @@ function recordChunksWithoutSourceMap() {
   };
 }
 
+// The runtime variants set `RUNTIME` for the build, see dev-packages/e2e-tests/README.md. On Bun, Nitro's `bun` preset
+// serves with `Bun.serve`, as the TanStack Start hosting guide recommends.
+const nitroPreset = process.env.RUNTIME === 'bun' ? 'bun' : undefined;
+
 export default defineConfig({
   server: {
     port: 3000,
@@ -37,7 +41,7 @@ export default defineConfig({
   plugins: [
     tsConfigPaths(),
     tanstackStart(),
-    nitro(),
+    nitro({ preset: nitroPreset }),
     // react's vite plugin must come after start's vite plugin
     viteReact(),
     sentryTanstackStart({
