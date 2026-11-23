@@ -49,7 +49,11 @@ export { cron } from './cron';
 export { BullMQTelemetry } from './integrations/bullmq';
 export { googleGenAIIntegration } from './integrations/google-genai';
 export { graphqlIntegration } from './integrations/graphql';
-export { hapiIntegration } from './integrations/hapi';
+export {
+  hapiIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
+  setupHapiErrorHandler,
+} from './integrations/hapi';
 export { honoIntegration, honoMiddleware } from './integrations/hono';
 export type { HonoIntegrationOptions } from './integrations/hono';
 export { koaIntegration } from './integrations/koa';
