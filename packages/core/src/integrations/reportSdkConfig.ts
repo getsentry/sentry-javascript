@@ -149,8 +149,28 @@ function describeIntegration(
   // A default instance kept by an `integrations` function got its options from the SDK, not the user.
   const options = integration?.isDefaultInstance ? undefined : integration?._options;
 
+  if (options === undefined) {
+    return { name };
+  }
+
+  if (!isPlainObject(options)) {
+    return { name, options: describeOptionValue(options) };
+  }
+
+  const entries = Object.entries(options);
+
   // `fooIntegration()` and `fooIntegration({})` both mean no options were passed.
-  return options === undefined || (isPlainObject(options) && !Object.keys(options).length)
-    ? { name }
-    : { name, options };
+  return entries.length
+    ? { name, options: Object.fromEntries(entries.map(([key, value]) => [key, describeOptionValue(value)])) }
+    : { name };
+}
+
+// Options can hold live objects such as a router, a store or an SDK client, which carry URLs, app state or keys.
+// Arrays are kept, since lists like `levels` or `tracePropagationTargets` are configuration.
+function describeOptionValue(value: unknown): unknown {
+  return Array.isArray(value) ? value.map(redactObject) : redactObject(value);
+}
+
+function redactObject(value: unknown): unknown {
+  return value === null || typeof value !== 'object' || value instanceof RegExp ? value : '[Object]';
 }

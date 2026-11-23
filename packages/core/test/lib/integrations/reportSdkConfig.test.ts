@@ -174,6 +174,92 @@ describe('experimentalReportSdkConfigIntegration', () => {
     expect(payloads[1]).toEqual(payloads[0]);
   });
 
+  it('reports an integrations callback that returns a single integration', () => {
+    const userOptions = captureOptionsSetByUser({
+      integrations: (() => tagIntegration({ tag: 'only' })) as unknown as (defaults: Integration[]) => Integration[],
+    });
+
+    const payload = reportConfig(
+      getDefaultTestClientOptions({
+        dsn: 'https://username@domain/123',
+        integrations: [
+          experimentalReportSdkConfigIntegration(),
+          ...getIntegrationsToSetup({
+            defaultIntegrations: [{ name: 'Dropped' }],
+            integrations: userOptions.integrations,
+          }),
+        ],
+        _metadata: userOptions._metadata,
+      }),
+    );
+
+    expect(payload).toEqual({
+      version: 3,
+      removed_default_integrations: ['Dropped'],
+      options: { integrations: [{ name: 'Tag', options: { tag: 'only' } }] },
+    });
+  });
+
+  it('does not report the integrations an SDK passes to the integrations callback as set by the user', () => {
+    const userOptions = captureOptionsSetByUser({
+      integrations: (defaults: Integration[]) => [...defaults, tagIntegration({ tag: 'user' })],
+    });
+    const userIntegrations = userOptions.integrations as (defaults: Integration[]) => Integration[];
+
+    const payload = reportConfig(
+      getDefaultTestClientOptions({
+        dsn: 'https://username@domain/123',
+        integrations: getIntegrationsToSetup({
+          defaultIntegrations: [experimentalReportSdkConfigIntegration()],
+          // How the Next.js SDK adds the integrations of Bun, Deno and Cloudflare.
+          integrations: defaults => userIntegrations([...defaults, { name: 'AddedBySdk' }]),
+        }),
+        _metadata: userOptions._metadata,
+      }),
+    );
+
+    expect(payload.options).toEqual({ integrations: [{ name: 'Tag', options: { tag: 'user' } }] });
+  });
+
+  it('reports objects in integration options as placeholders, so live app objects are not sent', () => {
+    class SupabaseClient {
+      public supabaseKey = 'service-role-key';
+    }
+    const routerIntegration = defineIntegration(
+      (_options: { router?: unknown; routes?: unknown[]; instrumentNavigation?: boolean } = {}) => ({
+        name: 'Router',
+      }),
+    );
+    const clientIntegration = defineIntegration((_options: { supabaseClient: unknown }) => ({ name: 'Supabase' }));
+    const storeIntegration = defineIntegration((_store: unknown) => ({ name: 'Store' }));
+    const userOptions = captureOptionsSetByUser({
+      integrations: [
+        experimentalReportSdkConfigIntegration(),
+        routerIntegration({
+          router: { currentRoute: { fullPath: '/account?email=jane@example.com' } },
+          routes: ['/users', /^\/admin/, { path: '/account' }],
+          instrumentNavigation: false,
+        }),
+        clientIntegration({ supabaseClient: new SupabaseClient() }),
+        storeIntegration({ state: { user: { email: 'jane@example.com' } }, _s: new Map() }),
+      ],
+    });
+
+    const payload = reportConfig(getDefaultTestClientOptions({ dsn: 'https://username@domain/123', ...userOptions }));
+
+    expect(payload.options).toEqual({
+      integrations: [
+        { name: 'ExperimentalReportSdkConfig' },
+        {
+          name: 'Router',
+          options: { instrumentNavigation: false, router: '[Object]', routes: ['/users', '/^\\/admin/', '[Object]'] },
+        },
+        { name: 'Supabase', options: { supabaseClient: '[Object]' } },
+        { name: 'Store', options: { _s: '[Object]', state: '[Object]' } },
+      ],
+    });
+  });
+
   it('reports integration options as passed, even when the integration writes into them', () => {
     const mutatingIntegration = defineIntegration((options: { capture?: boolean } = {}) => {
       options.capture = false;

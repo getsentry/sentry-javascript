@@ -32,13 +32,21 @@ export function captureOptionsSetByUser<T extends Pick<CoreOptions, '_metadata' 
     // Report the function as a change to the defaults, the same way the array form reads.
     ...(typeof integrations === 'function' && {
       integrations: (defaults: Integration[]) => {
-        const resolved = integrations(defaults);
+        const result = integrations(defaults);
+        // `getIntegrationsToSetup` also accepts a single integration.
+        const resolved: Integration[] = Array.isArray(result) ? result : [result];
         const resolvedNames = new Set(resolved.map(integration => integration.name));
         const removed = uniq(defaults.map(integration => integration.name).filter(name => !resolvedNames.has(name)));
+        // SDK wrappers pass their own integrations in with the defaults, without flagging them as default instances.
+        const passedIn = new Set(defaults);
 
         metadata.integrationsSetByUser = uniq(
           resolved
-            .filter(integration => !(integration as Integration & { isDefaultInstance?: true }).isDefaultInstance)
+            .filter(
+              integration =>
+                !passedIn.has(integration) &&
+                !(integration as Integration & { isDefaultInstance?: true }).isDefaultInstance,
+            )
             .map(integration => integration.name),
         );
         if (removed.length) {
