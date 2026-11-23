@@ -54,13 +54,15 @@ describe('collectInstalledModules', () => {
 
   it('uses cwd when the entry file is inside node_modules', () => {
     const readFile = makeFs({
-      '/app/package.json': { name: 'app', dependencies: { next: '^15.0.0' } },
+      '/app/package.json': { name: 'app', dependencies: { next: '^15.0.0', react: '^19.0.0' } },
       '/app/node_modules/next/package.json': { name: 'next', version: '15.1.0' },
+      '/app/node_modules/react/package.json': { name: 'react', version: '19.1.0' },
+      '/app/node_modules/next/node_modules/react/package.json': { name: 'react', version: '18.3.1' },
     });
 
     expect(
       collectInstalledModules({ readFile, entryPath: '/app/node_modules/next/dist/bin/next', cwd: '/app' }),
-    ).toEqual({ next: '15.1.0' });
+    ).toEqual({ next: '15.1.0', react: '19.1.0' });
   });
 
   it('prefers cwd when the entry file is outside of it', () => {

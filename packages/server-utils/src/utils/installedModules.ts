@@ -43,7 +43,10 @@ export function collectInstalledModules({
     entryDir && cwdDir && !isIn(entryDir, cwdDir) ? [cwdDir, entryDir] : [entryDir, cwdDir],
   );
 
-  const resolveFrom = entryDir && appRoot && isIn(entryDir, appRoot) ? entryDir : appRoot || entryDir || cwdDir;
+  const resolveFrom =
+    entryDir && appRoot && isIn(entryDir, appRoot) && !inNodeModules(entryDir)
+      ? entryDir
+      : appRoot || entryDir || cwdDir;
   const nodeModulesDirs = resolveFrom ? ancestors(resolveFrom).map(dir => join(dir, 'node_modules')) : [];
   const resolve = (name: string): string | undefined => {
     for (const dir of nodeModulesDirs) {
@@ -94,7 +97,7 @@ function findAppRoot(
 ): string | undefined {
   for (const startDir of startDirs) {
     const root =
-      startDir && !`${startDir}/`.includes(NODE_MODULES)
+      startDir && !inNodeModules(startDir)
         ? ancestors(startDir).find(dir => {
             const pkg = read(dir);
             return pkg && (pkg.name || pkg.dependencies || pkg.devDependencies);
@@ -105,6 +108,10 @@ function findAppRoot(
     }
   }
   return undefined;
+}
+
+function inNodeModules(dir: string): boolean {
+  return `${dir}/`.includes(NODE_MODULES);
 }
 
 /** `dir` and its parents, up to the root. */
