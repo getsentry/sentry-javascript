@@ -88,15 +88,15 @@ export class SentryCliAdapter {
     const { auto, repo, commit, previousCommit } = setCommitsOptions;
     const { vcsRemote } = this.#options.release;
 
-    // `--auto` only reads the `origin` remote, so other remotes go through manual mode.
+    // `--auto` only reads the `origin` remote, so other remotes go through manual mode. CI checkouts
+    // often lack the named remote; `--auto` then still finds the repository from CI variables.
     if (auto === true && vcsRemote !== 'origin') {
       const remoteRepo = getGitRemoteRepository(vcsRemote);
       const head = gitRevision();
-      if (!remoteRepo || !head) {
-        throw new Error(`Could not read the repository and HEAD commit of the '${vcsRemote}' git remote.`);
+      if (remoteRepo && head) {
+        await this.#sdk.release['set-commits']({ orgVersion: name, auto: false, commit: `${remoteRepo}@${head}` });
+        return;
       }
-      await this.#sdk.release['set-commits']({ orgVersion: name, auto: false, commit: `${remoteRepo}@${head}` });
-      return;
     }
 
     // Manual mode is expressed as `REPO@SHA` (optionally `REPO@PREV..SHA`).
