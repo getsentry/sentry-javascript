@@ -203,6 +203,35 @@ it('does not inject RPC trace metadata into receiver calls when rpcTracePropagat
   await runner.completed();
 });
 
+it('propagates trace from Worker to a WorkerEntrypoint called with props through ctx.exports', async ({ signal }) => {
+  let workerSpan: SerializedStreamedSpan | undefined;
+  let entrypointSpan: SerializedStreamedSpan | undefined;
+
+  const runner = createRunner(__dirname)
+    .expect(envelope => {
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/call-loopback-fetch' });
+      workerSpan = segmentSpan;
+    })
+    .expect(envelope => {
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/loopback' });
+      entrypointSpan = segmentSpan;
+    })
+    .unordered()
+    .start(signal);
+
+  const response = await runner.makeRequest<string>('get', '/call-loopback-fetch');
+  expect(response).toBe('Hello from the loopback entrypoint');
+
+  await runner.completed();
+
+  expect(workerSpan?.trace_id).toBeDefined();
+  expect(entrypointSpan?.trace_id).toBe(workerSpan?.trace_id);
+  expect(entrypointSpan?.parent_span_id).toBe(workerSpan?.span_id);
+});
+
 it('captures errors from loopback WorkerEntrypoint RPC without trace propagation', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {

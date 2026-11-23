@@ -1,5 +1,6 @@
 import { type DurableObjectState, type DurableObjectStorage, type ExecutionContext } from '@cloudflare/workers-types';
 import { instrumentDurableObjectStorage } from '../instrumentations/instrumentDurableObjectStorage';
+import { instrumentEnv } from '../instrumentations/worker/instrumentEnv';
 
 type ContextType = ExecutionContext | DurableObjectState;
 type OverridesStore<T extends ContextType> = Map<keyof T, (...args: unknown[]) => unknown>;
@@ -11,6 +12,8 @@ type OverridesStore<T extends ContextType> = Map<keyof T, (...args: unknown[]) =
  * - Allows overriding of methods (e.g., waitUntil)
  * - For DurableObjectState: instruments storage operations (get, put, delete, list, etc.)
  *   to create Sentry spans automatically
+ * - Instruments `exports` like `env`, so `fetch` calls to this Worker's own entrypoints carry
+ *   the trace headers
  *
  * @param ctx - The execution context or DurableObjectState to instrument
  * @returns An instrumented copy of the context
@@ -56,6 +59,15 @@ export function instrumentContext<T extends ContextType>(ctx: T): T {
       configurable: true,
       enumerable: false,
       get: () => originalStorage,
+    };
+  }
+
+  if ('exports' in ctx) {
+    let instrumentedExports: unknown;
+    descriptors.exports = {
+      configurable: true,
+      enumerable: true,
+      get: () => (instrumentedExports ??= instrumentEnv(ctx.exports as Record<string, unknown>)),
     };
   }
 
