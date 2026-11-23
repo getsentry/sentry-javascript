@@ -41,7 +41,6 @@ describe('setCommits with release.vcsRemote', () => {
 
     expect(mockSetCommits).toHaveBeenCalledWith({
       orgVersion: '1.0.0',
-      auto: false,
       commit: `example-org/upstream-app@${head}`,
     });
   });

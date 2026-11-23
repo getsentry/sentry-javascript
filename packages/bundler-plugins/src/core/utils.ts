@@ -217,7 +217,7 @@ export function gitRevision(): string | undefined {
   return gitRevision;
 }
 
-// Mirrors the CLI's `set-commits --auto` fallback for builds without an `origin` remote. Vercel is left out
+// Mirrors the CLI's `set-commits` fallback for builds without an `origin` remote. Vercel is left out
 // because the CLI only reads `VERCEL_GIT_*` on production builds.
 const CI_REPOSITORY_ENV_VARS = [
   'GITHUB_REPOSITORY',
