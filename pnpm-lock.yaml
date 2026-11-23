@@ -424,6 +424,9 @@ importers:
       '@sentry/nextjs':
         specifier: 11.16.0
         version: link:../../packages/nextjs
+      '@sentry/nitro':
+        specifier: 11.16.0
+        version: link:../../packages/nitro
       '@sentry/node':
         specifier: 11.16.0
         version: link:../../packages/node
