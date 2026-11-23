@@ -13,6 +13,8 @@ const _piniaIntegration = ((
 ) => {
   return {
     name: INTEGRATION_NAME,
+    // The first argument is the Pinia instance, so `defineIntegration` would not record the options.
+    _options: options,
     setup() {
       if (!pinia || (typeof pinia === 'object' && !('use' in pinia))) {
         consoleSandbox(() => {

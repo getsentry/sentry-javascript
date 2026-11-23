@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { getCurrentScope } from '../../src/currentScopes';
 import {
   addIntegration,
+  defineIntegration,
   extendIntegration,
   getIntegrationsToSetup,
   installedIntegrations,
@@ -854,5 +855,26 @@ describe('extendIntegration', () => {
     result.teardown();
 
     expect(order).toEqual(['base:setupOnce', 'ext:setupOnce', 'base:teardown', 'ext:teardown']);
+  });
+});
+
+describe('defineIntegration', () => {
+  it('records a copy of the options the integration was created with', () => {
+    const integrationFn = defineIntegration((options: { capture?: boolean } = {}) => {
+      options.capture = false;
+
+      return { name: 'Mutating' };
+    });
+
+    expect(integrationFn({ capture: true })._options).toEqual({ capture: true });
+  });
+
+  it('keeps the options an integration records itself', () => {
+    const integrationFn = defineIntegration((_store: unknown, options: { attachState?: boolean } = {}) => ({
+      name: 'Store',
+      _options: options,
+    }));
+
+    expect(integrationFn({ state: {} }, { attachState: false })._options).toEqual({ attachState: false });
   });
 });
