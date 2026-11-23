@@ -180,6 +180,20 @@ describe('setupSourceMaps hooks', () => {
       });
     });
 
+    // The Vite server runs no Nitro, so no Rollup plugin uploads the server maps.
+    it('adds the Sentry Vite plugin to the client and server builds on the Vite server', async () => {
+      const mockNuxt = createMockNuxt({ _prepare: false, dev: false });
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
+
+      setupSourceMaps({ debug: true }, mockNuxt as unknown as Nuxt, mockAddVitePlugin, false, true);
+
+      expect(mockAddVitePlugin).toHaveBeenCalledWith([{ name: 'sentry-vite-plugin' }], {
+        dev: false,
+        build: true,
+        server: true,
+      });
+    });
+
     it.each([
       {
         label: 'prepare mode',
@@ -422,6 +436,31 @@ describe('setupSourceMaps hooks', () => {
       expect(getDeleteOption(environment)).toBe(sdkEnabled ? true : undefined);
       expect(getSdkEnabledSourceMaps(environment)).toBe(sdkEnabled);
     });
+
+    it.each([
+      { label: 'Sentry enabled', server: undefined, sourcemaps: {}, expected: true, sdkEnabled: true },
+      { label: 'Nuxt enabled', server: true, sourcemaps: {}, expected: undefined, sdkEnabled: false },
+      { label: 'Nuxt enabled', server: true, sourcemaps: { delete: true }, expected: true, sdkEnabled: true },
+      { label: 'Sentry enabled', server: undefined, sourcemaps: { delete: false }, expected: false, sdkEnabled: true },
+      {
+        label: 'Sentry enabled',
+        server: undefined,
+        sourcemaps: { filesToDeleteAfterUpload: ['x/**'] },
+        expected: undefined,
+        sdkEnabled: true,
+      },
+    ] as const)(
+      'on the Vite server, decides for the $label server maps in the ssr environment with $sourcemaps',
+      async ({ server, sourcemaps, expected, sdkEnabled }) => {
+        const mockNuxt = createMockNuxt({ sourcemap: { client: true, server } });
+
+        setupSourceMaps({ sourcemaps }, mockNuxt as unknown as Nuxt, vi.fn(), false, true);
+        await mockNuxt.triggerHook('modules:done');
+
+        expect(getDeleteOption('ssr')).toBe(expected);
+        expect(getSdkEnabledSourceMaps('ssr')).toBe(sdkEnabled);
+      },
+    );
 
     it.each([['hidden'], [true], [false]] as const)(
       'keeps the client source maps of a `sourcemap.client: %s` the user set',

@@ -84,14 +84,19 @@ function toGlobPath(directory: string): string {
  *
  * `sourcemaps.delete` replaces that rule for the client environment: `true` removes every client map, `false`
  * none. The plugin does not get the option itself, because it would also remove the SSR maps.
+ *
+ * The Vite server (`viteServer`) runs no Nitro, so the plugin also runs in the server environments and applies
+ * the same rules to the server maps there.
  */
 export function withClientSourceMapDeletion(
   options: Options,
-  userSourcemaps:
-    | Pick<NonNullable<Options['sourcemaps']>, 'delete' | 'filesToDeleteAfterUpload'>
-    | undefined,
+  userSourcemaps: Pick<NonNullable<Options['sourcemaps']>, 'delete' | 'filesToDeleteAfterUpload'> | undefined,
   fallback: DeletionFallback,
+  viteServer = false,
 ): InternalOptions {
+  const getSide = (environment: string | undefined): 'client' | 'server' | undefined =>
+    isClientEnvironment(environment) ? 'client' : viteServer ? 'server' : undefined;
+
   return {
     ...options,
     sourcemaps: {
@@ -100,18 +105,20 @@ export function withClientSourceMapDeletion(
       delete: undefined,
       // The Vite plugin reads these in its `config` hook, after `modules:done` set the fallback.
       deleteSourcemapsAfterUpload: environment => {
-        if (userSourcemaps?.delete !== undefined) {
-          return isClientEnvironment(environment) ? userSourcemaps.delete : undefined;
+        const side = getSide(environment);
+        if (side === undefined) {
+          return undefined;
         }
-        return isClientEnvironment(environment) &&
-          fallback.client &&
-          userSourcemaps?.filesToDeleteAfterUpload === undefined
-          ? true
-          : undefined;
+        if (userSourcemaps?.delete !== undefined) {
+          return userSourcemaps.delete;
+        }
+        return fallback[side] && userSourcemaps?.filesToDeleteAfterUpload === undefined ? true : undefined;
       },
       // Makes the plugin remove every source map of the environment, not only those of uploaded chunks.
-      sdkEnabledSourceMaps: environment =>
-        isClientEnvironment(environment) && (userSourcemaps?.delete === true || fallback.client),
+      sdkEnabledSourceMaps: environment => {
+        const side = getSide(environment);
+        return side !== undefined && (userSourcemaps?.delete === true || fallback[side]);
+      },
     },
   };
 }

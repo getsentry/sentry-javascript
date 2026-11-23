@@ -21,7 +21,9 @@
     "test:build:manual-upload": "E2E_VARIANT=manual-upload pnpm test:build",
     "test:assert:manual-upload": "E2E_VARIANT=manual-upload pnpm test:assert",
     "test:build:delete-all": "E2E_VARIANT=delete-all pnpm test:build",
-    "test:assert:delete-all": "E2E_VARIANT=delete-all pnpm test:assert"
+    "test:assert:delete-all": "E2E_VARIANT=delete-all pnpm test:assert",
+    "test:build:vite-server": "E2E_VITE_SERVER=true pnpm test:build",
+    "test:assert:vite-server": "E2E_VITE_SERVER=true pnpm test:assert"
   },
   "dependencies": {
     "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
@@ -70,6 +72,13 @@
         "build-command": "pnpm test:build:delete-all",
         "assert-command": "pnpm test:assert:delete-all",
         "label": "nuxt-4-sourcemaps (delete all)"
+      }
+    ],
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build:vite-server",
+        "assert-command": "pnpm test:assert:vite-server",
+        "label": "nuxt-4-sourcemaps (Vite server)"
       }
     ]
   }

@@ -29,8 +29,11 @@ const isStaticBuild = process.env.NUXT_COMMAND === 'generate';
 /** With `upload: false` and `delete: false`, Sentry uploads nothing and keeps the maps it enabled. */
 const manualUpload = process.env.E2E_VARIANT === 'manual-upload';
 
+/** The Vite server runs no Nitro, so Nuxt builds no `server/` routes. It also sets `delete: true`. */
+const viteServer = process.env.E2E_VITE_SERVER === 'true';
+
 /** With `delete: true`, Sentry removes the client maps the app enabled and the server maps Nuxt enables. */
-const deleteAll = process.env.E2E_VARIANT === 'delete-all';
+const deleteAll = process.env.E2E_VARIANT === 'delete-all' || viteServer;
 
 const nitroPreset = process.env.NITRO_PRESET ?? 'node-server';
 
@@ -102,7 +105,8 @@ async function captureClientErrorEvent(url: string): Promise<{ release?: string 
 
 console.log(
   `Variant: ${isStaticBuild ? 'nuxt generate' : 'nuxt build'}, Nitro preset ${nitroPreset}, ` +
-    `client source maps ${keepClientSourceMaps ? 'kept' : 'deleted'}${noUpload ? ', no upload' : ''}\n`,
+    `client source maps ${keepClientSourceMaps ? 'kept' : 'deleted'}${noUpload ? ', no upload' : ''}` +
+    `${viteServer ? ', Vite server' : ''}\n`,
 );
 
 if (manualUpload) {
@@ -135,7 +139,9 @@ if (manualUpload) {
     // with either plugin dropped, so each side is pinned to a marker only that side's source supplies.
     // Nitro defaults to `sourcemapExcludeSources: true`; the module flips it to `false`, which is the
     // only reason the server marker survives into `sourcesContent`.
-    markers: { 'client source (Vite plugin)': CLIENT_MARKER, 'server source (Rollup plugin)': SERVER_MARKER },
+    markers: viteServer
+      ? { 'client source (Vite plugin)': CLIENT_MARKER }
+      : { 'client source (Vite plugin)': CLIENT_MARKER, 'server source (Rollup plugin)': SERVER_MARKER },
     // Written by a plugin in `nuxt.config.ts`, because Sentry removes the client maps it enabled from the bundle.
     debugIdsWithoutSourceMap: '.tmp_debug_ids_without_source_map',
   });
@@ -247,11 +253,15 @@ if (keepClientSourceMaps || manualUpload) {
 }
 
 // The release changes on every commit, so a client chunk that contains it gets a new file name on every release.
-const clientChunksWithRelease = filesContaining(CLIENT_OUTPUT, RELEASE).filter(
-  file => isClientFile(file) && file.endsWith('.js'),
-);
-assert.deepEqual(clientChunksWithRelease, [], `Expected no client chunk in ${CLIENT_OUTPUT} to contain the release`);
-console.log(`  No client chunk in ${CLIENT_OUTPUT} contains the release\n`);
+// The Vite server inlines the public runtime config into a client chunk, together with a build ID that changes on
+// every build.
+if (!viteServer) {
+  const clientChunksWithRelease = filesContaining(CLIENT_OUTPUT, RELEASE).filter(
+    file => isClientFile(file) && file.endsWith('.js'),
+  );
+  assert.deepEqual(clientChunksWithRelease, [], `Expected no client chunk in ${CLIENT_OUTPUT} to contain the release`);
+  console.log(`  No client chunk in ${CLIENT_OUTPUT} contains the release\n`);
+}
 
 // --- What the build leaves behind in the server output ---
 

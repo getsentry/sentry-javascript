@@ -43,6 +43,7 @@ export function setupSourceMaps(
   nuxt: Nuxt,
   addVitePlugin: (plugin: Plugin[], options?: { dev?: boolean; build?: boolean; server?: boolean }) => void,
   hasClientConfigFile = false,
+  viteServer = false,
 ): void {
   // Warn here rather than in `getPluginOptions`, which runs once per bundler (Vite and Nitro's
   // Rollup) and would emit the same warning twice.
@@ -94,10 +95,12 @@ export function setupSourceMaps(
             : clientPluginOptions,
           moduleOptions.sourcemaps,
           shouldDeleteFilesFallback,
+          viteServer,
         ),
       ),
       // Nitro bundles the SSR output again, so debug IDs from the SSR build would point to the wrong maps.
-      { dev: false, build: true, server: false },
+      // The Vite server runs no Nitro, so its SSR output is final.
+      { dev: false, build: true, server: viteServer },
     );
   }
 

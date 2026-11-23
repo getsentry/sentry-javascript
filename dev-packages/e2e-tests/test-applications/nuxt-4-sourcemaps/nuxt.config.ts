@@ -17,6 +17,9 @@ const nitroPreset = process.env.NITRO_PRESET;
 // `delete-all`: Sentry removes the client maps the app enabled and the server maps Nuxt enables.
 const variant = process.env.E2E_VARIANT;
 
+// The experimental Vite server runs no Nitro, so the Sentry Vite plugin uploads and removes the server maps too.
+const viteServer = process.env.E2E_VITE_SERVER === 'true';
+
 type OutputBundle = Record<string, { type: string; fileName: string; code?: string }>;
 
 // The bundler emits no map for a chunk without mappable source, such as Vue's export helper, so its debug ID
@@ -43,7 +46,9 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-06-06',
   imports: { autoImport: false },
 
-  sourcemap: { client: nitroPreset || noUpload || variant === 'manual-upload' ? undefined : 'hidden' },
+  sourcemap: { client: nitroPreset || noUpload || viteServer || variant === 'manual-upload' ? undefined : 'hidden' },
+
+  ...(viteServer && { server: { builder: 'vite' } }),
 
   nitro: { preset: nitroPreset },
 
@@ -70,7 +75,7 @@ export default defineNuxtConfig({
     sourcemaps:
       variant === 'manual-upload'
         ? { upload: false, delete: false }
-        : variant === 'delete-all'
+        : variant === 'delete-all' || viteServer
           ? { delete: true }
           : keepClientSourceMaps || nitroPreset || noUpload
             ? {}
