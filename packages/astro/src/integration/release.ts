@@ -30,6 +30,8 @@ export function buildReleaseSnippet(release: string): string {
 export function makeServerReleaseVitePlugin(release: string): VitePlugin {
   return {
     name: 'sentry-astro-server-release',
+    // `astro sync` runs the integration with a dev server, whose `getModuleInfo` throws on `isEntry`.
+    apply: 'build',
     // Runs after the other plugins that prepend imports to the entries, so this import comes first.
     enforce: 'post',
     resolveId: id => (id === RELEASE_MODULE ? RESOLVED_RELEASE_MODULE : null),
