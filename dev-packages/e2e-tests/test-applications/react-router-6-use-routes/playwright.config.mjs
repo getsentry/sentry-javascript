@@ -4,4 +4,7 @@ const config = getPlaywrightConfig({
   startCommand: `pnpm start`,
 });
 
-export default config;
+export default {
+  ...config,
+  workers: process.env.CI ? 4 : config.workers,
+};
