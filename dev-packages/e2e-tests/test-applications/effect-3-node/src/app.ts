@@ -9,7 +9,7 @@ import * as LogLevel from 'effect/LogLevel';
 import * as Tracer from 'effect/Tracer';
 import { createServer } from 'http';
 
-const SentryLive = Layer.mergeAll(
+const SentryLayer = Layer.mergeAll(
   Sentry.layer({
     dsn: process.env.E2E_TEST_DSN,
     environment: 'qa',
@@ -120,14 +120,14 @@ const router = HttpRouter.empty.pipe(
   }),
 );
 
-const LogLevelLive = Logger.minimumLogLevel(LogLevel.Debug);
+const LogLevelLayer = Logger.minimumLogLevel(LogLevel.Debug);
 
-const ServerLive = router.pipe(
+const ServerLayer = router.pipe(
   HttpServer.serve(),
   HttpServer.withLogAddress,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3030 })),
-  Layer.provide(SentryLive),
-  Layer.provide(LogLevelLive),
+  Layer.provide(SentryLayer),
+  Layer.provide(LogLevelLayer),
 );
 
-ServerLive.pipe(Layer.launch, NodeRuntime.runMain);
+ServerLayer.pipe(Layer.launch, NodeRuntime.runMain);

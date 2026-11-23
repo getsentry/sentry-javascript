@@ -11,7 +11,7 @@ import * as References from 'effect/References';
 import { HttpRouter, HttpServerResponse } from 'effect/http';
 import { createServer } from 'http';
 
-const SentryLive = Layer.mergeAll(
+const SentryLayer = Layer.mergeAll(
   Sentry.layer({
     dsn: process.env.E2E_TEST_DSN,
     environment: 'qa',
@@ -219,9 +219,9 @@ const Routes = Layer.mergeAll(
   ),
 );
 
-const HttpLive = HttpRouter.serve(Routes).pipe(
+const HttpLayer = HttpRouter.serve(Routes).pipe(
   Layer.provide(NodeHttpServer.layer(() => createServer(), { port: 3030 })),
-  Layer.provide(SentryLive),
+  Layer.provide(SentryLayer),
 );
 
-NodeRuntime.runMain(Layer.launch(HttpLive));
+NodeRuntime.runMain(Layer.launch(HttpLayer));

@@ -27,7 +27,7 @@ export type EffectClientLayerOptions = BrowserOptions;
  * import * as Sentry from '@sentry/effect/client';
  * import { Layer, Logger, LogLevel } from 'effect';
  *
- * const SentryLive = Layer.mergeAll(
+ * const SentryLayer = Layer.mergeAll(
  *   Sentry.layer({
  *     dsn: '__DSN__',
  *     integrations: [Sentry.browserTracingIntegration()],

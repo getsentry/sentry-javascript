@@ -6,7 +6,7 @@ import * as Runtime from 'effect/Runtime';
 import * as LogLevel from 'effect/LogLevel';
 import * as Effect from 'effect/Effect';
 
-const LogLevelLive = Logger.minimumLogLevel(LogLevel.Debug);
+const LogLevelLayer = Logger.minimumLogLevel(LogLevel.Debug);
 const AppLayer = Layer.mergeAll(
   Sentry.layer({
     dsn: process.env.E2E_TEST_DSN,
@@ -18,7 +18,7 @@ const AppLayer = Layer.mergeAll(
   }),
   Layer.setTracer(Sentry.Tracer),
   Logger.replace(Logger.defaultLogger, Sentry.Logger),
-  LogLevelLive,
+  LogLevelLayer,
 );
 
 const runtime = Layer.toRuntime(AppLayer).pipe(Effect.scoped, Effect.runSync);
