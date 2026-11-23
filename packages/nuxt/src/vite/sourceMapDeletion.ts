@@ -94,8 +94,15 @@ export function withClientSourceMapDeletion(
   fallback: DeletionFallback,
   viteServer = false,
 ): InternalOptions {
+  // The Vite server plugin is only added to server builds, so a build without an environment name is the server.
   const getSide = (environment: string | undefined): 'client' | 'server' | undefined =>
-    isClientEnvironment(environment) ? 'client' : viteServer ? 'server' : undefined;
+    viteServer
+      ? environment === 'client'
+        ? 'client'
+        : 'server'
+      : isClientEnvironment(environment)
+        ? 'client'
+        : undefined;
 
   return {
     ...options,

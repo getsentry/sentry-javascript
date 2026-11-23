@@ -454,7 +454,7 @@ describe('setupSourceMaps hooks', () => {
       {
         label: 'Sentry enabled',
         server: undefined,
-        sourcemaps: { filesToDeleteAfterUpload: ['x/**'] },
+        sourcemaps: { filesToDeleteAfterUpload: 'x/**' },
         expected: undefined,
         sdkEnabled: true,
       },
@@ -466,8 +466,10 @@ describe('setupSourceMaps hooks', () => {
         setupSourceMaps({ sourcemaps }, mockNuxt as unknown as Nuxt, vi.fn(), false, true);
         await mockNuxt.triggerHook('modules:done');
 
-        expect(getDeleteOption('ssr')).toBe(expected);
-        expect(getSdkEnabledSourceMaps('ssr')).toBe(sdkEnabled);
+        for (const environment of ['ssr', undefined]) {
+          expect(getDeleteOption(environment)).toBe(expected);
+          expect(getSdkEnabledSourceMaps(environment)).toBe(sdkEnabled);
+        }
       },
     );
 
