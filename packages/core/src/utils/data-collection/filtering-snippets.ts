@@ -18,11 +18,17 @@ export const SENSITIVE_KEY_SNIPPETS = [
   'credentials',
   'sid',
   'identity',
-  'code', // OAuth authorization codes and similar one-time codes
   // Always treat cookie headers as sensitive in case individual key-value cookie pairs cannot properly be extracted
   'set-cookie',
   'cookie',
 ];
+
+/**
+ * Extra substrings matched only against URL query and fragment parameter names. `code` carries OAuth
+ * authorization codes there, but as a general term it would also filter keys like `statusCode` or `zipcode`
+ * in headers and local variables.
+ */
+export const SENSITIVE_URL_PARAM_SNIPPETS = ['code'];
 
 /**
  * Extra substrings matched only against individual Cookie / Set-Cookie **names** (not header names),

@@ -1,5 +1,5 @@
 import type { CollectBehavior } from '../../types/datacollection';
-import { FILTERED_VALUE } from './filtering-snippets';
+import { FILTERED_VALUE, SENSITIVE_URL_PARAM_SNIPPETS } from './filtering-snippets';
 import { shouldFilterDataKey } from './filterKeyValueData';
 
 /**
@@ -12,7 +12,9 @@ export function filterQueryPair(pair: string, behavior: CollectBehavior): string
   const encodedKey = separatorIndex === -1 ? pair : pair.slice(0, separatorIndex);
   const key = new URLSearchParams(`${encodedKey}=`).keys().next().value;
 
-  return key !== undefined && shouldFilterDataKey(key, behavior) ? `${encodedKey}=${FILTERED_VALUE}` : pair;
+  return key !== undefined && shouldFilterDataKey(key, behavior, SENSITIVE_URL_PARAM_SNIPPETS)
+    ? `${encodedKey}=${FILTERED_VALUE}`
+    : pair;
 }
 
 /**
