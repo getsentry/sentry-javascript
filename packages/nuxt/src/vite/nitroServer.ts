@@ -30,6 +30,7 @@ export function setupNitroServer(
   serverApi: Exclude<ServerApi, 'nuxt'>,
   serverConfigFile: string | undefined,
   moduleOptions: NitroModuleOptions,
+  hasCloudflareOptionsFile: boolean,
 ): void {
   const isNitroV3 = serverApi === 'nitro3';
   const moduleDirResolver = createResolver(import.meta.url);
@@ -40,7 +41,7 @@ export function setupNitroServer(
     injectMode === 'top-level-import' || injectMode === 'experimental_dynamic-import' ? injectMode : undefined;
 
   if (serverConfigFile && !deprecatedInjectMode) {
-    addServerConfigPlugin(nuxt, serverConfigFile, !isNitroV3);
+    addServerConfigPlugin(nuxt, serverConfigFile, !isNitroV3, hasCloudflareOptionsFile);
   }
 
   if (isNitroV3) {

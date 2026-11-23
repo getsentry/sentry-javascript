@@ -106,7 +106,7 @@ export default defineNuxtModule<ModuleOptions>({
         setupViteServer(nuxt, serverConfigFile, moduleOptions);
       }
     } else if (serverConfigFile || cloudflareOptionsFile) {
-      setupNitroServer(nuxt, serverApi, serverConfigFile, moduleOptions);
+      setupNitroServer(nuxt, serverApi, serverConfigFile, moduleOptions, !!cloudflareOptionsFile);
     } else {
       // `sentryCloudflareNitroPlugin` initializes the SDK without a config file, so it needs the tunnel too.
       addTunnelPlugin(serverApi);

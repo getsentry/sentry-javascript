@@ -67,7 +67,7 @@ describe('setupNitroServer', () => {
     ({ serverApi, handler, updateRouteName, tunnel, storage }) => {
       const { nuxt } = createFakeNuxt();
 
-      setupNitroServer(nuxt, serverApi, SERVER_CONFIG, MODULE_OPTIONS);
+      setupNitroServer(nuxt, serverApi, SERVER_CONFIG, MODULE_OPTIONS, false);
 
       expect(addNitroPluginMock).toHaveBeenCalledTimes(6);
       expect(addNitroPluginMock).toHaveBeenNthCalledWith(1, `${APP_ROOT}/.nuxt/sentry-server-config-plugin.mjs`);
@@ -89,7 +89,7 @@ describe('setupNitroServer', () => {
     const { nuxt, callHook } = createFakeNuxt();
     const nitro = { options: { preset: 'cloudflare-module', plugins: [] }, hooks: { hook: vi.fn() } };
 
-    setupNitroServer(nuxt, 'nitro2', undefined, MODULE_OPTIONS);
+    setupNitroServer(nuxt, 'nitro2', undefined, MODULE_OPTIONS, true);
     callHook('nitro:init', nitro);
 
     expect(addNitroPluginMock).toHaveBeenCalledTimes(5);
@@ -106,7 +106,7 @@ describe('setupNitroServer', () => {
   it('instruments the middleware and adds the config shim once Nitro initializes', () => {
     const { nuxt, callHook } = createFakeNuxt();
     const nitro = { options: { preset: 'node-server', plugins: [], publicAssets: [] }, hooks: { hook: vi.fn() } };
-    setupNitroServer(nuxt, 'nitro2', SERVER_CONFIG, MODULE_OPTIONS);
+    setupNitroServer(nuxt, 'nitro2', SERVER_CONFIG, MODULE_OPTIONS, false);
 
     callHook('nitro:init', nitro);
 

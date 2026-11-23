@@ -108,8 +108,16 @@ export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nitro
 /**
  * Registers a Nitro plugin that statically imports the Sentry server config, so the SDK initializes
  * at server startup without a `node --import` preload.
+ *
+ * On a Cloudflare preset, it removes the plugin again. It warns then only when the app has no `instrument.server`
+ * file (`hasCloudflareOptionsFile`), because an app with both files can build for Node and for Cloudflare.
  */
-export function addServerConfigPlugin(nuxt: Nuxt, serverConfigFile: string, isLegacyNitro: boolean): void {
+export function addServerConfigPlugin(
+  nuxt: Nuxt,
+  serverConfigFile: string,
+  isLegacyNitro: boolean,
+  hasCloudflareOptionsFile: boolean,
+): void {
   const configPath = createResolver(nuxt.options.rootDir).resolve(serverConfigFile);
   let publicFilePaths: string[] = [];
   // Nitro starts before Nuxt generates the templates.
@@ -170,6 +178,9 @@ export function addServerConfigPlugin(nuxt: Nuxt, serverConfigFile: string, isLe
     }
 
     nitro.options.plugins = (nitro.options.plugins ?? []).filter(plugin => plugin !== configPluginTemplate.dst);
+    if (hasCloudflareOptionsFile) {
+      return;
+    }
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
