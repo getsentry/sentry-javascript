@@ -2,8 +2,8 @@ import type { PlaywrightTestConfig } from '@playwright/test';
 import { devices } from '@playwright/test';
 
 const config: PlaywrightTestConfig = {
-  // Benchmark baseline: keep browser tests unchanged.
   retries: 0,
+  testOrder: 'file',
   // Run tests inside of a single file in parallel
   fullyParallel: true,
   // Use 3 workers on CI, else use defaults (based on available CPU cores)
@@ -12,6 +12,9 @@ const config: PlaywrightTestConfig = {
   testMatch: /test.ts/,
 
   use: {
+    isolation: 'strict',
+    waitForAnimations: true,
+    failFastWhenIdle: false,
     trace: 'retain-on-failure',
   },
 

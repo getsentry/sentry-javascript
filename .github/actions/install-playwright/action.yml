@@ -23,6 +23,11 @@ runs:
           process.stdout.write(range.replace(/^[~^=]/, ''));
         ")
         echo "version=$version" >> "$GITHUB_OUTPUT"
+        if [[ "$version" == npm:flashwright-test@* ]]; then
+          echo "package=${version/npm:flashwright-test@/flashwright@}" >> "$GITHUB_OUTPUT"
+        else
+          echo "package=playwright@$version" >> "$GITHUB_OUTPUT"
+        fi
       shell: bash
       working-directory: ${{ inputs.cwd }}
 
@@ -40,8 +45,8 @@ runs:
     # `npx` runs outside the repo, so it can't pick up a `playwright` that a parallel `pnpm install` is still linking.
     - name: Install Playwright browsers (uncached)
       env:
-        PLAYWRIGHT_VERSION: ${{ steps.playwright-version.outputs.version }}
-      run: npx -y "playwright@$PLAYWRIGHT_VERSION" install chromium webkit firefox
+        PLAYWRIGHT_PACKAGE: ${{ steps.playwright-version.outputs.package }}
+      run: npx -y "$PLAYWRIGHT_PACKAGE" install chromium webkit firefox
       if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit != 'true'
       shell: bash
       working-directory: ${{ runner.temp }}

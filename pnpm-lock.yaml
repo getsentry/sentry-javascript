@@ -287,8 +287,8 @@ importers:
         specifier: ^7.16.7
         version: 7.28.5(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)
       '@playwright/test':
-        specifier: 1.64.1
-        version: 1.64.1
+        specifier: npm:flashwright-test@1.64.1-flashwright.12
+        version: flashwright-test@1.64.1-flashwright.12
       '@sentry/browser':
         specifier: 11.17.0
         version: link:../../packages/browser
@@ -11773,6 +11773,21 @@ packages:
 
   find-yarn-workspace-root2@1.2.16:
     resolution: {integrity: sha512-hr6hb1w8ePMpPVUK39S4RlwJzi+xPLuVuG8XlwXU3KD5Yn3qgBWVfy3AzNlDhWvE1EORCE65/Qm26rFQt3VLVA==}
+
+  flashwright-core@1.64.1-flashwright.12:
+    resolution: {integrity: sha512-iuK+eMGQufE4BjzsPQeLMrE35pgrJt1th63zzDHfogw0mVtwAzIXHazeBQv2RetMIiUUFtrPQTYuvJ19bDr85A==}
+    engines: {node: '>=22.18.0'}
+    hasBin: true
+
+  flashwright-test@1.64.1-flashwright.12:
+    resolution: {integrity: sha512-s++qu9esGJKFscRU2BuEX7QJdYtaLDpibUfEnjPLosKxjhGqECLQ11B/g/LMRpJtbxnFehnr+2o0eUvF4LJAHg==}
+    engines: {node: '>=22.18.0'}
+    hasBin: true
+
+  flashwright@1.64.1-flashwright.12:
+    resolution: {integrity: sha512-uHVbEdcIcMz+/4kvfqYXE5oOMo9EObjQ/AN8yJystNDN6oY5eKa9aRkfwHWaPdlND5V+J/W5qoVQYzxNy3Q8xg==}
+    engines: {node: '>=22.18.0'}
+    hasBin: true
 
   flat-cache@3.0.4:
     resolution: {integrity: sha512-dm9s5Pw7Jc0GvMYbshN6zchCA9RgQlzzEZX3vylR9IqFfS8XciblUXOKfW6SiuJ0e13eDYZoZV5wdrev7P3Nwg==}
@@ -30690,6 +30705,16 @@ snapshots:
     dependencies:
       micromatch: 4.0.8
       pkg-dir: 4.2.0
+
+  flashwright-core@1.64.1-flashwright.12: {}
+
+  flashwright-test@1.64.1-flashwright.12:
+    dependencies:
+      playwright: flashwright@1.64.1-flashwright.12
+
+  flashwright@1.64.1-flashwright.12:
+    dependencies:
+      playwright-core: flashwright-core@1.64.1-flashwright.12
 
   flat-cache@3.0.4:
     dependencies:
