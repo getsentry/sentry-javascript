@@ -1,6 +1,6 @@
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
-import { _INTERNAL_getActiveClient, applySdkMetadata, debug } from '@sentry/core';
+import { applySdkMetadata, debug, getClient } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { init as initNodeSdk } from '@sentry/node';
 import { isDeno } from '@sentry/server-utils';
@@ -22,7 +22,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   // The integration imports the server config from the server entry and from SSR pages, and a `node --import`
   // preload of it is supported too. The first init wins.
-  const existingClient = _INTERNAL_getActiveClient<NodeClient>();
+  const existingClient = getClient<NodeClient>();
   if (existingClient) {
     DEBUG_BUILD && debug.log('SDK already initialized');
 

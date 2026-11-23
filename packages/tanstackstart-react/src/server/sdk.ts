@@ -1,4 +1,4 @@
-import { _INTERNAL_getActiveClient as getActiveClient, applySdkMetadata, consoleSandbox, debug } from '@sentry/core';
+import { applySdkMetadata, consoleSandbox, debug, getClient } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   _INTERNAL_installTunnelHooks as installTunnelHooks,
@@ -18,7 +18,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   // The Nitro server build also runs `instrument.server` when it starts, so a `node --import` preload of it or an
   // import of it in the server entry initializes the SDK a second time. The first init wins.
-  const activeClient = getActiveClient<NodeClient>();
+  const activeClient = getClient<NodeClient>();
   if (activeClient) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
