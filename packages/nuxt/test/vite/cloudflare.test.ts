@@ -1,5 +1,4 @@
 import type { Nuxt } from '@nuxt/schema';
-import { SDK_VERSION } from '@sentry/core';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -30,42 +29,30 @@ describe('wrapCloudflareEntryWithSentry', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it('wraps the default export with `withSentry` and `$DurableObject` with `instrumentDurableObjectWithSentry`', async () => {
+  it('wraps the default export and `$DurableObject` with the runtime wrappers and keeps the other exports', async () => {
     writeFileSync(
       `${entry}.mjs`,
       "export default { fetch: () => 'response' };\nexport class $DurableObject {}\nexport const other = 'value';\n",
     );
-    const sentryCloudflareImporters: Array<string | undefined> = [];
 
     const bundle = await rollup({
       input: entry,
       plugins: [
         wrapCloudflareEntryWithSentry(entry, optionsFile),
         {
-          name: 'sentry-cloudflare-stub',
-          resolveId(source, importer) {
-            if (source === 'cloudflare:workers') {
-              return '\0cloudflare-workers-stub';
-            }
-            if (source !== '@sentry/cloudflare') {
-              return null;
-            }
-            sentryCloudflareImporters.push(importer);
-            return '\0sentry-cloudflare-stub';
-          },
-          load(id) {
-            if (id === '\0cloudflare-workers-stub') {
-              return 'export const env = {};';
-            }
-            return id === '\0sentry-cloudflare-stub'
+          name: 'wrapper-stub',
+          resolveId: source => (source === './runtime/utils/wrapCloudflareEntry' ? '\0wrapper-stub' : null),
+          load: id =>
+            id === '\0wrapper-stub'
               ? [
-                  'export function withSentry(optionsCallback, handler) { return { optionsCallback, handler }; }',
-                  'export function instrumentDurableObjectWithSentry(optionsCallback, DurableObjectClass) {',
+                  'export function wrapNitroCloudflareEntryWithSentry(optionsCallback, handler) {',
+                  '  return { optionsCallback, handler };',
+                  '}',
+                  'export function wrapNitroDurableObjectWithSentry(optionsCallback, DurableObjectClass) {',
                   '  return { optionsCallback, DurableObjectClass };',
                   '}',
                 ].join('\n')
-              : null;
-          },
+              : null,
         },
       ],
     });
@@ -76,131 +63,30 @@ describe('wrapCloudflareEntryWithSentry', () => {
 
     expect(output[0].exports).toEqual(['$DurableObject', 'default', 'other']);
     expect(exports.default.handler.fetch()).toBe('response');
-    expect(exports.default.optionsCallback()).toEqual({
-      dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      _metadata: {
-        sdk: {
-          name: 'sentry.javascript.nuxt',
-          version: SDK_VERSION,
-          packages: [
-            { name: 'npm:@sentry/nuxt', version: SDK_VERSION },
-            { name: 'npm:@sentry/cloudflare', version: SDK_VERSION },
-          ],
-        },
-      },
-    });
+    expect(exports.default.optionsCallback()).toEqual({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
     expect(exports.$DurableObject.DurableObjectClass.name).toBe('$DurableObject');
     expect(exports.$DurableObject.optionsCallback).toBe(exports.default.optionsCallback);
     expect(exports.other).toBe('value');
-    expect(sentryCloudflareImporters).toEqual([expect.stringMatching(/src[\\/]vite[\\/]cloudflare\.ts$/)]);
   });
 
-  it('runs the handlers and the Durable Object methods with the `env` they get as the `env` of `cloudflare:workers`', async () => {
-    writeFileSync(
-      `${entry}.mjs`,
-      [
-        "import { getEnv } from 'cloudflare:workers';",
-        'export default { fetch: () => getEnv(), queue: () => getEnv() };',
-        'export class $DurableObject {',
-        '  constructor(ctx, env) { this.env = env; }',
-        '  fetch() { return getEnv(); }',
-        '}',
-      ].join('\n'),
-    );
-
-    const bundle = await rollup({
-      input: entry,
-      plugins: [
-        wrapCloudflareEntryWithSentry(entry, optionsFile),
-        {
-          name: 'stubs',
-          resolveId: source =>
-            source === 'cloudflare:workers'
-              ? '\0cloudflare-workers-stub'
-              : source === '@sentry/cloudflare'
-                ? '\0sentry-cloudflare-stub'
-                : null,
-          load: id =>
-            id === '\0cloudflare-workers-stub'
-              ? [
-                  'let currentEnv;',
-                  'export function withEnv(env, callback) {',
-                  '  const previousEnv = currentEnv;',
-                  '  currentEnv = env;',
-                  '  try { return callback(); } finally { currentEnv = previousEnv; }',
-                  '}',
-                  'export function getEnv() { return currentEnv; }',
-                ].join('\n')
-              : id === '\0sentry-cloudflare-stub'
-                ? [
-                    'export function withSentry(optionsCallback, handler) { return handler; }',
-                    'export function instrumentDurableObjectWithSentry(optionsCallback, DurableObjectClass) {',
-                    '  return DurableObjectClass;',
-                    '}',
-                  ].join('\n')
-                : null,
-        },
-      ],
-    });
-    const { output } = await bundle.generate({ format: 'cjs', exports: 'named' });
-    const exports: Record<string, any> = {};
-    // oxlint-disable-next-line typescript/no-implied-eval -- runs the generated bundle
-    new Function('exports', output[0].code)(exports);
-    const env = { DB: 'instrumented D1 binding' };
-    const durableObject = new exports.$DurableObject({}, env);
-
-    expect(exports.default.fetch(new Request('https://example.com'), env, {})).toBe(env);
-    expect(exports.default.queue({ messages: [] }, env, {})).toBe(env);
-    expect(durableObject.fetch(new Request('https://example.com'))).toBe(env);
-    expect(durableObject.fetch.name).toBe('fetch');
-    expect(exports.$DurableObject.name).toBe('$DurableObject');
-  });
-
-  it('calls the handlers directly when `cloudflare:workers` has no `withEnv`, like the dev shim of Nitro 2', async () => {
-    writeFileSync(`${entry}.mjs`, 'export default { fetch: (request, env) => env };\n');
-
-    const bundle = await rollup({
-      input: entry,
-      plugins: [
-        wrapCloudflareEntryWithSentry(entry, optionsFile),
-        {
-          name: 'stubs',
-          resolveId: source =>
-            source === 'cloudflare:workers'
-              ? '\0cloudflare-workers-stub'
-              : source === '@sentry/cloudflare'
-                ? '\0sentry-cloudflare-stub'
-                : null,
-          load: id =>
-            id === '\0cloudflare-workers-stub'
-              ? 'export const env = {};'
-              : id === '\0sentry-cloudflare-stub'
-                ? 'export function withSentry(optionsCallback, handler) { return handler; }'
-                : null,
-        },
-      ],
-    });
-    const { output } = await bundle.generate({ format: 'cjs', exports: 'named' });
-    const exports: Record<string, any> = {};
-    // oxlint-disable-next-line typescript/no-implied-eval -- runs the generated bundle
-    new Function('exports', output[0].code)(exports);
-    const env = { DB: 'D1 binding' };
-
-    expect(exports.default.fetch(new Request('https://example.com'), env, {})).toBe(env);
-  });
-
-  it('does not import `instrumentDurableObjectWithSentry` for an entry without `$DurableObject`', async () => {
+  it('does not import `wrapNitroDurableObjectWithSentry` for an entry without `$DurableObject`', async () => {
     writeFileSync(`${entry}.mjs`, 'export default {};\n');
 
     const bundle = await rollup({
       input: entry,
-      plugins: [wrapCloudflareEntryWithSentry(entry, optionsFile)],
-      external: ['@sentry/cloudflare', 'cloudflare:workers'],
+      plugins: [
+        wrapCloudflareEntryWithSentry(entry, optionsFile),
+        {
+          name: 'wrapper-external',
+          resolveId: source =>
+            source === './runtime/utils/wrapCloudflareEntry' ? { id: source, external: true } : null,
+        },
+      ],
     });
     const { output } = await bundle.generate({ format: 'es' });
 
-    expect(output[0].code).toContain('withSentry(');
-    expect(output[0].code).not.toContain('instrumentDurableObjectWithSentry');
+    expect(output[0].code).toContain('wrapNitroCloudflareEntryWithSentry(');
+    expect(output[0].code).not.toContain('wrapNitroDurableObjectWithSentry');
   });
 
   it('wraps an entry that another plugin resolves first, as the Vite builder of Nitro 3 does', async () => {
@@ -223,24 +109,19 @@ describe('wrapCloudflareEntryWithSentry', () => {
         },
         wrapCloudflareEntryWithSentry(entry, optionsFile),
         {
-          name: 'sentry-cloudflare-stub',
-          resolveId: source =>
-            source === 'cloudflare:workers'
-              ? '\0cloudflare-workers-stub'
-              : source === '@sentry/cloudflare'
-                ? '\0sentry-cloudflare-stub'
-                : null,
+          name: 'wrapper-stub',
+          resolveId: source => (source === './runtime/utils/wrapCloudflareEntry' ? '\0wrapper-stub' : null),
           load: id =>
-            id === '\0cloudflare-workers-stub'
-              ? 'export const env = {};'
-              : id === '\0sentry-cloudflare-stub'
-                ? [
-                    'export function withSentry(optionsCallback, handler) { return { optionsCallback, handler }; }',
-                    'export function instrumentDurableObjectWithSentry(optionsCallback, DurableObjectClass) {',
-                    '  return { optionsCallback, DurableObjectClass };',
-                    '}',
-                  ].join('\n')
-                : null,
+            id === '\0wrapper-stub'
+              ? [
+                  'export function wrapNitroCloudflareEntryWithSentry(optionsCallback, handler) {',
+                  '  return { optionsCallback, handler };',
+                  '}',
+                  'export function wrapNitroDurableObjectWithSentry(optionsCallback, DurableObjectClass) {',
+                  '  return { optionsCallback, DurableObjectClass };',
+                  '}',
+                ].join('\n')
+              : null,
         },
       ],
     });
@@ -251,9 +132,7 @@ describe('wrapCloudflareEntryWithSentry', () => {
 
     expect(output[0].exports).toEqual(['$DurableObject', 'default']);
     expect(exports.default.handler.fetch()).toBe('response');
-    expect(exports.default.optionsCallback()).toEqual(
-      expect.objectContaining({ dsn: 'https://public@dsn.ingest.sentry.io/1337' }),
-    );
+    expect(exports.default.optionsCallback()).toEqual({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
     expect(exports.$DurableObject.DurableObjectClass.name).toBe('$DurableObject');
   });
 
@@ -268,7 +147,7 @@ describe('wrapCloudflareEntryWithSentry', () => {
     });
     const { output } = await bundle.generate({ format: 'es' });
 
-    expect(output[0].code).not.toContain('withSentry');
+    expect(output[0].code).not.toContain('wrapNitroCloudflareEntryWithSentry');
     expect(warnings).toEqual([
       expect.objectContaining({ message: expect.stringContaining('The Nitro entry has no default export') }),
     ]);
@@ -281,7 +160,7 @@ describe('wrapCloudflareEntryWithSentry', () => {
     const bundle = await rollup({ input: otherEntry, plugins: [wrapCloudflareEntryWithSentry(entry, optionsFile)] });
     const { output } = await bundle.generate({ format: 'es' });
 
-    expect(output[0].code).not.toContain('withSentry');
+    expect(output[0].code).not.toContain('wrapNitroCloudflareEntryWithSentry');
   });
 });
 

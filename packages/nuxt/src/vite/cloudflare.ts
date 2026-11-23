@@ -1,8 +1,6 @@
-import { fileURLToPath } from 'node:url';
 import { createResolver } from '@nuxt/kit';
 import type { Nuxt } from '@nuxt/schema';
-import type { Options } from '@sentry/core';
-import { applySdkMetadata, stringifyForCodeInjection } from '@sentry/core';
+import { stringifyForCodeInjection } from '@sentry/core';
 import type { Plugin } from 'rollup';
 import { skipDatabaseInstrumentation } from './databaseConfig';
 import { isCloudflarePreset } from './utils';
@@ -53,54 +51,33 @@ export function setupCloudflareEntry(nuxt: Nuxt, optionsFile: string): void {
 }
 
 /**
- * A Rollup plugin that replaces the Nitro Worker entry with a module that exports its default export wrapped with
- * `withSentry`, its `$DurableObject` export wrapped with `instrumentDurableObjectWithSentry`, and all its other exports
- * unchanged. The options are the Nuxt SDK metadata and, over them, the options that `optionsFile` returns. The
- * handlers and the methods of the Durable Object run with the instrumented `env` as the `env` of `cloudflare:workers`.
+ * A Rollup plugin that replaces the Nitro Worker entry with a module that exports its default export and its
+ * `$DurableObject` export wrapped by `runtime/utils/wrapCloudflareEntry`, with the options that `optionsFile`
+ * returns, and all its other exports unchanged.
  *
  * Only exported for testing.
  */
 export function wrapCloudflareEntryWithSentry(entry: string, optionsFile: string): Plugin {
   let hasDurableObject = false;
-  let transformedEntryId: string | undefined;
   let hasDefaultExport = true;
 
-  function getWrappedEntryCode(originalEntry: string): string {
-    const sdkOptions: Options = {};
-    applySdkMetadata(sdkOptions, 'nuxt', ['nuxt', 'cloudflare']);
+  const wrapperModule = createResolver(import.meta.url).resolve('./runtime/utils/wrapCloudflareEntry');
 
-    // db0 0.4 (Nitro 3) and code of the app read bindings from the `env` of `cloudflare:workers`, not from the `env`
-    // that `withSentry` instruments. `withEnv` sets that `env` to the instrumented one while a handler runs. The dev
-    // shim of `cloudflare:workers` in Nitro 2 has no `withEnv`.
+  function getWrappedEntryCode(originalEntry: string): string {
     const lines = [
-      "import * as cloudflareWorkers from 'cloudflare:workers';",
-      "import { withSentry } from '@sentry/cloudflare';",
+      `import { wrapNitroCloudflareEntryWithSentry } from ${stringifyForCodeInjection(wrapperModule)};`,
       `import userOptions from ${stringifyForCodeInjection(optionsFile)};`,
       `import handler from ${stringifyForCodeInjection(originalEntry)};`,
       `export * from ${stringifyForCodeInjection(originalEntry)};`,
-      `const sentryOptions = env => ({ ...${stringifyForCodeInjection(sdkOptions)}, ...userOptions(env) });`,
-      "const runWithEnv = (env, callback) => typeof cloudflareWorkers.withEnv === 'function' ? cloudflareWorkers.withEnv(env, callback) : callback();",
-      'const handlerWithEnv = Object.fromEntries(Object.entries(handler).map(([name, value]) => [',
-      '  name,',
-      "  typeof value === 'function' ? (event, env, context) => runWithEnv(env, () => value.call(handler, event, env, context)) : value,",
-      ']));',
-      'export default withSentry(sentryOptions, handlerWithEnv);',
+      'export default wrapNitroCloudflareEntryWithSentry(userOptions, handler);',
     ];
 
     // The local export takes precedence over the same name of `export *`.
     if (hasDurableObject) {
       lines.push(
-        "import { instrumentDurableObjectWithSentry } from '@sentry/cloudflare';",
+        `import { wrapNitroDurableObjectWithSentry } from ${stringifyForCodeInjection(wrapperModule)};`,
         `import { ${NITRO_DURABLE_OBJECT} as NitroDurableObject } from ${stringifyForCodeInjection(originalEntry)};`,
-        `const NitroDurableObjectWithEnv = class ${NITRO_DURABLE_OBJECT} extends NitroDurableObject {};`,
-        'for (const name of Object.getOwnPropertyNames(NitroDurableObject.prototype)) {',
-        '  const method = Object.getOwnPropertyDescriptor(NitroDurableObject.prototype, name).value;',
-        "  if (name !== 'constructor' && typeof method === 'function') {",
-        '    const methodWithEnv = { [name](...args) { return runWithEnv(this.env, () => method.apply(this, args)); } }[name];',
-        '    Object.defineProperty(NitroDurableObjectWithEnv.prototype, name, { value: methodWithEnv, writable: true, configurable: true });',
-        '  }',
-        '}',
-        `export const ${NITRO_DURABLE_OBJECT} = instrumentDurableObjectWithSentry(sentryOptions, NitroDurableObjectWithEnv);`,
+        `export const ${NITRO_DURABLE_OBJECT} = wrapNitroDurableObjectWithSentry(userOptions, NitroDurableObject);`,
       );
     }
 
@@ -110,15 +87,6 @@ export function wrapCloudflareEntryWithSentry(entry: string, optionsFile: string
   return {
     name: 'sentry-nuxt-cloudflare-entry',
     async resolveId(source, importer, options) {
-      // The app does not have to depend on `@sentry/cloudflare` itself, so resolve it from this package.
-      if (
-        importer &&
-        (importer === WRAPPED_ENTRY_ID || importer === transformedEntryId) &&
-        source === '@sentry/cloudflare'
-      ) {
-        return this.resolve(source, fileURLToPath(import.meta.url), { ...options, skipSelf: true });
-      }
-
       // Nitro passes its entry, a path without a file extension, as the Rollup input.
       if (!options.isEntry || normalizePath(source) !== normalizePath(entry)) {
         return null;
@@ -162,7 +130,6 @@ export function wrapCloudflareEntryWithSentry(entry: string, optionsFile: string
       }
 
       hasDurableObject = exportedNames.has(NITRO_DURABLE_OBJECT);
-      transformedEntryId = id;
       return { code: getWrappedEntryCode(`${id}${ORIGINAL_ENTRY_QUERY}`), map: { mappings: '' } };
     },
   };
