@@ -1,6 +1,6 @@
+import { getCdnBaseUrl, getTrustedScriptURL } from '@sentry/browser-utils';
 import type { IntegrationFn } from '@sentry/core';
-import { getClient, SDK_VERSION } from '@sentry/core';
-import type { BrowserClient } from '../client';
+import { SDK_VERSION } from '@sentry/core';
 import { WINDOW } from '../helpers';
 
 // Single source of truth: as const array provides both the runtime list and the type.
@@ -72,7 +72,7 @@ export async function lazyLoadIntegration(
 
   const url = getScriptURL(bundle);
   const script = WINDOW.document.createElement('script');
-  script.src = url;
+  script.src = getTrustedScriptURL(url);
   script.crossOrigin = 'anonymous';
   script.referrerPolicy = 'strict-origin';
 
@@ -110,8 +110,5 @@ export async function lazyLoadIntegration(
 }
 
 function getScriptURL(bundle: string): string {
-  const client = getClient<BrowserClient>();
-  const baseURL = client?.getOptions()?.cdnBaseUrl || 'https://browser.sentry-cdn.com';
-
-  return new URL(`/${SDK_VERSION}/${bundle}.min.js`, baseURL).toString();
+  return new URL(`/${SDK_VERSION}/${bundle}.min.js`, getCdnBaseUrl()).toString();
 }
