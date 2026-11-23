@@ -200,6 +200,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   neonIntegration,
+  clickhouseIntegration,
   cronJobIntegration,
   nodeCronIntegration,
   nodeScheduleIntegration,
