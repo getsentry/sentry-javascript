@@ -255,11 +255,7 @@ function prepareTmpDir(
 
       await writeFile(join(tmpDirPath, 'package.json'), JSON.stringify(packageJson, null, 2));
 
-      await installFixtureDependencies(
-        tmpDirPath,
-        additionalDependencies,
-        !options?.afterSetupCommand && !options?.copyPaths?.length,
-      );
+      await installFixtureDependencies(tmpDirPath, additionalDependencies, false);
     }
 
     if (options?.afterSetupCommand) {
