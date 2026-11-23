@@ -58,7 +58,7 @@ test.describe('server - performance', () => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return (
         transactionEvent.transaction === 'GET /performance/with/:param' &&
-        transactionEvent.request?.url?.endsWith('/performance/with/some-param')
+        String(transactionEvent.request?.url).endsWith('/performance/with/some-param')
       );
     });
 

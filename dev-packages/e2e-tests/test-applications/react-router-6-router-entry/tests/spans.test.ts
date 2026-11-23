@@ -27,7 +27,7 @@ test('sends a navigation span with a parameterized route name', async ({ page })
   });
 
   const navigationSpanPromise = waitForStreamedSpan('react-router-6-router-entry', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment;
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.attributes['url.full']?.value === page.url();
   });
 
   await page.goto(`/`);
