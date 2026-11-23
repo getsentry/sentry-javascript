@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpans } from '@sentry-internal/test-utils';
 
 test('sends a server action span on pageload', async ({ page }) => {
   const spansPromise = collectStreamedSpans(
@@ -46,3 +46,40 @@ test('sends a server action span on client navigation', async ({ page }) => {
     'code.function.name': { value: 'getPrefecture', type: 'string' },
   });
 });
+
+['/_build/assets/entry.js.map', '/_build/.vite/manifest.json'].forEach(path => {
+  test(`does not send a server span for the file ${path}`, async ({ baseURL }) => {
+    const segmentPaths = await getServerSegmentPathsUntilPage(`${baseURL}`, path);
+
+    expect(segmentPaths).not.toContain(path);
+  });
+});
+
+// Routes that look like build output. They also show that the helper sees sent segments, so the tests above cannot
+// pass by accident.
+['/users/jane.doe', '/users/_build/'].forEach(path => {
+  test(`sends a server span for the route ${path}`, async ({ baseURL }) => {
+    const segmentPaths = await getServerSegmentPathsUntilPage(`${baseURL}`, path);
+
+    expect(segmentPaths).toContain(path);
+  });
+});
+
+/**
+ * Requests `path`, then a page. Returns the `url.path` of each server segment up to the page's segment, which arrives
+ * after any segment for `path`.
+ */
+async function getServerSegmentPathsUntilPage(baseURL: string, path: string): Promise<string[]> {
+  const pagePath = `/users/after${path.replace(/\W+/g, '-')}`;
+  const segmentPaths: string[] = [];
+  const pageSegmentPromise = waitForStreamedSpans('solidstart-2', spans => {
+    segmentPaths.push(...spans.filter(span => span.is_segment).map(span => `${span.attributes['url.path']?.value}`));
+    return segmentPaths.includes(pagePath);
+  });
+
+  await fetch(`${baseURL}${path}`);
+  await fetch(`${baseURL}${pagePath}`);
+  await pageSegmentPromise;
+
+  return segmentPaths;
+}
