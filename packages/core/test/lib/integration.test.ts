@@ -869,12 +869,16 @@ describe('defineIntegration', () => {
     expect(integrationFn({ capture: true })._options).toEqual({ capture: true });
   });
 
-  it('keeps the options an integration records itself', () => {
-    const integrationFn = defineIntegration((_store: unknown, options: { attachState?: boolean } = {}) => ({
-      name: 'Store',
-      _options: options,
+  it('records the options of a wrapper, not the options it passes to the integration it wraps', () => {
+    const innerIntegration = defineIntegration(
+      (_options: { instrumentNavigation?: boolean; sampleRate?: number } = {}) => ({
+        name: 'Inner',
+      }),
+    );
+    const wrapperIntegration = defineIntegration((options: { sampleRate?: number } = {}) => ({
+      ...innerIntegration({ ...options, instrumentNavigation: false }),
     }));
 
-    expect(integrationFn({ state: {} }, { attachState: false })._options).toEqual({ attachState: false });
+    expect(wrapperIntegration({ sampleRate: 0.5 })._options).toEqual({ sampleRate: 0.5 });
   });
 });

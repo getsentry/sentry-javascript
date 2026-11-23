@@ -176,10 +176,8 @@ export function defineIntegration<Fn extends IntegrationFn>(
     // Copied before the integration runs, so its writes into the object it was given aren't reported as the user's.
     const options: unknown = isPlainObject(args[0]) ? { ...args[0] } : args[0];
     const integration = fn(...args) as ReturnType<Fn>;
-    // Integrations whose first argument is not their options, like Pinia, set `_options` themselves.
-    if (integration._options === undefined) {
-      integration._options = options;
-    }
+    // Always set, since a wrapper can return an inner integration that holds the options the wrapper forced.
+    integration._options = options;
 
     return integration;
   };
