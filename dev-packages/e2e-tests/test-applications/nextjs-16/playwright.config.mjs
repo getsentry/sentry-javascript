@@ -40,7 +40,7 @@ const getStartCommand = () => {
 
 const config = getPlaywrightConfig({
   startCommand: getStartCommand(),
-  port: 3030,
+  url: 'http://localhost:3030',
 });
 
 export default {

@@ -20,7 +20,11 @@ test('Should emit a span for a generateMetadata() function invocation', async ({
   const testTitle = 'should-emit-span';
   const httpTarget = `/generation-functions?metadataTitle=${testTitle}`;
 
-  const spansPromise = collectStreamedSpansUntilSegment('nextjs-16', SEGMENT_NAME);
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'nextjs-16',
+    SEGMENT_NAME,
+    span => span.name === 'generateMetadata /generation-functions/page',
+  );
 
   await page.goto(httpTarget);
 
@@ -73,7 +77,11 @@ test('Should send a span for a generateViewport() function invocation', async ({
   const testTitle = 'floob';
   const httpTarget = `/generation-functions?viewportThemeColor=${testTitle}`;
 
-  const spansPromise = collectStreamedSpansUntilSegment('nextjs-16', SEGMENT_NAME);
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'nextjs-16',
+    SEGMENT_NAME,
+    span => span.name === 'generateViewport /generation-functions/page',
+  );
 
   await page.goto(httpTarget);
 
