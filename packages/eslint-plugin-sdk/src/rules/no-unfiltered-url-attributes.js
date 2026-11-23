@@ -1,28 +1,31 @@
 'use strict';
 
 /**
- * URL attributes carry the request query string, which `dataCollection.urlQueryParams` is supposed to
- * gate. Filtering happens at the write site rather than centrally, so that a URL a user attaches
- * themselves is left alone — which also means a site that forgets to filter leaks silently.
+ * URL attributes carry the request query string and fragment, which `dataCollection.urlQueryParams` is
+ * supposed to gate. Filtering happens at the write site rather than centrally, so that a URL a user
+ * attaches themselves is left alone — which also means a site that forgets to filter leaks silently.
  *
  * This rule requires every SDK-set URL attribute to go through `filterCollectedUrl` /
- * `filterCollectedUrlQuery`. Values that cannot contain a query string (a bare pathname, a route
- * template, a string literal) are fine — disable the rule on that line and say why.
+ * `filterCollectedUrlQuery` / `filterCollectedUrlFragment`. Values that cannot contain a query string
+ * (a bare pathname, a route template, a string literal) are fine — disable the rule on that line and say
+ * why.
  */
 
-// Attribute keys that carry a query string, by constant name and by literal value.
+// Attribute keys that carry a query string or fragment, by constant name and by literal value.
 // `http.target` is not listed: the SDK no longer sets it, and its replacement `url.path` is a bare
 // pathname with nothing to filter.
-const GUARDED_ATTRIBUTES = new Set(['URL_FULL', 'URL_QUERY', 'url.full', 'url.query']);
+const GUARDED_ATTRIBUTES = new Set(['URL_FULL', 'URL_QUERY', 'URL_FRAGMENT', 'url.full', 'url.query', 'url.fragment']);
 
 // Helpers that apply `dataCollection.urlQueryParams`.
 const FILTER_FUNCTIONS = new Set([
   'filterCollectedUrl',
   'filterCollectedUrlQuery',
+  'filterCollectedUrlFragment',
   '_INTERNAL_filterCollectedUrl',
   '_INTERNAL_filterCollectedUrlQuery',
   'filterUrlQuery',
   'filterQueryParams',
+  'filterUrlFragment',
   '_INTERNAL_filterQueryParams',
   'normalizeAndFilterQueryString',
 ]);

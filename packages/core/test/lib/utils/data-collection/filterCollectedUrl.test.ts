@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { withScope } from '../../../../src/currentScopes';
 import type { CollectBehavior } from '../../../../src/types/datacollection';
-import { filterCollectedUrl, filterCollectedUrlQuery } from '../../../../src/utils/data-collection/filterCollectedUrl';
+import {
+  filterCollectedUrl,
+  filterCollectedUrlFragment,
+  filterCollectedUrlQuery,
+} from '../../../../src/utils/data-collection/filterCollectedUrl';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 function withUrlQueryParams<T>(urlQueryParams: CollectBehavior | undefined, fn: () => T): T {
@@ -31,6 +35,20 @@ describe('filterCollectedUrl', () => {
     const result = withUrlQueryParams(false, () => filterCollectedUrl('https://example.com/api?token=abc&page=5'));
 
     expect(result).toBe('https://example.com/api');
+  });
+
+  it('filters sensitive pairs in the fragment by default', () => {
+    const result = withUrlQueryParams(undefined, () =>
+      filterCollectedUrl('https://example.com/callback#access_token=abc123&state=xyz'),
+    );
+
+    expect(result).toBe('https://example.com/callback#access_token=[Filtered]&state=xyz');
+  });
+
+  it('strips the fragment when collection is off', () => {
+    const result = withUrlQueryParams(false, () => filterCollectedUrl('https://example.com/callback?a=1#details'));
+
+    expect(result).toBe('https://example.com/callback');
   });
 
   it('honors allowList mode', () => {
@@ -107,5 +125,22 @@ describe('filterCollectedUrlQuery', () => {
     expect(withUrlQueryParams({ deny: ['utm'] }, () => filterCollectedUrlQuery('page=1&utm_source=email'))).toBe(
       'page=1&utm_source=[Filtered]',
     );
+  });
+});
+
+describe('filterCollectedUrlFragment', () => {
+  it('filters sensitive pairs by default', () => {
+    expect(withUrlQueryParams(undefined, () => filterCollectedUrlFragment('access_token=abc&state=xyz'))).toBe(
+      'access_token=[Filtered]&state=xyz',
+    );
+  });
+
+  it('returns undefined when collection is off', () => {
+    expect(withUrlQueryParams(false, () => filterCollectedUrlFragment('details'))).toBeUndefined();
+  });
+
+  it('returns undefined for an empty or missing fragment', () => {
+    expect(withUrlQueryParams(undefined, () => filterCollectedUrlFragment(''))).toBeUndefined();
+    expect(withUrlQueryParams(undefined, () => filterCollectedUrlFragment(undefined))).toBeUndefined();
   });
 });
