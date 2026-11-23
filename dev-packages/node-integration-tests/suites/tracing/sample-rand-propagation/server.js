@@ -3,6 +3,7 @@ const Sentry = require('@sentry/node');
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
+  traceLifecycle: process.env.TRACE_LIFECYCLE === 'static' ? 'static' : 'stream',
   transport: loggingTransport,
   tracesSampleRate: 0.00000001, // It's important that this is not 1, so that we also check logic for NonRecordingSpans, which is usually the edge-case
 });

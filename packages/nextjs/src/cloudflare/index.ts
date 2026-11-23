@@ -4,7 +4,14 @@ import { context, propagation, trace } from '@opentelemetry/api';
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import { withSentry as withSentryCloudflare } from '@sentry/cloudflare';
 import type { Integration } from '@sentry/core';
-import { applySdkMetadata, extractTraceparentData, getRootSpan, GLOBAL_OBJ, spanToJSON } from '@sentry/core';
+import {
+  _INTERNAL_captureOptionsSetByUser,
+  applySdkMetadata,
+  extractTraceparentData,
+  getRootSpan,
+  GLOBAL_OBJ,
+  spanToJSON,
+} from '@sentry/core';
 import { registerPrepareSpanScope, setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import {
   _INTERNAL_forwardTunnelRequest as forwardTunnelRequest,
@@ -79,7 +86,10 @@ export const withSentry: typeof withSentryCloudflare = (optionsCallback, handler
   markAsyncContextOwnedByNextjsCloudflare();
 
   return withSentryCloudflare(env => {
-    const options: CloudflareOptions = { enableOpenTelemetrySetup: true, ...optionsCallback(env) };
+    const options: CloudflareOptions = {
+      enableOpenTelemetrySetup: true,
+      ..._INTERNAL_captureOptionsSetByUser(optionsCallback(env) || {}),
+    };
     // Read per request: the global is set once `instrumentation` loads, which can be after the Worker entry.
     setTunnelDefaults({
       basePath: getInjectedBasePath(),

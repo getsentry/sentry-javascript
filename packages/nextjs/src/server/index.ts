@@ -4,12 +4,13 @@
 import type { Scope } from '@sentry/core';
 import {
   _INTERNAL_captureOptionsSetByUser,
-  _INTERNAL_getActiveClient,
   applySdkMetadata,
   debug,
+  getClient,
   getGlobalScope,
   getVercelEnv,
   GLOBAL_OBJ,
+  isClientClosed,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
@@ -194,8 +195,8 @@ export function init(userOptions: NodeOptions): NodeClient | undefined {
   // The client of `withSentry` from `@sentry/cloudflare` handles this request, so `init` creates none. The global
   // parts below still apply.
   const isOwnedByCloudflare = isAsyncContextOwnedByCloudflare();
-  const existingClient = _INTERNAL_getActiveClient<NodeClient>();
-  if (existingClient && !isOwnedByCloudflare) {
+  const existingClient = getClient<NodeClient>();
+  if (existingClient && !isClientClosed(existingClient) && !isOwnedByCloudflare) {
     DEBUG_BUILD && debug.log('SDK already initialized');
     return existingClient;
   }

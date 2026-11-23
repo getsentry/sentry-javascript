@@ -6,11 +6,17 @@ test.describe('distributed tracing', () => {
 
   test('capture a distributed pageload trace', async ({ page }) => {
     const clientTxnEventPromise = waitForTransaction('nuxt-4', txnEvent => {
-      return txnEvent.transaction === '/test-param/:param()';
+      return (
+        txnEvent.transaction === '/test-param/:param()' &&
+        txnEvent.contexts?.trace?.data?.['url.path'] === `/test-param/${PARAM}`
+      );
     });
 
     const serverTxnEventPromise = waitForTransaction('nuxt-4', txnEvent => {
-      return txnEvent.transaction?.includes('GET /test-param/') ?? false;
+      return (
+        txnEvent.transaction?.includes('GET /test-param/') === true &&
+        txnEvent.contexts?.trace?.data?.['url.path'] === `/test-param/${PARAM}`
+      );
     });
 
     const [_, clientTxnEvent, serverTxnEvent] = await Promise.all([

@@ -15,6 +15,7 @@
  * `--name` regression above produced no deploy, no error, and a successful build. Only the
  * absence of the request reveals it.
  */
+import { execFileSync } from 'child_process';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -30,6 +31,7 @@ let workDir: string;
 let buildDir: string;
 let server: ReturnType<typeof startMockSentryServer>;
 let previousCwd: string;
+let head: string;
 
 interface RecordedRequest {
   method: string;
@@ -94,6 +96,13 @@ beforeAll(() => {
   // Every command otherwise waits up to ~3s to flush its own telemetry to sentry.io, which makes
   // the suite depend on that endpoint being reachable and pushes slow CI runs past the timeout.
   process.env['SENTRY_CLI_NO_TELEMETRY'] = '1';
+
+  // The mock server lists no repositories, so `origin` matches no repository integration.
+  const git = (...args: string[]): string => execFileSync('git', args, { cwd: workDir }).toString().trim();
+  git('init', '-q');
+  git('remote', 'add', 'origin', 'https://github.com/example-org/example-app.git');
+  git('-c', 'user.name=test', '-c', 'user.email=test@example.com', 'commit', '-q', '--allow-empty', '-m', 'init');
+  head = git('rev-parse', 'HEAD');
 
   // The mock server writes its recording relative to cwd.
   previousCwd = process.cwd();
@@ -169,6 +178,17 @@ describe('SentryCliAdapter against the real CLI', () => {
     await createAdapter().setCommits('1.0.0', { repo: 'getsentry/sentry-javascript', commit: 'abc123' });
 
     expect(requestsSince(before)).toContain('PUT /api/0/organizations/test-org/releases/1.0.0/');
+  });
+
+  it('sets commits from local git history when no repository integration matches', async () => {
+    const before = recordedRequestRecords();
+
+    await createAdapter().setCommits('1.0.0', { auto: true });
+
+    const setCommitsRequest = recordedRequestRecords()
+      .slice(before.length)
+      .find(record => record.method === 'PUT' && record.url === '/api/0/organizations/test-org/releases/1.0.0/');
+    expect(setCommitsRequest?.jsonBody).toEqual({ commits: [expect.objectContaining({ id: head })] });
   });
 
   it('creates a deploy with an environment and a name', async () => {

@@ -19,6 +19,7 @@
     "@sentry/cloudflare": "11.16.0",
     "@sentry/deno": "11.16.0",
     "@sentry/nextjs": "11.16.0",
+    "@sentry/nitro": "11.16.0",
     "@sentry/node": "11.16.0",
     "@sentry/nuxt": "11.16.0",
     "@sentry/react-router": "11.16.0",

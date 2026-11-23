@@ -94,13 +94,18 @@ function serialize(value: unknown, ancestors = new Set<object>()): unknown {
   return result;
 }
 
-// Integrations are reported at the top level; serverName would split configurations by host.
-const EXCLUDED_OPTIONS = new Set(['integrations', 'serverName']);
+// Integrations hold the SDK defaults by the time the client has them; serverName would split configurations by host.
+const EXCLUDED_OPTIONS = new Set(['dist', 'dsn', 'integrations', 'release', 'serverName']);
 
 function buildConfigAttributes(client: Client): Record<string, string> {
-  const { sdk, optionsSetByUser = [] } = client.getSdkMetadata() || {};
+  const {
+    sdk,
+    optionsSetByUser = [],
+    integrationsSetByUser,
+    removedDefaultIntegrations,
+  } = client.getSdkMetadata() || {};
   const clientOptions = client.getOptions();
-  const { release, environment, dist } = clientOptions;
+  const { environment } = clientOptions;
   const runtime = 'runtime' in clientOptions ? clientOptions.runtime : undefined;
 
   // Only what the user passed, so SDK defaults never show up as config.
@@ -108,21 +113,29 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     Object.entries(clientOptions).filter(([key]) => optionsSetByUser.includes(key) && !EXCLUDED_OPTIONS.has(key)),
   );
 
+  if (integrationsSetByUser) {
+    options.integrations = integrationsSetByUser.map(name => {
+      const integration: (Integration & { isDefaultInstance?: true }) | undefined = client.getIntegrationByName(name);
+      // A default instance kept by an `integrations` function got its options from the SDK, not the user.
+      return describeIntegration(name, integration?.isDefaultInstance ? undefined : integration?._options);
+    });
+  }
+
   if (Array.isArray(options.defaultIntegrations)) {
-    options.defaultIntegrations = options.defaultIntegrations.map((integration: Integration) => ({
-      name: integration.name,
-    }));
+    // `getIntegrationsToSetup` flags these as default instances, but the user passed them.
+    options.defaultIntegrations = options.defaultIntegrations.map((integration: Integration) =>
+      describeIntegration(integration.name, integration._options),
+    );
   }
 
   // The hash covers the whole payload, so a payload cached by its hash is never stale.
   const payload = JSON.stringify({
-    version: 2,
+    version: 3,
     sdk: serialize(sdk),
     runtime: serialize(runtime),
-    release,
     environment,
-    dist,
-    integrations: client.getIntegrationNames().map(name => ({ name })),
+    // Not an init() option, so it stays out of `options`.
+    ...(removedDefaultIntegrations && { removed_default_integrations: removedDefaultIntegrations }),
     options: serialize(options),
   });
 
@@ -130,4 +143,37 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     'sentry.sdk_config.hash': fnv1a32(payload),
     'sentry.sdk_config.payload': payload,
   };
+}
+
+function describeIntegration(name: string, options: unknown): { name: string; options?: unknown } {
+  if (options === undefined) {
+    return { name };
+  }
+
+  if (!isPlainObject(options)) {
+    return { name, options: describeOptionValue(options) };
+  }
+
+  const keys = Object.keys(options);
+  // `fooIntegration()` and `fooIntegration({})` both mean no options were passed.
+  if (!keys.length) {
+    return { name };
+  }
+
+  const described: Record<string, unknown> = {};
+  for (const key of keys) {
+    described[key] = describeOptionValue(options[key]);
+  }
+
+  return { name, options: described };
+}
+
+// Options can hold live objects such as a router, a store or an SDK client, which carry URLs, app state or keys.
+// Arrays are kept, since lists like `levels` or `tracePropagationTargets` are configuration.
+function describeOptionValue(value: unknown): unknown {
+  return Array.isArray(value) ? value.map(redactObject) : redactObject(value);
+}
+
+function redactObject(value: unknown): unknown {
+  return value === null || typeof value !== 'object' || value instanceof RegExp ? value : '[Object]';
 }

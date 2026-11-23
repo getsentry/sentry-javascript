@@ -163,9 +163,13 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
         ignoreEmpty: true,
         ignoreMissing: true,
       };
-    } else if (process.env['VERCEL'] && vercelEnv !== 'production' && !canAutoDetectRepository()) {
-      // Vercel's own builders have no git remote and no other CI variables, so `--auto` can only fail there.
-      // Builds that have either, such as `vercel build` in GitHub Actions, keep `--auto` below.
+    } else if (
+      process.env['VERCEL'] &&
+      vercelEnv !== 'production' &&
+      !canAutoDetectRepository(options.release.vcsRemote)
+    ) {
+      // Vercel's own builders have no git remote and no other CI variables, so commit association can only fail there.
+      // Builds that have either, such as `vercel build` in GitHub Actions, keep `auto: true` below.
       options.release.setCommits = false;
     } else {
       options.release.setCommits = {

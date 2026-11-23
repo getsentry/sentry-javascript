@@ -1,5 +1,6 @@
 import { SPAN_STATUS_ERROR, startSpanManual } from '@sentry/core';
 import { GEN_AI_RESPONSE_STREAMING } from '@sentry/conventions/attributes';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { _INTERNAL_addLangChainCallbackHandler } from '../langchain/utils';
 import { getAgentSpanOptions, isInvokeInternalStream, prepareAgentSpan, resolveGraphCallRecording } from './agent-span';
@@ -26,7 +27,7 @@ export function instrumentCompiledGraphStream(
         return Reflect.apply(target, thisArg, args);
       }
 
-      const recording = resolveGraphCallRecording(options, args);
+      const { call, recording } = resolveGraphCallRecording(options, args);
       return startSpanManual(getAgentSpanOptions(args, { [GEN_AI_RESPONSE_STREAMING]: true }), async span => {
         let inputMessages: LangChainMessage[] | null = null;
         let stream: { signal?: AbortSignal } | undefined;
@@ -49,6 +50,12 @@ export function instrumentCompiledGraphStream(
           } catch {
             // Recording must never change the outcome of the run.
           }
+          runGenAiSpanEnd(
+            options,
+            span,
+            call,
+            outcome && 'error' in outcome ? { error: outcome.error } : { response: outcome?.outputs },
+          );
           span.end();
           inputMessages = null;
         };
@@ -86,6 +93,7 @@ export function instrumentCompiledGraphStream(
             llm,
             sentryCallbackHandler,
           );
+          runGenAiSpanStart(options, span, call);
           // `prepareAgentSpan` gave the call its own copy of the config, so the listener stays on this call.
           const config = args[1] as Record<string, unknown>;
           config.callbacks = _INTERNAL_addLangChainCallbackHandler(config.callbacks, listener);

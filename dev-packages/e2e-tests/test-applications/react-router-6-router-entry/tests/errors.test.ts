@@ -31,14 +31,18 @@ test('Sends correct error event', async ({ page }) => {
 
 test('Sets correct transactionName', async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('react-router-6-router-entry', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment;
+    return (
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      String(span.attributes['url.full']?.value).endsWith('/?test=error-transaction')
+    );
   });
 
   const errorEventPromise = waitForError('react-router-6-router-entry', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
+    return !event.type && event.exception?.values?.[0]?.value === 'I am an error!' && event.request?.url === page.url();
   });
 
-  await page.goto('/');
+  await page.goto('/?test=error-transaction');
   const pageloadSpan = await pageloadSpanPromise;
 
   // Only capture error once the pageload span was sent

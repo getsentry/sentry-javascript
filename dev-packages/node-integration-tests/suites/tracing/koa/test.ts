@@ -1,4 +1,5 @@
 import { afterAll, describe, expect } from 'vitest';
+import { SUPPORTS_REQUIRE_OF_ESM } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('koa auto-instrumentation', () => {
@@ -32,72 +33,87 @@ describe('koa auto-instrumentation', () => {
   describe.each([
     ['v2', {}],
     ['v3', { koa: '^3.0.0' }],
-  ])('%s', (_version, additionalDependencies) => {
+  ])('%s', (version, additionalDependencies) => {
     createEsmAndCjsTests(
       __dirname,
       'scenario.mjs',
       'instrument.mjs',
       (createRunner, test) => {
+        let scenario: ReturnType<typeof runScenario> | undefined;
+        async function runScenario() {
+          const requests: Array<{ method: 'get' | 'post' | 'put'; path: string; expectError?: boolean }> = [
+            { method: 'get', path: '/' },
+            { method: 'get', path: '/test-param/123' },
+          ];
+          const runner = createRunner();
+          const collectors = requests.map(({ path }) => {
+            const key = path;
+            return [
+              key,
+              runner.collectStreamedSpansUntilSegment(span => span.attributes['url.path']?.value === key),
+            ] as const;
+          });
+
+          const started = runner.start();
+          for (const { method, path, expectError } of requests) {
+            await started.makeRequest(method, path, { expectError });
+          }
+          await started.completed();
+          return new Map(
+            await Promise.all(collectors.map(async ([key, spans]) => [key, { items: await spans }] as const)),
+          );
+        }
+        async function getScenario(key: string) {
+          scenario ??= runScenario();
+          return (await scenario).get(key)!;
+        }
+
         test('should auto-instrument `koa` router and middleware layers.', async () => {
-          const runner = createRunner()
-            .expect({
-              span: container => {
-                expect(container.items.find(item => item.is_segment)?.name).toBe('GET /');
+          const container = await getScenario('/');
+          expect(container.items.find(item => item.is_segment)?.name).toBe('GET /');
 
-                // Router layer span (from `@koa/router`), carrying the matched route.
-                expect(container.items).toContainEqual(
-                  expect.objectContaining({
-                    name: '/',
-                    attributes: expect.objectContaining({
-                      'http.route': { type: 'string', value: '/' },
-                      'koa.type': { type: 'string', value: 'router' },
-                      'sentry.op': { type: 'string', value: 'router' },
-                      'sentry.origin': { type: 'string', value: origin },
-                    }),
-                  }),
-                );
+          // Router layer span (from `@koa/router`), carrying the matched route.
+          expect(container.items).toContainEqual(
+            expect.objectContaining({
+              name: '/',
+              attributes: expect.objectContaining({
+                'http.route': { type: 'string', value: '/' },
+                'koa.type': { type: 'string', value: 'router' },
+                'sentry.op': { type: 'string', value: 'router' },
+                'sentry.origin': { type: 'string', value: origin },
+              }),
+            }),
+          );
 
-                // Plain middleware span.
-                expect(container.items).toContainEqual(
-                  expect.objectContaining({
-                    name: 'simpleMiddleware',
-                    attributes: expect.objectContaining({
-                      'koa.type': { type: 'string', value: 'middleware' },
-                      'code.function.name': { type: 'string', value: 'simpleMiddleware' },
-                      'sentry.op': { type: 'string', value: 'middleware' },
-                      'sentry.origin': { type: 'string', value: origin },
-                    }),
-                  }),
-                );
-              },
-            })
-            .start();
-          runner.makeRequest('get', '/');
-          await runner.completed();
+          // Plain middleware span.
+          expect(container.items).toContainEqual(
+            expect.objectContaining({
+              name: 'simpleMiddleware',
+              attributes: expect.objectContaining({
+                'koa.type': { type: 'string', value: 'middleware' },
+                'code.function.name': { type: 'string', value: 'simpleMiddleware' },
+                'sentry.op': { type: 'string', value: 'middleware' },
+                'sentry.origin': { type: 'string', value: origin },
+              }),
+            }),
+          );
         });
 
         test('should assign a parameterized segment name.', async () => {
-          const runner = createRunner()
-            .expect({
-              span: container => {
-                expect(container.items.find(item => item.is_segment)?.name).toBe('GET /test-param/:id');
+          const container = await getScenario('/test-param/123');
+          expect(container.items.find(item => item.is_segment)?.name).toBe('GET /test-param/:id');
 
-                expect(container.items).toContainEqual(
-                  expect.objectContaining({
-                    name: '/test-param/:id',
-                    attributes: expect.objectContaining({
-                      'http.route': { type: 'string', value: '/test-param/:id' },
-                      'koa.type': { type: 'string', value: 'router' },
-                      'sentry.op': { type: 'string', value: 'router' },
-                      'sentry.origin': { type: 'string', value: origin },
-                    }),
-                  }),
-                );
-              },
-            })
-            .start();
-          runner.makeRequest('get', '/test-param/123');
-          await runner.completed();
+          expect(container.items).toContainEqual(
+            expect.objectContaining({
+              name: '/test-param/:id',
+              attributes: expect.objectContaining({
+                'http.route': { type: 'string', value: '/test-param/:id' },
+                'koa.type': { type: 'string', value: 'router' },
+                'sentry.op': { type: 'string', value: 'router' },
+                'sentry.origin': { type: 'string', value: origin },
+              }),
+            }),
+          );
         });
 
         test('should capture errors thrown in routes via the koa error handler.', async () => {
@@ -114,7 +130,12 @@ describe('koa auto-instrumentation', () => {
           await runner.completed();
         });
       },
-      { additionalDependencies },
+      {
+        additionalDependencies,
+        // Koa 2 depends on `generator-function`, which `require()`s an ES module.
+        failsOnEsm: version === 'v2' && !SUPPORTS_REQUIRE_OF_ESM,
+        failsOnCjs: version === 'v2' && !SUPPORTS_REQUIRE_OF_ESM,
+      },
     );
   });
 });

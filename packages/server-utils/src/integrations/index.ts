@@ -29,6 +29,7 @@ import { togetherAIIntegration } from './together-ai';
 import { typesafeIntegration } from './typesafe';
 import { postgresJsIntegration } from './postgresjs';
 import { neonIntegration } from './neon';
+import { clickhouseIntegration } from './clickhouse';
 import { firebaseIntegration } from './firebase';
 import { expressIntegration } from './express';
 import { fastifyIntegration } from './fastify';
@@ -75,6 +76,7 @@ export function getTracingIntegrations(): Integration[] {
     typesafeIntegration(),
     postgresJsIntegration(),
     neonIntegration(),
+    clickhouseIntegration(),
     firebaseIntegration(),
     mcpServerIntegration(),
   ];

@@ -117,6 +117,11 @@ const remainingClientMaps = fs
 assert.deepEqual(remainingClientMaps, [], 'Expected client source maps to be deleted after upload');
 
 const remainingServerMaps = fs.readdirSync('build/server', { recursive: true }).filter(file => file.endsWith('.map'));
-assert.ok(remainingServerMaps.length > 0, 'Expected server source maps outside the deletion pattern to be preserved');
+// `sourcemaps.delete: true` removes every source map of the build, also the ones the app turned on.
+if (process.env.E2E_VARIANT === 'delete-all') {
+  assert.deepEqual(remainingServerMaps, [], 'Expected no server source maps with `sourcemaps.delete: true`');
+} else {
+  assert.ok(remainingServerMaps.length > 0, 'Expected server source maps outside the deletion pattern to be preserved');
+}
 
 console.log('All react-router source map assertions passed!');

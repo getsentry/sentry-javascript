@@ -211,6 +211,28 @@ module.exports = [
     gzip: true,
     disablePlugins: ['@size-limit/esbuild'],
   },
+  // Effect SDK (ESM), measured with the parts of Effect it pulls in
+  {
+    name: '@sentry/effect (client)',
+    path: 'packages/effect/build/esm/index.client.js',
+    import: createImport('effectLayer'),
+    gzip: true,
+    disablePlugins: ['@size-limit/esbuild'],
+  },
+  {
+    name: '@sentry/effect (client, incl. Tracing)',
+    path: 'packages/effect/build/esm/index.client.js',
+    import: createImport('effectLayer', 'SentryEffectTracer'),
+    gzip: true,
+    disablePlugins: ['@size-limit/esbuild'],
+  },
+  {
+    name: '@sentry/effect (client, incl. Tracing, Logs, Metrics)',
+    path: 'packages/effect/build/esm/index.client.js',
+    import: createImport('effectLayer', 'SentryEffectTracer', 'SentryEffectLogger', 'SentryEffectMetricsLayer'),
+    gzip: true,
+    disablePlugins: ['@size-limit/esbuild'],
+  },
   // Remix 3 browser SDK (ESM)
   {
     // Every export, not a named import: Remix 3 has no bundler, so an app ships every byte of this

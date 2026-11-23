@@ -3,7 +3,9 @@ import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-in
 
 test('sends a pageload root span with a parameterized URL', async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('nuxt-3-min', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment;
+    return (
+      getSpanOp(span) === 'pageload' && span.is_segment && span.attributes['url.path']?.value === '/test-param/1234'
+    );
   });
 
   await page.goto(`/test-param/1234`);

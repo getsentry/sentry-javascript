@@ -28,7 +28,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles }) => {
   `);
   expect(files["sentry-cli-mock.json"]).toMatchInlineSnapshot(`
     "["release","create","CURRENT_SHA","--project","fake-project"],
-    ["release","set-commits","CURRENT_SHA","--auto"],
+    ["release","set-commits","CURRENT_SHA"],
     ["release","finalize","CURRENT_SHA"],
     ["sourcemap","upload","-p","fake-project","--release","CURRENT_SHA","sentry-bundler-plugin-upload-path"],
     "

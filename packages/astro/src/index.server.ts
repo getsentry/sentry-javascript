@@ -120,6 +120,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   neonIntegration,
+  clickhouseIntegration,
   prismaIntegration,
   openTelemetryIntegration,
   getOtlpTracesEndpoint,

@@ -11,6 +11,7 @@ import {
 } from '@sentry/browser';
 import { SENTRY_OP, SENTRY_ORIGIN, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import {
+  defineIntegration,
   addFetchInstrumentationHandler,
   type Client,
   hasSpanStreamingEnabled,
@@ -27,18 +28,7 @@ type Options = Parameters<typeof originalBrowserTracingIntegration>[0];
 // The request header the runtime sets on its fetch of a navigation's destination.
 const FRAME_REQUEST_HEADER = 'x-remix-frame';
 
-/**
- * Browser tracing for Remix 3.
- *
- * Page loads stay with the upstream integration, because they are ordinary document loads. Navigations
- * do not: `remix/component` intercepts links and form submissions through the Navigation API and never touches
- * History, so the upstream handler never fires.
- *
- * Spans are named through the route provider. Routes reach it from the server, with each HTML
- * response, so a span starts under a low cardinality name when its route is not known yet and is
- * renamed once the response arrives.
- */
-export function browserTracingIntegration(options: Options = {}): Integration {
+function _browserTracingIntegration(options: Options = {}): Integration {
   const integration = originalBrowserTracingIntegration({ ...options, instrumentNavigation: false });
 
   return {
@@ -55,6 +45,20 @@ export function browserTracingIntegration(options: Options = {}): Integration {
     },
   };
 }
+
+/**
+ * Browser tracing for Remix 3.
+ *
+ * Page loads stay with the upstream integration, because they are ordinary document loads. Navigations
+ * do not: `remix/component` intercepts links and form submissions through the Navigation API and never touches
+ * History, so the upstream handler never fires.
+ *
+ * Spans are named through the route provider. Routes reach it from the server, with each HTML
+ * response, so a span starts under a low cardinality name when its route is not known yet and is
+ * renamed once the response arrives.
+ */
+export const browserTracingIntegration: typeof _browserTracingIntegration =
+  defineIntegration(_browserTracingIntegration);
 
 /** The page load span the upstream integration just started, named after the route that served the document. */
 function nameActivePageLoadSpan(client: Client): void {

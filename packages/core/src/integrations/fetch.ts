@@ -1,4 +1,4 @@
-import { URL_FRAGMENT, URL_QUERY } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, URL_FRAGMENT, URL_QUERY } from '@sentry/conventions/attributes';
 import { addBreadcrumb } from '../breadcrumbs';
 import type { Client } from '../client';
 import { getClient } from '../currentScopes';
@@ -11,7 +11,7 @@ import type { HandlerDataFetch } from '../types/instrument';
 import type { Integration, IntegrationFn } from '../types/integration';
 import type { Span, SpanOrigin } from '../types/span';
 import { getBreadcrumbLogLevelFromHttpStatusCode } from '../utils/breadcrumb-log-level';
-import { filterCollectedUrlQuery } from '../utils/data-collection/filterCollectedUrl';
+import { filterCollectedUrlFragment, filterCollectedUrlQuery } from '../utils/data-collection/filterCollectedUrl';
 import { isSentryRequestUrl } from '../utils/isSentryRequestUrl';
 import { LRUMap } from '../utils/lru';
 import { shouldPropagateTraceForUrl } from '../utils/tracePropagationTargets';
@@ -164,9 +164,10 @@ function createBreadcrumb(handlerData: HandlerDataFetch, client: Client): void {
 
   const breadcrumbData: FetchBreadcrumbData = {
     method: handlerData.fetchData.method,
+    [HTTP_REQUEST_METHOD]: handlerData.fetchData.method,
     url: getSanitizedUrlString(parsedUrl),
     [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl.search), client),
-    [URL_FRAGMENT]: getUrlFragment(parsedUrl.hash),
+    [URL_FRAGMENT]: filterCollectedUrlFragment(getUrlFragment(parsedUrl.hash), client),
   };
 
   if (handlerData.error) {

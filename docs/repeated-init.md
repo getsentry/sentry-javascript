@@ -13,8 +13,8 @@ more than once. Use it when you add or change an `init()` in any SDK.
 `Sentry.close()` closes the client and unbinds it, so a later `init()` sets
 up a new client. Other scopes can still hold the closed client (for example,
 when `close()` runs inside a request, or when code calls `client.close()`
-directly), so a check for "already initialized" must not use `getClient()`
-alone.
+directly). Use `isClientClosed()` when a check for "already initialized"
+must tell these cases apart.
 
 A repeated `init()` is not supported. Until the next major version, most
 SDKs still replace the client (see below). Do not depend on that.
@@ -46,15 +46,15 @@ When `init()` replaces a client, nothing closes the old one:
 | Next.js server and edge in a request of `withSentry` (Cloudflare)         | Creates no client, because the client of `withSentry` handles the request. Returns `undefined`.                                                                       |
 
 The shared warning lives in `warnIfClientIsActive()` in
-`packages/core/src/sdk.ts`. Core exports it as
-`_INTERNAL_warnIfClientIsActive` for SDKs that build their client without
-`initAndBind`.
+`packages/core/src/sdk.ts`. SDKs that build their client without
+`initAndBind` call it from `@sentry/core`.
 
 A wrapper that expects a repeated call, such as a server bundle and a
 `--import` preload that both run the config, keeps its own guard and
 returns early. The shared warning then does not show. Guards use
-`getActiveClient()` (exported as `_INTERNAL_getActiveClient`), which
-returns the bound client only if it is not closed.
+`getClient()`. The Next.js, Remix, and Nuxt server guards also skip a client
+for which `isClientClosed()` is true, so `client.close()` followed by
+`init()` sets up a new client there.
 
 ## TODO(v12): Plan for the next major version
 

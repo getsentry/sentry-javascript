@@ -58,13 +58,8 @@ export { Scope } from './scope';
 export type { CaptureContext, ScopeContext, ScopeData } from './scope';
 export { notifyEventProcessors } from './eventProcessors';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint, SENTRY_API_VERSION } from './api';
-export { Client, isClientClosed as _INTERNAL_isClientClosed } from './client';
-export {
-  getActiveClient as _INTERNAL_getActiveClient,
-  initAndBind,
-  setCurrentClient,
-  warnIfClientIsActive as _INTERNAL_warnIfClientIsActive,
-} from './sdk';
+export { Client, isClientClosed } from './client';
+export { initAndBind, setCurrentClient, warnIfClientIsActive } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from './transports/multiplexed';
@@ -83,7 +78,11 @@ export {
 export { filterKeyValueData as _INTERNAL_filterKeyValueData } from './utils/data-collection/filterKeyValueData';
 export { filterCookies as _INTERNAL_filterCookies } from './utils/data-collection/filterCookies';
 export { filterQueryParams as _INTERNAL_filterQueryParams } from './utils/data-collection/filterQueryParams';
-export { filterCollectedUrl, filterCollectedUrlQuery } from './utils/data-collection/filterCollectedUrl';
+export {
+  filterCollectedUrl,
+  filterCollectedUrlFragment,
+  filterCollectedUrlQuery,
+} from './utils/data-collection/filterCollectedUrl';
 export { envToBool } from './utils/envToBool';
 export { getVercelEnv } from './utils/vercel';
 export { applyScopeDataToEvent, mergeScopeData, getCombinedScopeData } from './utils/scopeData';

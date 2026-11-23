@@ -20,6 +20,10 @@ describe('logger public API', () => {
                     type: 'string',
                     value: 'bar1',
                   },
+                  'sentry.release': {
+                    type: 'string',
+                    value: '1.0',
+                  },
                   'sentry.sdk.name': {
                     type: 'string',
                     value: EXPECTED_SDK_NAME,
@@ -61,6 +65,10 @@ describe('logger public API', () => {
                     type: 'string',
                     value: 'test info with %d',
                   },
+                  'sentry.release': {
+                    type: 'string',
+                    value: '1.0',
+                  },
                   'sentry.sdk.name': {
                     type: 'string',
                     value: EXPECTED_SDK_NAME,
@@ -101,6 +109,10 @@ describe('logger public API', () => {
                   'sentry.message.template': {
                     type: 'string',
                     value: 'test info with fmt %s',
+                  },
+                  'sentry.release': {
+                    type: 'string',
+                    value: '1.0',
                   },
                   'sentry.sdk.name': {
                     type: 'string',

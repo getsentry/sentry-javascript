@@ -5,6 +5,7 @@ import {
   startBrowserTracingPageLoadSpan,
 } from '@sentry/browser';
 import type { Integration } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import type ApplicationInstance from '@ember/application/instance';
 import { instrumentEmberAppInstanceForPerformance } from './instrumentEmberAppInstanceForPerformance.ts';
 import { instrumentGlobalsForPerformance } from './instrumentEmberGlobals.ts';
@@ -22,7 +23,7 @@ type EmberBrowserTracingIntegrationOptions = Parameters<typeof originalBrowserTr
 
 let _initialized = false;
 
-export function browserTracingIntegration(options: EmberBrowserTracingIntegrationOptions): Integration {
+function _browserTracingIntegration(options: EmberBrowserTracingIntegrationOptions): Integration {
   const { appInstance } = options;
 
   const instrumentNavigation = options.instrumentNavigation ?? true;
@@ -74,6 +75,9 @@ export function browserTracingIntegration(options: EmberBrowserTracingIntegratio
     },
   };
 }
+
+export const browserTracingIntegration: typeof _browserTracingIntegration =
+  defineIntegration(_browserTracingIntegration);
 
 /**
  * Utility to simplify adding the browser tracing integration to an app instance.

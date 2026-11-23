@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "0.133.0",
+    "@clickhouse/client-web": "^1.25.0",
     "@cloudflare/vite-plugin": "1.66.0",
     "@cloudflare/workers-types": "^4.20260426.0",
     "@cloudflare/workers-types-v5": "npm:@cloudflare/workers-types@5.20260710.1",
@@ -28,7 +29,7 @@
     "@prisma/client": "6.15.0",
     "@sentry-internal/test-utils": "11.16.0",
     "@sentry/cloudflare": "11.16.0",
-    "@sentry/conventions": "0.34.0",
+    "@sentry/conventions": "0.35.0",
     "@sentry/core": "11.16.0",
     "@sentry/hono": "11.16.0",
     "ai": "^6.0.0",

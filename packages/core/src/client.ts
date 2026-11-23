@@ -67,9 +67,8 @@ const DO_NOT_SEND_EVENT_SYMBOL = Symbol.for('SentryDoNotSendEventError');
 const CLOSED_CLIENT_SYMBOL = Symbol.for('SentryClosedClient');
 
 /**
- * Whether `close()` was called on the given client.
- *
- * @hidden
+ * Whether `close()` was called on the given client. This is also `true` while
+ * the client is still flushing in `close()`.
  */
 export function isClientClosed(client: Client): boolean {
   return CLOSED_CLIENT_SYMBOL in client;
