@@ -34,7 +34,12 @@ export async function waitForInitialPageload(
         parent: span.parent_span_id,
       });
 
-    return span.name === spanName && getSpanOp(span) === 'pageload' && span.is_segment;
+    return (
+      span.name === spanName &&
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.attributes['url.full']?.value === page.url()
+    );
   });
 
   await Promise.all([
