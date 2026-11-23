@@ -275,7 +275,12 @@ if (viteServer) {
 // `sourcemaps.delete` is `true`.
 if (!isStaticBuild && deleteAll) {
   assert.deepEqual(findSourceMapFiles({ outputDir: SERVER_OUTPUT }), [], `Expected no source maps in ${SERVER_OUTPUT}`);
-  console.log(`  ${SERVER_OUTPUT} is free of source maps\n`);
+  assert.deepEqual(
+    findSourceMappingUrlComments({ outputDir: SERVER_OUTPUT }),
+    [],
+    `Expected no sourceMappingURL comments in ${SERVER_OUTPUT}`,
+  );
+  console.log(`  ${SERVER_OUTPUT} is free of source maps and sourceMappingURL comments\n`);
 } else if (!isStaticBuild) {
   const serverSourceMaps = findSourceMapFiles({ outputDir: SERVER_OUTPUT });
   assert.ok(serverSourceMaps.length > 0, `Expected Sentry to keep the server source maps in ${SERVER_OUTPUT}`);

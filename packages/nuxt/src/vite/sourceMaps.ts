@@ -7,6 +7,7 @@ import type { NitroConfig } from 'nitropack';
 import type { Plugin } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
 import {
+  applyNitroSourceMapSettings,
   deletePublicSourceMaps,
   deleteSourceMapsAfterBuild,
   type DeletionFallback,
@@ -127,9 +128,7 @@ export function setupSourceMaps(
       }
 
       validateNitroSourceMapSettings(nuxt, nitroConfig, moduleOptions);
-
-      // `rollupConfig.output.sourcemap` overrides `sourcemap.server`, so the server source maps are the user's.
-      shouldDeleteFilesFallback.server &&= nitroConfig.rollupConfig.output?.sourcemap === undefined;
+      applyNitroSourceMapSettings(nitroConfig, shouldDeleteFilesFallback, moduleOptions.sourcemaps?.delete);
 
       if (isDebug) {
         // eslint-disable-next-line no-console

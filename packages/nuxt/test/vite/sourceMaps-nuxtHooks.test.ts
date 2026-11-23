@@ -726,6 +726,43 @@ describe('setupSourceMaps hooks', () => {
       expect(nitroConfig.rollupConfig.plugins.length).toBeGreaterThan(0);
     });
 
+    it.each<{
+      label: string;
+      del: boolean;
+      sourceMap: true | 'hidden' | 'inline';
+      output: { sourcemap?: boolean };
+      expected: unknown;
+    }>([
+      { label: 'switches visible server maps to hidden', del: true, sourceMap: true, output: {}, expected: 'hidden' },
+      {
+        label: 'keeps visible server maps without `delete: true`',
+        del: false,
+        sourceMap: true,
+        output: {},
+        expected: true,
+      },
+      { label: 'keeps hidden server maps', del: true, sourceMap: 'hidden', output: {}, expected: 'hidden' },
+      { label: 'keeps inline server maps', del: true, sourceMap: 'inline', output: {}, expected: 'inline' },
+      {
+        label: 'keeps `nitro.sourceMap` when `rollupConfig.output.sourcemap` overrides it',
+        del: true,
+        sourceMap: true,
+        output: { sourcemap: true },
+        expected: true,
+      },
+    ])('$label', async ({ del, sourceMap, output, expected }) => {
+      const mockNuxt = createMockNuxt({ _prepare: false, dev: false, sourcemap: { server: sourceMap } });
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
+
+      setupSourceMaps({ sourcemaps: { delete: del } }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
+      await mockNuxt.triggerHook('modules:done');
+
+      const nitroConfig = { rollupConfig: { plugins: [] as unknown[], output }, dev: false, sourceMap };
+      await mockNuxt.triggerHook('nitro:config', nitroConfig);
+
+      expect(nitroConfig.sourceMap).toBe(expected);
+    });
+
     it.each([
       {
         label: 'prepare mode',

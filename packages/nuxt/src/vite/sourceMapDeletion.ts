@@ -4,6 +4,7 @@ import {
   type InternalOptions,
   type Options,
 } from '@sentry/bundler-plugins/core';
+import type { NitroConfig } from 'nitropack';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
@@ -31,6 +32,23 @@ export function getFallbackFilesToDelete(fallback: DeletionFallback | undefined,
     ...(client && publicDir !== undefined ? getPublicSourceMapGlobs(publicDir, server ? undefined : serverDir) : []),
     ...(server ? [`${toGlobPath(serverDir)}/**/*.map`] : []),
   ];
+}
+
+/**
+ * `rollupConfig.output.sourcemap` overrides `sourcemap.server`, so the server source maps are then the user's.
+ * `sourcemaps.delete: true` removes the server maps, so no `sourceMappingURL` comment may point to them.
+ */
+export function applyNitroSourceMapSettings(
+  nitroConfig: NitroConfig,
+  fallback: DeletionFallback,
+  deleteOption: boolean | undefined,
+): void {
+  const userOutputSetting = nitroConfig.rollupConfig?.output?.sourcemap !== undefined;
+  fallback.server &&= !userOutputSetting;
+
+  if (deleteOption === true && nitroConfig.sourceMap === true && !userOutputSetting) {
+    nitroConfig.sourceMap = 'hidden';
+  }
 }
 
 /** Some presets write the server into the public dir, e.g. Cloudflare Pages into `dist/_worker.js`. */
