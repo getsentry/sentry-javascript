@@ -118,8 +118,24 @@ export interface HapiServerEvents {
   [key: string]: unknown;
 }
 
-/** The subset of a hapi server the error handler needs. */
+/** The extension methods hapi has registered for one extension point, with each method in `func`. */
+export interface HapiRegisteredExtensions {
+  nodes?: { func?: unknown }[] | null;
+}
+
+/** A route that hapi has registered, as `server.table()` returns it. */
+export interface HapiRegisteredRoute {
+  settings?: { handler?: unknown };
+  _extensions?: Record<string, HapiRegisteredExtensions | undefined>;
+}
+
+/** The subset of a hapi server the integration needs. */
 export interface HapiServer {
   events: HapiServerEvents;
+  table?: () => HapiRegisteredRoute[];
+  _core?: {
+    extensions?: { route?: Record<string, HapiRegisteredExtensions | undefined> };
+    router?: { specials?: Record<string, { route?: HapiRegisteredRoute } | null | undefined> };
+  };
   [key: string]: unknown;
 }

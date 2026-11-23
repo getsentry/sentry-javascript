@@ -8,7 +8,7 @@ import {
   SENTRY_ORIGIN,
   SERVER_EXT_TYPE,
 } from '@sentry/conventions/attributes';
-import { ROUTER } from '@sentry/conventions/op';
+import { MIDDLEWARE, ROUTER } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import { setCurrentClient, spanToJSON, startSpan } from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -16,8 +16,10 @@ import {
   getExtMetadata,
   getRouteMetadata,
   wrapExtArguments,
+  wrapRegisteredMethods,
   wrapRouteArguments,
 } from '../../src/integrations/hapi/hapi-utils';
+import type { LifecycleMethod } from '../../src/integrations/hapi/hapi-types';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('getRouteMetadata', () => {
@@ -116,6 +118,91 @@ describe('wrapRouteArguments', () => {
       [SENTRY_OP]: ROUTER,
       [SENTRY_ORIGIN]: 'auto.http.hapi',
     });
+  });
+});
+
+describe('wrapRegisteredMethods', () => {
+  afterEach(() => {
+    setCurrentClient(undefined as unknown as TestClient);
+  });
+
+  it('wraps the handler of a route that was registered before its arguments were wrapped', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+    const endedSpans: Span[] = [];
+    client.on('spanEnd', span => endedSpans.push(span));
+    const handler = (_request: unknown, _h: unknown): unknown => 'ok';
+    const route = { method: 'GET', path: '/users/{id}', handler };
+    // Hapi copies the handler into the settings of the registered route when `server.route` is called.
+    const registeredRoute = { settings: { handler: route.handler } };
+    const server = { events: { on: () => undefined }, table: () => [registeredRoute] };
+
+    wrapRouteArguments([route]);
+    wrapRegisteredMethods(server);
+
+    expect(registeredRoute.settings.handler).toBe(route.handler);
+    const response = startSpan({ name: 'incoming' }, () => registeredRoute.settings.handler({ method: 'get' }, {}));
+
+    expect(response).toBe('ok');
+    const routerSpan = endedSpans.map(span => spanToJSON(span)).find(span => span.attributes[SENTRY_OP] === ROUTER);
+    expect(routerSpan?.name).toBe('GET /users/{id}');
+  });
+
+  it('keeps the handler of a route that was not wrapped', () => {
+    const handler = (): unknown => 'ok';
+    const registeredRoute = { settings: { handler } };
+
+    wrapRegisteredMethods({ events: { on: () => undefined }, table: () => [registeredRoute] });
+
+    expect(registeredRoute.settings.handler).toBe(handler);
+  });
+
+  it('wraps the extension methods that were registered before their arguments were wrapped', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+    const endedSpans: Span[] = [];
+    client.on('spanEnd', span => endedSpans.push(span));
+    const onRequestArgs: unknown[] = ['onRequest', (_request: unknown, h: { continue: symbol }): unknown => h.continue];
+    const onPreResponseArgs: unknown[] = [
+      'onPreResponse',
+      (_request: unknown, h: { continue: symbol }): unknown => h.continue,
+    ];
+    // Hapi keeps `onRequest` extensions on the server, and copies other extensions into each route, including the
+    // special `notFound` route.
+    const onRequestNode = { func: onRequestArgs[1] };
+    const routeNode = { func: onPreResponseArgs[1] };
+    const notFoundNode = { func: onPreResponseArgs[1] };
+    const server = {
+      events: { on: () => undefined },
+      table: () => [
+        { settings: {}, _extensions: { onPreResponse: { nodes: [routeNode] }, onPreAuth: { nodes: null } } },
+      ],
+      _core: {
+        extensions: { route: { onRequest: { nodes: [onRequestNode] }, onPreResponse: { nodes: [] } } },
+        router: {
+          specials: {
+            notFound: { route: { _extensions: { onPreResponse: { nodes: [notFoundNode] } } } },
+            options: null,
+          },
+        },
+      },
+    };
+
+    wrapExtArguments(onRequestArgs);
+    wrapExtArguments(onPreResponseArgs);
+    wrapRegisteredMethods(server);
+
+    expect(onRequestNode.func).toBe(onRequestArgs[1]);
+    expect(routeNode.func).toBe(onPreResponseArgs[1]);
+    expect(notFoundNode.func).toBe(onPreResponseArgs[1]);
+    const toolkit = { continue: Symbol('continue') };
+    const response = startSpan({ name: 'incoming' }, () => (routeNode.func as LifecycleMethod)({}, toolkit));
+
+    expect(response).toBe(toolkit.continue);
+    const extSpan = endedSpans.map(span => spanToJSON(span)).find(span => span.attributes[SENTRY_OP] === MIDDLEWARE);
+    expect(extSpan?.name).toBe('ext - onPreResponse');
   });
 });
 

@@ -7,7 +7,7 @@ import { hapiModuleNames } from '../../orchestrion/config/hapi';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import { attachHapiErrorHandler } from './hapi-error-handler';
 import type { HapiServer, HapiShouldHandleError } from './hapi-types';
-import { wrapExtArguments, wrapRouteArguments } from './hapi-utils';
+import { wrapExtArguments, wrapRegisteredMethods, wrapRouteArguments } from './hapi-utils';
 
 // NOTE: same name as the OTel integration by design — when enabled, the OTel
 // 'Hapi' integration is omitted from the default set.
@@ -98,11 +98,13 @@ function instrumentHapi(shouldHandleError?: HapiShouldHandleError): void {
 
   // Auto-register the error handler when the server boots
   // `attachHapiErrorHandler` is idempotent, so hooking both `start` and `initialize` is safe.
+  // Routes and extensions registered before their channel event reached us get their wrapped method here.
   const attachOnStart = {
     start(rawCtx: unknown) {
       const server = (rawCtx as HapiServerContext).self;
       if (server) {
         attachHapiErrorHandler(server, shouldHandleError);
+        wrapRegisteredMethods(server);
       }
     },
     end() {},

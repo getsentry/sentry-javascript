@@ -31,6 +31,7 @@ import {
 import { HANDLER, MIDDLEWARE, ROUTER } from '@sentry/conventions/op';
 import type {
   HapiRequest,
+  HapiServer,
   LifecycleMethod,
   PatchableExtMethod,
   PatchableServerRoute,
@@ -204,6 +205,10 @@ function getRequestMethod(request: unknown): string | undefined {
   return isObjectLike(request) && typeof request.method === 'string' ? request.method.toUpperCase() : undefined;
 }
 
+// Maps an original route handler or extension method to its wrapper, for methods that Hapi registered before
+// they were wrapped.
+const wrappedMethods = new WeakMap<object, LifecycleMethod>();
+
 /**
  * Patches each individual route handler method in order to create the span. It
  * does not create spans when there is no parent span.
@@ -213,7 +218,7 @@ function wrapRouteHandler(route: PatchableServerRoute, pluginName?: string): Pat
   route[handlerPatched] = true;
 
   const wrapHandler: (oldHandler: LifecycleMethod) => LifecycleMethod = oldHandler => {
-    return function (this: unknown, ...params: Parameters<LifecycleMethod>) {
+    const wrappedHandler = function (this: unknown, ...params: Parameters<LifecycleMethod>): unknown {
       if (!getActiveSpan()) {
         return oldHandler.call(this, ...params);
       }
@@ -221,6 +226,8 @@ function wrapRouteHandler(route: PatchableServerRoute, pluginName?: string): Pat
       const metadata = getRouteMetadata({ path: route.path, method: getRequestMethod(params[0]), pluginName });
       return startMetadataSpan(metadata, () => oldHandler.call(this, ...params));
     };
+    wrappedMethods.set(oldHandler, wrappedHandler);
+    return wrappedHandler;
   };
 
   if (typeof route.handler === 'function') {
@@ -267,6 +274,7 @@ function wrapExtMethods<T extends PatchableExtMethod | PatchableExtMethod[]>(
     };
     // Mark the wrapper too (not just the original)
     newHandler[handlerPatched] = true;
+    wrappedMethods.set(method, newHandler);
     return newHandler as T;
   }
   return method;
@@ -285,6 +293,40 @@ export function wrapRouteArguments(args: unknown[], pluginName?: string): void {
     }
   } else {
     args[0] = wrapRouteHandler(route, pluginName);
+  }
+}
+
+/**
+ * Replace the route handlers and extension methods that Hapi has registered with their wrappers.
+ *
+ * On Cloudflare, a `server.route` or `server.ext` call at module scope cannot publish its channel event, so the
+ * event is published later, in the first request. By then Hapi has stored the original method, and wrapping the
+ * call arguments has no effect on what Hapi runs.
+ */
+export function wrapRegisteredMethods(server: HapiServer): void {
+  const specialRoutes = Object.values(server._core?.router?.specials ?? {}).map(special => special?.route);
+  const routes = [...(typeof server.table === 'function' ? server.table() : []), ...specialRoutes];
+
+  // Hapi copies an extension into each route that exists when it is added; `onRequest` is only on the server.
+  const registeredExtensions = [server._core?.extensions?.route, ...routes.map(route => route?._extensions)];
+
+  for (const route of routes) {
+    const handler = route?.settings?.handler;
+    const wrappedHandler = typeof handler === 'function' ? wrappedMethods.get(handler) : undefined;
+    if (route?.settings && wrappedHandler) {
+      route.settings.handler = wrappedHandler;
+    }
+  }
+
+  for (const extensions of registeredExtensions) {
+    for (const extension of Object.values(extensions ?? {})) {
+      for (const node of extension?.nodes ?? []) {
+        const wrappedMethod = typeof node.func === 'function' ? wrappedMethods.get(node.func) : undefined;
+        if (wrappedMethod) {
+          node.func = wrappedMethod;
+        }
+      }
+    }
   }
 }
 
