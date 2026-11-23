@@ -15,7 +15,11 @@ test.describe('distributed tracing', () => {
     });
 
     const serverSpanPromise = waitForStreamedSpan('nuxt-3', span => {
-      return span.is_segment && span.attributes['url.path']?.value === `/test-param/${PARAM}`;
+      return (
+        span.is_segment &&
+        getSpanOp(span) === 'http.server' &&
+        span.attributes['url.path']?.value === `/test-param/${PARAM}`
+      );
     });
 
     const [_, clientSpan, serverSpan] = await Promise.all([
