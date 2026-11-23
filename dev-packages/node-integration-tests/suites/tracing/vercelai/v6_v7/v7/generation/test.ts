@@ -20,6 +20,7 @@ import {
   GEN_AI_GENERATE_CONTENT,
   GEN_AI_INVOKE_AGENT,
 } from '@sentry/conventions/op';
+import { SUPPORTS_REQUIRE_OF_ESM } from '../../../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../../../utils/runner';
 import { registerVercelAiGenerationTests } from '../../suite';
 import { join } from 'node:path';
@@ -399,7 +400,7 @@ describe('Vercel AI recording functions (v7)', () => {
           .completed();
       });
     },
-    { additionalDependencies: { ai: '^7.0.0' } },
+    { additionalDependencies: { ai: '^7.0.0' }, failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM },
   );
 });
 
@@ -438,6 +439,6 @@ describe('Vercel AI span hooks (v7)', () => {
           .completed();
       });
     },
-    { additionalDependencies: { ai: '^7.0.0' } },
+    { additionalDependencies: { ai: '^7.0.0' }, failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM },
   );
 });

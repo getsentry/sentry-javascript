@@ -91,6 +91,12 @@ export function supports(requirements: Requirements): boolean {
   return matchesNodeVersion(requirements);
 }
 
+/**
+ * Whether the runtime can `require()` an ES module that imports other modules. Deno 2.8 cannot
+ * resolve these imports.
+ */
+export const SUPPORTS_REQUIRE_OF_ESM = supports({ runtimes: ['node', 'bun'] });
+
 function matchesNodeVersion({ min, max }: { min?: number; max?: number }): boolean {
   if (!NODE_VERSION) {
     return false;
