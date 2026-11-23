@@ -55,9 +55,9 @@ export function extractTraceparentData(traceparent?: string): TraceparentData | 
 /**
  * Whether a propagation context continues an incoming trace, rather than being the head of a new one.
  *
- * Both fields have to be checked. `parentSpanId` is unset when the incoming `sentry-trace` header
- * carried no span id, which the header format allows. `dsc` is unset when a remote parent arrived
- * without any incoming baggage. Either one on its own therefore misses a continued trace.
+ * A valid `sentry-trace` header always has a span id, so continuing it sets `parentSpanId`. A header
+ * with only a trace id is invalid and does not count. `dsc` is checked as well, because a frozen DSC
+ * carries the trace id, so the trace id must be kept even without a parent span id.
  */
 export function isContinuingTrace(propagationContext: PropagationContext): boolean {
   return !!propagationContext.parentSpanId || !!propagationContext.dsc;
@@ -94,9 +94,24 @@ export function propagationContextFromHeaders(
     traceId,
     parentSpanId,
     sampled: parentSampled,
-    dsc: dynamicSamplingContext || {}, // If we have traceparent data but no DSC it means we are not head of trace and we must freeze it
+    // Without incoming `sentry-` baggage values, the DSC stays unfrozen so it is created from our own segment span.
+    // See https://develop.sentry.dev/sdk/foundations/trace-propagation/dynamic-sampling-context/#incoming-trace-without-dsc
+    dsc: dynamicSamplingContext,
     sampleRand,
   };
+}
+
+/**
+ * Converts a W3C `traceparent` value to the `sentry-trace` format, so carriers that only hold W3C
+ * Trace Context can be passed to `continueTrace`.
+ */
+export function sentryTraceFromTraceparent(traceparent: string): string | undefined {
+  const [version, traceId, spanId, flags] = traceparent.split('-');
+  if (version !== '00' || !traceId || !spanId || !flags) {
+    return undefined;
+  }
+  // The sampled bit is the low bit of the flags byte; `% 2` avoids a bitwise operator.
+  return `${traceId}-${spanId}-${parseInt(flags, 16) % 2 === 1 ? '1' : '0'}`;
 }
 
 /**

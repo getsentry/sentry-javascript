@@ -3,10 +3,14 @@ import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
 import { makeComposeNitroServiceSourceMapsPlugin, makeEnableNitroSourceMapsPlugin } from './nitroSourceMaps';
+import { getRuntimeRelease } from './release';
 import { makeRoutePatternPlugin } from './routePatterns';
+import { makeServerInstrumentationPlugin } from './serverInstrumentation';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 import type { TunnelRouteOptions } from './tunnelRoute';
 import { makeServerEntryTunnelPlugin, makeTunnelBasePathPlugin, makeTunnelRoutePlugin } from './tunnelRoute';
+
+let showedDeprecatedTunnelRouteWarning = false;
 
 /**
  * Build-time options for the Sentry TanStack Start SDK.
@@ -47,6 +51,9 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
    *
    * If you also pass `tunnel` to `Sentry.init()`, that explicit runtime option wins and a warning is emitted because
    * the managed tunnel route is being bypassed.
+   *
+   * @deprecated Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration()` to the server
+   * `Sentry.init` instead.
    */
   tunnelRoute?: TunnelRouteOptions;
 }
@@ -76,28 +83,47 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
  * @returns An array of Vite plugins
  */
 export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): Plugin[] {
+  // oxlint-disable-next-line typescript/no-deprecated -- reads the deprecated option to keep it working
+  const { tunnelRoute } = options;
+  if (tunnelRoute !== undefined && !showedDeprecatedTunnelRouteWarning) {
+    showedDeprecatedTunnelRouteWarning = true;
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/tanstackstart-react] The `tunnelRoute` option is deprecated. Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration()` to the server `Sentry.init` instead.',
+    );
+  }
+
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const release = isDevelopment ? undefined : getRuntimeRelease(options);
+
   const tunnelBasePath = makeTunnelBasePathPlugin();
   const plugins: Plugin[] = [
     makeRoutePatternPlugin(),
     tunnelBasePath.plugin,
-    makeServerEntryTunnelPlugin(options.tunnelRoute, tunnelBasePath.getBasePath),
+    makeServerEntryTunnelPlugin(tunnelRoute, tunnelBasePath.getBasePath, release),
   ];
 
-  if (options.tunnelRoute) {
-    plugins.push(makeTunnelRoutePlugin(options.tunnelRoute, options.debug));
+  if (tunnelRoute) {
+    plugins.push(makeTunnelRoutePlugin(tunnelRoute, options.debug));
   }
 
   // only add build-time plugins in production builds
-  if (process.env.NODE_ENV === 'development') {
+  if (isDevelopment) {
     return plugins;
   }
+
+  plugins.push(makeServerInstrumentationPlugin({ debug: options.debug, release }));
 
   // Runs the orchestrion code transform over the server bundle so instrumented DB drivers get
   // `diagnostics_channel` publishers injected. Production-only: it force-bundles the instrumented
   // (CommonJS) deps via `ssr.noExternal`, which the `vite dev` SSR module runner can't evaluate.
   plugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: options.buildTimeInstrumentation }));
 
-  plugins.push(...makeAddSentryVitePlugin(options), makeComposeNitroServiceSourceMapsPlugin());
+  // The server entry hands the release to the SDK at runtime, so it changes no content hash of the startup chunks.
+  const bundlerPluginOptions = release
+    ? { ...options, release: { ...options.release, name: release, inject: false } }
+    : options;
+  plugins.push(...makeAddSentryVitePlugin(bundlerPluginOptions), makeComposeNitroServiceSourceMapsPlugin());
 
   // middleware auto-instrumentation
   if (options.autoInstrumentMiddleware !== false) {

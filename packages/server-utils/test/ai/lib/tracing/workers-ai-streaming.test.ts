@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { Span } from '@sentry/core';
 import {
   GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_RESPONSE_ID,
+  GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
@@ -16,6 +18,7 @@ function createMockSpan(): { span: Span; attributes: Record<string, unknown>; en
   let isEnded = false;
   const span = {
     isRecording: () => !isEnded,
+    spanContext: () => ({ traceId: '0', spanId: '0', traceFlags: 0 }),
     setAttribute: (key: string, value: unknown) => {
       attributes[key] = value;
     },
@@ -105,10 +108,10 @@ describe('instrumentWorkersAiStream', () => {
   // which the Cloudflare Agents SDK uses) stream `choices[].delta.content` instead of the
   // native top-level `response` field. Usage still arrives top-level, which is why the
   // pre-fix parser captured tokens but dropped the response text entirely.
-  it('accumulates response text from OpenAI-compatible choices[].delta.content chunks', async () => {
+  it('records output, id and model from OpenAI-compatible choices[].delta.content chunks', async () => {
     const { span, attributes, ended } = createMockSpan();
     const chunks = [
-      'data: {"choices":[{"delta":{"content":"The capital "},"finish_reason":null}]}\n\n',
+      'data: {"id":"chatcmpl-1","model":"@cf/google/gemma-4-26b-a4b-it","choices":[{"delta":{"content":"The capital "},"finish_reason":null}]}\n\n',
       'data: {"choices":[{"delta":{"content":"of France "},"finish_reason":null}]}\n\n',
       'data: {"choices":[{"delta":{"content":"is Paris."},"finish_reason":"stop"}]}\n\n',
       'data: {"usage":{"prompt_tokens":12,"completion_tokens":7,"total_tokens":19}}\n\ndata: [DONE]\n\n',
@@ -118,7 +121,16 @@ describe('instrumentWorkersAiStream', () => {
     await new Response(instrumented).text();
 
     expect(attributes[GEN_AI_RESPONSE_STREAMING]).toBe(true);
+    expect(attributes[GEN_AI_RESPONSE_ID]).toBe('chatcmpl-1');
+    expect(attributes[GEN_AI_RESPONSE_MODEL]).toBe('@cf/google/gemma-4-26b-a4b-it');
     expect(attributes[GEN_AI_RESPONSE_TEXT]).toBe('The capital of France is Paris.');
+    expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+      {
+        role: 'assistant',
+        parts: [{ type: 'text', content: 'The capital of France is Paris.' }],
+        finish_reason: 'stop',
+      },
+    ]);
     expect(attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBe(12);
     expect(attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(7);
     expect(attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(19);
@@ -158,8 +170,150 @@ describe('instrumentWorkersAiStream', () => {
             arguments: '{"owner":"cloudflare","name":"agents"}',
           },
         ],
+        finish_reason: 'tool_calls',
       },
     ]);
+  });
+
+  it('keeps parallel tool calls that stream without an index as separate calls', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"id":"call_1","type":"function","function":{"name":"getWeather","arguments":"{\\"city\\":\\"Paris\\"}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"id":"call_2","type":"function","function":{"name":"getTime","arguments":"{\\"tz\\":\\"CET\\"}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
+    expect(toolCalls).toEqual([
+      { id: 'call_1', type: 'function', function: { name: 'getWeather', arguments: '{"city":"Paris"}' } },
+      { id: 'call_2', type: 'function', function: { name: 'getTime', arguments: '{"tz":"CET"}' } },
+    ]);
+  });
+
+  it('merges argument fragments of a tool call that streams without an index', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"id":"call_1","type":"function","function":{"name":"getRepoInfo","arguments":"{\\"owner\\":"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"function":{"arguments":"\\"cloudflare\\"}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
+    expect(toolCalls).toEqual([
+      {
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'getRepoInfo', arguments: '{"owner":"cloudflare"}' },
+      },
+    ]);
+  });
+
+  it.each([undefined, null])('continues a known id when its index changes from %s to numeric', async index => {
+    const { span, attributes } = createMockSpan();
+    const deltas = [
+      { index, id: 'call_1', function: { name: 'getWeather', arguments: '{"city":' } },
+      { index: 0, id: 'call_1', function: { arguments: '"Paris"}' } },
+      { index: 0, function: { arguments: ' ' } },
+    ];
+    const chunks = deltas.map(
+      delta => `data: ${JSON.stringify({ choices: [{ delta: { tool_calls: [delta] } }] })}\n\n`,
+    );
+    await new Response(instrumentWorkersAiStream(streamFromChunks(chunks), span, true)).text();
+    expect(JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string)).toEqual([
+      { index, id: 'call_1', function: { name: 'getWeather', arguments: '{"city":"Paris"} ' } },
+    ]);
+    expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+      {
+        role: 'assistant',
+        parts: [{ type: 'tool_call', id: 'call_1', name: 'getWeather', arguments: '{"city":"Paris"} ' }],
+      },
+    ]);
+  });
+
+  it('continues an unindexed call by id after another call opens', async () => {
+    const { span, attributes } = createMockSpan();
+    const deltas = [
+      { index: null, id: 'call_1', function: { name: 'first', arguments: '{' } },
+      { index: 0, id: 'call_2', function: { name: 'second', arguments: '{}' } },
+      { id: 'call_1', function: { arguments: '}' } },
+    ];
+    const chunks = deltas.map(
+      delta => `data: ${JSON.stringify({ choices: [{ delta: { tool_calls: [delta] } }] })}\n\n`,
+    );
+    await new Response(instrumentWorkersAiStream(streamFromChunks(chunks), span, true)).text();
+    expect(JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string)).toEqual([
+      { index: null, id: 'call_1', function: { name: 'first', arguments: '{}' } },
+      { index: 0, id: 'call_2', function: { name: 'second', arguments: '{}' } },
+    ]);
+  });
+
+  it('does not merge a tool call without an index into one that has the same index number', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"getWeather","arguments":"{}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"id":"call_2","type":"function","function":{"name":"getTime","arguments":"{}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
+    expect(toolCalls.map((call: { id: string }) => call.id)).toEqual(['call_1', 'call_2']);
+  });
+
+  it('opens a new call when a different id arrives on an index that is already taken', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"getWeather","arguments":"{}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_2","type":"function","function":{"name":"getTime","arguments":"{"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
+    expect(toolCalls.map((call: { id: string }) => call.id)).toEqual(['call_1', 'call_2']);
+    expect(toolCalls[1].function.arguments).toBe('{}');
+  });
+
+  it('continues an indexed call with an argument fragment that has no index or id', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"getRepoInfo","arguments":"{\\"owner\\":"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"function":{"arguments":"\\"cloudflare\\"}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
+    expect(toolCalls).toHaveLength(1);
+    expect(toolCalls[0].function).toEqual({ name: 'getRepoInfo', arguments: '{"owner":"cloudflare"}' });
+  });
+
+  it('returns tool calls in the order they were opened when unindexed and indexed calls are mixed', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"id":"call_1","type":"function","function":{"name":"getWeather","arguments":"{}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_2","type":"function","function":{"name":"getTime","arguments":"{}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
+    expect(toolCalls.map((call: { id: string }) => call.id)).toEqual(['call_1', 'call_2']);
   });
 
   // Some Workers AI models (e.g. `@cf/moonshotai/kimi-k2.6`) stream tool calls with the
@@ -189,6 +343,7 @@ describe('instrumentWorkersAiStream', () => {
       {
         role: 'assistant',
         parts: [{ type: 'tool_call', id: 'call_1', name: 'getRepoInfo', arguments: '{"owner":"cloudflare"}' }],
+        finish_reason: 'tool_calls',
       },
     ]);
   });

@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/node';
 import amqp from 'amqplib/callback_api.js';
 
-const queueName = 'callback-queue';
+const queueName = process.env.AMQP_QUEUE_NAME;
 const amqpUsername = 'sentry';
 const amqpPassword = 'sentry';
 

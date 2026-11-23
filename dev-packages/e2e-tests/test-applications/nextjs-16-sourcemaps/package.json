@@ -1,0 +1,57 @@
+{
+  "name": "nextjs-16-sourcemaps",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node start-mock-sentry-server.mjs & next build ${E2E_NEXT_WEBPACK:+--webpack} > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; exit $BUILD_EXIT",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm ts-node --script-mode assert-build.ts",
+    "test:build:delete": "pnpm install && E2E_DELETE_SOURCEMAPS=1 pnpm build",
+    "test:build:delete-webpack": "pnpm install && E2E_DELETE_SOURCEMAPS=1 E2E_NEXT_WEBPACK=1 pnpm build",
+    "test:build:delete-bun": "pnpm install && E2E_DELETE_SOURCEMAPS=1 bun --bun run build",
+    "test:build:delete-webpack-bun": "pnpm install && E2E_DELETE_SOURCEMAPS=1 E2E_NEXT_WEBPACK=1 bun --bun run build",
+    "test:assert:delete": "E2E_DELETE_SOURCEMAPS=1 pnpm test:assert"
+  },
+  "dependencies": {
+    "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
+    "next": "16.4.6",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "typescript": "~5.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
+    "@types/node": "^18.19.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "ts-node": "10.9.1"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build:delete",
+        "assert-command": "pnpm test:assert:delete",
+        "label": "nextjs-16-sourcemaps (delete, turbopack)"
+      },
+      {
+        "build-command": "pnpm test:build:delete-webpack",
+        "assert-command": "pnpm test:assert:delete",
+        "label": "nextjs-16-sourcemaps (delete, webpack)"
+      },
+      {
+        "runtime": "bun",
+        "build-command": "pnpm test:build:delete-bun",
+        "assert-command": "pnpm test:assert:delete",
+        "label": "nextjs-16-sourcemaps (delete, turbopack, bun)"
+      },
+      {
+        "runtime": "bun",
+        "build-command": "pnpm test:build:delete-webpack-bun",
+        "assert-command": "pnpm test:assert:delete",
+        "label": "nextjs-16-sourcemaps (delete, webpack, bun)"
+      }
+    ]
+  }
+}

@@ -326,7 +326,41 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     const code = ["import { BaseEntry } from './base';", 'export class RemoteEntry extends BaseEntry {}'].join('\n');
     const result = await plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'index.ts'));
 
-    expect(result).toBeUndefined();
+    expect(result.code).toBe(`globalThis.__SENTRY_CLOUDFLARE_WORKER__ = {"name":"worker-self"};\n${code}`);
+  });
+
+  it('stores the wrangler `name` and `compatibility_date` in the entry', async () => {
+    const dir = writeTempDir({
+      'wrangler.json': JSON.stringify({ name: 'my-worker', main: 'index.ts', compatibility_date: '2025-06-17' }),
+    });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir });
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = await plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'index.ts'));
+
+    expect(result.code).toMatch(
+      /^globalThis\.__SENTRY_CLOUDFLARE_WORKER__ = \{"name":"my-worker","compatibilityDate":"2025-06-17"\};\n/,
+    );
+    expect(result.code).toContain('__SENTRY__.withSentry(');
+  });
+
+  it('stores the wrangler `name` and `compatibility_date` in an entry that is already wrapped', async () => {
+    const dir = writeTempDir({
+      'wrangler.json': JSON.stringify({ name: 'my-worker', main: 'index.ts', compatibility_date: '2025-06-17' }),
+    });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir });
+
+    const code = [
+      "import * as Sentry from '@sentry/cloudflare';",
+      'export default Sentry.withSentry(() => ({}), { fetch() { return new Response("ok"); } });',
+    ].join('\n');
+    const result = await plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'index.ts'));
+
+    expect(result.code).toBe(
+      `globalThis.__SENTRY_CLOUDFLARE_WORKER__ = {"name":"my-worker","compatibilityDate":"2025-06-17"};\n${code}`,
+    );
   });
 
   // An Agent is a Durable Object, so wrangler can only ever list it under
@@ -507,6 +541,40 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain('MyDO');
   });
+
+  it('does not warn for a shim that re-exports everything from a query variant of the entry', async () => {
+    const dir = writeTempDir({
+      'wrangler.toml': [
+        'main = "index.ts"',
+        '',
+        '[[durable_objects.bindings]]',
+        'name = "MY_DO"',
+        'class_name = "MyDO"',
+      ].join('\n'),
+    });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir });
+
+    const entry = join(dir, 'index.ts').replace(/\\/g, '/');
+    const original = JSON.stringify(`${entry}?sentry-tunnel-original`);
+    const warnings: string[] = [];
+    const ctx = { parse: (c: string) => parseJS(c), warn: (msg: string) => warnings.push(msg) };
+
+    const originalResult = await plugin.transform.call(
+      ctx,
+      'export class MyDO {}\nexport default { fetch() {} };',
+      `${entry}?sentry-tunnel-original`,
+    );
+    const shimResult = await plugin.transform.call(
+      ctx,
+      `export * from ${original};\nexport { default } from ${original};`,
+      entry,
+    );
+
+    expect(originalResult.code).toContain('instrumentDurableObjectWithSentry(');
+    expect(shimResult.code).toContain('_INTERNAL_wrapUnlessInstrumented(');
+    expect(warnings).toEqual([]);
+  });
 });
 
 describe('wranglerConfigPath option', () => {
@@ -588,8 +656,10 @@ describe('package specifier as wrangler `main`', () => {
     const warn = vi.fn();
     const tx = (id: string, environment = ssr) =>
       plugin.transform.call({ parse: (c: string) => parseJS(c), warn, environment }, code, id);
+    const buildStart = (resolve = vi.fn().mockResolvedValue(null)) =>
+      plugin.buildStart.call({ warn, environment: ssr, resolve });
 
-    return { tx, entryPath, dir, warn };
+    return { tx, buildStart, entryPath, dir, warn };
   }
 
   it('wraps the module the specifier resolves to', async () => {
@@ -634,16 +704,93 @@ describe('package specifier as wrangler `main`', () => {
     expect(result.code).toContain('__SENTRY__.withSentry(__SENTRY_OPTIONS_CALLBACK__,');
   });
 
-  it('warns once when the specifier does not resolve', async () => {
-    const { tx, dir, warn } = createPlugin();
+  it('warns at build start when the specifier does not resolve', async () => {
+    const { tx, dir, warn, buildStart } = createPlugin();
     idResolver.mockResolvedValue(undefined);
 
+    await buildStart();
     expect(await tx(join(dir, 'a.js'))).toBeUndefined();
     expect(await tx(join(dir, 'b.js'))).toBeUndefined();
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith(
       '[sentry] Could not resolve the wrangler `main` "vinext/server/fetch-handler". Auto-instrumentation disabled.',
     );
+  });
+});
+
+describe('virtual module as wrangler `main`', () => {
+  const MAIN = 'virtual:solid-ssr-handler';
+  const RESOLVED_ID = `\0${MAIN}`;
+  const code = 'export default { fetch() { return new Response("ok"); } };';
+  const ssr = { name: 'ssr' };
+
+  beforeEach(() => {
+    idResolver.mockReset();
+    // Vite's resolver does not see virtual modules other plugins provide.
+    idResolver.mockResolvedValue(undefined);
+  });
+
+  function createPlugin(files: Record<string, string> = {}) {
+    const dir = writeTempDir({ 'wrangler.jsonc': JSON.stringify({ main: MAIN }), ...files });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir });
+
+    const warn = vi.fn();
+    // The plugin pipeline, where the plugin that serves the virtual module resolves it.
+    const resolve = vi.fn(async (source: string) => (source === MAIN ? { id: RESOLVED_ID } : null));
+    const context = { parse: (c: string) => parseJS(c), warn, environment: ssr, resolve };
+    const buildStart = () => plugin.buildStart.call(context);
+    const tx = (id: string) => plugin.transform.call(context, code, id);
+
+    return { plugin, tx, buildStart, resolve, dir, warn };
+  }
+
+  it('wraps the module the plugin pipeline resolves `main` to', async () => {
+    const { tx, buildStart, resolve, dir, warn } = createPlugin();
+
+    await buildStart();
+    const result = await tx(RESOLVED_ID);
+    expect(resolve).toHaveBeenCalledWith(MAIN, join(dir, 'wrangler.jsonc'));
+    expect(result.code).toContain('__SENTRY__.withSentry(');
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('does not wrap other modules', async () => {
+    const { tx, buildStart, dir } = createPlugin();
+
+    await buildStart();
+    expect(await tx(join(dir, 'src/app.js'))).toBeUndefined();
+    expect(await tx(`${RESOLVED_ID}-impl`)).toBeUndefined();
+  });
+
+  it('imports instrument.server.* by its absolute path', async () => {
+    const { tx, buildStart, dir } = createPlugin({
+      'instrument.server.ts': 'export default (env) => ({ dsn: env.SENTRY_DSN });',
+    });
+
+    await buildStart();
+    const result = await tx(RESOLVED_ID);
+    expect(result.code).toContain(
+      `import __SENTRY_OPTIONS_CALLBACK__ from '${join(dir, 'instrument.server.ts').replace(/\\/g, '/')}';`,
+    );
+  });
+
+  it('warns at build start when no plugin resolves `main`', async () => {
+    const { buildStart, resolve, warn } = createPlugin();
+    resolve.mockResolvedValue(null);
+
+    await buildStart();
+    expect(warn).toHaveBeenCalledWith(
+      '[sentry] Could not resolve the wrangler `main` "virtual:solid-ssr-handler". Auto-instrumentation disabled.',
+    );
+  });
+
+  it('does not resolve `main` in the client environment', async () => {
+    const { plugin, resolve, warn } = createPlugin();
+
+    await plugin.buildStart.call({ warn, environment: { name: 'client' }, resolve });
+    expect(resolve).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
   });
 });
 

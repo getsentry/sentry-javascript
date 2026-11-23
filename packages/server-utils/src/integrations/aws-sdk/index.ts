@@ -18,6 +18,7 @@ import type { TracingChannelLifeCycleOptions } from '../../tracing-channel';
 import { bindTracingChannelToSpan, safeChannelCallback } from '../../tracing-channel';
 import { AWS_SDK_ORIGIN_INTEGRATION_NAME } from './constants';
 import { ServicesExtensions } from './services';
+import type { BedrockRuntimeOptions } from './services/bedrock-runtime';
 import type { NormalizedRequest, NormalizedResponse, RequestMetadata } from './types';
 import { extractAttributesFromNormalizedRequest, normalizeV3Request, removeSuffixFromStringIfExists } from './utils';
 
@@ -63,8 +64,11 @@ function setMetadataAttributes(span: Span, metadata: Record<string, any> | undef
   }
 }
 
-const _awsIntegration = (() => {
-  const servicesExtensions = new ServicesExtensions();
+// `recordInputs` and `recordOutputs` apply to Bedrock Runtime calls, the only AWS calls that carry prompts and responses.
+export type AwsIntegrationOptions = BedrockRuntimeOptions;
+
+const _awsIntegration = ((options?: AwsIntegrationOptions) => {
+  const servicesExtensions = new ServicesExtensions(options);
 
   return {
     name: INTEGRATION_NAME,
@@ -108,6 +112,7 @@ function instrumentAwsSdk(servicesExtensions: ServicesExtensions): void {
         command.input = {};
       }
       const normalizedRequest = normalizeV3Request(serviceName, commandName, command.input, undefined);
+      normalizedRequest.abortSignal = (data.arguments[1] as { abortSignal?: AbortSignal } | undefined)?.abortSignal;
       const requestMetadata = servicesExtensions.requestPreSpanHook(normalizedRequest);
 
       // `rpc` matches what the exporter infers from `rpc.service` for the OTel aws-sdk spans;
@@ -193,6 +198,7 @@ function instrumentAwsSdk(servicesExtensions: ServicesExtensions): void {
             httpStatusCode: errMetadata?.httpStatusCode,
             extendedRequestId: err?.extendedRequestId ?? errMetadata?.extendedRequestId,
           });
+          servicesExtensions.errorHook(normalizedRequest, data.error, span);
           return;
         }
 

@@ -175,6 +175,15 @@ describe('onCreateWebpackConfig', () => {
         },
       },
       {
+        name: 'replaces disabled source maps with hidden ones and deletes them',
+        initialConfig: { devtool: false },
+        options: {},
+        expected: {
+          devtool: 'hidden-source-map',
+          deleteSourceMaps: true,
+        },
+      },
+      {
         name: 'explicit deleteSourcemapsAfterUpload true',
         initialConfig: { devtool: 'source-map' },
         options: { deleteSourcemapsAfterUpload: true },

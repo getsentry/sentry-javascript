@@ -1,6 +1,6 @@
 import { basename } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { consoleSandbox } from '@sentry/core';
+import { consoleSandbox, stringifyForCodeInjection } from '@sentry/core';
 import type { InputPluginOption } from 'rollup';
 
 /** THIS FILE IS AN UTILITY FOR NITRO-BASED PACKAGES AND SHOULD BE KEPT IN SYNC IN NUXT, SOLIDSTART, ETC. */
@@ -146,10 +146,10 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
 
         return (
           // Regular `import` of the Sentry config
-          `import ${JSON.stringify(configUrl)};\n` +
+          `import ${stringifyForCodeInjection(configUrl)};\n` +
           // Dynamic `import()` for the previous, actual entry point.
           // `import()` can be used for any code that should be run after the hooks are registered (https://nodejs.org/api/module.html#enabling)
-          `import(${JSON.stringify(entryIdUrl)});\n` +
+          `import(${stringifyForCodeInjection(entryIdUrl)});\n` +
           `${reExportedFunctions}\n`
         );
       }
@@ -269,7 +269,7 @@ export function constructFunctionReExport(pathWithQuery: string, entryId: string
       (functionsCode, currFunctionName) =>
         functionsCode.concat(
           `async function ${currFunctionName}_sentryWrapped(...args) {\n` +
-            `  const res = await import(${JSON.stringify(entryId)});\n` +
+            `  const res = await import(${stringifyForCodeInjection(entryId)});\n` +
             `  return res.${currFunctionName}.call(this, ...args);\n` +
             '}\n' +
             `export { ${currFunctionName}_sentryWrapped as ${currFunctionName} };\n`,
@@ -279,7 +279,7 @@ export function constructFunctionReExport(pathWithQuery: string, entryId: string
     .concat(
       reexportFunctions.reduce(
         (functionsCode, currFunctionName) =>
-          functionsCode.concat(`export { ${currFunctionName} } from ${JSON.stringify(entryId)};`),
+          functionsCode.concat(`export { ${currFunctionName} } from ${stringifyForCodeInjection(entryId)};`),
         '',
       ),
     );

@@ -3,7 +3,7 @@
  *
  * On workerd, `channel.publish()`/`runStores()` throw at module/global scope, so a library
  * instantiated at module scope (`const app = new Hono()`) cannot emit its wrapping event
- * there. {@link ./orchestrion-diagnostics-channel} defers those events here;
+ * there. `./orchestrion-diagnostics-channel` defers those events on the global marker;
  * {@link flushDeferredChannelEvents} emits them once a request is being handled (where
  * publish works) and the SDK's `init()` has registered subscribers.
  *
@@ -13,41 +13,7 @@
  */
 import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
-
-type Ctx = Record<string, unknown>;
-
-// The minimal slice of a `node:diagnostics_channel` TracingChannel we emit on. Declared locally
-// (rather than imported from `node:diagnostics_channel`) so this module's graph carries no `node:`
-// specifier — `wrapRequestHandler` must load on runtimes without `nodejs_compat`, and the
-// module-graph test forbids any `node:` import reachable from it.
-interface PublishableTracingChannel {
-  start: { publish(ctx: Ctx): void };
-  end: { publish(ctx: Ctx): void };
-  error: { publish(ctx: Ctx): void };
-}
-
-interface DeferredChannelEvent {
-  channel: PublishableTracingChannel;
-  ctx: Ctx;
-  hadError: boolean;
-}
-
-const deferred: DeferredChannelEvent[] = [];
-const DEFERRED = Symbol('sentryOrchestrionDeferred');
-
-/** workerd's global-scope guard is the only error we degrade on; anything else is a real fault. */
-export function isGlobalScopeError(error: unknown): boolean {
-  return error instanceof Error && /within global scope/.test(error.message);
-}
-
-/** Queue a channel event that could not be published now, at most once per context object. */
-export function deferChannelEvent(channel: PublishableTracingChannel, ctx: Ctx): void {
-  if ((ctx as Record<symbol, unknown>)[DEFERRED]) {
-    return;
-  }
-  (ctx as Record<symbol, unknown>)[DEFERRED] = true;
-  deferred.push({ channel, ctx, hadError: 'error' in ctx });
-}
+import { getDeferredEvents } from './orchestrion-deferred-queue';
 
 /**
  * Emit every deferred channel event via the real channel. Called at the top of the request
@@ -57,6 +23,7 @@ export function deferChannelEvent(channel: PublishableTracingChannel, ctx: Ctx):
  * and re-entrant calls are no-ops.
  */
 export function flushDeferredChannelEvents(): void {
+  const deferred = getDeferredEvents();
   if (deferred.length === 0) {
     return;
   }

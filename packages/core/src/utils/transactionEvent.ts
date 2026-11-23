@@ -6,7 +6,7 @@ import type { SpanJSON } from '../types/span';
  * Converts a transaction event to a span JSON object.
  */
 export function convertTransactionEventToSpanJson(event: TransactionEvent): SpanJSON {
-  const { trace_id, parent_span_id, span_id, status, origin, data, op } = event.contexts?.trace ?? {};
+  const { trace_id, parent_span_id, span_id, status, origin, data, op, links } = event.contexts?.trace ?? {};
 
   return {
     data: data ?? {},
@@ -19,6 +19,7 @@ export function convertTransactionEventToSpanJson(event: TransactionEvent): Span
     timestamp: event.timestamp,
     trace_id: trace_id ?? '',
     origin,
+    links,
     profile_id: data?.[SENTRY_PROFILE_ID] as string | undefined,
     exclusive_time: data?.[SENTRY_EXCLUSIVE_TIME] as number | undefined,
     measurements: event.measurements,
@@ -43,6 +44,7 @@ export function convertSpanJsonToTransactionEvent(span: SpanJSON): TransactionEv
         op: span.op,
         status: span.status,
         origin: span.origin,
+        links: span.links,
         data: {
           ...span.data,
           ...(span.profile_id && { [SENTRY_PROFILE_ID]: span.profile_id }),

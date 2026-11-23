@@ -13,24 +13,24 @@ const cronWithCheckIn = Sentry.cron.instrumentNodeCron(cron);
 let closeNext = false;
 
 const task = cronWithCheckIn.schedule(
-  '* * * * * *',
+  '0 9 * * 1-5',
   () => {
     if (closeNext) {
-      // https://github.com/node-cron/node-cron/issues/317
-      setImmediate(() => {
-        task.stop();
-      });
-
       throw new Error('Error in cron job');
     }
 
-    // eslint-disable-next-line no-console
-    console.log('You will see this message every second');
     closeNext = true;
   },
-  { name: 'my-cron-job' },
+  { name: 'my-cron-job', timezone: 'Europe/Vienna' },
 );
+
+// Run the task without waiting for its schedule.
+task.stop();
+task
+  .execute()
+  .then(() => task.execute())
+  .catch(() => {});
 
 setTimeout(() => {
   process.exit();
-}, 15_000);
+}, 10_000);

@@ -5,6 +5,7 @@ import {
   _INTERNAL_flushMetricsBuffer,
   applySdkMetadata,
   debug,
+  GLOBAL_OBJ,
   spanIsSampled,
   spanStreamingIntegration,
 } from '@sentry/core';
@@ -19,6 +20,14 @@ import { getInvocationState, getInvocationWaitUntil } from './utils/invocationCo
 declare const __SENTRY_TRACING__: boolean;
 
 const SPAN_STREAMING_INTEGRATION_NAME = 'SpanStreaming';
+
+type GlobalWithWorkerInfo = typeof GLOBAL_OBJ & {
+  /**
+   * The `name` and `compatibility_date` of the wrangler config. Only set when the Worker is built
+   * with `sentryCloudflareVitePlugin`.
+   */
+  __SENTRY_CLOUDFLARE_WORKER__?: { name?: string; compatibilityDate?: string };
+};
 
 /**
  * The Sentry Cloudflare SDK Client.
@@ -39,6 +48,14 @@ export class CloudflareClient extends ServerRuntimeClient {
   // and must not each start their own eager transport flush.
   private _inBoundaryFlush = false;
 
+  // Set when an envelope that needs eager delivery is accepted during a boundary flush. The
+  // flush's transport drain takes its batch when it starts, so such an envelope can miss it.
+  private _envelopeDuringBoundaryFlush = false;
+
+  // Eager drains still sending. Outside an instrumented invocation (e.g. Astro on Pages) they have no `waitUntil`,
+  // so `flush()` awaits them, or the response can end first and the runtime cancels their fetches.
+  private readonly _pendingEagerDrains = new Set<Promise<void>>();
+
   /**
    * Whether this client is a cached, cross-invocation client (`cacheClient`).
    * Cached clients are never disposed at an invocation boundary, so their spans/events
@@ -54,13 +71,15 @@ export class CloudflareClient extends ServerRuntimeClient {
     applySdkMetadata(options, 'cloudflare');
     options._metadata = options._metadata || {};
     const { flushLock, ...serverOptions } = options;
+    const workerInfo = (GLOBAL_OBJ as GlobalWithWorkerInfo).__SENTRY_CLOUDFLARE_WORKER__;
 
     const clientOptions: ServerRuntimeClientOptions = {
       ...serverOptions,
       platform: 'javascript',
-      // TODO: Grab version information
-      runtime: { name: 'cloudflare' },
-      // TODO: Add server name
+      // workerd exposes no version at runtime (`navigator.userAgent` is always `Cloudflare-Workers`).
+      // The compatibility date selects the workerd behavior of the Worker, so it is the version.
+      runtime: { name: 'cloudflare', version: workerInfo?.compatibilityDate },
+      serverName: serverOptions.serverName ?? workerInfo?.name,
       _flushInterval: 0,
     };
 
@@ -77,6 +96,7 @@ export class CloudflareClient extends ServerRuntimeClient {
 
     super(clientOptions);
     this._flushLock = flushLock;
+    // oxlint-disable-next-line typescript/no-deprecated
     this.isCachedClient = options.cacheClient === true;
 
     // Track span lifecycle to know when to flush. Skipped for cached clients
@@ -172,11 +192,25 @@ export class CloudflareClient extends ServerRuntimeClient {
     // envelopes on the `flush` emit) ride its own transport drain; without the flag each
     // of them would also start an eager drain and a `waitUntil` registration.
     this._inBoundaryFlush = true;
+    let flushed: boolean;
     try {
-      return await super.flush(timeout);
+      flushed = await super.flush(timeout);
     } finally {
       this._inBoundaryFlush = false;
     }
+
+    if (this._envelopeDuringBoundaryFlush) {
+      this._envelopeDuringBoundaryFlush = false;
+      const transport = this.getTransport();
+      if (transport) {
+        this._registerWithInvocationWaitUntil(transport.flush(timeout ?? 2000));
+      }
+    }
+
+    // Each eager drain is bounded by its own transport flush timeout.
+    await Promise.all(this._pendingEagerDrains);
+
+    return flushed;
   }
 
   /**
@@ -271,7 +305,12 @@ export class CloudflareClient extends ServerRuntimeClient {
       const transport = this.getTransport();
       const invocationState = getInvocationState();
 
-      if (!transport || this._inBoundaryFlush || (invocationState && !invocationState.flushPointReached)) {
+      if (!transport || (invocationState && !invocationState.flushPointReached)) {
+        return;
+      }
+
+      if (this._inBoundaryFlush) {
+        this._envelopeDuringBoundaryFlush = true;
         return;
       }
 
@@ -321,9 +360,16 @@ export class CloudflareClient extends ServerRuntimeClient {
    * Attaches a promise to the `waitUntil` of the invocation that owns the current
    * async context, so the runtime keeps the send alive after the response is returned.
    * Outside any instrumented invocation (or where the context has no `waitUntil`,
-   * e.g. Astro prerendering) the send is fire-and-forget.
+   * e.g. Astro prerendering) only the next `flush()` waits for the send.
    */
   private _registerWithInvocationWaitUntil(promise: PromiseLike<unknown>): void {
+    const pending = Promise.resolve(promise).then(
+      () => undefined,
+      () => undefined,
+    );
+    this._pendingEagerDrains.add(pending);
+    void pending.then(() => this._pendingEagerDrains.delete(pending));
+
     const invocationState = getInvocationState();
     const waitUntil = invocationState && getInvocationWaitUntil(invocationState);
     if (!waitUntil) {
@@ -331,12 +377,7 @@ export class CloudflareClient extends ServerRuntimeClient {
     }
 
     try {
-      waitUntil(
-        Promise.resolve(promise).then(
-          () => undefined,
-          () => undefined,
-        ),
-      );
+      waitUntil(pending);
     } catch {
       // The owning invocation already ended; the send races isolate teardown either way.
     }
@@ -411,6 +452,37 @@ interface BaseCloudflareOptions {
   rpcTracePropagationBindings?: TracePropagationTargets;
 
   /**
+   * The Queue producer bindings on `env` that outgoing messages propagate trace context to.
+   *
+   * Cloudflare Queues has no message headers, so the SDK adds the producer's `sentry-trace` to
+   * plain-object message bodies under `__sentry_queue_trace__`. Arrays, binary data and other
+   * non-plain values are sent unchanged. A Sentry-instrumented consumer removes that field before
+   * your queue handler runs and links its `queue.process` span to every producer in the batch.
+   * Anywhere else the field arrives as part of the message body, so list only the queues whose
+   * consumer you know runs Sentry.
+   *
+   * The field adds about 80 bytes to each message. Cloudflare rejects messages over 128 KB, so a
+   * message close to that limit can fail to send once propagation is enabled.
+   *
+   * Strings match a binding name exactly, regular expressions match by pattern. Both match
+   * case-insensitively.
+   *
+   * @default []
+   * @example
+   * ```ts
+   * // Propagate to `env.BILLING_QUEUE` and every `env.JOBS_*` binding
+   * export default Sentry.withSentry(
+   *   env => ({
+   *     dsn: env.SENTRY_DSN,
+   *     queueTracePropagationBindings: ['BILLING_QUEUE', /^JOBS_/],
+   *   }),
+   *   handler,
+   * );
+   * ```
+   */
+  queueTracePropagationBindings?: TracePropagationTargets;
+
+  /**
    * Table names that should stay instrumented even though they match a reserved prefix used by
    * Durable Object frameworks for their internal SQLite tables: `cf_` (`agents`, `partyserver`, ...)
    * and `pi_` (pi-durable in the `PiHarness` of `agents`).
@@ -465,6 +537,9 @@ interface BaseCloudflareOptions {
    * Sets an optional server name (device name).
    *
    * This is useful for identifying which server or instance is sending events.
+   *
+   * @default the `SENTRY_NAME` variable of `env`, else the `name` of the wrangler config when you
+   * build with `sentryCloudflareVitePlugin`
    */
   serverName?: string;
 
@@ -480,6 +555,7 @@ interface BaseCloudflareOptions {
    */
   spotlight?: boolean | string;
 
+  // TODO(v12): Remove `cacheClient` and the per-invocation client code paths it enables.
   /**
    * Cache the client and reuse it across invocations within the same isolate.
    *
@@ -500,6 +576,10 @@ interface BaseCloudflareOptions {
    * handler completes.
    *
    * @default true
+   *
+   * @deprecated `cacheClient` will be removed in the next major version (v12), and the client will always be cached.
+   * If you set `cacheClient: false`, please open an issue at https://github.com/getsentry/sentry-javascript/issues
+   * and tell us why `cacheClient: true` does not work for your use case.
    */
   cacheClient?: boolean;
 

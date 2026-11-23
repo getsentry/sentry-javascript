@@ -3,7 +3,7 @@ import { /* usePinia,*/ useRuntimeConfig } from '#imports';
 
 Sentry.init({
   dsn: useRuntimeConfig().public.sentry.dsn,
-  tunnel: useRuntimeConfig().public.e2eTunnel ? true : `http://localhost:3031/`, // proxy server
+  tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1.0,
   integrations: [
     /* Sentry.piniaIntegration(usePinia(), {
@@ -16,6 +16,7 @@ Sentry.init({
     */
     Sentry.vueIntegration({
       tracingOptions: {
+        timeout: 500,
         trackComponents: true,
       },
     }),

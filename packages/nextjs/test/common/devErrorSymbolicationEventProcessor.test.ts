@@ -27,6 +27,7 @@ describe('devErrorSymbolicationEventProcessor', () => {
     delete (GLOBAL_OBJ as any)._sentryNextJsVersion;
     delete (GLOBAL_OBJ as any)._sentryBasePath;
     delete process.env.PORT;
+    delete process.env.__NEXT_DIST_DIR;
   });
 
   describe('Next.js version handling', () => {
@@ -472,6 +473,68 @@ describe('devErrorSymbolicationEventProcessor', () => {
         expect.stringContaining('http://localhost:4000/__nextjs_original-stack-frames'),
         expect.any(Object),
       );
+    });
+  });
+  describe('client frame files (Next.js >= 15.2)', () => {
+    async function symbolicate(file: string): Promise<void> {
+      const testError = new Error('test error');
+      testError.stack = `Error: test error\n    at onClick (${file}:15:19)`;
+
+      (GLOBAL_OBJ as any)._sentryNextJsVersion = '16.0.0';
+
+      const stackTraceParser = await import('stacktrace-parser');
+      vi.mocked(stackTraceParser.parse).mockReturnValue([
+        { file, methodName: 'onClick', lineNumber: 15, column: 19, arguments: [] },
+      ]);
+
+      vi.mocked(fetch).mockResolvedValueOnce({ ok: true, status: 200, json: async () => [] } as any);
+
+      await devErrorSymbolicationEventProcessor(
+        { exception: { values: [{ stacktrace: { frames: [{ filename: file }] } }] } },
+        { originalException: testError },
+      );
+    }
+
+    function expectRequestedFile(file: string): void {
+      expect(fetch).toHaveBeenCalledWith(
+        'http://localhost:3000/__nextjs_original-stack-frames',
+        expect.objectContaining({ body: expect.stringContaining(`"file":${JSON.stringify(file)}`) }),
+      );
+    }
+
+    it('rewrites Next.js static chunk URLs to file URLs in the dist directory', async () => {
+      process.env.__NEXT_DIST_DIR = '/project/.next/dev';
+
+      await symbolicate('http://localhost:3000/_next/static/chunks/_0n_lkz6umv3eh._.js');
+
+      expectRequestedFile('file:///project/.next/dev/static/chunks/_0n_lkz6umv3eh._.js');
+    });
+
+    it('rewrites static chunk URLs behind a base path', async () => {
+      process.env.__NEXT_DIST_DIR = 'C:\\project\\.next\\dev\\';
+
+      await symbolicate('http://localhost:3000/docs/_next/static/chunks/app.js');
+
+      expectRequestedFile('file://C:/project/.next/dev/static/chunks/app.js');
+    });
+
+    it.each(['webpack-internal:///(app-pages-browser)/./components/Button.tsx', 'file:///project/app/page.tsx'])(
+      'leaves %s unchanged',
+      async file => {
+        process.env.__NEXT_DIST_DIR = '/project/.next/dev';
+
+        await symbolicate(file);
+
+        expectRequestedFile(file);
+      },
+    );
+
+    it('leaves URLs unchanged without a dist directory', async () => {
+      const file = 'http://localhost:3000/_next/static/chunks/_0n_lkz6umv3eh._.js';
+
+      await symbolicate(file);
+
+      expectRequestedFile(file);
     });
   });
 });

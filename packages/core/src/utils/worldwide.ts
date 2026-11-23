@@ -96,6 +96,16 @@ export type InternalGlobal = {
      */
     runtimeUnavailable?: boolean;
     /**
+     * Set when an integration asks to subscribe to orchestrion-injected
+     * channels, so a missing injection is only reported when it loses data.
+     */
+    channelIntegrations?: boolean;
+    /**
+     * Set once the Bun warning for missing channel injection has been shown.
+     * Lives on the marker so that duplicate SDK copies warn only once.
+     */
+    warnedBunRunNotInjected?: boolean;
+    /**
      * Module namespaces stashed by build-time provider imports, keyed by module
      * name (e.g. `@mastra/observability`). A bundler plugin can splice a static
      * `import * as ns from '<pkg>'` into an integration and record `ns` here, so
@@ -103,6 +113,12 @@ export type InternalGlobal = {
      * in a bundled runtime such as Cloudflare Workers.
      */
     providedModules?: Record<string, Record<string, unknown>>;
+    /**
+     * Channel events that `@sentry/cloudflare` could not publish at module scope and publishes with the first
+     * request. Lives on the marker because a bundle can hold both the CommonJS and the ES module build of the SDK:
+     * transformed CommonJS packages add events through one build, and the request wrapper of the other publishes them.
+     */
+    deferredChannelEvents?: unknown[];
   };
 } & Carrier;
 

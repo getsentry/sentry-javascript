@@ -114,11 +114,11 @@ export {
 export {
   handleTunnelRequestIfMatched,
   isTunnelRequest,
-  serveTunnelIntegration,
   trpcMiddleware,
   wrapMcpServerWithSentry,
 } from '@sentry/core/server';
 export type { TunnelRequestLike } from '@sentry/core/server';
+export { serveTunnelIntegration } from './integrations/serveTunnel';
 export { getTunnelPath, handleTunnelRequest } from '@sentry/core';
 export type { HandleTunnelRequestOptions, ServerTunnelOptions } from '@sentry/core';
 export {
@@ -160,6 +160,9 @@ export {
   amqplibIntegration,
   anthropicAIIntegration,
   awsIntegration,
+  BullMQTelemetry,
+  createSentryWinstonTransport,
+  cron,
   dataloaderIntegration,
   redisIntegration,
   expressIntegration,
@@ -177,6 +180,7 @@ export {
   langChainIntegration,
   langGraphIntegration,
   mastraIntegration,
+  piAiIntegration,
   piDurableIntegration,
   mcpServerIntegration,
   SentryMastraExporter,
@@ -189,17 +193,29 @@ export {
   nitroIntegration,
   mistralAIIntegration,
   openAIIntegration,
+  pinoIntegration,
   groqIntegration,
   togetherAIIntegration,
   typesafeIntegration,
   postgresIntegration,
   postgresJsIntegration,
   neonIntegration,
+  clickhouseIntegration,
+  cronJobIntegration,
   nodeCronIntegration,
+  nodeScheduleIntegration,
   tediousIntegration,
   eveConversationHook,
   eveIntegration,
   getInstrumentedModuleNames,
+} from '@sentry/server-utils';
+export {
+  // oxlint-disable-next-line typescript/no-deprecated
+  expressErrorHandler,
+  // oxlint-disable-next-line typescript/no-deprecated
+  setupExpressErrorHandler,
+  // oxlint-disable-next-line typescript/no-deprecated
+  setupHapiErrorHandler,
 } from '@sentry/server-utils';
 export { openTelemetryIntegration, getOtlpTracesEndpoint } from '@sentry/server-utils/no-diagnostic-channels';
 // Deprecated aliases kept for back-compat. Each forwards to the shared

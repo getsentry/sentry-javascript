@@ -15,13 +15,13 @@ function getSegment(container: SerializedStreamedSpanContainer): SerializedStrea
 
 function getQuerySpans(container: SerializedStreamedSpanContainer): SerializedStreamedSpan[] {
   const querySpans = container.items.filter(
-    item => item.attributes['sentry.origin']?.value === 'auto.db.postgres' && item.attributes['db.query.text']?.value,
+    item => item.attributes['sentry.op']?.value === 'db' && item.attributes['db.query.text']?.value,
   );
   expect(querySpans.map(span => span.name)).toEqual(
     expect.arrayContaining(['INSERT "public"."User"', 'SELECT "public"."User"', 'DELETE "public"."User"']),
   );
   querySpans.forEach(span => {
-    expect(span.attributes['sentry.op']?.value).toBe('db');
+    expect(span.attributes['sentry.origin']?.value).toBe('auto.db.postgres');
     expect(span.attributes['db.system.name']?.value).toBe('postgresql');
   });
   return querySpans;
@@ -33,7 +33,6 @@ function getOperationSpans(container: SerializedStreamedSpanContainer): Serializ
 
 // Prisma 8 has no tracing surface: the operation spans come from the orchestrion channels the runtime hook
 // injects, and the `pg` spans underneath stand in for v7's `db_query` spans.
-// Prisma 8 requires Node 22.12 (`engines` of its `@prisma/cli-engine` peer), and on Node 20 it does not install.
 describe.runIf(supports({ min: 22 }))('Prisma ORM v8 Tests', () => {
   describeWithDockerCompose('Prisma ORM v8', { workingDirectory: [__dirname] }, () => {
     createEsmAndCjsTests(
@@ -100,9 +99,6 @@ describe.runIf(supports({ min: 22 }))('Prisma ORM v8 Tests', () => {
         testInstrumentedOperations();
       },
       {
-        additionalDependencies: {
-          '@prisma/orm-postgres': '8.0.0-rc.17',
-        },
         copyPaths: ['prisma'],
       },
     );

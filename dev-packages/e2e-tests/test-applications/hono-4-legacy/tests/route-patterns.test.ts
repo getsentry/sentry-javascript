@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { waitForStreamedSpan, getSpanOp, collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
+import {
+  waitForError,
+  waitForStreamedSpan,
+  getSpanOp,
+  collectStreamedSpansUntilSegment,
+} from '@sentry-internal/test-utils';
 import { APP_NAME } from './constants';
 
 const PREFIX = '/test-routes';
@@ -175,4 +180,24 @@ test('async handler sends span', async ({ baseURL }) => {
   );
   const middlewareSpans = spans.filter(s => getSpanOp(s) === 'middleware');
   expect(middlewareSpans).toEqual([]);
+});
+
+test('names an event captured in a route handler after that route', async ({ baseURL }) => {
+  const eventPromise = waitForError(APP_NAME, event => event.message === 'Message from a route handler');
+
+  const response = await fetch(`${baseURL}${PREFIX}/capture/42`);
+  expect(response.status).toBe(200);
+
+  const event = await eventPromise;
+  expect(event.transaction).toBe(`GET ${PREFIX}/capture/:id`);
+});
+
+test('names an event from the route handler that runs after next() after that route', async ({ baseURL }) => {
+  const eventPromise = waitForError(APP_NAME, event => event.message === 'Message from a route handler after next()');
+
+  const response = await fetch(`${baseURL}${PREFIX}/posts/draft`);
+  expect(response.status).toBe(200);
+
+  const event = await eventPromise;
+  expect(event.transaction).toBe(`GET ${PREFIX}/posts/*`);
 });

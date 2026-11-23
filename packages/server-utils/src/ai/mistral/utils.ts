@@ -54,6 +54,15 @@ export function getSpanName(operationName: string, attributes: Record<string, un
 }
 
 /**
+ * Reads the caller's signal from Mistral's request options. The SDK spreads `options` over
+ * `options.fetchOptions`, so a top-level `signal` wins.
+ */
+export function getMistralRequestSignal(requestOptions: unknown): AbortSignal | undefined {
+  const options = requestOptions as { signal?: AbortSignal; fetchOptions?: { signal?: AbortSignal } } | undefined;
+  return options?.signal ?? options?.fetchOptions?.signal;
+}
+
+/**
  * Extract request parameters. Mistral request fields are camelCase.
  */
 export function extractRequestParameters(params: Record<string, unknown>): Record<string, unknown> {

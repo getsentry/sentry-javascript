@@ -1,14 +1,6 @@
-import { getClient, getTraceMetaTags, hasSpanStreamingEnabled } from '@sentry/core';
+import { getTraceMetaTags } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
-import { captureException, startSpan } from '@sentry/node';
-import {
-  CODE_FUNCTION_NAME,
-  HTTP_REQUEST_METHOD,
-  SENTRY_DESCRIPTION,
-  SENTRY_OP,
-  SENTRY_ORIGIN,
-} from '@sentry/conventions/attributes';
-import { FUNCTION } from '@sentry/conventions/op';
+import { captureException } from '@sentry/node';
 import { updateSpanWithRouteParametrization } from './routeParametrization';
 
 declare const __SENTRY_ROUTE_PATTERNS__: string[] | undefined;
@@ -128,8 +120,8 @@ function injectMetaTagsInResponse(originalResponse: Response): Response {
  * import type { ServerEntry } from '@tanstack/react-start/server-entry';
  *
  * const requestHandler: ServerEntry = wrapFetchWithSentry({
- *  fetch(request: Request) {
- *    return handler.fetch(request);
+ *  fetch(request, opts) {
+ *    return handler.fetch(request, opts);
  *  },
  * });
  *
@@ -148,32 +140,10 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
           const url = new URL(request.url);
           const method = request.method || 'GET';
 
-          // instrument server functions
-          if (url.pathname.includes('_serverFn') || url.pathname.includes('createServerFn')) {
-            const client = getClient();
-            const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
-            const description = `${method} ${url.pathname}`;
-
-            return await startSpan(
-              {
-                // With span streaming, a `function` span is named after the function it wraps. The
-                // request path carries the generated server function id, which is high cardinality.
-                name: hasSpanStreaming ? 'serverFn' : description,
-                attributes: {
-                  [SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
-                  [SENTRY_OP]: FUNCTION,
-                  [CODE_FUNCTION_NAME]: 'serverFn',
-                  // The global function middleware renames this span and needs the method, which it
-                  // can no longer read off a low-cardinality span name.
-                  [HTTP_REQUEST_METHOD]: method,
-                  // Relay infers a `function` span's description from `code.function.name` alone, which drops the path.
-                  ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
-                },
-              },
-              async () => {
-                return target.apply(thisArg, args);
-              },
-            );
+          // Server functions are neither routes nor pages: a splat route must not name their request, and their
+          // response gets no trace meta tags. Their span is created by `sentryGlobalFunctionMiddleware`.
+          if (url.pathname.includes('_serverFn')) {
+            return await target.apply(thisArg, args);
           }
 
           if (typeof __SENTRY_ROUTE_PATTERNS__ !== 'undefined') {

@@ -1,16 +1,22 @@
 import {
+  GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
   GEN_AI_REQUEST_TOP_P,
   GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT, GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -34,7 +40,7 @@ function assertBedrockSpans(container: SerializedStreamedSpanContainer): void {
   expect(converseSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
   expect(converseSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(12);
   expect(converseSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(8);
-  expect(converseSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toEqual(['end_turn']);
+  expect(converseSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["end_turn"]');
 
   // InvokeModel (non-streaming, anthropic.claude request/response body)
   const invokeModelSpan = container.items.find(span => span.name === `generate_content ${MODEL_ID}`);
@@ -49,7 +55,57 @@ function assertBedrockSpans(container: SerializedStreamedSpanContainer): void {
   expect(invokeModelSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
   expect(invokeModelSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
   expect(invokeModelSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(9);
-  expect(invokeModelSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toEqual(['end_turn']);
+  expect(invokeModelSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["end_turn"]');
+}
+
+const SYSTEM_INSTRUCTIONS = JSON.stringify([{ type: 'text', content: 'You are a weather bot.' }]);
+
+const OUTPUT_MESSAGES = JSON.stringify([
+  { role: 'assistant', parts: [{ type: 'text', content: 'Hello from Bedrock' }] },
+]);
+
+function assertBedrockContent(container: SerializedStreamedSpanContainer): void {
+  const converseSpan = container.items.find(span => span.name === `chat ${MODEL_ID}`);
+  expect(converseSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(SYSTEM_INSTRUCTIONS);
+  expect(converseSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
+    JSON.stringify([{ role: 'user', parts: [{ type: 'text', content: 'Hello' }] }]),
+  );
+  expect(converseSpan!.attributes[GEN_AI_TOOL_DEFINITIONS].value).toBe(
+    JSON.stringify([{ name: 'get_weather', inputSchema: { json: { type: 'object' } } }]),
+  );
+  expect(converseSpan!.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(OUTPUT_MESSAGES);
+
+  const invokeModelSpan = container.items.find(span => span.name === `generate_content ${MODEL_ID}`);
+  expect(invokeModelSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(SYSTEM_INSTRUCTIONS);
+  expect(invokeModelSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
+    JSON.stringify([{ role: 'user', content: 'Hello' }]),
+  );
+  expect(invokeModelSpan!.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(OUTPUT_MESSAGES);
+}
+
+function assertStreamSpans(container: SerializedStreamedSpanContainer): void {
+  const converseStreamSpan = container.items.find(span => span.name === `chat ${MODEL_ID}`);
+  expect(converseStreamSpan!.status).toBe('ok');
+  expect(converseStreamSpan!.attributes[SENTRY_OP].value).toBe(GEN_AI_CHAT);
+  expect(converseStreamSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
+  expect(converseStreamSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(12);
+  expect(converseStreamSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(8);
+  expect(converseStreamSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["tool_use"]');
+
+  const invokeStreamSpan = container.items.find(span => span.name === `generate_content ${MODEL_ID}`);
+  expect(invokeStreamSpan!.status).toBe('ok');
+  expect(invokeStreamSpan!.attributes[SENTRY_OP].value).toBe(GEN_AI_GENERATE_CONTENT);
+  expect(invokeStreamSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
+  expect(invokeStreamSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
+  expect(invokeStreamSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(9);
+  expect(invokeStreamSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["end_turn"]');
+
+  const failedStreamSpan = container.items.find(span => span.name === 'chat amazon.nova-pro-v1:0');
+  expect(failedStreamSpan!.status).toBe('error');
+
+  // `cancelled` is sent as `ok` under span streaming.
+  const abortedStreamSpan = container.items.find(span => span.name === 'chat amazon.nova-lite-v1:0');
+  expect(abortedStreamSpan!.status).toBe('ok');
 }
 
 describe('awsIntegration - Bedrock', () => {
@@ -57,15 +113,96 @@ describe('awsIntegration - Bedrock', () => {
     cleanupChildProcesses();
   });
 
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
+    test('auto-instruments Bedrock Converse and InvokeModel', { timeout: 90_000 }, async () => {
+      await createTestRunner().ignore('event').expect({ span: assertBedrockSpans }).start().completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-gen-ai.mjs', (createTestRunner, test) => {
+    test('records Bedrock inputs and outputs by default', { timeout: 90_000 }, async () => {
+      await createTestRunner().ignore('event').expect({ span: assertBedrockContent }).start().completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-integration-options.mjs', (createTestRunner, test) => {
+    test(
+      'records Bedrock inputs and outputs when awsIntegration options override dataCollection',
+      { timeout: 90_000 },
+      async () => {
+        await createTestRunner().ignore('event').expect({ span: assertBedrockContent }).start().completed();
+      },
+    );
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument.mjs', (createTestRunner, test) => {
+    test('ends Bedrock stream spans when the streams finish, fail, or are aborted', { timeout: 90_000 }, async () => {
+      await createTestRunner().ignore('event').expect({ span: assertStreamSpans }).start().completed();
+    });
+  });
+
   createEsmAndCjsTests(
     __dirname,
-    'scenario.mjs',
-    'instrument.mjs',
+    'scenario-recording-functions.mjs',
+    'instrument-with-recording-functions.mjs',
     (createTestRunner, test) => {
-      test('auto-instruments Bedrock Converse and InvokeModel', { timeout: 90_000 }, async () => {
-        await createTestRunner().ignore('event').expect({ span: assertBedrockSpans }).start().completed();
+      test('decides content recording per call when the options are functions', { timeout: 90_000 }, async () => {
+        await createTestRunner()
+          .ignore('event')
+          .expect({
+            span: container => {
+              const spans = container.items.filter(span => span.attributes[GEN_AI_REQUEST_MODEL]);
+              const recordedByModel = Object.fromEntries(
+                spans.map(span => [
+                  span.attributes[GEN_AI_REQUEST_MODEL]?.value,
+                  {
+                    inputs: GEN_AI_INPUT_MESSAGES in span.attributes,
+                    outputs: GEN_AI_OUTPUT_MESSAGES in span.attributes,
+                  },
+                ]),
+              );
+              expect(recordedByModel).toEqual({
+                'public-model': { inputs: true, outputs: true },
+                'private-model': { inputs: false, outputs: false },
+              });
+            },
+          })
+          .start()
+          .completed();
       });
     },
-    { additionalDependencies: { '@aws-sdk/client-bedrock-runtime': '^3.1046.0' } },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-span-hooks.mjs',
+    (createTestRunner, test) => {
+      test(
+        'runs the span hooks at start in the caller context and at end with the response',
+        { timeout: 90_000 },
+        async () => {
+          await createTestRunner()
+            .ignore('event')
+            .expect({
+              span: container => {
+                const spans = container.items.filter(span => span.attributes[GEN_AI_REQUEST_MODEL]);
+                const hooksByModel = Object.fromEntries(
+                  spans.map(span => [
+                    span.attributes[GEN_AI_REQUEST_MODEL]?.value,
+                    [span.attributes['test.start']?.value, span.attributes['test.end']?.value],
+                  ]),
+                );
+                expect(hooksByModel).toEqual({
+                  'public-model': ['public:public', 'end_turn'],
+                  'private-model': ['private:private', 'end_turn'],
+                });
+              },
+            })
+            .start()
+            .completed();
+        },
+      );
+    },
   );
 });

@@ -14,6 +14,12 @@ import { SDK_VERSION } from '@sentry/core';
 import { expect } from 'vitest';
 import { EXPECTED_SDK_NAME } from './index';
 
+/**
+ * Matches a loopback IP address. For `localhost`, Node reports `::1`, Deno reports `127.0.0.1` or
+ * `::ffff:127.0.0.1`.
+ */
+export const LOOPBACK_ADDRESS = expect.stringMatching(/^(::1|127\.0\.0\.1|::ffff:127\.0\.0\.1)$/);
+
 export type DeepPartial<T> = T extends object
   ? {
       [P in keyof T]?: DeepPartial<T[P]>;

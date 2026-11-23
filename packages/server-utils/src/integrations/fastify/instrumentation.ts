@@ -27,11 +27,13 @@ import { HANDLER, MIDDLEWARE } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   isObjectLike,
+  getActiveSpan,
   getClient,
   getIsolationScope,
   hasSpanStreamingEnabled,
   REQUEST_HANDLER_SPAN_NAME_FALLBACK,
   SPAN_STATUS_ERROR,
+  spanIsSampled,
   startInactiveSpan,
   startSpan,
   withActiveSpan,
@@ -335,6 +337,14 @@ function handlerWrapper(handler: AnyFn, hookName: string, spanAttributes: Record
     }
 
     const parentSpan = (request[kRequestSpan] as Span | null) ?? undefined;
+
+    // A child of an unsampled span is never sampled either, so skip creating it. Hooks that run after
+    // the request span ended (e.g. `onResponse`) fall back to the active span, like `startSpan` would.
+    const effectiveParentSpan = parentSpan ?? getActiveSpan();
+    if (effectiveParentSpan && !spanIsSampled(effectiveParentSpan)) {
+      return handler.call(this, ...args);
+    }
+
     const handlerName = handler.name?.length > 0 ? handler.name : (this.pluginName ?? ANONYMOUS_FUNCTION_NAME);
 
     const hookType = spanAttributes[ATTRIBUTE_FASTIFY_TYPE];

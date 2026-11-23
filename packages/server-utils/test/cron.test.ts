@@ -1,0 +1,307 @@
+import * as SentryCore from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, type MockInstance, test, vi } from 'vitest';
+import { cron } from '../src';
+import type { CronJob, CronJobParams } from '../src/cron/cron';
+import type { NodeCron, NodeCronOptions } from '../src/cron/node-cron';
+
+const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+describe('cron check-ins', () => {
+  let withMonitorSpy: MockInstance;
+
+  beforeEach(() => {
+    withMonitorSpy = vi.spyOn(SentryCore, 'withMonitor');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe('cron', () => {
+    class CronJobMock {
+      constructor(
+        cronTime: CronJobParams['cronTime'],
+        onTick: CronJobParams['onTick'],
+        _onComplete?: CronJobParams['onComplete'],
+        _start?: CronJobParams['start'],
+        _timeZone?: CronJobParams['timeZone'],
+        _context?: CronJobParams['context'],
+        _runOnInit?: CronJobParams['runOnInit'],
+        _utcOffset?: CronJobParams['utcOffset'],
+        _unrefTimeout?: CronJobParams['unrefTimeout'],
+      ) {
+        expect(cronTime).toBe('* * * Jan,Sep Sun');
+        expect(onTick).toBeInstanceOf(Function);
+        setImmediate(() => onTick(undefined, undefined));
+      }
+
+      static from(params: CronJobParams): CronJob {
+        return new CronJobMock(
+          params.cronTime,
+          params.onTick,
+          params.onComplete,
+          params.start,
+          params.timeZone,
+          params.context,
+          params.runOnInit,
+          params.utcOffset,
+          params.unrefTimeout,
+        );
+      }
+    }
+
+    test('new CronJob()', () =>
+      new Promise<void>(done => {
+        expect.assertions(4);
+
+        const CronJobWithCheckIn = cron.instrumentCron(CronJobMock, 'my-cron-job');
+
+        new CronJobWithCheckIn(
+          '* * * Jan,Sep Sun',
+          () => {
+            expect(withMonitorSpy).toHaveBeenCalledTimes(1);
+            expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), {
+              schedule: { type: 'crontab', value: '* * * 1,9 0' },
+              timezone: 'America/Los_Angeles',
+            });
+            done();
+          },
+          undefined,
+          true,
+          'America/Los_Angeles',
+        );
+      }));
+
+    test('CronJob.from()', () =>
+      new Promise<void>(done => {
+        expect.assertions(4);
+
+        const CronJobWithCheckIn = cron.instrumentCron(CronJobMock, 'my-cron-job');
+
+        CronJobWithCheckIn.from({
+          cronTime: '* * * Jan,Sep Sun',
+          onTick: () => {
+            expect(withMonitorSpy).toHaveBeenCalledTimes(1);
+            expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), {
+              schedule: { type: 'crontab', value: '* * * 1,9 0' },
+              timezone: localTimezone,
+            });
+            done();
+          },
+        });
+      }));
+
+    test('sends no monitor config with a utc offset', () =>
+      new Promise<void>(done => {
+        const CronJobWithCheckIn = cron.instrumentCron(CronJobMock, 'my-cron-job');
+
+        CronJobWithCheckIn.from({
+          cronTime: '* * * Jan,Sep Sun',
+          utcOffset: 60,
+          onTick: () => {
+            expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), undefined);
+            done();
+          },
+        });
+      }));
+
+    test('throws with multiple jobs same name', () => {
+      const CronJobWithCheckIn = cron.instrumentCron(CronJobMock, 'my-cron-job');
+
+      CronJobWithCheckIn.from({
+        cronTime: '* * * Jan,Sep Sun',
+        onTick: () => {
+          //
+        },
+      });
+
+      expect(() => {
+        CronJobWithCheckIn.from({
+          cronTime: '* * * Jan,Sep Sun',
+          onTick: () => {
+            //
+          },
+        });
+      }).toThrowError("A job named 'my-cron-job' has already been scheduled");
+    });
+  });
+
+  describe('node-cron', () => {
+    test('calls withMonitor', () =>
+      new Promise<void>(done => {
+        expect.assertions(5);
+
+        const nodeCron: NodeCron = {
+          schedule: (expression: string, callback: () => void, options?: NodeCronOptions): unknown => {
+            expect(expression).toBe('* * * Jan,Sep Sun');
+            expect(callback).toBeInstanceOf(Function);
+            expect(options?.name).toBe('my-cron-job');
+            return callback();
+          },
+        };
+
+        const cronWithCheckIn = cron.instrumentNodeCron(nodeCron);
+
+        cronWithCheckIn.schedule(
+          '* * * Jan,Sep Sun',
+          () => {
+            expect(withMonitorSpy).toHaveBeenCalledTimes(1);
+            expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), {
+              schedule: { type: 'crontab', value: '* * * 1,9 0' },
+              timezone: localTimezone,
+            });
+            done();
+          },
+          { name: 'my-cron-job' },
+        );
+      }));
+
+    test('sends no monitor config for a schedule Sentry would read differently', () =>
+      new Promise<void>(done => {
+        const nodeCron: NodeCron = {
+          schedule: (_expression: string, callback: () => void): unknown => callback(),
+        };
+
+        cron.instrumentNodeCron(nodeCron).schedule(
+          '*/10 * * * * *',
+          () => {
+            expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), undefined);
+            done();
+          },
+          { name: 'my-cron-job' },
+        );
+      }));
+
+    test.each(['0 9 * * 5-0', '0 9 * * sat-sun', '0 9 * * 1-7', '0 9 */2 * 1'])(
+      'sends no monitor config for %s, which node-cron before 4.6 reads differently',
+      expression =>
+        new Promise<void>(done => {
+          const nodeCron: NodeCron = {
+            schedule: (_expression: string, callback: () => void): unknown => callback(),
+          };
+
+          cron.instrumentNodeCron(nodeCron).schedule(
+            expression,
+            () => {
+              expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), undefined);
+              done();
+            },
+            { name: 'my-cron-job' },
+          );
+        }),
+    );
+
+    test('keeps isolateTrace in the monitor config', () =>
+      new Promise<void>(done => {
+        const nodeCron: NodeCron = {
+          schedule: (_expression: string, callback: () => void): unknown => callback(),
+        };
+
+        cron.instrumentNodeCron(nodeCron, { isolateTrace: true }).schedule(
+          '0 9 * * *',
+          () => {
+            expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), {
+              schedule: { type: 'crontab', value: '0 9 * * *' },
+              timezone: 'Europe/Vienna',
+              isolateTrace: true,
+            });
+            done();
+          },
+          { name: 'my-cron-job', timezone: 'Europe/Vienna' },
+        );
+      }));
+
+    test('throws without supplied name', () => {
+      const nodeCron: NodeCron = {
+        schedule: (): unknown => {
+          return undefined;
+        },
+      };
+
+      const cronWithCheckIn = cron.instrumentNodeCron(nodeCron);
+
+      expect(() => {
+        // @ts-expect-error Initially missing name
+        cronWithCheckIn.schedule('* * * * *', () => {
+          //
+        });
+      }).toThrowError('Missing "name" for scheduled job. A name is required for Sentry check-in monitoring.');
+    });
+  });
+
+  describe('node-schedule', () => {
+    test('calls withMonitor', () =>
+      new Promise<void>(done => {
+        expect.assertions(5);
+
+        class NodeScheduleMock {
+          scheduleJob(
+            nameOrExpression: string | Date | object,
+            expressionOrCallback: string | Date | object | (() => void),
+            callback: () => void,
+          ): unknown {
+            expect(nameOrExpression).toBe('my-cron-job');
+            expect(expressionOrCallback).toBe('* * * Jan,Sep Sun');
+            expect(callback).toBeInstanceOf(Function);
+            return callback();
+          }
+        }
+
+        const scheduleWithCheckIn = cron.instrumentNodeSchedule(new NodeScheduleMock());
+
+        scheduleWithCheckIn.scheduleJob('my-cron-job', '* * * Jan,Sep Sun', () => {
+          expect(withMonitorSpy).toHaveBeenCalledTimes(1);
+          expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), {
+            schedule: { type: 'crontab', value: '* * * 1,9 0' },
+            timezone: localTimezone,
+          });
+          done();
+        });
+      }));
+
+    test('throws without crontab string', () => {
+      class NodeScheduleMock {
+        scheduleJob(_: string, __: string | Date, ___: () => void): unknown {
+          return undefined;
+        }
+      }
+
+      const scheduleWithCheckIn = cron.instrumentNodeSchedule(new NodeScheduleMock());
+
+      expect(() => {
+        scheduleWithCheckIn.scheduleJob('my-cron-job', new Date(), () => {
+          //
+        });
+      }).toThrowError(
+        "Automatic instrumentation of 'node-schedule' requires the first parameter of 'scheduleJob' to be a job name string and the second parameter to be a crontab string",
+      );
+    });
+
+    test('throws without job name', () => {
+      class NodeScheduleMock {
+        scheduleJob(_: string, __: () => void): unknown {
+          return undefined;
+        }
+      }
+
+      const scheduleWithCheckIn = cron.instrumentNodeSchedule(new NodeScheduleMock());
+
+      expect(() => {
+        scheduleWithCheckIn.scheduleJob('* * * * *', () => {
+          //
+        });
+      }).toThrowError(
+        "Automatic instrumentation of 'node-schedule' requires the first parameter of 'scheduleJob' to be a job name string and the second parameter to be a crontab string",
+      );
+    });
+
+    test('marks the callback as monitored, so nodeScheduleIntegration skips it', () => {
+      const scheduleWithCheckIn = cron.instrumentNodeSchedule({
+        scheduleJob: (_name: unknown, _expression: unknown, callback: unknown) => callback,
+      });
+
+      const callback = scheduleWithCheckIn.scheduleJob('my-cron-job', '* * * * *', () => {}) as Record<symbol, unknown>;
+      expect(callback[Symbol.for('sentry.cron.monitored')]).toBe(true);
+    });
+  });
+});

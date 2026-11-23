@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
 import { hasOnlyAppRouterPages } from './pagesRouterDetection';
+import { shouldInjectReleaseIntoClient } from './release';
 import { getTunnelRouteInjectedValues } from './tunnel';
 
 /**
@@ -33,7 +34,7 @@ export function setUpBuildTimeVariables(
     _sentryRewriteFramesAssetPrefixPath: assetPrefix
       ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
       : '',
-    ...getTunnelRouteInjectedValues(userNextConfig, userSentryOptions, projectDir),
+    ...getTunnelRouteInjectedValues(userNextConfig, userSentryOptions),
   };
 
   if (userNextConfig.assetPrefix) {
@@ -48,6 +49,11 @@ export function setUpBuildTimeVariables(
     buildTimeVariables._sentryBasePath = basePath;
   }
 
+  // Next redirects a POST to the tunnel path without the slash, so the browser posts to the one with it.
+  if (userNextConfig.trailingSlash) {
+    buildTimeVariables._sentryTrailingSlash = 'true';
+  }
+
   if (userNextConfig.assetPrefix) {
     buildTimeVariables._sentryAssetPrefix = userNextConfig.assetPrefix;
   }
@@ -56,7 +62,8 @@ export function setUpBuildTimeVariables(
     buildTimeVariables._experimentalThirdPartyOriginStackFrames = 'true';
   }
 
-  if (releaseName) {
+  // `env` is inlined into the client bundles too. The server SDK also reads the injected global.
+  if (releaseName && shouldInjectReleaseIntoClient(userNextConfig, userSentryOptions)) {
     buildTimeVariables._sentryRelease = releaseName;
   }
 
@@ -86,7 +93,7 @@ export function getGitRevision(): string | undefined {
   let gitRevision: string | undefined;
   try {
     gitRevision = childProcess
-      .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true })
       .toString()
       .trim();
   } catch {

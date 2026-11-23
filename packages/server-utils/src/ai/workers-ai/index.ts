@@ -1,17 +1,12 @@
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import {
-  _INTERNAL_shouldSkipAiProviderWrapping,
-  getClient,
-  hasSpanStreamingEnabled,
-  SPAN_STATUS_ERROR,
-  startSpan,
-  startSpanManual,
-} from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, startSpan, startSpanManual } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { isReadableStream, resolveAIRecordingOptions } from '../core/utils';
+import { getErrorStatus, getRequestSignal, isReadableStream, resolveGenAiCallRecording } from '../core/utils';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
+import { shouldSkipAiProviderSpan } from '../pi-ai/providers';
 import { WORKERS_AI_INTEGRATION_NAME } from './constants';
 import { instrumentWorkersAiStream } from './streaming';
-import type { WorkersAiOptions } from './types';
+import type { WorkersAiCallInfo, WorkersAiOptions } from './types';
 import {
   addRequestAttributes,
   addResponseAttributes,
@@ -20,26 +15,29 @@ import {
   WORKERS_AI_OPERATION_SPAN_OPS,
 } from './utils';
 
+const originalClients = new WeakMap<object, object>();
+
 /**
  * Wrap the `run` method of the Workers AI binding with Sentry tracing.
  */
 function instrumentRun(
   originalRun: (...args: unknown[]) => Promise<unknown>,
   context: unknown,
-  options: WorkersAiOptions & Required<Pick<WorkersAiOptions, 'recordInputs' | 'recordOutputs'>>,
+  options: WorkersAiOptions,
 ): (...args: unknown[]) => Promise<unknown> {
   return function instrumentedRun(...args: unknown[]): Promise<unknown> {
-    // When another integration (e.g. Vercel AI via `workers-ai-provider`) is driving this binding,
-    // it records the spans itself and marks this provider as skipped; skip here to avoid double spans.
-    if (_INTERNAL_shouldSkipAiProviderWrapping(WORKERS_AI_INTEGRATION_NAME)) {
+    if (shouldSkipAiProviderSpan(WORKERS_AI_INTEGRATION_NAME)) {
       return originalRun.apply(context, args);
     }
 
     const [model, inputs, runOptions] = args as [unknown, unknown, Record<string, unknown> | undefined];
 
     const operationName = getOperationName(model, inputs);
+    const call: WorkersAiCallInfo = { operation: operationName, model, inputs, options: runOptions };
+    const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
     const requestAttributes = extractRequestAttributes(model, inputs, operationName);
     const modelName = typeof model === 'string' && model ? model : 'unknown';
+    const abortSignal = getRequestSignal(runOptions);
     const client = getClient();
 
     const isStreamRequested =
@@ -66,7 +64,8 @@ function instrumentRun(
         // `startSpanManual` does not auto-end the span, so we must end it on every exit path,
         // including a synchronous throw from `run`.
         const handleError = (error: unknown): never => {
-          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+          span.setStatus(getErrorStatus(abortSignal));
+          runGenAiSpanEnd(options, span, call, { error });
           span.end();
           throw error;
         };
@@ -79,17 +78,21 @@ function instrumentRun(
           return handleError(error);
         }
 
-        if (options.recordInputs) {
+        if (recordInputs) {
           addRequestAttributes(span, inputs, operationName);
         }
+        runGenAiSpanStart(options, span, call);
 
         return originalResult.then(result => {
           if (isReadableStream<Uint8Array>(result)) {
-            return instrumentWorkersAiStream(result, span, options.recordOutputs);
+            return instrumentWorkersAiStream(result, span, recordOutputs, abortSignal, streamResult =>
+              runGenAiSpanEnd(options, span, call, streamResult),
+            );
           }
 
           // The model did not actually return a stream — finalize the span eagerly.
-          addResponseAttributes(span, result, options.recordOutputs, operationName);
+          addResponseAttributes(span, result, recordOutputs, operationName);
+          runGenAiSpanEnd(options, span, call, { response: result });
           span.end();
           return result;
         }, handleError);
@@ -99,16 +102,25 @@ function instrumentRun(
     return startSpan(spanConfig, (span: Span) => {
       const originalResult = originalRun.apply(context, args) as Promise<unknown>;
 
-      if (options.recordInputs) {
+      if (recordInputs) {
         addRequestAttributes(span, inputs, operationName);
       }
+      runGenAiSpanStart(options, span, call);
 
-      return originalResult.then(result => {
-        if (!returnsRawResponse) {
-          addResponseAttributes(span, result, options.recordOutputs, operationName);
-        }
-        return result;
-      });
+      return originalResult.then(
+        result => {
+          if (!returnsRawResponse) {
+            addResponseAttributes(span, result, recordOutputs, operationName);
+          }
+          runGenAiSpanEnd(options, span, call, { response: result });
+          return result;
+        },
+        error => {
+          span.setStatus(getErrorStatus(abortSignal));
+          runGenAiSpanEnd(options, span, call, { error });
+          throw error;
+        },
+      );
     });
   };
 }
@@ -129,14 +141,16 @@ function instrumentRun(
  * ```
  */
 export function instrumentWorkersAiClient<T extends object>(client: T, options?: WorkersAiOptions): T {
-  const resolvedOptions = resolveAIRecordingOptions(options);
+  // `@sentry/cloudflare` already wraps `env.AI`. Wrapping that proxy again would nest a second span
+  // that ignores these options, so wrap the original binding instead.
+  const original = (originalClients.get(client) ?? client) as T;
 
-  const instrumented = new Proxy(client, {
+  const instrumented = new Proxy(original, {
     get(target: object, prop: string | symbol, receiver: unknown): unknown {
       const value = Reflect.get(target, prop, receiver);
 
       if (prop === 'run' && typeof value === 'function') {
-        return instrumentRun(value as (...args: unknown[]) => Promise<unknown>, target, resolvedOptions);
+        return instrumentRun(value as (...args: unknown[]) => Promise<unknown>, target, options ?? {});
       }
 
       // Bind passed-through functions to the original target to preserve `this` (e.g. private fields).
@@ -144,5 +158,6 @@ export function instrumentWorkersAiClient<T extends object>(client: T, options?:
     },
   }) as T;
 
+  originalClients.set(instrumented, original);
   return instrumented;
 }

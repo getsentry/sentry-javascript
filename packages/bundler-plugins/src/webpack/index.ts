@@ -1,6 +1,13 @@
 /* oxlint-disable max-lines */
 
-import type { Options } from '../core/index';
+import type {
+  InternalOptions,
+  Options,
+  SourceMapDecision,
+  SourceMapKind,
+  UploadFilter,
+  UploadStaging,
+} from '../core/index';
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
@@ -13,6 +20,7 @@ import {
   getCodeInjectionPosition,
   isJsFile,
   stampDebugId,
+  getSourceMapFeatures,
 } from '../core/index';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -71,6 +79,7 @@ type WebpackCompiler = {
   options: {
     plugins?: unknown[];
     mode?: string;
+    devtool?: string | false;
     module?: {
       rules?: unknown[];
     };
@@ -82,10 +91,16 @@ type WebpackCompiler = {
     thisCompilation: {
       tap: (name: string, callback: (compilation: WebpackCompilation) => void) => void;
     };
+    emit: {
+      tap: (name: string, callback: (compilation: WebpackCompilation) => void) => void;
+    };
     afterEmit: {
       tapAsync: (name: string, callback: (compilation: WebpackCompilation, cb: () => void) => void) => void;
     };
     done: {
+      tap: (name: string, callback: () => void) => void;
+    };
+    failed?: {
       tap: (name: string, callback: () => void) => void;
     };
   };
@@ -94,6 +109,7 @@ type WebpackCompiler = {
     Compilation?: {
       PROCESS_ASSETS_STAGE_ADDITIONS?: number;
       PROCESS_ASSETS_STAGE_DEV_TOOLING?: number;
+      PROCESS_ASSETS_STAGE_REPORT?: number;
     };
     sources?: {
       RawSource?: WebpackRawSource;
@@ -116,15 +132,75 @@ type WebpackCompilation = {
   getAssets: () => WebpackAsset[];
   getAsset: (name: string) => WebpackAsset | undefined;
   updateAsset: (name: string, source: WebpackSource) => void;
+  deleteAsset: (name: string) => void;
   hooks: {
     processAssets: {
       tap: (
         options: { name: string; stage: number },
         callback: (assets: Record<string, WebpackSource>) => void,
       ) => void;
+      tapPromise: (options: { name: string; stage: number }, callback: () => Promise<void>) => void;
     };
   };
 };
+
+type HtmlTagObject = {
+  tagName: string;
+  voidTag: boolean;
+  attributes: Record<string, string | boolean>;
+  meta: Record<string, unknown>;
+  innerHTML?: string;
+};
+
+// The part of `html-webpack-plugin`'s API (v4 and later) that the plugin uses. Found among the
+// configured plugins instead of imported, because it is an optional dependency of the user.
+type HtmlWebpackPluginClass = {
+  getHooks: (compilation: WebpackCompilation) => {
+    alterAssetTagGroups: {
+      tap: (name: string, callback: <T extends { headTags: HtmlTagObject[] }>(data: T) => T) => void;
+    };
+  };
+};
+
+function findHtmlWebpackPlugin(compiler: WebpackCompiler): HtmlWebpackPluginClass | undefined {
+  for (const plugin of compiler.options.plugins ?? []) {
+    const pluginClass = (plugin as { constructor?: { name?: string; getHooks?: unknown } } | undefined)?.constructor;
+    if (pluginClass?.name === 'HtmlWebpackPlugin' && typeof pluginClass.getHooks === 'function') {
+      return pluginClass as HtmlWebpackPluginClass;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Maps webpack's `devtool` onto the plugin's source map kinds. A user who sets `devtool: false`
+ * and adds a `SourceMapDevToolPlugin` manages source maps themselves.
+ */
+function sourceMapKindFromDevtool(compiler: WebpackCompiler): SourceMapKind | undefined {
+  const devtool = compiler.options.devtool;
+
+  if (devtool === undefined) {
+    return 'unset';
+  }
+  if (devtool === false) {
+    const hasSourceMapPlugin = compiler.options.plugins?.some(
+      plugin =>
+        (plugin as { constructor?: { name?: string } } | undefined)?.constructor?.name === 'SourceMapDevToolPlugin',
+    );
+    return hasSourceMapPlugin ? undefined : 'off';
+  }
+  // Plain `eval` has no source maps at all.
+  if (!devtool.includes('source-map')) {
+    return 'off';
+  }
+  if (devtool.includes('inline') || devtool.includes('eval')) {
+    return 'inline';
+  }
+  if (devtool.includes('hidden')) {
+    return 'hidden';
+  }
+  return 'visible';
+}
 
 type WebpackModule = {
   version?: string;
@@ -171,7 +247,86 @@ function addDebugIdsToAssets(compilation: WebpackCompilation, RawSource: Webpack
   }
 }
 
-function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {}) {
+/** Drops a source map asset and its compressed variants from the compilation. */
+function deleteSourceMapAssets(compilation: WebpackCompilation, sourceMapName: string): void {
+  for (const candidate of compilation.getAssets()) {
+    if (candidate.name === sourceMapName || candidate.name.startsWith(`${sourceMapName}.`)) {
+      compilation.deleteAsset(candidate.name);
+    }
+  }
+}
+
+/**
+ * Drops the source maps of the JS assets that an upload would include. With `removeAll` it drops
+ * the source maps of all assets, CSS included.
+ */
+function dropSourceMaps(compilation: WebpackCompilation, shouldUpload: UploadFilter, removeAll: boolean): void {
+  const outputPath = compilation.outputOptions.path ?? path.resolve();
+
+  for (const asset of compilation.getAssets()) {
+    if (!removeAll && (!isJsFile(asset.name) || !shouldUpload(path.join(outputPath, asset.name)))) {
+      continue;
+    }
+    const relatedSourceMap = asset.info.related?.sourceMap;
+    const sourceMapName = typeof relatedSourceMap === 'string' ? relatedSourceMap : `${asset.name}.map`;
+    if (compilation.getAsset(sourceMapName)) {
+      deleteSourceMapAssets(compilation, sourceMapName);
+    }
+  }
+}
+
+/**
+ * Copies each JS asset and its source map into the upload staging folder and drops the source map
+ * assets (and their compressed variants) from the compilation, so webpack never emits them.
+ *
+ * A map the plugin or the SDK turned on (`pluginEnabledMaps`) never reaches the output, whether or
+ * not its asset is uploaded. That covers CSS maps, which `devtool` turns on along with the JS ones.
+ * A map the user enabled stays unless it was staged.
+ */
+async function stageSourceMaps(
+  compilation: WebpackCompilation,
+  staging: UploadStaging,
+  logger: { warn: (message: string) => void },
+  pluginEnabledMaps: boolean,
+): Promise<void> {
+  const outputPath = compilation.outputOptions.path ?? path.resolve();
+
+  for (const asset of compilation.getAssets()) {
+    const relatedSourceMap = asset.info.related?.sourceMap;
+    const sourceMapName = typeof relatedSourceMap === 'string' ? relatedSourceMap : `${asset.name}.map`;
+    const sourceMapAsset = compilation.getAsset(sourceMapName);
+    if (!sourceMapAsset) {
+      continue;
+    }
+
+    if (!isJsFile(asset.name)) {
+      if (pluginEnabledMaps) {
+        deleteSourceMapAssets(compilation, sourceMapName);
+      }
+      continue;
+    }
+
+    const result = await staging.stage({
+      code: asset.source.source().toString(),
+      mapSource: sourceMapAsset.source.source().toString(),
+      mapDir: path.join(outputPath, path.dirname(sourceMapName)),
+      chunkPath: path.join(outputPath, asset.name),
+    });
+
+    if (result === 'skipped' || result === 'failed') {
+      logger.warn(
+        pluginEnabledMaps
+          ? `Could not prepare ${asset.name} for upload, so it is not uploaded and its source map ${sourceMapName} was removed from the build output.`
+          : `Could not prepare ${asset.name} for upload, so its source map ${sourceMapName} stays in the build output.`,
+      );
+    }
+    if (result === 'staged' || pluginEnabledMaps) {
+      deleteSourceMapAssets(compilation, sourceMapName);
+    }
+  }
+}
+
+function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptions = {}) {
   const sentryBuildPluginManager = createSentryBuildPluginManager(userOptions, {
     loggerPrefix: userOptions._metaOptions?.loggerPrefixOverride ?? '[sentry-webpack-plugin]',
     buildTool: 'webpack',
@@ -198,7 +353,7 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
     logger.warn('Running Sentry plugin from within a `node_modules` folder. Some features may not work.');
   }
 
-  const sourcemapsEnabled = options.sourcemaps?.disable !== true;
+  const { injectDebugIds, upload: uploadEnabled, stampEmittedFiles } = getSourceMapFeatures(options);
   const releaseInjectionCode = new CodeInjection();
   const chunkInjectionCode = new CodeInjection();
 
@@ -231,8 +386,54 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
 
   const transformReplace = Object.keys(replacementValues).length > 0;
 
-  function addCodeInjection(compiler: WebpackCompiler): void {
-    if (releaseInjectionCode.isEmpty() && chunkInjectionCode.isEmpty() && !sourcemapsEnabled) {
+  function decideSourceMaps(compiler: WebpackCompiler): { kind?: SourceMapKind; decision: SourceMapDecision } {
+    const kind = compiler.options.mode === 'development' ? undefined : sourceMapKindFromDevtool(compiler);
+    if (kind === undefined) {
+      return { decision: { enableHidden: false, deleteAfterUpload: false } };
+    }
+
+    const decision = sentryBuildPluginManager.sourceMaps.decide(kind);
+
+    if (decision.enableHidden) {
+      compiler.options.devtool = kind === 'visible' ? `hidden-${compiler.options.devtool}` : 'hidden-source-map';
+    }
+
+    return { kind, decision };
+  }
+
+  /**
+   * Adds the release snippet to the `<head>` of every page that `html-webpack-plugin` generates.
+   * Returns `false` when the build has no `html-webpack-plugin`.
+   */
+  function addReleaseToHtml(compiler: WebpackCompiler): boolean {
+    const HtmlWebpackPlugin = findHtmlWebpackPlugin(compiler);
+    if (!HtmlWebpackPlugin) {
+      logger.warn(
+        "`release.inject: 'html'` needs `html-webpack-plugin` to generate the HTML, and this build does not use it. Injecting the release into the startup chunks instead.",
+      );
+      return false;
+    }
+
+    const tag: HtmlTagObject = {
+      tagName: 'script',
+      voidTag: false,
+      attributes: {},
+      meta: { plugin: 'sentry-webpack-plugin' },
+      innerHTML: releaseInjectionCode.code(),
+    };
+
+    // All instances of the plugin share the hooks of a compilation, so one tap covers every page.
+    compiler.hooks.thisCompilation.tap('sentry-webpack-plugin', compilation => {
+      HtmlWebpackPlugin.getHooks(compilation).alterAssetTagGroups.tap('sentry-webpack-plugin', data => {
+        data.headTags.unshift(tag);
+        return data;
+      });
+    });
+    return true;
+  }
+
+  function addCodeInjection(compiler: WebpackCompiler, injectRelease: boolean): void {
+    if ((!injectRelease || releaseInjectionCode.isEmpty()) && chunkInjectionCode.isEmpty() && !injectDebugIds) {
       return;
     }
 
@@ -270,11 +471,11 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
               const sourceContents = source.source();
               const code = typeof sourceContents === 'string' ? sourceContents : Buffer.from(sourceContents).toString();
               const codeToInject = new CodeInjection();
-              if (chunk.canBeInitial?.() ?? true) {
+              if (injectRelease && (chunk.canBeInitial?.() ?? true)) {
                 codeToInject.append(releaseInjectionCode);
               }
               codeToInject.append(chunkInjectionCode);
-              if (sourcemapsEnabled) {
+              if (injectDebugIds) {
                 const hash = chunk.contentHash?.javascript ?? chunk.hash;
                 codeToInject.append(getDebugIdSnippet(hash ? stringToUUID(hash) : randomUUID()));
               }
@@ -299,12 +500,64 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
 
       const { DefinePlugin } = compiler.webpack ?? {};
 
-      // BannerPlugin prepends executable code before directive prologues.
-      addCodeInjection(compiler);
+      // One plugin instance can serve several compilers (`MultiCompiler`) and
+      // a compiler several compilations (watch mode), so nothing is shared.
+      const { decision: sourceMapDecision } = decideSourceMaps(compiler);
+      const removeAllSourceMaps = sourceMapDecision.removeAllSourceMaps === true;
+      const pendingStagings = new Map<WebpackCompilation, UploadStaging>();
 
-      // The upload routine (which stamps debug IDs into temp copies of the artifacts) is skipped
-      // with `disable-upload`, so the emitted artifacts get stamped in the asset pipeline instead.
-      if (sourcemapsEnabled && options.sourcemaps?.disable === 'disable-upload') {
+      // After `RealContentHashPlugin` rewrote the hash placeholders, so the staged
+      // JS equals the emitted file and `[contenthash]` names are final.
+      const deleteStage = (compiler.webpack?.Compilation?.PROCESS_ASSETS_STAGE_REPORT ?? 5000) + 1;
+
+      if (sourceMapDecision.deleteAfterUpload && !sentryBuildPluginManager.sourceMaps.uploadPossible) {
+        compiler.hooks.thisCompilation.tap('sentry-webpack-plugin', compilation => {
+          compilation.hooks.processAssets.tap({ name: 'sentry-webpack-plugin', stage: deleteStage }, () => {
+            dropSourceMaps(compilation, sentryBuildPluginManager.sourceMaps.shouldUpload, removeAllSourceMaps);
+          });
+        });
+      } else if (sourceMapDecision.deleteAfterUpload) {
+        compiler.hooks.thisCompilation.tap('sentry-webpack-plugin', compilation => {
+          compilation.hooks.processAssets.tapPromise(
+            { name: 'sentry-webpack-plugin', stage: deleteStage },
+            async () => {
+              const staging = await sentryBuildPluginManager.createUploadStaging();
+              pendingStagings.set(compilation, staging);
+              await stageSourceMaps(compilation, staging, logger, removeAllSourceMaps);
+            },
+          );
+        });
+
+        // A staging that `afterEmit` never took belongs to a compilation that
+        // failed before emitting, or to one whose assets were emitted without
+        // their maps because an earlier `afterEmit` tap failed. Only the
+        // second kind has no other copy of the maps.
+        const emittedCompilations = new Set<WebpackCompilation>();
+        compiler.hooks.emit.tap('sentry-webpack-plugin', compilation => {
+          emittedCompilations.add(compilation);
+        });
+        const settlePendingStagings = (): void => {
+          for (const [compilation, staging] of pendingStagings) {
+            if (emittedCompilations.has(compilation)) {
+              void staging.keep('The source map upload did not run.');
+            } else {
+              void staging.discard();
+            }
+          }
+          pendingStagings.clear();
+          emittedCompilations.clear();
+        };
+        compiler.hooks.done.tap('sentry-webpack-plugin', settlePendingStagings);
+        compiler.hooks.failed?.tap('sentry-webpack-plugin', settlePendingStagings);
+      }
+
+      const releaseInHtml =
+        options.release.inject === 'html' && !releaseInjectionCode.isEmpty() && addReleaseToHtml(compiler);
+
+      // BannerPlugin prepends executable code before directive prologues.
+      addCodeInjection(compiler, !releaseInHtml);
+
+      if (stampEmittedFiles) {
         const RawSource = compiler.webpack?.sources?.RawSource;
         // Right after source map generation (and thus after minification, which would strip the comment),
         // so later stages (real content hashing, subresource integrity) see the final assets.
@@ -354,14 +607,27 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
           const freeGlobalDependencyOnBuildArtifacts = createDependencyOnBuildArtifacts();
           const upload = createDebugIdUploadFunction({ sentryBuildPluginManager });
 
+          const staging = pendingStagings.get(compilation);
+          pendingStagings.delete(compilation);
+          let stagingHandedOver = false;
+
           const run = async (): Promise<void> => {
             try {
               await sentryBuildPluginManager.createRelease();
-              if (sourcemapsEnabled && options.sourcemaps?.disable !== 'disable-upload') {
+              if (uploadEnabled) {
                 const outputPath = compilation.outputOptions.path ?? path.resolve();
                 const buildArtifacts = Object.keys(compilation.assets).map(asset => path.join(outputPath, asset));
-                await upload(buildArtifacts);
+                stagingHandedOver = true;
+                await upload(buildArtifacts, { staging });
+              } else {
+                stagingHandedOver = true;
+                await staging?.discard();
               }
+            } catch (e) {
+              if (!stagingHandedOver) {
+                await staging?.keep('The source map upload did not run.');
+              }
+              throw e;
             } finally {
               freeGlobalDependencyOnBuildArtifacts();
               await sentryBuildPluginManager.deleteArtifacts();
@@ -388,9 +654,14 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const sentryWebpackPlugin: (options?: SentryWebpackPluginOptions) => any = createSentryWebpackPlugin;
+export const sentryWebpackPlugin: (options?: SentryWebpackPluginInternalOptions) => any = createSentryWebpackPlugin;
 
-export type SentryWebpackPluginOptions = Options & {
+/** @internal For Sentry SDK packages only. See `InternalOptions`. */
+export type SentryWebpackPluginInternalOptions = InternalOptions & WebpackExperiments;
+
+export type SentryWebpackPluginOptions = Options & WebpackExperiments;
+
+type WebpackExperiments = {
   _experiments?: Options['_experiments'] & {
     /**
      * If enabled, the webpack plugin will exit the build process after the build completes.

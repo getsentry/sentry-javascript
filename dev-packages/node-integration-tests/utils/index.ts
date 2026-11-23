@@ -20,6 +20,19 @@ const BUN_VERSION = RUNTIME === 'bun' ? execFileSync('bun', ['--version'], { enc
  */
 export const EXPECTED_SDK_NAME = process.env.EXPECTED_SDK_NAME || 'sentry.javascript.node';
 
+/**
+ * Whether the scenarios run `@sentry/node`, which instruments `fetch` through undici's diagnostics
+ * channels. The SDKs of the other runtimes patch the global `fetch` instead: their spans have another
+ * origin and no connection data (`network.peer.*`), and their breadcrumbs have another category.
+ */
+export const INSTRUMENTS_UNDICI_FETCH = EXPECTED_SDK_NAME === 'sentry.javascript.node';
+
+/** The `sentry.origin` of outgoing `fetch` spans. */
+export const EXPECTED_FETCH_SPAN_ORIGIN = INSTRUMENTS_UNDICI_FETCH ? 'auto.http.node_fetch' : 'auto.http.fetch';
+
+/** The `category` of outgoing `fetch` breadcrumbs. */
+export const EXPECTED_FETCH_BREADCRUMB_CATEGORY = INSTRUMENTS_UNDICI_FETCH ? 'http' : 'fetch';
+
 export type TestServerConfig = {
   url: string;
   server: http.Server;
@@ -77,6 +90,12 @@ export function supports(requirements: Requirements): boolean {
   }
   return matchesNodeVersion(requirements);
 }
+
+/**
+ * Whether the runtime can `require()` an ES module that imports other modules. Deno 2.8 cannot
+ * resolve these imports.
+ */
+export const SUPPORTS_REQUIRE_OF_ESM = supports({ runtimes: ['node', 'bun'] });
 
 function matchesNodeVersion({ min, max }: { min?: number; max?: number }): boolean {
   if (!NODE_VERSION) {

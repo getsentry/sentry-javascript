@@ -1,6 +1,8 @@
+import { getBuildLogger } from '../buildLogger';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
 import { getNextjsVersion } from '../util';
 import { setUpBuildTimeVariables } from './buildTime';
+import type { BundlerInfo } from './getFinalConfigObjectBundlerUtils';
 import {
   getBundlerInfo,
   getServerExternalPackagesPatch,
@@ -22,12 +24,14 @@ import {
   maybeGetVercelCronsConfig,
   maybeSetClientTraceMetadataOption,
   maybeSetInstrumentationHookOption,
+  maybeSetTurbopackPluginRuntimeStrategyOption,
   maybeSetUpTunnelRouteRewriteRules,
   resolveReleaseName,
   shouldReturnEarlyInExperimentalBuildMode,
   warnIfMissingInstrumentationFile,
   warnIfMissingOnRouterTransitionStartHook,
 } from './getFinalConfigObjectUtils';
+import { maybeAddReleaseServerTimingHeader } from './release';
 
 /**
  * Materializes the final Next.js config object with Sentry's build-time integrations applied.
@@ -49,6 +53,7 @@ export function getFinalConfigObject(
   const routeManifest = maybeCreateRouteManifest(incomingUserNextConfigObject, userSentryOptions);
   const vercelCronsConfigResult = maybeGetVercelCronsConfig(userSentryOptions);
   setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions, releaseName);
+  maybeAddReleaseServerTimingHeader(incomingUserNextConfigObject, userSentryOptions, releaseName);
 
   const nextJsVersion = getNextjsVersion();
   const nextMajor = getNextMajor(nextJsVersion);
@@ -59,8 +64,15 @@ export function getFinalConfigObject(
   warnIfMissingInstrumentationFile(incomingUserNextConfigObject, userSentryOptions);
 
   const bundlerInfo = getBundlerInfo(nextJsVersion);
+  maybeSetTurbopackPluginRuntimeStrategyOption(
+    incomingUserNextConfigObject,
+    nextJsVersion,
+    bundlerInfo.isTurbopack,
+    userSentryOptions.silent,
+  );
   maybeWarnAboutUnsupportedTurbopack(nextJsVersion, bundlerInfo, userSentryOptions.silent);
   maybeWarnAboutTurbopackModuleMetadata(userSentryOptions, bundlerInfo);
+  maybeWarnAboutApplicationKeyExcludeDependencies(userSentryOptions, bundlerInfo);
   maybeWarnAboutUnsupportedRunAfterProductionCompileHook(nextJsVersion, userSentryOptions, bundlerInfo);
 
   const turboPackConfig = maybeConstructTurbopackConfig(
@@ -70,6 +82,7 @@ export function getFinalConfigObject(
     nextJsVersion,
     bundlerInfo,
     vercelCronsConfigResult,
+    releaseName,
   );
 
   const shouldUseRunAfterProductionCompileHook = resolveUseRunAfterProductionCompileHookOption(
@@ -107,4 +120,24 @@ export function getFinalConfigObject(
     }),
     ...getTurbopackPatch(bundlerInfo, turboPackConfig),
   };
+}
+
+function maybeWarnAboutApplicationKeyExcludeDependencies(
+  userSentryOptions: SentryBuildOptions,
+  bundlerInfo: BundlerInfo,
+): void {
+  if (!userSentryOptions.applicationKeyExcludeDependencies) {
+    return;
+  }
+
+  const logger = getBuildLogger(userSentryOptions.silent);
+  if (!userSentryOptions.applicationKey) {
+    logger.warn(
+      '[@sentry/nextjs] `applicationKeyExcludeDependencies` requires `applicationKey` and has no effect without it.',
+    );
+  } else if (bundlerInfo.isWebpack) {
+    logger.warn(
+      '[@sentry/nextjs] `applicationKeyExcludeDependencies` only applies to Turbopack builds and has no effect on webpack builds.',
+    );
+  }
 }

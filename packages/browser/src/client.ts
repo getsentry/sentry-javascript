@@ -12,10 +12,18 @@ import type {
 import type { BrowserClientReplayOptions } from '@sentry/core/browser';
 import type { RouteProvider } from '@sentry/browser-utils';
 import { setRouteProvider } from '@sentry/browser-utils';
-import { addAutoIpAddressToSession, applySdkMetadata, Client, getSDKSource, timestampInSeconds } from '@sentry/core';
+import {
+  _INTERNAL_RELEASE_META_TAG_NAME,
+  addAutoIpAddressToSession,
+  applySdkMetadata,
+  Client,
+  getSDKSource,
+  timestampInSeconds,
+} from '@sentry/core';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
 import type { BrowserTransportOptions } from './transports/types';
+import { resolveBrowserTunnelOption } from './utils/managedTunnel';
 
 /**
  * A magic string that build tooling can leverage in order to inject a release value into the SDK.
@@ -107,7 +115,12 @@ export type BrowserOptions = CoreOptions<BrowserTransportOptions> &
  * Configuration options for the Sentry Browser SDK Client class
  * @see BrowserClient for more information.
  */
-export type BrowserClientOptions = ClientOptions<BrowserTransportOptions> & BrowserSpecificOptions;
+export type BrowserClientOptions = Omit<ResolvedBrowserClientOptions, 'tunnel'> & Pick<BrowserOptions, 'tunnel'>;
+
+/**
+ * {@link BrowserClientOptions} after the client resolved the tunnel to a URL.
+ */
+export type ResolvedBrowserClientOptions = ClientOptions<BrowserTransportOptions> & BrowserSpecificOptions;
 
 /**
  * The Sentry Browser SDK Client.
@@ -115,14 +128,15 @@ export type BrowserClientOptions = ClientOptions<BrowserTransportOptions> & Brow
  * @see BrowserOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
  */
-export class BrowserClient extends Client<BrowserClientOptions> {
+export class BrowserClient extends Client<ResolvedBrowserClientOptions> {
   /**
    * Creates a new Browser SDK instance.
    *
    * @param options Configuration options for this SDK.
    */
   public constructor(options: BrowserClientOptions) {
-    const opts = applyDefaultOptions(options);
+    // `init()` already resolves the tunnel, but a client constructed by hand doesn't go through it.
+    const opts = applyDefaultOptions({ ...options, ...resolveBrowserTunnelOption(options) });
     const sdkSource = WINDOW.SENTRY_SDK_SOURCE || getSDKSource();
     applySdkMetadata(opts, 'browser', ['browser'], sdkSource);
 
@@ -240,13 +254,29 @@ export class BrowserClient extends Client<BrowserClientOptions> {
 /** Exported only for tests. */
 export function applyDefaultOptions<T extends Partial<BrowserClientOptions>>(optionsArg: T): T {
   return {
-    release:
-      typeof __SENTRY_RELEASE__ === 'string' // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
-        ? __SENTRY_RELEASE__
-        : WINDOW.SENTRY_RELEASE?.id, // This supports the variable that sentry-webpack-plugin injects
     sendClientReports: true,
     // We default this to true, as it is the safer scenario
     parentSpanIsAlwaysRootSpan: true,
     ...optionsArg,
+    release: optionsArg.release ?? getDefaultRelease(),
   };
+}
+
+function getDefaultRelease(): string | undefined {
+  return typeof __SENTRY_RELEASE__ === 'string' // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
+    ? __SENTRY_RELEASE__
+    : (getReleaseFromMetaTag() ?? WINDOW.SENTRY_RELEASE?.id); // This supports the variable that sentry-webpack-plugin injects
+}
+
+/**
+ * Framework SDKs render the release into each page, so the content-hashed client chunks don't change on every
+ * release. The page comes from the server on every request, so it wins over `WINDOW.SENTRY_RELEASE`, which a cached
+ * chunk can set. It loses to `__SENTRY_RELEASE__`, which belongs to the one bundle that defined it, so a script
+ * embedded in another app's page keeps its own release.
+ */
+function getReleaseFromMetaTag(): string | undefined {
+  return (
+    WINDOW.document?.querySelector?.(`meta[name="${_INTERNAL_RELEASE_META_TAG_NAME}"]`)?.getAttribute('content') ||
+    undefined
+  );
 }

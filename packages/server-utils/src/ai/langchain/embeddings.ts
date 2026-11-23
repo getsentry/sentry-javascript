@@ -1,4 +1,4 @@
-import { getClient, hasSpanStreamingEnabled, startSpan, stringify } from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, SPAN_STATUS_ERROR, startSpan, stringify } from '@sentry/core';
 import type { SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
@@ -13,9 +13,10 @@ import {
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
 } from '../core/gen-ai-attributes';
-import { resolveAIRecordingOptions } from '../core/utils';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
+import { resolveGenAiCallRecording } from '../core/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
-import type { LangChainOptions } from './types';
+import type { LangChainEmbeddingsCallInfo, LangChainOptions } from './types';
 
 /**
  * Infers the AI provider system name from the embedding class instance.
@@ -65,10 +66,11 @@ function extractEmbeddingAttributes(instance: unknown): Record<string, unknown> 
  */
 export function _INTERNAL_getLangChainEmbeddingsSpanOptions(
   instance: unknown,
-  input: unknown,
+  call: LangChainEmbeddingsCallInfo,
   options: LangChainOptions = {},
 ): { name: string; attributes: Record<string, SpanAttributeValue> } {
-  const { recordInputs } = resolveAIRecordingOptions(options);
+  const { input } = call;
+  const { recordInputs } = resolveGenAiCallRecording(options, call);
   const attributes = extractEmbeddingAttributes(instance);
   const modelName = attributes[GEN_AI_REQUEST_MODEL] || 'unknown';
   const client = getClient();
@@ -98,10 +100,19 @@ export function instrumentEmbeddingMethod(
 ): (...args: unknown[]) => Promise<unknown> {
   return new Proxy(originalMethod, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
-      return startSpan(_INTERNAL_getLangChainEmbeddingsSpanOptions(thisArg, args[0], options), () => {
-        // On rejection `startSpan` marks the span failed and rethrows to the caller, so we don't
-        // record the error ourselves.
-        return Reflect.apply(target, thisArg, args);
+      const call: LangChainEmbeddingsCallInfo = { operation: 'embeddings', input: args[0] };
+      return startSpan(_INTERNAL_getLangChainEmbeddingsSpanOptions(thisArg, call, options), async span => {
+        runGenAiSpanStart(options, span, call);
+        try {
+          const response = await Reflect.apply(target, thisArg, args);
+          runGenAiSpanEnd(options, span, call, { response });
+          return response;
+        } catch (error) {
+          // The error is rethrown to the caller, so we only mark the span failed and do not record it.
+          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+          runGenAiSpanEnd(options, span, call, { error });
+          throw error;
+        }
       });
     },
   });

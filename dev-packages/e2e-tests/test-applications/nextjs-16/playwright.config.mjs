@@ -1,4 +1,8 @@
 import { getPlaywrightConfig, getRuntime } from '@sentry-internal/test-utils';
+
+// The static trace lifecycle variant sets this to `static`.
+process.env.E2E_TEST_TRACE_LIFECYCLE ??= 'stream';
+
 const testEnv = process.env.TEST_ENV;
 
 if (!testEnv) {
@@ -8,7 +12,7 @@ if (!testEnv) {
 const productionStartCommands = {
   node: 'pnpm next start -p 3030',
   bun: 'bun --bun ./node_modules/next/dist/bin/next start -p 3030',
-  deno: 'deno run -A ./node_modules/next/dist/bin/next start -p 3030',
+  deno: 'deno run -A --conditions=deno ./node_modules/next/dist/bin/next start -p 3030',
   cloudflare: 'pnpm start:cloudflare --port 3030',
 };
 

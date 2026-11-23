@@ -2,6 +2,7 @@ import type { Client } from '../../client';
 import { getClient } from '../../currentScopes';
 import type { CollectBehavior } from '../../types/datacollection';
 import { filterQueryParams } from './filterQueryParams';
+import { filterUrlFragment } from './filterUrlFragment';
 import { filterUrlQuery } from './filterUrlQuery';
 
 function urlQueryParamsBehavior(client: Client | undefined): CollectBehavior {
@@ -10,7 +11,8 @@ function urlQueryParamsBehavior(client: Client | undefined): CollectBehavior {
 }
 
 /**
- * Applies `dataCollection.urlQueryParams` to a URL the SDK collected itself, for use as `url.full`.
+ * Applies `dataCollection.urlQueryParams` to the query and fragment of a URL the SDK collected itself, for use
+ * as `url.full`.
  *
  * Call this at every site where instrumentation records a URL. Routing the SDK's own URLs through a
  * helper is what makes the filtering provenance-correct: a URL a user attaches themselves never passes
@@ -33,4 +35,14 @@ export function filterCollectedUrl(url: string | undefined, client?: Client): st
  */
 export function filterCollectedUrlQuery(query: string | undefined, client?: Client): string | undefined {
   return query ? filterQueryParams(query, urlQueryParamsBehavior(client)) : undefined;
+}
+
+/**
+ * Applies `dataCollection.urlQueryParams` to a URL fragment (without the leading `#`) the SDK collected
+ * itself, for use as `url.fragment`. Returns `undefined` when the fragment must not be collected at all.
+ *
+ * See {@link filterCollectedUrl} for why this is a helper and why passing `client` is preferred.
+ */
+export function filterCollectedUrlFragment(fragment: string | undefined, client?: Client): string | undefined {
+  return fragment ? filterUrlFragment(fragment, urlQueryParamsBehavior(client)) : undefined;
 }

@@ -1,5 +1,13 @@
 /* eslint-disable max-lines */
-import type { Client, IntegrationFn, RequestHookInfo, ResponseHookInfo, Span, StartSpanOptions } from '@sentry/core';
+import type {
+  Client,
+  Integration,
+  IntegrationFn,
+  RequestHookInfo,
+  ResponseHookInfo,
+  Span,
+  StartSpanOptions,
+} from '@sentry/core';
 import {
   addNonEnumerableProperty,
   consoleSandbox,
@@ -10,7 +18,6 @@ import {
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
-  GLOBAL_OBJ,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
@@ -28,21 +35,22 @@ import {
 import { _INTERNAL_ensureBrowserSpanStreaming, startIdleSpan, startInactiveSpan } from '@sentry/core/browser';
 import {
   addHistoryInstrumentationHandler,
+  longTasksIntegration,
+  resourcesIntegration,
   addPerformanceEntries,
   getLocationHref,
   isBotUserAgent,
-  startTrackingLongAnimationFrames,
-  startTrackingLongTasks,
 } from '@sentry/browser-utils';
 import { BROWSER_NAVIGATION_TYPE } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../debug-build';
 import { filterCollectedUrl } from '@sentry/core';
 import { getHttpRequestData, WINDOW } from '../helpers';
 import type { WebVitalsOptions } from '../integrations/webVitals';
-import { WEB_VITALS_INTEGRATION_NAME, webVitalsIntegration } from '../integrations/webVitals';
+import { webVitalsIntegration } from '../integrations/webVitals';
 import { registerBackgroundTabDetection } from './backgroundtab';
-import { linkTraces } from './linkedTraces';
-import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
+import { linkedTracesIntegration } from '../integrations/linkedTraces';
+import { fetchTracingIntegration } from '../integrations/fetchTracing';
+import { xhrTracingIntegration } from '../integrations/xhrTracing';
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_OP,
@@ -127,7 +135,7 @@ export interface BrowserTracingOptions {
   /**
    * If true, Sentry will capture long animation frames and add them to the corresponding transaction.
    *
-   * Default: false
+   * Default: true
    */
   enableLongAnimationFrame: boolean;
 
@@ -274,23 +282,51 @@ export interface BrowserTracingOptions {
   onRequestSpanEnd?(span: Span, responseInformation: ResponseHookInfo): void;
 }
 
-const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
+/**
+ * Options for `browserTracingCoreIntegration`: the options of `browserTracingIntegration`, minus the ones
+ * for features that `browserTracingIntegration` registers as standalone integrations.
+ */
+export type BrowserTracingCoreOptions = Omit<
+  BrowserTracingOptions,
+  | 'enableInp'
+  | 'webVitals'
+  | 'enableElementTiming'
+  | 'enableLongTask'
+  | 'enableLongAnimationFrame'
+  | 'ignoreResourceSpans'
+  | 'traceFetch'
+  | 'traceXHR'
+  | 'shouldCreateSpanForRequest'
+  | 'enableHTTPTimings'
+  | 'onRequestSpanStart'
+  | 'onRequestSpanEnd'
+  | 'linkPreviousTrace'
+  | 'consistentTraceSampling'
+>;
+
+const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingCoreOptions = {
   ...TRACING_DEFAULTS,
   instrumentNavigation: true,
   instrumentBfcacheRestore: true,
   instrumentPageLoad: true,
   markBackgroundSpan: true,
-  enableLongTask: true,
-  enableLongAnimationFrame: true,
+  detectRedirects: true,
+  enableReportPageLoaded: false,
+};
+
+/**
+ * Defaults for the options that `browserTracingIntegration` forwards to the integrations it registers.
+ * They are spread rather than destructured, so an explicit `undefined` still overrides them.
+ */
+const DEFAULT_FORWARDED_OPTIONS = {
   // oxlint-disable-next-line typescript/no-deprecated -- still honoured until it is removed
   enableInp: true,
-  ignoreResourceSpans: [],
-  detectRedirects: true,
+  enableLongTask: true,
+  enableLongAnimationFrame: true,
+  traceFetch: true,
+  traceXHR: true,
   linkPreviousTrace: 'in-memory',
-  consistentTraceSampling: false,
-  enableReportPageLoaded: false,
-  ...defaultRequestInstrumentationOptions,
-};
+} satisfies Partial<BrowserTracingOptions>;
 
 /**
  * The Browser Tracing integration automatically instruments browser pageload/navigation
@@ -311,6 +347,73 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     });
   }
 
+  const {
+    // oxlint-disable-next-line typescript/no-deprecated -- still honoured until it is removed
+    enableInp,
+    webVitals,
+    enableLongTask,
+    enableLongAnimationFrame,
+    ignoreResourceSpans,
+    traceFetch,
+    traceXHR,
+    shouldCreateSpanForRequest,
+    enableHTTPTimings,
+    onRequestSpanStart,
+    onRequestSpanEnd,
+    linkPreviousTrace,
+    consistentTraceSampling,
+  } = { ...DEFAULT_FORWARDED_OPTIONS, ...options };
+
+  return _browserTracingIntegration(options, client => {
+    // Custom clients and test doubles may not implement it.
+    if (!client.addIntegration) {
+      return;
+    }
+
+    const ignore = webVitals?.ignore ?? [];
+    client.addIntegration(
+      webVitalsIntegration({
+        ...webVitals,
+        ignore: enableInp || ignore.includes('inp') ? ignore : [...ignore, 'inp'],
+      }),
+    );
+
+    if (enableLongTask || enableLongAnimationFrame) {
+      client.addIntegration(longTasksIntegration({ enableLongTask, enableLongAnimationFrame }));
+    }
+
+    client.addIntegration(resourcesIntegration({ ignoreResourceSpans }));
+
+    const requestOptions = { shouldCreateSpanForRequest, enableHTTPTimings, onRequestSpanStart, onRequestSpanEnd };
+
+    if (traceFetch) {
+      client.addIntegration(fetchTracingIntegration(requestOptions));
+    }
+
+    if (traceXHR) {
+      client.addIntegration(xhrTracingIntegration(requestOptions));
+    }
+
+    if (linkPreviousTrace !== 'off') {
+      client.addIntegration(linkedTracesIntegration({ storage: linkPreviousTrace, consistentTraceSampling }));
+    }
+  });
+}) satisfies IntegrationFn;
+
+/**
+ * The pageload and navigation spans of `browserTracingIntegration`, without the features it registers as
+ * standalone integrations (such as `webVitalsIntegration`).
+ *
+ * Use it instead of `browserTracingIntegration` to only bundle the integrations you add yourself.
+ */
+export const browserTracingCoreIntegration = ((options: Partial<BrowserTracingCoreOptions> = {}) =>
+  _browserTracingIntegration(options)) satisfies IntegrationFn;
+
+function _browserTracingIntegration(
+  options: Partial<BrowserTracingCoreOptions>,
+  // Runs before the pageload span starts, so the integrations it adds can hook into it.
+  addDefaultIntegrations?: (client: Client) => void,
+) {
   /**
    * This is just a small wrapper that makes `document` optional.
    * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
@@ -318,30 +421,16 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
   const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
 
   const {
-    // oxlint-disable-next-line typescript/no-deprecated -- still honoured until it is removed
-    enableInp,
-    enableLongTask,
-    enableLongAnimationFrame,
-    webVitals,
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
     childSpanTimeout,
     markBackgroundSpan,
-    traceFetch,
-    traceXHR,
-    shouldCreateSpanForRequest,
-    enableHTTPTimings,
-    ignoreResourceSpans,
     instrumentPageLoad,
     instrumentNavigation,
     instrumentBfcacheRestore,
     detectRedirects,
-    linkPreviousTrace,
-    consistentTraceSampling,
     enableReportPageLoaded,
-    onRequestSpanStart,
-    onRequestSpanEnd,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
     ...options,
@@ -433,16 +522,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
       registerSpanErrorInstrumentation();
 
-      if (
-        enableLongAnimationFrame &&
-        GLOBAL_OBJ.PerformanceObserver &&
-        PerformanceObserver.supportedEntryTypes?.includes('long-animation-frame')
-      ) {
-        startTrackingLongAnimationFrames();
-      } else if (enableLongTask) {
-        startTrackingLongTasks();
-      }
-
       if (detectRedirects && optionalWindowDocument) {
         const interactionHandler = (): void => {
           lastInteractionTimestamp = timestampInSeconds();
@@ -473,10 +552,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
           return;
         }
 
-        addPerformanceEntries(span, {
-          ignoreResourceSpans,
-          spanStreamingEnabled: hasSpanStreamingEnabled(client),
-        });
+        addPerformanceEntries(span, { spanStreamingEnabled: hasSpanStreamingEnabled(client) });
         setActiveIdleSpan(client, undefined);
 
         // A trace should stay consistent over the entire timespan of one route - even after the pageload/navigation ended.
@@ -619,24 +695,11 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       // purely rely on manual startSpan calls.
       _INTERNAL_ensureBrowserSpanStreaming(client);
 
-      // Auto-register webVitalsIntegration if the user hasn't added one. We do this in
-      // afterAllSetup so that a user-provided webVitalsIntegration - which may be ordered after
-      // browserTracingIntegration in the integrations array - has already been installed.
-      if (client.addIntegration && !client.getIntegrationByName?.(WEB_VITALS_INTEGRATION_NAME)) {
-        const ignore = webVitals?.ignore ?? [];
-        client.addIntegration(
-          webVitalsIntegration({
-            ...webVitals,
-            ignore: enableInp || ignore.includes('inp') ? ignore : [...ignore, 'inp'],
-          }),
-        );
-      }
+      // This runs in afterAllSetup so that integrations the user added themselves, which may be
+      // ordered after this one in the integrations array, are already installed. `addIntegration` skips those.
+      addDefaultIntegrations?.(client);
 
       let startingUrl: string | undefined = getLocationHref();
-
-      if (linkPreviousTrace !== 'off') {
-        linkTraces(client, { linkPreviousTrace, consistentTraceSampling });
-      }
 
       if (WINDOW.location) {
         if (instrumentPageLoad) {
@@ -736,19 +799,9 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       if (markBackgroundSpan) {
         registerBackgroundTabDetection();
       }
-
-      instrumentOutgoingRequests(client, {
-        traceFetch,
-        traceXHR,
-        tracePropagationTargets: client.getOptions().tracePropagationTargets,
-        shouldCreateSpanForRequest,
-        enableHTTPTimings,
-        onRequestSpanStart,
-        onRequestSpanEnd,
-      });
     },
-  };
-}) satisfies IntegrationFn;
+  } satisfies Integration;
+}
 
 /**
  * Manually start a page load span.

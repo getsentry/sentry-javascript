@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { debug, getMainCarrier, GLOBAL_OBJ, SentryNonRecordingSpan, spanToJSON } from '@sentry/core';
+import { debug, getMainCarrier, getTunnelPath, GLOBAL_OBJ, SentryNonRecordingSpan, spanToJSON } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
 import { close, getClient, getIsolationScope, WINDOW } from '@sentry/react';
 import { JSDOM } from 'jsdom';
@@ -56,6 +56,7 @@ describe('Client init()', () => {
     expect(reactInit).toHaveBeenCalledWith(
       expect.objectContaining({
         _metadata: {
+          optionsSetByUser: [],
           sdk: {
             name: 'sentry.javascript.nextjs',
             version: expect.any(String),
@@ -235,6 +236,108 @@ describe('Client init()', () => {
 
         expect(setIntervalSpy).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('managed tunnel', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("serves `tunnel: true` under the app's `basePath`", () => {
+      vi.stubEnv('_sentryBasePath', '/docs');
+
+      const client = init({ dsn: TEST_DSN, tunnel: true });
+
+      expect(client?.getOptions().tunnel).toBe(`/docs${getTunnelPath(TEST_DSN)}`);
+    });
+
+    it('keeps a `basePath` the user set', () => {
+      vi.stubEnv('_sentryBasePath', '/docs');
+
+      const client = init({ dsn: TEST_DSN, tunnel: { basePath: '/shop' } });
+
+      expect(client?.getOptions().tunnel).toBe(`/shop${getTunnelPath(TEST_DSN)}`);
+    });
+
+    it('keeps a `tunnel` URL as written', () => {
+      vi.stubEnv('_sentryBasePath', '/docs');
+
+      const client = init({ dsn: TEST_DSN, tunnel: '/monitoring' });
+
+      expect(client?.getOptions().tunnel).toBe('/monitoring');
+    });
+
+    it('sends events to the fixed path of the `tunnelRoute`', () => {
+      vi.stubEnv('_sentryBasePath', '/docs');
+      vi.stubEnv('_sentryTunnelRoute', '/docs/monitoring');
+
+      const client = init({ dsn: TEST_DSN });
+
+      expect(client?.getOptions().tunnel).toBe('/docs/monitoring');
+      // The Vercel rewrite only matches envelope requests.
+      expect(client?.getOptions().transportOptions?.headers).toEqual({
+        'Content-Type': 'application/x-sentry-envelope',
+      });
+    });
+
+    it("sends events to the path derived from the DSN under the app's `basePath` for `tunnelRoute: true`", () => {
+      vi.stubEnv('_sentryBasePath', '/docs');
+      vi.stubEnv('_sentryTunnelRoute', 'true');
+
+      const client = init({ dsn: TEST_DSN });
+
+      expect(client?.getOptions().tunnel).toBe(`/docs${getTunnelPath(TEST_DSN)}`);
+    });
+  });
+
+  describe('release', () => {
+    const getEntriesByType = vi.spyOn(WINDOW.performance, 'getEntriesByType');
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+      getEntriesByType.mockReset();
+    });
+
+    afterAll(() => {
+      getEntriesByType.mockRestore();
+    });
+
+    function mockDocumentServerTiming(serverTiming: { name: string; description: string }[]): void {
+      getEntriesByType.mockReturnValue([{ serverTiming } as unknown as PerformanceEntry]);
+    }
+
+    it('reads the release from the `Server-Timing` header of the document', () => {
+      mockDocumentServerTiming([{ name: 'sentry-release', description: 'my-app%401.0.0%2Bbuild' }]);
+
+      const client = init({ dsn: TEST_DSN });
+
+      expect(client?.getOptions().release).toBe('my-app@1.0.0+build');
+    });
+
+    it('prefers the release injected at build time', () => {
+      vi.stubEnv('_sentryRelease', 'injected');
+      mockDocumentServerTiming([{ name: 'sentry-release', description: 'from-header' }]);
+
+      const client = init({ dsn: TEST_DSN });
+
+      expect(client?.getOptions().release).toBe('injected');
+    });
+
+    it('keeps a release passed to init', () => {
+      mockDocumentServerTiming([{ name: 'sentry-release', description: 'from-header' }]);
+
+      const client = init({ dsn: TEST_DSN, release: 'explicit' });
+
+      expect(client?.getOptions().release).toBe('explicit');
+    });
+
+    it('ignores a malformed `Server-Timing` release', () => {
+      mockDocumentServerTiming([{ name: 'sentry-release', description: '%E0%A4%A' }]);
+
+      const client = init({ dsn: TEST_DSN });
+
+      expect(client?.getOptions().release).toBeUndefined();
     });
   });
 

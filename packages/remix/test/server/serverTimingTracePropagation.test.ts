@@ -1,34 +1,20 @@
-import { getActiveSpan, getTraceData } from '@sentry/core';
+import { getTraceServerTimingHeader } from '@sentry/core';
 import { isNodeEnv } from '@sentry/core/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   generateSentryServerTimingHeader,
   injectServerTimingHeaderValue,
 } from '../../src/server/serverTimingTracePropagation';
-import type { Span } from '@sentry/core';
-
-const mockSpan = {
-  spanId: 'test-span-id',
-  spanContext: () => ({ traceId: '12345678901234567890123456789012' }),
-} as unknown as Span;
-const mockRootSpan = {
-  spanId: 'root-span-id',
-  spanContext: () => ({ traceId: '12345678901234567890123456789012' }),
-};
 
 vi.mock('@sentry/core', () => ({
   debug: {
     log: vi.fn(),
     warn: vi.fn(),
   },
-  getActiveSpan: vi.fn(),
-  getRootSpan: vi.fn(() => mockRootSpan),
-  getTraceData: vi.fn(() => ({
-    'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
-    baggage: 'sentry-environment=production,sentry-release=1.0.0',
-  })),
-  spanToTraceHeader: vi.fn(() => '12345678901234567890123456789012-1234567890123456-1'),
-  spanToBaggageHeader: vi.fn(() => 'sentry-environment=production,sentry-release=1.0.0'),
+  getTraceServerTimingHeader: vi.fn(
+    () =>
+      'sentry-trace;desc="12345678901234567890123456789012-1234567890123456-1", baggage;desc="sentry-environment=production,sentry-release=1.0.0"',
+  ),
 }));
 
 vi.mock('@sentry/core/server', () => ({
@@ -39,11 +25,6 @@ describe('serverTimingTracePropagation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(isNodeEnv).mockReturnValue(true);
-    vi.mocked(getActiveSpan).mockReturnValue(mockSpan);
-    vi.mocked(getTraceData).mockReturnValue({
-      'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
-      baggage: 'sentry-environment=production,sentry-release=1.0.0',
-    });
   });
 
   describe('generateSentryServerTimingHeader', () => {
@@ -54,31 +35,15 @@ describe('serverTimingTracePropagation', () => {
     });
 
     it('returns null without trace data', () => {
-      vi.mocked(getActiveSpan).mockReturnValueOnce(undefined);
-      vi.mocked(getTraceData).mockReturnValueOnce({});
+      vi.mocked(getTraceServerTimingHeader).mockReturnValueOnce('');
 
       expect(generateSentryServerTimingHeader()).toBeNull();
     });
 
-    it('produces correct Server-Timing format', () => {
-      const result = generateSentryServerTimingHeader();
-
-      expect(result).toBe(
+    it('returns the Server-Timing value of the current trace', () => {
+      expect(generateSentryServerTimingHeader()).toBe(
         'sentry-trace;desc="12345678901234567890123456789012-1234567890123456-1", baggage;desc="sentry-environment=production,sentry-release=1.0.0"',
       );
-    });
-
-    it('falls back to getTraceData without active span', () => {
-      vi.mocked(getActiveSpan).mockReturnValueOnce(undefined);
-      vi.mocked(getTraceData).mockReturnValueOnce({
-        'sentry-trace': 'fallback-trace-id-1234567890123456-0',
-        baggage: 'sentry-fallback=true',
-      });
-
-      const result = generateSentryServerTimingHeader();
-
-      expect(result).toContain('sentry-trace;desc="fallback-trace-id-1234567890123456-0"');
-      expect(result).toContain('sentry-fallback=true');
     });
 
     it('generates header in Cloudflare environment when isNodeEnv is false', () => {

@@ -43,10 +43,34 @@ describe('filterUrlQuery', () => {
       );
     });
 
-    it('removes the query but keeps the fragment', () => {
-      expect(filterUrlQuery('https://example.com/api?token=abc#results', false)).toBe(
-        'https://example.com/api#results',
+    it('removes the query and the fragment', () => {
+      expect(filterUrlQuery('https://example.com/api?token=abc#results', false)).toBe('https://example.com/api');
+    });
+
+    it('removes a fragment without a query', () => {
+      expect(filterUrlQuery('https://example.com/callback#access_token=abc123&state=xyz', false)).toBe(
+        'https://example.com/callback',
       );
+    });
+  });
+
+  describe('fragment', () => {
+    it('filters sensitive pairs in a login redirect fragment', () => {
+      const result = filterUrlQuery('https://example.com/callback#access_token=abc123&state=xyz', true);
+
+      expect(result).toBe('https://example.com/callback#access_token=[Filtered]&state=xyz');
+    });
+
+    it('filters pairs after the `?` of a hash route', () => {
+      const result = filterUrlQuery('https://example.com/#/callback?token=abc&page=2', true);
+
+      expect(result).toBe('https://example.com/#/callback?token=[Filtered]&page=2');
+    });
+
+    it('applies allowList mode to fragment pairs', () => {
+      const result = filterUrlQuery('https://example.com/#page=1&ref=x', { allow: ['page'] });
+
+      expect(result).toBe('https://example.com/#page=1&ref=[Filtered]');
     });
   });
 
@@ -76,9 +100,9 @@ describe('filterUrlQuery', () => {
     });
 
     it('does not treat a `?` inside a fragment as a query', () => {
-      const result = filterUrlQuery('https://example.com/docs#/route?token=abc', true);
+      const result = filterUrlQuery('https://example.com/docs?page=1#/route?token=abc', true);
 
-      expect(result).toBe('https://example.com/docs#/route?token=abc');
+      expect(result).toBe('https://example.com/docs?page=1#/route?token=[Filtered]');
     });
   });
 });

@@ -1,4 +1,4 @@
-import { type InternalGlobal } from '@sentry/core';
+import { type InternalGlobal, stringifyForCodeInjection } from '@sentry/core';
 import MagicString from 'magic-string';
 import type { Plugin } from 'vite';
 import type { ResolvedKitConfig } from './kitConfig';
@@ -6,6 +6,9 @@ import { getHooksFileName, makeEntryFileMatcher } from './svelteConfig';
 
 export type GlobalSentryValues = {
   __sentry_sveltekit_output_dir?: string;
+  /** The release `sentryHandle` adds to the pages it renders */
+  __sentry_sveltekit_release?: string;
+  SENTRY_RELEASE?: { id?: string };
 };
 
 /**
@@ -26,7 +29,7 @@ export function getGlobalValueInjectionCode(globalSentryValues: GlobalSentryValu
   }
 
   const injectedValuesCode = Object.entries(globalSentryValues)
-    .map(([key, value]) => `globalThis["${key}"] = ${JSON.stringify(value)};`)
+    .map(([key, value]) => `globalThis["${key}"] = ${stringifyForCodeInjection(value)};`)
     .join('\n');
 
   return `${injectedValuesCode}\n`;

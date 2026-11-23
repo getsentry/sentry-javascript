@@ -2,6 +2,7 @@ import type { SerializedStreamedSpan } from '@sentry/core';
 import {
   DB_NAMESPACE,
   DB_OPERATION_BATCH_SIZE,
+  DB_OPERATION_NAME,
   DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
@@ -34,11 +35,13 @@ const CONNECTION_ATTRIBUTES = {
 
 function expectedDbSpan({
   name,
+  operation,
   statement,
   status = 'ok',
   batchSize,
 }: {
   name: string;
+  operation: string;
   statement: string;
   status?: 'ok' | 'error';
   batchSize?: number;
@@ -51,6 +54,7 @@ function expectedDbSpan({
       [SENTRY_ORIGIN]: attr(ORIGIN),
       [DB_QUERY_TEXT]: attr(statement),
       [DB_QUERY_SUMMARY]: attr(name),
+      [DB_OPERATION_NAME]: attr(operation),
       ...(batchSize ? { [DB_OPERATION_BATCH_SIZE]: attr(batchSize, 'integer') } : {}),
     }),
     is_segment: false,
@@ -87,20 +91,30 @@ describeWithDockerCompose('neon auto instrumentation', { workingDirectory: [__di
         const neonSpans = getNeonSpans(spans);
         expect(neonSpans.every(span => span.parent_span_id === segment!.span_id)).toBe(true);
         expect(neonSpans).toEqual([
-          expectedDbSpan({ name: 'CREATE TABLE "User"', statement: CREATE_USER_TABLE_STATEMENT }),
-          expectedDbSpan({ name: 'INSERT "User"', statement: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)' }),
-          expectedDbSpan({ name: 'SELECT "User"', statement: 'SELECT * FROM "User" WHERE "name" = $1' }),
+          expectedDbSpan({ name: 'CREATE TABLE "User"', operation: 'CREATE', statement: CREATE_USER_TABLE_STATEMENT }),
+          expectedDbSpan({
+            name: 'INSERT "User"',
+            operation: 'INSERT',
+            statement: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+          }),
+          expectedDbSpan({
+            name: 'SELECT "User"',
+            operation: 'SELECT',
+            statement: 'SELECT * FROM "User" WHERE "name" = $1',
+          }),
           expectedDbSpan({
             name: 'SELECT "User"; SELECT "User"',
+            operation: 'BATCH SELECT',
             statement: 'SELECT "email" FROM "User"; SELECT "name" FROM "User"',
             batchSize: 2,
           }),
           expectedDbSpan({
             name: 'SELECT "does_not_exist_table"',
+            operation: 'SELECT',
             statement: 'SELECT * FROM "does_not_exist_table"',
             status: 'error',
           }),
-          expectedDbSpan({ name: 'DROP TABLE "User"', statement: 'DROP TABLE "User"' }),
+          expectedDbSpan({ name: 'DROP TABLE "User"', operation: 'DROP', statement: 'DROP TABLE "User"' }),
         ]);
       });
     });
@@ -121,15 +135,20 @@ describeWithDockerCompose('neon auto instrumentation', { workingDirectory: [__di
         const neonSpans = getNeonSpans(spans);
         expect(neonSpans.every(span => span.parent_span_id === segment!.span_id)).toBe(true);
         expect(neonSpans).toEqual([
-          expectedDbSpan({ name: 'CREATE TABLE "User"', statement: CREATE_USER_TABLE_STATEMENT }),
-          expectedDbSpan({ name: 'INSERT "User"', statement: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)' }),
-          expectedDbSpan({ name: 'SELECT "User"', statement: 'SELECT * FROM "User"' }),
+          expectedDbSpan({ name: 'CREATE TABLE "User"', operation: 'CREATE', statement: CREATE_USER_TABLE_STATEMENT }),
+          expectedDbSpan({
+            name: 'INSERT "User"',
+            operation: 'INSERT',
+            statement: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+          }),
+          expectedDbSpan({ name: 'SELECT "User"', operation: 'SELECT', statement: 'SELECT * FROM "User"' }),
           expectedDbSpan({
             name: 'SELECT "does_not_exist_table"',
+            operation: 'SELECT',
             statement: 'SELECT * FROM "does_not_exist_table"',
             status: 'error',
           }),
-          expectedDbSpan({ name: 'DROP TABLE "User"', statement: 'DROP TABLE "User"' }),
+          expectedDbSpan({ name: 'DROP TABLE "User"', operation: 'DROP', statement: 'DROP TABLE "User"' }),
         ]);
       });
     });
@@ -154,10 +173,15 @@ describeWithDockerCompose('neon auto instrumentation', { workingDirectory: [__di
         expect(neonSpans).toEqual([
           expectedDbSpan({
             name: 'SELECT pg_catalog.pg_user',
+            operation: 'SELECT',
             statement: 'SELECT "email", "name" FROM pg_catalog.pg_user LIMIT ?',
             status: 'error',
           }),
-          expectedDbSpan({ name: 'SELECT pg_catalog.pg_user', statement: 'SELECT "usename" FROM pg_catalog.pg_user' }),
+          expectedDbSpan({
+            name: 'SELECT pg_catalog.pg_user',
+            operation: 'SELECT',
+            statement: 'SELECT "usename" FROM pg_catalog.pg_user',
+          }),
         ]);
       });
     });

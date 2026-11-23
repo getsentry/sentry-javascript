@@ -917,7 +917,7 @@ describe('withSentryConfig', () => {
 
         expect(finalConfig.productionBrowserSourceMaps).toBe(true);
         expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
-        expect(finalConfig.rewrites).toBeInstanceOf(Function);
+        expect(finalConfig.env).toHaveProperty('_sentryTunnelRoute', '/custom-tunnel');
       });
 
       it('works correctly with custom release configuration', () => {
@@ -1299,6 +1299,41 @@ describe('withSentryConfig', () => {
       materializeFinalNextConfig(exportedNextConfig);
 
       expect(consoleWarnSpy).not.toHaveBeenCalledWith(expect.stringContaining('`moduleMetadata`'));
+    });
+  });
+
+  describe('applicationKeyExcludeDependencies warnings', () => {
+    beforeEach(() => {
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('warns without applicationKey', () => {
+      vi.spyOn(util, 'detectActiveBundler').mockReturnValue('turbopack');
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, { applicationKeyExcludeDependencies: true });
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[@sentry/nextjs] `applicationKeyExcludeDependencies` requires `applicationKey` and has no effect without it.',
+      );
+    });
+
+    it('warns on webpack when applicationKey is set', () => {
+      vi.spyOn(util, 'detectActiveBundler').mockReturnValue('webpack');
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, {
+        applicationKey: 'my-app',
+        applicationKeyExcludeDependencies: true,
+      });
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[@sentry/nextjs] `applicationKeyExcludeDependencies` only applies to Turbopack builds and has no effect on webpack builds.',
+      );
     });
   });
 
@@ -1751,8 +1786,8 @@ describe('withSentryConfig', () => {
         '[@sentry/nextjs] The configured `useRunAfterProductionCompileHook` option is not compatible with your current Next.js version. This option is only supported on Next.js version 15.4.1 or later. Will not run source map and release management logic.',
       );
 
-      // Ensure other functionality still works (tunnel route creates rewrites function)
-      expect(finalConfig.rewrites).toBeInstanceOf(Function);
+      // Ensure other functionality still works
+      expect(finalConfig.env).toHaveProperty('_sentryTunnelRoute', '/tunnel');
       // Release name should be set (from git or environment)
       expect(finalConfig.env).toHaveProperty('_sentryRelease');
 

@@ -20,6 +20,10 @@ export function createDebugIdUploadFunction({ sentryBuildPluginManager }: DebugI
   };
 }
 
+/** The source map of a prepared bundle. `sourceMapPath` is `undefined` for an inline map. */
+export type PreparedBundle = { sourceMapPath: string | undefined };
+
+/** Resolves to `undefined` when the bundle was skipped. */
 export async function prepareBundleForDebugIdUpload(
   bundleFilePath: string,
   uploadFolder: string,
@@ -27,7 +31,7 @@ export async function prepareBundleForDebugIdUpload(
   logger: Logger,
   rewriteSourcesHook: RewriteSourcesHook,
   resolveSourceMapHook: ResolveSourceMapHook | undefined,
-): Promise<void> {
+): Promise<PreparedBundle | undefined> {
   let bundleContent: string;
   try {
     bundleContent = await fs.promises.readFile(bundleFilePath, 'utf8');
@@ -81,6 +85,7 @@ export async function prepareBundleForDebugIdUpload(
   }
 
   await writePreparedArtifact(uploadFolder, `${result.artifact.debugId}-${chunkIndex}`, result.artifact);
+  return { sourceMapPath };
 }
 
 export type PreparedUploadArtifact = {
@@ -219,7 +224,7 @@ function parseSourceMap(sourceMapSource: string): Record<string, unknown> | unde
  * Stamps the debug ID injected into `bundleSource` into the bundle (as `//# debugId=` comment) and its
  * source map (as `debug_id`/`debugId` fields).
  *
- * This exists for `sourcemaps.disable: "disable-upload"`: the regular upload path only stamps
+ * This exists for builds without an upload (`sourcemaps.upload: false`): the regular upload path only stamps
  * temporary copies of the artifacts (see `prepareBundleForDebugIdUpload`), so without this the
  * emitted artifacts would carry no debug ID and a later manual upload could not match them.
  * Callers must apply the result inside the bundler's asset pipeline (or, for bundlers without one,

@@ -1,7 +1,7 @@
 import { createSentrySDK } from 'sentry';
 import type { NormalizedOptions } from './options-mapping';
 import type { SetCommitsOptions } from './types';
-import { arrayify, getProjects } from './utils';
+import { arrayify, getGitRemoteRepository, getProjects, gitRevision } from './utils';
 
 type SentrySDK = ReturnType<typeof createSentrySDK>;
 type SentryOptions = NonNullable<Parameters<typeof createSentrySDK>[0]>;
@@ -82,18 +82,28 @@ export class SentryCliAdapter {
    * Associate commits with a release. Translates the plugin's {@link SetCommitsOptions} `auto` /
    * `repo`+`commit` union into the flags accepted by `sentry release set-commits`. The old CLI's
    * `ignoreMissing`/`ignoreEmpty` toggles have no equivalent flag on the new CLI; the caller's
-   * `shouldNotThrowOnFailure` handling still swallows the "no repository" failure case.
+   * `shouldNotThrowOnFailure` handling swallows the failures, for example a build without a git checkout.
+   *
+   * `auto: true` runs `set-commits` without a mode flag, not with `--auto`. Without a flag, the CLI
+   * links commits through the repository integration and falls back to local git history when no
+   * integration matches the repository, as `--auto` of the old CLI did. The new `--auto` fails instead.
    */
   public async setCommits(name: string, setCommitsOptions: SetCommitsOptions): Promise<void> {
     const { auto, repo, commit, previousCommit } = setCommitsOptions;
+    const { vcsRemote } = this.#options.release;
+
+    // The CLI only reads the `origin` remote, so other remotes go through manual mode. CI checkouts
+    // often lack the named remote; the CLI then still finds the repository from CI variables.
+    const remoteRepo = auto === true && vcsRemote !== 'origin' ? getGitRemoteRepository(vcsRemote) : undefined;
+    const head = remoteRepo ? gitRevision() : undefined;
+    const remoteCommitSpec = remoteRepo && head ? `${remoteRepo}@${head}` : undefined;
 
     // Manual mode is expressed as `REPO@SHA` (optionally `REPO@PREV..SHA`).
     const commitSpec =
-      repo && commit ? `${repo}@${previousCommit ? `${previousCommit}..${commit}` : commit}` : undefined;
+      repo && commit ? `${repo}@${previousCommit ? `${previousCommit}..${commit}` : commit}` : remoteCommitSpec;
 
     await this.#sdk.release['set-commits']({
       orgVersion: name,
-      auto: auto === true,
       commit: commitSpec,
     });
   }
@@ -120,14 +130,20 @@ export class SentryCliAdapter {
    * array; the new `sourcemap upload` command takes a single directory, so we upload each target
    * separately. A client is created per project because project selection is bound at client
    * creation time.
+   *
+   * Empty directories must not abort the loop: `@sentry/nextjs` uploads `.next/server` first, and
+   * a server build without source maps would otherwise skip every client directory after it.
+   *
+   * @returns The directories that had no source maps to upload.
    */
-  public async uploadSourcemaps(name: string, targets: UploadTarget[]): Promise<void> {
+  public async uploadSourcemaps(name: string, targets: UploadTarget[]): Promise<string[]> {
     const projects = getProjects(this.#options.project) ?? [undefined];
+    const emptyDirectories = new Set<string>();
 
     for (const project of projects) {
       const sdk = this.#createClient(project);
       for (const target of targets) {
-        await sdk.sourcemap.upload({
+        const result = (await sdk.sourcemap.upload({
           directory: target.directory,
           release: name,
           dist: target.dist ?? this.#options.release.dist,
@@ -135,9 +151,15 @@ export class SentryCliAdapter {
           ignore: serializeIgnore(target.ignore),
           ignoreFile: target.ignoreFile,
           urlPrefix: target.urlPrefix,
-        });
+          allowEmpty: true,
+        })) as { filesUploaded?: number } | undefined;
+        if (result?.filesUploaded === 0) {
+          emptyDirectories.add(target.directory);
+        }
       }
     }
+
+    return [...emptyDirectories];
   }
 
   /** Inject debug IDs into the given build artifacts. */

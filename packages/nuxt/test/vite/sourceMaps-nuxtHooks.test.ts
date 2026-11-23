@@ -5,7 +5,8 @@ import * as os from 'os';
 import * as path from 'path';
 import type { ConfigEnv, Plugin, UserConfig } from 'vite';
 import { afterAll, afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
-import { setupSourceMaps, type SourceMapSetting } from '../../src/vite/sourceMaps';
+import { NUXT_RELEASE_RUNTIME_CONFIG_KEY, setupSourceMaps } from '../../src/vite/sourceMaps';
+import type { SourceMapSetting } from '../../src/vite/sourceMapSettings';
 
 const { mockSentryVitePlugin, mockSentryRollupPlugin, mockDeleteArtifacts, mockCreateSentryBuildPluginManager } =
   vi.hoisted(() => {
@@ -71,6 +72,7 @@ function createMockNuxt(options: {
       _prepare: options._prepare ?? false,
       dev: options.dev ?? false,
       sourcemap: options.sourcemap ?? { server: undefined, client: undefined },
+      runtimeConfig: { public: {} as Record<string, unknown> },
     },
     hook: (name: string, callback: HookCallback) => {
       hooks[name] = hooks[name] || [];
@@ -217,6 +219,83 @@ describe('setupSourceMaps hooks', () => {
     });
   });
 
+  describe('client release', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('passes the configured release to the client through the public runtime config', () => {
+      const mockNuxt = createMockNuxt({});
+
+      setupSourceMaps({ release: { name: '1.2.3' } }, mockNuxt as unknown as Nuxt, vi.fn(), true);
+
+      expect(mockNuxt.options.runtimeConfig.public).toEqual({ [NUXT_RELEASE_RUNTIME_CONFIG_KEY]: '1.2.3' });
+    });
+
+    it('falls back to the `SENTRY_RELEASE` environment variable, like the bundler plugin', () => {
+      vi.stubEnv('SENTRY_RELEASE', 'env-release');
+      const mockNuxt = createMockNuxt({});
+
+      setupSourceMaps({}, mockNuxt as unknown as Nuxt, vi.fn(), true);
+
+      expect(mockNuxt.options.runtimeConfig.public).toEqual({ [NUXT_RELEASE_RUNTIME_CONFIG_KEY]: 'env-release' });
+    });
+
+    it('passes the resolved release name to the client plugin so the upload matches the runtime config', () => {
+      vi.stubEnv('SENTRY_RELEASE', 'env-release');
+      const mockNuxt = createMockNuxt({});
+
+      setupSourceMaps({}, mockNuxt as unknown as Nuxt, vi.fn(), true);
+
+      expect(mockSentryVitePlugin).toHaveBeenCalledWith(
+        expect.objectContaining({ release: { name: 'env-release', inject: false } }),
+      );
+    });
+
+    it('turns off release injection in the client build only', async () => {
+      const mockNuxt = createMockNuxt({});
+
+      setupSourceMaps({ release: { name: '1.2.3' } }, mockNuxt as unknown as Nuxt, vi.fn(), true);
+      await mockNuxt.triggerHook('nitro:config', { rollupConfig: {} });
+
+      expect(mockSentryVitePlugin).toHaveBeenCalledWith(
+        expect.objectContaining({ release: { name: '1.2.3', inject: false } }),
+      );
+      expect(mockSentryRollupPlugin).toHaveBeenCalledWith(expect.objectContaining({ release: { name: '1.2.3' } }));
+    });
+
+    it('gives the client no release when the user turned off `release.inject`', () => {
+      const mockNuxt = createMockNuxt({});
+
+      setupSourceMaps({ release: { name: '1.2.3', inject: false } }, mockNuxt as unknown as Nuxt, vi.fn(), true);
+
+      expect(mockNuxt.options.runtimeConfig.public).toEqual({});
+      expect(mockSentryVitePlugin).toHaveBeenCalledWith(
+        expect.objectContaining({ release: { name: '1.2.3', inject: false } }),
+      );
+    });
+
+    it('keeps release injection in the client build without a client config file', () => {
+      const mockNuxt = createMockNuxt({});
+
+      setupSourceMaps({ release: { name: '1.2.3' } }, mockNuxt as unknown as Nuxt, vi.fn(), false);
+
+      expect(mockNuxt.options.runtimeConfig.public).toEqual({});
+      expect(mockSentryVitePlugin).toHaveBeenCalledWith(expect.objectContaining({ release: { name: '1.2.3' } }));
+    });
+
+    it.each([
+      { label: 'dev mode', nuxtOptions: { dev: true } },
+      { label: 'prepare mode', nuxtOptions: { _prepare: true } },
+    ])('gives the client no release in $label', ({ nuxtOptions }) => {
+      const mockNuxt = createMockNuxt(nuxtOptions);
+
+      setupSourceMaps({ release: { name: '1.2.3' } }, mockNuxt as unknown as Nuxt, vi.fn(), true);
+
+      expect(mockNuxt.options.runtimeConfig.public).toEqual({});
+    });
+  });
+
   describe('shouldDeleteFilesFallback passed to getPluginOptions in Vite plugin', () => {
     it('does not pass fallback deletion patterns to the Vite plugin', async () => {
       const mockNuxt = createMockNuxt({
@@ -247,6 +326,7 @@ describe('setupSourceMaps hooks', () => {
           assets: undefined,
           ignore: undefined,
           filesToDeleteAfterUpload: undefined,
+          deleteSourcemapsAfterUpload: false,
           rewriteSources: expect.any(Function),
         },
       });

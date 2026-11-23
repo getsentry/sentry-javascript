@@ -19,7 +19,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  * @typedef {{ 'build-command': string; 'assert-command'?: string; label?: string; skip?: boolean; runtime?: string }} SentryTestVariant
  */
 
-/** @typedef {{ sentryTest?: { variants?: SentryTestVariant[]; optionalVariants?: SentryTestVariant[]; canaryVariants?: SentryTestVariant[] } }} PackageJson */
+/** @typedef {{ sentryTest?: { baseVariant?: SentryTestVariant; variants?: SentryTestVariant[]; optionalVariants?: SentryTestVariant[]; canaryVariants?: SentryTestVariant[] } }} PackageJson */
 
 const DEFAULT_DSN = 'https://username@domain/123';
 const DEFAULT_SENTRY_ORG_SLUG = 'sentry-javascript-sdks';
@@ -98,6 +98,7 @@ async function getVariantBuildCommand(packageJsonPath, variantLabel, testAppPath
     const packageJson = JSON.parse(packageJsonContent);
 
     const allVariants = [
+      ...(packageJson.sentryTest?.baseVariant ? [packageJson.sentryTest.baseVariant] : []),
       ...(packageJson.sentryTest?.variants || []),
       ...(packageJson.sentryTest?.optionalVariants || []),
       ...(packageJson.sentryTest?.canaryVariants || []),

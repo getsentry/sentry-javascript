@@ -6,7 +6,8 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [
-    tanstackStart(),
+    // Prerendering and the SPA shell render pages at build time, which must carry the release as well.
+    tanstackStart({ prerender: { enabled: true }, pages: [{ path: '/prerendered' }], spa: { enabled: true } }),
     nitro(),
     viteReact(),
     sentryTanstackStart({

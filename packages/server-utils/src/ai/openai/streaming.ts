@@ -1,6 +1,9 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
+import { getToolCallKey } from '../core/streaming-tool-calls';
+import type { GenAiSpanResult } from '../core/span-hooks';
 import { endStreamSpan } from '../core/utils';
+import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
 import { RESPONSE_EVENT_TYPES } from './constants';
 import type {
   ChatCompletionChunk,
@@ -61,7 +64,11 @@ interface StreamingState {
 function processChatCompletionToolCalls(toolCalls: ChatCompletionToolCall[], state: StreamingState): void {
   for (const toolCall of toolCalls) {
     if (!toolCall.function) continue;
-    const index = getToolCallKey(toolCall, state);
+    const index = getToolCallKey(toolCall, toolCall.function.name, {
+      calls: state.chatCompletionToolCalls,
+      keyByIndex: (state.chatCompletionToolCallKeyByIndex ??= new Map()),
+      lastKey: state.lastChatCompletionToolCallKey,
+    });
 
     // Initialize tool call if this is the first chunk for this index
     const existingToolCall = state.chatCompletionToolCalls.get(index);
@@ -81,45 +88,6 @@ function processChatCompletionToolCalls(toolCalls: ChatCompletionToolCall[], sta
     }
     state.lastChatCompletionToolCallKey = index;
   }
-}
-
-/**
- * OpenAI-compatible providers such as Gemini's OpenAI endpoint send tool calls without an `index`
- * (or with `null`), or reuse the same `index` for every call. A call without a usable `index` is
- * matched by a known `id`; a new `id` or a function name opens a new call, and anything else
- * continues the latest call. A different non-empty `id` on an `index` that is already taken also
- * opens a new call.
- */
-function getToolCallKey(toolCall: ChatCompletionToolCall, state: StreamingState): string {
-  const calls = state.chatCompletionToolCalls;
-  const findById = (id: string): string | undefined => {
-    for (const [key, call] of calls) {
-      if (call.id === id) return key;
-    }
-    return undefined;
-  };
-
-  if (typeof toolCall.index === 'number') {
-    const keyByIndex = (state.chatCompletionToolCallKeyByIndex ??= new Map());
-    const key = keyByIndex.get(toolCall.index) ?? `index-${toolCall.index}`;
-    const existingId = calls.get(key)?.id;
-    if (existingId && toolCall.id && existingId !== toolCall.id) {
-      const next = findById(toolCall.id) ?? `index-${toolCall.index}-${calls.size}`;
-      keyByIndex.set(toolCall.index, next);
-      return next;
-    }
-    return key;
-  }
-  if (toolCall.id) {
-    const known = findById(toolCall.id);
-    if (known !== undefined) {
-      return known;
-    }
-  }
-  if (toolCall.id || toolCall.function?.name || state.lastChatCompletionToolCallKey === undefined) {
-    return `no-index-${calls.size}`;
-  }
-  return state.lastChatCompletionToolCallKey;
 }
 
 /**
@@ -251,12 +219,14 @@ function processResponsesApiEvent(
  * @param stream - The async iterable stream of events to instrument.
  * @param span - The span to add attributes to and to finish at the end of the stream.
  * @param recordOutputs - Whether to record output text fragments in the span.
+ * @param beforeSpanEnd - Runs right before the span ends, with the error when the stream failed.
  * @returns An async generator yielding each event from the input stream.
  */
 export async function* instrumentStream<T>(
   stream: AsyncIterable<T>,
   span: Span,
   recordOutputs: boolean,
+  beforeSpanEnd?: (result: GenAiSpanResult<never>) => void,
 ): AsyncGenerator<T, void, unknown> {
   const state: StreamingState = {
     eventTypes: [],
@@ -273,8 +243,11 @@ export async function* instrumentStream<T>(
     responsesApiToolCalls: [],
   };
 
+  const result: GenAiSpanResult<never> = {};
+
   try {
     for await (const event of stream) {
+      recordTimeToFirstChunk(span);
       if (isChatCompletionChunk(event)) {
         processChatCompletionChunk(event, state, recordOutputs);
       } else if (isResponsesApiStreamEvent(event)) {
@@ -282,8 +255,12 @@ export async function* instrumentStream<T>(
       }
       yield event;
     }
+  } catch (error) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    result.error = error;
+    throw error;
   } finally {
     const allToolCalls = [...state.chatCompletionToolCalls.values(), ...state.responsesApiToolCalls];
-    endStreamSpan(span, { ...state, toolCalls: allToolCalls }, recordOutputs);
+    endStreamSpan(span, { ...state, toolCalls: allToolCalls }, recordOutputs, () => beforeSpanEnd?.(result));
   }
 }

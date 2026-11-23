@@ -9,56 +9,28 @@ import {
 } from '@sentry/core';
 import {
   GEN_AI_CONVERSATION_ID,
-  GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
-  GEN_AI_OUTPUT_MESSAGES,
-  GEN_AI_PROVIDER_NAME,
-  GEN_AI_REQUEST_MAX_TOKENS,
-  GEN_AI_REQUEST_MODEL,
-  GEN_AI_REQUEST_REASONING_LEVEL,
-  GEN_AI_REQUEST_TEMPERATURE,
-  GEN_AI_RESPONSE_FINISH_REASONS,
-  GEN_AI_RESPONSE_ID,
-  GEN_AI_RESPONSE_MODEL,
-  GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_CALL_ARGUMENTS,
   GEN_AI_TOOL_CALL_RESULT,
-  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_NAME,
-  SERVER_ADDRESS,
-  SERVER_PORT,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { getGenAiSpanOp } from '../core/utils';
-import {
-  piAiAssistantMessageToGenAiMessage,
-  piAiContentToString,
-  piAiFinishReason,
-  piAiMessagesToGenAiMessages,
-} from '../pi-ai/messages';
-import { setPiAiUsageAttributes } from '../pi-ai/usage';
+import type { GenAiSpanHooks } from '../core/span-hooks';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
+import type { GenAiCallOptions } from '../core/utils';
+import { getGenAiSpanOp, resolveGenAiCallRecording } from '../core/utils';
+import { piAiContentToString } from '../pi-ai/messages';
 import { FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
-import type { FlueErrorInfo, FlueModelRequestInfo, FlueObservation } from './types';
-
-/**
- * Flue persists the incoming W3C `traceparent` at admission and replays it on the agent operation.
- * Sentry's own propagation uses `sentry-trace`, so the carrier has to be converted before it can
- * continue the trace. Kept local until something else needs a W3C parser.
- */
-export function sentryTraceFromTraceparent(traceparent: string): string | undefined {
-  const [version, traceId, spanId, flags] = traceparent.split('-');
-  if (version !== '00' || !traceId || !spanId || !flags) {
-    return undefined;
-  }
-  // The sampled bit is the low bit of the flags byte; `% 2` avoids a bitwise operator.
-  return `${traceId}-${spanId}-${parseInt(flags, 16) % 2 === 1 ? '1' : '0'}`;
-}
+import type { FlueCallInfo, FlueErrorInfo, FlueEventContext, FlueObservation } from './types';
 
 /**
  * Turn and tool spans, keyed by the id of the work they cover. Bounded, because the key is only
  * removed when the matching end observation arrives and an abandoned stream never emits one.
  */
 export type SpanTracker = LRUMap<string, Span>;
+
+const TOOL_SPANS_RECORDING_OUTPUTS = new WeakSet<Span>();
+const TOOL_SPAN_END_HOOKS = new WeakMap<Span, (observation: FlueObservation) => void>();
 
 /**
  * Store a span under `key`. Callers only reach this with a key the tracker does not hold, so the
@@ -108,116 +80,52 @@ function captureToolError(span: Span, errorInfo: FlueErrorInfo | undefined): voi
   });
 }
 
-export function startTurnSpan(observation: FlueObservation, turnSpans: SpanTracker): void {
-  const { turnId } = observation;
-  if (!turnId || turnSpans.get(turnId)) {
-    return;
-  }
-
-  trackSpan(
-    turnSpans,
-    turnId,
-    startInactiveSpan({
-      name: 'chat',
-      op: getGenAiSpanOp('chat'),
-      attributes: {
-        [SENTRY_ORIGIN]: FLUE_ORIGIN,
-        [GEN_AI_OPERATION_NAME]: 'chat',
-        [GEN_AI_CONVERSATION_ID]: observation.conversationId,
-        // No conventional attribute for this; it is the only way to tell a compaction turn from a
-        // user-facing one.
-        'flue.turn.purpose': observation.purpose,
-      },
-    }),
-  );
-}
-
-export function endTurnSpan(observation: FlueObservation, turnSpans: SpanTracker, recordOutputs: boolean): void {
-  const { turnId } = observation;
-  const span = turnId ? turnSpans.get(turnId) : undefined;
-  if (!span || !turnId) {
-    return;
-  }
-  turnSpans.remove(turnId);
-
-  const requestedModel = observation.request?.requestedModel;
-  const responseModel = observation.response?.responseModel;
-  const model = responseModel ?? requestedModel;
-  if (model) {
-    span.updateName(`chat ${model}`);
-  }
-  if (requestedModel) {
-    span.setAttribute(GEN_AI_REQUEST_MODEL, requestedModel);
-  }
-  if (responseModel) {
-    span.setAttribute(GEN_AI_RESPONSE_MODEL, responseModel);
-  }
-
-  // `providerId` is the slug (`anthropic`, `openrouter`); `providerName` is the display name.
-  const provider = observation.request?.providerId;
-  if (provider) {
-    span.setAttribute(GEN_AI_PROVIDER_NAME, provider);
-  }
-
-  setRequestAttributes(span, observation.request);
-
-  const responseId = observation.response?.responseId;
-  if (responseId) {
-    span.setAttribute(GEN_AI_RESPONSE_ID, responseId);
-  }
-  const finishReason = piAiFinishReason(observation.response?.finishReason);
-  if (finishReason) {
-    // Serialized, not a raw array: the conventions declare this attribute's value type as `string`,
-    // and that is what `ai/core`, Mastra, OpenAI and Vercel AI all write.
-    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, stringify([finishReason]));
-  }
-
-  const output = recordOutputs
-    ? piAiAssistantMessageToGenAiMessage(observation.response?.output, finishReason)
-    : undefined;
-  if (output) {
-    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, stringify([output]));
-  }
-
-  setPiAiUsageAttributes(span, observation.response?.usage, observation.isError);
-
-  if (observation.isError) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-  }
-  span.end();
-}
-
 /**
  * Tool spans hang off the agent invocation rather than the turn, matching how Flue's own
  * OpenTelemetry adapter projects them: siblings of `chat`, correlated to model output by tool call
  * id. Keyed by `toolCallId` so concurrent tool calls in one turn cannot cross-attribute.
  */
-export function startToolSpan(observation: FlueObservation, toolSpans: SpanTracker, recordInputs: boolean): void {
+export function startToolSpan(
+  observation: FlueObservation,
+  context: FlueEventContext,
+  toolSpans: SpanTracker,
+  options: GenAiCallOptions<FlueCallInfo> & GenAiSpanHooks<FlueCallInfo, FlueObservation>,
+): void {
   const { toolCallId, toolName } = observation;
   if (!toolCallId || toolSpans.get(toolCallId)) {
     return;
   }
 
-  trackSpan(
-    toolSpans,
-    toolCallId,
-    startInactiveSpan({
-      name: `execute_tool ${toolName ?? 'unknown'}`,
-      op: getGenAiSpanOp('execute_tool'),
-      attributes: {
-        [SENTRY_ORIGIN]: FLUE_ORIGIN,
-        [GEN_AI_OPERATION_NAME]: 'execute_tool',
-        [GEN_AI_TOOL_NAME]: toolName,
-        [GEN_AI_CONVERSATION_ID]: observation.conversationId,
-        ...(recordInputs && observation.args !== undefined
-          ? { [GEN_AI_TOOL_CALL_ARGUMENTS]: stringify(observation.args) }
-          : {}),
-      },
-    }),
+  const call: FlueCallInfo = { operation: 'execute_tool', observation, context };
+  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
+  const span = startInactiveSpan({
+    name: `execute_tool ${toolName ?? 'unknown'}`,
+    op: getGenAiSpanOp('execute_tool'),
+    attributes: {
+      [SENTRY_ORIGIN]: FLUE_ORIGIN,
+      [GEN_AI_OPERATION_NAME]: 'execute_tool',
+      [GEN_AI_TOOL_NAME]: toolName,
+      [GEN_AI_CONVERSATION_ID]: observation.conversationId,
+      ...(recordInputs && observation.args !== undefined
+        ? { [GEN_AI_TOOL_CALL_ARGUMENTS]: stringify(observation.args) }
+        : {}),
+    },
+  });
+  // Again after start, so the Flue id wins over one from `Sentry.setConversationId()`, as on the agent and chat spans.
+  if (observation.conversationId) {
+    span.setAttribute(GEN_AI_CONVERSATION_ID, observation.conversationId);
+  }
+  if (recordOutputs) {
+    TOOL_SPANS_RECORDING_OUTPUTS.add(span);
+  }
+  runGenAiSpanStart(options, span, call);
+  TOOL_SPAN_END_HOOKS.set(span, end =>
+    runGenAiSpanEnd(options, span, call, end.isError ? { response: end, error: end.errorInfo } : { response: end }),
   );
+  trackSpan(toolSpans, toolCallId, span);
 }
 
-export function endToolSpan(observation: FlueObservation, toolSpans: SpanTracker, recordOutputs: boolean): void {
+export function endToolSpan(observation: FlueObservation, toolSpans: SpanTracker): void {
   const { toolCallId } = observation;
   const span = toolCallId ? toolSpans.get(toolCallId) : undefined;
   if (!span || !toolCallId) {
@@ -225,7 +133,7 @@ export function endToolSpan(observation: FlueObservation, toolSpans: SpanTracker
   }
   toolSpans.remove(toolCallId);
 
-  if (recordOutputs) {
+  if (TOOL_SPANS_RECORDING_OUTPUTS.has(span)) {
     const result = toolResultForModel(observation);
     if (result !== undefined) {
       span.setAttribute(GEN_AI_TOOL_CALL_RESULT, result);
@@ -236,6 +144,7 @@ export function endToolSpan(observation: FlueObservation, toolSpans: SpanTracker
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
     captureToolError(span, observation.errorInfo);
   }
+  TOOL_SPAN_END_HOOKS.get(span)?.(observation);
   span.end();
 }
 
@@ -256,53 +165,4 @@ function toolResultForModel(observation: FlueObservation): string | undefined {
     return piAiContentToString(result.content);
   }
   return result === undefined ? undefined : stringify(result);
-}
-
-/**
- * `turn_request` is the only event carrying the request's content — the settled `turn` reports
- * metadata alone — so input messages, system prompt and tool definitions are read from it.
- */
-export function recordRequestContent(observation: FlueObservation, turnSpans: SpanTracker): void {
-  const { turnId } = observation;
-  const span = turnId ? turnSpans.get(turnId) : undefined;
-  const input = observation.request?.input;
-  if (!span || !input) {
-    return;
-  }
-
-  if (input.systemPrompt) {
-    span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, input.systemPrompt);
-  }
-  const messages = piAiMessagesToGenAiMessages(input.messages);
-  if (messages.length) {
-    span.setAttribute(GEN_AI_INPUT_MESSAGES, stringify(messages));
-  }
-  if (input.tools?.length) {
-    span.setAttribute(GEN_AI_TOOL_DEFINITIONS, stringify(input.tools));
-  }
-}
-
-/**
- * Model-call tuning and the provider endpoint, all on the settled turn's `ModelRequestInfo`. These
- * are the conventional attributes the other AI integrations in this package set.
- */
-export function setRequestAttributes(span: Span, request: FlueModelRequestInfo | undefined): void {
-  if (!request) {
-    return;
-  }
-
-  const attributes: Record<string, string | number> = {};
-  const set = (key: string, value: string | number | undefined): void => {
-    if (value !== undefined) {
-      attributes[key] = value;
-    }
-  };
-
-  set(GEN_AI_REQUEST_TEMPERATURE, request.temperature);
-  set(GEN_AI_REQUEST_MAX_TOKENS, request.maxTokens);
-  set(GEN_AI_REQUEST_REASONING_LEVEL, request.reasoningLevel);
-  set(SERVER_ADDRESS, request.serverAddress);
-  set(SERVER_PORT, request.serverPort);
-
-  span.setAttributes(attributes);
 }

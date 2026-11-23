@@ -6,6 +6,7 @@ import {
   findFilesWithForeignSourcemaps,
   findFilesWithMultipleDebugIds,
   findInjectedDebugIds,
+  findSourceMappingUrlComments,
   getArtifactBundles,
   getChunkUploadPosts,
   getDebugIdPairs,
@@ -57,16 +58,6 @@ function sourceMapsIn(dir: string): string[] {
     .readdirSync(dir, { recursive: true, withFileTypes: true })
     .filter(entry => entry.isFile() && entry.name.endsWith('.map'))
     .map(entry => path.join(entry.parentPath, entry.name));
-}
-
-// TODO: The uploader passes the emitted file paths to `glob` as patterns, so it skips a file whose path has glob
-// characters, like Nitro's `_libs/@tanstack/react-router+[...].mjs`. Remove this when the uploader matches paths literally.
-function debugIdsOfFilesWithGlobCharacters(dir: string): Set<string> {
-  return new Set(
-    emittedJsFiles(dir)
-      .filter(file => /[[\]{}()*?]/.test(path.relative(dir, file)))
-      .flatMap(readDebugIds),
-  );
 }
 
 const requests = loadMockServerResults();
@@ -125,10 +116,7 @@ for (const outputDir of [CLIENT_OUTPUT, SERVER_OUTPUT]) {
   const injectedDebugIds = findInjectedDebugIds({ outputDir });
   assert.ok(injectedDebugIds.length > 0, `Expected debug IDs to be injected into ${outputDir}`);
 
-  const exemptDebugIds = new Set([
-    ...debugIdsOfChunksWithoutSourceMap(outputDir),
-    ...debugIdsOfFilesWithGlobCharacters(outputDir),
-  ]);
+  const exemptDebugIds = debugIdsOfChunksWithoutSourceMap(outputDir);
   const unuploaded = injectedDebugIds.filter(debugId => !uploadedDebugIds.has(debugId) && !exemptDebugIds.has(debugId));
   assert.deepEqual(unuploaded, [], `Expected every debug ID in ${outputDir} to have an uploaded source map`);
 
@@ -159,14 +147,48 @@ for (const outputDir of [CLIENT_OUTPUT, SERVER_OUTPUT]) {
   assert.deepEqual(sourceMapsIn(outputDir), [], `Expected no source maps in ${outputDir}`);
 }
 
+// A surviving comment points browsers at a map that no longer exists.
+assert.deepEqual(
+  findSourceMappingUrlComments({ outputDir: CLIENT_OUTPUT }),
+  [],
+  `Expected no sourceMappingURL comments in ${CLIENT_OUTPUT}`,
+);
+
 const clientChunkUrls = emittedJsFiles(CLIENT_OUTPUT).map(
   file => `/${path.relative(CLIENT_OUTPUT, file).split(path.sep).join('/')}`,
 );
 assert.ok(clientChunkUrls.length > 0, `Expected client chunks in ${CLIENT_OUTPUT}`);
 
+// --- The release reaches the client through the page, so that it changes no content hash ---
+
+/** `release.name` in `vite.config.ts`. */
+const RELEASE = 'test-release';
+
+assert.deepEqual(
+  emittedJsFiles(CLIENT_OUTPUT).filter(file => fs.readFileSync(file, 'utf8').includes(RELEASE)),
+  [],
+  `Expected no client chunk in ${CLIENT_OUTPUT} to contain the release`,
+);
+
+const RELEASE_META_TAG = `<meta name="sentry-release" content="${RELEASE}"/></head>`;
+
+// `vite.config.ts` prerenders `/prerendered` and renders the SPA shell at build time.
+for (const page of ['_shell.html', path.join('prerendered', 'index.html')]) {
+  assert.ok(
+    fs.readFileSync(path.join(CLIENT_OUTPUT, page), 'utf8').includes(RELEASE_META_TAG),
+    `Expected the build to write the release at the end of the head of ${page}`,
+  );
+}
+
 const server = await startNodeServer({ entry: path.join(SERVER_OUTPUT, 'index.mjs'), port: 3030 });
 
 try {
+  const html = await (await fetch(server.baseUrl)).text();
+  assert.ok(
+    html.includes(RELEASE_META_TAG),
+    'Expected the server to write the release at the end of the head of the page',
+  );
+
   // Without this, a server that serves no public files at all would pass the 404 checks.
   const chunkStatus = (await fetch(`${server.baseUrl}${clientChunkUrls[0]}`)).status;
   assert.equal(chunkStatus, 200, `Expected the server to serve the client chunk ${clientChunkUrls[0]}`);

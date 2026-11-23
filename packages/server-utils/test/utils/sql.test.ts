@@ -1,5 +1,23 @@
-import { describe, expect, it } from 'vitest';
-import { getSqlQuerySummary, sanitizeSqlQuery, sanitizeSqlQueryWithSummary, toSqlDialect } from '../../src/utils/sql';
+import {
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+} from '@sentry/conventions/attributes';
+import { setCurrentClient } from '@sentry/core';
+import { afterEach, describe, expect, it } from 'vitest';
+import { CLICKHOUSE_SQL_RULES } from '../../src/integrations/clickhouse-sql';
+import {
+  getSqlOperationName,
+  getSqlQuerySummary,
+  getSqlQueryAttributes,
+  getLowCardinalitySqlSpanName,
+  getSqlSpanName,
+  sanitizeSqlQuery,
+  toSqlDialect,
+} from '../../src/utils/sql';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('getSqlQuerySummary', () => {
   it.each([undefined, ''])('returns undefined for %j', input => {
@@ -68,6 +86,10 @@ describe('getSqlQuerySummary', () => {
     it.each([
       ['INSERT INTO users (name, email) VALUES (?, ?)', 'INSERT users'],
       ['insert into orders (product_id) values (?)', 'insert orders'],
+      ['INSERT INTO TABLE events VALUES (?)', 'INSERT events'],
+      ['insert into table analytics.events values (?)', 'insert analytics.events'],
+      ['INSERT INTO TABLE "events" VALUES (?)', 'INSERT "events"'],
+      ['INSERT INTO TABLE events SELECT * FROM source', 'INSERT events SELECT source'],
     ])('strips INTO: %j => %j', (input, expected) => {
       expect(getSqlQuerySummary(input)).toBe(expected);
     });
@@ -283,6 +305,39 @@ describe('getSqlQuerySummary', () => {
   });
 });
 
+describe('getSqlOperationName', () => {
+  it.each([undefined, '', '   ', '?'])('returns undefined for %j', input => {
+    expect(getSqlOperationName(input)).toBeUndefined();
+  });
+
+  it.each([
+    ['SELECT * FROM users WHERE id = ?', 'SELECT'],
+    ['select count(*) from orders', 'select'],
+    ['  INSERT INTO users (name) VALUES (?)', 'INSERT'],
+    ['UPDATE users SET name = ? WHERE id = ?', 'UPDATE'],
+    ['DELETE FROM users WHERE id = ?', 'DELETE'],
+    ['CREATE TABLE IF NOT EXISTS users (id INT)', 'CREATE'],
+    ['(SELECT * FROM users) UNION (SELECT * FROM admins)', 'SELECT'],
+    ['BEGIN', 'BEGIN'],
+    ['PRAGMA table_info(users)', 'PRAGMA'],
+  ])('%j => %j', (input, expected) => {
+    expect(getSqlOperationName(input)).toBe(expected);
+  });
+
+  it.each([
+    ['WITH active AS (SELECT * FROM users WHERE active = ?) SELECT * FROM active', 'SELECT'],
+    ['with moved AS (DELETE FROM queue RETURNING *) insert into archive SELECT * FROM moved', 'insert'],
+    ['WITH RECURSIVE t(n) AS (VALUES (?)) SELECT n FROM t', 'SELECT'],
+    ['WITH a AS (SELECT ?), b (x, y) AS (SELECT * FROM a) UPDATE t SET x = (SELECT x FROM b)', 'UPDATE'],
+    ['WITH x AS (VALUES (?)) TABLE x', 'TABLE'],
+    ['WITH x AS (SELECT ?)', undefined],
+    ['(WITH x AS (SELECT ?) SELECT * FROM x)', 'SELECT'],
+    ['( (with x AS (SELECT ?) delete FROM t WHERE id IN (SELECT * FROM x)) )', 'delete'],
+  ])('takes the main statement of a WITH query: %j => %j', (input, expected) => {
+    expect(getSqlOperationName(input)).toBe(expected);
+  });
+});
+
 describe('sanitizeSqlQuery', () => {
   describe('passthrough (no literals)', () => {
     it.each([
@@ -320,11 +375,18 @@ describe('sanitizeSqlQuery', () => {
     });
   });
 
-  describe('trailing semicolon removal', () => {
+  describe('semicolon removal', () => {
     it.each([
       ['SELECT * FROM users;', 'SELECT * FROM users'],
       ['SELECT * FROM users;   ', 'SELECT * FROM users'],
     ])('removes trailing semicolon: %p', (input, expected) => {
+      expect(sanitizeSqlQuery(input)).toBe(expected);
+    });
+
+    it.each([
+      [';SELECT * FROM users', 'SELECT * FROM users'],
+      [' ; ;WITH x AS (SELECT ?) SELECT * FROM x', 'WITH x AS (SELECT ?) SELECT * FROM x'],
+    ])('removes leading semicolons: %p', (input, expected) => {
       expect(sanitizeSqlQuery(input)).toBe(expected);
     });
   });
@@ -712,6 +774,113 @@ describe('sanitizeSqlQuery', () => {
     });
   });
 
+  describe('CLICKHOUSE_SQL_RULES', () => {
+    it.each([
+      ['SELECT 1 /* outer /* inner */ private@example.com */', 'SELECT ?'],
+      ['SELECT /* outer /* inner */ private@example.com */ 1', 'SELECT ?'],
+      ['SELECT 1 /* outer /* middle /* inner */ private@example.com */ outer */ + 2', 'SELECT ? + ?'],
+      ["SELECT 1 /* outer ' /* inner */ private@example.com */ + 2", 'SELECT ? + ?'],
+      ['SELECT 1 /* outer /* inner */ private@example.com', 'SELECT ?'],
+      ['SELECT 1 /* outer /* inner private@example.com', 'SELECT ?'],
+      ['SELECT 1 /* outer /* inner */ private@example.com */ /* other /* inner */ secret */', 'SELECT ?'],
+      [
+        'INSERT INTO events /* outer /* inner */ private@example.com */ FORMAT CSV\n1,private@example.com',
+        'INSERT INTO events',
+      ],
+    ])('removes the entire nested comment in %p', (input, expected) => {
+      expect(sanitizeSqlQuery(input, CLICKHOUSE_SQL_RULES)).toBe(expected);
+    });
+
+    it.each([
+      [String.raw`SELECT "a\"b", 'private@example.com' AS "c" FROM t`, String.raw`SELECT "a\"b", ? AS "c" FROM t`],
+      ["SELECT `a\\`b`, 'private@example.com' AS `c` FROM t", 'SELECT `a\\`b`, ? AS `c` FROM t'],
+      ['INSERT INTO events FORMAT CSV\n1,private@example.com', 'INSERT INTO events'],
+      [
+        '/* comment */ INSERT INTO events (id, name) FORMAT JSONEachRow\n{"id":1,"name":"private@example.com"}',
+        'INSERT INTO events (id, name)',
+      ],
+      ['INSERT INTO events FORMAT /* input */ CSV\n1,private@example.com', 'INSERT INTO events'],
+      ['INSERT INTO format (id) VALUES (1)', 'INSERT INTO format (id) VALUES (?)'],
+      ['INSERT INTO events SELECT format FROM source', 'INSERT INTO events SELECT format FROM source'],
+      // `input()` reads the rows that follow the `FORMAT` clause of an `INSERT ... SELECT`
+      [
+        "INSERT INTO events SELECT * FROM input('email String') FORMAT CSV\nprivate@example.com",
+        'INSERT INTO events SELECT * FROM input(?)',
+      ],
+      [
+        'INSERT INTO events SELECT lower(email) FROM input(\'email String\') WHERE email != \'\' FORMAT JSONEachRow\n{"email":"private@example.com"}',
+        'INSERT INTO events SELECT lower(email) FROM input(?) WHERE email != ?',
+      ],
+      [
+        "INSERT INTO events SELECT * FROM input('n UInt8') LIMIT 10 FORMAT TSV\nprivate@example.com",
+        'INSERT INTO events SELECT * FROM input(?) LIMIT ?',
+      ],
+      ['INSERT INTO events SELECT id, format FROM source', 'INSERT INTO events SELECT id, format FROM source'],
+      ['INSERT INTO events SELECT * FROM format', 'INSERT INTO events SELECT * FROM format'],
+      [
+        'INSERT INTO events SELECT * FROM source WHERE format = 1 ORDER BY format',
+        'INSERT INTO events SELECT * FROM source WHERE format = ? ORDER BY format',
+      ],
+      [
+        'INSERT INTO events SELECT a.id FROM source a JOIN lookup b ON format = b.kind',
+        'INSERT INTO events SELECT a.id FROM source a JOIN lookup b ON format = b.kind',
+      ],
+      [
+        'INSERT INTO events SELECT id FROM source PREWHERE format >= 2',
+        'INSERT INTO events SELECT id FROM source PREWHERE format >= ?',
+      ],
+      [
+        'INSERT INTO events SELECT format FROM source GROUP BY format HAVING format > 2',
+        'INSERT INTO events SELECT format FROM source GROUP BY format HAVING format > ?',
+      ],
+      [
+        'INSERT INTO events SELECT row_number() OVER () AS format FROM source QUALIFY format <= 2',
+        'INSERT INTO events SELECT row_number() OVER () AS format FROM source QUALIFY format <= ?',
+      ],
+      [
+        'INSERT INTO events SELECT a.id FROM source a JOIN lookup b ON format IS NOT NULL',
+        'INSERT INTO events SELECT a.id FROM source a JOIN lookup b ON format IS NOT NULL',
+      ],
+      [
+        "INSERT INTO events SELECT id FROM source PREWHERE format LIKE 'json%'",
+        'INSERT INTO events SELECT id FROM source PREWHERE format LIKE ?',
+      ],
+      [
+        'INSERT INTO events SELECT format FROM source GROUP BY format HAVING format IN (1, 2)',
+        'INSERT INTO events SELECT format FROM source GROUP BY format HAVING format IN (?)',
+      ],
+      [
+        'INSERT INTO events SELECT row_number() OVER () AS format FROM source QUALIFY format BETWEEN 1 AND 2',
+        'INSERT INTO events SELECT row_number() OVER () AS format FROM source QUALIFY format BETWEEN ? AND ?',
+      ],
+      [
+        'INSERT INTO events SELECT id FROM source WHERE NOT format IN (1, 2)',
+        'INSERT INTO events SELECT id FROM source WHERE NOT format IN (?)',
+      ],
+      ['INSERT INTO TABLE format FORMAT CSV\nprivate@example.com', 'INSERT INTO TABLE format'],
+      ["INSERT INTO events (`format`) VALUES ('private@example.com')", 'INSERT INTO events (`format`) VALUES (?)'],
+      // `"..."` and backticks quote identifiers, as in `standard`
+      ['SELECT * FROM "events" WHERE `user` = \'jane@example.com\'', 'SELECT * FROM "events" WHERE `user` = ?'],
+      // `\` escapes the next character inside a string literal
+      [String.raw`SELECT * FROM t WHERE name = 'O\'Brien' AND b = 'x'`, 'SELECT * FROM t WHERE name = ? AND b = ?'],
+      [String.raw`SELECT * FROM t WHERE a = 'x\\' AND b = 'y'`, 'SELECT * FROM t WHERE a = ? AND b = ?'],
+      // `#` starts a line comment
+      ["SELECT * FROM t WHERE a = 'x' # trailing comment", 'SELECT * FROM t WHERE a = ?'],
+      // heredocs are dollar-quoted literals
+      ['SELECT $heredoc$secret$heredoc$ FROM t', 'SELECT ? FROM t'],
+      ['SELECT $1$private@example.com$1$ FROM t', 'SELECT ? FROM t'],
+      ['SELECT 10_000, 0b101010, 1_000.25, 0xDE_AD FROM events', 'SELECT ?, ?, ?, ? FROM events'],
+      ['SELECT .1_25, -10_000, 1_0e+2 FROM events', 'SELECT ?, ?, ? FROM events'],
+      // `{name:Type}` query parameters survive, including the digits in the type name
+      [
+        'SELECT * FROM t WHERE id = {id:UInt32} AND name = {name:String}',
+        'SELECT * FROM t WHERE id = {id:UInt32} AND name = {name:String}',
+      ],
+    ])('sanitizes %p', (input, expected) => {
+      expect(sanitizeSqlQuery(input, CLICKHOUSE_SQL_RULES)).toBe(expected);
+    });
+  });
+
   describe('unterminated literals swallow the rest of the statement', () => {
     it.each([
       ["SELECT * FROM t WHERE a = 'jane@example.com AND b = 2", 'standard' as const],
@@ -848,27 +1017,6 @@ describe('sanitizeSqlQuery', () => {
   });
 });
 
-describe('sanitizeSqlQueryWithSummary', () => {
-  it('returns the sanitized statement and its summary', () => {
-    expect(sanitizeSqlQueryWithSummary("SELECT * FROM users WHERE email = 'jane@example.com'")).toEqual({
-      queryText: 'SELECT * FROM users WHERE email = ?',
-      querySummary: 'SELECT users',
-    });
-  });
-
-  it('passes the dialect through to the sanitizer', () => {
-    expect(sanitizeSqlQueryWithSummary('SELECT * FROM users WHERE email = "jane@example.com"', 'mysql')).toEqual({
-      queryText: 'SELECT * FROM users WHERE email = ?',
-      querySummary: 'SELECT users',
-    });
-  });
-
-  it('returns undefined for both when there is no statement', () => {
-    expect(sanitizeSqlQueryWithSummary(undefined)).toEqual({ queryText: undefined, querySummary: undefined });
-    expect(sanitizeSqlQueryWithSummary('')).toEqual({ queryText: undefined, querySummary: undefined });
-  });
-});
-
 describe('toSqlDialect', () => {
   it.each([
     ['mysql', 'mysql'],
@@ -886,11 +1034,12 @@ describe('toSqlDialect', () => {
   });
 });
 
-describe('sanitizeSqlQueryWithSummary', () => {
+describe('getSqlQueryAttributes', () => {
   it('returns the sanitized statement and its summary', () => {
-    expect(sanitizeSqlQueryWithSummary("SELECT * FROM users WHERE email = 'jane@example.com'")).toEqual({
-      queryText: 'SELECT * FROM users WHERE email = ?',
-      querySummary: 'SELECT users',
+    expect(getSqlQueryAttributes("SELECT * FROM users WHERE email = 'jane@example.com'")).toEqual({
+      [DB_QUERY_TEXT]: 'SELECT * FROM users WHERE email = ?',
+      [DB_QUERY_SUMMARY]: 'SELECT users',
+      [DB_OPERATION_NAME]: 'SELECT',
     });
   });
 
@@ -900,28 +1049,114 @@ describe('sanitizeSqlQueryWithSummary', () => {
     ['standard' as const, 'SELECT * FROM users WHERE email = $$jane@example.com$$'],
     ['standard' as const, "SELECT * FROM users WHERE email = N'jane@example.com'"],
   ])('passes the %s dialect through to the sanitizer: %p', (dialect, input) => {
-    expect(sanitizeSqlQueryWithSummary(input, dialect)).toEqual({
-      queryText: 'SELECT * FROM users WHERE email = ?',
-      querySummary: 'SELECT users',
+    expect(getSqlQueryAttributes(input, dialect)).toEqual({
+      [DB_QUERY_TEXT]: 'SELECT * FROM users WHERE email = ?',
+      [DB_QUERY_SUMMARY]: 'SELECT users',
+      [DB_OPERATION_NAME]: 'SELECT',
     });
   });
 
   it('passes the mssql dialect through, so a quote inside a bracketed name stays part of the name', () => {
-    expect(sanitizeSqlQueryWithSummary("SELECT * FROM [users] WHERE [email] = 'jane@example.com'", 'mssql')).toEqual({
-      queryText: 'SELECT * FROM [users] WHERE [email] = ?',
-      querySummary: 'SELECT [users]',
+    expect(getSqlQueryAttributes("SELECT * FROM [users] WHERE [email] = 'jane@example.com'", 'mssql')).toEqual({
+      [DB_QUERY_TEXT]: 'SELECT * FROM [users] WHERE [email] = ?',
+      [DB_QUERY_SUMMARY]: 'SELECT [users]',
+      [DB_OPERATION_NAME]: 'SELECT',
+    });
+  });
+
+  it("names the operation of T-SQL's `;WITH` queries", () => {
+    expect(
+      getSqlQueryAttributes(";WITH x AS (SELECT name FROM users) SELECT * FROM x WHERE name = 'a'", 'mssql'),
+    ).toMatchObject({
+      [DB_QUERY_TEXT]: 'WITH x AS (SELECT name FROM users) SELECT * FROM x WHERE name = ?',
+      [DB_OPERATION_NAME]: 'SELECT',
     });
   });
 
   it('derives the summary from the sanitized statement, not the raw one', () => {
-    expect(sanitizeSqlQueryWithSummary("SELECT * FROM users WHERE bio = 'from secret_table'")).toEqual({
-      queryText: 'SELECT * FROM users WHERE bio = ?',
-      querySummary: 'SELECT users',
+    expect(getSqlQueryAttributes("SELECT * FROM users WHERE bio = 'from secret_table'")).toEqual({
+      [DB_QUERY_TEXT]: 'SELECT * FROM users WHERE bio = ?',
+      [DB_QUERY_SUMMARY]: 'SELECT users',
+      [DB_OPERATION_NAME]: 'SELECT',
     });
   });
 
-  it('returns undefined for both when there is no statement', () => {
-    expect(sanitizeSqlQueryWithSummary(undefined)).toEqual({ queryText: undefined, querySummary: undefined });
-    expect(sanitizeSqlQueryWithSummary('')).toEqual({ queryText: undefined, querySummary: undefined });
+  it.each([undefined, '', '   ', ';'])('returns undefined for all when there is no statement: %j', input => {
+    expect(getSqlQueryAttributes(input)).toEqual({
+      [DB_QUERY_TEXT]: undefined,
+      [DB_QUERY_SUMMARY]: undefined,
+      [DB_OPERATION_NAME]: undefined,
+    });
+  });
+});
+
+describe('getLowCardinalitySqlSpanName', () => {
+  const query = getSqlQueryAttributes("SELECT * FROM users WHERE id = 'x'");
+  const noQuery = getSqlQueryAttributes(undefined);
+
+  afterEach(() => {
+    setCurrentClient(undefined as never);
+  });
+
+  it.each([
+    ['the query summary', { ...query, [DB_NAMESPACE]: 'mydb', [DB_SYSTEM_NAME]: 'postgresql' }, 'SELECT users'],
+    [
+      'db.namespace without a statement',
+      { ...noQuery, [DB_NAMESPACE]: 'mydb', [DB_SYSTEM_NAME]: 'postgresql' },
+      'mydb',
+    ],
+    ['db.system.name without a namespace', { ...noQuery, [DB_SYSTEM_NAME]: 'postgresql' }, 'postgresql'],
+    ['the fallback without any of those', noQuery, 'neon.query'],
+  ])('uses %s', (_, attributes, expected) => {
+    expect(getLowCardinalitySqlSpanName(attributes, 'neon.query')).toBe(expected);
+  });
+
+  it('stays low cardinality when spans are not streamed', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'static', tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+
+    expect(getLowCardinalitySqlSpanName(query, 'neon.query')).toBe('SELECT users');
+  });
+});
+
+describe('getSqlSpanName', () => {
+  const query = getSqlQueryAttributes("SELECT * FROM users WHERE id = 'x'");
+  const noQuery = getSqlQueryAttributes(undefined);
+
+  function setUpClient(traceLifecycle: 'stream' | 'static'): void {
+    const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle, tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+  }
+
+  afterEach(() => {
+    setCurrentClient(undefined as never);
+  });
+
+  describe('with span streaming', () => {
+    it.each([
+      ['the query summary', { ...query, [DB_NAMESPACE]: 'mydb', [DB_SYSTEM_NAME]: 'mysql' }, 'SELECT users'],
+      ['db.namespace without a statement', { ...noQuery, [DB_NAMESPACE]: 'mydb', [DB_SYSTEM_NAME]: 'mysql' }, 'mydb'],
+      ['db.system.name without a namespace', { ...noQuery, [DB_NAMESPACE]: '', [DB_SYSTEM_NAME]: 'mysql' }, 'mysql'],
+      ['the fallback without any of those', noQuery, 'mysql.query'],
+    ])('uses %s', (_, attributes, expected) => {
+      setUpClient('stream');
+      expect(getSqlSpanName(attributes, 'mysql.query')).toBe(expected);
+    });
+  });
+
+  describe('without span streaming', () => {
+    it.each([
+      ['the sanitized statement', { ...query, [DB_NAMESPACE]: 'mydb' }, 'SELECT * FROM users WHERE id = ?'],
+      [
+        'the fallback without a statement',
+        { ...noQuery, [DB_NAMESPACE]: 'mydb', [DB_SYSTEM_NAME]: 'mysql' },
+        'mysql.query',
+      ],
+    ])('uses %s', (_, attributes, expected) => {
+      setUpClient('static');
+      expect(getSqlSpanName(attributes, 'mysql.query')).toBe(expected);
+    });
   });
 });

@@ -2,7 +2,15 @@ import type { Client } from '@sentry/core';
 import * as utils from '@sentry/core';
 import * as coreBrowser from '@sentry/core/browser';
 import * as browserUtils from '@sentry/browser-utils';
-import { HTTP_REQUEST_METHOD, SERVER_ADDRESS, URL_DOMAIN, URL_FULL } from '@sentry/conventions/attributes';
+import {
+  HTTP_REQUEST_METHOD,
+  SENTRY_KIND,
+  SERVER_ADDRESS,
+  URL_DOMAIN,
+  URL_FULL,
+  URL_PATH,
+  URL_SCHEME,
+} from '@sentry/conventions/attributes';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../../src/client';
@@ -232,6 +240,7 @@ describe('instrumentOutgoingRequests', () => {
 
     let fetchHandler: ((data: utils.HandlerDataFetch) => void) | undefined;
     let requestSpan: utils.Span | undefined;
+    let startAttributes: utils.SpanAttributes | undefined;
 
     vi.spyOn(utils, 'addFetchInstrumentationHandler').mockImplementation(handler => {
       fetchHandler = handler;
@@ -245,6 +254,7 @@ describe('instrumentOutgoingRequests', () => {
       enableHTTPTimings: false,
       onRequestSpanStart: span => {
         requestSpan = span;
+        startAttributes = utils.spanToJSON(span).attributes;
       },
     });
     fetchHandler?.({
@@ -256,6 +266,9 @@ describe('instrumentOutgoingRequests', () => {
     const requestSpanJson = utils.spanToJSON(requestSpan!);
     expect(requestSpanJson.name).toBe('GET app.example.com');
     expect(requestSpanJson.attributes[URL_DOMAIN]).toBe('app.example.com');
+    // Set when the span starts, so `ignoreSpans` and `tracesSampler` can match on them.
+    expect(startAttributes?.[URL_PATH]).toBe('/rest/v1/users');
+    expect(startAttributes?.[URL_SCHEME]).toBe('https');
 
     vi.unstubAllGlobals();
   });
@@ -295,6 +308,9 @@ describe('instrumentOutgoingRequests', () => {
     const requestSpanJson = utils.spanToJSON(requestSpan!);
     expect(requestSpanJson.name).toBe('GET app.example.com');
     expect(requestSpanJson.attributes[URL_DOMAIN]).toBe('app.example.com');
+    expect(requestSpanJson.attributes[SENTRY_KIND]).toBe('client');
+    expect(requestSpanJson.attributes[URL_PATH]).toBe('/rest/v1/users');
+    expect(requestSpanJson.attributes[URL_SCHEME]).toBe('https');
 
     vi.unstubAllGlobals();
   });

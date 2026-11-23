@@ -36,7 +36,7 @@ vi.mock('@sentry/core', async importOriginal => {
       callback: (span: unknown) => unknown,
     ) => {
       capturedSpanConfig = config;
-      return callback({ setAttribute: vi.fn() });
+      return callback({ setAttribute: vi.fn(), setStatus: vi.fn() });
     },
     captureException: vi.fn(),
   };

@@ -58,22 +58,42 @@ describe('setUpBuildTimeVariables', () => {
     });
   });
 
+  describe('_sentryRelease', () => {
+    it('is set by default', () => {
+      const nextConfig = {};
+
+      setUpBuildTimeVariables(nextConfig, {}, 'my-release', makeProject(['app/page.tsx']));
+
+      expect(nextConfig).toEqual({ env: expect.objectContaining({ _sentryRelease: 'my-release' }) });
+    });
+
+    it('is left out of the client bundles with `release.inject: false`', () => {
+      const nextConfig = {};
+
+      setUpBuildTimeVariables(nextConfig, { release: { inject: false } }, 'my-release', makeProject(['app/page.tsx']));
+
+      expect(nextConfig).toEqual({ env: expect.not.objectContaining({ _sentryRelease: expect.anything() }) });
+    });
+
+    it('is set for a static export even with `release.inject: false`', () => {
+      const nextConfig = { output: 'export' };
+
+      setUpBuildTimeVariables(nextConfig, { release: { inject: false } }, 'my-release', makeProject(['app/page.tsx']));
+
+      expect(nextConfig).toEqual({ output: 'export', env: expect.objectContaining({ _sentryRelease: 'my-release' }) });
+    });
+  });
+
   describe('tunnel route', () => {
-    it('adds the tunnel path and the handler mode for a project with a tunnel route handler', () => {
+    it('adds the tunnel path with the base path', () => {
       const nextConfig = { basePath: '/docs' };
 
-      setUpBuildTimeVariables(
-        nextConfig,
-        { tunnelRoute: '/monitoring' },
-        undefined,
-        makeProject(['app/sentry-tunnel/route.ts']),
-      );
+      setUpBuildTimeVariables(nextConfig, { tunnelRoute: '/monitoring' }, undefined, makeProject(['app/page.tsx']));
 
       expect(nextConfig).toEqual({
         basePath: '/docs',
         env: expect.objectContaining({
-          _sentryRewritesTunnelPath: '/docs/monitoring',
-          _sentryTunnelRouteMode: 'handler',
+          _sentryTunnelRoute: '/docs/monitoring',
         }),
       });
     });

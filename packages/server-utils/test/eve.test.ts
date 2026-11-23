@@ -1,6 +1,6 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { eveConversationHook, eveIntegration } from '../src/eve';
+import { eveConversationHook, eveIntegration, eveTracePolicy } from '../src/eve';
 import { isEveGenAiRecordingDefault } from '../src/integrations/vercel-ai/gen-ai-recording-mode';
 
 describe('eveConversationHook', () => {
@@ -68,5 +68,11 @@ describe('eveIntegration', () => {
     eveIntegration().setup?.(client);
 
     expect(isEveGenAiRecordingDefault(client)).toBe(true);
+  });
+});
+
+describe('eveTracePolicy', () => {
+  test('asks for full results, since Sentry filters content itself when it builds spans', () => {
+    expect(eveTracePolicy()).toEqual({ emit: true, recordInputs: true, recordOutputs: true });
   });
 });

@@ -14,35 +14,36 @@ import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
-  getIsolationScope,
-  getRootSpan,
-  getUrlFragment,
-  getUrlQuery,
-  hasSpanStreamingEnabled,
-  HTTP_SPAN_NAME_FALLBACK,
-  objectify,
-  spanToJSON,
-  winterCGRequestToRequestData,
-  filterCollectedUrl,
-  filterCollectedUrlQuery,
-} from '@sentry/core';
-import {
-  flushIfServerless,
-  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
-} from '@sentry/core/server';
-import {
   captureException,
   continueTrace,
   getActiveSpan,
   getClient,
   getCurrentScope,
+  getIsolationScope,
+  getRootSpan,
   getTraceMetaTags,
+  getUrlFragment,
+  getUrlQuery,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
   httpHeadersToSpanAttributes,
+  objectify,
   setHttpStatus,
+  spanToJSON,
   startSpan,
+  timestampInSeconds,
   winterCGHeadersToDict,
+  winterCGRequestToRequestData,
   withIsolationScope,
-} from '@sentry/node';
+  filterCollectedUrl,
+  filterCollectedUrlFragment,
+  filterCollectedUrlQuery,
+} from '@sentry/core';
+import {
+  flushIfServerless,
+  _INTERNAL_getCacheOriginMetaTags,
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+} from '@sentry/core/server';
 import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
 import type { APIContext, MiddlewareHandler, MiddlewareNext, RoutePart } from 'astro';
 
@@ -95,10 +96,8 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler =
       return tunnelResponse;
     }
 
-    const isDynamicPageRequest = checkIsDynamicPageRequest(ctx);
-
     // For static (prerendered) routes, we only want to inject the parametrized route meta tags
-    if (!isDynamicPageRequest) {
+    if (isPrerenderedRequest(ctx)) {
       return handleStaticRoute(ctx, next);
     }
 
@@ -116,12 +115,11 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler =
 
 async function handleStaticRoute(ctx: APIContext, next: MiddlewareNext): Promise<Response> {
   const parametrizedRoute = getParametrizedRoute(ctx);
+  const requestStart = timestampInSeconds();
   try {
     const originalResponse = await next();
 
-    // We never want to continue a trace here, so we do not inject trace data
-    // But we do want to inject the parametrized route, as this is used for client-side route parametrization
-    const metaTagsStr = getMetaTagsStr({ injectTraceData: false, parametrizedRoute });
+    const metaTagsStr = getMetaTagsStr({ prerenderStart: requestStart, parametrizedRoute });
     return injectMetaTagsInResponse(originalResponse, metaTagsStr);
   } catch (e) {
     sendErrorToSentry(e);
@@ -159,7 +157,7 @@ async function enhanceHttpServerSpan(ctx: APIContext, next: MiddlewareNext, root
 
     try {
       const originalResponse = await next();
-      const metaTagsStr = getMetaTagsStr({ injectTraceData: true, parametrizedRoute });
+      const metaTagsStr = getMetaTagsStr({ parametrizedRoute });
       return injectMetaTagsInResponse(originalResponse, metaTagsStr);
     } catch (e) {
       sendErrorToSentry(e);
@@ -209,7 +207,7 @@ async function instrumentRequestStartHttpServerSpan(
 
         // The integration option wins when set; otherwise `dataCollection.userInfo` decides.
         if (options.trackClientIp ?? client.getDataCollectionOptions().userInfo) {
-          isolationScope.setUser({ ip_address: ctx.clientAddress });
+          isolationScope.setUser({ ip_address: getClientAddress(ctx) });
         }
 
         try {
@@ -236,7 +234,7 @@ async function instrumentRequestStartHttpServerSpan(
           }
 
           attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(ctx.url.search));
-          attributes[URL_FRAGMENT] = getUrlFragment(ctx.url.hash);
+          attributes[URL_FRAGMENT] = filterCollectedUrlFragment(getUrlFragment(ctx.url.hash));
 
           const transactionName = `${method} ${parametrizedRoute || ctx.url.pathname}`;
 
@@ -261,7 +259,7 @@ async function instrumentRequestStartHttpServerSpan(
                   setHttpStatus(span, originalResponse.status);
                 }
 
-                const metaTagsStr = getMetaTagsStr({ injectTraceData: true, parametrizedRoute });
+                const metaTagsStr = getMetaTagsStr({ parametrizedRoute });
                 return injectMetaTagsInResponse(originalResponse, metaTagsStr);
               } catch (e) {
                 sendErrorToSentry(e);
@@ -299,17 +297,21 @@ function addMetaTagToHead(htmlChunk: string, metaTagsStr: string): string {
   });
 }
 
+/**
+ * `prerenderStart` is set for a prerendered page, in seconds. Every visitor gets the same prerendered HTML, so it
+ * must not carry the trace of the render. The empty `sentry-cache-origin` tag marks the pageload as static without a
+ * link, because the build sends no spans.
+ */
 function getMetaTagsStr({
-  injectTraceData,
+  prerenderStart,
   parametrizedRoute,
 }: {
-  injectTraceData: boolean;
+  prerenderStart?: number;
   parametrizedRoute: string | undefined;
 }): string {
-  const parts = [];
-  if (injectTraceData) {
-    parts.push(getTraceMetaTags());
-  }
+  const parts = [
+    prerenderStart === undefined ? getTraceMetaTags() : _INTERNAL_getCacheOriginMetaTags(undefined, prerenderStart),
+  ];
   if (parametrizedRoute) {
     parts.push(`<meta name="sentry-route-name" content="${encodeURIComponent(parametrizedRoute)}"/>`);
   }
@@ -400,15 +402,21 @@ function tryDecodeUrl(url: string): string | undefined {
 }
 
 /**
- * Checks if the incoming request is a request for a dynamic (server-side rendered) page.
- * We can check this by looking at the middleware's `clientAddress` context property because accessing
- * this prop in a static route will throw an error which we can conveniently catch.
+ * Astro 5+ sets `isPrerendered`. Older versions only tell a prerendered page by `clientAddress`, which throws
+ * there. That check also matches on-demand pages on adapters without a client address, so it is the fallback.
  */
-function checkIsDynamicPageRequest(context: APIContext): boolean {
+function isPrerenderedRequest(context: APIContext & { isPrerendered?: boolean }): boolean {
+  if (typeof context.isPrerendered === 'boolean') {
+    return context.isPrerendered;
+  }
+  return getClientAddress(context) == null;
+}
+
+function getClientAddress(context: APIContext): string | undefined {
   try {
-    return context.clientAddress != null;
+    return context.clientAddress;
   } catch {
-    return false;
+    return undefined;
   }
 }
 

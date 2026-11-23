@@ -1,0 +1,32 @@
+name: 'Set up Node'
+description: 'Sets up the Node.js version of `devEngines.runtime` in the root package.json.'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Resolve Node.js version
+      id: node
+      run: sh "$GITHUB_ACTION_PATH/resolve-node.sh"
+      shell: sh
+
+    # The runner images don't ship this exact version. Without the cache, `actions/setup-node` fetches its version
+    # manifest through the GitHub API in every job, which uses up the repository's `GITHUB_TOKEN` rate limit.
+    - name: Restore Node.js install
+      id: node-cache
+      uses: actions/cache/restore@v6.1.0
+      with:
+        path: ${{ steps.node.outputs.cache-path }}
+        key: ${{ steps.node.outputs.cache-key }}
+
+    - name: Set up Node
+      uses: actions/setup-node@v7
+      with:
+        node-version: ${{ steps.node.outputs.version }}
+
+    # Only `develop` saves, so PRs share one entry per architecture instead of each creating their own.
+    - name: Save Node.js install
+      if: steps.node-cache.outputs.cache-hit != 'true' && github.ref == 'refs/heads/develop'
+      uses: actions/cache/save@v6.1.0
+      with:
+        path: ${{ steps.node.outputs.cache-path }}
+        key: ${{ steps.node.outputs.cache-key }}

@@ -1,10 +1,11 @@
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { ConfigEnv, Plugin } from 'vite';
+import { getClientRelease, makeClientReleasePlugin } from './makeClientReleasePlugin';
 import { makeConfigInjectorPlugin } from './makeConfigInjectorPlugin';
 import { makeCustomSentryVitePlugins } from './makeCustomSentryVitePlugins';
 import { makeEnableSourceMapsPlugin } from './makeEnableSourceMapsPlugin';
 import { makeServerBuildCapturePlugin } from './makeServerBuildCapturePlugin';
-import { makeTunnelRoutePlugin } from './makeTunnelRoutePlugin';
+import { makeTunnelBasePathPlugin } from './makeTunnelBasePathPlugin';
 import type { SentryReactRouterBuildOptions } from './types';
 
 /**
@@ -22,12 +23,20 @@ export async function sentryReactRouter(
 
   plugins.push(makeConfigInjectorPlugin(options));
   plugins.push(makeServerBuildCapturePlugin());
-  plugins.push(makeTunnelRoutePlugin());
+  plugins.push(makeTunnelBasePathPlugin());
 
   if (process.env.NODE_ENV !== 'development' && viteConfig.command === 'build' && viteConfig.mode !== 'development') {
     plugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: options.buildTimeInstrumentation }));
     plugins.push(makeEnableSourceMapsPlugin(options));
-    plugins.push(...(await makeCustomSentryVitePlugins(options)));
+
+    // Building the Sentry plugins loads `.env.sentry-build-plugin`, which can set `SENTRY_RELEASE`, so the release is
+    // resolved only after that.
+    const sentryVitePlugins = await makeCustomSentryVitePlugins(options);
+    const clientRelease = getClientRelease(options);
+    if (clientRelease) {
+      plugins.push(makeClientReleasePlugin(clientRelease));
+    }
+    plugins.push(...sentryVitePlugins);
   }
 
   return plugins;

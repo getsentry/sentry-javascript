@@ -15,6 +15,7 @@
  * `--name` regression above produced no deploy, no error, and a successful build. Only the
  * absence of the request reveals it.
  */
+import { execFileSync } from 'child_process';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -22,6 +23,7 @@ import { startMockSentryServer } from '@sentry-internal/test-utils';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SentryCliAdapter } from '../../src/core/cli';
 import type { NormalizedOptions } from '../../src/core/options-mapping';
+import { normalizeUserOptions } from '../../src/core/options-mapping';
 
 const PORT = 3037;
 
@@ -29,11 +31,13 @@ let workDir: string;
 let buildDir: string;
 let server: ReturnType<typeof startMockSentryServer>;
 let previousCwd: string;
+let head: string;
 
 interface RecordedRequest {
   method: string;
   url: string;
   jsonBody?: unknown;
+  requestHeaders: Record<string, string>;
 }
 
 function recordedRequestRecords(): RecordedRequest[] {
@@ -93,6 +97,13 @@ beforeAll(() => {
   // the suite depend on that endpoint being reachable and pushes slow CI runs past the timeout.
   process.env['SENTRY_CLI_NO_TELEMETRY'] = '1';
 
+  // The mock server lists no repositories, so `origin` matches no repository integration.
+  const git = (...args: string[]): string => execFileSync('git', args, { cwd: workDir }).toString().trim();
+  git('init', '-q');
+  git('remote', 'add', 'origin', 'https://github.com/example-org/example-app.git');
+  git('-c', 'user.name=test', '-c', 'user.email=test@example.com', 'commit', '-q', '--allow-empty', '-m', 'init');
+  head = git('rev-parse', 'HEAD');
+
   // The mock server writes its recording relative to cwd.
   previousCwd = process.cwd();
   process.chdir(workDir);
@@ -123,6 +134,24 @@ describe('SentryCliAdapter against the real CLI', () => {
     );
   });
 
+  it('sends a self-hosted org token to its own server when no url is configured', async () => {
+    const claim = Buffer.from(
+      JSON.stringify({
+        iat: 1,
+        url: `http://localhost:${PORT}`,
+        region_url: `http://localhost:${PORT}`,
+        org: 'test-org',
+      }),
+    ).toString('base64');
+    const before = recordedRequests();
+
+    await new SentryCliAdapter(
+      normalizeUserOptions({ authToken: `sntrys_${claim}_secret`, org: 'test-org', project: 'test-project' }),
+    ).createRelease('1.0.0');
+
+    expect(requestsSince(before)).toContain('POST /api/0/organizations/test-org/releases/');
+  });
+
   it('sends the configured headers with every request', async () => {
     const before = recordedRequestRecords();
 
@@ -149,6 +178,17 @@ describe('SentryCliAdapter against the real CLI', () => {
     await createAdapter().setCommits('1.0.0', { repo: 'getsentry/sentry-javascript', commit: 'abc123' });
 
     expect(requestsSince(before)).toContain('PUT /api/0/organizations/test-org/releases/1.0.0/');
+  });
+
+  it('sets commits from local git history when no repository integration matches', async () => {
+    const before = recordedRequestRecords();
+
+    await createAdapter().setCommits('1.0.0', { auto: true });
+
+    const setCommitsRequest = recordedRequestRecords()
+      .slice(before.length)
+      .find(record => record.method === 'PUT' && record.url === '/api/0/organizations/test-org/releases/1.0.0/');
+    expect(setCommitsRequest?.jsonBody).toEqual({ commits: [expect.objectContaining({ id: head })] });
   });
 
   it('creates a deploy with an environment and a name', async () => {
@@ -192,6 +232,21 @@ describe('SentryCliAdapter against the real CLI', () => {
       },
     ]);
 
+    expect(requestsSince(before)).toContain('POST /api/0/organizations/test-org/artifactbundle/assemble/');
+  });
+
+  it('skips a directory without source maps and still uploads the next one', async () => {
+    const emptyDir = join(workDir, 'server');
+    mkdirSync(emptyDir);
+    writeFileSync(join(emptyDir, 'page.js'), 'console.log("no map");\n');
+    const before = recordedRequests();
+
+    const emptyDirectories = await createAdapter().uploadSourcemaps('1.0.0', [
+      { directory: emptyDir },
+      { directory: buildDir },
+    ]);
+
+    expect(emptyDirectories).toEqual([emptyDir]);
     expect(requestsSince(before)).toContain('POST /api/0/organizations/test-org/artifactbundle/assemble/');
   });
 

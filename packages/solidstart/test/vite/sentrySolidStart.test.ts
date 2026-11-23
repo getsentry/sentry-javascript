@@ -1,10 +1,16 @@
 // @vitest-environment node
 // Build-time plugin code, no DOM. `vite`'s runtime exports pull in esbuild, which cannot run under
 // jsdom's `TextEncoder`.
-import type { Plugin, UserConfig } from 'vite';
+import type { EnvironmentOptions, Plugin, UserConfig } from 'vite';
 import { mergeConfig } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentrySolidStart } from '../../src/vite/sentrySolidStart';
+
+// Without a configured name, the real function falls back to the git SHA of this repository.
+vi.mock('@sentry/bundler-plugins/core', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  resolveReleaseName: (name?: string) => name,
+}));
 
 vi.spyOn(console, 'log').mockImplementation(() => {
   /* noop */
@@ -50,10 +56,12 @@ describe('sentrySolidStart()', () => {
 
     expect(names).toEqual([
       'sentry-solidstart-nitro',
+      'sentry-solidstart-server-entry',
       // `sentryOrchestrionPlugin` spreads the upstream code-transformer plugin, which brings its name.
       'code-transformer',
       'sentry-solidstart-files-to-delete-after-upload',
       'sentry-vite-plugin',
+      'sentry-vite-upload-staging',
       'sentry-solidstart-update-source-map-setting',
     ]);
   });
@@ -68,7 +76,7 @@ describe('sentrySolidStart()', () => {
   it('omits the source maps plugins when source maps are disabled', () => {
     const names = sentrySolidStart({ sourcemaps: { disable: true } }).map(plugin => plugin.name);
 
-    expect(names).toEqual(['sentry-solidstart-nitro', 'code-transformer']);
+    expect(names).toEqual(['sentry-solidstart-nitro', 'sentry-solidstart-server-entry', 'code-transformer']);
   });
 
   // `'disable-upload'` still injects debug IDs, so the plugins have to run; the bundler plugin
@@ -80,12 +88,80 @@ describe('sentrySolidStart()', () => {
     expect(names).toContain('sentry-solidstart-update-source-map-setting');
   });
 
-  it('only returns the nitro plugin in development', () => {
+  it('only returns the nitro and server entry plugins in development', () => {
     process.env.NODE_ENV = 'development';
 
     const names = sentrySolidStart({ org: 'org', project: 'project' }).map(plugin => plugin.name);
 
-    expect(names).toEqual(['sentry-solidstart-nitro']);
+    expect(names).toEqual(['sentry-solidstart-nitro', 'sentry-solidstart-server-entry']);
+  });
+
+  describe('the release', () => {
+    function callReleaseDefineHook(name: string, consumer: 'client' | 'server'): EnvironmentOptions | undefined {
+      const plugin = sentrySolidStart({ release: { name: 'my-release' } }).find(
+        p => p.name === 'sentry-solidstart-release',
+      );
+      const hook = plugin?.configEnvironment;
+      const handler = typeof hook === 'function' ? hook : hook?.handler;
+      return handler?.call({} as never, name, { consumer }, { command: 'build', mode: 'production' } as never) as
+        | EnvironmentOptions
+        | undefined;
+    }
+
+    it('registers the Nitro middleware that adds the release to the pages', () => {
+      const nitro = callConfigHook(getNitroPlugin(sentrySolidStart({ release: { name: 'my-release' } })))?.nitro;
+
+      expect(nitro?.handlers).toEqual([
+        { route: '/**', middleware: true, handler: expect.stringMatching(/\/nitro\/releaseMiddleware\.[jt]s$/) },
+      ]);
+    });
+
+    it('defines the release for the server environments, but not the client', () => {
+      expect(callReleaseDefineHook('nitro', 'server')).toEqual({
+        define: { __SENTRY_SOLIDSTART_RELEASE__: '"my-release"' },
+      });
+      expect(callReleaseDefineHook('client', 'client')).toBeUndefined();
+    });
+
+    it('does not add the release to the pages when `release.inject` is false', () => {
+      const plugins = sentrySolidStart({ release: { name: 'my-release', inject: false } });
+
+      expect(plugins.map(plugin => plugin.name)).not.toContain('sentry-solidstart-release');
+      expect(callConfigHook(getNitroPlugin(plugins))?.nitro?.handlers).toBeUndefined();
+    });
+  });
+
+  describe('the server entry plugin', () => {
+    function callConfigEnvironmentHook(name: string, config: EnvironmentOptions): EnvironmentOptions | undefined {
+      const plugin = sentrySolidStart().find(p => p.name === 'sentry-solidstart-server-entry');
+      const hook = plugin?.configEnvironment;
+      const handler = typeof hook === 'function' ? hook : hook?.handler;
+      return handler?.call({} as never, name, config, { command: 'build', mode: 'production' } as never) as
+        | EnvironmentOptions
+        | undefined;
+    }
+
+    // `@sentry/solidstart`'s root server entry re-exports the deprecated `withSentry`, which would pull
+    // the build-time bundler plugins into the server bundle.
+    it('adds the runtime export condition to server environments', () => {
+      const config: EnvironmentOptions = { resolve: { conditions: ['solid', 'node'] } };
+
+      const merged = mergeConfig(config, callConfigEnvironmentHook('nitro', config) ?? {});
+
+      expect(merged.resolve?.conditions).toEqual(['solid', 'node', 'sentry-solidstart-runtime']);
+    });
+
+    it('leaves the client environment alone', () => {
+      expect(callConfigEnvironmentHook('client', { resolve: { conditions: ['browser'] } })).toBeUndefined();
+      expect(
+        callConfigEnvironmentHook('custom', { consumer: 'client', resolve: { conditions: ['browser'] } }),
+      ).toBeUndefined();
+    });
+
+    // Contributing conditions when none are set would replace Vite's defaults instead of extending them.
+    it('leaves environments without explicit conditions alone', () => {
+      expect(callConfigEnvironmentHook('ssr', {})).toBeUndefined();
+    });
   });
 
   describe('the nitro plugin', () => {

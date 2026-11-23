@@ -52,13 +52,28 @@ export function isRateLimited(limits: RateLimits, dataCategory: DataCategory, no
  */
 export function updateRateLimits(
   limits: RateLimits,
-  { statusCode, headers }: TransportMakeRequestResponse,
+  response: TransportMakeRequestResponse,
   now: number = safeDateNow(),
 ): RateLimits {
   const updatedRateLimits: RateLimits = {
     ...limits,
   };
 
+  forEachRateLimit(response, now, (category, until) => {
+    updatedRateLimits[category] = Math.max(updatedRateLimits[category] || 0, until);
+  });
+
+  return updatedRateLimits;
+}
+
+/**
+ * Calls `extendRateLimit` with the category and deadline of each rate limit in the response.
+ */
+function forEachRateLimit(
+  { statusCode, headers }: TransportMakeRequestResponse,
+  now: number,
+  extendRateLimit: (category: string, until: number) => void,
+): void {
   // "The name is case-insensitive."
   // https://developer.mozilla.org/en-US/docs/Web/API/Headers/get
   const rateLimitHeader = headers?.['x-sentry-rate-limits'];
@@ -84,25 +99,23 @@ export function updateRateLimits(
       const headerDelay = parseInt(retryAfter, 10);
       const delay = (!isNaN(headerDelay) ? headerDelay : 60) * 1000; // 60sec default
       if (!categories) {
-        updatedRateLimits.all = now + delay;
+        extendRateLimit('all', now + delay);
       } else {
         for (const category of categories.split(';')) {
           if (category === 'metric_bucket') {
             // namespaces will be present when category === 'metric_bucket'
             if (!namespaces || namespaces.split(';').includes('custom')) {
-              updatedRateLimits[category] = now + delay;
+              extendRateLimit(category, now + delay);
             }
           } else {
-            updatedRateLimits[category] = now + delay;
+            extendRateLimit(category, now + delay);
           }
         }
       }
     }
   } else if (retryAfterHeader) {
-    updatedRateLimits.all = now + parseRetryAfterHeader(retryAfterHeader, now);
+    extendRateLimit('all', now + parseRetryAfterHeader(retryAfterHeader, now));
   } else if (statusCode === 429) {
-    updatedRateLimits.all = now + 60 * 1000;
+    extendRateLimit('all', now + 60 * 1000);
   }
-
-  return updatedRateLimits;
 }

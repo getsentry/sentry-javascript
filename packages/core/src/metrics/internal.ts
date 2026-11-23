@@ -24,6 +24,7 @@ import { getActiveSpan } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
 import { getSequenceAttribute } from '../utils/timestampSequence';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
+import { estimateMetricSizeInBytes, setupWeightBasedFlushing } from '../utils/weightBasedFlushing';
 import { createMetricEnvelope } from './envelope';
 
 const MAX_METRIC_BUFFER_SIZE = 1000;
@@ -61,6 +62,14 @@ export function _INTERNAL_captureSerializedMetric(client: Client, serializedMetr
   const metricBuffer = _INTERNAL_getMetricBuffer(client);
 
   if (metricBuffer === undefined) {
+    // Set up flushing on the first metric, so apps that never capture metrics don't bundle the flush code.
+    setupWeightBasedFlushing(
+      client,
+      'afterCaptureMetric',
+      'flushMetrics',
+      estimateMetricSizeInBytes,
+      _INTERNAL_flushMetricsBuffer,
+    );
     bufferMap.set(client, [serializedMetric]);
   } else {
     if (metricBuffer.length >= MAX_METRIC_BUFFER_SIZE) {

@@ -1,6 +1,8 @@
 import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { endStreamSpan } from '../core/utils';
+import type { GenAiSpanResult } from '../core/span-hooks';
+import { endStreamSpan, getErrorStatus } from '../core/utils';
+import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
 import type { AnthropicAiStreamingEvent } from './types';
 import { mapAnthropicErrorToStatusMessage } from './utils';
 
@@ -206,6 +208,8 @@ function processEvent(
   const isError = isErrorEvent(event, span);
   if (isError) return;
 
+  recordTimeToFirstChunk(span);
+
   handleMessageMetadata(event, state);
 
   // Tool call events are sent via 3 separate events:
@@ -227,6 +231,7 @@ export async function* instrumentAsyncIterableStream(
   stream: AsyncIterable<AnthropicAiStreamingEvent>,
   span: Span,
   recordOutputs: boolean,
+  beforeSpanEnd?: (result: GenAiSpanResult<never>) => void,
 ): AsyncGenerator<AnthropicAiStreamingEvent, void, unknown> {
   const state: StreamingState = {
     responseTexts: [],
@@ -241,24 +246,31 @@ export async function* instrumentAsyncIterableStream(
     toolCalls: [],
     activeToolBlocks: {},
   };
+  const result: GenAiSpanResult<never> = {};
 
   try {
     for await (const event of stream) {
       processEvent(event, state, recordOutputs, span);
       yield event;
     }
+  } catch (error) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    result.error = error;
+    throw error;
   } finally {
-    endStreamSpan(span, state, recordOutputs);
+    endStreamSpan(span, state, recordOutputs, () => beforeSpanEnd?.(result));
   }
 }
 
 /**
  * Instruments a MessageStream by registering event handlers and preserving the original stream API.
  */
-export function instrumentMessageStream<R extends { on: (...args: unknown[]) => void }>(
+export function instrumentMessageStream<R extends { on: (...args: unknown[]) => void; aborted?: boolean }>(
   stream: R,
   span: Span,
   recordOutputs: boolean,
+  abortSignal?: AbortSignal,
+  beforeSpanEnd?: (result: GenAiSpanResult<never>) => void,
 ): R {
   const state: StreamingState = {
     responseTexts: [],
@@ -281,7 +293,19 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
   // The event fired when a message is done being streamed by the API. Corresponds to the message_stop SSE event.
   // @see https://github.com/anthropics/anthropic-sdk-typescript/blob/d3be31f5a4e6ebb4c0a2f65dbb8f381ae73a9166/helpers.md?plain=1#L42-L44
   stream.on('message', () => {
-    endStreamSpan(span, state, recordOutputs);
+    endStreamSpan(span, state, recordOutputs, () => beforeSpanEnd?.({}));
+  });
+
+  // Fires last on every stream, so a stream that stops without 'message' (aborted, or the body closed early) still
+  // ends its span. An 'abort' listener would also stop the SDK from raising an unobserved abort as a rejection.
+  stream.on('end', () => {
+    if (span.isRecording() && stream.aborted) {
+      // `aborted` is also set when the caller's `AbortSignal.timeout()` fires, which is a timeout, not a cancellation.
+      span.setStatus(
+        abortSignal?.aborted ? getErrorStatus(abortSignal) : { code: SPAN_STATUS_ERROR, message: 'cancelled' },
+      );
+    }
+    endStreamSpan(span, state, recordOutputs, () => beforeSpanEnd?.({}));
   });
 
   stream.on('error', (error: unknown) => {
@@ -296,7 +320,7 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
 
     if (span.isRecording()) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-      span.end();
+      endStreamSpan(span, state, recordOutputs, () => beforeSpanEnd?.({ error }));
     }
   });
 

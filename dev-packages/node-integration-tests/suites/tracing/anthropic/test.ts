@@ -11,6 +11,7 @@ import {
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
@@ -40,7 +41,7 @@ describe('Anthropic integration', () => {
           span: container => {
             expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
             const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
-            expect(spans).toHaveLength(6);
+            expect(spans).toHaveLength(5);
             const nonStreamingSpans = spans.filter(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_withresponse',
             );
@@ -60,7 +61,7 @@ describe('Anthropic integration', () => {
             expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
 
             const rawResponseSpans = spans.filter(span => span.attributes[GEN_AI_RESPONSE_ID] === undefined);
-            expect(rawResponseSpans).toHaveLength(4);
+            expect(rawResponseSpans).toHaveLength(3);
             for (const span of rawResponseSpans) {
               expect(span.name).toBe(`chat ${span.attributes[GEN_AI_REQUEST_MODEL].value}`);
               expect(span.status).toBe('ok');
@@ -70,7 +71,6 @@ describe('Anthropic integration', () => {
             expect(rawResponseSpans.map(span => span.attributes[GEN_AI_REQUEST_MODEL].value)).toEqual([
               'claude-3-haiku-20240307',
               'claude-3-haiku-20240307',
-              'claude-2',
               'claude-3-haiku-20240307',
             ]);
           },
@@ -117,6 +117,7 @@ describe('Anthropic integration', () => {
       expect(streamingSpan!.name).toBe('chat claude-3-haiku-20240307');
       expect(streamingSpan!.status).toBe('ok');
       expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
+      expect(streamingSpan!.attributes[GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK]?.value).toEqual(expect.any(Number));
     });
   });
 
@@ -453,18 +454,48 @@ describe('Anthropic integration', () => {
             expect(streamInitErrorSpan!.status).toBe('error');
 
             const createMidwayErrorSpan = spans.find(
-              span => span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-midway' && span.status === 'ok',
+              span =>
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-midway' &&
+                span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,
             );
             expect(createMidwayErrorSpan!.name).toBe('chat error-stream-midway');
-            expect(createMidwayErrorSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE].value).toBe(true);
+            expect(createMidwayErrorSpan!.status).toBe('error');
             expect(createMidwayErrorSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
             expect(createMidwayErrorSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('This stream will ');
 
             const streamMidwayErrorSpan = spans.find(
-              span => span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-midway' && span.status === 'error',
+              span =>
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-midway' &&
+                span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] === undefined,
             );
             expect(streamMidwayErrorSpan!.name).toBe('chat error-stream-midway');
-            expect(streamMidwayErrorSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
+            expect(streamMidwayErrorSpan!.status).toBe('error');
+            expect(streamMidwayErrorSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('This stream will ');
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-stream-abort.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('sends messages.stream() spans that were aborted', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          span: container => {
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            expect(spans).toHaveLength(2);
+
+            // `cancelled` is sent as `ok` under span streaming.
+            const beforeResponseSpan = spans.find(span => span.name === 'chat abort-before-response');
+            expect(beforeResponseSpan!.status).toBe('ok');
+
+            const midwaySpan = spans.find(span => span.name === 'chat abort-midway');
+            expect(midwaySpan!.status).toBe('ok');
+            expect(midwaySpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
+            expect(midwaySpan!.attributes[GEN_AI_RESPONSE_ID].value).toBe('msg_abort_midway_1');
+            expect(midwaySpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('This stream will ');
           },
         })
         .start()
@@ -557,4 +588,97 @@ describe('Anthropic integration', () => {
       });
     });
   });
+
+  createEsmAndCjsTests(__dirname, 'scenario-abort.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('ends a call the caller aborts as cancelled, but a timeout as an error', async () => {
+      await createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            expect(spans).toHaveLength(6);
+            const statusByModel = Object.fromEntries(
+              spans.map(span => [span.attributes[GEN_AI_REQUEST_MODEL]?.value, span.status]),
+            );
+            // Span streaming sends `cancelled` as `ok`.
+            expect(statusByModel).toEqual({
+              'abort-before-stream': 'ok',
+              'abort-non-streaming': 'ok',
+              'timeout-before-stream': 'error',
+              'timeout-non-streaming': 'error',
+              'stream-helper-abort': 'ok',
+              'stream-helper-signal-timeout': 'error',
+            });
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-recording-functions.mjs',
+    (createRunner, test) => {
+      test('decides content recording per call when the options are functions', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items.filter(
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic',
+              );
+              const recordedById = Object.fromEntries(
+                spans.map(span => [
+                  span.attributes[GEN_AI_RESPONSE_ID]?.value,
+                  {
+                    inputs: GEN_AI_INPUT_MESSAGES in span.attributes,
+                    outputs: GEN_AI_RESPONSE_TEXT in span.attributes,
+                  },
+                ]),
+              );
+              expect(recordedById).toEqual({
+                msg_public: { inputs: true, outputs: true },
+                msg_private: { inputs: false, outputs: false },
+                'msg_public-stream': { inputs: true, outputs: false },
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-span-hooks.mjs',
+    (createRunner, test) => {
+      test('runs the span hooks at start in the caller context and at end with the response', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items.filter(
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic',
+              );
+              const hooksByKey = Object.fromEntries(
+                spans.map(span => [
+                  span.attributes[GEN_AI_RESPONSE_ID]?.value,
+                  [span.attributes['test.start']?.value, span.attributes['test.end']?.value],
+                ]),
+              );
+              expect(hooksByKey).toEqual({
+                msg_public: ['public:public', 'msg_public'],
+                msg_private: ['private:private', 'msg_private'],
+                // A `stream: true` call has no single response object, and its tag changes only after the call started.
+                'msg_public-stream': ['public:private', 'no response'],
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

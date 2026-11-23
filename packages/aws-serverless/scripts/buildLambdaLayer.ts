@@ -223,9 +223,9 @@ function buildPackageJson(): void {
 function replaceSDKSource(): void {
   console.log('Replacing SDK source.');
 
-  const envFiles = [
-    './build/aws/dist-serverless/nodejs/node_modules/@sentry/core/build/cjs/utils/env.js',
-    './build/aws/dist-serverless/nodejs/node_modules/@sentry/core/build/esm/utils/env.js',
+  const buildDirs = [
+    './build/aws/dist-serverless/nodejs/node_modules/@sentry/core/build/cjs',
+    './build/aws/dist-serverless/nodejs/node_modules/@sentry/core/build/esm',
   ];
 
   // Tolerant of whitespace/quote variations: esbuild emits the marker and `return` on
@@ -234,19 +234,28 @@ function replaceSDKSource(): void {
   const pattern = /\/\*! __SENTRY_SDK_SOURCE__ \*\/\s*return ["']npm["'];/;
   const replacement = `/*! __SENTRY_SDK_SOURCE__ */ return 'aws-lambda-layer';`;
 
-  for (const envFile of envFiles) {
-    let content: string;
+  for (const buildDir of buildDirs) {
+    // The CJS build is flat, so the file that holds `getSDKSource` has no fixed name.
+    let jsFiles: string[];
     try {
-      content = fs.readFileSync(envFile, 'utf-8');
+      jsFiles = fs
+        .readdirSync(buildDir, { recursive: true, encoding: 'utf-8' })
+        .filter(file => file.endsWith('.js'))
+        .map(file => path.join(buildDir, file));
     } catch {
-      throw new Error(`Could not read ${envFile} while updating the SDK source for the Lambda layer.`);
+      throw new Error(`Could not read ${buildDir} while updating the SDK source for the Lambda layer.`);
     }
 
-    if (!pattern.test(content)) {
+    const matches = jsFiles
+      .map(file => ({ file, content: fs.readFileSync(file, 'utf-8') }))
+      .filter(({ content }) => pattern.test(content));
+
+    if (matches.length !== 1) {
       throw new Error(
-        `Could not find the __SENTRY_SDK_SOURCE__ marker in ${envFile}. The Lambda layer would silently report its SDK source as 'npm'. Has the marker or the transpile output changed?`,
+        `Expected the __SENTRY_SDK_SOURCE__ marker in exactly one file in ${buildDir}, found ${matches.length}. The Lambda layer would silently report its SDK source as 'npm'. Has the marker or the transpile output changed?`,
       );
     }
+    const { file: envFile, content } = matches[0] as { file: string; content: string };
 
     // pnpm hard-links the files of `file:` dependencies to the monorepo packages. Removing the file first makes
     // sure that the write does not also change `packages/core/build`.

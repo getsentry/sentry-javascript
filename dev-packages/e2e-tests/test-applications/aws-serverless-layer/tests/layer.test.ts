@@ -1,11 +1,46 @@
 import { waitForTransaction, waitForError, waitForRequest } from '@sentry-internal/test-utils';
 import { InvokeCommand } from '@aws-sdk/client-lambda';
+import * as http from 'node:http';
+import * as net from 'node:net';
+import { once } from 'node:events';
+import { HTTP_PROXY_PORT } from '../src/stack';
 import { test, expect } from './lambda-fixtures';
 
 interface TunnelInvokeResult {
   attemptedDsn?: string;
   status: number;
   responseBody: string;
+}
+
+/**
+ * A forward proxy that records each CONNECT target. The Lambda container reaches the host through its host IP, which
+ * may not resolve on the host itself, so every tunnel goes to the same port on loopback.
+ */
+async function startConnectProxy(): Promise<{ connects: string[]; close: () => Promise<void> }> {
+  const connects: string[] = [];
+  const server = http.createServer();
+  server.on('connect', (req: http.IncomingMessage, clientSocket: net.Socket) => {
+    const target = req.url ?? '';
+    connects.push(target);
+    const upstream = net.connect(Number(target.split(':').pop()), '127.0.0.1', () => {
+      clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
+      upstream.pipe(clientSocket);
+      clientSocket.pipe(upstream);
+    });
+    upstream.on('error', () => clientSocket.destroy());
+    clientSocket.on('error', () => upstream.destroy());
+  });
+  server.listen(HTTP_PROXY_PORT, '0.0.0.0');
+  await once(server, 'listening');
+
+  return {
+    connects,
+    close: () =>
+      new Promise(resolve => {
+        server.closeAllConnections();
+        server.close(() => resolve());
+      }),
+  };
 }
 
 function parseLambdaPayload(payload: Uint8Array | undefined): TunnelInvokeResult {
@@ -392,6 +427,57 @@ test.describe('Lambda layer', () => {
     // The Lambda transaction is parented to the incoming trace context (eventContextExtractor + startInactiveSpan).
     expect(transactionEvent.contexts?.trace?.trace_id).toEqual(traceId);
     expect(transactionEvent.contexts?.trace?.parent_span_id).toEqual(parentSpanId);
+  });
+
+  test('does not leak isolation scope data between invocations on a warm container', async ({ lambdaClient }) => {
+    const firstErrorEventPromise = waitForError('aws-serverless-layer', errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === 'first invocation error';
+    });
+    const secondErrorEventPromise = waitForError('aws-serverless-layer', errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === 'second invocation error';
+    });
+
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerIsolationScope',
+        Payload: JSON.stringify({ tag: 'first-invocation', errorMessage: 'first invocation error' }),
+      }),
+    );
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerIsolationScope',
+        Payload: JSON.stringify({ errorMessage: 'second invocation error' }),
+      }),
+    );
+
+    const [firstErrorEvent, secondErrorEvent] = await Promise.all([firstErrorEventPromise, secondErrorEventPromise]);
+
+    expect(firstErrorEvent.tags?.invocation_tag).toBe('first-invocation');
+    expect(secondErrorEvent.tags?.invocation_tag).toBeUndefined();
+  });
+
+  test('sends events through the extension and http_proxy', async ({ lambdaClient }) => {
+    const proxy = await startConnectProxy();
+
+    try {
+      const requestPromise = waitForRequest('aws-serverless-layer', requestData => {
+        return requestData.rawProxyRequestBody.includes('http-proxy-test');
+      });
+
+      await lambdaClient.send(new InvokeCommand({ FunctionName: 'LayerHttpProxy', Payload: JSON.stringify({}) }));
+
+      const request = await requestPromise;
+
+      // The SDK only puts the DSN in the envelope header when it sends through a tunnel, i.e. the extension.
+      const envelopeHeader = JSON.parse(request.rawProxyRequestBody.split('\n')[0] ?? '{}');
+      expect(envelopeHeader.dsn).toEqual(expect.stringContaining(':3031/1337'));
+
+      // The extension went through the proxy, and the SDK reached the extension without it.
+      expect(proxy.connects.length).toBeGreaterThan(0);
+      expect(proxy.connects.every(target => target.endsWith(':3031'))).toBe(true);
+    } finally {
+      await proxy.close();
+    }
   });
 
   test('extension tunnel validates DSN allowlist and rejects invalid envelopes', async ({ lambdaClient }) => {

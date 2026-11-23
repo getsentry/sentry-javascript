@@ -52,14 +52,16 @@ test('traces a run as invoke_agent with chat, execute_tool and provider spans', 
   // pi-ai sends the requests through `@anthropic-ai/sdk`, whose own integration must stay out so
   // each request is reported once.
   expect(spans.filter(span => String(span.attributes[SENTRY_ORIGIN]?.value).startsWith('auto.ai.'))).toEqual(
-    spans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.pi_durable'),
+    spans.filter(span =>
+      ['auto.ai.pi_durable', 'auto.ai.pi_ai'].includes(String(span.attributes[SENTRY_ORIGIN]?.value)),
+    ),
   );
 
   // One tool-calling response, then the answer.
   expect(chats.length).toBeGreaterThanOrEqual(2);
   for (const chat of chats) {
     expect(chat.parent_span_id).toBe(agent.span_id);
-    expect(chat.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.pi_durable');
+    expect(chat.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.pi_ai');
     expect(chat.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('openrouter');
     expect(chat.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('anthropic/claude-haiku-4.5');
     // pi-durable retries a provider error inside the run; such a request has no usage and no HTTP span

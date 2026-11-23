@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_FREQUENCY_PENALTY,
   GEN_AI_REQUEST_MAX_TOKENS,
@@ -12,8 +13,13 @@ import {
   GEN_AI_REQUEST_TOP_P,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
+import { GEN_AI_DECIDE } from '@sentry/conventions/op';
+import { getClient, getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { instrumentGoogleGenAIClient } from '../../../../src/ai/google-genai';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
@@ -312,5 +318,104 @@ describe('instrumentGoogleGenAIClient chat config propagation', () => {
     const data = spanToStaticSpanJSON(endedSpans[0]!).data;
     expect(data[GEN_AI_REQUEST_TEMPERATURE]).toBe(0.8);
     expect(data[GEN_AI_REQUEST_MAX_TOKENS]).toBe(150);
+  });
+});
+
+describe('instrumentGoogleGenAIClient decisions.create', () => {
+  beforeEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  afterEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  const DECISION_REQUEST = {
+    model: 'models/gemini-3-flash',
+    input: 'I was charged twice and want a refund.',
+    questions: { wants_refund: { type: 'noul', instructions: 'Is a refund requested?' } },
+  };
+  const DECISION_RESPONSE = {
+    answers: { wants_refund: { type: 'noul', noul: 0.97, confidence: 0.94 } },
+    usage: { total_input_tokens: 382, total_cached_tokens: 256, total_output_tokens: 0, total_tokens: 382 },
+  };
+
+  function fakeDecisionsClient(create = vi.fn().mockResolvedValue(DECISION_RESPONSE)) {
+    return { decisions: { create } };
+  }
+
+  it('records the input when the span starts, so samplers can read it', async () => {
+    setupClient('stream');
+    const inputsAtStart: unknown[] = [];
+    getClient()!.on('spanStart', span => inputsAtStart.push(spanToStaticSpanJSON(span).data[GEN_AI_INPUT_MESSAGES]));
+    const instrumented = instrumentGoogleGenAIClient(fakeDecisionsClient());
+
+    await instrumented.decisions.create(DECISION_REQUEST);
+
+    expect(inputsAtStart).toEqual([
+      JSON.stringify([{ type: 'evaluation', state: DECISION_REQUEST.input, questions: DECISION_REQUEST.questions }]),
+    ]);
+  });
+
+  it('records a single media part given by URI as a user message', async () => {
+    const endedSpans = setupClient('stream');
+    const instrumented = instrumentGoogleGenAIClient(fakeDecisionsClient());
+
+    await instrumented.decisions.create({
+      ...DECISION_REQUEST,
+      input: { type: 'image', mime_type: 'image/png', uri: 'gs://bucket/box.png' },
+    });
+
+    const input = JSON.parse(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_INPUT_MESSAGES] as string);
+    expect(input[0].state).toEqual([
+      { role: 'user', parts: [{ type: 'uri', modality: 'image', mime_type: 'image/png', uri: 'gs://bucket/box.png' }] },
+    ]);
+  });
+
+  it('records a decide span with its answers and token usage', async () => {
+    const endedSpans = setupClient('stream');
+    const instrumented = instrumentGoogleGenAIClient(fakeDecisionsClient());
+
+    await instrumented.decisions.create(DECISION_REQUEST);
+
+    expect(endedSpans).toHaveLength(1);
+    const json = spanToStaticSpanJSON(endedSpans[0]!);
+    expect(json.description).toBe('decide models/gemini-3-flash');
+    expect(json.op).toBe(GEN_AI_DECIDE);
+    expect(json.data[GEN_AI_OPERATION_NAME]).toBe('decide');
+    expect(json.data[GEN_AI_USAGE_INPUT_TOKENS]).toBe(382);
+    expect(json.data[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]).toBe(256);
+    expect(json.data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(0);
+    expect(json.data[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(382);
+    expect(JSON.parse(json.data[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+      { type: 'evaluation', answers: DECISION_RESPONSE.answers },
+    ]);
+  });
+
+  it('records neither input nor answers when recording is off', async () => {
+    const endedSpans = setupClient('stream');
+    const instrumented = instrumentGoogleGenAIClient(fakeDecisionsClient(), {
+      recordInputs: false,
+      recordOutputs: false,
+    });
+
+    await instrumented.decisions.create(DECISION_REQUEST);
+
+    const { data } = spanToStaticSpanJSON(endedSpans[0]!);
+    expect(data[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+    expect(data[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+    expect(data[GEN_AI_USAGE_INPUT_TOKENS]).toBe(382);
+  });
+
+  it('marks a failed call as an internal error', async () => {
+    const endedSpans = setupClient('stream');
+    const instrumented = instrumentGoogleGenAIClient(
+      fakeDecisionsClient(vi.fn().mockRejectedValue(new Error('500 Internal server error'))),
+    );
+
+    await expect(instrumented.decisions.create(DECISION_REQUEST)).rejects.toThrow('500 Internal server error');
+
+    expect(endedSpans).toHaveLength(1);
+    expect(spanToStaticSpanJSON(endedSpans[0]!).status).toBe('internal_error');
   });
 });

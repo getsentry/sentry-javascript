@@ -1,4 +1,4 @@
-import { _INTERNAL_applyTunnelDefaults as applyTunnelDefaults, consoleSandbox } from '@sentry/core';
+import { _INTERNAL_applyBrowserTunnelDefaults as applyBrowserTunnelDefaults, consoleSandbox } from '@sentry/core';
 import type { BrowserOptions as ReactBrowserOptions } from '@sentry/react';
 
 declare const __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__: string | true | undefined;
@@ -16,7 +16,7 @@ export function applyTunnelRouteOption(options: ReactBrowserOptions): void {
 
   const basePath =
     typeof __SENTRY_TANSTACKSTART_TUNNEL_BASE_PATH__ !== 'undefined' ? __SENTRY_TANSTACKSTART_TUNNEL_BASE_PATH__ : '';
-  options.tunnel = applyTunnelDefaults(options.tunnel, { basePath });
+  options.tunnel = applyBrowserTunnelDefaults(options.tunnel, { basePath });
 }
 
 function applyManagedTunnelRoute(options: ReactBrowserOptions): void {

@@ -12,7 +12,7 @@ import {
 } from '../../utils/isBinding';
 import { instrumentD1 } from './instrumentD1';
 import { appendRpcMeta } from '../../utils/rpcMeta';
-import { createRpcPropagationResolver } from '../../utils/rpcPropagation';
+import { createBindingPropagationResolver, createRpcPropagationResolver } from '../../utils/bindingPropagation';
 import { instrumentDurableObjectNamespace, STUB_NON_RPC_METHODS } from '../instrumentDurableObjectNamespace';
 import { instrumentFetcher } from './instrumentFetcher';
 import { instrumentKV } from './instrumentKV';
@@ -38,7 +38,7 @@ const instrumentedBindings = new WeakMap<object, unknown>();
  * - Workers AI (via `run` + `gateway` + `toMarkdown` duck-typing)
  *
  * @param env - The Cloudflare env object to instrument
- * @param options - Optional CloudflareOptions to control RPC trace propagation
+ * @param options - Optional CloudflareOptions to control RPC and Queue trace propagation
  */
 export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, options?: CloudflareOptions): Env {
   if (!env || typeof env !== 'object') {
@@ -46,6 +46,7 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
   }
 
   const shouldPropagateRpcTrace = createRpcPropagationResolver(options);
+  const shouldPropagateQueueTrace = createBindingPropagationResolver(options?.queueTracePropagationBindings);
 
   return new Proxy(env, {
     get(target, prop, receiver) {
@@ -69,7 +70,7 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
 
       if (isQueue(item)) {
         const bindingName = typeof prop === 'string' ? prop : String(prop);
-        const instrumented = instrumentQueueProducer(item, bindingName);
+        const instrumented = instrumentQueueProducer(item, bindingName, shouldPropagateQueueTrace(bindingName));
         instrumentedBindings.set(item, instrumented);
         return instrumented;
       }

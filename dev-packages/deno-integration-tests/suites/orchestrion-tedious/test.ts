@@ -2,22 +2,10 @@
 
 import { EventEmitter } from 'node:events';
 import { tracingChannel } from 'node:diagnostics_channel';
-import type { DenoClient } from '@sentry/deno';
 import { flush, init, startSpan } from '@sentry/deno';
-import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
-
-Deno.test('tedious instrumentation: included in default integrations (Deno 2.8.0+)', () => {
-  resetGlobals();
-  const client = init({
-    dsn: 'https://username@domain/123',
-    tracesSampleRate: 1,
-  }) as DenoClient;
-  const names = client.getOptions().integrations.map(i => i.name);
-  assert(names.includes('Tedious'), `Tedious should be in defaults, got ${names.join(', ')}`);
-});
 
 Deno.test('tedious instrumentation: orchestrion:tedious:execSql channel produces a nested db span', async () => {
   resetGlobals();

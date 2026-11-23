@@ -120,6 +120,12 @@ export class AppService {
     console.log('Test derived cron!');
   }
 
+  // Monitored through `monitorCronJobs`, without `@SentryCron`.
+  @Cron('0 0 * * *', { name: 'test-auto-monitored-cron', timeZone: 'America/New_York', disabled: true })
+  async testAutoMonitoredCron() {
+    console.log('Test auto-monitored cron!');
+  }
+
   async killTestCron(job: string) {
     this.schedulerRegistry.deleteCronJob(job);
   }

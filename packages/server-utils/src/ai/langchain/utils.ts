@@ -26,6 +26,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../core/gen-ai-attributes';
 import { extractSystemInstructions, getTokenUsageAttributes } from '../core/utils';
+import type { GenAiOptions } from '../core/utils';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
 import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from './types';
 
@@ -505,7 +506,7 @@ export function extractLlmResponseAttributes(
 
 export function getAgentNameFromMetadata(metadata?: Record<string, unknown>): Record<string, SpanAttributeValue> {
   const attrs: Record<string, SpanAttributeValue> = {};
-  // lc_agent_name is injected by instrumentCompiledGraphInvoke (langgraph integration)
+  // lc_agent_name is injected by the langgraph invoke()/stream() wrappers (`prepareAgentSpan`)
   const agentName = metadata?.lc_agent_name;
   if (typeof agentName === 'string') {
     attrs[GEN_AI_AGENT_NAME] = agentName;
@@ -528,6 +529,15 @@ function findConversationIdEntry(source?: Record<string, unknown>): [string, str
     }
   }
   return undefined;
+}
+
+/**
+ * The recording decision of the LangGraph graph run that `metadata` belongs to. The graph's `invoke()`/`stream()`
+ * call decides once, and child runs inherit the decision through their metadata.
+ */
+export function getLangGraphRunRecording(metadata?: Record<string, unknown>): Required<GenAiOptions> | undefined {
+  const recording = metadata?.__sentry_langgraph__;
+  return isObjectLike(recording) ? (recording as Required<GenAiOptions>) : undefined;
 }
 
 /**
@@ -606,24 +616,29 @@ function containsSentryHandler(handlers: unknown[]): boolean {
  * @internal Exported for cross-package instrumentation.
  */
 export function _INTERNAL_mergeLangChainCallbackHandler(existing: unknown, sentryHandler: unknown): unknown {
+  const handlers = isCallbackManager(existing) ? (existing.handlers ?? []) : toHandlerArray(existing);
+  return containsSentryHandler(handlers) ? existing : _INTERNAL_addLangChainCallbackHandler(existing, sentryHandler);
+}
+
+/**
+ * Add `handler` to a given set of LangChain callbacks or callback manager, without deduplicating it.
+ * A callback manager is copied rather than mutated.
+ * @internal Exported for cross-package instrumentation.
+ */
+export function _INTERNAL_addLangChainCallbackHandler(existing: unknown, handler: unknown): unknown {
   if (!existing) {
-    return [sentryHandler];
+    return [handler];
   }
 
   if (isCallbackManager(existing)) {
-    if (containsSentryHandler(existing.handlers ?? [])) {
-      return existing;
-    }
-
     const copied = existing.copy() as { addHandler: (handler: unknown, inherit?: boolean) => void };
-    copied.addHandler(sentryHandler, true);
+    copied.addHandler(handler, true);
     return copied;
   }
 
-  const handlers = Array.isArray(existing) ? existing : [existing];
-  if (containsSentryHandler(handlers)) {
-    return existing;
-  }
+  return [...toHandlerArray(existing), handler];
+}
 
-  return [...handlers, sentryHandler];
+function toHandlerArray(existing: unknown): unknown[] {
+  return Array.isArray(existing) ? existing : existing ? [existing] : [];
 }

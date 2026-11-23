@@ -3,7 +3,6 @@ import type { Client, Span } from '@sentry/core';
 
 import * as SentryCore from '@sentry/core';
 import * as SentryCoreServer from '@sentry/core/server';
-import * as SentryNode from '@sentry/node';
 import type { APIContext } from 'astro';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
@@ -36,7 +35,7 @@ const STATIC_REQUEST_CONTEXT = {
 
 describe('sentryMiddleware with the managed tunnel', () => {
   it('answers tunnel requests without calling the rest of the middleware chain', async () => {
-    const getClientSpy = vi.spyOn(SentryNode, 'getClient').mockReturnValue({} as Client);
+    const getClientSpy = vi.spyOn(SentryCore, 'getClient').mockReturnValue({} as Client);
     const tunnelResponse = new Response('forwarded');
     const matcherSpy = vi
       .spyOn(SentryCoreServer, '_INTERNAL_handleServedTunnelRequest')
@@ -56,7 +55,7 @@ describe('sentryMiddleware with the managed tunnel', () => {
 });
 
 describe('sentryMiddleware', () => {
-  const startSpanSpy = vi.spyOn(SentryNode, 'startSpan');
+  const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
 
   const getSpanMock = vi.fn(() => {
     return {
@@ -83,7 +82,7 @@ describe('sentryMiddleware', () => {
   };
 
   function mockClientWith(dataCollection: Partial<typeof DATA_COLLECTION_DEFAULTS>): void {
-    vi.spyOn(SentryNode, 'getClient').mockImplementation(
+    vi.spyOn(SentryCore, 'getClient').mockImplementation(
       () =>
         ({
           getOptions: () => ({}),
@@ -93,7 +92,7 @@ describe('sentryMiddleware', () => {
   }
 
   beforeEach(() => {
-    vi.spyOn(SentryNode, 'getCurrentScope').mockImplementation(() => {
+    vi.spyOn(SentryCore, 'getCurrentScope').mockImplementation(() => {
       return {
         setPropagationContext: vi.fn(),
         getSpan: getSpanMock,
@@ -101,9 +100,9 @@ describe('sentryMiddleware', () => {
         getPropagationContext: () => ({}),
       } as any;
     });
-    vi.spyOn(SentryNode, 'getActiveSpan').mockImplementation(getSpanMock);
+    vi.spyOn(SentryCore, 'getActiveSpan').mockImplementation(getSpanMock);
     mockClientWith({ userInfo: false });
-    vi.spyOn(SentryNode, 'getTraceMetaTags').mockImplementation(
+    vi.spyOn(SentryCore, 'getTraceMetaTags').mockImplementation(
       () => `
     <meta name="sentry-trace" content="123">
     <meta name="baggage" content="abc">
@@ -171,7 +170,7 @@ describe('sentryMiddleware', () => {
     }
 
     beforeEach(() => {
-      vi.spyOn(SentryNode, 'getClient').mockImplementation(
+      vi.spyOn(SentryCore, 'getClient').mockImplementation(
         () =>
           ({
             getOptions: () => ({ traceLifecycle: 'stream' }),
@@ -266,7 +265,7 @@ describe('sentryMiddleware', () => {
   });
 
   it('throws and sends an error to sentry if `next()` throws', async () => {
-    const captureExceptionSpy = vi.spyOn(SentryNode, 'captureException');
+    const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
 
     const middleware = handleRequest();
     const ctx = {
@@ -288,7 +287,7 @@ describe('sentryMiddleware', () => {
   });
 
   it('throws and sends an error to sentry if response streaming throws', async () => {
-    const captureExceptionSpy = vi.spyOn(SentryNode, 'captureException');
+    const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
 
     const middleware = handleRequest();
     const ctx = {
@@ -441,7 +440,7 @@ describe('sentryMiddleware', () => {
     });
   });
 
-  it('does not inject tracing <meta> tags if route is static', async () => {
+  it('injects an empty cache origin <meta> tag instead of tracing <meta> tags if route is static', async () => {
     const middleware = handleRequest();
 
     const ctx = STATIC_REQUEST_CONTEXT;
@@ -464,13 +463,40 @@ describe('sentryMiddleware', () => {
     expect(html).toContain('<meta name="something" content=""/></head>');
     // parametrized route is injected
     expect(html).toContain('<meta name="sentry-route-name" content="%2Fusers"/>');
-    // trace data is not injected
+    expect(html).toContain('<meta name="sentry-cache-origin" content=""/>');
+    expect(html).toMatch(/<meta name="sentry-render-start" content="\d+"\/>/);
     expect(html).not.toContain('<meta name="sentry-trace" content="');
     expect(html).not.toContain('<meta name="baggage" content="');
   });
 
+  it.each([
+    [
+      'an on-demand page on an adapter without a client address',
+      {
+        ...DYNAMIC_REQUEST_CONTEXT,
+        isPrerendered: false,
+        get clientAddress(): string {
+          throw new Error('This adapter has no client address');
+        },
+      },
+      false,
+    ],
+    ['a prerendered page that has a client address', { ...DYNAMIC_REQUEST_CONTEXT, isPrerendered: true }, true],
+  ])('decides by `isPrerendered` for %s', async (_, ctx, isPrerendered) => {
+    const middleware = handleRequest({ trackClientIp: true });
+    const next = vi.fn(() =>
+      Promise.resolve(new Response('<head></head>', { headers: new Headers({ 'content-type': 'text/html' }) })),
+    );
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const html = await (await middleware(ctx, next))?.text();
+
+    expect(html?.includes('<meta name="sentry-cache-origin" content=""/>')).toBe(isPrerendered);
+    expect(html?.includes('<meta name="sentry-trace" content="')).toBe(!isPrerendered);
+  });
+
   it('injects routing <meta> tag into the HTML of a pageload response without Sentry being initialized', async () => {
-    vi.spyOn(SentryNode, 'getClient').mockImplementation(() => undefined);
+    vi.spyOn(SentryCore, 'getClient').mockImplementation(() => undefined);
 
     const middleware = handleRequest();
 
@@ -525,6 +551,8 @@ describe('sentryMiddleware', () => {
     expect(html).toContain('<meta name="sentry-route-name" content="%2Fusers"/>');
     expect(html).toContain('<meta name="sentry-trace" content="');
     expect(html).toContain('<meta name="baggage" content="');
+    expect(html).not.toContain('sentry-cache-origin');
+    expect(html).not.toContain('sentry-render-start');
   });
 
   it('preserves response status, statusText, and all headers when injecting meta tags', async () => {
@@ -658,7 +686,7 @@ describe('sentryMiddleware', () => {
   });
 
   describe('async context isolation', () => {
-    const withIsolationScopeSpy = vi.spyOn(SentryNode, 'withIsolationScope');
+    const withIsolationScopeSpy = vi.spyOn(SentryCore, 'withIsolationScope');
     afterEach(() => {
       vi.clearAllMocks();
       withIsolationScopeSpy.mockRestore();
@@ -716,10 +744,10 @@ describe('sentryMiddleware', () => {
 });
 
 describe('parametrized route resolution', () => {
-  const startSpanSpy = vi.spyOn(SentryNode, 'startSpan');
+  const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
 
   beforeEach(() => {
-    vi.spyOn(SentryNode, 'getCurrentScope').mockImplementation(
+    vi.spyOn(SentryCore, 'getCurrentScope').mockImplementation(
       () =>
         ({
           setPropagationContext: vi.fn(),
@@ -728,15 +756,15 @@ describe('parametrized route resolution', () => {
           getPropagationContext: () => ({}),
         }) as any,
     );
-    vi.spyOn(SentryNode, 'getActiveSpan').mockImplementation(() => undefined);
-    vi.spyOn(SentryNode, 'getClient').mockImplementation(
+    vi.spyOn(SentryCore, 'getActiveSpan').mockImplementation(() => undefined);
+    vi.spyOn(SentryCore, 'getClient').mockImplementation(
       () =>
         ({
           getOptions: () => ({}),
           getDataCollectionOptions: () => ({ httpHeaders: { request: false, response: false } }),
         }) as unknown as Client,
     );
-    vi.spyOn(SentryNode, 'getTraceMetaTags').mockImplementation(() => '');
+    vi.spyOn(SentryCore, 'getTraceMetaTags').mockImplementation(() => '');
   });
 
   afterEach(() => {

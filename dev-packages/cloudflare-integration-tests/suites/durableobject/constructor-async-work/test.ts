@@ -5,7 +5,7 @@ import { createRunner } from '../../../runner';
 
 // Every envelope of both requests is expected, and `failOnUnexpected` fails the test on any other one.
 // All of them are sent after the constructor work ran, so an error or span from that work would arrive
-// before the runner completes.
+// before the runner completes. The only span from that work is the storage read, which has no parent.
 it('does not capture errors a Durable Object catches in work its constructor started', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .unordered()
@@ -17,6 +17,11 @@ it('does not capture errors a Durable Object catches in work its constructor sta
     .expect(envelope => {
       expect(envelope[1][0][0].type).toBe('event');
       expect((envelope[1][0][1] as Event).message).toBe('async-method ping: degraded');
+    })
+    .expect(envelope => {
+      expect(envelope[1][0][0].type).toBe('span');
+      const container = envelope[1][0][1] as SerializedStreamedSpanContainer;
+      expect(container.items.map(item => item.name)).toEqual(['durable_object_storage_get']);
     })
     .expectN(2, envelope => {
       expect(envelope[1][0][0].type).toBe('span');

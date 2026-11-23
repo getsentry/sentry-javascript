@@ -7,7 +7,7 @@ import {
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_MODEL,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_CHAT, GEN_AI_DECIDE, HTTP_SERVER } from '@sentry/conventions/op';
+import { GEN_AI_CHAT, GEN_AI_DECIDE, GEN_AI_EXTRACT, HTTP_SERVER } from '@sentry/conventions/op';
 import {
   EVENT_POLLING_OPTIONS,
   fetchSpanAttributes,
@@ -38,7 +38,9 @@ test('Sends an unhandled exception and its request span to Sentry', async () => 
   await fetchFromWorker(`${workerUrl}/test-unhandled-error`, 500, {
     headers: {
       'sentry-trace': `${traceId}-${randomBytes(8).toString('hex')}-1`,
-      baggage: `sentry-trace_id=${traceId},sentry-public_key=${publicKey},sentry-sampled=true,sentry-sample_rate=1`,
+      // The span inherits this frozen dynamic sampling context. Without `qa`, the dev environment bias of
+      // server-side dynamic sampling does not apply, and the span is dropped while the error is kept.
+      baggage: `sentry-trace_id=${traceId},sentry-public_key=${publicKey},sentry-environment=qa,sentry-sampled=true,sentry-sample_rate=1`,
     },
   });
 
@@ -152,9 +154,8 @@ test('Sends a Workers AI gen_ai.extract span for a Clairic call to Sentry', asyn
   console.log(`Polling for gen_ai.extract span: sentry trace view ${traceTarget(traceId)}`);
 
   let spanId: string | undefined;
-  // TODO: Use `GEN_AI_EXTRACT` from `@sentry/conventions/op` once getsentry/sentry-conventions#728 is released
   await expect
-    .poll(() => (spanId = findSpanInTrace(traceId, 'gen_ai.extract')?.event_id), EVENT_POLLING_OPTIONS)
+    .poll(() => (spanId = findSpanInTrace(traceId, GEN_AI_EXTRACT)?.event_id), EVENT_POLLING_OPTIONS)
     .toBeDefined();
 
   await expect

@@ -8,6 +8,20 @@ type DefineTests = () => void;
 
 const SLOW_START_MS = 60_000;
 
+// The pull time depends on the image registry, which this repo does not control. The slowest pull in CI took 237s.
+const PULL_TIMEOUT_MS = 300_000;
+const UP_TIMEOUT_MS = 120_000;
+const UP_MAX_ATTEMPTS = 3;
+const DOWN_TIMEOUT_MS = 60_000;
+const LOGS_TIMEOUT_MS = 10_000;
+const HOOK_MARGIN_MS = 5_000;
+
+// `spawnSync` blocks the event loop, so a hook timeout cannot stop a phase. Each phase has its own
+// enforced timeout, and the hook timeout is the worst case of all phases together: the hook can
+// time out only when a phase did.
+const START_TIMEOUT_MS =
+  DOWN_TIMEOUT_MS + PULL_TIMEOUT_MS + UP_MAX_ATTEMPTS * (UP_TIMEOUT_MS + LOGS_TIMEOUT_MS + DOWN_TIMEOUT_MS);
+
 interface DockerOptions {
   /**
    * The working directory to run docker compose in
@@ -54,15 +68,14 @@ export function describeWithDockerCompose(
   describe(name, options, () => {
     let dockerDown: (() => void) | undefined;
 
-    // Bring the container up once for the whole group. The generous timeout covers image pulls and
-    // slow healthchecks on the first run.
+    // Bring the container up once for the whole group.
     beforeAll(async () => {
       dockerDown = await runDockerCompose(dockerOptions);
-    }, 120_000);
+    }, START_TIMEOUT_MS);
 
     afterAll(() => {
       dockerDown?.();
-    }, 60_000);
+    }, DOWN_TIMEOUT_MS + HOOK_MARGIN_MS);
 
     callback();
   });
@@ -93,13 +106,19 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
     spawnSync('docker', composeArgs('down', '--volumes'), {
       cwd,
       stdio: process.env.DEBUG ? 'inherit' : undefined,
+      timeout: DOWN_TIMEOUT_MS,
     });
   };
 
   const output = (result: ReturnType<typeof spawnSync>): string =>
     `${result.stderr?.toString() ?? ''}${result.stdout?.toString() ?? ''}`;
   // Surface container logs to make healthcheck failures easier to diagnose in CI
-  const containerLogs = (): string => spawnSync('docker', composeArgs('logs'), { cwd }).stdout?.toString() ?? '';
+  const containerLogs = (): string =>
+    spawnSync('docker', composeArgs('logs'), { cwd, timeout: LOGS_TIMEOUT_MS }).stdout?.toString() ?? '';
+  const timedOut = (result: ReturnType<typeof spawnSync>): boolean =>
+    (result.error as { code?: string } | undefined)?.code === 'ETIMEDOUT';
+  const upOutcome = (result: ReturnType<typeof spawnSync>): string =>
+    timedOut(result) ? `timed out after ${UP_TIMEOUT_MS}ms` : `exit ${result.status}`;
 
   // ensure we're starting fresh
   close();
@@ -110,8 +129,13 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   const pull = spawnSync('docker', composeArgs('pull', '--policy', 'missing', '--quiet'), {
     cwd,
     stdio: process.env.DEBUG ? 'inherit' : 'pipe',
+    timeout: PULL_TIMEOUT_MS,
   });
   const pullMs = Date.now() - pullStartedAt;
+  if (timedOut(pull)) {
+    // `up` would pull again inside its shorter timeout and hide which phase was slow.
+    throw new Error(`docker compose pull timed out after ${PULL_TIMEOUT_MS}ms in ${cwd}\n${output(pull)}`);
+  }
   if (pull.status !== 0) {
     // `up` pulls missing images too, so only report this
     // eslint-disable-next-line no-console
@@ -122,21 +146,21 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
     spawnSync('docker', composeArgs('up', '-d', '--wait'), {
       cwd,
       stdio: process.env.DEBUG ? 'inherit' : 'pipe',
+      timeout: UP_TIMEOUT_MS,
     });
 
   // `docker compose up` occasionally fails on CI with transient daemon races
   // (e.g. "failed to set up container networking: network <x>_default not
   // found" right after the network was created). A clean teardown plus retry
   // clears these, while genuine healthcheck failures stay red on every attempt.
-  const maxAttempts = 3;
   const upStartedAt = Date.now();
   let attemptStartedAt = upStartedAt;
   let result = composeUp();
-  for (let attempt = 1; attempt < maxAttempts && result.status !== 0; attempt++) {
+  for (let attempt = 1; attempt < UP_MAX_ATTEMPTS && result.status !== 0; attempt++) {
     // eslint-disable-next-line no-console
     console.warn(
       `[docker compose] up --wait attempt ${attempt} failed after ${Date.now() - attemptStartedAt}ms ` +
-        `(exit ${result.status}) in ${cwd}\n${output(result)}\n--- container logs ---\n${containerLogs()}`,
+        `(${upOutcome(result)}) in ${cwd}\n${output(result)}\n--- container logs ---\n${containerLogs()}`,
     );
     close();
     attemptStartedAt = Date.now();
@@ -148,7 +172,7 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
     const logs = containerLogs();
     close();
     throw new Error(
-      `docker compose up --wait failed (exit ${result.status})\n${output(result)}\n--- container logs ---\n${logs}`,
+      `docker compose up --wait failed (${upOutcome(result)}) in ${cwd}\n${output(result)}\n--- container logs ---\n${logs}`,
     );
   }
 

@@ -10,6 +10,7 @@ import {
   _INTERNAL_getReleaseFromCommitEnv as getReleaseFromCommitEnv,
   _INTERNAL_readCommitEnvVar as readCoreCommitEnvVar,
 } from '@sentry/core/server';
+import { stringifyForCodeInjection } from '@sentry/core';
 
 /**
  * Checks whether the given input is already an array, and if it isn't, wraps it in one.
@@ -203,7 +204,7 @@ export function stringToUUID(str: string): string {
   return `${sha256Hash.substring(0, 8)}-${sha256Hash.substring(8, 12)}-4${sha256Hash.substring(13, 16)}-${v4variant}${sha256Hash.substring(17, 20)}-${sha256Hash.substring(20, 32)}`.toLowerCase();
 }
 
-function gitRevision(): string | undefined {
+export function gitRevision(): string | undefined {
   let gitRevision: string | undefined;
   try {
     gitRevision = childProcess
@@ -216,11 +217,78 @@ function gitRevision(): string | undefined {
   return gitRevision;
 }
 
+// Mirrors the CLI's `set-commits` fallback for builds without an `origin` remote. Vercel is left out
+// because the CLI only reads `VERCEL_GIT_*` on production builds.
+const CI_REPOSITORY_ENV_VARS = [
+  'GITHUB_REPOSITORY',
+  'CI_PROJECT_PATH',
+  'BITBUCKET_REPO_FULL_NAME',
+  'RENDER_GIT_REPO_SLUG',
+  'RAILWAY_GIT_REPO_NAME',
+  'CIRCLE_PROJECT_REPONAME',
+  'BUILDKITE_REPO',
+  'BUILD_REPOSITORY_URI',
+] as const;
+
+/**
+ * Whether commit association can find the repository: from the given git remote, or from CI variables.
+ */
+export function canAutoDetectRepository(remote = 'origin'): boolean {
+  if (
+    CI_REPOSITORY_ENV_VARS.some(name => process.env[name]) ||
+    (process.env['NETLIFY'] && process.env['REPOSITORY_URL'])
+  ) {
+    return true;
+  }
+  try {
+    childProcess.execFileSync('git', ['remote', 'get-url', remote], { stdio: 'ignore', windowsHide: true });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Reads the `owner/repo` path of a git remote, e.g. `getsentry/sentry-javascript` for
+ * `git@github.com:getsentry/sentry-javascript.git`.
+ */
+export function getGitRemoteRepository(remote: string): string | undefined {
+  let url: string;
+  try {
+    url = childProcess
+      .execFileSync('git', ['remote', 'get-url', remote], { stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true })
+      .toString()
+      .trim();
+  } catch {
+    return undefined;
+  }
+
+  let repoPath: string;
+  try {
+    repoPath = new URL(url).pathname;
+  } catch {
+    // scp-like syntax, `git@host:owner/repo.git`
+    repoPath = url.slice(url.indexOf(':') + 1);
+  }
+  const repository = repoPath.replace(/^\/+|\/+$/g, '').replace(/\.git$/, '');
+  return repository.includes('/') ? repository : undefined;
+}
+
 /**
  * Tries to guess a release name based on environmental data.
  */
 export function determineReleaseName(): string | undefined {
   return getReleaseFromCommitEnv(warnAboutPlaceholderCommitEnvVar) || gitRevision();
+}
+
+/**
+ * Resolves the release name the way the bundler plugins do: the configured name, then the `SENTRY_RELEASE`
+ * environment variable, then a name detected from CI environment variables or git.
+ *
+ * Framework SDKs that pass the release to the SDK at runtime use this to get the same name the plugin uses.
+ */
+export function resolveReleaseName(name?: string): string | undefined {
+  return name ?? process.env['SENTRY_RELEASE'] ?? determineReleaseName();
 }
 
 // Release detection and commit association can read the same variable in one build.
@@ -245,11 +313,6 @@ function warnAboutPlaceholderCommitEnvVar(name: string): void {
  */
 export function readCommitEnvVar(name: string): string | undefined {
   return readCoreCommitEnvVar(name, warnAboutPlaceholderCommitEnvVar);
-}
-
-function stringifyForCodeInjection(value: unknown): string | undefined {
-  // Bundles may be inlined in HTML, where JSON quoting does not escape script tags or HTML comments.
-  return JSON.stringify(value)?.replace(/</g, '\\u003c');
 }
 
 /**

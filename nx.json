@@ -63,5 +63,8 @@
     "autoExit": true
   },
   "parallel": 5,
-  "analytics": false
+  "analytics": false,
+  "affected": {
+    "legacy": true
+  }
 }

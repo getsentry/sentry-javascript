@@ -4,8 +4,9 @@
 
 import { getRouteProvider, resolveCurrentRoute, setRouteProvider } from '@sentry/browser-utils';
 import * as SentryCore from '@sentry/core';
-import { debug, getCurrentScope, makeSession, setCurrentClient } from '@sentry/core';
+import { debug, getCurrentScope, getTunnelPath, makeSession, setCurrentClient } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { BrowserOptions } from '../src/client';
 import { applyDefaultOptions, BrowserClient } from '../src/client';
 import { WINDOW } from '../src/helpers';
 import { getDefaultBrowserClientOptions } from './helper/browser-client-options';
@@ -129,6 +130,19 @@ describe('BrowserClient', () => {
     });
   });
 
+  describe('tunnel option', () => {
+    it('accepts BrowserOptions and resolves a managed tunnel to its URL', () => {
+      const options: BrowserOptions = { dsn: 'http://examplePublicKey@localhost/0', tunnel: true };
+      const { integrations, stackParser, transport } = getDefaultBrowserClientOptions();
+      client = new BrowserClient({ ...options, integrations, stackParser, transport });
+
+      expect(client.getOptions().tunnel).toBe(getTunnelPath(client.getDsn()!));
+      expect(client.getOptions().transportOptions?.headers).toEqual({
+        'Content-Type': 'application/x-sentry-envelope',
+      });
+    });
+  });
+
   describe('session status on unhandled errors', () => {
     afterEach(() => {
       getCurrentScope().setSession(undefined);
@@ -219,6 +233,71 @@ describe('applyDefaultOptions', () => {
     });
 
     WINDOW.SENTRY_RELEASE = releaseBefore;
+  });
+
+  describe('`sentry-release` meta tag', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      document.head.innerHTML = '';
+    });
+
+    function addReleaseMetaTag(content: string): void {
+      const meta = document.createElement('meta');
+      meta.name = 'sentry-release';
+      meta.content = content;
+      document.head.appendChild(meta);
+    }
+
+    it('picks up the release from the meta tag that framework SDKs render into the page', () => {
+      addReleaseMetaTag('page-release');
+
+      expect(applyDefaultOptions({}).release).toBe('page-release');
+    });
+
+    it('prefers the meta tag over WINDOW.SENTRY_RELEASE.id', () => {
+      const releaseBefore = WINDOW.SENTRY_RELEASE;
+      WINDOW.SENTRY_RELEASE = { id: 'chunk-release' };
+      addReleaseMetaTag('page-release');
+
+      expect(applyDefaultOptions({}).release).toBe('page-release');
+
+      WINDOW.SENTRY_RELEASE = releaseBefore;
+    });
+
+    it('lets a passed in release take precedence over the meta tag', () => {
+      addReleaseMetaTag('page-release');
+
+      expect(applyDefaultOptions({ release: '2.0.0' }).release).toBe('2.0.0');
+    });
+
+    it('still reads the meta tag when the release option is explicitly `undefined`', () => {
+      addReleaseMetaTag('page-release');
+
+      expect(applyDefaultOptions({ release: undefined }).release).toBe('page-release');
+    });
+
+    it('lets a `__SENTRY_RELEASE__` define take precedence over the meta tag', () => {
+      vi.stubGlobal('__SENTRY_RELEASE__', 'bundle-release');
+      addReleaseMetaTag('page-release');
+
+      expect(applyDefaultOptions({}).release).toBe('bundle-release');
+    });
+
+    it('does not throw when `document` has no `querySelector`', () => {
+      vi.stubGlobal('document', {});
+
+      expect(() => applyDefaultOptions({})).not.toThrow();
+    });
+
+    it('ignores an empty meta tag', () => {
+      const releaseBefore = WINDOW.SENTRY_RELEASE;
+      WINDOW.SENTRY_RELEASE = { id: 'chunk-release' };
+      addReleaseMetaTag('');
+
+      expect(applyDefaultOptions({}).release).toBe('chunk-release');
+
+      WINDOW.SENTRY_RELEASE = releaseBefore;
+    });
   });
 
   it('passed in release takes precedence over WINDOW.SENTRY_RELEASE.id', () => {

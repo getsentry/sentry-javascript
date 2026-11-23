@@ -1,0 +1,28 @@
+{
+  "name": "node-bundlers",
+  "description": "ensure the Sentry esbuild, rollup, vite and webpack plugins (and the esbuild plugin of @sentry/aws-serverless) build-time instrument a bundled graphql at runtime",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
+    "test:build": "pnpm install && node ./build.mjs",
+    "test:assert": "node ./assert.mjs"
+  },
+  "dependencies": {
+    "@sentry/aws-serverless": "file:../../packed/sentry-aws-serverless-packed.tgz",
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz"
+  },
+  "devDependencies": {
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
+    "@rollup/plugin-commonjs": "^28.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.0",
+    "esbuild": "0.28.2",
+    "graphql": "16.9.0",
+    "rolldown": "1.2.14",
+    "rollup": "4.62.3",
+    "vite": "6.4.6",
+    "webpack": "5.107.2"
+  }
+}

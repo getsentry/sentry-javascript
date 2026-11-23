@@ -140,6 +140,15 @@ describe('globFiles', () => {
       expect(result).toEqual([]);
     });
 
+    it.skipIf(process.platform === 'win32')('matches files with a query or hash suffix', async () => {
+      const files = await Promise.all([touch('a.js?v=1'), touch('a.js.map#hash'), touch('b.mjs?v=1#hash')]);
+      await touch('c.css?v=1');
+
+      const result = await globFiles(JS_AND_MAP_PATTERNS, { root: tmpDir });
+      result.sort();
+      expect(result).toEqual(files.sort());
+    });
+
     it('works in nested subdirectories', async () => {
       const files = await Promise.all([touch('src', 'deep', 'a.js'), touch('src', 'deep', 'a.js.map')]);
 

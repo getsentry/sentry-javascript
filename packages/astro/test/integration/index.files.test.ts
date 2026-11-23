@@ -8,6 +8,11 @@ vi.mock('fs', async requireActual => {
   };
 });
 
+// Without a configured name, the real resolver falls back to the git revision of this checkout.
+vi.mock('@sentry/bundler-plugins/core', () => ({
+  resolveReleaseName: (name?: string) => name,
+}));
+
 const updateConfig = vi.fn();
 const injectScript = vi.fn();
 const config = {
@@ -36,5 +41,23 @@ describe('sentryAstro integration', () => {
     expect(serverInitPlugin.load(serverInitPlugin.resolveId('virtual:@sentry/astro/server-init'))).toMatch(
       /^import ".*\/sentry.server.config.js"/,
     );
+  });
+
+  it('imports the default server init file from the middleware entrypoint', async () => {
+    const addMiddleware = vi.fn();
+    const updateConfig = vi.fn();
+    const setup = sentryAstro({}).hooks['astro:config:setup'] as (params: unknown) => Promise<void>;
+
+    await setup({ updateConfig, injectScript, addMiddleware, config: { output: 'server' } });
+
+    expect(addMiddleware).toHaveBeenCalledWith({
+      order: 'pre',
+      entrypoint: 'virtual:@sentry/astro/middleware',
+    });
+
+    const plugin = updateConfig.mock.calls
+      .flatMap(([updatedConfig]) => updatedConfig.vite?.plugins ?? [])
+      .find((vitePlugin: { name?: string }) => vitePlugin?.name === 'sentry-astro-server-init');
+    expect(plugin.load('\0virtual:@sentry/astro/server-init')).toMatch(/^import ".*\/sentry.server.config.js";$/);
   });
 });

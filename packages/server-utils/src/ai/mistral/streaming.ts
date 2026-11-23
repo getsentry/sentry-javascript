@@ -1,6 +1,7 @@
 import type { Span } from '@sentry/core';
-import { SPAN_STATUS_ERROR } from '@sentry/core';
-import { endStreamSpan, setOutputMessagesAttribute } from '../core/utils';
+import type { GenAiSpanResult } from '../core/span-hooks';
+import { endStreamSpan, getErrorStatus, setOutputMessagesAttribute } from '../core/utils';
+import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
 import type { MistralCompletionChunk, MistralToolCall } from './types';
 import { contentToString } from './utils';
 
@@ -234,7 +235,13 @@ function instrumentedSource(readable: ReadableStreamLike): ReadableStream<unknow
  *
  * Returns `false` for a value that is not a stream, leaving it untouched.
  */
-export function instrumentEventStream(stream: unknown, span: Span, recordOutputs: boolean): boolean {
+export function instrumentEventStream(
+  stream: unknown,
+  span: Span,
+  recordOutputs: boolean,
+  abortSignal?: AbortSignal,
+  beforeSpanEnd?: (result: GenAiSpanResult<never>) => void,
+): boolean {
   if (!isAsyncIterable(stream)) {
     return false;
   }
@@ -244,7 +251,9 @@ export function instrumentEventStream(stream: unknown, span: Span, recordOutputs
   let settled = false;
   let cancelled = false;
 
+  // Called for each received event.
   const claim = (candidate: StreamConsumer): boolean => {
+    recordTimeToFirstChunk(span);
     consumer ??= candidate;
     return consumer === candidate;
   };
@@ -262,7 +271,7 @@ export function instrumentEventStream(stream: unknown, span: Span, recordOutputs
     }
     settled = true;
     if (error !== undefined && !cancelled) {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+      span.setStatus(getErrorStatus(abortSignal));
     }
 
     const toolCalls = Object.values(state.toolCalls);
@@ -278,7 +287,9 @@ export function instrumentEventStream(stream: unknown, span: Span, recordOutputs
       });
     }
 
-    endStreamSpan(span, { ...state, toolCalls }, recordOutputs);
+    endStreamSpan(span, { ...state, toolCalls }, recordOutputs, () =>
+      beforeSpanEnd?.(error !== undefined && !cancelled ? { error } : {}),
+    );
   };
 
   const iterate = stream[Symbol.asyncIterator].bind(stream);

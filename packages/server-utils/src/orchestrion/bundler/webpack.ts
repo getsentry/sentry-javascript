@@ -95,7 +95,7 @@ export function sentryOrchestrionWebpackPlugin(options: PluginOptions = {}): { a
 
   const plugin = codeTransformerWebpack({
     ...orchestrionTransformOptions(options),
-    // The upstream plugin's own loader path points into our `vendored/` tree at
+    // The upstream plugin's own loader path points next to its bundled code, at
     // a file rollup never emitted; use our bundled loader entrypoint instead
     // (which also bakes in the module-injected transform for Turbopack).
     loaderPath: getOrchestrionLoaderPath(),

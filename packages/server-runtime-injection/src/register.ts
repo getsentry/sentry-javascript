@@ -37,7 +37,7 @@ function hasStableSyncModuleHooks(isDeno: boolean): boolean {
 /** `"type"` of the nearest `package.json`, keyed by the directory the lookup started in. */
 const packageTypeByDir = new Map<string, string | undefined>();
 
-function getPackageType(dir: string): string | undefined {
+export function getPackageType(dir: string): string | undefined {
   if (packageTypeByDir.has(dir)) {
     return packageTypeByDir.get(dir);
   }
@@ -174,6 +174,35 @@ function warnTransformFailed(moduleName: string, error: unknown): void {
 }
 
 /**
+ * Records each module that a runtime hook transformed, and warns when a transform fails. Shared by
+ * the Node and Deno hooks here and the Bun hook in `bun.ts`.
+ */
+export function installDiagnosticsHook(): void {
+  setDiagnosticsHook(({ url, moduleName, error }): void => {
+    if (error) {
+      // A transform throwing a `TypeError` costs this module its instrumentation, so it is worth an
+      // always-on warning; `warnTransformFailed` decides whether that is systemic (bundling) or
+      // isolated. Every other transform failure stays debug-only.
+      if (error instanceof TypeError) {
+        warnTransformFailed(moduleName, error);
+      }
+      debug.warn(`[instrumentation] failed to inject diagnostics-channel into ${moduleName}:`, error);
+    } else {
+      GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ || {};
+      GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime = GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime || [];
+      GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime.push(moduleName);
+      // Record the module's resolved file so integrations can anchor dependency resolution on the
+      // app's actual copy, even under ESM (where the CJS `require.cache` never sees the module).
+      (GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtimeFiles ??= {})[moduleName] = url;
+      // Tell channel integrations their module just loaded, so they subscribe
+      // now. They hold off at `init()` to avoid claiming channel slots for
+      // modules that never load, because Node caps channels in use at 1024.
+      getClient()?.emit('orchestrion.module-injected', moduleName);
+    }
+  });
+}
+
+/**
  * Synchronously register the diagnostics-channel injection module hooks.
  *
  * This is the single source of truth for the registration logic. It is used by:
@@ -200,28 +229,7 @@ export function registerDiagnosticsChannelInjection(): void {
   // we build against, hence the cast.
   const mod = Module as unknown as NodeModule;
 
-  setDiagnosticsHook(({ url, moduleName, error }): void => {
-    if (error) {
-      // A transform throwing a `TypeError` costs this module its instrumentation, so it is worth an
-      // always-on warning; `warnTransformFailed` decides whether that is systemic (bundling) or
-      // isolated. Every other transform failure stays debug-only.
-      if (error instanceof TypeError) {
-        warnTransformFailed(moduleName, error);
-      }
-      debug.warn(`[instrumentation] failed to inject diagnostics-channel into ${moduleName}:`, error);
-    } else {
-      GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ || {};
-      GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime = GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime || [];
-      GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime.push(moduleName);
-      // Record the module's resolved file so integrations can anchor dependency resolution on the
-      // app's actual copy, even under ESM (where the CJS `require.cache` never sees the module).
-      (GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtimeFiles ??= {})[moduleName] = url;
-      // Tell channel integrations their module just loaded, so they subscribe
-      // now. They hold off at `init()` to avoid claiming channel slots for
-      // modules that never load, because Node caps channels in use at 1024.
-      getClient()?.emit('orchestrion.module-injected', moduleName);
-    }
-  });
+  installDiagnosticsHook();
 
   // runs both at `--import` time and (synchronously) inside `Sentry.init()`,
   // so an unguarded throw would either abort startup or make `init()` throw.
@@ -301,9 +309,10 @@ export function registerDiagnosticsChannelInjection(): void {
       // own imports are missing.
       let hookPath: string;
       /*! rollup-include-cjs-only */
-      // This file is `build/cjs/register.js`; the loader thread needs the ESM build, which shares
-      // the vendored dependency chunks.
-      hookPath = join(__dirname, '../esm/hook.js');
+      // The CJS build registers the CJS hook. Some tracers (Turbopack) copy
+      // the hook but do not follow its imports. The CJS hook only requires
+      // files that this file requires too, so they are always shipped.
+      hookPath = join(__dirname, 'hook.js');
       /*! rollup-include-cjs-only-end */
       /*! rollup-include-esm-only */
       hookPath = join(dirname(fileURLToPath(import.meta.url)), 'hook.js');
@@ -316,29 +325,10 @@ export function registerDiagnosticsChannelInjection(): void {
       // hook again, and this line is the only thing that says so.
       const hookFound = existsSync(hookPath);
       if (!hookFound) {
-        debug.warn(`No orchestrion ESM hook at ${hookPath}; falling back to the package specifier.`);
+        debug.warn(`No orchestrion loader hook at ${hookPath}; falling back to the package specifier.`);
       }
 
       const hookSpecifier = hookFound ? pathToFileURL(hookPath).href : '@sentry/server-runtime-injection/hook';
-
-      if (hookFound) {
-        // Only `build/esm/package.json` marks the hook and its chunks as ESM. Deployments can drop
-        // that file, and Vercel disables syntax detection, so Node then parses the hook as CommonJS
-        // and fails on its `export`s.
-        //
-        // This registers a small loader hook before the real one. Its `load` sets
-        // `format: 'module'` for every URL inside our ESM build directory and passes all other URLs
-        // through unchanged. Hooks registered earlier also apply when Node loads hook modules
-        // registered later, so the real hook and its chunks load as ESM even without the marker.
-        // The loader is inlined as a `data:` URL because Node always loads those as ESM, so it
-        // cannot fail the same way and needs no file of its own.
-        const esmDirUrl = `${pathToFileURL(dirname(hookPath)).href}/`;
-        mod.register(
-          `data:text/javascript,${encodeURIComponent(
-            `const d=${JSON.stringify(esmDirUrl)};export async function load(u,c,n){return n(u,u.startsWith(d)?{...c,format:'module'}:c)}`,
-          )}`,
-        );
-      }
 
       mod.register(hookSpecifier, {
         parentURL,
@@ -361,8 +351,15 @@ export function registerDiagnosticsChannelInjection(): void {
   } catch (error) {
     marker.runtimeUnavailable = true;
     const reason = error instanceof Error ? error.message : String(error);
+    // Build tracers decide which of this package's files a deployment ships, and they miss the ones
+    // only reached through `Module.register()`. Say so, because the bare message reads like an SDK bug.
+    const missingFile = (error as { code?: unknown } | null)?.code === 'ERR_MODULE_NOT_FOUND';
     warnRuntimeUnavailable(
-      `Failed to register diagnostics-channel injection hooks (${reason}), so channel-based integrations will not record spans.`,
+      missingFile
+        ? 'Channel-based integrations will not record spans: your deployment is missing a file from ' +
+            `\`@sentry/server-runtime-injection\` (${reason}). Your build's file tracing left it out. Deploy the ` +
+            'whole `@sentry/server-runtime-injection` package directory with your server.'
+        : `Failed to register diagnostics-channel injection hooks (${reason}), so channel-based integrations will not record spans.`,
     );
     debug.warn('Diagnostics-channel injection registration error:', error);
     return;

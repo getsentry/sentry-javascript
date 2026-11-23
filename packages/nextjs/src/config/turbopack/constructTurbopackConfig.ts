@@ -1,6 +1,5 @@
 import { debug, escapeStringForRegex } from '@sentry/core';
 import * as path from 'path';
-import { getInstrumentedModuleNames } from '@sentry/server-utils/orchestrion/config';
 import {
   getOrchestrionLoaderPath,
   getSentryInstrumentations,
@@ -29,6 +28,7 @@ import { generateValueInjectionRules } from './generateValueInjectionRules';
  * @param routeManifest - The route manifest object.
  * @param nextJsVersion - The Next.js version.
  * @param vercelCronsConfig - The Vercel crons configuration from vercel.json.
+ * @param releaseName - The release that `withSentryConfig` resolved for this build.
  * @returns The Turbopack config object.
  */
 export function constructTurbopackConfig({
@@ -37,12 +37,14 @@ export function constructTurbopackConfig({
   routeManifest,
   nextJsVersion,
   vercelCronsConfig,
+  releaseName,
 }: {
   userNextConfig: NextConfigObject;
   userSentryOptions?: SentryBuildOptions;
   routeManifest?: RouteManifest;
   nextJsVersion?: string;
   vercelCronsConfig?: VercelCronsConfig;
+  releaseName?: string;
 }): TurbopackOptions {
   // If sourcemaps are disabled, we don't need to enable native debug ids as this will add build time.
   const shouldEnableNativeDebugIds =
@@ -59,28 +61,35 @@ export function constructTurbopackConfig({
     nextJsVersion,
     tunnelRouteValues: getTunnelRouteInjectedValues(userNextConfig, userSentryOptions),
     vercelCronsConfig,
+    releaseName,
+    // Same value as `_sentryRewriteFramesDistDir` in `nextConfig.env`
+    distDirName: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
+    basePath: userNextConfig.basePath,
   });
 
   for (const { matcher, rule } of valueInjectionRules) {
     newConfig.rules = safelyAddTurbopackRule(newConfig.rules, { matcher, rule });
   }
 
-  // Add module metadata injection loader for thirdPartyErrorFilterIntegration support.
-  // This loader tags modules with `_sentryModuleMetadata` so the integration can tell
-  // first-party code from third-party code. We intentionally do NOT use
-  // `condition: { not: 'foreign' }` so that node_modules are also tagged as first-party,
-  // matching the webpack plugin's BannerPlugin behavior (which injects into all chunks
-  // without excluding node_modules). The injected code is wrapped in a try-catch IIFE
-  // so it is safe even for node_modules with strict initialization order.
-  // We only exclude Next.js build polyfills which contain non-standard syntax that causes
-  // parse errors when any code is prepended (Turbopack re-parses the loader output).
+  // Tag modules so thirdPartyErrorFilterIntegration can identify first-party code. Dependencies
+  // are tagged by default to match webpack's BannerPlugin, which injects metadata into all chunks.
+  // Opting out with `applicationKeyExcludeDependencies` can leave dependency-only chunks untagged.
+  // The injected code is wrapped in a try-catch IIFE, so it is safe even for dependencies with
+  // strict initialization order. Next.js build polyfills are excluded because they contain
+  // non-standard syntax that causes parse errors when Turbopack re-parses the loader output.
   // Server and edge modules are skipped because only the browser reads these tags.
   const applicationKey = userSentryOptions?.applicationKey;
   if (applicationKey && nextJsVersion && supportsTurbopackRuleCondition(nextJsVersion)) {
     newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
       matcher: '*.{ts,tsx,js,jsx,mjs,cjs}',
       rule: {
-        condition: { all: ['browser', { not: { path: /next\/dist\/build\/polyfills/ } }] },
+        condition: {
+          all: [
+            'browser',
+            { not: { path: /next\/dist\/build\/polyfills/ } },
+            ...(userSentryOptions?.applicationKeyExcludeDependencies ? [{ not: 'foreign' as const }] : []),
+          ],
+        },
         loaders: [
           {
             loader: path.resolve(__dirname, '..', 'loaders', 'moduleMetadataInjectionLoader.js'),
@@ -159,16 +168,33 @@ function maybeAddOrchestrionRule(
   // build time.
   const importHelperPath = resolveOrchestrionRuntimeRequest('@sentry/server-utils');
 
-  // Turbopack runs webpack loaders out of process, one round trip per matched file. The transform
-  // only ever touches files of the instrumented packages, so limit the rule to those instead of
-  // paying that round trip for every server-side module (all of node_modules included).
-  const instrumentedPackages = getInstrumentedModuleNames().map(escapeStringForRegex);
-  const instrumentedPackagePath = new RegExp(`node_modules/(?:${instrumentedPackages.join('|')})/`);
+  // Turbopack runs webpack loaders out of process, one round trip per matched file, and keeps a copy
+  // of the loader options for each one. The transform only touches the target files of each
+  // instrumentation, so limit the rule to those instead of every file of the instrumented packages.
+  const filePatternsByPackage = new Map<string, Set<string>>();
+  for (const { module } of getSentryInstrumentations()) {
+    const patterns = filePatternsByPackage.get(module.name) ?? new Set<string>();
+    filePatternsByPackage.set(module.name, patterns);
+    if (typeof module.filePath === 'string') {
+      patterns.add(escapeStringForRegex(module.filePath));
+    } else {
+      // A RegExp is tested against the path relative to the package root. An anchored one can follow
+      // the package prefix as-is, an unanchored one falls back to every file of the package.
+      const { source } = module.filePath;
+      patterns.add(source.startsWith('^') ? source.slice(1) : '.*');
+    }
+  }
+  const instrumentedFilePath = new RegExp(
+    `node_modules/(?:${Array.from(
+      filePatternsByPackage,
+      ([name, patterns]) => `${escapeStringForRegex(name)}/(?:${Array.from(patterns).join('|')})`,
+    ).join('|')})$`,
+  );
 
   return safelyAddTurbopackRule(rules, {
     matcher: '*.{js,mjs,cjs}',
     rule: {
-      condition: { all: ['node', { path: instrumentedPackagePath }] },
+      condition: { all: ['node', { path: instrumentedFilePath }] },
       loaders: [
         {
           loader: getOrchestrionLoaderPath(),

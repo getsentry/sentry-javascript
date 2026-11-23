@@ -22,6 +22,7 @@
   "dependencies": {
     "@sentry/bun": "latest || *",
     "@sentry/cloudflare": "latest || *",
+    "@sentry/core": "latest || *",
     "@sentry/deno": "latest || *",
     "@sentry/node": "latest || *",
     "@hono/node-server": "^2.0.5",

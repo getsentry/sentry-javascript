@@ -1,0 +1,5 @@
+dist
+.wrangler
+node_modules
+test-results
+pnpm-lock.yaml

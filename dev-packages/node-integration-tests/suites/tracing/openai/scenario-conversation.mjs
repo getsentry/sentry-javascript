@@ -1,8 +1,9 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import OpenAI from 'openai';
+import { openAiResponse, startMockServer } from '@sentry-internal/node-integration-tests';
 
-function startMockServer() {
+function startMockApi() {
   const app = express();
   app.use(express.json());
 
@@ -20,49 +21,24 @@ function startMockServer() {
   app.post('/openai/responses', (req, res) => {
     const { model, conversation, previous_response_id } = req.body;
 
-    res.send({
-      id: 'resp_mock_conv_123',
-      object: 'response',
-      created_at: 1704067210,
-      model: model,
-      output: [
-        {
-          type: 'message',
-          id: 'msg_mock_output_1',
-          status: 'completed',
-          role: 'assistant',
-          content: [
-            {
-              type: 'output_text',
-              text: `Response with conversation: ${conversation || 'none'}, previous_response_id: ${previous_response_id || 'none'}`,
-              annotations: [],
-            },
-          ],
-        },
-      ],
-      output_text: `Response with conversation: ${conversation || 'none'}`,
-      status: 'completed',
-      usage: {
-        input_tokens: 10,
-        output_tokens: 15,
-        total_tokens: 25,
-      },
-    });
+    res.send(
+      openAiResponse(model, {
+        id: 'resp_mock_conv_123',
+        text: `Response with conversation: ${conversation || 'none'}, previous_response_id: ${previous_response_id || 'none'}`,
+        usage: { input_tokens: 10, output_tokens: 15 },
+      }),
+    );
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
-  const server = await startMockServer();
+  const server = await startMockApi();
 
   await Sentry.startSpan({ op: 'function', name: 'conversation-test' }, async () => {
     const client = new OpenAI({
-      baseURL: `http://localhost:${server.address().port}/openai`,
+      baseURL: `${server.url}/openai`,
       apiKey: 'mock-api-key',
     });
 

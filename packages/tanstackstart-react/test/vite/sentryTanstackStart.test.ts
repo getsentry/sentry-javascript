@@ -2,6 +2,8 @@ import type { Plugin } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeAutoInstrumentMiddlewarePlugin } from '../../src/vite/autoInstrumentMiddleware';
 import { sentryTanstackStart, type SentryTanstackStartOptions } from '../../src/vite/sentryTanstackStart';
+import { makeServerInstrumentationPlugin } from '../../src/vite/serverInstrumentation';
+import { makeAddSentryVitePlugin } from '../../src/vite/sourceMaps';
 import { makeServerEntryTunnelPlugin, makeTunnelRoutePlugin } from '../../src/vite/tunnelRoute';
 
 const mockSourceMapsConfigPlugin: Plugin = {
@@ -31,6 +33,11 @@ const mockComposeNitroServiceSourceMapsPlugin: Plugin = {
 
 const mockEnableNitroSourceMapsPlugin: Plugin = {
   name: 'sentry-tanstackstart-nitro-source-maps',
+  apply: 'build',
+};
+
+const mockServerInstrumentationPlugin: Plugin = {
+  name: 'sentry-tanstackstart-server-instrumentation',
   apply: 'build',
 };
 
@@ -87,8 +94,17 @@ vi.mock('../../src/vite/nitroSourceMaps', () => ({
   makeEnableNitroSourceMapsPlugin: vi.fn(() => mockEnableNitroSourceMapsPlugin),
 }));
 
+vi.mock('../../src/vite/serverInstrumentation', () => ({
+  makeServerInstrumentationPlugin: vi.fn(() => mockServerInstrumentationPlugin),
+}));
+
 vi.mock('../../src/vite/autoInstrumentMiddleware', () => ({
   makeAutoInstrumentMiddlewarePlugin: vi.fn(() => mockMiddlewarePlugin),
+}));
+
+const getRuntimeRelease = vi.fn<(options: SentryTanstackStartOptions) => string | undefined>(() => undefined);
+vi.mock('../../src/vite/release', () => ({
+  getRuntimeRelease: (options: SentryTanstackStartOptions) => getRuntimeRelease(options),
 }));
 
 vi.mock('../../src/vite/tunnelRoute', () => ({
@@ -115,6 +131,7 @@ describe('sentryTanstackStart()', () => {
         mockRoutePatternPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
+        mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
@@ -158,6 +175,7 @@ describe('sentryTanstackStart()', () => {
         mockRoutePatternPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
+        mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
@@ -175,6 +193,7 @@ describe('sentryTanstackStart()', () => {
         mockRoutePatternPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
+        mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
@@ -192,6 +211,7 @@ describe('sentryTanstackStart()', () => {
         mockRoutePatternPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
+        mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
@@ -210,6 +230,7 @@ describe('sentryTanstackStart()', () => {
         mockRoutePatternPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
+        mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
@@ -228,6 +249,7 @@ describe('sentryTanstackStart()', () => {
         mockRoutePatternPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
+        mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
@@ -246,6 +268,7 @@ describe('sentryTanstackStart()', () => {
         mockRoutePatternPlugin,
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
+        mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
@@ -266,6 +289,41 @@ describe('sentryTanstackStart()', () => {
     });
   });
 
+  describe('release', () => {
+    it('hands the release to the server entry and keeps the bundler plugin from injecting it', () => {
+      getRuntimeRelease.mockReturnValueOnce('my-app@1.2.3');
+      const options: SentryTanstackStartOptions = { release: { create: false }, sourcemaps: { disable: true } };
+
+      sentryTanstackStart(options);
+
+      expect(getRuntimeRelease).toHaveBeenCalledWith(options);
+      expect(makeServerEntryTunnelPlugin).toHaveBeenCalledWith(undefined, expect.any(Function), 'my-app@1.2.3');
+      expect(makeServerInstrumentationPlugin).toHaveBeenCalledWith({ debug: undefined, release: 'my-app@1.2.3' });
+      expect(makeAddSentryVitePlugin).toHaveBeenCalledWith({
+        release: { create: false, name: 'my-app@1.2.3', inject: false },
+        sourcemaps: { disable: true },
+      });
+    });
+
+    it('passes the options to the bundler plugin as they are without a release to hand over', () => {
+      const options: SentryTanstackStartOptions = { release: { name: 'my-app@1.2.3', inject: false } };
+
+      sentryTanstackStart(options);
+
+      expect(makeServerEntryTunnelPlugin).toHaveBeenCalledWith(undefined, expect.any(Function), undefined);
+      expect(makeAddSentryVitePlugin).toHaveBeenCalledWith(options);
+    });
+
+    it('resolves no release in development mode', () => {
+      process.env.NODE_ENV = 'development';
+
+      sentryTanstackStart({ release: { name: 'my-app@1.2.3' } });
+
+      expect(getRuntimeRelease).not.toHaveBeenCalled();
+      expect(makeServerEntryTunnelPlugin).toHaveBeenCalledWith(undefined, expect.any(Function), undefined);
+    });
+  });
+
   describe('managed tunnel route', () => {
     it('includes the managed tunnel route plugin in production when configured', () => {
       const plugins = sentryTanstackStart({
@@ -281,6 +339,7 @@ describe('sentryTanstackStart()', () => {
         mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockTunnelRoutePlugin,
+        mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
@@ -301,7 +360,42 @@ describe('sentryTanstackStart()', () => {
       sentryTanstackStart(options);
 
       expect(makeTunnelRoutePlugin).toHaveBeenCalledWith(options.tunnelRoute, undefined);
-      expect(makeServerEntryTunnelPlugin).toHaveBeenCalledWith(options.tunnelRoute, expect.any(Function));
+      expect(makeServerEntryTunnelPlugin).toHaveBeenCalledWith(options.tunnelRoute, expect.any(Function), undefined);
+    });
+
+    it('warns once that `tunnelRoute` is deprecated', async () => {
+      // The warning is shown once per process, so this needs a module that hasn't warned yet.
+      vi.resetModules();
+      const { sentryTanstackStart: freshSentryTanstackStart } = await import('../../src/vite/sentryTanstackStart');
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      freshSentryTanstackStart({ sourcemaps: { disable: true } });
+      expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('`tunnelRoute` option is deprecated'));
+
+      freshSentryTanstackStart({ tunnelRoute: true, sourcemaps: { disable: true } });
+      freshSentryTanstackStart({ tunnelRoute: '/monitor', sourcemaps: { disable: true } });
+
+      expect(warnSpy).toHaveBeenCalledOnce();
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[@sentry/tanstackstart-react] The `tunnelRoute` option is deprecated. Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration()` to the server `Sentry.init` instead.',
+      );
+      warnSpy.mockRestore();
+    });
+  });
+
+  describe('server instrumentation', () => {
+    it('passes debug through to the server instrumentation plugin', () => {
+      sentryTanstackStart({ debug: true, sourcemaps: { disable: true } });
+
+      expect(makeServerInstrumentationPlugin).toHaveBeenCalledWith({ debug: true });
+    });
+
+    it('does not add the server instrumentation plugin in development mode', () => {
+      process.env.NODE_ENV = 'development';
+
+      sentryTanstackStart({ sourcemaps: { disable: true } });
+
+      expect(makeServerInstrumentationPlugin).not.toHaveBeenCalled();
     });
   });
 

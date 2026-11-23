@@ -1,53 +1,8 @@
 /**
- * Structural subsets of the `@earendil-works/pi-durable` and `@earendil-works/pi-ai` types the
- * instrumentation reads. The SDK does not depend on either package, so only the fields used here
- * are declared, and every one of them is treated as possibly absent at runtime.
+ * Structural subsets of the `@earendil-works/pi-durable` types the instrumentation reads. The SDK
+ * does not depend on the package, so only the fields used here are declared, and every one of them
+ * is treated as possibly absent at runtime.
  */
-
-import type { PiAiContext } from '../pi-ai/messages';
-import type { PiAiUsage } from '../pi-ai/usage';
-
-export interface PiAssistantMessage {
-  role?: string;
-  content?: unknown[];
-  provider?: string;
-  model?: string;
-  responseModel?: string;
-  responseId?: string;
-  usage?: PiAiUsage;
-  stopReason?: string;
-  errorMessage?: string;
-}
-
-export interface PiModel {
-  id?: string;
-  provider?: string;
-  baseUrl?: string;
-}
-
-export interface PiStreamOptions {
-  temperature?: number;
-  maxTokens?: number;
-  reasoning?: string;
-}
-
-export interface PiEventStream {
-  result(): Promise<PiAssistantMessage>;
-}
-
-/**
- * The `Models` methods that send a model request. Everything else passes through untouched. The
- * deferred methods fetch the answer of a request the provider parked, so they take a handle in
- * place of the request context.
- */
-export interface PiModels {
-  stream?(model: PiModel, context: PiAiContext, options?: PiStreamOptions): PiEventStream;
-  streamSimple?(model: PiModel, context: PiAiContext, options?: PiStreamOptions): PiEventStream;
-  complete?(model: PiModel, context: PiAiContext, options?: PiStreamOptions): Promise<PiAssistantMessage>;
-  completeSimple?(model: PiModel, context: PiAiContext, options?: PiStreamOptions): Promise<PiAssistantMessage>;
-  streamDeferred?(model: PiModel, handle: unknown, options?: unknown): PiEventStream;
-  fetchDeferred?(model: PiModel, handle: unknown, options?: unknown): Promise<PiAssistantMessage>;
-}
 
 export interface PiToolExecutionResult {
   /** The content blocks the tool returns for the model, in pi-durable 1.2.0 and later. */
@@ -72,6 +27,16 @@ export interface PiTool {
 
 export interface PiAgent {
   tools?: readonly PiTool[];
+  /** The tools that other tools can call with `api.executeTool()`, in pi-durable 1.2.0 and later. */
+  callable?: readonly PiTool[];
+}
+
+/** The input of a `pi.tool` task. `nested` is a call that a tool made with `api.executeTool()`. */
+export interface PiToolTaskInput {
+  kind?: string;
+  /** The task of the calling tool. */
+  parent?: unknown;
+  parentCallId?: string;
 }
 
 /** The tool result the model receives, as pi-durable commits it in a `pi.tool-result` entry. */
@@ -112,7 +77,7 @@ export interface PiTaskRuntime {
   readonly conversationId: unknown;
   readonly signal?: AbortSignal;
   agent(context: unknown): Promise<PiAgent>;
-  commit(change: PiCommitChange, context: unknown): Promise<void>;
+  commit(change: PiCommitChange, context: unknown, ...rest: unknown[]): Promise<void>;
   snapshot?(token: PiDocToken, ownerId: unknown, ...rest: unknown[]): Promise<unknown>;
 }
 
@@ -139,7 +104,6 @@ export interface PiRegistryReader {
 }
 
 export interface PiHarnessOptions {
-  models?: PiModels;
   registry?: PiRegistryReader;
   onReport?: (error: unknown) => void;
 }
@@ -148,3 +112,21 @@ export interface PiHarness {
   /** Calls `listener` when `close()` begins. */
   subscribeClose?(listener: () => void): () => void;
 }
+
+/** The call that `recordInputs`/`recordOutputs` decide on. */
+export type PiDurableCallInfo =
+  | {
+      /** A model request of a task phase, which pi-ai reports as a `gen_ai.chat` span. */
+      operation: 'chat';
+      /** The runtime and context pi-durable hands to the phase. */
+      runtime: PiTaskRuntime;
+      context: unknown;
+    }
+  | {
+      operation: 'execute_tool';
+      tool: PiTool;
+      /** The arguments of `tool.execute()`. */
+      args: unknown;
+      api: PiToolExecutionApi;
+      context: unknown;
+    };

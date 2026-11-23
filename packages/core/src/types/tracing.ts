@@ -45,7 +45,9 @@ export interface PropagationContext {
   propagationSpanId?: string;
 
   /**
-   * An undefined dsc in the propagation context means that the current SDK invocation is the head of trace and still free to modify and set the DSC for outgoing requests.
+   * The frozen DSC of an incoming trace. An undefined dsc means the DSC is not frozen yet and is created by the
+   * current SDK invocation. This is the case if we are the head of trace, or if we continue a trace that arrived
+   * without a DSC (a `sentry-trace` header but no `sentry-` values in `baggage`).
    *
    * The current SDK should not modify this value!
    */

@@ -1,0 +1,13 @@
+{
+  "name": "workflow-run-errors-test",
+  "compatibility_date": "2026-05-01",
+  "main": "index.ts",
+  "compatibility_flags": ["nodejs_compat"],
+  "workflows": [
+    {
+      "name": "run-errors-test-workflow",
+      "binding": "RUN_ERRORS_WORKFLOW",
+      "class_name": "RunErrorsTestWorkflow",
+    },
+  ],
+}

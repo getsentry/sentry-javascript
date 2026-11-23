@@ -1,5 +1,4 @@
-/* eslint-disable typescript-eslint/no-deprecated */
-import { getClient, hasSpanStreamingEnabled, SPAN_STATUS_ERROR, startSpan, startSpanManual } from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, startSpan, startSpanManual } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
@@ -10,26 +9,24 @@ import {
   GEN_AI_REQUEST_TEMPERATURE,
   GEN_AI_REQUEST_TOP_K,
   GEN_AI_REQUEST_TOP_P,
-  GEN_AI_RESPONSE_ID,
-  GEN_AI_RESPONSE_MODEL,
-  GEN_AI_RESPONSE_TEXT,
-  GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_TOOL_DEFINITIONS,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
-import type { InstrumentedMethodEntry } from '../core/utils';
+import { type GenAiSpanResult, runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
+import type { GenAiOptions, InstrumentedMethodEntry } from '../core/utils';
 import {
+  getErrorStatus,
   getGenAiSpanOp,
-  getTokenUsageAttributes,
-  resolveAIRecordingOptions,
+  getRequestSignal,
+  resolveGenAiCallRecording,
   wrapPromiseWithMethods,
 } from '../core/utils';
 import { ANTHROPIC_AI_ORIGIN, ANTHROPIC_METHOD_REGISTRY } from './constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import { instrumentSessionToolRunner, instrumentToolRunner, instrumentToolRunnerFactory } from './tool-runner';
-import type { AnthropicAiOptions, AnthropicAiResponse, AnthropicAiStreamingEvent, ContentBlock } from './types';
-import { handleResponseError, messagesFromParams, setMessagesAttribute } from './utils';
+import type { AnthropicAiCallInfo, AnthropicAiOptions, AnthropicAiResponse, AnthropicAiStreamingEvent } from './types';
+import { addResponseAttributes, getMessagesAttributes, getProviderName, messagesFromParams } from './utils';
 
 // Set only while a streaming helper (e.g. `messages.stream()`) synchronously delegates to the
 // underlying `create`. The SDK invokes that internal `create` synchronously, so a plain flag
@@ -47,9 +44,10 @@ export function extractRequestAttributes(
   args: unknown[],
   operationName: string,
   recordInputs: boolean,
+  providerName = 'anthropic',
 ): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
-    [GEN_AI_PROVIDER_NAME]: 'anthropic',
+    [GEN_AI_PROVIDER_NAME]: providerName,
     [GEN_AI_OPERATION_NAME]: operationName,
     [SENTRY_ORIGIN]: ANTHROPIC_AI_ORIGIN,
   };
@@ -80,93 +78,21 @@ export function extractRequestAttributes(
  */
 export function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   const messages = messagesFromParams(params);
-  setMessagesAttribute(span, messages);
-}
-
-/**
- * Add content attributes when recordOutputs is enabled
- */
-function addContentAttributes(span: Span, response: AnthropicAiResponse): void {
-  // Messages.create
-  if ('content' in response) {
-    if (Array.isArray(response.content)) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_TEXT]: response.content
-          .map((item: ContentBlock) => item.text)
-          .filter(text => !!text)
-          .join(''),
-      });
-
-      const toolCalls: Array<ContentBlock> = [];
-
-      for (const item of response.content) {
-        if (item.type === 'tool_use' || item.type === 'server_tool_use') {
-          toolCalls.push(item);
-        }
-      }
-      if (toolCalls.length > 0) {
-        span.setAttributes({ [GEN_AI_RESPONSE_TOOL_CALLS]: JSON.stringify(toolCalls) });
-      }
-    }
-  }
-  // Completions.create
-  if ('completion' in response) {
-    span.setAttributes({ [GEN_AI_RESPONSE_TEXT]: response.completion });
-  }
-}
-
-/**
- * Add basic metadata attributes from the response
- */
-function addMetadataAttributes(span: Span, response: AnthropicAiResponse): void {
-  if ('id' in response && 'model' in response) {
-    span.setAttributes({
-      [GEN_AI_RESPONSE_ID]: response.id,
-      [GEN_AI_RESPONSE_MODEL]: response.model,
-    });
-
-    if ('usage' in response && response.usage) {
-      span.setAttributes(
-        getTokenUsageAttributes(
-          response.usage.input_tokens +
-            (response.usage.cache_creation_input_tokens ?? 0) +
-            (response.usage.cache_read_input_tokens ?? 0),
-          response.usage.output_tokens,
-          response.usage.cache_creation_input_tokens,
-          response.usage.cache_read_input_tokens,
-        ),
-      );
-    }
-  }
-}
-
-/**
- * Add response attributes to spans
- */
-export function addResponseAttributes(span: Span, response: AnthropicAiResponse, recordOutputs?: boolean): void {
-  if (!response || typeof response !== 'object') return;
-
-  // capture error, do not add attributes if error (they shouldn't exist)
-  if ('type' in response && response.type === 'error') {
-    handleResponseError(span, response);
-    return;
-  }
-
-  // Private response attributes that are only recorded if recordOutputs is true.
-  if (recordOutputs) {
-    addContentAttributes(span, response);
-  }
-
-  // Add basic metadata attributes
-  addMetadataAttributes(span, response);
+  span.setAttributes(getMessagesAttributes(messages));
 }
 
 /**
  * Handle common error catching and reporting for streaming requests
  */
-function handleStreamingError(error: unknown, span: Span): never {
+function handleStreamingError(
+  error: unknown,
+  span: Span,
+  abortSignal: AbortSignal | undefined,
+  onSpanEnd: (result: GenAiSpanResult<unknown>) => void,
+): never {
   if (span.isRecording()) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    span.setStatus(getErrorStatus(abortSignal));
+    onSpanEnd({ error });
     span.end();
   }
   throw error;
@@ -181,10 +107,13 @@ function handleStreamingRequest<T extends unknown[], R>(
   args: T,
   spanConfig: { name: string; op: string; attributes: Record<string, SpanAttributeValue> },
   params: Record<string, unknown> | undefined,
-  options: AnthropicAiOptions,
+  { recordInputs, recordOutputs }: Required<GenAiOptions>,
   isStreamRequested: boolean,
   isStreamingMethod: boolean,
+  options: AnthropicAiOptions,
+  call: AnthropicAiCallInfo,
 ): R | Promise<R> {
+  const abortSignal = getRequestSignal(args[1]);
   // messages.stream() always returns a sync MessageStream, even with stream: true param
   if (isStreamRequested && !isStreamingMethod) {
     let originalResult!: Promise<R>;
@@ -192,9 +121,11 @@ function handleStreamingRequest<T extends unknown[], R>(
     const instrumentedPromise = startSpanManual(spanConfig, (span: Span) => {
       originalResult = target.apply(invocationThis, args) as Promise<R>;
 
-      if (options.recordInputs && params) {
+      if (recordInputs && params) {
         addPrivateRequestAttributes(span, params);
       }
+      runGenAiSpanStart(options, span, call);
+      const onSpanEnd = (result: GenAiSpanResult<unknown>): void => runGenAiSpanEnd(options, span, call, result);
 
       return (async () => {
         try {
@@ -202,10 +133,11 @@ function handleStreamingRequest<T extends unknown[], R>(
           return instrumentAsyncIterableStream(
             result as AsyncIterable<AnthropicAiStreamingEvent>,
             span,
-            options.recordOutputs ?? false,
+            recordOutputs,
+            onSpanEnd,
           ) as unknown as R;
         } catch (error) {
-          return handleStreamingError(error, span);
+          return handleStreamingError(error, span, abortSignal, onSpanEnd);
         }
       })();
     });
@@ -213,19 +145,21 @@ function handleStreamingRequest<T extends unknown[], R>(
     return wrapPromiseWithMethods(originalResult, instrumentedPromise);
   } else {
     return startSpanManual(spanConfig, span => {
+      const onSpanEnd = (result: GenAiSpanResult<unknown>): void => runGenAiSpanEnd(options, span, call, result);
       try {
-        if (options.recordInputs && params) {
+        if (recordInputs && params) {
           addPrivateRequestAttributes(span, params);
         }
+        runGenAiSpanStart(options, span, call);
         // The helper synchronously delegates to `create`; suppress that one internal call so it
         // does not produce a duplicate child span (see the dedup gate in `instrumentMethod`).
         suppressDelegatedCreate = true;
         const messageStream = target.apply(invocationThis, args);
         suppressDelegatedCreate = false;
-        return instrumentMessageStream(messageStream, span, options.recordOutputs ?? false);
+        return instrumentMessageStream(messageStream, span, recordOutputs, abortSignal, onSpanEnd);
       } catch (error) {
         suppressDelegatedCreate = false;
-        return handleStreamingError(error, span);
+        return handleStreamingError(error, span, abortSignal, onSpanEnd);
       }
     });
   }
@@ -261,7 +195,15 @@ function instrumentMethod<T extends unknown[], R>(
       }
 
       const operationName = instrumentedMethod.operation || 'unknown';
-      const requestAttributes = extractRequestAttributes(args, operationName, !!options.recordInputs);
+      const params = typeof args[0] === 'object' && args[0] !== null ? (args[0] as Record<string, unknown>) : undefined;
+      const call: AnthropicAiCallInfo = { operation: 'chat', request: params };
+      const recording = resolveGenAiCallRecording(options, call);
+      const requestAttributes = extractRequestAttributes(
+        args,
+        operationName,
+        recording.recordInputs,
+        getProviderName(invocationThis),
+      );
       const model = requestAttributes[GEN_AI_REQUEST_MODEL] || 'unknown';
       const client = getClient();
       // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
@@ -274,7 +216,6 @@ function instrumentMethod<T extends unknown[], R>(
         attributes: requestAttributes as Record<string, SpanAttributeValue>,
       };
 
-      const params = typeof args[0] === 'object' ? (args[0] as Record<string, unknown>) : undefined;
       const isStreamRequested = Boolean(params?.stream);
 
       if (isStreamRequested || isStreamingMethod) {
@@ -284,25 +225,37 @@ function instrumentMethod<T extends unknown[], R>(
           args,
           spanConfig,
           params,
-          options,
+          recording,
           isStreamRequested,
           isStreamingMethod,
+          options,
+          call,
         );
       }
 
+      const abortSignal = getRequestSignal(args[1]);
       let originalResult!: Promise<R>;
 
       const instrumentedPromise = startSpan(spanConfig, span => {
         originalResult = target.apply(invocationThis, args) as Promise<R>;
 
-        if (options.recordInputs && params) {
+        if (recording.recordInputs && params) {
           addPrivateRequestAttributes(span, params);
         }
+        runGenAiSpanStart(options, span, call);
 
-        return originalResult.then(result => {
-          addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs);
-          return result;
-        });
+        return originalResult.then(
+          result => {
+            addResponseAttributes(span, result as AnthropicAiResponse, recording.recordOutputs);
+            runGenAiSpanEnd(options, span, call, { response: result });
+            return result;
+          },
+          error => {
+            span.setStatus(getErrorStatus(abortSignal));
+            runGenAiSpanEnd(options, span, call, { error });
+            throw error;
+          },
+        );
       });
 
       return wrapPromiseWithMethods(originalResult, instrumentedPromise);
@@ -372,5 +325,5 @@ function instrumentClientInPlace<T extends object>(client: T, options: Anthropic
  * @returns The instrumented client with the same type as the input
  */
 export function instrumentAnthropicAiClient<T extends object>(anthropicAiClient: T, options?: AnthropicAiOptions): T {
-  return instrumentClientInPlace(anthropicAiClient, resolveAIRecordingOptions(options));
+  return instrumentClientInPlace(anthropicAiClient, options ?? {});
 }

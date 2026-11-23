@@ -9,14 +9,16 @@ import {
   withActiveSpan,
 } from '@sentry/core';
 import { GEN_AI_CONVERSATION_ID } from '@sentry/conventions/attributes';
-import type { GenAiOptions } from '../core/utils';
-import { skipPiAiProviderIntegrations } from '../pi-ai/providers';
+import type { GenAiSpanHooks } from '../core/span-hooks';
+import type { GenAiCallOptions } from '../core/utils';
+import { setPiAiDriverOptions } from '../pi-ai/recording';
+import type { PiAssistantMessage } from '../pi-ai/types';
 import { PI_DURABLE_ORIGIN, PI_TASK } from './constants';
-import { instrumentPiModels } from './models';
 import type { PiRuns } from './runs';
 import { createRuns, endRun, observeRunControl, readProviderSessionId, startRun, toSentryConversationId } from './runs';
 import { instrumentTool, instrumentToolPhase } from './tools';
 import type {
+  PiDurableCallInfo,
   PiHarness,
   PiHarnessOptions,
   PiPhaseHandler,
@@ -25,25 +27,35 @@ import type {
   PiTask,
   PiTaskRuntime,
   PiTool,
+  PiToolTaskInput,
+  PiToolExecutionResult,
 } from './types';
 import { withCleanScopes } from '../../utils/withCleanScopes';
 import { bound } from './utils';
 
-export type PiDurableOptions = GenAiOptions;
+/**
+ * The span hooks run for the `gen_ai.chat` spans of the model requests, which pi-ai reports, and for
+ * the tool spans. `onSpanStart` runs in the scopes of the task phase, not in those of the code that
+ * submitted the input. `onSpanEnd` gets the `AssistantMessage` of a model request, and what
+ * `tool.execute()` returned for a tool call. A tool call still running when the Harness closes does
+ * not run `onSpanEnd`.
+ */
+export type PiDurableOptions = GenAiCallOptions<PiDurableCallInfo> &
+  GenAiSpanHooks<PiDurableCallInfo, PiAssistantMessage | PiToolExecutionResult>;
 
 const INSTRUMENTED = Symbol.for('sentry.pi-durable.instrumented');
 const RUNS = Symbol.for('sentry.pi-durable.runs');
 
 /**
- * Return pi-durable `HarnessOptions` whose model requests, task phases and tool calls are traced.
- * The caller's `models` and `registry` objects are wrapped, never modified. The result has the
- * caller's options as prototype: pi-durable reads `settings`, `env` and `conversationCreated` at
- * every use, so they stay live, getters included.
+ * Return pi-durable `HarnessOptions` whose task phases and tool calls are traced. The caller's
+ * `registry` object is wrapped, never modified. The result has the caller's options as prototype:
+ * pi-durable reads `settings`, `env` and `conversationCreated` at every use, so they stay live,
+ * getters included.
  *
  * Spans:
  * - `gen_ai.invoke_agent` for each run, a new trace per run, or a child of the tool call that
  *   created the conversation for a subagent;
- * - `gen_ai.chat` for each model request, under its run;
+ * - `gen_ai.chat` for each model request, under its run, from `piAiIntegration`;
  * - `gen_ai.execute_tool` for each tool call, under its run.
  *
  * The scheduler starts task phases from whichever async context last woke it, often an unrelated
@@ -61,9 +73,6 @@ export function instrumentPiDurableHarnessOptions<T extends PiHarnessOptions>(
   const runs = createRuns();
   const own = (value: unknown): PropertyDescriptor => ({ value, enumerable: true, configurable: true, writable: true });
   const instrumented: T = Object.create(harnessOptions, {
-    ...(harnessOptions.models
-      ? { models: own(instrumentPiModels(harnessOptions.models, options, skipPiAiProviderIntegrations)) }
-      : {}),
     ...(harnessOptions.registry ? { registry: own(instrumentRegistry(harnessOptions.registry, options, runs)) } : {}),
     // pi-durable passes failures of extension code here, such as a throwing hook, and keeps going.
     // Only an app that passed its own `onReport` gets a chance to handle them.
@@ -98,6 +107,7 @@ export function endRunsOnClose(harnessOptions: PiHarnessOptions, harness: unknow
         if (call.endTimestamp === undefined) {
           call.span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
         }
+        call.onSpanEnd?.();
         call.span.end(call.endTimestamp);
       }
     }
@@ -136,12 +146,14 @@ function instrumentRegistry(registry: PiRegistryReader, options: PiDurableOption
         (taskRecord, runtime, context) =>
           runPhase(
             definition.name,
-            observed => phase.call(receiver, taskRecord, observed, context),
+            taskRecord,
+            () => phase.call(receiver, taskRecord, runtime, context),
             runtime,
             context,
             runs,
             wrapTool,
             isAbort,
+            options,
           );
       const phases: Record<string, PiPhaseHandler> = {};
       for (const [name, phase] of Object.entries(definition.phases)) {
@@ -191,12 +203,14 @@ function instrumentRegistry(registry: PiRegistryReader, options: PiDurableOption
 
 function runPhase(
   kind: string,
-  phase: (runtime: PiTaskRuntime) => Promise<unknown>,
+  task: unknown,
+  phase: () => Promise<unknown>,
   runtime: PiTaskRuntime,
   context: unknown,
   runs: PiRuns,
   wrapTool: (tool: PiTool) => PiTool,
   isAbort: boolean,
+  options: PiDurableOptions,
 ): Promise<unknown> {
   const { conversationId } = runtime;
   const isRunWork = kind === PI_TASK.GENERATION || kind === PI_TASK.TOOL;
@@ -208,14 +222,19 @@ function runPhase(
       ? (runs.active.get(conversationId) ?? (isRunWork && !isAbort ? startRun(conversationId, runs) : undefined))
       : undefined;
 
-  let observed = runtime;
-  let finishToolPhase: (() => void) | undefined;
+  // A call that a tool makes with `api.executeTool()`, as a code mode script does, is a `pi.tool`
+  // task of its own. Its span belongs under the span of the calling tool.
+  const input = kind === PI_TASK.TOOL ? (task as { input?: PiToolTaskInput } | undefined)?.input : undefined;
+  const callerSpan =
+    input?.kind === 'nested'
+      ? runs.toolCalls.get(input.parent)?.find(call => call.callId === input.parentCallId)?.span
+      : undefined;
+
+  let finishPhase: (() => void) | undefined;
   if (run && kind === PI_TASK.GENERATION) {
-    observed = observeRunControl(runtime, run, runs);
+    finishPhase = observeRunControl(runtime, run, runs);
   } else if (kind === PI_TASK.TOOL) {
-    const toolPhase = instrumentToolPhase(runtime, runs, wrapTool);
-    observed = toolPhase.runtime;
-    finishToolPhase = toolPhase.finish;
+    finishPhase = instrumentToolPhase(runtime, runs, wrapTool, input?.kind === 'nested');
   }
 
   const runInScope = async (scope: Scope): Promise<unknown> => {
@@ -230,8 +249,9 @@ function runPhase(
       }
     }
     scope.setConversationId(sessionId ?? toSentryConversationId(runs, conversationId));
+    setPiAiDriverOptions(scope, options, { operation: 'chat', runtime, context });
     try {
-      return await phase(observed);
+      return await phase();
     } catch (error) {
       // The scheduler faults a task whose phase throws, and a faulted generation ends its run. A
       // throw after an abort mark, or once the Harness closes, is not a fault.
@@ -243,7 +263,7 @@ function runPhase(
       }
       throw error;
     } finally {
-      finishToolPhase?.();
+      finishPhase?.();
     }
   };
 
@@ -252,5 +272,5 @@ function runPhase(
       startNewTrace(() => runInScope(getCurrentScope())),
     );
   }
-  return withCleanScopes(run.isolationScope, () => withActiveSpan(run.span, runInScope));
+  return withCleanScopes(run.isolationScope, () => withActiveSpan(callerSpan ?? run.span, runInScope));
 }

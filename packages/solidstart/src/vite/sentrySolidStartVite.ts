@@ -1,4 +1,4 @@
-import { warnOnRemovedBuildOptions } from '@sentry/core';
+import { stringifyForCodeInjection, warnOnRemovedBuildOptions } from '@sentry/core';
 import type { Plugin, UserConfig } from 'vite';
 import { makeBuildInstrumentationFilePlugin } from './buildInstrumentationFile';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
@@ -11,6 +11,7 @@ export const sentrySolidStartVite = (
   options: SentrySolidStartPluginOptions = {},
   viteConfig: UserConfig,
   tunnelBasePath = '',
+  runtimeRelease?: string,
 ): Plugin[] => {
   warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions']);
 
@@ -19,7 +20,7 @@ export const sentrySolidStartVite = (
       name: 'sentry-solidstart-tunnel-base-path',
       // Serves the browser's managed tunnel under `server.baseURL`, like every other route of the app.
       config: () => ({
-        define: { __SENTRY_SOLIDSTART_TUNNEL_BASE_PATH__: JSON.stringify(tunnelBasePath) },
+        define: { __SENTRY_SOLIDSTART_TUNNEL_BASE_PATH__: stringifyForCodeInjection(tunnelBasePath) },
       }),
     },
   ];
@@ -30,7 +31,7 @@ export const sentrySolidStartVite = (
 
   if (process.env.NODE_ENV !== 'development') {
     if (options.sourcemaps?.disable !== true) {
-      const sourceMapsPlugin = makeAddSentryVitePlugin(options, viteConfig);
+      const sourceMapsPlugin = makeAddSentryVitePlugin(options, viteConfig, runtimeRelease);
       const enableSourceMapsPlugin = makeEnableSourceMapsVitePlugin(options);
 
       sentryPlugins.push(...sourceMapsPlugin, ...enableSourceMapsPlugin);
@@ -47,9 +48,10 @@ export const addSentryPluginToVite = (
   config: UserConfig = {},
   options: SentrySolidStartPluginOptions,
   tunnelBasePath?: string,
+  runtimeRelease?: string,
 ): UserConfig => {
   const plugins = Array.isArray(config.plugins) ? [...config.plugins] : [];
-  plugins.unshift(sentrySolidStartVite(options, config, tunnelBasePath));
+  plugins.unshift(sentrySolidStartVite(options, config, tunnelBasePath, runtimeRelease));
 
   return {
     ...config,

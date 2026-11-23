@@ -52,7 +52,7 @@ export interface BuildTimeOptionsBase {
    *
    * This value can also be set via the `SENTRY_URL` environment variable.
    *
-   * @default "https://sentry.io"
+   * @default The server that a `sntrys_` organization auth token was created on, otherwise "https://sentry.io"
    */
   sentryUrl?: string;
 
@@ -209,6 +209,44 @@ export interface ReactComponentAnnotationOptions {
 
 interface SourceMapsOptions {
   /**
+   * Whether Sentry uploads source maps.
+   *
+   * With `false` Sentry uploads nothing, but it still injects debug IDs into the bundles and their source maps. Use
+   * this to upload the source maps yourself later, for example with `sentry sourcemap upload`. No `inject` step is
+   * needed.
+   *
+   * With `false` Sentry only turns source maps on when `sourcemaps.delete` is `false`.
+   *
+   * @default true
+   */
+  upload?: boolean;
+
+  /**
+   * Whether Sentry injects debug IDs into the bundles and their source maps.
+   *
+   * With `false` Sentry adds no debug IDs and uploads no source maps, because the upload matches files by debug ID.
+   * Use this when another tool injects the debug IDs and uploads the source maps, for example the Sentry CLI.
+   *
+   * @default true
+   */
+  injectDebugIds?: boolean;
+
+  /**
+   * Whether source maps are removed from the build output.
+   *
+   * - Unset: Sentry removes the source maps it turned on itself, that is, when the source map setting of your
+   *   bundler or framework was not set. Source maps you turned on stay.
+   * - `true`: Sentry removes every source map of the build, also the ones you turned on.
+   * - `false`: Sentry removes no source map. When the source map setting is not set, Sentry turns hidden source maps
+   *   on and they stay in the build output.
+   *
+   * `true` and `false` do not depend on an upload. They also apply when the upload is switched off, when it cannot
+   * run (for example without an auth token) and when it fails.
+   */
+  delete?: boolean;
+
+  // TODO(v12): Remove `disable`. `upload` and `injectDebugIds` replace it.
+  /**
    * If this flag is `true`, any functionality related to source maps will be disabled. This includes the automatic upload of source maps.
    *
    * By default (`false`), the plugin automatically uploads source maps during a production build if a Sentry auth token is detected.
@@ -256,6 +294,17 @@ interface SourceMapsOptions {
    * When unset, the plugin removes only the source maps it turned on itself, that is, when the bundler's source map
    * setting was not set. `true` also removes source maps you enabled yourself. `false` never removes them; the plugin
    * still turns on hidden source maps when the setting is not set, so they can be uploaded.
+   *
+   * When the plugin turned source maps on, none of them reach the build output, not even those of chunks that
+   * `sourcemaps.assets` or `sourcemaps.ignore` keep out of the upload. Source maps you enabled yourself are only
+   * removed for the JavaScript chunks that were uploaded; excluded chunks keep theirs.
+   *
+   * `true` removes source maps you enabled yourself even when no upload runs, for example without an auth token.
+   * With `sourcemaps.disable` set, the plugin keeps them for a manual upload and warns. The plugin does not turn
+   * source maps on when it cannot upload them.
+   *
+   * With webpack's array form of `devtool`, `true` replaces the array with one hidden source map setting for
+   * all asset types, because webpack hides the array from plugins.
    */
   deleteSourcemapsAfterUpload?: boolean;
 
@@ -289,6 +338,9 @@ type AutoSetCommitsOptions = {
   /**
    * Automatically sets `commit` and `previousCommit`. Sets `commit` to `HEAD`
    * and `previousCommit` as described in the option's documentation.
+   *
+   * The commits are linked through the repository integration in Sentry. When no
+   * integration matches the repository, the commits are read from the local git history.
    *
    * If you set this to `true`, manually specified `commit` and `previousCommit`
    * options will be overridden. It is best to not specify them at all if you
@@ -332,6 +384,14 @@ interface ReleaseOptions {
 
   /**
    * Whether the plugin should inject release information into the build for the SDK to pick it up when sending events (recommended).
+   *
+   * The plugin injects the release into the chunks that load at startup. The release name usually changes on every
+   * commit, so these chunks get new content hashes, and new file names, on every release, even when their code did not
+   * change. The chunks that import them get new file names too, so returning visitors download all of them again.
+   *
+   * To keep these file names stable, set this to `false` and pass `release` to `Sentry.init` at runtime, from a value
+   * that is not part of your bundled code, such as your HTML page. A release written into bundled code, for example with
+   * `define`, changes the content hashes in the same way.
    *
    * @default true
    */

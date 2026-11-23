@@ -2,7 +2,7 @@ import http from 'node:http';
 import { HTTP_REQUEST_METHOD, SENTRY_OP } from '@sentry/conventions/attributes';
 import { getActiveSpan, getCurrentScope, getTraceData, spanToJSON } from '@sentry/core';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { init } from '../../src';
+import { bunHttpServerIntegration, httpIntegration, init } from '../../src';
 
 async function startServer(handler: http.RequestListener): Promise<{ port: number; close: () => Promise<void> }> {
   const server = http.createServer(handler);
@@ -31,6 +31,15 @@ describe('Bun HTTP Server Integration', () => {
       tracePropagationTargets: [],
       // Avoid sending anything to Sentry
       transport: () => ({ send: async () => ({}), flush: async () => true }),
+      integrations: [
+        httpIntegration({
+          ignoreIncomingRequests: urlPath => urlPath.startsWith('/ignored'),
+          onSpanCreated: span => span.setAttribute('created.by', 'http'),
+        }),
+        bunHttpServerIntegration({
+          onSpanCreated: span => span.setAttribute('created.by', 'bunHttpServer'),
+        }),
+      ],
     });
   });
 
@@ -124,5 +133,37 @@ describe('Bun HTTP Server Integration', () => {
     await close();
 
     expect(observedTraceId).toBe(incomingTraceId);
+  });
+
+  test('applies the httpIntegration options that bunHttpServerIntegration does not set', async () => {
+    let span: ReturnType<typeof spanToJSON> | undefined;
+
+    const { port, close } = await startServer((_req, res) => {
+      const activeSpan = getActiveSpan();
+      span = activeSpan ? spanToJSON(activeSpan) : undefined;
+      res.end('ok');
+    });
+
+    await fetch(`http://localhost:${port}/ignored`).then(res => res.text());
+
+    await close();
+
+    expect(span).toBeUndefined();
+  });
+
+  test('prefers the bunHttpServerIntegration options over the httpIntegration options', async () => {
+    let span: ReturnType<typeof spanToJSON> | undefined;
+
+    const { port, close } = await startServer((_req, res) => {
+      const activeSpan = getActiveSpan();
+      span = activeSpan ? spanToJSON(activeSpan) : undefined;
+      res.end('ok');
+    });
+
+    await fetch(`http://localhost:${port}/`).then(res => res.text());
+
+    await close();
+
+    expect(span?.attributes['created.by']).toBe('bunHttpServer');
   });
 });

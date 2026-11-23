@@ -1,8 +1,9 @@
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import type { GenAiOptions } from '../ai/core/utils';
-import { resolveAIRecordingOptions } from '../ai/core/utils';
+import { type GenAiSpanResult, runGenAiSpanEnd, runGenAiSpanStart } from '../ai/core/span-hooks';
+import { resolveGenAiCallRecording } from '../ai/core/utils';
+import type { TypeSafeCallInfo, TypeSafeOptions } from '../ai/typesafe';
 import { addResponseAttributes, onSystemOneResponse, startDecideSpan } from '../ai/typesafe';
 import { TYPESAFE_INTEGRATION_NAME } from '../ai/typesafe/constants';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
@@ -11,7 +12,13 @@ import { typesafeModuleNames } from '../orchestrion/config/typesafe';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 
-const _typesafeIntegration = ((options: GenAiOptions = {}) => {
+// The recording decision is made once, when the span starts, in the caller's async context.
+type TypeSafeChannelContext = OrchestrionChannelContext & {
+  _sentryRecordOutputs?: boolean;
+  _sentryOnSpanEnd?: (result: GenAiSpanResult<unknown>) => void;
+};
+
+const _typesafeIntegration = ((options: TypeSafeOptions = {}) => {
   return {
     name: TYPESAFE_INTEGRATION_NAME,
     setup(client) {
@@ -20,14 +27,26 @@ const _typesafeIntegration = ((options: GenAiOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-function instrumentTypeSafe(options: GenAiOptions): void {
+function instrumentTypeSafe(options: TypeSafeOptions): void {
   bindTracingChannelToSpan(
-    diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.TYPESAFE_SYSTEM_ONE),
-    data => startDecideSpan(data.arguments?.[0], data.self, resolveAIRecordingOptions(options).recordInputs),
+    diagnosticsChannel.tracingChannel<TypeSafeChannelContext>(CHANNELS.TYPESAFE_SYSTEM_ONE),
+    data => {
+      const request = data.arguments?.[0];
+      const call: TypeSafeCallInfo = { request };
+      const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
+      data._sentryRecordOutputs = recordOutputs;
+      const span = startDecideSpan(request, data.self, recordInputs);
+      runGenAiSpanStart(options, span, call);
+      data._sentryOnSpanEnd = result => runGenAiSpanEnd(options, span, call, result);
+      return span;
+    },
     {
       beforeSpanEnd: (span, data) => {
-        if (!('error' in data)) {
-          addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs);
+        if ('error' in data) {
+          data._sentryOnSpanEnd?.({ error: data.error });
+        } else {
+          addResponseAttributes(span, data.result, !!data._sentryRecordOutputs);
+          data._sentryOnSpanEnd?.({ response: data.result });
         }
       },
       deferSpanEnd: ({ data, end }) =>

@@ -3,6 +3,7 @@ import { debug, GLOBAL_OBJ, parseSemver, suppressTracing } from '@sentry/core';
 import type { StackFrame } from 'stacktrace-parser';
 import * as stackTraceParser from 'stacktrace-parser';
 import { DEBUG_BUILD } from './debug-build';
+import { getInjectedBasePath } from './utils/basePath';
 import { URL_FULL } from '@sentry/conventions/attributes';
 
 type OriginalStackFrameResponse = {
@@ -12,7 +13,6 @@ type OriginalStackFrameResponse = {
 };
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  _sentryBasePath?: string;
   _sentryNextJsVersion: string | undefined;
 };
 
@@ -21,7 +21,7 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
  * Returns only the base path when running in the browser (client-side) for relative URLs.
  */
 function getDevServerBaseUrl(): string {
-  let basePath = process.env._sentryBasePath ?? globalWithInjectedValues._sentryBasePath ?? '';
+  let basePath = getInjectedBasePath() ?? '';
 
   // Prefix the basepath with a slash if it doesn't have one
   if (basePath !== '' && !basePath.match(/^\//)) {
@@ -199,7 +199,7 @@ async function resolveStackFrames(
         .map(frame => {
           // https://github.com/vercel/next.js/blob/df0573a478baa8b55478a7963c473dddd59a5e40/packages/next/src/client/components/react-dev-overlay/server/middleware-turbopack.ts#L129
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          frame.file = frame.file!.replace(/^rsc:\/\/React\/[^/]+\//, '').replace(/\?\d+$/, '');
+          frame.file = toDistDirFileUrl(frame.file!.replace(/^rsc:\/\/React\/[^/]+\//, '').replace(/\?\d+$/, ''));
 
           return {
             file: frame.file,
@@ -241,6 +241,39 @@ async function resolveStackFrames(
     DEBUG_BUILD && debug.error('Failed to symbolicate event with Next.js dev server', e);
     return null;
   }
+}
+
+const NEXT_STATIC_PATH_REGEX = /\/_next(\/static\/.+)/;
+
+/**
+ * The Turbopack dev server can only trace `file://` URLs into the dist directory, not the `http(s)://` URLs that
+ * client stack frames carry. Next.js' own dev overlay rewrites them the same way.
+ * https://github.com/vercel/next.js/blob/canary/packages/next/src/server/lib/parse-stack.ts
+ */
+function toDistDirFileUrl(file: string): string {
+  let distDir: string | undefined;
+  try {
+    // Next.js inlines this into client and edge bundles in dev mode.
+    distDir = process.env.__NEXT_DIST_DIR;
+  } catch {
+    return file;
+  }
+
+  if (!distDir) {
+    return file;
+  }
+
+  try {
+    const url = new URL(file);
+    const staticPath = NEXT_STATIC_PATH_REGEX.exec(url.pathname)?.[1];
+    if (staticPath) {
+      return `file://${distDir.replace(/\\/g, '/').replace(/\/$/, '')}${staticPath}${url.search}`;
+    }
+  } catch {
+    // Not a URL, e.g. a `webpack-internal:` or plain file path
+  }
+
+  return file;
 }
 
 function parseOriginalCodeFrame(codeFrame: string): {

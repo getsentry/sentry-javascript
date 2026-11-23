@@ -22,11 +22,13 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
-import { setOutputMessagesAttribute } from '../core/utils';
+import { resolveAIRecordingOptions, setOutputMessagesAttribute } from '../core/utils';
+import type { GenAiOptions } from '../core/utils';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import {
   extractMessageTokenUsageAttributes,
   getConversationIdFromMetadata,
+  getLangGraphRunRecording,
   normalizeLangChainMessages,
 } from '../langchain/utils';
 import { LANGGRAPH_ORIGIN } from './constants';
@@ -56,6 +58,15 @@ export function extractAgentNameFromParams(args: unknown[]): string | null {
     return arg.name;
   }
   return null;
+}
+
+/** The options that hold outside a graph run, where no `invoke()`/`stream()` call decided: a function needs the graph input. */
+export function getBooleanRecordingOptions(options: LangGraphOptions): GenAiOptions {
+  const { recordInputs, recordOutputs } = options;
+  return {
+    recordInputs: typeof recordInputs === 'boolean' ? recordInputs : undefined,
+    recordOutputs: typeof recordOutputs === 'boolean' ? recordOutputs : undefined,
+  };
 }
 
 /**
@@ -92,11 +103,14 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
         // Read agent name from LangChain's propagated config metadata at call time,
         // so shared tools get the correct agent name for each invocation
         const callConfig = args[1] as Record<string, unknown> | undefined;
-        const callAgentName = (callConfig?.metadata as Record<string, unknown>)?.lc_agent_name ?? agentName;
+        const metadata = callConfig?.metadata as Record<string, unknown> | undefined;
+        const { recordInputs, recordOutputs } =
+          getLangGraphRunRecording(metadata) ?? resolveAIRecordingOptions(getBooleanRecordingOptions(options));
+        const callAgentName = metadata?.lc_agent_name ?? agentName;
         if (typeof callAgentName === 'string') {
           spanAttributes[GEN_AI_AGENT_NAME] = callAgentName;
         }
-        Object.assign(spanAttributes, getConversationIdFromMetadata(callConfig?.metadata as Record<string, unknown>));
+        Object.assign(spanAttributes, getConversationIdFromMetadata(metadata));
 
         if (toolDescription) {
           spanAttributes[GEN_AI_TOOL_DESCRIPTION] = toolDescription;
@@ -109,7 +123,7 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
             spanAttributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE] = input.id;
           }
 
-          if (options.recordInputs) {
+          if (recordInputs) {
             const toolArgs = 'args' in input && typeof input.args === 'object' ? input.args : input;
             try {
               spanAttributes[GEN_AI_TOOL_CALL_ARGUMENTS] = JSON.stringify(toolArgs);
@@ -128,7 +142,7 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
             try {
               const result = await Reflect.apply(target, thisArg, args);
 
-              if (options.recordOutputs) {
+              if (recordOutputs) {
                 try {
                   // ToolMessage objects wrap the result in .content
                   const resultObj = result as Record<string, unknown> | undefined;
@@ -219,7 +233,7 @@ export function extractModelMetadata(span: Span, message: LangChainMessage): voi
     }
 
     if (metadata.finish_reason && typeof metadata.finish_reason === 'string') {
-      span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [metadata.finish_reason]);
+      span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, JSON.stringify([metadata.finish_reason]));
     }
   }
 }

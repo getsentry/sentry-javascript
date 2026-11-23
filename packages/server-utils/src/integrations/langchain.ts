@@ -6,8 +6,9 @@ import { GOOGLE_GENAI_INTEGRATION_NAME } from '../ai/google-genai/constants';
 import { createLangChainCallbackHandler } from '../ai/langchain';
 import { LANGCHAIN_INTEGRATION_NAME } from '../ai/langchain/constants';
 import { _INTERNAL_getLangChainEmbeddingsSpanOptions } from '../ai/langchain/embeddings';
+import { type GenAiSpanResult, runGenAiSpanEnd, runGenAiSpanStart } from '../ai/core/span-hooks';
 import { recordTypeSafeClassifierState } from '../ai/langchain/typesafe-classifier';
-import type { LangChainOptions } from '../ai/langchain/types';
+import type { LangChainEmbeddingsCallInfo, LangChainOptions } from '../ai/langchain/types';
 import {
   getConversationIdMetadataFromConfig,
   getInheritedLangChainCallbacks,
@@ -26,6 +27,10 @@ import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation
 // Same name as the OTel integration by design, so the OTel 'LangChain' integration is
 // deduplicated out of the default set.
 const INTEGRATION_NAME = LANGCHAIN_INTEGRATION_NAME;
+
+type EmbeddingsChannelContext = OrchestrionChannelContext & {
+  _sentryOnSpanEnd?: (result: GenAiSpanResult<unknown>) => void;
+};
 
 // LangChain drives the underlying AI provider SDKs itself, so while it's active those providers must
 // not also instrument, or every call would produce two spans (mirrors the OTel path's skip list).
@@ -119,20 +124,28 @@ function instrumentChatModels(options: LangChainOptions): void {
 // still marks failed on error) and do not capture them.
 function instrumentEmbeddings(options: LangChainOptions): void {
   for (const channelName of langchainEmbeddingsChannels) {
-    bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channelName), data =>
-      createEmbeddingsSpan(data, options),
+    bindTracingChannelToSpan(
+      diagnosticsChannel.tracingChannel<EmbeddingsChannelContext>(channelName),
+      data => createEmbeddingsSpan(data, options),
+      {
+        beforeSpanEnd: (_span, data) =>
+          data._sentryOnSpanEnd?.('error' in data ? { error: data.error } : { response: data.result }),
+      },
     );
   }
 }
 
-function createEmbeddingsSpan(data: OrchestrionChannelContext, options: LangChainOptions): Span {
+function createEmbeddingsSpan(data: EmbeddingsChannelContext, options: LangChainOptions): Span {
   // `embedQuery`/`embedDocuments` call the provider SDK internally, so skip that SDK's own
   // instrumentation before its channel fires (the producer runs at the embeddings channel's `start`).
   markProvidersSkipped();
 
-  const input = (data.arguments ?? [])[0];
+  const call: LangChainEmbeddingsCallInfo = { operation: 'embeddings', input: (data.arguments ?? [])[0] };
+  const span = startInactiveSpan(_INTERNAL_getLangChainEmbeddingsSpanOptions(data.self, call, options));
+  runGenAiSpanStart(options, span, call);
+  data._sentryOnSpanEnd = result => runGenAiSpanEnd(options, span, call, result);
 
-  return startInactiveSpan(_INTERNAL_getLangChainEmbeddingsSpanOptions(data.self, input, options));
+  return span;
 }
 
 /**

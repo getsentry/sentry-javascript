@@ -3,22 +3,22 @@ import { defineConfig } from 'vitest/config';
 import baseConfig from '../../vite/vite.config';
 import { NODE_SUITES_EXCLUDE } from './node-suites/excludes';
 
-// Runs all Node suites on Deno. The scenarios stay in `node-integration-tests`, and the
-// Deno-only suites in `suites/` run with `deno test`.
+// Runs all Node suites on Deno, with `@sentry/node` mapped to `@sentry/deno` in the scenarios. The
+// scenarios stay in `node-integration-tests`, and the Deno-only suites in `suites/` run with
+// `deno test`.
 export default defineConfig({
   ...baseConfig,
   test: {
     ...baseConfig.test,
     root: fileURLToPath(new URL('../node-integration-tests', import.meta.url)),
-    coverage: {
-      enabled: false,
-    },
     isolate: false,
     include: ['suites/**/test.ts'],
     exclude: NODE_SUITES_EXCLUDE,
     env: {
       RUNTIME: 'deno',
       DENO_IMPORT_MAP: fileURLToPath(new URL('./node-suites/import-map.json', import.meta.url)),
+      RUNTIME_PRELOAD: fileURLToPath(new URL('./node-suites/alias-sentry-deno.ts', import.meta.url)),
+      EXPECTED_SDK_NAME: 'sentry.javascript.deno',
     },
     // Above the 30 second port timeout of the runner on Deno, so a slow start can still pass.
     testTimeout: 45_000,
@@ -29,6 +29,7 @@ export default defineConfig({
         }
       : {}),
     pool: 'threads',
+    maxWorkers: process.env.CI ? 4 : undefined,
     reporters: process.env.DEBUG
       ? ['default', { summary: false }]
       : process.env.GITHUB_ACTIONS

@@ -4,5 +4,8 @@ const { withSentryConfig } = require('@sentry/nextjs/config');
 const nextConfig = {};
 
 module.exports = withSentryConfig(nextConfig, {
-  silent: true,
+  debug: true,
+  sourcemaps: {
+    deleteSourcemapsAfterUpload: true,
+  },
 });

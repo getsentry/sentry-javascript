@@ -5,6 +5,7 @@ import { HumanMessage } from '@langchain/core/messages';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import { z } from 'zod';
+import { anthropicMessage, startMockServer } from '@sentry-internal/node-integration-tests';
 
 let callCount = 0;
 
@@ -18,62 +19,40 @@ function startMockAnthropicServer() {
 
     if (callCount === 1) {
       // First call: model decides to call the "add" tool
-      res.json({
-        id: 'msg_1',
-        type: 'message',
-        role: 'assistant',
-        content: [
-          {
-            type: 'tool_use',
-            id: 'toolu_add_1',
-            name: 'add',
-            input: { a: 3, b: 5 },
-          },
-        ],
-        model: model,
-        stop_reason: 'tool_use',
-        usage: { input_tokens: 20, output_tokens: 10 },
-      });
+      res.json(
+        anthropicMessage(model, {
+          id: 'msg_1',
+          content: [{ type: 'tool_use', id: 'toolu_add_1', name: 'add', input: { a: 3, b: 5 } }],
+          usage: { input_tokens: 20, output_tokens: 10 },
+        }),
+      );
     } else if (callCount === 2) {
       // Second call: model sees add result=8, calls "multiply"
-      res.json({
-        id: 'msg_2',
-        type: 'message',
-        role: 'assistant',
-        content: [
-          {
-            type: 'tool_use',
-            id: 'toolu_mul_1',
-            name: 'multiply',
-            input: { a: 8, b: 4 },
-          },
-        ],
-        model: model,
-        stop_reason: 'tool_use',
-        usage: { input_tokens: 30, output_tokens: 10 },
-      });
+      res.json(
+        anthropicMessage(model, {
+          id: 'msg_2',
+          content: [{ type: 'tool_use', id: 'toolu_mul_1', name: 'multiply', input: { a: 8, b: 4 } }],
+          usage: { input_tokens: 30, output_tokens: 10 },
+        }),
+      );
     } else {
       // Third call: model returns final answer
-      res.json({
-        id: 'msg_3',
-        type: 'message',
-        role: 'assistant',
-        content: [{ type: 'text', text: 'The result is 32.' }],
-        model: model,
-        stop_reason: 'end_turn',
-        usage: { input_tokens: 40, output_tokens: 10 },
-      });
+      res.json(
+        anthropicMessage(model, {
+          id: 'msg_3',
+          content: 'The result is 32.',
+          usage: { input_tokens: 40, output_tokens: 10 },
+        }),
+      );
     }
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => resolve(server));
-  });
+  return startMockServer(app);
 }
 
 async function run() {
   const server = await startMockAnthropicServer();
-  const baseUrl = `http://localhost:${server.address().port}`;
+  const baseUrl = server.url;
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const llm = new ChatAnthropic({

@@ -1,5 +1,6 @@
 import type { Integration, Options } from '@sentry/core';
 import {
+  _INTERNAL_captureOptionsSetByUser,
   _INTERNAL_warnIfClientIsActive,
   applySdkMetadata,
   consoleSandbox,
@@ -20,6 +21,7 @@ import {
 import { isMainThread, parentPort } from 'node:worker_threads';
 import { detectOrchestrionSetup, getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
 import { DEBUG_BUILD } from '../debug-build';
+import { awsLambdaWebIntegration } from '../integrations/awsLambdaWeb';
 import { childProcessIntegration } from '../integrations/childProcess';
 import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';
@@ -66,6 +68,7 @@ function getBaseDefaultIntegrations(): Integration[] {
     // Event Info
     contextLinesIntegration(),
     localVariablesIntegration(),
+    awsLambdaWebIntegration(),
     nodeContextIntegration(),
     childProcessIntegration(),
     workerThreadsIntegration(),
@@ -110,7 +113,7 @@ export function initWithoutDefaultIntegrations(options: NodeOptions | undefined 
  * Internal initialization function.
  */
 function _init(
-  options: NodeOptions | undefined = {},
+  userOptions: NodeOptions | undefined = {},
   getDefaultIntegrationsImpl: (options: Options) => Integration[],
 ): NodeClient | undefined {
   // Node re-runs `--require` preloads (though not `--import` ones) on the module loader thread it
@@ -131,6 +134,7 @@ function _init(
     });
   }
 
+  const options = _INTERNAL_captureOptionsSetByUser(userOptions);
   applySdkMetadata(options, 'node');
 
   // Enable debug logging before the client is created, so failure modes during setup (e.g. the

@@ -2,10 +2,11 @@ import { fill } from '../../utils/object';
 import { wrapAllMCPHandlers, wrapExistingHandlers } from './handlers';
 import { wrapTransportError, wrapTransportOnClose, wrapTransportOnMessage, wrapTransportSend } from './transport';
 import type { MCPServerInstance, McpServerWrapperOptions, MCPTransport } from './types';
+import { hookUpstreamInstrumentation } from './upstreamInstrumentation';
 import { validateMcpServerInstance } from './validation';
 
 /**
- * Maps each wrapped MCP server instance to the mutable capture options that the transport
+ * Maps each wrapped MCP server instance to the mutable instrumentation options that the transport
  * instrumentation reads (per message). Prevents double-wrapping while still letting a later
  * `wrapMcpServerWithSentry` fill in options left unset by an earlier wrap — e.g. an auto-wrap at
  * construction installs no explicit options, so a manual override still applies.
@@ -14,8 +15,8 @@ import { validateMcpServerInstance } from './validation';
 const wrappedMcpServerOptions = new WeakMap<object, McpServerWrapperOptions>();
 
 /**
- * Fill in capture options not explicitly set by an earlier wrap. Only unset fields are written, so
- * the first explicit `recordInputs`/`recordOutputs` wins, but an auto-wrap that set neither still
+ * Fill in options not explicitly set by an earlier wrap. Only unset fields are written, so
+ * the first explicit value wins, but an auto-wrap that set no options still
  * yields to a later manual override. Mutating the stored object updates the live transport
  * instrumentation, which reads it per message.
  */
@@ -29,11 +30,18 @@ function applyMissingMcpOptions(target: McpServerWrapperOptions, source: McpServ
   if (target.recordOutputs === undefined && source.recordOutputs !== undefined) {
     target.recordOutputs = source.recordOutputs;
   }
+  if (target.getOAuthClientName === undefined && source.getOAuthClientName !== undefined) {
+    target.getOAuthClientName = source.getOAuthClientName;
+  }
 }
 
-function instrumentTransport(transport: MCPTransport, options: McpServerWrapperOptions): void {
-  wrapTransportOnMessage(transport, options);
-  wrapTransportSend(transport, options);
+function instrumentTransport(
+  transport: MCPTransport,
+  options: McpServerWrapperOptions,
+  hasUpstreamInstrumentation: boolean,
+): void {
+  wrapTransportOnMessage(transport, options, hasUpstreamInstrumentation);
+  wrapTransportSend(transport, options, hasUpstreamInstrumentation);
   wrapTransportOnClose(transport);
   wrapTransportError(transport);
 }
@@ -117,8 +125,8 @@ function interceptTransportStart(transport: MCPTransport, beforeStart: () => voi
  * convention (consistent with other SDK integrations), but is not required.
  *
  * Calling this more than once on the same instance never patches it twice. Options behave like a
- * snapshot from the first *explicit* wrap: the first `recordInputs`/`recordOutputs` value set for a
- * field wins, but a field left unset can still be filled by a later call. So when the SDK auto-wraps
+ * snapshot from the first *explicit* wrap: the first value set for each option wins,
+ * but a field left unset can still be filled by a later call. So when the SDK auto-wraps
  * the server at construction (via the `mcpServer` integration) with no explicit options, a later
  * manual `wrapMcpServerWithSentry(server, { recordInputs, recordOutputs })` still applies.
  *
@@ -145,8 +153,19 @@ function interceptTransportStart(transport: MCPTransport, beforeStart: () => voi
  * await server.connect(transport);
  * ```
  *
+ * @example
+ * ```typescript
+ * // Read application-defined metadata supplied by the authentication middleware.
+ * const server = Sentry.wrapMcpServerWithSentry(mcpServer, {
+ *   getOAuthClientName: authInfo => {
+ *     const name = authInfo?.extra?.clientName;
+ *     return typeof name === 'string' ? name : undefined;
+ *   },
+ * });
+ * ```
+ *
  * @param mcpServerInstance - MCP server instance to instrument
- * @param options - Optional configuration for recording inputs and outputs
+ * @param options - Optional configuration for recording inputs/outputs and OAuth client attribution
  * @returns Instrumented server instance (same reference)
  */
 export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, options?: McpServerWrapperOptions): S {
@@ -161,8 +180,9 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
   }
 
   const serverInstance = mcpServerInstance as MCPServerInstance;
-  const captureOptions: McpServerWrapperOptions = { ...options };
-  wrappedMcpServerOptions.set(mcpServerInstance, captureOptions);
+  const wrapperOptions: McpServerWrapperOptions = { ...options };
+  wrappedMcpServerOptions.set(mcpServerInstance, wrapperOptions);
+  const hasUpstreamInstrumentation = hookUpstreamInstrumentation(serverInstance);
 
   fill(serverInstance, 'connect', originalConnect => {
     return async function (this: MCPServerInstance, transport: MCPTransport, ...restArgs: unknown[]) {
@@ -173,7 +193,7 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
         }
 
         isTransportInstrumented = true;
-        instrumentTransport(transport, captureOptions);
+        instrumentTransport(transport, wrapperOptions, hasUpstreamInstrumentation);
       };
       const restoreStart = interceptTransportStart(transport, instrumentTransportOnce);
 

@@ -1,13 +1,13 @@
-import { exec, execFile } from 'child_process';
+import { exec } from 'child_process';
 import { existsSync } from 'fs';
 import { cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
 import { basename, delimiter, join } from 'path';
 import { promisify } from 'util';
 import { afterAll, beforeAll, test, type TestAPI } from 'vitest';
 import { CLEANUP_STEPS, createRunner, PACKAGE_ROOT } from './createRunner';
+import { installFixtureDependencies } from './installFixtureDependencies';
 
 const execPromise = promisify(exec);
-const execFilePromise = promisify(execFile);
 
 interface ScenarioPaths {
   cjs: {
@@ -255,17 +255,11 @@ function prepareTmpDir(
 
       await writeFile(join(tmpDirPath, 'package.json'), JSON.stringify(packageJson, null, 2));
 
-      const deps = Object.entries(additionalDependencies).map(([name, range]) => {
-        if (!range || typeof range !== 'string') {
-          throw new Error(`Invalid version range for "${name}": ${String(range)}`);
-        }
-        return `${name}@${range}`;
-      });
-
-      if (deps.length > 0) {
-        // Prefer npm for temp installs to avoid Yarn engine strictness; see https://github.com/vercel/ai/issues/7777
-        await npmInstallWithRetry(tmpDirPath, deps);
-      }
+      await installFixtureDependencies(
+        tmpDirPath,
+        additionalDependencies,
+        !options?.afterSetupCommand && !options?.copyPaths?.length,
+      );
     }
 
     if (options?.afterSetupCommand) {
@@ -330,58 +324,6 @@ function convertEsmToCjs(content: string): string {
   });
 
   return newContent;
-}
-
-const NPM_INSTALL_MAX_RETRIES = 3;
-const NPM_INSTALL_RETRY_DELAY_MS = 2_000;
-// npm install can stall on CI without ever failing, which would otherwise use up the whole setup hook timeout
-// before a retry gets a chance to run.
-const NPM_INSTALL_TIMEOUT_MS = 60_000;
-
-async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
-  for (let attempt = 1; attempt <= NPM_INSTALL_MAX_RETRIES; attempt++) {
-    try {
-      // Run npm without a shell, so the timeout kills npm itself rather than leaving it running next to the retry
-      const { stdout, stderr } = await execFilePromise(
-        'npm',
-        // We only use --prefer-offline on the first attempt to try to read from cache
-        // in follow ups we just try to install in any way
-        ['install', ...(attempt === 1 ? ['--prefer-offline'] : []), '--no-audit', '--no-fund'],
-        {
-          cwd,
-          encoding: 'utf8',
-          timeout: NPM_INSTALL_TIMEOUT_MS,
-        },
-      );
-
-      if (process.env.DEBUG) {
-        // eslint-disable-next-line no-console
-        console.log('[additionalDependencies via npm]', deps.join(' '));
-        // eslint-disable-next-line no-console
-        console.log('[npm stdout]', stdout);
-        // eslint-disable-next-line no-console
-        console.log('[npm stderr]', stderr);
-      }
-      return;
-    } catch (error) {
-      if (attempt < NPM_INSTALL_MAX_RETRIES) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `npm install attempt ${attempt}/${NPM_INSTALL_MAX_RETRIES} failed, retrying in ${NPM_INSTALL_RETRY_DELAY_MS}ms...`,
-        );
-        await new Promise(resolve => setTimeout(resolve, NPM_INSTALL_RETRY_DELAY_MS));
-        // A killed attempt leaves a partial install behind, which the next attempt would treat as complete
-        await rm(join(cwd, 'node_modules'), { recursive: true, force: true });
-        await rm(join(cwd, 'package-lock.json'), { force: true });
-      } else {
-        // oxlint-disable-next-line no-console
-        console.error(error);
-        throw new Error(
-          `Failed to install additionalDependencies in tmp dir ${cwd} after ${NPM_INSTALL_MAX_RETRIES} attempts`,
-        );
-      }
-    }
-  }
 }
 
 // Wrap the test API so it prepends the test name with the mode

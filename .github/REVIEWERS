@@ -1,0 +1,160 @@
+# Reviewer routing for scripts/assign-reviewers.mjs, in CODEOWNERS syntax.
+# This is deliberately not a CODEOWNERS file: GitHub requests every matching
+# code owner team as soon as a PR opens, before the workflow requests anyone,
+# so the whole team gets notified.
+#
+# Last match wins. A rule prefixed with `+` doesn't replace that match but adds
+# its owners on top of it, wherever it sits in the file. Files with no rule (CI,
+# scripts, root config, shared test utils, most of packages/core) fall back to
+# @getsentry/team-javascript-sdks plus the contractors listed in
+# scripts/junior-requesters.mjs.
+# Don't add a catch-all `*` rule: it would put the whole team in the codeowner
+# pool of every PR and dilute the routing below.
+
+# Browser, replay, feedback, and related packages
+/packages/browser/                  @getsentry/team-javascript-sdks-browser
+/packages/browser-utils/            @getsentry/team-javascript-sdks-browser
+/packages/replay-internal/          @getsentry/team-javascript-sdks-browser
+/packages/replay-worker/            @getsentry/team-javascript-sdks-browser
+/packages/replay-canvas/            @getsentry/team-javascript-sdks-browser
+/packages/feedback/                 @getsentry/team-javascript-sdks-browser
+/dev-packages/browser-integration-tests/ @getsentry/team-javascript-sdks-browser
+/packages/wasm/                     @getsentry/team-javascript-sdks-browser
+/packages/integration-shims/        @getsentry/team-javascript-sdks-browser
+/packages/core/src/browser.ts       @getsentry/team-javascript-sdks-browser
+/packages/core/src/tracing/browserSpanApi.ts @getsentry/team-javascript-sdks-browser
+/packages/core/src/tracing/idleSpan.ts @getsentry/team-javascript-sdks-browser
+/dev-packages/browser-min-version-tests/ @getsentry/team-javascript-sdks-browser
+/dev-packages/e2e-tests/test-applications/*browser*/ @getsentry/team-javascript-sdks-browser
+/dev-packages/e2e-tests/test-applications/webpack-*/ @getsentry/team-javascript-sdks-browser
+
+# Node/server runtimes and related packages
+/packages/node/                     @getsentry/team-javascript-sdks-server @timfish
+/packages/server-runtime-injection/ @getsentry/team-javascript-sdks-server
+/packages/server-utils/             @getsentry/team-javascript-sdks-server @timfish
+/packages/node-native/              @getsentry/team-javascript-sdks-server
+/packages/profiling-node/           @getsentry/team-javascript-sdks-server
+/packages/opentelemetry/            @getsentry/team-javascript-sdks-server
+/packages/deno/                     @getsentry/team-javascript-sdks-server
+/packages/bun/                      @getsentry/team-javascript-sdks-server
+/packages/cloudflare/               @getsentry/team-javascript-sdks-server
+/packages/aws-serverless/           @getsentry/team-javascript-sdks-server
+/packages/google-cloud-serverless/  @getsentry/team-javascript-sdks-server
+/packages/vercel-edge/              @getsentry/team-javascript-sdks-server
+/dev-packages/node-integration-tests/ @getsentry/team-javascript-sdks-server
+/dev-packages/cloudflare-integration-tests/ @getsentry/team-javascript-sdks-server
+/dev-packages/bun-integration-tests/ @getsentry/team-javascript-sdks-server
+/dev-packages/deno-integration-tests/ @getsentry/team-javascript-sdks-server
+/packages/core/src/server.ts        @getsentry/team-javascript-sdks-server
+/packages/core/src/server-runtime-client.ts @getsentry/team-javascript-sdks-server
+/packages/core/src/integrations/http/ @getsentry/team-javascript-sdks-server
+/packages/core/src/integrations/mcp-server/ @getsentry/team-javascript-sdks-server
+/dev-packages/e2e-tests/test-applications/node-*/ @getsentry/team-javascript-sdks-server
+/dev-packages/e2e-tests/test-applications/bun-*/ @getsentry/team-javascript-sdks-server
+/dev-packages/e2e-tests/test-applications/deno/ @getsentry/team-javascript-sdks-server
+/dev-packages/e2e-tests/test-applications/cloudflare-*/ @getsentry/team-javascript-sdks-server
+/dev-packages/e2e-tests/test-applications/aws-serverless*/ @getsentry/team-javascript-sdks-server
+/dev-packages/e2e-tests/test-applications/tsx-express/ @getsentry/team-javascript-sdks-server
+/dev-packages/e2e-tests/test-applications/gen-ai-libraries/ @getsentry/team-javascript-sdks-server
+
+# Bundler plugins
+/packages/bundler-plugins/          @getsentry/team-javascript-sdks-framework @timfish
+/packages/esbuild-plugin/           @getsentry/team-javascript-sdks-framework @timfish
+/packages/rollup-plugin/            @getsentry/team-javascript-sdks-framework @timfish
+/packages/vite-plugin/              @getsentry/team-javascript-sdks-framework @timfish
+/packages/webpack-plugin/           @getsentry/team-javascript-sdks-framework @timfish
+/dev-packages/bundler-plugin-integration-tests/ @getsentry/team-javascript-sdks-framework @timfish
+
+# Framework integration packages
+/packages/angular/                  @getsentry/team-javascript-sdks-framework
+/packages/astro/                    @getsentry/team-javascript-sdks-framework
+/packages/effect/                   @getsentry/team-javascript-sdks-framework
+/packages/elysia/                   @getsentry/team-javascript-sdks-framework
+/packages/ember/                    @getsentry/team-javascript-sdks-framework
+/packages/gatsby/                   @getsentry/team-javascript-sdks-framework
+/packages/hono/                     @getsentry/team-javascript-sdks-framework
+/packages/nestjs/                   @getsentry/team-javascript-sdks-framework
+/packages/nextjs/                   @getsentry/team-javascript-sdks-framework
+/packages/nitro/                    @getsentry/team-javascript-sdks-framework
+/packages/nuxt/                     @getsentry/team-javascript-sdks-framework
+/packages/react/                    @getsentry/team-javascript-sdks-framework
+/packages/react-router/             @getsentry/team-javascript-sdks-framework
+/packages/remix/                    @getsentry/team-javascript-sdks-framework
+/packages/solid/                    @getsentry/team-javascript-sdks-framework
+/packages/solidstart/               @getsentry/team-javascript-sdks-framework
+/packages/svelte/                   @getsentry/team-javascript-sdks-framework
+/packages/sveltekit/                @getsentry/team-javascript-sdks-framework
+/packages/tanstackstart-react/      @getsentry/team-javascript-sdks-framework
+/packages/vue/                      @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/angular-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/astro-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/effect-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/elysia-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/ember-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/hono-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/hydrogen-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/nestjs-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/*nextjs*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/nitro-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/nuxt-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/react-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/*remix*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/solid*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/svelte*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/tanstack*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/vinext-*/ @getsentry/team-javascript-sdks-framework
+/dev-packages/e2e-tests/test-applications/vue-*/ @getsentry/team-javascript-sdks-framework
+
+# AI integrations, on top of the owners above
++/packages/server-utils/src/ai/ @RulaKhaled
++/packages/server-utils/test/ai/ @RulaKhaled
++/packages/server-utils/*/integrations/anthropic* @RulaKhaled
++/packages/server-utils/*/integrations/flue* @RulaKhaled
++/packages/server-utils/*/integrations/google-genai* @RulaKhaled
++/packages/server-utils/*/integrations/groq* @RulaKhaled
++/packages/server-utils/*/integrations/langchain* @RulaKhaled
++/packages/server-utils/*/integrations/langgraph* @RulaKhaled
++/packages/server-utils/*/integrations/mastra* @RulaKhaled
++/packages/server-utils/*/integrations/mistral* @RulaKhaled
++/packages/server-utils/*/integrations/openai* @RulaKhaled
++/packages/server-utils/*/integrations/pi-* @RulaKhaled
++/packages/server-utils/*/integrations/together-ai* @RulaKhaled
++/packages/server-utils/*/integrations/typesafe* @RulaKhaled
++/packages/server-utils/*/integrations/vercel-ai/ @RulaKhaled
++/packages/server-utils/*/integrations/aws-sdk/services/bedrock-runtime* @RulaKhaled
++/packages/server-utils/src/orchestrion/config/openai-compatible.ts @RulaKhaled
++/packages/cloudflare/src/instrumentations/agents/ @RulaKhaled
++/packages/core/src/integrations/mcp-server/ @RulaKhaled
++/packages/core/src/integrations/conversationId.ts @RulaKhaled
++/packages/core/src/tracing/spans/extractGenAiSpans.ts @RulaKhaled
++/packages/core/test/lib/tracing/spans/extractGenAiSpans.test.ts @RulaKhaled
++/packages/core/src/utils/ai/ @RulaKhaled
++/packages/core/test/lib/utils/ai/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/anthropic/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/flue/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/google-genai/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/groq/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/langchain/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/langgraph/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/mastra/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/mcp-server/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/mistral/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/openai/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/pi-ai/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/pi-durable/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/together-ai/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/typesafe/ @RulaKhaled
++/dev-packages/node-integration-tests/suites/tracing/vercelai/ @RulaKhaled
++/dev-packages/cloudflare-integration-tests/suites/tracing/google-genai/ @RulaKhaled
++/dev-packages/cloudflare-integration-tests/suites/tracing/langchain/ @RulaKhaled
++/dev-packages/cloudflare-integration-tests/suites/tracing/langgraph/ @RulaKhaled
++/dev-packages/cloudflare-integration-tests/suites/tracing/openai/ @RulaKhaled
++/dev-packages/cloudflare-integration-tests/suites/tracing/workers-ai/ @RulaKhaled
++/dev-packages/e2e-tests/test-applications/gen-ai-libraries/ @RulaKhaled
++/dev-packages/e2e-tests/test-applications/node-openai-decisions/ @RulaKhaled
++/dev-packages/e2e-tests/test-applications/node-mastra/ @RulaKhaled
++/dev-packages/e2e-tests/test-applications/cloudflare-mastra/ @RulaKhaled
++/dev-packages/e2e-tests/test-applications/cloudflare-vercelai-v7/ @RulaKhaled
++/dev-packages/e2e-tests/test-applications/*nextjs*/app/ai-*/ @RulaKhaled
++/dev-packages/e2e-tests/test-applications/*nextjs*/app/api/openai/ @RulaKhaled
++/.agents/skills/add-ai-integration/ @RulaKhaled

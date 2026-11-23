@@ -11,8 +11,6 @@ import { getBuildLogger } from './buildLogger';
 import { externalizeOrchestrionRuntimePackages } from './diagnosticsChannelInjection';
 import { getBuildPluginOptions, normalizePathForGlob } from './getBuildPluginOptions';
 import type { RouteManifest } from './manifest/types';
-// Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
-// circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
 import type {
   BuildContext,
   EntryPropertyObject,
@@ -28,6 +26,7 @@ import type {
 import { sentryOrchestrionWebpackPlugin } from '@sentry/server-utils/orchestrion/webpack';
 import { DEFAULT_PAGE_EXTENSIONS, getNextjsVersion, getPackageModules } from './util';
 import type { VercelCronsConfigResult } from './withSentryConfig/getFinalConfigObjectUtils';
+import { shouldInjectReleaseIntoClient } from './withSentryConfig/release';
 import { getTunnelRouteInjectedValues } from './withSentryConfig/tunnel';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
@@ -714,13 +713,16 @@ function addValueInjectionLoader({
     // Having a release defined in dev-mode spams releases in Sentry so we only set one in non-dev mode
     // Only inject if release creation is not explicitly disabled (to maintain build determinism)
     SENTRY_RELEASE: releaseToInject && !buildContext.dev ? { id: releaseToInject } : undefined,
-    _sentryBasePath: buildContext.dev ? userNextConfig.basePath : undefined,
+    // The server reads it to serve the managed tunnel under the base path, dev symbolication to reach the dev server.
+    _sentryBasePath: userNextConfig.basePath,
     // This is used to determine version-based dev-symbolication behavior
     _sentryNextJsVersion: nextJsVersion,
   };
 
   const serverValues = {
     ...isomorphicValues,
+    // Without `release.inject`, `env` has no release, so the server SDK reads this one.
+    _sentryRelease: releaseName,
     // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
     // characters)
     _sentryRewriteFramesDistDir: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
@@ -730,6 +732,9 @@ function addValueInjectionLoader({
 
   const clientValues = {
     ...isomorphicValues,
+    SENTRY_RELEASE: shouldInjectReleaseIntoClient(userNextConfig, userSentryOptions)
+      ? isomorphicValues.SENTRY_RELEASE
+      : undefined,
     // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
     // `assetPrefix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
     _sentryRewriteFramesAssetPrefixPath: assetPrefix

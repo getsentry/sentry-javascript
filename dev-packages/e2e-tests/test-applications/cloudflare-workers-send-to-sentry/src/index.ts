@@ -28,7 +28,10 @@ export default {
       case '/test-unhandled-error':
         throw new Error('E2E test unhandled error');
       case '/test-workers-ai': {
-        await env.AI.run('@cf/meta/llama-3.2-1b-instruct', { prompt: 'Say hi', max_tokens: 5 });
+        await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
+          messages: [{ role: 'user', content: 'Say hi' }],
+          max_tokens: 5,
+        });
         return Response.json({ traceId: spanContext?.traceId });
       }
       case '/test-workers-ai-jev': {

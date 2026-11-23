@@ -5,6 +5,7 @@ import {
   PAGELOAD_SPAN_NAME_FALLBACK,
   ROUTER_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
+import { _INTERNAL_withCacheOrigin } from '@sentry/core/browser';
 import {
   getCurrentScope,
   startBrowserTracingNavigationSpan,
@@ -46,16 +47,22 @@ export function instrumentSvelteKitTracing(
 function _instrumentPageLoad(client: Client): void {
   const initialPath = WINDOW.location?.pathname;
 
-  const pageLoadSpan = startBrowserTracingPageLoadSpan(client, {
-    // With span streaming, span names have to be low cardinality. The route id is only available
-    // asynchronously, which updates the span name then.
-    name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : initialPath,
-    attributes: {
-      [SENTRY_OP]: PAGELOAD,
-      [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
-      [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    },
-  });
+  const pageLoadSpan = startBrowserTracingPageLoadSpan(
+    client,
+    _INTERNAL_withCacheOrigin(
+      {
+        // With span streaming, span names have to be low cardinality. The route id is only available
+        // asynchronously, which updates the span name then.
+        name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : initialPath,
+        attributes: {
+          [SENTRY_OP]: PAGELOAD,
+          [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+        },
+      },
+      'static',
+    ),
+  );
 
   if (!pageLoadSpan) {
     return;

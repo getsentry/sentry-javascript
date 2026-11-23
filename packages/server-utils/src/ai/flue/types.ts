@@ -6,44 +6,8 @@
  * `FlueExecutionContext` as of `@flue/runtime` 2.x.
  */
 
-import type { PiAiUsage } from '../pi-ai/usage';
-
-/** Mirrors `ModelRequestInfo`. */
-export interface FlueModelRequestInfo {
-  requestedModel?: string;
-  /** Provider slug (`anthropic`, `openrouter`) — what `gen_ai.provider.name` wants. */
-  providerId?: string;
-  temperature?: number;
-  maxTokens?: number;
-  reasoningLevel?: string;
-  serverAddress?: string;
-  serverPort?: number;
-}
-
-/** Mirrors `ModelRequestInput` — the content half of `ModelRequest`, on `turn_request` only. */
-export interface FlueModelRequestInput {
-  systemPrompt?: string;
-  messages?: unknown[];
-  tools?: unknown[];
-}
-
-/** `turn_request` carries `ModelRequest`, which is `ModelRequestInfo` plus the input. */
-export interface FlueModelRequest extends FlueModelRequestInfo {
-  input?: FlueModelRequestInput;
-}
-
-/** Mirrors `ModelResponse`. */
-export interface FlueModelResponse {
-  responseId?: string;
-  responseModel?: string;
-  output?: unknown;
-  /** pi-ai's usage, which Flue passes through with its own cost figures. */
-  usage?: PiAiUsage;
-  finishReason?: string;
-}
-
 /**
- * Mirrors Flue's `errorInfo`, which it attaches to a failed tool or turn observation. Flue catches
+ * Mirrors Flue's `errorInfo`, which it attaches to a failed tool observation. Flue catches
  * the throw and turns it into a tool result, so this serialized form is the only trace of it.
  */
 export interface FlueErrorInfo {
@@ -54,15 +18,15 @@ export interface FlueErrorInfo {
 }
 
 /**
- * One event from Flue's observation stream. Only the fields we read are declared; Flue emits more
- * event types than are handled here, and unknown types are ignored.
+ * One event from Flue's observation stream. Only the fields we read are declared, but the index
+ * signature keeps the rest visible to `recordInputs`/`recordOutputs`. Flue emits more event types
+ * than are handled here, and unknown types are ignored.
  */
 export interface FlueObservation {
   type: string;
   agentName?: string;
   conversationId?: string;
   session?: string;
-  turnId?: string;
   taskId?: string;
   submissionId?: string;
   operationId?: string;
@@ -70,14 +34,12 @@ export interface FlueObservation {
   toolCallId?: string;
   isError?: boolean;
   errorInfo?: FlueErrorInfo;
-  purpose?: string;
   durationMs?: number;
-  request?: FlueModelRequest;
   args?: unknown;
   result?: unknown;
   /** The tool result as the model sees it, on successful `tool` events. */
   effectiveResult?: unknown;
-  response?: FlueModelResponse;
+  [key: string]: unknown;
 }
 
 /** The execution unit an interceptor wraps. */
@@ -85,8 +47,8 @@ export interface FlueExecutionOperation {
   type: string;
   operationId?: string;
   operationKind?: string;
-  turnId?: string;
   toolCallId?: string;
+  [key: string]: unknown;
 }
 
 /** Mirrors `FlueTraceCarrier` — the W3C headers Flue persists at admission. */
@@ -101,12 +63,13 @@ export interface FlueExecutionContext {
   submissionId?: string;
   conversationId?: string;
   session?: string;
-  turnId?: string;
   taskId?: string;
+  [key: string]: unknown;
 }
 
 export interface FlueEventContext {
   agentName?: string;
+  [key: string]: unknown;
 }
 
 /** The object `instrument()` accepts. */
@@ -116,3 +79,19 @@ export interface FlueInstrumentation {
   interceptor: <T>(operation: FlueExecutionOperation, ctx: FlueExecutionContext, next: () => Promise<T>) => Promise<T>;
   dispose: () => void;
 }
+
+/** The call that `recordInputs`/`recordOutputs` decide on. */
+export type FlueCallInfo =
+  | {
+      /** A model call, which pi-ai reports as a `gen_ai.chat` span. */
+      operation: 'chat';
+      /** The model operation and its context, as Flue hands them to the interceptor. */
+      execution: FlueExecutionOperation;
+      context: FlueExecutionContext;
+    }
+  | {
+      operation: 'execute_tool';
+      /** The `tool_start` observation and its context, as Flue hands them to `observe`. */
+      observation: FlueObservation;
+      context: FlueEventContext;
+    };

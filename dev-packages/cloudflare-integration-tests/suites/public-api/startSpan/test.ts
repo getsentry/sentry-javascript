@@ -1,5 +1,6 @@
 import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import {
+  CLIENT_ADDRESS,
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
@@ -11,6 +12,7 @@ import {
   SENTRY_SDK_INTEGRATIONS,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
@@ -205,6 +207,15 @@ it('sends a streamed span envelope with correct spans for a manually started spa
         type: 'string',
         value: 'localhost',
       },
+      // From the `CF-Connecting-IP` header that `wrangler dev` sets.
+      [CLIENT_ADDRESS]: {
+        type: 'string',
+        value: '127.0.0.1',
+      },
+      'http.response.header.content-type': {
+        type: 'array',
+        value: ['text/plain;charset=UTF-8'],
+      },
       'url.full': {
         type: 'string',
         value: expect.stringMatching(/^http:\/\/localhost:.+$/),
@@ -214,12 +225,12 @@ it('sends a streamed span envelope with correct spans for a manually started spa
         value: '/',
       },
       'url.port': {
-        type: 'string',
-        value: expect.stringMatching(/^\d{4,5}$/),
+        type: 'integer',
+        value: expect.any(Number),
       },
       'url.scheme': {
         type: 'string',
-        value: 'http:',
+        value: 'http',
       },
       'user_agent.original': {
         type: 'string',
@@ -264,6 +275,10 @@ it('sends a streamed span envelope with correct spans for a manually started spa
       'http.response.status_code': {
         type: 'integer',
         value: 200,
+      },
+      [SENTRY_KIND]: {
+        type: 'string',
+        value: 'server',
       },
       'cloud.provider': {
         type: 'string',

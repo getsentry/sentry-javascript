@@ -16,6 +16,7 @@ import type { ExecutionContextCompat } from './executionContext';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { ensureInstrumented } from './instrument';
 import { init } from './sdk';
+import { continueCloudflareTrace } from './utils/cloudflareTrace';
 import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
 import { withInvocationIsolationScope } from './utils/invocationScope';
 import { extractRpcMeta } from './utils/rpcMeta';
@@ -183,6 +184,8 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
               }
             };
 
+            continueCloudflareTrace(context);
+
             if (!spanName) {
               try {
                 if (callback) {
@@ -272,10 +275,10 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
 
             if (rpcMeta) {
               return runWithTeardown(() =>
-                continueTrace(
-                  { sentryTrace: rpcMeta['sentry-trace'] || '', baggage: rpcMeta.baggage || '' },
-                  executeSpan,
-                ),
+                continueTrace({ sentryTrace: rpcMeta['sentry-trace'] || '', baggage: rpcMeta.baggage || '' }, () => {
+                  continueCloudflareTrace(context);
+                  return executeSpan();
+                }),
               );
             }
 

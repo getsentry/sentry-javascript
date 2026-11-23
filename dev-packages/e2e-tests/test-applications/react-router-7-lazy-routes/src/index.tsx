@@ -194,15 +194,29 @@ const router = sentryCreateBrowserRouter(
   },
 );
 
-// E2E TEST UTILITY: Expose router instance for canary tests
-// This allows tests to verify React Router's route exposure behavior.
-// See tests/react-router-manifest.test.ts for usage.
+// E2E TEST UTILITIES
 declare global {
   interface Window {
     __REACT_ROUTER__: typeof router;
+    __SENTRY_ACTIVE_SPAN_OP__: () => unknown;
+    __SENTRY_STARTED_NAVIGATION_SPANS__: number;
   }
 }
+// Lets the canary tests in tests/react-router-manifest.test.ts check React Router's route exposure behavior.
 window.__REACT_ROUTER__ = router;
+// Spans are sent some time after they end, so these let tests check span state in the page directly
+// instead of waiting for (the absence of) a span at the proxy.
+const getSpanOp = (span: Sentry.Span): unknown => Sentry.spanToJSON(span).attributes['sentry.op'];
+window.__SENTRY_ACTIVE_SPAN_OP__ = () => {
+  const span = Sentry.getActiveSpan();
+  return span && getSpanOp(span);
+};
+window.__SENTRY_STARTED_NAVIGATION_SPANS__ = 0;
+Sentry.getClient()?.on('spanStart', span => {
+  if (getSpanOp(span) === 'navigation') {
+    window.__SENTRY_STARTED_NAVIGATION_SPANS__++;
+  }
+});
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(<RouterProvider router={router} />);

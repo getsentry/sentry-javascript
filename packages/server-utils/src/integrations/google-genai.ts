@@ -2,7 +2,6 @@ import { GEN_AI_REQUEST_MODEL, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventi
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
-  _INTERNAL_shouldSkipAiProviderWrapping,
   defineIntegration,
   getActiveSpan,
   getClient,
@@ -10,15 +9,19 @@ import {
   spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
-import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
+import { getGenAiSpanOp, markCancelledIfAborted, resolveGenAiCallRecording } from '../ai/core/utils';
+import { type GenAiSpanResult, runGenAiSpanEnd, runGenAiSpanStart } from '../ai/core/span-hooks';
 import {
   addPrivateRequestAttributes,
   addResponseAttributes,
   extractRequestAttributes,
+  getAbortSignal,
+  getCallAbortSignal,
   resolveChatParams,
 } from '../ai/google-genai';
+import { shouldSkipAiProviderSpan } from '../ai/pi-ai/providers';
 import { instrumentStream } from '../ai/google-genai/streaming';
-import type { GoogleGenAIOptions, GoogleGenAIResponse } from '../ai/google-genai/types';
+import type { GoogleGenAICallInfo, GoogleGenAIOptions, GoogleGenAIResponse } from '../ai/google-genai/types';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -31,11 +34,18 @@ const INTEGRATION_NAME = 'Google_GenAI' as const;
 
 const ORIGIN = 'auto.ai.google_genai';
 
+// The recording decision is made once, when the span starts, in the caller's async context.
+type GoogleGenAIChannelContext = OrchestrionChannelContext & {
+  _sentryRecordOutputs?: boolean;
+  _sentryOnSpanEnd?: (result: GenAiSpanResult<unknown>) => void;
+};
+
 // Each instrumented method maps to the gen_ai operation its span reports.
 const INSTRUMENTED_CHANNELS = [
   { channel: CHANNELS.GOOGLE_GENAI_GENERATE_CONTENT, operation: 'generate_content' },
   { channel: CHANNELS.GOOGLE_GENAI_EMBED_CONTENT, operation: 'embeddings' },
   { channel: CHANNELS.GOOGLE_GENAI_CHAT, operation: 'chat' },
+  { channel: CHANNELS.GOOGLE_GENAI_DECIDE, operation: 'decide' },
 ] as const;
 
 const _googleGenAIIntegration = ((options: GoogleGenAIOptions = {}) => {
@@ -50,20 +60,25 @@ const _googleGenAIIntegration = ((options: GoogleGenAIOptions = {}) => {
 function instrumentGoogleGenai(options: GoogleGenAIOptions): void {
   for (const { channel, operation } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
-      diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channel),
+      diagnosticsChannel.tracingChannel<GoogleGenAIChannelContext>(channel),
       data => createGenAiSpan(data, operation, options),
       {
         beforeSpanEnd: (span, data) => {
+          if ('error' in data) {
+            const params = resolveChatParams(
+              operation,
+              data.arguments?.[0] as Record<string, unknown> | undefined,
+              data.self,
+            );
+            markCancelledIfAborted(span, getCallAbortSignal(operation, params, data.arguments?.[1]));
+          }
           // Embeddings responses carry no content attributes.
           if (operation !== 'embeddings') {
-            addResponseAttributes(
-              span,
-              data.result as GoogleGenAIResponse,
-              resolveAIRecordingOptions(options).recordOutputs,
-            );
+            addResponseAttributes(span, data.result as GoogleGenAIResponse, !!data._sentryRecordOutputs, operation);
           }
+          data._sentryOnSpanEnd?.('error' in data ? { error: data.error } : { response: data.result });
         },
-        deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, options),
+        deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, operation),
       },
     );
   }
@@ -74,13 +89,11 @@ function instrumentGoogleGenai(options: GoogleGenAIOptions): void {
  * Returning `undefined` opts the payload out so no span is opened.
  */
 function createGenAiSpan(
-  data: OrchestrionChannelContext,
+  data: GoogleGenAIChannelContext,
   operation: string,
   options: GoogleGenAIOptions,
 ): Span | undefined {
-  // When another provider (e.g. LangChain) is driving the SDK, it records the spans itself and marks this
-  // provider as skipped; skip here to avoid double spans.
-  if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME)) {
+  if (shouldSkipAiProviderSpan(INTEGRATION_NAME)) {
     return undefined;
   }
 
@@ -102,9 +115,12 @@ function createGenAiSpan(
   const args = data.arguments ?? [];
   // `chat.sendMessage()` carries no config of its own unless the caller passes one, so recover the
   // one `chats.create()` left on the chat instance that the transform stashed in `data.self`.
-  const params = resolveChatParams(operation, args[0] as Record<string, unknown> | undefined, data.self);
+  const request = args[0] as Record<string, unknown> | undefined;
+  const params = resolveChatParams(operation, request, data.self);
 
-  const { recordInputs } = resolveAIRecordingOptions(options);
+  const call: GoogleGenAICallInfo = { operation, request };
+  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
+  data._sentryRecordOutputs = recordOutputs;
 
   const attributes = extractRequestAttributes(operation, params, data.self, recordInputs);
   const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
@@ -122,6 +138,9 @@ function createGenAiSpan(
     addPrivateRequestAttributes(span, params, operation);
   }
 
+  runGenAiSpanStart(options, span, call);
+  data._sentryOnSpanEnd = result => runGenAiSpanEnd(options, span, call, result);
+
   return span;
 }
 
@@ -136,15 +155,21 @@ function isAsyncIterable(value: unknown): value is AsyncIterableStream {
  * For a stream we patch `result[Symbol.asyncIterator]` in place so `instrumentStream` ends the
  * span when iteration finishes.
  */
-function wrapStreamResult(span: Span, data: OrchestrionChannelContext, options: GoogleGenAIOptions): boolean {
+function wrapStreamResult(span: Span, data: GoogleGenAIChannelContext, operation: string): boolean {
   const result = data.result;
   if (!isAsyncIterable(result)) {
     return false;
   }
 
-  const { recordOutputs } = resolveAIRecordingOptions(options);
   const iterate = result[Symbol.asyncIterator].bind(result);
-  const instrumented = instrumentStream({ [Symbol.asyncIterator]: iterate }, span, recordOutputs ?? false);
+  const params = resolveChatParams(operation, data.arguments?.[0] as Record<string, unknown> | undefined, data.self);
+  const instrumented = instrumentStream(
+    { [Symbol.asyncIterator]: iterate },
+    span,
+    !!data._sentryRecordOutputs,
+    getAbortSignal(params),
+    data._sentryOnSpanEnd,
+  );
   result[Symbol.asyncIterator] = () => instrumented;
 
   return true;
@@ -153,8 +178,8 @@ function wrapStreamResult(span: Span, data: OrchestrionChannelContext, options: 
 /**
  * Diagnostics-channel-based Google GenAI integration. Subscribes to the
  * `orchestrion:@google/genai:*` diagnostics_channels injected into the SDK's `Models`
- * (`generateContent`/`generateContentStream`/`embedContent`) and `Chat`
- * (`sendMessage`/`sendMessageStream`) methods, so it requires the Sentry runtime hook or
- * bundler plugin.
+ * (`generateContent`/`generateContentStream`/`embedContent`), `Chat`
+ * (`sendMessage`/`sendMessageStream`) and decisions (`create`) methods, so it requires the Sentry
+ * runtime hook or bundler plugin.
  */
 export const googleGenAIIntegration = defineIntegration(_googleGenAIIntegration);

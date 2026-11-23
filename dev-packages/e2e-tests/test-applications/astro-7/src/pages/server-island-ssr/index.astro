@@ -1,0 +1,14 @@
+---
+import Avatar from '../../components/Avatar.astro';
+import Layout from '../../layouts/Layout.astro';
+
+export const prerender = false;
+---
+
+<Layout title="Server Island SSR Page">
+  <p>This page is rendered on demand, and the avatar is loaded from the server afterwards</p>
+
+  <Avatar server:defer>
+    <p slot="fallback">Fallback</p>
+  </Avatar>
+</Layout>

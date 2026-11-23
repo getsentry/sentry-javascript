@@ -46,4 +46,5 @@ export declare const statsigIntegration: typeof clientSdk.statsigIntegration;
 export declare const unleashIntegration: typeof clientSdk.unleashIntegration;
 export declare const growthbookIntegration: typeof clientSdk.growthbookIntegration;
 
+// oxlint-disable-next-line typescript/no-deprecated
 export default sentryAstro;

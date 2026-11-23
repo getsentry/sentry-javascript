@@ -6,10 +6,14 @@ import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PIPELINE_NAME,
+  GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_NAME,
   GEN_AI_USAGE_INPUT_TOKENS,
@@ -18,6 +22,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { getStringAttributeValue } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -112,6 +117,7 @@ describe('LangGraph integration', () => {
             expect(toolAgentInvokeSpan!.attributes[GEN_AI_TOOL_DEFINITIONS].value).toContain('get_weather');
             expect(toolAgentInvokeSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('What is the weather?');
             expect(toolAgentInvokeSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gpt-4-0613');
+            expect(toolAgentInvokeSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["stop"]');
             expect(toolAgentInvokeSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toContain(
               'Response without calling tools',
             );
@@ -365,4 +371,168 @@ describe('LangGraph integration', () => {
         .completed();
     });
   });
+
+  createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('creates one agent span per stream() run, however the stream is consumed', { timeout: 30000 }, async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            const spans = container.items;
+            const agentSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT);
+            const agentSpanFor = (prompt: string) =>
+              agentSpans.find(span =>
+                getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(prompt),
+              );
+            const chatSpanUnder = (parent: { span_id: string } | undefined) =>
+              spans.find(
+                span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT && span.parent_span_id === parent?.span_id,
+              );
+
+            expect(agentSpans).toHaveLength(10);
+            expect(agentSpanFor('Stream inside a parent run')?.status).toBe('ok');
+            const parentCallbacks = spans.find(span => span.name === 'parent callbacks');
+            expect(parentCallbacks?.attributes['test.parent_saw_graph_run']?.value).toBe(true);
+
+            const read = agentSpanFor('Read the whole stream');
+            expect(read?.status).toBe('ok');
+            expect(read?.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+            expect(read?.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('[{"role":"assistant","content":"Sunny"}]');
+            expect(chatSpanUnder(read)).toBeDefined();
+
+            const unread = agentSpanFor('Never read the stream');
+            expect(unread?.status).toBe('ok');
+            expect(unread?.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('[{"role":"assistant","content":"Sunny"}]');
+            expect(chatSpanUnder(unread)).toBeDefined();
+
+            expect(agentSpanFor('Break out of the stream')?.status).toBe('ok');
+            expect(agentSpanFor('Cancel the stream')?.status).toBe('ok');
+
+            const failed = agentSpans.find(span => span.name === 'invoke_agent failing_graph');
+            expect(failed?.status).toBe('error');
+
+            const outer = agentSpans.find(span => span.name === 'invoke_agent outer_graph');
+            const inner = agentSpans.find(span => span.name === 'invoke_agent inner_graph');
+            expect(outer?.status).toBe('ok');
+            expect(inner?.parent_span_id).toBe(outer?.span_id);
+
+            expect(agentSpanFor('Stream events')?.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+
+            const invoked = agentSpanFor('Invoke the graph');
+            expect(invoked?.status).toBe('ok');
+            expect(invoked?.attributes[GEN_AI_RESPONSE_STREAMING]).toBeUndefined();
+          },
+        })
+        .unordered()
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'agent-stream-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
+    test(
+      'parents the chat span of a streamed createReactAgent run under its agent span',
+      { timeout: 30000 },
+      async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const agentSpans = container.items.filter(
+                span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT,
+              );
+              const chatSpans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT);
+              expect(agentSpans).toHaveLength(1);
+              expect(chatSpans).toHaveLength(1);
+              expect(agentSpans[0]!.name).toBe('invoke_agent helpful_assistant');
+              expect(agentSpans[0]!.status).toBe('ok');
+              expect(agentSpans[0]!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+              expect(chatSpans[0]!.parent_span_id).toBe(agentSpans[0]!.span_id);
+              expect(chatSpans[0]!.attributes[GEN_AI_AGENT_NAME]?.value).toBe('helpful_assistant');
+            },
+          })
+          .unordered()
+          .start()
+          .completed();
+      },
+    );
+  });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-recording-functions.mjs',
+    (createRunner, test) => {
+      test('applies the graph call decision to every span of the run', { timeout: 30000 }, async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const recorded: Record<string, { inputs: boolean; outputs: boolean }> = {};
+              for (const span of container.items) {
+                const op = String(span.attributes[SENTRY_OP]?.value);
+                if (op.startsWith('gen_ai.')) {
+                  recorded[`${span.attributes[GEN_AI_CONVERSATION_ID]?.value} ${op}`] = {
+                    inputs: GEN_AI_INPUT_MESSAGES in span.attributes || GEN_AI_TOOL_CALL_ARGUMENTS in span.attributes,
+                    outputs: [GEN_AI_RESPONSE_TEXT, GEN_AI_OUTPUT_MESSAGES, GEN_AI_TOOL_CALL_RESULT].some(
+                      key => key in span.attributes,
+                    ),
+                  };
+                }
+              }
+              const all = { inputs: true, outputs: true };
+              const none = { inputs: false, outputs: false };
+              expect(recorded).toEqual({
+                [`public ${GEN_AI_INVOKE_AGENT}`]: all,
+                [`public ${GEN_AI_CHAT}`]: all,
+                [`public ${GEN_AI_EXECUTE_TOOL}`]: all,
+                [`private ${GEN_AI_INVOKE_AGENT}`]: none,
+                [`private ${GEN_AI_CHAT}`]: none,
+                [`private ${GEN_AI_EXECUTE_TOOL}`]: none,
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-span-hooks.mjs',
+    (createRunner, test) => {
+      test(
+        'runs the span hooks on the agent span only, with the graph call and result',
+        { timeout: 30000 },
+        async () => {
+          await createRunner()
+            .expect({
+              span: container => {
+                const hooks: Record<string, unknown[]> = {};
+                for (const span of container.items) {
+                  const op = String(span.attributes[SENTRY_OP]?.value);
+                  if (op.startsWith('gen_ai.')) {
+                    hooks[`${span.attributes[GEN_AI_CONVERSATION_ID]?.value} ${op}`] = [
+                      span.attributes['test.start']?.value,
+                      span.attributes['test.end']?.value,
+                    ];
+                  }
+                }
+                // The graph's chat and tool spans come from LangGraph's own handler and tool wrapper, which run no hooks.
+                const none = [undefined, undefined];
+                expect(hooks).toEqual({
+                  [`public ${GEN_AI_INVOKE_AGENT}`]: ['public:public', 'Paris.'],
+                  [`public ${GEN_AI_CHAT}`]: none,
+                  [`public ${GEN_AI_EXECUTE_TOOL}`]: none,
+                  [`private ${GEN_AI_INVOKE_AGENT}`]: ['private:private', 'Paris.'],
+                  [`private ${GEN_AI_CHAT}`]: none,
+                  [`private ${GEN_AI_EXECUTE_TOOL}`]: none,
+                });
+              },
+            })
+            .start()
+            .completed();
+        },
+      );
+    },
+  );
 });

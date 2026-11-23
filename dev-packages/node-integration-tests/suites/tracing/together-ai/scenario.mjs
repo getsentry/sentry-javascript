@@ -1,8 +1,15 @@
 import Together from 'together-ai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import {
+  openAiChatCompletion,
+  openAiChatCompletionChunks,
+  openAiEmbeddings,
+  startMockServer,
+  streamSseEvents,
+} from '@sentry-internal/node-integration-tests';
 
-function startMockServer() {
+function startMockApi() {
   const app = express();
   app.use(express.json());
 
@@ -16,83 +23,28 @@ function startMockServer() {
     }
 
     if (stream) {
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-
-      const chunks = [
-        {
-          id: 'chatcmpl-stream-123',
-          object: 'chat.completion.chunk',
-          created: 1677652300,
-          model,
-          choices: [{ index: 0, delta: { role: 'assistant', content: '' }, finish_reason: null }],
-        },
-        {
-          id: 'chatcmpl-stream-123',
-          object: 'chat.completion.chunk',
-          created: 1677652300,
-          model,
-          choices: [{ index: 0, delta: { content: 'Hello from Together streaming!' }, finish_reason: null }],
-        },
-        {
-          id: 'chatcmpl-stream-123',
-          object: 'chat.completion.chunk',
-          created: 1677652300,
-          model,
-          choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
-          usage: { prompt_tokens: 12, completion_tokens: 18, total_tokens: 30 },
-        },
-      ];
-
-      chunks.forEach((chunk, index) => {
-        setTimeout(() => {
-          res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-          if (index === chunks.length - 1) {
-            res.write('data: [DONE]\n\n');
-            res.end();
-          }
-        }, index * 10);
+      streamSseEvents(res, openAiChatCompletionChunks(model, { content: 'Hello from Together streaming!' }), {
+        done: true,
       });
     } else {
-      res.send({
-        id: 'chatcmpl-mock123',
-        object: 'chat.completion',
-        created: 1677652288,
-        model,
-        choices: [
-          { index: 0, message: { role: 'assistant', content: 'Hello from Together mock!' }, finish_reason: 'stop' },
-        ],
-        usage: { prompt_tokens: 10, completion_tokens: 15, total_tokens: 25 },
-      });
+      res.send(openAiChatCompletion(model, { content: 'Hello from Together mock!' }));
     }
   });
 
   app.post('/embeddings', (req, res) => {
-    const { model } = req.body;
-    res.send({
-      id: 'embd-mock123',
-      object: 'list',
-      model,
-      data: [{ object: 'embedding', index: 0, embedding: [0.1, 0.2, 0.3] }],
-      usage: { prompt_tokens: 8, total_tokens: 8 },
-    });
+    res.send(openAiEmbeddings(req.body.model));
   });
 
-  return new Promise(resolve => {
-    const server = app.listen(0, () => {
-      resolve(server);
-    });
-  });
+  return startMockServer(app);
 }
 
 async function run() {
-  const server = await startMockServer();
+  const server = await startMockApi();
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Together({
       apiKey: 'mock-api-key',
-      baseURL: `http://localhost:${server.address().port}`,
+      baseURL: server.url,
     });
 
     await client.chat.completions.create({

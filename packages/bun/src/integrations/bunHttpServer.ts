@@ -1,15 +1,17 @@
 import { errorMonitor } from 'node:events';
 import * as http from 'node:http';
 import * as https from 'node:https';
-import type { IntegrationFn, Span } from '@sentry/core';
+import type { Client, Integration, IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import type {
   AssertTrue,
   CheckServerRequestOptions,
   HttpIncomingMessage,
   HttpServerResponse,
+  ServerRequestOptions,
 } from '@sentry/core/server';
 import { getHttpServerSubscriptions, HTTP_ON_SERVER_REQUEST } from '@sentry/core/server';
+import { isBun } from '@sentry/server-utils';
 
 const INTEGRATION_NAME = 'BunHttpServer' as const;
 
@@ -89,13 +91,44 @@ type _ServerRequestOptionsCheck = AssertTrue<
   CheckServerRequestOptions<BunHttpServerOptions, HttpIncomingMessage, HttpServerResponse>
 >;
 
+// Every shared option is a required key, so a new one fails to compile
+// below until the integration passes it on.
+type BunHttpServerRequestOptions = {
+  [K in keyof Required<ServerRequestOptions<HttpIncomingMessage, HttpServerResponse>>]: BunHttpServerOptions[K];
+};
+
+interface HttpIntegration extends Integration {
+  serverRequestOptions: BunHttpServerRequestOptions;
+}
+
 let hasPatched = false;
+
+/**
+ * Merges the incoming-request options of the client's `httpIntegration`
+ * under the given options. Bun does not publish
+ * `http.server.request.start`, so `httpIntegration` never applies them.
+ */
+function resolveOptions(options: BunHttpServerOptions, client: Client): BunHttpServerRequestOptions {
+  const httpOptions: Partial<BunHttpServerRequestOptions> =
+    client.getIntegrationByName<HttpIntegration>('Http')?.serverRequestOptions ?? {};
+  return {
+    spans: options.spans ?? httpOptions.spans,
+    sessions: options.sessions ?? httpOptions.sessions,
+    sessionFlushingDelayMS: options.sessionFlushingDelayMS ?? httpOptions.sessionFlushingDelayMS,
+    maxRequestBodySize: options.maxRequestBodySize ?? httpOptions.maxRequestBodySize,
+    ignoreRequestBody: options.ignoreRequestBody ?? httpOptions.ignoreRequestBody,
+    ignoreIncomingRequests: options.ignoreIncomingRequests ?? httpOptions.ignoreIncomingRequests,
+    ignoreStaticAssets: options.ignoreStaticAssets ?? httpOptions.ignoreStaticAssets,
+    onSpanCreated: options.onSpanCreated ?? httpOptions.onSpanCreated,
+    onSpanEnd: options.onSpanEnd ?? httpOptions.onSpanEnd,
+  };
+}
 
 const _bunHttpServerIntegration = ((options: BunHttpServerOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      instrumentBunHttpServer(options);
+    afterAllSetup(client) {
+      instrumentBunHttpServer(resolveOptions(options, client));
     },
   };
 }) satisfies IntegrationFn;
@@ -135,7 +168,7 @@ export const bunHttpServerIntegration = defineIntegration(_bunHttpServerIntegrat
  */
 export function instrumentBunHttpServer(options: BunHttpServerOptions = {}): void {
   // This only makes sense under Bun; on Node the diagnostics channel already handles this.
-  if (!process.versions.bun || hasPatched) {
+  if (!isBun() || hasPatched) {
     return;
   }
 
