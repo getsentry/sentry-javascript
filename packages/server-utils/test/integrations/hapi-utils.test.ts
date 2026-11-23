@@ -12,7 +12,12 @@ import { ROUTER } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import { setCurrentClient, spanToJSON, startSpan } from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
-import { getExtMetadata, getRouteMetadata, wrapRouteArguments } from '../../src/integrations/hapi/hapi-utils';
+import {
+  getExtMetadata,
+  getRouteMetadata,
+  wrapExtArguments,
+  wrapRouteArguments,
+} from '../../src/integrations/hapi/hapi-utils';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('getRouteMetadata', () => {
@@ -143,5 +148,29 @@ describe('getExtMetadata', () => {
         [HAPI_PLUGIN_NAME]: 'my-plugin',
       },
     });
+  });
+});
+
+describe('wrapExtArguments', () => {
+  afterEach(() => {
+    setCurrentClient(undefined as unknown as TestClient);
+  });
+
+  it('names each extension method of a plugin extension array after the plugin', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+    const endedSpans: Span[] = [];
+    client.on('spanEnd', span => endedSpans.push(span));
+    const event = { type: 'onPreHandler', method: [(): unknown => 'first', (): unknown => 'second'] };
+
+    wrapExtArguments([event], 'my-plugin');
+    startSpan({ name: 'incoming' }, () => event.method.map(method => method()));
+
+    const extSpanNames = endedSpans
+      .map(span => spanToJSON(span))
+      .filter(span => span.attributes[HAPI_TYPE] === 'server.ext')
+      .map(span => span.name);
+    expect(extSpanNames).toEqual(['my-plugin: ext - onPreHandler', 'my-plugin: ext - onPreHandler']);
   });
 });

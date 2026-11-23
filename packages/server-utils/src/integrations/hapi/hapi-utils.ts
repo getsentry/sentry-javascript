@@ -251,7 +251,7 @@ function wrapExtMethods<T extends PatchableExtMethod | PatchableExtMethod[]>(
 ): T {
   if (Array.isArray(method)) {
     for (const [i, m] of method.entries()) {
-      method[i] = wrapExtMethods(m, extPoint);
+      method[i] = wrapExtMethods(m, extPoint, pluginName);
     }
     return method;
   } else if (isPatchableExtMethod(method)) {
