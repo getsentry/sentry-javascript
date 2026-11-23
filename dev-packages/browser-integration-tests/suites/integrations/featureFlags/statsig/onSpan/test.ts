@@ -1,8 +1,9 @@
 import { expect } from '@playwright/test';
-import { _INTERNAL_MAX_FLAGS_PER_SPAN as MAX_FLAGS_PER_SPAN } from '@sentry/core';
 import { waitForStreamedSpan } from '../../../../../utils/spanUtils';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { shouldSkipFeatureFlagsTest, shouldSkipTracingTest } from '../../../../../utils/helpers';
+
+const MAX_FLAGS_PER_SPAN = 10;
 
 sentryTest("Feature flags are added to active span's attributes on span end.", async ({ getLocalTestUrl, page }) => {
   if (shouldSkipFeatureFlagsTest() || shouldSkipTracingTest()) {

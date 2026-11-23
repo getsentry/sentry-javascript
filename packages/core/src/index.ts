@@ -120,7 +120,6 @@ export {
   getSpanDescendants,
   getStatusMessage,
   getRootSpan,
-  INTERNAL_getSegmentSpan,
   getActiveSpan,
   addChildSpanToSpan,
   spanTimeInputToSeconds,
@@ -187,14 +186,10 @@ export { profiler } from './profiling';
 export { instrumentFetchRequest, _INTERNAL_getTracingHeadersForFetchRequest } from './fetch';
 export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';
-export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/internal';
+export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer } from './logs/internal';
 export { logger } from './logs/public-api';
 export { consoleLoggingIntegration } from './logs/console-integration';
-export {
-  _INTERNAL_captureMetric,
-  _INTERNAL_flushMetricsBuffer,
-  _INTERNAL_captureSerializedMetric,
-} from './metrics/internal';
+export { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
 export { metrics } from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
@@ -205,8 +200,6 @@ export {
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
   _INTERNAL_addFeatureFlagToActiveSpan,
-  _INTERNAL_FLAG_BUFFER_SIZE,
-  _INTERNAL_MAX_FLAGS_PER_SPAN,
 } from './utils/featureFlags';
 export { applyAggregateErrorsToEvent } from './utils/aggregate-errors';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './utils/breadcrumb-log-level';

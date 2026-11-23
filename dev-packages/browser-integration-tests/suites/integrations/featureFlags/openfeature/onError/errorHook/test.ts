@@ -1,11 +1,12 @@
 import { expect } from '@playwright/test';
-import { _INTERNAL_FLAG_BUFFER_SIZE as FLAG_BUFFER_SIZE } from '@sentry/core';
 import { sentryTest } from '../../../../../../utils/fixtures';
 import {
   envelopeRequestParser,
   shouldSkipFeatureFlagsTest,
   waitForErrorRequest,
 } from '../../../../../../utils/helpers';
+
+const FLAG_BUFFER_SIZE = 100;
 
 sentryTest('Flag evaluation error hook', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipFeatureFlagsTest()) {
