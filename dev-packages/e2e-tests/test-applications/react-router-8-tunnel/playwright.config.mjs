@@ -1,6 +1,6 @@
 import { getPlaywrightConfig, getRuntime } from '@sentry-internal/test-utils';
 
-export default getPlaywrightConfig({
+const config = getPlaywrightConfig({
   startCommand:
     process.env.TEST_ENV === 'development'
       ? 'pnpm dev'
@@ -8,3 +8,8 @@ export default getPlaywrightConfig({
         ? 'pnpm start:cloudflare'
         : 'pnpm start',
 });
+
+export default {
+  ...config,
+  workers: process.env.CI ? 4 : config.workers,
+};

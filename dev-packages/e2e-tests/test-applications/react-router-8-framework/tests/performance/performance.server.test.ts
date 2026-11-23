@@ -38,7 +38,11 @@ test.describe('server - performance', () => {
 
   test('should send server span on parameterized route', async ({ page }) => {
     const spanPromise = waitForStreamedSpan(APP_NAME, span => {
-      return span.name === 'GET /performance/with/:param' && span.is_segment;
+      return (
+        span.name === 'GET /performance/with/:param' &&
+        span.is_segment &&
+        String(span.attributes['url.full']?.value).endsWith('/performance/with/some-param')
+      );
     });
 
     await page.goto(`/performance/with/some-param`);

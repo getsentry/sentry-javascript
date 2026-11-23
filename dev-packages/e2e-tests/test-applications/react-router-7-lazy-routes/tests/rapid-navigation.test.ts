@@ -1,25 +1,45 @@
 import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
-import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
-import { hasUrlPart, childSpansInTraceOf, collectUntilNavigationSegment, endedByIdleTimeout } from './helpers';
+import { getSpanOp, waitForStreamedSpan, collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
+import {
+  setTestUser,
+  hasUrlPart,
+  childSpansInTraceOf,
+  collectUntilNavigationSegment,
+  endedByIdleTimeout,
+} from './helpers';
 
-test('Creates separate spans for rapid consecutive navigations', async ({ page }) => {
+test.beforeEach(setTestUser);
+
+test('Creates separate spans for rapid consecutive navigations', async ({ page }, testInfo) => {
   await page.goto('/');
 
   // Set up transaction listeners
   const firstTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
   const secondTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/another-lazy/sub/:id/:subId';
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name === '/another-lazy/sub/:id/:subId'
+    );
   });
 
   // Third navigation promise - using counter to match second occurrence of same route
   let innerRouteMatchCount = 0;
   const thirdTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    if (span.attributes['user.id']?.value !== testInfo.testId) {
+      return false;
+    }
+
     if (
       span.is_segment &&
       getSpanOp(span) === 'navigation' &&
@@ -84,19 +104,23 @@ test('Creates separate spans for rapid consecutive navigations', async ({ page }
   expect(firstSpanId).not.toBe(thirdSpanId);
 });
 
-test('Rapid navigation does not corrupt span names when lazy handlers resolve late', async ({ page }) => {
+test('Rapid navigation does not corrupt span names when lazy handlers resolve late', async ({ page }, testInfo) => {
   await page.goto('/');
 
   const allTransactions: Array<{ name: string; op: string }> = [];
 
-  const collectorPromise = collectUntilNavigationSegment('/another-lazy/sub', span => {
-    if (span.is_segment && getSpanOp(span)) {
-      allTransactions.push({
-        name: span.name,
-        op: getSpanOp(span) ?? '',
-      });
-    }
-  });
+  const collectorPromise = collectUntilNavigationSegment(
+    '/another-lazy/sub',
+    span => {
+      if (span.is_segment && getSpanOp(span)) {
+        allTransactions.push({
+          name: span.name,
+          op: getSpanOp(span) ?? '',
+        });
+      }
+    },
+    testInfo.testId,
+  );
 
   // Navigate to slow-fetch route (500ms delay)
   const slowFetchLink = page.locator('id=navigation-to-slow-fetch');
@@ -130,11 +154,14 @@ test('Rapid navigation does not corrupt span names when lazy handlers resolve la
   expect(hasValidRouteName).toBe(true);
 });
 
-test('Correctly names pageload span for slow lazy route with fetch', async ({ page }) => {
+test('Correctly names pageload span for slow lazy route with fetch', async ({ page }, testInfo) => {
   // This test verifies that a slow lazy route (with top-level await and fetch)
   // creates a correctly named pageload span
 
-  const spansPromise = collectStreamedSpansUntilSegment('react-router-7-lazy-routes', '/slow-fetch/:id');
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'react-router-7-lazy-routes',
+    span => span.attributes['user.id']?.value === testInfo.testId && span.name === '/slow-fetch/:id',
+  );
 
   await page.goto('/slow-fetch/123');
 
@@ -159,17 +186,26 @@ test('Correctly names pageload span for slow lazy route with fetch', async ({ pa
   expect(fetchSpan).toBeDefined();
 });
 
-test('Three-route rapid navigation preserves distinct span names', async ({ page }) => {
+test('Three-route rapid navigation preserves distinct span names', async ({ page }, testInfo) => {
   const navigationTransactions: Array<{ name: string }> = [];
 
-  const navigationCollector = collectUntilNavigationSegment('/another-lazy/sub', span => {
-    if (getSpanOp(span) === 'navigation') {
-      navigationTransactions.push({ name: span.name });
-    }
-  });
+  const navigationCollector = collectUntilNavigationSegment(
+    '/another-lazy/sub',
+    span => {
+      if (getSpanOp(span) === 'navigation') {
+        navigationTransactions.push({ name: span.name });
+      }
+    },
+    testInfo.testId,
+  );
 
   const pageloadPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/delayed-lazy/:id';
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.name === '/delayed-lazy/:id'
+    );
   });
 
   // Pageload to delayed-lazy route
@@ -200,14 +236,18 @@ test('Three-route rapid navigation preserves distinct span names', async ({ page
   expect(corruptedToRoot.length).toBe(0);
 });
 
-test('Zero-wait rapid navigation does not corrupt span names', async ({ page }) => {
+test('Zero-wait rapid navigation does not corrupt span names', async ({ page }, testInfo) => {
   const navigationTransactions: Array<{ name: string }> = [];
 
-  const collector = collectUntilNavigationSegment('/another-lazy/sub', span => {
-    if (getSpanOp(span) === 'navigation') {
-      navigationTransactions.push({ name: span.name });
-    }
-  });
+  const collector = collectUntilNavigationSegment(
+    '/another-lazy/sub',
+    span => {
+      if (getSpanOp(span) === 'navigation') {
+        navigationTransactions.push({ name: span.name });
+      }
+    },
+    testInfo.testId,
+  );
 
   await page.goto('/');
 
@@ -230,11 +270,15 @@ test('Zero-wait rapid navigation does not corrupt span names', async ({ page }) 
   expect(corruptedToRoot.length).toBe(0);
 });
 
-test('Browser back during lazy handler resolution does not corrupt', async ({ page }) => {
+test('Browser back during lazy handler resolution does not corrupt', async ({ page }, testInfo) => {
   const allTransactions: Array<{ name: string; op: string }> = [];
   let wentBack = false;
 
   const collector = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    if (span.attributes['user.id']?.value !== testInfo.testId) {
+      return false;
+    }
+
     if (span.is_segment && getSpanOp(span)) {
       allTransactions.push({
         name: span.name,
@@ -268,14 +312,18 @@ test('Browser back during lazy handler resolution does not corrupt', async ({ pa
   expect(backPageload.name).toBe('/another-lazy/sub');
 });
 
-test('Multiple overlapping lazy handlers do not corrupt each other', async ({ page }) => {
+test('Multiple overlapping lazy handlers do not corrupt each other', async ({ page }, testInfo) => {
   const navigationTransactions: Array<{ name: string }> = [];
 
-  const collector = collectUntilNavigationSegment('/another-lazy/sub', span => {
-    if (getSpanOp(span) === 'navigation') {
-      navigationTransactions.push({ name: span.name });
-    }
-  });
+  const collector = collectUntilNavigationSegment(
+    '/another-lazy/sub',
+    span => {
+      if (getSpanOp(span) === 'navigation') {
+        navigationTransactions.push({ name: span.name });
+      }
+    },
+    testInfo.testId,
+  );
 
   await page.goto('/');
 
@@ -312,21 +360,25 @@ test('Multiple overlapping lazy handlers do not corrupt each other', async ({ pa
 
 test('Captured navigation context is used instead of stale window.location during rapid navigation', async ({
   page,
-}) => {
+}, testInfo) => {
   // Validates fix for race condition where captureCurrentLocation would use stale WINDOW.location.
   // Navigate to slow route, then quickly to another route before lazy handler resolves.
   await page.goto('/');
 
   const allNavigationTransactions: Array<{ name: string; traceId: string }> = [];
 
-  const collectorPromise = collectUntilNavigationSegment('/another-lazy/sub', span => {
-    if (span.is_segment && getSpanOp(span) === 'navigation') {
-      allNavigationTransactions.push({
-        name: span.name,
-        traceId: span.trace_id || '',
-      });
-    }
-  });
+  const collectorPromise = collectUntilNavigationSegment(
+    '/another-lazy/sub',
+    span => {
+      if (span.is_segment && getSpanOp(span) === 'navigation') {
+        allNavigationTransactions.push({
+          name: span.name,
+          traceId: span.trace_id || '',
+        });
+      }
+    },
+    testInfo.testId,
+  );
 
   const slowFetchLink = page.locator('id=navigation-to-slow-fetch');
   await expect(slowFetchLink).toBeVisible();
@@ -357,7 +409,9 @@ test('Captured navigation context is used instead of stale window.location durin
   }
 });
 
-test('Second navigation span is not corrupted by first slow lazy handler completing late', async ({ page }) => {
+test('Second navigation span is not corrupted by first slow lazy handler completing late', async ({
+  page,
+}, testInfo) => {
   // Validates fix for race condition where slow lazy handler would update the wrong span.
   // Navigate to slow route (which fetches /api/slow-data), then quickly to fast route.
   // Without fix: the second segment gets the wrong name and/or contains leaked spans.
@@ -366,9 +420,13 @@ test('Second navigation span is not corrupted by first slow lazy handler complet
 
   const streamedSpans: SerializedStreamedSpan[] = [];
 
-  const collectorPromise = collectUntilNavigationSegment('/another-lazy/sub', span => {
-    streamedSpans.push(span);
-  });
+  const collectorPromise = collectUntilNavigationSegment(
+    '/another-lazy/sub',
+    span => {
+      streamedSpans.push(span);
+    },
+    testInfo.testId,
+  );
 
   // Navigate to slow-fetch (500ms lazy delay, fetches /api/slow-data)
   const slowFetchLink = page.locator('id=navigation-to-slow-fetch');
@@ -414,10 +472,16 @@ test('Second navigation span is not corrupted by first slow lazy handler complet
   }
 });
 
-test('Does not rename the previous navigation span with the route of the next navigation', async ({ page }) => {
+test('Does not rename the previous navigation span with the route of the next navigation', async ({
+  page,
+}, testInfo) => {
   const navigationNames: string[] = [];
 
   const navigationsPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    if (span.attributes['user.id']?.value !== testInfo.testId) {
+      return false;
+    }
+
     if (getSpanOp(span) === 'navigation' && span.is_segment) {
       navigationNames.push(span.name);
     }
