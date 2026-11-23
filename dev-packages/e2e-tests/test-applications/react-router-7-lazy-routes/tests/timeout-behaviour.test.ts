@@ -1,6 +1,8 @@
-import { test, waitForStreamedSpan } from './helpers';
-import { expect } from '@playwright/test';
+import { setTestUser, waitForStreamedSpan } from './helpers';
+import { expect, test } from '@playwright/test';
 import { getSpanOp } from '@sentry-internal/test-utils';
+
+test.beforeEach(setTestUser);
 
 test('lazyRouteTimeout: Routes load within timeout window', async ({ page }) => {
   const spanPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {

@@ -1,4 +1,4 @@
-import { test as base, type Page } from '@playwright/test';
+import { test, type Page, type TestInfo } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import {
   getSpanOp,
@@ -8,20 +8,17 @@ import {
 } from '@sentry-internal/test-utils';
 
 // Parallel tests exercise the same routes, so URL and span name cannot identify their browser.
-export const test = base.extend({
-  page: async ({ page }, use, testInfo) => {
-    await page.addInitScript(testId => {
-      Object.assign(window, { __E2E_TEST_ID__: testId });
-    }, testInfo.testId);
-    await use(page);
-  },
-});
+export async function setTestUser({ page }: { page: Page }, testInfo: TestInfo): Promise<void> {
+  await page.addInitScript(testId => {
+    Object.assign(window, { __E2E_TEST_ID__: testId });
+  }, testInfo.testId);
+}
 
 export function waitForStreamedSpan(...[proxy, matches, timestamp]: Parameters<typeof waitForAnyStreamedSpan>) {
   const testId = test.info().testId;
   return waitForAnyStreamedSpan(
     proxy,
-    span => span.attributes['e2e.test_id']?.value === testId && matches(span),
+    span => span.attributes['user.id']?.value === testId && matches(span),
     timestamp,
   );
 }
@@ -29,7 +26,7 @@ export function waitForStreamedSpan(...[proxy, matches, timestamp]: Parameters<t
 export function waitForStreamedSpans(...[proxy, matches]: Parameters<typeof waitForAnyStreamedSpans>) {
   const testId = test.info().testId;
   const ownSpans = (spans: SerializedStreamedSpan[]) =>
-    spans.filter(span => span.attributes['e2e.test_id']?.value === testId);
+    spans.filter(span => span.attributes['user.id']?.value === testId);
   return waitForAnyStreamedSpans(proxy, spans => {
     const filtered = ownSpans(spans);
     return filtered.length > 0 && (!matches || matches(filtered));
@@ -43,7 +40,7 @@ export function collectStreamedSpansUntilSegment(
   return collectAnyStreamedSpansUntilSegment(
     proxy,
     span =>
-      span.attributes['e2e.test_id']?.value === testId &&
+      span.attributes['user.id']?.value === testId &&
       (typeof segment === 'string' ? span.name === segment : segment(span)),
     childToWaitFor,
   );

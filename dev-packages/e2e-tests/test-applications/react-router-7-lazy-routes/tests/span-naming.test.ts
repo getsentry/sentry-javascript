@@ -1,6 +1,8 @@
-import { expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { getSpanOp } from '@sentry-internal/test-utils';
-import { test, waitForIdleSpanEnd, waitForStreamedSpan } from './helpers';
+import { setTestUser, waitForIdleSpanEnd, waitForStreamedSpan } from './helpers';
+
+test.beforeEach(setTestUser);
 
 test('Updates pageload span name correctly when span is cancelled early (document.hidden simulation)', async ({
   page,

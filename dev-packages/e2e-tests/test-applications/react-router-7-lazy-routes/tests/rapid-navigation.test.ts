@@ -1,8 +1,8 @@
-import { expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { getSpanOp } from '@sentry-internal/test-utils';
 import {
-  test,
+  setTestUser,
   hasUrlPart,
   childSpansInTraceOf,
   collectUntilNavigationSegment,
@@ -10,6 +10,8 @@ import {
   collectStreamedSpansUntilSegment,
   waitForStreamedSpan,
 } from './helpers';
+
+test.beforeEach(setTestUser);
 
 test('Creates separate spans for rapid consecutive navigations', async ({ page }) => {
   await page.goto('/');

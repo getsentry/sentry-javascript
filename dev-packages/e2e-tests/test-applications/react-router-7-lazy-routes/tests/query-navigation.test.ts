@@ -1,6 +1,8 @@
-import { expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { getSpanOp } from '@sentry-internal/test-utils';
-import { test, endedByIdleTimeout, waitForStreamedSpan } from './helpers';
+import { setTestUser, endedByIdleTimeout, waitForStreamedSpan } from './helpers';
+
+test.beforeEach(setTestUser);
 
 test('Creates navigation span when navigating with query parameters from home to route', async ({ page }) => {
   await page.goto('/');

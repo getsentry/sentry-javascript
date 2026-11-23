@@ -1,6 +1,8 @@
-import { expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { getSpanOp } from '@sentry-internal/test-utils';
-import { test, hasUrlPart, childSpans, collectStreamedSpansUntilSegment } from './helpers';
+import { setTestUser, hasUrlPart, childSpans, collectStreamedSpansUntilSegment } from './helpers';
+
+test.beforeEach(setTestUser);
 
 test('GQL fetch span is attributed to the correct navigation segment when navigating from index to lazy GQL page', async ({
   page,
