@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **feat(core): Add `code` to the sensitive data collection denylist ([#26759](https://github.com/getsentry/sentry-javascript/pull/26759))**
+
+  Values for keys containing `code` are now replaced with `[Filtered]` by default, so OAuth authorization codes in URLs (`?code=...` or `#code=...`) are no longer sent. Matching is partial, so keys like `zipcode`, `country_code` or local variables like `statusCode` are filtered too.
+
 Work in this release was contributed by @adityareddy-dev, @wolfgang42, and @JonasBa. Thank you for your contributions!
 
 ## 11.16.0
