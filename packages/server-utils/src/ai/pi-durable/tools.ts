@@ -88,14 +88,14 @@ export function instrumentToolPhase(
         : resolved,
     );
 
-  runtime.commit = (change: PiCommitChange, context: unknown): Promise<void> => {
+  runtime.commit = (change: PiCommitChange, context: unknown, ...rest: unknown[]): Promise<void> => {
     let committed: PiToolResultMessage[] = [];
     const observedChange: PiCommitChange = (tx, current) => {
       // A commit can run its change again, so only the attempt that committed counts.
       committed = [];
       return change(observeToolResultEntries(tx, committed), current);
     };
-    return commit(observedChange, context).then(() => {
+    return commit(observedChange, context, ...rest).then(() => {
       for (const message of committed) {
         results.set(message.toolCallId, message);
       }

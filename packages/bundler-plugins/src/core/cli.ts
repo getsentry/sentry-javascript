@@ -1,7 +1,7 @@
 import { createSentrySDK } from 'sentry';
 import type { NormalizedOptions } from './options-mapping';
 import type { SetCommitsOptions } from './types';
-import { arrayify, getProjects } from './utils';
+import { arrayify, getGitRemoteRepository, getProjects, gitRevision } from './utils';
 
 type SentrySDK = ReturnType<typeof createSentrySDK>;
 type SentryOptions = NonNullable<Parameters<typeof createSentrySDK>[0]>;
@@ -86,14 +86,21 @@ export class SentryCliAdapter {
    */
   public async setCommits(name: string, setCommitsOptions: SetCommitsOptions): Promise<void> {
     const { auto, repo, commit, previousCommit } = setCommitsOptions;
+    const { vcsRemote } = this.#options.release;
+
+    // `--auto` only reads the `origin` remote, so other remotes go through manual mode. CI checkouts
+    // often lack the named remote; `--auto` then still finds the repository from CI variables.
+    const remoteRepo = auto === true && vcsRemote !== 'origin' ? getGitRemoteRepository(vcsRemote) : undefined;
+    const head = remoteRepo ? gitRevision() : undefined;
+    const remoteCommitSpec = remoteRepo && head ? `${remoteRepo}@${head}` : undefined;
 
     // Manual mode is expressed as `REPO@SHA` (optionally `REPO@PREV..SHA`).
     const commitSpec =
-      repo && commit ? `${repo}@${previousCommit ? `${previousCommit}..${commit}` : commit}` : undefined;
+      repo && commit ? `${repo}@${previousCommit ? `${previousCommit}..${commit}` : commit}` : remoteCommitSpec;
 
     await this.#sdk.release['set-commits']({
       orgVersion: name,
-      auto: auto === true,
+      auto: auto === true && !remoteCommitSpec,
       commit: commitSpec,
     });
   }

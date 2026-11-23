@@ -76,9 +76,9 @@ export {
   fastifyIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupFastifyErrorHandler,
+  // oxlint-disable-next-line typescript/no-deprecated
+  setupHapiErrorHandler,
 } from '@sentry/server-utils';
-// oxlint-disable-next-line typescript/no-deprecated
-export { setupHapiErrorHandler } from './integrations/tracing/hapi';
 // oxlint-disable-next-line typescript/no-deprecated -- deprecated but still re-exported for backwards compatibility
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export {

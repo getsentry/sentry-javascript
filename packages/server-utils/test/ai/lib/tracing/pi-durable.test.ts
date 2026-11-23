@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Event, Span } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
@@ -236,12 +236,14 @@ describe('instrumentPiDurableHarnessOptions', () => {
   // pi-durable 1.6.0 finds the state it keeps for a runtime by the runtime object itself.
   it('hands the generation and tool phases the runtime pi-durable created', async () => {
     const received: PiTaskRuntime[] = [];
+    const commitOptions = { persistence: { kind: 'deferred' } };
     const task = (name: string): PiTask => ({
       definition: {
         name,
         phases: {
           run: async (_task, runtime) => {
             received.push(runtime);
+            await runtime.commit(() => undefined, undefined, commitOptions);
           },
         },
       },
@@ -256,16 +258,20 @@ describe('instrumentPiDurableHarnessOptions', () => {
       taskId,
       conversationId: 1,
       agent: async () => ({}),
-      commit: async () => undefined,
+      commit: vi.fn(async () => undefined),
     });
     const generation = createRuntime(3);
     const tool = createRuntime(4);
+    const generationCommit = generation.commit;
+    const toolCommit = tool.commit;
 
     await snapshot.task('pi.generation')!.definition.phases.run!(undefined, generation, undefined);
     await snapshot.task('pi.tool')!.definition.phases.run!(undefined, tool, undefined);
 
     expect(received[0]).toBe(generation);
     expect(received[1]).toBe(tool);
+    expect(generationCommit).toHaveBeenCalledWith(expect.any(Function), undefined, commitOptions);
+    expect(toolCommit).toHaveBeenCalledWith(expect.any(Function), undefined, commitOptions);
   });
 
   describe('tools', () => {

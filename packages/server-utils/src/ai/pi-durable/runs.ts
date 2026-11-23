@@ -207,7 +207,7 @@ export function observeRunControl(runtime: PiTaskRuntime, run: PiRun, runs: PiRu
   // Replaced on the runtime itself: pi-durable 1.6.0 finds the state it keeps for a runtime by
   // that object, so a phase that gets a Proxy of it faults. The returned function puts `commit`
   // back, as pi-durable can keep the runtime after the phase, and with it the run and its spans.
-  runtime.commit = (change: PiCommitChange, context: unknown): Promise<void> => {
+  runtime.commit = (change: PiCommitChange, context: unknown, ...rest: unknown[]): Promise<void> => {
     let ended = false;
     let settlement: PiSettlement | undefined;
 
@@ -260,7 +260,7 @@ export function observeRunControl(runtime: PiTaskRuntime, run: PiRun, runs: PiRu
       return result;
     };
 
-    return commit(observedChange, context).then(
+    return commit(observedChange, context, ...rest).then(
       () => {
         if (ended) {
           endRun(run, runs, toRunStatus(settlement));

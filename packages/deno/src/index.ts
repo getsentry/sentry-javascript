@@ -209,6 +209,14 @@ export {
   eveIntegration,
   getInstrumentedModuleNames,
 } from '@sentry/server-utils';
+export {
+  // oxlint-disable-next-line typescript/no-deprecated
+  expressErrorHandler,
+  // oxlint-disable-next-line typescript/no-deprecated
+  setupExpressErrorHandler,
+  // oxlint-disable-next-line typescript/no-deprecated
+  setupHapiErrorHandler,
+} from '@sentry/server-utils';
 export { openTelemetryIntegration, getOtlpTracesEndpoint } from '@sentry/server-utils/no-diagnostic-channels';
 // Deprecated aliases kept for back-compat. Each forwards to the shared
 // integration above, so its name is the shared name (e.g. `Mysql`), not the old

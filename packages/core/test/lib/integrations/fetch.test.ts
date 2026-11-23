@@ -1,3 +1,4 @@
+import { HTTP_REQUEST_METHOD } from '@sentry/conventions/attributes';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as breadcrumbsModule from '../../../src/breadcrumbs';
 import * as currentScopesModule from '../../../src/currentScopes';
@@ -211,6 +212,7 @@ describe('createFetchIntegration', () => {
         category: 'fetch',
         data: {
           method: 'POST',
+          [HTTP_REQUEST_METHOD]: 'POST',
           url: 'http://my-website.com/',
           request_body_size: 10,
           response_body_size: 20,
@@ -283,7 +285,7 @@ describe('createFetchIntegration', () => {
     });
 
     expect(addBreadcrumbSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { method: 'GET', url: '' } }),
+      expect.objectContaining({ data: { method: 'GET', [HTTP_REQUEST_METHOD]: 'GET', url: '' } }),
       expect.anything(),
     );
   });
@@ -306,7 +308,7 @@ describe('createFetchIntegration', () => {
     expect(addBreadcrumbSpy).toHaveBeenCalledWith(
       {
         category: 'fetch',
-        data: { method: 'POST', url: 'http://my-website.com/' },
+        data: { method: 'POST', [HTTP_REQUEST_METHOD]: 'POST', url: 'http://my-website.com/' },
         level: 'error',
         type: 'http',
       },

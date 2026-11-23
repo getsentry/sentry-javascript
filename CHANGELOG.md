@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @adityareddy-dev, @wolfgang42, and @JonasBa. Thank you for your contributions!
+
 ## 11.16.0
 
 ### Important Changes
@@ -66,6 +68,10 @@
 ## 11.15.0
 
 ### Important Changes
+
+- **feat(core): Enrich MCP SDK spans instead of duplicating them ([#26309](https://github.com/getsentry/sentry-javascript/pull/26309))**
+
+  When the MCP SDK (`@modelcontextprotocol/server`) starts its own OpenTelemetry span for an MCP message and that span reaches Sentry, Sentry now adds its MCP attributes to that span instead of starting a second one. This span is a child of the surrounding span, such as `http.server`, not its own transaction. Without the MCP SDK's OpenTelemetry tracing, nothing changes.
 
 - **feat(core): Continue MCP server traces from `params._meta` ([#26308](https://github.com/getsentry/sentry-javascript/pull/26308))**
 

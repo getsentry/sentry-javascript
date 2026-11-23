@@ -11,8 +11,9 @@ Sentry.init({
   // Ensure this gets a correct hint
   beforeBreadcrumb(breadcrumb, hint) {
     breadcrumb.data = breadcrumb.data || {};
-    const req = hint?.request;
-    breadcrumb.data.ADDED_PATH = req?.path;
+    // `@sentry/node` passes the undici request. The SDKs that patch the global `fetch` pass its arguments.
+    const path = hint?.request ? hint.request.path : hint?.input && new URL(String(hint.input[0])).pathname;
+    breadcrumb.data.ADDED_PATH = path;
     return breadcrumb;
   },
 });

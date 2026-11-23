@@ -77,7 +77,7 @@ export interface PiTaskRuntime {
   readonly conversationId: unknown;
   readonly signal?: AbortSignal;
   agent(context: unknown): Promise<PiAgent>;
-  commit(change: PiCommitChange, context: unknown): Promise<void>;
+  commit(change: PiCommitChange, context: unknown, ...rest: unknown[]): Promise<void>;
   snapshot?(token: PiDocToken, ownerId: unknown, ...rest: unknown[]): Promise<unknown>;
 }
 

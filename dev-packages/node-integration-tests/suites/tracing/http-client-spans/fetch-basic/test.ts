@@ -1,5 +1,6 @@
 import { createTestServer } from '@sentry-internal/test-utils';
 import { afterAll, describe, expect } from 'vitest';
+import { EXPECTED_FETCH_SPAN_ORIGIN } from '../../../../utils';
 import { cleanupChildProcesses, createCjsTests } from '../../../../utils/runner';
 
 describe('outgoing fetch spans', () => {
@@ -35,13 +36,13 @@ describe('outgoing fetch spans', () => {
               expect.objectContaining({
                 description: expect.stringMatching(/GET .*\/api\/v0/),
                 op: 'http.client',
-                origin: 'auto.http.node_fetch',
+                origin: EXPECTED_FETCH_SPAN_ORIGIN,
                 status: 'ok',
               }),
               expect.objectContaining({
                 description: expect.stringMatching(/GET .*\/api\/v1/),
                 op: 'http.client',
-                origin: 'auto.http.node_fetch',
+                origin: EXPECTED_FETCH_SPAN_ORIGIN,
                 status: 'not_found',
                 data: expect.objectContaining({
                   'http.response.status_code': 404,

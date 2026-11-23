@@ -21,6 +21,7 @@ const NODE_ONLY = [
 // so the `@sentry/bun` project runs these suites, except the ones in `SENTRY_BUN_EXCLUDE`.
 const NO_HTTP_SERVER_SPANS = [
   'suites/sessions/**',
+  'suites/tracing/envelope-header/incoming-trace-without-dsc/test.ts',
   'suites/tracing/envelope-header/sampleRate-propagation/test.ts',
   'suites/tracing/httpIntegration-streamed/test.ts',
   'suites/tracing/httpIntegration/test.ts',
@@ -158,20 +159,6 @@ const NO_NATIVE_NODE_FETCH_INTEGRATION = [
   'suites/tracing/requests/fetch-no-tracing-no-spans/test.ts',
 ];
 
-// The `fetchIntegration` of `@sentry/bun` comes from `@sentry/core`. Its spans, breadcrumbs and
-// `sentry-trace` headers differ from the ones `@sentry/node` creates, for example the span origin
-// is `auto.http.fetch`, not `auto.http.node_fetch`, and the spans have no `url.path`, so
-// `ignoreSpans` cannot match them on it.
-const FETCH_INTEGRATION_DIFFERS = [
-  'suites/tracing/double-baggage/spans-parent/test.ts',
-  'suites/tracing/http-client-spans/fetch-basic/test.ts',
-  'suites/tracing/http-client-spans/fetch-error/test.ts',
-  'suites/tracing/http-client-spans/fetch-strip-query/test.ts',
-  'suites/tracing/ignoreSpans/continued-trace-http-client/test.ts',
-  'suites/tracing/requests/fetch-breadcrumbs/test.ts',
-  'suites/tracing/requests/fetch-sampled-no-active-span/test.ts',
-];
-
 // `@sentry/bun` creates `http.server` spans with `bunHttpServerIntegration`, not `httpIntegration`.
 // Its spans differ: response headers become attributes, there is no `http.response.status_text`,
 // and the span name has no route. A server that sets `emit` back to the `emit` it had before its
@@ -214,17 +201,22 @@ export const SENTRY_NODE_EXCLUDE = [...NO_HTTP_SERVER_SPANS, ...NO_FETCH_INSTRUM
 // servers without those.
 const BUN_DROPS_PIPELINED_REQUESTS = ['suites/tunnel/hardening/test.ts'];
 
-// Before Bun 1.4, `require('../package.json')` in an ES module of `proxy` fails with `Cannot find
-// module '../package.json' from ''` when `alias-sentry-bun.ts` wraps `Module._resolveFilename`.
 // Excluded in `node-suites-sentry-bun` only before Bun 1.4.
-export const SENTRY_BUN_BEFORE_1_4_EXCLUDE = ['suites/proxy/test.ts'];
+// - `proxy`: `require('../package.json')` in an ES module fails with `Cannot find module
+//   '../package.json' from ''` when `alias-sentry-bun.ts` wraps `Module._resolveFilename`.
+// - The other two make an outgoing `node:http` request, which gets no `sentry-trace` or `baggage`
+//   header before Bun 1.4 (see `BUN_1_3_NO_HTTP_CLIENT_CHANNEL`).
+export const SENTRY_BUN_BEFORE_1_4_EXCLUDE = [
+  'suites/proxy/test.ts',
+  'suites/tracing/double-baggage/spans-parent/test.ts',
+  'suites/tracing/ignoreSpans/continued-trace-http-client/test.ts',
+];
 
 export const SENTRY_BUN_EXCLUDE = [
   ...BUN_DROPS_PIPELINED_REQUESTS,
   ...HTTP_SERVER_SPANS_DIFFER,
   ...NO_EXPRESS_INSTRUMENTATION,
   ...NO_NATIVE_NODE_FETCH_INTEGRATION,
-  ...FETCH_INTEGRATION_DIFFERS,
 ];
 
 // The build project (`node-suites-bun-build`) runs the suites of `NO_AUTO_INSTRUMENTATION` with the
