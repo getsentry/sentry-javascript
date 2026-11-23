@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import type { BuildEnvironmentOptions, Plugin, ResolvedConfig } from 'vite';
+import { sentryEnablesSourceMaps } from './sentryEnablesSourceMaps';
+import type { SentryTanstackStartOptions } from './sentryTanstackStart';
 import type { SourceMapState } from './sourceMaps';
 
 /** `nitro/vite` builds the final server in an environment with this name. */
@@ -45,7 +47,7 @@ export function isNitroService(environment: PluginEnvironment): boolean {
  * source or `build.rolldownOptions.output.sourcemap` of the Vite config sets them, or the Vite config disables them.
  */
 export function makeEnableNitroSourceMapsPlugin(
-  { debug }: { debug?: boolean },
+  options: SentryTanstackStartOptions,
   state: SourceMapState,
 ): Plugin & {
   nitro: { name: string; setup: (nitro: Nitro) => void };
@@ -73,13 +75,21 @@ export function makeEnableNitroSourceMapsPlugin(
 
         const layers = nitro.options._c12?.layers;
         // Without the config sources, Sentry cannot tell if the user disabled source maps.
-        if (!layers || viteConfigPreventsSourceMaps || layers.some(layer => hasNitroSourceMapSetting(layer.config))) {
+        if (
+          !layers ||
+          viteConfigPreventsSourceMaps ||
+          layers.some(layer => hasNitroSourceMapSetting(layer.config)) ||
+          !sentryEnablesSourceMaps(options)
+        ) {
           return;
         }
 
         nitro.options.sourcemap = 'hidden';
         state.sdkEnabledNitroSourceMaps = true;
-        logDebug(debug, "Enabled source map generation for the Nitro server build with `nitro.sourcemap: 'hidden'`.");
+        logDebug(
+          options.debug,
+          "Enabled source map generation for the Nitro server build with `nitro.sourcemap: 'hidden'`.",
+        );
       },
     },
   };

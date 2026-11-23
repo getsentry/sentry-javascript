@@ -1,6 +1,7 @@
 // @vitest-environment node
 import type { SentryVitePluginInternalOptions } from '@sentry/bundler-plugins/vite';
 import type { UserConfig } from 'vite';
+import type { SentryTanstackStartOptions } from '../../src/vite/sentryTanstackStart';
 import { mergeConfig } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as path from 'path';
@@ -11,6 +12,17 @@ import {
   makeEnableSourceMapsVitePlugin,
   rewriteTanstackStartSource,
 } from '../../src/vite/sourceMaps';
+
+// Sentry only turns source maps on when the plugin can upload them.
+beforeEach(() => {
+  vi.stubEnv('SENTRY_AUTH_TOKEN', 'token');
+  vi.stubEnv('SENTRY_ORG', 'org');
+  vi.stubEnv('SENTRY_PROJECT', 'project');
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 const mockedSentryVitePlugin = {
   name: 'sentry-vite-debug-id-upload-plugin',
@@ -437,6 +449,21 @@ describe('getUpdatedSourceMapSettings', () => {
 
   it.each([true, false])('should set sourcemap to hidden with `sourcemaps.delete: %s`', value => {
     expect(getUpdatedSourceMapSettings({}, { sourcemaps: { delete: value } })).toBe('hidden');
+  });
+
+  it.each<[Record<string, string>, SentryTanstackStartOptions, 'hidden' | undefined]>([
+    [{ SENTRY_AUTH_TOKEN: '' }, {}, undefined],
+    [{ SENTRY_ORG: '' }, {}, undefined],
+    [{ SENTRY_PROJECT: '' }, {}, undefined],
+    [{ SENTRY_AUTH_TOKEN: '' }, { authToken: 'token' }, 'hidden'],
+    [{ SENTRY_ORG: '', SENTRY_AUTH_TOKEN: 'sntrys_token' }, {}, 'hidden'],
+    [{ SENTRY_AUTH_TOKEN: '' }, { sourcemaps: { delete: false } }, 'hidden'],
+    [{ SENTRY_AUTH_TOKEN: '' }, { sourcemaps: { upload: false, delete: false } }, 'hidden'],
+  ])('with the environment %j and the options %j it sets unset source maps to %s', (env, options, expected) => {
+    for (const [key, value] of Object.entries(env)) {
+      vi.stubEnv(key, value);
+    }
+    expect(getUpdatedSourceMapSettings({}, options)).toBe(expected);
   });
 
   it.each([

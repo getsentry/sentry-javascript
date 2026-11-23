@@ -5,6 +5,17 @@ import { mergeConfig } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentryTanstackStart, type SentryTanstackStartOptions } from '../../src/vite/sentryTanstackStart';
 
+// Sentry only turns source maps on when the plugin can upload them.
+beforeEach(() => {
+  vi.stubEnv('SENTRY_AUTH_TOKEN', 'token');
+  vi.stubEnv('SENTRY_ORG', 'org');
+  vi.stubEnv('SENTRY_PROJECT', 'project');
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 let sentryVitePluginOptions: SentryVitePluginInternalOptions | undefined;
 
 vi.mock('@sentry/bundler-plugins/vite', () => ({

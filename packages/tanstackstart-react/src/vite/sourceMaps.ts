@@ -7,6 +7,7 @@ import {
   NITRO_ENVIRONMENT,
   type PluginEnvironment,
 } from './nitroSourceMaps';
+import { sentryEnablesSourceMaps } from './sentryEnablesSourceMaps';
 import type { SentryTanstackStartOptions } from './sentryTanstackStart';
 
 /** TanStack Router and Start split route files into virtual modules, e.g. `index.tsx?tss-serverfn-split`. */
@@ -165,7 +166,8 @@ export function makeEnableSourceMapsVitePlugin(
  *       - keep this setting (don't do anything - like deletion - besides uploading)
  *
  *     3. Users didn't set source maps generation
- *       - we enable 'hidden' source maps generation
+ *       - we enable 'hidden' source maps generation when Sentry can upload them, or when `sourcemaps.delete: false`
+ *         keeps them for a manual upload
  *       - without `sourcemaps.delete` we pass `deleteSourcemapsAfterUpload: true`, so the bundler plugin removes
  *         these .map files from the build output
  *
@@ -214,7 +216,10 @@ export function getUpdatedSourceMapSettings(
     return undefined;
   }
 
-  // If the user did not specify a source map setting, we enable 'hidden' by default
+  if (!sentryEnablesSourceMaps(sentryPluginOptions ?? {})) {
+    return undefined;
+  }
+
   if (debug) {
     // eslint-disable-next-line no-console
     console.log(

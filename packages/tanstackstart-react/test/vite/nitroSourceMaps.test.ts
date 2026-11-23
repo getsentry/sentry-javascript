@@ -12,6 +12,17 @@ import {
 } from '../../src/vite/nitroSourceMaps';
 import { createSourceMapState } from '../../src/vite/sourceMaps';
 
+// Sentry only turns source maps on when the plugin can upload them.
+beforeEach(() => {
+  vi.stubEnv('SENTRY_AUTH_TOKEN', 'token');
+  vi.stubEnv('SENTRY_ORG', 'org');
+  vi.stubEnv('SENTRY_PROJECT', 'project');
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 const SSR_OUT_DIR = 'node_modules/.nitro/vite/services/ssr';
 
 function createEnvironment(name: string, consumer: 'client' | 'server', environmentNames: string[]): PluginEnvironment {
@@ -86,6 +97,14 @@ describe('Nitro source map config', () => {
 
     expect(nitroOptions).toEqual({ sourcemap: 'hidden', experimental: { sourcemapMinify: false } });
     expect(state.sdkEnabledNitroSourceMaps).toBe(true);
+  });
+
+  it('keeps the source maps off without an auth token, with the sources', () => {
+    vi.stubEnv('SENTRY_AUTH_TOKEN', '');
+    const { state, nitroOptions } = setup([{}, {}]);
+
+    expect(nitroOptions).toEqual({ sourcemap: false, experimental: { sourcemapMinify: false } });
+    expect(state.sdkEnabledNitroSourceMaps).toBe(false);
   });
 
   it.each([false, true, 'hidden'])(
