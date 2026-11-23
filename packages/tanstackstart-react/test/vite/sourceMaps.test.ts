@@ -439,6 +439,19 @@ describe('getUpdatedSourceMapSettings', () => {
     expect(getUpdatedSourceMapSettings({}, { sourcemaps: { delete: value } })).toBe('hidden');
   });
 
+  it.each([
+    [undefined, 'removed from'],
+    [true, 'removed from'],
+    [false, 'kept in'],
+  ] as const)('should log where the source maps go with `sourcemaps.delete: %s`', (value, expected) => {
+    getUpdatedSourceMapSettings({}, { debug: true, sourcemaps: { delete: value } });
+
+    // eslint-disable-next-line no-console
+    expect(console.log).toHaveBeenCalledWith(
+      `[Sentry] Enabled source map generation in the build options with \`vite.build.sourcemap: 'hidden'\`. The source maps will be ${expected} the build output.`,
+    );
+  });
+
   it('should keep an explicit setting with `sourcemaps.delete: true`', () => {
     expect(getUpdatedSourceMapSettings({ build: { sourcemap: true } }, { sourcemaps: { delete: true } })).toBe(true);
   });

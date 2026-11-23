@@ -218,7 +218,9 @@ export function getUpdatedSourceMapSettings(
   if (debug) {
     // eslint-disable-next-line no-console
     console.log(
-      `[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`. The source maps will be removed from the build output.`,
+      `[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`. The source maps will be ${
+        sentryPluginOptions?.sourcemaps?.delete === false ? 'kept in' : 'removed from'
+      } the build output.`,
     );
   }
 
