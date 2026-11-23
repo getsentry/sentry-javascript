@@ -45,6 +45,7 @@ const config = getPlaywrightConfig({
 
 export default {
   ...config,
+  workers: process.env.CI ? 2 : config.workers,
   globalSetup: './global-setup.mjs',
   globalTeardown: './global-teardown.mjs',
 };

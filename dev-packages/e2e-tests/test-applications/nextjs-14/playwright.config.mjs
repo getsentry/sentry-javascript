@@ -10,4 +10,7 @@ const config = getPlaywrightConfig({
   port: 3030,
 });
 
-export default config;
+export default {
+  ...config,
+  workers: process.env.CI ? 2 : config.workers,
+};
