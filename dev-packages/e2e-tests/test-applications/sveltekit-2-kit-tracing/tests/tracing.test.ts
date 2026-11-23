@@ -164,13 +164,16 @@ test('record client-side universal load fetch span and trace', async ({ page }) 
 });
 
 test('captures a navigation span directly after pageload', async ({ page }) => {
-  const clientPageloadSpanPromise = waitForStreamedSpan('sveltekit-2-kit-tracing', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment;
+  const traceHeaderPromise = page.locator('meta[name="sentry-trace"]').getAttribute('content');
+  const clientPageloadSpanPromise = waitForStreamedSpan('sveltekit-2-kit-tracing', async span => {
+    return (
+      getSpanOp(span) === 'pageload' && span.is_segment && span.trace_id === (await traceHeaderPromise)?.split('-')[0]
+    );
   });
 
   const navigationTraceSpansPromise = collectStreamedSpansUntilSegment(
     'sveltekit-2-kit-tracing',
-    span => getSpanOp(span) === 'navigation',
+    span => getSpanOp(span) === 'navigation' && String(span.attributes['url.full']?.value).endsWith('/users/123abc'),
   );
 
   await waitForInitialPageload(page, { route: '/' });
