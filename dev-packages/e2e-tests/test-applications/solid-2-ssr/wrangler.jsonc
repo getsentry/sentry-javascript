@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "solid-2-ssr",
+  "compatibility_date": "2026-06-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "virtual:solid-ssr-handler",
+  "assets": {
+    "directory": "./dist/client",
+  },
+}
