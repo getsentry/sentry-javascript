@@ -54,6 +54,7 @@ describe('Edge init()', () => {
     expect(vercelEdgeInit).toHaveBeenLastCalledWith(
       expect.objectContaining({
         _metadata: {
+          optionsSetByUser: [],
           sdk: {
             name: 'sentry.javascript.nextjs',
             version: expect.any(String),

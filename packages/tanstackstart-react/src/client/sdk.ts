@@ -1,5 +1,5 @@
 import type { Client } from '@sentry/core';
-import { applySdkMetadata } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions as ReactBrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as initReactSDK } from '@sentry/react';
 import { applyTunnelRouteOption } from './tunnelRoute';
@@ -12,7 +12,7 @@ import { applyTunnelRouteOption } from './tunnelRoute';
 export function init(options: ReactBrowserOptions): Client | undefined {
   const sentryOptions: ReactBrowserOptions = {
     defaultIntegrations: [...getReactDefaultIntegrations(options)],
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
   };
 
   applyTunnelRouteOption(sentryOptions);

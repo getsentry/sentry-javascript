@@ -24,6 +24,7 @@ describe('Sentry server SDK', () => {
       expect(nodeInit).toHaveBeenCalledWith(
         expect.objectContaining({
           _metadata: {
+            optionsSetByUser: [],
             sdk: {
               name: 'sentry.javascript.sveltekit',
               version: SDK_VERSION,

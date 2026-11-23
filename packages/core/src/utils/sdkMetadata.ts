@@ -1,23 +1,53 @@
+import type { Integration } from '../types/integration';
 import type { CoreOptions } from '../types/options';
+import type { SdkMetadata } from '../types/sdkmetadata';
+import { uniq } from './array';
 import { SDK_VERSION } from '../utils/version';
 
 /**
  * Preserve user-provided option keys before SDK wrappers add defaults.
  * @internal
  */
-export function captureOptionsSetByUser<T extends Pick<CoreOptions, '_metadata'>>(options: T): T {
+export function captureOptionsSetByUser<T extends Pick<CoreOptions, '_metadata' | 'integrations'>>(options: T): T {
   if (options._metadata?.optionsSetByUser) {
     return options;
   }
 
+  const { integrations } = options;
+  const metadata: SdkMetadata = {
+    ...options._metadata,
+    optionsSetByUser: Object.keys(options)
+      .filter(key => key !== '_metadata')
+      .sort(),
+  };
+
+  // SDKs merge their defaults into `integrations` before the client gets it.
+  if (Array.isArray(integrations)) {
+    metadata.integrationsSetByUser = uniq(integrations.map(integration => integration.name));
+  }
+
   return {
     ...options,
-    _metadata: {
-      ...options._metadata,
-      optionsSetByUser: Object.keys(options)
-        .filter(key => key !== '_metadata')
-        .sort(),
-    },
+    _metadata: metadata,
+    // Report the function as a change to the defaults, the same way the array form reads.
+    ...(typeof integrations === 'function' && {
+      integrations: (defaults: Integration[]) => {
+        const resolved = integrations(defaults);
+        const resolvedNames = new Set(resolved.map(integration => integration.name));
+        const removed = uniq(defaults.map(integration => integration.name).filter(name => !resolvedNames.has(name)));
+
+        metadata.integrationsSetByUser = uniq(
+          resolved
+            .filter(integration => !(integration as Integration & { isDefaultInstance?: true }).isDefaultInstance)
+            .map(integration => integration.name),
+        );
+        if (removed.length) {
+          metadata.removedDefaultIntegrations = removed.sort();
+        }
+
+        return resolved;
+      },
+    }),
   };
 }
 

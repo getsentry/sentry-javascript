@@ -12,6 +12,7 @@ import {
 import { FUNCTION } from '@sentry/conventions/op';
 import type { PropagationContext, Scope } from '@sentry/core';
 import {
+  _INTERNAL_captureOptionsSetByUser,
   captureException,
   checkOrSetAlreadyCaught,
   flush,
@@ -279,7 +280,7 @@ export function instrumentWorkflowWithSentry<
     construct(target: C, args: [ctx: ExecutionContext, env: any], newTarget) {
       const [ctx, env] = args;
       const context = instrumentContext(ctx);
-      const options = optionsCallback(env);
+      const options = _INTERNAL_captureOptionsSetByUser(optionsCallback(env) || {});
       args[0] = context;
       args[1] = instrumentEnv(env as Record<string, unknown>, options) as E;
       const instance = Reflect.construct(target, args, newTarget) as T;
