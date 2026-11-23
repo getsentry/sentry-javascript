@@ -11,7 +11,7 @@ const CLOUDFLARE_META_TAGS_BEFORE_ROUTE = 'Cloudflare meta tags are created befo
 
 async function getBaggageMetaTagAndServerSpan(request: APIRequestContext, path: string) {
   const serverSpanPromise = waitForStreamedSpan('nuxt-4', span => {
-    return span.is_segment && span.name.includes('GET /test-param/');
+    return span.is_segment && span.attributes['url.path']?.value === path;
   });
 
   const [response, serverSpan] = await Promise.all([request.get(path), serverSpanPromise]);
@@ -43,11 +43,15 @@ test.describe('distributed tracing', () => {
 
   test('capture a distributed pageload trace', async ({ page }) => {
     const clientSpanPromise = waitForStreamedSpan('nuxt-4', span => {
-      return getSpanOp(span) === 'pageload' && span.is_segment;
+      return (
+        getSpanOp(span) === 'pageload' &&
+        span.is_segment &&
+        span.attributes['url.path']?.value === `/test-param/${PARAM}`
+      );
     });
 
     const serverSpanPromise = waitForStreamedSpan('nuxt-4', span => {
-      return span.is_segment && span.name.includes('GET /test-param/');
+      return span.is_segment && span.attributes['url.path']?.value === `/test-param/${PARAM}`;
     });
 
     const [_, clientSpan, serverSpan] = await Promise.all([
