@@ -10,7 +10,10 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
   test.describe(`server-side errors (${name})`, () => {
     test('captures api fetch error (fetched on click)', async ({ page }) => {
       const errorPromise = waitForError('nuxt-4', async errorEvent => {
-        return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 4 Server error';
+        return (
+          errorEvent?.exception?.values?.[0]?.value === 'Nuxt 4 Server error' &&
+          errorEvent.request?.url?.endsWith(`${apiPrefix}/server-error`) === true
+        );
       });
 
       await page.goto(`/fetch-server-routes?apiPrefix=${apiPrefix}`);
@@ -45,7 +48,10 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
 
     test('captures api fetch error (fetched on click) with parametrized route', async ({ page }) => {
       const errorPromise = waitForError('nuxt-4', async errorEvent => {
-        return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 4 Param Server error';
+        return (
+          errorEvent?.exception?.values?.[0]?.value === 'Nuxt 4 Param Server error' &&
+          errorEvent.request?.url?.endsWith(`${apiPrefix}/param-error/1234`) === true
+        );
       });
 
       await page.goto(`/test-param/1234?apiPrefix=${apiPrefix}`);
