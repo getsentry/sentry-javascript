@@ -76,9 +76,6 @@ test.describe('prerendered ISR pages', () => {
 });
 
 test('should create unique traces for ISR pages on each visit', async ({ page }) => {
-  // Other workers' deliberate errors trigger Fast Refresh reloads, which would interrupt these visits.
-  await page.routeWebSocket('**/_next/webpack-hmr*', socket => socket.onMessage(() => undefined));
-
   const traceIds: string[] = [];
 
   // Load the same ISR page 5 times: the cached HTML carries no trace tag, so every visit starts its own trace
@@ -88,9 +85,9 @@ test('should create unique traces for ISR pages on each visit', async ({ page })
     });
 
     if (i === 0) {
-      await page.goto('/isr-test/laptop');
+      await page.goto('/isr-test/laptop', { waitUntil: 'commit' });
     } else {
-      await page.reload();
+      await page.reload({ waitUntil: 'commit' });
     }
 
     const span = await spanPromise;

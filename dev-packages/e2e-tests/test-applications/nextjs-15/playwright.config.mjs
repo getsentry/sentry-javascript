@@ -28,6 +28,7 @@ const config = getPlaywrightConfig({
 
 export default {
   ...config,
+  globalSetup: './global-setup.mjs',
   workers: process.env.CI ? 4 : config.workers,
   retries: process.env.CI ? 0 : config.retries,
 };
