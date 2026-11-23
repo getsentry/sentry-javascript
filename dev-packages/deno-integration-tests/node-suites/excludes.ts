@@ -135,16 +135,6 @@ const NO_CLIENT_REPORTS = [
   'suites/tracing/sampling/test.ts',
 ];
 
-// The `fetchIntegration` of `@sentry/deno` creates other spans and breadcrumbs than `@sentry/node`:
-// the span origin is `auto.http.fetch`, not `auto.http.node_fetch`, the spans have fewer
-// attributes, and the breadcrumb category is `fetch`, not `http`.
-const FETCH_INTEGRATION_DIFFERS = [
-  'suites/tracing/http-client-spans/fetch-basic/test.ts',
-  'suites/tracing/http-client-spans/fetch-error/test.ts',
-  'suites/tracing/http-client-spans/fetch-strip-query/test.ts',
-  'suites/tracing/requests/fetch-breadcrumbs/test.ts',
-];
-
 // The stack frames of `@sentry/deno` have no `module`, and some have other `function` names. Their
 // `post_context` also ends with an extra empty line, and in CommonJS scenarios the line numbers can
 // be off.
@@ -171,7 +161,6 @@ export const NODE_SUITES_EXCLUDE = [
   ...NO_NODE_DEFAULT_INTEGRATION,
   ...GLOBAL_HANDLERS_DIFFER,
   ...NO_CLIENT_REPORTS,
-  ...FETCH_INTEGRATION_DIFFERS,
   ...STACK_FRAMES_DIFFER,
   ...REQUEST_IP_DIFFERS,
 ];
