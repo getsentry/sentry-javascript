@@ -85,6 +85,10 @@ const CASES: Case[] = [
   { specifier: '@sentry/nextjs/orchestrion-runtime/index', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/nextjs/orchestrion-runtime/register', conditions: NODE, formats: BOTH },
 
+  // The root entry also exports config-time code (`withSentryConfig`).
+  { specifier: '@sentry/nitro', conditions: NODE, formats: ESM, knownViolation: true },
+  { specifier: '@sentry/nitro/import', conditions: NODE, formats: ESM },
+
   { specifier: '@sentry/nuxt', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/nuxt/module/plugins', conditions: NODE, formats: ESM },
 

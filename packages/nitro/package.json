@@ -26,6 +26,11 @@
     ".": {
       "types": "./build/types/index.d.ts",
       "default": "./build/esm/index.js"
+    },
+    "./import": {
+      "import": {
+        "default": "./build/import-hook.mjs"
+      }
     }
   },
   "publishConfig": {
@@ -74,7 +79,8 @@
           "build:types"
         ],
         "outputs": [
-          "{projectRoot}/build/esm"
+          "{projectRoot}/build/esm",
+          "{projectRoot}/build/import-hook.mjs"
         ]
       }
     }
