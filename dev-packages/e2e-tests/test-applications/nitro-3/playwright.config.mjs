@@ -14,6 +14,8 @@ const getStartCommand = () => {
     case 'production':
     case 'prod-nitro':
       return 'pnpm start';
+    case 'prod-nitro-import-hook':
+      return 'pnpm start:import-hook';
     default:
       throw new Error(`Unknown test env: ${testEnv}`);
   }
