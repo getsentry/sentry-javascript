@@ -7,7 +7,7 @@ import type { JsonRpcResponse } from '../../../../src/integrations/mcp-server/ty
 import { SentrySpan } from '../../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../../src/tracing/spanstatus';
 import * as tracing from '../../../../src/tracing/trace';
-import { spanToJSON } from '../../../../src/utils/spanUtils';
+import { getActiveSpan, spanToJSON } from '../../../../src/utils/spanUtils';
 import { createMockClient, createMockMcpServer, createMockTransport } from './testUtils';
 
 describe('MCP server response error classification', () => {
@@ -87,6 +87,20 @@ describe('MCP server response error classification', () => {
       );
     },
   );
+
+  it('captures a server error response with the request span active', async () => {
+    const { span, transport } = await createRequest('resources/read');
+    let activeSpanAtCapture: unknown;
+    vi.mocked(exports.captureException).mockImplementation(() => {
+      activeSpanAtCapture = getActiveSpan();
+      return 'event-id';
+    });
+
+    await transport.send({ jsonrpc: '2.0', id: 'request-1', error: { code: -32603, message: 'Internal error' } });
+
+    expect(exports.captureException).toHaveBeenCalledTimes(1);
+    expect(activeSpanAtCapture).toBe(span);
+  });
 
   it('preserves a previously recorded failure when the response is a caller error', async () => {
     const { span, transport } = await createRequest('resources/list');

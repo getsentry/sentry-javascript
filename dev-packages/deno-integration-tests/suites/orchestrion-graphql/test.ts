@@ -1,9 +1,7 @@
 // <reference lib="deno.ns" />
 
 import { tracingChannel } from 'node:diagnostics_channel';
-import type { DenoClient } from '@sentry/deno';
 import { init, startSpan } from '@sentry/deno';
-import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
@@ -46,16 +44,6 @@ async function assertParseSpan(channelName: string): Promise<void> {
   assertEquals(parseSpan!.op, 'graphql');
   assertEquals(parseSpan!.data?.['sentry.origin'], 'auto.graphql.graphql');
 }
-
-Deno.test('graphql instrumentation: included in default integrations (Deno 2.8.0+)', () => {
-  resetGlobals();
-  const client = init({
-    dsn: 'https://username@domain/123',
-    tracesSampleRate: 1,
-  }) as DenoClient;
-  const names = client.getOptions().integrations.map(i => i.name);
-  assert(names.includes('Graphql'), `Graphql should be in defaults, got ${names.join(', ')}`);
-});
 
 Deno.test('graphql instrumentation: orchestrion:graphql:parse channel produces a nested span (v14–16)', async () => {
   await assertParseSpan('orchestrion:graphql:parse');

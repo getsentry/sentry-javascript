@@ -296,8 +296,8 @@ importers:
         specifier: 11.16.0
         version: link:../../packages/browser-utils
       '@sentry/conventions':
-        specifier: 0.34.0
-        version: 0.34.0
+        specifier: 0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../../packages/core
@@ -356,8 +356,8 @@ importers:
         specifier: 11.16.0
         version: link:../../packages/bun
       '@sentry/conventions':
-        specifier: 0.34.0
-        version: 0.34.0
+        specifier: 0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../../packages/core
@@ -481,6 +481,9 @@ importers:
       '@anthropic-ai/sdk':
         specifier: 0.133.0
         version: 0.133.0(zod@4.6.7)
+      '@clickhouse/client-web':
+        specifier: ^1.25.0
+        version: 1.25.0
       '@cloudflare/vite-plugin':
         specifier: 1.66.0
         version: 1.66.0(@types/node@20.19.43)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))(workerd@1.20261023.1)(wrangler@4.156.0(@cloudflare/workers-types@4.20260519.1)(@types/node@20.19.43))
@@ -521,8 +524,8 @@ importers:
         specifier: 11.16.0
         version: link:../../packages/cloudflare
       '@sentry/conventions':
-        specifier: 0.34.0
-        version: 0.34.0
+        specifier: 0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../../packages/core
@@ -557,8 +560,8 @@ importers:
         specifier: 11.16.0
         version: link:../node-integration-tests
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../../packages/core
@@ -618,6 +621,9 @@ importers:
       '@aws-sdk/client-sqs':
         specifier: ^3.1161.0
         version: 3.1161.0
+      '@clickhouse/client':
+        specifier: ^1.25.0
+        version: 1.25.0
       '@earendil-works/chord':
         specifier: ^1.4.0
         version: 1.4.0
@@ -694,8 +700,8 @@ importers:
         specifier: 11.16.0
         version: link:../../packages/aws-serverless
       '@sentry/conventions':
-        specifier: 0.34.0
-        version: 0.34.0
+        specifier: 0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../../packages/core
@@ -927,8 +933,8 @@ importers:
   dev-packages/test-utils:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       express:
         specifier: ^4.22.3
         version: 4.22.3(supports-color@10.0.0)
@@ -958,8 +964,8 @@ importers:
         specifier: 11.16.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1022,8 +1028,8 @@ importers:
         specifier: 11.16.0
         version: link:../cloudflare
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1050,8 +1056,8 @@ importers:
   packages/aws-serverless:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1084,8 +1090,8 @@ importers:
         specifier: 11.16.0
         version: link:../browser-utils
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1112,8 +1118,8 @@ importers:
   packages/browser-utils:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1131,8 +1137,8 @@ importers:
         specifier: 11.16.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1214,8 +1220,8 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1251,8 +1257,8 @@ importers:
   packages/core:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
     devDependencies:
       '@sentry-internal/rollup-utils':
         specifier: 11.16.0
@@ -1267,8 +1273,8 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1289,8 +1295,8 @@ importers:
         specifier: 11.16.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1314,8 +1320,8 @@ importers:
         specifier: 11.16.0
         version: link:../bun
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1342,8 +1348,8 @@ importers:
         specifier: 11.16.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1485,8 +1491,8 @@ importers:
   packages/google-cloud-serverless:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1525,8 +1531,8 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1575,8 +1581,8 @@ importers:
   packages/nestjs:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1621,8 +1627,8 @@ importers:
         specifier: 11.16.0
         version: link:../cloudflare
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1679,8 +1685,8 @@ importers:
         specifier: 11.16.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1716,8 +1722,8 @@ importers:
         specifier: 11.16.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1772,8 +1778,8 @@ importers:
         specifier: 11.16.0
         version: link:../cloudflare
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1833,8 +1839,8 @@ importers:
   packages/opentelemetry:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1849,8 +1855,8 @@ importers:
   packages/profiling-node:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1874,8 +1880,8 @@ importers:
         specifier: 11.16.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -1941,8 +1947,8 @@ importers:
         specifier: 11.16.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -2002,8 +2008,8 @@ importers:
         specifier: 11.16.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -2092,8 +2098,8 @@ importers:
         specifier: 11.16.0
         version: link:../../dev-packages/rollup-utils
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/rrweb':
         specifier: 2.46.0
         version: 2.46.0
@@ -2164,8 +2170,8 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -2198,8 +2204,8 @@ importers:
         specifier: 11.16.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -2253,8 +2259,8 @@ importers:
         specifier: 11.16.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: 0.34.0
-        version: 0.34.0
+        specifier: 0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -2323,8 +2329,8 @@ importers:
         specifier: 11.16.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -2360,8 +2366,8 @@ importers:
         specifier: 11.16.0
         version: link:../cloudflare
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -2424,8 +2430,8 @@ importers:
         specifier: 11.16.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -2492,8 +2498,8 @@ importers:
         specifier: 11.16.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.34.0
-        version: 0.34.0
+        specifier: ^0.35.0
+        version: 0.35.0
       '@sentry/core':
         specifier: 11.16.0
         version: link:../core
@@ -4152,6 +4158,13 @@ packages:
   '@clack/prompts@1.8.1':
     resolution: {integrity: sha512-dlT1m5e/0yUL0kRNcQn7yGLVThkgbB0Ga/1AmfDDC/8ik6AIiSf2QLQO2zPYvefsHP0aFgxO93cVLCCfDp7kzQ==}
     engines: {node: '>= 20.12.0'}
+
+  '@clickhouse/client-web@1.25.0':
+    resolution: {integrity: sha512-9XgfE82bp8yZBMHql2JrcQz3qnNIuyscChkaSeilXcPl14BCJPdBmuV7oY8AOev9K0LNbMGRD+5GNJAZVSlveg==}
+
+  '@clickhouse/client@1.25.0':
+    resolution: {integrity: sha512-sxoCDlA8iOEGpGrJzl9SeNvG7II6e5kSeo0JI4Mru2QhwhjydWuDEE55ryZg3vIJ0CSJ1bhn9+Xtnuvf1BZT/w==}
+    engines: {node: '>=20'}
 
   '@cloudflare/kv-asset-handler@0.4.2':
     resolution: {integrity: sha512-SIOD2DxrRRwQ+jgzlXCqoEFiKOFqaPjhnNTGKXSRLvp1HiOvapLaFG2kEr9dYQTYe8rKrd9uvDUzmAITeNyaHQ==}
@@ -7686,8 +7699,8 @@ packages:
     resolution: {integrity: sha512-MLxTpTU3E8QACQ/5c0sENMR2gRiMXpGaKeD5IHY+3wyU2fUSJVB0QPU/l1WhoyZbX8N9ospBgf5UEG7taVF9rg==}
     engines: {node: ^14.15.0 || >=16.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
 
-  '@sentry/conventions@0.34.0':
-    resolution: {integrity: sha512-sGYLaq/zyRTOCoadW3Z66q6WHp16stnwezGK45B50mGO6QUTl/ttzsPpy+oxZlj2pKARyOohZ1pX9grdpMxo2Q==}
+  '@sentry/conventions@0.35.0':
+    resolution: {integrity: sha512-bq2ecu6zaBni0gG5bHN9cY7fmUsOW49ntjGZ6VA69PVAa1Uk1NvgF1SdTGoVC0zkqQKziTnxzOs9KuuVlpb26w==}
     engines: {node: '>=14'}
 
   '@sentry/node-cpu-profiler@2.4.4':
@@ -22009,6 +22022,10 @@ snapshots:
       fast-wrap-ansi: 0.2.2
       sisteransi: 1.0.5
 
+  '@clickhouse/client-web@1.25.0': {}
+
+  '@clickhouse/client@1.25.0': {}
+
   '@cloudflare/kv-asset-handler@0.4.2': {}
 
   '@cloudflare/kv-asset-handler@0.5.0': {}
@@ -25433,7 +25450,7 @@ snapshots:
     transitivePeerDependencies:
       - chokidar
 
-  '@sentry/conventions@0.34.0': {}
+  '@sentry/conventions@0.35.0': {}
 
   '@sentry/node-cpu-profiler@2.4.4':
     dependencies:

@@ -1,6 +1,7 @@
 import { HTTP_CLIENT } from '@sentry/conventions/op';
 import { SENTRY_OP, SENTRY_ORIGIN, URL_FULL } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
+import { EXPECTED_FETCH_SPAN_ORIGIN } from '../../../../utils';
 import { cleanupChildProcesses, createCjsTests } from '../../../../utils/runner';
 
 describe('outgoing fetch spans - error', () => {
@@ -22,7 +23,7 @@ describe('outgoing fetch spans - error', () => {
                   attributes: expect.objectContaining({
                     [URL_FULL]: { type: 'string', value: expect.stringMatching(/http:\/\/localhost:\d+\//) },
                     [SENTRY_OP]: { type: 'string', value: HTTP_CLIENT },
-                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.http.node_fetch' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: EXPECTED_FETCH_SPAN_ORIGIN },
                   }),
                 }),
               ]),

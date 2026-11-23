@@ -20,6 +20,10 @@ describe('buildReleaseSnippet', () => {
 });
 
 describe('makeServerReleaseVitePlugin', () => {
+  it('only applies to builds', () => {
+    expect(makeServerReleaseVitePlugin('1.0.0').apply).toBe('build');
+  });
+
   it('serves a module that sets the release global', () => {
     const plugin = makeServerReleaseVitePlugin('1.0.0');
     const resolved = (plugin.resolveId as (id: string) => string | null)('virtual:@sentry/astro/release');

@@ -1,4 +1,3 @@
-import type { SpanLink } from '../../types/link';
 import type { Span } from '../../types/span';
 
 /** Types for MCP server instrumentation */
@@ -159,20 +158,6 @@ export interface ExtraHandlerData {
 
 /** Types of MCP spans */
 export type McpSpanType = 'request' | 'notification-incoming' | 'notification-outgoing';
-
-/**
- * Configuration for creating MCP spans
- * @internal
- */
-export interface McpSpanConfig {
-  type: McpSpanType;
-  message: JsonRpcRequest | JsonRpcNotification;
-  transport: MCPTransport;
-  extra?: ExtraHandlerData;
-  callback: () => unknown;
-  options?: ResolvedMcpOptions;
-  links?: SpanLink[];
-}
 
 export type SessionId = string;
 export type RequestId = string | number;

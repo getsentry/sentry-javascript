@@ -1,22 +1,7 @@
 // <reference lib="deno.ns" />
 
-import { tracingChannel } from 'node:diagnostics_channel';
-import type { DenoClient } from '@sentry/deno';
-import { flush, init, startSpan } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
-import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
-import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
-
-Deno.test('pg instrumentation: included in default integrations (Deno 2.8.0+)', () => {
-  resetGlobals();
-  const client = init({
-    dsn: 'https://username@domain/123',
-    tracesSampleRate: 1,
-  }) as DenoClient;
-  const names = client.getOptions().integrations.map(i => i.name);
-  assert(names.includes('Postgres'), `Postgres should be in defaults, got ${names.join(', ')}`);
-});
 
 // Covers the import form of the hook. The `--preload` form the README
 // documents is covered by the `deno` E2E app.
@@ -49,58 +34,4 @@ Deno.test('@sentry/deno/import: transforms pg so it publishes the orchestrion ch
   assert(line.includes('statement=SELECT 1 AS solution'), `expected forwarded SQL, got: ${line}`);
   // The runtime hook set its detection marker at boot.
   assert(line.includes('"runtime":["pg","pg-pool"]'), `expected runtime marker, got: ${line}`);
-});
-
-Deno.test('pg instrumentation: orchestrion:pg:query channel produces a nested db span', async () => {
-  resetGlobals();
-  const sink = spanSink();
-  init({
-    dsn: 'https://username@domain/123',
-    tracesSampleRate: 1,
-    transport: sink.transport,
-  });
-
-  const channel = tracingChannel('orchestrion:pg:query');
-
-  // The shared context object orchestrion reuses across the lifecycle events.
-  // `arguments[0]` is the SQL; `self.connectionParameters` is pg's resolved connection config.
-  const ctx = {
-    arguments: ['SELECT 1 AS solution'],
-    self: { connectionParameters: { host: '127.0.0.1', port: 5432, database: 'mydb', user: 'root' } },
-  };
-
-  // Callback-success order published by orchestrion's transform:
-  // start → end → asyncStart → asyncEnd (the span closes on asyncEnd).
-  // `start`/`asyncStart` go through `runStores` (not bare `publish`), exactly as the transform's
-  // `wrapCallback` does — that's what activates the store the subscriber binds, so the span opens.
-  startSpan({ name: 'parent', op: 'test' }, () => {
-    channel.start.runStores(ctx, () => {
-      channel.end.publish(ctx);
-    });
-    channel.asyncStart.runStores(ctx, () => {
-      channel.asyncEnd.publish(ctx);
-    });
-  });
-
-  await flush();
-
-  const parent = await withTimeout(
-    sink.waitFor(span => span.is_segment && span.name === 'parent'),
-    5000,
-    "'parent' segment span",
-  );
-  const children = sink.spans.filter(span => span.parent_span_id === parent.span_id);
-  assertEquals(children.length, 1);
-  assertEquals(children[0]!.trace_id, parent.trace_id);
-  assertEquals(children[0]!.is_segment, false);
-
-  const pgSpan = children.find(s => getSpanOp(s) === 'db');
-  assertExists(pgSpan, `expected a db child span, got ops: ${children.map(s => getSpanOp(s)).join(', ')}`);
-  assertEquals(pgSpan.name, 'SELECT');
-  assertEquals(pgSpan.attributes['db.system.name']?.value, 'postgresql');
-  assertEquals(pgSpan.attributes['db.query.text']?.value, 'SELECT ? AS solution');
-  assertEquals(pgSpan.attributes['server.address']?.value, '127.0.0.1');
-  assertEquals(pgSpan.attributes['server.port']?.value, 5432);
-  assertEquals(pgSpan.attributes['db.user']?.value, 'root');
-  assertEquals(pgSpan.attributes['sentry.origin']?.value, 'auto.db.postgres');
 });

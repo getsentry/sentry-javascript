@@ -2,13 +2,16 @@
 import {
   HTTP_REQUEST_METHOD,
   HTTP_RESPONSE_BODY_SIZE,
+  SENTRY_KIND,
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
   URL_DOMAIN,
   URL_FRAGMENT,
   URL_FULL,
+  URL_PATH,
   URL_QUERY,
+  URL_SCHEME,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HTTP_CLIENT } from '@sentry/conventions/op';
@@ -368,7 +371,7 @@ function getSpanStartOptions(
   const sanitizedUrl = parsedUrl ? getSanitizedUrlStringFromUrlObject(parsedUrl) : url;
   return {
     name: isStreamed ? (domain ? `${method} ${domain}` : method) : `${method} ${sanitizedUrl}`,
-    attributes: getFetchSpanAttributes(url, parsedUrl, method, spanOrigin, client, domain),
+    attributes: getFetchSpanAttributes(url, parsedUrl, method, spanOrigin, client, domain, urlBase),
   };
 }
 
@@ -379,6 +382,7 @@ function getFetchSpanAttributes(
   spanOrigin: SpanOrigin,
   client: Client | undefined,
   domain: string | undefined,
+  urlBase?: string,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
     [URL_FULL]: filterCollectedUrl(stripDataUrlContent(url), client),
@@ -387,6 +391,7 @@ function getFetchSpanAttributes(
     [HTTP_REQUEST_METHOD]: method,
     [SENTRY_ORIGIN]: spanOrigin,
     [SENTRY_OP]: HTTP_CLIENT,
+    [SENTRY_KIND]: 'client',
     [URL_DOMAIN]: domain,
   };
   if (parsedUrl) {
@@ -394,6 +399,16 @@ function getFetchSpanAttributes(
       attributes[URL_FULL] = filterCollectedUrl(stripDataUrlContent(parsedUrl.href), client);
       attributes[SERVER_ADDRESS] = parsedUrl.hostname;
       attributes[SERVER_PORT] = parsedUrl.port ? Number(parsedUrl.port) : undefined;
+      attributes[URL_PATH] = parsedUrl.pathname;
+      attributes[URL_SCHEME] = parsedUrl.protocol.replace(/:$/, '');
+    } else if (urlBase) {
+      try {
+        const resolvedUrl = new URL(url, urlBase);
+        attributes[URL_PATH] = resolvedUrl.pathname;
+        attributes[URL_SCHEME] = resolvedUrl.protocol.replace(/:$/, '');
+      } catch {
+        // `urlBase` is not an absolute URL either.
+      }
     }
     attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(parsedUrl.search), client);
     attributes[URL_FRAGMENT] = getUrlFragment(parsedUrl.hash);
