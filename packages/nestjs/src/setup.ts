@@ -204,14 +204,10 @@ class SentryModule {
    * Configures the module as the root module in a Nest.js application.
    */
   public static forRoot(): DynamicModule {
+    // The interceptor is already a provider in the static `@Module()` metadata below. Nest merges both, so
+    // listing it here as well would register it twice.
     return {
       module: SentryModule,
-      providers: [
-        {
-          provide: APP_INTERCEPTOR,
-          useClass: SentryTracingInterceptor,
-        },
-      ],
     };
   }
 }
