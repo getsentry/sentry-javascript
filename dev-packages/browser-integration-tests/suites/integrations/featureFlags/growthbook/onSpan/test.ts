@@ -1,9 +1,7 @@
 import { expect } from '@playwright/test';
 import { waitForStreamedSpan } from '../../../../../utils/spanUtils';
 import { sentryTest } from '../../../../../utils/fixtures';
-import { shouldSkipFeatureFlagsTest, shouldSkipTracingTest } from '../../../../../utils/helpers';
-
-const MAX_FLAGS_PER_SPAN = 10;
+import { shouldSkipFeatureFlagsTest, shouldSkipTracingTest, MAX_FLAGS_PER_SPAN } from '../../../../../utils/helpers';
 
 sentryTest(
   "GrowthBook onSpan: flags are added to active span's attributes on span end",

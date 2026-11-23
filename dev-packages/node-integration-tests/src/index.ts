@@ -8,6 +8,12 @@ export * from './mocks/google';
 export * from './mocks/openai';
 
 /**
+ * Mirror the feature flag limits in `@sentry/core`, which no longer exports them.
+ */
+export const FLAG_BUFFER_SIZE = 100;
+export const MAX_FLAGS_PER_SPAN = 10;
+
+/**
  * Debug logging transport
  */
 export function loggingTransport(_options: BaseTransportOptions): Transport {

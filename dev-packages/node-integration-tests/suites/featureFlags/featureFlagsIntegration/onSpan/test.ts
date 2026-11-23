@@ -1,7 +1,6 @@
 import { afterAll, expect, test } from 'vitest';
+import { MAX_FLAGS_PER_SPAN } from '@sentry-internal/node-integration-tests';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
-
-const MAX_FLAGS_PER_SPAN = 10;
 
 afterAll(() => {
   cleanupChildProcesses();

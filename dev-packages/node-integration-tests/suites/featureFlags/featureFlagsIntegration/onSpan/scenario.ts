@@ -1,7 +1,5 @@
 import * as Sentry from '@sentry/node';
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
-
-const MAX_FLAGS_PER_SPAN = 10;
+import { loggingTransport, MAX_FLAGS_PER_SPAN } from '@sentry-internal/node-integration-tests';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',

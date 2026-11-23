@@ -1,9 +1,7 @@
 import type { ClientOptions, UserContext } from '@growthbook/growthbook';
 import { GrowthBookClient } from '@growthbook/growthbook';
 import * as Sentry from '@sentry/node';
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
-
-const FLAG_BUFFER_SIZE = 100;
+import { loggingTransport, FLAG_BUFFER_SIZE } from '@sentry-internal/node-integration-tests';
 
 // Wrapper class to instantiate GrowthBookClient
 class GrowthBookWrapper {

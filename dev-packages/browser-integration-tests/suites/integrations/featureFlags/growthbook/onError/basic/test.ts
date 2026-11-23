@@ -4,9 +4,8 @@ import {
   envelopeRequestParser,
   shouldSkipFeatureFlagsTest,
   waitForErrorRequest,
+  FLAG_BUFFER_SIZE,
 } from '../../../../../../utils/helpers';
-
-const FLAG_BUFFER_SIZE = 100;
 
 sentryTest('GrowthBook onError: basic eviction/update and no async tasks', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipFeatureFlagsTest()) {

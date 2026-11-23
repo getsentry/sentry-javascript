@@ -15,6 +15,12 @@ import type {
 } from '@sentry/core';
 import { parseEnvelope } from '@sentry/core';
 
+/**
+ * Mirror the feature flag limits in `@sentry/core`, which no longer exports them.
+ */
+export const FLAG_BUFFER_SIZE = 100;
+export const MAX_FLAGS_PER_SPAN = 10;
+
 export const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
 
 export const envelopeParser = (request: Request | null): unknown[] => {

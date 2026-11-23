@@ -1,7 +1,6 @@
 import { afterAll, test } from 'vitest';
+import { FLAG_BUFFER_SIZE } from '@sentry-internal/node-integration-tests';
 import { cleanupChildProcesses, createRunner } from '../../../../../utils/runner';
-
-const FLAG_BUFFER_SIZE = 100;
 
 afterAll(() => {
   cleanupChildProcesses();

@@ -1,7 +1,5 @@
 import * as Sentry from '@sentry/node';
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
-
-const FLAG_BUFFER_SIZE = 100;
+import { loggingTransport, FLAG_BUFFER_SIZE } from '@sentry-internal/node-integration-tests';
 
 Sentry.init({
   traceLifecycle: 'static',
