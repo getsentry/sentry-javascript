@@ -124,6 +124,64 @@ describe('experimentalReportSdkConfigIntegration', () => {
     expect(payload.options).toEqual({ defaultIntegrations: [{ name: 'ExperimentalReportSdkConfig' }] });
   });
 
+  it('reports the options of the default integrations the user passed', () => {
+    const userOptions = captureOptionsSetByUser({
+      defaultIntegrations: [experimentalReportSdkConfigIntegration(), tagIntegration({ tag: 'default' })],
+    });
+
+    const payload = reportConfig(
+      getDefaultTestClientOptions({
+        dsn: 'https://username@domain/123',
+        ...userOptions,
+        integrations: getIntegrationsToSetup({ defaultIntegrations: userOptions.defaultIntegrations }),
+      }),
+    );
+
+    expect(payload.options).toEqual({
+      defaultIntegrations: [{ name: 'ExperimentalReportSdkConfig' }, { name: 'Tag', options: { tag: 'default' } }],
+    });
+  });
+
+  it('reports the integrations an integrations callback adds to or removes from the defaults in place', () => {
+    const added = captureOptionsSetByUser({
+      integrations: (defaults: Integration[]) => {
+        defaults.push(tagIntegration({ tag: 'user' }));
+
+        return defaults;
+      },
+    });
+    const removed = captureOptionsSetByUser({
+      integrations: (defaults: Integration[]) => {
+        defaults.splice(1, 1);
+
+        return defaults;
+      },
+    });
+
+    const [addedPayload, removedPayload] = [added, removed].map(userOptions =>
+      reportConfig(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          integrations: getIntegrationsToSetup({
+            defaultIntegrations: [experimentalReportSdkConfigIntegration(), { name: 'Dropped' }],
+            integrations: userOptions.integrations,
+          }),
+          _metadata: userOptions._metadata,
+        }),
+      ),
+    );
+
+    expect(addedPayload).toEqual({
+      version: 3,
+      options: { integrations: [{ name: 'Tag', options: { tag: 'user' } }] },
+    });
+    expect(removedPayload).toEqual({
+      version: 3,
+      removed_default_integrations: ['Dropped'],
+      options: { integrations: [] },
+    });
+  });
+
   it('reports an integrations callback as the integrations it added and the sorted defaults it removed', () => {
     const userOptions = captureOptionsSetByUser({
       integrations: (defaults: Integration[]) => [

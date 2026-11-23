@@ -114,14 +114,17 @@ function buildConfigAttributes(client: Client): Record<string, string> {
   );
 
   if (integrationsSetByUser) {
-    options.integrations = integrationsSetByUser.map(name =>
-      describeIntegration(name, client.getIntegrationByName(name)),
-    );
+    options.integrations = integrationsSetByUser.map(name => {
+      const integration: (Integration & { isDefaultInstance?: true }) | undefined = client.getIntegrationByName(name);
+      // A default instance kept by an `integrations` function got its options from the SDK, not the user.
+      return describeIntegration(name, integration?.isDefaultInstance ? undefined : integration?._options);
+    });
   }
 
   if (Array.isArray(options.defaultIntegrations)) {
+    // `getIntegrationsToSetup` flags these as default instances, but the user passed them.
     options.defaultIntegrations = options.defaultIntegrations.map((integration: Integration) =>
-      describeIntegration(integration.name, integration),
+      describeIntegration(integration.name, integration._options),
     );
   }
 
@@ -142,13 +145,7 @@ function buildConfigAttributes(client: Client): Record<string, string> {
   };
 }
 
-function describeIntegration(
-  name: string,
-  integration: (Integration & { isDefaultInstance?: true }) | undefined,
-): { name: string; options?: unknown } {
-  // A default instance kept by an `integrations` function got its options from the SDK, not the user.
-  const options = integration?.isDefaultInstance ? undefined : integration?._options;
-
+function describeIntegration(name: string, options: unknown): { name: string; options?: unknown } {
   if (options === undefined) {
     return { name };
   }
@@ -157,12 +154,18 @@ function describeIntegration(
     return { name, options: describeOptionValue(options) };
   }
 
-  const entries = Object.entries(options);
-
+  const keys = Object.keys(options);
   // `fooIntegration()` and `fooIntegration({})` both mean no options were passed.
-  return entries.length
-    ? { name, options: Object.fromEntries(entries.map(([key, value]) => [key, describeOptionValue(value)])) }
-    : { name };
+  if (!keys.length) {
+    return { name };
+  }
+
+  const described: Record<string, unknown> = {};
+  for (const key of keys) {
+    described[key] = describeOptionValue(options[key]);
+  }
+
+  return { name, options: described };
 }
 
 // Options can hold live objects such as a router, a store or an SDK client, which carry URLs, app state or keys.

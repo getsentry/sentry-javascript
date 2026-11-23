@@ -32,25 +32,35 @@ export function captureOptionsSetByUser<T extends Pick<CoreOptions, '_metadata' 
     // Report the function as a change to the defaults, the same way the array form reads.
     ...(typeof integrations === 'function' && {
       integrations: (defaults: Integration[]) => {
+        // Copied before the function runs, since it can change `defaults` in place. SDK wrappers also pass their own
+        // integrations in with the defaults, without flagging them as default instances.
+        const passedIn = new Set(defaults);
         const result = integrations(defaults);
         // `getIntegrationsToSetup` also accepts a single integration.
         const resolved: Integration[] = Array.isArray(result) ? result : [result];
-        const resolvedNames = new Set(resolved.map(integration => integration.name));
-        const removed = uniq(defaults.map(integration => integration.name).filter(name => !resolvedNames.has(name)));
-        // SDK wrappers pass their own integrations in with the defaults, without flagging them as default instances.
-        const passedIn = new Set(defaults);
 
-        metadata.integrationsSetByUser = uniq(
-          resolved
-            .filter(
-              integration =>
-                !passedIn.has(integration) &&
-                !(integration as Integration & { isDefaultInstance?: true }).isDefaultInstance,
-            )
-            .map(integration => integration.name),
-        );
-        if (removed.length) {
-          metadata.removedDefaultIntegrations = removed.sort();
+        const resolvedNames = new Set<string>();
+        const setByUser = new Set<string>();
+        for (const integration of resolved) {
+          resolvedNames.add(integration.name);
+          if (
+            !passedIn.has(integration) &&
+            !(integration as Integration & { isDefaultInstance?: true }).isDefaultInstance
+          ) {
+            setByUser.add(integration.name);
+          }
+        }
+
+        const removed = new Set<string>();
+        for (const integration of passedIn) {
+          if (!resolvedNames.has(integration.name)) {
+            removed.add(integration.name);
+          }
+        }
+
+        metadata.integrationsSetByUser = Array.from(setByUser);
+        if (removed.size) {
+          metadata.removedDefaultIntegrations = Array.from(removed).sort();
         }
 
         return resolved;
