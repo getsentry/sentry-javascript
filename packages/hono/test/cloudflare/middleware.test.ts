@@ -8,7 +8,8 @@ import {
 } from '@sentry/conventions/attributes';
 import * as SentryCloudflare from '@sentry/cloudflare';
 import * as SentryCore from '@sentry/core';
-import { SDK_VERSION } from '@sentry/core';
+import { dedupeIntegration, SDK_VERSION } from '@sentry/core';
+import { honoIntegration } from '@sentry/server-utils';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { sentry, type HonoCloudflareOptions } from '../../src/cloudflare/middleware';
@@ -156,6 +157,19 @@ describe('Hono Cloudflare Middleware', () => {
         expect(result.ignoreSpans[0]).toBe(userPattern);
         expect(result.ignoreSpans).toEqual(expect.arrayContaining(LOW_QUALITY_TRANSACTION_PATTERNS));
       });
+    });
+
+    it('removes Hono from the default integrations and from the user integrations', () => {
+      sentry(new Hono(), {
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        integrations: [honoIntegration()],
+      });
+
+      const optionsCallback = withSentryMock.mock.calls[0]?.[0];
+      const { integrations } = optionsCallback();
+      const dedupe = dedupeIntegration();
+
+      expect(integrations([dedupe, honoIntegration()])).toEqual([dedupe]);
     });
 
     describe('when options is a function (env callback)', () => {
