@@ -1,5 +1,5 @@
 import type { Options } from '@sentry/core';
-import { _INTERNAL_applyBrowserTunnelDefaults as applyBrowserTunnelDefaults, GLOBAL_OBJ } from '@sentry/core';
+import { applyBrowserTunnelDefaults, GLOBAL_OBJ } from '@sentry/core';
 
 /** Set by `sentrySvelteKit()` to the app's `paths.base`. */
 export const TUNNEL_BASE_PATH_GLOBAL = '__sentry_sveltekit_base_path';

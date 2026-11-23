@@ -1,9 +1,6 @@
 import type { ServerTunnelOptions } from '@sentry/core';
-import { _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath, stringifyForCodeInjection } from '@sentry/core';
-import {
-  _INTERNAL_forwardTunnelRequest as forwardTunnelRequest,
-  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
-} from '@sentry/core/server';
+import { normalizeTunnelBasePath, stringifyForCodeInjection } from '@sentry/core';
+import { forwardTunnelRequest, setTunnelDefaults } from '@sentry/core/server';
 import type { Plugin } from 'vite';
 import { getServerReleaseCode } from './release';
 

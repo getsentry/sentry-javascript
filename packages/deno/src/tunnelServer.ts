@@ -1,5 +1,5 @@
 import { debug } from '@sentry/core';
-import { _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest } from '@sentry/core/server';
+import { handleServedTunnelRequest } from '@sentry/core/server';
 
 type ServeHandler = (request: Request, info: Deno.ServeHandlerInfo<Deno.Addr>) => Response | Promise<Response>;
 

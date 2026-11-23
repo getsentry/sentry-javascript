@@ -9,6 +9,7 @@ export { init } from './sdk';
 export { wrapFetchWithSentry } from './wrapFetchWithSentry';
 export { wrapMiddlewaresWithSentry } from './middleware';
 export { sentryGlobalRequestMiddleware, sentryGlobalFunctionMiddleware } from './globalMiddleware';
+// The `_INTERNAL_` exports are prefixed because only the code the Vite plugin injects imports them.
 export { addReleaseMetaTag as _INTERNAL_addReleaseMetaTag } from './releaseMetaTag';
 export {
   createSentryTunnelRoute,

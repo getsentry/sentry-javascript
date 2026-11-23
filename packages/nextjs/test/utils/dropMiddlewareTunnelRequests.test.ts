@@ -13,7 +13,7 @@ const served = vi.hoisted(() => ({ tunnel: undefined as { paths: string[]; baseP
 vi.mock('@sentry/core/server', async requireActual => {
   return {
     ...(await requireActual<any>()),
-    _INTERNAL_getServedTunnel: () => served.tunnel,
+    getServedTunnel: () => served.tunnel,
   };
 });
 

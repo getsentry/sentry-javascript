@@ -9,6 +9,7 @@ export { createSentryHandleRequest, type SentryHandleRequestOptions } from './cr
 export type { SentryWebStreamHandleRequestOptions } from './handleRequestTypes';
 export { createSentryHandleError, type SentryHandleErrorOptions } from './createSentryHandleError';
 export { getMetaTagTransformer } from './getMetaTagTransformer';
+// Prefixed because only the code `sentryReactRouter()` injects imports these.
 export { setTunnelBasePath as _INTERNAL_setTunnelBasePath } from './tunnelRoute';
 export { injectClientRelease as _INTERNAL_injectClientRelease } from './clientRelease';
 

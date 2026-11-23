@@ -39,11 +39,7 @@ import {
   filterCollectedUrlFragment,
   filterCollectedUrlQuery,
 } from '@sentry/core';
-import {
-  flushIfServerless,
-  _INTERNAL_getCacheOriginMetaTags,
-  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
-} from '@sentry/core/server';
+import { flushIfServerless, _INTERNAL_getCacheOriginMetaTags, handleServedTunnelRequest } from '@sentry/core/server';
 import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
 import type { APIContext, MiddlewareHandler, MiddlewareNext, RoutePart } from 'astro';
 

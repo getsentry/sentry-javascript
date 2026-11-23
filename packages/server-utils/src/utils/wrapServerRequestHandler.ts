@@ -32,7 +32,7 @@ import {
 } from '@sentry/core';
 import type { ServerRequestOptions } from '@sentry/core/server';
 import {
-  _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
+  isServedTunnelRequest,
   classifyResponseStreaming,
   getClientIPAddress,
   isStaticAssetRequest,

@@ -8,27 +8,21 @@ export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export { ServerRuntimeClient } from './server-runtime-client';
 export type { TunnelRequestLike } from './utils/tunnel';
 export {
-  getServedTunnel as _INTERNAL_getServedTunnel,
+  getServedTunnel,
   getTunnelPaths as _INTERNAL_getTunnelPaths,
-  handleServedTunnelRequest as _INTERNAL_handleServedTunnelRequest,
-  isServedTunnelRequest as _INTERNAL_isServedTunnelRequest,
+  handleServedTunnelRequest,
+  isServedTunnelRequest,
   isTunnelRequest,
 } from './utils/tunnel';
+export { httpServerHandlesTunnel, setNodeTunnelHandler } from './utils/tunnelStore';
 export {
-  httpServerHandlesTunnel as _INTERNAL_httpServerHandlesTunnel,
-  setNodeTunnelHandler as _INTERNAL_setNodeTunnelHandler,
-} from './utils/tunnelStore';
-export {
-  forwardTunnelRequest as _INTERNAL_forwardTunnelRequest,
-  handleServedNodeTunnelRequest as _INTERNAL_handleServedNodeTunnelRequest,
-  pickForwardedHeaders as _INTERNAL_pickForwardedHeaders,
+  forwardTunnelRequest,
+  handleServedNodeTunnelRequest,
+  pickForwardedHeaders,
   handleTunnelRequestIfMatched,
 } from './utils/tunnelForward';
 export { serveTunnelIntegration } from './integrations/serveTunnel';
-export {
-  _INTERNAL_resetTunnelDefaults,
-  setTunnelDefaults as _INTERNAL_setTunnelDefaults,
-} from './utils/tunnelDefaults';
+export { resetTunnelDefaults, setTunnelDefaults } from './utils/tunnelDefaults';
 export type { ServerRuntimeOptions } from './types/options';
 export { trpcMiddleware } from './trpc';
 export { wrapMcpServerWithSentry } from './integrations/mcp-server';

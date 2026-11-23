@@ -16,7 +16,7 @@ vi.mock('@sentry/core', async importOriginal => ({
 
 vi.mock('@sentry/core/server', async importOriginal => ({
   ...(await importOriginal<typeof SentryCoreServer>()),
-  _INTERNAL_handleServedTunnelRequest: handleServedTunnelRequest,
+  handleServedTunnelRequest: handleServedTunnelRequest,
 }));
 
 import { sentryRemixMiddleware } from '../../src/v3/server/middleware';

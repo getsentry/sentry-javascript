@@ -1,5 +1,5 @@
 import {
-  _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath,
+  normalizeTunnelBasePath,
   type BuildTimeOptionsBase,
   stringifyForCodeInjection,
   warnOnRemovedBuildOptions,

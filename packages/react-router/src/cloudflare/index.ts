@@ -1,6 +1,7 @@
 export * from '../client';
 
 export { wrapSentryHandleRequest } from '../server/wrapSentryHandleRequest';
+// Prefixed because only the code `sentryReactRouter()` injects imports these.
 export { setTunnelBasePath as _INTERNAL_setTunnelBasePath } from '../server/tunnelRoute';
 export { injectClientRelease as _INTERNAL_injectClientRelease } from '../server/clientRelease';
 export {
