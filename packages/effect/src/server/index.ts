@@ -17,22 +17,23 @@ export type EffectServerLayerOptions = NodeOptions;
  * On Effect v4 the layer also registers a Sentry `ErrorReporter`, so failures passing through
  * `Effect.withErrorReporting`, `ErrorReporter.report` or the built-in HTTP and RPC boundaries are captured.
  *
- * To enable Effect tracing, logs, or metrics, compose with the respective layers:
- * - `Layer.setTracer(Sentry.Tracer)` for tracing
- * - `Logger.replace(Logger.defaultLogger, Sentry.Logger)` for logs
- * - `Sentry.metricsLayer` for metrics
+ * To enable Effect tracing, logs, or metrics, merge the respective layers:
+ * - `Sentry.layerTracer` for tracing
+ * - `Sentry.layerLogger` for logs
+ * - `Sentry.layerMetrics` for metrics
  *
  * @example
  * ```typescript
  * import * as Sentry from '@sentry/effect/server';
  * import { NodeRuntime } from '@effect/platform-node';
- * import { Layer, Logger } from 'effect';
+ * import { Layer } from 'effect';
  * import { HttpLayer } from './Http.js';
  *
  * const SentryLayer = Layer.mergeAll(
- *   Sentry.layer({ dsn: '__DSN__' }),
- *   Layer.setTracer(Sentry.Tracer),
- *   Logger.replace(Logger.defaultLogger, Sentry.Logger),
+ *   Sentry.layer({ dsn: '__DSN__', tracesSampleRate: 1.0 }),
+ *   Sentry.layerTracer,
+ *   Sentry.layerLogger,
+ *   Sentry.layerMetrics,
  * );
  *
  * const MainLayer = HttpLayer.pipe(Layer.provide(SentryLayer));

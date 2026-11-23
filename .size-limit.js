@@ -222,14 +222,14 @@ module.exports = [
   {
     name: '@sentry/effect (client, incl. Tracing)',
     path: 'packages/effect/build/esm/index.client.js',
-    import: createImport('layer', 'Tracer'),
+    import: createImport('layer', 'layerTracer'),
     gzip: true,
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: '@sentry/effect (client, incl. Tracing, Logs, Metrics)',
     path: 'packages/effect/build/esm/index.client.js',
-    import: createImport('layer', 'Tracer', 'Logger', 'metricsLayer'),
+    import: createImport('layer', 'layerTracer', 'layerLogger', 'layerMetrics'),
     gzip: true,
     disablePlugins: ['@size-limit/esbuild'],
   },

@@ -6,7 +6,7 @@ export * from '@sentry/browser';
 export { layer, init } from './client/index';
 export type { EffectClientLayerOptions } from './client/index';
 
-export { Tracer } from './client/tracer';
-export { externalSpanLayer } from './tracer';
-export { Logger } from './logger';
-export { metricsLayer } from './metrics';
+export { layerTracer } from './client/tracer';
+export { layerExternalSpan } from './tracer';
+export { layerLogger } from './logger';
+export { layerMetrics } from './metrics';

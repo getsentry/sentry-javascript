@@ -17,15 +17,15 @@ export type EffectClientLayerOptions = BrowserOptions;
  * On Effect v4 the layer also registers a Sentry `ErrorReporter`, so failures passing through
  * `Effect.withErrorReporting`, `ErrorReporter.report` or the built-in HTTP and RPC boundaries are captured.
  *
- * To enable Effect tracing, logs, or metrics, compose with the respective layers:
- * - `Layer.setTracer(Sentry.Tracer)` for tracing
- * - `Logger.replace(Logger.defaultLogger, Sentry.Logger)` for logs
- * - `Sentry.metricsLayer` for metrics
+ * To enable Effect tracing, logs, or metrics, merge the respective layers:
+ * - `Sentry.layerTracer` for tracing
+ * - `Sentry.layerLogger` for logs
+ * - `Sentry.layerMetrics` for metrics
  *
  * @example
  * ```typescript
  * import * as Sentry from '@sentry/effect/client';
- * import { Layer, Logger, LogLevel } from 'effect';
+ * import { Layer } from 'effect';
  *
  * const SentryLayer = Layer.mergeAll(
  *   Sentry.layer({
@@ -33,8 +33,8 @@ export type EffectClientLayerOptions = BrowserOptions;
  *     integrations: [Sentry.browserTracingIntegration()],
  *     tracesSampleRate: 1.0,
  *   }),
- *   Layer.setTracer(Sentry.Tracer),
- *   Logger.replace(Logger.defaultLogger, Sentry.Logger),
+ *   Sentry.layerTracer,
+ *   Sentry.layerLogger,
  * );
  * ```
  */

@@ -1,7 +1,9 @@
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { isObjectLike, logger as sentryLogger } from '@sentry/core';
+import type * as Layer from 'effect/Layer';
 import * as EffectLogger from 'effect/Logger';
 import type * as LogLevel from 'effect/LogLevel';
+import { isEffectV4, loggerExports } from './compat';
 
 const LOG_ATTRIBUTES = {
   [SENTRY_ORIGIN]: 'auto.log.effect',
@@ -21,10 +23,7 @@ function getLogLevelTag(logLevel: LogLevel.LogLevel): LogLevel.LogLevel | 'Warni
   return 'Info';
 }
 
-/**
- * Effect Logger that sends logs to Sentry.
- */
-export const Logger = EffectLogger.make(({ logLevel, message }) => {
+const effectLogger = EffectLogger.make(({ logLevel, message }) => {
   let msg: string;
   if (typeof message === 'string') {
     msg = message;
@@ -64,3 +63,19 @@ export const Logger = EffectLogger.make(({ logLevel, message }) => {
       tag satisfies never;
   }
 });
+
+/**
+ * Layer that sends Effect logs to Sentry. It adds the Sentry logger to the loggers in place, so Effect still logs
+ * to the console.
+ *
+ * Effect v4 builds all layers of a `Layer.mergeAll` from the same loggers, so next to another layer that adds a
+ * logger, only one of the two loggers stays. Stack such layers with `Layer.provideMerge`:
+ *
+ * @example
+ * ```typescript
+ * const LoggerLayer = Sentry.layerLogger.pipe(Layer.provideMerge(OtlpLoggerLayer));
+ * ```
+ */
+export const layerLogger: Layer.Layer<never> = isEffectV4
+  ? loggerExports.layer([effectLogger], { mergeWithExisting: true })
+  : loggerExports.add(effectLogger);

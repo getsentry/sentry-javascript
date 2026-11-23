@@ -1,9 +1,7 @@
 // @ts-check
 import * as Sentry from '@sentry/effect';
-import * as Logger from 'effect/Logger';
 import * as Layer from 'effect/Layer';
 import * as ManagedRuntime from 'effect/ManagedRuntime';
-import * as Tracer from 'effect/Tracer';
 import * as References from 'effect/References';
 import * as Effect from 'effect/Effect';
 
@@ -16,8 +14,8 @@ const AppLayer = Layer.mergeAll(
     environment: 'qa',
     tunnel: 'http://localhost:3031',
   }),
-  Logger.layer([Sentry.Logger]),
-  Layer.succeed(Tracer.Tracer, Sentry.Tracer),
+  Sentry.layerLogger,
+  Sentry.layerTracer,
   Layer.succeed(References.MinimumLogLevel, 'Debug'),
 );
 

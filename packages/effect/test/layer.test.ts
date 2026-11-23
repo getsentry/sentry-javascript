@@ -1,8 +1,9 @@
 import { describe, expect, it } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
 import * as sentryCoreBrowser from '@sentry/core/browser';
+import type { Log } from '@sentry/core';
 import { getClient, getMainCarrier, SDK_VERSION } from '@sentry/core';
-import { Effect, Layer, Logger } from 'effect';
+import { Effect, Layer } from 'effect';
 import * as References from 'effect/References';
 import { afterEach, beforeEach, vi } from 'vitest';
 import * as sentryClient from '../src/index.client';
@@ -95,12 +96,14 @@ describe.each([
       expect(result).toBe('traced');
       expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'test-span' }));
     }).pipe(
-      Effect.withTracer(Sentry.Tracer),
       Effect.provide(
-        Sentry.layer({
-          dsn: TEST_DSN,
-          transport: getMockTransport(),
-        }),
+        Layer.mergeAll(
+          Sentry.layer({
+            dsn: TEST_DSN,
+            transport: getMockTransport(),
+          }),
+          Sentry.layerTracer,
+        ),
       ),
     ),
   );
@@ -116,34 +119,41 @@ describe.each([
       expect(result).toBe(84);
       expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'computation' }));
     }).pipe(
-      Effect.withTracer(Sentry.Tracer),
-      Effect.provide(
-        Sentry.layer({
-          dsn: TEST_DSN,
-          transport: getMockTransport(),
-        }),
-      ),
-    ),
-  );
-
-  it.effect('layer can be composed with logger', () =>
-    Effect.gen(function* () {
-      yield* Effect.logInfo('test log');
-      const result = yield* Effect.succeed('logged');
-      expect(result).toBe('logged');
-    }).pipe(
-      Effect.provideService(References.MinimumLogLevel, 'All'),
       Effect.provide(
         Layer.mergeAll(
           Sentry.layer({
             dsn: TEST_DSN,
             transport: getMockTransport(),
           }),
-          Logger.layer([Sentry.Logger]),
+          Sentry.layerTracer,
         ),
       ),
     ),
   );
+
+  it.effect('layer can be composed with logger', () => {
+    const logs: Log[] = [];
+
+    return Effect.gen(function* () {
+      yield* Effect.logInfo('test log');
+      expect(logs).toEqual([expect.objectContaining({ level: 'info', message: 'test log' })]);
+    }).pipe(
+      Effect.provide(
+        Layer.mergeAll(
+          Sentry.layer({
+            dsn: TEST_DSN,
+            enableLogs: true,
+            beforeSendLog: log => {
+              logs.push(log);
+              return log;
+            },
+            transport: getMockTransport(),
+          }),
+          Sentry.layerLogger,
+        ),
+      ),
+    );
+  });
 
   it.effect('layer can be composed with all Effect features', () =>
     Effect.gen(function* () {
@@ -158,7 +168,6 @@ describe.each([
       expect(result).toBe(84);
       expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'computation' }));
     }).pipe(
-      Effect.withTracer(Sentry.Tracer),
       Effect.provideService(References.MinimumLogLevel, 'All'),
       Effect.provide(
         Layer.mergeAll(
@@ -166,7 +175,8 @@ describe.each([
             dsn: TEST_DSN,
             transport: getMockTransport(),
           }),
-          Logger.layer([Sentry.Logger]),
+          Sentry.layerTracer,
+          Sentry.layerLogger,
         ),
       ),
     ),

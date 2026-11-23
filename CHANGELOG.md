@@ -6,9 +6,23 @@
 
 ### Important Changes
 
-- **feat(effect)!: Drop the Sentry and Effect prefixes from exports ([#26731](https://github.com/getsentry/sentry-javascript/pull/26731))**
+- **feat(effect)!: Rename exports and add layers for tracing and logs ([#26731](https://github.com/getsentry/sentry-javascript/pull/26731))**
 
-  The `@sentry/effect` exports now use Effect's naming style: `effectLayer` is now `layer`, `SentryEffectTracer` is now `Tracer`, `SentryEffectLogger` is now `Logger`, `SentryEffectMetricsLayer` is now `metricsLayer` and `SentryEffectExternalSpanLayer` is now `externalSpanLayer`. The old names are removed.
+  The `@sentry/effect` exports now use Effect's naming style, and tracing and logs are now layers, so the setup is the same for Effect v3 and v4. The old names are removed.
+  - `effectLayer` is now `layer`.
+  - `SentryEffectTracer` is now `layerTracer`. It replaces `Layer.setTracer(SentryEffectTracer)` (Effect v3) and `Layer.succeed(Tracer.Tracer, SentryEffectTracer)` (Effect v4).
+  - `SentryEffectLogger` is now `layerLogger`. It replaces `Logger.replace(Logger.defaultLogger, SentryEffectLogger)` (Effect v3) and `Logger.layer([SentryEffectLogger])` (Effect v4). It keeps the loggers in place, so Effect still logs to the console.
+  - `SentryEffectMetricsLayer` is now `layerMetrics`.
+  - `SentryEffectExternalSpanLayer` is now `layerExternalSpan`.
+
+  ```ts
+  const SentryLayer = Layer.mergeAll(
+    Sentry.layer({ dsn: '__DSN__', tracesSampleRate: 1.0 }),
+    Sentry.layerTracer,
+    Sentry.layerLogger,
+    Sentry.layerMetrics,
+  );
+  ```
 
 ## 11.17.0
 

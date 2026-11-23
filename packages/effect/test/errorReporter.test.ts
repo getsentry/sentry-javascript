@@ -205,7 +205,7 @@ describe.each([[{ subSdkName: 'browser', Sentry: sentryClient }], [{ subSdkName:
         expect(events).toHaveLength(1);
         expect(events[0]?.contexts?.trace?.trace_id).toEqual(expect.any(String));
       }).pipe(
-        Effect.withTracer(sentryServer.Tracer),
+        Effect.provide(sentryServer.layerTracer),
         Effect.provide(
           Sentry.layer({
             dsn: TEST_DSN,

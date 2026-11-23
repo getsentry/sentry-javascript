@@ -22,7 +22,7 @@ export declare function init(options: Options | clientSdk.BrowserOptions | serve
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const consoleIntegration: typeof serverSdk.consoleIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
-export declare const Tracer: typeof clientSdk.Tracer;
+export declare const layerTracer: typeof clientSdk.layerTracer;
 export declare const startSpan: typeof clientSdk.startSpan;
 export declare const startSpanManual: typeof clientSdk.startSpanManual;
 export declare const startInactiveSpan: typeof clientSdk.startInactiveSpan;

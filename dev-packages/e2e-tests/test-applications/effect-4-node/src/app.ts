@@ -5,7 +5,6 @@ import * as Cause from 'effect/Cause';
 import * as Data from 'effect/Data';
 import * as ErrorReporter from 'effect/ErrorReporter';
 import * as Layer from 'effect/Layer';
-import * as Logger from 'effect/Logger';
 import * as Tracer from 'effect/Tracer';
 import * as References from 'effect/References';
 import { HttpRouter, HttpServerResponse } from 'effect/http';
@@ -19,8 +18,8 @@ const SentryLayer = Layer.mergeAll(
     tunnel: 'http://localhost:3031/',
     tracesSampleRate: 1,
   }),
-  Logger.layer([Sentry.Logger]),
-  Layer.succeed(Tracer.Tracer, Sentry.Tracer),
+  Sentry.layerLogger,
+  Sentry.layerTracer,
   Layer.succeed(References.MinimumLogLevel, 'Debug'),
 );
 
@@ -125,7 +124,7 @@ const Routes = Layer.mergeAll(
         }),
       );
       return yield* HttpServerResponse.json({ status: 'ok' });
-    }).pipe(Effect.provide(Sentry.externalSpanLayer)),
+    }).pipe(Effect.provide(Sentry.layerExternalSpan)),
   ),
 
   HttpRouter.add(

@@ -3,7 +3,7 @@ export * from '@sentry/node';
 export { layer, init } from './server/index';
 export type { EffectServerLayerOptions } from './server/index';
 
-export { Tracer } from './server/tracer';
-export { externalSpanLayer } from './tracer';
-export { Logger } from './logger';
-export { metricsLayer } from './metrics';
+export { layerTracer } from './server/tracer';
+export { layerExternalSpan } from './tracer';
+export { layerLogger } from './logger';
+export { layerMetrics } from './metrics';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
-import { Effect, Logger } from 'effect';
+import { Effect, Layer, Logger } from 'effect';
 import * as References from 'effect/References';
 import { afterEach, vi } from 'vitest';
 import * as Sentry from '../src/logger';
@@ -28,7 +28,7 @@ describe('Logger', () => {
     vi.clearAllMocks();
   });
 
-  const loggerLayer = Logger.layer([Sentry.Logger]);
+  const loggerLayer = Sentry.layerLogger.pipe(Layer.provideMerge(Logger.layer([])));
 
   const withAllLogLevels = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
     Effect.provideService(effect, References.MinimumLogLevel, 'All');
@@ -122,4 +122,23 @@ describe('Logger', () => {
       }
     }).pipe(withAllLogLevels, Effect.provide(loggerLayer)),
   );
+
+  it.effect('keeps the console logger', () =>
+    Effect.gen(function* () {
+      const loggers = yield* Effect.service(Logger.CurrentLoggers);
+      expect(loggers.has(Logger.defaultLogger)).toBe(true);
+      expect(loggers.has(Logger.tracerLogger)).toBe(true);
+    }).pipe(Effect.provide(Sentry.layerLogger)),
+  );
+
+  it.effect('keeps the logger of the layer it is stacked on', () => {
+    const messages: unknown[] = [];
+    const otherLoggerLayer = Logger.layer([Logger.make(({ message }) => messages.push(message))]);
+
+    return Effect.gen(function* () {
+      yield* Effect.logInfo('Stacked message');
+      expect(sentryCore.logger.info).toHaveBeenCalledWith('Stacked message', LOG_ATTRIBUTES);
+      expect(messages).toEqual([['Stacked message']]);
+    }).pipe(Effect.provide(Sentry.layerLogger.pipe(Layer.provideMerge(otherLoggerLayer))));
+  });
 });

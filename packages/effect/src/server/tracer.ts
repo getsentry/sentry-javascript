@@ -1,5 +1,5 @@
 import { startInactiveSpan } from '@sentry/core';
-import { makeSentryTracer } from '../tracer';
+import { makeSentryTracer, makeTracerLayer } from '../tracer';
 
 /**
  * Effect `Tracer` that records Effect spans as Sentry spans on the server.
@@ -15,3 +15,8 @@ import { makeSentryTracer } from '../tracer';
  * See `./client/tracer.ts` for why the call is wrapped in an arrow.
  */
 export const Tracer = makeSentryTracer(options => startInactiveSpan(options), true);
+
+/**
+ * Layer that records Effect spans as Sentry spans in the server.
+ */
+export const layerTracer = makeTracerLayer(Tracer);

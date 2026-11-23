@@ -16,8 +16,8 @@ const AppLayer = Layer.mergeAll(
     environment: 'qa',
     tunnel: 'http://localhost:3031',
   }),
-  Layer.setTracer(Sentry.Tracer),
-  Logger.replace(Logger.defaultLogger, Sentry.Logger),
+  Sentry.layerTracer,
+  Sentry.layerLogger,
   LogLevelLayer,
 );
 

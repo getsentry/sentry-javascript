@@ -4,9 +4,9 @@ import * as Context from 'effect/Context';
 import { Duration, Effect, Layer, Metric } from 'effect';
 import { TestClock } from 'effect/testing';
 import { afterEach, beforeEach, vi } from 'vitest';
-import { metricsLayer } from '../src/metrics';
+import { layerMetrics } from '../src/metrics';
 
-describe('metricsLayer', () => {
+describe('layerMetrics', () => {
   const mockCount = vi.fn();
   const mockGauge = vi.fn();
   const mockDistribution = vi.fn();
@@ -145,7 +145,7 @@ describe('metricsLayer', () => {
   );
 });
 
-describe('metricsLayer flushing', () => {
+describe('layerMetrics flushing', () => {
   const mockCount = vi.fn();
   const mockGauge = vi.fn();
   const mockDistribution = vi.fn();
@@ -161,7 +161,7 @@ describe('metricsLayer flushing', () => {
     vi.restoreAllMocks();
   });
 
-  const TestLayer = metricsLayer.pipe(Layer.provideMerge(TestClock.layer()));
+  const TestLayer = layerMetrics.pipe(Layer.provideMerge(TestClock.layer()));
 
   it.effect('sends counter metrics to Sentry', () =>
     Effect.gen(function* () {

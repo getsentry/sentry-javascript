@@ -17,8 +17,8 @@ const SentryLayer = Layer.mergeAll(
     tunnel: 'http://localhost:3031/',
     tracesSampleRate: 1,
   }),
-  Layer.setTracer(Sentry.Tracer),
-  Logger.replace(Logger.defaultLogger, Sentry.Logger),
+  Sentry.layerTracer,
+  Sentry.layerLogger,
 );
 
 const router = HttpRouter.empty.pipe(
@@ -65,7 +65,7 @@ const router = HttpRouter.empty.pipe(
         }),
       );
       return yield* HttpServerResponse.json({ status: 'ok' });
-    }).pipe(Effect.provide(Sentry.externalSpanLayer)),
+    }).pipe(Effect.provide(Sentry.layerExternalSpan)),
   ),
 
   HttpRouter.get(
