@@ -132,6 +132,12 @@ export interface TransformContext {
    * handlers get them too.
    */
   workerInfo?: { name?: string; compatibilityDate?: string };
+  /**
+   * Whether `export default <expression>` is wrapped with `withSentry`. False for the worker-entry
+   * module of `@cloudflare/vite-plugin`, whose default export is the user entry's default export,
+   * which the entry transform wraps.
+   */
+  wrapDefault?: boolean;
 }
 
 export interface TransformResult {
@@ -197,9 +203,11 @@ export function applyAutoInstrumentTransforms(
       handleNamedExport(node, ctx, state);
     }
   }
-  for (const node of ast.body) {
-    if (node.type === 'ExportDefaultDeclaration') {
-      wrapDefaultExport(node as ExportDefaultNode, ctx, state);
+  if (ctx.wrapDefault !== false) {
+    for (const node of ast.body) {
+      if (node.type === 'ExportDefaultDeclaration') {
+        wrapDefaultExport(node as ExportDefaultNode, ctx, state);
+      }
     }
   }
 
