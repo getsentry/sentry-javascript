@@ -73,14 +73,9 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         // release and invalidates cached chunks. The page HTML carries it to the browser instead.
         const runtimeRelease = shouldUploadSourcemaps && command !== 'dev' ? getRuntimeRelease(release) : undefined;
 
-        // We don't need to check for AUTH_TOKEN here, because the plugin will pick it up from the env
         if (shouldUploadSourcemaps && command !== 'dev') {
-          const computedSourceMapSettings = _getUpdatedSourceMapSettings(config, options, logger);
-
-          const sdkEnabledSourceMaps =
-            computedSourceMapSettings.previousUserSourceMapSetting === 'unset' &&
-            computedSourceMapSettings.updatedSourceMapSetting === 'hidden';
           const buildState: ViteBuildState = { writesCloudflareWorker: false };
+          const sourceMapState = { sdkEnabled: false };
           // A user's own glob replaces the SDK's deletion. Maps in a Cloudflare `_worker.js` folder
           // stay, so that wrangler can read them for `upload_source_maps`.
           // With `sourcemaps.delete` the bundler plugin ignores this option and warns if the user set it.
@@ -88,9 +83,46 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             sourcemaps?.delete !== undefined
               ? sourcemaps.deleteSourcemapsAfterUpload
               : (sourcemaps?.deleteSourcemapsAfterUpload ??
-                (sdkEnabledSourceMaps && sourcemaps?.filesToDeleteAfterUpload === undefined
-                  ? () => (buildState.writesCloudflareWorker ? undefined : true)
+                (sourcemaps?.filesToDeleteAfterUpload === undefined
+                  ? () => (sourceMapState.sdkEnabled && !buildState.writesCloudflareWorker ? true : undefined)
                   : undefined));
+
+          // The plugin loads `.env.sentry-build-plugin` into `process.env`. Create it first, so the
+          // source map setting below sees those upload credentials.
+          const sentryPlugins = sentryVitePlugin({
+            applicationKey,
+            moduleMetadata,
+            // Priority: top-level options > env vars
+            org: org ?? env.SENTRY_ORG,
+            project: project ?? env.SENTRY_PROJECT,
+            authToken: authToken ?? env.SENTRY_AUTH_TOKEN,
+            url: sentryUrl ?? env.SENTRY_URL,
+            headers,
+            telemetry: telemetry ?? true,
+            silent: silent ?? false,
+            errorHandler,
+            _metaOptions: {
+              telemetry: {
+                metaFramework: 'astro',
+              },
+            },
+            debug: debug ?? false,
+            release: runtimeRelease ? { ...release, name: runtimeRelease, inject: false } : release,
+            sourcemaps: {
+              ...sourcemaps,
+              assets: sourcemaps?.assets ?? getSourcemapsAssetsGlobs(config),
+              deleteSourcemapsAfterUpload,
+              sdkEnabledSourceMaps: () => sourceMapState.sdkEnabled,
+            },
+            bundleSizeOptimizations: {
+              ...bundleSizeOptimizations,
+            },
+          });
+
+          const computedSourceMapSettings = _getUpdatedSourceMapSettings(config, options, logger);
+          sourceMapState.sdkEnabled =
+            computedSourceMapSettings.previousUserSourceMapSetting === 'unset' &&
+            computedSourceMapSettings.updatedSourceMapSetting === 'hidden';
 
           updateConfig({
             vite: {
@@ -99,35 +131,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                 : { build: { sourcemap: computedSourceMapSettings.updatedSourceMapSetting } }),
               plugins: [
                 makeViteBuildStatePlugin(buildState),
-                sentryVitePlugin({
-                  applicationKey,
-                  moduleMetadata,
-                  // Priority: top-level options > env vars
-                  org: org ?? env.SENTRY_ORG,
-                  project: project ?? env.SENTRY_PROJECT,
-                  authToken: authToken ?? env.SENTRY_AUTH_TOKEN,
-                  url: sentryUrl ?? env.SENTRY_URL,
-                  headers,
-                  telemetry: telemetry ?? true,
-                  silent: silent ?? false,
-                  errorHandler,
-                  _metaOptions: {
-                    telemetry: {
-                      metaFramework: 'astro',
-                    },
-                  },
-                  debug: debug ?? false,
-                  release: runtimeRelease ? { ...release, name: runtimeRelease, inject: false } : release,
-                  sourcemaps: {
-                    ...sourcemaps,
-                    assets: sourcemaps?.assets ?? getSourcemapsAssetsGlobs(config),
-                    deleteSourcemapsAfterUpload,
-                    sdkEnabledSourceMaps,
-                  },
-                  bundleSizeOptimizations: {
-                    ...bundleSizeOptimizations,
-                  },
-                }),
+                sentryPlugins,
                 ...(runtimeRelease ? [makeServerReleaseVitePlugin(runtimeRelease)] : []),
               ],
             },

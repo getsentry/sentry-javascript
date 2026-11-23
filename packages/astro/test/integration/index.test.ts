@@ -4,7 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { _getUpdatedSourceMapSettings, sentryAstro } from '../../src/integration';
 import type { SentryOptions } from '../../src/integration/types';
 
-type CapturedSourcemapsOptions = { deleteSourcemapsAfterUpload?: boolean | (() => boolean | undefined) };
+type CapturedSourcemapsOptions = {
+  deleteSourcemapsAfterUpload?: boolean | (() => boolean | undefined);
+  sdkEnabledSourceMaps?: () => boolean;
+};
 
 let capturedSourcemapsOptions: CapturedSourcemapsOptions | undefined;
 
@@ -134,7 +137,7 @@ describe('sentryAstro integration', () => {
         sourcemaps: {
           assets: ['out/**/*', 'out/**/.prerender/**/*'],
           deleteSourcemapsAfterUpload: expect.any(Function),
-          sdkEnabledSourceMaps: true,
+          sdkEnabledSourceMaps: expect.any(Function),
         },
         _metaOptions: {
           telemetry: {
@@ -166,7 +169,7 @@ describe('sentryAstro integration', () => {
         sourcemaps: {
           assets: ['dist/**/*', 'dist/**/.prerender/**/*'],
           deleteSourcemapsAfterUpload: expect.any(Function),
-          sdkEnabledSourceMaps: true,
+          sdkEnabledSourceMaps: expect.any(Function),
         },
         _metaOptions: {
           telemetry: {
@@ -206,7 +209,7 @@ describe('sentryAstro integration', () => {
         sourcemaps: {
           assets: ['{.vercel,dist}/**/*', '{.vercel,dist}/**/.prerender/**/*'],
           deleteSourcemapsAfterUpload: expect.any(Function),
-          sdkEnabledSourceMaps: true,
+          sdkEnabledSourceMaps: expect.any(Function),
         },
         _metaOptions: {
           telemetry: {
@@ -246,7 +249,7 @@ describe('sentryAstro integration', () => {
         sourcemaps: {
           assets: ['dist/server/**/*, dist/client/**/*'],
           deleteSourcemapsAfterUpload: expect.any(Function),
-          sdkEnabledSourceMaps: true,
+          sdkEnabledSourceMaps: expect.any(Function),
         },
         _metaOptions: {
           telemetry: {
@@ -297,11 +300,12 @@ describe('sentryAstro integration', () => {
       });
     }
 
-    function expectSourcemapsOptions(sourcemaps: Record<string, unknown>): void {
+    function expectSourcemapsOptions({ sdkEnabledSourceMaps, ...sourcemaps }: Record<string, unknown>): void {
       expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
       expect(sentryVitePluginSpy).toHaveBeenCalledWith(
         expect.objectContaining({ sourcemaps: expect.objectContaining(sourcemaps) }),
       );
+      expect(capturedSourcemapsOptions?.sdkEnabledSourceMaps?.()).toBe(sdkEnabledSourceMaps);
     }
 
     // The bundler plugin calls the function form in its `config` hook, after the build state
@@ -1026,7 +1030,7 @@ describe('_getUpdatedSourceMapSettings', () => {
 
   beforeEach(() => {
     astroConfig = { vite: { build: {} } } as Omit<AstroConfig, 'vite'> & { vite: { build: { sourcemap?: any } } };
-    sentryOptions = {};
+    sentryOptions = { org: 'my-org', project: 'my-project' };
     logger = {
       info: vi.fn(),
       warn: vi.fn(),
@@ -1073,9 +1077,28 @@ describe('_getUpdatedSourceMapSettings', () => {
     [{ upload: true }, 'hidden'],
     [{ disable: 'disable-upload' }, 'hidden'],
   ] as const)('with unset source maps and %j it returns %s', (sourcemaps, expected) => {
-    const result = _getUpdatedSourceMapSettings(astroConfig, { sourcemaps }, logger);
+    const result = _getUpdatedSourceMapSettings(astroConfig, { ...sentryOptions, sourcemaps }, logger);
     expect(result.previousUserSourceMapSetting).toBe('unset');
     expect(result.updatedSourceMapSetting).toBe(expected);
+  });
+
+  it.each<[SentryOptions, 'hidden' | undefined]>([
+    [{ project: 'my-project' }, undefined],
+    [{ org: 'my-org' }, undefined],
+    [{ project: 'my-project', authToken: 'sntrys_token' }, 'hidden'],
+    [{ org: 'my-org', project: ['my-project'] }, 'hidden'],
+    [{ project: 'my-project', sourcemaps: { delete: false } }, 'hidden'],
+    [{ project: 'my-project', sourcemaps: { disable: 'disable-upload' } }, 'hidden'],
+  ])('with unset source maps and the options %j it returns %s', (options, expected) => {
+    const result = _getUpdatedSourceMapSettings(astroConfig, options, logger);
+    expect(result.updatedSourceMapSetting).toBe(expected);
+  });
+
+  it('returns undefined for unset source maps without an auth token', () => {
+    vi.stubEnv('SENTRY_AUTH_TOKEN', '');
+    const result = _getUpdatedSourceMapSettings(astroConfig, sentryOptions, logger);
+    vi.unstubAllEnvs();
+    expect(result.updatedSourceMapSetting).toBeUndefined();
   });
 
   it('should log warnings and messages when debug is enabled', () => {

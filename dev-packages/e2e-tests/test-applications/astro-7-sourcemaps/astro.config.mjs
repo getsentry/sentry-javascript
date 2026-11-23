@@ -65,8 +65,6 @@ export default defineConfig({
     build: { assetsInlineLimit: 0, ...(variant === 'delete-all' && { sourcemap: true }) },
     plugins: [recordSourceMaps()],
   },
-  // The removal must follow the configured output directory
-  ...(noUpload && { outDir: './build' }),
   output: isStatic ? 'static' : 'server',
   adapter: isStatic ? undefined : node({ mode: 'standalone' }),
 });

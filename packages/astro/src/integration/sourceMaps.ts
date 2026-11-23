@@ -17,7 +17,7 @@ export type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
  *       - keep this setting (don't do anything - like deletion - besides uploading)
  *
  *     3. Users didn't set source maps generation
- *       - we enable 'hidden' source maps generation when Sentry uploads the maps, or when
+ *       - we enable 'hidden' source maps generation when Sentry can upload the maps, or when
  *         `sourcemaps.delete: false` keeps them for a manual upload. Otherwise we leave it unset
  *       - we remove the maps from the build output, except in a Cloudflare `_worker.js` folder and
  *         with `sourcemaps.delete: false`
@@ -71,7 +71,11 @@ export function _getUpdatedSourceMapSettings(
 
     // Astro fixes the setting of the client build before the bundler plugin can turn source maps on.
     // TODO(v12): Remove the `disable-upload` case along with `sourcemaps.disable`.
-    if (upload || legacyDisable === 'disable-upload' || (sourcemaps?.delete === false && injectDebugIds)) {
+    if (
+      (upload && hasUploadCredentials(sentryOptions)) ||
+      legacyDisable === 'disable-upload' ||
+      (sourcemaps?.delete === false && injectDebugIds)
+    ) {
       updatedSourceMapSetting = 'hidden';
 
       debug &&
@@ -84,4 +88,17 @@ export function _getUpdatedSourceMapSettings(
   }
 
   return { previousUserSourceMapSetting, updatedSourceMapSetting };
+}
+
+/**
+ * The credentials checks of the Sentry plugin, which uploads nothing without them. The plugin is created
+ * before this runs, so `process.env` also holds the values of `.env.sentry-build-plugin`.
+ */
+function hasUploadCredentials(sentryOptions: SentryOptions | undefined): boolean {
+  const authToken = sentryOptions?.authToken ?? process.env.SENTRY_AUTH_TOKEN;
+  const org = sentryOptions?.org ?? process.env.SENTRY_ORG;
+  const project = sentryOptions?.project ?? process.env.SENTRY_PROJECT;
+  return (
+    !!authToken && (!!org || authToken.startsWith('sntrys_')) && (Array.isArray(project) ? !!project[0] : !!project)
+  );
 }

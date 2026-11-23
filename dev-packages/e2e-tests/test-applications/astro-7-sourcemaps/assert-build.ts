@@ -13,11 +13,11 @@ import {
 const isStatic = process.env.E2E_ASTRO_OUTPUT === 'static';
 const noUpload = !!process.env.E2E_NO_UPLOAD;
 
-const BUILD_OUTPUT = noUpload ? 'build' : 'dist';
+const BUILD_OUTPUT = 'dist';
 const OUTPUT_DIRS = isStatic ? [BUILD_OUTPUT] : [path.join(BUILD_OUTPUT, 'client'), path.join(BUILD_OUTPUT, 'server')];
 
-// The SDK enables hidden source maps when the app sets none, and asks the bundler plugin to remove
-// them from the client, server and prerender output, also when no upload runs.
+// Without an auth token no upload can run, so the SDK turns on no source maps. The bundler plugin
+// still injects debug IDs.
 if (noUpload) {
   // Written by the build, see `recordSourceMaps` in `astro.config.mjs`.
   const mapsMade = new Map<string, number>();
@@ -26,7 +26,7 @@ if (noUpload) {
     mapsMade.set(environment as string, (mapsMade.get(environment as string) ?? 0) + Number(count));
   }
   for (const environment of ['client', 'ssr', 'prerender']) {
-    assert.ok(mapsMade.get(environment), `Expected the ${environment} build to make source maps`);
+    assert.equal(mapsMade.get(environment), 0, `Expected the ${environment} build to make no source maps`);
   }
   assert.notDeepEqual(findInjectedDebugIds({ outputDir: BUILD_OUTPUT }), [], `Expected debug IDs in ${BUILD_OUTPUT}`);
 
@@ -35,6 +35,12 @@ if (noUpload) {
     findSourceMappingUrlComments({ outputDir: BUILD_OUTPUT }),
     [],
     `Expected no sourceMappingURL comments in ${BUILD_OUTPUT}`,
+  );
+
+  const buildLog = fs.readFileSync('.tmp_build_stdout', 'utf8') + fs.readFileSync('.tmp_build_stderr', 'utf8');
+  assert.ok(
+    !buildLog.includes('deleteSourcemapsAfterUpload'),
+    'Expected no message about `sourcemaps.deleteSourcemapsAfterUpload`, which the app does not set',
   );
 } else if (process.env.E2E_VARIANT === 'manual-upload') {
   // `upload: false` with `delete: false`: nothing reaches Sentry, and the hidden maps Sentry turned on
