@@ -1,12 +1,13 @@
 import crypto from 'crypto';
 import { expect, test } from '@playwright/test';
 import { waitForStreamedSpan, getSpanOp, collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
+import { RUNTIME } from './constants';
 
 test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   const id = crypto.randomUUID();
 
   const inboundSegmentPromise = waitForStreamedSpan(
-    'node-fastify-5',
+    'fastify-5',
     segment =>
       segment.is_segment &&
       getSpanOp(segment) === 'http.server' &&
@@ -14,7 +15,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   );
 
   const outboundSegmentPromise = collectStreamedSpansUntilSegment(
-    'node-fastify-5',
+    'fastify-5',
     segment =>
       getSpanOp(segment) === 'http.server' && segment.attributes?.['url.path']?.value === `/test-outgoing-http/${id}`,
   );
@@ -120,7 +121,8 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
         'server.address': { value: 'localhost', type: 'string' },
         'http.request.method': { value: 'GET', type: 'string' },
         'url.scheme': { value: 'http', type: 'string' },
-        'client.address': { value: '::1', type: 'string' },
+        // Deno's `node:http` client connects to `localhost` over IPv4.
+        'client.address': { value: RUNTIME === 'deno' ? '127.0.0.1' : '::1', type: 'string' },
         'client.port': { value: expect.any(Number), type: 'integer' },
         'network.transport': { value: 'tcp', type: 'string' },
         'network.local.address': { value: expect.any(String), type: 'string' },
@@ -148,7 +150,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   const id = crypto.randomUUID();
 
   const inboundSegmentPromise = waitForStreamedSpan(
-    'node-fastify-5',
+    'fastify-5',
     segment =>
       segment.is_segment &&
       getSpanOp(segment) === 'http.server' &&
@@ -156,7 +158,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   );
 
   const outboundSegmentPromise = collectStreamedSpansUntilSegment(
-    'node-fastify-5',
+    'fastify-5',
     segment =>
       getSpanOp(segment) === 'http.server' && segment.attributes?.['url.path']?.value === `/test-outgoing-fetch/${id}`,
   );
@@ -273,20 +275,25 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
         'network.protocol.version': { value: '1.1', type: 'string' },
         'server.port': { value: 3030, type: 'integer' },
         'http.response.status_text': { value: 'OK', type: 'string' },
-        'user_agent.original': { value: 'node', type: 'string' },
         'http.route': { value: '/test-inbound-headers/:id', type: 'string' },
         'http.request.header.accept': { value: ['*/*'], type: 'array' },
-        'http.request.header.accept-encoding': { value: ['gzip, deflate'], type: 'array' },
-        'http.request.header.accept-language': { value: ['*'], type: 'array' },
         'http.request.header.baggage': { value: [expect.any(String)], type: 'array' },
-        'http.request.header.connection': { value: ['keep-alive'], type: 'array' },
         'http.request.header.host': { value: [expect.any(String)], type: 'array' },
-        'http.request.header.sec-fetch-mode': { value: ['cors'], type: 'array' },
         'http.request.header.sentry-trace': {
           value: [expect.stringMatching(/[a-f0-9]{32}-[a-f0-9]{16}-1/)],
           type: 'array',
         },
-        'http.request.header.user-agent': { value: ['node'], type: 'array' },
+        // The app sends this request with the `fetch` of the runtime, and Bun and Deno send other default headers.
+        ...(RUNTIME === 'node'
+          ? {
+              'user_agent.original': { value: 'node', type: 'string' },
+              'http.request.header.accept-encoding': { value: ['gzip, deflate'], type: 'array' },
+              'http.request.header.accept-language': { value: ['*'], type: 'array' },
+              'http.request.header.connection': { value: ['keep-alive'], type: 'array' },
+              'http.request.header.sec-fetch-mode': { value: ['cors'], type: 'array' },
+              'http.request.header.user-agent': { value: ['node'], type: 'array' },
+            }
+          : {}),
       }),
     }),
   );
@@ -294,7 +301,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
 
 test('Propagates trace for outgoing external http requests', async ({ baseURL }) => {
   const inboundSegmentPromise = collectStreamedSpansUntilSegment(
-    'node-fastify-5',
+    'fastify-5',
     segment =>
       getSpanOp(segment) === 'http.server' &&
       segment.attributes?.['url.path']?.value === `/test-outgoing-http-external-allowed`,
@@ -339,7 +346,7 @@ test('Propagates trace for outgoing external http requests', async ({ baseURL })
 
 test('Does not propagate outgoing http requests not covered by tracePropagationTargets', async ({ baseURL }) => {
   const inboundSegmentPromise = collectStreamedSpansUntilSegment(
-    'node-fastify-5',
+    'fastify-5',
     segment =>
       getSpanOp(segment) === 'http.server' &&
       segment.attributes?.['url.path']?.value === `/test-outgoing-http-external-disallowed`,
@@ -371,7 +378,7 @@ test('Does not propagate outgoing http requests not covered by tracePropagationT
 
 test('Propagates trace for outgoing external fetch requests', async ({ baseURL }) => {
   const inboundSegmentPromise = collectStreamedSpansUntilSegment(
-    'node-fastify-5',
+    'fastify-5',
     segment =>
       getSpanOp(segment) === 'http.server' &&
       segment.attributes?.['url.path']?.value === `/test-outgoing-fetch-external-allowed`,
@@ -416,7 +423,7 @@ test('Propagates trace for outgoing external fetch requests', async ({ baseURL }
 
 test('Does not propagate outgoing fetch requests not covered by tracePropagationTargets', async ({ baseURL }) => {
   const inboundSegmentPromise = collectStreamedSpansUntilSegment(
-    'node-fastify-5',
+    'fastify-5',
     segment =>
       getSpanOp(segment) === 'http.server' &&
       segment.attributes?.['url.path']?.value === `/test-outgoing-fetch-external-disallowed`,

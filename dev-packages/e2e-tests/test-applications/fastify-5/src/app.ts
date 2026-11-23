@@ -1,52 +1,9 @@
-import type * as S from '@sentry/node';
-const Sentry = require('@sentry/node') as typeof S;
+import type { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest } from 'fastify';
+import { fastify } from 'fastify';
+import * as http from 'node:http';
+import * as Sentry from './sentry';
 
-// We wrap console.warn to find out if a warning is incorrectly logged
-console.warn = new Proxy(console.warn, {
-  apply: function (target, thisArg, argumentsList) {
-    const msg = argumentsList[0];
-    if (typeof msg === 'string' && msg.startsWith('[Sentry]')) {
-      console.error(`Sentry warning was triggered: ${msg}`);
-      process.exit(1);
-    }
-
-    return target.apply(thisArg, argumentsList);
-  },
-});
-
-Sentry.init({
-  environment: 'qa', // dynamic sampling bias to keep transactions
-  dsn: process.env.E2E_TEST_DSN,
-  integrations: [
-    Sentry.fastifyIntegration({
-      shouldHandleError: (_error, request, _reply) => {
-        if (request.routeOptions?.url?.includes('/test-error-not-captured')) {
-          // Errors from this path will not be captured by Sentry
-          return false;
-        }
-
-        if (request.routeOptions?.url?.includes('/test-error-ignored') && _reply.statusCode === 500) {
-          return false;
-        }
-
-        return true;
-      },
-    }),
-  ],
-  tracesSampleRate: 1,
-  tunnel: 'http://localhost:3031/', // proxy server
-  tracePropagationTargets: ['http://localhost:3030', '/external-allowed'],
-});
-
-import type * as H from 'http';
-import type * as F from 'fastify';
-
-// Make sure fastify is imported after Sentry is initialized
-const { fastify } = require('fastify') as typeof F;
-const http = require('http') as typeof H;
-
-const app = fastify();
-const port = 3030;
+export const app = fastify();
 const port2 = 3040;
 
 app.get('/test-success', function (_req, res) {
@@ -97,8 +54,8 @@ app.get('/test-error', async function (req, res) {
 // Regression test for https://github.com/fastify/fastify/issues/6409
 // The error diagnostic channel was always sending 200 unless explicitly changed.
 // This was fixed in Fastify 5.7.0
-app.register((childApp: F.FastifyInstance, _options: F.FastifyPluginOptions, next: (err?: Error) => void) => {
-  childApp.setErrorHandler((error: Error, _request: F.FastifyRequest, reply: F.FastifyReply) => {
+app.register((childApp: FastifyInstance, _options: FastifyPluginOptions, next: (err?: Error) => void) => {
+  childApp.setErrorHandler((error: Error, _request: FastifyRequest, reply: FastifyReply) => {
     reply.send({ ok: false });
   });
 
@@ -142,6 +99,19 @@ app.get('/test-outgoing-http-external-disallowed', async function (req, res) {
   res.send(data);
 });
 
+app.get('/test-log', function (_req, res) {
+  Sentry.logger.debug('Accessed /test-log route');
+  res.send({ message: 'Log sent' });
+});
+
+app.get<{ Params: { id: string } }>('/test-isolation/:id', async function (req, res) {
+  Sentry.setTag('isolation-id', req.params.id);
+  // Lets the concurrent requests of the isolation test overlap.
+  await new Promise(resolve => setTimeout(resolve, 200));
+  Sentry.captureException(new Error(`Isolated error ${req.params.id}`));
+  res.send({});
+});
+
 app.post('/test-post', function (req, res) {
   res.send({ status: 'ok', body: req.body });
 });
@@ -151,10 +121,8 @@ app.get('/flush', async function (_req, res) {
   res.send({ ok: true });
 });
 
-app.listen({ port: port });
-
 // A second app so we can test header propagation between external URLs
-const app2 = fastify();
+export const app2 = fastify();
 app2.get('/external-allowed', function (req, res) {
   const headers = req.headers;
 
@@ -166,8 +134,6 @@ app2.get('/external-disallowed', function (req, res) {
 
   res.send({ headers, route: '/external-disallowed' });
 });
-
-app2.listen({ port: port2 });
 
 function makeHttpRequest(url: string) {
   return new Promise(resolve => {

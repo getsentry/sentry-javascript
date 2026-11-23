@@ -3,7 +3,7 @@ import { waitForStreamedSpan, getSpanOp, collectStreamedSpansUntilSegment } from
 
 test('Sends an API route span', async ({ baseURL }) => {
   const pageloadSegmentEventPromise = collectStreamedSpansUntilSegment(
-    'node-fastify-5',
+    'fastify-5',
     segment => getSpanOp(segment) === 'http.server' && segment.name === 'GET /test-transaction',
   );
 
@@ -118,7 +118,7 @@ test('Sends an API route span', async ({ baseURL }) => {
 
 test('Captures request metadata', async ({ baseURL }) => {
   const segmentEventPromise = waitForStreamedSpan(
-    'node-fastify-5',
+    'fastify-5',
     segment => segment.is_segment && getSpanOp(segment) === 'http.server' && segment.name === 'POST /test-post',
   );
 
