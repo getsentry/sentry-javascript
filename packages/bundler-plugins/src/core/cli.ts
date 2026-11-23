@@ -1,7 +1,7 @@
 import { createSentrySDK } from 'sentry';
 import type { NormalizedOptions } from './options-mapping';
 import type { SetCommitsOptions } from './types';
-import { arrayify, getProjects } from './utils';
+import { arrayify, getGitRemoteRepository, getProjects, gitRevision } from './utils';
 
 type SentrySDK = ReturnType<typeof createSentrySDK>;
 type SentryOptions = NonNullable<Parameters<typeof createSentrySDK>[0]>;
@@ -86,6 +86,18 @@ export class SentryCliAdapter {
    */
   public async setCommits(name: string, setCommitsOptions: SetCommitsOptions): Promise<void> {
     const { auto, repo, commit, previousCommit } = setCommitsOptions;
+    const { vcsRemote } = this.#options.release;
+
+    // `--auto` only reads the `origin` remote, so other remotes go through manual mode.
+    if (auto === true && vcsRemote !== 'origin') {
+      const remoteRepo = getGitRemoteRepository(vcsRemote);
+      const head = gitRevision();
+      if (!remoteRepo || !head) {
+        throw new Error(`Could not read the repository and HEAD commit of the '${vcsRemote}' git remote.`);
+      }
+      await this.#sdk.release['set-commits']({ orgVersion: name, auto: false, commit: `${remoteRepo}@${head}` });
+      return;
+    }
 
     // Manual mode is expressed as `REPO@SHA` (optionally `REPO@PREV..SHA`).
     const commitSpec =
