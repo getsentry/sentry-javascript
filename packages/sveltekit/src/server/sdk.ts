@@ -1,4 +1,4 @@
-import { applySdkMetadata } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getDefaultNodeIntegrations, init as initNodeSdk } from '@sentry/node';
 import { rewriteFramesIntegration } from '../server-common/integrations/rewriteFramesIntegration';
@@ -22,7 +22,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // SvelteKit emits its own OpenTelemetry spans, so it defaults to registering the Sentry tracer
     // provider (unlike most Node-based SDKs). A user-provided value still overrides this via `...options`.
     enableOpenTelemetrySetup: true,
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
   };
 
   applySdkMetadata(opts, 'sveltekit', ['sveltekit', 'node']);

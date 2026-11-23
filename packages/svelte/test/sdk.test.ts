@@ -22,6 +22,7 @@ describe('Initialize Svelte SDk', () => {
 
     const expectedMetadata = {
       _metadata: {
+        optionsSetByUser: ['dsn'],
         sdk: {
           name: 'sentry.javascript.svelte',
           packages: [{ name: 'npm:@sentry/svelte', version: SDK_VERSION }],
@@ -59,6 +60,7 @@ describe('Initialize Svelte SDk', () => {
     expect(browserInit).toHaveBeenLastCalledWith(
       expect.objectContaining({
         _metadata: {
+          optionsSetByUser: ['dsn'],
           sdk: {
             name: 'sentry.javascript.sveltekit',
             version: SDK_VERSION,
