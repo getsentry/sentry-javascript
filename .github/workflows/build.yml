@@ -1,4 +1,5 @@
 name: 'CI: Build & Test'
+# Full-CI baseline for the Next.js worker benchmark.
 # Full-CI baseline for the Nuxt production/development split benchmark.
 on:
   push:
