@@ -48,28 +48,31 @@ test.describe('prerendered ISR pages', () => {
   });
 });
 
-test('should create unique traces for ISR pages on each visit', async ({ page }) => {
-  const traceIds: string[] = [];
+test('should create unique traces for ISR pages on each visit', async ({ context, baseURL }) => {
+  // Search params do not affect this prerendered page; they identify each visitor's envelope.
+  const traceIds = await Promise.all(
+    Array.from({ length: 5 }, async (_, visit) => {
+      const page = await context.newPage();
+      const url = `/isr-test/laptop?visit=${visit}`;
+      const spanPromise = waitForStreamedSpan('nextjs-15', span => {
+        return (
+          span.name === '/isr-test/:product' &&
+          getSpanOp(span) === 'pageload' &&
+          span.is_segment &&
+          span.attributes['url.full']?.value === new URL(url, baseURL).href
+        );
+      });
 
-  // Load the same ISR page 5 times: the cached HTML carries no trace tag, so every visit starts its own trace
-  for (let i = 0; i < 5; i++) {
-    const spanPromise = waitForStreamedSpan('nextjs-15', span => {
-      return span.name === '/isr-test/:product' && getSpanOp(span) === 'pageload' && span.is_segment;
-    });
+      await page.goto(url, { waitUntil: 'commit' });
+      const span = await spanPromise;
+      const traceId = span.trace_id;
 
-    if (i === 0) {
-      await page.goto('/isr-test/laptop', { waitUntil: 'commit' });
-    } else {
-      await page.reload({ waitUntil: 'commit' });
-    }
-
-    const span = await spanPromise;
-    const traceId = span.trace_id;
-
-    expect(traceId).toBeDefined();
-    expect(traceId).toMatch(/[a-f0-9]{32}/);
-    traceIds.push(traceId!);
-  }
+      expect(traceId).toBeDefined();
+      expect(traceId).toMatch(/[a-f0-9]{32}/);
+      await page.close();
+      return traceId!;
+    }),
+  );
 
   // Verify all 5 page loads have unique trace IDs (no trace replayed from the cached HTML)
   const uniqueTraceIds = new Set(traceIds);

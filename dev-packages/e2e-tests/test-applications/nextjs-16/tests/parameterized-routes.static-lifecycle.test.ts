@@ -4,7 +4,9 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 test('should create a parameterized transaction when the `app` directory is used', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
     return (
-      transactionEvent.transaction === '/parameterized/:one' && transactionEvent.contexts?.trace?.op === 'pageload'
+      transactionEvent.transaction === '/parameterized/:one' &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      transactionEvent.contexts?.trace?.data?.['url.path'] === '/parameterized/cappuccino'
     );
   });
 
@@ -46,7 +48,9 @@ test('should create a parameterized transaction when the `app` directory is used
 test('should create a transaction named after the static route when the `app` directory is used', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
     return (
-      transactionEvent.transaction === '/parameterized/static' && transactionEvent.contexts?.trace?.op === 'pageload'
+      transactionEvent.transaction === '/parameterized/static' &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      transactionEvent.contexts?.trace?.data?.['url.path'] === '/parameterized/static'
     );
   });
 
@@ -88,7 +92,9 @@ test('should create a transaction named after the static route when the `app` di
 test('should create a partially parameterized transaction when the `app` directory is used', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
     return (
-      transactionEvent.transaction === '/parameterized/:one/beep' && transactionEvent.contexts?.trace?.op === 'pageload'
+      transactionEvent.transaction === '/parameterized/:one/beep' &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      transactionEvent.contexts?.trace?.data?.['url.path'] === '/parameterized/cappuccino/beep'
     );
   });
 
@@ -131,7 +137,8 @@ test('should create a nested parameterized transaction when the `app` directory 
   const transactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
     return (
       transactionEvent.transaction === '/parameterized/:one/beep/:two' &&
-      transactionEvent.contexts?.trace?.op === 'pageload'
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      transactionEvent.contexts?.trace?.data?.['url.path'] === '/parameterized/cappuccino/beep/espresso'
     );
   });
 

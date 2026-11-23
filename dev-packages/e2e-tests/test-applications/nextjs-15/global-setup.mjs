@@ -8,4 +8,5 @@ export default async function () {
   if (!response.ok) {
     throw new Error(`Next.js readiness request failed: ${response.status}`);
   }
+  await response.text();
 }
