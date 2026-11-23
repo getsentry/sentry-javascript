@@ -8,7 +8,8 @@ import {
   withMonitor,
 } from '@sentry/core';
 import { resolveCronMonitor } from './cron-monitoring';
-import type { AnyFn, ReflectWithMetadata } from './helpers';
+import type { ReflectWithMetadata } from '../helpers';
+import type { AnyFn } from './helpers';
 import {
   getBullMQProcessSpanOptions,
   getEventSpanOptions,

@@ -20,9 +20,25 @@ import {
   startSpanManual,
   withIsolationScope,
 } from '@sentry/core';
-import { isExpectedError, isWsOrRpcException } from './helpers';
-import { instrumentObservable } from './integrations/helpers';
-import type { Observable as IntegrationObservable } from './integrations/types';
+import type { Observable as InstrumentedObservable, ReflectWithMetadata } from './helpers';
+import { instrumentObservable, isExpectedError, isWsOrRpcException } from './helpers';
+
+// `@nestjs/websockets`' metadata key for the `@WebSocketGateway()` options.
+const GATEWAY_OPTIONS = 'websockets:gateway_options';
+
+/**
+ * Socket.IO resolves regex and function namespaces to the concrete child namespace (e.g. `/tenant-42`),
+ * which would make span names high cardinality.
+ */
+function hasDynamicNamespace(context: ExecutionContext): boolean {
+  const R = Reflect as ReflectWithMetadata;
+  if (typeof R.getMetadata !== 'function') {
+    return false;
+  }
+  const options = R.getMetadata(GATEWAY_OPTIONS, context.getClass());
+  const namespace = isObjectLike(options) ? options.namespace : undefined;
+  return namespace instanceof RegExp || typeof namespace === 'function';
+}
 
 // Partial extract of FastifyRequest interface
 // https://github.com/fastify/fastify/blob/87f9f20687c938828f1138f91682d568d2a31e53/types/request.d.ts#L41
@@ -69,7 +85,7 @@ class SentryTracingInterceptor implements NestInterceptor {
         return next.handle();
       }
 
-      const namespace = client?.nsp?.name;
+      const namespace = hasDynamicNamespace(context) ? undefined : client?.nsp?.name;
       const transactionName = namespace ? `WS ${namespace} ${pattern}` : `WS ${pattern}`;
 
       return withIsolationScope(isolationScope => {
@@ -84,15 +100,19 @@ class SentryTracingInterceptor implements NestInterceptor {
             },
           },
           span => {
-            const markSpanAsFailed = (): void => {
-              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            const markSpanAsFailed = (error: unknown): void => {
+              if (!isExpectedError(error)) {
+                span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              }
             };
 
             try {
               const observable = next.handle();
+              const instrumentedObservable: InstrumentedObservable<unknown> = observable;
 
               // Keep the transaction name on the isolation scope active while the handler runs.
-              observable.subscribe = new Proxy(observable.subscribe, {
+              // eslint-disable-next-line @typescript-eslint/unbound-method
+              instrumentedObservable.subscribe = new Proxy(instrumentedObservable.subscribe, {
                 apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
                   return withIsolationScope(subscriptionIsolationScope => {
                     subscriptionIsolationScope.setTransactionName(transactionName);
@@ -101,12 +121,11 @@ class SentryTracingInterceptor implements NestInterceptor {
                 },
               });
 
-              // Nest returns an RxJS Observable, while the helper intentionally uses a minimal type to avoid importing RxJS here.
-              instrumentObservable(observable as unknown as IntegrationObservable<unknown>, span, markSpanAsFailed);
+              instrumentObservable(instrumentedObservable, span, markSpanAsFailed);
 
               return observable;
             } catch (error) {
-              markSpanAsFailed();
+              markSpanAsFailed(error);
               span.end();
               throw error;
             }

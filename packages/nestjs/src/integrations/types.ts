@@ -1,5 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import type { Observable } from '../helpers';
+
+export type { Observable, Subscription } from '../helpers';
+
 // Partial extract of FastifyRequest interface
 // https://github.com/fastify/fastify/blob/87f9f20687c938828f1138f91682d568d2a31e53/types/request.d.ts#L41
 interface FastifyRequest {
@@ -39,17 +43,6 @@ export interface MinimalNestJsApp {
   useGlobalInterceptors: (interceptor: {
     intercept: (context: MinimalNestJsExecutionContext, next: { handle: () => any }) => any;
   }) => void;
-}
-
-export interface Subscription {
-  add(...args: any[]): void;
-}
-
-/**
- * A minimal interface for an Observable.
- */
-export interface Observable<T> {
-  subscribe(next?: (value: T) => void, error?: (err: any) => void, complete?: () => void): Subscription;
 }
 
 /**
