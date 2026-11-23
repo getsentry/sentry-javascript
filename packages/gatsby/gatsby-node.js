@@ -1,7 +1,7 @@
 const fs = require('fs');
 
 const { sentryWebpackPlugin } = require('@sentry/bundler-plugins/webpack');
-const { resolveSourceMapsFeatures } = require('@sentry/core');
+const { consoleSandbox, resolveSourceMapsFeatures } = require('@sentry/core');
 
 const SENTRY_USER_CONFIG = ['./sentry.config.js', './sentry.config.ts'];
 
@@ -21,10 +21,12 @@ exports.onCreateWebpackConfig = ({ getConfig, actions, stage }, options) => {
       !warnedAboutDeleteOptions
     ) {
       warnedAboutDeleteOptions = true;
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[Sentry] `deleteSourcemapsAfterUpload` is ignored because `sourcemaps.delete` is set. Please remove `deleteSourcemapsAfterUpload`.',
-      );
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[Sentry] `deleteSourcemapsAfterUpload` is ignored because `sourcemaps.delete` is set. Please remove `deleteSourcemapsAfterUpload`.',
+        );
+      });
     }
     // Sentry turns source maps on to upload them, or when `sourcemaps.delete: false` keeps them for a manual upload.
     const shouldAutomaticallyEnableSourceMaps =
