@@ -1,5 +1,11 @@
+import { URL_FULL } from '@sentry/conventions/attributes';
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpansUntilSegment,
+  getSpanOp,
+  waitForStreamedSpan,
+  waitForStreamedSpans,
+} from '@sentry-internal/test-utils';
 
 test('sends a pageload root span with a parameterized URL', async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('nuxt-5', span => {
@@ -127,4 +133,24 @@ test('sends an application render span and a root component span on pageload', a
       'sentry.description': { type: 'string', value: 'Vue <Root>' },
     }),
   });
+});
+
+// Nuxt fetches its build manifest after hydration. A span for it would prolong the pageload.
+test('does not send a span for the build manifest request', async ({ page }) => {
+  const httpClientUrls: string[] = [];
+  const dataRequestSpanPromise = waitForStreamedSpans('nuxt-5', spans => {
+    httpClientUrls.push(
+      ...spans.filter(span => getSpanOp(span) === 'http.client').map(span => `${span.attributes[URL_FULL]?.value}`),
+    );
+    return httpClientUrls.some(url => url.includes('/api/test-param/build-manifest'));
+  });
+  const manifestResponsePromise = page.waitForResponse(response => response.url().includes('/_nuxt/builds/meta/'));
+
+  await page.goto('/test-param/build-manifest');
+  await manifestResponsePromise;
+  // A manifest span would arrive before the span of this later request.
+  await page.getByText('Fetch Server Data').click();
+  await dataRequestSpanPromise;
+
+  expect(httpClientUrls).not.toContainEqual(expect.stringContaining('/_nuxt/builds/'));
 });

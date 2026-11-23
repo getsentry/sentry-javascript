@@ -19,7 +19,7 @@ test('sends a server root span on pageload', async ({ page }) => {
   expect(serverSpan.attributes['sentry.origin']?.value).toBe('auto.http.http_server');
 });
 
-test('does not send spans for build asset folder "_nuxt"', async ({ page }) => {
+test('does not send spans for build asset folder "_nuxt"', async ({ baseURL }) => {
   let buildAssetFolderOccurred = false;
 
   waitForStreamedSpan('nuxt-3-min', span => {
@@ -31,11 +31,15 @@ test('does not send spans for build asset folder "_nuxt"', async ({ page }) => {
 
   const serverSpanPromise = waitForStreamedSpan('nuxt-3-min', span => {
     return (
-      span.is_segment && getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === '/test-param/1234'
+      span.is_segment &&
+      getSpanOp(span) === 'http.server' &&
+      span.attributes['url.path']?.value === '/test-param/after-build-asset'
     );
   });
 
-  await page.goto('/test-param/1234');
+  // The HTTP integration does not ignore `.json` files. Requested first, so its span would arrive before the page span.
+  await fetch(`${baseURL}/_nuxt/builds/latest.json`);
+  await fetch(`${baseURL}/test-param/after-build-asset`);
 
   const serverSpan = await serverSpanPromise;
 

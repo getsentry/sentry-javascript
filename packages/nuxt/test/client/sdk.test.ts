@@ -1,7 +1,11 @@
 import * as SentryBrowser from '@sentry/browser';
+import { SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
+import { HTTP_CLIENT } from '@sentry/conventions/op';
+import { GLOBAL_OBJ } from '@sentry/core';
 import { SDK_VERSION } from '@sentry/vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/client';
+import { NUXT_BUILD_ASSETS_DIR_GLOBAL } from '../../src/common/buildAssets';
 
 const browserInit = vi.spyOn(SentryBrowser, 'init');
 
@@ -139,6 +143,58 @@ describe('Nuxt Client SDK', () => {
         expect(browserInit).toHaveBeenCalledTimes(1);
         const callArgs = browserInit.mock.calls[0]?.[0];
         expect(callArgs?.environment).toBe('options-env');
+      });
+    });
+
+    describe('ignoreSpans', () => {
+      const globalWithBuildAssetsDir = GLOBAL_OBJ as { [NUXT_BUILD_ASSETS_DIR_GLOBAL]?: string };
+
+      afterEach(() => {
+        globalWithBuildAssetsDir[NUXT_BUILD_ASSETS_DIR_GLOBAL] = undefined;
+      });
+
+      const startFetchSpan = (url: string): SentryBrowser.Span =>
+        SentryBrowser.startInactiveSpan({ name: 'GET', attributes: { [SENTRY_OP]: HTTP_CLIENT, [URL_FULL]: url } });
+
+      it.each([
+        'http://localhost:3000/_nuxt/builds/meta/b621250d-af25-415d-8df9-7e893c1af467.json',
+        'http://localhost:3000/_nuxt/builds/latest.json?1794411940545',
+        'https://example.com/base/_nuxt/builds/latest.json',
+        '/_nuxt/builds/meta/b621250d-af25-415d-8df9-7e893c1af467.json',
+      ])('ignores build manifest requests (%s)', url => {
+        init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+        expect(startFetchSpan(url).isRecording()).toBe(false);
+      });
+
+      it.each([
+        'http://localhost:3000/api/builds/latest.json',
+        'http://localhost:3000/_nuxt/builds-B13LvVLZ.js',
+        'http://localhost:3000/_nuxt/entry.js',
+      ])('keeps other requests (%s)', url => {
+        init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+        expect(startFetchSpan(url).isRecording()).toBe(true);
+      });
+
+      it('merges the default with user-provided ignoreSpans', () => {
+        init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          tracesSampleRate: 1,
+          ignoreSpans: [{ attributes: { [URL_FULL]: /\/health$/ } }],
+        });
+
+        expect(startFetchSpan('https://api.example.com/health').isRecording()).toBe(false);
+        expect(startFetchSpan('http://localhost:3000/_nuxt/builds/latest.json').isRecording()).toBe(false);
+      });
+
+      it('ignores manifest requests in the configured buildAssetsDir instead of `/_nuxt/`', () => {
+        globalWithBuildAssetsDir[NUXT_BUILD_ASSETS_DIR_GLOBAL] = '/assets/';
+
+        init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+        expect(startFetchSpan('http://localhost:3000/assets/builds/latest.json').isRecording()).toBe(false);
+        expect(startFetchSpan('http://localhost:3000/_nuxt/builds/latest.json').isRecording()).toBe(true);
       });
     });
   });
