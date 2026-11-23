@@ -24,27 +24,19 @@ import {
 import type { Observable as InstrumentedObservable, ReflectWithMetadata } from './helpers';
 import { instrumentObservable, isExpectedError, isWsOrRpcException } from './helpers';
 
-// `@nestjs/websockets`' metadata keys for the `@WebSocketGateway()` options and the `@SubscribeMessage()` pattern.
+// `@nestjs/websockets`' metadata key for the `@WebSocketGateway()` options.
 const GATEWAY_OPTIONS = 'websockets:gateway_options';
-const MESSAGE_METADATA = 'message';
-
-function getMetadata(key: string, target: object): unknown {
-  const R = Reflect as ReflectWithMetadata;
-  return typeof R.getMetadata === 'function' ? R.getMetadata(key, target) : undefined;
-}
-
-function getWsPattern(context: ExecutionContext): string | undefined {
-  // `getPattern()` only exists on Nest 10 and later.
-  const pattern = context.switchToWs().getPattern?.() ?? getMetadata(MESSAGE_METADATA, context.getHandler());
-  return typeof pattern === 'string' ? pattern : undefined;
-}
 
 /**
  * Socket.IO resolves regex and function namespaces to the concrete child namespace (e.g. `/tenant-42`),
  * which would make span names high cardinality.
  */
 function hasDynamicNamespace(context: ExecutionContext): boolean {
-  const options = getMetadata(GATEWAY_OPTIONS, context.getClass());
+  const R = Reflect as ReflectWithMetadata;
+  if (typeof R.getMetadata !== 'function') {
+    return false;
+  }
+  const options = R.getMetadata(GATEWAY_OPTIONS, context.getClass());
   const namespace = isObjectLike(options) ? options.namespace : undefined;
   return namespace instanceof RegExp || typeof namespace === 'function';
 }
@@ -85,9 +77,11 @@ class SentryTracingInterceptor implements NestInterceptor {
    * Intercepts HTTP requests to set the transaction name for Sentry tracing.
    */
   public intercept(context: ExecutionContext, next: CallHandler): ReturnType<CallHandler['handle']> {
+    // Nest only applies global interceptors to WebSocket gateways from v12 on.
     if (context.getType() === 'ws') {
-      const client = context.switchToWs().getClient<{ nsp?: { name?: string } }>();
-      const pattern = getWsPattern(context);
+      const wsHost = context.switchToWs();
+      const client = wsHost.getClient<{ nsp?: { name?: string } }>();
+      const pattern = wsHost.getPattern();
 
       if (!pattern) {
         return next.handle();

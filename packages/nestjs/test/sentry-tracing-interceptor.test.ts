@@ -55,9 +55,7 @@ type Interceptor = {
 };
 
 function createInterceptor(): Interceptor {
-  const provider = SentryModule.forRoot().providers?.[0] as {
-    useClass: new () => Interceptor;
-  };
+  const [provider] = Reflect.getMetadata('providers', SentryModule) as [{ useClass: new () => Interceptor }];
 
   return new provider.useClass();
 }
@@ -66,7 +64,6 @@ function createContext(client: unknown, pattern: unknown, gatewayClass: unknown 
   return {
     getType: vi.fn().mockReturnValue('ws'),
     getClass: vi.fn().mockReturnValue(gatewayClass),
-    getHandler: vi.fn().mockReturnValue(() => undefined),
     switchToWs: vi.fn().mockReturnValue({
       getClient: vi.fn().mockReturnValue(client),
       getPattern: vi.fn().mockReturnValue(pattern),
@@ -255,43 +252,6 @@ describe('SentryTracingInterceptor', () => {
     const next = { handle: vi.fn(() => of(undefined)) } as unknown as CallHandler;
 
     interceptor.intercept(context, next).subscribe();
-
-    expect(mocks.isolationScope.setTransactionName).not.toHaveBeenCalled();
-    expect(next.handle).toHaveBeenCalledTimes(1);
-  });
-
-  function createContextWithoutGetPattern(handler: () => void): ExecutionContext {
-    return {
-      getType: vi.fn().mockReturnValue('ws'),
-      getClass: vi.fn().mockReturnValue(class {}),
-      getHandler: vi.fn().mockReturnValue(handler),
-      switchToWs: vi.fn().mockReturnValue({
-        getClient: vi.fn().mockReturnValue({ nsp: { name: '/events' } }),
-      }),
-    } as unknown as ExecutionContext;
-  }
-
-  it('falls back to the @SubscribeMessage pattern on Nest versions without getPattern', () => {
-    const handler = (): void => undefined;
-    Reflect.defineMetadata('message', 'message', handler);
-    const interceptor = createInterceptor();
-    const next = { handle: vi.fn(() => of(undefined)) } as unknown as CallHandler;
-
-    interceptor.intercept(createContextWithoutGetPattern(handler), next).subscribe();
-
-    expect(mocks.isolationScope.setTransactionName).toHaveBeenCalledWith('WS /events message');
-  });
-
-  it('passes through when neither getPattern nor a @SubscribeMessage pattern is available', () => {
-    const interceptor = createInterceptor();
-    const next = { handle: vi.fn(() => of(undefined)) } as unknown as CallHandler;
-
-    interceptor
-      .intercept(
-        createContextWithoutGetPattern(() => undefined),
-        next,
-      )
-      .subscribe();
 
     expect(mocks.isolationScope.setTransactionName).not.toHaveBeenCalled();
     expect(next.handle).toHaveBeenCalledTimes(1);
