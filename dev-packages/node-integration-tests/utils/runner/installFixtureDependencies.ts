@@ -16,36 +16,40 @@ process.once('exit', () => {
   }
 });
 
+// Install each dependency set once per worker, then copy it into each scenario's directory.
+// Sharing the promise also deduplicates concurrent requests. Scenarios can modify or delete
+// their copies independently; the original installs are kept until the worker exits.
 export async function installFixtureDependencies(
   directory: string,
   dependencies: Record<string, string>,
   reuseAllowed: boolean,
 ): Promise<void> {
-  const deps = Object.entries(dependencies).map(([name, range]) => {
+  const dependencySpecs = Object.entries(dependencies).map(([name, range]) => {
     if (!range || typeof range !== 'string') {
       throw new Error(`Invalid version range for "${name}": ${String(range)}`);
     }
     return `${name}@${range}`;
   });
+  // Custom installs may depend on copied fixture files; the fast-copy path also requires GNU cp.
   if (!process.env.CI || process.platform !== 'linux' || !reuseAllowed) {
-    await npmInstallWithRetry(directory, deps);
+    await npmInstallWithRetry(directory, dependencySpecs);
     return;
   }
 
   const key = JSON.stringify(Object.entries(dependencies).sort(([a], [b]) => a.localeCompare(b)));
-  const installation = getDependencyInstall(key, dependencies, deps);
-  const source = await installation;
+  const installPromise = getOrCreateDependencyInstall(key, dependencies, dependencySpecs);
+  const sourceDirectory = await installPromise;
   try {
-    await copyDependencyInstall(source, directory);
+    await copyDependencyInstall(sourceDirectory, directory);
   } catch (error) {
     // oxlint-disable-next-line no-console
     console.warn('Dependency copy failed; installing fresh:', error);
-    if (dependencyInstalls.get(key) === installation) {
+    if (dependencyInstalls.get(key) === installPromise) {
       dependencyInstalls.delete(key);
     }
     await rm(join(directory, 'node_modules'), { recursive: true, force: true });
     await rm(join(directory, 'package-lock.json'), { force: true });
-    await npmInstallWithRetry(directory, deps);
+    await npmInstallWithRetry(directory, dependencySpecs);
   }
 }
 
@@ -60,28 +64,32 @@ async function copyDependencyInstall(source: string, destination: string): Promi
   await cp(join(source, 'package-lock.json'), join(destination, 'package-lock.json'));
 }
 
-function getDependencyInstall(key: string, dependencies: Record<string, string>, deps: string[]): Promise<string> {
+function getOrCreateDependencyInstall(
+  key: string,
+  dependencies: Record<string, string>,
+  dependencySpecs: string[],
+): Promise<string> {
   const existing = dependencyInstalls.get(key);
   if (existing) return existing;
 
-  const installation = (async () => {
+  const installPromise = (async () => {
     const directory = await mkdtemp(join(PACKAGE_ROOT, 'tmp_dependencies_'));
     dependencyDirectories.add(directory);
     await writeFile(
       join(directory, 'package.json'),
       JSON.stringify({ name: 'tmp-integration-test', private: true, version: '0.0.0', dependencies }),
     );
-    await npmInstallWithRetry(directory, deps);
+    await npmInstallWithRetry(directory, dependencySpecs);
     return directory;
   })();
 
-  dependencyInstalls.set(key, installation);
-  void installation.catch(() => {
-    if (dependencyInstalls.get(key) === installation) {
+  dependencyInstalls.set(key, installPromise);
+  void installPromise.catch(() => {
+    if (dependencyInstalls.get(key) === installPromise) {
       dependencyInstalls.delete(key);
     }
   });
-  return installation;
+  return installPromise;
 }
 
 const NPM_INSTALL_MAX_RETRIES = 3;
