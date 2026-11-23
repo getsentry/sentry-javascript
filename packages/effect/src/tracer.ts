@@ -20,6 +20,7 @@ import type * as EffectLayer from 'effect/Layer';
 import { succeed as succeedLayer } from 'effect/Layer';
 import * as Option from 'effect/Option';
 import * as EffectTracer from 'effect/Tracer';
+import { contextExports, isEffectV4 } from './compat';
 
 const EFFECT_SPAN_SYMBOL = Symbol.for('@sentry/effect.EffectSpan');
 
@@ -213,34 +214,7 @@ class SentrySpanWrapper implements SentrySpanLike {
  */
 export type StartInactiveSpan = (options: StartSpanOptions) => Span;
 
-// Check if we're running Effect v4 by checking the Exit/Cause structure
-// In v4, causes have a 'reasons' array
-// In v3, causes have '_tag' directly on the cause object
-const isEffectV4 = (() => {
-  try {
-    const testExit = Exit.fail('test') as unknown as { cause?: unknown };
-    const cause = testExit.cause;
-    // v4 causes have 'reasons' array, v3 causes have '_tag' directly
-    if (isObjectLike(cause) && 'reasons' in cause) {
-      return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
-})();
-
 const EXTERNAL_SPAN_KEY = '@sentry/effect/ExternalSpan';
-
-interface ContextExports {
-  Reference: typeof Context.Reference;
-  /** Only Effect v3 exports it. */
-  GenericTag<Identifier, Service>(key: string): Context.Key<Identifier, Service>;
-}
-
-// Effect v4 has no `Context.GenericTag` and Effect v3 before 3.11 has no `Context.Reference`. Both are read
-// through a separate binding because bundlers fail the build on a namespace member the installed version lacks.
-const contextExports = Context as unknown as ContextExports;
 
 /**
  * Whether the tracer continues the trace of a `Tracer.externalSpan` parent. Effect v4 has no `FiberRef`

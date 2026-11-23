@@ -1,5 +1,6 @@
 import { createTestServer } from '@sentry-internal/test-utils';
 import { describe, expect } from 'vitest';
+import { EXPECTED_FETCH_BREADCRUMB_CATEGORY } from '../../../../utils';
 import { createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('outgoing fetch', () => {
@@ -17,7 +18,7 @@ describe('outgoing fetch', () => {
                 timestamp: expect.any(Number),
               },
               {
-                category: 'http',
+                category: EXPECTED_FETCH_BREADCRUMB_CATEGORY,
                 data: {
                   'http.request.method': 'GET',
                   url: `${SERVER_URL}/api/v0`,
@@ -28,7 +29,7 @@ describe('outgoing fetch', () => {
                 type: 'http',
               },
               {
-                category: 'http',
+                category: EXPECTED_FETCH_BREADCRUMB_CATEGORY,
                 data: {
                   'http.request.method': 'GET',
                   url: `${SERVER_URL}/api/v1`,
@@ -39,7 +40,7 @@ describe('outgoing fetch', () => {
                 type: 'http',
               },
               {
-                category: 'http',
+                category: EXPECTED_FETCH_BREADCRUMB_CATEGORY,
                 data: {
                   'http.request.method': 'GET',
                   url: `${SERVER_URL}/api/v2`,
@@ -50,7 +51,7 @@ describe('outgoing fetch', () => {
                 type: 'http',
               },
               {
-                category: 'http',
+                category: EXPECTED_FETCH_BREADCRUMB_CATEGORY,
                 data: {
                   'http.request.method': 'GET',
                   url: `${SERVER_URL}/api/v3`,

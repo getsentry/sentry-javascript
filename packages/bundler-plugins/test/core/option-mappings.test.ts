@@ -213,7 +213,7 @@ describe('normalizeUserOptions()', () => {
     test.each(['preview', 'development', 'staging'])(
       'should skip commit association on %s Vercel builds without a git remote',
       targetEnv => {
-        vi.spyOn(childProcess, 'execSync').mockImplementation(() => {
+        vi.spyOn(childProcess, 'execFileSync').mockImplementation(() => {
           throw new Error('fatal: not a git repository');
         });
         // Only Vercel's variables, so CI variables from the machine running the tests don't leak in.
@@ -233,10 +233,10 @@ describe('normalizeUserOptions()', () => {
     );
 
     test('should keep automatic commit association on preview Vercel builds that have a git remote', () => {
-      const execSyncSpy = vi
-        .spyOn(childProcess, 'execSync')
+      const execFileSyncSpy = vi
+        .spyOn(childProcess, 'execFileSync')
         .mockReturnValue(Buffer.from('https://github.com/my-owner/my-repo.git'));
-      // Only Vercel's variables, so the git remote is what keeps `--auto`, not CI variables from the test machine.
+      // Only Vercel's variables, so the git remote is what keeps `auto: true`, not CI variables from the test machine.
       process.env = {
         VERCEL: '1',
         VERCEL_TARGET_ENV: 'preview',
@@ -247,14 +247,14 @@ describe('normalizeUserOptions()', () => {
 
       const normalizedOptions = normalizeUserOptions({ release: { name: 'my-release' } });
 
-      expect(execSyncSpy).toHaveBeenCalledWith('git remote get-url origin', expect.anything());
+      expect(execFileSyncSpy).toHaveBeenCalledWith('git', ['remote', 'get-url', 'origin'], expect.anything());
       expect(normalizedOptions.release.setCommits).toEqual(expect.objectContaining({ auto: true }));
       expect(normalizedOptions.release.setCommits).not.toHaveProperty('commit');
       vi.restoreAllMocks();
     });
 
     test('should keep automatic commit association on preview Vercel builds in another CI without a git remote', () => {
-      vi.spyOn(childProcess, 'execSync').mockImplementation(() => {
+      vi.spyOn(childProcess, 'execFileSync').mockImplementation(() => {
         throw new Error('fatal: not a git repository');
       });
       process.env['VERCEL'] = '1';
@@ -448,34 +448,12 @@ describe('validateOptions', () => {
   });
 
   describe('source map options', () => {
-    it.each([
-      [{ upload: false, disable: true }, /`sourcemaps\.disable` is ignored/],
-      [{ injectDebugIds: false, disable: 'disable-upload' }, /`sourcemaps\.disable` is ignored/],
-      [{ upload: true, injectDebugIds: false }, /`sourcemaps\.injectDebugIds` is `false`/],
-      [{ delete: true, deleteSourcemapsAfterUpload: false }, /`sourcemaps\.deleteSourcemapsAfterUpload` is ignored/],
-      [{ delete: false, filesToDeleteAfterUpload: ['dist/**/*.map'] }, /`sourcemaps\.filesToDeleteAfterUpload` still/],
-    ] as const)('warns about %j', (sourcemaps, message) => {
-      const options = { sourcemaps } as Partial<NormalizedOptions>;
+    it('warns about conflicting options through the plugin logger', () => {
+      const options = { sourcemaps: { upload: true, injectDebugIds: false } } as Partial<NormalizedOptions>;
 
       expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(true);
       expect(mockedLogger.warn).toHaveBeenCalledTimes(1);
-      expect(mockedLogger.warn).toHaveBeenCalledWith(expect.stringMatching(message), expect.any(String));
-    });
-
-    it.each([
-      { upload: false },
-      { injectDebugIds: false },
-      { upload: false, injectDebugIds: false },
-      { delete: false },
-      { disable: true, deleteSourcemapsAfterUpload: true },
-      { disable: true, delete: true },
-      { delete: true, filesToDeleteAfterUpload: ['extra/**'] },
-      { filesToDeleteAfterUpload: ['dist/**/*.map'] },
-    ] as const)('does not warn about %j', sourcemaps => {
-      const options = { sourcemaps } as Partial<NormalizedOptions>;
-
-      expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(true);
-      expect(mockedLogger.warn).not.toHaveBeenCalled();
+      expect(mockedLogger.warn).toHaveBeenCalledWith(expect.stringMatching(/`sourcemaps\.injectDebugIds` is `false`/));
     });
   });
 

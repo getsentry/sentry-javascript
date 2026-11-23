@@ -13,18 +13,20 @@ import {
 import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import { isObjectLike, SPAN_STATUS_ERROR, startInactiveSpan, withActiveSpan } from '@sentry/core';
+import type { GenAiSpanHooks } from '../core/span-hooks';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
 import type { GenAiCallOptions } from '../core/utils';
 import { getEvaluationInputMessages, getEvaluationOutputMessages, resolveGenAiCallRecording } from '../core/utils';
 import { TYPESAFE_ORIGIN, TYPESAFE_PROVIDER_NAME } from './constants';
 
-/** The call that `recordInputs`/`recordOutputs` decide on. */
+/** The call that `recordInputs`/`recordOutputs` decide on, and that the span hooks get. */
 export interface TypeSafeCallInfo {
   /** The request, the first argument of `systemOne` as passed. */
   request: unknown;
 }
 
-/** Options for the TypeSafe integration. */
-export type TypeSafeOptions = GenAiCallOptions<TypeSafeCallInfo>;
+/** Options for the TypeSafe integration. `onSpanEnd` gets the parsed `systemOne` result. */
+export type TypeSafeOptions = GenAiCallOptions<TypeSafeCallInfo> & GenAiSpanHooks<TypeSafeCallInfo>;
 
 /**
  * Start the span for a `systemOne(request)` call. The request model falls back to the client's
@@ -138,7 +140,7 @@ export function instrumentTypeSafeClient<T extends object>(client: T, options?: 
       }
       if (prop === 'systemOne') {
         return (...args: unknown[]) =>
-          instrumentSystemOne(value as (...args: unknown[]) => unknown, target, args, options);
+          instrumentSystemOne(value as (...args: unknown[]) => unknown, target, args, options ?? {});
       }
       return value.bind(target);
     },
@@ -149,12 +151,15 @@ function instrumentSystemOne(
   systemOne: (...args: unknown[]) => unknown,
   client: object,
   args: unknown[],
-  options: TypeSafeOptions | undefined,
+  options: TypeSafeOptions,
 ): unknown {
-  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, { request: args[0] });
+  const call: TypeSafeCallInfo = { request: args[0] };
+  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
   const span = startDecideSpan(args[0], client, recordInputs);
-  const endWithError = (): void => {
+  runGenAiSpanStart(options, span, call);
+  const endWithError = (error: unknown): void => {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    runGenAiSpanEnd(options, span, call, { error });
     span.end();
   };
 
@@ -162,7 +167,7 @@ function instrumentSystemOne(
   try {
     result = withActiveSpan(span, () => systemOne.apply(client, args));
   } catch (error) {
-    endWithError();
+    endWithError(error);
     throw error;
   }
 
@@ -170,11 +175,13 @@ function instrumentSystemOne(
     result,
     body => {
       addResponseAttributes(span, body, recordOutputs);
+      runGenAiSpanEnd(options, span, call, { response: body });
       span.end();
     },
     endWithError,
   );
   if (!waiting) {
+    runGenAiSpanEnd(options, span, call, { response: result });
     span.end();
   }
 

@@ -1,10 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
-import { isDevMode, isTurbopackDevMode } from './isDevMode';
+import { isDevMode } from './isDevMode';
 
 test('should have symbolicated dev errors', async ({ page }) => {
   test.skip(!isDevMode, 'should be skipped for non-dev mode');
-  test.fixme(isTurbopackDevMode, 'The frames of client errors stay unsymbolicated with the Turbopack dev server');
 
   await page.goto('/click-error');
 

@@ -1,5 +1,5 @@
 import type { Client } from '@sentry/core';
-import { applySdkMetadata, GLOBAL_OBJ } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata, GLOBAL_OBJ } from '@sentry/core';
 import { init as reactInit } from '@sentry/react';
 import type { RemixOptions } from '../utils/remixOptions';
 import { createRemixRouteProvider } from './routeProvider';
@@ -15,7 +15,7 @@ export function init(options: RemixOptions): Client | undefined {
     // The manifest is injected at build time, so route parameterization works from `init` on, even with
     // tracing disabled.
     routeProvider: createRemixRouteProvider(),
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
     // Left unset when unknown, so the browser SDK still falls back to an injected `SENTRY_RELEASE`.
     ...(release !== undefined && { release }),
     environment: options.environment || process.env.NODE_ENV,

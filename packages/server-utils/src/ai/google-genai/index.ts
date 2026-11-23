@@ -29,6 +29,7 @@ import {
   GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
 import type { InstrumentedMethodEntry } from '../core/utils';
 import {
   buildMethodPath,
@@ -41,7 +42,7 @@ import {
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { addDecisionResponseAttributes, getDecisionInputMessages } from './decisions';
 import { instrumentStream } from './streaming';
-import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
+import type { Candidate, ContentPart, GoogleGenAICallInfo, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
 import type { ContentListUnion, Message, PartListUnion } from './utils';
 import {
   candidatesToMessageParts,
@@ -343,10 +344,8 @@ function instrumentMethod<T extends unknown[], R>(
     apply(target, _, args: T): R | Promise<R> {
       const operationName = instrumentedMethod.operation || 'unknown';
       const params = args[0] as Record<string, unknown> | undefined;
-      const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, {
-        operation: operationName,
-        request: params,
-      });
+      const call: GoogleGenAICallInfo = { operation: operationName, request: params };
+      const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
       const attributeParams = resolveChatParams(operationName, params, context);
       const abortSignal = getCallAbortSignal(operationName, attributeParams, args[1]);
       const requestAttributes = extractRequestAttributes(operationName, attributeParams, context, recordInputs);
@@ -372,10 +371,14 @@ function instrumentMethod<T extends unknown[], R>(
               if (recordInputs && attributeParams) {
                 addPrivateRequestAttributes(span, attributeParams, operationName);
               }
+              runGenAiSpanStart(options, span, call);
               const stream = await target.apply(context, args);
-              return instrumentStream(stream, span, recordOutputs, abortSignal) as R;
+              return instrumentStream(stream, span, recordOutputs, abortSignal, result =>
+                runGenAiSpanEnd(options, span, call, result),
+              ) as R;
             } catch (error) {
               span.setStatus(getErrorStatus(abortSignal));
+              runGenAiSpanEnd(options, span, call, { error });
               span.end();
               throw error;
             }
@@ -393,17 +396,22 @@ function instrumentMethod<T extends unknown[], R>(
           if (recordInputs && attributeParams) {
             addPrivateRequestAttributes(span, attributeParams, operationName);
           }
+          runGenAiSpanStart(options, span, call);
 
           // The rejection is rethrown to the caller. `startSpan` keeps the status set here.
           return handleCallbackErrors(
             () => target.apply(context, args),
-            () => span.setStatus(getErrorStatus(abortSignal)),
+            error => {
+              span.setStatus(getErrorStatus(abortSignal));
+              runGenAiSpanEnd(options, span, call, { error });
+            },
             () => {},
             result => {
               // Only add response attributes for content-producing methods, not for embeddings
               if (!isEmbeddings) {
                 addResponseAttributes(span, result, recordOutputs, operationName);
               }
+              runGenAiSpanEnd(options, span, call, { response: result });
             },
           );
         },

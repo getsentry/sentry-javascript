@@ -269,7 +269,7 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
   // `request_handler` can reconstruct the full route with parameters intact
   // (`req.baseUrl` only exposes the *resolved* mount prefix). The matching pop
   // happens on `asyncStart` when the layer hands off via `next`.
-  const registeredPath = getLayerRegisteredPath(layer);
+  const registeredPath = getLayerRegisteredPath(layer) ?? getMatchedLayerPath(layer);
   if (registeredPath != null) {
     pushLayerPath(req, registeredPath);
     data._sentryStoredLayer = true;
@@ -375,6 +375,23 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
   }
 
   return span;
+}
+
+/**
+ * The path of a matched layer for which no registration event recorded a path. That is the case when the events
+ * arrive after the registration calls: Cloudflare delivers the events of calls at module scope with the first
+ * request.
+ */
+function getMatchedLayerPath(layer: ExpressLayer): string | undefined {
+  if (layer.route) {
+    return getLayerPath([layer.route.path]);
+  }
+  // `router` 2.3.0 and later keep the registered mount path in `rawPath` and no longer store the matched `path`.
+  if (layer.rawPath !== undefined) {
+    return getLayerPath([layer.rawPath]);
+  }
+  // A mount path without parameters is equal to the part of the URL that the layer matched.
+  return layer.keys?.length ? undefined : layer.path || undefined;
 }
 
 function getLayerType(layer: ExpressLayer): ExpressLayerType {

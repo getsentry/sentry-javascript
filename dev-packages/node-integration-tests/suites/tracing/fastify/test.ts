@@ -7,62 +7,89 @@ describe('fastify v5 auto-instrumentation', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
+    let scenario: ReturnType<typeof runScenario> | undefined;
+    async function runScenario() {
+      const requests: Array<{ method: 'get' | 'post' | 'put'; path: string; expectError?: boolean }> = [
+        { method: 'get', path: '/test-transaction' },
+        { method: 'get', path: '/test-outgoing-fetch/123' },
+      ];
+      const runner = createRunner();
+      const collectors = requests.map(({ path }) => {
+        const key = path;
+        return [
+          key,
+          runner.collectStreamedSpansUntilSegment(span => span.attributes['url.path']?.value === key),
+        ] as const;
+      });
+      const responses = new Map<string, { headers: Record<string, string> } | undefined>();
+      const started = runner.start();
+      for (const { method, path, expectError } of requests) {
+        responses.set(
+          path,
+          await started.makeRequest<{ headers: Record<string, string> }>(method, path, { expectError }),
+        );
+      }
+      await started.completed();
+      return new Map(
+        await Promise.all(
+          collectors.map(async ([key, spans]) => [key, { items: await spans, response: responses.get(key) }] as const),
+        ),
+      );
+    }
+    async function getScenario(key: string) {
+      scenario ??= runScenario();
+      return (await scenario).get(key)!;
+    }
+
     test('creates segment span with fastify hook, request-handler and manual spans', async () => {
-      const runner = createRunner()
-        .expect({
-          span: container => {
-            expect(container.items.find(item => item.is_segment)?.name).toBe('GET /test-transaction');
+      const container = await getScenario('/test-transaction');
+      expect(container.items.find(item => item.is_segment)?.name).toBe('GET /test-transaction');
 
-            expect(container.items).toContainEqual(
-              expect.objectContaining({
-                attributes: expect.objectContaining({
-                  'fastify.type': { type: 'string', value: 'hook' },
-                  'sentry.op': { type: 'string', value: 'middleware' },
-                  'sentry.origin': { type: 'string', value: 'auto.http.fastify' },
-                }),
-              }),
-            );
+      expect(container.items).toContainEqual(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'fastify.type': { type: 'string', value: 'hook' },
+            'sentry.op': { type: 'string', value: 'middleware' },
+            'sentry.origin': { type: 'string', value: 'auto.http.fastify' },
+          }),
+        }),
+      );
 
-            // Route-level hooks have no `op`, so the span name falls back to `${hook} - ${handler}`
-            // using the original hook identifier (not the prefixed `hook.name` attribute).
-            expect(container.items).toContainEqual(
-              expect.objectContaining({
-                name: 'preHandler - routePreHandler',
-                attributes: expect.objectContaining({
-                  'fastify.type': { type: 'string', value: 'route-hook' },
-                  'hook.callback.name': { type: 'string', value: 'routePreHandler' },
-                  'sentry.origin': { type: 'string', value: 'auto.http.fastify' },
-                }),
-              }),
-            );
+      // Route-level hooks have no `op`, so the span name falls back to `${hook} - ${handler}`
+      // using the original hook identifier (not the prefixed `hook.name` attribute).
+      expect(container.items).toContainEqual(
+        expect.objectContaining({
+          name: 'preHandler - routePreHandler',
+          attributes: expect.objectContaining({
+            'fastify.type': { type: 'string', value: 'route-hook' },
+            'hook.callback.name': { type: 'string', value: 'routePreHandler' },
+            'sentry.origin': { type: 'string', value: 'auto.http.fastify' },
+          }),
+        }),
+      );
 
-            // The request span and the route handler span are both named after the route.
-            const handlerSpans = container.items.filter(item => item.attributes['sentry.op']?.value === 'handler');
-            expect(handlerSpans).toHaveLength(2);
-            for (const span of handlerSpans) {
-              expect(span.name).toBe('/test-transaction');
-              // The name has to stay in step with the attribute it comes from.
-              expect(span.attributes['http.route']?.value).toBe('/test-transaction');
-              expect(span.attributes['sentry.origin']?.value).toBe('auto.http.fastify');
-            }
+      // The request span and the route handler span are both named after the route.
+      const handlerSpans = container.items.filter(item => item.attributes['sentry.op']?.value === 'handler');
+      expect(handlerSpans).toHaveLength(2);
+      for (const span of handlerSpans) {
+        expect(span.name).toBe('/test-transaction');
+        // The name has to stay in step with the attribute it comes from.
+        expect(span.attributes['http.route']?.value).toBe('/test-transaction');
+        expect(span.attributes['sentry.origin']?.value).toBe('auto.http.fastify');
+      }
 
-            expect(container.items).toContainEqual(
-              expect.objectContaining({
-                name: 'test-span',
-                attributes: expect.objectContaining({ 'sentry.origin': { type: 'string', value: 'manual' } }),
-              }),
-            );
-            expect(container.items).toContainEqual(
-              expect.objectContaining({
-                name: 'child-span',
-                attributes: expect.objectContaining({ 'sentry.origin': { type: 'string', value: 'manual' } }),
-              }),
-            );
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/test-transaction');
-      await runner.completed();
+      expect(container.items).toContainEqual(
+        expect.objectContaining({
+          name: 'test-span',
+          attributes: expect.objectContaining({ 'sentry.origin': { type: 'string', value: 'manual' } }),
+        }),
+      );
+      expect(container.items).toContainEqual(
+        expect.objectContaining({
+          name: 'child-span',
+          attributes: expect.objectContaining({ 'sentry.origin': { type: 'string', value: 'manual' } }),
+        }),
+      );
     });
 
     test('captures errors thrown in route handlers', async () => {
@@ -100,8 +127,7 @@ describe('fastify v5 auto-instrumentation', () => {
     });
 
     test('propagates trace data to outgoing requests within a request handler', async () => {
-      const runner = createRunner().start();
-      const response = await runner.makeRequest<{ headers: Record<string, string> }>('get', '/test-outgoing-fetch/123');
+      const { response } = await getScenario('/test-outgoing-fetch/123');
 
       expect(response?.headers?.['sentry-trace']).toMatch(/^[a-f0-9]{32}-[a-f0-9]{16}-1$/);
       expect(response?.headers?.['baggage']).toEqual(expect.any(String));

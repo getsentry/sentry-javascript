@@ -1,6 +1,7 @@
+import type { GenAiSpanHooks } from '../core/span-hooks';
 import type { GenAiCallOptions } from '../core/utils';
 
-/** The call that `recordInputs`/`recordOutputs` decide on. */
+/** The call that `recordInputs`/`recordOutputs` decide on, and that the span hooks get. */
 export interface GoogleGenAICallInfo {
   /** The gen_ai operation of the call: `generate_content`, `embeddings`, `chat` or `decide`. */
   operation: string;
@@ -11,8 +12,11 @@ export interface GoogleGenAICallInfo {
   request: Record<string, unknown> | undefined;
 }
 
-/** Options for the Google GenAI integration. */
-export type GoogleGenAIOptions = GenAiCallOptions<GoogleGenAICallInfo>;
+/**
+ * Options for the Google GenAI integration. `onSpanEnd` gets the response the method resolved with, such as a
+ * `GenerateContentResponse`; for streams it is `undefined`.
+ */
+export type GoogleGenAIOptions = GenAiCallOptions<GoogleGenAICallInfo> & GenAiSpanHooks<GoogleGenAICallInfo>;
 
 /**
  * Google GenAI Content Part

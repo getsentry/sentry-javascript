@@ -74,7 +74,11 @@ import {
   HTTP_RESPONSE_STATUS_TEXT,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
-import { filterCollectedUrl, filterCollectedUrlQuery } from '../../utils/data-collection/filterCollectedUrl';
+import {
+  filterCollectedUrl,
+  filterCollectedUrlFragment,
+  filterCollectedUrlQuery,
+} from '../../utils/data-collection/filterCollectedUrl';
 import { getClientIPAddress } from '../../utils/clientIPAddress';
 
 // Tree-shakable guard to remove all code related to tracing
@@ -380,7 +384,7 @@ function buildServerSpanWrap(
             [URL_FULL]: filterCollectedUrl(fullUrl, client),
             [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
             [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(urlObj?.search), client),
-            [URL_FRAGMENT]: getUrlFragment(urlObj?.hash),
+            [URL_FRAGMENT]: filterCollectedUrlFragment(getUrlFragment(urlObj?.hash), client),
             [HTTP_REQUEST_METHOD]: method,
             [NETWORK_PROTOCOL_NAME]: 'http',
             [NETWORK_PROTOCOL_VERSION]: httpVersion,

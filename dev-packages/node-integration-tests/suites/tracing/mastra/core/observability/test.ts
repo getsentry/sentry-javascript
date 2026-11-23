@@ -113,4 +113,34 @@ describe.runIf(supports({ min: 22 }))('Mastra integration', () => {
     },
     MASTRA_DEPENDENCIES,
   );
+
+  createEsmAndCjsTests(
+    join(__dirname, '../..'),
+    'scenario-auto.mjs',
+    'instrument-with-span-hooks.mjs',
+    (createRunner, test) => {
+      test('runs the span hooks with the Mastra span at start and the ended Mastra span at end', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const hooksByOp = Object.fromEntries(
+                container.items
+                  .filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra')
+                  .map(span => [
+                    span.attributes[SENTRY_OP]?.value,
+                    [span.attributes['test.start']?.value, span.attributes['test.end']?.value],
+                  ]),
+              );
+              expect(hooksByOp).toEqual({
+                [GEN_AI_INVOKE_AGENT]: ['agent_run', true],
+                [GEN_AI_CHAT]: ['model_generation', true],
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    MASTRA_DEPENDENCIES,
+  );
 });

@@ -24,6 +24,7 @@ describe('Sentry client SDK', () => {
       expect(browserInit).toHaveBeenCalledWith(
         expect.objectContaining({
           _metadata: {
+            optionsSetByUser: [],
             sdk: {
               name: 'sentry.javascript.astro',
               version: SDK_VERSION,

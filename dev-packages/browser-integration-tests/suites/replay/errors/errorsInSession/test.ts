@@ -1,8 +1,10 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser } from '../../../../utils/helpers';
+import { envelopeRequestParser, waitForErrorRequest } from '../../../../utils/helpers';
 import { expectedClickBreadcrumb, getExpectedReplayEvent } from '../../../../utils/replayEventTemplates';
 import {
+  collectReplayRequests,
+  getReplayBreadcrumbs,
   getReplayEvent,
   getReplayRecordingContent,
   shouldSkipReplayTest,
@@ -20,7 +22,6 @@ sentryTest(
     let errorEventId: string = 'invalid_id';
 
     const reqPromise0 = waitForReplayRequest(page, 0);
-    const reqPromise1 = waitForReplayRequest(page, 1);
 
     await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
       const event = envelopeRequestParser(route.request());
@@ -41,26 +42,29 @@ sentryTest(
     await page.goto(url);
     const req0 = await reqPromise0;
 
+    // Replay only links the error once its envelope got a response. A segment can be sent
+    // before that, so the error id can be in any segment after the click.
+    const replayRequestsPromise = collectReplayRequests(page, (_recordingEvents, replayEvents) =>
+      replayEvents.some(event => event.error_ids.includes(errorEventId)),
+    );
+    const errorRequestPromise = waitForErrorRequest(page);
+
     await page.locator('#error').click();
+    await (await errorRequestPromise).response();
     await forceFlushReplay();
-    const req1 = await reqPromise1;
+    const { replayEvents, replayRecordingSnapshots } = await replayRequestsPromise;
 
     const event0 = getReplayEvent(req0);
-
-    const event1 = getReplayEvent(req1);
-    const content1 = getReplayRecordingContent(req1);
+    const errorReplayEvent = replayEvents.find(event => event.error_ids.includes(errorEventId));
 
     expect(event0).toEqual(getExpectedReplayEvent());
 
-    expect(event1).toEqual(
-      getExpectedReplayEvent({
-        segment_id: 1,
-        error_ids: [errorEventId],
-        urls: [],
-      }),
-    );
+    expect(errorReplayEvent).toEqual({
+      ...getExpectedReplayEvent({ error_ids: [errorEventId], urls: [] }),
+      segment_id: expect.any(Number),
+    });
 
-    expect(content1.breadcrumbs).toEqual(
+    expect(getReplayBreadcrumbs(replayRecordingSnapshots)).toEqual(
       expect.arrayContaining([
         {
           ...expectedClickBreadcrumb,

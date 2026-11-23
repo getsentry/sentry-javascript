@@ -693,6 +693,108 @@ describe('instrumentDurableObjectWithSentry', () => {
       expect(frameworkDispatch.has(FrameworkLike.prototype.greet)).toBe(true);
       expect(obj.greet('World')).toBe('Hello, World!');
     });
+
+    // Regression for #26673. The `agents` SDK replaces the Agent's own methods during construction,
+    // so they are wrapped for RPC before it does. A base `Agent` method that such a method calls must
+    // not look like a new incoming RPC call.
+    describe('Agent methods', () => {
+      const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+
+      function createAgent() {
+        const agentWrappers = new WeakSet<object>();
+        const callables = new WeakSet<object>();
+        const asyncMethods = new Set<string>();
+
+        // Mirrors `Agent._autoWrapCustomMethods` and `Agent._isCallable` from `agents`
+        class AgentLike {
+          constructor() {
+            this._autoWrapCustomMethods();
+          }
+
+          _autoWrapCustomMethods(): void {
+            const prototype = (this.constructor as { prototype: Record<string, unknown> }).prototype;
+
+            for (const name of Object.getOwnPropertyNames(MyAgent.prototype)) {
+              const method = (MyAgent.prototype as unknown as Record<string, unknown>)[name];
+
+              if (name === 'constructor' || typeof method !== 'function' || agentWrappers.has(method)) {
+                continue;
+              }
+
+              if (method instanceof AsyncFunction) {
+                asyncMethods.add(name);
+              }
+
+              const wrapped = function (this: unknown, ...args: unknown[]): unknown {
+                return method.apply(this, args);
+              };
+              agentWrappers.add(wrapped);
+              if (callables.has(method)) {
+                callables.add(wrapped);
+              }
+              prototype[name] = wrapped;
+            }
+          }
+
+          _isCallable(name: string): boolean {
+            return callables.has((this as unknown as Record<string, object>)[name]!);
+          }
+
+          async keepAliveWhile(callback: () => Promise<void>): Promise<void> {
+            return callback();
+          }
+        }
+
+        class MyAgent extends AgentLike {
+          async proxy(): Promise<string> {
+            return this.keepAliveWhile(async () => {
+              throw new Error('aborted');
+            }).then(
+              () => 'done',
+              () => 'handled',
+            );
+          }
+
+          async greet(): Promise<string> {
+            return 'hello';
+          }
+        }
+        callables.add(MyAgent.prototype.greet);
+
+        const instrumented = instrumentAgentWithSentry(vi.fn().mockReturnValue({}), MyAgent as any);
+        const obj = Reflect.construct(instrumented, [{ waitUntil: vi.fn() }, {}]) as MyAgent;
+
+        return { obj, prototype: Object.getPrototypeOf(obj), asyncMethods };
+      }
+
+      it('does not capture an error that an Agent method handles from an inherited base method', async () => {
+        const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+        const { obj, prototype } = createAgent();
+
+        await expect(Reflect.apply(prototype.proxy, obj, [])).resolves.toBe('handled');
+        expect(captureExceptionSpy).not.toHaveBeenCalled();
+
+        // The base method itself is still instrumented for external RPC calls
+        await expect(
+          Reflect.apply(prototype.keepAliveWhile, obj, [
+            async () => {
+              throw new Error('external');
+            },
+          ]),
+        ).rejects.toThrow('external');
+        expect(captureExceptionSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ message: 'external' }),
+          expect.anything(),
+        );
+      });
+
+      it('keeps what the Agent relies on: async methods and the `@callable()` registry', () => {
+        const { obj, asyncMethods } = createAgent();
+
+        expect(asyncMethods).toEqual(new Set(['proxy', 'greet']));
+        expect((obj as any)._isCallable('greet')).toBe(true);
+      });
+    });
   });
 
   // The wrapper replaces a method on a class the user owns, so it has to keep the parts of the

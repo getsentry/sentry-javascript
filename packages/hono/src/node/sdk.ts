@@ -1,5 +1,5 @@
 import type { Client } from '@sentry/core';
-import { _INTERNAL_getActiveClient, applySdkMetadata, debug } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata, debug, getClient } from '@sentry/core';
 import { init as initNode } from '@sentry/node';
 import type { HonoNodeOptions } from './middleware';
 import { buildFilteredIntegrations } from '../shared/buildFilteredIntegrations';
@@ -11,7 +11,7 @@ import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../shared/lowQualityTransactio
  * This function should be called in an `instrument.ts` file loaded via `--import` to set up Sentry globally for the application.
  */
 export function init(options: HonoNodeOptions): Client | undefined {
-  const existingClient = _INTERNAL_getActiveClient();
+  const existingClient = getClient();
   if (existingClient) {
     existingClient.getOptions().debug && debug.log('Sentry is already initialized, skipping re-initialization.');
     return existingClient;
@@ -19,10 +19,11 @@ export function init(options: HonoNodeOptions): Client | undefined {
 
   applySdkMetadata(options, 'hono', ['hono', 'node']);
 
+  const userOptions = _INTERNAL_captureOptionsSetByUser(options);
   const filteredOptions: HonoNodeOptions = {
-    ...options,
+    ...userOptions,
     ignoreSpans: [...(options.ignoreSpans || []), ...LOW_QUALITY_TRANSACTION_PATTERNS],
-    integrations: buildFilteredIntegrations(options.integrations, false),
+    integrations: buildFilteredIntegrations(userOptions.integrations, false),
   };
 
   return initNode(filteredOptions);

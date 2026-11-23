@@ -10,7 +10,7 @@ import type { SentryNitroOptions } from './config';
 export function setupSourceMaps(nitro: Nitro, options?: SentryNitroOptions, sentryEnabledSourcemaps?: boolean): void {
   // The `compiled` hook fires on EVERY rebuild during `nitro dev` watch mode.
   // nitro.options.dev is reliably set by the time module setup runs.
-  if (shouldSkipSourcemapUpload(nitro, options)) {
+  if (shouldSkipBuildHook(nitro, options)) {
     return;
   }
 
@@ -20,17 +20,22 @@ export function setupSourceMaps(nitro: Nitro, options?: SentryNitroOptions, sent
 }
 
 /**
- * Determines if sourcemap uploads should be skipped.
+ * Determines if the build hook, which creates the release and uploads source maps, should be skipped.
  */
-function shouldSkipSourcemapUpload(nitro: Nitro, options?: SentryNitroOptions): boolean {
+function shouldSkipBuildHook(nitro: Nitro, options?: SentryNitroOptions): boolean {
   return !!(
     nitro.options.dev ||
     nitro.options.preset === 'nitro-prerender' ||
-    nitro.options.sourcemap === false ||
-    (nitro.options.sourcemap as unknown) === 'inline' ||
     // TODO(v12): Run the hook with `sourcemaps.disable: true` too, like with the options that replace it.
     resolveSourceMapsFeatures(options?.sourcemaps).legacyDisable === true
   );
+}
+
+/**
+ * With `sourcemap: false` or `'inline'`, the build has no `.map` files to upload or delete.
+ */
+function hasSourceMapFiles(nitro: Nitro): boolean {
+  return nitro.options.sourcemap !== false && (nitro.options.sourcemap as unknown) !== 'inline';
 }
 
 /**
@@ -51,6 +56,10 @@ async function handleSourceMapUpload(
 
   await sentryBuildPluginManager.telemetry.emitBundlerPluginExecutionSignal();
   await sentryBuildPluginManager.createRelease();
+
+  if (!hasSourceMapFiles(nitro)) {
+    return;
+  }
 
   await sentryBuildPluginManager.injectDebugIds([outputDir]);
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { GEN_AI_OUTPUT_MESSAGES } from '@sentry/conventions/attributes';
+import { GEN_AI_INPUT_MESSAGES, GEN_AI_OUTPUT_MESSAGES } from '@sentry/conventions/attributes';
 import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import type { Span } from '@sentry/core';
@@ -153,6 +153,53 @@ describe('instrumentOpenAiClient span names', () => {
         answers: {
           is_spam: { type: 'choice', choice: 'true', probabilities: { true: 0.91, false: 0.09 }, confidence: 0.91 },
         },
+      },
+    ]);
+  });
+
+  it('keeps message roles, image URLs, JSON parts and tool items in the decision input, without image data', async () => {
+    const endedSpans = setupClient('stream');
+    const instrumented = instrumentOpenAiClient({
+      decisions: { create: vi.fn().mockResolvedValue({ model: 'gpt-6-luna', answers: [] }) },
+    });
+    const toolCall = { type: 'function_call', call_id: 'call_1', name: 'lookup_order', arguments: '{}' };
+
+    await instrumented.decisions.create({
+      model: 'gpt-6-luna',
+      input: [
+        { role: 'developer', content: 'Judge the ticket.' },
+        toolCall,
+        {
+          type: 'function_call_output',
+          call_id: 'call_1',
+          output: [{ type: 'input_image', image_url: 'data:image/png;base64,iVBORw0KGgo=' }],
+        },
+        {
+          role: 'user',
+          content: [
+            { type: 'input_image', image_url: 'https://example.com/box.png' },
+            { type: 'input_json', data: { order_id: 42 } },
+          ],
+        },
+      ],
+      questions: [{ type: 'predicate', name: 'damaged', instructions: 'Is the box damaged?' }],
+    });
+
+    const input = JSON.parse(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_INPUT_MESSAGES] as string);
+    expect(input[0].state).toEqual([
+      { role: 'system', parts: [{ type: 'text', content: 'Judge the ticket.' }] },
+      toolCall,
+      {
+        type: 'function_call_output',
+        call_id: 'call_1',
+        output: [{ type: 'blob', modality: 'image', mime_type: 'image/png' }],
+      },
+      {
+        role: 'user',
+        parts: [
+          { type: 'uri', modality: 'image', uri: 'https://example.com/box.png' },
+          { type: 'object', content: { order_id: 42 } },
+        ],
       },
     ]);
   });

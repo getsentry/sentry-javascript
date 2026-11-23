@@ -6,6 +6,7 @@ import type { Integration, IntegrationFn } from './types/integration';
 import type { CoreOptions } from './types/options';
 import type { StreamedSpanJSON } from './types/span';
 import { debug } from './utils/debug-logger';
+import { isPlainObject } from './utils/is';
 
 export const installedIntegrations: string[] = [];
 
@@ -167,10 +168,19 @@ export function addIntegration(integration: Integration): void {
  * Define an integration function that can be used to create an integration instance.
  * Note that this by design hides the implementation details of the integration, as they are considered internal.
  */
+/*#__NO_SIDE_EFFECTS__*/
 export function defineIntegration<Fn extends IntegrationFn>(
   fn: Fn,
 ): (...args: Parameters<Fn>) => Integration & { name: ReturnType<Fn>['name'] } {
-  return fn;
+  return (...args: Parameters<Fn>) => {
+    // Copied before the integration runs, so its writes into the object it was given aren't reported as the user's.
+    const options: unknown = isPlainObject(args[0]) ? { ...args[0] } : args[0];
+    const integration = fn(...args) as ReturnType<Fn>;
+    // Always set, since a wrapper can return an inner integration that holds the options the wrapper forced.
+    integration._options = options;
+
+    return integration;
+  };
 }
 
 // When  extending an integration, we allow other properties to be passed-through

@@ -16,7 +16,11 @@ import {
 import type { Client } from '../client';
 import type { SpanAttributes } from '../types/span';
 import type { TransactionSource } from '../types/transaction';
-import { filterCollectedUrl, filterCollectedUrlQuery } from './data-collection/filterCollectedUrl';
+import {
+  filterCollectedUrl,
+  filterCollectedUrlFragment,
+  filterCollectedUrlQuery,
+} from './data-collection/filterCollectedUrl';
 
 type PartialURL = {
   host?: string;
@@ -233,7 +237,7 @@ export function getHttpSpanDetailsFromUrlObject(
     );
 
     attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(urlObject.search), client);
-    attributes[URL_FRAGMENT] = getUrlFragment(urlObject.hash);
+    attributes[URL_FRAGMENT] = filterCollectedUrlFragment(getUrlFragment(urlObject.hash), client);
     if (urlObject.pathname) {
       attributes[URL_PATH] = urlObject.pathname;
       if (urlObject.pathname === '/') {

@@ -18,19 +18,28 @@ import {
   GEN_AI_OPERATION_NAME,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import type { GenAiSpanHooks } from '../core/span-hooks';
 import type { GenAiCallOptions } from '../core/utils';
 import { getGenAiSpanOp } from '../core/utils';
 import { getOrchestrionInjectedModules } from '../../orchestrion/detect';
 import { piAiModuleNames } from '../../orchestrion/config/pi-ai';
-import { setPiAiRecordingOptions } from '../pi-ai/recording';
+import { setPiAiDriverOptions } from '../pi-ai/recording';
+import type { PiAssistantMessage } from '../pi-ai/types';
 import { isBun, isCloudflareWorkers, isDeno } from '../../utils/runtime';
 import { withCleanScopes } from '../../utils/withCleanScopes';
 import { FLUE_INSTRUMENTATION_KEY, FLUE_OPERATION, FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
 import type { SpanTracker } from './utils';
 import { endToolSpan, startToolSpan } from './utils';
-import type { FlueCallInfo, FlueInstrumentation } from './types';
+import type { FlueCallInfo, FlueInstrumentation, FlueObservation } from './types';
 
-export type FlueOptions = GenAiCallOptions<FlueCallInfo>;
+/**
+ * The span hooks run for the `gen_ai.chat` spans of the model calls, which pi-ai reports, and for the
+ * tool spans. `onSpanEnd` gets the `AssistantMessage` of a model call, and the `tool` observation of a
+ * tool call, whose `errorInfo` is also the `error` of a failed tool. A tool call that never ends, whose
+ * span is ended when the tracker evicts it or Flue disposes the instrumentation, does not run `onSpanEnd`.
+ */
+export type FlueOptions = GenAiCallOptions<FlueCallInfo> &
+  GenAiSpanHooks<FlueCallInfo, PiAssistantMessage | FlueObservation>;
 
 interface Admission {
   isolationScope: Scope;
@@ -65,7 +74,7 @@ function warnIfPiAiNotInstrumented(): void {
 
 function getPiAiInstrumentationHint(): string {
   if (isBun()) {
-    return 'Build your app with `sentryBunPlugin()` from `@sentry/bun/plugin`; `bun run` cannot instrument it.';
+    return 'On Bun 1.4.6 or later, run your app with `bun --preload @sentry/bun/import app.ts`. Or build it with `sentryBunPlugin()` from `@sentry/bun/plugin`.';
   }
   if (isDeno()) {
     return 'Run your app with `deno run --preload=npm:@sentry/deno/import app.ts`.';
@@ -144,7 +153,7 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
           if (conversationId) {
             scope.setConversationId(conversationId);
           }
-          setPiAiRecordingOptions(scope, options, { operation: 'chat', execution: operation, context: ctx });
+          setPiAiDriverOptions(scope, options, { operation: 'chat', execution: operation, context: ctx });
           return next();
         });
       }

@@ -1,24 +1,44 @@
-import type { Scope } from '@sentry/core';
+import type { Scope, Span } from '@sentry/core';
 import { getCurrentScope } from '@sentry/core';
+import type { GenAiSpanHooks, GenAiSpanResult } from '../core/span-hooks';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
 import type { GenAiCallOptions, GenAiOptions } from '../core/utils';
 import { resolveGenAiCallRecording, resolveRecordingOption } from '../core/utils';
-import type { PiAiCallInfo } from './types';
+import type { PiAiCallInfo, PiAssistantMessage } from './types';
 
-const RECORDING_OPTIONS_KEY = 'piAiRecordingOptions';
+const DRIVER_KEY = 'piAiDriver';
 
-type DriverRecording = () => GenAiOptions;
+/** The options of the integration driving pi-ai, bound to its call info. */
+export interface PiAiDriver {
+  recording: () => GenAiOptions;
+  onSpanStart: (span: Span) => void;
+  onSpanEnd: (span: Span, result: GenAiSpanResult<PiAssistantMessage>) => void;
+}
 
 /**
- * Apply the recording options of an integration that sends its model calls through pi-ai, such as
- * Flue, to the `gen_ai.chat` spans of the requests sent under `scope`. Options that are functions
- * get `call` when such a span starts.
+ * Apply the recording options and span hooks of an integration that sends its model calls through
+ * pi-ai, such as Flue, to the `gen_ai.chat` spans of the requests sent under `scope`. Options and
+ * hooks that are functions get `call`.
  */
-export function setPiAiRecordingOptions<TCall>(scope: Scope, options: GenAiCallOptions<TCall>, call: TCall): void {
-  const resolve: DriverRecording = () => ({
-    recordInputs: resolveRecordingOption(options.recordInputs, call),
-    recordOutputs: resolveRecordingOption(options.recordOutputs, call),
-  });
-  scope.setSDKProcessingMetadata({ [RECORDING_OPTIONS_KEY]: resolve });
+export function setPiAiDriverOptions<TCall>(
+  scope: Scope,
+  options: GenAiCallOptions<TCall> & GenAiSpanHooks<TCall, PiAssistantMessage>,
+  call: TCall,
+): void {
+  const driver: PiAiDriver = {
+    recording: () => ({
+      recordInputs: resolveRecordingOption(options.recordInputs, call),
+      recordOutputs: resolveRecordingOption(options.recordOutputs, call),
+    }),
+    onSpanStart: span => runGenAiSpanStart(options, span, call),
+    onSpanEnd: (span, result) => runGenAiSpanEnd(options, span, call, result),
+  };
+  scope.setSDKProcessingMetadata({ [DRIVER_KEY]: driver });
+}
+
+/** The integration driving the pi-ai requests sent from the current scope, if any. */
+export function getPiAiDriver(): PiAiDriver | undefined {
+  return getCurrentScope().getScopeData().sdkProcessingMetadata[DRIVER_KEY] as PiAiDriver | undefined;
 }
 
 /**
@@ -31,17 +51,16 @@ export function setPiAiRecordingOptions<TCall>(scope: Scope, options: GenAiCallO
 export function resolvePiAiRecordingOptions(
   options: GenAiCallOptions<PiAiCallInfo>,
   call: PiAiCallInfo,
+  driver = getPiAiDriver(),
 ): Required<GenAiOptions> {
-  const driver = (
-    getCurrentScope().getScopeData().sdkProcessingMetadata[RECORDING_OPTIONS_KEY] as DriverRecording | undefined
-  )?.();
+  const driverRecording = driver?.recording();
   const own = {
     recordInputs: resolveRecordingOption(options.recordInputs, call),
     recordOutputs: resolveRecordingOption(options.recordOutputs, call),
   };
   const { recordInputs, recordOutputs } = resolveGenAiCallRecording(own, call);
   return {
-    recordInputs: own.recordInputs !== false && (driver?.recordInputs ?? recordInputs),
-    recordOutputs: own.recordOutputs !== false && (driver?.recordOutputs ?? recordOutputs),
+    recordInputs: own.recordInputs !== false && (driverRecording?.recordInputs ?? recordInputs),
+    recordOutputs: own.recordOutputs !== false && (driverRecording?.recordOutputs ?? recordOutputs),
   };
 }

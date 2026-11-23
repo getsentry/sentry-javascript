@@ -210,6 +210,72 @@ describe('instrumentWorkersAiClient', () => {
         { inputs: false, outputs: false },
       ]);
     });
+
+    it('runs the span hooks at start in the caller context and at end with the result', async () => {
+      setAsyncLocalStorageAsyncContextStrategy();
+      const endedSpans = setupClient();
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('data: {"response":"Paris"}\n\ndata: [DONE]\n\n'));
+          controller.close();
+        },
+      });
+      const client = {
+        run: (_model: string, inputs: { stream?: boolean }) =>
+          Promise.resolve(inputs.stream ? stream : { response: 'Paris' }),
+      };
+      const instrumented = instrumentWorkersAiClient(client, {
+        onSpanStart: (span, { inputs }) => {
+          const user = (inputs as { user?: string }).user;
+          span.setAttribute('test.start', [user, getCurrentScope().getScopeData().tags.privacy].join(':'));
+        },
+        onSpanEnd: (span, _call, { response }) => {
+          span.setAttribute('test.end', (response as { response?: string } | undefined)?.response ?? 'no response');
+        },
+      });
+
+      await withScope(async scope => {
+        scope.setTag('privacy', 'public');
+        await instrumented.run(MODEL, { prompt: 'Hello', user: 'public' });
+      });
+      await withScope(async scope => {
+        scope.setTag('privacy', 'private');
+        const result = instrumented.run(MODEL, { prompt: 'Hello', user: 'private', stream: true });
+        scope.setTag('privacy', 'public');
+        const reader = ((await result) as ReadableStream<Uint8Array>).getReader();
+        while (!(await reader.read()).done);
+      });
+
+      expect(
+        endedSpans.map(span => {
+          const { data } = spanToStaticSpanJSON(span);
+          return [data['test.start'], data['test.end']];
+        }),
+      ).toEqual([
+        ['public:public', 'Paris'],
+        // A stream has no single result object, and its tag changes only after the call started.
+        ['private:private', 'no response'],
+      ]);
+    });
+  });
+
+  it('creates one span that follows the options when an instrumented client is wrapped again', async () => {
+    const testClient = new TestClient(
+      getDefaultTestClientOptions({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 }),
+    );
+    setCurrentClient(testClient);
+    testClient.init();
+    const endedSpans: Span[] = [];
+    testClient.on('spanEnd', span => endedSpans.push(span));
+
+    const client = { run: vi.fn().mockResolvedValue({ response: 'Paris' }) };
+    const instrumented = instrumentWorkersAiClient(instrumentWorkersAiClient(client), { recordInputs: false });
+
+    await instrumented.run(MODEL, { messages: [{ role: 'user', content: 'Capital of France?' }] });
+
+    expect(client.run).toHaveBeenCalledTimes(1);
+    expect(endedSpans).toHaveLength(1);
+    expect(spanToStaticSpanJSON(endedSpans[0]!).data).not.toHaveProperty(GEN_AI_INPUT_MESSAGES);
   });
 
   it('records TypeSafe models as decide spans, like the TypeSafe integration', async () => {

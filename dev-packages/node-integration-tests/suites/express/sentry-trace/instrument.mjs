@@ -9,5 +9,6 @@ Sentry.init({
   // request to `somewhere.not.sentry` gets trace propagation.
   tracePropagationTargets: [/^(?!.*express).*$/],
   tracesSampleRate: 1.0,
+  traceLifecycle: process.env.TRACE_LIFECYCLE === 'static' ? 'static' : 'stream',
   transport: loggingTransport,
 });

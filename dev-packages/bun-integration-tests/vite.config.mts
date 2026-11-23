@@ -1,10 +1,14 @@
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import baseConfig from '../../vite/vite.config';
 import {
+  BUN_BUILD_BEFORE_1_4_EXCLUDE,
   BUN_BUILD_EXCLUDE,
+  BUN_RUN_EXCLUDE,
   NO_AUTO_INSTRUMENTATION,
   NODE_SUITES_EXCLUDE,
+  SENTRY_BUN_BEFORE_1_4_EXCLUDE,
   SENTRY_BUN_EXCLUDE,
   SENTRY_NODE_EXCLUDE,
 } from './node-suites/excludes';
@@ -13,6 +17,18 @@ const NODE_SUITES_ROOT = fileURLToPath(new URL('../node-integration-tests', impo
 
 // All Node suites also run on Bun. The scenarios stay in `node-integration-tests`.
 const NODE_SUITES = ['suites/**/test.ts'];
+
+// Before Bun 1.4.6, `bun run` cannot load the modules that the instrumentation transforms.
+const [bunMajor = 0, bunMinor = 0, bunPatch = 0] = execFileSync('bun', ['--version'], { encoding: 'utf8' })
+  .trim()
+  .split(/[.-]/)
+  .map(Number);
+const BUN_BEFORE_1_4 = bunMajor < 1 || (bunMajor === 1 && bunMinor < 4);
+const BUN_RUN_INSTRUMENTS = bunMajor > 1 || (bunMajor === 1 && (bunMinor > 4 || (bunMinor === 4 && bunPatch >= 6)));
+
+const AUTO_INSTRUMENTATION_SUITES = NO_AUTO_INSTRUMENTATION.map(glob =>
+  glob.endsWith('/**') ? `${glob}/test.ts` : glob,
+);
 
 const nodeSuitesTest = {
   root: NODE_SUITES_ROOT,
@@ -72,8 +88,7 @@ export default defineConfig({
           exclude: [
             ...NODE_SUITES_EXCLUDE,
             ...SENTRY_BUN_EXCLUDE,
-            // The scenario creates a `NodeClient` itself, which sends `sentry.javascript.node`.
-            'suites/public-api/logs/test.ts',
+            ...(BUN_BEFORE_1_4 ? SENTRY_BUN_BEFORE_1_4_EXCLUDE : []),
             // `@sentry/bun` has `bunRuntimeMetricsIntegration` instead of `nodeRuntimeMetricsIntegration`.
             'suites/node-runtime-metrics/test.ts',
           ],
@@ -92,8 +107,8 @@ export default defineConfig({
           // it starts, as Bun apps must be built to get these spans.
           // See https://github.com/getsentry/sentry-javascript/issues/23882
           name: 'node-suites-bun-build',
-          include: NO_AUTO_INSTRUMENTATION.map(glob => (glob.endsWith('/**') ? `${glob}/test.ts` : glob)),
-          exclude: BUN_BUILD_EXCLUDE,
+          include: AUTO_INSTRUMENTATION_SUITES,
+          exclude: [...BUN_BUILD_EXCLUDE, ...(BUN_BEFORE_1_4 ? BUN_BUILD_BEFORE_1_4_EXCLUDE : [])],
           env: {
             RUNTIME: 'bun',
             RUNTIME_PRELOAD: fileURLToPath(new URL('./node-suites/alias-sentry-bun.ts', import.meta.url)),
@@ -102,6 +117,27 @@ export default defineConfig({
           },
         },
       },
+      ...(BUN_RUN_INSTRUMENTS
+        ? [
+            {
+              extends: true,
+              test: {
+                ...nodeSuitesTest,
+                // The auto-instrumentation suites, run unbuilt with `@sentry/bun/import` preloaded.
+                name: 'node-suites-bun-run',
+                // The bundled project uses the same Docker fixtures.
+                sequence: { groupOrder: 2 },
+                include: AUTO_INSTRUMENTATION_SUITES,
+                exclude: BUN_RUN_EXCLUDE,
+                env: {
+                  RUNTIME: 'bun',
+                  RUNTIME_PRELOAD: fileURLToPath(new URL('./node-suites/bun-run.ts', import.meta.url)),
+                  EXPECTED_SDK_NAME: 'sentry.javascript.bun',
+                },
+              },
+            },
+          ]
+        : []),
     ],
   },
 });

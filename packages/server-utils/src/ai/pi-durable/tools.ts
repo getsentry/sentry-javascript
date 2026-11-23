@@ -21,6 +21,8 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
+import type { GenAiSpanHooks } from '../core/span-hooks';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
 import type { GenAiCallOptions } from '../core/utils';
 import { resolveGenAiCallRecording } from '../core/utils';
 import { piAiContentToString } from '../pi-ai/messages';
@@ -35,6 +37,7 @@ import type {
   PiTaskRuntime,
   PiTool,
   PiToolExecutionApi,
+  PiToolExecutionResult,
   PiToolResultMessage,
 } from './types';
 import { bound } from './utils';
@@ -56,64 +59,70 @@ export function markBuiltInTool(tool: unknown): void {
 /**
  * Prepare the runtime of a `pi.tool` phase. The tool task resolves the called tool from its agent,
  * so the runtime hands out traced tools, and it collects the result entries the phase commits.
- * `finish` ends the phase's tool spans with the result the model receives, which pi-durable builds
- * after `execute()` returns: from `api.output()`, through `afterTool` hooks and output limits.
+ * The returned function ends the phase's tool spans with the result the model receives, which
+ * pi-durable builds after `execute()` returns: from `api.output()`, through `afterTool` hooks and
+ * output limits.
  */
 export function instrumentToolPhase(
   runtime: PiTaskRuntime,
   runs: PiRuns,
   wrapTool: (tool: PiTool) => PiTool,
-): { runtime: PiTaskRuntime; finish: () => void } {
+  isNested: boolean,
+): () => void {
   const results = new Map<unknown, PiToolResultMessage>();
   runs.toolCalls.set(runtime.taskId, []);
 
-  const agent = (context: unknown): Promise<PiAgent> =>
-    runtime
-      .agent(context)
-      .then(resolved => (resolved?.tools ? { ...resolved, tools: resolved.tools.map(wrapTool) } : resolved));
+  const agent: PiTaskRuntime['agent'] = runtime.agent.bind(runtime);
+  const commit: PiTaskRuntime['commit'] = runtime.commit.bind(runtime);
 
-  const commit = (change: PiCommitChange, context: unknown): Promise<void> => {
+  // Replaced on the runtime itself and put back when the phase ends, see `observeRunControl`.
+  runtime.agent = (context: unknown): Promise<PiAgent> =>
+    agent(context).then(resolved =>
+      resolved?.tools
+        ? {
+            ...resolved,
+            tools: resolved.tools.map(wrapTool),
+            // A call made with `api.executeTool()` resolves its tool among these.
+            ...(resolved.callable ? { callable: resolved.callable.map(wrapTool) } : {}),
+          }
+        : resolved,
+    );
+
+  runtime.commit = (change: PiCommitChange, context: unknown, ...rest: unknown[]): Promise<void> => {
     let committed: PiToolResultMessage[] = [];
     const observedChange: PiCommitChange = (tx, current) => {
       // A commit can run its change again, so only the attempt that committed counts.
       committed = [];
       return change(observeToolResultEntries(tx, committed), current);
     };
-    return runtime.commit(observedChange, context).then(() => {
+    return commit(observedChange, context, ...rest).then(() => {
       for (const message of committed) {
         results.set(message.toolCallId, message);
       }
     });
   };
 
-  return {
-    runtime: new Proxy(runtime, {
-      get(target, property) {
-        if (property === 'agent') {
-          return agent;
-        }
-        return property === 'commit' ? commit : bound(target, property);
-      },
-    }),
-    finish: () => {
-      for (const call of runs.toolCalls.get(runtime.taskId) ?? []) {
-        finishToolCall(call, call.callId !== undefined ? results.get(call.callId) : undefined);
-      }
-      runs.toolCalls.delete(runtime.taskId);
-    },
+  return () => {
+    runtime.agent = agent;
+    runtime.commit = commit;
+    for (const call of runs.toolCalls.get(runtime.taskId) ?? []) {
+      // A nested call gives its result to the calling tool and commits no result entry.
+      const committed = call.callId !== undefined ? results.get(call.callId) : undefined;
+      finishToolCall(call, isNested ? call.returned : committed);
+    }
+    runs.toolCalls.delete(runtime.taskId);
   };
 }
 
 /** Wrap a tool so each call gets a `gen_ai.execute_tool` span. */
-export function instrumentTool(tool: PiTool, runs: PiRuns, options: GenAiCallOptions<PiDurableCallInfo>): PiTool {
+export function instrumentTool(
+  tool: PiTool,
+  runs: PiRuns,
+  options: GenAiCallOptions<PiDurableCallInfo> & GenAiSpanHooks<PiDurableCallInfo, PiToolExecutionResult>,
+): PiTool {
   const execute = (args: unknown, api: PiToolExecutionApi, context: unknown): Promise<unknown> => {
-    const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, {
-      operation: 'execute_tool',
-      tool,
-      args,
-      api,
-      context,
-    });
+    const toolCall: PiDurableCallInfo = { operation: 'execute_tool', tool, args, api, context };
+    const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, toolCall);
     const phaseCalls = runs.toolCalls.get(api?.taskId);
     // A tool that runs another tool of its agent passes its own `api` on, so the inner call shares
     // the call id. Only the outer call gets the committed result; the inner one ends with its own.
@@ -140,17 +149,21 @@ export function instrumentTool(tool: PiTool, runs: PiRuns, options: GenAiCallOpt
       async span => {
         const call: PiToolCall = { span, callId: api?.callId, recordOutputs };
         calls?.push(call);
+        runGenAiSpanStart(options, span, toolCall);
         try {
           const result = await tool.execute(args, trackOwnedConversations(api, span, runs), context);
           call.endTimestamp = timestampInSeconds();
+          call.onSpanEnd = () => runGenAiSpanEnd(options, span, toolCall, { response: result });
+          call.returned = { content: result?.output ?? result?.content, isError: result?.isError };
           if (!calls) {
-            // No result entry follows a call outside a tool task phase, nor a nested call.
-            finishToolCall(call, { content: result?.output ?? result?.content, isError: result?.isError });
+            // No result entry follows a call outside a tool task phase, nor a call that got the api of another call.
+            finishToolCall(call, call.returned);
           }
           return result;
         } catch (error) {
           call.endTimestamp = timestampInSeconds();
           call.failed = true;
+          call.onSpanEnd = () => runGenAiSpanEnd(options, span, toolCall, { error });
           // pi-durable turns the throw into an error result for the model, so the app never gets a
           // chance to handle it. An aborted call is not a failure.
           if ((context as { abortSignal?: AbortSignal } | undefined)?.abortSignal?.aborted) {
@@ -162,6 +175,7 @@ export function instrumentTool(tool: PiTool, runs: PiRuns, options: GenAiCallOpt
             }
           }
           if (!calls) {
+            call.onSpanEnd();
             span.end(call.endTimestamp);
           }
           throw error;
@@ -190,6 +204,7 @@ function finishToolCall(call: PiToolCall, message: PiToolResultMessage | undefin
       call.span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
     }
   }
+  call.onSpanEnd?.();
   call.span.end(call.endTimestamp);
 }
 

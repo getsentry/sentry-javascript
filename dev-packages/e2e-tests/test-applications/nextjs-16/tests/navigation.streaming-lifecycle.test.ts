@@ -1,17 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
-
-function waitForNavigationSpan(name: string, navigationType: string) {
-  return waitForStreamedSpan('nextjs-16', span => {
-    return (
-      span.name === name &&
-      getSpanOp(span) === 'navigation' &&
-      span.is_segment &&
-      span.attributes['navigation.type']?.value === navigationType
-    );
-  });
-}
+import { waitForNavigationSpan } from './navigation-helpers';
 
 test('Creates a navigation span in the trace of the server request it triggers', async ({ page }) => {
   await page.goto('/navigation');
@@ -41,49 +31,6 @@ test('Creates a navigation span in the trace of the server request it triggers',
     'url.template': { value: '/navigation/:param/link', type: 'string' },
     'url.path': { value: '/navigation/42/link', type: 'string' },
   });
-});
-
-test('Creates a navigation span for `router.push()`', async ({ page }) => {
-  const navigationSpanPromise = waitForNavigationSpan('/navigation/:param/router-push', 'router.push');
-
-  await page.goto('/navigation');
-  await page.getByText('router.push()').click();
-
-  expect(await navigationSpanPromise).toBeDefined();
-});
-
-test('Creates a navigation span for `router.replace()`', async ({ page }) => {
-  const navigationSpanPromise = waitForNavigationSpan('/navigation/:param/router-replace', 'router.replace');
-
-  await page.goto('/navigation');
-  await page.getByText('router.replace()').click();
-
-  expect(await navigationSpanPromise).toBeDefined();
-});
-
-test('Creates a navigation span for `router.back()`', async ({ page }) => {
-  const navigationSpanPromise = waitForNavigationSpan('/navigation/:param/router-back', 'router.traverse');
-
-  await page.goto('/navigation/1337/router-back');
-  await page.getByText('Go back home').click();
-  await page.waitForURL('**/navigation');
-  await page.getByText('router.back()').click();
-
-  expect(await navigationSpanPromise).toBeDefined();
-});
-
-test('Creates a navigation span for `router.forward()`', async ({ page }) => {
-  await page.goto('/navigation');
-  await page.getByText('router.push()').click();
-  await page.waitForURL('**/navigation/42/router-push');
-  await page.goBack();
-  await page.waitForURL('**/navigation');
-
-  const navigationSpanPromise = waitForNavigationSpan('/navigation/:param/router-push', 'router.traverse');
-
-  await page.getByText('router.forward()').click();
-
-  expect(await navigationSpanPromise).toBeDefined();
 });
 
 test('Creates a navigation span for `<Link />`', async ({ page }) => {

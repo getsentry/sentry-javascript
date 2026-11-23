@@ -17,6 +17,65 @@ permissions:
   issues: write
 
 jobs:
+  job_bun_integration_tests:
+    name: Bun (canary) Integration Tests (${{ matrix.shard }}/6)
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    env:
+      CACHED_DEPENDENCY_PATHS: |
+        ${{ github.workspace }}/node_modules
+        ${{ github.workspace }}/packages/*/node_modules
+        ${{ github.workspace }}/dev-packages/*/node_modules
+        ~/.cache/mongodb-binaries/
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+    steps:
+      - name: Check out current commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: ./.github/actions/setup-node
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: canary
+      - name: Install dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build packages
+        run: pnpm run build:ci
+      - name: Run integration tests
+        working-directory: dev-packages/bun-integration-tests
+        run: pnpm run test --shard=${{ matrix.shard }}/6
+
+  job_report_bun_failure:
+    name: Report Bun canary failure
+    needs: [job_bun_integration_tests]
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Check out issue template
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Create Issue
+        uses: JasonEtco/create-an-issue@1b14a70e4d8dc185e5cc76d3bec9eab20257b2c5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TITLE: Bun canary Integration Tests Failed
+        with:
+          filename: .github/CANARY_FAILURE_TEMPLATE.md
+          update_existing: true
+
   job_e2e_prepare:
     name: Prepare E2E Canary tests
     runs-on: ubuntu-24.04

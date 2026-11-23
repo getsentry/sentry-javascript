@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { _INTERNAL_isClientClosed, debug, getCurrentScope, safeCallback, setCurrentClient } from '@sentry/core';
+import { debug, getCurrentScope, isClientClosed, safeCallback, setCurrentClient } from '@sentry/core';
 import {
   consoleIntegration,
   conversationIdIntegration,
@@ -88,7 +88,7 @@ export function initBaseSdk(options: CloudflareOptions): CloudflareClient | unde
 
   // A closed client drops all data. `close()` marks the client before it
   // flushes, so this also skips a client that is still closing.
-  if (cacheEnabled && cached && !_INTERNAL_isClientClosed(cached)) {
+  if (cacheEnabled && cached && !isClientClosed(cached)) {
     if (DEBUG_BUILD && cached.getOptions().dsn !== options.dsn) {
       debug.warn(
         '[Sentry] init() was called with a different DSN than the cached client of this isolate; the cached client keeps its DSN. Pass `cacheClient: false` for per-invocation options.',

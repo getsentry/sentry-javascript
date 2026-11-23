@@ -10,4 +10,7 @@ const config = getPlaywrightConfig({
   startCommand: testEnv === 'development' ? `pnpm dev --port 3030` : `node build`,
 });
 
-export default config;
+export default {
+  ...config,
+  workers: process.env.CI ? 4 : config.workers,
+};

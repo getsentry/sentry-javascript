@@ -376,7 +376,7 @@ describe('setupSourceMaps', () => {
     expect(hookFn).not.toHaveBeenCalled();
   });
 
-  it('does not register hook when nitro sourcemap is disabled', () => {
+  it('registers the hook for the release when nitro sourcemap is disabled', () => {
     const hookFn = vi.fn();
     const nitro = {
       options: { dev: false, sourcemap: false, output: { serverDir: '/output/server' } },
@@ -385,7 +385,7 @@ describe('setupSourceMaps', () => {
 
     setupSourceMaps(nitro);
 
-    expect(hookFn).not.toHaveBeenCalled();
+    expect(hookFn).toHaveBeenCalledWith('compiled', expect.any(Function));
   });
 
   it('does not register hook in nitro-prerender preset', () => {

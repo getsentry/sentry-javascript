@@ -639,6 +639,30 @@ describe('CloudflareClient', () => {
       }, ctx as never);
     });
 
+    it('drains again for an envelope another invocation sends while the boundary flush is sending', async () => {
+      let finishBoundaryDrain: (value: boolean) => void = () => undefined;
+      const flushMock = vi
+        .fn()
+        .mockImplementationOnce(() => new Promise<boolean>(resolve => (finishBoundaryDrain = resolve)))
+        .mockResolvedValue(true);
+      const client = makeEagerFlushClient(flushMock);
+      const ctxA = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+      const ctxB = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+
+      const flushPromise = withInvocationIsolationScope(() => client.flush(10), ctxA as never);
+      await vi.waitFor(() => expect(flushMock).toHaveBeenCalledTimes(1));
+
+      withInvocationIsolationScope(() => {
+        reachFlushPoint();
+        client.emit('afterEnvelope', {});
+      }, ctxB as never);
+
+      finishBoundaryDrain(true);
+      await flushPromise;
+
+      expect(flushMock).toHaveBeenCalledTimes(2);
+    });
+
     it('does not flush eagerly per envelope when cacheClient is disabled', () => {
       const flushMock = vi.fn().mockResolvedValue(true);
       const client = new CloudflareClient({

@@ -1,12 +1,14 @@
 import * as path from 'node:path';
 import type { Client, Event, EventProcessor } from '@sentry/core';
 import {
-  _INTERNAL_getActiveClient,
+  _INTERNAL_captureOptionsSetByUser,
   applySdkMetadata,
   consoleSandbox,
   debug,
   DEFAULT_ENVIRONMENT,
   DEV_ENVIRONMENT,
+  getClient,
+  isClientClosed,
 } from '@sentry/core';
 import { init as initNode } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -34,8 +36,8 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
   // Since the server config is bundled into the Nitro build, a `node --import` preload of a config
   // file initializes the SDK a second time. The first init wins so a preload keeps its semantics.
   // A closed client does not count, so `close()` lets a later init set up a new one.
-  const existingClient = _INTERNAL_getActiveClient();
-  if (isNuxtServerInitialized() && existingClient) {
+  const existingClient = getClient();
+  if (isNuxtServerInitialized() && existingClient && !isClientClosed(existingClient)) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.log(
@@ -56,7 +58,7 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
 
   const sentryOptions = {
     environment: options.environment ?? process.env.SENTRY_ENVIRONMENT ?? envFallback,
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
   };
 
   applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'node']);

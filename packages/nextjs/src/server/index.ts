@@ -4,16 +4,18 @@
 import type { Scope } from '@sentry/core';
 import {
   _INTERNAL_captureOptionsSetByUser,
-  _INTERNAL_getActiveClient,
   applySdkMetadata,
   debug,
+  getClient,
   getGlobalScope,
   getVercelEnv,
   GLOBAL_OBJ,
+  isClientClosed,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   _INTERNAL_installTunnelHooks as installTunnelHooks,
+  addServerTimingTraceHeader,
   getDefaultIntegrations,
   httpIntegration,
   init as nodeInit,
@@ -38,7 +40,6 @@ import {
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { registerNextSentryPropagator } from './nextSentryPropagator';
 import { addNextjsServerSpanHooks, NEXTJS_SERVER_IGNORE_SPANS } from './serverSpanHooks';
-import { addServerTimingTraceHeader } from './serverTimingHeader';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
 import { nextjsUseCacheIntegration } from './useCacheInstrumentation';
 
@@ -178,7 +179,10 @@ export function init(userOptions: NodeOptions): NodeClient | undefined {
   // Before `init`, which applies it to the managed tunnel of `serveTunnelIntegration` or `tunnelRoute`.
   const tunnelRoute = getTunnelRouteServerOptions();
   setTunnelDefaults({ basePath: getInjectedBasePath(), tunnel: tunnelRoute, forward: forwardTunnelRequest });
-  if (tunnelRoute) {
+  // On a Vercel deployment the generated tunnel route serves these requests. A hook that answers before Next.js runs
+  // keeps the function invocation open until it times out. `vercel dev` gets no generated route, so it keeps the hook.
+  const isServedByVercelTunnelRoute = !!process.env.VERCEL && process.env.VERCEL_ENV !== 'development';
+  if (tunnelRoute && !isServedByVercelTunnelRoute) {
     installTunnelHooks();
   }
 
@@ -191,8 +195,8 @@ export function init(userOptions: NodeOptions): NodeClient | undefined {
   // The client of `withSentry` from `@sentry/cloudflare` handles this request, so `init` creates none. The global
   // parts below still apply.
   const isOwnedByCloudflare = isAsyncContextOwnedByCloudflare();
-  const existingClient = _INTERNAL_getActiveClient<NodeClient>();
-  if (existingClient && !isOwnedByCloudflare) {
+  const existingClient = getClient<NodeClient>();
+  if (existingClient && !isClientClosed(existingClient) && !isOwnedByCloudflare) {
     DEBUG_BUILD && debug.log('SDK already initialized');
     return existingClient;
   }

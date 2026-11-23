@@ -9,7 +9,10 @@ import { isVinext } from './isVinext';
 test.skip(getRuntime() === 'cloudflare', 'OpenNext runs no edge runtime pages on Workers, they return a 500');
 
 test('Should record exceptions for faulty edge server components', async ({ page }) => {
-  test.fixme(isTurbopackDevMode, 'The Turbopack dev server reports no error for a throwing edge server component');
+  test.skip(
+    isTurbopackDevMode,
+    'With `experimental.sri`, the Next.js Turbopack dev server fails to render edge pages: it cannot find `subresource-integrity-manifest.js`',
+  );
 
   const errorEventPromise = waitForError('nextjs-16', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Edge Server Component Error';

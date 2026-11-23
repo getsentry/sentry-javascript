@@ -44,3 +44,6 @@ allow-ghsas:
   - GHSA-rgw5-rvv9-x895
   - GHSA-6j4f-fj2g-mc7p
   - GHSA-qhr7-859c-m2p7
+  # @sveltejs/kit 2.x, our supported major. Only fixed in 3.1.1.
+  # Can be removed once we test against SvelteKit 3.
+  - GHSA-3r8g-jcqq-3p5j

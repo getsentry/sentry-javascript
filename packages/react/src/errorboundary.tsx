@@ -13,7 +13,7 @@ export type FallbackRender = (errorData: {
   error: unknown;
   componentStack: string;
   eventId: string;
-  resetError(): void;
+  resetError: () => void;
 }) => React.ReactElement;
 
 type OnUnmountType = {

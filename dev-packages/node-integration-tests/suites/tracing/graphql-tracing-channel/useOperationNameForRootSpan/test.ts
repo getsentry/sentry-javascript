@@ -1,5 +1,5 @@
 import { afterAll, describe, expect } from 'vitest';
-import { supports } from '../../../../utils';
+import { SUPPORTS_REQUIRE_OF_ESM, supports } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 // graphql 17 requires Node >= 22, so this suite is skipped on older Node.
@@ -30,7 +30,7 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test > useOperati
           .completed();
       });
     },
-    { additionalDependencies: { graphql: '^17' } },
+    { failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM, additionalDependencies: { graphql: '^17' } },
   );
 
   createEsmAndCjsTests(
@@ -55,7 +55,7 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test > useOperati
           .completed();
       });
     },
-    { additionalDependencies: { graphql: '^17' } },
+    { failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM, additionalDependencies: { graphql: '^17' } },
   );
 
   createEsmAndCjsTests(
@@ -77,6 +77,6 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test > useOperati
           .completed();
       });
     },
-    { additionalDependencies: { graphql: '^17' } },
+    { failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM, additionalDependencies: { graphql: '^17' } },
   );
 });

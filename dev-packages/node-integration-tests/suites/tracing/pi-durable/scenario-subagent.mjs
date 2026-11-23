@@ -13,10 +13,11 @@ import {
 
 const context = BACKGROUND_CONTEXT;
 
-// Three runs of the root conversation, each with one tool round:
+// Four runs of the root conversation, each with one tool round:
 // - `delegate` creates a conversation it owns and waits for its answer, the subagent pattern;
 // - `fork_delegate` does the same with a fork of the current conversation;
-// - `batch` runs the `inner` tool of its agent itself, passing its own api on.
+// - `batch` runs the `inner` tool of its agent itself, passing its own api on;
+// - `relay` calls the `inner` tool with `api.executeTool()`, as a code mode script does.
 // Each response is derived from the transcript, so the faux model answers every conversation.
 const respond = transcript => {
   const lastUser = [...transcript.messages].reverse().find(message => message.role === 'user');
@@ -37,12 +38,15 @@ const respond = transcript => {
   if (text === 'Run the batch.') {
     return fauxAssistantMessage(fauxToolCall('batch', {}, { id: 'call_batch' }), { stopReason: 'toolUse' });
   }
+  if (text === 'Relay the call.') {
+    return fauxAssistantMessage(fauxToolCall('relay', {}, { id: 'call_relay' }), { stopReason: 'toolUse' });
+  }
   return fauxAssistantMessage(`Answer: ${text}`);
 };
 const faux = fauxProvider({ provider: 'faux', models: [{ id: 'faux-model' }] });
 const models = createModels();
 models.setProvider(faux.provider);
-faux.setResponses(Array.from({ length: 12 }, () => respond));
+faux.setResponses(Array.from({ length: 14 }, () => respond));
 
 const answerText = async (api, settled, toolContext) => {
   const answer = await api.commit(tx => tx.entry(AssistantEntry, settled.answer), toolContext);
@@ -108,13 +112,22 @@ registry.install(
           return { output: [{ type: 'text', text: 'OUTER RESULT' }] };
         },
       }),
+      defineTool({
+        name: 'relay',
+        description: 'Calls the inner tool as a nested call.',
+        parameters: Type.Object({}),
+        execute: async (_args, api, toolContext) => {
+          await api.executeTool('inner', {}, toolContext);
+          return { output: [{ type: 'text', text: 'RELAY RESULT' }] };
+        },
+      }),
     ],
   }),
 );
 
 const harness = await Harness.open(new MemoryStorage(), { models, registry }, context);
 const root = await harness.root(context, { agent: { model: { provider: 'faux', modelId: 'faux-model' } } });
-for (const content of ['Delegate the weather question.', 'Fork a helper.', 'Run the batch.']) {
+for (const content of ['Delegate the weather question.', 'Fork a helper.', 'Run the batch.', 'Relay the call.']) {
   await (await root.submit({ type: 'input', content }, context)).wait(context);
 }
 await harness.waitForIdle(context);

@@ -29,10 +29,11 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
 import { getErrorStatus, resolveGenAiCallRecording } from '../core/utils';
 import { withCleanScopes } from '../../utils/withCleanScopes';
 import { ANTHROPIC_AI_ORIGIN } from './constants';
-import type { AnthropicAiOptions } from './types';
+import type { AnthropicAiCallInfo, AnthropicAiOptions } from './types';
 
 type AnyFunction = (...args: unknown[]) => unknown;
 type RunnableTool = { name: string; description?: unknown };
@@ -189,11 +190,8 @@ function runWithSpan(
   options: AnthropicAiOptions,
 ): unknown {
   const [input, context] = args as [unknown, RunContext];
-  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, {
-    operation: 'execute_tool',
-    tool,
-    input,
-  });
+  const call: AnthropicAiCallInfo = { operation: 'execute_tool', tool, input };
+  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
   // SDK versions before `toolUse` existed pass only `toolUseBlock`.
   const callId = (context?.toolUse ?? context?.toolUseBlock)?.id;
 
@@ -210,13 +208,23 @@ function runWithSpan(
         ...(recordInputs ? { [GEN_AI_TOOL_CALL_ARGUMENTS]: stringify(input) } : {}),
       },
     },
-    span =>
-      handleCallbackErrors(
+    span => {
+      runGenAiSpanStart(options, span, call);
+      return handleCallbackErrors(
         () => run.apply(thisArg, args),
-        error => handleToolError(span, error, context),
+        error => {
+          handleToolError(span, error, context);
+          runGenAiSpanEnd(options, span, call, { error });
+        },
         undefined,
-        result => recordOutputs && span.setAttribute(GEN_AI_TOOL_CALL_RESULT, stringify(result)),
-      ),
+        result => {
+          if (recordOutputs) {
+            span.setAttribute(GEN_AI_TOOL_CALL_RESULT, stringify(result));
+          }
+          runGenAiSpanEnd(options, span, call, { response: result });
+        },
+      );
+    },
   );
 }
 

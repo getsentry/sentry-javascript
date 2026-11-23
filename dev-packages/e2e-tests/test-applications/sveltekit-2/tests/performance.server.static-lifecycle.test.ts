@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
@@ -34,12 +35,14 @@ test('server pageload request span has nested request span for sub request', asy
 });
 
 test('extracts HTTP request headers as span attributes', async ({ page, baseURL }) => {
+  const traceId = randomUUID().replaceAll('-', '');
   const serverTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
-    return txnEvent?.transaction === 'GET /api/users';
+    return txnEvent?.transaction === 'GET /api/users' && txnEvent.contexts?.trace?.trace_id === traceId;
   });
 
   await fetch(`${baseURL}/api/users`, {
     headers: {
+      'sentry-trace': `${traceId}-1234567890123456-1`,
       'User-Agent': 'Custom-SvelteKit-Agent/1.0',
       'Content-Type': 'application/json',
       'X-Test-Header': 'sveltekit-test-value',

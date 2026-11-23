@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { SENTRY_KIND } from '@sentry/conventions/attributes';
 import { getSpanOp } from '@sentry-internal/test-utils';
 
 import { collectRequestSpans } from './utils';
@@ -89,6 +90,10 @@ const SEGMENT_SPAN = {
     'sentry.environment': {
       type: 'string',
       value: 'qa',
+    },
+    [SENTRY_KIND]: {
+      type: 'string',
+      value: 'server',
     },
     'sentry.op': {
       type: 'string',

@@ -5,7 +5,12 @@ import {
   WINDOW,
 } from '@sentry/browser';
 import type { Integration, TransactionSource } from '@sentry/core';
-import { hasSpanStreamingEnabled, NAVIGATION_SPAN_NAME_FALLBACK, PAGELOAD_SPAN_NAME_FALLBACK } from '@sentry/core';
+import {
+  defineIntegration,
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
+  PAGELOAD_SPAN_NAME_FALLBACK,
+} from '@sentry/core';
 import type { Location } from './types';
 import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
@@ -34,11 +39,7 @@ interface ReactRouterOptions {
   match: Match;
 }
 
-/**
- * A browser tracing integration that uses React Router v3 to instrument navigations.
- * Expects `history` (and optionally `routes` and `matchPath`) to be passed as options.
- */
-export function reactRouterV3BrowserTracingIntegration(
+function _reactRouterV3BrowserTracingIntegration(
   options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
 ): Integration {
   const integration = browserTracingIntegration({
@@ -101,6 +102,14 @@ export function reactRouterV3BrowserTracingIntegration(
     },
   };
 }
+
+/**
+ * A browser tracing integration that uses React Router v3 to instrument navigations.
+ * Expects `history` (and optionally `routes` and `matchPath`) to be passed as options.
+ */
+export const reactRouterV3BrowserTracingIntegration: typeof _reactRouterV3BrowserTracingIntegration = defineIntegration(
+  _reactRouterV3BrowserTracingIntegration,
+);
 
 /**
  * Normalize transaction names using `Router.match`

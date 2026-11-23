@@ -1,9 +1,17 @@
+import { setTestUser } from './helpers';
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('lazyRouteTimeout: Routes load within timeout window', async ({ page }) => {
+test.beforeEach(setTestUser);
+
+test('lazyRouteTimeout: Routes load within timeout window', async ({ page }, testInfo) => {
   const spanPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name.includes('deep');
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name.includes('deep')
+    );
   });
 
   // Route takes ~900ms, timeout allows 1050ms (50 + 1000)
@@ -22,9 +30,14 @@ test('lazyRouteTimeout: Routes load within timeout window', async ({ page }) => 
   expect(span.attributes['sentry.idle_span_finish_reason']?.value).toBe('idleTimeout');
 });
 
-test('lazyRouteTimeout: Infinity timeout always waits for routes', async ({ page }) => {
+test('lazyRouteTimeout: Infinity timeout always waits for routes', async ({ page }, testInfo) => {
   const spanPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name.includes('deep');
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name.includes('deep')
+    );
   });
 
   // Infinity timeout → waits as long as possible (capped at finalTimeout to prevent indefinite hangs)
@@ -42,13 +55,19 @@ test('lazyRouteTimeout: Infinity timeout always waits for routes', async ({ page
   expect(span.attributes['sentry.idle_span_finish_reason']?.value).toBe('idleTimeout');
 });
 
-test('idleTimeout: Captures all activity with increased timeout', async ({ page }) => {
+test('idleTimeout: Captures all activity with increased timeout', async ({ page }, testInfo) => {
   const spanPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name.includes('deep');
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name.includes('deep')
+    );
   });
 
-  // High idleTimeout (5000ms) ensures the span captures all lazy loading activity
-  await page.goto('/?idleTimeout=5000');
+  // High idleTimeout (2000ms, well above the ~900ms the lazy routes take to load) ensures the span captures all
+  // lazy loading activity
+  await page.goto('/?idleTimeout=2000');
 
   const navigationLink = page.locator('id=navigation-to-deep');
   await expect(navigationLink).toBeVisible();
@@ -60,15 +79,20 @@ test('idleTimeout: Captures all activity with increased timeout', async ({ page 
   expect(span.attributes['sentry.segment.name.source']?.value).toBe('route');
   expect(span.attributes['sentry.idle_span_finish_reason']?.value).toBe('idleTimeout');
 
-  // The span should wait for the full idle timeout (5+ seconds)
+  // The span should wait for the full idle timeout (2+ seconds)
   const duration = span.end_timestamp - span.start_timestamp;
-  expect(duration).toBeGreaterThan(5.0);
-  expect(duration).toBeLessThan(7.0);
+  expect(duration).toBeGreaterThan(2.0);
+  expect(duration).toBeLessThan(4.0);
 });
 
-test('idleTimeout: Finishes prematurely with low timeout', async ({ page }) => {
+test('idleTimeout: Finishes prematurely with low timeout', async ({ page }, testInfo) => {
   const spanPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name.includes('deep');
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name.includes('deep')
+    );
   });
 
   // Very low idleTimeout (50ms) and lazyRouteTimeout (100ms)
@@ -90,9 +114,14 @@ test('idleTimeout: Finishes prematurely with low timeout', async ({ page }) => {
   expect(duration).toBeLessThan(0.2);
 });
 
-test('idleTimeout: Pageload on deeply nested route', async ({ page }) => {
+test('idleTimeout: Pageload on deeply nested route', async ({ page }, testInfo) => {
   const pageloadSpanPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment && span.name.includes('deep');
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.name.includes('deep')
+    );
   });
 
   // Direct pageload to deeply nested route (not navigation)
