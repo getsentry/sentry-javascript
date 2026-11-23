@@ -27,6 +27,7 @@ import type {
   PiTask,
   PiTaskRuntime,
   PiTool,
+  PiToolTaskInput,
   PiToolExecutionResult,
 } from './types';
 import { withCleanScopes } from '../../utils/withCleanScopes';
@@ -145,6 +146,7 @@ function instrumentRegistry(registry: PiRegistryReader, options: PiDurableOption
         (taskRecord, runtime, context) =>
           runPhase(
             definition.name,
+            taskRecord,
             () => phase.call(receiver, taskRecord, runtime, context),
             runtime,
             context,
@@ -201,6 +203,7 @@ function instrumentRegistry(registry: PiRegistryReader, options: PiDurableOption
 
 function runPhase(
   kind: string,
+  task: unknown,
   phase: () => Promise<unknown>,
   runtime: PiTaskRuntime,
   context: unknown,
@@ -219,11 +222,19 @@ function runPhase(
       ? (runs.active.get(conversationId) ?? (isRunWork && !isAbort ? startRun(conversationId, runs) : undefined))
       : undefined;
 
+  // A call that a tool makes with `api.executeTool()`, as a code mode script does, is a `pi.tool`
+  // task of its own. Its span belongs under the span of the calling tool.
+  const input = kind === PI_TASK.TOOL ? (task as { input?: PiToolTaskInput } | undefined)?.input : undefined;
+  const callerSpan =
+    input?.kind === 'nested'
+      ? runs.toolCalls.get(input.parent)?.find(call => call.callId === input.parentCallId)?.span
+      : undefined;
+
   let finishPhase: (() => void) | undefined;
   if (run && kind === PI_TASK.GENERATION) {
     finishPhase = observeRunControl(runtime, run, runs);
   } else if (kind === PI_TASK.TOOL) {
-    finishPhase = instrumentToolPhase(runtime, runs, wrapTool);
+    finishPhase = instrumentToolPhase(runtime, runs, wrapTool, input?.kind === 'nested');
   }
 
   const runInScope = async (scope: Scope): Promise<unknown> => {
@@ -261,5 +272,5 @@ function runPhase(
       startNewTrace(() => runInScope(getCurrentScope())),
     );
   }
-  return withCleanScopes(run.isolationScope, () => withActiveSpan(run.span, runInScope));
+  return withCleanScopes(run.isolationScope, () => withActiveSpan(callerSpan ?? run.span, runInScope));
 }
