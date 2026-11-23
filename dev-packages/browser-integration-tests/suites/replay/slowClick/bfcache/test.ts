@@ -1,6 +1,11 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { collectReplayRequests, getReplayBreadcrumbs, shouldSkipReplayTest } from '../../../../utils/replayHelpers';
+import {
+  collectReplayRequests,
+  getReplayBreadcrumbs,
+  shouldSkipReplayTest,
+  waitForReplayRequest,
+} from '../../../../utils/replayHelpers';
 
 // Playwright turns the bfcache off, and chrome-headless-shell does not support it
 sentryTest.use({
@@ -19,8 +24,8 @@ sentryTest(
       route.fulfill({ contentType: 'text/html', body: '<!doctype html><html><body>Page 2</body></html>' }),
     );
 
-    await page.goto(url);
-    await page.waitForFunction(() => (window as any).Sentry?.getReplay()?.getReplayId());
+    // A flush that is still running when the page enters the bfcache can block all later flushes
+    await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
 
     const replayRequestsPromise = collectReplayRequests(page, recordingEvents =>
       getReplayBreadcrumbs(recordingEvents, 'ui.slowClickDetected').some(
