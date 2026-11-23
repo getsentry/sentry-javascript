@@ -2,8 +2,13 @@ import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('Sends a pageload span to Sentry', async ({ page }) => {
-  const spanPromise = waitForStreamedSpan('hydrogen-react-router-7', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/';
+  const spanPromise = waitForStreamedSpan('hydrogen-react-router-7', async span => {
+    return (
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.name === '/' &&
+      span.trace_id === (await page.locator('meta[name="sentry-trace"]').getAttribute('content'))?.split('-')[0]
+    );
   });
 
   await page.goto('/');
@@ -16,8 +21,13 @@ test('Sends a navigation span to Sentry', async ({ page }) => {
   // hydrated before we click the link. Clicking before hydration completes makes the `<Link>` behave
   // like a plain anchor, triggering a full page navigation (a `pageload` span) instead of a
   // client-side `navigation` one, which makes this test flaky.
-  const pageloadSpanPromise = waitForStreamedSpan('hydrogen-react-router-7', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/';
+  const pageloadSpanPromise = waitForStreamedSpan('hydrogen-react-router-7', async span => {
+    return (
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.name === '/' &&
+      span.trace_id === (await page.locator('meta[name="sentry-trace"]').getAttribute('content'))?.split('-')[0]
+    );
   });
 
   const spanPromise = waitForStreamedSpan('hydrogen-react-router-7', span => {

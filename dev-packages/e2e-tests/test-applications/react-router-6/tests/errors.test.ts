@@ -3,7 +3,7 @@ import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/t
 
 test('Sends correct error event', async ({ page }) => {
   const errorEventPromise = waitForError('react-router-6', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
+    return !event.type && event.exception?.values?.[0]?.value === 'I am an error!' && event.request?.url === page.url();
   });
 
   await page.goto('/');

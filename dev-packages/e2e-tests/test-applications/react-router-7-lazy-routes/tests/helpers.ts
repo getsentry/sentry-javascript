@@ -1,49 +1,12 @@
-import { test, type Page, type TestInfo } from '@playwright/test';
+import type { Page, TestInfo } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
-import {
-  getSpanOp,
-  waitForStreamedSpan as waitForAnyStreamedSpan,
-  waitForStreamedSpans as waitForAnyStreamedSpans,
-  collectStreamedSpansUntilSegment as collectAnyStreamedSpansUntilSegment,
-} from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpans } from '@sentry-internal/test-utils';
 
 // Parallel tests exercise the same routes, so URL and span name cannot identify their browser.
 export async function setTestUser({ page }: { page: Page }, testInfo: TestInfo): Promise<void> {
   await page.addInitScript(testId => {
     Object.assign(window, { __E2E_TEST_ID__: testId });
   }, testInfo.testId);
-}
-
-export function waitForStreamedSpan(...[proxy, matches, timestamp]: Parameters<typeof waitForAnyStreamedSpan>) {
-  const testId = test.info().testId;
-  return waitForAnyStreamedSpan(
-    proxy,
-    span => span.attributes['user.id']?.value === testId && matches(span),
-    timestamp,
-  );
-}
-
-export function waitForStreamedSpans(...[proxy, matches]: Parameters<typeof waitForAnyStreamedSpans>) {
-  const testId = test.info().testId;
-  const ownSpans = (spans: SerializedStreamedSpan[]) =>
-    spans.filter(span => span.attributes['user.id']?.value === testId);
-  return waitForAnyStreamedSpans(proxy, spans => {
-    const filtered = ownSpans(spans);
-    return filtered.length > 0 && (!matches || matches(filtered));
-  }).then(ownSpans);
-}
-
-export function collectStreamedSpansUntilSegment(
-  ...[proxy, segment, childToWaitFor]: Parameters<typeof collectAnyStreamedSpansUntilSegment>
-) {
-  const testId = test.info().testId;
-  return collectAnyStreamedSpansUntilSegment(
-    proxy,
-    span =>
-      span.attributes['user.id']?.value === testId &&
-      (typeof segment === 'string' ? span.name === segment : segment(span)),
-    childToWaitFor,
-  );
 }
 
 // Streamed `http.client` names are only `<METHOD> <domain>`, so the request URL has to come from
@@ -73,11 +36,13 @@ export function childSpans(spans: SerializedStreamedSpan[]): SerializedStreamedS
 export function collectUntilNavigationSegment(
   name: string,
   onSpan: (span: SerializedStreamedSpan) => void,
+  testId: string,
 ): Promise<SerializedStreamedSpan[]> {
   return waitForStreamedSpans('react-router-7-lazy-routes', spans => {
-    spans.forEach(onSpan);
-    return spans.some(span => span.is_segment && getSpanOp(span) === 'navigation' && span.name === name);
-  });
+    const ownSpans = spans.filter(span => span.attributes['user.id']?.value === testId);
+    ownSpans.forEach(onSpan);
+    return ownSpans.some(span => span.is_segment && getSpanOp(span) === 'navigation' && span.name === name);
+  }).then(spans => spans.filter(span => span.attributes['user.id']?.value === testId));
 }
 
 /**

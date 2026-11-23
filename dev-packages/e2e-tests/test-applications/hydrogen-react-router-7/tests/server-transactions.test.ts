@@ -7,9 +7,14 @@ const APP_NAME = 'hydrogen-react-router-7';
 test.describe.configure({ mode: 'serial' });
 
 test('Sends a parameterized span name to Sentry', async ({ page }) => {
-  const spanPromise = waitForStreamedSpan(APP_NAME, span => {
+  const spanPromise = waitForStreamedSpan(APP_NAME, async span => {
     // The span name is parameterized (route pattern, not the actual URL).
-    return getSpanOp(span) === 'http.server' && span.is_segment && span.name === 'GET /user/:id';
+    return (
+      getSpanOp(span) === 'http.server' &&
+      span.is_segment &&
+      span.name === 'GET /user/:id' &&
+      span.trace_id === (await page.locator('meta[name="sentry-trace"]').getAttribute('content'))?.split('-')[0]
+    );
   });
 
   await page.goto('/user/123');

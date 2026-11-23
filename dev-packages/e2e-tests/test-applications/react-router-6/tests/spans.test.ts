@@ -50,11 +50,19 @@ test('sends a navigation span with a parameterized URL', async ({ page }) => {
 });
 
 test('sends an INP span', async ({ page }) => {
-  const inpSpanPromise = waitForStreamedSpan('react-router-6', span => {
-    return getSpanOp(span) === 'ui.interaction.click';
+  const pageloadSpanPromise = waitForStreamedSpan('react-router-6', span => {
+    return (
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      String(span.attributes['url.full']?.value).endsWith('/?test=inp')
+    );
   });
 
-  await page.goto(`/`);
+  const inpSpanPromise = waitForStreamedSpan('react-router-6', async span => {
+    return getSpanOp(span) === 'ui.interaction.click' && span.parent_span_id === (await pageloadSpanPromise).span_id;
+  });
+
+  await page.goto('/?test=inp');
 
   await page.click('#exception-button');
 

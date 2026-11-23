@@ -5,8 +5,13 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
   // The pageload span only completes once the client SDK and the router have hydrated.
   // Awaiting it before clicking guarantees the button's onClick handler is attached — a click that
   // lands before hydration would do nothing, and the exception would never be captured.
-  const pageloadSpanPromise = waitForStreamedSpan('hydrogen-react-router-7', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/';
+  const pageloadSpanPromise = waitForStreamedSpan('hydrogen-react-router-7', async span => {
+    return (
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.name === '/' &&
+      span.trace_id === (await page.locator('meta[name="sentry-trace"]').getAttribute('content'))?.split('-')[0]
+    );
   });
 
   const errorPromise = waitForError('hydrogen-react-router-7', errorEvent => {
@@ -27,8 +32,13 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
 
 test('Sends a client-side ErrorBoundary exception to Sentry', async ({ page }) => {
   // Wait for hydration (see above) before clicking, so the button's onClick handler is attached.
-  const pageloadSpanPromise = waitForStreamedSpan('hydrogen-react-router-7', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/client-error';
+  const pageloadSpanPromise = waitForStreamedSpan('hydrogen-react-router-7', async span => {
+    return (
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.name === '/client-error' &&
+      span.trace_id === (await page.locator('meta[name="sentry-trace"]').getAttribute('content'))?.split('-')[0]
+    );
   });
 
   const errorPromise = waitForError('hydrogen-react-router-7', errorEvent => {
