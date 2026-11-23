@@ -213,7 +213,7 @@ describe('normalizeUserOptions()', () => {
     test.each(['preview', 'development', 'staging'])(
       'should skip commit association on %s Vercel builds without a git remote',
       targetEnv => {
-        vi.spyOn(childProcess, 'execSync').mockImplementation(() => {
+        vi.spyOn(childProcess, 'execFileSync').mockImplementation(() => {
           throw new Error('fatal: not a git repository');
         });
         // Only Vercel's variables, so CI variables from the machine running the tests don't leak in.
@@ -233,8 +233,8 @@ describe('normalizeUserOptions()', () => {
     );
 
     test('should keep automatic commit association on preview Vercel builds that have a git remote', () => {
-      const execSyncSpy = vi
-        .spyOn(childProcess, 'execSync')
+      const execFileSyncSpy = vi
+        .spyOn(childProcess, 'execFileSync')
         .mockReturnValue(Buffer.from('https://github.com/my-owner/my-repo.git'));
       // Only Vercel's variables, so the git remote is what keeps `--auto`, not CI variables from the test machine.
       process.env = {
@@ -247,14 +247,14 @@ describe('normalizeUserOptions()', () => {
 
       const normalizedOptions = normalizeUserOptions({ release: { name: 'my-release' } });
 
-      expect(execSyncSpy).toHaveBeenCalledWith('git remote get-url origin', expect.anything());
+      expect(execFileSyncSpy).toHaveBeenCalledWith('git', ['remote', 'get-url', 'origin'], expect.anything());
       expect(normalizedOptions.release.setCommits).toEqual(expect.objectContaining({ auto: true }));
       expect(normalizedOptions.release.setCommits).not.toHaveProperty('commit');
       vi.restoreAllMocks();
     });
 
     test('should keep automatic commit association on preview Vercel builds in another CI without a git remote', () => {
-      vi.spyOn(childProcess, 'execSync').mockImplementation(() => {
+      vi.spyOn(childProcess, 'execFileSync').mockImplementation(() => {
         throw new Error('fatal: not a git repository');
       });
       process.env['VERCEL'] = '1';

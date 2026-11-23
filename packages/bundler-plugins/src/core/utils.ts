@@ -204,7 +204,7 @@ export function stringToUUID(str: string): string {
   return `${sha256Hash.substring(0, 8)}-${sha256Hash.substring(8, 12)}-4${sha256Hash.substring(13, 16)}-${v4variant}${sha256Hash.substring(17, 20)}-${sha256Hash.substring(20, 32)}`.toLowerCase();
 }
 
-function gitRevision(): string | undefined {
+export function gitRevision(): string | undefined {
   let gitRevision: string | undefined;
   try {
     gitRevision = childProcess
@@ -231,9 +231,9 @@ const CI_REPOSITORY_ENV_VARS = [
 ] as const;
 
 /**
- * Whether `set-commits --auto` can find the repository: from the `origin` git remote, or from CI variables.
+ * Whether commit association can find the repository: from the given git remote, or from CI variables.
  */
-export function canAutoDetectRepository(): boolean {
+export function canAutoDetectRepository(remote = 'origin'): boolean {
   if (
     CI_REPOSITORY_ENV_VARS.some(name => process.env[name]) ||
     (process.env['NETLIFY'] && process.env['REPOSITORY_URL'])
@@ -241,11 +241,37 @@ export function canAutoDetectRepository(): boolean {
     return true;
   }
   try {
-    childProcess.execSync('git remote get-url origin', { stdio: 'ignore', windowsHide: true });
+    childProcess.execFileSync('git', ['remote', 'get-url', remote], { stdio: 'ignore', windowsHide: true });
     return true;
   } catch {
     return false;
   }
+}
+
+/**
+ * Reads the `owner/repo` path of a git remote, e.g. `getsentry/sentry-javascript` for
+ * `git@github.com:getsentry/sentry-javascript.git`.
+ */
+export function getGitRemoteRepository(remote: string): string | undefined {
+  let url: string;
+  try {
+    url = childProcess
+      .execFileSync('git', ['remote', 'get-url', remote], { stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true })
+      .toString()
+      .trim();
+  } catch {
+    return undefined;
+  }
+
+  let repoPath: string;
+  try {
+    repoPath = new URL(url).pathname;
+  } catch {
+    // scp-like syntax, `git@host:owner/repo.git`
+    repoPath = url.slice(url.indexOf(':') + 1);
+  }
+  const repository = repoPath.replace(/^\/+|\/+$/g, '').replace(/\.git$/, '');
+  return repository.includes('/') ? repository : undefined;
 }
 
 /**
