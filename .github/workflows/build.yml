@@ -313,7 +313,7 @@ jobs:
   job_size_check:
     name: Size Check
     needs: [job_get_metadata, job_get_test_matrix]
-    timeout-minutes: 15
+    timeout-minutes: 25
     runs-on: ubuntu-24.04-arm
     if:
       github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_base_branch == 'true' ||
