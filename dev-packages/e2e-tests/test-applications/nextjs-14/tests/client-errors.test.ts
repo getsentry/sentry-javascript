@@ -3,7 +3,7 @@ import { waitForError } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
 test('Sends a client-side exception to Sentry', async ({ page }) => {
-  await page.goto('/?test=client-errors');
+  const response = await page.goto('/?test=client-errors');
 
   const errorEventPromise = waitForError('nextjs-14', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Click Error' && errorEvent.request?.url === page.url();
@@ -22,6 +22,18 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
   });
 
   expect(errorEvent.transaction).toEqual('/');
+
+  if (isDevMode && !errorEvent.contexts?.trace?.parent_span_id) {
+    // oxlint-disable-next-line no-console
+    console.warn('Missing parent trace diagnostics', {
+      serverTiming: response?.headers()['server-timing'],
+      cacheControl: response?.headers()['cache-control'],
+      browserTrace: await page.evaluate(() => ({
+        serverTiming: (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming)?.serverTiming,
+        metaTrace: document.querySelector('meta[name="sentry-trace"]')?.getAttribute('content'),
+      })),
+    });
+  }
 
   expect(errorEvent.contexts?.trace).toEqual({
     // The server sends the trace in a `Server-Timing` header, except with a document a shared cache may store. In
