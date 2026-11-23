@@ -7,7 +7,7 @@ import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('sends a pageload span with a parameterized route name (no hooks passed to the integration)', async ({ page }) => {
   const spanPromise = waitForStreamedSpan('react-router-router-entry', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment;
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.attributes['url.full']?.value === page.url();
   });
 
   await page.goto(`/user/5`);
@@ -27,7 +27,7 @@ test('sends a pageload span with a parameterized route name (no hooks passed to 
 
 test('sends a navigation span with a parameterized route name', async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('react-router-router-entry', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment;
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.attributes['url.full']?.value === page.url();
   });
 
   const navigationSpanPromise = waitForStreamedSpan('react-router-router-entry', span => {

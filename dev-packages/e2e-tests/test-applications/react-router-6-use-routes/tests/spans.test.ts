@@ -3,7 +3,7 @@ import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('sends a pageload span with a parameterized URL', async ({ page }) => {
   const spanPromise = waitForStreamedSpan('react-router-6-use-routes', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment;
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.attributes['url.full']?.value === page.url();
   });
 
   await page.goto(`/`);
@@ -24,7 +24,7 @@ test('sends a pageload span with a parameterized URL', async ({ page }) => {
 test('sends a navigation span with a parameterized URL', async ({ page }) => {
   page.on('console', msg => console.log(msg.text()));
   const pageloadSpanPromise = waitForStreamedSpan('react-router-6-use-routes', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment;
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.attributes['url.full']?.value === page.url();
   });
 
   const navigationSpanPromise = waitForStreamedSpan('react-router-6-use-routes', span => {

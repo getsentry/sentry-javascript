@@ -1,7 +1,15 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
-import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
-import { hasUrlPart, childSpansInTraceOf, collectUntilNavigationSegment, endedByIdleTimeout } from './helpers';
+import { getSpanOp } from '@sentry-internal/test-utils';
+import {
+  test,
+  hasUrlPart,
+  childSpansInTraceOf,
+  collectUntilNavigationSegment,
+  endedByIdleTimeout,
+  collectStreamedSpansUntilSegment,
+  waitForStreamedSpan,
+} from './helpers';
 
 test('Creates separate spans for rapid consecutive navigations', async ({ page }) => {
   await page.goto('/');

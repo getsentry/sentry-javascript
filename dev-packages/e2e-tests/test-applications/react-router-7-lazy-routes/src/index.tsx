@@ -99,6 +99,13 @@ Sentry.init({
   release: 'e2e-test',
 
   tunnel: 'http://localhost:3031',
+  beforeSendSpan(span) {
+    const testId = (window as unknown as { __E2E_TEST_ID__?: string }).__E2E_TEST_ID__;
+    if (testId) {
+      span.attributes['e2e.test_id'] = testId;
+    }
+    return span;
+  },
 });
 
 const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouterV7(createBrowserRouter);

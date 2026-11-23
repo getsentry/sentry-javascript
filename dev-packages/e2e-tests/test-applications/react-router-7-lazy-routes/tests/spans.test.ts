@@ -1,6 +1,6 @@
-import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
-import { getStartedNavigationSpanCount } from './helpers';
+import { expect } from '@playwright/test';
+import { getSpanOp } from '@sentry-internal/test-utils';
+import { test, getStartedNavigationSpanCount, waitForStreamedSpan } from './helpers';
 
 test('Creates a pageload span but no navigation span on initial load to deep lazy route', async ({ page }) => {
   const transactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
