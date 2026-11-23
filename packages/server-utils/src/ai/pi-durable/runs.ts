@@ -192,8 +192,12 @@ export function endRun(run: PiRun, runs: PiRuns, status?: SpanStatus): void {
  * or ends a run edits `pi.live` through `tx.doc()`, so reading that draft after the commit's change
  * function returns shows whether the run survived the commit.
  */
-export function observeRunControl(runtime: PiTaskRuntime, run: PiRun, runs: PiRuns): PiTaskRuntime {
-  const commit = (change: PiCommitChange, context: unknown): Promise<void> => {
+export function observeRunControl(runtime: PiTaskRuntime, run: PiRun, runs: PiRuns): () => void {
+  const commit: PiTaskRuntime['commit'] = runtime.commit.bind(runtime);
+  // Replaced on the runtime itself: pi-durable 1.6.0 finds the state it keeps for a runtime by
+  // that object, so a phase that gets a Proxy of it faults. The returned function puts `commit`
+  // back, as pi-durable can keep the runtime after the phase, and with it the run and its spans.
+  runtime.commit = (change: PiCommitChange, context: unknown, ...rest: unknown[]): Promise<void> => {
     let ended = false;
     let settlement: PiSettlement | undefined;
 
@@ -246,7 +250,7 @@ export function observeRunControl(runtime: PiTaskRuntime, run: PiRun, runs: PiRu
       return result;
     };
 
-    return runtime.commit(observedChange, context).then(
+    return commit(observedChange, context, ...rest).then(
       () => {
         if (ended) {
           endRun(run, runs, toRunStatus(settlement));
@@ -259,11 +263,9 @@ export function observeRunControl(runtime: PiTaskRuntime, run: PiRun, runs: PiRu
     );
   };
 
-  return new Proxy(runtime, {
-    get(target, property) {
-      return property === 'commit' ? commit : bound(target, property);
-    },
-  });
+  return () => {
+    runtime.commit = commit;
+  };
 }
 
 function toRunStatus(settlement: PiSettlement | undefined): SpanStatus | undefined {
