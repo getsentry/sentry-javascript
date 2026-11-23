@@ -6,6 +6,14 @@ import type * as DebugIdUpload from '../../src/core/debug-id-upload';
 
 const { uploadSpy } = vi.hoisted(() => ({ uploadSpy: vi.fn() }));
 
+vi.mock('sentry', () => ({
+  createSentrySDK: () => ({
+    release: { create: vi.fn(), finalize: vi.fn(), 'set-commits': vi.fn(), deploy: vi.fn() },
+    sourcemap: { upload: vi.fn(), inject: vi.fn() },
+    run: vi.fn(),
+  }),
+}));
+
 vi.mock('../../src/core/debug-id-upload', async importOriginal => ({
   ...(await importOriginal<typeof DebugIdUpload>()),
   createDebugIdUploadFunction: () => uploadSpy,
@@ -46,6 +54,7 @@ describe('sentryBunPlugin', () => {
 
   beforeEach(() => {
     uploadSpy.mockReset();
+    uploadSpy.mockResolvedValue({ uploaded: true, uploadedSourceMapPaths: [] });
     outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sentry-bun-plugin-'));
   });
 
@@ -222,13 +231,128 @@ describe('sentryBunPlugin', () => {
     expect(uploadSpy).not.toHaveBeenCalled();
   });
 
-  it('warns that `sourcemaps.delete` is not supported', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+  describe('source map deletion', () => {
+    const uploadOptions = {
+      telemetry: false,
+      authToken: 't',
+      org: 'o',
+      project: 'p',
+      release: { name: 'test-release', create: false, finalize: false },
+    };
 
-    sentryBunPlugin({ telemetry: false, sourcemaps: { delete: true } });
+    function writeBuild(banner: string): { entry: string; outputs: Output[] } {
+      const entry = writeBundle('index.js', banner);
+      return {
+        entry,
+        outputs: [
+          { path: entry, kind: 'entry-point' },
+          { path: `${entry}.map`, kind: 'sourcemap' },
+        ],
+      };
+    }
 
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('does not support `sourcemaps.delete`'));
-    warn.mockRestore();
+    it('turns on hidden source maps and deletes them after the upload when `sourcemap` is unset', async () => {
+      const config: Config = { outdir: outDir };
+      const { end } = setupPlugin(sentryBunPlugin(uploadOptions) as BunPlugin, config);
+
+      expect(config.sourcemap).toBe('external');
+
+      const { entry, outputs } = writeBuild(config.banner!);
+      await end(outputs);
+
+      expect(uploadSpy).toHaveBeenCalledWith([entry]);
+      expect(fs.existsSync(`${entry}.map`)).toBe(false);
+    });
+
+    it('keeps the hidden source maps it turns on with `sourcemaps.delete: false`', async () => {
+      const config: Config = { outdir: outDir };
+      const { end } = setupPlugin(
+        sentryBunPlugin({ ...uploadOptions, sourcemaps: { delete: false } }) as BunPlugin,
+        config,
+      );
+
+      expect(config.sourcemap).toBe('external');
+
+      const { entry, outputs } = writeBuild(config.banner!);
+      await end(outputs);
+
+      expect(fs.existsSync(`${entry}.map`)).toBe(true);
+    });
+
+    it('switches linked source maps to hidden ones and deletes them with `sourcemaps.delete: true`', async () => {
+      const config: Config = { sourcemap: 'linked', outdir: outDir };
+      const { end } = setupPlugin(
+        sentryBunPlugin({ ...uploadOptions, sourcemaps: { delete: true } }) as BunPlugin,
+        config,
+      );
+
+      expect(config.sourcemap).toBe('external');
+
+      const { entry, outputs } = writeBuild(config.banner!);
+      await end(outputs);
+
+      expect(fs.existsSync(`${entry}.map`)).toBe(false);
+    });
+
+    it('deletes the source maps with `sourcemaps.delete: true` when no upload can run', async () => {
+      const config: Config = { sourcemap: 'external', outdir: outDir };
+      const { end } = setupPlugin(
+        sentryBunPlugin({ telemetry: false, sourcemaps: { delete: true } }) as BunPlugin,
+        config,
+      );
+
+      const { entry, outputs } = writeBuild(config.banner!);
+      await end(outputs);
+
+      expect(fs.existsSync(`${entry}.map`)).toBe(false);
+    });
+
+    it('deletes the source maps with `sourcemaps.delete: true` when the upload fails', async () => {
+      uploadSpy.mockRejectedValue(new Error('upload failed'));
+      const config: Config = { sourcemap: 'external', outdir: outDir };
+      const { end } = setupPlugin(
+        sentryBunPlugin({ ...uploadOptions, sourcemaps: { delete: true } }) as BunPlugin,
+        config,
+      );
+
+      const { entry, outputs } = writeBuild(config.banner!);
+      await expect(end(outputs)).rejects.toThrow('upload failed');
+
+      expect(fs.existsSync(`${entry}.map`)).toBe(false);
+    });
+
+    it('keeps source maps the user turned on when `sourcemaps.delete` is unset', async () => {
+      const config: Config = { sourcemap: 'linked', outdir: outDir };
+      const { end } = setupPlugin(sentryBunPlugin(uploadOptions) as BunPlugin, config);
+
+      expect(config.sourcemap).toBe('linked');
+
+      const { entry, outputs } = writeBuild(config.banner!);
+      await end(outputs);
+
+      expect(fs.existsSync(`${entry}.map`)).toBe(true);
+    });
+
+    it('keeps the source maps the plugin turned on when the upload does not run', async () => {
+      uploadSpy.mockResolvedValue({ uploaded: false, uploadedSourceMapPaths: [] });
+      const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      const config: Config = { outdir: outDir };
+      const { end } = setupPlugin(sentryBunPlugin(uploadOptions) as BunPlugin, config);
+
+      const { entry, outputs } = writeBuild(config.banner!);
+      await end(outputs);
+
+      expect(fs.existsSync(`${entry}.map`)).toBe(true);
+      expect(error).toHaveBeenCalledWith(expect.stringContaining('stay in the build output'));
+      error.mockRestore();
+    });
+
+    it('does not change the source map setting when Bun keeps the output in memory', () => {
+      const config: Config = {};
+      setupPlugin(sentryBunPlugin({ ...uploadOptions, sourcemaps: { delete: true } }) as BunPlugin, config);
+
+      expect(config.sourcemap).toBeUndefined();
+    });
   });
 
   it('does not inject or upload with `sourcemaps.disable: true`', async () => {
