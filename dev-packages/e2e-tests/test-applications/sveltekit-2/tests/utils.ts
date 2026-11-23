@@ -24,7 +24,10 @@ export async function waitForInitialPageload(
   const spanName = opts?.parameterizedRoute ?? route;
   const debug = opts?.debug ?? false;
 
-  const clientPageloadSpanPromise = waitForStreamedSpan('sveltekit-2', span => {
+  // The HTML identifies this browser's trace even when another worker loads the same route.
+  const traceHeaderPromise = page.locator('meta[name="sentry-trace"]').getAttribute('content');
+
+  const clientPageloadSpanPromise = waitForStreamedSpan('sveltekit-2', async span => {
     debug &&
       console.log({
         name: span.name,
@@ -38,7 +41,8 @@ export async function waitForInitialPageload(
       span.name === spanName &&
       getSpanOp(span) === 'pageload' &&
       span.is_segment &&
-      span.attributes['url.full']?.value === page.url()
+      span.attributes['url.full']?.value === page.url() &&
+      span.trace_id === (await traceHeaderPromise)?.split('-')[0]
     );
   });
 
