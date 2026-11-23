@@ -406,10 +406,14 @@ describe('change Nuxt source map settings', () => {
     // @ts-expect-error - Nuxt types don't accept `undefined` but we want to test this case
     nuxt = { options: { sourcemap: { client: undefined } } };
     sentryModuleOptions = {};
+    vi.stubEnv('SENTRY_AUTH_TOKEN', 'token');
+    vi.stubEnv('SENTRY_ORG', 'org');
+    vi.stubEnv('SENTRY_PROJECT', 'project');
   });
 
   afterEach(() => {
     consoleLogSpy.mockRestore();
+    vi.unstubAllEnvs();
   });
 
   it.each([
@@ -476,6 +480,28 @@ describe('change Nuxt source map settings', () => {
       expect(nuxt.options.sourcemap).toEqual({ client: expected, server: expected });
       expect(previousUserSourcemapSetting).toEqual({ client: 'unset', server: 'unset' });
     });
+
+    it.each([
+      [{ SENTRY_AUTH_TOKEN: '' }, {}, undefined],
+      [{ SENTRY_ORG: '' }, {}, undefined],
+      [{ SENTRY_PROJECT: '' }, {}, undefined],
+      [{ SENTRY_AUTH_TOKEN: '' }, { authToken: 'token' }, 'hidden'],
+      [{ SENTRY_ORG: '', SENTRY_AUTH_TOKEN: 'sntrys_token' }, {}, 'hidden'],
+      [{ SENTRY_AUTH_TOKEN: '' }, { sourcemaps: { delete: false } }, 'hidden'],
+      [{ SENTRY_AUTH_TOKEN: '' }, { sourcemaps: { disable: 'disable-upload' } }, 'hidden'],
+    ] as const)(
+      'with the environment %j and the options %j it sets unset source maps to %s',
+      (env, moduleOptions, expected) => {
+        for (const [key, value] of Object.entries(env)) {
+          vi.stubEnv(key, value);
+        }
+        // @ts-expect-error - Nuxt types don't accept `undefined` but we want to test this case
+        nuxt.options.sourcemap = { client: undefined, server: undefined };
+        changeNuxtSourceMapSettings(nuxt as Nuxt, moduleOptions);
+
+        expect(nuxt.options.sourcemap).toEqual({ client: expected, server: expected });
+      },
+    );
 
     it('leaves `nuxt.options.sourcemap` unset when Sentry turns no source maps on', () => {
       // @ts-expect-error - Nuxt types don't accept `undefined` but we want to test this case

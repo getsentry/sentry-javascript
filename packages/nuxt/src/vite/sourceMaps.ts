@@ -70,7 +70,7 @@ export function setupSourceMaps(
       // ONLY THIS nuxt.sourcemap.(server/client) setting is the one Sentry will overwrite with 'hidden', if needed.
       const previousSourceMapSettings = changeNuxtSourceMapSettings(nuxt, moduleOptions);
 
-      const sentryEnabled = sentryEnablesSourceMaps(moduleOptions.sourcemaps);
+      const sentryEnabled = sentryEnablesSourceMaps(moduleOptions);
       // Mutate in place so the Vite plugin (which captured this object at registration time) sees the updated values
       shouldDeleteFilesFallback.client = sentryEnabled && previousSourceMapSettings.client === 'unset';
       shouldDeleteFilesFallback.server = sentryEnabled && previousSourceMapSettings.server === 'unset';
@@ -329,7 +329,7 @@ export function changeNuxtSourceMapSettings(
 
   const nuxtSourceMap = nuxt.options.sourcemap;
   const isDebug = sentryModuleOptions.debug;
-  const sentryEnabled = sentryEnablesSourceMaps(sentryModuleOptions.sourcemaps);
+  const sentryEnabled = sentryEnablesSourceMaps(sentryModuleOptions);
 
   if (typeof nuxtSourceMap === 'string' || typeof nuxtSourceMap === 'boolean' || typeof nuxtSourceMap === 'undefined') {
     switch (nuxtSourceMap) {

@@ -120,6 +120,13 @@ describe('setupSourceMaps hooks', () => {
     mockCreateSentryBuildPluginManager.mockClear();
     mockDeleteArtifacts.mockClear();
     capturedViteOptions.options = undefined;
+    vi.stubEnv('SENTRY_AUTH_TOKEN', 'token');
+    vi.stubEnv('SENTRY_ORG', 'org');
+    vi.stubEnv('SENTRY_PROJECT', 'project');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   describe('removed `unstable_sentryBundlerPluginOptions`', () => {
@@ -346,9 +353,9 @@ describe('setupSourceMaps hooks', () => {
 
       expect(mockSentryVitePlugin).toHaveBeenCalledWith({
         applicationKey: undefined,
-        org: undefined,
-        project: undefined,
-        authToken: undefined,
+        org: 'org',
+        project: 'project',
+        authToken: 'token',
         telemetry: true,
         url: undefined,
         headers: undefined,

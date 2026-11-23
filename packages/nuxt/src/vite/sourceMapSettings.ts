@@ -45,10 +45,28 @@ export function validateDifferentSourceMapSettings({
  * Whether Sentry turns source maps on that the user did not set: when it uploads them, or when
  * `sourcemaps.delete: false` keeps them for a manual upload.
  */
-export function sentryEnablesSourceMaps(sourcemaps: SentryNuxtModuleOptions['sourcemaps']): boolean {
+export function sentryEnablesSourceMaps(moduleOptions: SentryNuxtModuleOptions): boolean {
+  const { sourcemaps } = moduleOptions;
   const { injectDebugIds, upload, legacyDisable } = resolveSourceMapsFeatures(sourcemaps);
   // TODO(v12): Remove the `disable-upload` case along with `sourcemaps.disable`.
-  return legacyDisable === 'disable-upload' || upload || (sourcemaps?.delete === false && injectDebugIds);
+  return (
+    legacyDisable === 'disable-upload' ||
+    (upload && hasUploadCredentials(moduleOptions)) ||
+    (sourcemaps?.delete === false && injectDebugIds)
+  );
+}
+
+/**
+ * The credentials checks of the Sentry plugin, which uploads nothing without them. The plugins are created
+ * before this runs, so `process.env` also holds the values of `.env.sentry-build-plugin`.
+ */
+function hasUploadCredentials(moduleOptions: SentryNuxtModuleOptions): boolean {
+  const authToken = moduleOptions.authToken ?? process.env.SENTRY_AUTH_TOKEN;
+  const org = moduleOptions.org ?? process.env.SENTRY_ORG;
+  const project = moduleOptions.project ?? process.env.SENTRY_PROJECT;
+  return (
+    !!authToken && (!!org || authToken.startsWith('sntrys_')) && (Array.isArray(project) ? !!project[0] : !!project)
+  );
 }
 
 /** Logs that the user's source map setting is kept. */
