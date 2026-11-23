@@ -1,19 +1,20 @@
 import { execFile } from 'child_process';
-import { createHash } from 'crypto';
-import { existsSync } from 'fs';
-import { cp, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'fs/promises';
-import { basename, join } from 'path';
+import { rmSync } from 'fs';
+import { cp, mkdtemp, rm, writeFile } from 'fs/promises';
+import { join } from 'path';
 import { promisify } from 'util';
 import { PACKAGE_ROOT } from './createRunner';
 
 const execFilePromise = promisify(execFile);
 
-interface DependencyInstall {
-  directory: string;
-  manifest: string;
-}
+const dependencyInstalls = new Map<string, Promise<string>>();
+const dependencyDirectories = new Set<string>();
 
-const dependencyInstalls = new Map<string, Promise<DependencyInstall>>();
+process.once('exit', () => {
+  for (const directory of dependencyDirectories) {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
 
 export async function installFixtureDependencies(
   directory: string,
@@ -31,14 +32,17 @@ export async function installFixtureDependencies(
     return;
   }
 
-  const installed = await getDependencyInstall(dependencies, deps);
+  const key = JSON.stringify(Object.entries(dependencies).sort(([a], [b]) => a.localeCompare(b)));
+  const installation = getDependencyInstall(key, dependencies, deps);
+  const source = await installation;
   try {
-    await copyDependencyInstall(installed.directory, directory);
+    await copyDependencyInstall(source, directory);
   } catch (error) {
     // oxlint-disable-next-line no-console
     console.warn('Dependency copy failed; installing fresh:', error);
-    dependencyInstalls.delete(installed.manifest);
-    await rm(installed.manifest, { force: true });
+    if (dependencyInstalls.get(key) === installation) {
+      dependencyInstalls.delete(key);
+    }
     await rm(join(directory, 'node_modules'), { recursive: true, force: true });
     await rm(join(directory, 'package-lock.json'), { force: true });
     await npmInstallWithRetry(directory, deps);
@@ -56,68 +60,28 @@ async function copyDependencyInstall(source: string, destination: string): Promi
   await cp(join(source, 'package-lock.json'), join(destination, 'package-lock.json'));
 }
 
-function getDependencyInstall(dependencies: Record<string, string>, deps: string[]): Promise<DependencyInstall> {
-  const key = createHash('sha256')
-    .update(
-      JSON.stringify({
-        key: JSON.stringify(Object.entries(dependencies).sort(([a], [b]) => a.localeCompare(b))),
-        node: process.version,
-        arch: process.arch,
-        platform: process.platform,
-      }),
-    )
-    .digest('hex');
-  const cacheRoot = join(PACKAGE_ROOT, '.integration-dependency-cache');
-  const manifest = join(cacheRoot, `${key}.json`);
-  const existing = dependencyInstalls.get(manifest);
+function getDependencyInstall(key: string, dependencies: Record<string, string>, deps: string[]): Promise<string> {
+  const existing = dependencyInstalls.get(key);
   if (existing) return existing;
 
-  const installation = prepareDependencyInstall(cacheRoot, manifest, key, dependencies, deps);
-  dependencyInstalls.set(manifest, installation);
-  void installation.catch(() => dependencyInstalls.delete(manifest));
+  const installation = (async () => {
+    const directory = await mkdtemp(join(PACKAGE_ROOT, 'tmp_dependencies_'));
+    dependencyDirectories.add(directory);
+    await writeFile(
+      join(directory, 'package.json'),
+      JSON.stringify({ name: 'tmp-integration-test', private: true, version: '0.0.0', dependencies }),
+    );
+    await npmInstallWithRetry(directory, deps);
+    return directory;
+  })();
+
+  dependencyInstalls.set(key, installation);
+  void installation.catch(() => {
+    if (dependencyInstalls.get(key) === installation) {
+      dependencyInstalls.delete(key);
+    }
+  });
   return installation;
-}
-
-async function prepareDependencyInstall(
-  cacheRoot: string,
-  manifest: string,
-  key: string,
-  dependencies: Record<string, string>,
-  deps: string[],
-): Promise<DependencyInstall> {
-  await mkdir(cacheRoot, { recursive: true });
-  try {
-    const stored = JSON.parse(await readFile(manifest, 'utf8')) as { key: string; directory: string };
-    if (
-      stored.key === key &&
-      typeof stored.directory === 'string' &&
-      stored.directory.startsWith('entry_') &&
-      basename(stored.directory) === stored.directory
-    ) {
-      const directory = join(cacheRoot, stored.directory);
-      if (existsSync(join(directory, 'node_modules')) && existsSync(join(directory, 'package-lock.json'))) {
-        return { directory, manifest };
-      }
-    }
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-      // oxlint-disable-next-line no-console
-      console.warn('Ignoring invalid dependency cache entry:', error);
-    }
-  }
-
-  const directory = await mkdtemp(join(cacheRoot, 'entry_'));
-  await writeFile(
-    join(directory, 'package.json'),
-    JSON.stringify({ name: 'tmp-integration-test', private: true, version: '0.0.0', dependencies }),
-  );
-  await npmInstallWithRetry(directory, deps);
-
-  // Other workers must only discover installations after npm has completed successfully.
-  const pendingManifest = `${manifest}.${basename(directory)}.tmp`;
-  await writeFile(pendingManifest, JSON.stringify({ key, directory: basename(directory) }));
-  await rename(pendingManifest, manifest);
-  return { directory, manifest };
 }
 
 const NPM_INSTALL_MAX_RETRIES = 3;
