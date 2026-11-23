@@ -2216,6 +2216,9 @@ importers:
       '@sentry-internal/rollup-utils':
         specifier: 11.16.0
         version: link:../../dev-packages/rollup-utils
+      '@sentry/cloudflare':
+        specifier: 11.16.0
+        version: link:../cloudflare
       '@solidjs/router':
         specifier: ^1.0.0
         version: 1.0.0(solid-js@1.9.18)

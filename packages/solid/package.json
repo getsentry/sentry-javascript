@@ -93,12 +93,16 @@
     "@sentry/node": "11.16.0"
   },
   "peerDependencies": {
+    "@sentry/cloudflare": "11.16.0",
     "@solidjs/router": ">=0.13.4 <2.0.0-0 || ^2.0.0",
     "@solidjs/web": "^2.0.0",
     "@tanstack/solid-router": "^1.132.27",
     "solid-js": "^1.8.4 || ^2.0.0"
   },
   "peerDependenciesMeta": {
+    "@sentry/cloudflare": {
+      "optional": true
+    },
     "@solidjs/router": {
       "optional": true
     },
@@ -111,6 +115,7 @@
   },
   "devDependencies": {
     "@sentry-internal/rollup-utils": "11.16.0",
+    "@sentry/cloudflare": "11.16.0",
     "@solidjs/router": "^1.0.0",
     "@solidjs/router-2": "npm:@solidjs/router@^2.0.0",
     "@solidjs/testing-library": "0.8.5",

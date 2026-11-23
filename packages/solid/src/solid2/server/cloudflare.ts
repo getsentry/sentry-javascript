@@ -1,0 +1,45 @@
+import type { CloudflareOptions } from '@sentry/cloudflare';
+import {
+  defineCloudflareOptions as defineCloudflareOptionsBase,
+  getDefaultIntegrations as getCloudflareDefaultIntegrations,
+} from '@sentry/cloudflare';
+import { applySdkMetadata } from '@sentry/core';
+import { solidServerErrorsIntegration } from './errors';
+
+/**
+ * Defines the Sentry options for a Solid 2 app on Cloudflare Workers, like `defineCloudflareOptions` of
+ * `@sentry/cloudflare`, and adds Solid's server integrations to the default integrations.
+ *
+ * @example
+ * ```ts
+ * // instrument.server.ts
+ * import { defineCloudflareOptions } from '@sentry/solid/solid2';
+ *
+ * export default defineCloudflareOptions(env => ({
+ *   dsn: env.SENTRY_DSN,
+ *   tracesSampleRate: 1.0,
+ * }));
+ * ```
+ */
+export const defineCloudflareOptions = ((
+  optionsOrCallback: CloudflareOptions | ((env: unknown) => CloudflareOptions | undefined),
+) => {
+  const getOptions = defineCloudflareOptionsBase(optionsOrCallback as CloudflareOptions);
+
+  return (env: unknown): CloudflareOptions | undefined => {
+    const options = getOptions(env);
+    if (!options) {
+      return undefined;
+    }
+
+    const opts: CloudflareOptions = { ...options };
+    if (opts.defaultIntegrations === undefined) {
+      opts.defaultIntegrations = [...getCloudflareDefaultIntegrations(opts), solidServerErrorsIntegration()];
+      opts._extendsDefaultIntegrations = true;
+    }
+
+    applySdkMetadata(opts, 'solid', ['solid', 'cloudflare']);
+
+    return opts;
+  };
+}) as typeof defineCloudflareOptionsBase;
