@@ -1,8 +1,5 @@
 import type { CloudflareOptions } from '@sentry/cloudflare';
-import {
-  defineCloudflareOptions as defineCloudflareOptionsBase,
-  getDefaultIntegrations as getCloudflareDefaultIntegrations,
-} from '@sentry/cloudflare';
+import { defineCloudflareOptions as defineCloudflareOptionsBase } from '@sentry/cloudflare';
 import { applySdkMetadata } from '@sentry/core';
 import { solidServerErrorsIntegration } from './errors';
 
@@ -33,9 +30,16 @@ export const defineCloudflareOptions = ((
     }
 
     const opts: CloudflareOptions = { ...options };
+    // Added through `integrations` rather than a prebuilt `defaultIntegrations` list: the Cloudflare SDK builds its
+    // defaults at `init`, after wrappers such as `instrumentWorkflowWithSentry` changed the options they depend on.
     if (opts.defaultIntegrations === undefined) {
-      opts.defaultIntegrations = [...getCloudflareDefaultIntegrations(opts), solidServerErrorsIntegration()];
-      opts._extendsDefaultIntegrations = true;
+      const userIntegrations = opts.integrations;
+      opts.integrations = defaults => {
+        const withSolid = [...defaults, solidServerErrorsIntegration()];
+        return typeof userIntegrations === 'function'
+          ? userIntegrations(withSolid)
+          : [...withSolid, ...(userIntegrations ?? [])];
+      };
     }
 
     applySdkMetadata(opts, 'solid', ['solid', 'cloudflare']);
