@@ -83,7 +83,11 @@ export {
 export { filterKeyValueData as _INTERNAL_filterKeyValueData } from './utils/data-collection/filterKeyValueData';
 export { filterCookies as _INTERNAL_filterCookies } from './utils/data-collection/filterCookies';
 export { filterQueryParams as _INTERNAL_filterQueryParams } from './utils/data-collection/filterQueryParams';
-export { filterCollectedUrl, filterCollectedUrlQuery } from './utils/data-collection/filterCollectedUrl';
+export {
+  filterCollectedUrl,
+  filterCollectedUrlFragment,
+  filterCollectedUrlQuery,
+} from './utils/data-collection/filterCollectedUrl';
 export { envToBool } from './utils/envToBool';
 export { getVercelEnv } from './utils/vercel';
 export { applyScopeDataToEvent, mergeScopeData, getCombinedScopeData } from './utils/scopeData';

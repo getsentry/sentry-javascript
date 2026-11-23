@@ -36,6 +36,7 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
   filterCollectedUrl,
+  filterCollectedUrlFragment,
   filterCollectedUrlQuery,
 } from '@sentry/core';
 import {
@@ -233,7 +234,7 @@ async function instrumentRequestStartHttpServerSpan(
           }
 
           attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(ctx.url.search));
-          attributes[URL_FRAGMENT] = getUrlFragment(ctx.url.hash);
+          attributes[URL_FRAGMENT] = filterCollectedUrlFragment(getUrlFragment(ctx.url.hash));
 
           const transactionName = `${method} ${parametrizedRoute || ctx.url.pathname}`;
 

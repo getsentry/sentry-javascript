@@ -26,7 +26,11 @@ import type { HandlerDataFetch } from './types/instrument';
 import type { ResponseHookInfo } from './types/request';
 import type { Span, SpanAttributes, SpanOrigin } from './types/span';
 import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils/baggage';
-import { filterCollectedUrl, filterCollectedUrlQuery } from './utils/data-collection/filterCollectedUrl';
+import {
+  filterCollectedUrl,
+  filterCollectedUrlFragment,
+  filterCollectedUrlQuery,
+} from './utils/data-collection/filterCollectedUrl';
 import { hasSpansEnabled } from './utils/hasSpansEnabled';
 import { isInstanceOf, isRequest } from './utils/is';
 import { getActiveSpan } from './utils/spanUtils';
@@ -411,7 +415,7 @@ function getFetchSpanAttributes(
       }
     }
     attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(parsedUrl.search), client);
-    attributes[URL_FRAGMENT] = getUrlFragment(parsedUrl.hash);
+    attributes[URL_FRAGMENT] = filterCollectedUrlFragment(getUrlFragment(parsedUrl.hash), client);
   }
   return attributes;
 }
