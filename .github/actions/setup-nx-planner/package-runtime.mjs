@@ -8,7 +8,7 @@ const nxPackage = fs.realpathSync(require.resolve('nx/package.json'));
 const destination = path.resolve(process.argv[2]);
 const modules = path.join(destination, 'node_modules');
 
-// pnpm keeps Nx and its locked transitive dependencies together in this directory.
+// Nx lists its runtime dependency closure directly; pnpm links it all in this directory.
 const nxDependencies = path.resolve(nxPackage, '../..');
 fs.rmSync(destination, { recursive: true, force: true });
 fs.mkdirSync(destination, { recursive: true });

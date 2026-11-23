@@ -8,10 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       commit:
-        description: The commit that the tarballs were built from
-        required: true
-      build_run_id:
-        description: The build.yml run that uploaded the tarball artifacts
+        description: The commit to build and test
         required: true
       matrix:
         description: The optional E2E test matrix as JSON
@@ -47,7 +44,6 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      # To download the artifacts of the build.yml run
       actions: read
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
