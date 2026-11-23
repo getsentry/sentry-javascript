@@ -2,6 +2,7 @@ import type { PlaywrightTestConfig } from '@playwright/test';
 import { devices } from '@playwright/test';
 
 const config: PlaywrightTestConfig = {
+  // Benchmark baseline: keep browser tests unchanged.
   retries: 0,
   // Run tests inside of a single file in parallel
   fullyParallel: true,
