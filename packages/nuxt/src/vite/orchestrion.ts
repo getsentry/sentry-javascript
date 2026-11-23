@@ -56,7 +56,7 @@ export function setupOrchestrion(nuxt: Nuxt, hasServerConfig: boolean, buildTime
     }
 
     nitroConfig.rollupConfig.plugins.push(
-      // On workerd, the façade defers the channel events of module-scope calls until a request runs.
+      // On workerd, the facade defers the channel events of module-scope calls until a request runs.
       sentryOrchestrionPlugin(isCloudflare ? { dcModule: CLOUDFLARE_DC_MODULE } : {}),
       sentryCommonJSInteropPlugin(),
     );

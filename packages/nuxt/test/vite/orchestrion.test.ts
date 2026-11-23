@@ -70,7 +70,7 @@ describe('setupOrchestrion', () => {
     expect(nitroConfig.externals.inline).toEqual(['ioredis', 'custom-dependency', 'mysql', 'standard-as-callback']);
   });
 
-  it('adds the plugin with the workerd channel façade on a Cloudflare preset even without a server config file', async () => {
+  it('adds the plugin with the workerd channel facade on a Cloudflare preset even without a server config file', async () => {
     const { setupOrchestrion } = await import('../../src/vite/orchestrion');
     const mockNuxt = createMockNuxt();
     const nitroConfig = { preset: 'cloudflare_module' };
