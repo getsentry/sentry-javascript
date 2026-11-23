@@ -14,7 +14,6 @@ export function register() {
       tracePropagationTargets: [
         'http://localhost:3030/propagation/test-outgoing-fetch/check',
         'http://localhost:3030/propagation/test-outgoing-http/check',
-        'http://localhost:3030/rpc',
       ],
     });
   }

@@ -39,6 +39,7 @@ import { nitroConfig } from './nitro';
 import { nodeCronConfig } from './node-cron';
 import { nodeScheduleConfig } from './node-schedule';
 import { openaiConfig } from './openai';
+import { orpcConfig } from './orpc';
 import { pgConfig } from './pg';
 import { postgresJsConfig } from './postgres';
 import { prismaConfig } from './prisma';
@@ -101,6 +102,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...nodeCronConfig,
   ...nodeScheduleConfig,
   ...openaiConfig,
+  ...orpcConfig,
   ...pgConfig,
   ...piAiConfig,
   ...piDurableConfig,

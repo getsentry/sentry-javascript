@@ -66,6 +66,7 @@ export {
   honoIntegration,
   honoMiddleware,
   koaIntegration,
+  orpcIntegration,
   lastEventId,
   linkedErrorsIntegration,
   localVariablesIntegration,

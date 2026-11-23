@@ -116,6 +116,7 @@ export {
   honoIntegration,
   honoMiddleware,
   koaIntegration,
+  orpcIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
   fastifyIntegration,

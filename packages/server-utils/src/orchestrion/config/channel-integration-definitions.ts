@@ -62,6 +62,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'amqplibIntegration', modules: ['amqplib'] },
   { exportName: 'hapiIntegration', modules: ['@hapi/hapi'] },
   { exportName: 'honoIntegration', modules: ['hono'] },
+  { exportName: 'orpcIntegration', modules: ['@orpc/server'] },
   { exportName: 'koaIntegration', modules: ['koa'] },
   { exportName: 'expressIntegration', modules: ['express', 'router'] },
   { exportName: 'graphqlIntegration', modules: ['graphql'] },

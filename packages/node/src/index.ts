@@ -31,6 +31,7 @@ export {
   kafkaIntegration,
   knexIntegration,
   koaIntegration,
+  orpcIntegration,
   langChainIntegration,
   langGraphIntegration,
   lruMemoizerIntegration,

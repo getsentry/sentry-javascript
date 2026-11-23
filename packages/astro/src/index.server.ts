@@ -80,6 +80,7 @@ export {
   honoIntegration,
   honoMiddleware,
   koaIntegration,
+  orpcIntegration,
   knexIntegration,
   lastEventId,
   linkedErrorsIntegration,

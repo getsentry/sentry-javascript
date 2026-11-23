@@ -195,6 +195,7 @@ export {
   clickhouseIntegration,
   nitroIntegration,
   openAIIntegration,
+  orpcIntegration,
   piAiIntegration,
   piDurableIntegration,
   postgresIntegration,
