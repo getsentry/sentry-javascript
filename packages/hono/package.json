@@ -1,6 +1,6 @@
 {
   "name": "@sentry/hono",
-  "version": "11.16.0",
+  "version": "11.17.0",
   "description": "Official Sentry SDK for Hono",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/hono",
@@ -73,16 +73,16 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/core": "11.16.0",
+    "@sentry/core": "11.17.0",
     "@sentry/conventions": "^0.35.0",
-    "@sentry/server-utils": "11.16.0"
+    "@sentry/server-utils": "11.17.0"
   },
   "peerDependencies": {
     "@cloudflare/workers-types": "^4.x || ^5.x",
-    "@sentry/bun": "11.16.0",
-    "@sentry/cloudflare": "11.16.0",
-    "@sentry/deno": "11.16.0",
-    "@sentry/node": "11.16.0",
+    "@sentry/bun": "11.17.0",
+    "@sentry/cloudflare": "11.17.0",
+    "@sentry/deno": "11.17.0",
+    "@sentry/node": "11.17.0",
     "hono": "^4.x"
   },
   "peerDependenciesMeta": {
@@ -104,11 +104,11 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20250922.0",
-    "@sentry-internal/rollup-utils": "11.16.0",
-    "@sentry/bun": "11.16.0",
-    "@sentry/cloudflare": "11.16.0",
-    "@sentry/deno": "11.16.0",
-    "@sentry/node": "11.16.0",
+    "@sentry-internal/rollup-utils": "11.17.0",
+    "@sentry/bun": "11.17.0",
+    "@sentry/cloudflare": "11.17.0",
+    "@sentry/deno": "11.17.0",
+    "@sentry/node": "11.17.0",
     "@types/node": "^20.19.0",
     "hono": "4.13.16",
     "hono-5": "npm:hono@5.0.0-rc.1"
