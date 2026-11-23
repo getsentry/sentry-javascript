@@ -6,6 +6,7 @@ import {
   waitForStreamedSpan,
   waitForStreamedSpans,
 } from '@sentry-internal/test-utils';
+import { isViteServer } from './isViteServer';
 
 test('sends a pageload root span with a parameterized URL', async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('nuxt-4', span => {
@@ -135,6 +136,8 @@ test('sends component tracking spans when `trackComponents` is enabled', async (
 
 // Nuxt fetches its build manifest after hydration. A span for it would prolong the pageload.
 test('does not send a span for the build manifest request', async ({ page }) => {
+  test.skip(isViteServer, 'The Vite server builds no app manifest when it prerenders no routes');
+
   const httpClientUrls: string[] = [];
   const dataRequestSpanPromise = waitForStreamedSpans('nuxt-4', spans => {
     httpClientUrls.push(
