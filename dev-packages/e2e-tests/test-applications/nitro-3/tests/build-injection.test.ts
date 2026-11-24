@@ -4,7 +4,12 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpans } from '@sentry-internal/test-utils';
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 
-test.skip(!process.env.TEST_ENV?.startsWith('prod-'), '`withSentryConfig` adds the transform to Nitro CLI builds only');
+const NITRO_CLI_PRODUCTION_ENVS = ['prod-nitro', 'prod-import-hook-nitro'];
+
+test.skip(
+  !NITRO_CLI_PRODUCTION_ENVS.includes(process.env.TEST_ENV ?? ''),
+  '`withSentryConfig` adds the transform to Nitro CLI production builds only',
+);
 
 function readServerBundle(): string {
   const serverDir = path.join(process.cwd(), '.output/server');
