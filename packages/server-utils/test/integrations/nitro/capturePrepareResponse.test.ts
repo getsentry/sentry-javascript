@@ -40,7 +40,9 @@ describe('capturePrepareResponse', () => {
 
   beforeEach(() => {
     getCurrentScope().setClient(undefined);
-    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    const client = new TestClient(
+      getDefaultTestClientOptions({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 }),
+    );
     setCurrentClient(client);
     client.init();
   });
