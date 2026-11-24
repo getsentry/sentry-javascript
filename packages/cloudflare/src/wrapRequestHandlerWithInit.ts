@@ -3,7 +3,7 @@ import { NETWORK_PROTOCOL_NAME, NETWORK_PROTOCOL_VERSION } from '@sentry/convent
 import type { SpanAttributes } from '@sentry/core';
 import { getIsolationScope, safeCallback } from '@sentry/core';
 import {
-  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+  handleServedTunnelRequest,
   _INTERNAL_setScopeFlushedByRuntime as setScopeFlushedByRuntime,
 } from '@sentry/core/server';
 import { wrapServerRequestHandler } from '@sentry/server-utils/request-handler';

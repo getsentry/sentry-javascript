@@ -4,7 +4,7 @@ import {
   getTunnelPath,
   isURLObjectRelative,
   makeDsn,
-  _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath,
+  normalizeTunnelBasePath,
   parseStringToURLObject,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';

@@ -3,7 +3,7 @@
 /* eslint-disable import/export */
 import type { BrowserTunnelOptions, Client, EventProcessor, Integration } from '@sentry/core';
 import {
-  _INTERNAL_applyBrowserTunnelDefaults as applyBrowserTunnelDefaults,
+  applyBrowserTunnelDefaults,
   _INTERNAL_captureOptionsSetByUser,
   applySdkMetadata,
   consoleSandbox,
