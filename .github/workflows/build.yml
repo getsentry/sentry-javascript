@@ -347,6 +347,8 @@ jobs:
                 echo "::error::All @playwright/test dependencies must be pinned to $version (from @sentry-internal/test-utils)."
                 exit 1
               fi
+          - name: Test repo scripts
+            run: pnpm run test:scripts
 
   job_check_lockfile:
     name: Check lockfile
