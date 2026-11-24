@@ -47,10 +47,19 @@
   "sentryTest": {
     "variants": [
       {
+        "build-command": "pnpm install",
+        "assert-command": "pnpm test:dev",
+        "label": "nextjs-16-cacheComponents (development)"
+      },
+      {
         "build-command": "pnpm test:build-webpack",
-        "label": "nextjs-16-cacheComponents (webpack)",
-        "assert-command": "pnpm test:assert-webpack",
-        "test-shards": 2
+        "label": "nextjs-16-cacheComponents (webpack, production)",
+        "assert-command": "TEST_BUNDLER=webpack pnpm test:prod"
+      },
+      {
+        "build-command": "pnpm install",
+        "assert-command": "pnpm test:dev-webpack",
+        "label": "nextjs-16-cacheComponents (webpack, development)"
       },
       {
         "build-command": "NEXT_PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build",
@@ -71,6 +80,10 @@
         "assert-command": "E2E_TEST_TRACE_LIFECYCLE=static pnpm test:prod",
         "label": "nextjs-16-cacheComponents (cloudflare, static trace lifecycle)"
       }
-    ]
+    ],
+    "baseVariant": {
+      "label": "nextjs-16-cacheComponents (production)",
+      "assert-command": "pnpm test:prod"
+    }
   }
 }
