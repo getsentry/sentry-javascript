@@ -26,7 +26,7 @@ export const sentrySolidStartVite = (
   ];
 
   if (options.autoInjectServerSentry !== 'experimental_dynamic-import') {
-    sentryPlugins.push(makeBuildInstrumentationFilePlugin(options));
+    sentryPlugins.push(makeBuildInstrumentationFilePlugin(options, tunnelBasePath));
   }
 
   if (process.env.NODE_ENV !== 'development') {

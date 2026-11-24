@@ -2,7 +2,9 @@ import { SENTRY_OP, URL_PATH } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import { SDK_VERSION } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { GLOBAL_OBJ } from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { TUNNEL_BASE_PATH_GLOBAL } from '../../src/common/tunnel';
 import { init as solidStartInit } from '../../src/server';
 
 const browserInit = vi.spyOn(SentryNode, 'init');
@@ -72,6 +74,41 @@ describe('Initialize Solid Start SDK', () => {
 
       expect(startServerSpan('/health').isRecording()).toBe(false);
       expect(startServerSpan('/_build/assets/app.js.map').isRecording()).toBe(false);
+    });
+
+    describe('with a base path', () => {
+      afterEach(() => {
+        vi.unstubAllGlobals();
+        (GLOBAL_OBJ as { [TUNNEL_BASE_PATH_GLOBAL]?: string })[TUNNEL_BASE_PATH_GLOBAL] = undefined;
+      });
+
+      it('ignores build asset requests under the defined base path (SolidStart 2)', () => {
+        vi.stubGlobal('__SENTRY_SOLIDSTART_TUNNEL_BASE_PATH__', '/app');
+
+        solidStartInit({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+        expect(startServerSpan('/app/_build/assets/app.js.map').isRecording()).toBe(false);
+        expect(startServerSpan('/_build/assets/app.js.map').isRecording()).toBe(true);
+        expect(startServerSpan('/app/users/_build/').isRecording()).toBe(true);
+      });
+
+      it('ignores build asset requests under the base path global (SolidStart 1)', () => {
+        (GLOBAL_OBJ as { [TUNNEL_BASE_PATH_GLOBAL]?: string })[TUNNEL_BASE_PATH_GLOBAL] = '/shop.v2';
+
+        solidStartInit({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+        expect(startServerSpan('/shop.v2/_build/assets/app.js.map').isRecording()).toBe(false);
+        expect(startServerSpan('/shopxv2/_build/assets/app.js.map').isRecording()).toBe(true);
+      });
+
+      it('ignores build asset requests at the root when the base is a full URL', () => {
+        // `normalizeTunnelBasePath` turns `base: 'https://cdn.example.com/'` into this.
+        vi.stubGlobal('__SENTRY_SOLIDSTART_TUNNEL_BASE_PATH__', '/https://cdn.example.com');
+
+        solidStartInit({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+        expect(startServerSpan('/_build/assets/app.js.map').isRecording()).toBe(false);
+      });
     });
   });
 });
