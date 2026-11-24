@@ -19,7 +19,7 @@
     "@remix-run/react": "^2.17.4",
     "@sentry/remix": "file:../../packed/sentry-remix-packed.tgz",
     "compression": "^1.7.4",
-    "cross-env": "^7.0.3",
+    "cross-env": "^10.1.0",
     "express": "^4.21.2",
     "isbot": "^4.1.0",
     "morgan": "^1.10.0",
@@ -37,7 +37,7 @@
     "@types/react-dom": "^18.2.7",
     "typescript": "^5.1.6",
     "vite": "^5.4.11",
-    "vite-tsconfig-paths": "^4.2.1"
+    "vite-tsconfig-paths": "^6.1.1"
   },
   "sentryTest": {
     "variants": [
