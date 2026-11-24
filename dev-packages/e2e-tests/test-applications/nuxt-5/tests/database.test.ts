@@ -2,8 +2,12 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 import { DB_ORIGIN, DB_SYSTEM_NAME, RUNTIME } from './runtime';
 
-// `@sentry/cloudflare` does not capture D1 errors, so the error hook of Nitro captures them on Cloudflare.
-const DB_ERROR_MECHANISM = RUNTIME === 'cloudflare' ? 'auto.function.nuxt.nitro' : 'auto.db.nuxt';
+// `@sentry/cloudflare` does not capture D1 errors, so the error hook of Nitro captures them on Cloudflare. The D1
+// error has a `cause`, so the event links the errors with an `exception_id`.
+const DB_ERROR_MECHANISM =
+  RUNTIME === 'cloudflare'
+    ? { handled: false, type: 'auto.function.nuxt.nitro', exception_id: 0 }
+    : { handled: false, type: 'auto.db.nuxt' };
 
 async function collectDbSpans() {
   const spans = await collectStreamedSpansUntilSegment(
@@ -136,7 +140,7 @@ test.describe('database integration', () => {
   test('captures database error and marks span as failed', async ({ request }) => {
     const errorPromise = waitForError('nuxt-5', errorEvent => {
       return !!errorEvent?.exception?.values?.some(
-        value => value.mechanism?.type === DB_ERROR_MECHANISM && value.value?.includes('no such table'),
+        value => value.mechanism?.type === DB_ERROR_MECHANISM.type && value.value?.includes('no such table'),
       );
     });
 
@@ -148,14 +152,11 @@ test.describe('database integration', () => {
 
     const [error, dbSpans] = await Promise.all([errorPromise, dbSpansPromise]);
 
-    const dbException = error.exception?.values?.find(value => value.mechanism?.type === DB_ERROR_MECHANISM);
+    const dbException = error.exception?.values?.find(value => value.mechanism?.type === DB_ERROR_MECHANISM.type);
 
     expect(dbException).toBeDefined();
     expect(dbException?.value).toContain('no such table');
-    expect(dbException?.mechanism).toMatchObject({
-      handled: false,
-      type: DB_ERROR_MECHANISM,
-    });
+    expect(dbException?.mechanism).toEqual(DB_ERROR_MECHANISM);
 
     const dbSpan = dbSpans.find(span => span.name === 'SELECT nonexistent_table');
 
@@ -172,7 +173,7 @@ test.describe('database integration', () => {
   test('captures breadcrumb for db.exec() queries', async ({ request }) => {
     const errorPromise = waitForError('nuxt-5', errorEvent => {
       return !!errorEvent?.exception?.values?.some(
-        value => value.mechanism?.type === DB_ERROR_MECHANISM && value.value?.includes('no such table'),
+        value => value.mechanism?.type === DB_ERROR_MECHANISM.type && value.value?.includes('no such table'),
       );
     });
 

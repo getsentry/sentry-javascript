@@ -15,12 +15,17 @@ test('does not instrument the internal `$fetch` of a server-rendered page as its
   await request.get('/api/test-param/barrier');
   await barrierPromise;
 
-  const serverSpanPaths = spans
-    .filter(span => getSpanOp(span) === 'http.server')
-    .map(span => span.attributes['url.path']?.value);
-  expect(serverSpanPaths).toContain('/internal-fetch');
-  expect(serverSpanPaths).not.toContain('/api/test-param/internal');
+  const pageServerSpans = spans.filter(
+    span => getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === '/internal-fetch',
+  );
+  const internalFetchServerSpans = spans.filter(
+    span => getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === '/api/test-param/internal',
+  );
 
-  const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/internal-fetch');
-  expect(rootSpan?.attributes['sentry.sdk.name']).toEqual({ type: 'string', value: 'sentry.javascript.nuxt' });
+  expect(pageServerSpans).toHaveLength(1);
+  expect(pageServerSpans[0]?.attributes['sentry.sdk.name']).toEqual({
+    type: 'string',
+    value: 'sentry.javascript.nuxt',
+  });
+  expect(internalFetchServerSpans).toHaveLength(0);
 });
