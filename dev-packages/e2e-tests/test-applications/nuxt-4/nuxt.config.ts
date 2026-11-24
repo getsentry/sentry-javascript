@@ -37,7 +37,7 @@ export default defineNuxtConfig({
   nitro: {
     ...(cloudflare && {
       // Like `cloudflare_module`, and also exports the `$DurableObject` class from the Worker. The Sentry module sets
-      // up the SDK from `instrument.server.ts`, because the Nitro preset does not use `sentry.server.config.ts`.
+      // up the SDK from `sentry.cloudflare.config.ts`, because the Nitro preset does not use `sentry.server.config.ts`.
       preset: 'cloudflare_durable',
       cloudflare: { nodeCompat: true, deployConfig: false },
       // The bundled `mysql` driver pulls in `readable-stream`, whose base `require('stream')` has no
