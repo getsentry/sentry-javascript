@@ -2,6 +2,7 @@ import { createResolver } from '@nuxt/kit';
 import type { Nuxt } from '@nuxt/schema';
 import { consoleSandbox, stringifyForCodeInjection } from '@sentry/core';
 import type { Plugin } from 'rollup';
+import { getNuxtBuildAssetsPath } from '../common/buildAssets';
 import { skipDatabaseInstrumentation } from './databaseConfig';
 import { isCloudflarePreset } from './utils';
 
@@ -46,7 +47,10 @@ export function setupCloudflareEntry(nuxt: Nuxt, optionsFile: string): void {
       nitro.options.rollupConfig.plugins = [nitro.options.rollupConfig.plugins];
     }
 
-    nitro.options.rollupConfig.plugins.push(wrapCloudflareEntryWithSentry(nitro.options.entry, optionsFile));
+    const { baseURL, buildAssetsDir } = nuxt.options.app;
+    nitro.options.rollupConfig.plugins.push(
+      wrapCloudflareEntryWithSentry(nitro.options.entry, optionsFile, getNuxtBuildAssetsPath(baseURL, buildAssetsDir)),
+    );
     // Nitro runs its plugins in this order. This plugin must run first, because it tells a
     // `sentryCloudflareNitroPlugin` of the app that `withSentry` already wraps each request.
     const entryPlugin = createResolver(import.meta.url).resolve('./runtime/plugins/cloudflare-entry.server');
@@ -65,11 +69,11 @@ export function setupCloudflareEntry(nuxt: Nuxt, optionsFile: string): void {
 /**
  * A Rollup plugin that replaces the Nitro Worker entry with a module that exports its default export and its
  * `$DurableObject` export wrapped by `runtime/utils/wrapCloudflareEntry`, with the options that `optionsFile`
- * returns, and all its other exports unchanged.
+ * returns, and all its other exports unchanged. `buildAssetsPath` is the path of the build output that the SDK ignores.
  *
  * Only exported for testing.
  */
-export function wrapCloudflareEntryWithSentry(entry: string, optionsFile: string): Plugin {
+export function wrapCloudflareEntryWithSentry(entry: string, optionsFile: string, buildAssetsPath?: string): Plugin {
   let hasDurableObject = false;
   let hasDefaultExport = true;
 
@@ -81,7 +85,7 @@ export function wrapCloudflareEntryWithSentry(entry: string, optionsFile: string
       `import userOptions from ${stringifyForCodeInjection(optionsFile)};`,
       `import handler from ${stringifyForCodeInjection(originalEntry)};`,
       `export * from ${stringifyForCodeInjection(originalEntry)};`,
-      'export default wrapNitroCloudflareEntryWithSentry(userOptions, handler);',
+      `export default wrapNitroCloudflareEntryWithSentry(userOptions, handler, ${buildAssetsPath ? stringifyForCodeInjection(buildAssetsPath) : 'undefined'});`,
     ];
 
     // The local export takes precedence over the same name of `export *`.

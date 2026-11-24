@@ -38,15 +38,15 @@ describe('wrapCloudflareEntryWithSentry', () => {
     const bundle = await rollup({
       input: entry,
       plugins: [
-        wrapCloudflareEntryWithSentry(entry, optionsFile),
+        wrapCloudflareEntryWithSentry(entry, optionsFile, '/shop/_nuxt/'),
         {
           name: 'wrapper-stub',
           resolveId: source => (source === './runtime/utils/wrapCloudflareEntry' ? '\0wrapper-stub' : null),
           load: id =>
             id === '\0wrapper-stub'
               ? [
-                  'export function wrapNitroCloudflareEntryWithSentry(optionsCallback, handler) {',
-                  '  return { optionsCallback, handler };',
+                  'export function wrapNitroCloudflareEntryWithSentry(optionsCallback, handler, buildAssetsPath) {',
+                  '  return { optionsCallback, handler, buildAssetsPath };',
                   '}',
                   'export function wrapNitroDurableObjectWithSentry(optionsCallback, DurableObjectClass) {',
                   '  return { optionsCallback, DurableObjectClass };',
@@ -64,6 +64,7 @@ describe('wrapCloudflareEntryWithSentry', () => {
     expect(output[0].exports).toEqual(['$DurableObject', 'default', 'other']);
     expect(exports.default.handler.fetch()).toBe('response');
     expect(exports.default.optionsCallback()).toEqual({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+    expect(exports.default.buildAssetsPath).toBe('/shop/_nuxt/');
     expect(exports.$DurableObject.DurableObjectClass.name).toBe('$DurableObject');
     expect(exports.$DurableObject.optionsCallback).toBe(exports.default.optionsCallback);
     expect(exports.other).toBe('value');
@@ -196,6 +197,7 @@ describe('wrapCloudflareEntryWithSentry', () => {
 });
 
 describe('setupCloudflareEntry', () => {
+  const app = { baseURL: '/', buildAssetsDir: '/_nuxt/' };
   let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
@@ -208,7 +210,7 @@ describe('setupCloudflareEntry', () => {
 
   it('wraps the entry and adds its Nitro plugin before the plugins of the app on a Cloudflare preset', () => {
     const callbacks: HookCallback[] = [];
-    const nuxt = { options: {}, hook: (_name: string, callback: HookCallback) => callbacks.push(callback) };
+    const nuxt = { options: { app }, hook: (_name: string, callback: HookCallback) => callbacks.push(callback) };
     const nitro = {
       options: {
         preset: 'cloudflare-module',
@@ -236,7 +238,7 @@ describe('setupCloudflareEntry', () => {
 
   it('adds its Nitro plugin before the plugins of the app in the prerenderer', () => {
     const callbacks: HookCallback[] = [];
-    const nuxt = { options: {}, hook: (_name: string, callback: HookCallback) => callbacks.push(callback) };
+    const nuxt = { options: { app }, hook: (_name: string, callback: HookCallback) => callbacks.push(callback) };
     const nitroHooks: Record<string, HookCallback> = {};
     const nitro = {
       options: {
@@ -262,7 +264,7 @@ describe('setupCloudflareEntry', () => {
 
   it('leaves the `cloudflare-d1` databases out of the database instrumentation', () => {
     const callbacks: HookCallback[] = [];
-    const nuxt = { options: {}, hook: (_name: string, callback: HookCallback) => callbacks.push(callback) };
+    const nuxt = { options: { app }, hook: (_name: string, callback: HookCallback) => callbacks.push(callback) };
     const nitro = {
       options: {
         preset: 'cloudflare-module',
@@ -287,7 +289,7 @@ describe('setupCloudflareEntry', () => {
 
   it('does nothing on a non-Cloudflare preset', () => {
     const callbacks: HookCallback[] = [];
-    const nuxt = { options: {}, hook: (_name: string, callback: HookCallback) => callbacks.push(callback) };
+    const nuxt = { options: { app }, hook: (_name: string, callback: HookCallback) => callbacks.push(callback) };
     const nitro = { options: { preset: 'node-server', entry: '/app/entry.mjs', plugins: [] as string[] } };
 
     setupCloudflareEntry(nuxt as unknown as Nuxt, '/app/sentry.cloudflare.config.ts');
@@ -298,7 +300,7 @@ describe('setupCloudflareEntry', () => {
 
   it('does nothing in dev, where the `cloudflare-dev` preset runs the dev entry of Nitro', () => {
     const callbacks: HookCallback[] = [];
-    const nuxt = { options: {}, hook: (_name: string, callback: HookCallback) => callbacks.push(callback) };
+    const nuxt = { options: { app }, hook: (_name: string, callback: HookCallback) => callbacks.push(callback) };
     const nitro = {
       options: { preset: 'cloudflare-dev', dev: true, entry: '/app/nitro-dev.mjs', plugins: [] as string[] },
     };
@@ -312,7 +314,7 @@ describe('setupCloudflareEntry', () => {
 
   it('warns and leaves a `sentryCloudflareNitroPlugin` of the app on with the `cloudflare-worker` preset', () => {
     const callbacks: HookCallback[] = [];
-    const nuxt = { options: {}, hook: (_name: string, callback: HookCallback) => callbacks.push(callback) };
+    const nuxt = { options: { app }, hook: (_name: string, callback: HookCallback) => callbacks.push(callback) };
     const nitro = {
       options: { preset: 'cloudflare-worker', entry: '/app/entry.mjs', plugins: ['/app/server/plugins/sentry.ts'] },
     };

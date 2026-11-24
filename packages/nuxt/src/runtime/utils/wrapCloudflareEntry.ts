@@ -4,6 +4,7 @@ import { instrumentDurableObjectWithSentry, withSentry } from '@sentry/cloudflar
 import { applySdkMetadata } from '@sentry/core';
 // A namespace import keeps a missing `withEnv` export a missing property instead of a module linking error.
 import * as cloudflareWorkers from 'cloudflare:workers';
+import { getBuildAssetRequestFilters } from './buildAssetRequestFilters';
 
 type OptionsCallback = (env: unknown) => CloudflareOptions;
 type NitroDurableObjectClass = new (state: DurableObjectState, env: unknown) => object;
@@ -12,10 +13,12 @@ type Method = (this: unknown, ...args: unknown[]) => unknown;
 /**
  * Wraps the default export of the Nitro Worker entry with `withSentry`. Each handler runs with the `env` that
  * `withSentry` instruments as the `env` of `cloudflare:workers`, so db0 of Nitro 3 reads instrumented D1 bindings.
+ * `buildAssetsPath` is `app.baseURL` + `app.buildAssetsDir`, the path of the build output that the SDK ignores.
  */
 export function wrapNitroCloudflareEntryWithSentry<Handler extends ExportedHandler>(
   optionsCallback: OptionsCallback,
   handler: Handler,
+  buildAssetsPath?: string,
 ): Handler {
   const handlerWithEnv = Object.fromEntries(
     Object.entries(handler).map(([name, value]) => [
@@ -27,7 +30,16 @@ export function wrapNitroCloudflareEntryWithSentry<Handler extends ExportedHandl
     ]),
   ) as Handler;
 
-  return withSentry(withNuxtSdkMetadata(optionsCallback), handlerWithEnv);
+  const optionsCallbackWithMetadata = withNuxtSdkMetadata(optionsCallback);
+  // Nitro sends a request for a build file that the Cloudflare assets do not have to `env.ASSETS` before the Nitro app
+  // runs, but `withSentry` sees the request.
+  return withSentry(env => {
+    const options = optionsCallbackWithMetadata(env);
+    return {
+      ...options,
+      ignoreSpans: [...(options.ignoreSpans || []), ...getBuildAssetRequestFilters(buildAssetsPath)],
+    };
+  }, handlerWithEnv);
 }
 
 /**

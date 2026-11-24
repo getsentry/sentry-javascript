@@ -1,5 +1,7 @@
 // @vitest-environment node
 import type { ExportedHandler } from '@cloudflare/workers-types';
+import { URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 import { SDK_VERSION } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -77,7 +79,24 @@ describe('wrapNitroCloudflareEntryWithSentry', () => {
           ],
         },
       },
+      ignoreSpans: [],
     });
+  });
+
+  it('ignores the server spans of requests to the build output after the `ignoreSpans` of the app', () => {
+    const healthCheckFilter = { attributes: { [URL_PATH]: '/health' } };
+    const wrapped = wrapNitroCloudflareEntryWithSentry(
+      () => ({ ignoreSpans: [healthCheckFilter] }),
+      {},
+      '/shop/_nuxt/',
+    ) as unknown as WrappedHandler;
+
+    const options = wrapped.optionsCallback({}) as { ignoreSpans: unknown[] };
+
+    expect(options.ignoreSpans).toEqual([
+      healthCheckFilter,
+      { op: HTTP_SERVER, attributes: { [URL_PATH]: /^\/shop\/_nuxt\// } },
+    ]);
   });
 });
 
