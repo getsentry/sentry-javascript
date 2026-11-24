@@ -1,5 +1,5 @@
 import { createSignal } from 'solid-js';
-import { failingServerFunction } from './server-functions';
+import { failingServerFunction, graphqlServerFunction } from './server-functions';
 
 export default function Home() {
   const [result, setResult] = createSignal('');
@@ -16,6 +16,14 @@ export default function Home() {
         }}
       >
         Call failing server function
+      </button>
+      <button
+        id="graphqlBtn"
+        onClick={() => {
+          void graphqlServerFunction().then(setResult);
+        }}
+      >
+        Run a GraphQL query on the server
       </button>
       <p id="result">{result()}</p>
     </main>
