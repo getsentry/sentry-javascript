@@ -34,6 +34,7 @@ import {
   GEN_AI_DECIDE,
   GEN_AI_EMBEDDINGS,
   GEN_AI_EXECUTE_TOOL,
+  GEN_AI_EXTRACT,
   GEN_AI_GENERATE_CONTENT,
   GEN_AI_INVOKE_AGENT,
   GEN_AI_RERANK,
@@ -90,6 +91,7 @@ const GEN_AI_OPERATION_SPAN_OPS = {
   // oxlint-disable-next-line typescript/no-deprecated
   rerank: GEN_AI_RERANK,
   decide: GEN_AI_DECIDE,
+  extract: GEN_AI_EXTRACT,
   invoke_agent: GEN_AI_INVOKE_AGENT,
   execute_tool: GEN_AI_EXECUTE_TOOL,
   // The model-call op matches the Vercel AI OTel integration (`gen_ai.generate_content`) rather than
@@ -282,7 +284,8 @@ export type ChannelEventType =
   | 'embedMany'
   | 'rerank'
   | 'experimental_evaluate'
-  | 'experimental_decide';
+  | 'experimental_decide'
+  | 'experimental_extract';
 
 /**
  * The context object the AI SDK passes through one tracing-channel call. It is the same object
@@ -606,6 +609,17 @@ function startSpanFromEvent(
             }
           : {}),
       });
+    case 'experimental_extract':
+      return startGenAiSpan('extract', modelId, {
+        ...baseAttributes,
+        ...(recordInputs && !(isStrippedInput(event.state) && isStrippedInput(event.fields))
+          ? {
+              [GEN_AI_INPUT_MESSAGES]: stringify([
+                { state: event.state, fields: event.fields, referenceDate: event.referenceDate },
+              ]),
+            }
+          : {}),
+      });
     default:
       // Unknown event type: opt out rather than open a span we can't shape correctly.
       return undefined;
@@ -822,6 +836,9 @@ function getOutputMessages(
 ): string | undefined {
   if (type === 'experimental_evaluate' || type === 'experimental_decide') {
     return getEvaluationOutputMessages(withProviderAnswerFields(result));
+  }
+  if (type === 'experimental_extract') {
+    return result.answers === undefined ? undefined : stringify([{ answers: result.answers }]);
   }
   // `languageModelCall` exposes the response as a `content` parts array; top-level results expose
   // `text` + `toolCalls`. Both normalize into the OTel `gen_ai.output.messages` assistant message.
