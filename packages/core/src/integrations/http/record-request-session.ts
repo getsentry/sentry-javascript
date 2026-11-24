@@ -103,15 +103,13 @@ export function startRequestSession(
           client.sendSession({ aggregates: aggregatePayload });
         };
 
-        const unregisterClientFlushHook = client.on('flush', () => {
+        const onClientFlush = (): void => {
           DEBUG_BUILD && debug.log('Sending request session aggregate due to client flush');
           flushPendingClientAggregates();
-        });
+        };
+        const unregisterClientFlushHook = client.on('flush', onClientFlush);
         // A session can settle while `client.flush()` waits for event processing, after `flush` was emitted.
-        const unregisterAfterFlushProcessingHook = client.on('afterFlushProcessing', () => {
-          DEBUG_BUILD && debug.log('Sending request session aggregate due to client flush');
-          flushPendingClientAggregates();
-        });
+        const unregisterAfterFlushProcessingHook = client.on('afterFlushProcessing', onClientFlush);
         const timeout = setTimeout(() => {
           DEBUG_BUILD && debug.log('Sending request session aggregate due to flushing schedule');
           flushPendingClientAggregates();

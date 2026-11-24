@@ -1,12 +1,13 @@
 import { SERVER_ADDRESS } from '@sentry/conventions/attributes';
 import { createCheckInEnvelope } from './checkin';
 import { Client } from './client';
+import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import {
   spanStreamingIntegration,
   INTEGRATION_NAME as SPAN_STREAMING_INTEGRATION_NAME,
 } from './integrations/spanStreaming';
-import type { Scope } from './scope';
+import type { Scope, SdkProcessingMetadata } from './scope';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
 import { addUserAgentToTransportHeaders } from './transports/userAgent';
 import type { CheckIn, MonitorConfig, SerializedCheckIn } from './types/checkin';
@@ -17,7 +18,7 @@ import type { SeverityLevel } from './types/severity';
 import type { BaseTransportOptions, Transport } from './types/transport';
 import { debug } from './utils/debug-logger';
 import { eventFromMessage, eventFromUnknownInput } from './utils/eventbuilder';
-import { uuid4 } from './utils/misc';
+import { hasUnhandledException, uuid4 } from './utils/misc';
 import { makePromiseBuffer } from './utils/promisebuffer';
 import { resolvedSyncPromise } from './utils/syncpromise';
 import { _getTraceInfoFromScope } from './utils/trace-info';
@@ -96,26 +97,69 @@ export class ServerRuntimeClient<
     isolationScope: Scope,
   ): PromiseLike<Event> {
     const processedEvent = super._processEvent(event, hint, currentScope, isolationScope);
-
-    const requestSession = isolationScope.getScopeData().sdkProcessingMetadata.requestSession;
-    if (requestSession && !event.type) {
-      const pendingErrors = (requestSession.pendingErrors ||= new Set());
-      const settle = (): void => {
-        pendingErrors.delete(processedEvent);
-      };
-      pendingErrors.add(processedEvent);
-      processedEvent.then(settle, settle);
+    if (isExceptionEvent(event)) {
+      addPendingRequestSessionError(isolationScope, processedEvent);
     }
-
     return processedEvent;
   }
 
   /**
    * @inheritDoc
    */
-  protected override _updateSessionsFromEvent(event: Event, currentScope: Scope, isolationScope: Scope): void {
-    super._updateSessionsFromEvent(event, currentScope, isolationScope);
-    setRequestSessionErroredOrCrashed(isolationScope, event);
+  protected override _canErrorChangeSessions(
+    event: Event,
+    hint: EventHint,
+    currentScope: Scope,
+    isolationScope: Scope,
+  ): boolean {
+    if (super._canErrorChangeSessions(event, hint, currentScope, isolationScope)) {
+      return true;
+    }
+    if (!isExceptionEvent(event)) {
+      return false;
+    }
+
+    const requestSessionStatus = getRequestSession(isolationScope)?.status;
+    return requestSessionStatus === 'ok' || (requestSessionStatus === 'errored' && hasUnhandledException(event, hint));
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected override _countErrorWithoutSending(
+    prepared: PromiseLike<Event | null>,
+    hint: EventHint,
+    currentScope: Scope,
+    isolationScope: Scope,
+    dropReason: 'sample_rate' | 'event_processor',
+  ): PromiseLike<void> {
+    const updated = super._countErrorWithoutSending(prepared, hint, currentScope, isolationScope, dropReason);
+    addPendingRequestSessionError(isolationScope, updated);
+    return updated;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected override _countErrorInSessions(event: Event, currentScope: Scope, isolationScope: Scope): void {
+    super._countErrorInSessions(event, currentScope, isolationScope);
+    if (isExceptionEvent(event)) {
+      setRequestSessionErroredOrCrashed(isolationScope, hasUnhandledException(event));
+    }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected override _onErrorNotProcessed(hint: EventHint, reason: 'already_captured' | 'queue_overflow'): void {
+    const isUnhandled = hint.mechanism?.handled === false;
+    if (reason === 'queue_overflow') {
+      // Without the event pipeline, filters cannot drop the error, so it counts.
+      setRequestSessionErroredOrCrashed(getIsolationScope(), isUnhandled);
+    } else if (isUnhandled) {
+      // E.g. an error that was captured as handled, then rethrown and captured again by a framework error handler.
+      crashRequestSessionIfErrored(getIsolationScope());
+    }
   }
 
   /**
@@ -267,20 +311,63 @@ export class ServerRuntimeClient<
   }
 }
 
-function setRequestSessionErroredOrCrashed(isolationScope: Scope, event: Event): void {
-  const requestSession = isolationScope.getScopeData().sdkProcessingMetadata.requestSession;
-  const exceptions = event.exception?.values;
-  if (requestSession && exceptions?.length) {
-    // We mutate instead of doing `setSdkProcessingMetadata` because the http integration stores away a particular
-    // isolationScope. If that isolation scope is forked, setting the processing metadata here will not mutate the
-    // original isolation scope that the http integration stored away.
-    const isHandledException = !exceptions.some(exception => exception.mechanism?.handled === false);
-    // A request session can go from "errored" -> "crashed" but not "crashed" -> "errored".
-    // Crashed (unhandled exception) is worse than errored (handled exception).
-    if (isHandledException && requestSession.status !== 'crashed') {
-      requestSession.status = 'errored';
-    } else if (!isHandledException) {
+type RequestSession = NonNullable<SdkProcessingMetadata['requestSession']>;
+
+function isExceptionEvent(event: Event): boolean {
+  return !event.type && !!event.exception?.values?.length;
+}
+
+function getRequestSession(isolationScope: Scope): RequestSession | undefined {
+  return isolationScope.getScopeData().sdkProcessingMetadata.requestSession;
+}
+
+function addPendingRequestSessionError(isolationScope: Scope, processing: PromiseLike<unknown>): void {
+  const requestSession = getRequestSession(isolationScope);
+  if (!requestSession) {
+    return;
+  }
+
+  const pendingErrors = (requestSession.pendingErrors ||= new Set());
+  const settle = (): void => {
+    pendingErrors.delete(processing);
+  };
+  pendingErrors.add(processing);
+  processing.then(settle, settle);
+}
+
+function setRequestSessionErroredOrCrashed(isolationScope: Scope, isUnhandled: boolean): void {
+  const requestSession = getRequestSession(isolationScope);
+  if (!requestSession) {
+    return;
+  }
+
+  // We mutate instead of doing `setSdkProcessingMetadata` because the http integration stores away a particular
+  // isolationScope. If that isolation scope is forked, setting the processing metadata here will not mutate the
+  // original isolation scope that the http integration stored away.
+  // A request session can go from "errored" -> "crashed" but not "crashed" -> "errored".
+  // Crashed (unhandled exception) is worse than errored (handled exception).
+  if (isUnhandled) {
+    requestSession.status = 'crashed';
+  } else if (requestSession.status !== 'crashed') {
+    requestSession.status = 'errored';
+  }
+}
+
+/** Crashes the request session if an error counted. That error can still be in the event pipeline. */
+function crashRequestSessionIfErrored(isolationScope: Scope): void {
+  const requestSession = getRequestSession(isolationScope);
+  if (!requestSession) {
+    return;
+  }
+
+  const crashIfErrored = (): void => {
+    if (requestSession.status === 'errored') {
       requestSession.status = 'crashed';
     }
+  };
+  if (!requestSession.pendingErrors?.size) {
+    crashIfErrored();
+    return;
   }
+  addPendingRequestSessionError(isolationScope, Promise.allSettled(requestSession.pendingErrors).then(crashIfErrored));
 }

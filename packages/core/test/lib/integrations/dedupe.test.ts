@@ -1,9 +1,22 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  captureException,
+  getCurrentScope,
+  linkedErrorsIntegration,
+  makeSession,
+  setCurrentClient,
+  withScope,
+} from '../../../src';
 import { _shouldDropEvent, dedupeIntegration } from '../../../src/integrations/dedupe';
 import type { Event as SentryEvent } from '../../../src/types/event';
 import type { Exception } from '../../../src/types/exception';
 import type { StackFrame } from '../../../src/types/stackframe';
 import type { Stacktrace } from '../../../src/types/stacktrace';
+import { getDefaultTestClientOptions, TestClient, type TestClientOptions } from '../../mocks/client';
+import { AsyncTestIntegration } from '../../mocks/integration';
+import { resetGlobals } from '../../testutils';
+
+const PUBLIC_DSN = 'https://username@domain/123';
 
 type EventWithException = SentryEvent & {
   exception: {
@@ -178,33 +191,167 @@ describe('Dedupe', () => {
     });
   });
 
-  describe('processEvent', () => {
-    it('ignores consecutive errors', () => {
-      const integration = dedupeIntegration();
-
-      expect(integration.processEvent?.(clone(exceptionEvent), {}, {} as any)).not.toBeNull();
-      expect(integration.processEvent?.(clone(exceptionEvent), {}, {} as any)).toBeNull();
-      expect(integration.processEvent?.(clone(exceptionEvent), {}, {} as any)).toBeNull();
+  describe('integration', () => {
+    beforeEach(() => {
+      TestClient.instance = undefined;
+      TestClient.sendEventCalled = undefined;
+      resetGlobals();
     });
 
-    it('ignores transactions between errors', () => {
-      const integration = dedupeIntegration();
+    function initClient(options: Partial<TestClientOptions> = {}): TestClient {
+      const client = new TestClient(
+        getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations: [dedupeIntegration()], ...options }),
+      );
+      setCurrentClient(client);
+      client.init();
+      return client;
+    }
 
-      expect(integration.processEvent?.(clone(exceptionEvent), {}, {} as any)).not.toBeNull();
-      expect(
-        integration.processEvent?.(
-          {
-            event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
-            message: 'someMessage',
-            transaction: 'wat',
-            type: 'transaction',
-          },
-          {},
-          {} as any,
-        ),
-      ).not.toBeNull();
-      expect(integration.processEvent?.(clone(exceptionEvent), {}, {} as any)).toBeNull();
-      expect(integration.processEvent?.(clone(exceptionEvent), {}, {} as any)).toBeNull();
+    it('drops consecutive duplicate errors', () => {
+      const sendEventCalled = vi.fn();
+      TestClient.sendEventCalled = sendEventCalled;
+      const client = initClient();
+
+      client.captureException(new Error('duplicate'));
+      client.captureException(new Error('duplicate'));
+      client.captureException(new Error('duplicate'));
+
+      expect(sendEventCalled).toHaveBeenCalledOnce();
+      expect(client._clearOutcomes()).toEqual([{ reason: 'event_processor', category: 'error', quantity: 2 }]);
+    });
+
+    it('compares an event only with the previous event', () => {
+      const sendEventCalled = vi.fn();
+      TestClient.sendEventCalled = sendEventCalled;
+      const client = initClient();
+
+      for (const value of ['a', 'a', 'b', 'b', 'a']) {
+        client.captureException(new Error(value));
+      }
+      client.captureMessage('message');
+      client.captureMessage('message');
+
+      expect(sendEventCalled).toHaveBeenCalledTimes(4);
+      expect(client._clearOutcomes()).toEqual([{ reason: 'event_processor', category: 'error', quantity: 3 }]);
+    });
+
+    it('compares errors with the fingerprint from the scope', () => {
+      const sendEventCalled = vi.fn();
+      TestClient.sendEventCalled = sendEventCalled;
+      const client = initClient();
+
+      for (const fingerprint of ['a', 'b']) {
+        withScope(scope => {
+          scope.setFingerprint([fingerprint]);
+          client.captureException(new Error('same error'), undefined, scope);
+        });
+      }
+
+      expect(sendEventCalled).toHaveBeenCalledTimes(2);
+    });
+
+    it('compares errors with their linked errors', () => {
+      const sendEventCalled = vi.fn();
+      TestClient.sendEventCalled = sendEventCalled;
+      initClient({ integrations: [linkedErrorsIntegration(), dedupeIntegration()] });
+
+      for (const cause of ['a', 'a', 'b']) {
+        captureException(Object.assign(new Error('same error'), { cause: new Error(cause) }));
+      }
+
+      expect(sendEventCalled).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not let duplicate errors push other errors out of the promise buffer', async () => {
+      const sendEventCalled = vi.fn();
+      TestClient.sendEventCalled = sendEventCalled;
+      const client = initClient({
+        integrations: [dedupeIntegration(), new AsyncTestIntegration()],
+        transportOptions: { bufferSize: 2 },
+      });
+      getCurrentScope().setSession(makeSession());
+
+      for (let i = 0; i < 10; i++) {
+        client.captureException(new Error('duplicate'));
+      }
+      client.captureException(new Error('other error'));
+      await client.flush();
+
+      expect(sendEventCalled).toHaveBeenCalledTimes(2);
+      expect(client._clearOutcomes()).toEqual([{ reason: 'event_processor', category: 'error', quantity: 9 }]);
+    });
+
+    it('updates the session for a duplicate error', () => {
+      const client = initClient();
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      client.captureException(new Error('duplicate'));
+      client.captureException(new Error('duplicate'), { mechanism: { type: 'generic', handled: false } });
+
+      expect(session.errors).toBe(1);
+      expect(session.status).toBe('crashed');
+      expect(client._clearOutcomes()).toEqual([{ reason: 'event_processor', category: 'error', quantity: 1 }]);
+    });
+
+    it('does not count a duplicate error that a later event processor drops', () => {
+      const client = initClient();
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+      client.addEventProcessor(() => null);
+
+      client.captureException(new Error('duplicate'));
+      client.captureException(new Error('duplicate'));
+
+      expect(session.errors).toBe(0);
+      expect(client._clearOutcomes()).toEqual([{ reason: 'event_processor', category: 'error', quantity: 2 }]);
+    });
+
+    it('drops a handled duplicate error from the same isolation scope without calling `beforeSend` again', () => {
+      const beforeSend = vi.fn(() => null);
+      const client = initClient({ beforeSend });
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      client.captureException(new Error('duplicate'));
+      client.captureException(new Error('duplicate'));
+      client.captureException(new Error('duplicate'));
+
+      expect(beforeSend).toHaveBeenCalledOnce();
+      expect(session.errors).toBe(0);
+      expect(client._clearOutcomes()).toEqual([
+        { reason: 'before_send', category: 'error', quantity: 1 },
+        { reason: 'event_processor', category: 'error', quantity: 2 },
+      ]);
+    });
+
+    it('updates the session for a duplicate error when Dedupe runs after an asynchronous event processor', async () => {
+      const sendEventCalled = vi.fn();
+      TestClient.sendEventCalled = sendEventCalled;
+      const client = initClient({ integrations: [new AsyncTestIntegration(), dedupeIntegration()] });
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      client.captureException(new Error('duplicate'));
+      client.captureException(new Error('duplicate'), { mechanism: { type: 'generic', handled: false } });
+      await client.flush();
+
+      expect(sendEventCalled).toHaveBeenCalledOnce();
+      expect(session.status).toBe('crashed');
+      expect(client._clearOutcomes()).toEqual([{ reason: 'event_processor', category: 'error', quantity: 1 }]);
+    });
+
+    it('does not drop a sampled-in error that duplicates a sampled-out error', () => {
+      const sendEventCalled = vi.fn();
+      TestClient.sendEventCalled = sendEventCalled;
+      const client = initClient({ sampleRate: 0 });
+      getCurrentScope().setSession(makeSession());
+
+      client.captureException(new Error('duplicate'));
+      client.getOptions().sampleRate = 1;
+      client.captureException(new Error('duplicate'));
+
+      expect(sendEventCalled).toHaveBeenCalledOnce();
     });
   });
 });

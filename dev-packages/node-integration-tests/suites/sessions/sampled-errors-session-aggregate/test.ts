@@ -1,0 +1,33 @@
+import { afterAll, expect, test } from 'vitest';
+import { join } from 'path';
+import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+
+afterAll(() => {
+  cleanupChildProcesses();
+});
+
+test('counts errors dropped by sampleRate', async () => {
+  const runner = createRunner(__dirname, '..', 'server.mjs')
+    .withInstrument(join(__dirname, 'instrument.mjs'))
+    .ignore('span', 'event')
+    .unignore('sessions')
+    .expect({
+      sessions: agg => {
+        // Sessions are bucketed by minute; tolerate splits across a minute boundary by summing.
+        const totals = agg.aggregates.reduce(
+          (acc, b) => ({
+            exited: acc.exited + (b.exited ?? 0),
+            errored: acc.errored + (b.errored ?? 0),
+            crashed: acc.crashed + (b.crashed ?? 0),
+          }),
+          { exited: 0, errored: 0, crashed: 0 },
+        );
+        expect(totals).toEqual({ exited: 0, errored: 1, crashed: 1 });
+      },
+    })
+    .start();
+
+  runner.makeRequest('get', '/test/error_handled');
+  runner.makeRequest('get', '/test/error_unhandled', { expectError: true });
+  await runner.completed();
+});

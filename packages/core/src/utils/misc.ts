@@ -1,4 +1,4 @@
-import type { Event } from '../types/event';
+import type { Event, EventHint } from '../types/event';
 import type { Exception } from '../types/exception';
 import type { Mechanism } from '../types/mechanism';
 import type { StackFrame } from '../types/stackframe';
@@ -131,6 +131,18 @@ export function addExceptionMechanismToCapturedException(event: Event, newMechan
   }
 
   applyExceptionMechanism(capturedException, newMechanism);
+}
+
+/**
+ * Whether an event has an unhandled exception. Before event processing, the mechanism can be only in the hint.
+ *
+ * @hidden
+ */
+export function hasUnhandledException(event: Event, hint?: EventHint): boolean {
+  return (
+    hint?.mechanism?.handled === false ||
+    !!event.exception?.values?.some(exception => exception.mechanism?.handled === false)
+  );
 }
 
 function applyExceptionMechanism(exception: Exception, newMechanism?: Partial<Mechanism>): void {

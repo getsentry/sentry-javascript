@@ -563,10 +563,9 @@ describe('Client', () => {
       expect(TestClient.instance!.event).toBeUndefined();
     });
 
-    test('(known limitation) replaces lastEventId with a sampled-out error ID when a session exists', () => {
-      // After a successfully sent error, a subsequent sampled-out error replaces lastEventId() even though that new ID has no corresponding event in Sentry.
-      // With a session, the `setLastEventId` call in `_prepareEvent` executes before the `sampleRate` check
+    test('does not set lastEventId when a sampled-out error cannot change the session', () => {
       const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      setCurrentClient(client);
       getCurrentScope().setSession(makeSession());
 
       client.captureException(new Error('sent exception'), { event_id: 'sent-event-id' });
@@ -574,6 +573,19 @@ describe('Client', () => {
       client.captureException(new Error('sampled-out exception'), { event_id: 'sampled-out-event-id' });
 
       expect(TestClient.instance!.event?.event_id).toBe('sent-event-id');
+      expect(lastEventId()).toBe('sent-event-id');
+    });
+
+    test('(known limitation) sets lastEventId to a sampled-out error ID when the error can change the session', () => {
+      // With a session that the error can change, the `setLastEventId` call in `_prepareEvent` executes before the
+      // error is dropped, even though that ID has no corresponding event in Sentry.
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 }));
+      setCurrentClient(client);
+      getCurrentScope().setSession(makeSession());
+
+      client.captureException(new Error('sampled-out exception'), { event_id: 'sampled-out-event-id' });
+
+      expect(TestClient.instance!.event).toBeUndefined();
       expect(lastEventId()).toBe('sampled-out-event-id');
     });
 
@@ -3806,6 +3818,76 @@ describe('Client', () => {
     });
   });
 
+  describe('errors that are never sent', () => {
+    test('drops sampled-out errors before event processing when they cannot change the session', () => {
+      const beforeSend = vi.fn((event: ErrorEvent) => event);
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend }));
+      setCurrentClient(client);
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      client.captureException(new Error('sent'));
+      client.getOptions().sampleRate = 0;
+      client.captureException(new Error('sampled out'));
+
+      expect(beforeSend).toHaveBeenCalledOnce();
+      expect(session.errors).toBe(1);
+      expect(client._clearOutcomes()).toEqual([{ reason: 'sample_rate', category: 'error', quantity: 1 }]);
+    });
+
+    test('records a sampled-out error that an event processor drops as dropped by the event processor', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 }));
+      setCurrentClient(client);
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+      client.addEventProcessor(() => null);
+
+      client.captureException(new Error('sampled out'));
+
+      expect(session.errors).toBe(0);
+      expect(client._clearOutcomes()).toEqual([{ reason: 'event_processor', category: 'error', quantity: 1 }]);
+    });
+
+    test('records a sampled-out error that `beforeSend` drops as dropped by `beforeSend`', () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0, beforeSend: () => null }),
+      );
+      setCurrentClient(client);
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      client.captureException(new Error('sampled out'));
+
+      expect(session.errors).toBe(0);
+      expect(client._clearOutcomes()).toEqual([{ reason: 'before_send', category: 'error', quantity: 1 }]);
+    });
+
+    test('limits how many of these errors run through event processing at the same time', async () => {
+      const beforeSend = vi.fn((event: ErrorEvent) => event);
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          sampleRate: 0,
+          beforeSend,
+          transportOptions: { bufferSize: 2 },
+        }),
+      );
+      setCurrentClient(client);
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+      client.addIntegration(new AsyncTestIntegration());
+
+      client.captureException(new Error('first'));
+      client.captureException(new Error('second'));
+      client.captureException(new Error('third'));
+      await client.flush();
+
+      expect(beforeSend).toHaveBeenCalledTimes(2);
+      expect(session.errors).toBe(1);
+      expect(client._clearOutcomes()).toEqual([{ reason: 'sample_rate', category: 'error', quantity: 3 }]);
+    });
+  });
+
   describe('recordDroppedEvent()/_clearOutcomes()', () => {
     test('records and returns outcomes', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -4656,7 +4738,7 @@ describe('Client', () => {
       expect(client._clearOutcomes()).toEqual([{ reason: 'sample_rate', category: 'error', quantity: 3 }]);
     });
 
-    it('keeps processing sampled-out errors that can update the session', async () => {
+    it('processes sampled-out errors that can update the session without taking a buffer slot', async () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
         sampleRate: 0,
@@ -4664,14 +4746,20 @@ describe('Client', () => {
       });
       const client = new TestClient(options);
       setCurrentClient(client);
-      getCurrentScope().setSession(makeSession());
+      const session = makeSession();
+      getCurrentScope().setSession(session);
 
       client.addIntegration(new AsyncTestIntegration());
 
-      client.captureException(new Error('first'));
-      client.captureException(new Error('second'));
+      client.captureException(new Error('sampled out'));
+      client.getOptions().sampleRate = 1;
+      client.captureException(new Error('sampled in'));
 
-      expect(client._clearOutcomes()).toEqual([{ reason: 'queue_overflow', category: 'error', quantity: 1 }]);
+      expect(client._clearOutcomes()).toEqual([]);
+      await client.flush();
+      expect(client._clearOutcomes()).toEqual([{ reason: 'sample_rate', category: 'error', quantity: 1 }]);
+      expect(TestClient.instance!.event?.exception?.values?.[0]?.value).toBe('sampled in');
+      expect(session.errors).toBe(1);
     });
 
     it('should skip the promise buffer with sync integrations', async () => {

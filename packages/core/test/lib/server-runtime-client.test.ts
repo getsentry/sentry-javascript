@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, test, vi } from 'vitest';
-import { applySdkMetadata, createTransport, getIsolationScope, Scope } from '../../src';
+import { applySdkMetadata, createTransport, dedupeIntegration, getIsolationScope, Scope } from '../../src';
 import { startRequestSession } from '../../src/integrations/http/record-request-session';
+import { AsyncTestIntegration } from '../mocks/integration';
 import { _INTERNAL_captureMetric, _INTERNAL_getMetricBuffer } from '../../src/metrics/internal';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
 import { ServerRuntimeClient } from '../../src/server-runtime-client';
@@ -16,6 +17,29 @@ function getDefaultClientOptions(options: Partial<ServerRuntimeClientOptions> = 
     stackParser: () => [],
     ...options,
   };
+}
+
+/** Captures an error in the isolation scope of a request, as the HTTP integration does in Node. */
+function captureErrorInScope(client: ServerRuntimeClient, message: string, requestIsolationScope: Scope): void {
+  client.captureEvent({
+    exception: { values: [{ type: 'Error', value: message }] },
+    sdkProcessingMetadata: { capturedSpanIsolationScope: requestIsolationScope },
+  });
+}
+
+/** Captures equal errors in a request with its own isolation scope. */
+function captureErrorInRequest(client: ServerRuntimeClient, message: string, route = '/', count = 1): void {
+  const requestIsolationScope = new Scope();
+  requestIsolationScope.setTag('route', route);
+  const endRequestSession = startRequestSession(client, { requestIsolationScope });
+  for (let i = 0; i < count; i++) {
+    captureErrorInScope(client, message, requestIsolationScope);
+  }
+  endRequestSession();
+}
+
+function delayed(event: ErrorEvent): Promise<ErrorEvent> {
+  return new Promise(resolve => setTimeout(() => resolve(event), 10));
 }
 
 describe('ServerRuntimeClient', () => {
@@ -197,7 +221,7 @@ describe('ServerRuntimeClient', () => {
       ['errored for an exception that `sampleRate` drops', { sampleRate: 0 }, undefined, { errored: 1 }],
       [
         'errored for an exception that is processed after the request ended',
-        { beforeSend: (event: ErrorEvent) => new Promise<ErrorEvent>(resolve => setTimeout(() => resolve(event), 10)) },
+        { beforeSend: delayed },
         undefined,
         { errored: 1 },
       ],
@@ -214,11 +238,194 @@ describe('ServerRuntimeClient', () => {
       });
     });
 
+    it('records sampled-out errors without taking a buffer slot from errors that are sent', async () => {
+      client = new ServerRuntimeClient(
+        getDefaultClientOptions({
+          dsn: PUBLIC_DSN,
+          sampleRate: 0,
+          transportOptions: { bufferSize: 1 },
+          beforeSend: delayed,
+        }),
+      );
+      const sendEventSpy = vi.spyOn(client, 'sendEvent');
+      const sendSessionSpy = vi.spyOn(client, 'sendSession');
+      const endRequestSession = startRequestSession(client, { requestIsolationScope: getIsolationScope() });
+
+      client.captureException(new Error('sampled out'));
+      client.getOptions().sampleRate = 1;
+      client.captureException(new Error('sampled in'));
+      endRequestSession();
+      await client.flush();
+
+      expect(sendEventSpy).toHaveBeenCalledOnce();
+      expect(sendSessionSpy).toHaveBeenCalledExactlyOnceWith({
+        aggregates: [{ started: expect.any(String), exited: 0, errored: 1, crashed: 0 }],
+      });
+    });
+
+    it('drops sampled-out errors before event processing once the request session crashed', () => {
+      const beforeSend = vi.fn((event: ErrorEvent) => event);
+      client = new ServerRuntimeClient(getDefaultClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0, beforeSend }));
+      startRequestSession(client, { requestIsolationScope: getIsolationScope() });
+
+      client.captureException(new Error('crash'), { mechanism: { type: 'test', handled: false } });
+      client.captureException(new Error('after crash'));
+
+      expect(beforeSend).toHaveBeenCalledOnce();
+      expect(getIsolationScope().getScopeData().sdkProcessingMetadata.requestSession?.status).toBe('crashed');
+    });
+
+    it('drops sampled-out handled errors before event processing once the request session errored', () => {
+      const beforeSend = vi.fn((event: ErrorEvent) => event);
+      client = new ServerRuntimeClient(getDefaultClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0, beforeSend }));
+      startRequestSession(client, { requestIsolationScope: getIsolationScope() });
+
+      client.captureException(new Error('handled'));
+      client.captureException(new Error('handled again'));
+      client.captureException(new Error('crash'), { mechanism: { type: 'test', handled: false } });
+
+      expect(beforeSend).toHaveBeenCalledTimes(2);
+      expect(getIsolationScope().getScopeData().sdkProcessingMetadata.requestSession?.status).toBe('crashed');
+    });
+
+    it('records each request that fails with the same error as errored, also when Dedupe drops the error', async () => {
+      client = new ServerRuntimeClient(
+        getDefaultClientOptions({ dsn: PUBLIC_DSN, integrations: [dedupeIntegration()] }),
+      );
+      client.init();
+      const sendEventSpy = vi.spyOn(client, 'sendEvent');
+      const sendSessionSpy = vi.spyOn(client, 'sendSession');
+
+      for (let i = 0; i < 2; i++) {
+        captureErrorInRequest(client, 'same error');
+      }
+      await client.flush();
+
+      expect(sendEventSpy).toHaveBeenCalledOnce();
+      expect(sendSessionSpy).toHaveBeenCalledExactlyOnceWith({
+        aggregates: [{ started: expect.any(String), exited: 0, errored: 2, crashed: 0 }],
+      });
+    });
+
+    it('does not count a request whose duplicate error `beforeSend` drops', async () => {
+      client = new ServerRuntimeClient(
+        getDefaultClientOptions({
+          dsn: PUBLIC_DSN,
+          integrations: [dedupeIntegration()],
+          beforeSend: event => (event.tags?.route === '/health' ? null : event),
+        }),
+      );
+      client.init();
+      const sendSessionSpy = vi.spyOn(client, 'sendSession');
+
+      captureErrorInRequest(client, 'same error', '/users');
+      captureErrorInRequest(client, 'same error', '/health');
+      await client.flush();
+
+      expect(sendSessionSpy).toHaveBeenCalledExactlyOnceWith({
+        aggregates: [{ started: expect.any(String), exited: 1, errored: 1, crashed: 0 }],
+      });
+    });
+
+    it('does not let duplicate errors from many requests push other errors out of the promise buffer', async () => {
+      client = new ServerRuntimeClient(
+        getDefaultClientOptions({
+          dsn: PUBLIC_DSN,
+          integrations: [dedupeIntegration(), new AsyncTestIntegration()],
+          transportOptions: { bufferSize: 2 },
+        }),
+      );
+      client.init();
+      const sendEventSpy = vi.spyOn(client, 'sendEvent');
+
+      for (let i = 0; i < 10; i++) {
+        captureErrorInRequest(client, 'same error');
+      }
+      captureErrorInRequest(client, 'other error');
+      await client.flush();
+
+      expect(sendEventSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('calls `beforeSend` once for equal errors in one request', async () => {
+      const beforeSend = vi.fn((event: ErrorEvent) => event);
+      client = new ServerRuntimeClient(
+        getDefaultClientOptions({ dsn: PUBLIC_DSN, integrations: [dedupeIntegration()], beforeSend }),
+      );
+      client.init();
+
+      captureErrorInRequest(client, 'same error', '/users', 3);
+      await client.flush();
+
+      expect(beforeSend).toHaveBeenCalledOnce();
+    });
+
+    it('calls `beforeSend` once per request for equal errors from requests that run at the same time', async () => {
+      const beforeSend = vi.fn(delayed);
+      client = new ServerRuntimeClient(
+        getDefaultClientOptions({ dsn: PUBLIC_DSN, integrations: [dedupeIntegration()], beforeSend }),
+      );
+      client.init();
+      const firstRequest = new Scope();
+      const secondRequest = new Scope();
+      startRequestSession(client, { requestIsolationScope: firstRequest });
+      startRequestSession(client, { requestIsolationScope: secondRequest });
+
+      captureErrorInScope(client, 'same error', firstRequest);
+      captureErrorInScope(client, 'same error', secondRequest);
+      captureErrorInScope(client, 'same error', firstRequest);
+      captureErrorInScope(client, 'same error', secondRequest);
+      await client.flush();
+
+      expect(beforeSend).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not run event processing for sampled-out messages', () => {
+      const beforeSend = vi.fn((event: ErrorEvent) => event);
+      client = new ServerRuntimeClient(getDefaultClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0, beforeSend }));
+      startRequestSession(client, { requestIsolationScope: getIsolationScope() });
+
+      client.captureMessage('message');
+
+      expect(beforeSend).not.toHaveBeenCalled();
+      expect(getIsolationScope().getScopeData().sdkProcessingMetadata.requestSession?.status).toBe('ok');
+    });
+
+    it.each([
+      ['errored for a handled exception', undefined, 'errored'],
+      ['crashed for an unhandled exception', { mechanism: { type: 'test', handled: false } }, 'crashed'],
+    ] as const)('records a request whose error overflows the buffer as %s', (_, hint, status) => {
+      client = new ServerRuntimeClient(
+        getDefaultClientOptions({ dsn: PUBLIC_DSN, transportOptions: { bufferSize: 1 }, beforeSend: delayed }),
+      );
+      captureErrorInScope(client, 'takes the only buffer slot', new Scope());
+      startRequestSession(client, { requestIsolationScope: getIsolationScope() });
+
+      client.captureException(new Error('overflows'), hint);
+
+      expect(getIsolationScope().getScopeData().sdkProcessingMetadata.requestSession?.status).toBe(status);
+    });
+
+    it.each([
+      ['crashed when the first capture counted', delayed, 'crashed'],
+      ['ok when `beforeSend` dropped the first capture', () => null, 'ok'],
+    ] as const)('records a rethrown unhandled error as %s', async (_, beforeSend, status) => {
+      client = new ServerRuntimeClient(getDefaultClientOptions({ dsn: PUBLIC_DSN, beforeSend }));
+      startRequestSession(client, { requestIsolationScope: getIsolationScope() });
+      const error = new Error('rethrown');
+
+      client.captureException(error);
+      client.captureException(error, { mechanism: { type: 'test', handled: false } });
+      await client.flush();
+
+      expect(getIsolationScope().getScopeData().sdkProcessingMetadata.requestSession?.status).toBe(status);
+    });
+
     it('sends a session that settles during a flush with an aggregate opened during that flush', async () => {
       client = new ServerRuntimeClient(
         getDefaultClientOptions({
           dsn: PUBLIC_DSN,
-          beforeSend: event => new Promise<ErrorEvent>(resolve => setTimeout(() => resolve(event), 10)),
+          beforeSend: delayed,
         }),
       );
       const sendSessionSpy = vi.spyOn(client, 'sendSession');

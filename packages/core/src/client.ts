@@ -36,20 +36,21 @@ import type { StartSpanOptions } from './types/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types/transport';
 import type { ResolvedDataCollection } from './types/datacollection';
 import { createClientReportEnvelope } from './utils/clientreport';
+import { isMarkedDuplicate, setDedupeContext } from './utils/dedupeContext';
 import { consoleSandbox, debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem, getDataCategoryByType } from './utils/envelope';
 import { getPossibleEventMessages, isInternalException } from './utils/eventUtils';
 import { isObjectLike, isParameterizedString, isPlainObject, isPrimitive } from './utils/is';
 import { merge } from './utils/merge';
-import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
+import { checkOrSetAlreadyCaught, hasUnhandledException, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
 import { safeMathRandom } from './utils/randomSafeContext';
 import { safeCallback } from './utils/safeCallback';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
-import { rejectedSyncPromise } from './utils/syncpromise';
+import { rejectedSyncPromise, resolvedSyncPromise } from './utils/syncpromise';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 import { maybeWarnAboutIgnoredTransactionOptions } from './utils/warnAboutIgnoredTransactionOptions';
 import { resolveDataCollectionOptions } from './utils/data-collection/resolveDataCollectionOptions';
@@ -57,6 +58,7 @@ import { applyBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
+const DUPLICATE_EVENT_ERROR = 'Event is a duplicate of the previously captured event, will not send event.';
 
 const INTERNAL_ERROR_SYMBOL = Symbol.for('SentryInternalError');
 const DO_NOT_SEND_EVENT_SYMBOL = Symbol.for('SentryDoNotSendEventError');
@@ -169,6 +171,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   protected _promiseBuffer: PromiseBuffer<unknown>;
 
+  /** Number of errors that are never sent, but run through event processors and `beforeSend` to update sessions. */
+  protected _numCountingWithoutSending: number;
+
   protected readonly _dataCollection: ResolvedDataCollection;
 
   /**
@@ -197,6 +202,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     };
     this._integrations = {};
     this._numProcessing = 0;
+    this._numCountingWithoutSending = 0;
     this._outcomes = {};
     this._hooks = {};
     this._eventProcessors = [];
@@ -255,6 +261,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // ensure we haven't captured this very object before
     if (checkOrSetAlreadyCaught(exception)) {
       DEBUG_BUILD && debug.log(ALREADY_SEEN_ERROR);
+      this._onErrorNotProcessed(hint || {}, 'already_captured');
       return eventId;
     }
 
@@ -269,6 +276,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           .then(event => this._captureEvent(event, hintWithEventId, scope))
           .then(res => res),
       'error',
+      hintWithEventId,
     );
 
     return hintWithEventId.event_id;
@@ -318,10 +326,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public captureEvent(event: Event, hint?: EventHint, currentScope?: Scope): string {
     const eventId = uuid4();
+    const isException = !event.type && !!event.exception?.values?.length;
 
     // ensure we haven't captured this very object before
     if (hint?.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
       DEBUG_BUILD && debug.log(ALREADY_SEEN_ERROR);
+      if (isException) {
+        this._onErrorNotProcessed(hint, 'already_captured');
+      }
       return eventId;
     }
 
@@ -338,6 +350,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._process(
       () => this._captureEvent(event, hintWithEventId, capturedSpanScope || currentScope, capturedSpanIsolationScope),
       dataCategory,
+      isException ? hintWithEventId : undefined,
     );
 
     return hintWithEventId.event_id;
@@ -1311,14 +1324,90 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
-   * Updates the sessions an error event counts towards. Runs after event processors and `beforeSend` kept the
-   * event, but before `sampleRate` is applied: dropped errors must not affect sessions, sampled-out errors must.
+   * Updates the sessions that an error counts towards. Runs after event processors and `beforeSend` kept the error,
+   * also when sampling or Dedupe drop it: these only reduce volume, so the error must still count.
    */
-  protected _updateSessionsFromEvent(event: Event, currentScope: Scope, isolationScope: Scope): void {
+  protected _countErrorInSessions(event: Event, currentScope: Scope, isolationScope: Scope): void {
     const session = currentScope.getSession() || isolationScope.getSession();
     if (session) {
       this._updateSessionFromEvent(session, event);
     }
+  }
+
+  /** Whether an error can still change a session that {@link Client._countErrorInSessions} updates. */
+  protected _canErrorChangeSessions(
+    event: Event,
+    hint: EventHint,
+    currentScope: Scope,
+    isolationScope: Scope,
+  ): boolean {
+    const session = currentScope.getSession() || isolationScope.getSession();
+    const isUnhandled = event.level === 'fatal' || hasUnhandledException(event, hint);
+    return (
+      session?.status === 'ok' &&
+      (!!event.exception?.values?.length || isUnhandled) &&
+      (session.errors === 0 || isUnhandled)
+    );
+  }
+
+  /**
+   * Called for an error that never reaches the event pipeline, because the same error object was captured before,
+   * or because the buffer is full.
+   */
+  protected _onErrorNotProcessed(_hint: EventHint, _reason: 'already_captured' | 'queue_overflow'): void {
+    // Sessions are updated in the event pipeline only.
+  }
+
+  /**
+   * Updates sessions from an error that is never sent, because sampling or Dedupe drop it to reduce volume.
+   * The error counts if event processors and `beforeSend` keep it.
+   *
+   * This runs outside of the promise buffer for events that are sent, so these errors never take a slot from them.
+   */
+  protected _countErrorWithoutSending(
+    prepared: PromiseLike<Event | null>,
+    hint: EventHint,
+    currentScope: Scope,
+    isolationScope: Scope,
+    dropReason: 'sample_rate' | 'event_processor',
+  ): PromiseLike<void> {
+    this._numProcessing++;
+    this._numCountingWithoutSending++;
+    const onSettled = (): void => {
+      this._numProcessing--;
+      this._numCountingWithoutSending--;
+    };
+
+    let beforeSendDropReason: BeforeSendDropReason = 'before_send';
+    const updated = prepared.then(preparedEvent => {
+      // When an event processor dropped the event, `prepareEvent` already recorded the outcome.
+      if (!preparedEvent) {
+        return;
+      }
+
+      const processed = isInternalException(hint)
+        ? preparedEvent
+        : processBeforeSend(
+            this._options,
+            preparedEvent,
+            hint,
+            reason => {
+              beforeSendDropReason = reason;
+            },
+            () => undefined,
+          );
+
+      return resolvedSyncPromise(processed).then(processedEvent => {
+        if (!processedEvent || !isPlainObject(processedEvent)) {
+          this.recordDroppedEvent(beforeSendDropReason, 'error');
+          return;
+        }
+        this._countErrorInSessions(processedEvent, currentScope, isolationScope);
+        this.recordDroppedEvent(dropReason, 'error');
+      });
+    });
+    updated.then(onSettled, onSettled);
+    return updated;
   }
 
   /** Updates existing session based on the provided event */
@@ -1515,15 +1604,34 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // span outcomes are relative to the span count of the prepared event.
     let preparedSpanCount = 0;
 
-    const session = currentScope.getSession() || isolationScope.getSession();
-    // A sampled-out error only runs the pipeline to update the session. Without a session it could update,
-    // drop it right away so it doesn't hold a promise buffer slot while event processors run.
-    if (isSampledOut && session?.status !== 'ok') {
-      this.recordDroppedEvent('sample_rate', 'error');
+    // Sampling and Dedupe only reduce volume, so errors they drop still count towards sessions. If such an error can
+    // change a session, it runs through event processors and `beforeSend` outside of the buffer for sent events.
+    // The limit keeps that work bounded in an error storm.
+    const canCountWithoutSending =
+      isError &&
+      this._numCountingWithoutSending < (options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE) &&
+      this._canErrorChangeSessions(event, hint, currentScope, isolationScope);
+
+    if (isSampledOut) {
+      if (canCountWithoutSending) {
+        setDedupeContext(hint, 'ignore', isolationScope);
+        const prepared = this._prepareEvent(event, hint, currentScope, isolationScope);
+        this._countErrorWithoutSending(prepared, hint, currentScope, isolationScope, 'sample_rate');
+      } else {
+        this.recordDroppedEvent('sample_rate', 'error');
+      }
       return rejectedSyncPromise(_makeSampledOutError(sampleRate));
     }
 
-    return this._prepareEvent(event, hint, currentScope, isolationScope)
+    setDedupeContext(hint, canCountWithoutSending ? 'mark' : 'drop', isolationScope);
+    const preparedEvent = this._prepareEvent(event, hint, currentScope, isolationScope);
+    // The event processors before Dedupe are usually synchronous, so most duplicates are known here.
+    if (isMarkedDuplicate(hint)) {
+      this._countErrorWithoutSending(preparedEvent, hint, currentScope, isolationScope, 'event_processor');
+      return rejectedSyncPromise(_makeDoNotSendEventError(DUPLICATE_EVENT_ERROR));
+    }
+
+    return preparedEvent
       .then(prepared => {
         if (prepared === null) {
           throw _makeDoNotSendEventError('An event processor returned `null`, will not send event.');
@@ -1571,12 +1679,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         }
 
         if (isError) {
-          this._updateSessionsFromEvent(processedEvent, currentScope, isolationScope);
+          this._countErrorInSessions(processedEvent, currentScope, isolationScope);
         }
 
-        if (isSampledOut) {
-          this.recordDroppedEvent('sample_rate', 'error');
-          throw _makeSampledOutError(sampleRate);
+        // Dedupe ran after an asynchronous event processor.
+        if (isMarkedDuplicate(hint)) {
+          this.recordDroppedEvent('event_processor', 'error');
+          throw _makeDoNotSendEventError(DUPLICATE_EVENT_ERROR);
         }
 
         if (isTransaction) {
@@ -1625,7 +1734,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Occupies the client with processing and event
    */
-  protected _process<T>(taskProducer: () => PromiseLike<T>, dataCategory: DataCategory): void {
+  protected _process<T>(taskProducer: () => PromiseLike<T>, dataCategory: DataCategory, errorHint?: EventHint): void {
     this._numProcessing++;
 
     void this._promiseBuffer.add(taskProducer).then(
@@ -1638,6 +1747,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
         if (reason === SENTRY_BUFFER_FULL_ERROR) {
           this.recordDroppedEvent('queue_overflow', dataCategory);
+          if (errorHint) {
+            this._onErrorNotProcessed(errorHint, 'queue_overflow');
+          }
         }
 
         return reason;

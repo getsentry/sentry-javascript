@@ -165,6 +165,7 @@ const NO_NATIVE_NODE_FETCH_INTEGRATION = [
 // first request gets no spans after that. And an error that reaches the server does not mark
 // the request session as crashed.
 const HTTP_SERVER_SPANS_DIFFER = [
+  'suites/sessions/sampled-errors-session-aggregate/test.ts',
   'suites/sessions/server-without-process-session/test.ts',
   'suites/tracing/httpIntegration/test.ts',
 ];
