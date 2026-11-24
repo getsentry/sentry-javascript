@@ -1,4 +1,4 @@
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN, URL_PATH } from '@sentry/conventions/attributes';
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
@@ -21,27 +21,30 @@ test('sends a server action transaction on pageload', async ({ page }) => {
   );
 });
 
-test('does not send transactions for build asset folder "_nuxt"', async ({ page }) => {
-  let buildAssetFolderOccurred = false;
+[
+  // Nuxt build output that the HTTP integration does not ignore.
+  '/_nuxt/builds/latest.json',
+  '/_nuxt/entry.js.map',
+  // File from `public/` that the HTTP integration does not ignore.
+  '/humans.txt',
+  // Common static file that the HTTP integration ignores.
+  '/favicon.ico',
+].forEach(path => {
+  test(`does not send a server transaction for the file ${path}`, async ({ baseURL }) => {
+    const transactionPaths = await getServerTransactionPathsUntilPage(`${baseURL}`, path);
 
-  waitForTransaction('nuxt-4', transactionEvent => {
-    if (transactionEvent.transaction?.match(/^GET \/_nuxt\//)) {
-      buildAssetFolderOccurred = true;
-    }
-    return false; // expects to return a boolean (but not relevant here)
+    expect(transactionPaths).not.toContain(path);
   });
+});
 
-  const transactionEventPromise = waitForTransaction('nuxt-4', transactionEvent => {
-    return transactionEvent.transaction.includes('GET /test-param/');
+// Routes that look like build output. They also show that the helper sees sent transactions, so the tests above cannot
+// pass by accident.
+['/test-param/jane.doe', '/api/test-param/data.json', '/test-param/_nuxt/'].forEach(path => {
+  test(`sends a server transaction for the route ${path}`, async ({ baseURL }) => {
+    const transactionPaths = await getServerTransactionPathsUntilPage(`${baseURL}`, path);
+
+    expect(transactionPaths).toContain(path);
   });
-
-  await page.goto('/test-param/1234');
-
-  const transactionEvent = await transactionEventPromise;
-
-  expect(buildAssetFolderOccurred).toBe(false);
-
-  expect(transactionEvent.transaction).toBe('GET /test-param/:param()');
 });
 
 test('captures server API calls made with Nitro $fetch', async ({ page }) => {
@@ -61,3 +64,22 @@ test('captures server API calls made with Nitro $fetch', async ({ page }) => {
   expect(httpClientSpan.parent_span_id).toEqual(httpServerFetchSpan.contexts.trace.span_id);
   expect(httpClientSpan.op).toEqual('http.client');
 });
+
+/**
+ * Requests `path`, then a page. Returns the `url.path` of each server transaction up to the page's transaction,
+ * which arrives after any transaction for `path`.
+ */
+async function getServerTransactionPathsUntilPage(baseURL: string, path: string): Promise<string[]> {
+  const pagePath = `/test-param/after${path.replace(/\W+/g, '-')}`;
+  const transactionPaths: string[] = [];
+  const pageTransactionPromise = waitForTransaction('nuxt-4', transactionEvent => {
+    transactionPaths.push(`${transactionEvent.contexts?.trace?.data?.[URL_PATH]}`);
+    return transactionPaths.includes(pagePath);
+  });
+
+  await fetch(`${baseURL}${path}`);
+  await fetch(`${baseURL}${pagePath}`);
+  await pageTransactionPromise;
+
+  return transactionPaths;
+}

@@ -3,7 +3,8 @@ import { addPlugin, addPluginTemplate, addTemplate, addVitePlugin, createResolve
 import type {} from '@nuxt/nitro-server';
 
 import * as path from 'path';
-import { NUXT_TUNNEL_BASE_PATH_GLOBAL } from './common/tunnel';
+import { NUXT_BUILD_ASSETS_DIR_GLOBAL, NUXT_CDN_URL_GLOBAL } from './common/buildAssets';
+import { NUXT_BASE_PATH_GLOBAL } from './common/tunnel';
 import type { SentryNuxtModuleOptions } from './common/types';
 import { addTunnelPlugin, setupNitroServer } from './vite/nitroServer';
 import { setupOrchestrion } from './vite/orchestrion';
@@ -64,7 +65,9 @@ export default defineNuxtModule<ModuleOptions>({
             name: 'sentry-client-config',
             async setup() {
               const runtimeConfig = useRuntimeConfig();
-              globalThis.${NUXT_TUNNEL_BASE_PATH_GLOBAL} = runtimeConfig.app.baseURL;
+              globalThis.${NUXT_BASE_PATH_GLOBAL} = runtimeConfig.app.baseURL;
+              globalThis.${NUXT_BUILD_ASSETS_DIR_GLOBAL} = runtimeConfig.app.buildAssetsDir;
+              globalThis.${NUXT_CDN_URL_GLOBAL} = runtimeConfig.app.cdnURL;
               const sentryRelease = runtimeConfig.public.${NUXT_RELEASE_RUNTIME_CONFIG_KEY};
               if (sentryRelease) {
                 globalThis.SENTRY_RELEASE = { id: sentryRelease };

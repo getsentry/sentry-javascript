@@ -664,6 +664,37 @@ describe('startIdleSpan', () => {
     });
   });
 
+  describe('ignoreSpans', () => {
+    const initClient = (traceLifecycle: 'static' | 'stream'): void => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({ dsn, tracesSampleRate: 1, traceLifecycle, ignoreSpans: [/\/health$/] }),
+      );
+      setCurrentClient(client);
+      client.init();
+    };
+
+    it('does not wait for an ignored span with span streaming', () => {
+      initClient('stream');
+      const idleSpan = startIdleSpan({ name: 'pageload' });
+
+      startInactiveSpan({ name: 'GET https://api.example.com/health' });
+      vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
+
+      expect(spanToJSON(idleSpan).end_timestamp).toBeDefined();
+    });
+
+    it('excludes ignored spans when trimming the end timestamp', () => {
+      initClient('static');
+      const idleSpan = startIdleSpan({ name: 'pageload', startTime: 1000 }, { finalTimeout: 99_999_999 });
+
+      startInactiveSpan({ name: 'ui.render', startTime: 1001 }).end(1005);
+      startInactiveSpan({ name: 'GET https://api.example.com/health', startTime: 1009 }).end(1010);
+      vi.runAllTimers();
+
+      expect(spanToJSON(idleSpan).end_timestamp).toBe(1005);
+    });
+  });
+
   describe('child span timeout', () => {
     it('finishes when a child span exceed timeout', () => {
       const idleSpan = startIdleSpan({ name: 'idle span' });

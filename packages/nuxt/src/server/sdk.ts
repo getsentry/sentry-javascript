@@ -1,5 +1,6 @@
-import * as path from 'node:path';
-import type { Client, Event, EventProcessor } from '@sentry/core';
+import { HTTP_REQUEST_METHOD, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
+import type { Client, EventProcessor } from '@sentry/core';
 import {
   _INTERNAL_captureOptionsSetByUser,
   applySdkMetadata,
@@ -7,10 +8,12 @@ import {
   debug,
   DEFAULT_ENVIRONMENT,
   DEV_ENVIRONMENT,
+  escapeStringForRegex,
   getClient,
   isClientClosed,
 } from '@sentry/core';
 import { init as initNode } from '@sentry/node';
+import { getNuxtBuildAssetsPath, getNuxtPublicFilePaths } from '../common/buildAssets';
 import { DEBUG_BUILD } from '../common/debug-build';
 import {
   isNuxtDevRuntime,
@@ -59,6 +62,7 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
   const sentryOptions = {
     environment: options.environment ?? process.env.SENTRY_ENVIRONMENT ?? envFallback,
     ..._INTERNAL_captureOptionsSetByUser(options),
+    ignoreSpans: [...(options.ignoreSpans || []), ...getBuildAssetRequestFilters(), ...getPublicFileRequestFilters()],
   };
 
   applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'node']);
@@ -71,44 +75,40 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
 
   // On the client, not the global scope, so a later `init()` after
   // `close()` does not stack another copy.
-  client?.addEventProcessor(lowQualityTransactionsFilter(options));
   client?.addEventProcessor(clientSourceMapErrorFilter(options));
 
   return client;
 }
 
 /**
- * Filter out transactions for resource requests which we don't want to send to Sentry
- * for quota reasons.
- *
- * Only exported for testing
+ * Ignores build output that the HTTP integration's static asset filter misses, such as `.map` and `.json` files.
+ * Matches `url.path`, because a span name has no path yet when `ignoreSpans` runs. A runtime `NUXT_APP_BASE_URL`
+ * disables this filter, because the path comes from build-time config.
  */
-export function lowQualityTransactionsFilter(options: SentryNuxtServerOptions): EventProcessor {
-  return Object.assign(
-    (event => {
-      if (event.type !== 'transaction' || !event.transaction || isCacheEvent(event)) {
-        return event;
-      }
+function getBuildAssetRequestFilters(): NonNullable<SentryNuxtServerOptions['ignoreSpans']> {
+  const buildAssetsPath = getNuxtBuildAssetsPath();
+  return buildAssetsPath
+    ? [{ op: HTTP_SERVER, attributes: { [URL_PATH]: new RegExp(`^${escapeStringForRegex(buildAssetsPath)}`) } }]
+    : [];
+}
 
-      // Check if this looks like a parametrized route (contains :param or :param() patterns)
-      const hasRouteParameters = /\/:[^(/\s]*(\([^)]*\))?[^/\s]*/.test(event.transaction);
-
-      if (hasRouteParameters) {
-        return event;
-      }
-
-      // We don't want to send transaction for file requests, so everything ending with a *.someExtension should be filtered out
-      // path.extname will return an empty string for normal page requests
-      if (path.extname(event.transaction)) {
-        options.debug &&
-          DEBUG_BUILD &&
-          debug.log('NuxtLowQualityTransactionsFilter filtered transaction: ', event.transaction);
-        return null;
-      }
-      return event;
-    }) satisfies EventProcessor,
-    { id: 'NuxtLowQualityTransactionsFilter' },
-  );
+/**
+ * Ignores files from `public/` that the HTTP integration's static asset filter misses, such as `.pdf` and `.txt` files.
+ * Matches exact paths, because a route can share a prefix with a public dir.
+ */
+function getPublicFileRequestFilters(): NonNullable<SentryNuxtServerOptions['ignoreSpans']> {
+  const paths = getNuxtPublicFilePaths();
+  return paths.length
+    ? [
+        {
+          op: HTTP_SERVER,
+          attributes: {
+            [HTTP_REQUEST_METHOD]: 'GET',
+            [URL_PATH]: new RegExp(`^(?:${paths.map(escapeStringForRegex).join('|')})$`),
+          },
+        },
+      ]
+    : [];
 }
 
 /**
@@ -128,11 +128,4 @@ export function clientSourceMapErrorFilter(options: SentryNuxtServerOptions): Ev
     }) satisfies EventProcessor,
     { id: 'NuxtClientSourceMapErrorFilter' },
   );
-}
-
-/**
- * Checks if the event is a cache event.
- */
-function isCacheEvent(e: Event): boolean {
-  return e.contexts?.trace?.origin === 'auto.cache.nuxt';
 }

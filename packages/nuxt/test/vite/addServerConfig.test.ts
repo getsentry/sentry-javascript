@@ -115,6 +115,9 @@ describe('wrapEntryWithDynamicImport', () => {
 
 const addTemplateMock = vi.hoisted(() => vi.fn());
 const addNitroPluginMock = vi.hoisted(() => vi.fn());
+const getNitroPublicFilePathsMock = vi.hoisted(() => vi.fn((): string[] => []));
+
+vi.mock('../../src/vite/publicFiles', () => ({ getNitroPublicFilePaths: getNitroPublicFilePathsMock }));
 
 vi.mock('@nuxt/kit', () => ({
   addTemplate: addTemplateMock,
@@ -137,19 +140,28 @@ describe('addServerConfigPlugin', () => {
   } {
     const hooks: Record<string, (nitroConfig: NitroConfig) => void> = {};
     const nuxt = {
-      options: { rootDir: APP_ROOT, buildDir: path.join(APP_ROOT, '.nuxt'), nitro: {} },
+      options: {
+        rootDir: APP_ROOT,
+        buildDir: path.join(APP_ROOT, '.nuxt'),
+        nitro: {},
+        app: { baseURL: '/', buildAssetsDir: '/_nuxt/' },
+      },
       hook: (name: string, callback: (nitroConfig: NitroConfig) => void) => {
-        hooks[name] = callback;
+        const previous = hooks[name];
+        hooks[name] = arg => {
+          previous?.(arg);
+          callback(arg);
+        };
       },
     } as unknown as Parameters<typeof addServerConfigPlugin>[0];
 
     return { nuxt, hooks };
   }
 
-  function templateContents(filename: string): string {
+  function templateContents(filename: string, nuxt: Parameters<typeof addServerConfigPlugin>[0]): string {
     const call = addTemplateMock.mock.calls.find(args => args[0]?.filename === filename);
     expect(call).toBeDefined();
-    return call?.[0].getContents();
+    return call?.[0].getContents({ nuxt });
   }
 
   beforeEach(() => {
@@ -164,7 +176,7 @@ describe('addServerConfigPlugin', () => {
 
     addServerConfigPlugin(nuxt, APP_CONFIG, true);
 
-    expect(templateContents('sentry-server-config-plugin.mjs')).toBe(
+    expect(templateContents('sentry-server-config-plugin.mjs', nuxt)).toBe(
       `import ${JSON.stringify(flagsDst)};\nimport ${JSON.stringify(APP_CONFIG)};\nexport default () => {};\n`,
     );
     expect(addNitroPluginMock).toHaveBeenCalledWith(pluginDst);
@@ -175,10 +187,36 @@ describe('addServerConfigPlugin', () => {
 
     addServerConfigPlugin(nuxt, APP_CONFIG, true);
 
-    const contents = templateContents('sentry-runtime-flags.mjs');
+    const contents = templateContents('sentry-runtime-flags.mjs', nuxt);
     expect(contents).toContain('globalThis.__SENTRY_NUXT_DEV_MODE__ = import.meta.dev === true;');
     expect(contents).toContain('globalThis.__SENTRY_NUXT_PRERENDER__ = import.meta.prerender === true;');
     expect(contents).toContain('globalThis.__SENTRY_NUXT_NITRO_PRESET__ = import.meta.preset;');
+  });
+
+  it('passes the configured `app.baseURL` and `app.buildAssetsDir` to the server SDK', () => {
+    const { nuxt } = createFakeNuxt();
+    nuxt.options.app.baseURL = '/shop/';
+    nuxt.options.app.buildAssetsDir = '/assets/';
+
+    addServerConfigPlugin(nuxt, APP_CONFIG, true);
+
+    const contents = templateContents('sentry-runtime-flags.mjs', nuxt);
+    expect(contents).toContain('globalThis.__sentry_nuxt_base_path = "/shop/";');
+    expect(contents).toContain('globalThis.__sentry_nuxt_build_assets_dir = "/assets/";');
+  });
+
+  it('passes the public files that Nitro serves to the server SDK', () => {
+    getNitroPublicFilePathsMock.mockReturnValueOnce(['/humans.txt', '/docs/guide.pdf']);
+    const { nuxt, hooks } = createFakeNuxt();
+    addServerConfigPlugin(nuxt, APP_CONFIG, true);
+    const nitro = { options: { preset: 'node-server', plugins: [] } };
+
+    hooks['nitro:init']!(nitro as never);
+
+    expect(getNitroPublicFilePathsMock).toHaveBeenCalledWith(nitro, nuxt);
+    expect(templateContents('sentry-runtime-flags.mjs', nuxt)).toContain(
+      'globalThis.__sentry_nuxt_public_files = ["/humans.txt","/docs/guide.pdf"];',
+    );
   });
 
   it('marks the config and the flags as side-effectful so tree shaking cannot drop them', () => {

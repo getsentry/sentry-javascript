@@ -1,8 +1,11 @@
 import type { Options } from '@sentry/core';
 import { applyBrowserTunnelDefaults, GLOBAL_OBJ } from '@sentry/core';
 
-/** Set by the generated client config plugin to the app's runtime `app.baseURL`. */
-export const NUXT_TUNNEL_BASE_PATH_GLOBAL = '__sentry_nuxt_base_path';
+/**
+ * Holds `app.baseURL`. Set by the generated client config plugin (runtime value) and server runtime-flags module
+ * (build-time value).
+ */
+export const NUXT_BASE_PATH_GLOBAL = '__sentry_nuxt_base_path';
 
 /**
  * Serves the managed tunnel under the app's `app.baseURL`, which a proxy in front of the app may be the only path
@@ -10,6 +13,6 @@ export const NUXT_TUNNEL_BASE_PATH_GLOBAL = '__sentry_nuxt_base_path';
  * A `basePath` the user set wins.
  */
 export function applyNuxtTunnelBasePath(options: Pick<Options, 'tunnel'>): void {
-  const basePath = (GLOBAL_OBJ as { [NUXT_TUNNEL_BASE_PATH_GLOBAL]?: string })[NUXT_TUNNEL_BASE_PATH_GLOBAL];
+  const basePath = (GLOBAL_OBJ as { [NUXT_BASE_PATH_GLOBAL]?: string })[NUXT_BASE_PATH_GLOBAL];
   options.tunnel = applyBrowserTunnelDefaults(options.tunnel, { basePath });
 }
