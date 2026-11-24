@@ -21,8 +21,10 @@ import {
   startSpanManual,
   withIsolationScope,
 } from '@sentry/core';
-import type { Observable as InstrumentedObservable, ReflectWithMetadata } from './helpers';
-import { instrumentObservable, isExpectedError, isWsOrRpcException } from './helpers';
+import type { ReflectWithMetadata } from './helpers';
+import { isExpectedError, isWsOrRpcException } from './helpers';
+import type { Observable as InstrumentedObservable } from './observable';
+import { instrumentObservable } from './observable';
 
 // `@nestjs/websockets`' metadata key for the `@WebSocketGateway()` options.
 const GATEWAY_OPTIONS = 'websockets:gateway_options';

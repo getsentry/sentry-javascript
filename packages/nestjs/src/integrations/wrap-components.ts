@@ -1,9 +1,10 @@
 import type { Span } from '@sentry/core';
 import { getActiveSpan, isThenable, startInactiveSpan, startSpan, startSpanManual, withActiveSpan } from '@sentry/core';
 import type { AnyFn } from './helpers';
-import { instrumentObservable } from '../helpers';
+import type { Observable } from '../observable';
+import { instrumentObservable } from '../observable';
 import { getMiddlewareSpanOptions, getNextProxy, isTargetPatched } from './helpers';
-import type { CallHandler, CatchTarget, InjectableTarget, MinimalNestJsExecutionContext, Observable } from './types';
+import type { CallHandler, CatchTarget, InjectableTarget, MinimalNestJsExecutionContext } from './types';
 
 /**
  * Shared span-emitting logic for `@Injectable`

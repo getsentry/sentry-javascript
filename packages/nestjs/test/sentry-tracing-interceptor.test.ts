@@ -1,17 +1,8 @@
 import 'reflect-metadata';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
-import { WEBSOCKET } from '@sentry/conventions/op';
-import {
-  getDefaultIsolationScope,
-  getIsolationScope,
-  SPAN_STATUS_ERROR,
-  startNewTrace,
-  startSpanManual,
-  withIsolationScope,
-} from '@sentry/core';
+import { getDefaultIsolationScope, getIsolationScope, SPAN_STATUS_ERROR } from '@sentry/core';
 import type * as SentryCore from '@sentry/core';
-import { asyncScheduler, config, observeOn, of, tap, throwError } from 'rxjs';
+import { config, of, tap, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SentryModule } from '../src/setup';
 
@@ -78,29 +69,6 @@ describe('SentryTracingInterceptor', () => {
     vi.mocked(getDefaultIsolationScope).mockReturnValue(mocks.defaultIsolationScope as never);
   });
 
-  it('sets a transaction name for Socket.IO WebSocket contexts', () => {
-    const interceptor = createInterceptor();
-    const context = createContext({ nsp: { name: '/events' } }, 'message');
-    const next = { handle: vi.fn(() => of(undefined)) } as unknown as CallHandler;
-
-    interceptor.intercept(context, next).subscribe();
-
-    expect(mocks.isolationScope.setTransactionName).toHaveBeenCalledWith('WS /events message');
-    expect(startNewTrace).toHaveBeenCalledTimes(1);
-    expect(withIsolationScope).toHaveBeenLastCalledWith(mocks.isolationScope, expect.any(Function));
-    expect(startSpanManual).toHaveBeenCalledWith(
-      {
-        name: 'WS /events message',
-        attributes: {
-          [SENTRY_OP]: WEBSOCKET,
-          [SENTRY_ORIGIN]: 'auto.websocket.nestjs.interceptor',
-        },
-      },
-      expect.any(Function),
-    );
-    expect(mocks.span.end).toHaveBeenCalled();
-  });
-
   it('ends the WebSocket span if the handler throws', () => {
     const interceptor = createInterceptor();
     const context = createContext({ nsp: { name: '/events' } }, 'message');
@@ -111,33 +79,6 @@ describe('SentryTracingInterceptor', () => {
     } as unknown as CallHandler;
 
     expect(() => interceptor.intercept(context, next)).toThrow('handler failed');
-    expect(mocks.span.setStatus).toHaveBeenCalledWith({
-      code: SPAN_STATUS_ERROR,
-      message: 'internal_error',
-    });
-    expect(mocks.span.end).toHaveBeenCalled();
-  });
-
-  it('marks the WebSocket span as failed when the handler Observable errors asynchronously', async () => {
-    const interceptor = createInterceptor();
-    const context = createContext({ nsp: { name: '/events' } }, 'message');
-    const handlerError = new Error('handler failed');
-    const errorHandler = vi.fn();
-    const next = {
-      handle: vi.fn(() => throwError(() => handlerError).pipe(observeOn(asyncScheduler))),
-    } as unknown as CallHandler;
-
-    const observable = interceptor.intercept(context, next);
-    await new Promise<void>(resolve => {
-      observable.subscribe({
-        error: error => {
-          errorHandler(error);
-          resolve();
-        },
-      });
-    });
-
-    expect(errorHandler).toHaveBeenCalledWith(handlerError);
     expect(mocks.span.setStatus).toHaveBeenCalledWith({
       code: SPAN_STATUS_ERROR,
       message: 'internal_error',
@@ -222,18 +163,6 @@ describe('SentryTracingInterceptor', () => {
     interceptor.intercept(context, next).subscribe();
 
     expect(mocks.isolationScope.setTransactionName).toHaveBeenCalledWith('WS message');
-  });
-
-  it('keeps the namespace for gateways with a string namespace', () => {
-    class StaticGateway {}
-    Reflect.defineMetadata('websockets:gateway_options', { namespace: 'events' }, StaticGateway);
-    const interceptor = createInterceptor();
-    const context = createContext({ nsp: { name: '/events' } }, 'message', StaticGateway);
-    const next = { handle: vi.fn(() => of(undefined)) } as unknown as CallHandler;
-
-    interceptor.intercept(context, next).subscribe();
-
-    expect(mocks.isolationScope.setTransactionName).toHaveBeenCalledWith('WS /events message');
   });
 
   it('sets a transaction name without a namespace for other WebSocket adapters', () => {

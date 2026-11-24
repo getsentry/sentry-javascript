@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { Observable } from '../helpers';
-
-export type { Observable, Subscription } from '../helpers';
+import type { Observable } from '../observable';
 
 // Partial extract of FastifyRequest interface
 // https://github.com/fastify/fastify/blob/87f9f20687c938828f1138f91682d568d2a31e53/types/request.d.ts#L41
