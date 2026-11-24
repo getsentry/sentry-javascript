@@ -1,4 +1,5 @@
 import {
+  SENTRY_CLIENT_SAMPLE_RATE,
   SENTRY_ENVIRONMENT,
   SENTRY_MESSAGE_TEMPLATE,
   SENTRY_RELEASE,
@@ -16,6 +17,7 @@ import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
 import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
+import { sampleTelemetry } from '../tracing/samplingUnit';
 import type { Integration } from '../types/integration';
 import type { Log, SerializedLog } from '../types/log';
 import { consoleSandbox, debug } from '../utils/debug-logger';
@@ -100,6 +102,13 @@ export function _INTERNAL_captureLog(
     return;
   }
 
+  // PoC: Logs and metrics follow the decision of their session or conversation. Outside of one, they are sent.
+  const { sampled, sampleRate } = sampleTelemetry(client, currentScope);
+  if (!sampled) {
+    client.recordDroppedEvent('sample_rate', 'log_item', 1);
+    return;
+  }
+
   const { release, environment, beforeSendLog } = client.getOptions();
 
   const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
@@ -148,6 +157,11 @@ export function _INTERNAL_captureLog(
     __sentry_template_values__.forEach((param, index) => {
       processedLogAttributes[`sentry.message.parameter.${index}`] = param;
     });
+  }
+
+  if (sampleRate !== undefined && sampleRate < 1) {
+    // Sentry needs the rate to extrapolate counts of sampled logs
+    processedLogAttributes[SENTRY_CLIENT_SAMPLE_RATE] = sampleRate;
   }
 
   const span = getActiveSpan(currentScope);

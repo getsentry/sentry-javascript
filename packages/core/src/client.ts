@@ -43,6 +43,7 @@ import { getPossibleEventMessages, isInternalException } from './utils/eventUtil
 import { isObjectLike, isParameterizedString, isPlainObject, isPrimitive } from './utils/is';
 import { merge } from './utils/merge';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
+import { resolveSamplingUnit } from './tracing/samplingUnit';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
@@ -1485,7 +1486,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
-    const isSampledOut = isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate;
+    // PoC: Errors in a sampled session or conversation are always sent. In an unsampled one, and outside of
+    // any, they follow `sampleRate` as before.
+    const isSampledOut =
+      isError &&
+      typeof parsedSampleRate === 'number' &&
+      !resolveSamplingUnit(options, currentScope, isolationScope)?.sampled &&
+      safeMathRandom() > parsedSampleRate;
     const dataCategory = getDataCategoryByType(event.type);
     // Spans that event processors removed are already recorded in `prepareEvent`, so all later
     // span outcomes are relative to the span count of the prepared event.

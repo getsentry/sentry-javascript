@@ -20,7 +20,6 @@ import { shouldIgnoreSpan } from '../utils/should-ignore-span';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
 import { parseSampleRate } from '../utils/parseSampleRate';
 import { generateTraceId } from '../utils/propagationContext';
-import { safeMathRandom } from '../utils/randomSafeContext';
 import { _setSpanForScope } from '../utils/spanOnScope';
 import {
   addChildSpanToSpan,
@@ -34,6 +33,7 @@ import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tra
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
+import { getSampleRandForNewTrace, getSamplingUnitForNewTrace } from './samplingUnit';
 import { SentryNonRecordingSpan, spanIsNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
@@ -292,7 +292,8 @@ export function startNewTrace<T>(callback: () => T): T {
     return withScope(scope => {
       scope.setPropagationContext({
         traceId: generateTraceId(),
-        sampleRand: safeMathRandom(),
+        // PoC: A new trace takes the `sample_rand` of its session or conversation, if `sampleBy` is set
+        sampleRand: getSampleRandForNewTrace(getClient(), scope),
       });
       DEBUG_BUILD && debug.log(`Starting a new trace with id ${scope.getPropagationContext().traceId}`);
       return callback();
@@ -491,22 +492,28 @@ function _startRootSpan(
   const finalParentSampled = mutableSpanSamplingData.parentSampled ?? parentSampled;
   const finalAttributes = mutableSpanSamplingData.spanAttributes;
 
+  // PoC: If we are the head of this trace and it belongs to a session or conversation that the SDK samples by,
+  // the decision of that unit applies. `tracesSampleRate` and `tracesSampler` are not consulted.
+  const samplingUnit = getSamplingUnitForNewTrace(options, scope, isolationScope, finalParentSampled);
+
   const currentPropagationContext = scope.getPropagationContext();
   const _isTracingSuppressed = isTracingSuppressed(scope);
 
   const [sampled, sampleRate, localSampleRateWasApplied, dropReason] = _isTracingSuppressed
     ? [false]
-    : sampleSpan(
-        options,
-        {
-          name,
-          parentSampled: finalParentSampled,
-          attributes: finalAttributes,
-          normalizedRequest: isolationScope.getScopeData().sdkProcessingMetadata.normalizedRequest,
-          parentSampleRate: parseSampleRate(currentPropagationContext.dsc?.sample_rate),
-        },
-        currentPropagationContext.sampleRand,
-      );
+    : samplingUnit
+      ? [samplingUnit.sampled, samplingUnit.sampleRate, true]
+      : sampleSpan(
+          options,
+          {
+            name,
+            parentSampled: finalParentSampled,
+            attributes: finalAttributes,
+            normalizedRequest: isolationScope.getScopeData().sdkProcessingMetadata.normalizedRequest,
+            parentSampleRate: parseSampleRate(currentPropagationContext.dsc?.sample_rate),
+          },
+          currentPropagationContext.sampleRand,
+        );
 
   const rootSpan = new SentrySpan({
     ...spanArguments,

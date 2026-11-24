@@ -6,6 +6,7 @@ import {
   getClient,
   getDebugImagesForResources,
   GLOBAL_OBJ,
+  resolveSamplingUnit,
   _INTERNAL_performanceTimeToSeconds,
   uuid4,
 } from '@sentry/core';
@@ -287,6 +288,14 @@ export function shouldProfileSession(options: BrowserOptions): boolean {
   if (options.profileLifecycle !== 'trace' && options.profileLifecycle !== 'manual') {
     DEBUG_BUILD && debug.warn('[Profiling] Session not sampled. Invalid `profileLifecycle` option.');
     return false;
+  }
+
+  // PoC: With session-based sampling, the profiler runs in exactly the sampled sessions.
+  // `profileSessionSampleRate` is not consulted. To sample profiles independently again, compare
+  // `profileSessionSampleRate` against `samplingUnit.sampleRand` here.
+  const samplingUnit = resolveSamplingUnit(options);
+  if (samplingUnit) {
+    return samplingUnit.sampled;
   }
 
   //  Session sampling: profileSessionSampleRate gates whether profiling is enabled for this session

@@ -9,6 +9,7 @@ import type { TracesSamplerSamplingContext } from './samplingcontext';
 import type { SdkMetadata } from './sdkmetadata';
 import type { SpanJSON, StreamedSpanJSON } from './span';
 import type { StackLineParser, StackParser } from './stacktrace';
+import type { SampleBy } from '../tracing/samplingUnit';
 import type { TracePropagationTargets } from './tracing';
 import type { BaseTransportOptions, Transport } from './transport';
 
@@ -292,6 +293,33 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * @default 1.0
    */
   sampleRate?: number;
+
+  /**
+   * PoC: What `telemetrySampleRate` samples by: `'session'`, `'conversation'`, or a function that returns any key,
+   * for example a tenant id or a request header.
+   *
+   * Pass several values to fall back, for example `['session', 'conversation']`. The first one that is
+   * available wins. If none is available, the existing options apply (`tracesSampleRate`, `sampleRate`, ...).
+   *
+   * @experimental
+   * @default undefined
+   */
+  sampleBy?: SampleBy | SampleBy[];
+
+  /**
+   * PoC: Sample rate for the units defined by `sampleBy`, for example sessions.
+   *
+   * The SDK makes one decision per unit. In a sampled unit it sends all spans, logs, metrics, errors, replays
+   * and profiles. In an unsampled unit it sends none of them, except errors, which follow `sampleRate`.
+   * 0.0 samples no unit, 1.0 samples all units.
+   *
+   * Inside a unit, `tracesSampleRate`, `tracesSampler`, `replaysSessionSampleRate` and
+   * `profileSessionSampleRate` are not consulted. They still apply to telemetry outside of a unit.
+   *
+   * @experimental
+   * @default undefined
+   */
+  telemetrySampleRate?: number;
 
   /**
    * Maximum number of chars a single value can have before it will be truncated.
