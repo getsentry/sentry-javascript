@@ -134,6 +134,7 @@ export { _INTERNAL_wrapRequestHandler, getDefaultIntegrations, init as _INTERNAL
 export { getFinalOptions as _INTERNAL_getFinalOptions } from './options';
 
 export { httpServerIntegration } from './integrations/httpServer';
+export { addServerTimingTraceHeader } from '@sentry/server-utils/request-handler';
 export { fetchIntegration } from './integrations/fetch';
 export type { FetchIntegrationOptions } from '@sentry/core';
 export { spotlightIntegration } from './integrations/spotlight';
