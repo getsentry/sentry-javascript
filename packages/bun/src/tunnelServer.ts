@@ -1,11 +1,8 @@
 import * as http from 'node:http';
 import * as https from 'node:https';
-import { _INTERNAL_normalizeTunnelBasePath, debug } from '@sentry/core';
-import {
-  _INTERNAL_getServedTunnel as getServedTunnel,
-  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
-} from '@sentry/core/server';
-import { _INTERNAL_instrumentTunnelServer as instrumentTunnelServer } from '@sentry/server-utils';
+import { normalizeTunnelBasePath, debug } from '@sentry/core';
+import { getServedTunnel, handleServedTunnelRequest } from '@sentry/core/server';
+import { instrumentTunnelServer } from '@sentry/server-utils';
 import type { Server } from 'bun';
 
 type BunServeOptions = Parameters<typeof Bun.serve>[0] & { routes?: Record<string, unknown> };
@@ -113,7 +110,7 @@ function getTunnelRoutePaths(): string[] {
     return [];
   }
 
-  const basePath = _INTERNAL_normalizeTunnelBasePath(servedTunnel.basePath);
+  const basePath = normalizeTunnelBasePath(servedTunnel.basePath);
 
   return servedTunnel.paths.flatMap(path => [`${basePath}${path}`, `${basePath}${path}/`]);
 }

@@ -85,6 +85,6 @@ export function applyServerTunnelDefaults(client: Client | undefined): void {
  *
  * @internal
  */
-export function _INTERNAL_resetTunnelDefaults(): void {
+export function resetTunnelDefaults(): void {
   setStoredTunnelDefaults(undefined);
 }

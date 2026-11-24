@@ -2,6 +2,7 @@
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
 import {
+  _INTERNAL_captureOptionsSetByUser,
   applySdkMetadata,
   debug,
   getGlobalScope,
@@ -15,10 +16,7 @@ import {
 } from '@sentry/core';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
-import {
-  _INTERNAL_forwardTunnelRequest as forwardTunnelRequest,
-  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
-} from '@sentry/core/server';
+import { forwardTunnelRequest, setTunnelDefaults } from '@sentry/core/server';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getInjectedBasePath } from '../common/utils/basePath';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
@@ -107,7 +105,7 @@ export function init(options: VercelEdgeOptions = {}): void {
     defaultIntegrations: customDefaultIntegrations,
     environment: options.environment || process.env.SENTRY_ENVIRONMENT,
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
     // Override runtime to 'cloudflare' when running on OpenNext/Cloudflare
     ...(isRunningOnCloudflare && { runtime: { name: 'cloudflare' } }),
   };

@@ -196,7 +196,7 @@ export {
   wrapMcpServerWithSentry,
 } from '@sentry/core/server';
 export type { TunnelRequestLike } from '@sentry/core/server';
-export { installTunnelHooks as _INTERNAL_installTunnelHooks, serveTunnelIntegration } from './integrations/serveTunnel';
+export { serveTunnelIntegration } from './integrations/serveTunnel';
 export { addServerTimingTraceHeader } from './utils/serverTimingHeader';
 export { getTunnelPath, handleTunnelRequest } from '@sentry/core';
 export type { HandleTunnelRequestOptions, ServerTunnelOptions } from '@sentry/core';
@@ -253,7 +253,7 @@ export { workerThreadsIntegration } from './integrations/workerThreads';
 export { NODE_VERSION } from './nodeVersion';
 export { defaultStackParser, getSentryRelease } from './sdk/api';
 export { getHttpAgent, makeNodeTransport } from './transports';
-export { createGetModuleFromFilename } from './utils/module';
+export { createGetModuleFromFilename } from '@sentry/server-utils';
 
 export { eveConversationHook, eveIntegration, getInstrumentedModuleNames } from '@sentry/server-utils';
 export { eveInstrumentation } from './eve';

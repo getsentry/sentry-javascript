@@ -120,3 +120,11 @@ Deno.test('getDefaultIntegrations is getDefaultIntegrationsWithoutPerformance pl
   assertEquals(full.slice(0, base.length), base);
   assertArrayIncludes(full.slice(base.length), ['Graphql', 'Postgres', 'OpenAI']);
 });
+
+Deno.test('the default stack parser fills the module of frames', () => {
+  const client = init({});
+  const frames = client
+    .getOptions()
+    .stackParser('Error\n    at handle (file:///app/node_modules/postgres/src/connection.js:10:5)');
+  assertEquals(frames[0]?.module, 'postgres.src:connection');
+});

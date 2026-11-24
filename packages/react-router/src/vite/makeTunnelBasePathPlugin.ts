@@ -17,7 +17,7 @@ export function makeTunnelBasePathPlugin(): Plugin {
 
       return {
         code: `${code}
-import { _INTERNAL_setTunnelBasePath as __sentrySetTunnelBasePath } from '@sentry/react-router';
+import { setTunnelBasePath as __sentrySetTunnelBasePath } from '@sentry/react-router';
 __sentrySetTunnelBasePath(typeof basename === 'string' ? basename : undefined);
 `,
         map: null,

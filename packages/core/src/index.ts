@@ -102,11 +102,7 @@ export { safeCallback } from './utils/safeCallback';
 export { parameterize, fmt } from './utils/parameterize';
 export type { HandleTunnelRequestOptions } from './utils/tunnelForward';
 export { handleTunnelRequest } from './utils/tunnelForward';
-export {
-  applyBrowserTunnelDefaults as _INTERNAL_applyBrowserTunnelDefaults,
-  getTunnelPath,
-  normalizeTunnelBasePath as _INTERNAL_normalizeTunnelBasePath,
-} from './utils/tunnel';
+export { applyBrowserTunnelDefaults, getTunnelPath, normalizeTunnelBasePath } from './utils/tunnel';
 export { addAutoIpAddressToSession } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,
@@ -569,5 +565,7 @@ export {
 export { warnOnRemovedBuildOptions } from './build-time-plugins/warnOnRemovedBuildOptions';
 export { resolveSourceMapsFeatures } from './build-time-plugins/resolveSourceMapsFeatures';
 export type { SourceMapsFeatures } from './build-time-plugins/resolveSourceMapsFeatures';
+export { warnOnConflictingSourceMapOptions } from './build-time-plugins/warnOnConflictingSourceMapOptions';
+export type { ConflictingSourceMapOptions } from './build-time-plugins/warnOnConflictingSourceMapOptions';
 export { stringifyForCodeInjection } from './build-time-plugins/stringifyForCodeInjection';
 export { startSpan, startInactiveSpan, startSpanManual } from './tracing/trace';

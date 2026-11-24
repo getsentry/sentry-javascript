@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { applySdkMetadata, debug, getClient, isClientClosed } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata, debug, getClient, isClientClosed } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getDefaultNodeIntegrations, init as nodeInit } from '@sentry/node';
 import { DEBUG_BUILD } from '../utils/debug-build';
@@ -22,7 +22,9 @@ export function getRemixDefaultIntegrations(options: RemixOptions): Integration[
 }
 
 /** Initializes Sentry Remix SDK on Node. */
-export function init(options: RemixOptions): NodeClient | undefined {
+export function init(userOptions: RemixOptions): NodeClient | undefined {
+  const options = _INTERNAL_captureOptionsSetByUser(userOptions);
+
   applySdkMetadata(options, 'remix', ['remix', 'node']);
 
   const existingClient = getClient<NodeClient>();

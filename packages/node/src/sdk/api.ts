@@ -3,7 +3,7 @@
 import type { StackParser } from '@sentry/core';
 import { createStackParser, GLOBAL_OBJ } from '@sentry/core';
 import { _INTERNAL_getReleaseFromCommitEnv as getReleaseFromCommitEnv, nodeStackLineParser } from '@sentry/core/server';
-import { createGetModuleFromFilename } from '../utils/module';
+import { createGetModuleFromFilename } from '@sentry/server-utils';
 
 /**
  * Returns a release dynamically from environment variables.

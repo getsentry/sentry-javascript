@@ -3,7 +3,7 @@ import { waitForError, waitForStreamedSpan, getSpanOp } from '@sentry-internal/t
 
 test('Sends correct error event', async ({ page, baseURL }) => {
   const errorEventPromise = waitForError('react-router-7-spa-streaming', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
+    return !event.type && event.exception?.values?.[0]?.value === 'I am an error!' && event.request?.url === page.url();
   });
 
   await page.goto('/');
@@ -31,14 +31,18 @@ test('Sends correct error event', async ({ page, baseURL }) => {
 
 test('Sets correct transactionName', async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('react-router-7-spa-streaming', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment;
+    return (
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      String(span.attributes['url.full']?.value).endsWith('/?test=error-transaction')
+    );
   });
 
   const errorEventPromise = waitForError('react-router-7-spa-streaming', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
+    return !event.type && event.exception?.values?.[0]?.value === 'I am an error!' && event.request?.url === page.url();
   });
 
-  await page.goto('/');
+  await page.goto('/?test=error-transaction');
   const pageloadSpan = await pageloadSpanPromise;
 
   // Only capture error once pageload span was sent

@@ -2,7 +2,13 @@ import { getDefaultIntegrations as getBrowserDefaultIntegrations, init as initBr
 import { URL_FULL } from '@sentry/conventions/attributes';
 import { HTTP_CLIENT } from '@sentry/conventions/op';
 import type { Client } from '@sentry/core';
-import { applySdkMetadata, DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT, escapeStringForRegex } from '@sentry/core';
+import {
+  _INTERNAL_captureOptionsSetByUser,
+  applySdkMetadata,
+  DEFAULT_ENVIRONMENT,
+  DEV_ENVIRONMENT,
+  escapeStringForRegex,
+} from '@sentry/core';
 import { getNuxtPublicBuildAssetsUrl } from '../common/buildAssets';
 import { applyNuxtTunnelBasePath } from '../common/tunnel';
 import type { SentryNuxtClientOptions } from '../common/types';
@@ -18,7 +24,7 @@ export function init(options: SentryNuxtClientOptions): Client | undefined {
     /* BrowserTracing is added later with the Nuxt client plugin */
     defaultIntegrations: [...getBrowserDefaultIntegrations(options)],
     environment: options.environment ?? process.env.SENTRY_ENVIRONMENT ?? envFallback,
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
     ignoreSpans: [...(options.ignoreSpans || []), ...getBuildManifestRequestFilters()],
   };
 

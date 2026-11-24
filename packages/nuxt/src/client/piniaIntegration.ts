@@ -29,9 +29,17 @@ const _piniaIntegration = ((
   };
 }) satisfies IntegrationFn;
 
+const definedPiniaIntegration = defineIntegration(_piniaIntegration);
+
 /**
  * Monitor an existing Pinia store.
  *
  * This only works if "@pinia/nuxt" is added to the `modules` array.
  */
-export const piniaIntegration = defineIntegration(_piniaIntegration);
+export const piniaIntegration: typeof definedPiniaIntegration = (pinia, options = {}) => {
+  const integration = definedPiniaIntegration(pinia, options);
+  // The first argument is the Pinia instance, so `defineIntegration` records that instead of the options.
+  integration._options = options;
+
+  return integration;
+};

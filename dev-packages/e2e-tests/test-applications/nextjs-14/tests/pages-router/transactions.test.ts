@@ -2,9 +2,14 @@ import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isDevMode } from '../isDevMode';
 
-test('Sends a pageload span', async ({ page }) => {
+test('Sends a pageload span', async ({ page, baseURL }) => {
   const pageloadSpanPromise = waitForStreamedSpan('nextjs-14', span => {
-    return getSpanOp(span) === 'pageload' && span.name === '/pages-router' && span.is_segment;
+    return (
+      getSpanOp(span) === 'pageload' &&
+      span.name === '/pages-router' &&
+      span.is_segment &&
+      span.attributes['url.full']?.value === new URL('/pages-router', baseURL).href
+    );
   });
 
   await page.goto('/pages-router');

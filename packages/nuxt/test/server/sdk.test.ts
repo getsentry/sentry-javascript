@@ -31,6 +31,7 @@ describe('Nuxt Server SDK', () => {
 
       const expectedMetadata = {
         _metadata: {
+          optionsSetByUser: ['dsn'],
           sdk: {
             name: 'sentry.javascript.nuxt',
             version: SDK_VERSION,

@@ -1,14 +1,21 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
-import { endedByIdleTimeout } from './helpers';
+import { setTestUser, endedByIdleTimeout } from './helpers';
 
-test('Creates navigation span when navigating with query parameters from home to route', async ({ page }) => {
+test.beforeEach(setTestUser);
+
+test('Creates navigation span when navigating with query parameters from home to route', async ({ page }, testInfo) => {
   await page.goto('/');
 
   // Navigate from / to /delayed-lazy/123?source=homepage
   // This should create a navigation transaction with the parameterized route name
   const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/delayed-lazy/:id';
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name === '/delayed-lazy/:id'
+    );
   });
 
   const navigationLink = page.locator('id=navigation-to-delayed-lazy-with-query');
@@ -32,7 +39,7 @@ test('Creates navigation span when navigating with query parameters from home to
   expect(navigationEvent.status).toBe('ok');
 });
 
-test('Creates separate navigation spans for multiple query parameter changes', async ({ page }) => {
+test('Creates separate navigation spans for multiple query parameter changes', async ({ page }, testInfo) => {
   await page.goto('/delayed-lazy/123');
 
   const delayedReady = page.locator('id=delayed-lazy-ready');
@@ -40,7 +47,12 @@ test('Creates separate navigation spans for multiple query parameter changes', a
 
   // First query change: /delayed-lazy/123 -> /delayed-lazy/123?view=detailed
   const firstNavigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/delayed-lazy/:id';
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name === '/delayed-lazy/:id'
+    );
   });
 
   const firstQueryLink = page.locator('id=link-to-query-view-detailed');
@@ -58,6 +70,7 @@ test('Creates separate navigation spans for multiple query parameter changes', a
   // Second query change: /delayed-lazy/123?view=detailed -> /delayed-lazy/123?view=list
   const secondNavigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
+      span.attributes['user.id']?.value === testInfo.testId &&
       span.is_segment &&
       getSpanOp(span) === 'navigation' &&
       span.name === '/delayed-lazy/:id' &&
@@ -86,7 +99,7 @@ test('Creates separate navigation spans for multiple query parameter changes', a
   expect(firstTraceId).not.toBe(secondTraceId);
 });
 
-test('Creates separate navigation spans for multiple hash changes', async ({ page }) => {
+test('Creates separate navigation spans for multiple hash changes', async ({ page }, testInfo) => {
   await page.goto('/delayed-lazy/123');
 
   const delayedReady = page.locator('id=delayed-lazy-ready');
@@ -94,7 +107,12 @@ test('Creates separate navigation spans for multiple hash changes', async ({ pag
 
   // First hash change: /delayed-lazy/123 -> /delayed-lazy/123#section1
   const firstNavigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/delayed-lazy/:id';
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name === '/delayed-lazy/:id'
+    );
   });
 
   const firstHashLink = page.locator('id=link-to-hash-section1');
@@ -111,6 +129,7 @@ test('Creates separate navigation spans for multiple hash changes', async ({ pag
   // Second hash change: /delayed-lazy/123#section1 -> /delayed-lazy/123#section2
   const secondNavigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
+      span.attributes['user.id']?.value === testInfo.testId &&
       span.is_segment &&
       getSpanOp(span) === 'navigation' &&
       span.name === '/delayed-lazy/:id' &&
@@ -139,7 +158,7 @@ test('Creates separate navigation spans for multiple hash changes', async ({ pag
   expect(firstTraceId).not.toBe(secondTraceId);
 });
 
-test('Creates navigation span when changing both query and hash on same route', async ({ page }) => {
+test('Creates navigation span when changing both query and hash on same route', async ({ page }, testInfo) => {
   await page.goto('/delayed-lazy/123?view=list');
 
   const delayedReady = page.locator('id=delayed-lazy-ready');
@@ -149,7 +168,12 @@ test('Creates navigation span when changing both query and hash on same route', 
   // Navigate from /delayed-lazy/123?view=list to /delayed-lazy/123?view=grid#results
   // This changes both query and hash
   const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/delayed-lazy/:id';
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name === '/delayed-lazy/:id'
+    );
   });
 
   const queryAndHashLink = page.locator('id=link-to-query-and-hash');
@@ -170,10 +194,14 @@ test('Creates navigation span when changing both query and hash on same route', 
   expect(navigationEvent.status).toBe('ok');
 });
 
-test('Query/hash navigation does not corrupt span name', async ({ page }) => {
+test('Query/hash navigation does not corrupt span name', async ({ page }, testInfo) => {
   const navigationTransactions: Array<{ name: string }> = [];
 
   const collectorPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    if (span.attributes['user.id']?.value !== testInfo.testId) {
+      return false;
+    }
+
     if (span.is_segment && getSpanOp(span) === 'navigation') {
       navigationTransactions.push({ name: span.name });
     }

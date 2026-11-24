@@ -1,6 +1,6 @@
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import { defineCloudflareOptions as defineCloudflareOptionsBase } from '@sentry/cloudflare';
-import { applySdkMetadata } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata } from '@sentry/core';
 import { solidServerErrorsIntegration } from './errors';
 
 /**
@@ -29,7 +29,8 @@ export const defineCloudflareOptions: typeof defineCloudflareOptionsBase = (
       return undefined;
     }
 
-    const opts: CloudflareOptions = { ...options };
+    // Captured before the Solid integrations are added, so they are not reported as the user's.
+    const opts: CloudflareOptions = { ..._INTERNAL_captureOptionsSetByUser(options) };
     // Added through `integrations` rather than a prebuilt `defaultIntegrations` list: the Cloudflare SDK builds its
     // defaults at `init`, after wrappers such as `instrumentWorkflowWithSentry` changed the options they depend on.
     if (opts.defaultIntegrations === undefined) {

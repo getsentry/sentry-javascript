@@ -16,14 +16,14 @@ test('propagates the navigation trace (not the stale pageload trace) for a fetch
   });
 
   const pageloadSpanPromise = waitForStreamedSpan('react-router-spa', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment;
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.attributes['url.full']?.value === page.url();
   });
 
   const navigationSpanPromise = waitForStreamedSpan('react-router-spa', span => {
     return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/products';
   });
 
-  await page.goto('/');
+  await page.goto('/?test=trace-propagation');
   const pageloadSpan = await pageloadSpanPromise;
 
   await page.locator('id=navigation-products').click();

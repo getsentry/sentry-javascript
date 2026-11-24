@@ -115,7 +115,7 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     if (clientConfigFile || serverConfigFile) {
-      setupSourceMaps(moduleOptions, nuxt, addVitePlugin, !!clientConfigFile);
+      setupSourceMaps(moduleOptions, nuxt, addVitePlugin, !!clientConfigFile, serverApi === 'nuxt');
     }
 
     let pagesData: NuxtPageSubset[] = [];

@@ -2,6 +2,7 @@ import { URL_PATH } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Client, EventProcessor } from '@sentry/core';
 import {
+  _INTERNAL_captureOptionsSetByUser,
   applySdkMetadata,
   consoleSandbox,
   debug,
@@ -60,7 +61,7 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
 
   const sentryOptions = {
     environment: options.environment ?? process.env.SENTRY_ENVIRONMENT ?? envFallback,
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
     ignoreSpans: [...(options.ignoreSpans || []), ...getBuildAssetRequestFilters()],
   };
 

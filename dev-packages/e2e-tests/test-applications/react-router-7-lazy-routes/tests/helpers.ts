@@ -1,6 +1,13 @@
-import type { Page } from '@playwright/test';
+import type { Page, TestInfo } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { getSpanOp, waitForStreamedSpans } from '@sentry-internal/test-utils';
+
+// Parallel tests exercise the same routes, so URL and span name cannot identify their browser.
+export async function setTestUser({ page }: { page: Page }, testInfo: TestInfo): Promise<void> {
+  await page.addInitScript(testId => {
+    Object.assign(window, { __E2E_TEST_ID__: testId });
+  }, testInfo.testId);
+}
 
 // Streamed `http.client` names are only `<METHOD> <domain>`, so the request URL has to come from
 // the `url.full` attribute.
@@ -29,11 +36,13 @@ export function childSpans(spans: SerializedStreamedSpan[]): SerializedStreamedS
 export function collectUntilNavigationSegment(
   name: string,
   onSpan: (span: SerializedStreamedSpan) => void,
+  testId: string,
 ): Promise<SerializedStreamedSpan[]> {
   return waitForStreamedSpans('react-router-7-lazy-routes', spans => {
-    spans.forEach(onSpan);
-    return spans.some(span => span.is_segment && getSpanOp(span) === 'navigation' && span.name === name);
-  });
+    const ownSpans = spans.filter(span => span.attributes['user.id']?.value === testId);
+    ownSpans.forEach(onSpan);
+    return ownSpans.some(span => span.is_segment && getSpanOp(span) === 'navigation' && span.name === name);
+  }).then(spans => spans.filter(span => span.attributes['user.id']?.value === testId));
 }
 
 /**

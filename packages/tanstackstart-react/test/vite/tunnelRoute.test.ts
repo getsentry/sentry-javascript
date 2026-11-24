@@ -1,6 +1,6 @@
 import type { Client } from '@sentry/core';
 import { getCurrentScope, getTunnelPath, makeDsn } from '@sentry/core';
-import { _INTERNAL_resetTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
+import { resetTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
 import type { Plugin, ResolvedConfig, UserConfig } from 'vite';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -120,7 +120,7 @@ describe('server entry tunnel vite plugin', () => {
     const load = setup(undefined, '', undefined, 'my-app@1.2.3');
 
     expect(await load(USER_ENTRY)).toBe(`import "virtual:sentry-tanstackstart-release";
-import { _INTERNAL_addReleaseMetaTag as addReleaseMetaTag, _INTERNAL_setTunnelRoute as setTunnelRoute } from "${SDK_ID}";
+import { _INTERNAL_addReleaseMetaTag as addReleaseMetaTag, setTunnelRoute } from "${SDK_ID}";
 import serverEntry from "${USER_ENTRY}?sentry-tunnel-original";
 export * from "${USER_ENTRY}?sentry-tunnel-original";
 export default addReleaseMetaTag(serverEntry, "my-app@1.2.3");
@@ -161,7 +161,7 @@ setTunnelRoute(undefined, "");
     const load = setup(undefined, '', resolve);
 
     expect(await load('/app/node_modules/@tanstack/react-start/dist/default-entry/esm/server.js')).toContain(
-      `import { _INTERNAL_setTunnelRoute as setTunnelRoute } from "${SDK_ID}";`,
+      `import { setTunnelRoute } from "${SDK_ID}";`,
     );
     expect(resolve).toHaveBeenCalledWith('@sentry/tanstackstart-react', '/app/package.json', { skipSelf: true });
   });
@@ -206,7 +206,7 @@ describe('server entry tunnel vite plugin in `vite dev`', () => {
 
   afterEach(() => {
     getCurrentScope().setClient(undefined);
-    _INTERNAL_resetTunnelDefaults();
+    resetTunnelDefaults();
   });
 
   /** Sets a client, with `serveTunnelIntegration` set up when `managedTunnel` is given. */

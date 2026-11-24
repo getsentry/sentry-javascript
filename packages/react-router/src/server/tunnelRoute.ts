@@ -1,4 +1,4 @@
-import { _INTERNAL_setTunnelDefaults as setTunnelDefaults } from '@sentry/core/server';
+import { setTunnelDefaults } from '@sentry/core/server';
 
 /**
  * Serves the managed tunnel under the app's `basename`, which React Router leaves in the request URL.

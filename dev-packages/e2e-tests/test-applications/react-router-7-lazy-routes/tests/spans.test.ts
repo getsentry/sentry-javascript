@@ -1,11 +1,18 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
-import { getStartedNavigationSpanCount } from './helpers';
+import { setTestUser, getStartedNavigationSpanCount } from './helpers';
 
-test('Creates a pageload span but no navigation span on initial load to deep lazy route', async ({ page }) => {
+test.beforeEach(setTestUser);
+
+test('Creates a pageload span but no navigation span on initial load to deep lazy route', async ({
+  page,
+}, testInfo) => {
   const transactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
@@ -25,10 +32,13 @@ test('Creates a pageload span but no navigation span on initial load to deep laz
   expect(await getStartedNavigationSpanCount(page)).toBe(0);
 });
 
-test('Creates a navigation span inside a lazy route', async ({ page }) => {
+test('Creates a navigation span inside a lazy route', async ({ page }, testInfo) => {
   const transactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
@@ -54,15 +64,23 @@ test('Creates a navigation span inside a lazy route', async ({ page }) => {
   expect(event.status).toBe('ok');
 });
 
-test('Creates navigation spans between two different lazy routes', async ({ page }) => {
+test('Creates navigation spans between two different lazy routes', async ({ page }, testInfo) => {
   // Set up transaction listeners for both navigations
   const firstTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/another-lazy/sub/:id/:subId';
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name === '/another-lazy/sub/:id/:subId'
+    );
   });
 
   const secondTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
@@ -104,7 +122,7 @@ test('Creates navigation spans between two different lazy routes', async ({ page
 
 test('Creates navigation spans from inner lazy route to another lazy route with history navigation', async ({
   page,
-}) => {
+}, testInfo) => {
   await page.goto('/');
 
   // Navigate to inner lazy route first
@@ -114,7 +132,10 @@ test('Creates navigation spans from inner lazy route to another lazy route with 
   // First, navigate to the inner lazy route
   const firstTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
@@ -137,7 +158,12 @@ test('Creates navigation spans from inner lazy route to another lazy route with 
 
   // Now navigate from the inner lazy route to another lazy route
   const secondTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/another-lazy/sub/:id/:subId';
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name === '/another-lazy/sub/:id/:subId'
+    );
   });
 
   await navigationToAnotherFromInner.click();
@@ -156,7 +182,10 @@ test('Creates navigation spans from inner lazy route to another lazy route with 
   // Go back to the previous page to ensure history navigation works as expected
   const goBackTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
@@ -171,7 +200,12 @@ test('Creates navigation spans from inner lazy route to another lazy route with 
 
   // Navigate to the upper route
   const goUpperRouteTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId';
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name === '/lazy/inner/:id/:anotherId'
+    );
   });
 
   const navigationToUpper = page.locator('id=navigate-to-upper');
@@ -186,11 +220,17 @@ test('Creates navigation spans from inner lazy route to another lazy route with 
   expect(getSpanOp(goUpperRouteEvent)).toBe('navigation');
 });
 
-test('Does not send any duplicate navigation span names browsing between different routes', async ({ page }) => {
+test('Does not send any duplicate navigation span names browsing between different routes', async ({
+  page,
+}, testInfo) => {
   const transactionNamesList: string[] = [];
 
   // Monitor and add all transaction names sent to Sentry for the navigations
   const allTransactionsPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    if (span.attributes['user.id']?.value !== testInfo.testId) {
+      return false;
+    }
+
     if (span.is_segment) {
       transactionNamesList.push(span.name);
     }
@@ -245,9 +285,16 @@ test('Does not send any duplicate navigation span names browsing between differe
   ]);
 });
 
-test('Does not create premature navigation span during long-running lazy route pageload', async ({ page }) => {
+test('Does not create premature navigation span during long-running lazy route pageload', async ({
+  page,
+}, testInfo) => {
   const pageloadPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/long-running/slow/:id';
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.name === '/long-running/slow/:id'
+    );
   });
 
   await page.goto('/long-running/slow/12345');
@@ -263,7 +310,7 @@ test('Does not create premature navigation span during long-running lazy route p
   expect(await getStartedNavigationSpanCount(page)).toBe(0);
 });
 
-test('Allows legitimate POP navigation (back/forward) after pageload completes', async ({ page }) => {
+test('Allows legitimate POP navigation (back/forward) after pageload completes', async ({ page }, testInfo) => {
   await page.goto('/');
 
   const navigationToLongRunning = page.locator('id=navigation-to-long-running');
@@ -271,11 +318,21 @@ test('Allows legitimate POP navigation (back/forward) after pageload completes',
 
   // Set up transaction listeners for both navigations
   const firstNavigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/long-running/slow/:id';
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name === '/long-running/slow/:id'
+    );
   });
 
   const backNavigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/';
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name === '/'
+    );
   });
 
   await navigationToLongRunning.click();
@@ -303,9 +360,14 @@ test('Allows legitimate POP navigation (back/forward) after pageload completes',
   expect(getSpanOp(backNavigationEvent)).toBe('navigation');
 });
 
-test('Creates pageload span with parameterized route for delayed lazy route', async ({ page }) => {
+test('Creates pageload span with parameterized route for delayed lazy route', async ({ page }, testInfo) => {
   const pageloadPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/delayed-lazy/:id';
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.name === '/delayed-lazy/:id'
+    );
   });
 
   await page.goto('/delayed-lazy/123');
@@ -322,7 +384,7 @@ test('Creates pageload span with parameterized route for delayed lazy route', as
   expect(pageloadEvent.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
-test('Creates navigation span with correct name for slow lazy route', async ({ page }) => {
+test('Creates navigation span with correct name for slow lazy route', async ({ page }, testInfo) => {
   // This test verifies that navigating to a slow lazy route (with top-level await)
   // creates a correctly named navigation transaction.
   // The route uses handle.lazyChildren with a 500ms delay.
@@ -330,7 +392,12 @@ test('Creates navigation span with correct name for slow lazy route', async ({ p
   await page.goto('/');
 
   const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/slow-fetch/:id';
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name === '/slow-fetch/:id'
+    );
   });
 
   // Navigate to slow-fetch route (500ms delay)

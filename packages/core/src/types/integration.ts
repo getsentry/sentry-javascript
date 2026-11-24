@@ -9,6 +9,9 @@ export interface Integration {
    */
   name: string;
 
+  /** @internal Options captured for SDK configuration reporting. */
+  _options?: unknown;
+
   /**
    * This hook is only called once, even if multiple clients are created.
    * It does not receives any arguments, and should only use for e.g. global monkey patching and similar things.

@@ -7,15 +7,12 @@ import {
   shouldIgnoreSpan,
   withIsolationScope,
 } from '@sentry/core';
+import * as SentryServerUtils from '@sentry/server-utils';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import { close, getCurrentScope, getGlobalScope } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  _INTERNAL_resetTunnelDefaults,
-  handleTunnelRequestIfMatched,
-  serveTunnelIntegration,
-} from '@sentry/core/server';
+import { resetTunnelDefaults, handleTunnelRequestIfMatched, serveTunnelIntegration } from '@sentry/core/server';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../src/common/span-attributes-with-logic-attached';
 import { init } from '../src/server';
 import type * as NextSentryPropagatorModule from '../src/server/nextSentryPropagator';
@@ -126,7 +123,7 @@ describe('Server init()', () => {
     afterEach(() => {
       delete globalWithInjectedValues._sentryBasePath;
       delete globalWithInjectedValues._sentryTunnelRoute;
-      _INTERNAL_resetTunnelDefaults();
+      resetTunnelDefaults();
     });
 
     it('serves the fixed path of the `tunnelRoute` without `serveTunnelIntegration`', () => {
@@ -148,12 +145,14 @@ describe('Server init()', () => {
     ])('installs the tunnel hooks %s only without the generated route', (_description, env, calls) => {
       globalWithInjectedValues._sentryTunnelRoute = '/monitoring';
       Object.entries(env).forEach(([name, value]) => vi.stubEnv(name, value));
-      const installTunnelHooks = vi.spyOn(SentryNode, '_INTERNAL_installTunnelHooks').mockImplementation(() => {});
+      const instrumentTunnelServers = vi
+        .spyOn(SentryServerUtils, 'instrumentTunnelServers')
+        .mockImplementation(() => {});
 
       init({ dsn: TEST_DSN });
 
-      expect(installTunnelHooks).toHaveBeenCalledTimes(calls);
-      installTunnelHooks.mockRestore();
+      expect(instrumentTunnelServers).toHaveBeenCalledTimes(calls);
+      instrumentTunnelServers.mockRestore();
       vi.unstubAllEnvs();
     });
 

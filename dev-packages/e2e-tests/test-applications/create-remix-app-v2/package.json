@@ -32,7 +32,7 @@
     "@types/react-dom": "^18.2.34",
     "typescript": "^5.1.6",
     "vite": "^5.4.11",
-    "vite-tsconfig-paths": "^4.2.1"
+    "vite-tsconfig-paths": "^6.1.1"
   },
   "sentryTest": {
     "variants": [

@@ -1,5 +1,6 @@
 import type { browserTracingIntegration } from '@sentry/browser';
 import type { Integration } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import type { ReactRouterOptions } from './reactrouter-compat-utils';
 import {
   createReactRouterV6CompatibleTracingIntegration,
@@ -10,17 +11,21 @@ import {
 } from './reactrouter-compat-utils';
 import type { CreateRouterFunction, Router, RouterState, UseRoutes } from './types';
 
+function _reactRouterV6BrowserTracingIntegration(
+  options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
+): Integration {
+  return createReactRouterV6CompatibleTracingIntegration(options, '6');
+}
+
 /**
  * A browser tracing integration that uses React Router v6 to instrument navigations.
  * Expects `useEffect`, `useLocation`, `useNavigationType`, `createRoutesFromChildren` and `matchRoutes` to be passed as options.
  *
  * @deprecated Use `reactRouterBrowserTracingIntegration` instead.
  */
-export function reactRouterV6BrowserTracingIntegration(
-  options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
-): Integration {
-  return createReactRouterV6CompatibleTracingIntegration(options, '6');
-}
+export const reactRouterV6BrowserTracingIntegration: typeof _reactRouterV6BrowserTracingIntegration = defineIntegration(
+  _reactRouterV6BrowserTracingIntegration,
+);
 
 /**
  * A wrapper function that adds Sentry routing instrumentation to a React Router v6 useRoutes hook.

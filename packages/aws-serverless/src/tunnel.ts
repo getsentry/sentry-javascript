@@ -1,9 +1,5 @@
 import { debug } from '@sentry/core';
-import {
-  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
-  _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
-  _INTERNAL_pickForwardedHeaders as pickForwardedHeaders,
-} from '@sentry/core/server';
+import { handleServedTunnelRequest, isServedTunnelRequest, pickForwardedHeaders } from '@sentry/core/server';
 import { DEBUG_BUILD } from './debug-build';
 
 /**

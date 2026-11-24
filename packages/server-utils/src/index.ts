@@ -69,11 +69,9 @@ export { piDurableIntegration } from './integrations/pi-durable';
 export type { FlueOptions } from './ai/flue';
 export { mastraIntegration } from './integrations/mastra';
 export { mcpServerIntegration } from './integrations/mcp-server';
-export {
-  instrumentTunnelServers as _INTERNAL_instrumentTunnelServers,
-  makeServeTunnelIntegration,
-} from './integrations/serveTunnel';
-export { instrumentTunnelServer as _INTERNAL_instrumentTunnelServer } from './utils/tunnelServer';
+export { instrumentTunnelServers, makeServeTunnelIntegration } from './integrations/serveTunnel';
+export { instrumentTunnelServer } from './utils/tunnelServer';
+export { createGetModuleFromFilename } from './utils/module';
 export { SentryMastraExporter } from './ai/mastra';
 export { lruMemoizerIntegration } from './integrations/lru-memoizer';
 export { mongoIntegration } from './integrations/mongodb';

@@ -1,13 +1,18 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
-import { waitForIdleSpanEnd } from './helpers';
+import { setTestUser, waitForIdleSpanEnd } from './helpers';
+
+test.beforeEach(setTestUser);
 
 test('Updates pageload span name correctly when span is cancelled early (document.hidden simulation)', async ({
   page,
-}) => {
+}, testInfo) => {
   const transactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
@@ -53,12 +58,15 @@ test('Updates pageload span name correctly when span is cancelled early (documen
 
 test('Updates navigation span name correctly when span is cancelled early (document.hidden simulation)', async ({
   page,
-}) => {
+}, testInfo) => {
   await page.goto('/?idleTimeout=5000');
 
   const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
@@ -83,9 +91,14 @@ test('Updates navigation span name correctly when span is cancelled early (docum
 // Regression: Pageload to slow lazy route should get parameterized name even if span ends early
 test('Slow lazy route pageload with early span end still gets parameterized route name (regression)', async ({
   page,
-}) => {
+}, testInfo) => {
   const transactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment && span.name.startsWith('/slow-fetch');
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.name.startsWith('/slow-fetch')
+    );
   });
 
   // idleTimeout=300 ends span before 500ms lazy route loads, timeout=1000 waits for lazy routes
@@ -103,9 +116,14 @@ test('Slow lazy route pageload with early span end still gets parameterized rout
 });
 
 // Regression: Wildcard route names should be upgraded to parameterized routes when lazy routes load
-test('Wildcard route pageload gets upgraded to parameterized route name (regression)', async ({ page }) => {
+test('Wildcard route pageload gets upgraded to parameterized route name (regression)', async ({ page }, testInfo) => {
   const transactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment && span.name.startsWith('/wildcard-lazy');
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.name.startsWith('/wildcard-lazy')
+    );
   });
 
   await page.goto('/wildcard-lazy/456?idleTimeout=300&timeout=1000');
@@ -122,7 +140,7 @@ test('Wildcard route pageload gets upgraded to parameterized route name (regress
 // Network activity from dynamic imports extends the idle timeout until lazy routes load.
 test('Slow lazy route navigation with early span end still gets parameterized route name (regression)', async ({
   page,
-}) => {
+}, testInfo) => {
   // Configure short idle timeout (300ms) but longer lazy route timeout (1000ms)
   await page.goto('/?idleTimeout=300&timeout=1000');
 
@@ -130,7 +148,12 @@ test('Slow lazy route navigation with early span end still gets parameterized ro
   await waitForIdleSpanEnd(page);
 
   const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name.startsWith('/wildcard-lazy');
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name.startsWith('/wildcard-lazy')
+    );
   });
 
   // Navigate to wildcard-lazy route (500ms delay in module via top-level await)
@@ -149,7 +172,9 @@ test('Slow lazy route navigation with early span end still gets parameterized ro
 });
 
 // lazyRouteManifest: provides parameterized name when lazy routes don't resolve in time
-test('Route manifest provides correct name when navigation span ends before lazy route resolves', async ({ page }) => {
+test('Route manifest provides correct name when navigation span ends before lazy route resolves', async ({
+  page,
+}, testInfo) => {
   // Short idle timeout (50ms) ensures span ends before lazy route (500ms) resolves
   await page.goto('/?idleTimeout=50&timeout=0');
 
@@ -157,7 +182,12 @@ test('Route manifest provides correct name when navigation span ends before lazy
   await waitForIdleSpanEnd(page);
 
   const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'navigation' && span.is_segment && span.name.startsWith('/wildcard-lazy');
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'navigation' &&
+      span.is_segment &&
+      span.name.startsWith('/wildcard-lazy')
+    );
   });
 
   // Navigate to wildcard-lazy route (500ms delay in module via top-level await)
@@ -174,10 +204,17 @@ test('Route manifest provides correct name when navigation span ends before lazy
   expect(event.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
-test('Route manifest provides correct name when pageload span ends before lazy route resolves', async ({ page }) => {
+test('Route manifest provides correct name when pageload span ends before lazy route resolves', async ({
+  page,
+}, testInfo) => {
   // Short idle timeout (50ms) ensures span ends before lazy route (500ms) resolves
   const pageloadPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment && span.name.startsWith('/wildcard-lazy');
+    return (
+      span.attributes['user.id']?.value === testInfo.testId &&
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.name.startsWith('/wildcard-lazy')
+    );
   });
 
   await page.goto('/wildcard-lazy/123?idleTimeout=50&timeout=0');

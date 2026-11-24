@@ -12,6 +12,7 @@ import {
 } from '@sentry/browser';
 import type { Client, Integration } from '@sentry/core';
 import {
+  _INTERNAL_captureOptionsSetByUser,
   applySdkMetadata,
   consoleIntegration,
   conversationIdIntegration,
@@ -55,7 +56,7 @@ export function getDefaultIntegrations(_options: BrowserOptions = {}): Integrati
 export function init(options: BrowserOptions): Client | undefined {
   const opts = {
     defaultIntegrations: getDefaultIntegrations(),
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
   };
 
   applySdkMetadata(opts, 'angular');

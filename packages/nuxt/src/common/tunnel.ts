@@ -1,5 +1,5 @@
 import type { Options } from '@sentry/core';
-import { _INTERNAL_applyBrowserTunnelDefaults as applyBrowserTunnelDefaults, GLOBAL_OBJ } from '@sentry/core';
+import { applyBrowserTunnelDefaults, GLOBAL_OBJ } from '@sentry/core';
 
 /**
  * Holds `app.baseURL`. Set by the generated client config plugin (runtime value) and server runtime-flags module

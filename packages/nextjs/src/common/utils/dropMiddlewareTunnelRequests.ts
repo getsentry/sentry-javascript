@@ -1,13 +1,7 @@
 import { HTTP_TARGET, URL_FULL, URL_PATH, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { Client, ClientOptions, RawAttributes } from '@sentry/core';
-import {
-  _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath,
-  escapeStringForRegex,
-  getClient,
-  isSentryRequestUrl,
-  type Span,
-} from '@sentry/core';
-import { _INTERNAL_getServedTunnel as getServedTunnel } from '@sentry/core/server';
+import { normalizeTunnelBasePath, escapeStringForRegex, getClient, isSentryRequestUrl, type Span } from '@sentry/core';
+import { getServedTunnel } from '@sentry/core/server';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 import {
   getTunnelRouteRequestPattern,
