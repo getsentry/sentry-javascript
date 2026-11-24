@@ -1,7 +1,7 @@
 import type { CfProperties, IncomingRequestCfProperties } from '@cloudflare/workers-types';
 import { NETWORK_PROTOCOL_NAME, NETWORK_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
-import { getIsolationScope, safeCallback } from '@sentry/core';
+import { addNonEnumerableProperty, getIsolationScope, safeCallback } from '@sentry/core';
 import {
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
   _INTERNAL_setScopeFlushedByRuntime as setScopeFlushedByRuntime,
@@ -54,11 +54,20 @@ function stripVinextInternalData(
     // headers (the body is only read for the best-effort `normalizedRequest.data`, see
     // `captureBodyFromWinterCGRequest`), and a teed body would leave an unread branch that
     // backpressures the original body on workerd. The handler still receives the original.
-    return new Request(url.toString(), {
+    const sanitized = new Request(url.toString(), {
       method: request.method,
       headers,
       signal: request.signal,
+      cf: request.cf,
     });
+    // `wrapServerRequestHandler` passes this request to the `onSpanCreated`/`onSpanEnd` and
+    // `ignoreIncomingRequests`/`ignoreRequestBody` callbacks, which read Cloudflare metadata
+    // off it. `cf` in `RequestInit` is honored by workerd but ignored by some runtimes
+    // (undici drops it), so attach it directly when it did not survive construction.
+    if (sanitized.cf === undefined && request.cf !== undefined) {
+      addNonEnumerableProperty(sanitized, 'cf', request.cf);
+    }
+    return sanitized;
   } catch {
     // Never break the request to hide data: if sanitizing fails, record the original.
     return request;
@@ -158,7 +167,7 @@ export function wrapRequestHandlerWithInit(
     return wrapServerRequestHandler(
       {
         // The response-stage request of vinext's Workers Cache adapter carries vinext's internal
-        // data; record a sanitized copy so it never lands in spans or error events. The handler
+        // data; record a sanitized copy so it does not land in spans or error events. The handler
         // itself still receives the original request.
         request: stripVinextInternalData(request),
         client,
