@@ -30,10 +30,19 @@ function getPublicFilePaths(publicDirs: PublicDir[], baseURL: string): string[] 
   return publicDirs
     .flatMap(({ dir, baseURL: dirURL }) =>
       listFiles(path.resolve(dir)).map(file =>
-        path.posix.join('/', dirURL ?? '', path.relative(path.resolve(dir), file).split(path.sep).join('/')),
+        path.posix.join('/', dirURL ?? '', toUrlPath(path.relative(path.resolve(dir), file))),
       ),
     )
     .filter(urlPath => !isStaticAssetRequest(path.posix.join('/', baseURL, urlPath)));
+}
+
+/**
+ * Percent-encodes the file path the way a browser encodes the request path, because spans store the encoded path.
+ * `%`, `#` and `?` are part of the file name, so they are escaped before URL parsing.
+ */
+function toUrlPath(relativeFilePath: string): string {
+  const filePath = relativeFilePath.split(path.sep).join('/').replace(/[%#?]/g, encodeURIComponent);
+  return new URL(filePath, 'http://localhost/').pathname;
 }
 
 function listFiles(dir: string): string[] {
@@ -41,10 +50,10 @@ function listFiles(dir: string): string[] {
     return [];
   }
 
-  return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
-    const entryPath = path.join(dir, entry.name);
-    return entry.isDirectory() ? listFiles(entryPath) : entry.isFile() ? [entryPath] : [];
-  });
+  return fs
+    .readdirSync(dir, { recursive: true, withFileTypes: true })
+    .filter(entry => entry.isFile())
+    .map(entry => path.join(entry.parentPath, entry.name));
 }
 
 /** Also true for the dir itself. */

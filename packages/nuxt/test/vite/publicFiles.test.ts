@@ -54,6 +54,26 @@ describe('getNitroPublicFilePaths', () => {
     ]);
   });
 
+  it('percent-encodes the file names like the request path', () => {
+    const publicDir = writeFiles(path.join(rootDir, 'public'), [
+      'my file.pdf',
+      'café.txt',
+      'docs/100%.txt',
+      'a#b?c.txt',
+      '[id].txt',
+    ]);
+
+    expect(
+      getNitroPublicFilePaths(createNitro([{ dir: publicDir, baseURL: '/caf%C3%A9/' }]), createNuxt()).sort(),
+    ).toEqual([
+      '/caf%C3%A9/[id].txt',
+      '/caf%C3%A9/a%23b%3Fc.txt',
+      '/caf%C3%A9/caf%C3%A9.txt',
+      '/caf%C3%A9/docs/100%25.txt',
+      '/caf%C3%A9/my%20file.pdf',
+    ]);
+  });
+
   it('skips the client build, which the build asset filter covers', () => {
     const clientBuildDir = writeFiles(path.join(rootDir, '.nuxt/dist/client'), ['_nuxt/builds/latest.json']);
 
