@@ -615,7 +615,11 @@ function startSpanFromEvent(
         ...(recordInputs && !(isStrippedInput(event.state) && isStrippedInput(event.fields))
           ? {
               [GEN_AI_INPUT_MESSAGES]: stringify([
-                { state: event.state, fields: event.fields, referenceDate: event.referenceDate },
+                {
+                  ...toExtractState(event.state).request,
+                  fields: event.fields,
+                  reference_date: event.referenceDate,
+                },
               ]),
             }
           : {}),
@@ -822,7 +826,7 @@ export function enrichSpanOnEnd(span: Span, data: VercelAiChannelMessage): void 
   span.setAttributes(providerAttributes);
 
   if (recordOutputs) {
-    const outputMessages = getOutputMessages(type, result, finishReason);
+    const outputMessages = getOutputMessages(type, result, finishReason, data.event);
     if (outputMessages) {
       span.setAttribute(GEN_AI_OUTPUT_MESSAGES, outputMessages);
     }
@@ -833,12 +837,15 @@ function getOutputMessages(
   type: ChannelEventType,
   result: Record<string, unknown>,
   finishReason: string | undefined,
+  event: Record<string, unknown>,
 ): string | undefined {
   if (type === 'experimental_evaluate' || type === 'experimental_decide') {
     return getEvaluationOutputMessages(withProviderAnswerFields(result));
   }
   if (type === 'experimental_extract') {
-    return result.answers === undefined ? undefined : stringify([{ answers: result.answers }]);
+    return isObjectLike(result.answers)
+      ? stringify([{ answers: toExtractAnswers(result.answers, toExtractState(event.state).parts) }])
+      : undefined;
   }
   // `languageModelCall` exposes the response as a `content` parts array; top-level results expose
   // `text` + `toolCalls`. Both normalize into the OTel `gen_ai.output.messages` assistant message.
@@ -847,6 +854,115 @@ function getOutputMessages(
       ? partsFromContent(result.content)
       : partsFromTextAndToolCalls(result.text, result.toolCalls);
   return buildOutputMessages(parts, finishReason);
+}
+
+const EXTRACT_STATE_SEPARATOR = '\n\n';
+const BLOB_SUBSTITUTE = '[Blob substitute]';
+
+interface ExtractState {
+  request: { state?: string; images?: string[]; documents?: string[] };
+  /** For each AI SDK state part, the offset of its text in `request.state`, or `'image'` for an image part. */
+  parts: (number | 'image' | undefined)[];
+}
+
+/**
+ * Clairic takes the text as one `state` string, with images and PDF documents in their own arrays. The AI SDK
+ * also takes a JSON object, or an array of text, JSON and file parts. Join the text of the parts and keep the
+ * offset of each part, so that the answer spans point into the joined `state`.
+ */
+function toExtractState(state: unknown): ExtractState {
+  const parts = Array.isArray(state)
+    ? state
+    : [typeof state === 'string' ? { type: 'text', text: state } : { type: 'json', value: state }];
+  let text: string | undefined;
+  const images: string[] = [];
+  const documents: string[] = [];
+
+  const offsets = parts.map(part => {
+    if (!isObjectLike(part)) {
+      return undefined;
+    }
+    if (part.type === 'file') {
+      const mediaType = asString(part.mediaType);
+      if (mediaType?.startsWith('image/')) {
+        images.push(BLOB_SUBSTITUTE);
+        return 'image' as const;
+      }
+      if (mediaType === 'application/pdf') {
+        documents.push(BLOB_SUBSTITUTE);
+      }
+      return undefined;
+    }
+    const partText =
+      part.type === 'text' ? asString(part.text) : part.type === 'json' ? stringify(part.value) : undefined;
+    if (partText === undefined) {
+      return undefined;
+    }
+    const offset = text === undefined ? 0 : text.length + EXTRACT_STATE_SEPARATOR.length;
+    text = text === undefined ? partText : `${text}${EXTRACT_STATE_SEPARATOR}${partText}`;
+    return offset;
+  });
+
+  return {
+    request: {
+      state: text,
+      ...(images.length ? { images } : {}),
+      ...(documents.length ? { documents } : {}),
+    },
+    parts: offsets,
+  };
+}
+
+/**
+ * The AI SDK normalizes the provider's extraction answers. Map them back to the provider shape of
+ * `gen_ai.output.messages` on `gen_ai.extract` spans. The AI SDK does not expose `truncated`.
+ */
+function toExtractAnswers(answers: Record<string, unknown>, parts: ExtractState['parts']): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(answers).map(([id, answer]) => {
+      if (!isObjectLike(answer)) {
+        return [id, answer];
+      }
+      const { pNull, source, items, ...rest } = answer;
+      const mapped: Record<string, unknown> = { ...rest };
+      if (pNull !== undefined) {
+        mapped.p_null = pNull;
+      }
+      const span = toExtractSpan(source, parts);
+      if (span) {
+        mapped.source = 'input';
+        mapped.span = span;
+      } else if (isObjectLike(source) && source.type === 'file' && partAt(parts, source.part) === 'image') {
+        mapped.source = 'image';
+      }
+      if (Array.isArray(items)) {
+        const confidences = items.map(item => (isObjectLike(item) ? asNumber(item.confidence) : undefined));
+        if (confidences.every(confidence => confidence !== undefined)) {
+          mapped.confidences = confidences;
+        }
+        const spans = items.map(item => (isObjectLike(item) ? toExtractSpan(item.source, parts) : null));
+        if (spans.some(itemSpan => itemSpan !== null)) {
+          mapped.spans = spans;
+        }
+      }
+      return [id, mapped];
+    }),
+  );
+}
+
+function partAt(parts: ExtractState['parts'], part: unknown): ExtractState['parts'][number] {
+  const index = asNumber(part);
+  return index === undefined ? undefined : parts[index];
+}
+
+function toExtractSpan(source: unknown, parts: ExtractState['parts']): [number, number] | null {
+  if (!isObjectLike(source) || source.type !== 'text') {
+    return null;
+  }
+  const offset = partAt(parts, source.part);
+  const start = asNumber(source.start);
+  const end = asNumber(source.end);
+  return typeof offset === 'number' && start !== undefined && end !== undefined ? [offset + start, offset + end] : null;
 }
 
 /**

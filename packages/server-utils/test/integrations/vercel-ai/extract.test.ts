@@ -88,7 +88,7 @@ describe('Vercel AI extract spans', () => {
       'vercel.ai.model.provider': 'gateway',
       [GEN_AI_REQUEST_MODEL]: 'cloudflare/clairic',
       [GEN_AI_INPUT_MESSAGES]: JSON.stringify([
-        { state: 'Invoice INV-2291 from Northwind Supply', fields, referenceDate: '2026-01-15' },
+        { state: 'Invoice INV-2291 from Northwind Supply', fields, reference_date: '2026-01-15' },
       ]),
       [GEN_AI_USAGE_INPUT_TOKENS]: 50,
       [GEN_AI_USAGE_OUTPUT_TOKENS]: 4,
@@ -96,6 +96,60 @@ describe('Vercel AI extract spans', () => {
       [GEN_AI_RESPONSE_MODEL]: 'clairic',
       [GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([{ answers }]),
     });
+  });
+
+  it('maps a multi-part state and its answers to the provider shape', () => {
+    const json = runExtract(
+      {
+        provider: 'gateway',
+        modelId: 'cloudflare/clairic',
+        state: [
+          { type: 'text', text: 'Total: $1,080.' },
+          { type: 'file', mediaType: 'image/png', data: new Uint8Array([1, 2, 3]) },
+          { type: 'text', text: 'Ship to Oslo, Bergen.' },
+          { type: 'file', mediaType: 'application/pdf', data: new Uint8Array([4, 5, 6]) },
+        ],
+        fields,
+        recordInputs: true,
+        recordOutputs: true,
+      },
+      {
+        answers: {
+          city: { type: 'text', value: 'Oslo', pNull: 0.01, source: { type: 'text', part: 2, start: 8, end: 12 } },
+          cities: {
+            type: 'list',
+            value: ['Oslo', 'Bergen'],
+            items: [
+              { confidence: 0.9, source: { type: 'text', part: 2, start: 8, end: 12 } },
+              { confidence: 0.8, source: { type: 'file', part: 1 } },
+            ],
+          },
+          logo: { type: 'text', value: 'Northwind', source: { type: 'file', part: 1 } },
+        },
+      },
+    );
+
+    expect(json.data?.[GEN_AI_INPUT_MESSAGES]).toBe(
+      JSON.stringify([
+        {
+          state: 'Total: $1,080.\n\nShip to Oslo, Bergen.',
+          images: ['[Blob substitute]'],
+          documents: ['[Blob substitute]'],
+          fields,
+        },
+      ]),
+    );
+    expect(json.data?.[GEN_AI_OUTPUT_MESSAGES]).toBe(
+      JSON.stringify([
+        {
+          answers: {
+            city: { type: 'text', value: 'Oslo', p_null: 0.01, source: 'input', span: [24, 28] },
+            cities: { type: 'list', value: ['Oslo', 'Bergen'], confidences: [0.9, 0.8], spans: [[24, 28], null] },
+            logo: { type: 'text', value: 'Northwind', source: 'image' },
+          },
+        },
+      ]),
+    );
   });
 
   it('does not record inputs or outputs when recording is off', () => {
