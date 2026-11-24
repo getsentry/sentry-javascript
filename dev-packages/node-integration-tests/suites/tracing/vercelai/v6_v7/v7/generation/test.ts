@@ -11,8 +11,16 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_ENVIRONMENT,
+  SENTRY_IS_LOCALHOST,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  SENTRY_RELEASE,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/conventions/attributes';
 import {
   GEN_AI_DECIDE,
@@ -21,6 +29,8 @@ import {
   GEN_AI_GENERATE_CONTENT,
   GEN_AI_INVOKE_AGENT,
 } from '@sentry/conventions/op';
+import type { SerializedStreamedSpan } from '@sentry/core';
+import { SDK_VERSION } from '@sentry/core';
 import { SUPPORTS_REQUIRE_OF_ESM } from '../../../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../../../utils/runner';
 import { registerVercelAiGenerationTests } from '../../suite';
@@ -140,6 +150,39 @@ describe('Vercel AI integration experimental_extract', () => {
     cleanupChildProcesses();
   });
 
+  function getExtractSpans(container: { items: SerializedStreamedSpan[] }): {
+    extractSpan: SerializedStreamedSpan;
+    segmentSpan: SerializedStreamedSpan;
+  } {
+    const extractSpans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXTRACT);
+    expect(extractSpans).toHaveLength(1);
+    return { extractSpan: extractSpans[0]!, segmentSpan: container.items.find(span => span.is_segment)! };
+  }
+
+  function expectedBaseAttributes(segmentSpan: SerializedStreamedSpan): Record<string, unknown> {
+    return {
+      [SENTRY_ORIGIN]: { type: 'string', value: 'auto.ai.vercelai' },
+      [SENTRY_OP]: { type: 'string', value: GEN_AI_EXTRACT },
+      [GEN_AI_OPERATION_NAME]: { type: 'string', value: 'extract' },
+      [GEN_AI_PROVIDER_NAME]: { type: 'string', value: 'gateway' },
+      'vercel.ai.model.provider': { type: 'string', value: 'gateway' },
+      [GEN_AI_REQUEST_MODEL]: { type: 'string', value: 'cloudflare/clairic' },
+      'vercel.ai.settings.maxRetries': { type: 'integer', value: 2 },
+      [GEN_AI_USAGE_INPUT_TOKENS]: { type: 'integer', value: 50 },
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: { type: 'integer', value: 4 },
+      [GEN_AI_USAGE_TOTAL_TOKENS]: { type: 'integer', value: 54 },
+      [GEN_AI_RESPONSE_MODEL]: { type: 'string', value: 'cloudflare/clairic' },
+      [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
+      [SENTRY_SEGMENT_NAME]: { type: 'string', value: segmentSpan.name },
+      [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpan.span_id },
+      [SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node' },
+      [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+      [SENTRY_RELEASE]: { type: 'string', value: '1.0' },
+      [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
+      [SENTRY_IS_LOCALHOST]: { type: 'boolean', value: false },
+    };
+  }
+
   createEsmTests(
     join(__dirname, '../..'),
     'scenario-extract.mjs',
@@ -149,34 +192,35 @@ describe('Vercel AI integration experimental_extract', () => {
         await createRunner()
           .expect({
             span: container => {
-              const extractSpan = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXTRACT)!;
+              const { extractSpan, segmentSpan } = getExtractSpans(container);
               expect(extractSpan.name).toBe('extract cloudflare/clairic');
               expect(extractSpan.status).toBe('ok');
-              expect(extractSpan.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.vercelai');
-              expect(extractSpan.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('extract');
-              expect(extractSpan.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('gateway');
-              expect(extractSpan.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('cloudflare/clairic');
-              expect(extractSpan.attributes[GEN_AI_RESPONSE_MODEL]?.value).toBe('cloudflare/clairic');
-              expect(extractSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(50);
-              expect(extractSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(4);
-              expect(extractSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(54);
-              expect(JSON.parse(extractSpan.attributes[GEN_AI_INPUT_MESSAGES]?.value as string)).toEqual([
-                {
-                  state: 'Invoice INV-2291 from Northwind Supply. Total due: $1,080.',
-                  fields: {
-                    invoiceNumber: { type: 'text', instructions: 'The invoice number' },
-                    total: { type: 'number', instructions: 'The total amount due' },
-                  },
+              expect(extractSpan.attributes).toEqual({
+                ...expectedBaseAttributes(segmentSpan),
+                [GEN_AI_INPUT_MESSAGES]: {
+                  type: 'string',
+                  value: JSON.stringify([
+                    {
+                      state: 'Invoice INV-2291 from Northwind Supply. Total due: $1,080.',
+                      fields: {
+                        invoiceNumber: { type: 'text', instructions: 'The invoice number' },
+                        total: { type: 'number', instructions: 'The total amount due' },
+                      },
+                    },
+                  ]),
                 },
-              ]);
-              expect(JSON.parse(extractSpan.attributes[GEN_AI_OUTPUT_MESSAGES]?.value as string)).toEqual([
-                {
-                  answers: {
-                    invoiceNumber: { type: 'text', value: 'INV-2291', confidence: 0.98 },
-                    total: { type: 'number', value: 1080, confidence: 0.95 },
-                  },
+                [GEN_AI_OUTPUT_MESSAGES]: {
+                  type: 'string',
+                  value: JSON.stringify([
+                    {
+                      answers: {
+                        invoiceNumber: { type: 'text', value: 'INV-2291', confidence: 0.98 },
+                        total: { type: 'number', value: 1080, confidence: 0.95 },
+                      },
+                    },
+                  ]),
                 },
-              ]);
+              });
             },
           })
           .start()
@@ -199,10 +243,8 @@ describe('Vercel AI integration experimental_extract', () => {
         await createRunner()
           .expect({
             span: container => {
-              const extractSpan = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXTRACT)!;
-              expect(extractSpan.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
-              expect(extractSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
-              expect(JSON.stringify(extractSpan.attributes)).not.toMatch(/Northwind|INV-2291/);
+              const { extractSpan, segmentSpan } = getExtractSpans(container);
+              expect(extractSpan.attributes).toEqual(expectedBaseAttributes(segmentSpan));
             },
           })
           .start()

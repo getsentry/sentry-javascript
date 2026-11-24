@@ -3,13 +3,23 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_PROVIDER_NAME,
+  GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_SEGMENT_NAME_SOURCE,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EXTRACT } from '@sentry/conventions/op';
-import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
+import {
+  getMainCarrier,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  setCurrentClient,
+  spanToStaticSpanJSON,
+} from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { createSpanFromMessage, enrichSpanOnEnd } from '../../../src/integrations/vercel-ai/vercel-ai-dc-subscriber';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
@@ -68,17 +78,24 @@ describe('Vercel AI extract spans', () => {
 
     expect(json.description).toBe('extract cloudflare/clairic');
     expect(json.op).toBe(GEN_AI_EXTRACT);
-    expect(json.data).toMatchObject({
+    expect(json.data).toEqual({
+      [SENTRY_ORIGIN]: 'auto.ai.vercelai',
+      [SENTRY_OP]: GEN_AI_EXTRACT,
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
       [GEN_AI_OPERATION_NAME]: 'extract',
-      [GEN_AI_RESPONSE_MODEL]: 'clairic',
+      [GEN_AI_PROVIDER_NAME]: 'gateway',
+      'vercel.ai.model.provider': 'gateway',
+      [GEN_AI_REQUEST_MODEL]: 'cloudflare/clairic',
+      [GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+        { state: 'Invoice INV-2291 from Northwind Supply', fields, referenceDate: '2026-01-15' },
+      ]),
       [GEN_AI_USAGE_INPUT_TOKENS]: 50,
       [GEN_AI_USAGE_OUTPUT_TOKENS]: 4,
       [GEN_AI_USAGE_TOTAL_TOKENS]: 54,
+      [GEN_AI_RESPONSE_MODEL]: 'clairic',
+      [GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([{ answers }]),
     });
-    expect(JSON.parse(json.data?.[GEN_AI_INPUT_MESSAGES] as string)).toEqual([
-      { state: 'Invoice INV-2291 from Northwind Supply', fields, referenceDate: '2026-01-15' },
-    ]);
-    expect(JSON.parse(json.data?.[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([{ answers }]);
   });
 
   it('does not record inputs or outputs when recording is off', () => {
