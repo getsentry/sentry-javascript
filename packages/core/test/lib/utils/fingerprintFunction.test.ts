@@ -117,6 +117,8 @@ describe('fingerprintFunction', () => {
       expect(norm('return/a/g')).toBe('return /a/g');
       expect(norm('this/a/g')).toBe('this / _ / _');
       expect(norm('(a)/b/c')).toBe('( _ ) / _ / _');
+      expect(norm('e=>e++/2+n(e)')).toBe('_ => _ ++ / 2 + _ ( _ )');
+      expect(norm('e=>e--/2')).toBe('_ => _ -- / 2');
     });
 
     it('treats an escaped backtick at the end of an unterminated template like a closing one', () => {

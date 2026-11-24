@@ -213,7 +213,8 @@ export function tokenize(src: string): string[] {
       }
     }
 
-    push(punctuator, ')]}'.includes(ch));
+    // A regex can't follow postfix `++` or `--`.
+    push(punctuator, ')]}'.includes(ch) || punctuator == '++' || punctuator == '--');
   }
 
   return tokens;
