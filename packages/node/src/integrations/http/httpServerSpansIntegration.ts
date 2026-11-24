@@ -34,6 +34,7 @@ import type { HttpIncomingMessage, HttpServerResponse } from '@sentry/core/serve
 import {
   DEFAULT_IGNORE_STATUS_CODES,
   getClientIPAddress,
+  isNitroDevServer,
   processHttpServerTransactionEvent,
 } from '@sentry/core/server';
 import {
@@ -58,7 +59,6 @@ import {
   hasSpanStreamingEnabled,
   HTTP_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
-import { isNitroDevServer } from '@sentry/server-utils';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { addStartSpanCallback } from './httpServerIntegration';

@@ -1,10 +1,10 @@
 import { getActiveSpan, isSharedCacheable } from '@sentry/core';
+import { isNitroDevServer } from '@sentry/core/server';
 import { CHANNELS } from '../../orchestrion/channels';
 import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { safeChannelCallback } from '../../tracing-channel';
 import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import { setParameterizedRouteAttributes } from './captureTracingEvents';
-import { isNitroDevServer } from './devServer';
 import type { NitroH3Event } from './nitroTypes';
 import { setServerTimingHeaders } from './setServerTimingHeaders';
 

@@ -1,13 +1,12 @@
 import type { Client } from '@sentry/core';
 import { getCurrentScope, makeDsn } from '@sentry/core';
-import { resetTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
-import { setIsNitroDevServer } from '@sentry/server-utils';
+import { resetTunnelDefaults, serveTunnelIntegration, setIsNitroDevServer } from '@sentry/core/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createNitroModule } from '../src/module';
 
 vi.mock('../src/instruments/instrumentServer', () => ({ instrumentServer: vi.fn() }));
 vi.mock('../src/sourceMaps', () => ({ setupSourceMaps: vi.fn() }));
-vi.mock('@sentry/server-utils', async importOriginal => ({
+vi.mock('@sentry/core/server', async importOriginal => ({
   ...(await importOriginal<object>()),
   setIsNitroDevServer: vi.fn(),
 }));

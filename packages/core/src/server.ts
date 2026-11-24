@@ -17,6 +17,7 @@ export {
 } from './utils/tunnelForward';
 export { serveTunnelIntegration } from './integrations/serveTunnel';
 export { resetTunnelDefaults, setTunnelDefaults } from './utils/tunnelDefaults';
+export { isNitroDevServer, setIsNitroDevServer } from './utils/nitroDevServer';
 export type { ServerRuntimeOptions } from './types/options';
 export { trpcMiddleware } from './trpc';
 export { wrapMcpServerWithSentry } from './integrations/mcp-server';

@@ -1,7 +1,8 @@
 import { tracingChannel } from 'node:diagnostics_channel';
 import { GLOBAL_OBJ } from '@sentry/core';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { captureNitroDevServer, isNitroDevServer } from '../../../src/integrations/nitro/devServer';
+import { isNitroDevServer } from '@sentry/core/server';
+import { captureNitroDevServer } from '../../../src/integrations/nitro/devServer';
 import { nitroChannels } from '../../../src/orchestrion/config/nitro';
 
 const devAppChannel = tracingChannel(nitroChannels.NITRO_DEV_APP);

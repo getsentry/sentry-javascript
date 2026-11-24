@@ -1,5 +1,5 @@
-import { setTunnelDefaults } from '@sentry/core/server';
-import { runsNitroInWorker, setIsNitroDevServer } from '@sentry/server-utils';
+import { setIsNitroDevServer, setTunnelDefaults } from '@sentry/core/server';
+import { runsNitroInWorker } from '@sentry/server-utils';
 import type { NitroModule } from 'nitro/types';
 import type { SentryNitroOptions } from './config';
 import { instrumentServer } from './instruments/instrumentServer';
