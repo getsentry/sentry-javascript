@@ -1,4 +1,5 @@
 import type { SentryVitePluginInternalOptions } from '@sentry/bundler-plugins/vite';
+import { escapeStringForRegex } from '@sentry/core';
 import type { Plugin, UserConfig } from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentrySolidStart } from '../../src/vite/sentrySolidStart';
@@ -475,6 +476,19 @@ describe('getUpdatedSourceMapSettings', () => {
       [{ injectDebugIds: false, delete: false }, undefined],
     ] as const)('with an unset setting and %j it returns %s', (sourcemaps, expected) => {
       expect(getUpdatedSourceMapSettings({}, { sourcemaps })).toBe(expected);
+    });
+
+    it.each([
+      [{}, 'Sentry removes the source maps from the build output.'],
+      [{ delete: true }, 'Sentry removes the source maps from the build output.'],
+      [{ delete: false }, 'The source maps stay in the build output.'],
+      [{ deleteSourcemapsAfterUpload: false }, 'The source maps stay in the build output.'],
+      [{ disable: 'disable-upload' }, "`vite.build.sourcemap: 'hidden'`."],
+    ] as const)('with %j it logs %s', (sourcemaps, message) => {
+      getUpdatedSourceMapSettings({}, { debug: true, sourcemaps });
+
+      // eslint-disable-next-line no-console
+      expect(console.log).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`${escapeStringForRegex(message)}$`)));
     });
 
     it('should set sourcemap to hidden when build config is empty', () => {

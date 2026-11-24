@@ -7,7 +7,13 @@ import type { SentrySolidStartPluginOptions } from './types';
 // What the source map setting logic needs, and the two majors' option types share.
 type SourceMapSettingOptions = {
   debug?: boolean;
-  sourcemaps?: { disable?: boolean | 'disable-upload'; upload?: boolean; injectDebugIds?: boolean; delete?: boolean };
+  sourcemaps?: {
+    disable?: boolean | 'disable-upload';
+    upload?: boolean;
+    injectDebugIds?: boolean;
+    delete?: boolean;
+    deleteSourcemapsAfterUpload?: boolean;
+  };
 };
 
 /** Shared by the two plugins of one build. */
@@ -279,10 +285,20 @@ export function getUpdatedSourceMapSettings(
     if (upload || legacyDisable === 'disable-upload' || (sourcemaps?.delete === false && injectDebugIds)) {
       updatedSourceMapSetting = 'hidden';
 
+      const keepsSourceMaps =
+        sourcemaps?.delete === false ||
+        (sourcemaps?.delete === undefined && sourcemaps?.deleteSourcemapsAfterUpload === false);
+      // With `disable-upload`, SolidStart 2 keeps the maps and SolidStart 1 removes them.
+      const deletionMessage = keepsSourceMaps
+        ? ' The source maps stay in the build output.'
+        : legacyDisable === 'disable-upload'
+          ? ''
+          : ' Sentry removes the source maps from the build output.';
+
       debug &&
         //  eslint-disable-next-line no-console
         console.log(
-          `[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`. The source maps  will be deleted after they were uploaded to Sentry.`,
+          `[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`.${deletionMessage}`,
         );
     }
   }
