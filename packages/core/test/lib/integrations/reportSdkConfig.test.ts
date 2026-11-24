@@ -153,6 +153,67 @@ describe('experimentalReportSdkConfigIntegration', () => {
     expect(new Set([node, otherNode, browser].map(attributes => attributes['sentry.sdk_config.hash'])).size).toBe(3);
   });
 
+  it('reports non-finite numbers as markers, so they differ from null', () => {
+    const userOptions = captureOptionsSetByUser({
+      tracesSampleRate: NaN,
+      sampleRate: Infinity,
+      profileSessionSampleRate: -Infinity,
+      maxBreadcrumbs: null as unknown as number,
+      integrations: [experimentalReportSdkConfigIntegration()],
+    });
+
+    const payload = reportConfig(getDefaultTestClientOptions({ dsn: 'https://username@domain/123', ...userOptions }));
+
+    expect(payload.options).toEqual({
+      integrations: [{ name: 'ExperimentalReportSdkConfig' }],
+      maxBreadcrumbs: null,
+      profileSessionSampleRate: '[-Infinity]',
+      sampleRate: '[Infinity]',
+      tracesSampleRate: '[NaN]',
+    });
+  });
+
+  it('reports only the shape of initialScope, so per-user values neither leave the app nor split the hash', () => {
+    const payloads = ['42', '43'].map(id =>
+      reportConfig(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          ...captureOptionsSetByUser({
+            initialScope: {
+              user: { id, email: `${id}@example.com` },
+              tags: { plan: 'pro' },
+              level: 'warning' as const,
+              fingerprint: [id],
+            },
+            integrations: [experimentalReportSdkConfigIntegration()],
+          }),
+        }),
+      ),
+    );
+
+    expect(payloads[1]).toEqual(payloads[0]);
+    expect((payloads[0]?.options as Record<string, unknown>).initialScope).toEqual({
+      fingerprint: '[value]',
+      level: '[value]',
+      tags: { plan: '[value]' },
+      user: { email: '[value]', id: '[value]' },
+    });
+  });
+
+  it('reports an initialScope callback as a function', () => {
+    const payload = reportConfig(
+      getDefaultTestClientOptions({
+        dsn: 'https://username@domain/123',
+        ...captureOptionsSetByUser({
+          initialScope: scope => scope,
+          integrations: [experimentalReportSdkConfigIntegration()],
+        }),
+      }),
+    );
+
+    expect((payload.options as Record<string, unknown>).initialScope).toMatch(/^\[Function:\w+\]$/);
+  });
+
   it('reports the names of the default integrations the user passed', () => {
     const userOptions = captureOptionsSetByUser({
       defaultIntegrations: [experimentalReportSdkConfigIntegration()],

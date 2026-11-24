@@ -58,9 +58,14 @@ function serialize(value: unknown, ancestors = new Set<object>()): unknown {
     return `[Function:${fnv1a32(Function.prototype.toString.call(value))}]`;
   }
 
-  // initialScope extras can contain bigints or symbols; JSON throws on bigints and omits symbols.
+  // JSON throws on bigints and omits symbols.
   if (typeof value === 'bigint' || typeof value === 'symbol') {
     return `[${typeof value}:${fnv1a32(String(value))}]`;
+  }
+
+  // JSON turns these into null, which would make them look like an explicit null.
+  if (typeof value === 'number' && !Number.isFinite(value)) {
+    return `[${value}]`;
   }
 
   // Pass through primitives and null unchanged.
@@ -123,6 +128,10 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     });
   }
 
+  if (isPlainObject(options.initialScope)) {
+    options.initialScope = describeShape(options.initialScope);
+  }
+
   if (Array.isArray(options.defaultIntegrations)) {
     // `getIntegrationsToSetup` flags these as default instances, but the user passed them.
     options.defaultIntegrations = options.defaultIntegrations.map((integration: Integration) =>
@@ -145,6 +154,20 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     'sentry.sdk_config.hash': fnv1a32(payload),
     'sentry.sdk_config.payload': payload,
   };
+}
+
+/**
+ * Keeps the keys of nested plain objects and replaces every value with a placeholder.
+ * `initialScope` holds data such as the user's ID, which would make the hash unique per user.
+ */
+function describeShape(value: unknown, ancestors = new Set<object>()): unknown {
+  if (!isPlainObject(value) || ancestors.has(value)) {
+    return '[value]';
+  }
+
+  const nextAncestors = new Set(ancestors).add(value);
+
+  return Object.fromEntries(Object.keys(value).map(key => [key, describeShape(value[key], nextAncestors)]));
 }
 
 function describeIntegration(name: string, options: unknown): { name: string; options?: unknown } {
