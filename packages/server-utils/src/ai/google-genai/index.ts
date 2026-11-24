@@ -4,6 +4,7 @@ import {
   getClient,
   handleCallbackErrors,
   hasSpanStreamingEnabled,
+  isObjectLike,
   startSpan,
   startSpanManual,
   stringify,
@@ -39,6 +40,7 @@ import {
   getTokenUsageAttributes,
   resolveGenAiCallRecording,
 } from '../core/utils';
+import { getToolDefinitionsAttribute } from '../core/tool-definitions';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { addDecisionResponseAttributes, getDecisionInputMessages } from './decisions';
 import { instrumentStream } from './streaming';
@@ -132,10 +134,14 @@ export function extractRequestAttributes(
 
       // Extract available tools from config
       if (recordInputs && 'tools' in config && Array.isArray(config.tools)) {
-        const functionDeclarations = config.tools.flatMap(
-          (tool: { functionDeclarations: unknown[] }) => tool.functionDeclarations,
+        // Only function declarations are tool definitions; the other entries (such as `googleSearch`) toggle built-in tools.
+        const functionDeclarations = config.tools.flatMap((tool: unknown) =>
+          isObjectLike(tool) && Array.isArray(tool.functionDeclarations) ? tool.functionDeclarations : [],
         );
-        attributes[GEN_AI_TOOL_DEFINITIONS] = JSON.stringify(functionDeclarations);
+        const toolDefinitions = getToolDefinitionsAttribute(functionDeclarations);
+        if (toolDefinitions) {
+          attributes[GEN_AI_TOOL_DEFINITIONS] = toolDefinitions;
+        }
       }
     }
 

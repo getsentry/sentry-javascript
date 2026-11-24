@@ -22,6 +22,7 @@ import {
   resolveGenAiCallRecording,
   wrapPromiseWithMethods,
 } from '../core/utils';
+import { getToolDefinitionsAttribute } from '../core/tool-definitions';
 import { ANTHROPIC_AI_ORIGIN, ANTHROPIC_METHOD_REGISTRY } from './constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import { instrumentSessionToolRunner, instrumentToolRunner, instrumentToolRunnerFactory } from './tool-runner';
@@ -54,8 +55,9 @@ export function extractRequestAttributes(
 
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
-    if (recordInputs && params.tools && Array.isArray(params.tools)) {
-      attributes[GEN_AI_TOOL_DEFINITIONS] = JSON.stringify(params.tools);
+    const toolDefinitions = recordInputs ? getToolDefinitionsAttribute(params.tools) : undefined;
+    if (toolDefinitions) {
+      attributes[GEN_AI_TOOL_DEFINITIONS] = toolDefinitions;
     }
 
     attributes[GEN_AI_REQUEST_MODEL] = params.model ?? 'unknown';

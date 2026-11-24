@@ -20,21 +20,12 @@ import {
   resolveGenAiCallRecording,
   wrapPromiseWithMethods,
 } from '../core/utils';
+import { getToolDefinitionsAttribute } from '../core/tool-definitions';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 import { MISTRAL_METHOD_REGISTRY, MISTRAL_ORIGIN, MISTRAL_PROVIDER_NAME } from './constants';
 import { instrumentEventStream } from './streaming';
 import type { MistralCallInfo, MistralOptions } from './types';
 import { addResponseAttributes, extractRequestParameters, getMistralRequestSignal, getSpanName } from './utils';
-
-/**
- * Serialize tool definitions from request parameters, if present.
- */
-function extractToolDefinitions(params: Record<string, unknown>): string | undefined {
-  if (!Array.isArray(params.tools) || params.tools.length === 0) {
-    return undefined;
-  }
-  return stringify(params.tools);
-}
 
 /**
  * Extract request attributes from method arguments.
@@ -63,7 +54,7 @@ export function extractRequestAttributes(
       attributes[GEN_AI_AGENT_NAME] = params.agentId;
     }
 
-    const tools = recordInputs ? extractToolDefinitions(params) : undefined;
+    const tools = recordInputs ? getToolDefinitionsAttribute(params.tools) : undefined;
     if (tools) {
       attributes[GEN_AI_TOOL_DEFINITIONS] = tools;
     }

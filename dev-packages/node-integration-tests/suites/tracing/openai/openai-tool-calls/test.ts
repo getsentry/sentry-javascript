@@ -28,17 +28,15 @@ describe('OpenAI Tool Calls integration', () => {
   const WEATHER_TOOL_DEFINITION = JSON.stringify([
     {
       type: 'function',
-      function: {
-        name: 'get_weather',
-        description: 'Get the current weather in a given location',
-        parameters: {
-          type: 'object',
-          properties: {
-            latitude: { type: 'number', description: 'The latitude of the location' },
-            longitude: { type: 'number', description: 'The longitude of the location' },
-          },
-          required: ['latitude', 'longitude'],
+      name: 'get_weather',
+      description: 'Get the current weather in a given location',
+      parameters: {
+        type: 'object',
+        properties: {
+          latitude: { type: 'number', description: 'The latitude of the location' },
+          longitude: { type: 'number', description: 'The longitude of the location' },
         },
+        required: ['latitude', 'longitude'],
       },
     },
   ]);

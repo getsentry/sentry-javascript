@@ -1,6 +1,5 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import { DEBUG_BUILD } from '../../debug-build';
-import { getClient, hasSpanStreamingEnabled, startSpan, startSpanManual, debug, stringify } from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, startSpan, startSpanManual, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
@@ -23,6 +22,7 @@ import {
   wrapPromiseWithMethods,
 } from '../core/utils';
 import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
+import { getToolDefinitionsAttribute } from '../core/tool-definitions';
 import { OPENAI_METHOD_REGISTRY } from './constants';
 import { instrumentStream } from './streaming';
 import type { ChatCompletionChunk, OpenAiCallInfo, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';
@@ -39,17 +39,7 @@ function extractAvailableTools(params: Record<string, unknown>): string | undefi
     ? [{ type: 'web_search_options', ...(params.web_search_options as Record<string, unknown>) }]
     : [];
 
-  const availableTools = [...tools, ...webSearchOptions];
-  if (availableTools.length === 0) {
-    return undefined;
-  }
-
-  try {
-    return JSON.stringify(availableTools);
-  } catch (error) {
-    DEBUG_BUILD && debug.error('Failed to serialize OpenAI tools:', error);
-    return undefined;
-  }
+  return getToolDefinitionsAttribute([...tools, ...webSearchOptions]);
 }
 
 /**
