@@ -8,6 +8,7 @@ import type { Integration, IntegrationFn } from '../types/integration';
 import { debug } from '../utils/debug-logger';
 import { fnv1a32 } from '../utils/hash';
 import { isPlainObject } from '../utils/is';
+import { isBrowser } from '../utils/isBrowser';
 import { safeUnref } from '../utils/timer';
 
 const _experimentalReportSdkConfigIntegration = (() => ({
@@ -105,7 +106,8 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     removedDefaultIntegrations,
   } = client.getSdkMetadata() || {};
   const clientOptions = client.getOptions();
-  const runtime = 'runtime' in clientOptions ? clientOptions.runtime : undefined;
+  // Server clients set their runtime as an option; browser clients have none.
+  const runtime = 'runtime' in clientOptions ? clientOptions.runtime : isBrowser() ? { name: 'browser' } : undefined;
 
   // Only what the user passed, so SDK defaults never show up as config.
   const options: Record<string, unknown> = Object.fromEntries(
