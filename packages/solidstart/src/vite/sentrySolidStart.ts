@@ -1,6 +1,7 @@
 import {
   normalizeTunnelBasePath,
   type BuildTimeOptionsBase,
+  resolveSourceMapsFeatures,
   stringifyForCodeInjection,
   warnOnRemovedBuildOptions,
 } from '@sentry/core';
@@ -8,6 +9,7 @@ import { setupSentryNitroModule } from '@sentry/nitro';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin, UserConfig } from 'vite';
 import { getNitroRuntimeFilePath, getRuntimeRelease } from './release';
+import type { SourceMapState } from './sourceMaps';
 import { makeAddSentryVitePluginSolidStart2, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 
 /**
@@ -62,10 +64,15 @@ export function sentrySolidStart(options: SentrySolidStartOptions = {}): Plugin[
     plugins.push(makeReleaseDefinePlugin(runtimeRelease));
   }
 
-  if (options.sourcemaps?.disable !== true) {
+  // TODO(v12): Add the Sentry plugin with `sourcemaps.disable: true` too, like with the options that replace it.
+  if (resolveSourceMapsFeatures(options.sourcemaps).legacyDisable !== true) {
+    const sourceMapState: SourceMapState = { sdkEnabledSourceMaps: false };
+
+    // The bundler plugin decides on the `build.sourcemap` it finds in its own `config` hook,
+    // so the plugin that sets it has to come first.
     plugins.push(
-      ...makeAddSentryVitePluginSolidStart2(options, runtimeRelease),
-      ...makeEnableSourceMapsVitePlugin(options),
+      ...makeEnableSourceMapsVitePlugin(options, sourceMapState),
+      ...makeAddSentryVitePluginSolidStart2(options, sourceMapState, runtimeRelease),
     );
   }
 
