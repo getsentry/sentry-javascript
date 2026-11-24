@@ -66,11 +66,10 @@ function getRequestHandlerOptions(cloudflareOptions: CloudflareOptions): Cloudfl
  * })));
  * ```
  *
- * @deprecated Add an `instrument.server.ts` file to the root of the Nuxt app instead. Its default export returns the
- * options of `@sentry/cloudflare`, and the Sentry Nuxt module wraps the Worker with `withSentry`.
+ * @deprecated Add a `sentry.cloudflare.config.ts` file with the Sentry setup to the root of the Nuxt app instead.
  *
  * ```ts
- * // instrument.server.ts
+ * // sentry.cloudflare.config.ts
  * import { defineCloudflareOptions } from '@sentry/cloudflare';
  *
  * export default defineCloudflareOptions(env => ({
@@ -86,7 +85,7 @@ export const sentryCloudflareNitroPlugin =
       consoleSandbox(() => {
         // eslint-disable-next-line no-console
         console.warn(
-          '[Sentry] `sentryCloudflareNitroPlugin` does nothing, because Sentry sets up the SDK from `instrument.server.ts`. Remove the plugin.',
+          '[Sentry] `sentryCloudflareNitroPlugin` does nothing, because Sentry sets up the SDK from `sentry.cloudflare.config.ts`. Remove the plugin.',
         );
       });
       return;

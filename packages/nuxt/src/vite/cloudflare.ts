@@ -1,6 +1,6 @@
 import { createResolver } from '@nuxt/kit';
 import type { Nuxt } from '@nuxt/schema';
-import { stringifyForCodeInjection } from '@sentry/core';
+import { consoleSandbox, stringifyForCodeInjection } from '@sentry/core';
 import type { Plugin } from 'rollup';
 import { skipDatabaseInstrumentation } from './databaseConfig';
 import { isCloudflarePreset } from './utils';
@@ -18,11 +18,23 @@ function normalizePath(path: string): string {
  * On a Cloudflare preset, wraps the Nitro Worker entry with `withSentry` of `@sentry/cloudflare`, which gets its
  * options from the default export of `optionsFile`, and names the transaction of each request. It also wraps the
  * Durable Object that Nitro exports with `instrumentDurableObjectWithSentry`, and turns off a
- * `sentryCloudflareNitroPlugin` of the app.
+ * `sentryCloudflareNitroPlugin` of the app. It does nothing in dev and on the `cloudflare-worker` preset.
  */
 export function setupCloudflareEntry(nuxt: Nuxt, optionsFile: string): void {
   nuxt.hook('nitro:init', nitro => {
-    if (nuxt.options._prepare || !isCloudflarePreset(nitro.options.preset)) {
+    // The `cloudflare-dev` preset extends `nitro-dev`, so the dev server does not run the Worker entry.
+    if (nuxt.options._prepare || nitro.options.dev || !isCloudflarePreset(nitro.options.preset)) {
+      return;
+    }
+
+    // The entry of this service worker preset of Nitro 2 has no default export.
+    if (nitro.options.preset.replace(/-/g, '_') === 'cloudflare_worker') {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[Sentry] The Worker of the `cloudflare-worker` preset has no default export, so Sentry cannot wrap it with `withSentry`. Use the `cloudflare-module` preset to set up the SDK from `sentry.cloudflare.config.ts`.',
+        );
+      });
       return;
     }
 

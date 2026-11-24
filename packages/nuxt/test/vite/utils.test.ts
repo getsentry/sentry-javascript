@@ -196,16 +196,19 @@ describe('findCloudflareOptionsFile', () => {
     vi.clearAllMocks();
   });
 
-  it.each(['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'])('returns the instrument.server.%s file if it exists', async ext => {
-    vi.mocked(fs.existsSync).mockImplementation(filePath => {
-      return !(filePath instanceof URL) && filePath.toString().includes(`instrument.server.${ext}`);
-    });
+  it.each(['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'])(
+    'returns the sentry.cloudflare.config.%s file if it exists',
+    async ext => {
+      vi.mocked(fs.existsSync).mockImplementation(filePath => {
+        return !(filePath instanceof URL) && filePath.toString().includes(`sentry.cloudflare.config.${ext}`);
+      });
 
-    const result = await findCloudflareOptionsFile();
-    expect(result).toMatch(path.join('packages', 'nuxt', `instrument.server.${ext}`));
-  });
+      const result = await findCloudflareOptionsFile();
+      expect(result).toMatch(path.join('packages', 'nuxt', `sentry.cloudflare.config.${ext}`));
+    },
+  );
 
-  it('returns undefined if no instrument.server file exists', async () => {
+  it('returns undefined if no sentry.cloudflare.config file exists', async () => {
     vi.mocked(fs.existsSync).mockReturnValue(false);
 
     const result = await findCloudflareOptionsFile();

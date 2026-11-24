@@ -21,7 +21,7 @@ describe('wrapCloudflareEntryWithSentry', () => {
     dir = mkdtempSync(join(tmpdir(), 'sentry-nuxt-cloudflare-'));
     // Like the entry of Nitro, without a file extension.
     entry = join(dir, 'entry');
-    optionsFile = join(dir, 'instrument.server.mjs');
+    optionsFile = join(dir, 'sentry.cloudflare.config.mjs');
     writeFileSync(optionsFile, "export default () => ({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });\n");
   });
 
@@ -220,7 +220,7 @@ describe('setupCloudflareEntry', () => {
       hooks: { hook: vi.fn() },
     };
 
-    setupCloudflareEntry(nuxt as unknown as Nuxt, '/app/instrument.server.ts');
+    setupCloudflareEntry(nuxt as unknown as Nuxt, '/app/sentry.cloudflare.config.ts');
     callbacks.forEach(callback => callback(nitro));
 
     expect(nitro.options).toEqual({
@@ -250,7 +250,7 @@ describe('setupCloudflareEntry', () => {
     };
     const prerenderConfig = { plugins: ['/app/server/plugins/sentry.ts'] };
 
-    setupCloudflareEntry(nuxt as unknown as Nuxt, '/app/instrument.server.ts');
+    setupCloudflareEntry(nuxt as unknown as Nuxt, '/app/sentry.cloudflare.config.ts');
     callbacks.forEach(callback => callback(nitro));
     nitroHooks['prerender:config']?.(prerenderConfig);
 
@@ -277,7 +277,7 @@ describe('setupCloudflareEntry', () => {
       hooks: { hook: vi.fn() },
     };
 
-    setupCloudflareEntry(nuxt as unknown as Nuxt, '/app/instrument.server.ts');
+    setupCloudflareEntry(nuxt as unknown as Nuxt, '/app/sentry.cloudflare.config.ts');
     callbacks.forEach(callback => callback(nitro));
 
     expect(nitro.options.virtual['#sentry/database-config.mjs']()).toBe(
@@ -290,10 +290,44 @@ describe('setupCloudflareEntry', () => {
     const nuxt = { options: {}, hook: (_name: string, callback: HookCallback) => callbacks.push(callback) };
     const nitro = { options: { preset: 'node-server', entry: '/app/entry.mjs', plugins: [] as string[] } };
 
-    setupCloudflareEntry(nuxt as unknown as Nuxt, '/app/instrument.server.ts');
+    setupCloudflareEntry(nuxt as unknown as Nuxt, '/app/sentry.cloudflare.config.ts');
     callbacks.forEach(callback => callback(nitro));
 
     expect(nitro.options).toEqual({ preset: 'node-server', entry: '/app/entry.mjs', plugins: [] });
+  });
+
+  it('does nothing in dev, where the `cloudflare-dev` preset runs the dev entry of Nitro', () => {
+    const callbacks: HookCallback[] = [];
+    const nuxt = { options: {}, hook: (_name: string, callback: HookCallback) => callbacks.push(callback) };
+    const nitro = {
+      options: { preset: 'cloudflare-dev', dev: true, entry: '/app/nitro-dev.mjs', plugins: [] as string[] },
+    };
+
+    setupCloudflareEntry(nuxt as unknown as Nuxt, '/app/sentry.cloudflare.config.ts');
+    callbacks.forEach(callback => callback(nitro));
+
+    expect(nitro.options).toEqual({ preset: 'cloudflare-dev', dev: true, entry: '/app/nitro-dev.mjs', plugins: [] });
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+  });
+
+  it('warns and leaves a `sentryCloudflareNitroPlugin` of the app on with the `cloudflare-worker` preset', () => {
+    const callbacks: HookCallback[] = [];
+    const nuxt = { options: {}, hook: (_name: string, callback: HookCallback) => callbacks.push(callback) };
+    const nitro = {
+      options: { preset: 'cloudflare-worker', entry: '/app/entry.mjs', plugins: ['/app/server/plugins/sentry.ts'] },
+    };
+
+    setupCloudflareEntry(nuxt as unknown as Nuxt, '/app/sentry.cloudflare.config.ts');
+    callbacks.forEach(callback => callback(nitro));
+
+    expect(nitro.options).toEqual({
+      preset: 'cloudflare-worker',
+      entry: '/app/entry.mjs',
+      plugins: ['/app/server/plugins/sentry.ts'],
+    });
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[Sentry] The Worker of the `cloudflare-worker` preset has no default export, so Sentry cannot wrap it with `withSentry`. Use the `cloudflare-module` preset to set up the SDK from `sentry.cloudflare.config.ts`.',
+    );
   });
 
   it('does nothing when Nuxt prepares the types', () => {
@@ -304,7 +338,7 @@ describe('setupCloudflareEntry', () => {
     };
     const nitro = { options: { preset: 'cloudflare-module', entry: '/app/entry.mjs', plugins: [] as string[] } };
 
-    setupCloudflareEntry(nuxt as unknown as Nuxt, '/app/instrument.server.ts');
+    setupCloudflareEntry(nuxt as unknown as Nuxt, '/app/sentry.cloudflare.config.ts');
     callbacks.forEach(callback => callback(nitro));
 
     expect(nitro.options).toEqual({ preset: 'cloudflare-module', entry: '/app/entry.mjs', plugins: [] });

@@ -109,8 +109,9 @@ export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nitro
  * Registers a Nitro plugin that statically imports the Sentry server config, so the SDK initializes
  * at server startup without a `node --import` preload.
  *
- * On a Cloudflare preset, it removes the plugin again. It warns then only when the app has no `instrument.server`
- * file (`hasCloudflareOptionsFile`), because an app with both files can build for Node and for Cloudflare.
+ * On a Cloudflare preset, it removes the plugin again. It warns then only when the app has no
+ * `sentry.cloudflare.config` file (`hasCloudflareOptionsFile`), because an app with both files can build for Node and
+ * for Cloudflare.
  */
 export function addServerConfigPlugin(
   nuxt: Nuxt,
@@ -170,7 +171,7 @@ export function addServerConfigPlugin(
     }
   });
 
-  // On Cloudflare `withSentry` sets up the SDK with the options of `instrument.server.ts`; the Node SDK config
+  // On Cloudflare `withSentry` sets up the SDK with the options of `sentry.cloudflare.config.ts`; the Node SDK config
   // must not end up in the worker bundle. `nitro.options.preset` is resolved here.
   nuxt.hook('nitro:init', nitro => {
     if (nuxt.options._prepare || !isCloudflarePreset(nitro.options.preset)) {
@@ -184,7 +185,7 @@ export function addServerConfigPlugin(
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        `[Sentry] Found \`${basename(configPath)}\`, but the Nitro preset targets Cloudflare, where this file is not used. Set up the SDK in \`instrument.server.ts\` instead: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/cloudflare-workers/`,
+        `[Sentry] Found \`${basename(configPath)}\`, but the Nitro preset targets Cloudflare, where this file is not used. Set up the SDK in \`sentry.cloudflare.config.ts\` instead: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/cloudflare-workers/`,
       );
     });
   });

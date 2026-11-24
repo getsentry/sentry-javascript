@@ -291,11 +291,13 @@ describe('addServerConfigPlugin', () => {
     hooks['nitro:init']!(nitro as never);
 
     expect(nitro.options.plugins).toEqual(['other-plugin.mjs']);
-    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('instrument.server.ts'));
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[Sentry] Found `sentry.server.config.ts`, but the Nitro preset targets Cloudflare, where this file is not used. Set up the SDK in `sentry.cloudflare.config.ts` instead: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/cloudflare-workers/',
+    );
     consoleWarnSpy.mockRestore();
   });
 
-  it('removes the plugin without a warning on Cloudflare when the app also has an `instrument.server` file', () => {
+  it('removes the plugin without a warning on Cloudflare when the app also has a `sentry.cloudflare.config` file', () => {
     const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { nuxt, hooks } = createFakeNuxt();
     addServerConfigPlugin(nuxt, APP_CONFIG, true, true);

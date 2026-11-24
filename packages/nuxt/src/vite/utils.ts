@@ -35,13 +35,13 @@ export async function findDefaultSdkInitFile(
 }
 
 /**
- * Find the `instrument.server` file, whose default export returns the options of `@sentry/cloudflare`.
+ * Find the `sentry.cloudflare.config` file, whose default export returns the options of `@sentry/cloudflare`.
  */
 export async function findCloudflareOptionsFile(
   nuxt?: Nuxt,
   options?: SentryNuxtModuleOptions,
 ): Promise<string | undefined> {
-  return findConfigFile('instrument.server', nuxt, options);
+  return findConfigFile('sentry.cloudflare.config', nuxt, options);
 }
 
 async function findConfigFile(

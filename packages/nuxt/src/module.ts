@@ -113,7 +113,7 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     // Names the server spans of pages after their route, with the SDK set up from the server config, from
-    // `instrument.server.ts` or from `sentryCloudflareNitroPlugin`.
+    // `sentry.cloudflare.config.ts` or from `sentryCloudflareNitroPlugin`.
     if (isMinNuxtV4) {
       addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'), mode: 'server' });
     } else {
