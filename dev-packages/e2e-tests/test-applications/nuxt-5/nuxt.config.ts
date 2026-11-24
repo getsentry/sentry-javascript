@@ -34,7 +34,7 @@ export default defineNuxtConfig({
   },
   nitro: {
     ...(cloudflare && {
-      // The Sentry module sets up the SDK from `instrument.server.ts`, because the Nitro preset does not use
+      // The Sentry module sets up the SDK from `sentry.cloudflare.config.ts`, because the Nitro preset does not use
       // `sentry.server.config.ts`.
       preset: 'cloudflare_module',
       cloudflare: { nodeCompat: true, deployConfig: false },
