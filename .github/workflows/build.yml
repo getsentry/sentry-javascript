@@ -1090,6 +1090,7 @@ jobs:
         uses: ./.github/actions/prepare-e2e-test
         with:
           test-application: ${{ matrix.test-application }}
+          build-lambda-layer: ${{ matrix.test-application == 'aws-serverless-layer' }}
           runtime: ${{ matrix.runtime }}
           bun-version: ${{ matrix.bun-version }}
           deno-version: ${{ matrix.deno-version }}
