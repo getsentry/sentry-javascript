@@ -134,7 +134,7 @@ test('sends component tracking spans when `trackComponents` is enabled', async (
   });
 });
 
-// Nuxt fetches its build manifest after hydration. A span for it would prolong the pageload.
+// Nuxt fetches its build manifest in the browser, for example to find prerendered pages. A span for it can prolong the pageload.
 test('does not send a span for the build manifest request', async ({ page }) => {
   test.skip(isViteServer, 'The Vite server builds no app manifest when it prerenders no routes');
 
@@ -148,6 +148,8 @@ test('does not send a span for the build manifest request', async ({ page }) => 
   const manifestResponsePromise = page.waitForResponse(response => response.url().includes('/_nuxt/builds/meta/'));
 
   await page.goto('/test-param/build-manifest');
+  // Only fetches the manifest if Nuxt has not fetched it already.
+  await page.getByText('Fetch App Manifest').click();
   await manifestResponsePromise;
   // A manifest span would arrive before the span of this later request.
   await page.getByText('Fetch Server Data').click();
