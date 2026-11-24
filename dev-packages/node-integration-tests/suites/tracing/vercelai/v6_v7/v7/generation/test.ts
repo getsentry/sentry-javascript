@@ -31,7 +31,7 @@ import {
 } from '@sentry/conventions/op';
 import type { SerializedStreamedSpan } from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
-import { SUPPORTS_REQUIRE_OF_ESM } from '../../../../../../utils';
+import { EXPECTED_SDK_NAME, SUPPORTS_REQUIRE_OF_ESM } from '../../../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../../../utils/runner';
 import { registerVercelAiGenerationTests } from '../../suite';
 import { join } from 'node:path';
@@ -175,7 +175,7 @@ describe('Vercel AI integration experimental_extract', () => {
       [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
       [SENTRY_SEGMENT_NAME]: { type: 'string', value: segmentSpan.name },
       [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpan.span_id },
-      [SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node' },
+      [SENTRY_SDK_NAME]: { type: 'string', value: EXPECTED_SDK_NAME },
       [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
       [SENTRY_RELEASE]: { type: 'string', value: '1.0' },
       [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
