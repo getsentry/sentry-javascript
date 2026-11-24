@@ -1,8 +1,5 @@
 import { debug } from '@sentry/core';
-import {
-  _INTERNAL_handleServedNodeTunnelRequest as handleServedNodeTunnelRequest,
-  _INTERNAL_httpServerHandlesTunnel as httpServerHandlesTunnel,
-} from '@sentry/core/server';
+import { handleServedNodeTunnelRequest, httpServerHandlesTunnel } from '@sentry/core/server';
 import { DEBUG_BUILD } from '../debug-build';
 
 type TunnelServer = { emit(event: string, ...data: unknown[]): boolean };

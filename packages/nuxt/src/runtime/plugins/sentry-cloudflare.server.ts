@@ -11,10 +11,7 @@ import {
   getTraceData,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
-import {
-  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
-  _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
-} from '@sentry/core/server';
+import { handleServedTunnelRequest, isServedTunnelRequest } from '@sentry/core/server';
 import type { H3Event } from 'h3';
 import type { NitroApp, NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';

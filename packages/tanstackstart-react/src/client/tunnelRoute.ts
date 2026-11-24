@@ -1,4 +1,4 @@
-import { _INTERNAL_applyBrowserTunnelDefaults as applyBrowserTunnelDefaults, consoleSandbox } from '@sentry/core';
+import { applyBrowserTunnelDefaults, consoleSandbox } from '@sentry/core';
 import type { BrowserOptions as ReactBrowserOptions } from '@sentry/react';
 
 declare const __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__: string | true | undefined;

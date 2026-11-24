@@ -1,4 +1,4 @@
-import { _INTERNAL_setTunnelDefaults as setTunnelDefaults } from '@sentry/core/server';
+import { setTunnelDefaults } from '@sentry/core/server';
 import type { NitroModule } from 'nitro/types';
 import type { SentryNitroOptions } from './config';
 import { setIsNitroDevServer } from './devServer';

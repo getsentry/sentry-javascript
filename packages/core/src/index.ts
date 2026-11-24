@@ -102,11 +102,7 @@ export { safeCallback } from './utils/safeCallback';
 export { parameterize, fmt } from './utils/parameterize';
 export type { HandleTunnelRequestOptions } from './utils/tunnelForward';
 export { handleTunnelRequest } from './utils/tunnelForward';
-export {
-  applyBrowserTunnelDefaults as _INTERNAL_applyBrowserTunnelDefaults,
-  getTunnelPath,
-  normalizeTunnelBasePath as _INTERNAL_normalizeTunnelBasePath,
-} from './utils/tunnel';
+export { applyBrowserTunnelDefaults, getTunnelPath, normalizeTunnelBasePath } from './utils/tunnel';
 export { addAutoIpAddressToSession } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,

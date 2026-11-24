@@ -68,4 +68,4 @@ export function registerSentryServerTunnelRoute(_path: string): void {}
  *
  * @internal
  */
-export function _INTERNAL_setTunnelRoute(_tunnelRoute?: unknown, _basePath?: string): void {}
+export function setTunnelRoute(_tunnelRoute?: unknown, _basePath?: string): void {}

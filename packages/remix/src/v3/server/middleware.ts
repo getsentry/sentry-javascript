@@ -11,7 +11,7 @@ import {
   updateSpanName,
   winterCGRequestToRequestData,
 } from '@sentry/core';
-import { _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest } from '@sentry/core/server';
+import { handleServedTunnelRequest } from '@sentry/core/server';
 
 import { formatRouteTiming } from '../routeTiming';
 import type { MatcherLike, MiddlewareLike, NextFunctionLike, RequestContextLike } from '../types';

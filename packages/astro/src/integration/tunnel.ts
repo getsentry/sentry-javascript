@@ -37,7 +37,7 @@ export function makeTunnelOptionsVitePlugin(tunnelOptions: BrowserTunnelOptions)
       }
 
       return options?.ssr
-        ? `import { _INTERNAL_setTunnelDefaults } from '@sentry/astro/middleware';\n_INTERNAL_setTunnelDefaults(${stringifyForCodeInjection({ basePath: tunnelOptions.basePath })});`
+        ? `import { setTunnelDefaults } from '@sentry/astro/middleware';\nsetTunnelDefaults(${stringifyForCodeInjection({ basePath: tunnelOptions.basePath })});`
         : `globalThis[${stringifyForCodeInjection(TUNNEL_OPTIONS_GLOBAL)}] = ${stringifyForCodeInjection(tunnelOptions)};`;
     },
     transform: (code, id) =>

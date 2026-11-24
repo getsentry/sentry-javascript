@@ -18,7 +18,7 @@ const tunnelResponse = new Response(null, { status: 200 });
 
 // Answers only `TUNNEL_URL`, like a server with the managed tunnel at that path.
 vi.mock('@sentry/core/server', () => ({
-  _INTERNAL_handleServedTunnelRequest: (request: Request) =>
+  handleServedTunnelRequest: (request: Request) =>
     request.url === TUNNEL_URL ? Promise.resolve(tunnelResponse) : undefined,
 }));
 

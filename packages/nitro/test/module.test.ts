@@ -1,6 +1,6 @@
 import type { Client } from '@sentry/core';
 import { getCurrentScope, makeDsn } from '@sentry/core';
-import { _INTERNAL_resetTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
+import { resetTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { setIsNitroDevServer } from '../src/devServer';
 import { createNitroModule } from '../src/module';
@@ -33,7 +33,7 @@ function setup(options: {
 describe('createNitroModule', () => {
   afterEach(() => {
     getCurrentScope().setClient(undefined);
-    _INTERNAL_resetTunnelDefaults();
+    resetTunnelDefaults();
     vi.clearAllMocks();
     vi.unstubAllEnvs();
   });

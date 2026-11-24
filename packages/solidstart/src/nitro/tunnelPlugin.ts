@@ -1,5 +1,5 @@
 import { GLOBAL_OBJ } from '@sentry/core';
-import { _INTERNAL_setTunnelDefaults as setTunnelDefaults } from '@sentry/core/server';
+import { setTunnelDefaults } from '@sentry/core/server';
 import type { NitroAppPlugin } from 'nitropack';
 import { TUNNEL_BASE_PATH_GLOBAL } from '../common/tunnel';
 

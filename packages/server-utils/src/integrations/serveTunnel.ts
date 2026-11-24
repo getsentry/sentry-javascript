@@ -1,8 +1,8 @@
 import type { ServerTunnelOptions } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import {
-  _INTERNAL_handleServedNodeTunnelRequest as handleServedNodeTunnelRequest,
-  _INTERNAL_setNodeTunnelHandler as setNodeTunnelHandler,
+  handleServedNodeTunnelRequest,
+  setNodeTunnelHandler,
   HTTP_ON_SERVER_REQUEST,
   serveTunnelIntegration as coreServeTunnelIntegration,
 } from '@sentry/core/server';
