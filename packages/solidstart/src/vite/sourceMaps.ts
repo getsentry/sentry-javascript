@@ -31,6 +31,7 @@ type SourceMapsOptions = SentrySolidStartPluginOptions['sourcemaps'];
  * setting from Nitro, and `@sentry/nitro` handles their maps.
  *
  * With `keepWhenUploadDisabled`, maps the SDK turned on stay with `disable: 'disable-upload'`.
+ * A user's own `filesToDeleteAfterUpload` replaces the SDK's deletion.
  *
  * With `sourcemaps.delete` the bundler plugin ignores `deleteSourcemapsAfterUpload` and warns if
  * the user set it, so it only gets the user's value then.
@@ -55,7 +56,11 @@ function makeSourceMapDeletionOptions(
         ? sourcemaps.deleteSourcemapsAfterUpload
         : environment =>
             sourcemaps?.deleteSourcemapsAfterUpload ??
-            (sdkEnabledSourceMaps(environment) && !keepSdkEnabledSourceMaps ? true : undefined),
+            (sdkEnabledSourceMaps(environment) &&
+            !keepSdkEnabledSourceMaps &&
+            sourcemaps?.filesToDeleteAfterUpload === undefined
+              ? true
+              : undefined),
     sdkEnabledSourceMaps,
   };
 }

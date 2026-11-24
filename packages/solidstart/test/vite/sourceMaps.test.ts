@@ -283,10 +283,22 @@ describe.each([
     expect(getDeleteOption()).toBe(value);
   });
 
-  it('asks for deletion next to a user-set `filesToDeleteAfterUpload`', () => {
-    makePlugin({ sourcemaps: { filesToDeleteAfterUpload: ['./dist/**/*.map'] } }, { sdkEnabledSourceMaps: true });
+  it.each([[['./dist/**/*.map']], [[]]])(
+    'lets a user-set `filesToDeleteAfterUpload: %j` replace the deletion',
+    files => {
+      makePlugin({ sourcemaps: { filesToDeleteAfterUpload: files } }, { sdkEnabledSourceMaps: true });
 
-    expect(lastPluginOptions?.sourcemaps?.filesToDeleteAfterUpload).toEqual(['./dist/**/*.map']);
+      expect(lastPluginOptions?.sourcemaps?.filesToDeleteAfterUpload).toEqual(files);
+      expect(getDeleteOption()).toBeUndefined();
+    },
+  );
+
+  it('lets a user-set `deleteSourcemapsAfterUpload: true` win over the user glob', () => {
+    makePlugin(
+      { sourcemaps: { deleteSourcemapsAfterUpload: true, filesToDeleteAfterUpload: ['./dist/**/*.map'] } },
+      { sdkEnabledSourceMaps: true },
+    );
+
     expect(getDeleteOption()).toBe(true);
   });
 
