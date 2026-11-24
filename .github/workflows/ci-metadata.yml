@@ -81,8 +81,8 @@ jobs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
       # Note: These next three have to be checked as strings ('true'/'false')!
       is_base_branch:
-        ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/develop' || github.ref ==
-        'refs/heads/v10' || github.ref == 'refs/heads/v9' || github.ref == 'refs/heads/v8'}}
+        ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/v10' || github.ref == 'refs/heads/v9' ||
+        github.ref == 'refs/heads/v8'}}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       changed_ci: ${{ steps.changed.outputs.workflow == 'true' }}
       changed_any_code: ${{ steps.changed.outputs.any_code == 'true' }}
