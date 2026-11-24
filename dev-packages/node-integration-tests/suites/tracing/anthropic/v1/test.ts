@@ -293,6 +293,37 @@ describe('Anthropic integration (1.x)', () => {
     }
   });
 
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-session-tool-runner.mjs',
+    'instrument-ignore-invoke-agent.mjs',
+    (createRunner, test) => {
+      test('parents tool spans to the caller when invoke_agent spans are ignored', async () => {
+        await createRunner()
+          .unordered()
+          .expect({
+            span: container => {
+              const main = container.items.find(span => span.is_segment && span.name === 'main')!;
+              expect(container.items.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT)).toEqual(
+                [],
+              );
+              const toolSpans = container.items.filter(
+                span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXECUTE_TOOL,
+              );
+              expect(toolSpans.map(span => span.attributes[GEN_AI_TOOL_NAME]?.value).sort()).toEqual([
+                'explode',
+                'read',
+                'weather',
+              ]);
+              expect(toolSpans.map(span => span.parent_span_id)).toEqual(toolSpans.map(() => main.span_id));
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
+
   createEsmAndCjsTests(__dirname, 'scenario-platform-client.mjs', 'instrument.mjs', (createRunner, test) => {
     test('uses the provider name of a platform client such as AnthropicBedrock', async () => {
       await createRunner()
