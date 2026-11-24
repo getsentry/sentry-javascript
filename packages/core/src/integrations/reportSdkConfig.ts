@@ -8,6 +8,7 @@ import type { Integration, IntegrationFn } from '../types/integration';
 import { debug } from '../utils/debug-logger';
 import { fnv1a32 } from '../utils/hash';
 import { isPlainObject } from '../utils/is';
+import { isBrowser } from '../utils/isBrowser';
 import { safeUnref } from '../utils/timer';
 
 const _experimentalReportSdkConfigIntegration = (() => ({
@@ -106,7 +107,8 @@ function buildConfigAttributes(client: Client): Record<string, string> {
   } = client.getSdkMetadata() || {};
   const clientOptions = client.getOptions();
   const { environment } = clientOptions;
-  const runtime = 'runtime' in clientOptions ? clientOptions.runtime : undefined;
+  // Server clients set their runtime as an option; browser clients have none.
+  const runtime = 'runtime' in clientOptions ? clientOptions.runtime : isBrowser() ? { name: 'browser' } : undefined;
 
   // Only what the user passed, so SDK defaults never show up as config.
   const options: Record<string, unknown> = Object.fromEntries(
@@ -128,8 +130,7 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     );
   }
 
-  // The hash covers the whole payload, so a payload cached by its hash is never stale.
-  const payload = JSON.stringify({
+  const config = {
     version: 3,
     sdk: serialize(sdk),
     runtime: serialize(runtime),
@@ -137,11 +138,12 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     // Not an init() option, so it stays out of `options`.
     ...(removedDefaultIntegrations && { removed_default_integrations: removedDefaultIntegrations }),
     options: serialize(options),
-  });
+  };
 
+  // The runtime stays out of the hash until we decide which of its parts identify a configuration.
   return {
-    'sentry.sdk_config.hash': fnv1a32(payload),
-    'sentry.sdk_config.payload': payload,
+    'sentry.sdk_config.hash': fnv1a32(JSON.stringify({ ...config, runtime: undefined })),
+    'sentry.sdk_config.payload': JSON.stringify(config),
   };
 }
 
