@@ -16,6 +16,8 @@ import {
   getRootSpan,
   SPAN_STATUS_ERROR,
   spanToJSON,
+  // The rule counts all of `@sentry/solid` as browser code, but this module only runs on the server.
+  // oxlint-disable-next-line sdk/no-unguarded-span-apis
   startInactiveSpan,
   updateSpanName,
 } from '@sentry/core';
