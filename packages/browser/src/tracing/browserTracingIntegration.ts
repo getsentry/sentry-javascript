@@ -6,6 +6,7 @@ import type {
   RequestHookInfo,
   ResponseHookInfo,
   Span,
+  SpanLink,
   StartSpanOptions,
 } from '@sentry/core';
 import {
@@ -19,8 +20,10 @@ import {
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
+  getSampleRandForNewTrace,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
+  isSamplingBySession,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
   isURLObjectRelative,
@@ -59,6 +62,7 @@ import {
   URL_PATH,
   SENTRY_ORIGIN,
   SENTRY_IDLE_SPAN_FINISH_REASON,
+  SENTRY_LINK_TYPE,
 } from '@sentry/conventions/attributes';
 import { NAVIGATION, NAVIGATION_REDIRECT, PAGELOAD } from '@sentry/conventions/op';
 
@@ -238,6 +242,21 @@ export interface BrowserTracingOptions {
    * @default `false` - this is an opt-in feature.
    */
   consistentTraceSampling: boolean;
+
+  /**
+   * PoC: What the pageload span does with a trace that the server started for the document request
+   * (`sentry-trace` and `baggage` meta tags or `Server-Timing` header).
+   *
+   * - `'continue'`: The pageload span continues the server's trace and inherits its sampling decision.
+   * - `'link'`: The pageload span starts a new trace, so the browser is the head of the trace and makes the
+   *   sampling decision. The pageload span links to the server's span with a `server_request` span link.
+   *
+   * With session-based sampling, the server decides before the session exists. `'link'` keeps the pageload
+   * trace in line with the session's decision. `'continue'` keeps one distributed trace for the pageload.
+   *
+   * @default 'link' if the SDK samples by session (`sessionSampleRate`), otherwise 'continue'
+   */
+  serverTrace?: 'continue' | 'link';
 
   /**
    * If set to `true`, the pageload span will not end itself automatically, unless it
@@ -440,6 +459,7 @@ function _browserTracingIntegration(
     instrumentBfcacheRestore,
     detectRedirects,
     enableReportPageLoaded,
+    serverTrace,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
     ...options,
@@ -613,7 +633,9 @@ function _browserTracingIntegration(
         const scope = getCurrentScope();
         scope.setPropagationContext({
           traceId: generateTraceId(),
-          sampleRand: Math.random(),
+          // PoC: With session-based sampling, a navigation trace takes the `sample_rand` of the session. This also
+          // covers traces that never start a root span (Tracing without Performance), where only headers are sent.
+          sampleRand: getSampleRandForNewTrace(client, scope),
           propagationSpanId: hasSpansEnabled() ? undefined : generateSpanId(),
         });
 
@@ -649,7 +671,28 @@ function _browserTracingIntegration(
         const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
 
         const scope = getCurrentScope();
-        scope.setPropagationContext(propagationContext);
+
+        // PoC: With `serverTrace: 'link'`, the browser is the head of the pageload trace. The trace takes the
+        // `sample_rand` of the session, so the session's decision applies to it like to every later trace.
+        let serverRequestLink: SpanLink | undefined;
+        const linkServerTrace =
+          (serverTrace ?? (isSamplingBySession(client.getOptions()) ? 'link' : 'continue')) === 'link';
+        if (linkServerTrace && propagationContext.parentSpanId) {
+          serverRequestLink = {
+            context: {
+              traceId: propagationContext.traceId,
+              spanId: propagationContext.parentSpanId,
+              traceFlags: propagationContext.sampled ? 1 : 0,
+            },
+            attributes: { [SENTRY_LINK_TYPE]: 'server_request' },
+          };
+          scope.setPropagationContext({
+            traceId: generateTraceId(),
+            sampleRand: getSampleRandForNewTrace(client, scope),
+          });
+        } else {
+          scope.setPropagationContext(propagationContext);
+        }
         if (!hasSpansEnabled()) {
           // for browser, we wanna keep the spanIds consistent during the entire lifetime of the trace
           // this works by setting the propagationSpanId to a random spanId so that we have a consistent
@@ -667,6 +710,7 @@ function _browserTracingIntegration(
         _createRouteSpan(client, {
           op: PAGELOAD,
           ...startSpanOptions,
+          ...(serverRequestLink && { links: [...(startSpanOptions.links || []), serverRequestLink] }),
         });
       });
 

@@ -294,6 +294,33 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   sampleRate?: number;
 
   /**
+   * PoC: Sample rate for sessions.
+   *
+   * The SDK makes one decision per session. In a sampled session it sends all spans, logs, metrics, errors,
+   * replays and profiles. In an unsampled session it sends none of them, except errors, which follow `sampleRate`.
+   * 0.0 samples no session, 1.0 samples all sessions.
+   *
+   * Inside a session, `tracesSampleRate`, `tracesSampler`, `replaysSessionSampleRate` and
+   * `profileSessionSampleRate` are not consulted. They still apply to telemetry outside of a session.
+   *
+   * @experimental
+   * @default undefined
+   */
+  sessionSampleRate?: number;
+
+  /**
+   * PoC: Sample rate for conversations, identified by `Sentry.setConversationId()`.
+   *
+   * Works like `sessionSampleRate`. Every process that handles a part of a conversation makes the same decision,
+   * because the decision is derived from the conversation id. A trace that already started when the conversation id
+   * is set keeps its own decision.
+   *
+   * @experimental
+   * @default undefined
+   */
+  conversationSampleRate?: number;
+
+  /**
    * Maximum number of chars a single value can have before it will be truncated.
    */
   maxValueLength?: number;

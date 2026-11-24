@@ -5,8 +5,10 @@ import {
   defineIntegration,
   consoleSandbox,
   GLOBAL_OBJ,
+  hasSamplingUnits,
   isBrowser,
   parseSampleRate,
+  resolveSamplingUnit,
   safeSetSpanJSONAttributes,
 } from '@sentry/core';
 import {
@@ -442,7 +444,7 @@ function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions,
   const replaysSessionSampleRate = parseSampleRate(opt.replaysSessionSampleRate);
   const replaysOnErrorSampleRate = parseSampleRate(opt.replaysOnErrorSampleRate);
 
-  if (replaysSessionSampleRate == null && replaysOnErrorSampleRate == null) {
+  if (replaysSessionSampleRate == null && replaysOnErrorSampleRate == null && !hasSamplingUnits(client.getOptions())) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
@@ -457,6 +459,14 @@ function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions,
 
   if (replaysOnErrorSampleRate != null) {
     finalOptions.errorSampleRate = replaysOnErrorSampleRate;
+  }
+
+  // PoC: With session-based sampling, a replay is recorded for exactly the sampled sessions.
+  // `replaysSessionSampleRate` is not consulted. `replaysOnErrorSampleRate` still applies in unsampled sessions.
+  // To sample replays independently again, compare `replaysSessionSampleRate` against `samplingUnit.sampleRand` here.
+  const samplingUnit = resolveSamplingUnit(client.getOptions());
+  if (samplingUnit) {
+    finalOptions.sessionSampleRate = samplingUnit.sampled ? 1 : 0;
   }
 
   return finalOptions;

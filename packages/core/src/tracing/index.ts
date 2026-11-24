@@ -34,6 +34,15 @@ export {
 } from './dynamicSamplingContext';
 export { setMeasurement, timedEventsToMeasurements } from './measurement';
 export { sampleSpan } from './sampling';
+export {
+  getSampleRandForNewTrace,
+  hasSamplingUnits,
+  isSamplingBySession,
+  resolveSamplingUnit,
+  sampleRandFromKey,
+  sampleTelemetry,
+} from './samplingUnit';
+export type { SamplingUnit } from './samplingUnit';
 export { logSpanEnd, logSpanStart } from './logSpans';
 
 // Span Streaming
