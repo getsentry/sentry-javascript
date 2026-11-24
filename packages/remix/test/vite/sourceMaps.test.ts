@@ -225,15 +225,15 @@ describe('makeAddSentryVitePlugin', () => {
     },
   );
 
-  it('passes a user-set filesToDeleteAfterUpload through and still deletes the maps the SDK enabled', () => {
-    makeAddSentryVitePlugin(
-      { sourcemaps: { filesToDeleteAfterUpload: ['./dist/**/*.map'] } },
-      { sdkEnabledSourceMaps: true },
-    );
+  it.each([[['./dist/**/*.map']], [[]]])(
+    'lets a user-set `filesToDeleteAfterUpload: %j` replace the deletion',
+    files => {
+      makeAddSentryVitePlugin({ sourcemaps: { filesToDeleteAfterUpload: files } }, { sdkEnabledSourceMaps: true });
 
-    expect(capturedOptions?.sourcemaps?.filesToDeleteAfterUpload).toEqual(['./dist/**/*.map']);
-    expect(getDeleteOption()).toBe(true);
-  });
+      expect(capturedOptions?.sourcemaps?.filesToDeleteAfterUpload).toEqual(files);
+      expect(getDeleteOption()).toBeUndefined();
+    },
+  );
 
   it('tells the bundler plugin whether the SDK enabled the source maps', () => {
     const state: SourceMapState = { sdkEnabledSourceMaps: false };
