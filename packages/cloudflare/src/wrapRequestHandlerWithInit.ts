@@ -27,6 +27,44 @@ function getRequestErrorMechanismType(context: ExecutionContextCompat | undefine
   return isDurableObjectContext(context) ? 'auto.faas.cloudflare.durable_object' : 'auto.http.cloudflare';
 }
 
+/**
+ * vinext's Workers Cache adapter issues its response-stage request with internal data:
+ * `__vinext_*` query parameters and `x-vinext-internal-*` headers, which can carry unfiltered
+ * query values. The SDK must not record them. Returns the original request when it carries no
+ * vinext data, so non-vinext traffic is untouched.
+ */
+function stripVinextInternalData(
+  request: Request<unknown, IncomingRequestCfProperties<unknown> | CfProperties<unknown>>,
+): Request<unknown, IncomingRequestCfProperties<unknown> | CfProperties<unknown>> {
+  try {
+    const url = new URL(request.url);
+    const vinextQueryParams = [...url.searchParams.keys()].filter(key => key.startsWith('__vinext_'));
+    const headers = new Headers(request.headers);
+    const vinextHeaders = [...headers.keys()].filter(name => name.startsWith('x-vinext-internal-'));
+    if (vinextQueryParams.length === 0 && vinextHeaders.length === 0) {
+      return request;
+    }
+    for (const key of vinextQueryParams) {
+      url.searchParams.delete(key);
+    }
+    for (const name of vinextHeaders) {
+      headers.delete(name);
+    }
+    // The body is teed from a clone so the original request stays readable for the handler:
+    // building the new request from the original would move its body stream instead.
+    return new Request(url.toString(), {
+      method: request.method,
+      headers,
+      body: request.body ? request.clone().body : undefined,
+      ...(request.body ? { duplex: 'half' as const } : {}),
+      signal: request.signal,
+    });
+  } catch {
+    // Never break the request to hide data: if sanitizing fails, record the original.
+    return request;
+  }
+}
+
 export interface RequestHandlerWrapperOptions {
   options: CloudflareOptions;
   request: Request<unknown, IncomingRequestCfProperties<unknown> | CfProperties<unknown>>;
@@ -119,7 +157,10 @@ export function wrapRequestHandlerWithInit(
     // See: https://developers.cloudflare.com/workers/runtime-apis/performance/
     return wrapServerRequestHandler(
       {
-        request,
+        // The response-stage request of vinext's Workers Cache adapter carries vinext's internal
+        // data; record a sanitized copy so it never lands in spans or error events. The handler
+        // itself still receives the original request.
+        request: stripVinextInternalData(request),
         client,
         // Without `AsyncLocalStorage`, `withInvocationIsolationScope` does not fork, and the scope it
         // passes in is not the current one. The request data has to go on the current scope, where
