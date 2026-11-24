@@ -1,4 +1,4 @@
-import { getActiveSpan } from '@sentry/core';
+import { getActiveSpan, isSharedCacheable } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
 import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { safeChannelCallback } from '../../tracing-channel';
@@ -31,9 +31,21 @@ export function capturePrepareResponse(serverTiming: boolean): void {
           setParameterizedRouteAttributes(activeSpan, event);
         }
 
-        if (serverTiming) {
+        if (serverTiming && !mayBeCached(event, (message as OrchestrionChannelContext).arguments[0])) {
           setServerTimingHeaders(event);
         }
       });
     });
+}
+
+// A cache would hand the trace of one request to every later visitor. Nitro's caching route rules also run
+// `prepareResponse` for the response they store, before they add any `Cache-Control` header to it.
+function mayBeCached(event: NitroH3Event, val: unknown): boolean {
+  const routeRules = event.context?.routeRules;
+  if (routeRules?.cache || routeRules?.isr || routeRules?.prerender) {
+    return true;
+  }
+
+  const valHeaders = val instanceof Response ? val.headers : undefined;
+  return isSharedCacheable(name => valHeaders?.get(name) ?? event.res?.headers.get?.(name) ?? undefined);
 }

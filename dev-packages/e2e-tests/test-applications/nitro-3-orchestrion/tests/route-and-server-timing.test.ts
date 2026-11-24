@@ -17,8 +17,11 @@ function getServerTimingEntries(response: APIResponse, name: string): string[] {
 }
 
 test('names the segment span after the parameterized route', async ({ request }) => {
+  // In dev, the dev server in front of Nitro sends an unnamed segment span of its own for the request.
   const segmentSpanPromise = waitForStreamedSpan(APP_NAME, span => {
-    return span.is_segment && span.attributes[URL_PATH]?.value === '/api/test-param/123';
+    return (
+      span.is_segment && span.attributes[URL_PATH]?.value === '/api/test-param/123' && !!span.attributes[HTTP_ROUTE]
+    );
   });
 
   await request.get('/api/test-param/123');

@@ -16,9 +16,11 @@
 export interface NitroH3Event {
   url: { href: string };
   req: { method?: string };
-  res?: { headers: { append: (name: string, value: string) => void } };
+  res?: { headers: { append: (name: string, value: string) => void; get?: (name: string) => string | null } };
   context?: {
     matchedRoute?: { route?: string };
+    /** The route rules that h3 matched for the request, such as Nitro's `cache`, `isr` or `prerender`. */
+    routeRules?: Record<string, unknown>;
     params?: unknown;
     /** Set by the Server-Timing instrumentation so trace headers are only appended once per request. */
     _sentryServerTimingSet?: boolean;

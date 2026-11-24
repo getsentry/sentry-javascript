@@ -19,8 +19,8 @@ function createEvent(context: NitroH3Event['context']): NitroH3Event & { res: { 
   };
 }
 
-function prepareResponse(event: NitroH3Event, nested?: boolean): void {
-  prepareResponseChannel.traceSync(() => undefined, { arguments: [{ id: 42 }, event, {}, nested] });
+function prepareResponse(event: NitroH3Event, nested?: boolean, val: unknown = { id: 42 }): void {
+  prepareResponseChannel.traceSync(() => undefined, { arguments: [val, event, {}, nested] });
 }
 
 function inHttpServerSpan(callback: () => void): Span {
@@ -94,6 +94,26 @@ describe('capturePrepareResponse', () => {
     const event = createEvent({ matchedRoute: { route: '/api/users/:id' }, _sentryServerTimingSet: true });
 
     inHttpServerSpan(() => prepareResponse(event));
+
+    expect(event.res.headers.get('Server-Timing')).toBeNull();
+  });
+
+  it.each([{ cache: { swr: true } }, { isr: true }, { prerender: true }])(
+    'skips the Server-Timing headers for a response that the %o route rule caches',
+    routeRules => {
+      const event = createEvent({ matchedRoute: { route: '/api/users/:id' }, routeRules });
+
+      inHttpServerSpan(() => prepareResponse(event));
+
+      expect(event.res.headers.get('Server-Timing')).toBeNull();
+    },
+  );
+
+  it('skips the Server-Timing headers for a response that a shared cache may store', () => {
+    const event = createEvent({ matchedRoute: { route: '/api/users/:id' } });
+    const response = new Response('{}', { headers: { 'cache-control': 'public, max-age=60' } });
+
+    inHttpServerSpan(() => prepareResponse(event, undefined, response));
 
     expect(event.res.headers.get('Server-Timing')).toBeNull();
   });
