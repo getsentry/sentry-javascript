@@ -856,6 +856,11 @@ function getOutputMessages(
   return buildOutputMessages(parts, finishReason);
 }
 
+/**
+ * Joins the text of the AI SDK state parts into one Clairic `state` string. The gateway does this join on
+ * the server and does not show its separator, so this one is our choice. It only makes the recorded text
+ * easier to read: the answer spans stay correct with any separator, because we add each part's offset.
+ */
 const EXTRACT_STATE_SEPARATOR = '\n\n';
 const BLOB_SUBSTITUTE = '[Blob substitute]';
 
