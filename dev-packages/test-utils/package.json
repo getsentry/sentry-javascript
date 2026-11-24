@@ -71,7 +71,7 @@
     "@playwright/test": "1.64.1"
   },
   "dependencies": {
-    "@sentry/conventions": "^0.35.0",
+    "@sentry/conventions": "^0.36.0",
     "express": "^4.22.3",
     "ws": "^8.20.1"
   },
