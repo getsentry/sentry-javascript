@@ -542,6 +542,67 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     expect(warnings[0]).toContain('MyDO');
   });
 
+  it('wraps named entrypoints a host adapter appends to the Cloudflare worker-entry facade', async () => {
+    const dir = writeTempDir({
+      'wrangler.toml': 'main = "index.ts"',
+      'instrument.server.ts': 'export default () => ({ dsn: "x" });',
+    });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir, plugins: [{ name: 'vinext:config' }] });
+    const resolve = vi.fn().mockResolvedValue({ id: join(dir, 'node_modules/@sentry/nextjs/cloudflare.js') });
+
+    // The statement `workersCacheCdnAdapter()` of `@vinext/cloudflare` appends.
+    const adapter = JSON.stringify(join(dir, 'node_modules/@vinext/cloudflare/dist/cache/cdn-adapter.worker.js'));
+    const code = [
+      'import * as mod from "virtual:cloudflare/user-entry";',
+      'export * from "virtual:cloudflare/user-entry";',
+      'export default mod.default ?? {};',
+      `export { VinextCachedResponse, VinextUncachedResponse } from ${adapter};`,
+    ].join('\n');
+
+    const result = await plugin.transform.call(
+      { parse: (c: string) => parseJS(c), resolve },
+      code,
+      '\0virtual:cloudflare/worker-entry',
+    );
+
+    const instrumentImport = join(dir, 'instrument.server.ts').replace(/\\/g, '/');
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/nextjs/cloudflare';",
+        `import __SENTRY_OPTIONS_CALLBACK__ from '${instrumentImport}';`,
+        'import * as mod from "virtual:cloudflare/user-entry";',
+        'export * from "virtual:cloudflare/user-entry";',
+        'export default mod.default ?? {};',
+        `import { VinextCachedResponse as __SENTRY_REEXPORT_VinextCachedResponse__ } from ${adapter};`,
+        'const __SENTRY_WRAPPED_VinextCachedResponse__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, __SENTRY_OPTIONS_CALLBACK__, __SENTRY_REEXPORT_VinextCachedResponse__);',
+        `import { VinextUncachedResponse as __SENTRY_REEXPORT_VinextUncachedResponse__ } from ${adapter};`,
+        'const __SENTRY_WRAPPED_VinextUncachedResponse__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, __SENTRY_OPTIONS_CALLBACK__, __SENTRY_REEXPORT_VinextUncachedResponse__);',
+        'export { __SENTRY_WRAPPED_VinextCachedResponse__ as VinextCachedResponse, __SENTRY_WRAPPED_VinextUncachedResponse__ as VinextUncachedResponse };',
+      ].join('\n'),
+    );
+    expect(resolve).toHaveBeenCalledWith('@sentry/nextjs/cloudflare', join(dir, 'index.ts'));
+  });
+
+  it('leaves the Cloudflare worker-entry facade alone when no named entrypoint was appended', async () => {
+    const dir = writeTempDir({ 'wrangler.toml': 'main = "index.ts"' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir });
+
+    const code = [
+      'import * as mod from "virtual:cloudflare/user-entry";',
+      'export * from "virtual:cloudflare/user-entry";',
+      'export default mod.default ?? {};',
+    ].join('\n');
+    const result = await plugin.transform.call(
+      { parse: (c: string) => parseJS(c) },
+      code,
+      '\0virtual:cloudflare/worker-entry',
+    );
+
+    expect(result).toBeUndefined();
+  });
+
   it('does not warn for a shim that re-exports everything from a query variant of the entry', async () => {
     const dir = writeTempDir({
       'wrangler.toml': [
