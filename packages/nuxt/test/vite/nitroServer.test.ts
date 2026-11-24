@@ -33,7 +33,7 @@ function createFakeNuxt(): {
     callbacks.set(name, [...(callbacks.get(name) ?? []), callback]);
   });
   const nuxt = {
-    options: { rootDir: APP_ROOT, buildDir: `${APP_ROOT}/.nuxt`, nitro: {} },
+    options: { rootDir: APP_ROOT, buildDir: `${APP_ROOT}/.nuxt`, nitro: {}, app: { baseURL: '/' } },
     hook,
     hooks: { hook },
   } as unknown as Nuxt;
@@ -87,7 +87,7 @@ describe('setupNitroServer', () => {
 
   it('instruments the middleware and adds the config shim once Nitro initializes', () => {
     const { nuxt, callHook } = createFakeNuxt();
-    const nitro = { options: { preset: 'node-server', plugins: [] }, hooks: { hook: vi.fn() } };
+    const nitro = { options: { preset: 'node-server', plugins: [], publicAssets: [] }, hooks: { hook: vi.fn() } };
     setupNitroServer(nuxt, 'nitro2', SERVER_CONFIG, MODULE_OPTIONS);
 
     callHook('nitro:init', nitro);

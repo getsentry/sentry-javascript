@@ -1,4 +1,4 @@
-import { URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, URL_PATH } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Client, EventProcessor } from '@sentry/core';
 import {
@@ -13,7 +13,7 @@ import {
   isClientClosed,
 } from '@sentry/core';
 import { init as initNode } from '@sentry/node';
-import { getNuxtBuildAssetsPath } from '../common/buildAssets';
+import { getNuxtBuildAssetsPath, getNuxtPublicFilePaths } from '../common/buildAssets';
 import { DEBUG_BUILD } from '../common/debug-build';
 import {
   isNuxtDevRuntime,
@@ -62,7 +62,7 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
   const sentryOptions = {
     environment: options.environment ?? process.env.SENTRY_ENVIRONMENT ?? envFallback,
     ..._INTERNAL_captureOptionsSetByUser(options),
-    ignoreSpans: [...(options.ignoreSpans || []), ...getBuildAssetRequestFilters()],
+    ignoreSpans: [...(options.ignoreSpans || []), ...getBuildAssetRequestFilters(), ...getPublicFileRequestFilters()],
   };
 
   applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'node']);
@@ -89,6 +89,25 @@ function getBuildAssetRequestFilters(): NonNullable<SentryNuxtServerOptions['ign
   const buildAssetsPath = getNuxtBuildAssetsPath();
   return buildAssetsPath
     ? [{ op: HTTP_SERVER, attributes: { [URL_PATH]: new RegExp(`^${escapeStringForRegex(buildAssetsPath)}`) } }]
+    : [];
+}
+
+/**
+ * Ignores files from `public/` that the HTTP integration's static asset filter misses, such as `.pdf` and `.txt` files.
+ * Matches exact paths, because a route can share a prefix with a public dir.
+ */
+function getPublicFileRequestFilters(): NonNullable<SentryNuxtServerOptions['ignoreSpans']> {
+  const paths = getNuxtPublicFilePaths();
+  return paths.length
+    ? [
+        {
+          op: HTTP_SERVER,
+          attributes: {
+            [HTTP_REQUEST_METHOD]: 'GET',
+            [URL_PATH]: new RegExp(`^(?:${paths.map(escapeStringForRegex).join('|')})$`),
+          },
+        },
+      ]
     : [];
 }
 

@@ -25,6 +25,8 @@ test('sends a server action transaction on pageload', async ({ page }) => {
   // Nuxt build output that the HTTP integration does not ignore.
   '/_nuxt/builds/latest.json',
   '/_nuxt/entry.js.map',
+  // File from `public/` that the HTTP integration does not ignore.
+  '/humans.txt',
   // Common static file that the HTTP integration ignores.
   '/favicon.ico',
 ].forEach(path => {

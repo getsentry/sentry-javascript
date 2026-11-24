@@ -5,7 +5,7 @@ import * as path from 'path';
 import { fileURLToPath } from 'node:url';
 import type { SentryNuxtModuleOptions } from '../common/types';
 import { addTemplate, resolvePath, resolveServerVariant } from '@nuxt/kit';
-import { NUXT_BUILD_ASSETS_DIR_GLOBAL } from '../common/buildAssets';
+import { NUXT_BUILD_ASSETS_DIR_GLOBAL, NUXT_PUBLIC_FILES_GLOBAL } from '../common/buildAssets';
 import { NUXT_DEV_MODE_FLAG, NUXT_PRERENDER_FLAG } from '../common/devMode';
 import { NUXT_BASE_PATH_GLOBAL } from '../common/tunnel';
 import { NUXT_NITRO_PRESET_FLAG } from '../runtime/utils/pageMetaTags';
@@ -249,7 +249,7 @@ export function addRuntimeInjectionTraceDep(nuxt: Nuxt, isNitroV3: boolean): voi
  * Generates the module that sets the runtime flags `Sentry.init` and the server plugins read. Import it
  * before the Sentry server config: a statement above the config import would not survive import hoisting.
  */
-export function addRuntimeFlagsTemplate(): ResolvedNuxtTemplate {
+export function addRuntimeFlagsTemplate(getPublicFilePaths: () => string[] = () => []): ResolvedNuxtTemplate {
   return addTemplate({
     filename: 'sentry-runtime-flags.mjs',
     write: true,
@@ -261,6 +261,7 @@ export function addRuntimeFlagsTemplate(): ResolvedNuxtTemplate {
         `globalThis.${NUXT_NITRO_PRESET_FLAG} = import.meta.preset;`,
         `globalThis.${NUXT_BASE_PATH_GLOBAL} = ${stringifyForCodeInjection(nuxt.options.app.baseURL)};`,
         `globalThis.${NUXT_BUILD_ASSETS_DIR_GLOBAL} = ${stringifyForCodeInjection(nuxt.options.app.buildAssetsDir)};`,
+        `globalThis.${NUXT_PUBLIC_FILES_GLOBAL} = ${stringifyForCodeInjection(getPublicFilePaths())};`,
         '',
       ].join('\n'),
   });

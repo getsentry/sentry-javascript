@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import type { Nitro } from 'nitropack';
 import type { InputPluginOption } from 'rollup';
 import type { SentryNuxtModuleOptions } from '../common/types';
+import { getNitroPublicFilePaths } from './publicFiles';
 import {
   addRuntimeFlagsTemplate,
   constructFunctionReExport,
@@ -110,7 +111,12 @@ export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nitro
  */
 export function addServerConfigPlugin(nuxt: Nuxt, serverConfigFile: string, isLegacyNitro: boolean): void {
   const configPath = createResolver(nuxt.options.rootDir).resolve(serverConfigFile);
-  const runtimeFlagsTemplate = addRuntimeFlagsTemplate();
+  let publicFilePaths: string[] = [];
+  // Nitro starts before Nuxt generates the templates.
+  nuxt.hook('nitro:init', nitro => {
+    publicFilePaths = getNitroPublicFilePaths(nitro, nuxt);
+  });
+  const runtimeFlagsTemplate = addRuntimeFlagsTemplate(() => publicFilePaths);
 
   const configPluginTemplate = addTemplate({
     filename: 'sentry-server-config-plugin.mjs',

@@ -10,7 +10,9 @@ type PublicDir = { dir: string; baseURL?: string };
 /** Returns the paths of the files Nitro serves from its public asset dirs, without the client build. */
 export function getNitroPublicFilePaths(nitro: Nitro, nuxt: Nuxt): string[] {
   const clientBuildDir = path.resolve(nuxt.options.buildDir, 'dist/client');
-  const publicDirs = nitro.options.publicAssets.filter(asset => !isInDirectory(path.resolve(asset.dir), clientBuildDir));
+  const publicDirs = nitro.options.publicAssets.filter(
+    asset => !isInDirectory(path.resolve(asset.dir), clientBuildDir),
+  );
   return getPublicFilePaths(publicDirs, nuxt.options.app.baseURL);
 }
 

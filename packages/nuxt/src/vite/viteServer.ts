@@ -4,6 +4,7 @@ import { consoleSandbox, stringifyForCodeInjection } from '@sentry/core';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
+import { getLayerPublicFilePaths } from './publicFiles';
 import { addRuntimeFlagsTemplate } from './utils';
 
 const SERVER_ENTRY_ALIAS = '#server-entry';
@@ -30,7 +31,7 @@ export function setupViteServer(nuxt: Nuxt, serverConfigFile: string, moduleOpti
 
   const configPath = createResolver(nuxt.options.rootDir).resolve(serverConfigFile);
   const metaTagsPath = createResolver(import.meta.url).resolve('./runtime/vite-server');
-  const importPaths = [addRuntimeFlagsTemplate().dst, configPath, metaTagsPath];
+  const importPaths = [addRuntimeFlagsTemplate(() => getLayerPublicFilePaths(nuxt)).dst, configPath, metaTagsPath];
   let isConfigBundled = false;
 
   addVitePlugin(

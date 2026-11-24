@@ -1,10 +1,10 @@
-import { SENTRY_OP, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, SENTRY_OP, URL_PATH } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import { GLOBAL_OBJ, originalConsoleMethods } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import { getGlobalScope, SDK_VERSION } from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { NUXT_BUILD_ASSETS_DIR_GLOBAL } from '../../src/common/buildAssets';
+import { NUXT_BUILD_ASSETS_DIR_GLOBAL, NUXT_PUBLIC_FILES_GLOBAL } from '../../src/common/buildAssets';
 import { NUXT_DEV_MODE_FLAG, NUXT_PRERENDER_FLAG, NUXT_SERVER_INITIALIZED_FLAG } from '../../src/common/devMode';
 import { NUXT_BASE_PATH_GLOBAL } from '../../src/common/tunnel';
 import { init } from '../../src/server';
@@ -243,11 +243,11 @@ describe('Nuxt Server SDK', () => {
     });
 
     describe('ignoreSpans', () => {
-      const startServerSpan = (path: string): SentryNode.Span =>
+      const startServerSpan = (path: string, method = 'GET'): SentryNode.Span =>
         SentryNode.startInactiveSpan({
-          name: 'GET',
+          name: method,
           forceTransaction: true,
-          attributes: { [SENTRY_OP]: HTTP_SERVER, [URL_PATH]: path },
+          attributes: { [SENTRY_OP]: HTTP_SERVER, [URL_PATH]: path, [HTTP_REQUEST_METHOD]: method },
         });
 
       it.each([
@@ -333,6 +333,52 @@ describe('Nuxt Server SDK', () => {
           init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
 
           expect(startServerSpan('/user/jane.doe').isRecording()).toBe(true);
+        });
+      });
+
+      describe('with public files', () => {
+        const globalWithNuxtPaths = GLOBAL_OBJ as {
+          [NUXT_BASE_PATH_GLOBAL]?: string;
+          [NUXT_PUBLIC_FILES_GLOBAL]?: string[];
+        };
+
+        beforeEach(() => {
+          globalWithNuxtPaths[NUXT_PUBLIC_FILES_GLOBAL] = ['/docs/guide.pdf', '/humans.txt'];
+        });
+
+        afterEach(() => {
+          globalWithNuxtPaths[NUXT_BASE_PATH_GLOBAL] = undefined;
+          globalWithNuxtPaths[NUXT_PUBLIC_FILES_GLOBAL] = undefined;
+        });
+
+        it.each(['/docs/guide.pdf', '/humans.txt'])('ignores GET requests for public files (%s)', path => {
+          init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+          expect(startServerSpan(path).isRecording()).toBe(false);
+        });
+
+        it.each(['/docs/', '/docs/guide', '/docs/guide.pdf/', '/humans.txt.bak', '/blog/humans.txt'])(
+          'keeps requests that only resemble a public file (%s)',
+          path => {
+            init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+            expect(startServerSpan(path).isRecording()).toBe(true);
+          },
+        );
+
+        it('keeps other methods than GET, which reach the routes', () => {
+          init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+          expect(startServerSpan('/humans.txt', 'POST').isRecording()).toBe(true);
+        });
+
+        it('ignores public files under the configured `baseURL`', () => {
+          globalWithNuxtPaths[NUXT_BASE_PATH_GLOBAL] = '/shop/';
+
+          init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+          expect(startServerSpan('/shop/humans.txt').isRecording()).toBe(false);
+          expect(startServerSpan('/humans.txt').isRecording()).toBe(true);
         });
       });
     });

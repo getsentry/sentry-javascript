@@ -115,6 +115,9 @@ describe('wrapEntryWithDynamicImport', () => {
 
 const addTemplateMock = vi.hoisted(() => vi.fn());
 const addNitroPluginMock = vi.hoisted(() => vi.fn());
+const getNitroPublicFilePathsMock = vi.hoisted(() => vi.fn((): string[] => []));
+
+vi.mock('../../src/vite/publicFiles', () => ({ getNitroPublicFilePaths: getNitroPublicFilePathsMock }));
 
 vi.mock('@nuxt/kit', () => ({
   addTemplate: addTemplateMock,
@@ -144,7 +147,11 @@ describe('addServerConfigPlugin', () => {
         app: { baseURL: '/', buildAssetsDir: '/_nuxt/' },
       },
       hook: (name: string, callback: (nitroConfig: NitroConfig) => void) => {
-        hooks[name] = callback;
+        const previous = hooks[name];
+        hooks[name] = arg => {
+          previous?.(arg);
+          callback(arg);
+        };
       },
     } as unknown as Parameters<typeof addServerConfigPlugin>[0];
 
@@ -196,6 +203,20 @@ describe('addServerConfigPlugin', () => {
     const contents = templateContents('sentry-runtime-flags.mjs', nuxt);
     expect(contents).toContain('globalThis.__sentry_nuxt_base_path = "/shop/";');
     expect(contents).toContain('globalThis.__sentry_nuxt_build_assets_dir = "/assets/";');
+  });
+
+  it('passes the public files that Nitro serves to the server SDK', () => {
+    getNitroPublicFilePathsMock.mockReturnValueOnce(['/humans.txt', '/docs/guide.pdf']);
+    const { nuxt, hooks } = createFakeNuxt();
+    addServerConfigPlugin(nuxt, APP_CONFIG, true);
+    const nitro = { options: { preset: 'node-server', plugins: [] } };
+
+    hooks['nitro:init']!(nitro as never);
+
+    expect(getNitroPublicFilePathsMock).toHaveBeenCalledWith(nitro, nuxt);
+    expect(templateContents('sentry-runtime-flags.mjs', nuxt)).toContain(
+      'globalThis.__sentry_nuxt_public_files = ["/humans.txt","/docs/guide.pdf"];',
+    );
   });
 
   it('marks the config and the flags as side-effectful so tree shaking cannot drop them', () => {

@@ -7,12 +7,16 @@ export const NUXT_BUILD_ASSETS_DIR_GLOBAL = '__sentry_nuxt_build_assets_dir';
 /** Holds `app.cdnURL`. Set by the generated client config plugin. */
 export const NUXT_CDN_URL_GLOBAL = '__sentry_nuxt_cdn_url';
 
+/** Holds the paths of the files in `public/`, without `app.baseURL`. Set by the server runtime-flags module. */
+export const NUXT_PUBLIC_FILES_GLOBAL = '__sentry_nuxt_public_files';
+
 const DEFAULT_BUILD_ASSETS_DIR = '/_nuxt/';
 
 type GlobalWithNuxtPaths = {
   [NUXT_BASE_PATH_GLOBAL]?: string;
   [NUXT_BUILD_ASSETS_DIR_GLOBAL]?: string;
   [NUXT_CDN_URL_GLOBAL]?: string;
+  [NUXT_PUBLIC_FILES_GLOBAL]?: string[];
 };
 
 /**
@@ -35,6 +39,14 @@ export function getNuxtPublicBuildAssetsUrl(): string | undefined {
   const cdnURL = (GLOBAL_OBJ as GlobalWithNuxtPaths)[NUXT_CDN_URL_GLOBAL];
   const dir = getNuxtBuildAssetsDir();
   return cdnURL && dir ? `${cdnURL.replace(/\/+$/, '')}${dir}` : getNuxtBuildAssetsPath();
+}
+
+/** Returns the request paths of the files in `public/`, with `app.baseURL`. */
+export function getNuxtPublicFilePaths(): string[] {
+  const basePath = joinPath((GLOBAL_OBJ as GlobalWithNuxtPaths)[NUXT_BASE_PATH_GLOBAL] ?? '');
+  return ((GLOBAL_OBJ as GlobalWithNuxtPaths)[NUXT_PUBLIC_FILES_GLOBAL] ?? []).map(
+    file => `${basePath}${file.replace(/^\/+/, '')}`,
+  );
 }
 
 function joinPath(...segments: string[]): string {
