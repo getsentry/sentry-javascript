@@ -20,6 +20,7 @@ describe('fingerprintFunction', () => {
       ['void 0', 'e=>undefined', 'e=>void 0'],
       ['!0 and !1', 'e=>[true,false]', 'e=>[!0,!1]'],
       ['shorthand property', '({event})=>({event})', '({event:e})=>({event:e})'],
+      ['destructuring default', "({level='error'})=>level", "({level:e='error'})=>e"],
       ['renamed call arguments inside an object', 'e=>({a:f(x,y,z)})', 't=>({a:g(p,q,r)})'],
       ['renamed array items inside an object', 'e=>({a:[x,y,z]})', 't=>({a:[p,q,r]})'],
       ['renamed arrow parameters inside an object', 'e=>({a:(x,y,z)=>x})', 't=>({a:(p,q,r)=>p})'],

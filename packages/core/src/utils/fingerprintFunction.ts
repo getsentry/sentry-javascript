@@ -204,11 +204,11 @@ export function tokenize(src: string): string[] {
     // only three-character punctuators with `=` in the middle.
     const punctuator = src.slice(start, next === '=' && i - start > 2 ? i - 1 : i);
 
-    if (key && ':(,}'.includes(punctuator)) {
+    if (key && ':(,}='.includes(punctuator)) {
       // Object keys survive minification too.
       tokens[tokens.length - 1] = JSON.stringify(key);
-      // Shorthand `{event}` becomes `{event:e}` once the binding is renamed.
-      if (',}'.includes(punctuator)) {
+      // Shorthand `{event}` becomes `{event:e}` once the binding is renamed, and `{level=1}` becomes `{level:e=1}`.
+      if (',}='.includes(punctuator)) {
         tokens.push(':', previous as string);
       }
     }
