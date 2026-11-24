@@ -95,7 +95,7 @@ function serialize(value: unknown, ancestors = new Set<object>()): unknown {
 }
 
 // Integrations hold the SDK defaults by the time the client has them; serverName would split configurations by host.
-const EXCLUDED_OPTIONS = new Set(['dist', 'dsn', 'integrations', 'release', 'serverName']);
+const EXCLUDED_OPTIONS = new Set(['dist', 'dsn', 'environment', 'integrations', 'release', 'serverName']);
 
 function buildConfigAttributes(client: Client): Record<string, string> {
   const {
@@ -105,7 +105,6 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     removedDefaultIntegrations,
   } = client.getSdkMetadata() || {};
   const clientOptions = client.getOptions();
-  const { environment } = clientOptions;
   const runtime = 'runtime' in clientOptions ? clientOptions.runtime : undefined;
 
   // Only what the user passed, so SDK defaults never show up as config.
@@ -130,10 +129,9 @@ function buildConfigAttributes(client: Client): Record<string, string> {
 
   // The hash covers the whole payload, so a payload cached by its hash is never stale.
   const payload = JSON.stringify({
-    version: 3,
+    version: 4,
     sdk: serialize(sdk),
     runtime: serialize(runtime),
-    environment,
     // Not an init() option, so it stays out of `options`.
     ...(removedDefaultIntegrations && { removed_default_integrations: removedDefaultIntegrations }),
     options: serialize(options),
