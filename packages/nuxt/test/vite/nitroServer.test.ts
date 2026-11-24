@@ -1,6 +1,8 @@
+import { pathToFileURL } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { addTunnelPlugin, setupNitroServer } from '../../src/vite/nitroServer';
+import { QUERY_END_INDICATOR, SENTRY_WRAPPED_ENTRY } from '../../src/vite/utils';
 
 const addNitroPluginMock = vi.hoisted(() => vi.fn());
 const addServerImportsMock = vi.hoisted(() => vi.fn());
@@ -95,5 +97,67 @@ describe('setupNitroServer', () => {
     expect(nitro.hooks.hook).toHaveBeenCalledTimes(2);
     expect(nitro.hooks.hook).toHaveBeenCalledWith('rollup:before', expect.any(Function));
     expect(nitro.hooks.hook).toHaveBeenCalledWith('close', expect.any(Function));
+  });
+
+  describe('deprecated autoInjectServerSentry modes', () => {
+    const RUNTIME_FLAGS = `${APP_ROOT}/.nuxt/sentry-runtime-flags.mjs`;
+
+    type FakePlugin = {
+      name: string;
+      resolveId: (source: string, importer?: string) => unknown;
+      load: (id: string) => string | null;
+    };
+
+    function createFakeNitro(): {
+      nitro: { options: Record<string, unknown>; hooks: { hook: ReturnType<typeof vi.fn> } };
+      getRollupPlugin: (name: string) => FakePlugin;
+    } {
+      const rollupConfig: { plugins: FakePlugin[] } = { plugins: [] };
+      const nitro = {
+        options: { preset: 'node-server', plugins: [], rootDir: APP_ROOT, rollupConfig },
+        hooks: { hook: vi.fn() },
+      };
+      return { nitro, getRollupPlugin: name => rollupConfig.plugins.find(plugin => plugin.name === name)! };
+    }
+
+    it('imports the runtime flags before the config with `top-level-import`', () => {
+      const { nuxt, callHook } = createFakeNuxt();
+      const { nitro, getRollupPlugin } = createFakeNitro();
+      setupNitroServer(nuxt, 'nitro2', SERVER_CONFIG, {
+        ...MODULE_OPTIONS,
+        autoInjectServerSentry: 'top-level-import',
+      });
+
+      callHook('nitro:init', nitro);
+      nitro.hooks.hook.mock.calls
+        .filter(([name]) => name === 'rollup:before')
+        .forEach(([, rollupBefore]) => rollupBefore(nitro, nitro.options.rollupConfig));
+
+      const plugin = getRollupPlugin('rollup-plugin-inject-sentry-server-config');
+      const virtualId = `\0virtual:sentry-server-config:${SERVER_CONFIG}`;
+      expect(plugin.resolveId(virtualId)).toBe(virtualId);
+      expect(plugin.load(virtualId)).toBe(
+        `import ${JSON.stringify(RUNTIME_FLAGS)};\nimport ${JSON.stringify(SERVER_CONFIG)};\n`,
+      );
+      expect(plugin.resolveId(RUNTIME_FLAGS, virtualId)).toEqual({ id: RUNTIME_FLAGS, moduleSideEffects: true });
+    });
+
+    it('imports the runtime flags before the config with `experimental_dynamic-import`', () => {
+      const { nuxt, callHook } = createFakeNuxt();
+      const { nitro, getRollupPlugin } = createFakeNitro();
+      setupNitroServer(nuxt, 'nitro2', SERVER_CONFIG, {
+        ...MODULE_OPTIONS,
+        autoInjectServerSentry: 'experimental_dynamic-import',
+      });
+
+      callHook('nitro:init', nitro);
+
+      const code = getRollupPlugin('sentry-wrap-entry-with-dynamic-import').load(
+        `\0raw${APP_ROOT}/.output/index.mjs${SENTRY_WRAPPED_ENTRY}${QUERY_END_INDICATOR}`,
+      );
+      expect(code).toContain(
+        `import ${JSON.stringify(pathToFileURL(RUNTIME_FLAGS).href)};\nimport ${JSON.stringify(pathToFileURL(SERVER_CONFIG).href)};\n`,
+      );
+    });
   });
 });

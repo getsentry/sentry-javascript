@@ -113,6 +113,33 @@ describe('wrapEntryWithDynamicImport', () => {
   });
 });
 
+describe('wrapEntryWithDynamicImport with runtime flags', () => {
+  const runtimeFlagsPath = '/project/.nuxt/sentry-runtime-flags.mjs';
+  const { resolveId, load } = wrapEntryWithDynamicImport({
+    resolvedSentryConfigPath: configPath,
+    runtimeFlagsPath,
+    experimental_entrypointWrappedFunctions: ['handler'],
+  }) as unknown as {
+    resolveId: (source: string, importer: string | undefined, options: { isEntry?: boolean }) => Promise<unknown>;
+    load: (id: string) => string;
+  };
+
+  it('imports the runtime flags before the Sentry config', () => {
+    const code = load.call({}, `\0raw${entryPath}${SENTRY_WRAPPED_ENTRY}${QUERY_END_INDICATOR}`);
+
+    const flagsImport = code.indexOf(`import ${JSON.stringify(pathToFileURL(runtimeFlagsPath).href)}`);
+    expect(flagsImport).toBeGreaterThanOrEqual(0);
+    expect(flagsImport).toBeLessThan(code.indexOf(`import ${JSON.stringify(pathToFileURL(configPath).href)}`));
+  });
+
+  it('keeps the side effects of the runtime flags', async () => {
+    const source = pathToFileURL(runtimeFlagsPath).href;
+    const result = await resolveId.call({ resolve: vi.fn(), load: vi.fn() }, source, undefined, { isEntry: false });
+
+    expect(result).toEqual({ id: runtimeFlagsPath, moduleSideEffects: true });
+  });
+});
+
 const addTemplateMock = vi.hoisted(() => vi.fn());
 const addNitroPluginMock = vi.hoisted(() => vi.fn());
 

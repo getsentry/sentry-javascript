@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { basename } from 'node:path';
+import { basename, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { addNitroPlugin, addTemplate, createResolver } from '@nuxt/kit';
 import type { Nuxt } from '@nuxt/schema';
@@ -42,6 +42,7 @@ export function addServerConfigToBuild(
   moduleOptions: SentryNuxtModuleOptions,
   nitro: Nitro,
   serverConfigFile: string,
+  runtimeFlagsPath: string,
 ): void {
   nitro.hooks.hook('rollup:before', (nitro, rollupConfig) => {
     if (rollupConfig?.plugins === null || rollupConfig?.plugins === undefined) {
@@ -51,7 +52,7 @@ export function addServerConfigToBuild(
       rollupConfig.plugins = [rollupConfig.plugins];
     }
 
-    rollupConfig.plugins.push(injectServerConfigPlugin(nitro, serverConfigFile, moduleOptions.debug));
+    rollupConfig.plugins.push(injectServerConfigPlugin(nitro, serverConfigFile, moduleOptions.debug, runtimeFlagsPath));
   });
 }
 
@@ -214,6 +215,7 @@ export function addServerConfigShimWithWarning(nitro: Nitro): void {
 export function addDynamicImportEntryFileWrapper(
   nitro: Nitro,
   serverConfigFile: string,
+  runtimeFlagsPath: string,
   moduleOptions: Omit<SentryNuxtModuleOptions, 'experimental_entrypointWrappedFunctions'> &
     Required<Pick<SentryNuxtModuleOptions, 'experimental_entrypointWrappedFunctions'>>,
 ): void {
@@ -231,6 +233,7 @@ export function addDynamicImportEntryFileWrapper(
   nitro.options.rollupConfig.plugins.push(
     wrapEntryWithDynamicImport({
       resolvedSentryConfigPath: createResolver(nitro.options.rootDir).resolve(serverConfigFile),
+      runtimeFlagsPath,
       // oxlint-disable-next-line typescript/no-deprecated -- supported until removal
       experimental_entrypointWrappedFunctions: moduleOptions.experimental_entrypointWrappedFunctions,
     }),
@@ -240,7 +243,12 @@ export function addDynamicImportEntryFileWrapper(
 /**
  * Rollup plugin to include the Sentry server configuration file to the server build output.
  */
-function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, isDebug?: boolean): InputPluginOption {
+function injectServerConfigPlugin(
+  nitro: Nitro,
+  serverConfigFile: string,
+  isDebug: boolean | undefined,
+  runtimeFlagsPath: string,
+): InputPluginOption {
   const filePrefix = '\0virtual:sentry-server-config:';
 
   return {
@@ -256,7 +264,7 @@ function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, isDebu
         return;
       }
 
-      // Emitting a file adds it to the build output (Rollup is aware of the file, and we can later return the code in resolveId)
+      // Emitting a file adds it to the build output (Rollup is aware of the file, and `load` returns its code)
       this.emitFile({
         type: 'chunk',
         id: `${filePrefix}${serverConfigFile}`,
@@ -264,14 +272,25 @@ function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, isDebu
       });
     },
 
-    resolveId(source) {
+    resolveId(source, importer) {
       if (source.startsWith(filePrefix)) {
-        const originalFilePath = source.replace(filePrefix, '');
-        const configPath = createResolver(nitro.options.rootDir).resolve(originalFilePath);
-
-        return { id: configPath };
+        return source;
+      }
+      // Nitro v2 treeshakes side-effect-only imports outside its runtime dir.
+      if (importer?.startsWith(filePrefix)) {
+        return { id: source, moduleSideEffects: true };
       }
       return null;
+    },
+
+    load(id) {
+      if (!id.startsWith(filePrefix)) {
+        return null;
+      }
+
+      const configPath = createResolver(nitro.options.rootDir).resolve(id.replace(filePrefix, ''));
+      // The flags must be set before the server config evaluates.
+      return `import ${stringifyForCodeInjection(runtimeFlagsPath)};\nimport ${stringifyForCodeInjection(configPath)};\n`;
     },
   };
 }
@@ -285,10 +304,12 @@ function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, isDebu
  */
 export function wrapEntryWithDynamicImport({
   resolvedSentryConfigPath,
+  runtimeFlagsPath,
   experimental_entrypointWrappedFunctions,
   debug,
 }: {
   resolvedSentryConfigPath: string;
+  runtimeFlagsPath?: string;
   experimental_entrypointWrappedFunctions: string[];
   debug?: boolean;
 }): InputPluginOption {
@@ -309,7 +330,9 @@ export function wrapEntryWithDynamicImport({
       }
       const { path: normalizedSource, wasFileUrl } = resolvable;
 
-      if (isServerConfigFile(normalizedSource, resolvedSentryConfigPath)) {
+      // `resolve` unifies the path separators on Windows.
+      const isRuntimeFlags = !!runtimeFlagsPath && resolve(normalizedSource) === resolve(runtimeFlagsPath);
+      if (isServerConfigFile(normalizedSource, resolvedSentryConfigPath) || isRuntimeFlags) {
         return { id: normalizedSource, moduleSideEffects: true };
       }
 
@@ -366,9 +389,14 @@ export function wrapEntryWithDynamicImport({
             ? constructFunctionReExport(id, entryIdUrl)
             : '';
 
+        // The flags must be set before the server config evaluates.
+        const runtimeFlagsImport = runtimeFlagsPath
+          ? `import ${stringifyForCodeInjection(pathToFileURL(runtimeFlagsPath).href)};\n`
+          : '';
+
         return (
           // Regular `import` of the Sentry config
-          `import ${stringifyForCodeInjection(configUrl)};\n` +
+          `${runtimeFlagsImport}import ${stringifyForCodeInjection(configUrl)};\n` +
           // Dynamic `import()` for the previous, actual entry point.
           // `import()` can be used for any code that should be run after the hooks are registered (https://nodejs.org/api/module.html#enabling)
           `import(${stringifyForCodeInjection(entryIdUrl)});\n` +

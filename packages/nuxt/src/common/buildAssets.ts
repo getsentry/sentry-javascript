@@ -4,9 +4,16 @@ import { NUXT_BASE_PATH_GLOBAL } from './tunnel';
 /** Holds `app.buildAssetsDir`. Set by the generated client config plugin and server runtime-flags module. */
 export const NUXT_BUILD_ASSETS_DIR_GLOBAL = '__sentry_nuxt_build_assets_dir';
 
+/** Holds `app.cdnURL`. Set by the generated client config plugin. */
+export const NUXT_CDN_URL_GLOBAL = '__sentry_nuxt_cdn_url';
+
 const DEFAULT_BUILD_ASSETS_DIR = '/_nuxt/';
 
-type GlobalWithNuxtPaths = { [NUXT_BASE_PATH_GLOBAL]?: string; [NUXT_BUILD_ASSETS_DIR_GLOBAL]?: string };
+type GlobalWithNuxtPaths = {
+  [NUXT_BASE_PATH_GLOBAL]?: string;
+  [NUXT_BUILD_ASSETS_DIR_GLOBAL]?: string;
+  [NUXT_CDN_URL_GLOBAL]?: string;
+};
 
 /**
  * Returns `app.buildAssetsDir` with a leading and a trailing slash.
@@ -21,6 +28,13 @@ export function getNuxtBuildAssetsDir(): string | undefined {
 export function getNuxtBuildAssetsPath(): string | undefined {
   const dir = getNuxtBuildAssetsDir();
   return dir && joinPath((GLOBAL_OBJ as GlobalWithNuxtPaths)[NUXT_BASE_PATH_GLOBAL] ?? '', dir);
+}
+
+/** Returns `app.cdnURL` (or `app.baseURL`) + `app.buildAssetsDir`, the URL prefix the browser loads build output from. */
+export function getNuxtPublicBuildAssetsUrl(): string | undefined {
+  const cdnURL = (GLOBAL_OBJ as GlobalWithNuxtPaths)[NUXT_CDN_URL_GLOBAL];
+  const dir = getNuxtBuildAssetsDir();
+  return cdnURL && dir ? `${cdnURL.replace(/\/+$/, '')}${dir}` : getNuxtBuildAssetsPath();
 }
 
 function joinPath(...segments: string[]): string {
