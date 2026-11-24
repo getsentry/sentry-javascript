@@ -4,7 +4,10 @@ import type { Span } from '@sentry/nuxt';
 
 test('sends a pageload root span with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('nuxt-4', async transactionEvent => {
-    return transactionEvent.transaction === '/test-param/:param()';
+    return (
+      transactionEvent.transaction === '/test-param/:param()' &&
+      transactionEvent.contexts?.trace?.data?.['url.path'] === '/test-param/1234'
+    );
   });
 
   await page.goto(`/test-param/1234`);

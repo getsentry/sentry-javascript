@@ -9,4 +9,7 @@ const config = getPlaywrightConfig({
   port: 4173,
 });
 
-export default config;
+export default {
+  ...config,
+  workers: process.env.CI ? 4 : config.workers,
+};

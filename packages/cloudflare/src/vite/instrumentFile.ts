@@ -34,7 +34,8 @@ export function resolveInstrumentFile(dir: string): string | undefined {
  * `(env) => CloudflareOptions`.
  *
  * The import is emitted relative to `entryFilePath` because it is injected into
- * the entry file's source. The file extension is kept: extensionless specifiers
+ * the entry file's source, or as an absolute path with `absolute` when the entry is
+ * a virtual module without a directory of its own. The file extension is kept: extensionless specifiers
  * only resolve for extensions in Vite's default `resolve.extensions` (which
  * excludes `.cjs`), and keeping it makes our probe order authoritative when
  * several `instrument.server.*` files coexist.
@@ -42,9 +43,12 @@ export function resolveInstrumentFile(dir: string): string | undefined {
 export function buildOptionsImport(
   entryFilePath: string,
   instrumentFilePath: string,
+  { absolute = false }: { absolute?: boolean } = {},
 ): { optionsFn: string; importStmt: string } {
-  let relativePath = relative(dirname(entryFilePath), instrumentFilePath).replace(/\\/g, '/');
-  if (!relativePath.startsWith('.')) relativePath = `./${relativePath}`;
+  let relativePath = absolute
+    ? instrumentFilePath.replace(/\\/g, '/')
+    : relative(dirname(entryFilePath), instrumentFilePath).replace(/\\/g, '/');
+  if (!absolute && !relativePath.startsWith('.')) relativePath = `./${relativePath}`;
 
   return {
     optionsFn: OPTIONS_IMPORT_IDENTIFIER,

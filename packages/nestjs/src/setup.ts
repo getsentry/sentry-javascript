@@ -91,7 +91,8 @@ class SentryGlobalFilter extends BaseExceptionFilter {
     // The BaseExceptionFilter does not work well in GraphQL applications.
     // By default, Nest GraphQL applications use the ExternalExceptionFilter, which just rethrows the error:
     // https://github.com/nestjs/nest/blob/master/packages/core/exceptions/external-exception-filter.ts
-    if (contextType === 'graphql') {
+    // The same holds for `@nestjs/mcp`, which turns the rethrown error into the tool error.
+    if (contextType === 'graphql' || contextType === 'mcp') {
       // neither report nor log HttpExceptions
       if (exception instanceof HttpException) {
         throw exception;
@@ -104,7 +105,7 @@ class SentryGlobalFilter extends BaseExceptionFilter {
       captureException(exception, {
         mechanism: {
           handled: false,
-          type: 'auto.graphql.nestjs.global_filter',
+          type: `auto.${contextType}.nestjs.global_filter`,
         },
       });
       throw exception;

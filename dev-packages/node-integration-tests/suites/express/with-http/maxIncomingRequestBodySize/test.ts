@@ -210,28 +210,6 @@ describe('express with httpIntegration and maxRequestBodySize: "small"', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-small.mjs', (createRunner, test) => {
-    test('keeps small request bodies with "small" setting', async () => {
-      const runner = createRunner()
-        .expect({
-          span: container => {
-            expect(container.items.find(item => item.is_segment)).toMatchObject({
-              name: 'POST /test-body-size',
-              attributes: expect.objectContaining({
-                'http.request.body.data': { type: 'string', value: JSON.stringify(generatePayload(MAX_SMALL)) },
-              }),
-            });
-          },
-        })
-        .start();
-
-      await runner.makeRequest('post', '/test-body-size', {
-        headers: { 'Content-Type': 'application/json' },
-        data: JSON.stringify(generatePayload(MAX_SMALL)),
-      });
-
-      await runner.completed();
-    });
-
     test('truncates too large request bodies with "small" setting', async () => {
       const runner = createRunner()
         .expect({

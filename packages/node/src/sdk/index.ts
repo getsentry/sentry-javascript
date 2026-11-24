@@ -1,7 +1,6 @@
 import type { Integration, Options } from '@sentry/core';
 import {
   _INTERNAL_captureOptionsSetByUser,
-  _INTERNAL_warnIfClientIsActive,
   applySdkMetadata,
   consoleSandbox,
   conversationIdIntegration,
@@ -17,6 +16,7 @@ import {
   propagationContextFromHeaders,
   requestDataIntegration,
   stackParserFromStackParserOptions,
+  warnIfClientIsActive,
 } from '@sentry/core';
 import { isMainThread, parentPort } from 'node:worker_threads';
 import { detectOrchestrionSetup, getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
@@ -167,7 +167,7 @@ function _init(
 
   const clientOptions = getClientOptions({ ...options, defaultIntegrations }, getDefaultIntegrationsImpl);
 
-  _INTERNAL_warnIfClientIsActive();
+  warnIfClientIsActive();
 
   const scope = getCurrentScope();
   scope.update(clientOptions.initialScope);

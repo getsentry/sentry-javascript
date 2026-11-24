@@ -24,7 +24,9 @@ export async function waitForInitialPageload(
   const txnName = opts?.parameterizedRoute ?? route;
   const debug = opts?.debug ?? false;
 
-  const clientPageloadTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
+  const traceHeaderPromise = page.locator('meta[name="sentry-trace"]').getAttribute('content');
+
+  const clientPageloadTxnEventPromise = waitForTransaction('sveltekit-2', async txnEvent => {
     debug &&
       console.log({
         txn: txnEvent?.transaction,
@@ -34,7 +36,11 @@ export async function waitForInitialPageload(
         parent: txnEvent.contexts?.trace?.parent_span_id,
       });
 
-    return txnEvent?.transaction === txnName && txnEvent.contexts?.trace?.op === 'pageload';
+    return (
+      txnEvent?.transaction === txnName &&
+      txnEvent.contexts?.trace?.op === 'pageload' &&
+      txnEvent.contexts.trace.trace_id === (await traceHeaderPromise)?.split('-')[0]
+    );
   });
 
   await Promise.all([

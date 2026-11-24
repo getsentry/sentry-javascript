@@ -1,8 +1,10 @@
 import { defineIntegration } from '@sentry/core';
 import { rewriteFramesIntegration } from '@sentry/react';
 
+// The 8 hex char names come from Next.js' `lib` split chunks cache group, which only holds single large
+// `node_modules` modules. App Router builds ship React DOM in such a chunk instead of the `framework` chunk.
 const NEXTJS_INTERNAL_CHUNK_REGEX =
-  /\/_next\/static\/chunks\/(main-|main-app-|polyfills-|webpack-|framework-|framework\.)[0-9a-f]+\.js(:\d+)*$/;
+  /\/_next\/static\/chunks\/(?:(?:main-|main-app-|polyfills-|webpack-|framework-|framework\.)[0-9a-f]+|[0-9a-f]{8}[-.][0-9a-f]+)\.js(:\d+)*$/;
 
 export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
   ({

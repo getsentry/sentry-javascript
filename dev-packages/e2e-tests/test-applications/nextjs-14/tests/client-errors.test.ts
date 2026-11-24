@@ -3,10 +3,10 @@ import { waitForError } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
 test('Sends a client-side exception to Sentry', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?test=client-errors');
 
   const errorEventPromise = waitForError('nextjs-14', errorEvent => {
-    return errorEvent?.exception?.values?.[0]?.value === 'Click Error';
+    return errorEvent?.exception?.values?.[0]?.value === 'Click Error' && errorEvent.request?.url === page.url();
   });
 
   await page.getByText('Throw error').click();
@@ -18,7 +18,7 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
 
   expect(errorEvent.request).toEqual({
     headers: expect.any(Object),
-    url: 'http://localhost:3030/',
+    url: 'http://localhost:3030/?test=client-errors',
   });
 
   expect(errorEvent.transaction).toEqual('/');

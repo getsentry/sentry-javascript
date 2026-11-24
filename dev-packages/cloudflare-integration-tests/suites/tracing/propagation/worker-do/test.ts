@@ -35,6 +35,38 @@ it('propagates trace from worker to durable object', async ({ signal }) => {
   expect(doSpan?.parent_span_id).toBe(workerSpan?.span_id);
 });
 
+it('propagates trace from worker to a durable object reached through ctx.exports', async ({ signal }) => {
+  let workerSpan: SerializedStreamedSpan | undefined;
+  let doSpan: SerializedStreamedSpan | undefined;
+
+  const runner = createRunner(__dirname)
+    .expect(envelope => {
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/hello' });
+      doSpan = segmentSpan;
+    })
+    .expect(envelope => {
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/ctx-exports' });
+      workerSpan = segmentSpan;
+    })
+    .unordered()
+    .start(signal);
+
+  const response = await runner.makeRequest<string>('get', '/ctx-exports');
+  expect(response).toBe('DO is fine');
+
+  await runner.completed();
+
+  expect(workerSpan?.trace_id).toBeDefined();
+  expect(doSpan?.trace_id).toBe(workerSpan?.trace_id);
+  expect(doSpan?.parent_span_id).toBe(workerSpan?.span_id);
+});
+
 it('propagates trace from queue handler to durable object', async ({ signal }) => {
   let queueSpan: SerializedStreamedSpan | undefined;
   let doSpan: SerializedStreamedSpan | undefined;

@@ -1,16 +1,56 @@
-import type { Span } from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
 import { getActiveSpan, getRootSpan, isBrowser } from '@sentry/core';
+import {
+  BROWSER_WEB_VITAL_INP_INPUT_DELAY,
+  BROWSER_WEB_VITAL_INP_PRESENTATION_DELAY,
+  BROWSER_WEB_VITAL_INP_PROCESSING_DURATION,
+} from '@sentry/conventions/attributes';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { WINDOW } from '../types';
+import type { PerformanceEventTiming } from '../instrumentation/performanceObserver';
 import { addPerformanceInstrumentationHandler, isPerformanceEventTiming } from '../instrumentation/performanceObserver';
+import { createInteractionCache } from './interactionCache';
 
 interface InteractionContext {
   span: Span | undefined;
   elementName: string;
+  interactionId: number;
+  latency: number;
 }
 
-const LAST_INTERACTIONS: number[] = [];
-const INTERACTIONS_SPAN_MAP = new Map<number, InteractionContext>();
+/**
+ * The event timing entries presented in one frame, merged the way web-vitals' attribution build
+ * merges them to split INP into its subparts.
+ */
+interface FrameTiming {
+  startTime: number;
+  processingStart: number;
+  processingEnd: number;
+  renderTime: number;
+}
+
+const INTERACTIONS = createInteractionCache<InteractionContext, PerformanceEventTiming>({
+  match: (context, entry) => context.interactionId === entry.interactionId,
+  merge: (context, entry) => {
+    context.latency = Math.max(context.latency, entry.duration);
+  },
+  latency: context => context.latency,
+});
+
+const FRAMES = createInteractionCache<FrameTiming, PerformanceEventTiming>({
+  match: (frame, entry) => Math.abs(entry.startTime + entry.duration - frame.renderTime) <= 8,
+  merge: (frame, entry) => {
+    frame.startTime = Math.min(frame.startTime, entry.startTime);
+    frame.processingStart = Math.min(frame.processingStart, entry.processingStart);
+    frame.processingEnd = Math.max(frame.processingEnd, entry.processingEnd);
+  },
+  latency: frame => frame.renderTime - frame.startTime,
+});
+
+/**
+ * web-vitals observes INP with this `durationThreshold`, so its attribution only ever sees these.
+ */
+const INP_DURATION_THRESHOLD = 40;
 
 // Map to store element names by timestamp, since we get the DOM event before the PerformanceObserver entry
 /** What `htmlTreeAsString` returns when it cannot describe the target. */
@@ -56,11 +96,11 @@ export const INP_ENTRY_MAP: Record<string, InteractionType> = {
 };
 
 /**
- * Look up a cached interaction context (element name + root span) by interactionId.
- * Returns undefined if no context was cached for this interaction.
+ * Look up the cached interaction context (element name + root span) of the interaction an entry
+ * belongs to. Returns undefined if no context was cached for this interaction.
  */
-export function getCachedInteractionContext(interactionId: number | undefined): InteractionContext | undefined {
-  return interactionId != null ? INTERACTIONS_SPAN_MAP.get(interactionId) : undefined;
+export function getCachedInteractionContext(entry: PerformanceEventTiming | undefined): InteractionContext | undefined {
+  return entry?.interactionId ? INTERACTIONS.get(entry) : undefined;
 }
 
 /**
@@ -143,34 +183,53 @@ export function registerInpInteractionListener(): void {
         return;
       }
 
+      if (entry.duration >= INP_DURATION_THRESHOLD) {
+        FRAMES.add(entry, () => ({
+          startTime: entry.startTime,
+          processingStart: entry.processingStart,
+          processingEnd: entry.processingEnd,
+          renderTime: entry.startTime + entry.duration,
+        }));
+      }
+
       const interactionId = entry.interactionId;
-      if (interactionId == null) {
+      if (!interactionId) {
         return;
       }
 
-      // If the interaction was already recorded before, nothing more to do
-      if (INTERACTIONS_SPAN_MAP.has(interactionId)) {
-        return;
-      }
-
-      const elementName = entry.target ? htmlTreeAsString(entry.target) : resolveElementNameFromEntry(entry);
-
-      // We keep max. 10 interactions in the list, then remove the oldest one & clean up
-      if (LAST_INTERACTIONS.length > 10) {
-        const last = LAST_INTERACTIONS.shift() as number;
-        INTERACTIONS_SPAN_MAP.delete(last);
-      }
-
-      // We add the interaction to the list of recorded interactions
-      // and store both the span and element name for this interaction
-      LAST_INTERACTIONS.push(interactionId);
-      INTERACTIONS_SPAN_MAP.set(interactionId, {
+      // The element and span are taken from the first entry of the interaction
+      INTERACTIONS.add(entry, () => ({
         span: activeRootSpan,
-        elementName,
-      });
+        elementName: entry.target ? htmlTreeAsString(entry.target) : resolveElementNameFromEntry(entry),
+        interactionId,
+        latency: entry.duration,
+      }));
     });
   };
 
   addPerformanceInstrumentationHandler('event', handleEntries);
   addPerformanceInstrumentationHandler('first-input', handleEntries);
+}
+
+/**
+ * The INP subparts of the interaction an INP entry belongs to, computed like web-vitals' attribution
+ * build does: from all events presented in the same frame, so a slow handler on any of them counts.
+ */
+export function getInpSubpartAttributes(entry: PerformanceEventTiming | undefined): SpanAttributes | undefined {
+  const frame = entry && FRAMES.get(entry);
+  if (!frame) {
+    return undefined;
+  }
+
+  const processingStart = Math.max(frame.processingStart, entry.startTime);
+  // `duration` is rounded to 8ms, so the next paint can appear to come before processing starts.
+  const nextPaintTime = Math.max(entry.startTime + entry.duration, processingStart);
+  // A sync modal like `alert()` keeps processing past the next paint (GoogleChrome/web-vitals#492).
+  const processingEnd = Math.min(Math.max(frame.processingEnd, processingStart), nextPaintTime);
+
+  return {
+    [BROWSER_WEB_VITAL_INP_INPUT_DELAY]: processingStart - entry.startTime,
+    [BROWSER_WEB_VITAL_INP_PROCESSING_DURATION]: processingEnd - processingStart,
+    [BROWSER_WEB_VITAL_INP_PRESENTATION_DELAY]: nextPaintTime - processingEnd,
+  };
 }

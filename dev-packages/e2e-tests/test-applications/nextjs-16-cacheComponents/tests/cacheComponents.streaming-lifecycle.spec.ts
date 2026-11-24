@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForError, waitForStreamedSpans } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpansUntilSegment,
+  getSpanOp,
+  waitForError,
+  waitForStreamedSpans,
+} from '@sentry-internal/test-utils';
 
 test('Should render cached component', async ({ page }) => {
   const spansPromise = waitForStreamedSpans('nextjs-16-cacheComponents', spans => {
@@ -18,11 +23,11 @@ test('Should render cached component', async ({ page }) => {
 });
 
 test('Should render suspense component', async ({ page }) => {
-  const spansPromise = waitForStreamedSpans('nextjs-16-cacheComponents', spans => {
-    return spans.some(
-      span => span.name.startsWith('GET /suspense') && getSpanOp(span) === 'http.server' && span.is_segment,
-    );
-  });
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'nextjs-16-cacheComponents',
+    span => span.name.startsWith('GET /suspense') && getSpanOp(span) === 'http.server',
+    span => getSpanOp(span) === 'get.todos',
+  );
 
   await page.goto('/suspense');
 

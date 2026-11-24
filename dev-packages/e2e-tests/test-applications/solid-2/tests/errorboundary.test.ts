@@ -10,8 +10,7 @@ function waitForBoundaryError(count: number) {
   });
 }
 
-// Unskipped once `@sentry/solid/solid2` lands.
-test.skip('captures an error caught by an Errored boundary', async ({ page }) => {
+test('captures an error caught by an Errored boundary', async ({ page }) => {
   const errorPromise = waitForBoundaryError(1);
 
   await page.goto('/');
@@ -33,8 +32,7 @@ test.skip('captures an error caught by an Errored boundary', async ({ page }) =>
   });
 });
 
-// Unskipped once `@sentry/solid/solid2` lands.
-test.skip('captures a second error after the boundary is reset', async ({ page }) => {
+test('captures a second error after the boundary is reset', async ({ page }) => {
   const firstErrorPromise = waitForBoundaryError(1);
 
   await page.goto('/');
@@ -56,5 +54,22 @@ test.skip('captures a second error after the boundary is reset', async ({ page }
         },
       ],
     },
+  });
+});
+
+// Solid only fills in component names on its observe and dev builds.
+const hasComponentNames = process.env.TEST_ENV === 'development' || process.env.SOLID_OBSERVE === '1';
+
+test('attaches Solid component paths to boundary errors', async ({ page }) => {
+  test.skip(!hasComponentNames, 'Solid production builds have no component names');
+
+  const errorPromise = waitForBoundaryError(1);
+
+  await page.goto('/');
+  await page.locator('#caughtErrorBtn').click();
+
+  expect((await errorPromise).contexts?.solid).toEqual({
+    owner_path: expect.arrayContaining(['<App>', '<Errored>']),
+    boundary_path: expect.arrayContaining(['<Errored>']),
   });
 });

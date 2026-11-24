@@ -71,7 +71,9 @@ export interface SentryCloudflareVitePluginOptions {
  * - wraps your Worker entry (and any Durable Object, Workflow or
  *   WorkerEntrypoint class in your wrangler config) with the matching Sentry
  *   helper — opt out with `autoInstrumentation: false` and call
- *   `Sentry.withSentry()` yourself.
+ *   `Sentry.withSentry()` yourself. WorkerEntrypoint classes that another Vite
+ *   plugin adds to the Worker's exports, such as the Workers Cache entrypoints
+ *   of vinext, are wrapped as well.
  *
  * @example
  * ```ts

@@ -55,6 +55,12 @@ import {
 } from '@sentry/core';
 import type { TracingChannel } from 'node:diagnostics_channel';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../ai/core/gen-ai-attributes';
+import {
+  type GenAiSpanHooks,
+  type GenAiSpanResult,
+  runGenAiSpanEnd,
+  runGenAiSpanStart,
+} from '../../ai/core/span-hooks';
 import { isEveGenAiRecordingDefault } from './gen-ai-recording-mode';
 import {
   type GenAiCallOptions,
@@ -302,7 +308,10 @@ export interface VercelAiChannelMessage {
  */
 export type VercelAiTracingChannelFactory = <T extends object>(name: string) => TracingChannel<T, T>;
 
-/** The call that `recordInputs`/`recordOutputs` decide on: one span, with the AI SDK telemetry event as published. */
+/**
+ * The call that `recordInputs`/`recordOutputs` decide on, and that the span hooks get: one span, with the AI SDK
+ * telemetry event as published.
+ */
 export interface VercelAiCallInfo {
   /** The channel event type, such as `generateText`, `languageModelCall` or `executeTool`. */
   type: ChannelEventType;
@@ -310,8 +319,11 @@ export interface VercelAiCallInfo {
   event: Record<string, unknown>;
 }
 
-/** Integration-level recording options, pinned at subscribe time so we never look the integration up per event. */
-export type VercelAiChannelOptions = GenAiCallOptions<VercelAiCallInfo>;
+/**
+ * Integration options, pinned at subscribe time so we never look the integration up per event. `onSpanEnd` gets the
+ * AI SDK result of the call as `response`; for streams it is `undefined`.
+ */
+export type VercelAiChannelOptions = GenAiCallOptions<VercelAiCallInfo> & GenAiSpanHooks<VercelAiCallInfo>;
 
 // The integration-level decision of each span, made at span start in the caller's async context. The rest of the
 // precedence (eve mode, the per-call flags, `dataCollection.genAI`) is applied when it is needed, because whether
@@ -321,6 +333,13 @@ const integrationRecordingBySpan = new WeakMap<Span, GenAiOptions>();
 // `ai` >= 7.0.163 publishes no channel `result` for calls with `recordInputs`/`recordOutputs: false`. These stay
 // here rather than on the shared channel message, which other subscribers can read.
 export const fallbackChannelResults = new WeakMap<Span, unknown>();
+
+const spanEndHooks = new WeakMap<Span, (result: GenAiSpanResult<unknown>) => void>();
+
+/** Runs the `onSpanEnd` hook of a span that `createSpanFromMessage` started. Call it right before the span ends. */
+export function runVercelAiSpanEnd(span: Span, result: GenAiSpanResult<unknown>): void {
+  spanEndHooks.get(span)?.(result);
+}
 
 /**
  * Subscribe Sentry span handlers to the `ai` SDK's native telemetry tracing channel (`ai:telemetry`,
@@ -346,6 +365,10 @@ export function subscribeVercelAiTracingChannel(
       // finish reasons, response model/id, provider metadata) and drop the per-operation `callId` maps.
       beforeSpanEnd: (span, data) => {
         enrichSpanOnEnd(span, data);
+        runVercelAiSpanEnd(
+          span,
+          'error' in data ? { error: data.error } : { response: getNonStreamResult(span, data) },
+        );
         // The result can hold the provider request and response bodies, and spans outlive the call.
         fallbackChannelResults.delete(span);
         clearOperationId(data);
@@ -355,6 +378,11 @@ export function subscribeVercelAiTracingChannel(
       deferSpanEnd: ({ span, data, end }) => deferStreamedModelCallEnd(span, data, end),
     },
   );
+}
+
+function getNonStreamResult(span: Span, data: VercelAiChannelMessage): unknown {
+  const result = fallbackChannelResults.get(span) ?? data.result;
+  return isObjectLike(result) && isReadableStream(result.stream) ? undefined : result;
 }
 
 /**
@@ -479,13 +507,16 @@ export function createSpanFromMessage(
     return undefined;
   }
 
+  const call: VercelAiCallInfo = { type, event };
   const integrationRecording: GenAiOptions = {
-    recordInputs: resolveRecordingOption(channelOptions.recordInputs, { type, event }),
-    recordOutputs: resolveRecordingOption(channelOptions.recordOutputs, { type, event }),
+    recordInputs: resolveRecordingOption(channelOptions.recordInputs, call),
+    recordOutputs: resolveRecordingOption(channelOptions.recordOutputs, call),
   };
   const span = startSpanFromEvent(type, event, getRecordingOptions(event, integrationRecording).recordInputs);
   if (span) {
     integrationRecordingBySpan.set(span, integrationRecording);
+    runGenAiSpanStart(channelOptions, span, call);
+    spanEndHooks.set(span, result => runGenAiSpanEnd(channelOptions, span, call, result));
   }
   return span;
 }

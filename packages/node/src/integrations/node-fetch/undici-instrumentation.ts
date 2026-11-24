@@ -38,6 +38,7 @@ import {
   getUrlFragment,
   getUrlQuery,
   filterCollectedUrl,
+  filterCollectedUrlFragment,
   filterCollectedUrlQuery,
   httpHeadersToSpanAttributes,
 } from '@sentry/core';
@@ -223,7 +224,7 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
     [URL_DOMAIN]: requestUrl.hostname || undefined,
     [URL_PATH]: requestUrl.pathname,
     [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(requestUrl.search)),
-    [URL_FRAGMENT]: getUrlFragment(requestUrl.hash),
+    [URL_FRAGMENT]: filterCollectedUrlFragment(getUrlFragment(requestUrl.hash)),
     [URL_SCHEME]: urlScheme,
     [SENTRY_ORIGIN]: 'auto.http.node_fetch',
   };

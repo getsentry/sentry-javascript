@@ -172,4 +172,37 @@ describe('awsIntegration - Bedrock', () => {
       });
     },
   );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-span-hooks.mjs',
+    (createTestRunner, test) => {
+      test(
+        'runs the span hooks at start in the caller context and at end with the response',
+        { timeout: 90_000 },
+        async () => {
+          await createTestRunner()
+            .ignore('event')
+            .expect({
+              span: container => {
+                const spans = container.items.filter(span => span.attributes[GEN_AI_REQUEST_MODEL]);
+                const hooksByModel = Object.fromEntries(
+                  spans.map(span => [
+                    span.attributes[GEN_AI_REQUEST_MODEL]?.value,
+                    [span.attributes['test.start']?.value, span.attributes['test.end']?.value],
+                  ]),
+                );
+                expect(hooksByModel).toEqual({
+                  'public-model': ['public:public', 'end_turn'],
+                  'private-model': ['private:private', 'end_turn'],
+                });
+              },
+            })
+            .start()
+            .completed();
+        },
+      );
+    },
+  );
 });

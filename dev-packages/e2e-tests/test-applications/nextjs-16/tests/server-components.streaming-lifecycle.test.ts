@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { SENTRY_KIND } from '@sentry/conventions/attributes';
 import {
   collectStreamedSpansUntilSegment,
   getRuntime,
@@ -90,6 +91,7 @@ test('Sends the request span of the Worker for a request to app router with URL'
     'http.response.status_code': { value: 200, type: 'integer' },
     'http.route': { value: '/parameterized/[one]/beep/[two]', type: 'string' },
     'url.path': { value: '/parameterized/1337/beep/42', type: 'string' },
+    [SENTRY_KIND]: { value: 'server', type: 'string' },
     'next.route': { value: '/parameterized/[one]/beep/[two]', type: 'string' },
   });
 
@@ -150,7 +152,13 @@ test('Will create spans for every server component and metadata generation funct
 }) => {
   test.skip(isTurbopackDevMode, 'Turbopack intermittently returns 404 for dynamic routes in dev mode');
 
-  const spansPromise = collectStreamedSpansUntilSegment('nextjs-16', 'GET /nested-layout/[dynamic]');
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'nextjs-16',
+    'GET /nested-layout/[dynamic]',
+    span =>
+      span.name === 'Page' &&
+      span.attributes['sentry.description']?.value === 'resolve page server component "/nested-layout/[dynamic]"',
+  );
 
   await page.goto('/nested-layout/123');
 

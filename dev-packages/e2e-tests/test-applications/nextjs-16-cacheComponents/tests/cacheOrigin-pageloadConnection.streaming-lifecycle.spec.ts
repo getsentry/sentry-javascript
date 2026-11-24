@@ -1,11 +1,9 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
-import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
+import { PAGE_SERVER_RENDERING_AGE, SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 const APP = 'nextjs-16-cacheComponents';
-
-const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';
 
 async function getRenderStart(page: Page): Promise<number> {
   return Number(await page.locator('meta[name="sentry-render-start"]').getAttribute('content'));

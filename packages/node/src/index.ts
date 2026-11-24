@@ -53,6 +53,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   neonIntegration,
+  clickhouseIntegration,
   redisIntegration,
   tediousIntegration,
   vercelAIIntegration,
@@ -75,9 +76,9 @@ export {
   fastifyIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupFastifyErrorHandler,
+  // oxlint-disable-next-line typescript/no-deprecated
+  setupHapiErrorHandler,
 } from '@sentry/server-utils';
-// oxlint-disable-next-line typescript/no-deprecated
-export { setupHapiErrorHandler } from './integrations/tracing/hapi';
 // oxlint-disable-next-line typescript/no-deprecated -- deprecated but still re-exported for backwards compatibility
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export {
@@ -196,6 +197,7 @@ export {
 } from '@sentry/core/server';
 export type { TunnelRequestLike } from '@sentry/core/server';
 export { installTunnelHooks as _INTERNAL_installTunnelHooks, serveTunnelIntegration } from './integrations/serveTunnel';
+export { addServerTimingTraceHeader } from './utils/serverTimingHeader';
 export { getTunnelPath, handleTunnelRequest } from '@sentry/core';
 export type { HandleTunnelRequestOptions, ServerTunnelOptions } from '@sentry/core';
 
@@ -251,7 +253,7 @@ export { workerThreadsIntegration } from './integrations/workerThreads';
 export { NODE_VERSION } from './nodeVersion';
 export { defaultStackParser, getSentryRelease } from './sdk/api';
 export { getHttpAgent, makeNodeTransport } from './transports';
-export { createGetModuleFromFilename } from './utils/module';
+export { createGetModuleFromFilename } from '@sentry/server-utils';
 
 export { eveConversationHook, eveIntegration, getInstrumentedModuleNames } from '@sentry/server-utils';
 export { eveInstrumentation } from './eve';

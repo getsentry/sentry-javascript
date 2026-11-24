@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
@@ -43,12 +44,19 @@ test('server pageload request span has nested request span for sub request', asy
 });
 
 test('extracts HTTP request headers as span attributes', async ({ baseURL }) => {
+  const traceId = randomUUID().replaceAll('-', '');
   const serverSpanPromise = waitForStreamedSpan('sveltekit-2', span => {
-    return span.name === 'GET /api/users' && getSpanOp(span) === 'http.server' && span.is_segment;
+    return (
+      span.trace_id === traceId &&
+      span.name === 'GET /api/users' &&
+      getSpanOp(span) === 'http.server' &&
+      span.is_segment
+    );
   });
 
   await fetch(`${baseURL}/api/users`, {
     headers: {
+      'sentry-trace': `${traceId}-1234567890123456-1`,
       'User-Agent': 'Custom-SvelteKit-Agent/1.0',
       'Content-Type': 'application/json',
       'X-Test-Header': 'sveltekit-test-value',

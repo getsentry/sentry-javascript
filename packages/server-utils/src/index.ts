@@ -49,7 +49,11 @@ export { cron } from './cron';
 export { BullMQTelemetry } from './integrations/bullmq';
 export { googleGenAIIntegration } from './integrations/google-genai';
 export { graphqlIntegration } from './integrations/graphql';
-export { hapiIntegration } from './integrations/hapi';
+export {
+  hapiIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
+  setupHapiErrorHandler,
+} from './integrations/hapi';
 export { honoIntegration, honoMiddleware } from './integrations/hono';
 export type { HonoIntegrationOptions } from './integrations/hono';
 export { koaIntegration } from './integrations/koa';
@@ -70,6 +74,7 @@ export {
   makeServeTunnelIntegration,
 } from './integrations/serveTunnel';
 export { instrumentTunnelServer as _INTERNAL_instrumentTunnelServer } from './utils/tunnelServer';
+export { createGetModuleFromFilename } from './utils/module';
 export { SentryMastraExporter } from './ai/mastra';
 export { lruMemoizerIntegration } from './integrations/lru-memoizer';
 export { mongoIntegration } from './integrations/mongodb';
@@ -86,6 +91,7 @@ export { openAIIntegration } from './integrations/openai';
 export { postgresIntegration } from './integrations/pg';
 export { postgresJsIntegration } from './integrations/postgresjs';
 export { neonIntegration } from './integrations/neon';
+export { clickhouseIntegration } from './integrations/clickhouse';
 export { tediousIntegration } from './integrations/tedious';
 export { vercelAIIntegration } from './integrations/vercel-ai';
 export { expressIntegration } from './integrations/express';

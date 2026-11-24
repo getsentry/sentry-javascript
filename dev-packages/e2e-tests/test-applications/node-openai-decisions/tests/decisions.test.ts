@@ -120,7 +120,7 @@ test('records a text decision with its state, questions and answers', async ({ b
   ]);
 });
 
-test('records an image decision with its image data', async ({ baseURL }) => {
+test('records an image decision with the media type of its image', async ({ baseURL }) => {
   const span = await requestDecideSpan(baseURL, '/decide-image', 'auto.ai.openai', 'mostly red');
 
   expectOpenAiDecideSpan(span);
@@ -131,9 +131,9 @@ test('records an image decision with its image data', async ({ baseURL }) => {
       state: [
         {
           role: 'user',
-          content: [
-            { type: 'input_text', text: 'Is this image mostly red?' },
-            { type: 'input_image', image_url: expect.stringMatching(/^data:image\/png;base64,/) },
+          parts: [
+            { type: 'text', content: 'Is this image mostly red?' },
+            { type: 'blob', modality: 'image', mime_type: 'image/png' },
           ],
         },
       ],

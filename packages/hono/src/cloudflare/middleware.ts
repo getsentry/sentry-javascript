@@ -1,5 +1,5 @@
 import { withSentry, type CloudflareOptions } from '@sentry/cloudflare';
-import { applySdkMetadata, debug } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata, debug } from '@sentry/core';
 import {
   applyHonoPatches,
   createHonoRequestMiddleware,
@@ -20,7 +20,7 @@ export function sentry<E extends Env>(
 ): MiddlewareHandler {
   withSentry(
     env => {
-      const honoOptions = typeof options === 'function' ? options(env) : options;
+      const honoOptions = _INTERNAL_captureOptionsSetByUser(typeof options === 'function' ? options(env) : options);
 
       applySdkMetadata(honoOptions, 'hono', ['hono', 'cloudflare']);
 

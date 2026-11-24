@@ -28,6 +28,8 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
+import type { GenAiSpanResult } from '../core/span-hooks';
 import { resolveGenAiCallRecording } from '../core/utils';
 import type { GenAiOptions } from '../core/utils';
 import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
@@ -56,9 +58,11 @@ import {
   getLangGraphRunRecording,
 } from './utils';
 
+type LangChainRunCallInfo = Exclude<LangChainCallInfo, { operation: 'embeddings' }>;
+
 interface LangChainRun {
   span: Span;
-  parentRunId?: string;
+  call: LangChainRunCallInfo;
   // The span active when the run started, to tell whether a span was opened inside the run since.
   activeSpan?: Span;
   conversationId?: string;
@@ -73,7 +77,7 @@ interface LangChainRun {
  * This is a stateful handler that tracks spans across multiple LangChain executions.
  */
 export function createLangChainCallbackHandler(options: LangChainOptions = {}): LangChainCallbackHandler {
-  const resolveRecording = (call: Exclude<LangChainCallInfo, { operation: 'embeddings' }>): Required<GenAiOptions> =>
+  const resolveRecording = (call: LangChainRunCallInfo): Required<GenAiOptions> =>
     getLangGraphRunRecording(call.metadata) ?? resolveGenAiCallRecording(options, call);
 
   // Internal state - single instance tracks all spans
@@ -83,10 +87,11 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
   /**
    * Exit a span and clean up
    */
-  const exitSpan = (runId: string): void => {
-    const span = runs.remove(runId)?.span;
-    if (span?.isRecording()) {
-      span.end();
+  const exitSpan = (runId: string, result: GenAiSpanResult<unknown> = {}): void => {
+    const run = runs.remove(runId);
+    if (run?.span.isRecording()) {
+      runGenAiSpanEnd(options, run.span, run.call, result);
+      run.span.end();
     }
   };
 
@@ -113,7 +118,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
   // its subtree is busy.
   const getAncestors = (parentRunId: string | undefined): LangChainRun[] => {
     const ancestors: LangChainRun[] = [];
-    for (let run = getRun(parentRunId); run; run = getRun(run.parentRunId)) {
+    for (let run = getRun(parentRunId); run; run = getRun(run.call.parentRunId)) {
       ancestors.push(run);
     }
     return ancestors;
@@ -134,12 +139,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     return undefined;
   };
 
-  const startRunSpan = (
-    runId: string,
-    parentRunId: string | undefined,
-    recordOutputs: boolean,
-    start: () => Span,
-  ): LangChainRun => {
+  const startRunSpan = (call: LangChainRunCallInfo, recordOutputs: boolean, start: () => Span): LangChainRun => {
+    const { runId, parentRunId } = call;
     const ancestors = getAncestors(parentRunId);
     const activeSpan = getActiveSpan();
     const parentSpan = getParentRunSpan(ancestors, activeSpan);
@@ -154,7 +155,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       span.setAttribute(GEN_AI_CONVERSATION_ID, conversationId);
     }
 
-    const run: LangChainRun = { span, parentRunId, activeSpan, conversationId, recordOutputs };
+    const run: LangChainRun = { span, call, activeSpan, conversationId, recordOutputs };
     trackRun(runId, run);
     if (conversationId) {
       for (const ancestor of ancestors) {
@@ -165,6 +166,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         ancestor.span.setAttribute(GEN_AI_CONVERSATION_ID, conversationId);
       }
     }
+    runGenAiSpanStart(options, span, call);
     return run;
   };
 
@@ -204,7 +206,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       _runName?: string,
     ) {
       const serialized = llm as LangChainSerialized;
-      const { recordInputs, recordOutputs } = resolveRecording({
+      const call: LangChainRunCallInfo = {
         operation: 'chat',
         serialized,
         prompts,
@@ -213,7 +215,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         extraParams,
         tags,
         metadata,
-      });
+      };
+      const { recordInputs, recordOutputs } = resolveRecording(call);
       const invocationParams = getInvocationParams(tags);
       const attributes = extractLLMRequestAttributes(serialized, prompts, recordInputs, invocationParams, metadata);
       const modelName = attributes[GEN_AI_REQUEST_MODEL] || 'unknown';
@@ -221,7 +224,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         typeof attributes[GEN_AI_OPERATION_NAME] === 'string' ? attributes[GEN_AI_OPERATION_NAME] : 'unknown';
       const client = getClient();
 
-      startRunSpan(runId, parentRunId, recordOutputs, () =>
+      startRunSpan(call, recordOutputs, () =>
         startInactiveSpan({
           // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
           name:
@@ -251,7 +254,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     ) {
       const serialized = llm as LangChainSerialized;
       const chatMessages = messages as LangChainMessage[][];
-      const { recordInputs, recordOutputs } = resolveRecording({
+      const call: LangChainRunCallInfo = {
         operation: 'chat',
         serialized,
         messages: chatMessages,
@@ -260,7 +263,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         extraParams,
         tags,
         metadata,
-      });
+      };
+      const { recordInputs, recordOutputs } = resolveRecording(call);
       const invocationParams = getInvocationParams(tags);
       const attributes = extractChatModelRequestAttributes(
         serialized,
@@ -280,7 +284,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         typeof attributes[GEN_AI_OPERATION_NAME] === 'string' ? attributes[GEN_AI_OPERATION_NAME] : 'unknown';
       const client = getClient();
 
-      startRunSpan(runId, parentRunId, recordOutputs, () =>
+      startRunSpan(call, recordOutputs, () =>
         startInactiveSpan({
           // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
           name:
@@ -321,18 +325,18 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           span.setAttributes(attributes);
         }
       }
-      exitSpan(runId);
+      exitSpan(runId, { response: output });
     },
 
     // LLM Error Handler - note: handleLLMError with capital LLM
-    handleLLMError(_error: Error, runId: string) {
+    handleLLMError(error: Error, runId: string) {
       // The error is surfaced to the caller (invoke() rejects), so we only mark the span failed and
       // do not record it.
       const span = runs.get(runId)?.span;
       if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       }
-      exitSpan(runId);
+      exitSpan(runId, { error });
     },
 
     // Chain Start Handler
@@ -348,7 +352,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     ) {
       // A Jev call is a real model call, so it is recorded inside an agent too.
       if (isTypeSafeClassifier(chain)) {
-        const { recordInputs, recordOutputs } = resolveRecording({
+        const call: LangChainRunCallInfo = {
           operation: 'decide',
           serialized: chain,
           inputs,
@@ -356,8 +360,9 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           parentRunId,
           tags,
           metadata,
-        });
-        startRunSpan(runId, parentRunId, recordOutputs, () =>
+        };
+        const { recordInputs, recordOutputs } = resolveRecording(call);
+        startRunSpan(call, recordOutputs, () =>
           startTypeSafeClassifierSpan(chain, inputs, metadata, recordInputs),
         ).decide = true;
         return;
@@ -370,7 +375,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         return;
       }
 
-      const { recordInputs, recordOutputs } = resolveRecording({
+      const call: LangChainRunCallInfo = {
         operation: 'invoke_agent',
         serialized: chain,
         inputs,
@@ -378,7 +383,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         parentRunId,
         tags,
         metadata,
-      });
+      };
+      const { recordInputs, recordOutputs } = resolveRecording(call);
       const chainName = runName || chain.name;
       const attributes: Record<string, SpanAttributeValue> = {
         ...getConversationIdFromMetadata(metadata),
@@ -396,7 +402,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
 
       const client = getClient();
 
-      startRunSpan(runId, parentRunId, recordOutputs, () =>
+      startRunSpan(call, recordOutputs, () =>
         startInactiveSpan({
           // With span streaming, the name leads with the operation per the agent templates. The
           // chain name is bounded, so it stays; the `'unknown_chain'` sentinel is dropped instead.
@@ -426,18 +432,18 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           });
         }
       }
-      exitSpan(runId);
+      exitSpan(runId, { response: outputs });
     },
 
     // Chain Error Handler
-    handleChainError(_error: Error, runId: string) {
+    handleChainError(error: Error, runId: string) {
       // The error is surfaced to the caller (invoke() rejects), so we only mark the span failed and
       // do not record it.
       const span = runs.get(runId)?.span;
       if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       }
-      exitSpan(runId);
+      exitSpan(runId, { error });
     },
 
     // Tool Start Handler
@@ -456,7 +462,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         return;
       }
 
-      const { recordInputs, recordOutputs } = resolveRecording({
+      const call: LangChainRunCallInfo = {
         operation: 'execute_tool',
         serialized: tool,
         input,
@@ -464,7 +470,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         parentRunId,
         tags,
         metadata,
-      });
+      };
+      const { recordInputs, recordOutputs } = resolveRecording(call);
       // runName is set to tool.name by LangChain's StructuredTool.call()
       const toolName = runName || tool.name || 'unknown_tool';
       const attributes: Record<string, SpanAttributeValue> = {
@@ -479,7 +486,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         attributes[GEN_AI_TOOL_CALL_ARGUMENTS] = input;
       }
 
-      startRunSpan(runId, parentRunId, recordOutputs, () =>
+      startRunSpan(call, recordOutputs, () =>
         startInactiveSpan({
           name: `execute_tool ${toolName}`,
           attributes: {
@@ -505,18 +512,18 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           });
         }
       }
-      exitSpan(runId);
+      exitSpan(runId, { response: output });
     },
 
     // Tool Error Handler
-    handleToolError(_error: Error, runId: string) {
+    handleToolError(error: Error, runId: string) {
       // The error is surfaced to the caller (invoke() rejects), so we only mark the span failed and
       // do not record it.
       const span = runs.get(runId)?.span;
       if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       }
-      exitSpan(runId);
+      exitSpan(runId, { error });
     },
 
     // LangChain BaseCallbackHandler required methods

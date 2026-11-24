@@ -1,31 +1,31 @@
 import type { CollectBehavior } from '../../types/datacollection';
 import { filterQueryParams } from './filterQueryParams';
+import { filterUrlFragment } from './filterUrlFragment';
 
 /**
- * Applies a `CollectBehavior` to the query string of a full URL, leaving every other URL component
- * (scheme, host, path, fragment) untouched.
+ * Applies a `CollectBehavior` to the query string and fragment of a full URL, leaving every other URL
+ * component (scheme, host, path) untouched.
  *
- * The query is located by string offsets rather than by parsing, so the URL is returned byte-for-byte
- * apart from the query itself. This keeps relative URLs, non-HTTP schemes and unusual encodings intact,
- * none of which survive a `URL` round-trip.
+ * The query and fragment are located by string offsets rather than by parsing, so the URL is returned
+ * byte-for-byte apart from those two parts. This keeps relative URLs, non-HTTP schemes and unusual encodings
+ * intact, none of which survive a `URL` round-trip.
  *
- * Returns the URL with its query filtered, or with the query removed entirely when collection is off.
+ * Returns the URL with its query and fragment filtered, or with both removed entirely when collection is off.
  */
 export function filterUrlQuery(url: string, behavior: CollectBehavior): string {
   // The fragment is delimited first: a `?` after a `#` belongs to the fragment, not the query.
   const fragmentStart = url.indexOf('#');
-  const queryEnd = fragmentStart === -1 ? url.length : fragmentStart;
+  const beforeFragment = fragmentStart === -1 ? url : url.slice(0, fragmentStart);
+  const fragment = fragmentStart === -1 ? undefined : url.slice(fragmentStart + 1);
 
-  const queryStart = url.indexOf('?');
-  if (queryStart === -1 || queryStart > queryEnd) {
-    return url;
+  const queryStart = beforeFragment.indexOf('?');
+  let filteredUrl = beforeFragment;
+  if (queryStart !== -1) {
+    const filteredQuery = filterQueryParams(beforeFragment.slice(queryStart + 1), behavior);
+    filteredUrl = `${beforeFragment.slice(0, queryStart)}${filteredQuery ? `?${filteredQuery}` : ''}`;
   }
 
-  const prefix = url.slice(0, queryStart);
-  const query = url.slice(queryStart + 1, queryEnd);
-  const suffix = url.slice(queryEnd);
+  const filteredFragment = fragment === undefined ? undefined : filterUrlFragment(fragment, behavior);
 
-  const filtered = filterQueryParams(query, behavior);
-
-  return filtered ? `${prefix}?${filtered}${suffix}` : `${prefix}${suffix}`;
+  return filteredFragment ? `${filteredUrl}#${filteredFragment}` : filteredUrl;
 }

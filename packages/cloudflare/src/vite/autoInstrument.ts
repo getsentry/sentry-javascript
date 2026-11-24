@@ -19,6 +19,9 @@ const JS_EXTENSION_REGEX = /\.[cm]?[jt]sx?$/;
 // Re-exports everything the generated code uses, and adds the Next.js span handling and OpenTelemetry context.
 const NEXTJS_CLOUDFLARE_MODULE = '@sentry/nextjs/cloudflare';
 
+// `@cloudflare/vite-plugin` loads the Worker from this module. `resolveId` prefixes it with `\0`.
+const CLOUDFLARE_WORKER_ENTRY_ID = 'virtual:cloudflare/worker-entry';
+
 /**
  * Whether `@sentry/nextjs/cloudflare` resolves from `importer`. Vite throws instead of returning `null` when
  * `@sentry/nextjs` is installed in a version without that entry.
@@ -29,6 +32,33 @@ async function resolvesNextjsCloudflare(resolver: ModuleResolver, importer: stri
   } catch {
     return false;
   }
+}
+
+function isCloudflareWorkerEntry(id: string): boolean {
+  const bare = (id.charCodeAt(0) === 0 ? id.slice(1) : id).replace(/[?#].*$/, '');
+  return bare === CLOUDFLARE_WORKER_ENTRY_ID;
+}
+
+/**
+ * Exported names of the `export { A, B } from "..."` statements other plugins append to the
+ * worker-entry facade, such as vinext's Workers Cache response stages. `default` is the user entry,
+ * which the entry transform wraps.
+ */
+function appendedNamedReexports(ast: ProgramBody): string[] {
+  const names: string[] = [];
+  for (const node of ast.body) {
+    if (node.type !== 'ExportNamedDeclaration') continue;
+    const { source, specifiers } = node as BaseNode & {
+      source?: { value?: unknown } | null;
+      specifiers?: Array<{ exported?: { name?: string } }>;
+    };
+    if (typeof source?.value !== 'string') continue;
+    for (const specifier of specifiers ?? []) {
+      const exported = specifier.exported?.name;
+      if (exported && exported !== 'default') names.push(exported);
+    }
+  }
+  return names;
 }
 
 /**
@@ -59,6 +89,8 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
   let resolveId: ReturnType<typeof createIdResolver> | undefined;
   // Each environment resolves with its own conditions, so the entry may differ between them.
   const resolvedEntries = new Map<string, Promise<string | undefined>>();
+  // Per environment, the ID of a virtual module another plugin serves as `main`.
+  const virtualEntries = new Map<string, string>();
 
   let instrumentFilePath: string | undefined;
   let isVinext = false;
@@ -73,22 +105,58 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
       // tries the specifier as a path below the root first.
       entry = resolveId(environment, specifier, wranglerConfigPath)
         .catch(() => undefined)
-        .then(id => {
-          if (!id) {
-            ctx.warn?.(
-              `[sentry] Could not resolve the wrangler \`main\` "${specifier}". Auto-instrumentation disabled.`,
-            );
-            return undefined;
-          }
-          return normalizePath(id.replace(/[?#].*$/, ''));
-        });
+        .then(id => (id ? normalizePath(id.replace(/[?#].*$/, '')) : undefined));
       resolvedEntries.set(environment.name, entry);
     }
     return entry;
   }
 
+  async function instrumentFacadeEntrypoints(
+    ctx: TransformContext,
+    code: string,
+  ): Promise<{ code: string; map: unknown } | undefined> {
+    let ast: ProgramBody;
+    try {
+      ast = ctx.parse(code);
+    } catch {
+      return undefined;
+    }
+
+    const names = appendedNamedReexports(ast);
+    if (names.length === 0) return undefined;
+
+    // A virtual module has no directory. Resolve options and `@sentry/nextjs/cloudflare` from a real file.
+    const importer = entryFilePath ?? wranglerConfigPath;
+    if (!importer) return undefined;
+
+    const sentryModule =
+      isVinext && (await resolvesNextjsCloudflare(ctx, importer)) ? NEXTJS_CLOUDFLARE_MODULE : undefined;
+    const { optionsFn, importStmt: optionsImport } = instrumentFilePath
+      ? buildOptionsImport(importer, instrumentFilePath, { absolute: true })
+      : { optionsFn: ENV_FALLBACK_OPTIONS_FN, importStmt: undefined };
+
+    // Adapters build some entrypoints with a factory, which no static check can see. `withSentry`
+    // checks at run time whether the value extends `WorkerEntrypoint`, and returns any other value,
+    // such as a Durable Object, unchanged.
+    const classWrappers = new Map<string, ClassWrapperKind>(names.map(name => [name, 'workerEntrypoint']));
+    return (
+      applyAutoInstrumentTransforms(code, ast, {
+        classWrappers,
+        optionsFn,
+        optionsImport,
+        sentryModule,
+        wrapDefault: false,
+      }) ?? undefined
+    );
+  }
+
   return {
     name: 'sentry-cloudflare-auto-instrument',
+    // vinext appends its Workers Cache entrypoints to the worker-entry module in a normal transform.
+    // Running after all normal plugins makes them visible here in any plugin order.
+    enforce: 'post' as const,
+    // Without it, `vite dev` calls `buildStart` only for the client environment, which this plugin skips.
+    perEnvironmentStartEndDuringDev: true,
 
     configResolved(config: {
       root: string;
@@ -129,6 +197,26 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
       }
     },
 
+    async buildStart(this: Omit<TransformContext, 'parse'>): Promise<void> {
+      const environment = this.environment;
+      if (!entrySpecifier || !environment || environment.name === 'client') return;
+
+      if (await resolveEntrySpecifier(this as TransformContext, entrySpecifier)) return;
+
+      // Vite's own resolver does not see virtual modules other plugins serve, such as Solid's
+      // `virtual:solid-ssr-handler`. The plugin pipeline does, and here, unlike in `transform`, it can't wait
+      // on the entry's own transform.
+      const resolved = await this.resolve?.(entrySpecifier, wranglerConfigPath ?? '').catch(() => undefined);
+      if (resolved) {
+        virtualEntries.set(environment.name, normalizePath(resolved.id.replace(/[?#].*$/, '')));
+        return;
+      }
+
+      this.warn?.(
+        `[sentry] Could not resolve the wrangler \`main\` "${entrySpecifier}". Auto-instrumentation disabled.`,
+      );
+    },
+
     async transform(
       this: TransformContext,
       code: string,
@@ -141,11 +229,20 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
       // client entry next to a `src/index.ts` worker) out of the browser bundle.
       if (this.environment?.name === 'client') return undefined;
 
-      const entryPath = entrySpecifier ? await resolveEntrySpecifier(this, entrySpecifier) : entryFilePath;
+      // Named entrypoints appended to this facade are invoked through `ctx.exports` and never run
+      // the wrapped default export, so `Sentry.init` does not run in that invocation.
+      if (isCloudflareWorkerEntry(id)) {
+        return instrumentFacadeEntrypoints(this, code);
+      }
+
+      const virtualEntry = this.environment && virtualEntries.get(this.environment.name);
+      const entryPath =
+        virtualEntry ?? (entrySpecifier ? await resolveEntrySpecifier(this, entrySpecifier) : entryFilePath);
       if (!entryPath) return undefined;
 
       // Vite may append query/hash params to the module ID.
       const normalizedId = normalizePath(id.replace(/[?#].*$/, ''));
+
       if (normalizedId !== entryPath) {
         // Tolerate a differing JS-flavored extension (e.g. `.js` vs `.ts`).
         if (!JS_EXTENSION_REGEX.test(normalizedId) || !JS_EXTENSION_REGEX.test(entryPath)) return undefined;
@@ -198,7 +295,8 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
         isVinext && (await resolvesNextjsCloudflare(this, normalizedId)) ? NEXTJS_CLOUDFLARE_MODULE : undefined;
 
       const { optionsFn, importStmt: optionsImport } = instrumentFilePath
-        ? buildOptionsImport(entryPath, instrumentFilePath)
+        ? // A virtual module has no directory to import from relatively.
+          buildOptionsImport(entryPath, instrumentFilePath, { absolute: !!virtualEntry })
         : { optionsFn: ENV_FALLBACK_OPTIONS_FN, importStmt: undefined };
 
       // No registration import is injected here: the orchestrion plugin's

@@ -198,6 +198,7 @@ function instrumentAwsSdk(servicesExtensions: ServicesExtensions): void {
             httpStatusCode: errMetadata?.httpStatusCode,
             extendedRequestId: err?.extendedRequestId ?? errMetadata?.extendedRequestId,
           });
+          servicesExtensions.errorHook(normalizedRequest, data.error, span);
           return;
         }
 

@@ -59,4 +59,10 @@ describe('Bun init()', () => {
         .filter(name => ['NodeFetch', 'Fetch', 'BunHttpServer'].includes(name)),
     ).toEqual(['Fetch']);
   });
+
+  it('does not report the Bun integrations as set by the user when the user passes an integrations function', () => {
+    const client = init({ integrations: integrations => integrations });
+
+    expect(client?.getSdkMetadata()?.integrationsSetByUser).toEqual([]);
+  });
 });

@@ -38,6 +38,7 @@ it('Tracing headers', async ({ signal }) => {
               category: 'fetch',
               data: {
                 method: 'GET',
+                'http.request.method': 'GET',
                 status_code: 200,
                 url: expect.stringContaining('http://localhost:'),
               },

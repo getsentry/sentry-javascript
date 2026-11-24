@@ -1,6 +1,7 @@
 import * as os from 'node:os';
 import type { Integration, Options } from '@sentry/core';
 import {
+  _INTERNAL_captureOptionsSetByUser,
   applySdkMetadata,
   conversationIdIntegration,
   dedupeIntegration,
@@ -150,7 +151,7 @@ function _init(
   applySdkMetadata(userOptions, 'bun');
 
   const options = {
-    ...userOptions,
+    ..._INTERNAL_captureOptionsSetByUser(userOptions),
     platform: 'javascript',
     runtime: userOptions.runtime || { name: 'bun', version: typeof Bun !== 'undefined' ? Bun.version : 'unknown' },
     serverName: userOptions.serverName || global.process.env.SENTRY_NAME || os.hostname(),

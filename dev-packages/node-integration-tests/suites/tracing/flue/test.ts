@@ -242,4 +242,25 @@ describe.runIf(supports({ min: 22 }))('Flue integration', () => {
         .completed();
     });
   });
+
+  createEsmTests(__dirname, 'scenario-recording-functions.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('runs the span hooks of the model and tool calls', async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            const hooks = container.items
+              .filter(span => /^(chat|execute_tool) /.test(span.name))
+              .sort((a, b) => a.start_timestamp - b.start_timestamp)
+              .map(({ attributes }) => [attributes['test.start']?.value, attributes['test.end']?.value]);
+            expect(hooks).toEqual([
+              ['chat:private', 'toolUse'],
+              ['execute_tool:private', 'tool'],
+              ['chat:public', 'stop'],
+            ]);
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });

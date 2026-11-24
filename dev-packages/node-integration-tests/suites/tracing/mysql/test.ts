@@ -22,7 +22,7 @@ import {
 import { DB } from '@sentry/conventions/op';
 import type { AddressInfo, Server } from 'node:net';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
-import { EXPECTED_SDK_NAME } from '../../../utils';
+import { EXPECTED_SDK_NAME, supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 import { startMysqlTestServer } from './mysql-test-server';
 
@@ -192,6 +192,8 @@ describe('mysql auto instrumentation', () => {
   for (const { label, env, flags, origin, failsOnEsm } of CASES) {
     describe(label, () => {
       for (const [scenario, description, spanOverride] of SCENARIOS) {
+        // Deno: the query spans of a pool connection are not parented to the active span.
+        const failsOnDeno = scenario === 'scenario-withPool.mjs' && !supports({ runtimes: ['node', 'bun'] });
         createEsmAndCjsTests(
           __dirname,
           scenario,
@@ -213,7 +215,8 @@ describe('mysql auto instrumentation', () => {
             });
           },
           {
-            failsOnEsm,
+            failsOnEsm: failsOnEsm || failsOnDeno,
+            failsOnCjs: failsOnDeno,
           },
         );
       }

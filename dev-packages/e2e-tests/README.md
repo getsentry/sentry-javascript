@@ -190,7 +190,9 @@ is the reference setup.
   `deno run -A --preload=@sentry/deno/import --preload=./instrument.deno.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js`.
   The app's `deno.json` maps `@sentry/deno/import` to `node_modules`, because the e2e dependencies are `file:` tarballs
   that `npm:@sentry/deno/import` does not resolve. `nuxt-4` starts the Nitro output with no preload:
-  `bun .output/server/index.mjs` and `deno run -A .output/server/index.mjs`.
+  `bun .output/server/index.mjs` and `deno run -A .output/server/index.mjs`. `express-5` builds CommonJS for Node, so
+  Deno runs its TypeScript sources (`src/main.ts`), and `deno.json` turns on `sloppy-imports` for the relative imports
+  without a file extension.
 - **Cloudflare**: the app has the Cloudflare dependencies installed all the time. The Cloudflare build has its own
   `vite.cloudflare.config.ts` with `@cloudflare/vite-plugin` and `sentryCloudflareVitePlugin` from
   `@sentry/cloudflare/vite`, which the runner uses in place of `vite.config.ts` (see runtime-specific files). List the
@@ -199,9 +201,10 @@ is the reference setup.
   separate file (for example `workers/app.ts`) and exports a plain handler: the Sentry plugin wraps it with
   `withSentry` and reads the init options from `instrument.server.ts` next to the entry. The start command runs
   `wrangler dev` on the build output. Code at module scope must not do I/O (for example open a database connection),
-  because workerd does not allow it. `nextjs-16` has no Vite build: its Cloudflare variant builds with
-  `opennextjs-cloudflare build --config wrangler.opennext.jsonc` and wraps the generated Worker in `worker.ts` with
-  `withSentry` from `@sentry/nextjs/cloudflare`.
+  because workerd does not allow it. A socket also works only in the request that opened it, so `express-5` opens its
+  MySQL connection in the request. In an app without `"type": "module"`, name the config `vite.config.mts`. `nextjs-16`
+  has no Vite build: its Cloudflare variant builds with `opennextjs-cloudflare build --config wrangler.opennext.jsonc`
+  and wraps the generated Worker in `worker.ts` with `withSentry` from `@sentry/nextjs/cloudflare`.
 - **Cloudflare in `vite dev`**: to run the Worker in `vite dev` (for example the dev tests of the `hono-4` Cloudflare
   variant), start it with `CLOUDFLARE_INCLUDE_PROCESS_ENV=true vite dev`. The runner gives `E2E_TEST_DSN` to the app
   only as a process env var. `wrangler dev` adds it to the Worker `env` with `--var "E2E_TEST_DSN:$E2E_TEST_DSN"`, but
@@ -221,9 +224,10 @@ is the reference setup.
 - **Bun**: under `bun run` before Bun 1.4.6 the SDK cannot inject diagnostics channels into packages that stay outside
   the build (for example Express behind `react-router-serve`), so those produce no spans on Bun. Where a test depends on them, branch
   on `RUNTIME` and say why in a comment. An app that starts its own server can instead bundle it with
-  `@sentry/bun/plugin`, as `nestjs-12/bun-build.mjs` does. Bun 1.3 renames classes in bundles (`class Foo2`), which
-  changes span names taken from class names, so `nestjs-12` pins Bun 1.4 (see #26289). `nuxt-4` builds with
-  `bun --bun nuxt build` on Bun, because the Nitro prerenderer loads its `bun-sqlite` connector in the build process.
+  `@sentry/bun/plugin`, as `nestjs-12/bun-build.mjs` and `express-5/bun-build.mjs` do. Bun 1.3 renames classes in
+  bundles (`class Foo2`), which changes span names taken from class names, so `nestjs-12` pins Bun 1.4 (see #26289).
+  `nuxt-4` builds with `bun --bun nuxt build` on Bun, because the Nitro prerenderer loads its `bun-sqlite` connector in
+  the build process.
 
 ```json
 "sentryTest": {

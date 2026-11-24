@@ -77,6 +77,7 @@ export interface BreadcrumbHint {
 
 export interface FetchBreadcrumbData {
   method: string;
+  'http.request.method'?: string;
   /** Sanitized URL: the query string and fragment live in their own fields below. */
   url: string;
   status_code?: number;

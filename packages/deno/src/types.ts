@@ -50,6 +50,11 @@ export interface BaseDenoOptions {
 
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
+
+  /**
+   * Configures in which interval client reports will be flushed. Defaults to `60_000` (milliseconds).
+   */
+  clientReportFlushInterval?: number;
 }
 
 /**

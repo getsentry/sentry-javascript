@@ -30,9 +30,10 @@ test.describe('low-quality span filter', () => {
     // Force the server to flush any in-flight spans before we assert
     await page.evaluate(() => fetch('/__sentry-flush'));
 
+    // The browser's own fetch of /__manifest is an http.client span, which is expected.
     const targetIsManifest = (span: SerializedStreamedSpan) => {
       const urlPath = span.attributes['url.path']?.value;
-      return typeof urlPath === 'string' && urlPath.includes('/__manifest');
+      return getSpanOp(span) !== 'http.client' && typeof urlPath === 'string' && urlPath.includes('/__manifest');
     };
     expect(streamedSpans.some(targetIsManifest)).toBe(false);
   });

@@ -502,6 +502,21 @@ describe('generateVitePluginOptions', () => {
     process.env.NODE_ENV = originalEnv;
   });
 
+  it.each([{ autoUploadSourceMaps: false }, {}])(
+    'switches the source map handling off when only bundleSizeOptimizations add the plugin (%j)',
+    options => {
+      const result = generateVitePluginOptions({
+        ...options,
+        bundleSizeOptimizations: { excludeDebugStatements: true },
+      });
+
+      expect(result).toEqual({
+        bundleSizeOptimizations: { excludeDebugStatements: true },
+        sourcemaps: { upload: false, injectDebugIds: false },
+      });
+    },
+  );
+
   it('applies bundleSizeOptimizations AND source maps options when both are set', () => {
     const originalEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production'; // Ensure we're not in development mode

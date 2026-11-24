@@ -196,6 +196,9 @@ function sendResponse(
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({}));
     }
+  } else if (url.includes('/repos/')) {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify([]));
   } else if (url.includes('/releases/')) {
     res.writeHead(201, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ version: 'test-release', dateCreated: new Date().toISOString() }));

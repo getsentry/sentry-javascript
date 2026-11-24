@@ -59,7 +59,5 @@ function finishClassifierEvaluation(call: ClassifierEvaluationCall, message: Orc
     span.setAttribute(GEN_AI_OUTPUT_MESSAGES, getEvaluationOutputMessages(data.output));
   }
 
-  if (call.endTime) {
-    span.end(call.endTime);
-  }
+  call.end?.();
 }

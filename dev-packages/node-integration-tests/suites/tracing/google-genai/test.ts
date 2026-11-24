@@ -658,4 +658,34 @@ describe('Google GenAI integration', () => {
       });
     },
   );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-span-hooks.mjs',
+    (createRunner, test) => {
+      test('runs the span hooks at start in the caller context and at end with the response', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === EXPECTED_ORIGIN);
+              const hooksByKey = Object.fromEntries(
+                spans.map(span => [
+                  span.attributes[GEN_AI_REQUEST_MODEL]?.value,
+                  [span.attributes['test.start']?.value, span.attributes['test.end']?.value],
+                ]),
+              );
+              expect(hooksByKey).toEqual({
+                'gemini-public': ['gemini-public:public', 'Paris.'],
+                'gemini-private': ['gemini-private:private', 'Paris.'],
+                // A stream has no single response object, and its tag changes only after the call started.
+                'gemini-public-stream': ['gemini-public-stream:private', 'no response'],
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

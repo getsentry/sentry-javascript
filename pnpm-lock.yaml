@@ -290,22 +290,22 @@ importers:
         specifier: 1.64.1
         version: 1.64.1
       '@sentry/browser':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/browser
       '@sentry/browser-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/browser-utils
       '@sentry/conventions':
-        specifier: 0.33.0
-        version: 0.33.0
+        specifier: 0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/core
       '@sentry/replay':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/replay-internal
       '@sentry/replay-canvas':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/replay-canvas
       '@sentry/rrweb':
         specifier: 2.46.0
@@ -314,7 +314,7 @@ importers:
         specifier: ^2.46.0
         version: 2.46.0
       '@sentry/wasm':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/wasm
       '@supabase/supabase-js':
         specifier: 2.109.0
@@ -344,22 +344,25 @@ importers:
   dev-packages/browser-min-version-tests:
     devDependencies:
       '@sentry-internal/test-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../test-utils
 
   dev-packages/bun-integration-tests:
     devDependencies:
       '@sentry-internal/node-integration-tests':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node-integration-tests
       '@sentry/bun':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/bun
+      '@sentry/conventions':
+        specifier: 0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/core
       '@sentry/hono':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/hono
       '@types/mysql':
         specifier: ^2.15.27
@@ -386,11 +389,11 @@ importers:
   dev-packages/bundler-plugin-integration-tests:
     devDependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/bundler-plugins
       sentry:
-        specifier: ^0.49.0
-        version: 0.49.0
+        specifier: ^0.50.0
+        version: 0.50.0
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
@@ -404,46 +407,52 @@ importers:
         specifier: ^16.0.3
         version: 16.0.3(rollup@4.68.3)
       '@sentry/astro':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/astro
       '@sentry/browser':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/browser
       '@sentry/bun':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/bun
       '@sentry/cloudflare':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/cloudflare
       '@sentry/deno':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/deno
       '@sentry/nextjs':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/nextjs
+      '@sentry/nitro':
+        specifier: 11.17.0
+        version: link:../../packages/nitro
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/node
       '@sentry/nuxt':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/nuxt
       '@sentry/react-router':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/react-router
       '@sentry/remix':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/remix
+      '@sentry/solid':
+        specifier: 11.17.0
+        version: link:../../packages/solid
       '@sentry/solidstart':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/solidstart
       '@sentry/sveltekit':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/sveltekit
       '@sentry/tanstackstart-react':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/tanstackstart-react
       '@sentry/vercel-edge':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/vercel-edge
       '@vercel/nft':
         specifier: ^1.11.0
@@ -475,9 +484,12 @@ importers:
       '@anthropic-ai/sdk':
         specifier: 0.133.0
         version: 0.133.0(zod@4.6.7)
+      '@clickhouse/client-web':
+        specifier: ^1.25.0
+        version: 1.25.0
       '@cloudflare/vite-plugin':
-        specifier: 1.34.0
-        version: 1.34.0(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))(workerd@1.20260426.1)(wrangler@4.156.0(@cloudflare/workers-types@4.20260519.1)(@types/node@20.19.43))
+        specifier: 1.66.0
+        version: 1.66.0(@types/node@20.19.43)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))(workerd@1.20261023.1)(wrangler@4.156.0(@cloudflare/workers-types@4.20260519.1)(@types/node@20.19.43))
       '@cloudflare/workers-types':
         specifier: ^4.20260426.0
         version: 4.20260519.1
@@ -495,7 +507,7 @@ importers:
         version: 1.4.21(@langchain/core@1.2.17(@opentelemetry/api@1.10.0)(openai@5.18.1(ws@8.22.2)(zod@4.6.7))(ws@8.22.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.6.7)
       '@langchain/openai':
         specifier: ^1.6.2
-        version: 1.6.2(@aws-sdk/credential-provider-node@3.972.92)(@langchain/core@1.2.17(@opentelemetry/api@1.10.0)(openai@5.18.1(ws@8.22.2)(zod@4.6.7))(ws@8.22.2))(@smithy/signature-v4@5.7.5)(undici@7.24.8)(ws@8.22.2)
+        version: 1.6.2(@aws-sdk/credential-provider-node@3.972.92)(@langchain/core@1.2.17(@opentelemetry/api@1.10.0)(openai@5.18.1(ws@8.22.2)(zod@4.6.7))(ws@8.22.2))(@smithy/signature-v4@5.7.5)(undici@8.12.4)(ws@8.22.2)
       '@langchain/typesafe':
         specifier: ^0.0.2
         version: 0.0.2(@langchain/core@1.2.17(@opentelemetry/api@1.10.0)(openai@5.18.1(ws@8.22.2)(zod@4.6.7))(ws@8.22.2))(langchain@1.5.16(@langchain/core@1.2.17(@opentelemetry/api@1.10.0)(openai@5.18.1(ws@8.22.2)(zod@4.6.7))(ws@8.22.2))(@opentelemetry/api@1.10.0)(openai@5.18.1(ws@8.22.2)(zod@4.6.7))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(ws@8.22.2))
@@ -509,19 +521,19 @@ importers:
         specifier: 6.15.0
         version: 6.15.0(prisma@6.15.0(magicast@0.3.5)(typescript@7.0.2))(typescript@7.0.2)
       '@sentry-internal/test-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../test-utils
       '@sentry/cloudflare':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/cloudflare
       '@sentry/conventions':
-        specifier: 0.33.0
-        version: 0.33.0
+        specifier: 0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/core
       '@sentry/hono':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/hono
       ai:
         specifier: ^6.0.0
@@ -548,16 +560,16 @@ importers:
   dev-packages/deno-integration-tests:
     devDependencies:
       '@sentry-internal/node-integration-tests':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node-integration-tests
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/core
       '@sentry/deno':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/deno
       mysql:
         specifier: ^2.18.1
@@ -612,18 +624,21 @@ importers:
       '@aws-sdk/client-sqs':
         specifier: ^3.1161.0
         version: 3.1161.0
+      '@clickhouse/client':
+        specifier: ^1.25.0
+        version: 1.25.0
       '@earendil-works/chord':
         specifier: ^1.4.0
         version: 1.4.0
       '@earendil-works/pi-ai':
         specifier: ^1.4.0
-        version: 1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7)
+        version: 1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@8.12.4)(ws@8.22.2)(zod@4.6.7)
       '@earendil-works/pi-durable':
         specifier: ^1.4.0
-        version: 1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7)
+        version: 1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@8.12.4)(ws@8.22.2)(zod@4.6.7)
       '@flue/runtime':
         specifier: 2.3.0
-        version: 2.3.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(typescript@7.0.2)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7)
+        version: 2.3.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(typescript@7.0.2)(undici@8.12.4)(ws@8.22.2)(zod@4.6.7)
       '@google/genai':
         specifier: ^1.20.0
         version: 1.52.0(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(supports-color@10.0.0)
@@ -679,34 +694,34 @@ importers:
         specifier: 8.0.0-rc.17
         version: 8.0.0-rc.17(magicast@0.3.5)(typescript@7.0.2)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../rollup-utils
       '@sentry-internal/test-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../test-utils
       '@sentry/aws-serverless':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/aws-serverless
       '@sentry/conventions':
-        specifier: 0.33.0
-        version: 0.33.0
+        specifier: 0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/core
       '@sentry/hono':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/hono
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/node
       '@sentry/node-native':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/node-native
       '@sentry/server-runtime-injection':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/server-utils
       '@smithy/core':
         specifier: 3.38.1
@@ -770,7 +785,7 @@ importers:
         version: 1.6.0
       h3:
         specifier: 2.0.1-rc.22
-        version: 2.0.1-rc.22(crossws@0.4.10(srvx@0.11.22))
+        version: 2.0.1-rc.22(crossws@0.4.17(srvx@0.11.22))
       hono:
         specifier: ^4.13.7
         version: 4.13.16
@@ -802,8 +817,8 @@ importers:
         specifier: ^11.0.1
         version: 11.0.1(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7)(supports-color@10.0.0)
       mongoose:
-        specifier: ^6.13.10
-        version: 6.13.10(supports-color@10.0.0)
+        specifier: ^6.13.12
+        version: 6.13.13(supports-color@10.0.0)
       mysql:
         specifier: ^2.18.1
         version: 2.18.1
@@ -921,8 +936,8 @@ importers:
   dev-packages/test-utils:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       express:
         specifier: ^4.22.3
         version: 4.22.3(supports-color@10.0.0)
@@ -934,10 +949,10 @@ importers:
         specifier: 1.64.1
         version: 1.64.1
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../rollup-utils
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../packages/core
       '@types/express':
         specifier: ^4.17.21
@@ -949,13 +964,13 @@ importers:
   packages/angular:
     dependencies:
       '@sentry/browser':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       tslib:
         specifier: ^2.4.1
@@ -1007,32 +1022,32 @@ importers:
   packages/astro:
     dependencies:
       '@sentry/browser':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser
       '@sentry/bundler-plugins':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bundler-plugins
       '@sentry/cloudflare':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../cloudflare
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       astro:
         specifier: ^4.16.19
@@ -1044,26 +1059,26 @@ importers:
   packages/aws-serverless:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
       '@types/aws-lambda':
         specifier: ^8.10.164
         version: 8.10.164
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@types/node':
         specifier: ^20.19.0
@@ -1075,29 +1090,29 @@ importers:
   packages/browser:
     dependencies:
       '@sentry/browser-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser-utils
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/feedback':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../feedback
       '@sentry/replay':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../replay-internal
       '@sentry/replay-canvas':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../replay-canvas
     devDependencies:
       '@sentry-internal/integration-shims':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../integration-shims
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       fake-indexeddb:
         specifier: ^6.2.7
@@ -1106,42 +1121,42 @@ importers:
   packages/browser-utils:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       web-vitals:
         specifier: ^6.2.3
         version: 6.2.3
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
 
   packages/bun:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       bun-types:
         specifier: ^1.2.9
@@ -1150,7 +1165,7 @@ importers:
   packages/bundler-plugins:
     dependencies:
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       dotenv:
         specifier: ^17.4.2
@@ -1165,8 +1180,8 @@ importers:
         specifier: ^0.152.0
         version: 0.152.0
       sentry:
-        specifier: ^0.49.0
-        version: 0.49.0
+        specifier: ^0.50.0
+        version: 0.50.0
     devDependencies:
       '@babel/core':
         specifier: ^7.18.5
@@ -1178,10 +1193,10 @@ importers:
         specifier: ^7.23.3
         version: 7.29.7(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@sentry-internal/test-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/test-utils
       '@types/babel__core':
         specifier: ^7.20.5
@@ -1208,16 +1223,16 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/opentelemetry':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../opentelemetry
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
       magic-string:
         specifier: ~0.30.21
@@ -1227,7 +1242,7 @@ importers:
         specifier: 5.20260710.1
         version: 5.20260710.1
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@types/node':
         specifier: ^20.19.0
@@ -1245,11 +1260,11 @@ importers:
   packages/core:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       zod:
         specifier: ^4.6.7
@@ -1261,61 +1276,61 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/server-runtime-injection':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
 
   packages/effect:
     dependencies:
       '@sentry/browser':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node
     devDependencies:
       '@effect/vitest':
         specifier: ^4.0.0
-        version: 4.0.0(effect@4.0.0)(vitest@4.1.12)
+        version: 4.0.0(effect@4.1.4)(vitest@4.1.12)
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       effect:
         specifier: ^4.0.0
-        version: 4.0.0
+        version: 4.1.4
 
   packages/elysia:
     dependencies:
       '@sentry/bun':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bun
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       bun-types:
         specifier: ^1.2.9
@@ -1333,13 +1348,13 @@ importers:
         specifier: ^1.20.2
         version: 1.20.6(@babel/core@8.1.0)(@glint/template@1.8.0)(supports-color@10.0.0)
       '@sentry/browser':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       decorator-transforms:
         specifier: ^2.3.2
@@ -1388,20 +1403,20 @@ importers:
   packages/esbuild-plugin:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bundler-plugins
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
 
   packages/eslint-config-sdk:
     dependencies:
       '@sentry/eslint-plugin-sdk':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../eslint-plugin-sdk
       '@sentry/typescript':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../typescript
       '@typescript-eslint/eslint-plugin':
         specifier: ^5.62.0
@@ -1441,11 +1456,11 @@ importers:
   packages/feedback:
     dependencies:
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       preact:
         specifier: ^10.29.8
@@ -1454,17 +1469,17 @@ importers:
   packages/gatsby:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bundler-plugins
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/react':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../react
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       react:
         specifier: ^18.3.1
@@ -1479,19 +1494,19 @@ importers:
   packages/google-cloud-serverless:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
     devDependencies:
       '@google-cloud/bigquery':
@@ -1501,7 +1516,7 @@ importers:
         specifier: ^3.4.1
         version: 3.6.0(encoding@0.1.13)(supports-color@10.0.0)
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@types/express':
         specifier: ^5.0.6
@@ -1519,32 +1534,32 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
     devDependencies:
       '@cloudflare/workers-types':
         specifier: 4.20250922.0
         version: 4.20250922.0
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@sentry/bun':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bun
       '@sentry/cloudflare':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../cloudflare
       '@sentry/deno':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../deno
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node
       '@types/node':
         specifier: ^20.19.0
@@ -1559,26 +1574,26 @@ importers:
   packages/integration-shims:
     dependencies:
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
 
   packages/nestjs:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
     devDependencies:
       '@nestjs/common':
@@ -1588,7 +1603,7 @@ importers:
         specifier: ^10.4.22
         version: 10.4.22(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.0.0))(encoding@0.1.13)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       reflect-metadata:
         specifier: ^0.2.2
@@ -1606,37 +1621,37 @@ importers:
         specifier: 28.0.1
         version: 28.0.1(rollup@4.68.3)
       '@sentry/browser-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser-utils
       '@sentry/bundler-plugins':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bundler-plugins
       '@sentry/cloudflare':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../cloudflare
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node
       '@sentry/opentelemetry':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../opentelemetry
       '@sentry/react':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../react
       '@sentry/server-runtime-injection':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
       '@sentry/vercel-edge':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../vercel-edge
       rollup:
         specifier: ^4.60.3
@@ -1646,20 +1661,20 @@ importers:
         version: 0.1.11
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@sentry/bun':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bun
       '@sentry/deno':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../deno
       cjs-module-lexer:
         specifier: ^2.2.0
         version: 2.2.0
       next:
-        specifier: 15.5.28
-        version: 15.5.28(@babel/core@7.29.7(supports-color@10.0.0))(@opentelemetry/api@1.10.0)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.72.0)
+        specifier: 15.5.29
+        version: 15.5.29(@babel/core@7.29.7(supports-color@10.0.0))(@opentelemetry/api@1.10.0)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.72.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1670,33 +1685,33 @@ importers:
   packages/nitro:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       h3:
         specifier: ^2.0.1-rc.20
-        version: 2.0.1-rc.22(crossws@0.4.10(srvx@0.11.22))
+        version: 2.0.1-rc.22(crossws@0.4.17(srvx@0.11.22))
       nitro:
-        specifier: ^3.0.260415-beta
-        version: 3.0.260415-beta(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(lru-cache@11.5.3)(miniflare@4.20260426.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(mysql2@3.23.3(@types/node@20.19.43))(rollup@4.68.3)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))
+        specifier: ^3.0.260903-beta
+        version: 3.0.260903-beta
       srvx:
         specifier: ^0.11.22
         version: 0.11.22
@@ -1707,26 +1722,26 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/bundler-plugins':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/opentelemetry':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../opentelemetry
       '@sentry/server-runtime-injection':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@types/node':
         specifier: ^20.19.0
@@ -1735,17 +1750,17 @@ importers:
   packages/node-native:
     dependencies:
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node
       '@sentry/node-native-stacktrace':
         specifier: ^0.5.1
         version: 0.5.1
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@types/node':
         specifier: ^20.19.0
@@ -1757,31 +1772,31 @@ importers:
         specifier: ^4.6.0
         version: 4.6.4(@nuxt/schema@4.6.4)(confbox@0.2.4)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(magic-string@1.4.5)(mlly@1.8.2)(oxc-parser@0.152.0)(rolldown@1.3.2)(unplugin@3.7.0(esbuild@0.28.1)(rolldown@1.3.2)(rollup@4.68.3)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))(webpack@5.112.2(clean-css@5.2.2)(cssnano@9.9.0(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@20.19.43))(svgo@4.1.0)(uglify-js@3.13.3)))
       '@sentry/browser':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser
       '@sentry/bundler-plugins':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bundler-plugins
       '@sentry/cloudflare':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../cloudflare
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
       '@sentry/vue':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../vue
     devDependencies:
       '@cloudflare/workers-types':
@@ -1794,7 +1809,7 @@ importers:
         specifier: ^4.6.4
         version: 4.6.4
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       db0:
         specifier: ^0.3.4
@@ -1803,8 +1818,8 @@ importers:
         specifier: ^1.15.10
         version: 1.15.11
       nitro:
-        specifier: ^3.0.260311-beta
-        version: 3.0.260311-beta(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(lru-cache@11.5.3)(miniflare@4.20260426.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(mysql2@3.23.3(@types/node@20.19.43))(rollup@4.68.3)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))
+        specifier: ^3.0.260903-beta
+        version: 3.0.260903-beta
       nitropack:
         specifier: ^2.13.4
         version: 2.13.6(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(encoding@0.1.13)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.3.2)(srvx@0.11.22)(supports-color@10.0.0)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))(webpack@5.112.2(clean-css@5.2.2)(cssnano@9.9.0(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@20.19.43))(svgo@4.1.0)(uglify-js@3.13.3))
@@ -1827,36 +1842,36 @@ importers:
   packages/opentelemetry:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
     devDependencies:
       '@opentelemetry/api':
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
 
   packages/profiling-node:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node
       '@sentry/node-cpu-profiler':
         specifier: ^2.4.4
         version: 2.4.4
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@types/node':
         specifier: ^20.19.0
@@ -1865,17 +1880,17 @@ importers:
   packages/react:
     dependencies:
       '@sentry/browser':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@testing-library/react':
         specifier: ^15.0.5
@@ -1929,32 +1944,32 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/browser':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser
       '@sentry/bundler-plugins':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node
       '@sentry/react':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../react
       '@sentry/server-runtime-injection':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
       sentry:
-        specifier: ^0.49.0
-        version: 0.49.0
+        specifier: ^0.50.0
+        version: 0.50.0
     devDependencies:
       '@react-router/dev':
         specifier: ^7.18.4
@@ -1963,7 +1978,7 @@ importers:
         specifier: ^7.15.0
         version: 7.18.4(react-router@7.18.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@6.0.3)
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@testing-library/react':
         specifier: ^15.0.5
@@ -1990,32 +2005,32 @@ importers:
         specifier: ^1.23.4
         version: 1.23.4
       '@sentry/browser':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser
       '@sentry/bundler-plugins':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node
       '@sentry/react':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../react
       '@sentry/server-runtime-injection':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
       sentry:
-        specifier: ^0.49.0
-        version: 0.49.0
+        specifier: ^0.50.0
+        version: 0.50.0
       yargs:
         specifier: ^18.2.0
         version: 18.2.0
@@ -2033,7 +2048,7 @@ importers:
         specifier: ^2.17.4
         version: 2.17.5(typescript@5.8.3)
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@types/react':
         specifier: 17.0.3
@@ -2057,14 +2072,14 @@ importers:
   packages/replay-canvas:
     dependencies:
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/replay':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../replay-internal
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@sentry/rrweb':
         specifier: 2.46.0
@@ -2073,21 +2088,21 @@ importers:
   packages/replay-internal:
     dependencies:
       '@sentry/browser-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser-utils
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
     devDependencies:
       '@sentry-internal/replay-worker':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../replay-worker
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/rrweb':
         specifier: 2.46.0
         version: 2.46.0
@@ -2108,26 +2123,26 @@ importers:
         version: 0.8.3
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
 
   packages/rollup-plugin:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bundler-plugins
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
 
   packages/server-runtime-injection:
     dependencies:
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
     devDependencies:
       '@apm-js-collab/code-transformer':
@@ -2137,7 +2152,7 @@ importers:
         specifier: ^0.14.0
         version: 0.14.0(supports-color@7.2.0)
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@types/node':
         specifier: ^20.19.0
@@ -2158,10 +2173,10 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
     devDependencies:
       '@apm-js-collab/code-transformer-bundler-plugins':
@@ -2171,7 +2186,7 @@ importers:
         specifier: 1.2.0
         version: 1.2.0
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@types/node':
         specifier: ^20.19.0
@@ -2189,24 +2204,36 @@ importers:
   packages/solid:
     dependencies:
       '@sentry/browser':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
+      '@sentry/node':
+        specifier: 11.17.0
+        version: link:../node
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
+      '@sentry/cloudflare':
+        specifier: 11.17.0
+        version: link:../cloudflare
       '@solidjs/router':
         specifier: ^1.0.0
         version: 1.0.0(solid-js@1.9.18)
+      '@solidjs/router-2':
+        specifier: npm:@solidjs/router@^2.0.0
+        version: '@solidjs/router@2.0.0(@solidjs/web@2.0.0(solid-js@1.9.18))(solid-js@1.9.18)'
       '@solidjs/testing-library':
         specifier: 0.8.5
         version: 0.8.5(@solidjs/router@1.0.0(solid-js@1.9.18))(solid-js@1.9.18)
+      '@solidjs/web':
+        specifier: ^2.0.0
+        version: 2.0.0(solid-js@1.9.18)
       '@tanstack/solid-router':
         specifier: ^1.169.2
         version: 1.169.2(solid-js@1.9.18)
@@ -2222,6 +2249,9 @@ importers:
       solid-js:
         specifier: ^1.9.18
         version: 1.9.18
+      solid-js-2:
+        specifier: npm:solid-js@^2.0.0
+        version: solid-js@2.0.0
       vite:
         specifier: ^8.3.6
         version: 8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
@@ -2232,38 +2262,38 @@ importers:
   packages/solidstart:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: 0.33.0
-        version: 0.33.0
+        specifier: 0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/nitro':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../nitro
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
       '@sentry/solid':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../solid
       h3:
         specifier: ^1.15.10
         version: 1.15.11
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@sentry/browser':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser
       '@solidjs/router':
         specifier: ^1.0.0
@@ -2302,20 +2332,20 @@ importers:
   packages/svelte:
     dependencies:
       '@sentry/browser':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       magic-string:
         specifier: ~0.30.0
         version: 0.30.21
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@sveltejs/vite-plugin-svelte':
         specifier: 1.4.0
@@ -2336,28 +2366,28 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/bundler-plugins':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bundler-plugins
       '@sentry/cloudflare':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../cloudflare
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
       '@sentry/svelte':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../svelte
       '@sveltejs/acorn-typescript':
         specifier: ^1.0.13
@@ -2373,14 +2403,14 @@ importers:
         version: 1.0.0
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@sentry/browser':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser
       '@sveltejs/kit':
-        specifier: ^2.70.2
-        version: 2.70.2(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@3.1.2(supports-color@10.0.0)(svelte@4.2.8)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)))(svelte@4.2.8)(typescript@6.0.3)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))
+        specifier: ^2.70.4
+        version: 2.70.4(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@3.1.2(supports-color@10.0.0)(svelte@4.2.8)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)))(svelte@4.2.8)(typescript@6.0.3)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))
       '@sveltejs/vite-plugin-svelte':
         specifier: ^3.0.0
         version: 3.1.2(supports-color@10.0.0)(svelte@4.2.8)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))
@@ -2400,32 +2430,32 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/browser-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser-utils
       '@sentry/bundler-plugins':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../node
       '@sentry/react':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../react
       '@sentry/server-runtime-injection':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@types/node':
         specifier: ^20.19.0
@@ -2442,46 +2472,46 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
       '@sentry/server-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../server-utils
     devDependencies:
       '@edge-runtime/types':
         specifier: 4.0.0
         version: 4.0.0
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@sentry/opentelemetry':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../opentelemetry
 
   packages/vite-plugin:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bundler-plugins
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
 
   packages/vue:
     dependencies:
       '@sentry/browser':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
       '@tanstack/vue-router':
         specifier: ^1.64.0
@@ -2493,24 +2523,24 @@ importers:
   packages/wasm:
     dependencies:
       '@sentry/browser':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../browser
       '@sentry/core':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../core
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
 
   packages/webpack-plugin:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../bundler-plugins
     devDependencies:
       '@sentry-internal/rollup-utils':
-        specifier: 11.14.0
+        specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
 
 packages:
@@ -4135,6 +4165,13 @@ packages:
     resolution: {integrity: sha512-dlT1m5e/0yUL0kRNcQn7yGLVThkgbB0Ga/1AmfDDC/8ik6AIiSf2QLQO2zPYvefsHP0aFgxO93cVLCCfDp7kzQ==}
     engines: {node: '>= 20.12.0'}
 
+  '@clickhouse/client-web@1.25.0':
+    resolution: {integrity: sha512-9XgfE82bp8yZBMHql2JrcQz3qnNIuyscChkaSeilXcPl14BCJPdBmuV7oY8AOev9K0LNbMGRD+5GNJAZVSlveg==}
+
+  '@clickhouse/client@1.25.0':
+    resolution: {integrity: sha512-sxoCDlA8iOEGpGrJzl9SeNvG7II6e5kSeo0JI4Mru2QhwhjydWuDEE55ryZg3vIJ0CSJ1bhn9+Xtnuvf1BZT/w==}
+    engines: {node: '>=20'}
+
   '@cloudflare/kv-asset-handler@0.4.2':
     resolution: {integrity: sha512-SIOD2DxrRRwQ+jgzlXCqoEFiKOFqaPjhnNTGKXSRLvp1HiOvapLaFG2kEr9dYQTYe8rKrd9uvDUzmAITeNyaHQ==}
     engines: {node: '>=18.0.0'}
@@ -4142,15 +4179,6 @@ packages:
   '@cloudflare/kv-asset-handler@0.5.0':
     resolution: {integrity: sha512-jxQYkj8dSIzc0cD6cMMNdOc1UVjqSqu8BZdor5s8cGjW2I8BjODt/kWPVdY+u9zj3ms75Q5qaZgnxUad83+eAg==}
     engines: {node: '>=22.0.0'}
-
-  '@cloudflare/unenv-preset@2.16.1':
-    resolution: {integrity: sha512-ECxObrMfyTl5bhQf/lZCXwo5G6xX9IAUo+nDMKK4SZ8m4Jvvxp52vilxyySSWh2YTZz8+HQ07qGH/2rEom1vDw==}
-    peerDependencies:
-      unenv: 2.0.0-rc.24
-      workerd: '>1.20260305.0 <2.0.0-0'
-    peerDependenciesMeta:
-      workerd:
-        optional: true
 
   '@cloudflare/unenv-preset@2.16.2':
     resolution: {integrity: sha512-JBP1+Z7ZSNG/d4mRP+y8VC5dka3tZVMLEZRvS+rzQ4DGV1EoxRFQckcJTTkXbHSQiTj0DtNI01Zwb/V2fX0mvQ==}
@@ -4161,28 +4189,16 @@ packages:
       workerd:
         optional: true
 
-  '@cloudflare/vite-plugin@1.34.0':
-    resolution: {integrity: sha512-ZsdedDrK5WiJzelgKtgy3FHTbnG1dfrLNDy+5JPqrMx4el63eTYFLV89uI9LefVwyE6BfMz5UHbpYOdRbkUVlg==}
+  '@cloudflare/vite-plugin@1.66.0':
+    resolution: {integrity: sha512-hlXPbS6SWXHCJVztghkg+iW7dQNrx/wuy00SOLB6V2Ho78agt7RZdzb3iQuksl4XcFrp7cr/4WX4myBTiqitNw==}
     peerDependencies:
       vite: ^6.1.0 || ^7.0.0 || ^8.0.0
-      wrangler: ^4.86.0
-
-  '@cloudflare/workerd-darwin-64@1.20260426.1':
-    resolution: {integrity: sha512-Ch7DqsmYzSQRTY87pZpsGsFVz9VVBnLPnCBOHxKt1HH25a7oMu1w1PbPWqVmE0VerCLsj/TScX7Ob3v6E14TZw==}
-    engines: {node: '>=16'}
-    cpu: [x64]
-    os: [darwin]
+      wrangler: ^4.154.0
 
   '@cloudflare/workerd-darwin-64@1.20261023.1':
     resolution: {integrity: sha512-lsEx0i7nR0PNG/erUFFHmQmiidEhLfDE5uQmAL9421/y4/ycuxDDOSaxu3VGGYFFPK5sduyUeMmjIlX4CwOBFg==}
     engines: {node: '>=16'}
     cpu: [x64]
-    os: [darwin]
-
-  '@cloudflare/workerd-darwin-arm64@1.20260426.1':
-    resolution: {integrity: sha512-0m0U8vaPRH25SpKjbSyRql6gmPe4rCsETRV2WW0qBnuMdKNr5Vh5/Uez80xVrfiCCRMTULGeg63Nqg2vg6CDOA==}
-    engines: {node: '>=16'}
-    cpu: [arm64]
     os: [darwin]
 
   '@cloudflare/workerd-darwin-arm64@1.20261023.1':
@@ -4191,22 +4207,10 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
-  '@cloudflare/workerd-linux-64@1.20260426.1':
-    resolution: {integrity: sha512-C8LlC8uSYzg49y51n++75esxZmMp+Uz1OKHHA/4lkv6rjOTbcHQJuEwSLppjybVIXpv7A8MBhbu9iyCTvyv1mw==}
-    engines: {node: '>=16'}
-    cpu: [x64]
-    os: [linux]
-
   '@cloudflare/workerd-linux-64@1.20261023.1':
     resolution: {integrity: sha512-VHQ6jKFSihjR2+x1buby8XTdBLLJztVnYiB7OLOTYO8aDXB+c1Rd2410PdgFuFYc4AgFEk6PCJLyCLL5L1KBnw==}
     engines: {node: '>=16'}
     cpu: [x64]
-    os: [linux]
-
-  '@cloudflare/workerd-linux-arm64@1.20260426.1':
-    resolution: {integrity: sha512-ESVp/OIFMAqjQsa8BOP2BQQz5Vpfv6ncN6lNnIuNeOgsISQBdYk+LA60bwQHMud9tvmnSYtONp1zkZ8OQz+x6w==}
-    engines: {node: '>=16'}
-    cpu: [arm64]
     os: [linux]
 
   '@cloudflare/workerd-linux-arm64@1.20261023.1':
@@ -4214,12 +4218,6 @@ packages:
     engines: {node: '>=16'}
     cpu: [arm64]
     os: [linux]
-
-  '@cloudflare/workerd-windows-64@1.20260426.1':
-    resolution: {integrity: sha512-d3Xj/IjINRgNVwH+eKhpUn4xkkcEewbWXbOvBlapiirKWh5zl9m0Epi3qOqmjyRYK6MICqIGXg4qZBEt0lxudw==}
-    engines: {node: '>=16'}
-    cpu: [x64]
-    os: [win32]
 
   '@cloudflare/workerd-windows-64@1.20261023.1':
     resolution: {integrity: sha512-279WLVjNsMycAwr0EZNiNEf0l2SY6NUtsN80NwZzbTHzakmiN+WSx4w38muxPm+PAU0oSPPAPXKVD+H6Hya8xw==}
@@ -5392,12 +5390,6 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
-  '@img/sharp-darwin-arm64@0.34.5':
-    resolution: {integrity: sha512-imtQ3WMJXbMY4fxb/Ndp6HBTNVtWCUI0WdobyheGf5+ad6xX8VIDO8u2xE4qc/fr08CKG/7dDseFtn6M6g/r3w==}
-    engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
-    cpu: [arm64]
-    os: [darwin]
-
   '@img/sharp-darwin-arm64@0.35.5':
     resolution: {integrity: sha512-QRUlFQ0WxvdWyqqG/WtI3iupfD5rBzmCHXSdPsY91sAtVtTo7Q4cb6zOccZ3gqEqkr0f1As1ehLqmEpDsRf+lg==}
     engines: {node: '>=20.9.0'}
@@ -5406,12 +5398,6 @@ packages:
 
   '@img/sharp-darwin-x64@0.33.5':
     resolution: {integrity: sha512-fyHac4jIc1ANYGRDxtiqelIbdWkIuQaI84Mv45KvGRRxSAa7o7d1ZKAOBaYbnepLC1WqxfpimdeWfvqqSGwR2Q==}
-    engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
-    cpu: [x64]
-    os: [darwin]
-
-  '@img/sharp-darwin-x64@0.34.5':
-    resolution: {integrity: sha512-YNEFAF/4KQ/PeW0N+r+aVVsoIY0/qxxikF2SWdp+NRkmMB7y9LBZAVqQ4yhGCm/H3H270OSykqmQMKLBhBJDEw==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [x64]
     os: [darwin]
@@ -5432,11 +5418,6 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
-  '@img/sharp-libvips-darwin-arm64@1.2.4':
-    resolution: {integrity: sha512-zqjjo7RatFfFoP0MkQ51jfuFZBnVE2pRiaydKJ1G/rHZvnsrHAOcQALIi9sA5co5xenQdTugCvtb1cuf78Vf4g==}
-    cpu: [arm64]
-    os: [darwin]
-
   '@img/sharp-libvips-darwin-arm64@1.3.4':
     resolution: {integrity: sha512-5R89nBYiRdUlSWJxPhO+GVtaXzXSxKnRu/xqMn3KTA3L9EB9Oy/P+Nn2f2vlhPuUdy/Zusb2DarbyTpGCfEDuw==}
     cpu: [arm64]
@@ -5447,11 +5428,6 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  '@img/sharp-libvips-darwin-x64@1.2.4':
-    resolution: {integrity: sha512-1IOd5xfVhlGwX+zXv2N93k0yMONvUlANylbJw1eTah8K/Jtpi15KC+WSiaX/nBmbm2HxRM1gZ0nSdjSsrZbGKg==}
-    cpu: [x64]
-    os: [darwin]
-
   '@img/sharp-libvips-darwin-x64@1.3.4':
     resolution: {integrity: sha512-iR2OKH80yi0U+dUplyh3/xdpFvps6YkCwsXenIJxqxR1v9o+xtKTGbS9H7cps+2Vxjc8B1j96p75NmTGjIhtpQ==}
     cpu: [x64]
@@ -5459,12 +5435,6 @@ packages:
 
   '@img/sharp-libvips-linux-arm64@1.0.4':
     resolution: {integrity: sha512-9B+taZ8DlyyqzZQnoeIvDVR/2F4EbMepXMc/NdVbkzsJbzkUjhXv/70GQJ7tdLA4YJgNP25zukcxpX2/SueNrA==}
-    cpu: [arm64]
-    os: [linux]
-    libc: [glibc]
-
-  '@img/sharp-libvips-linux-arm64@1.2.4':
-    resolution: {integrity: sha512-excjX8DfsIcJ10x1Kzr4RcWe1edC9PquDRRPx3YVCvQv+U5p7Yin2s32ftzikXojb1PIFc/9Mt28/y+iRklkrw==}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
@@ -5481,33 +5451,15 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@img/sharp-libvips-linux-arm@1.2.4':
-    resolution: {integrity: sha512-bFI7xcKFELdiNCVov8e44Ia4u2byA+l3XtsAj+Q8tfCwO6BQ8iDojYdvoPMqsKDkuoOo+X6HZA0s0q11ANMQ8A==}
-    cpu: [arm]
-    os: [linux]
-    libc: [glibc]
-
   '@img/sharp-libvips-linux-arm@1.3.4':
     resolution: {integrity: sha512-LmRtTsOHuvM2+wlO2Db37dx5MiZhB0FvSunciw48YjdOkZz9KAiRbm8ujeMOA1INqmei5NapFxYEK1D1ZSidmw==}
     cpu: [arm]
     os: [linux]
     libc: [glibc]
 
-  '@img/sharp-libvips-linux-ppc64@1.2.4':
-    resolution: {integrity: sha512-FMuvGijLDYG6lW+b/UvyilUWu5Ayu+3r2d1S8notiGCIyYU/76eig1UfMmkZ7vwgOrzKzlQbFSuQfgm7GYUPpA==}
-    cpu: [ppc64]
-    os: [linux]
-    libc: [glibc]
-
   '@img/sharp-libvips-linux-ppc64@1.3.4':
     resolution: {integrity: sha512-Le6boB8Tai0Nis+gIxIpKx68UDVVIqdR8Tin5Yf1z2LJJQLDJvCDRqRu+jC2qCoD+eIomonmOwB4smBRxfVpYQ==}
     cpu: [ppc64]
-    os: [linux]
-    libc: [glibc]
-
-  '@img/sharp-libvips-linux-riscv64@1.2.4':
-    resolution: {integrity: sha512-oVDbcR4zUC0ce82teubSm+x6ETixtKZBh/qbREIOcI3cULzDyb18Sr/Wcyx7NRQeQzOiHTNbZFF1UwPS2scyGA==}
-    cpu: [riscv64]
     os: [linux]
     libc: [glibc]
 
@@ -5519,12 +5471,6 @@ packages:
 
   '@img/sharp-libvips-linux-s390x@1.0.4':
     resolution: {integrity: sha512-u7Wz6ntiSSgGSGcjZ55im6uvTrOxSIS8/dgoVMoiGE9I6JAfU50yH5BoDlYA1tcuGS7g/QNtetJnxA6QEsCVTA==}
-    cpu: [s390x]
-    os: [linux]
-    libc: [glibc]
-
-  '@img/sharp-libvips-linux-s390x@1.2.4':
-    resolution: {integrity: sha512-qmp9VrzgPgMoGZyPvrQHqk02uyjA0/QrTO26Tqk6l4ZV0MPWIW6LTkqOIov+J1yEu7MbFQaDpwdwJKhbJvuRxQ==}
     cpu: [s390x]
     os: [linux]
     libc: [glibc]
@@ -5541,12 +5487,6 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@img/sharp-libvips-linux-x64@1.2.4':
-    resolution: {integrity: sha512-tJxiiLsmHc9Ax1bz3oaOYBURTXGIRDODBqhveVHonrHJ9/+k89qbLl0bcJns+e4t4rvaNBxaEZsFtSfAdquPrw==}
-    cpu: [x64]
-    os: [linux]
-    libc: [glibc]
-
   '@img/sharp-libvips-linux-x64@1.3.4':
     resolution: {integrity: sha512-GJ//SSXbnwSDes02umB3nDJLFcQzw8a18V8fyhqr6tV515tOEMdImjjxj1AoafMRz56F3PHgftnj1QEKSU1zkw==}
     cpu: [x64]
@@ -5555,12 +5495,6 @@ packages:
 
   '@img/sharp-libvips-linuxmusl-arm64@1.0.4':
     resolution: {integrity: sha512-9Ti+BbTYDcsbp4wfYib8Ctm1ilkugkA/uscUn6UXK1ldpC1JjiXbLfFZtRlBhjPZ5o1NCLiDbg8fhUPKStHoTA==}
-    cpu: [arm64]
-    os: [linux]
-    libc: [musl]
-
-  '@img/sharp-libvips-linuxmusl-arm64@1.2.4':
-    resolution: {integrity: sha512-FVQHuwx1IIuNow9QAbYUzJ+En8KcVm9Lk5+uGUQJHaZmMECZmOlix9HnH7n1TRkXMS0pGxIJokIVB9SuqZGGXw==}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
@@ -5577,12 +5511,6 @@ packages:
     os: [linux]
     libc: [musl]
 
-  '@img/sharp-libvips-linuxmusl-x64@1.2.4':
-    resolution: {integrity: sha512-+LpyBk7L44ZIXwz/VYfglaX/okxezESc6UxDSoyo2Ks6Jxc4Y7sGjpgU9s4PMgqgjj1gZCylTieNamqA1MF7Dg==}
-    cpu: [x64]
-    os: [linux]
-    libc: [musl]
-
   '@img/sharp-libvips-linuxmusl-x64@1.3.4':
     resolution: {integrity: sha512-6zXKeE/p39I1AmA3cJG35eyBGNqNddLnUXjhwBnsGjFPWqf5VKkDBEqaEkPDoTEtkxwi2vv8Tcr2mDyP4So7Fg==}
     cpu: [x64]
@@ -5591,13 +5519,6 @@ packages:
 
   '@img/sharp-linux-arm64@0.33.5':
     resolution: {integrity: sha512-JMVv+AMRyGOHtO1RFBiJy/MBsgz0x4AWrT6QoEVVTyh1E39TrCUpTRI7mx9VksGX4awWASxqCYLCV4wBZHAYxA==}
-    engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
-    cpu: [arm64]
-    os: [linux]
-    libc: [glibc]
-
-  '@img/sharp-linux-arm64@0.34.5':
-    resolution: {integrity: sha512-bKQzaJRY/bkPOXyKx5EVup7qkaojECG6NLYswgktOZjaXecSAeCWiZwwiFf3/Y+O1HrauiE3FVsGxFg8c24rZg==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [arm64]
     os: [linux]
@@ -5617,13 +5538,6 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@img/sharp-linux-arm@0.34.5':
-    resolution: {integrity: sha512-9dLqsvwtg1uuXBGZKsxem9595+ujv0sJ6Vi8wcTANSFpwV/GONat5eCkzQo/1O6zRIkh0m/8+5BjrRr7jDUSZw==}
-    engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
-    cpu: [arm]
-    os: [linux]
-    libc: [glibc]
-
   '@img/sharp-linux-arm@0.35.5':
     resolution: {integrity: sha512-LEaXK2WdXVK5ykcw0buWyPMsmLLL2vpHLD6yrNSW+JGEL3BZPA4tpKN6iaMc4AxTTAoaX/sU1rOL51lcIz48ZQ==}
     engines: {node: '>=20.9.0'}
@@ -5631,24 +5545,10 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@img/sharp-linux-ppc64@0.34.5':
-    resolution: {integrity: sha512-7zznwNaqW6YtsfrGGDA6BRkISKAAE1Jo0QdpNYXNMHu2+0dTrPflTLNkpc8l7MUP5M16ZJcUvysVWWrMefZquA==}
-    engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
-    cpu: [ppc64]
-    os: [linux]
-    libc: [glibc]
-
   '@img/sharp-linux-ppc64@0.35.5':
     resolution: {integrity: sha512-QVxAAq8evVRI9ia2vqgwrmWucn5Dfv+JdWzj75pD8omHLPSP7f8p20O8jxzjCcuCEQEOtYOZUmX1hkiZ0kdevA==}
     engines: {node: '>=20.9.0'}
     cpu: [ppc64]
-    os: [linux]
-    libc: [glibc]
-
-  '@img/sharp-linux-riscv64@0.34.5':
-    resolution: {integrity: sha512-51gJuLPTKa7piYPaVs8GmByo7/U7/7TZOq+cnXJIHZKavIRHAP77e3N2HEl3dgiqdD/w0yUfiJnII77PuDDFdw==}
-    engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
-    cpu: [riscv64]
     os: [linux]
     libc: [glibc]
 
@@ -5661,13 +5561,6 @@ packages:
 
   '@img/sharp-linux-s390x@0.33.5':
     resolution: {integrity: sha512-y/5PCd+mP4CA/sPDKl2961b+C9d+vPAveS33s6Z3zfASk2j5upL6fXVPZi7ztePZ5CuH+1kW8JtvxgbuXHRa4Q==}
-    engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
-    cpu: [s390x]
-    os: [linux]
-    libc: [glibc]
-
-  '@img/sharp-linux-s390x@0.34.5':
-    resolution: {integrity: sha512-nQtCk0PdKfho3eC5MrbQoigJ2gd1CgddUMkabUj+rBevs8tZ2cULOx46E7oyX+04WGfABgIwmMC0VqieTiR4jg==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [s390x]
     os: [linux]
@@ -5687,13 +5580,6 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@img/sharp-linux-x64@0.34.5':
-    resolution: {integrity: sha512-MEzd8HPKxVxVenwAa+JRPwEC7QFjoPWuS5NZnBt6B3pu7EG2Ge0id1oLHZpPJdn3OQK+BQDiw9zStiHBTJQQQQ==}
-    engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
-    cpu: [x64]
-    os: [linux]
-    libc: [glibc]
-
   '@img/sharp-linux-x64@0.35.5':
     resolution: {integrity: sha512-SxFtLTeJInhAA9Q836kux2vZNeOBQEx658qvbboZScr0wIARym3IcGmW7KpVD5sbVg0Ojy+udFQdayYIZyoNog==}
     engines: {node: '>=20.9.0'}
@@ -5703,13 +5589,6 @@ packages:
 
   '@img/sharp-linuxmusl-arm64@0.33.5':
     resolution: {integrity: sha512-XrHMZwGQGvJg2V/oRSUfSAfjfPxO+4DkiRh6p2AFjLQztWUuY/o8Mq0eMQVIY7HJ1CDQUJlxGGZRw1a5bqmd1g==}
-    engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
-    cpu: [arm64]
-    os: [linux]
-    libc: [musl]
-
-  '@img/sharp-linuxmusl-arm64@0.34.5':
-    resolution: {integrity: sha512-fprJR6GtRsMt6Kyfq44IsChVZeGN97gTD331weR1ex1c1rypDEABN6Tm2xa1wE6lYb5DdEnk03NZPqA7Id21yg==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [arm64]
     os: [linux]
@@ -5729,13 +5608,6 @@ packages:
     os: [linux]
     libc: [musl]
 
-  '@img/sharp-linuxmusl-x64@0.34.5':
-    resolution: {integrity: sha512-Jg8wNT1MUzIvhBFxViqrEhWDGzqymo3sV7z7ZsaWbZNDLXRJZoRGrjulp60YYtV4wfY8VIKcWidjojlLcWrd8Q==}
-    engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
-    cpu: [x64]
-    os: [linux]
-    libc: [musl]
-
   '@img/sharp-linuxmusl-x64@0.35.5':
     resolution: {integrity: sha512-4KOphqB035HrVdqLZfCgMzzERrQkkzOwRhl4OAkRO1YCldbaFjySXMaK534Mo0V+LndnlJk+sbUyLeU0ULyD1A==}
     engines: {node: '>=20.9.0'}
@@ -5748,11 +5620,6 @@ packages:
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [wasm32]
 
-  '@img/sharp-wasm32@0.34.5':
-    resolution: {integrity: sha512-OdWTEiVkY2PHwqkbBI8frFxQQFekHaSSkUIJkwzclWZe64O1X4UlUjqqqLaPbUpMOQk6FBu/HtlGXNblIs0huw==}
-    engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
-    cpu: [wasm32]
-
   '@img/sharp-wasm32@0.35.5':
     resolution: {integrity: sha512-Ptsga1su4tQx+LLF1ECS9U6nz5kmrXKo6XVbtR48Ke3ZRxxgaWBu7IDtEe1quo8hiupwm6WFqxVlXaSf7IINGQ==}
     engines: {node: '>=20.9.0'}
@@ -5761,12 +5628,6 @@ packages:
     resolution: {integrity: sha512-hfhF/FmoQyTUkA0bIKFOtw536BQSeBMe6BF6QyWlrPxT754+TFLaZ7sKKTfvvM0yJgKgaYTwnFCIZ/GuDw5SUA==}
     engines: {node: '>=20.9.0'}
     cpu: [wasm32]
-
-  '@img/sharp-win32-arm64@0.34.5':
-    resolution: {integrity: sha512-WQ3AgWCWYSb2yt+IG8mnC6Jdk9Whs7O0gxphblsLvdhSpSTtmu69ZG1Gkb6NuvxsNACwiPV6cNSZNzt0KPsw7g==}
-    engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
-    cpu: [arm64]
-    os: [win32]
 
   '@img/sharp-win32-arm64@0.35.5':
     resolution: {integrity: sha512-X4t7g+7ZA5DKblCBEXGjUqqemj4vczING/5viFwAL8h4N3qYeyjwdCvRLHi4EdOUI+2Z7UFlp1VM+p/AuEtm6Q==}
@@ -5780,12 +5641,6 @@ packages:
     cpu: [ia32]
     os: [win32]
 
-  '@img/sharp-win32-ia32@0.34.5':
-    resolution: {integrity: sha512-FV9m/7NmeCmSHDD5j4+4pNI8Cp3aW+JvLoXcTUo0IqyjSfAZJ8dIUmijx1qaJsIiU+Hosw6xM5KijAWRJCSgNg==}
-    engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
-    cpu: [ia32]
-    os: [win32]
-
   '@img/sharp-win32-ia32@0.35.5':
     resolution: {integrity: sha512-5Zm82LoBc43nhwNybZlG7Y1KO//Zhsn306fQl29ZOuStHLGTo3BWL83q3cznX0poxSAMuYL1On/BHBxkBeKr6A==}
     engines: {node: ^20.9.0}
@@ -5794,12 +5649,6 @@ packages:
 
   '@img/sharp-win32-x64@0.33.5':
     resolution: {integrity: sha512-MpY/o8/8kj+EcnxwvrP4aTJSWw/aZ7JIGR4aBeZkZw5B7/Jn+tY9/VNwtcoGmdT7GfggGIU4kygOMSbYnOrAbg==}
-    engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
-    cpu: [x64]
-    os: [win32]
-
-  '@img/sharp-win32-x64@0.34.5':
-    resolution: {integrity: sha512-+29YMsqY2/9eFEiW93eqWnuLcWcufowXewwSNIT6UwZdUUCrM3oFjMWH/Z6/TMmb4hlFenmfAVbpWeup2jryCw==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [x64]
     os: [win32]
@@ -6148,57 +5997,57 @@ packages:
       '@nestjs/websockets':
         optional: true
 
-  '@next/env@15.5.28':
-    resolution: {integrity: sha512-xxW5EBI8fMPuVTPBW7LL980IRbuDXlbkUAwp9DDhtb4Lnich3nJ13uYpvrX4VE74hWPf6AvHHAMmGCidcHjbfg==}
+  '@next/env@15.5.29':
+    resolution: {integrity: sha512-9SrTiTsgORa+KfhlXXAGC1eSs847E+d2MQTPUX+n7R5XA8g/B6ZitfL6GoYHNMLwG3Hzs1wjDH0/ME5WrGMqBQ==}
 
-  '@next/swc-darwin-arm64@15.5.28':
-    resolution: {integrity: sha512-dPoQYXcfSIqx5o+TOXVXO7kONK5qbtNRDeiTfII0bT3puGIT6VF5e0QwmxNZfEZ5Zety5f3m9P/p4xqwfiLlPg==}
+  '@next/swc-darwin-arm64@15.5.29':
+    resolution: {integrity: sha512-vozRDuM23T0faRR0O3oN1eRqjEqUue4Eljhkb9f7urQgzmyzve7j3atzTv3Z1AnjQ9IeVY0X3aS1/an56TOiTg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
 
-  '@next/swc-darwin-x64@15.5.28':
-    resolution: {integrity: sha512-RgCJ7buBivTH+6sddqaVm+/v8kwMHlFkobvdt3DfETutws5HrxnToMIWSN9X3MZ3aAi7BbKrGZZWUDQLEycXqw==}
+  '@next/swc-darwin-x64@15.5.29':
+    resolution: {integrity: sha512-FzrcEzMZVcp/SqFXCW5SXyPil10bB9l5wpTBapEs9ZMqke3W+hyC5mNAdAa1divn+4SZ7LD5BtK67XvK7SucWQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
 
-  '@next/swc-linux-arm64-gnu@15.5.28':
-    resolution: {integrity: sha512-OHXQe13olE59aKe++zHavGcJPh5SLHXi6Anret3BBeq1+qhSuOJDNAli/EDDfxs6UTqA4Qddo4uyYry2slyjiQ==}
+  '@next/swc-linux-arm64-gnu@15.5.29':
+    resolution: {integrity: sha512-FWbWE5P313Yy5062vgY9UspNz/t6Ve/s35X9v6YU7ilsbhqKGabPBPIWcMEPhyomeRdwfv19NAITkU2FFIhGwA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@next/swc-linux-arm64-musl@15.5.28':
-    resolution: {integrity: sha512-nTB7bB6vfn4ezCJNYP43ukt2o8L3+WxKF/sTcTxepdXsJh3SM9RhlU7wrZYbH7L4HO5M87dqDTwm8587vAkCiw==}
+  '@next/swc-linux-arm64-musl@15.5.29':
+    resolution: {integrity: sha512-xjTHrVisb9GeDSNFOwJI+4UJrKdwlpjz95q8sEvQh46yUp3+JikNcf26pode/HlHktSdJwcHx3iVMCjfPcnU+A==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@next/swc-linux-x64-gnu@15.5.28':
-    resolution: {integrity: sha512-WXCfVI32rW3xCusoUX1RpZKtyChWU2Zwe27JUDmM3KrXwcDNc9vV4zEq0GKFAURnuQ/Ouo/XqPvB0yh445XZCg==}
+  '@next/swc-linux-x64-gnu@15.5.29':
+    resolution: {integrity: sha512-5WqW7kHscT02wyF8TlbYv9+zx3KhnQeZwk+FkTCr1r7TuvMrqqOZ3RDkdDKl3O0M0Er3VuQEzoEIrj8VX5fjaw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@next/swc-linux-x64-musl@15.5.28':
-    resolution: {integrity: sha512-Miq+NDb/HWsXuxseYxMM6fuEOQXgTziarkKIRpVKCn8W69cEfhQaQr+90pO+u4q2CbJR2wzXmUuCFyZaJs/Nng==}
+  '@next/swc-linux-x64-musl@15.5.29':
+    resolution: {integrity: sha512-I0QJ1Be9vtdq5FABhNcSbkELllA91WnhG+m4BjJHCn1bXAIL8AuDABIKIJ7Bz84T/sIkZP6TvOEWJcKckrX3yQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@next/swc-win32-arm64-msvc@15.5.28':
-    resolution: {integrity: sha512-5LR79lemgDlgxvG7MQJ+zHCkVcrUoQuO7CiIvq3I58vNW4goSOE2b+19Z6FujRWMouvni4gvudYFuFuNxolGWA==}
+  '@next/swc-win32-arm64-msvc@15.5.29':
+    resolution: {integrity: sha512-q4fQFWtR7nH7ZDhU8RIvwNW0S/nHImaZkoOSw7rOXFgoP51HTesm8/8P/w3ACjc9GxqytXj0LZZesykK3arFBw==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
 
-  '@next/swc-win32-x64-msvc@15.5.28':
-    resolution: {integrity: sha512-GNipvXUYROSTf4PXEyH95FrWImIB5zdaK6uEOg0RP1/X2drnvoMwiBkJ0VWdzX7w3iiBm3y5g2TxkKDGVTOQcg==}
+  '@next/swc-win32-x64-msvc@15.5.29':
+    resolution: {integrity: sha512-putWQ+CTEJunAPIPDPfb06Kc4emhYpdM5FoCDHSkC/ym7Dy2xOBMPgBjBbRkw2Hp5/550ACYxCmUtV4k4ui3Iw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
@@ -6218,8 +6067,8 @@ packages:
     resolution: {integrity: sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==}
     engines: {node: '>= 20.19.0'}
 
-  '@nodable/entities@2.1.0':
-    resolution: {integrity: sha512-nyT7T3nbMyBI/lvr6L5TyWbFJAI9FTgVRakNoBqCD+PmID8DzFrrNdLLtHMwMszOtqZa8PAOV24ZqDnQrhQINA==}
+  '@nodable/entities@3.1.0':
+    resolution: {integrity: sha512-LsS/DjHr+uDM647Gru/cA8+J3a3HfhttwCKLyuoyN7yXTFCxKBtSgMQBvrW9yNPa2/zDRUNuGPaH5QUFoa4arQ==}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -7856,8 +7705,8 @@ packages:
     resolution: {integrity: sha512-MLxTpTU3E8QACQ/5c0sENMR2gRiMXpGaKeD5IHY+3wyU2fUSJVB0QPU/l1WhoyZbX8N9ospBgf5UEG7taVF9rg==}
     engines: {node: ^14.15.0 || >=16.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
 
-  '@sentry/conventions@0.33.0':
-    resolution: {integrity: sha512-5aa3g/VOnMoL8yHbfkYIWBYC3BLgMudgRNBTKNMrcMEj1mE9aKIt/CYCG7sasijhiSU4nTcSEzyM2voIVzLCng==}
+  '@sentry/conventions@0.36.0':
+    resolution: {integrity: sha512-FedIjtJSiTZa3VARAds2ok7Q9Xt2LjrZJ1SeaxMvGhRgMw4V+eOaECGa/JbJWe30tw6yehE1W7T4HmgK5XJRTQ==}
     engines: {node: '>=14'}
 
   '@sentry/node-cpu-profiler@2.4.4':
@@ -8182,6 +8031,20 @@ packages:
     peerDependencies:
       solid-js: ^1.8.6
 
+  '@solidjs/router@2.0.0':
+    resolution: {integrity: sha512-Zpa9djVKDigR1PYd6K32OFN3N90wymPk2yIWhV+Sdrz/aRPpMIIohI5dsAqwx5WIjQ3lBlECZHGBEzaPdcmpCA==}
+    peerDependencies:
+      '@solidjs/web': ^2.0.0
+      filesystem-routing: '>=0.4.0'
+      solid-js: ^2.0.0
+    peerDependenciesMeta:
+      filesystem-routing:
+        optional: true
+
+  '@solidjs/signals@2.0.0':
+    resolution: {integrity: sha512-jrcT6XTVvsYRpesRp0At/mSUnsWr6jiprK8C93Oat56B8n7X9BMSe58Rxl6qSZUhBN0L+sxm8GzeO7HdhBXvDw==}
+    engines: {node: '>=22.12.0'}
+
   '@solidjs/start@1.3.2':
     resolution: {integrity: sha512-tasDl3utVbtP0rr4InB3ntBIFV2upvEiFrOOCkRrAA3yBfjx9elpxnc94sJQXo65PNYdAAAkPIC6h93vLrtwHg==}
     peerDependencies:
@@ -8193,6 +8056,12 @@ packages:
     peerDependencies:
       '@solidjs/router': '>=0.6.0'
       solid-js: '>=1.0.0'
+
+  '@solidjs/web@2.0.0':
+    resolution: {integrity: sha512-R0+JMCD6ukEXaID/sH5PVQe9bCIN9pRzJry+F6Sb6YvtlkAp9DEyVI7AeZYiV0cd6TSL98kpbCyLDiZnaAKGrA==}
+    engines: {node: '>=22.12.0'}
+    peerDependencies:
+      solid-js: ^2.0.0
 
   '@speed-highlight/core@1.2.15':
     resolution: {integrity: sha512-BMq1K3DsElxDWawkX6eLg9+CKJrTVGCBAWVuHXVUV2u0s2711qiChLSId6ikYPfxhdYocLNt3wWwSvDiTvFabw==}
@@ -8235,8 +8104,8 @@ packages:
     peerDependencies:
       acorn: ^8.9.0
 
-  '@sveltejs/kit@2.70.2':
-    resolution: {integrity: sha512-RzRoRpuR2KXqc5yMO0akQHDZeT4AslOlznGITURsqHaVbtyYP4Wn3eE3gxj9JcDyNYO0crkxhdwFHc+2vkVm6w==}
+  '@sveltejs/kit@2.70.4':
+    resolution: {integrity: sha512-IDfRnmSXgtlmv5Q+KyvP1HGr2XUvZooo0yBwzTnJA7CBbczy+sSMHXubfbcI9gz4EKksRSyYx44y/eCcf/B+rg==}
     engines: {node: '>=18.13'}
     hasBin: true
     peerDependencies:
@@ -9376,8 +9245,8 @@ packages:
     peerDependencies:
       ajv: ^8.8.2
 
-  ajv@6.12.6:
-    resolution: {integrity: sha512-j3fVLgvTo527anyYyJOGTYJbG+vnnQYvE0m5mmkc1TK+nxAppkCLMIL0aZ4dblVCNoGShhm+kzE4ZUykBoMg4g==}
+  ajv@6.15.0:
+    resolution: {integrity: sha512-fgFx7Hfoq60ytK2c7DhnF8jIvzYgOMxfugjLOSMHjLIPgenqa7S7oaagATUq99mV6IYvN2tRmC0wnTYX6iPbMw==}
 
   ajv@8.11.0:
     resolution: {integrity: sha512-wGgprdCvMalC0BztXvitD2hC04YffAvtsUn93JbGXYLAtCUO4xd17mCCZQxUOItiBwZvJScWo8NIvQMQ71rdpg==}
@@ -9443,6 +9312,9 @@ packages:
   anymatch@3.1.3:
     resolution: {integrity: sha512-KMReFUr0B4t+D+OBkjR3KYqvocp2XaSzO55UcB6mgQMd3KbcE+mWTyvVV7D/zsdEbNnV6acZUutkiHQXvTr1Rw==}
     engines: {node: '>= 8'}
+
+  anynum@1.0.1:
+    resolution: {integrity: sha512-N6//FLET/tXYNM/F6ABca1oH6fWB+KlTt909Le28WMDBk8oaT4vY17DCrwg2MvmuqUKt3Ni4N5dGJ/EoBgcO6A==}
 
   aproba@2.0.0:
     resolution: {integrity: sha512-lYe4Gx7QT+MKGbDsA+Z+he/Wtef0BiwDOlK/XkBrdfsh9J/jPPXbX0tE9x9cl27Tmu5gg3QUbUrQYa/y+KOHPQ==}
@@ -10534,8 +10406,8 @@ packages:
   crossws@0.3.5:
     resolution: {integrity: sha512-ojKiDvcmByhwa8YYqbQI/hg7MEU0NC03+pSdEq4ZUnZR9xXpwk7E43SMNGkn+JxJGPFtNvQ48+vV2p+P1ml5PA==}
 
-  crossws@0.4.10:
-    resolution: {integrity: sha512-pz3oubH/dt12KjqsUB0IuXW4nwRDQ583iDsP4555Cpdqx0NoU7pGlWBcayyFI8f/l/idRpgjMEfwuOxSWJYlIA==}
+  crossws@0.4.17:
+    resolution: {integrity: sha512-YG2kyfafNXKmu7e6k64yrj6whrw7m5sBIsOSXOlJ/72X3TQWRQuw8DhvXFDcBk8HF77PnTSygnm7xpYCTnFpow==}
     peerDependencies:
       srvx: '>=0.11.5'
     peerDependenciesMeta:
@@ -10687,6 +10559,9 @@ packages:
         optional: true
       sqlite3:
         optional: true
+
+  db0@0.4.2:
+    resolution: {integrity: sha512-OCBz+HiE8NgfQdlvvNrzdE+4RhmoAV3QnkxOhLU40bQH/N1msRwmPBvVyXmCUDmjhDl1+t4CFcSCccmi5jf+VQ==}
 
   debug@2.6.9:
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
@@ -10992,8 +10867,8 @@ packages:
   effect@3.16.12:
     resolution: {integrity: sha512-N39iBk0K71F9nb442TLbTkjl24FLUzuvx2i1I2RsEAQsdAdUTuUoW0vlfUXgkMTUOnYqKnWcFfqw4hK4Pw27hg==}
 
-  effect@4.0.0:
-    resolution: {integrity: sha512-ooc1TG5t+FfzgYnFz2ff6BBKyZ7EwBRVXC7c4RhQUAD6/TZ2gTXXMeb4WX7a19ozQo4J73/QW+S00YAIresoMQ==}
+  effect@4.1.4:
+    resolution: {integrity: sha512-Tgrv/9FN+TZYyOn8XSli+fVqAfwDrDAkiX5Uu9vztINb675VTQdhD0gWI5Kzvhlh9QqzjZvw72iugqw5pwoghQ==}
 
   ejs@5.0.1:
     resolution: {integrity: sha512-COqBPFMxuPTPspXl2DkVYaDS3HtrD1GpzOGkNTJ1IYkifq/r9h8SVEFrjA3D9/VJGOEoMQcrlhpntcSUrM8k6A==}
@@ -11132,17 +11007,9 @@ packages:
     resolution: {integrity: sha512-+h1lkLKhZMTYjog1VEpJNG7NZJWcuc2DDk/qsqSTRRCOXiLjeQ1d1/udrUGhqMxUgAlwKNZ0cf2uqan5GLuS2A==}
     engines: {node: '>=6'}
 
-  env-runner@0.1.7:
-    resolution: {integrity: sha512-i7h96jxETJYhXy5grgHNJ9xNzCzWIn9Ck/VkkYgOlE4gOqknsLX3CmlVb5LmwNex8sOoLFVZLz+TIw/+b5rktA==}
+  env-runner@0.2.3:
+    resolution: {integrity: sha512-S8EFBKyznRwPVwayK187cYjvnpgC92xy+q0BIF++V965pfjMVVRbQ/HoTYGA/1EHmZ7E68k6Heq+4WnvVhOL5w==}
     hasBin: true
-    peerDependencies:
-      '@netlify/runtime': ^4
-      miniflare: ^4.20260317.3
-    peerDependenciesMeta:
-      '@netlify/runtime':
-        optional: true
-      miniflare:
-        optional: true
 
   err-code@2.0.3:
     resolution: {integrity: sha512-2bmlRpNKBxT/CRmPOlyISQpNj+qSeYvcym/uT0Jx2bMOlKLtSy1ZmLuVxSEKKyor/N5yhvp/ZiG1oE3DEYMSFA==}
@@ -11804,15 +11671,15 @@ packages:
   fast-wrap-ansi@0.2.2:
     resolution: {integrity: sha512-7F2Fl+TjRSenLqlU3UjSH0iyqopqoZIu7eZVpEirP2g1GtWa2G/ecEmBdgz31+Mxr+ELclgg6sokpSFIQiZ02Q==}
 
-  fast-xml-builder@1.2.0:
-    resolution: {integrity: sha512-00aAWieqff+ZJhsXA4g1g7M8k+7AYoMUUHF+/zFb5U6Uv/P0Vl4QZo84/IcufzYalLuEj9928bXN9PbbFzMF0Q==}
+  fast-xml-builder@1.3.2:
+    resolution: {integrity: sha512-OX91VSlShLPDgRZV7tk/YQ4l8tT75QziF5Ixg8g4PFbCVPjuTWwN+yQfAxLJ0dufJpprdOd6HlM74Jhd39TcBQ==}
 
-  fast-xml-parser@4.5.6:
-    resolution: {integrity: sha512-Yd4vkROfJf8AuJrDIVMVmYfULKmIJszVsMv7Vo71aocsKgFxpdlpSHXSaInvyYfgw2PRuObQSW2GFpVMUjxu9A==}
+  fast-xml-parser@4.5.7:
+    resolution: {integrity: sha512-a6Qh1RMCNbSrU1+sAyAAZH3rTe+OaWJbNZIq0S+ifZciUUOQtlVxBJwoTUE2bYhysmG/RYyI5WJFIKdBahJdrQ==}
     hasBin: true
 
-  fast-xml-parser@5.7.3:
-    resolution: {integrity: sha512-C0AaNuC+mscy6vrAQKAc/rMq+zAPHodfHGZu4sGVehvAQt/JLG1O5zEcYcXSY5zSqr4YVgxsB+pHXTq0i7eDlg==}
+  fast-xml-parser@5.12.1:
+    resolution: {integrity: sha512-wR8dO/fx+z8C5exuem1e7BKOWvjsuzvjS/tvA/Xu3Z1zQqJGcXrPzXbcAiaMgp2KjreEROcTkmnnisrcmJ2hYQ==}
     hasBin: true
 
   fastify@5.12.7:
@@ -12265,6 +12132,19 @@ packages:
       crossws: ^0.4.1
     peerDependenciesMeta:
       crossws:
+        optional: true
+
+  h3@2.0.8:
+    resolution: {integrity: sha512-ENuKlF9kC6E6PrvY1PUyE0qkrnnPTIt2/v48uyEEfTVfgoiqBCE0uwwf++2XrWwT1gxjQBDLQ8PAsmZVniKvTw==}
+    engines: {node: '>=20.19.0'}
+    hasBin: true
+    peerDependencies:
+      crossws: ^0.4.12
+      ocache: '>=0.3.0'
+    peerDependenciesMeta:
+      crossws:
+        optional: true
+      ocache:
         optional: true
 
   handle-thing@2.0.1:
@@ -12887,6 +12767,9 @@ packages:
   is-unicode-supported@2.1.0:
     resolution: {integrity: sha512-mE00Gnza5EEB3Ds0HfMyllZzbBrmLOX3vfWoj9A9PEnTfratQ/BcaJOuMhnkhjXvb2+FkY3VuHqtAGpTPmglFQ==}
     engines: {node: '>=18'}
+
+  is-unsafe@2.0.3:
+    resolution: {integrity: sha512-ZBllczCCO267vgdFb6Tq3pv+LhHaCiGMdr+ZsuL+OopruAg7S+3ZDs1vD0RPC0uSrkjzbraxaGjtX1YBxjPeFQ==}
 
   is-weakmap@2.0.2:
     resolution: {integrity: sha512-K5pXYOm9wqY1RgjpL3YTkF39tni1XajUIkawTLUo9EZEVUFga5gSQJF8nNS7ZwJQ02y+1YCNYcMh+HIf1ZqE+w==}
@@ -13888,10 +13771,9 @@ packages:
     peerDependencies:
       webpack: ^5.0.0
 
-  miniflare@4.20260426.0:
-    resolution: {integrity: sha512-KM+v76d04qT+NsPfVKVQEgnnuLNE3uzCCl2QKMTJ5OXor5JbBm1vpkQwQ+l7o5ELCrZ74RnyKhJKLiJyUA39Tw==}
-    engines: {node: '>=18.0.0'}
-    hasBin: true
+  miniflare@5.20261023.1-beta:
+    resolution: {integrity: sha512-hgm1AJhwC6W+iaRhvMnfs7bPOsxjKa8LXTFR2WVPA5qA9KhpyBd2LddmT+9M9tm65VZ8YWkwQGvB+cKbqJoKeA==}
+    engines: {node: '>=22.0.0'}
 
   miniflare@5.20261023.3-beta:
     resolution: {integrity: sha512-thdXzlktu5GE1o/BlmMAPeJ0Cu6Tu5LpMbRlyfRrpVvMRrhd6p52TMqcITCZZLVzt1UO92VGBkLDhLOpryUAyQ==}
@@ -14129,16 +14011,16 @@ packages:
       socks:
         optional: true
 
-  mongoose@6.13.10:
-    resolution: {integrity: sha512-5Xya7crlTwBrl3Gp1XCZMSnKI1WTLYzKkRdKaBiD51AprGtLQtgNoFO7v/qG0O5PixjfxzLuN3f3MChDOOFQOQ==}
+  mongoose@6.13.13:
+    resolution: {integrity: sha512-cOejrboAXJiYEOloY8YEfNElNbpeAPNMgCsnTdxSOQJzC1k0lqTCv7PAJJzjvxNWkctSMzhYHFbzdz1JXnHnUQ==}
     engines: {node: '>=12.0.0'}
 
   mpath@0.9.0:
     resolution: {integrity: sha512-ikJRQTk8hw5DEoFVxHG1Gn9T/xcjtdnOKIU1JTmGjZZlg9LST2mBLmcX3/ICIbgJydT2GOc15RnNy5mHmzfSew==}
     engines: {node: '>=4.0.0'}
 
-  mquery@4.0.3:
-    resolution: {integrity: sha512-J5heI+P08I6VJ2Ky3+33IpCdAvlYGTSUjwTPxkAr8i8EoduPMBX2OY/wa3IKZIQl7MU4SbFk8ndgSKyB/cl1zA==}
+  mquery@4.0.4:
+    resolution: {integrity: sha512-L98XAumGC8qNT/YgxIvlvvMwxW1ZmbFA9RAlNCVF08iouv2ebWoV1Pyo9tQEMInHHxbW0BQ9GfxEjyDd4v/Uww==}
     engines: {node: '>=12.0.0'}
 
   mri@1.1.4:
@@ -14259,8 +14141,8 @@ packages:
     resolution: {integrity: sha512-lDcBsjBSMlj3LXH2v/FW3txlh2pYTjmbOXPYJD93HI5EwuLzI11tdHSIpUMmfq/IOsldj4Ps8M8flhm+pCK4Ew==}
     engines: {node: '>=12.22.0'}
 
-  next@15.5.28:
-    resolution: {integrity: sha512-JjhLBBY1PNnuwPtcZ7t8yxVeJVYvD2Jyp633J+gRCNbzSt7N0E+xqCf6uQiff3+3qmUkwcF/ksfSsK1xsZ76Tw==}
+  next@15.5.29:
+    resolution: {integrity: sha512-93AMszTCdi9Az7fD5VzcWy46SHCdQF45+i53K0LpDc4dDXCwB9P1SxP1wBYZKW6dF3HJnz41jyEni1vmgCluiw==}
     engines: {node: ^18.18.0 || ^19.8.0 || >= 20.0.0}
     hasBin: true
     peerDependencies:
@@ -14280,8 +14162,8 @@ packages:
       sass:
         optional: true
 
-  nf3@0.3.16:
-    resolution: {integrity: sha512-Gs0xRPpUm2nDkqbi40NJ9g7qDIcjcJzgExiydnq6LAyqhI2jfno8wG3NKTL+IiJsx799UHOb1CnSd4Wg4SG4Pw==}
+  nf3@0.3.24:
+    resolution: {integrity: sha512-HxLK4bo+5jNsEETZp4w3tJblHOA9MCBY14IN9nZJJV8JDxt9yNIYxuBuLMjTAR5GFa3HL61+8VQDUrXv3/C8fw==}
 
   ng-packagr@14.3.0:
     resolution: {integrity: sha512-GNIiB5BsYPYF31lV/u5bDCLYc4eiOmZ5ndvWRQ8JjdkBXaHaiZ2x0JLJrF1/hkjxUhakYmx2IHjVyC746cpN5w==}
@@ -14297,64 +14179,10 @@ packages:
     resolution: {integrity: sha512-px/KnJAJZf5RuBGcfD+Sp2pAKq0ytz8j+1NehvgIGFkvtvFrDM3T8E4x/JJODXK9WZow8RRGrbA9QQ3hs+pDhA==}
     os: ['!win32']
 
-  nitro@3.0.260311-beta:
-    resolution: {integrity: sha512-0o0fJ9LUh4WKUqJNX012jyieUOtMCnadkNDWr0mHzdraoHpJP/1CGNefjRyZyMXSpoJfwoWdNEZu2iGf35TUvQ==}
+  nitro@3.0.260903-beta:
+    resolution: {integrity: sha512-54gANPi62O8rfMvepiJUVuIzEIinYfpeHbebywlLxvVTgIYXDwSvpaU9Id+0sJOBjBx0wC1/CVYXJkH7SY+l0g==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
-    peerDependencies:
-      dotenv: '*'
-      giget: '*'
-      jiti: ^2.6.1
-      rollup: ^4.59.0
-      vite: ^7 || ^8 || >=8.0.0-0
-      xml2js: ^0.6.2
-      zephyr-agent: ^0.1.15
-    peerDependenciesMeta:
-      dotenv:
-        optional: true
-      giget:
-        optional: true
-      jiti:
-        optional: true
-      rollup:
-        optional: true
-      vite:
-        optional: true
-      xml2js:
-        optional: true
-      zephyr-agent:
-        optional: true
-
-  nitro@3.0.260415-beta:
-    resolution: {integrity: sha512-J0ntJERWtIdvweZdmkCiF8eOFvP9fIAJR2gpeIDrHbAlYavK41WQfADo/YoZ/LF7RMTZBiPaH/pt2s/nPru9Iw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    hasBin: true
-    peerDependencies:
-      '@vercel/queue': ^0.1.4
-      dotenv: '*'
-      giget: '*'
-      jiti: ^2.6.1
-      rollup: ^4.60.1
-      vite: ^7 || ^8
-      xml2js: ^0.6.2
-      zephyr-agent: ^0.2.0
-    peerDependenciesMeta:
-      '@vercel/queue':
-        optional: true
-      dotenv:
-        optional: true
-      giget:
-        optional: true
-      jiti:
-        optional: true
-      rollup:
-        optional: true
-      vite:
-        optional: true
-      xml2js:
-        optional: true
-      zephyr-agent:
-        optional: true
 
   nitropack@2.13.6:
     resolution: {integrity: sha512-RY2hH/sy7LfzaadY7Hs+naGNyDoZTGTpuhQjIt1r+TYPk1rr/TW5w3s+nZZnHanm86wv4FwTrYnvqKgk+BmBOA==}
@@ -14612,14 +14440,11 @@ packages:
     resolution: {integrity: sha512-5vvB5+W7ePv+p3uqxi+RcW1XAzLW0/hxt3/4X4Lc4qHudzOhmBiBwOY6DRob4WnanAEGvNcLjF+KNOufrUoEQw==}
     engines: {node: '>=12.20.0'}
 
-  ocache@0.1.4:
-    resolution: {integrity: sha512-e7geNdWjxSnvsSgvLuPvgKgu7ubM10ZmTPOgpr7mz2BXYtvjMKTiLhjFi/gWU8chkuP6hNkZBsa9LzOusyaqkQ==}
+  ocache@0.3.2:
+    resolution: {integrity: sha512-wu82jmgyoORtWMBZy6PvyJ8dBhtaOOhCwfRnSKBRbnSLht/RqNUs5WUzOxw5/IikJLMC9e+s1ReReZm4XbrNoQ==}
 
   ofetch@1.5.1:
     resolution: {integrity: sha512-2W4oUZlVaqAPAil6FUg/difl6YhqhUR7x2eZY4bQCko22UXg3hptq9KLQdqFClV+Wu85UX7hNtdGTngi/1BxcA==}
-
-  ofetch@2.0.0-alpha.3:
-    resolution: {integrity: sha512-zpYTCs2byOuft65vI3z43Dd6iSdFbOZZLb9/d21aCpx2rGastVU9dOCv0lu4ykc1Ur1anAYjDi3SUvR0vq50JA==}
 
   ohash@2.0.12:
     resolution: {integrity: sha512-65S/5gk9YSsaRjcyf7Nfa6h/d3E8/1gslpXfI4W7Dxn/oap8IKRuNT5VXkLQ1YFKIEg4apRY4Pj6aiwFzrDdmw==}
@@ -14976,8 +14801,8 @@ packages:
     resolution: {integrity: sha512-ak9Qy5Q7jYb2Wwcey5Fpvg2KoAc/ZIhLSLOSBmRmygPsGwkVVt0fZa0qrtMz+m6tJTAHfZQ8FnmB4MG4LWy7/w==}
     engines: {node: '>=8'}
 
-  path-expression-matcher@1.5.0:
-    resolution: {integrity: sha512-cbrerZV+6rvdQrrD+iGMcZFEiiSrbv9Tfdkvnusy6y0x0GKBXREFg/Y65GhIfm0tnLntThhzCnfKwp1WRjeCyQ==}
+  path-expression-matcher@1.6.2:
+    resolution: {integrity: sha512-enSlaiat05iasnzmgNxRj8reFdj3puY2QpNgP1aPIaVfT6nn9ICuPoFlKHk8EN22HcwewshO+mN2DGbkCEOtqQ==}
     engines: {node: '>=14.0.0'}
 
   path-is-absolute@1.0.1:
@@ -16088,6 +15913,10 @@ packages:
   rou3@0.9.2:
     resolution: {integrity: sha512-3SOzvaAg8rkHrXtRjpCvCvbyO5to9oOO27Z/XqHEYXfMRVSw/qMIVdmaOk9W2lcRLtR6dlqTjo9hDeJk70QBYQ==}
 
+  rou3@1.0.0:
+    resolution: {integrity: sha512-ySeaQkSrua+ut9g+65I7FHqOFBaY8tV0FmccXItoq0q21se32Q3u4YiW7/RqXSosWgYJaaKwRHXy3BST9PeCNQ==}
+    engines: {node: '>=20.19.0'}
+
   route-recognizer@0.3.4:
     resolution: {integrity: sha512-2+MhsfPhvauN1O8KaXpXAOfR/fwe8dnUXVM+xw7yt40lJRfPVQxV6yryZm0cgRvAj5fMF/mdRZbL2ptwbs5i2g==}
 
@@ -16283,8 +16112,8 @@ packages:
     resolution: {integrity: sha512-1gnZf7DFcoIcajTjTwjwuDjzuz4PPcY2StKPlsGAQ1+YH20IRVrBaXSWmdjowTJ6u8Rc01PoYOGHXfP1mYcZNQ==}
     engines: {node: '>= 18'}
 
-  sentry@0.49.0:
-    resolution: {integrity: sha512-9tjS0jTx5FQzhwAGhpcnwvqE0MlQiwJtunsIUNqGkw6E9CBOMbijlamIDUqvZTDtJAveVwa9L5ziP44bOJUzcQ==}
+  sentry@0.50.0:
+    resolution: {integrity: sha512-2BCdoK4xO3mN4c0QTXaMtJBJ9rjL5v1VawaV7Wd605hVWVrpZTipLbjGHEFavS8IliI0W68TGi8CuScbHALPjA==}
     engines: {node: '>=20.0'}
     hasBin: true
 
@@ -16300,6 +16129,12 @@ packages:
     engines: {node: '>=10'}
     peerDependencies:
       seroval: ^1.0
+
+  seroval-plugins@1.8.0:
+    resolution: {integrity: sha512-96vBb12rDvPPwdKUgWw1op3fGq8AVBFOr0IllbnM72yR5J9WWXF18cQ4g1XfDO7HCyh2dt70P3XdtyRayP8FWg==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      seroval: ^1.8.0
 
   seroval@1.6.12:
     resolution: {integrity: sha512-CqbIVfk/7GL3ITwZI55lcPbpQbjHZ2DD5cUj4iH7E9YsCfHNJV1mx7yNp86Z84w5IpmkZZS/2s5vPOWmVWSdQg==}
@@ -16362,10 +16197,6 @@ packages:
 
   sharp@0.33.5:
     resolution: {integrity: sha512-haPVm1EkS9pgvHrQ/F3Xy+hgcuMV0Wm9vfIBSiwZ05k+xgb0PkBQpGsAA/oWdDobNaZTH5ppvHtzCFbnSEwHVw==}
-    engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
-
-  sharp@0.34.5:
-    resolution: {integrity: sha512-Ou9I5Ft9WNcCbXrU9cMgPBcCK8LiwLqcbywW3t4oDV37n1pzpuNLsYiAV8eODnjbtQlSDwZ2cUEeQz4E54Hltg==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
 
   sharp@0.35.5:
@@ -16489,6 +16320,10 @@ packages:
 
   solid-js@1.9.18:
     resolution: {integrity: sha512-CHGO5YFk6Y9m/1YSxVtKnXfrW7JD3Tmof8HmR4z6TmCPsS8efo8LnzIR8CQh3cUvffqYm6DWyBFfk8dQw1CNQQ==}
+
+  solid-js@2.0.0:
+    resolution: {integrity: sha512-9zN4uH2OQeQAYbF4BmIzoaa+L5Hb8Dp6kkP6ZXobHQ1FZVICdmzREPDVDBJY7umzdAE8D6zbFfWhxGtagkyslA==}
+    engines: {node: '>=22.12.0'}
 
   solid-refresh@0.6.3:
     resolution: {integrity: sha512-F3aPsX6hVw9ttm5LYlth8Q15x6MlI/J3Dn+o3EQyRTtTxidepSTwAYdozt01/YA+7ObcciagGEyXIopGZzQtbA==}
@@ -16775,8 +16610,8 @@ packages:
   strnum@1.1.2:
     resolution: {integrity: sha512-vrN+B7DBIoTTZjnPNewwhx6cBA/H+IS7rfW68n7XxC1y7uoiGQBxaKzqucGUgavX15dJgiGztLJ8vxuEzwqBdA==}
 
-  strnum@2.2.3:
-    resolution: {integrity: sha512-oKx6RUCuHfT3oyVjtnrmn19H1SiCqgJSg+54XqURKp5aCMbrXrhLjRN9TjuwMjiYstZ0MzDrHqkGZ5dFTKd+zg==}
+  strnum@2.5.1:
+    resolution: {integrity: sha512-UM4nTLWzQiDBseVxUGxN0wJzIk0UU89Qi7pKXz9qISo+lhviJikTuikBsK/oFRlpvYHvSdz0TVoLyQ+sEpYwxA==}
 
   strtok3@10.3.4:
     resolution: {integrity: sha512-KIy5nylvC5le1OdaaoCJ07L+8iQzJHGH6pWDuzS+d07Cu7n1MZ2x26P8ZKIWfbK02+XIL8Mp4RkWeqdUCrDMfg==}
@@ -17360,10 +17195,6 @@ packages:
     resolution: {integrity: sha512-EvRlUt/QqAEvXdQeRMYUfwOQsfzpDztykrG2owGEE/rBOBoYv9uF39ZzsNDh4lTFHhTr2XOZjKkYgueD12ZmGA==}
     engines: {node: '>=18.17'}
 
-  undici@7.24.8:
-    resolution: {integrity: sha512-6KQ/+QxK49Z/p3HO6E5ZCZWNnCasyZLa5ExaVYyvPxUwKtbCPMKELJOqh7EqOle0t9cH/7d2TaaTRRa6Nhs4YQ==}
-    engines: {node: '>=20.18.1'}
-
   undici@7.30.1:
     resolution: {integrity: sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg==}
     engines: {node: '>=20.18.1'}
@@ -17686,6 +17517,9 @@ packages:
         optional: true
       uploadthing:
         optional: true
+
+  unstorage@2.0.0-beta.0:
+    resolution: {integrity: sha512-VeTY+zQ3ozrNtIFBRQRuSwanHdpuRH+4t/ZzchZIVQO8/oKq2xl7fJ9c+z76tWJDW/BEXSEuzpHOxqoAl6B64A==}
 
   untun@0.1.3:
     resolution: {integrity: sha512-4luGP9LMYszMRZwsvyUd9MrxgEGZdZuZgpVQHEEX0lCYFESasVRvZd0EYpCkOIbJKHMuv0LskpXc/8Un+MJzEQ==}
@@ -18425,11 +18259,6 @@ packages:
   wordwrap@1.0.0:
     resolution: {integrity: sha512-gvVzJFlPycKc5dZN4yPkP8w7Dc37BtP1yczEneOb4uq34pXZcvrtRTmWV8W+Ume+XCxKgbjM+nevkyFPMybd4Q==}
 
-  workerd@1.20260426.1:
-    resolution: {integrity: sha512-ELvGgN8c9oo+E6EPyecxk1TEf6/eAK4TxxQTW5mQ87C7jbjCzhMbg0P2ije49UBHV0dkBYPJcJvcklUltipl2A==}
-    engines: {node: '>=16'}
-    hasBin: true
-
   workerd@1.20261023.1:
     resolution: {integrity: sha512-NeofJFyaYNpqKpFRJW3ApuonaerPd6/JWlfTtLDYf2A6ygqrDEFnYgEXmc0hhOxqnJsSM+kXJN6VebPojzRrsg==}
     engines: {node: '>=16'}
@@ -18470,8 +18299,8 @@ packages:
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
 
-  ws@8.18.0:
-    resolution: {integrity: sha512-8VbfWfHLbbwu3+N6OKsOMpBdT4kXPDDB9cJk2bJ6mh9ucxdlnNvH1e+roYkKmN9Nxw2yjz7VzeO9oOz2zJ04Pw==}
+  ws@8.21.0:
+    resolution: {integrity: sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -18482,8 +18311,8 @@ packages:
       utf-8-validate:
         optional: true
 
-  ws@8.21.0:
-    resolution: {integrity: sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==}
+  ws@8.22.0:
+    resolution: {integrity: sha512-Ydggc987+RO0AnWtZ/7Wq9FtNvcrL1b/RO0ud9mWjUPgDrsAAwQSF51sm2hm1XofbU/4jkpGEsLFsZZxU+1DOg==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -18518,8 +18347,8 @@ packages:
     resolution: {integrity: sha512-EvGK8EJ3DhaHfbRlETOWAS5pO9MZITeauHKJyb8wyajUfQUenkIg2MvLDTZ4T/TgIcm3HU0TFBgWWboAZ30UHg==}
     engines: {node: '>=18'}
 
-  xml-naming@0.1.0:
-    resolution: {integrity: sha512-k8KO9hrMyNk6tUWqUfkTEZbezRRpONVOzUTnc97VnCvyj6Tf9lyUR9EDAIeiVLv56jsMcoXEwjW8Kv5yPY52lw==}
+  xml-naming@0.3.0:
+    resolution: {integrity: sha512-ghig2TBE/H11aOVgmahA3MhimvkBr6JIYknH/Dhdk10nXwdbIqBJsbfMxpvFPG8bAw77gN29aQWvKpmVoPlvPQ==}
     engines: {node: '>=16.0.0'}
 
   xmlchars@2.2.0:
@@ -19898,7 +19727,7 @@ snapshots:
 
   '@azure/core-xml@1.5.0':
     dependencies:
-      fast-xml-parser: 5.7.3
+      fast-xml-parser: 5.12.1
       tslib: 2.8.1
 
   '@azure/identity@4.4.1(supports-color@10.0.0)':
@@ -22199,15 +22028,13 @@ snapshots:
       fast-wrap-ansi: 0.2.2
       sisteransi: 1.0.5
 
+  '@clickhouse/client-web@1.25.0': {}
+
+  '@clickhouse/client@1.25.0': {}
+
   '@cloudflare/kv-asset-handler@0.4.2': {}
 
   '@cloudflare/kv-asset-handler@0.5.0': {}
-
-  '@cloudflare/unenv-preset@2.16.1(unenv@2.0.0-rc.24)(workerd@1.20260426.1)':
-    dependencies:
-      unenv: 2.0.0-rc.24
-    optionalDependencies:
-      workerd: 1.20260426.1
 
   '@cloudflare/unenv-preset@2.16.2(unenv@2.0.0-rc.24)(workerd@1.20261023.1)':
     dependencies:
@@ -22215,44 +22042,30 @@ snapshots:
     optionalDependencies:
       workerd: 1.20261023.1
 
-  '@cloudflare/vite-plugin@1.34.0(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))(workerd@1.20260426.1)(wrangler@4.156.0(@cloudflare/workers-types@4.20260519.1)(@types/node@20.19.43))':
+  '@cloudflare/vite-plugin@1.66.0(@types/node@20.19.43)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))(workerd@1.20261023.1)(wrangler@4.156.0(@cloudflare/workers-types@4.20260519.1)(@types/node@20.19.43))':
     dependencies:
-      '@cloudflare/unenv-preset': 2.16.1(unenv@2.0.0-rc.24)(workerd@1.20260426.1)
-      miniflare: 4.20260426.0
+      '@cloudflare/unenv-preset': 2.16.2(unenv@2.0.0-rc.24)(workerd@1.20261023.1)
+      miniflare: 5.20261023.1-beta(@types/node@20.19.43)
       unenv: 2.0.0-rc.24
       vite: 8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
       wrangler: 4.156.0(@cloudflare/workers-types@4.20260519.1)(@types/node@20.19.43)
-      ws: 8.18.0
+      ws: 8.22.0
     transitivePeerDependencies:
+      - '@types/node'
       - bufferutil
       - utf-8-validate
       - workerd
 
-  '@cloudflare/workerd-darwin-64@1.20260426.1':
-    optional: true
-
   '@cloudflare/workerd-darwin-64@1.20261023.1':
-    optional: true
-
-  '@cloudflare/workerd-darwin-arm64@1.20260426.1':
     optional: true
 
   '@cloudflare/workerd-darwin-arm64@1.20261023.1':
     optional: true
 
-  '@cloudflare/workerd-linux-64@1.20260426.1':
-    optional: true
-
   '@cloudflare/workerd-linux-64@1.20261023.1':
     optional: true
 
-  '@cloudflare/workerd-linux-arm64@1.20260426.1':
-    optional: true
-
   '@cloudflare/workerd-linux-arm64@1.20261023.1':
-    optional: true
-
-  '@cloudflare/workerd-windows-64@1.20260426.1':
     optional: true
 
   '@cloudflare/workerd-windows-64@1.20261023.1':
@@ -22500,9 +22313,9 @@ snapshots:
       '@earendil-works/pi-telemetry': 1.4.0
       typebox: 1.3.27
 
-  '@earendil-works/pi-agent-core@1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7)':
+  '@earendil-works/pi-agent-core@1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@8.12.4)(ws@8.22.2)(zod@4.6.7)':
     dependencies:
-      '@earendil-works/pi-ai': 1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7)
+      '@earendil-works/pi-ai': 1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@8.12.4)(ws@8.22.2)(zod@4.6.7)
       typebox: 1.3.27
     transitivePeerDependencies:
       - '@aws-sdk/credential-provider-node'
@@ -22517,7 +22330,7 @@ snapshots:
       - ws
       - zod
 
-  '@earendil-works/pi-ai@1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7)':
+  '@earendil-works/pi-ai@1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@8.12.4)(ws@8.22.2)(zod@4.6.7)':
     dependencies:
       '@anthropic-ai/sdk': 0.129.0(zod@4.6.7)
       '@aws-sdk/client-bedrock-runtime': 3.1127.0
@@ -22526,7 +22339,7 @@ snapshots:
       '@smithy/node-http-handler': 4.12.1
       http-proxy-agent: 9.1.0(supports-color@10.0.0)
       https-proxy-agent: 9.1.0(supports-color@10.0.0)
-      openai: 7.19.0(@aws-sdk/credential-provider-node@3.972.92)(@smithy/signature-v4@5.7.5)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7)
+      openai: 7.19.0(@aws-sdk/credential-provider-node@3.972.92)(@smithy/signature-v4@5.7.5)(undici@8.12.4)(ws@8.22.2)(zod@4.6.7)
       partial-json: 0.1.7
       typebox: 1.3.27
     transitivePeerDependencies:
@@ -22546,10 +22359,10 @@ snapshots:
     dependencies:
       quickjs-wasi: 3.6.2
 
-  '@earendil-works/pi-durable@1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7)':
+  '@earendil-works/pi-durable@1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@8.12.4)(ws@8.22.2)(zod@4.6.7)':
     dependencies:
       '@earendil-works/chord': 1.4.0
-      '@earendil-works/pi-ai': 1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7)
+      '@earendil-works/pi-ai': 1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@8.12.4)(ws@8.22.2)(zod@4.6.7)
       '@earendil-works/pi-codemode': 1.4.0
       '@earendil-works/pi-telemetry': 1.4.0
       '@silvia-odwyer/photon': 0.3.3
@@ -22576,9 +22389,9 @@ snapshots:
     dependencies:
       '@edge-runtime/primitives': 6.0.0
 
-  '@effect/vitest@4.0.0(effect@4.0.0)(vitest@4.1.12)':
+  '@effect/vitest@4.0.0(effect@4.1.4)(vitest@4.1.12)':
     dependencies:
-      effect: 4.0.0
+      effect: 4.1.4
       vitest: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
 
   '@ember-data/rfc395-data@0.0.4': {}
@@ -23092,7 +22905,7 @@ snapshots:
 
   '@eslint/eslintrc@2.1.4(supports-color@10.0.0)':
     dependencies:
-      ajv: 6.12.6
+      ajv: 6.15.0
       debug: 4.4.3(supports-color@10.0.0)
       espree: 9.6.1
       globals: 13.24.0
@@ -23129,10 +22942,10 @@ snapshots:
       '@fastify/forwarded': 3.0.1
       ipaddr.js: 2.4.0
 
-  '@flue/runtime@2.3.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(typescript@7.0.2)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7)':
+  '@flue/runtime@2.3.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(typescript@7.0.2)(undici@8.12.4)(ws@8.22.2)(zod@4.6.7)':
     dependencies:
-      '@earendil-works/pi-agent-core': 1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7)
-      '@earendil-works/pi-ai': 1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7)
+      '@earendil-works/pi-agent-core': 1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@8.12.4)(ws@8.22.2)(zod@4.6.7)
+      '@earendil-works/pi-ai': 1.4.0(@aws-sdk/credential-provider-node@3.972.92)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.0.0)(undici@8.12.4)(ws@8.22.2)(zod@4.6.7)
       '@hono/node-server': 2.1.7(hono@4.13.16)
       '@modelcontextprotocol/client': 2.0.0
       '@valibot/to-json-schema': 1.8.0(valibot@1.5.0(typescript@7.0.2))
@@ -23489,11 +23302,6 @@ snapshots:
       '@img/sharp-libvips-darwin-arm64': 1.0.4
     optional: true
 
-  '@img/sharp-darwin-arm64@0.34.5':
-    optionalDependencies:
-      '@img/sharp-libvips-darwin-arm64': 1.2.4
-    optional: true
-
   '@img/sharp-darwin-arm64@0.35.5':
     optionalDependencies:
       '@img/sharp-libvips-darwin-arm64': 1.3.4
@@ -23502,11 +23310,6 @@ snapshots:
   '@img/sharp-darwin-x64@0.33.5':
     optionalDependencies:
       '@img/sharp-libvips-darwin-x64': 1.0.4
-    optional: true
-
-  '@img/sharp-darwin-x64@0.34.5':
-    optionalDependencies:
-      '@img/sharp-libvips-darwin-x64': 1.2.4
     optional: true
 
   '@img/sharp-darwin-x64@0.35.5':
@@ -23522,16 +23325,10 @@ snapshots:
   '@img/sharp-libvips-darwin-arm64@1.0.4':
     optional: true
 
-  '@img/sharp-libvips-darwin-arm64@1.2.4':
-    optional: true
-
   '@img/sharp-libvips-darwin-arm64@1.3.4':
     optional: true
 
   '@img/sharp-libvips-darwin-x64@1.0.4':
-    optional: true
-
-  '@img/sharp-libvips-darwin-x64@1.2.4':
     optional: true
 
   '@img/sharp-libvips-darwin-x64@1.3.4':
@@ -23540,28 +23337,16 @@ snapshots:
   '@img/sharp-libvips-linux-arm64@1.0.4':
     optional: true
 
-  '@img/sharp-libvips-linux-arm64@1.2.4':
-    optional: true
-
   '@img/sharp-libvips-linux-arm64@1.3.4':
     optional: true
 
   '@img/sharp-libvips-linux-arm@1.0.5':
     optional: true
 
-  '@img/sharp-libvips-linux-arm@1.2.4':
-    optional: true
-
   '@img/sharp-libvips-linux-arm@1.3.4':
     optional: true
 
-  '@img/sharp-libvips-linux-ppc64@1.2.4':
-    optional: true
-
   '@img/sharp-libvips-linux-ppc64@1.3.4':
-    optional: true
-
-  '@img/sharp-libvips-linux-riscv64@1.2.4':
     optional: true
 
   '@img/sharp-libvips-linux-riscv64@1.3.4':
@@ -23570,16 +23355,10 @@ snapshots:
   '@img/sharp-libvips-linux-s390x@1.0.4':
     optional: true
 
-  '@img/sharp-libvips-linux-s390x@1.2.4':
-    optional: true
-
   '@img/sharp-libvips-linux-s390x@1.3.4':
     optional: true
 
   '@img/sharp-libvips-linux-x64@1.0.4':
-    optional: true
-
-  '@img/sharp-libvips-linux-x64@1.2.4':
     optional: true
 
   '@img/sharp-libvips-linux-x64@1.3.4':
@@ -23588,16 +23367,10 @@ snapshots:
   '@img/sharp-libvips-linuxmusl-arm64@1.0.4':
     optional: true
 
-  '@img/sharp-libvips-linuxmusl-arm64@1.2.4':
-    optional: true
-
   '@img/sharp-libvips-linuxmusl-arm64@1.3.4':
     optional: true
 
   '@img/sharp-libvips-linuxmusl-x64@1.0.4':
-    optional: true
-
-  '@img/sharp-libvips-linuxmusl-x64@1.2.4':
     optional: true
 
   '@img/sharp-libvips-linuxmusl-x64@1.3.4':
@@ -23606,11 +23379,6 @@ snapshots:
   '@img/sharp-linux-arm64@0.33.5':
     optionalDependencies:
       '@img/sharp-libvips-linux-arm64': 1.0.4
-    optional: true
-
-  '@img/sharp-linux-arm64@0.34.5':
-    optionalDependencies:
-      '@img/sharp-libvips-linux-arm64': 1.2.4
     optional: true
 
   '@img/sharp-linux-arm64@0.35.5':
@@ -23623,29 +23391,14 @@ snapshots:
       '@img/sharp-libvips-linux-arm': 1.0.5
     optional: true
 
-  '@img/sharp-linux-arm@0.34.5':
-    optionalDependencies:
-      '@img/sharp-libvips-linux-arm': 1.2.4
-    optional: true
-
   '@img/sharp-linux-arm@0.35.5':
     optionalDependencies:
       '@img/sharp-libvips-linux-arm': 1.3.4
     optional: true
 
-  '@img/sharp-linux-ppc64@0.34.5':
-    optionalDependencies:
-      '@img/sharp-libvips-linux-ppc64': 1.2.4
-    optional: true
-
   '@img/sharp-linux-ppc64@0.35.5':
     optionalDependencies:
       '@img/sharp-libvips-linux-ppc64': 1.3.4
-    optional: true
-
-  '@img/sharp-linux-riscv64@0.34.5':
-    optionalDependencies:
-      '@img/sharp-libvips-linux-riscv64': 1.2.4
     optional: true
 
   '@img/sharp-linux-riscv64@0.35.5':
@@ -23658,11 +23411,6 @@ snapshots:
       '@img/sharp-libvips-linux-s390x': 1.0.4
     optional: true
 
-  '@img/sharp-linux-s390x@0.34.5':
-    optionalDependencies:
-      '@img/sharp-libvips-linux-s390x': 1.2.4
-    optional: true
-
   '@img/sharp-linux-s390x@0.35.5':
     optionalDependencies:
       '@img/sharp-libvips-linux-s390x': 1.3.4
@@ -23671,11 +23419,6 @@ snapshots:
   '@img/sharp-linux-x64@0.33.5':
     optionalDependencies:
       '@img/sharp-libvips-linux-x64': 1.0.4
-    optional: true
-
-  '@img/sharp-linux-x64@0.34.5':
-    optionalDependencies:
-      '@img/sharp-libvips-linux-x64': 1.2.4
     optional: true
 
   '@img/sharp-linux-x64@0.35.5':
@@ -23688,11 +23431,6 @@ snapshots:
       '@img/sharp-libvips-linuxmusl-arm64': 1.0.4
     optional: true
 
-  '@img/sharp-linuxmusl-arm64@0.34.5':
-    optionalDependencies:
-      '@img/sharp-libvips-linuxmusl-arm64': 1.2.4
-    optional: true
-
   '@img/sharp-linuxmusl-arm64@0.35.5':
     optionalDependencies:
       '@img/sharp-libvips-linuxmusl-arm64': 1.3.4
@@ -23703,22 +23441,12 @@ snapshots:
       '@img/sharp-libvips-linuxmusl-x64': 1.0.4
     optional: true
 
-  '@img/sharp-linuxmusl-x64@0.34.5':
-    optionalDependencies:
-      '@img/sharp-libvips-linuxmusl-x64': 1.2.4
-    optional: true
-
   '@img/sharp-linuxmusl-x64@0.35.5':
     optionalDependencies:
       '@img/sharp-libvips-linuxmusl-x64': 1.3.4
     optional: true
 
   '@img/sharp-wasm32@0.33.5':
-    dependencies:
-      '@emnapi/runtime': 1.11.3
-    optional: true
-
-  '@img/sharp-wasm32@0.34.5':
     dependencies:
       '@emnapi/runtime': 1.11.3
     optional: true
@@ -23733,25 +23461,16 @@ snapshots:
       '@img/sharp-wasm32': 0.35.5
     optional: true
 
-  '@img/sharp-win32-arm64@0.34.5':
-    optional: true
-
   '@img/sharp-win32-arm64@0.35.5':
     optional: true
 
   '@img/sharp-win32-ia32@0.33.5':
     optional: true
 
-  '@img/sharp-win32-ia32@0.34.5':
-    optional: true
-
   '@img/sharp-win32-ia32@0.35.5':
     optional: true
 
   '@img/sharp-win32-x64@0.33.5':
-    optional: true
-
-  '@img/sharp-win32-x64@0.34.5':
     optional: true
 
   '@img/sharp-win32-x64@0.35.5':
@@ -23855,7 +23574,7 @@ snapshots:
     dependencies:
       '@anthropic-ai/sdk': 0.65.0(zod@4.6.7)
       '@langchain/core': 0.3.80(@opentelemetry/api@1.9.0)(openai@5.18.1(ws@8.22.2)(zod@4.6.7))
-      fast-xml-parser: 4.5.6
+      fast-xml-parser: 4.5.7
     transitivePeerDependencies:
       - zod
 
@@ -23960,11 +23679,11 @@ snapshots:
     transitivePeerDependencies:
       - ws
 
-  '@langchain/openai@1.6.2(@aws-sdk/credential-provider-node@3.972.92)(@langchain/core@1.2.17(@opentelemetry/api@1.10.0)(openai@5.18.1(ws@8.22.2)(zod@4.6.7))(ws@8.22.2))(@smithy/signature-v4@5.7.5)(undici@7.24.8)(ws@8.22.2)':
+  '@langchain/openai@1.6.2(@aws-sdk/credential-provider-node@3.972.92)(@langchain/core@1.2.17(@opentelemetry/api@1.10.0)(openai@5.18.1(ws@8.22.2)(zod@4.6.7))(ws@8.22.2))(@smithy/signature-v4@5.7.5)(undici@8.12.4)(ws@8.22.2)':
     dependencies:
       '@langchain/core': 1.2.17(@opentelemetry/api@1.10.0)(openai@5.18.1(ws@8.22.2)(zod@4.6.7))(ws@8.22.2)
       js-tiktoken: 1.0.21
-      openai: 7.31.0(@aws-sdk/credential-provider-node@3.972.92)(@smithy/signature-v4@5.7.5)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7)
+      openai: 7.31.0(@aws-sdk/credential-provider-node@3.972.92)(@smithy/signature-v4@5.7.5)(undici@8.12.4)(ws@8.22.2)(zod@4.6.7)
       zod: 4.6.7
     transitivePeerDependencies:
       - '@aws-sdk/credential-provider-node'
@@ -24159,30 +23878,30 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@next/env@15.5.28': {}
+  '@next/env@15.5.29': {}
 
-  '@next/swc-darwin-arm64@15.5.28':
+  '@next/swc-darwin-arm64@15.5.29':
     optional: true
 
-  '@next/swc-darwin-x64@15.5.28':
+  '@next/swc-darwin-x64@15.5.29':
     optional: true
 
-  '@next/swc-linux-arm64-gnu@15.5.28':
+  '@next/swc-linux-arm64-gnu@15.5.29':
     optional: true
 
-  '@next/swc-linux-arm64-musl@15.5.28':
+  '@next/swc-linux-arm64-musl@15.5.29':
     optional: true
 
-  '@next/swc-linux-x64-gnu@15.5.28':
+  '@next/swc-linux-x64-gnu@15.5.29':
     optional: true
 
-  '@next/swc-linux-x64-musl@15.5.28':
+  '@next/swc-linux-x64-musl@15.5.29':
     optional: true
 
-  '@next/swc-win32-arm64-msvc@15.5.28':
+  '@next/swc-win32-arm64-msvc@15.5.29':
     optional: true
 
-  '@next/swc-win32-x64-msvc@15.5.28':
+  '@next/swc-win32-x64-msvc@15.5.29':
     optional: true
 
   '@ngtools/webpack@14.2.13(@angular/compiler-cli@14.3.0(@angular/compiler@14.3.0(@angular/core@14.3.0(rxjs@7.8.2)(zone.js@0.12.0)))(supports-color@10.0.0)(typescript@4.6.4))(typescript@4.6.4)(webpack@5.76.1(clean-css@5.2.2)(cssnano@9.9.0(postcss@8.5.32))(csso@5.0.5)(esbuild@0.15.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.4.31)(uglify-js@3.13.3))':
@@ -24197,7 +23916,7 @@ snapshots:
 
   '@noble/hashes@2.4.0': {}
 
-  '@nodable/entities@2.1.0': {}
+  '@nodable/entities@3.1.0': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
@@ -25737,7 +25456,7 @@ snapshots:
     transitivePeerDependencies:
       - chokidar
 
-  '@sentry/conventions@0.33.0': {}
+  '@sentry/conventions@0.36.0': {}
 
   '@sentry/node-cpu-profiler@2.4.4':
     dependencies:
@@ -26242,6 +25961,13 @@ snapshots:
     dependencies:
       solid-js: 1.9.18
 
+  '@solidjs/router@2.0.0(@solidjs/web@2.0.0(solid-js@1.9.18))(solid-js@1.9.18)':
+    dependencies:
+      '@solidjs/web': 2.0.0(solid-js@1.9.18)
+      solid-js: 1.9.18
+
+  '@solidjs/signals@2.0.0': {}
+
   '@solidjs/start@1.3.2(cc17e735cce815c73792ed1133b8d5a1)':
     dependencies:
       '@tanstack/server-functions-plugin': 1.121.21(supports-color@10.0.0)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))
@@ -26253,7 +25979,7 @@ snapshots:
       html-to-image: 1.11.11
       radix3: 1.1.2
       seroval: 1.8.1
-      seroval-plugins: 1.6.12(seroval@1.8.1)
+      seroval-plugins: 1.8.0(seroval@1.8.1)
       shiki: 1.29.2
       source-map-js: 1.2.2
       terracotta: 1.0.5(solid-js@1.9.18)
@@ -26270,6 +25996,13 @@ snapshots:
     dependencies:
       '@solidjs/router': 1.0.0(solid-js@1.9.18)
       '@testing-library/dom': 9.3.4
+      solid-js: 1.9.18
+
+  '@solidjs/web@2.0.0(solid-js@1.9.18)':
+    dependencies:
+      csstype: 3.2.3
+      seroval: 1.8.1
+      seroval-plugins: 1.8.0(seroval@1.8.1)
       solid-js: 1.9.18
 
   '@speed-highlight/core@1.2.15': {}
@@ -26314,7 +26047,7 @@ snapshots:
     dependencies:
       acorn: 8.18.0
 
-  '@sveltejs/kit@2.70.2(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@3.1.2(supports-color@10.0.0)(svelte@4.2.8)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)))(svelte@4.2.8)(typescript@6.0.3)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))':
+  '@sveltejs/kit@2.70.4(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@3.1.2(supports-color@10.0.0)(svelte@4.2.8)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)))(svelte@4.2.8)(typescript@6.0.3)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))':
     dependencies:
       '@standard-schema/spec': 1.1.0
       '@sveltejs/acorn-typescript': 1.0.13(acorn@8.18.0)
@@ -26398,7 +26131,7 @@ snapshots:
       '@tanstack/store': 0.8.0
       cookie-es: 2.0.1
       seroval: 1.8.1
-      seroval-plugins: 1.6.12(seroval@1.8.1)
+      seroval-plugins: 1.8.0(seroval@1.8.1)
       tiny-invariant: 1.3.3
       tiny-warning: 1.0.3
 
@@ -26407,7 +26140,7 @@ snapshots:
       '@tanstack/history': 1.161.6
       cookie-es: 3.1.1
       seroval: 1.8.1
-      seroval-plugins: 1.6.12(seroval@1.8.1)
+      seroval-plugins: 1.8.0(seroval@1.8.1)
 
   '@tanstack/router-utils@1.154.7(supports-color@10.0.0)':
     dependencies:
@@ -27775,16 +27508,16 @@ snapshots:
     dependencies:
       ajv: 8.20.0
 
-  ajv-keywords@3.5.2(ajv@6.12.6):
+  ajv-keywords@3.5.2(ajv@6.15.0):
     dependencies:
-      ajv: 6.12.6
+      ajv: 6.15.0
 
   ajv-keywords@5.1.0(ajv@8.20.0):
     dependencies:
       ajv: 8.20.0
       fast-deep-equal: 3.1.3
 
-  ajv@6.12.6:
+  ajv@6.15.0:
     dependencies:
       fast-deep-equal: 3.1.3
       fast-json-stable-stringify: 2.1.0
@@ -27851,6 +27584,8 @@ snapshots:
     dependencies:
       normalize-path: 3.0.0
       picomatch: 2.3.2
+
+  anynum@1.0.1: {}
 
   aproba@2.0.0: {}
 
@@ -29305,9 +29040,13 @@ snapshots:
     dependencies:
       uncrypto: 0.1.3
 
-  crossws@0.4.10(srvx@0.11.22):
+  crossws@0.4.17(srvx@0.11.22):
     optionalDependencies:
       srvx: 0.11.22
+
+  crossws@0.4.17(srvx@1.0.8):
+    optionalDependencies:
+      srvx: 1.0.8
 
   css-blank-pseudo@3.0.3(postcss@8.4.31):
     dependencies:
@@ -29464,6 +29203,8 @@ snapshots:
   db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)):
     optionalDependencies:
       mysql2: 3.23.3(@types/node@20.19.43)
+
+  db0@0.4.2: {}
 
   debug@2.6.9(supports-color@10.0.0):
     dependencies:
@@ -29756,7 +29497,7 @@ snapshots:
       '@standard-schema/spec': 1.1.0
       fast-check: 3.23.2
 
-  effect@4.0.0: {}
+  effect@4.1.4: {}
 
   ejs@5.0.1: {}
 
@@ -29960,14 +29701,12 @@ snapshots:
 
   env-paths@2.2.1: {}
 
-  env-runner@0.1.7(miniflare@4.20260426.0):
+  env-runner@0.2.3:
     dependencies:
-      crossws: 0.4.10(srvx@0.11.22)
+      crossws: 0.4.17(srvx@1.0.8)
       exsolve: 1.2.0
       httpxy: 0.5.6
-      srvx: 0.11.22
-    optionalDependencies:
-      miniflare: 4.20260426.0
+      srvx: 1.0.8
 
   err-code@2.0.3: {}
 
@@ -30507,7 +30246,7 @@ snapshots:
       '@humanwhocodes/module-importer': 1.0.1
       '@nodelib/fs.walk': 1.2.8
       '@ungap/structured-clone': 1.3.0
-      ajv: 6.12.6
+      ajv: 6.15.0
       chalk: 4.1.2
       cross-spawn: 7.0.6
       debug: 4.4.3(supports-color@10.0.0)
@@ -30807,21 +30546,23 @@ snapshots:
     dependencies:
       fast-string-width: 3.0.2
 
-  fast-xml-builder@1.2.0:
+  fast-xml-builder@1.3.2:
     dependencies:
-      path-expression-matcher: 1.5.0
-      xml-naming: 0.1.0
+      path-expression-matcher: 1.6.2
+      xml-naming: 0.3.0
 
-  fast-xml-parser@4.5.6:
+  fast-xml-parser@4.5.7:
     dependencies:
       strnum: 1.1.2
 
-  fast-xml-parser@5.7.3:
+  fast-xml-parser@5.12.1:
     dependencies:
-      '@nodable/entities': 2.1.0
-      fast-xml-builder: 1.2.0
-      path-expression-matcher: 1.5.0
-      strnum: 2.2.3
+      '@nodable/entities': 3.1.0
+      fast-xml-builder: 1.3.2
+      is-unsafe: 2.0.3
+      path-expression-matcher: 1.6.2
+      strnum: 2.5.1
+      xml-naming: 0.3.0
 
   fastify@5.12.7:
     dependencies:
@@ -31413,12 +31154,20 @@ snapshots:
       ufo: 1.6.4
       uncrypto: 0.1.3
 
-  h3@2.0.1-rc.22(crossws@0.4.10(srvx@0.11.22)):
+  h3@2.0.1-rc.22(crossws@0.4.17(srvx@0.11.22)):
     dependencies:
       rou3: 0.8.1
       srvx: 0.11.22
     optionalDependencies:
-      crossws: 0.4.10(srvx@0.11.22)
+      crossws: 0.4.17(srvx@0.11.22)
+
+  h3@2.0.8(crossws@0.4.17(srvx@0.11.22))(ocache@0.3.2):
+    dependencies:
+      rou3: 1.0.0
+      srvx: 1.0.8
+    optionalDependencies:
+      crossws: 0.4.17(srvx@0.11.22)
+      ocache: 0.3.2
 
   handle-thing@2.0.1: {}
 
@@ -32183,6 +31932,8 @@ snapshots:
 
   is-unicode-supported@2.1.0: {}
 
+  is-unsafe@2.0.3: {}
+
   is-weakmap@2.0.2: {}
 
   is-weakref@1.1.1:
@@ -32774,7 +32525,7 @@ snapshots:
       '@parcel/watcher-wasm': 2.5.6
       citty: 0.2.2
       consola: 3.4.2
-      crossws: 0.4.10(srvx@0.11.22)
+      crossws: 0.4.17(srvx@0.11.22)
       defu: 6.1.7
       get-port-please: 3.2.0
       h3: 1.15.11
@@ -33426,15 +33177,16 @@ snapshots:
       schema-utils: 4.8.1(webpack@5.76.1(clean-css@5.2.2)(cssnano@9.9.0(postcss@8.5.32))(csso@5.0.5)(esbuild@0.15.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.4.31)(uglify-js@3.13.3))
       webpack: 5.76.1(clean-css@5.2.2)(cssnano@9.9.0(postcss@8.5.32))(csso@5.0.5)(esbuild@0.15.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.4.31)(uglify-js@3.13.3)
 
-  miniflare@4.20260426.0:
+  miniflare@5.20261023.1-beta(@types/node@20.19.43):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
-      sharp: 0.34.5
-      undici: 7.24.8
-      workerd: 1.20260426.1
-      ws: 8.18.0
+      sharp: 0.35.5(@types/node@20.19.43)
+      undici: 7.30.1
+      workerd: 1.20261023.1
+      ws: 8.21.0
       youch: 4.1.0-beta.10
     transitivePeerDependencies:
+      - '@types/node'
       - bufferutil
       - utf-8-validate
 
@@ -33672,13 +33424,13 @@ snapshots:
       '@aws-sdk/credential-providers': 3.983.0
       socks: 2.8.7
 
-  mongoose@6.13.10(supports-color@10.0.0):
+  mongoose@6.13.13(supports-color@10.0.0):
     dependencies:
       bson: 4.7.2
       kareem: 2.5.1
       mongodb: 4.17.2
       mpath: 0.9.0
-      mquery: 4.0.3(supports-color@10.0.0)
+      mquery: 4.0.4(supports-color@10.0.0)
       ms: 2.1.3
       sift: 16.0.1
     transitivePeerDependencies:
@@ -33687,7 +33439,7 @@ snapshots:
 
   mpath@0.9.0: {}
 
-  mquery@4.0.3(supports-color@10.0.0):
+  mquery@4.0.4(supports-color@10.0.0):
     dependencies:
       debug: 4.4.3(supports-color@10.0.0)
     transitivePeerDependencies:
@@ -33812,9 +33564,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  next@15.5.28(@babel/core@7.29.7(supports-color@10.0.0))(@opentelemetry/api@1.10.0)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.72.0):
+  next@15.5.29(@babel/core@7.29.7(supports-color@10.0.0))(@opentelemetry/api@1.10.0)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.72.0):
     dependencies:
-      '@next/env': 15.5.28
+      '@next/env': 15.5.29
       '@swc/helpers': 0.5.15
       caniuse-lite: 1.0.30001826
       postcss: 8.4.31
@@ -33822,14 +33574,14 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       styled-jsx: 5.1.6(@babel/core@7.29.7(supports-color@10.0.0))(react@18.3.1)
     optionalDependencies:
-      '@next/swc-darwin-arm64': 15.5.28
-      '@next/swc-darwin-x64': 15.5.28
-      '@next/swc-linux-arm64-gnu': 15.5.28
-      '@next/swc-linux-arm64-musl': 15.5.28
-      '@next/swc-linux-x64-gnu': 15.5.28
-      '@next/swc-linux-x64-musl': 15.5.28
-      '@next/swc-win32-arm64-msvc': 15.5.28
-      '@next/swc-win32-x64-msvc': 15.5.28
+      '@next/swc-darwin-arm64': 15.5.29
+      '@next/swc-darwin-x64': 15.5.29
+      '@next/swc-linux-arm64-gnu': 15.5.29
+      '@next/swc-linux-arm64-musl': 15.5.29
+      '@next/swc-linux-x64-gnu': 15.5.29
+      '@next/swc-linux-x64-musl': 15.5.29
+      '@next/swc-win32-arm64-msvc': 15.5.29
+      '@next/swc-win32-x64-msvc': 15.5.29
       '@opentelemetry/api': 1.10.0
       '@playwright/test': 1.64.1
       sass: 1.72.0
@@ -33839,7 +33591,7 @@ snapshots:
       - '@types/node'
       - babel-plugin-macros
 
-  nf3@0.3.16: {}
+  nf3@0.3.24: {}
 
   ng-packagr@14.3.0(@angular/compiler-cli@14.3.0(@angular/compiler@14.3.0(@angular/core@14.3.0(rxjs@7.8.2)(zone.js@0.12.0)))(supports-color@10.0.0)(typescript@4.6.4))(@types/node@14.18.63)(supports-color@10.0.0)(tslib@2.8.1)(typescript@4.6.4):
     dependencies:
@@ -33883,111 +33635,21 @@ snapshots:
       node-gyp-build: 4.6.0
     optional: true
 
-  nitro@3.0.260311-beta(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(lru-cache@11.5.3)(miniflare@4.20260426.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(mysql2@3.23.3(@types/node@20.19.43))(rollup@4.68.3)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)):
+  nitro@3.0.260903-beta:
     dependencies:
       consola: 3.4.2
-      crossws: 0.4.10(srvx@0.11.22)
-      db0: 0.3.4(mysql2@3.23.3(@types/node@20.19.43))
-      env-runner: 0.1.7(miniflare@4.20260426.0)
-      h3: 2.0.1-rc.22(crossws@0.4.10(srvx@0.11.22))
+      crossws: 0.4.17(srvx@1.0.8)
+      db0: 0.4.2
+      env-runner: 0.2.3
+      h3: 2.0.8(crossws@0.4.17(srvx@0.11.22))(ocache@0.3.2)
       hookable: 6.1.2
-      nf3: 0.3.16
-      ocache: 0.1.4
-      ofetch: 2.0.0-alpha.3
-      ohash: 2.0.12
+      nf3: 0.3.24
+      ocache: 0.3.2
       rolldown: 1.3.2
-      srvx: 0.11.22
+      rou3: 0.9.2
+      srvx: 1.0.8
       unenv: 2.0.0-rc.24
-      unstorage: 2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.1(supports-color@10.0.0))(lru-cache@11.5.3)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(ofetch@2.0.0-alpha.3)
-    optionalDependencies:
-      dotenv: 17.4.2
-      giget: 3.3.1
-      jiti: 2.7.0
-      rollup: 4.68.3
-      vite: 8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
-    transitivePeerDependencies:
-      - '@azure/app-configuration'
-      - '@azure/cosmos'
-      - '@azure/data-tables'
-      - '@azure/identity'
-      - '@azure/keyvault-secrets'
-      - '@azure/storage-blob'
-      - '@capacitor/preferences'
-      - '@deno/kv'
-      - '@electric-sql/pglite'
-      - '@libsql/client'
-      - '@netlify/blobs'
-      - '@netlify/runtime'
-      - '@planetscale/database'
-      - '@upstash/redis'
-      - '@vercel/blob'
-      - '@vercel/functions'
-      - '@vercel/kv'
-      - aws4fetch
-      - better-sqlite3
-      - chokidar
-      - drizzle-orm
-      - idb-keyval
-      - ioredis
-      - lru-cache
-      - miniflare
-      - mongodb
-      - mysql2
-      - sqlite3
-      - uploadthing
-
-  nitro@3.0.260415-beta(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(lru-cache@11.5.3)(miniflare@4.20260426.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(mysql2@3.23.3(@types/node@20.19.43))(rollup@4.68.3)(vite@8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)):
-    dependencies:
-      consola: 3.4.2
-      crossws: 0.4.10(srvx@0.11.22)
-      db0: 0.3.4(mysql2@3.23.3(@types/node@20.19.43))
-      env-runner: 0.1.7(miniflare@4.20260426.0)
-      h3: 2.0.1-rc.22(crossws@0.4.10(srvx@0.11.22))
-      hookable: 6.1.2
-      nf3: 0.3.16
-      ocache: 0.1.4
-      ofetch: 2.0.0-alpha.3
-      ohash: 2.0.12
-      rolldown: 1.3.2
-      srvx: 0.11.22
-      unenv: 2.0.0-rc.24
-      unstorage: 2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.1(supports-color@10.0.0))(lru-cache@11.5.3)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(ofetch@2.0.0-alpha.3)
-    optionalDependencies:
-      dotenv: 17.4.2
-      giget: 3.3.1
-      jiti: 2.7.0
-      rollup: 4.68.3
-      vite: 8.3.6(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)
-    transitivePeerDependencies:
-      - '@azure/app-configuration'
-      - '@azure/cosmos'
-      - '@azure/data-tables'
-      - '@azure/identity'
-      - '@azure/keyvault-secrets'
-      - '@azure/storage-blob'
-      - '@capacitor/preferences'
-      - '@deno/kv'
-      - '@electric-sql/pglite'
-      - '@libsql/client'
-      - '@netlify/blobs'
-      - '@netlify/runtime'
-      - '@planetscale/database'
-      - '@upstash/redis'
-      - '@vercel/blob'
-      - '@vercel/functions'
-      - '@vercel/kv'
-      - aws4fetch
-      - better-sqlite3
-      - chokidar
-      - drizzle-orm
-      - idb-keyval
-      - ioredis
-      - lru-cache
-      - miniflare
-      - mongodb
-      - mysql2
-      - sqlite3
-      - uploadthing
+      unstorage: 2.0.0-beta.0
 
   nitropack@2.13.6(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(encoding@0.1.13)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.3.2)(srvx@0.11.22)(supports-color@10.0.0)(vite@6.4.5(@types/node@20.19.43)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0))(webpack@5.112.2(clean-css@5.2.2)(cssnano@9.9.0(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@20.19.43))(svgo@4.1.0)(uglify-js@3.13.3)):
     dependencies:
@@ -34696,17 +34358,13 @@ snapshots:
 
   obug@3.0.0: {}
 
-  ocache@0.1.4:
-    dependencies:
-      ohash: 2.0.12
+  ocache@0.3.2: {}
 
   ofetch@1.5.1:
     dependencies:
       destr: 2.0.5
       node-fetch-native: 1.6.7
       ufo: 1.6.4
-
-  ofetch@2.0.0-alpha.3: {}
 
   ohash@2.0.12: {}
 
@@ -34779,19 +34437,19 @@ snapshots:
       ws: 8.22.2
       zod: 4.6.7
 
-  openai@7.19.0(@aws-sdk/credential-provider-node@3.972.92)(@smithy/signature-v4@5.7.5)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7):
+  openai@7.19.0(@aws-sdk/credential-provider-node@3.972.92)(@smithy/signature-v4@5.7.5)(undici@8.12.4)(ws@8.22.2)(zod@4.6.7):
     optionalDependencies:
       '@aws-sdk/credential-provider-node': 3.972.92
       '@smithy/signature-v4': 5.7.5
-      undici: 7.24.8
+      undici: 8.12.4
       ws: 8.22.2
       zod: 4.6.7
 
-  openai@7.31.0(@aws-sdk/credential-provider-node@3.972.92)(@smithy/signature-v4@5.7.5)(undici@7.24.8)(ws@8.22.2)(zod@4.6.7):
+  openai@7.31.0(@aws-sdk/credential-provider-node@3.972.92)(@smithy/signature-v4@5.7.5)(undici@8.12.4)(ws@8.22.2)(zod@4.6.7):
     optionalDependencies:
       '@aws-sdk/credential-provider-node': 3.972.92
       '@smithy/signature-v4': 5.7.5
-      undici: 7.24.8
+      undici: 8.12.4
       ws: 8.22.2
       zod: 4.6.7
 
@@ -35106,7 +34764,7 @@ snapshots:
 
   path-exists@4.0.0: {}
 
-  path-expression-matcher@1.5.0: {}
+  path-expression-matcher@1.6.2: {}
 
   path-is-absolute@1.0.1: {}
 
@@ -36570,6 +36228,8 @@ snapshots:
 
   rou3@0.9.2: {}
 
+  rou3@1.0.0: {}
+
   route-recognizer@0.3.4: {}
 
   router@2.2.0(supports-color@10.0.0):
@@ -36688,14 +36348,14 @@ snapshots:
   schema-utils@2.7.1:
     dependencies:
       '@types/json-schema': 7.0.15
-      ajv: 6.12.6
-      ajv-keywords: 3.5.2(ajv@6.12.6)
+      ajv: 6.15.0
+      ajv-keywords: 3.5.2(ajv@6.15.0)
 
   schema-utils@3.3.0:
     dependencies:
       '@types/json-schema': 7.0.15
-      ajv: 6.12.6
-      ajv-keywords: 3.5.2(ajv@6.12.6)
+      ajv: 6.15.0
+      ajv-keywords: 3.5.2(ajv@6.15.0)
 
   schema-utils@4.8.1(webpack@5.112.2(clean-css@5.2.2)(cssnano@9.9.0(postcss@8.5.32))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.32)(sharp@0.35.5(@types/node@14.18.63))(svgo@4.1.0)(uglify-js@3.13.3)):
     dependencies:
@@ -36789,7 +36449,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  sentry@0.49.0: {}
+  sentry@0.50.0: {}
 
   serialize-javascript@6.0.2:
     dependencies:
@@ -36801,7 +36461,7 @@ snapshots:
     dependencies:
       seroval: 1.6.12
 
-  seroval-plugins@1.6.12(seroval@1.8.1):
+  seroval-plugins@1.8.0(seroval@1.8.1):
     dependencies:
       seroval: 1.8.1
 
@@ -36911,37 +36571,6 @@ snapshots:
       '@img/sharp-win32-ia32': 0.33.5
       '@img/sharp-win32-x64': 0.33.5
     optional: true
-
-  sharp@0.34.5:
-    dependencies:
-      '@img/colour': 1.1.0
-      detect-libc: 2.1.2
-      semver: 7.8.5
-    optionalDependencies:
-      '@img/sharp-darwin-arm64': 0.34.5
-      '@img/sharp-darwin-x64': 0.34.5
-      '@img/sharp-libvips-darwin-arm64': 1.2.4
-      '@img/sharp-libvips-darwin-x64': 1.2.4
-      '@img/sharp-libvips-linux-arm': 1.2.4
-      '@img/sharp-libvips-linux-arm64': 1.2.4
-      '@img/sharp-libvips-linux-ppc64': 1.2.4
-      '@img/sharp-libvips-linux-riscv64': 1.2.4
-      '@img/sharp-libvips-linux-s390x': 1.2.4
-      '@img/sharp-libvips-linux-x64': 1.2.4
-      '@img/sharp-libvips-linuxmusl-arm64': 1.2.4
-      '@img/sharp-libvips-linuxmusl-x64': 1.2.4
-      '@img/sharp-linux-arm': 0.34.5
-      '@img/sharp-linux-arm64': 0.34.5
-      '@img/sharp-linux-ppc64': 0.34.5
-      '@img/sharp-linux-riscv64': 0.34.5
-      '@img/sharp-linux-s390x': 0.34.5
-      '@img/sharp-linux-x64': 0.34.5
-      '@img/sharp-linuxmusl-arm64': 0.34.5
-      '@img/sharp-linuxmusl-x64': 0.34.5
-      '@img/sharp-wasm32': 0.34.5
-      '@img/sharp-win32-arm64': 0.34.5
-      '@img/sharp-win32-ia32': 0.34.5
-      '@img/sharp-win32-x64': 0.34.5
 
   sharp@0.35.5(@types/node@14.18.63):
     dependencies:
@@ -37136,6 +36765,12 @@ snapshots:
       csstype: 3.2.3
       seroval: 1.6.12
       seroval-plugins: 1.6.12(seroval@1.6.12)
+
+  solid-js@2.0.0:
+    dependencies:
+      '@solidjs/signals': 2.0.0
+      seroval: 1.8.1
+      seroval-plugins: 1.8.0(seroval@1.8.1)
 
   solid-refresh@0.6.3(solid-js@1.9.18)(supports-color@10.0.0):
     dependencies:
@@ -37423,7 +37058,9 @@ snapshots:
 
   strnum@1.1.2: {}
 
-  strnum@2.2.3: {}
+  strnum@2.5.1:
+    dependencies:
+      anynum: 1.0.1
 
   strtok3@10.3.4:
     dependencies:
@@ -37996,8 +37633,6 @@ snapshots:
 
   undici@6.29.1: {}
 
-  undici@7.24.8: {}
-
   undici@7.30.1: {}
 
   undici@8.12.4: {}
@@ -38299,15 +37934,7 @@ snapshots:
       mongodb: 3.7.4
       ofetch: 1.5.1
 
-  unstorage@2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.1(supports-color@10.0.0))(lru-cache@11.5.3)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(ofetch@2.0.0-alpha.3):
-    optionalDependencies:
-      '@azure/storage-blob': 12.31.0(supports-color@10.0.0)
-      chokidar: 5.0.0
-      db0: 0.3.4(mysql2@3.23.3(@types/node@20.19.43))
-      ioredis: 5.11.1(supports-color@10.0.0)
-      lru-cache: 11.5.3
-      mongodb: 7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7)
-      ofetch: 2.0.0-alpha.3
+  unstorage@2.0.0-beta.0: {}
 
   untun@0.1.3:
     dependencies:
@@ -39304,14 +38931,6 @@ snapshots:
 
   wordwrap@1.0.0: {}
 
-  workerd@1.20260426.1:
-    optionalDependencies:
-      '@cloudflare/workerd-darwin-64': 1.20260426.1
-      '@cloudflare/workerd-darwin-arm64': 1.20260426.1
-      '@cloudflare/workerd-linux-64': 1.20260426.1
-      '@cloudflare/workerd-linux-arm64': 1.20260426.1
-      '@cloudflare/workerd-windows-64': 1.20260426.1
-
   workerd@1.20261023.1:
     optionalDependencies:
       '@cloudflare/workerd-darwin-64': 1.20261023.1
@@ -39385,9 +39004,9 @@ snapshots:
 
   wrappy@1.0.2: {}
 
-  ws@8.18.0: {}
-
   ws@8.21.0: {}
+
+  ws@8.22.0: {}
 
   ws@8.22.2: {}
 
@@ -39400,7 +39019,7 @@ snapshots:
 
   xml-name-validator@5.0.0: {}
 
-  xml-naming@0.1.0: {}
+  xml-naming@0.3.0: {}
 
   xmlchars@2.2.0: {}
 

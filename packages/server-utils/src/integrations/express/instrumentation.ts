@@ -386,6 +386,10 @@ function getMatchedLayerPath(layer: ExpressLayer): string | undefined {
   if (layer.route) {
     return getLayerPath([layer.route.path]);
   }
+  // `router` 2.3.0 and later keep the registered mount path in `rawPath` and no longer store the matched `path`.
+  if (layer.rawPath !== undefined) {
+    return getLayerPath([layer.rawPath]);
+  }
   // A mount path without parameters is equal to the part of the URL that the layer matched.
   return layer.keys?.length ? undefined : layer.path || undefined;
 }

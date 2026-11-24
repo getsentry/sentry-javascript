@@ -1,9 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
-import { PAGE_SERVER_RENDERING_TYPE, SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
+import {
+  PAGE_SERVER_RENDERING_AGE,
+  PAGE_SERVER_RENDERING_TYPE,
+  SENTRY_LINK_TYPE,
+} from '@sentry/conventions/attributes';
 import { HTTP_SERVER, PAGELOAD } from '@sentry/conventions/op';
-
-const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';
 
 function expectedRenderAge(pageloadStart: number, renderStart: number): number {
   return Math.max(0, Math.floor(pageloadStart - renderStart));
@@ -87,15 +89,20 @@ test('marks the pageload of a Vercel ISR page as statically rendered and links t
   const [seconds, nanoseconds] = process.hrtime();
   const requestStart = seconds * 1e9 + nanoseconds;
   const pageloadSpanPromise = waitForStreamedSpan('sveltekit-3', span => {
-    return span.name === '/' && getSpanOp(span) === PAGELOAD && span.is_segment;
+    return (
+      span.name === '/' &&
+      getSpanOp(span) === PAGELOAD &&
+      span.is_segment &&
+      String(span.attributes['url.full']?.value).endsWith('/?test=vercel-isr')
+    );
   });
 
   // Only on the document: on the SDK's cross-origin envelope requests, the header would need a preflight.
   await page.route(
-    url => url.pathname === '/',
+    url => url.pathname === '/' && url.searchParams.get('test') === 'vercel-isr',
     route => route.continue({ headers: { ...route.request().headers(), ...VERCEL_ISR_HEADERS } }),
   );
-  await page.goto('/');
+  await page.goto('/?test=vercel-isr');
   const cacheOrigin = await page.locator('meta[name="sentry-cache-origin"]').getAttribute('content');
   const [originTraceId, originSpanId] = cacheOrigin?.split('-') ?? [];
   const renderStart = await getRenderStart(page);

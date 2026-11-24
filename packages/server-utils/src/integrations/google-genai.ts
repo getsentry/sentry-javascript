@@ -10,6 +10,7 @@ import {
   startInactiveSpan,
 } from '@sentry/core';
 import { getGenAiSpanOp, markCancelledIfAborted, resolveGenAiCallRecording } from '../ai/core/utils';
+import { type GenAiSpanResult, runGenAiSpanEnd, runGenAiSpanStart } from '../ai/core/span-hooks';
 import {
   addPrivateRequestAttributes,
   addResponseAttributes,
@@ -20,7 +21,7 @@ import {
 } from '../ai/google-genai';
 import { shouldSkipAiProviderSpan } from '../ai/pi-ai/providers';
 import { instrumentStream } from '../ai/google-genai/streaming';
-import type { GoogleGenAIOptions, GoogleGenAIResponse } from '../ai/google-genai/types';
+import type { GoogleGenAICallInfo, GoogleGenAIOptions, GoogleGenAIResponse } from '../ai/google-genai/types';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -34,7 +35,10 @@ const INTEGRATION_NAME = 'Google_GenAI' as const;
 const ORIGIN = 'auto.ai.google_genai';
 
 // The recording decision is made once, when the span starts, in the caller's async context.
-type GoogleGenAIChannelContext = OrchestrionChannelContext & { _sentryRecordOutputs?: boolean };
+type GoogleGenAIChannelContext = OrchestrionChannelContext & {
+  _sentryRecordOutputs?: boolean;
+  _sentryOnSpanEnd?: (result: GenAiSpanResult<unknown>) => void;
+};
 
 // Each instrumented method maps to the gen_ai operation its span reports.
 const INSTRUMENTED_CHANNELS = [
@@ -72,6 +76,7 @@ function instrumentGoogleGenai(options: GoogleGenAIOptions): void {
           if (operation !== 'embeddings') {
             addResponseAttributes(span, data.result as GoogleGenAIResponse, !!data._sentryRecordOutputs, operation);
           }
+          data._sentryOnSpanEnd?.('error' in data ? { error: data.error } : { response: data.result });
         },
         deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, operation),
       },
@@ -113,7 +118,8 @@ function createGenAiSpan(
   const request = args[0] as Record<string, unknown> | undefined;
   const params = resolveChatParams(operation, request, data.self);
 
-  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, { operation, request });
+  const call: GoogleGenAICallInfo = { operation, request };
+  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
   data._sentryRecordOutputs = recordOutputs;
 
   const attributes = extractRequestAttributes(operation, params, data.self, recordInputs);
@@ -131,6 +137,9 @@ function createGenAiSpan(
   if (recordInputs && params) {
     addPrivateRequestAttributes(span, params, operation);
   }
+
+  runGenAiSpanStart(options, span, call);
+  data._sentryOnSpanEnd = result => runGenAiSpanEnd(options, span, call, result);
 
   return span;
 }
@@ -159,6 +168,7 @@ function wrapStreamResult(span: Span, data: GoogleGenAIChannelContext, operation
     span,
     !!data._sentryRecordOutputs,
     getAbortSignal(params),
+    data._sentryOnSpanEnd,
   );
   result[Symbol.asyncIterator] = () => instrumented;
 

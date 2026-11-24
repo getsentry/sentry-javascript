@@ -4,11 +4,10 @@ import { defineIntegration } from '../integration';
 import { _INTERNAL_flushMetricsBuffer } from '../metrics/internal';
 import { count } from '../metrics/public-api';
 import { Scope } from '../scope';
-import type { IntegrationFn } from '../types/integration';
+import type { Integration, IntegrationFn } from '../types/integration';
 import { debug } from '../utils/debug-logger';
 import { fnv1a32 } from '../utils/hash';
 import { isPlainObject } from '../utils/is';
-import { timestampInSeconds } from '../utils/time';
 import { safeUnref } from '../utils/timer';
 
 const _experimentalReportSdkConfigIntegration = (() => ({
@@ -19,7 +18,6 @@ const _experimentalReportSdkConfigIntegration = (() => ({
     let reported = false;
 
     const report = (): void => {
-      // The timer and flush hook can both request capture; only report once.
       if (reported) {
         return;
       }
@@ -28,28 +26,25 @@ const _experimentalReportSdkConfigIntegration = (() => ({
       clearTimeout(timer);
 
       try {
-        const attributes = buildConfigAttributes(client);
-        count('sdk.config', 1, { attributes, scope });
+        count('sdk.config', 1, { attributes: buildConfigAttributes(client), scope });
       } catch (error) {
         DEBUG_BUILD && debug.warn('Failed to report SDK configuration', error);
       }
     };
 
-    // Allow configuration to settle unless the client flushes earlier.
-    const timer = safeUnref(setTimeout(report, 5000));
+    // Let the remaining afterAllSetup hooks register their integrations before taking the snapshot.
+    const timer = safeUnref(setTimeout(report, 0));
 
-    // Close, tab hiding, and natural Node process exit trigger flushing.
     client.on('flush', () => {
       report();
-      // report() may register the first metric flusher too late for this flush,
-      // or run after an existing flusher. Drain explicitly to cover both cases.
+      // Capturing can register the metrics flusher too late for this flush, or after an existing flusher.
       _INTERNAL_flushMetricsBuffer(client);
     });
   },
 })) satisfies IntegrationFn;
 
 /**
- * Reports effective SDK configuration once after initialization.
+ * Reports the SDK options the user passed to `init()` on the next tick after client setup, or on an earlier flush.
  *
  * @experimental This integration may change or be removed without notice.
  */
@@ -99,48 +94,86 @@ function serialize(value: unknown, ancestors = new Set<object>()): unknown {
   return result;
 }
 
+// Integrations hold the SDK defaults by the time the client has them; serverName would split configurations by host.
+const EXCLUDED_OPTIONS = new Set(['dist', 'dsn', 'integrations', 'release', 'serverName']);
+
 function buildConfigAttributes(client: Client): Record<string, string> {
-  // Integrations are reported separately; SDK metadata lives under `sdk`.
-  const { runtime, ...options } = Object.fromEntries(
-    Object.entries(client.getOptions()).filter(
-      ([key]) => !['integrations', 'defaultIntegrations', '_metadata'].includes(key),
-    ),
+  const {
+    sdk,
+    optionsSetByUser = [],
+    integrationsSetByUser,
+    removedDefaultIntegrations,
+  } = client.getSdkMetadata() || {};
+  const clientOptions = client.getOptions();
+  const { environment } = clientOptions;
+  const runtime = 'runtime' in clientOptions ? clientOptions.runtime : undefined;
+
+  // Only what the user passed, so SDK defaults never show up as config.
+  const options: Record<string, unknown> = Object.fromEntries(
+    Object.entries(clientOptions).filter(([key]) => optionsSetByUser.includes(key) && !EXCLUDED_OPTIONS.has(key)),
   );
 
-  const config = {
-    version: 1,
-    sdk: client.getSdkMetadata()?.sdk,
-    runtime,
-    options: serialize({
-      ...options,
-      dataCollection: client.getDataCollectionOptions(),
-    }) as Record<string, unknown>,
-    options_set_by_user: client.getSdkMetadata()?.optionsSetByUser,
-    integrations: client.getIntegrationNames().map(name => ({ name })),
-  };
+  if (integrationsSetByUser) {
+    options.integrations = integrationsSetByUser.map(name => {
+      const integration: (Integration & { isDefaultInstance?: true }) | undefined = client.getIntegrationByName(name);
+      // A default instance kept by an `integrations` function got its options from the SDK, not the user.
+      return describeIntegration(name, integration?.isDefaultInstance ? undefined : integration?._options);
+    });
+  }
 
-  const metadata = {
-    timestamp: timestampInSeconds(),
-    release: options.release,
-    environment: options.environment,
-    dist: options.dist,
-  };
+  if (Array.isArray(options.defaultIntegrations)) {
+    // `getIntegrationsToSetup` flags these as default instances, but the user passed them.
+    options.defaultIntegrations = options.defaultIntegrations.map((integration: Integration) =>
+      describeIntegration(integration.name, integration._options),
+    );
+  }
 
-  // Exclude reporting metadata and instance-specific defaults from config identity.
-  const hashExclusions = new Set(['serverName', ...Object.keys(metadata)]);
-
-  const hashInput = {
-    ...config,
-    options: Object.fromEntries(Object.entries(config.options).filter(([key]) => !hashExclusions.has(key))),
-  };
-
-  const payload = {
-    ...config,
-    ...metadata,
-  };
+  // The hash covers the whole payload, so a payload cached by its hash is never stale.
+  const payload = JSON.stringify({
+    version: 3,
+    sdk: serialize(sdk),
+    runtime: serialize(runtime),
+    environment,
+    // Not an init() option, so it stays out of `options`.
+    ...(removedDefaultIntegrations && { removed_default_integrations: removedDefaultIntegrations }),
+    options: serialize(options),
+  });
 
   return {
-    'sentry.sdk_config.hash': fnv1a32(JSON.stringify(hashInput)),
-    'sentry.sdk_config.payload': JSON.stringify(payload),
+    'sentry.sdk_config.hash': fnv1a32(payload),
+    'sentry.sdk_config.payload': payload,
   };
+}
+
+function describeIntegration(name: string, options: unknown): { name: string; options?: unknown } {
+  if (options === undefined) {
+    return { name };
+  }
+
+  if (!isPlainObject(options)) {
+    return { name, options: describeOptionValue(options) };
+  }
+
+  const keys = Object.keys(options);
+  // `fooIntegration()` and `fooIntegration({})` both mean no options were passed.
+  if (!keys.length) {
+    return { name };
+  }
+
+  const described: Record<string, unknown> = {};
+  for (const key of keys) {
+    described[key] = describeOptionValue(options[key]);
+  }
+
+  return { name, options: described };
+}
+
+// Options can hold live objects such as a router, a store or an SDK client, which carry URLs, app state or keys.
+// Arrays are kept, since lists like `levels` or `tracePropagationTargets` are configuration.
+function describeOptionValue(value: unknown): unknown {
+  return Array.isArray(value) ? value.map(redactObject) : redactObject(value);
+}
+
+function redactObject(value: unknown): unknown {
+  return value === null || typeof value !== 'object' || value instanceof RegExp ? value : '[Object]';
 }

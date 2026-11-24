@@ -200,8 +200,13 @@ describe.runIf(supports({ min: 22 }))('Google GenAI integration (v3)', () => {
         ]);
 
         expect(JSON.parse(imageSpan!.attributes[GEN_AI_INPUT_MESSAGES]!.value as string)[0].state).toEqual([
-          { type: 'text', text: 'Is the package damaged?' },
-          { type: 'image', mime_type: 'image/png', data: 'iVBORw0KGgoAAAANSUhEUg==' },
+          {
+            role: 'user',
+            parts: [
+              { type: 'text', content: 'Is the package damaged?' },
+              { type: 'blob', modality: 'image', mime_type: 'image/png' },
+            ],
+          },
         ]);
 
         const errorSpan = spans.find(span => span.name === 'decide models/error-model');

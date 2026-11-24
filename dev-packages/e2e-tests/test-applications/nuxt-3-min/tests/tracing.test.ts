@@ -7,7 +7,11 @@ test.describe('distributed tracing', () => {
 
   test('capture a distributed pageload trace', async ({ page }) => {
     const clientSpanPromise = waitForStreamedSpan('nuxt-3-min', span => {
-      return getSpanOp(span) === 'pageload' && span.is_segment;
+      return (
+        getSpanOp(span) === 'pageload' &&
+        span.is_segment &&
+        span.attributes['url.path']?.value === `/test-param/${PARAM}`
+      );
     });
 
     // Parametrization does not work in Nuxt 3.7 yet, so the server segment keeps a method-only

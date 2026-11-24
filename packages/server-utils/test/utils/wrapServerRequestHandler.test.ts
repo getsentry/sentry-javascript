@@ -1,4 +1,9 @@
-import { HTTP_ROUTE, SENTRY_SEGMENT_NAME_SOURCE, URL_PATH_PARAMETER_KEY_BASE } from '@sentry/conventions/attributes';
+import {
+  HTTP_ROUTE,
+  SENTRY_KIND,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  URL_PATH_PARAMETER_KEY_BASE,
+} from '@sentry/conventions/attributes';
 import type { Event } from '@sentry/core';
 import { getIsolationScope, Scope, setCurrentClient, withIsolationScope } from '@sentry/core';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -229,6 +234,16 @@ describe('wrapServerRequestHandler', () => {
         [`${URL_PATH_PARAMETER_KEY_BASE}.id`]: '42',
       }),
     );
+  });
+
+  it('sets the span kind to server', async () => {
+    const { transactions, serve } = setup();
+
+    const response = await serve(new Request('https://example.com/users'), () => new Response('ok'));
+    expect(await response.text()).toBe('ok');
+    await vi.waitFor(() => expect(transactions).toHaveLength(1));
+
+    expect(transactions[0]?.contexts?.trace?.data?.[SENTRY_KIND]).toBe('server');
   });
 
   it('keeps every Set-Cookie header of the response', async () => {
