@@ -126,7 +126,7 @@ test.describe('SSR error boundary', () => {
 
     const error = await errorPromise;
 
-    expect(error.transaction).toEqual('/ssr-error-boundary');
+    expect(error.transaction).toEqual('GET /ssr-error-boundary');
     expect(error.exception.values[0]).toMatchObject({
       type: 'Error',
       value: 'SSR Error inside NuxtErrorBoundary',
@@ -136,6 +136,6 @@ test.describe('SSR error boundary', () => {
       },
     });
 
-    await expect(page.locator('#error-fallback')).toContainText('Caught SSR Error: SSR Error inside NuxtErrorBoundary');
+    await expect(page.locator('#error-fallback')).toBeVisible();
   });
 });

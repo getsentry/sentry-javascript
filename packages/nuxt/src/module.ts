@@ -120,8 +120,7 @@ export default defineNuxtModule<ModuleOptions>({
       addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector-legacy.server'), mode: 'server' });
     }
 
-    // oxlint-disable-next-line typescript/no-unsafe-member-access
-    if (nuxt.options.experimental && (nuxt.options.experimental as Record<string, unknown>).ssrErrorBoundary) {
+    if ((nuxt.options.experimental as { ssrErrorBoundary?: boolean }).ssrErrorBoundary) {
       addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/error-boundary.server'), mode: 'server' });
     }
 
