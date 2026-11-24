@@ -24,6 +24,7 @@ export function getPlaywrightConfig(
    * See https://playwright.dev/docs/test-configuration.
    */
   const config: PlaywrightTestConfig = {
+    workersPerProcess: 4,
     testDir: './tests',
     ...getLifecycleTestFilter(),
     /* Maximum time one test can run for. */
@@ -46,6 +47,7 @@ export function getPlaywrightConfig(
     reporter: process.env.CI ? [['line'], ['github'], ['junit', { outputFile: 'results.junit.xml' }]] : 'list',
     /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
     use: {
+      instantAnimations: true,
       /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
       actionTimeout: 0,
       /* Base URL to use in actions like `await page.goto('/')`. */

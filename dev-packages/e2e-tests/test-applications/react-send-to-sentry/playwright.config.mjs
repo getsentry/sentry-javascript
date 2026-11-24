@@ -4,6 +4,7 @@ import { devices } from '@playwright/test';
  * See https://playwright.dev/docs/test-configuration.
  */
 const config = {
+  workersPerProcess: 4,
   testDir: './tests',
   /* Maximum time one test can run for. Spans take ~2min to become queryable via the trace endpoint. */
   timeout: 210_000,
@@ -26,6 +27,7 @@ const config = {
   reporter: process.env.CI ? [['list'], ['junit', { outputFile: 'results.junit.xml' }]] : 'list',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
+    instantAnimations: true,
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
     actionTimeout: 0,
 
