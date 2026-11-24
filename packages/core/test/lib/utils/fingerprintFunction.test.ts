@@ -21,6 +21,7 @@ describe('fingerprintFunction', () => {
       ['!0 and !1', 'e=>[true,false]', 'e=>[!0,!1]'],
       ['shorthand property', '({event})=>({event})', '({event:e})=>({event:e})'],
       ['destructuring default', "({level='error'})=>level", "({level:e='error'})=>e"],
+      ['destructured declaration', 'e=>{const{event}=e;return event}', 'e=>{const{event:t}=e;return t}'],
       ['renamed call arguments inside an object', 'e=>({a:f(x,y,z)})', 't=>({a:g(p,q,r)})'],
       ['renamed array items inside an object', 'e=>({a:[x,y,z]})', 't=>({a:[p,q,r]})'],
       ['renamed arrow parameters inside an object', 'e=>({a:(x,y,z)=>x})', 't=>({a:(p,q,r)=>p})'],
@@ -46,6 +47,9 @@ describe('fingerprintFunction', () => {
       ['throw vs return', 'e=>{throw e}', 'e=>{return e}'],
       ['object key', 'e=>({level:e})', 'e=>({type:e})'],
       ['private field', 'e=>e.#a', 'e=>e.#b'],
+      ['destructured key', 'e=>{const{exception:t}=e;return t}', 'e=>{const{message:t}=e;return t}'],
+      ['thrown object key', 'e=>{throw{level:e}}', 'e=>{throw{type:e}}'],
+      ['regex after a block', 'e=>{if(e){return e}/a/.test(e)}', 'e=>{if(e){return e}/b/.test(e)}'],
     ])('%s', (_label, a, b) => {
       expect(norm(a)).not.toBe(norm(b));
     });
@@ -119,6 +123,8 @@ describe('fingerprintFunction', () => {
       expect(norm('(a)/b/c')).toBe('( _ ) / _ / _');
       expect(norm('e=>e++/2+n(e)')).toBe('_ => _ ++ / 2 + _ ( _ )');
       expect(norm('e=>e--/2')).toBe('_ => _ -- / 2');
+      expect(norm('({}/2)')).toBe('( { } / 2 )');
+      expect(norm('if(a){}/a/g')).toBe('if ( _ ) { } /a/g');
     });
 
     it('treats an escaped backtick at the end of an unterminated template like a closing one', () => {

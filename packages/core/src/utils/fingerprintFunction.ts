@@ -15,7 +15,9 @@ const KEYWORDS = new Set(
 /**
  * After these tokens a `{` opens an object literal rather than a block.
  */
-const OBJECT_CONTEXT = new Set('( [ , = : ? ?? || && ! ... return typeof void in case'.split(' '));
+const OBJECT_CONTEXT = new Set(
+  '( [ , = : ? ?? || && ! ... return typeof void in case const let var throw await'.split(' '),
+);
 
 /**
  * After these keywords, as after any name or literal, a `/` is a division rather than the start of a regex literal.
@@ -106,9 +108,10 @@ export function tokenize(src: string): string[] {
       continue;
     }
 
+    const closes = ch === '}' ? braces.pop() : undefined;
     // A template part runs from the opening backtick, or from the `}` that ends a substitution, up to the closing
     // backtick or the next `${`.
-    if (ch === '`' || (ch === '}' && braces.pop() === null)) {
+    if (ch === '`' || closes === null) {
       let text = '';
       i++;
       while (i < length) {
@@ -213,8 +216,8 @@ export function tokenize(src: string): string[] {
       }
     }
 
-    // A regex can't follow postfix `++` or `--`.
-    push(punctuator, ')]}'.includes(ch) || punctuator == '++' || punctuator == '--');
+    // A regex can follow a block's `}` but not an object's, nor postfix `++` or `--`.
+    push(punctuator, ')]'.includes(ch) || closes === true || punctuator == '++' || punctuator == '--');
   }
 
   return tokens;
