@@ -29,7 +29,11 @@ const MIDDLEWARE = {
 } as const;
 
 async function collectRequestSpans(path = '/api/middleware-test') {
-  const spans = await collectStreamedSpansUntilSegment('nuxt-4', span => span.attributes['url.path']?.value === path);
+  const spans = await collectStreamedSpansUntilSegment(
+    'nuxt-4',
+    span => span.attributes['url.path']?.value === path,
+    span => getSpanOp(span) === 'middleware',
+  );
   const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === path);
 
   return spans.filter(span => span.trace_id === rootSpan?.trace_id);

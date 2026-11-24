@@ -9,6 +9,7 @@ async function collectDbSpans() {
   const spans = await collectStreamedSpansUntilSegment(
     'nuxt-4',
     span => span.attributes['url.path']?.value === '/api/db-multi-test',
+    span => getSpanOp(span) === 'db.query',
   );
   const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/db-multi-test');
 

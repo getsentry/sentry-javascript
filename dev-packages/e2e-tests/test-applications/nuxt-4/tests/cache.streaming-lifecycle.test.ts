@@ -12,6 +12,7 @@ test.describe('Cache Instrumentation', () => {
     const spans = await collectStreamedSpansUntilSegment(
       'nuxt-4',
       span => span.attributes['url.path']?.value === '/api/cache-test',
+      span => span.attributes['sentry.origin']?.value === 'auto.cache.nuxt',
     );
 
     return spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.cache.nuxt');
