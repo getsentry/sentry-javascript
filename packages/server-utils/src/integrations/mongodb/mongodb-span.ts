@@ -13,7 +13,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { getClient, hasSpanStreamingEnabled, isObjectLike, startInactiveSpan } from '@sentry/core';
+import { getActiveSpan, getClient, hasSpanStreamingEnabled, isObjectLike, startInactiveSpan } from '@sentry/core';
 
 const DB_SYSTEM_VALUE_MONGODB = 'mongodb';
 
@@ -46,15 +46,11 @@ function scrubStatement(value: unknown): unknown {
   }
 
   if (isCommandObj(value)) {
-    const initial: Record<string, unknown> = {};
-    return Object.entries(value)
-      .map(([key, element]) => [key, scrubStatement(element)])
-      .reduce((prev, current) => {
-        if (isCommandEntry(current)) {
-          prev[current[0]] = current[1];
-        }
-        return prev;
-      }, initial);
+    const scrubbed: Record<string, unknown> = {};
+    for (const key of Object.keys(value)) {
+      scrubbed[key] = scrubStatement(value[key]);
+    }
+    return scrubbed;
   }
 
   // A value like string or number, possibly contains PII, scrub it.
@@ -67,10 +63,6 @@ function isCommandObj(value: unknown): value is Record<string, unknown> {
 
 function isBuffer(value: unknown): boolean {
   return typeof Buffer !== 'undefined' && Buffer.isBuffer(value);
-}
-
-function isCommandEntry(value: unknown): value is [string, unknown] {
-  return Array.isArray(value);
 }
 
 /**
@@ -137,7 +129,9 @@ export function getSpanAttributes(
     }
   }
 
-  if (commandObj) {
+  // The statement is only sent with a recording span. Skip it otherwise, as the
+  // serialization walks the whole command, which is expensive for large write payloads.
+  if (commandObj && getActiveSpan()?.isRecording()) {
     try {
       attributes[DB_QUERY_TEXT] = serializeDbStatement(commandObj);
     } catch {
