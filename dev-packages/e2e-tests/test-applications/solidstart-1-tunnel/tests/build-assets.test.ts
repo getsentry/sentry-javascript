@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpans } from '@sentry-internal/test-utils';
 
+// This app runs under a base path (`/app/`), so it also tests the build file filter with a base path.
 const BUILD_FILE_PATH = '/app/_build/assets/entry.js.map';
 const PAGE_PATH = '/app/after-build-file';
 
