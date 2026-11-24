@@ -198,7 +198,7 @@ describe('addServerConfigPlugin', () => {
     nuxt.options.app.baseURL = '/shop/';
     nuxt.options.app.buildAssetsDir = '/assets/';
 
-    addServerConfigPlugin(nuxt, APP_CONFIG, true);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true, false);
 
     const contents = templateContents('sentry-runtime-flags.mjs', nuxt);
     expect(contents).toContain('globalThis.__sentry_nuxt_base_path = "/shop/";');
@@ -208,7 +208,7 @@ describe('addServerConfigPlugin', () => {
   it('passes the public files that Nitro serves to the server SDK', () => {
     getNitroPublicFilePathsMock.mockReturnValueOnce(['/humans.txt', '/docs/guide.pdf']);
     const { nuxt, hooks } = createFakeNuxt();
-    addServerConfigPlugin(nuxt, APP_CONFIG, true);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true, false);
     const nitro = { options: { preset: 'node-server', plugins: [] } };
 
     hooks['nitro:init']!(nitro as never);
