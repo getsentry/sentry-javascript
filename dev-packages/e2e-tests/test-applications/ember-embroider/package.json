@@ -55,9 +55,9 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@tsconfig/ember": "^3.0.6",
     "@types/node": "^18.19.1",
-    "@tsconfig/node18": "18.2.4",
+    "@tsconfig/node18": "18.2.8",
     "@types/rsvp": "^4.0.9",
-    "ts-node": "10.9.1",
+    "ts-node": "10.9.2",
     "typescript": "^5.4.5"
   },
   "engines": {
