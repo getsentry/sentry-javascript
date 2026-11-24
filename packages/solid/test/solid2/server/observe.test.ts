@@ -5,6 +5,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
   SENTRY_SEGMENT_NAME_SOURCE,
+  URL_PATH_PARAMETER_KEY_BASE,
 } from '@sentry/conventions/attributes';
 import { FUNCTION, HTTP_SERVER } from '@sentry/conventions/op';
 import type { StreamedSpanJSON } from '@sentry/core';
@@ -126,7 +127,7 @@ describe('solidServerObserveIntegration', () => {
               attributes: expect.objectContaining({
                 [HTTP_ROUTE]: '/user/:id',
                 [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-                'url.path.parameter.id': '5',
+                [`${URL_PATH_PARAMETER_KEY_BASE}.id`]: '5',
               }),
             });
             expect(getIsolationScope().getScopeData().transactionName).toBe('GET /user/:id');

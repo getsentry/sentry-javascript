@@ -9,6 +9,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { FUNCTION, HTTP_SERVER } from '@sentry/conventions/op';
 import {
+  _INTERNAL_performanceTimeToSeconds as performanceTimeToSeconds,
   defineIntegration,
   getActiveSpan,
   getDefaultIsolationScope,
@@ -26,16 +27,18 @@ import { OBSERVE } from 'solid-js';
 
 const INTEGRATION_NAME = 'SolidServerObserve';
 
-// Record times are `performance.now()` values; spans take seconds since the epoch.
-function toTimestamp(at: number): number {
-  return (performance.timeOrigin + at) / 1000;
-}
-
 /** A span for a server function execution, under the span of the request or render that ran it. */
 function recordInvocationSpan({ id, at, durationMs, outcome }: InvocationEvent): void {
+  // Record times are `performance.now()` values. Without a usable time origin, the span cannot be placed.
+  const startTime = performanceTimeToSeconds(at);
+  const endTime = performanceTimeToSeconds(at + durationMs, at);
+  if (startTime === undefined || endTime === undefined) {
+    return;
+  }
+
   const span = startInactiveSpan({
     name: id,
-    startTime: toTimestamp(at),
+    startTime,
     onlyIfParent: true,
     attributes: {
       [SENTRY_OP]: FUNCTION,
@@ -46,7 +49,7 @@ function recordInvocationSpan({ id, at, durationMs, outcome }: InvocationEvent):
   if (outcome === 'error') {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
   }
-  span.end(toTimestamp(at + durationMs));
+  span.end(endTime);
 }
 
 /**
