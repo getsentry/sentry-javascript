@@ -1,4 +1,9 @@
-import { escapeStringForRegex, resolveSourceMapsFeatures, uuid4 } from '@sentry/core';
+import {
+  escapeStringForRegex,
+  resolveSourceMapsFeatures,
+  uuid4,
+  warnOnConflictingSourceMapOptions,
+} from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import { addDebugIdToEmittedArtifacts } from '@sentry/bundler-plugins/core';
 import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
@@ -52,6 +57,8 @@ export async function makeCustomSentryVitePlugins(
   },
 ): Promise<Plugin[]> {
   const { getAdapterOutputDir, getKitConfig } = deps;
+  // The plugin does not get `sourcemaps.delete`.
+  warnOnConflictingSourceMapOptions(options?.sourcemaps);
 
   const defaultPluginOptions: SentryVitePluginOptions = {
     release: {

@@ -154,4 +154,17 @@ describe('makeCustomSentryVitePlugins', () => {
 
     consoleWarnSpy.mockRestore();
   });
+
+  // The Vite plugin gets none of the user's source map options, so it cannot warn itself.
+  it('warns about conflicting source map options', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    await makeCustomSentryVitePlugins({ sourcemaps: { delete: false, filesToDeleteAfterUpload: ['build/**/*.map'] } });
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('`sourcemaps.filesToDeleteAfterUpload` still deletes the files'),
+    );
+
+    consoleWarnSpy.mockRestore();
+  });
 });

@@ -352,6 +352,22 @@ describe('setupSentryNitroModule', () => {
 });
 
 describe('setupSourceMaps', () => {
+  // The plugin manager does not get `sourcemaps.delete`.
+  it('warns about conflicting source map options', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const nitro = {
+      options: { dev: true, output: { serverDir: '/output/server' } },
+      hooks: { hook: vi.fn() },
+    } as any;
+
+    setupSourceMaps(nitro, { sourcemaps: { delete: false, filesToDeleteAfterUpload: ['.output/**/*.map'] } });
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('`sourcemaps.filesToDeleteAfterUpload` still deletes the files'),
+    );
+    warnSpy.mockRestore();
+  });
+
   it('does not register hook in dev mode', () => {
     const hookFn = vi.fn();
     const nitro = {

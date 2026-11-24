@@ -1,6 +1,6 @@
 import type { Options as BundlerPluginOptions } from '@sentry/bundler-plugins/core';
 import { createSentryBuildPluginManager } from '@sentry/bundler-plugins/core';
-import { resolveSourceMapsFeatures } from '@sentry/core';
+import { resolveSourceMapsFeatures, warnOnConflictingSourceMapOptions } from '@sentry/core';
 import type { Nitro, NitroConfig } from 'nitro/types';
 import type { SentryNitroOptions } from './config';
 
@@ -8,6 +8,9 @@ import type { SentryNitroOptions } from './config';
  * Registers a `compiled` hook to upload source maps after the build completes.
  */
 export function setupSourceMaps(nitro: Nitro, options?: SentryNitroOptions, sentryEnabledSourcemaps?: boolean): void {
+  // The plugin manager does not get `sourcemaps.delete`.
+  warnOnConflictingSourceMapOptions(options?.sourcemaps);
+
   // The `compiled` hook fires on EVERY rebuild during `nitro dev` watch mode.
   // nitro.options.dev is reliably set by the time module setup runs.
   if (shouldSkipBuildHook(nitro, options)) {
