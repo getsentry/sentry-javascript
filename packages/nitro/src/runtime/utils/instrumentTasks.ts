@@ -1,4 +1,4 @@
-import { _INTERNAL_captureNitroTaskError } from '@sentry/server-utils';
+import { captureNitroTaskError } from '@sentry/server-utils';
 import type { Task } from 'nitro/types';
 
 type TaskRegistry = Record<string, { resolve?: () => Promise<Task> }>;
@@ -28,7 +28,7 @@ export function instrumentTasks(tasks: TaskRegistry): void {
           try {
             return await handler.run(event);
           } catch (error) {
-            await _INTERNAL_captureNitroTaskError(error, name);
+            await captureNitroTaskError(error, name);
             throw error;
           }
         },
