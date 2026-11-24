@@ -6,6 +6,7 @@ import {
   SENTRY_ORIGIN,
   SENTRY_SEGMENT_NAME_SOURCE,
 } from '@sentry/conventions/attributes';
+import { FUNCTION, HTTP_SERVER } from '@sentry/conventions/op';
 import type { StreamedSpanJSON } from '@sentry/core';
 import {
   createTransport,
@@ -79,7 +80,7 @@ describe('solidServerObserveIntegration', () => {
         parent_span_id: parentSpanId,
         status: 'ok',
         attributes: expect.objectContaining({
-          [SENTRY_OP]: 'function',
+          [SENTRY_OP]: FUNCTION,
           [SENTRY_ORIGIN]: 'auto.function.solid.server_function',
           [CODE_FUNCTION_NAME]: 'src/api.ts#getUser',
         }),
@@ -116,7 +117,7 @@ describe('solidServerObserveIntegration', () => {
     it('names the request span after the route of the render', () => {
       withIsolationScope(() => {
         startSpanManual(
-          { name: 'GET /user/5', op: 'http.server', attributes: { [HTTP_REQUEST_METHOD]: 'GET' } },
+          { name: 'GET /user/5', op: HTTP_SERVER, attributes: { [HTTP_REQUEST_METHOD]: 'GET' } },
           span => {
             emit('render', render({ name: '/user/:id', to: '/user/5', params: { id: '5' } }));
 
@@ -137,7 +138,7 @@ describe('solidServerObserveIntegration', () => {
 
     it('keeps a name the router wrapper set', () => {
       startSpanManual(
-        { name: 'GET /user/:userId', op: 'http.server', attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'route' } },
+        { name: 'GET /user/:userId', op: HTTP_SERVER, attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'route' } },
         span => {
           emit('render', render({ name: '/user/:id' }));
 
@@ -148,7 +149,7 @@ describe('solidServerObserveIntegration', () => {
     });
 
     it('leaves other spans alone', () => {
-      startSpanManual({ name: 'some work', op: 'function' }, span => {
+      startSpanManual({ name: 'some work', op: FUNCTION }, span => {
         emit('render', render({ name: '/user/:id' }));
 
         expect(spanToJSON(span).name).toBe('some work');
@@ -157,7 +158,7 @@ describe('solidServerObserveIntegration', () => {
     });
 
     it('does nothing without a route', () => {
-      startSpanManual({ name: 'GET /user/5', op: 'http.server' }, span => {
+      startSpanManual({ name: 'GET /user/5', op: HTTP_SERVER }, span => {
         emit('render', render());
 
         expect(spanToJSON(span).name).toBe('GET /user/5');
