@@ -1011,7 +1011,7 @@ jobs:
         run: pnpm run test --shard=${{ matrix.shard }}/6
 
   job_deno_integration_tests:
-    name: Deno Integration Tests (${{ matrix.shard }}/6)
+    name: Deno Integration Tests (${{ matrix.shard }}/${{ matrix.shards }})
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04-arm
@@ -1020,6 +1020,12 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1, 2, 3, 4, 5, 6]
+        shards: [4, 6]
+        exclude:
+          - shard: 5
+            shards: 4
+          - shard: 6
+            shards: 4
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -1048,7 +1054,9 @@ jobs:
       - name: Run shared Node integration tests
         working-directory: dev-packages/deno-integration-tests
         # Tedious runs in the dedicated SQL Server job because its database container requires x86.
-        run: pnpm run test:node-suites --shard=${{ matrix.shard }}/6 --exclude '**/tracing/tedious/**'
+        run:
+          pnpm run test:node-suites --shard=${{ matrix.shard }}/${{ matrix.shards }} --exclude '**/tracing/tedious/**'
+          --reporter=default
 
   # GitHub Actions allows at most 256 jobs in one matrix, so the E2E tests are split into two jobs that share `env`
   # and `steps`.
