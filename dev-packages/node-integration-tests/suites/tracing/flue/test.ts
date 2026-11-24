@@ -221,6 +221,7 @@ describe.runIf(supports({ min: 22 }))('Flue integration', () => {
   createEsmTests(__dirname, 'scenario-tool-span.mjs', 'instrument-ignore-execute-tool.mjs', (createRunner, test) => {
     test('parents spans started in a tool to the agent span when execute_tool spans are ignored', async () => {
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
             const spans = container.items;
