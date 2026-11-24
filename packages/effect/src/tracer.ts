@@ -321,7 +321,7 @@ function startSentrySpan(
           sampled: parentSpan.sampled,
           sampleRand: _INTERNAL_safeMathRandom(),
         });
-        return withActiveSpan(null, () => startInactiveSpan(options));
+        return startInactiveSpan({ parentSpan: null, ...options });
       });
     }
 
@@ -346,7 +346,7 @@ function startSentrySpan(
     return startNewTrace(() => startInactiveSpan(options));
   }
 
-  return withActiveSpan(null, () => startInactiveSpan(options));
+  return startInactiveSpan({ parentSpan: null, ...options });
 }
 
 function createSentrySpan(

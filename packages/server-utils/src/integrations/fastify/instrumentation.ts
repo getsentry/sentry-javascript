@@ -34,9 +34,8 @@ import {
   REQUEST_HANDLER_SPAN_NAME_FALLBACK,
   SPAN_STATUS_ERROR,
   spanIsSampled,
-  startInactiveSpan,
   startSpan,
-  withActiveSpan,
+  startSpanManual,
 } from '@sentry/core';
 import type { FastifyInstance } from './types';
 import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
@@ -188,22 +187,24 @@ function onRequest(this: any, request: any, _reply: any, hookDone: () => void): 
   // spans are named after their route alone, without the method prefix.
   const isStreamedSpan = !!client && hasSpanStreamingEnabled(client);
 
-  const requestSpan = startInactiveSpan({
-    name: isStreamedSpan
-      ? route || REQUEST_HANDLER_SPAN_NAME_FALLBACK
-      : route != null
-        ? `${request.method} ${route}`
-        : 'request',
-    attributes,
-  });
-  request[kRequestSpan] = requestSpan;
-
-  // Set the request span as the active span for the remainder of the request lifecycle, so that
+  // The request span stays active for the remainder of the request lifecycle, so that
   // downstream hooks/handlers as well as errors captured via the error diagnostics channel are
   // parented to it (otherwise they would attach to the root `http.server` span instead).
-  withActiveSpan(requestSpan, () => {
-    hookDone();
-  });
+  // It is ended in `onResponse`.
+  startSpanManual(
+    {
+      name: isStreamedSpan
+        ? route || REQUEST_HANDLER_SPAN_NAME_FALLBACK
+        : route != null
+          ? `${request.method} ${route}`
+          : 'request',
+      attributes,
+    },
+    requestSpan => {
+      request[kRequestSpan] = requestSpan;
+      hookDone();
+    },
+  );
 }
 
 function onResponse(request: any, reply: any, hookDone: () => void): void {

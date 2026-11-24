@@ -48,8 +48,7 @@ import {
   stripUrlQueryAndFragment,
   isTracingSuppressed,
   bindScopeToEmitter,
-  startInactiveSpan,
-  withActiveSpan,
+  startSpanManual,
   getUrlFragment,
   getUrlQuery,
   filterCollectedUrl,
@@ -168,85 +167,86 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           const query = getUrlQuery(urlObj?.search);
           const fragment = getUrlFragment(urlObj?.hash);
 
-          const span = startInactiveSpan({
-            // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
-            // Route instrumentations rename the span to `${method} ${route}` once a route is known.
-            name: hasSpanStreamingEnabled(client)
-              ? requestMethod || HTTP_SPAN_NAME_FALLBACK
-              : bestEffortTransactionName,
-            attributes: {
-              // Sentry specific attributes
-              [SENTRY_KIND]: 'server',
-              [SENTRY_OP]: HTTP_SERVER,
-              [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-              [SENTRY_ORIGIN]: 'auto.http.http_server',
-              [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
-              [URL_FULL]: filterCollectedUrl(fullUrl, client),
-              [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
-              [URL_QUERY]: filterCollectedUrlQuery(query, client),
-              [URL_FRAGMENT]: filterCollectedUrlFragment(fragment, client),
-              [HTTP_REQUEST_METHOD]: normalizedRequest.method,
-              [USER_AGENT_ORIGINAL]: userAgent,
-              [URL_SCHEME]: scheme,
-              [SERVER_ADDRESS]: hostname,
-              [NETWORK_PROTOCOL_NAME]: 'http',
-              [NETWORK_PROTOCOL_VERSION]: httpVersion,
-              [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
-              [HTTP_REQUEST_BODY_SIZE]: getContentLengthFromHeaders(request.headers),
-              ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, client.getDataCollectionOptions()),
+          return startSpanManual(
+            {
+              // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+              // Route instrumentations rename the span to `${method} ${route}` once a route is known.
+              name: hasSpanStreamingEnabled(client)
+                ? requestMethod || HTTP_SPAN_NAME_FALLBACK
+                : bestEffortTransactionName,
+              attributes: {
+                // Sentry specific attributes
+                [SENTRY_KIND]: 'server',
+                [SENTRY_OP]: HTTP_SERVER,
+                [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+                [SENTRY_ORIGIN]: 'auto.http.http_server',
+                [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
+                [URL_FULL]: filterCollectedUrl(fullUrl, client),
+                [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
+                [URL_QUERY]: filterCollectedUrlQuery(query, client),
+                [URL_FRAGMENT]: filterCollectedUrlFragment(fragment, client),
+                [HTTP_REQUEST_METHOD]: normalizedRequest.method,
+                [USER_AGENT_ORIGINAL]: userAgent,
+                [URL_SCHEME]: scheme,
+                [SERVER_ADDRESS]: hostname,
+                [NETWORK_PROTOCOL_NAME]: 'http',
+                [NETWORK_PROTOCOL_VERSION]: httpVersion,
+                [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
+                [HTTP_REQUEST_BODY_SIZE]: getContentLengthFromHeaders(request.headers),
+                ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, client.getDataCollectionOptions()),
+              },
             },
-          });
-
-          safeCallback(
-            DEBUG_BUILD ? 'The `onSpanCreated` callback threw an error:' : '',
-            () => onSpanCreated?.(span, request, response),
-            () => undefined,
-          );
-
-          return withActiveSpan(span, () => {
-            bindScopeToEmitter(request);
-            bindScopeToEmitter(response);
-
-            // Ensure we only end the span once
-            // E.g. error can be emitted before close is emitted
-            let isEnded = false;
-            function endSpan(status: SpanStatus): void {
-              if (isEnded) {
-                return;
-              }
-
-              isEnded = true;
-
-              const newAttributes = getIncomingRequestAttributesOnResponse(
-                request,
-                response,
-                client.getDataCollectionOptions().userInfo,
+            span => {
+              safeCallback(
+                DEBUG_BUILD ? 'The `onSpanCreated` callback threw an error:' : '',
+                () => onSpanCreated?.(span, request, response),
+                () => undefined,
               );
-              span.setAttributes(newAttributes);
-              span.setStatus(status);
-              if (onSpanEnd) {
-                // A hook that throws must not skip `span.end()` or crash the process from the
-                // response's event listener.
-                safeCallback(
-                  DEBUG_BUILD ? 'The `onSpanEnd` callback threw an error:' : '',
-                  () => onSpanEnd(span, request, response),
-                  () => undefined,
+
+              bindScopeToEmitter(request);
+              bindScopeToEmitter(response);
+
+              // Ensure we only end the span once
+              // E.g. error can be emitted before close is emitted
+              let isEnded = false;
+              function endSpan(status: SpanStatus): void {
+                if (isEnded) {
+                  return;
+                }
+
+                isEnded = true;
+
+                const newAttributes = getIncomingRequestAttributesOnResponse(
+                  request,
+                  response,
+                  client.getDataCollectionOptions().userInfo,
                 );
+                span.setAttributes(newAttributes);
+                span.setStatus(status);
+                if (onSpanEnd) {
+                  // A hook that throws must not skip `span.end()` or crash the process from the
+                  // response's event listener.
+                  safeCallback(
+                    DEBUG_BUILD ? 'The `onSpanEnd` callback threw an error:' : '',
+                    () => onSpanEnd(span, request, response),
+                    () => undefined,
+                  );
+                }
+                span.end();
               }
-              span.end();
-            }
 
-            response.on('close', () => {
-              endSpan(getSpanStatusFromHttpCode(response.statusCode));
-            });
-            response.on(errorMonitor, () => {
-              const httpStatus = getSpanStatusFromHttpCode(response.statusCode);
-              // Ensure we def. have an error status here
-              endSpan(httpStatus.code === SPAN_STATUS_ERROR ? httpStatus : { code: SPAN_STATUS_ERROR });
-            });
+              response.on('close', () => {
+                endSpan(getSpanStatusFromHttpCode(response.statusCode));
+              });
+              response.on(errorMonitor, () => {
+                const httpStatus = getSpanStatusFromHttpCode(response.statusCode);
+                // Ensure we def. have an error status here
+                endSpan(httpStatus.code === SPAN_STATUS_ERROR ? httpStatus : { code: SPAN_STATUS_ERROR });
+              });
 
-            return next();
-          });
+              return next();
+            },
+          );
         };
 
         addStartSpanCallback(request, startSpan);
