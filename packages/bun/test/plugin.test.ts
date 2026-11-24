@@ -74,7 +74,7 @@ describe('sentryBunPlugin', () => {
   );
 
   async function buildWithSourceMaps(
-    sourcemap: 'linked' | 'external' | undefined,
+    sourcemap: 'linked' | 'external' | true | undefined,
     deleteSourceMaps: boolean | undefined,
   ): Promise<{ maps: string[]; bundleSources: string[] }> {
     const outdir = path.join(tmpDir, 'dist');
@@ -111,15 +111,22 @@ describe('sentryBunPlugin', () => {
     },
   );
 
-  test.each([false, undefined])('keeps linked source maps with `sourcemaps.delete: %s`', async deleteSourceMaps => {
-    const { maps, bundleSources } = await buildWithSourceMaps('linked', deleteSourceMaps);
+  test.each([
+    ['linked', false],
+    ['linked', undefined],
+    [true, undefined],
+  ] as const)(
+    'keeps linked source maps (sourcemap: %s, `sourcemaps.delete: %s`)',
+    async (sourcemap, deleteSourceMaps) => {
+      const { maps, bundleSources } = await buildWithSourceMaps(sourcemap, deleteSourceMaps);
 
-    expect(bundleSources.length).toBeGreaterThan(1);
-    expect(maps.length).toBe(bundleSources.length);
-    for (const source of bundleSources) {
-      expect(source).toMatch(/^\/\/# sourceMappingURL=.+\.js\.map$/m);
-    }
-  });
+      expect(bundleSources.length).toBeGreaterThan(1);
+      expect(maps.length).toBe(bundleSources.length);
+      for (const source of bundleSources) {
+        expect(source).toMatch(/^\/\/# sourceMappingURL=.+\.js\.map$/m);
+      }
+    },
+  );
 
   test('turns on hidden source maps and keeps them with `sourcemaps.delete: false`', async () => {
     const { maps, bundleSources } = await buildWithSourceMaps(undefined, false);
