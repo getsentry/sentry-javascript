@@ -1,18 +1,30 @@
-import { consoleSandbox } from '@sentry/core';
+import { consoleSandbox, stringifyForCodeInjection } from '@sentry/core';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Plugin, UserConfig } from 'vite';
+import { TUNNEL_BASE_PATH_GLOBAL } from '../common/tunnel';
 import type { SentrySolidStartPluginOptions } from './types';
 
 /**
  * A Sentry plugin for SolidStart to build the server
  * `instrument.server.ts` file.
  */
-export function makeBuildInstrumentationFilePlugin(options: SentrySolidStartPluginOptions = {}): Plugin {
+export function makeBuildInstrumentationFilePlugin(options: SentrySolidStartPluginOptions = {}, basePath = ''): Plugin {
+  let instrumentationFile: string | undefined;
+
   return {
     name: 'sentry-solidstart-build-instrumentation-file',
     apply: 'build',
     enforce: 'post',
+    // `node --import` loads this file before the server bundle, so the file sets the base path for `Sentry.init` itself.
+    banner(chunk) {
+      // Vite reports module IDs with forward slashes, also on Windows.
+      const isInstrumentationFile =
+        !!chunk.facadeModuleId && path.resolve(chunk.facadeModuleId) === instrumentationFile;
+      return basePath && isInstrumentationFile
+        ? `globalThis.${TUNNEL_BASE_PATH_GLOBAL} = ${stringifyForCodeInjection(basePath)};`
+        : '';
+    },
     async config(config: UserConfig, { command }) {
       const instrumentationFilePath = options.instrumentation || './src/instrument.server.ts';
       const router = (config as UserConfig & { router: { target: string; name: string; root: string } }).router;
@@ -42,7 +54,8 @@ export function makeBuildInstrumentationFilePlugin(options: SentrySolidStartPlug
         return config;
       }
 
-      input.push(path.resolve(router.root, instrumentationFilePath));
+      instrumentationFile = path.resolve(router.root, instrumentationFilePath);
+      input.push(instrumentationFile);
 
       return {
         ...config,
