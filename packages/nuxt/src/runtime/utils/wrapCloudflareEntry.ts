@@ -1,7 +1,7 @@
 import type { DurableObjectState, ExecutionContext, ExportedHandler } from '@cloudflare/workers-types';
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import { instrumentDurableObjectWithSentry, withSentry } from '@sentry/cloudflare';
-import { applySdkMetadata } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata } from '@sentry/core';
 // A namespace import keeps a missing `withEnv` export a missing property instead of a module linking error.
 import * as cloudflareWorkers from 'cloudflare:workers';
 import { getBuildAssetRequestFilters } from './buildAssetRequestFilters';
@@ -80,7 +80,7 @@ function runWithEnv(env: unknown, callback: () => unknown): unknown {
 
 function withNuxtSdkMetadata(optionsCallback: OptionsCallback): OptionsCallback {
   return env => {
-    const options = { ...optionsCallback(env) };
+    const options = _INTERNAL_captureOptionsSetByUser({ ...optionsCallback(env) });
     applySdkMetadata(options, 'nuxt', ['nuxt', 'cloudflare']);
     return options;
   };

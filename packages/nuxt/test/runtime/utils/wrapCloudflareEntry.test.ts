@@ -70,6 +70,7 @@ describe('wrapNitroCloudflareEntryWithSentry', () => {
     expect(wrapped.optionsCallback({ SENTRY_DSN: 'https://public@dsn.ingest.sentry.io/1337' })).toEqual({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
       _metadata: {
+        optionsSetByUser: ['dsn'],
         sdk: {
           name: 'sentry.javascript.nuxt',
           version: SDK_VERSION,
@@ -97,6 +98,18 @@ describe('wrapNitroCloudflareEntryWithSentry', () => {
       healthCheckFilter,
       { op: HTTP_SERVER, attributes: { [URL_PATH]: /^\/shop\/_nuxt\// } },
     ]);
+  });
+
+  it('does not report the build output filter as an option that the app set', () => {
+    const wrapped = wrapNitroCloudflareEntryWithSentry(
+      () => ({ dsn: 'https://public@dsn.ingest.sentry.io/1337' }),
+      {},
+      '/_nuxt/',
+    ) as unknown as WrappedHandler;
+
+    const options = wrapped.optionsCallback({}) as { _metadata: { optionsSetByUser: string[] } };
+
+    expect(options._metadata.optionsSetByUser).toEqual(['dsn']);
   });
 });
 
@@ -135,6 +148,7 @@ describe('wrapNitroDurableObjectWithSentry', () => {
     expect(optionsCallback({})).toEqual({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
       _metadata: {
+        optionsSetByUser: ['dsn'],
         sdk: {
           name: 'sentry.javascript.nuxt',
           version: SDK_VERSION,
