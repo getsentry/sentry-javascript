@@ -11,14 +11,14 @@ const honoInstrumentationConfig: InstrumentationConfig[] = [
     // TODO(v12): Raise the minimum Hono version to 4.4.9, here and in the `@sentry/hono` peer range.
     // Before 4.4.9, Hono passes `matchResult` to `new HonoRequest()`, so this hook does nothing.
     channelName: 'context',
-    module: { name: 'hono', versionRange: '>=4.0.0 <5', filePath: /^dist\/(?:cjs\/)?context\.js$/ },
+    module: { name: 'hono', versionRange: '>=4.0.0 <6', filePath: /^dist\/(?:cjs\/)?context\.js$/ },
     functionQuery: { className: 'Context' },
   },
   {
     // `app.request(...)` — Hono's internal dispatch for sub-app-to-sub-app fetches. A class-field
     // arrow, hence `astQuery` instead of `methodName`.
     channelName: 'request',
-    module: { name: 'hono', versionRange: '>=4.0.0 <5', filePath: /^dist\/(?:cjs\/)?hono-base\.js$/ },
+    module: { name: 'hono', versionRange: '>=4.0.0 <6', filePath: /^dist\/(?:cjs\/)?hono-base\.js$/ },
     astQuery: "PropertyDefinition[key.name='request'] > ArrowFunctionExpression",
     functionQuery: { kind: 'Auto' },
   },
