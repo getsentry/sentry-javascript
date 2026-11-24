@@ -1,0 +1,83 @@
+# getsentry/sentry-javascript c7b765f09b1a985847e5eef4e9e0727ee8917f7e
+
+rubric = "sdk"
+
+[[area]]
+paths = ["packages/core/**"]
+families = ["browser", "server"]
+shared_core = true
+
+[[area]]
+paths = [
+  "packages/browser/**", "packages/browser-utils/**", "packages/react/**", "packages/vue/**",
+  "packages/angular/**", "packages/svelte/**", "packages/solid/**", "packages/ember/**",
+  "packages/feedback/**", "packages/replay*/**", "packages/wasm/**", "packages/integration-shims/**",
+]
+families = ["browser"]
+
+[[area]]
+paths = [
+  "packages/node/**", "packages/node-*/**", "packages/bun/**", "packages/deno/**",
+  "packages/cloudflare/**", "packages/vercel-edge/**", "packages/aws-serverless/**",
+  "packages/google-cloud-serverless/**", "packages/opentelemetry/**", "packages/profiling-node/**",
+  "packages/server-*/**", "packages/nestjs/**", "packages/hono/**", "packages/elysia/**",
+  "packages/nitro/**",
+]
+families = ["server"]
+
+[[area]]
+paths = [
+  "packages/nextjs/**", "packages/nuxt/**", "packages/sveltekit/**", "packages/remix/**",
+  "packages/astro/**", "packages/solidstart/**", "packages/tanstackstart-*/**",
+  "packages/react-router/**", "packages/gatsby/**", "packages/effect/**",
+]
+families = ["browser", "server"]
+
+[[area]]
+paths = [
+  "packages/bundler-plugins/**", "packages/*-plugin/**", "packages/eslint-*/**",
+  "packages/typescript/**",
+]
+families = ["tooling"]
+
+# Workspace lockfile: the dependency versions every package and CDN bundle is built from.
+[[area]]
+paths = ["pnpm-lock.yaml"]
+families = ["browser", "server", "tooling"]
+shared_core = true
+
+# Anchored to each package's own root, so a test-named directory planted
+# inside packages/*/src is not read as a test.
+[[kind]]
+paths = [
+  "packages/*/test/**", "packages/ember/tests/**", "packages/*/tsconfig.test.json",
+  "packages/*/vitest.config*", "dev-packages/*/tsconfig.test.json", "dev-packages/*/vitest.config*",
+  "packages/*/setup-test.ts", "packages/*/patch-vitest.ts", "dev-packages/*-tests/**",
+  "dev-packages/e2e-tests/**", "dev-packages/test-utils/**",
+]
+kind = "tests"
+
+[[kind]]
+paths = [
+  "**/tsconfig*.json", "**/rollup*.config.mjs", "**/vite.config.*", "**/babel*.config.cjs",
+  "**/ng-package.json", "**/angular.json", "packages/*/scripts/**", "packages/typescript/**",
+  "scripts/**", "vite/**", "nx.json", "pnpm-workspace.yaml", ".version.json", "typedoc.js",
+  "dev-packages/rollup-utils/**", "dev-packages/*-gh-action/**",
+]
+kind = "build-release"
+
+[[kind]]
+paths = ["pnpm-workspace.yaml"]
+kind = "dependencies"
+
+[[kind]]
+paths = ["docs/**"]
+kind = "docs"
+
+[[kind]]
+paths = [
+  ".oxlintrc*.json", "packages/*/.oxlintrc*.json", "dev-packages/.oxlintrc*.json",
+  "dev-packages/*/.oxlintrc*.json", ".oxfmtrc.json", "packages/*/eslint.config.mjs", ".size-limit.js",
+  ".secret_scan_ignore", ".git-blame-ignore-revs", "agents.toml", "agents.lock",
+]
+kind = "dev-tooling"
