@@ -13,12 +13,7 @@ import {
 import { addDatabaseInstrumentation } from './databaseConfig';
 import { addMiddlewareImports, addMiddlewareInstrumentation } from './middlewareConfig';
 import { addCacheStorageInstrumentation, addStorageInstrumentation } from './storageConfig';
-import { addRuntimeFlagsTemplate, addRuntimeInjectionTraceDep, type ServerApi } from './utils';
-
-type DeprecatedInjection = {
-  injectMode: 'top-level-import' | 'experimental_dynamic-import';
-  runtimeFlagsPath: string;
-};
+import { addRuntimeInjectionTraceDep, type ServerApi } from './utils';
 
 type NitroModuleOptions = Omit<SentryNuxtModuleOptions, 'experimental_entrypointWrappedFunctions'> &
   Required<Pick<SentryNuxtModuleOptions, 'experimental_entrypointWrappedFunctions'>>;
@@ -41,12 +36,7 @@ export function setupNitroServer(
   const deprecatedInjectMode =
     injectMode === 'top-level-import' || injectMode === 'experimental_dynamic-import' ? injectMode : undefined;
 
-  // The deprecated modes skip the config plugin, so they import the runtime flags on their own.
-  const deprecatedInjection: DeprecatedInjection | undefined = deprecatedInjectMode
-    ? { injectMode: deprecatedInjectMode, runtimeFlagsPath: addRuntimeFlagsTemplate().dst }
-    : undefined;
-
-  if (!deprecatedInjection) {
+  if (!deprecatedInjectMode) {
     addServerConfigPlugin(nuxt, serverConfigFile, !isNitroV3);
   }
 
@@ -79,8 +69,8 @@ export function setupNitroServer(
       addCacheStorageInstrumentation(nitro);
     }
 
-    if (deprecatedInjection) {
-      setupDeprecatedInjectMode(nitro, deprecatedInjection, isNitroV3, serverConfigFile, moduleOptions);
+    if (deprecatedInjectMode) {
+      setupDeprecatedInjectMode(nitro, deprecatedInjectMode, isNitroV3, serverConfigFile, moduleOptions);
       return;
     }
 
@@ -99,7 +89,7 @@ export function setupNitroServer(
 
 function setupDeprecatedInjectMode(
   nitro: Nitro,
-  { injectMode, runtimeFlagsPath }: DeprecatedInjection,
+  injectMode: 'top-level-import' | 'experimental_dynamic-import',
   isNitroV3: boolean,
   serverConfigFile: string,
   moduleOptions: NitroModuleOptions,
@@ -114,13 +104,13 @@ function setupDeprecatedInjectMode(
   if (injectMode === 'top-level-import') {
     // Nitro 3 (in Nuxt 5) is not bundled in dev mode, so there is no build to emit into.
     if (!(isNitroV3 && nitro.options.dev)) {
-      addServerConfigToBuild(moduleOptions, nitro, serverConfigFile, runtimeFlagsPath);
+      addServerConfigToBuild(moduleOptions, nitro, serverConfigFile);
     }
     addSentryTopImport(moduleOptions, nitro);
   }
 
   if (injectMode === 'experimental_dynamic-import') {
-    addDynamicImportEntryFileWrapper(nitro, serverConfigFile, runtimeFlagsPath, moduleOptions);
+    addDynamicImportEntryFileWrapper(nitro, serverConfigFile, moduleOptions);
 
     if (moduleOptions.debug) {
       consoleSandbox(() => {
