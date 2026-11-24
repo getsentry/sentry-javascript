@@ -1,5 +1,4 @@
-import { captureException } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
+import { _INTERNAL_captureNitroTaskError } from '@sentry/server-utils';
 import type { Task } from 'nitro/types';
 
 type TaskRegistry = Record<string, { resolve?: () => Promise<Task> }>;
@@ -29,11 +28,7 @@ export function instrumentTasks(tasks: TaskRegistry): void {
           try {
             return await handler.run(event);
           } catch (error) {
-            captureException(error, {
-              captureContext: { contexts: { nitro: { task: name } } },
-              mechanism: { handled: false, type: 'auto.function.nitro.task' },
-            });
-            await flushIfServerless();
+            await _INTERNAL_captureNitroTaskError(error, name);
             throw error;
           }
         },

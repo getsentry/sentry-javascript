@@ -51,3 +51,9 @@ export interface UnstorageTraceContext {
   base?: string;
   driver?: { name?: string };
 }
+
+/** Minimal shape of Nitro's `CapturedErrorContext`, passed to the `error` hook. */
+export interface NitroCapturedErrorContext {
+  event?: { req: { method: string; url: string } };
+  tags?: string[];
+}
