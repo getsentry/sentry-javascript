@@ -3013,4 +3013,71 @@ describe('ignoreSpans (core path, streaming)', () => {
     expect(getCapturedScopesOnSpan(span).scope).toBe(getCurrentScope());
     expect(getCapturedScopesOnSpan(span).isolationScope).toBe(getIsolationScope());
   });
+
+  describe('withActiveSpan', () => {
+    beforeEach(() => {
+      client = new TestClient(
+        getDefaultTestClientOptions({ tracesSampleRate: 1, traceLifecycle: 'stream', ignoreSpans: ['ignored'] }),
+      );
+      setCurrentClient(client);
+      client.init();
+    });
+
+    it('activates the parent of an ignored child span', () => {
+      startSpan({ name: 'GET /users/:id' }, rootSpan => {
+        const ignoredSpan = startInactiveSpan({ name: 'ignored' });
+
+        withActiveSpan(ignoredSpan, () => {
+          expect(getActiveSpan()).toBe(rootSpan);
+        });
+      });
+    });
+
+    it('keeps spans started under an ignored child span and parents them to its parent', () => {
+      startSpan({ name: 'GET /users/:id' }, rootSpan => {
+        const ignoredSpan = startInactiveSpan({ name: 'ignored' });
+
+        const childSpan = withActiveSpan(ignoredSpan, () => startInactiveSpan({ name: 'db.query' }));
+
+        expect(childSpan).toBeInstanceOf(SentrySpan);
+        expect(spanToJSON(childSpan).parent_span_id).toBe(rootSpan.spanContext().spanId);
+      });
+    });
+
+    it("parents to the ignored span's own parent when another span is active at call time", () => {
+      const [ignoredSpan, ignoredSpanParent] = startSpan({ name: 'queue.submit' }, parent => [
+        startInactiveSpan({ name: 'ignored' }),
+        parent,
+      ]);
+
+      startSpan({ name: 'GET /unrelated' }, () => {
+        const childSpan = withActiveSpan(ignoredSpan, () => startInactiveSpan({ name: 'db.query' }));
+
+        expect(spanToJSON(childSpan).parent_span_id).toBe(ignoredSpanParent.spanContext().spanId);
+        expect(childSpan.spanContext().traceId).toBe(ignoredSpanParent.spanContext().traceId);
+      });
+    });
+
+    it('activates the parent when an ignored child is passed as parentSpan', () => {
+      startSpan({ name: 'GET /users/:id' }, rootSpan => {
+        const ignoredSpan = startInactiveSpan({ name: 'ignored' });
+
+        const childSpan = startInactiveSpan({ name: 'db.query', parentSpan: ignoredSpan });
+
+        expect(childSpan).toBeInstanceOf(SentrySpan);
+        expect(spanToJSON(childSpan).parent_span_id).toBe(rootSpan.spanContext().spanId);
+      });
+    });
+
+    it('still activates an ignored root span so its subtree is dropped', () => {
+      const ignoredRootSpan = startInactiveSpan({ name: 'ignored' });
+
+      const childSpan = withActiveSpan(ignoredRootSpan, () => {
+        expect(getActiveSpan()).toBe(ignoredRootSpan);
+        return startInactiveSpan({ name: 'db.query' });
+      });
+
+      expect(childSpan).toBeInstanceOf(SentryNonRecordingSpan);
+    });
+  });
 });

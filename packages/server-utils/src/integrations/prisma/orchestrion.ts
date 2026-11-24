@@ -1,6 +1,6 @@
 import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import type { Span } from '@sentry/core';
-import { getActiveSpan, getRootSpan, spanIsIgnored, startInactiveSpan, withActiveSpan } from '@sentry/core';
+import { getActiveSpan, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { DB_COLLECTION_NAME, DB_OPERATION_NAME, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { OrchestrionChannelContext } from '../../orchestrion/types';
@@ -106,7 +106,7 @@ function patchConsumption(result: LazyResult, span: Span, end: (error?: unknown)
 
   // Built before either is installed, so a failed assignment can't leave a half-patched result.
   const patchedToArray = function (this: LazyResult): Promise<unknown> {
-    const rows: Promise<unknown> = runUnderSpan(span, () => toArray.call(this));
+    const rows: Promise<unknown> = withActiveSpan(span, () => toArray.call(this));
     // Chained, not side-observed, so a rejected fire-and-forget `toArray()` still surfaces as unhandled.
     return rows.then(
       value => {
@@ -121,7 +121,7 @@ function patchConsumption(result: LazyResult, span: Span, end: (error?: unknown)
   };
   const patchedAsyncIterator = function (this: LazyResult): AsyncIterableIterator<unknown> {
     return wrapIterator(
-      runUnderSpan(span, () => asyncIterator.call(this)),
+      withActiveSpan(span, () => asyncIterator.call(this)),
       span,
       end,
     );
@@ -131,15 +131,6 @@ function patchConsumption(result: LazyResult, span: Span, end: (error?: unknown)
   result[Symbol.asyncIterator] = patchedAsyncIterator;
 
   return true;
-}
-
-// An ignored child span is never emitted, so its children must keep parenting to the nearest emitted span
-// (same rule as the tracing-channel binding and core `startSpan`).
-function runUnderSpan<T>(span: Span, callback: () => T): T {
-  if (spanIsIgnored(span) && getRootSpan(span) !== span) {
-    return callback();
-  }
-  return withActiveSpan(span, callback);
 }
 
 function wrapIterator(
@@ -162,14 +153,14 @@ function wrapIterator(
     );
 
   return {
-    next: (...args) => settle(runUnderSpan(span, () => iterator.next(...args))),
+    next: (...args) => settle(withActiveSpan(span, () => iterator.next(...args))),
     return: value => {
       const iteratorReturn = iterator.return?.bind(iterator);
       if (!iteratorReturn) {
         end();
         return Promise.resolve({ done: true, value });
       }
-      return settle(runUnderSpan(span, () => iteratorReturn(value)));
+      return settle(withActiveSpan(span, () => iteratorReturn(value)));
     },
     throw: error => {
       const iteratorThrow = iterator.throw?.bind(iterator);
@@ -177,7 +168,7 @@ function wrapIterator(
         end(error);
         return Promise.reject(error);
       }
-      return settle(runUnderSpan(span, () => iteratorThrow(error)));
+      return settle(withActiveSpan(span, () => iteratorThrow(error)));
     },
     [Symbol.asyncIterator]() {
       return this;

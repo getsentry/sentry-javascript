@@ -3,13 +3,12 @@ import { tracingChannel } from 'node:diagnostics_channel';
 import type { Client, Scope, Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import {
-  addChildSpanToSpan,
   getActiveSpan,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
   GLOBAL_OBJ,
-  SentryNonRecordingSpan,
   setAsyncContextStrategy,
+  startInactiveSpan,
   withActiveSpan,
 } from '@sentry/core';
 import type { MockInstance } from 'vitest';
@@ -23,6 +22,7 @@ import {
   prismaChannels,
   prismaConfig,
 } from '../../src/orchestrion/config/prisma';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 interface TestStore {
   scope: Scope;
@@ -131,6 +131,7 @@ describe('instrumentPrismaV8', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    getDefaultCurrentScope().setClient(undefined);
   });
 
   // Subscriptions are process-global, so this has to run before anything subscribes.
@@ -313,9 +314,18 @@ describe('instrumentPrismaV8', () => {
     expect(span.end).toHaveBeenCalledTimes(1);
   });
 
-  it('lazy terminal: does not activate an ignored operation span while the query runs', async () => {
-    const ignoredSpan = new SentryNonRecordingSpan({ dropReason: 'ignored' });
-    addChildSpanToSpan(PARENT_SPAN, ignoredSpan);
+  it("lazy terminal: runs an ignored operation's query under its parent, even when consumed elsewhere", async () => {
+    getDefaultCurrentScope().setClient(
+      new TestClient(
+        getDefaultTestClientOptions({
+          tracesSampleRate: 1,
+          traceLifecycle: 'stream',
+          ignoreSpans: ['prisma:client:operation'],
+        }),
+      ),
+    );
+    startInactiveSpanSpy.mockReset();
+    const ignoredSpan = withActiveSpan(PARENT_SPAN, () => startInactiveSpan({ name: 'prisma:client:operation' }));
     const ignoredSpanEnd = vi.spyOn(ignoredSpan, 'end');
     startInactiveSpanSpy.mockReturnValue(ignoredSpan);
 
@@ -331,7 +341,7 @@ describe('instrumentPrismaV8', () => {
       ),
     );
 
-    await expect(withActiveSpan(PARENT_SPAN, () => result.toArray())).resolves.toEqual([1]);
+    await expect(withActiveSpan(makeSpan('other-request'), () => result.toArray())).resolves.toEqual([1]);
     expect(activeDuringQuery).toBe(PARENT_SPAN);
     expect(ignoredSpanEnd).toHaveBeenCalledTimes(1);
   });

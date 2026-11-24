@@ -19,6 +19,7 @@ import {
 } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { bindTracingChannelToSpan } from '../src/tracing-channel';
+import { getDefaultTestClientOptions, init } from './mocks/client';
 
 interface TestStore {
   scope: Scope;
@@ -168,6 +169,24 @@ describe('bindTracingChannelToSpan', () => {
     );
 
     expect(childParentSpanId).toBe(parent.spanContext().spanId);
+  });
+
+  it('parents child spans to the enclosing span when the bound span is an ignored child', () => {
+    installTestAsyncContextStrategy();
+    init(getDefaultTestClientOptions({ tracesSampleRate: 1, traceLifecycle: 'stream', ignoreSpans: ['ignored-span'] }));
+
+    startSpan({ name: 'parent-span' }, parent => {
+      const ignoredSpan = startInactiveSpan({ name: 'ignored-span' });
+      const { channel } = bindTracingChannelToSpan(
+        tracingChannel<{ operation: string }>('test:bind-span:ignored-child'),
+        () => ignoredSpan,
+      );
+
+      const child = channel.traceSync(() => startInactiveSpan({ name: 'child-span' }), { operation: 'read' });
+
+      expect(child.isRecording()).toBe(true);
+      expect(spanToJSON(child).parent_span_id).toBe(parent.spanContext().spanId);
+    });
   });
 
   it('restores the caller context in a callback dispatched from a detached context (asyncStart rebind)', async () => {

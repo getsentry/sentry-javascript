@@ -8,8 +8,6 @@ import {
   SPAN_STATUS_ERROR,
   getAsyncContextStrategy,
   getMainCarrier,
-  spanIsIgnored,
-  getRootSpan,
   withActiveSpan,
 } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
@@ -310,14 +308,6 @@ function getErrorInfo(error: unknown): ErrorInfo {
 }
 
 function getStoreWithActiveSpan(asyncLocalStorage: AsyncLocalStorage<unknown>, span: Span): unknown {
-  // Do not make an ignored *child* the active span: no span is emitted for it, so its children and
-  // outgoing requests must propagate from the nearest emitted parent instead. An ignored *root* is
-  // still activated so its whole subtree is dropped with it. Mirrors core `startSpan` and the OTel
-  // context manager (`spanIsIgnored(span) && getRootSpan(span) !== span`).
-  if (spanIsIgnored(span) && getRootSpan(span) !== span) {
-    return asyncLocalStorage.getStore();
-  }
-
   return withActiveSpan(span, () => {
     return asyncLocalStorage.getStore();
   });

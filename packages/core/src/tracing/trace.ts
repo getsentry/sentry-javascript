@@ -14,6 +14,7 @@ import type { StartSpanOptions } from '../types/startSpanOptions';
 import { baggageHeaderToDynamicSamplingContext } from '../utils/baggage';
 import { debug } from '../utils/debug-logger';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
+import { addNonEnumerableProperty } from '../utils/object';
 import { recordEscapedErrorSpan } from '../utils/errorSpanAttribution';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { shouldIgnoreSpan } from '../utils/should-ignore-span';
@@ -225,18 +226,20 @@ export const continueTrace = <V>(
  * passed `null` to start an entirely new span tree.
  *
  * @param span Spans started in the context of the provided callback will be children of this span. If `null` is passed,
- * spans started within the callback will not be attached to a parent span.
+ * spans started within the callback will not be attached to a parent span. An ignored (`ignoreSpans`) child span is
+ * never made active; its parent is made active instead, so the spans started in the callback are kept.
  * @param callback Execution context in which the provided span will be active. Is passed the newly forked scope.
  * @returns the value returned from the provided callback function.
  */
 export function withActiveSpan<T>(span: Span | null, callback: (scope: Scope) => T): T {
+  const activeSpan = span && getEmittedSpan(span);
   const acs = getAcs();
   if (acs.withActiveSpan) {
-    return acs.withActiveSpan(span, callback);
+    return acs.withActiveSpan(activeSpan, callback);
   }
 
   return withScope(scope => {
-    _setSpanForScope(scope, span || undefined);
+    _setSpanForScope(scope, activeSpan || undefined);
     return callback(scope);
   });
 }
@@ -317,6 +320,15 @@ function startMissingRequiredParentSpan(scope: Scope, client: Client | undefined
   return span;
 }
 
+const IGNORED_SPAN_PARENT_FIELD = '_sentryIgnoredSpanParent';
+
+type IgnoredChildSpan = Span & { [IGNORED_SPAN_PARENT_FIELD]?: Span };
+
+/** An ignored child span is never emitted, so spans meant to parent to it parent to its own parent instead. */
+function getEmittedSpan(span: Span): Span {
+  return (span as IgnoredChildSpan)[IGNORED_SPAN_PARENT_FIELD] || span;
+}
+
 function createChildOrRootSpan({
   parentSpan: resolvedParentSpan,
   spanArguments,
@@ -377,6 +389,8 @@ function createChildOrRootSpan({
       // Preserve the root relationship so async context strategies can distinguish
       // ignored children from ignored segments and keep the parent active.
       addChildSpanToSpan(parentSpan, ignoredSpan);
+      // Stored rather than read off the active span later: callers can resume this span from an unrelated context.
+      addNonEnumerableProperty(ignoredSpan, IGNORED_SPAN_PARENT_FIELD, parentSpan);
     }
     setCapturedScopesOnSpan(ignoredSpan, scope, isolationScope);
 
@@ -593,9 +607,9 @@ function _startChildSpan(
 }
 
 function getParentSpan(scope: Scope, customParentSpan: Span | null | undefined): Span | undefined {
-  // always use the passed in span directly
+  // always use the passed in span, unless it is an ignored child
   if (customParentSpan) {
-    return customParentSpan;
+    return getEmittedSpan(customParentSpan);
   }
 
   // This is different from `undefined` as it means the user explicitly wants no parent span
@@ -615,7 +629,7 @@ function getParentSpan(scope: Scope, customParentSpan: Span | null | undefined):
     return getRootSpan(span);
   }
 
-  return span;
+  return getEmittedSpan(span);
 }
 
 function getActiveSpanWrapper<T>(parentSpan: Span | undefined | null): (callback: () => T) => T {
