@@ -5,7 +5,7 @@ import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
-import { SENTRY_KIND } from '@sentry/conventions/attributes';
+import { SENTRY_KIND, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
 import { beforeAll, beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from '../src/client';
@@ -355,7 +355,7 @@ describe('withSentry', () => {
       expect(await response.text()).toBe('test');
       await vi.waitFor(() => expect(sentryEvent.contexts?.trace).toBeDefined());
       const data = sentryEvent.contexts?.trace?.data as Record<string, unknown> | undefined;
-      expect(data?.['url.full']).toBe('https://example.com/page');
+      expect(data?.[URL_FULL]).toBe('https://example.com/page');
       expect(data).not.toHaveProperty('http.request.header.x-vinext-internal-dispatch');
     });
 
@@ -909,9 +909,9 @@ describe('withSentry', () => {
       await vi.waitFor(() => expect(sentryEvent.contexts?.trace).toBeDefined());
 
       const data = sentryEvent.contexts?.trace?.data as Record<string, unknown> | undefined;
-      expect(data?.['url.full']).toBe('https://example.com/page?foo=bar');
-      expect(data?.['url.query']).not.toContain('__vinext_cache_key');
-      expect(data?.['url.query']).toContain('foo=bar');
+      expect(data?.[URL_FULL]).toBe('https://example.com/page?foo=bar');
+      expect(data?.[URL_QUERY]).not.toContain('__vinext_cache_key');
+      expect(data?.[URL_QUERY]).toContain('foo=bar');
       expect(data).not.toHaveProperty('http.request.header.x-vinext-internal-dispatch');
       expect(data).not.toHaveProperty('http.request.header.x-vinext-internal-request-cf');
       expect(data).toHaveProperty('http.request.header.x-custom', ['keep']);
