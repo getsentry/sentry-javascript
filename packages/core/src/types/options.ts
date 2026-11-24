@@ -296,8 +296,9 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   /**
    * PoC: Sample rate for sessions.
    *
-   * The SDK makes one decision per session. In a sampled session it sends all spans, logs, metrics, errors,
-   * replays and profiles. In an unsampled session it sends none of them, except errors, which follow `sampleRate`.
+   * The SDK makes one decision per session. In a sampled session it sends all spans and errors and records the
+   * replay and profile. In an unsampled session it sends no spans and records no replay or profile, and errors
+   * follow `sampleRate`. Logs and metrics are not sampled, so they are sent in both cases.
    * 0.0 samples no session, 1.0 samples all sessions.
    *
    * Inside a session, `tracesSampleRate`, `tracesSampler`, `replaysSessionSampleRate` and

@@ -40,7 +40,6 @@ export {
   isSamplingBySession,
   resolveSamplingUnit,
   sampleRandFromKey,
-  sampleTelemetry,
 } from './samplingUnit';
 export type { SamplingUnit } from './samplingUnit';
 export { logSpanEnd, logSpanStart } from './logSpans';

@@ -14,9 +14,10 @@ import { safeMathRandom } from '../utils/randomSafeContext';
  * A "sampling unit" is a group of telemetry that shares one sampling decision, for example a user
  * session or an AI conversation. The SDK makes one decision per unit:
  *
- * - Sampled unit: the SDK sends all spans, logs, metrics, errors, replays and profiles collected in it.
- * - Unsampled unit: the SDK sends none of them, except errors, which follow `sampleRate`.
+ * - Sampled unit: the SDK sends all spans and errors collected in it and records the replay and profile.
+ * - Unsampled unit: the SDK sends no spans and records no replay or profile. Errors follow `sampleRate`.
  *
+ * Logs and metrics are not sampled by the SDK today, so they are sent in both cases.
  * Telemetry outside of any unit follows the existing options (`tracesSampleRate`, `sampleRate`, ...).
  */
 
@@ -193,18 +194,4 @@ export function getSampleRandForNewTrace(
   isolationScope: Scope = getIsolationScope(),
 ): number {
   return resolveSamplingUnit(client?.getOptions(), scope, isolationScope)?.sampleRand ?? safeMathRandom();
-}
-
-/**
- * The decision for logs and metrics. They have no sample rate of their own, so outside of a sampling unit
- * they are always sent. A returned `sampleRate` below 1 has to be sent along as `sentry.client_sample_rate`,
- * so Sentry can extrapolate.
- */
-export function sampleTelemetry(
-  client: Client,
-  scope: Scope,
-  isolationScope: Scope = getIsolationScope(),
-): { sampled: boolean; sampleRate?: number } {
-  const unit = resolveSamplingUnit(client.getOptions(), scope, isolationScope);
-  return unit ? { sampled: unit.sampled, sampleRate: unit.sampleRate } : { sampled: true };
 }

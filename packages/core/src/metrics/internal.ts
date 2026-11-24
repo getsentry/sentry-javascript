@@ -1,5 +1,4 @@
 import {
-  SENTRY_CLIENT_SAMPLE_RATE,
   SENTRY_ENVIRONMENT,
   SENTRY_RELEASE,
   SENTRY_REPLAY_ID,
@@ -15,7 +14,6 @@ import type { Client } from '../client';
 import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
-import { sampleTelemetry } from '../tracing/samplingUnit';
 import type { Integration } from '../types/integration';
 import type { Metric, SerializedMetric } from '../types/metric';
 import type { User } from '../types/user';
@@ -195,23 +193,11 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
     return;
   }
 
-  // PoC: Logs and metrics follow the decision of their session or conversation. Outside of one, they are sent.
-  const { sampled, sampleRate } = sampleTelemetry(client, currentScope);
-  if (!sampled) {
-    client.recordDroppedEvent('sample_rate', 'trace_metric', 1);
-    return;
-  }
-
   const { beforeSendMetric } = client.getOptions();
 
   // Enrich metric with contextual attributes
   const { user, attributes: scopeAttributes } = getCombinedScopeData(getIsolationScope(), currentScope);
   const enrichedMetric = _enrichMetricAttributes(beforeMetric, client, user);
-
-  if (sampleRate !== undefined && sampleRate < 1) {
-    // Sentry needs the rate to extrapolate sampled metrics. Relay already reads this attribute for metrics.
-    enrichedMetric.attributes = { ...enrichedMetric.attributes, [SENTRY_CLIENT_SAMPLE_RATE]: sampleRate };
-  }
 
   client.emit('processMetric', enrichedMetric);
 

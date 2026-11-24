@@ -2,7 +2,6 @@ import { SENTRY_CLIENT_SAMPLE_RATE } from '@sentry/conventions/attributes';
 import { describe, expect, it, vi } from 'vitest';
 import {
   captureException,
-  getCurrentScope,
   hasSpansEnabled,
   setAsyncContextStrategy,
   setConversationId,
@@ -33,7 +32,7 @@ function init(options: Partial<CoreOptions>): TestClient {
   client.init();
 
   // The log and metric buffers flush once they are full, so we collect captured items through the client hooks.
-  // We record the `sentry.client_sample_rate` attribute of each item.
+  // We record the `sentry.client_sample_rate` attribute of each item, which stays unset: they are not sampled.
   logs = [];
   metrics = [];
   client.on('afterCaptureLog', log => logs.push(log.attributes?.[SENTRY_CLIENT_SAMPLE_RATE]));
@@ -150,7 +149,7 @@ describe('sessionSampleRate', () => {
     expect(sampledSessions).toBeLessThan(570);
   });
 
-  it('sends all telemetry of a sampled session', () => {
+  it('sends all spans, errors, logs and metrics of a sampled session', () => {
     // `tracesSampler` and `sampleRate` would drop everything. Inside a sampled session they are not consulted.
     const tracesSampler = vi.fn(() => 0);
     init({ sessionSampleRate: 0.5, tracesSampler, sampleRate: 0 });
@@ -162,13 +161,13 @@ describe('sessionSampleRate', () => {
     }
 
     expect(tracesSampler).not.toHaveBeenCalled();
-    // Logs and metrics carry the session rate, so Sentry can extrapolate them
-    expect(logs).toEqual([0.5, 0.5, 0.5]);
-    expect(metrics).toEqual([0.5, 0.5, 0.5]);
+    // Logs and metrics are not sampled, so they carry no sample rate
+    expect(logs).toEqual([undefined, undefined, undefined]);
+    expect(metrics).toEqual([undefined, undefined, undefined]);
     expect(outcomes()).toEqual({});
   });
 
-  it('sends nothing but errors of an unsampled session', () => {
+  it('sends no spans of an unsampled session, and errors, logs and metrics as before', () => {
     const tracesSampler = vi.fn(() => 1);
     init({ sessionSampleRate: 0.5, tracesSampler });
     startSessionWithDecision(false, 0.5);
@@ -179,14 +178,13 @@ describe('sessionSampleRate', () => {
     }
 
     expect(tracesSampler).not.toHaveBeenCalled();
-    expect(logs).toEqual([]);
-    expect(metrics).toEqual([]);
-    // Dropped items are reported. Errors are not among them: `sampleRate` defaults to 1.
+    // Logs and metrics are not sampled, so the session's decision does not apply to them
+    expect(logs).toEqual([undefined, undefined, undefined]);
+    expect(metrics).toEqual([undefined, undefined, undefined]);
+    // Only spans are dropped and reported. Errors are sent: `sampleRate` defaults to 1.
     expect(outcomes()).toEqual({
       'sample_rate:transaction': 3,
       'sample_rate:span': 3,
-      'sample_rate:log_item': 3,
-      'sample_rate:trace_metric': 3,
     });
   });
 
@@ -232,11 +230,9 @@ describe('sessionSampleRate', () => {
       const continued = continueTrace(incoming(0.9, true), () => startInactiveSpan({ name: 'pageload' }));
       expect(spanIsSampled(continued)).toBe(true);
 
-      // The session adopted 0.9, so it is unsampled: later traces, logs and metrics are dropped
+      // The session adopted 0.9, so it is unsampled: later traces are dropped
       expect(resolveSamplingUnit(client.getOptions())).toMatchObject({ sampleRand: 0.9, sampled: false });
       expect(spanIsSampled(startRootSpanInNewTrace('navigation'))).toBe(false);
-      captureOneOfEach();
-      expect(logs).toEqual([]);
     });
 
     it('agrees with the trace head if both use the same rate', () => {
@@ -285,9 +281,6 @@ describe('conversationSampleRate', () => {
         setConversationId(conversationId);
 
         expect(spanIsSampled(startRootSpanInNewTrace('POST /chat'))).toBe(expectedSampled);
-        captureOneOfEach();
-        expect(logs).toHaveLength(expectedSampled ? 1 : 0);
-        expect(metrics).toHaveLength(expectedSampled ? 1 : 0);
       }
     }
   });
@@ -302,10 +295,8 @@ describe('conversationSampleRate', () => {
 
       setConversationId('conv_late');
 
-      // The trace keeps its decision. Logs and metrics follow the (unsampled) conversation from here on.
+      // The trace keeps its decision
       expect(spanIsSampled(span)).toBe(true);
-      _INTERNAL_captureLog({ level: 'info', message: 'hello' }, getCurrentScope());
-      expect(logs).toEqual([]);
     });
   });
 });
