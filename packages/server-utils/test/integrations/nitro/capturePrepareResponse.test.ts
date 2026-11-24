@@ -1,9 +1,10 @@
 import { tracingChannel } from 'node:diagnostics_channel';
 import { HTTP_ROUTE, SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
-import { getCurrentScope, setCurrentClient, spanToJSON, spanToTraceHeader, startSpan } from '@sentry/core';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { getCurrentScope, GLOBAL_OBJ, setCurrentClient, spanToJSON, spanToTraceHeader, startSpan } from '@sentry/core';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { capturePrepareResponse } from '../../../src/integrations/nitro/capturePrepareResponse';
+import { setIsNitroDevServer } from '../../../src/integrations/nitro/devServer';
 import type { NitroH3Event } from '../../../src/integrations/nitro/nitroTypes';
 import { nitroChannels } from '../../../src/orchestrion/config/nitro';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
@@ -45,6 +46,10 @@ describe('capturePrepareResponse', () => {
     );
     setCurrentClient(client);
     client.init();
+  });
+
+  afterEach(() => {
+    delete (GLOBAL_OBJ as { __SENTRY_NITRO_DEV_SERVER__?: boolean }).__SENTRY_NITRO_DEV_SERVER__;
   });
 
   it('names the http.server root span after the matched route', () => {
@@ -115,6 +120,16 @@ describe('capturePrepareResponse', () => {
 
     inHttpServerSpan(() => prepareResponse(event, undefined, response));
 
+    expect(event.res.headers.get('Server-Timing')).toBeNull();
+  });
+
+  it("leaves the dev server's responses to the worker it passes the requests on to", () => {
+    setIsNitroDevServer();
+    const event = createEvent({ matchedRoute: { route: '/api/users/:id' } });
+
+    const rootSpan = inHttpServerSpan(() => prepareResponse(event));
+
+    expect(spanToJSON(rootSpan).name).toBe('GET /api/users/42');
     expect(event.res.headers.get('Server-Timing')).toBeNull();
   });
 });

@@ -4,6 +4,7 @@ import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { safeChannelCallback } from '../../tracing-channel';
 import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import { setParameterizedRouteAttributes } from './captureTracingEvents';
+import { isNitroDevServer } from './devServer';
 import type { NitroH3Event } from './nitroTypes';
 import { setServerTimingHeaders } from './setServerTimingHeaders';
 
@@ -21,6 +22,11 @@ export function capturePrepareResponse(serverTiming: boolean): void {
     .tracingChannel<OrchestrionChannelContext>(CHANNELS.H3_PREPARE_RESPONSE)
     .start.subscribe(message => {
       safeChannelCallback(() => {
+        // The dev server's own h3 app passes each request on to the worker, which sets both.
+        if (isNitroDevServer()) {
+          return;
+        }
+
         const event = (message as OrchestrionChannelContext).arguments[1] as NitroH3Event | undefined;
         if (!event?.context) {
           return;

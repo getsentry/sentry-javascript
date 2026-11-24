@@ -1,13 +1,16 @@
 import type { Client } from '@sentry/core';
 import { getCurrentScope, makeDsn } from '@sentry/core';
 import { resetTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
+import { setIsNitroDevServer } from '@sentry/server-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { setIsNitroDevServer } from '../src/devServer';
 import { createNitroModule } from '../src/module';
 
 vi.mock('../src/instruments/instrumentServer', () => ({ instrumentServer: vi.fn() }));
 vi.mock('../src/sourceMaps', () => ({ setupSourceMaps: vi.fn() }));
-vi.mock('../src/devServer', () => ({ setIsNitroDevServer: vi.fn() }));
+vi.mock('@sentry/server-utils', async importOriginal => ({
+  ...(await importOriginal<object>()),
+  setIsNitroDevServer: vi.fn(),
+}));
 
 const DSN = 'https://public@o1.ingest.sentry.io/1337';
 

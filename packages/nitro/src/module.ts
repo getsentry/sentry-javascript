@@ -1,7 +1,7 @@
 import { setTunnelDefaults } from '@sentry/core/server';
+import { runsNitroInWorker, setIsNitroDevServer } from '@sentry/server-utils';
 import type { NitroModule } from 'nitro/types';
 import type { SentryNitroOptions } from './config';
-import { setIsNitroDevServer } from './devServer';
 import { instrumentServer } from './instruments/instrumentServer';
 import { setupSourceMaps } from './sourceMaps';
 
@@ -18,10 +18,8 @@ export function createNitroModule(sentryOptions?: SentryNitroOptions, sentryEnab
       // In dev, this process runs the dev server (Vite's for `vite dev`), which takes each request before Nitro handles
       // it. The SDK `--import` sets up its client, and the runtime plugin only reaches the client where Nitro runs.
       if (nitro.options.dev) {
-        // These runners run Nitro in a worker that the `--import` sets up too, and that traces each request.
-        // The `self` runner runs it in this process instead.
-        const runner = nitro.options.devServer?.runner || process.env.NITRO_DEV_RUNNER || 'node-worker';
-        if (runner === 'node-worker' || runner === 'node-process') {
+        // The worker that the `--import` sets up too traces each request.
+        if (runsNitroInWorker(nitro)) {
           setIsNitroDevServer();
         }
 

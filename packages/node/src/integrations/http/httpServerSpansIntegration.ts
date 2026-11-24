@@ -58,6 +58,7 @@ import {
   hasSpanStreamingEnabled,
   HTTP_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
+import { isNitroDevServer } from '@sentry/server-utils';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { addStartSpanCallback } from './httpServerIntegration';
@@ -323,6 +324,11 @@ function shouldIgnoreSpansForIncomingRequest(
   },
 ): boolean {
   if (isTracingSuppressed()) {
+    return true;
+  }
+
+  // Nitro's dev server passes each request on to a worker, which creates the request's span.
+  if (isNitroDevServer()) {
     return true;
   }
 

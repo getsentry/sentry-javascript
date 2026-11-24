@@ -2,6 +2,7 @@ import type { InstrumentationConfig } from '../apmTypes';
 import { registrationOnly } from './registration-only';
 
 const H3_VERSION_RANGE = '>=2.0.0-0';
+const NITRO_VERSION_RANGE = '>=3.0.0-0';
 
 /**
  * Nitro's instrumentation mostly consumes tracing channels that h3, srvx and unstorage publish
@@ -30,8 +31,16 @@ export const nitroConfig = [
     module: { name: 'h3', versionRange: H3_VERSION_RANGE, filePath: 'dist/response.mjs' },
     functionQuery: { functionName: 'prepareResponse', kind: 'Sync' },
   },
+  {
+    // The dev server's app, created on its main thread for `nitro dev` and Nitro's Vite plugin. Nitro is
+    // not bundled there, so only the runtime hook reaches it.
+    channelName: 'devApp',
+    module: { name: 'nitro', versionRange: NITRO_VERSION_RANGE, filePath: 'dist/_dev.mjs' },
+    functionQuery: { className: 'NitroDevApp' },
+  },
 ] satisfies InstrumentationConfig[];
 
 export const nitroChannels = {
   H3_PREPARE_RESPONSE: 'orchestrion:h3:prepareResponse',
+  NITRO_DEV_APP: 'orchestrion:nitro:devApp',
 } as const;

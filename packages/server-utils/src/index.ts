@@ -98,6 +98,7 @@ export { expressErrorHandler, setupExpressErrorHandler } from './integrations/ex
 /* oxlint-enable typescript/no-deprecated */
 export { firebaseIntegration } from './integrations/firebase';
 export { nitroIntegration } from './integrations/nitro';
+export { isNitroDevServer, runsNitroInWorker, setIsNitroDevServer } from './integrations/nitro/devServer';
 export type { NitroIntegrationOptions } from './integrations/nitro';
 
 export { getTracingIntegrations, getErrorIntegrations } from './integrations';

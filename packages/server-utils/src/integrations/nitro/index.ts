@@ -4,6 +4,7 @@ import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentat
 import { capturePrepareResponse } from './capturePrepareResponse';
 import { captureStorageEvents } from './captureStorageEvents';
 import { captureTracingEvents } from './captureTracingEvents';
+import { captureNitroDevServer } from './devServer';
 import { captureServerTimingHeaders } from './setServerTimingHeaders';
 
 const INTEGRATION_NAME = 'Nitro' as const;
@@ -42,8 +43,11 @@ const _nitroIntegration = ((options: NitroIntegrationOptions = {}) => {
       }
     },
     setup(client) {
-      // No span of its own, so it does not need the tracing channel binding.
+      // These create no spans, so they do not need the tracing channel binding.
       invokeOrchestrionInstrumentation(client, ['h3'], capturePrepareResponse, [serverTiming], {
+        requiresTracingChannelBinding: false,
+      });
+      invokeOrchestrionInstrumentation(client, ['nitro'], captureNitroDevServer, [], {
         requiresTracingChannelBinding: false,
       });
     },
